@@ -218,7 +218,7 @@ export const seriesTools = {
             ? "members_seen counts the member rows the roster wrote that day, including members who left during the day (their row keeps the clan's tag until the next roster places them elsewhere), so it can read above members; a day it reads below members is a partial day (the roster was polled, but not every member's row is on the game day's grid yet)."
             : null,
           metrics.some((m) => CLAN_PROFILE_AGGREGATES.includes(m))
-            ? "The profile-derived aggregates average over members with a recorded profile that day; members_with_profile is that denominator. members_6_years_plus reads the player's current years_played, not the day's."
+            ? "The profile-derived aggregates average over members with a recorded profile that day; members_with_profile is that denominator. members_6_years_plus reads the player's current players_profile.years_played, not the day's."
             : null,
           botSourceNote(points),
           ...seasonFields.seasonNotes,

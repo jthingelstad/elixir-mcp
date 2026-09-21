@@ -18,6 +18,42 @@ scale**, and that is where the last two days' defects lived:
 - A 7-day corpus meta read timed out at the 18 s query budget only past
   800k participant rows (feedback #77–#79).
 
+## The layers (2026-09-21, second build)
+
+| layer | what it is | where |
+|---|---|---|
+| **catalogue** | what agents actually called this week: the top argument sets per read-only tool from the audit, plus hand-picked seeds with reasons. Derived by `catalogue.mjs --refresh`, committed, reviewed as a diff. Sets the current contract refuses are listed and dropped at refresh. | `catalogue.json`, `catalogue-seed.json` |
+| **generic rules** | over every catalogue set: answers · published `outputSchema` holds (else the recorded shape baseline, one-directional) · under a ceiling from the tool's own p95 · a two-size tool's compact is a subset · every field its notes name is on some response of the tool · every field its docs section names is on some response this run | `checks/catalogue.mjs` |
+| **allowances** | tokens a note or doc uses as prose or as a conditional field, each with a written reason | `catalogue-allow.json` |
+| **bites** | captured answers from a day the product was wrong, and the case or rule that must FAIL on each; runs under `npm test` with no network. A rule that passes on known-bad history is decoration. | `bites/`, `bites.test.mjs` |
+| **known** | failures filed for a decision rather than a fix: a reason and an expiry; reported as KNOWN and not counted until the date passes | `known.json` |
+| **shapes** | recorded key-path baselines for tools with no `outputSchema`, provenance printed by every run; the stopgap that shrinks as schemas are written | `shapes/`, `--update-shapes --reason` |
+
+### Why a recorded baseline cannot ossify an error
+
+1. **Derive, record only as a stopgap.** Expectations come from artifacts of intent - the output schema, the docs section the response points at, a second tool computing the same fact. A recorded shape exists only where none of those does, carries `provenance: "recorded"`, and the run prints how many tools rest on one: a to-do list, not coverage.
+2. **One-directional.** A baseline path must be present now; a new path is information; an absence is never in the set, so it cannot be baselined.
+3. **Prove it bites.** Every rule is shown to fail on a capture from a version that had the defect (`bites/manifest.json`), under `verify`, forever - the archive bucket expires captures after 90 days, the proof must not. `bites/fetch.mjs <date> <request-id prefix> <name> [feedback id]` pulls one.
+4. **Updating a baseline is a reviewed change.** `--update-shapes` refuses without `--reason`; the reason is written beside the baseline; the diff lands with the behaviour change and its changelog entry.
+5. **Sources the gate cannot own.** The Gym (an adversarial reader with no stake in the baseline) keeps its weekly hour for what the gate cannot imagine; when it files a finding, its capture becomes a bite the same day.
+
+### Its own budget
+
+The `acceptance` key carries its own hourly ceiling (`{service_token_limits}`, 900/hour), so it spends from its own bucket: a run is ~170 calls, and before this a run took 40% of the owner's hour, which the Discord agent shares.
+
+### What the Gym should file
+
+A finding ends with a block the suite can take as written:
+
+```json
+{ "tool": "war_history", "args": { "season_id": 135, "section_index": 3 },
+  "request_id": "6d84426c-...", "assert": [
+    { "every_row_has": ["weeks", "finished_early"] },
+    { "eq": ["weeks[0].finished_early", true] } ] }
+```
+
+`request_id` is what `bites/fetch.mjs` needs; the asserts map onto `lib.mjs` one to one.
+
 ## What it asserts
 
 Invariants, never a value that changes daily:

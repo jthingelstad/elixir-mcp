@@ -31,6 +31,12 @@
     "filters_applied": "documented as a key that does NOT exist",
     "limit_applied": "same",
     "notify_off": "an account preference the timeline docs name, not a response field",
-    "pol_league": "the glossary's name for the profile's league field"
+    "pol_league": "the glossary's name for the profile's league field",
+    "towers_before": "on a battle row only when the record holds the boat/tower counters for that battle",
+    "towers_after": "same",
+    "modal_arena": "on trophy_floor only for a player with a floor in the window",
+    "last_battle_at": "on a `returned` timeline item, a rare kind",
+    "returned_after_days": "same",
+    "player_activity": "a timeline entry kind for a player subject; the acceptance principal is a clan agent and follows no player"
   }
 }

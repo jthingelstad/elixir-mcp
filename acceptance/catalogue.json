@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-21T16:43:59.421Z",
+  "generated_at": "2026-09-21T16:53:40.428Z",
   "days": 7,
   "per_tool": 3,
   "tools": {
@@ -117,6 +117,15 @@
             }
           },
           "calls": 2
+        },
+        {
+          "args": {
+            "fit_for": "#20JJJ2CCRU",
+            "limit": 5,
+            "segment": "corpus"
+          },
+          "calls": 0,
+          "seed": "fit rows carry held_level, vs_fielded, to_level, mean_level_after_upgrades the battles docs promise"
         }
       ]
     },
@@ -608,6 +617,14 @@
           },
           "calls": 0,
           "seed": "a week of items across kinds, unfiltered"
+        },
+        {
+          "args": {
+            "days": 2,
+            "mark_read": false
+          },
+          "calls": 0,
+          "seed": "full verbosity carries the entries with their kinds (player_activity, clan_activity)"
         }
       ]
     },

@@ -479,7 +479,7 @@ in its hint.
   Formulas live in the docs, never in a note.
 - **Timestamps** in responses are ISO 8601 UTC with a trailing `Z`;
   `meta.timezone_applied` names the display zone when local labels were used.
-  Events carry `created_at`.
+  Timeline items carry `at`.
 - **Null is unknown, never zero**: a source never polled has `observed_at:
   null` and `freshness_seconds: null`; an unknown war attendance is `null`; a
   destroyed tower is `0` and unreported tower data is `null`.

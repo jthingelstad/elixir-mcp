@@ -12,38 +12,74 @@
   ],
   "battles_opponents": [
     {
-      "args": { "player_tag": "#20JJJ2CCRU", "days": 90, "min_battles": 1 },
+      "args": {
+        "player_tag": "#20JJJ2CCRU",
+        "days": 90,
+        "min_battles": 1
+      },
       "reason": "rows with name_known: min_battles 2 over 30 days can be empty for a ranked player"
     }
   ],
   "cards_card": [
     {
-      "args": { "card": "Knight", "segment": "mine" },
+      "args": {
+        "card": "Knight",
+        "segment": "mine"
+      },
       "reason": "members[].played.level_played is a clan-segment field"
     }
   ],
   "rankings_timeline": [
     {
-      "args": { "days": 14 },
+      "args": {
+        "days": 14
+      },
       "reason": "the board's own curve carries floor_delta"
     }
   ],
   "rankings_players": [
     {
-      "args": { "board": "pol_final", "season": 135, "limit": 3 },
+      "args": {
+        "board": "pol_final",
+        "season": 135,
+        "limit": 3
+      },
       "reason": "a final board echoes season_requested"
     }
   ],
   "elixir_timeline": [
     {
-      "args": { "days": 7, "mark_read": false, "verbosity": "compact" },
+      "args": {
+        "days": 7,
+        "mark_read": false,
+        "verbosity": "compact"
+      },
       "reason": "a week of items across kinds, unfiltered"
+    },
+    {
+      "args": {
+        "days": 2,
+        "mark_read": false
+      },
+      "reason": "full verbosity carries the entries with their kinds (player_activity, clan_activity)"
     }
   ],
   "players_collection": [
     {
-      "args": { "player_tag": "#UL2V9QRG0" },
+      "args": {
+        "player_tag": "#UL2V9QRG0"
+      },
       "reason": "a full collection under the result cap (the owner's is not: filed)"
+    }
+  ],
+  "battles_meta_decks": [
+    {
+      "args": {
+        "segment": "corpus",
+        "limit": 5,
+        "fit_for": "#20JJJ2CCRU"
+      },
+      "reason": "fit rows carry held_level, vs_fielded, to_level, mean_level_after_upgrades the battles docs promise"
     }
   ]
 }

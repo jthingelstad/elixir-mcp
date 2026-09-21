@@ -29,6 +29,7 @@
  * never passes live: true, and its token cannot: cr:read only.
  */
 
+import { readFileSync } from "node:fs";
 import { loadEnv, makeDoor } from "./door.mjs";
 import { contracts } from "./checks/contracts.mjs";
 import { identities } from "./checks/identities.mjs";
@@ -39,6 +40,13 @@ import { loadCatalogue } from "./catalogue.mjs";
 import { writeShape, loadShape } from "./shapes.mjs";
 
 export const SUITES = { contracts, identities, budgets, gym, catalogue };
+/** Failures filed for a decision rather than a fix, each with a reason
+ *  and an expiry: reported as KNOWN and not counted until the date. */
+const KNOWN = new Map(
+  JSON.parse(
+    readFileSync(new URL("./known.json", import.meta.url), "utf8"),
+  ).map((k) => [k.case, k]),
+);
 /** Suites whose cases are independent run a few at a time; the hand-
  *  written suites share reads in order and stay sequential. */
 /** One at a time everywhere: the budget rule times each call, and three
@@ -82,10 +90,21 @@ export async function runSuite(
       error = err instanceof Error ? err.message : String(err);
     }
     const wall = Math.round(performance.now() - started);
-    report.cases.push({ id, ok: !error, ms: ms ?? wall, error });
-    if (error) report.failures += 1;
+    // A known failure (known.json: a reason and an expiry, filed for a
+    // decision) is reported, not counted - until its date passes.
+    const known = error ? KNOWN.get(id) : null;
+    const expired = known && Date.parse(known.until) < Date.now();
+    const counts = Boolean(error) && (!known || expired);
+    report.cases.push({
+      id,
+      ok: !error,
+      known: known && !expired ? known.reason : undefined,
+      ms: ms ?? wall,
+      error,
+    });
+    if (counts) report.failures += 1;
     log(
-      `${error ? "FAIL" : "ok  "} ${id}${ms !== null ? ` (${ms} ms)` : ""}${error ? `\n     ${error}` : ""}`,
+      `${!error ? "ok  " : counts ? "FAIL" : "KNOWN"} ${id}${ms !== null ? ` (${ms} ms)` : ""}${error ? `\n     ${error}` : ""}${known && !expired ? `\n     known until ${known.until}: ${known.reason}` : ""}${expired ? `\n     the known-failure entry expired ${known.until}` : ""}`,
     );
   };
   for (const [suite, cases] of Object.entries(SUITES)) {
