@@ -128,6 +128,24 @@ if (isMain) {
   if (raw.errorMessage) throw new Error(raw.errorMessage);
   const stale = [];
   const shaped = shapeCatalogue(raw, makeRegistry().declarations(), { stale });
+  // Hand-picked sets beside the derived ones (catalogue-seed.json, a
+  // reason each): reads that guarantee rows a docs section promises and
+  // usage this week did not happen to make.
+  const seeds = JSON.parse(
+    readFileSync(path.join(here, "catalogue-seed.json"), "utf8"),
+  );
+  for (const [tool, sets] of Object.entries(seeds)) {
+    if (tool.startsWith("_")) continue;
+    const t = (shaped.tools[tool] ??= {
+      calls: null,
+      p50_ms: null,
+      p95_ms: null,
+      sets: [],
+    });
+    for (const seed of sets)
+      if (!t.sets.some((s) => canonical(s.args) === canonical(seed.args)))
+        t.sets.push({ args: sortKeys(seed.args), calls: 0, seed: seed.reason });
+  }
   writeFileSync(CATALOGUE_FILE, JSON.stringify(shaped, null, 2) + "\n");
   // The committed file is formatted like everything else in the repo.
   const { spawnSync } = await import("node:child_process");

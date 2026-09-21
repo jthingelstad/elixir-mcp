@@ -23,6 +23,14 @@
     "end_of_day_rank": "same"
   },
   "docs": {
-    "_": "tokens the docs use as prose or as another surface's fields; each with its reason"
+    "_": "tokens the docs use as prose or as another surface's fields; each with its reason",
+    "live_status": "rides only on live: true reads, which the suite never makes",
+    "observed_ip": "operators page: owner-only console fields, never on the MCP surface",
+    "silent_since": "same",
+    "nominal_period_elapsed": "documented as removed at 4.0.0",
+    "filters_applied": "documented as a key that does NOT exist",
+    "limit_applied": "same",
+    "notify_off": "an account preference the timeline docs name, not a response field",
+    "pol_league": "the glossary's name for the profile's league field"
   }
 }

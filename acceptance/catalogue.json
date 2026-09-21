@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-21T16:27:15.003Z",
+  "generated_at": "2026-09-21T16:43:59.421Z",
   "days": 7,
   "per_tool": 3,
   "tools": {
@@ -141,6 +141,15 @@
             "player_tag": "#20JJJ2CCRU"
           },
           "calls": 2
+        },
+        {
+          "args": {
+            "days": 90,
+            "min_battles": 1,
+            "player_tag": "#20JJJ2CCRU"
+          },
+          "calls": 0,
+          "seed": "rows with name_known: min_battles 2 over 30 days can be empty for a ranked player"
         }
       ]
     },
@@ -204,6 +213,15 @@
             "verbosity": "compact"
           },
           "calls": 2
+        },
+        {
+          "args": {
+            "limit": 10,
+            "player_tag": "#20JJJ2CCRU",
+            "timezone": "America/Chicago"
+          },
+          "calls": 0,
+          "seed": "battle_time_local rides only with a timezone; towers_before/after on the rows that carry them"
         }
       ]
     },
@@ -253,6 +271,14 @@
             "segment": "corpus"
           },
           "calls": 2
+        },
+        {
+          "args": {
+            "card": "Knight",
+            "segment": "mine"
+          },
+          "calls": 0,
+          "seed": "members[].played.level_played is a clan-segment field"
         }
       ]
     },
@@ -573,6 +599,15 @@
             "verbosity": "compact"
           },
           "calls": 1
+        },
+        {
+          "args": {
+            "days": 7,
+            "mark_read": false,
+            "verbosity": "compact"
+          },
+          "calls": 0,
+          "seed": "a week of items across kinds, unfiltered"
         }
       ]
     },
@@ -636,6 +671,13 @@
             "verbosity": "compact"
           },
           "calls": 4
+        },
+        {
+          "args": {
+            "player_tag": "#UL2V9QRG0"
+          },
+          "calls": 0,
+          "seed": "a full collection under the result cap (the owner's is not: filed)"
         }
       ]
     },
@@ -817,6 +859,15 @@
             "verbosity": "compact"
           },
           "calls": 1
+        },
+        {
+          "args": {
+            "board": "pol_final",
+            "limit": 3,
+            "season": 135
+          },
+          "calls": 0,
+          "seed": "a final board echoes season_requested"
         }
       ]
     },
@@ -846,6 +897,13 @@
             "player_tag": "#20JJJ2CCRU"
           },
           "calls": 1
+        },
+        {
+          "args": {
+            "days": 14
+          },
+          "calls": 0,
+          "seed": "the board's own curve carries floor_delta"
         }
       ]
     },

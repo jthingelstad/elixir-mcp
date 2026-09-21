@@ -1,0 +1,30 @@
+{
+  "contract_version": "6.13.0",
+  "captured_at": "2026-09-21T16:43:18.245Z",
+  "request": {
+    "tool": "battles_query",
+    "arguments": {
+      "limit": 1,
+      "player_tag": "#20JJJ2CCRU",
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "error": {
+      "code": "query_timeout",
+      "class": "retry",
+      "message": "Tool battles_query exceeded its query time budget; no analytical result was returned.",
+      "hint": "Retry battles_query({\"limit\":1,\"player_tag\":\"#20JJJ2CCRU\",\"verbosity\":\"compact\"}) after a few seconds, or narrow from/to first; quote meta.request_id if it persists."
+    },
+    "meta": {
+      "contract_version": "6.13.0"
+    }
+  },
+  "timings": {
+    "db_ms": 23488,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

@@ -638,10 +638,17 @@ export const battlesTools = {
         }
         params.push(m[1], m[2]);
         where.push(
-          `(b.battle_time, b.battle_id) < ($${params.length - 1}, $${params.length})`,
+          `(bp.battle_time, bp.battle_id) < ($${params.length - 1}, $${params.length})`,
         );
       }
 
+      // Ordered on the PARTICIPANT's copy of battle_time (review 3.3 moved
+      // the window there; the order stayed on the battle table until
+      // 2026-09-21, when the acceptance suite found limit: 1 for the most-
+      // recorded player timing out at 24 s: the planner walked the battle
+      // table's time index backwards probing each row for the player).
+      // The (player_tag, battle_time) covering index now serves the
+      // ordered scan directly; the two columns are equal by construction.
       const { rows } = await ctx.db.query(
         `select b.cursor, b.battle_id, b.battle_time, b.type, b.type_class, b.game_mode_id, b.game_mode_name,
                 b.arena, b.arena_id, b.league_number,
@@ -655,7 +662,7 @@ export const battlesTools = {
          join battle b on b.battle_id = bp.battle_id
          left join player p on p.player_tag = bp.player_tag
          where ${where.join(" and ")}
-         order by b.battle_time desc, b.battle_id desc
+         order by bp.battle_time desc, bp.battle_id desc
          limit ${limit}`,
         params,
       );
@@ -830,7 +837,7 @@ export const battlesTools = {
         // Same filters minus the cursor: the cursor positions a page, the
         // total describes the whole match set.
         const countWhere = where.filter(
-          (w) => !w.includes("(b.battle_time, b.battle_id) <"),
+          (w) => !w.includes("(bp.battle_time, bp.battle_id) <"),
         );
         const { rows: cnt } = await ctx.db.query(
           `select count(*)::int as n
@@ -999,13 +1006,13 @@ export const battlesTools = {
           rows: [row],
         } = await ctx.db.query(
           `with sample as materialized (
-             select bp.outcome, bp.crowns, bp.trophy_change, b.battle_time, b.battle_id,
+             select bp.outcome, bp.crowns, bp.trophy_change, bp.battle_time, bp.battle_id,
                     b.type_class, b.type,
                     (select max(o.crowns) from battle_participant o
                      where o.battle_id = bp.battle_id and o.side <> bp.side) as opp_crowns
              from battle_participant bp join battle b on b.battle_id = bp.battle_id
              where ${where.join(" and ")}
-             order by b.battle_time desc, b.battle_id desc
+             order by bp.battle_time desc, bp.battle_id desc
              ${lastN ? `limit ${lastN}` : ""}
            ), decided as (
              select outcome, row_number() over w as rn, first_value(outcome) over w as latest

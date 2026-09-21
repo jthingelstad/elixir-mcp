@@ -1,0 +1,49 @@
+{
+  "_": "Argument sets read beside the derived catalogue, each with its reason: a docs section promises a field only this shape carries, or the run must cover a surface usage this week did not.",
+  "battles_query": [
+    {
+      "args": {
+        "player_tag": "#20JJJ2CCRU",
+        "limit": 10,
+        "timezone": "America/Chicago"
+      },
+      "reason": "battle_time_local rides only with a timezone; towers_before/after on the rows that carry them"
+    }
+  ],
+  "battles_opponents": [
+    {
+      "args": { "player_tag": "#20JJJ2CCRU", "days": 90, "min_battles": 1 },
+      "reason": "rows with name_known: min_battles 2 over 30 days can be empty for a ranked player"
+    }
+  ],
+  "cards_card": [
+    {
+      "args": { "card": "Knight", "segment": "mine" },
+      "reason": "members[].played.level_played is a clan-segment field"
+    }
+  ],
+  "rankings_timeline": [
+    {
+      "args": { "days": 14 },
+      "reason": "the board's own curve carries floor_delta"
+    }
+  ],
+  "rankings_players": [
+    {
+      "args": { "board": "pol_final", "season": 135, "limit": 3 },
+      "reason": "a final board echoes season_requested"
+    }
+  ],
+  "elixir_timeline": [
+    {
+      "args": { "days": 7, "mark_read": false, "verbosity": "compact" },
+      "reason": "a week of items across kinds, unfiltered"
+    }
+  ],
+  "players_collection": [
+    {
+      "args": { "player_tag": "#UL2V9QRG0" },
+      "reason": "a full collection under the result cap (the owner's is not: filed)"
+    }
+  ]
+}

@@ -37,5 +37,12 @@
     "rule": "notesNameFields",
     "capture": "in_progress-war_history-exact.json",
     "expect": "notes name in_progress"
+  },
+  {
+    "contract": "6.13.0",
+    "why": "battles_query limit 1 for the most-recorded player timed out at 24 s: the order was on the battle table's time, not the participant's (the catalogue suite's first product finding)",
+    "rule": "answered",
+    "capture": "battles_query-limit-1-timeout.json",
+    "expect": "refused query_timeout"
   }
 ]

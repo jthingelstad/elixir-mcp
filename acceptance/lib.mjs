@@ -1,6 +1,8 @@
 /** The suite's assertions, plain and named: a failure message is the
  *  whole report a reader gets. */
 
+import { ERROR_CODES } from "@elixir-mcp/contracts";
+
 export function fail(msg) {
   throw new Error(msg);
 }
@@ -35,6 +37,21 @@ export function deepKeys(value, out = new Set()) {
   return out;
 }
 
+/** Every snake_case string VALUE anywhere in a value: a note that names
+ *  `tower_troop` or `roster_and_war_only` names something the response
+ *  carries as a value, not a key. */
+export function deepValues(value, out = new Set()) {
+  if (Array.isArray(value)) for (const v of value) deepValues(v, out);
+  else if (value && typeof value === "object")
+    for (const v of Object.values(value)) deepValues(v, out);
+  else if (
+    typeof value === "string" &&
+    /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/.test(value)
+  )
+    out.add(value);
+  return out;
+}
+
 /** The snake_case tokens a note names: `finished_early`, `decks_used`,
  *  `participants[].scoring_decks` (its last segment), `applied.window.partial`
  *  (each segment). A token with no underscore is prose, not a field. */
@@ -58,6 +75,8 @@ export function noteTokens(notes, { tools = new Set() } = {}) {
  *  values, argument names every tool shares, prose idioms. Kept short
  *  on purpose; a case allows its own beyond these. */
 export const VOCABULARY = new Set([
+  // the error enum: a note that names a refusal names a code
+  ...ERROR_CODES,
   // arguments shared by every tool
   "player_tag",
   "clan_tag",
