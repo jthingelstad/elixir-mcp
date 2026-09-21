@@ -1805,17 +1805,52 @@ export const battlesTools = {
                  and bp.deck_avg_level is not null) lv on true`
                     }
              where ${where.join(" and ")}
-             group by bp.deck_hash, bp.type, bp.player_tag)
-           select deck_hash, type,
-                  sum(battles)::int as battles, sum(wins)::int as wins, sum(losses)::int as losses,
-                  count(distinct player_tag)::int as players,
-                  min(first_used) as first_used, max(last_used) as last_used,
-                  sum(gap_sum) as gap_sum, sum(gap_n)::int as gap_n,
-                  (select count(distinct d2.player_tag)::int from d d2 where d2.deck_hash = d.deck_hash) as deck_players,
-                  (select count(distinct d3.player_tag)::int from d d3) as window_players
-           from d group by deck_hash, type`,
-          params,
+             group by bp.deck_hash, bp.type, bp.player_tag),
+           -- The window's totals and its per-type groups once, over
+           -- every deck; the deck rows below are the ones over
+           -- min_battles. Both used to be correlated subqueries per
+           -- (deck, type) row - quadratic on the corpus, and 100k+
+           -- deck rows shipped to the handler to sum (6.12.0).
+           w as (
+             select coalesce(sum(battles), 0)::int as decided,
+                    coalesce(sum(wins), 0)::int as wins,
+                    count(distinct player_tag)::int as players,
+                    (select jsonb_agg(jsonb_build_object('type', g.type, 'battles', g.battles,
+                                                         'gap_sum', g.gap_sum, 'gap_n', g.gap_n))
+                       from (select type, sum(battles)::int as battles,
+                                    sum(gap_sum) as gap_sum, sum(gap_n)::int as gap_n
+                               from d group by type) g) as by_type
+             from d),
+           dp as (
+             select deck_hash, count(distinct player_tag)::int as deck_players
+             from d group by deck_hash having sum(battles) >= $${params.length + 1})
+           select d.deck_hash, d.type,
+                  sum(d.battles)::int as battles, sum(d.wins)::int as wins, sum(d.losses)::int as losses,
+                  count(distinct d.player_tag)::int as players,
+                  min(d.first_used) as first_used, max(d.last_used) as last_used,
+                  sum(d.gap_sum) as gap_sum, sum(d.gap_n)::int as gap_n,
+                  dp.deck_players,
+                  w.players as window_players, w.decided as window_decided,
+                  w.wins as window_wins, w.by_type as window_types
+           from d join dp on dp.deck_hash = d.deck_hash cross join w
+           group by d.deck_hash, d.type, dp.deck_players, w.players, w.decided, w.wins, w.by_type`,
+          [...params, minBattles],
         );
+        // An empty deck list still has a window: totals from a second,
+        // cheap read of the same shape.
+        const window =
+          byDeckType[0] ??
+          (
+            await ctx.db.query(
+              `select count(*)::int as window_decided,
+                      count(*) filter (where bp.outcome = 'win')::int as window_wins,
+                      count(distinct bp.player_tag)::int as window_players,
+                      '[]'::jsonb as window_types
+                 from ${pop ? "meta_season_pop" : "battle_participant"} bp
+                where ${where.join(" and ")}`,
+              params,
+            )
+          ).rows[0];
         const byDeck = new Map();
         for (const t of byDeckType) {
           const cur = byDeck.get(t.deck_hash) ?? {
@@ -1847,31 +1882,18 @@ export const battlesTools = {
             r.gap_n > 0 ? Number((r.gap_sum / r.gap_n).toFixed(2)) + 0 : null,
           level_gap_battles: r.gap_n,
         }));
-        playersInWindow = byDeckType[0]?.window_players ?? 0;
-        totalDecided = rows.reduce((n, r) => n + r.battles, 0);
-        totalWins = rows.reduce((n, r) => n + r.wins, 0);
-        if (!args.mode) {
-          const perType = new Map();
-          for (const t of byDeckType) {
-            const cur = perType.get(t.type) ?? {
-              type: t.type,
-              battles: 0,
-              gap_sum: 0,
-              level_battles: 0,
-            };
-            cur.battles += t.battles;
-            cur.gap_sum += Number(t.gap_sum ?? 0);
-            cur.level_battles += t.gap_n;
-            perType.set(t.type, cur);
-          }
+        playersInWindow = window.window_players ?? 0;
+        totalDecided = window.window_decided ?? 0;
+        totalWins = window.window_wins ?? 0;
+        if (!args.mode)
           modeGroups = modeGaps(
-            [...perType.values()].map((g) => ({
-              ...g,
-              mean_level_gap:
-                g.level_battles > 0 ? g.gap_sum / g.level_battles : null,
+            (window.window_types ?? []).map((g) => ({
+              type: g.type,
+              battles: g.battles,
+              level_battles: g.gap_n,
+              mean_level_gap: g.gap_n > 0 ? Number(g.gap_sum) / g.gap_n : null,
             })),
           );
-        }
       }
       if (args.containing) {
         const keep = await decksContaining(ctx.db, args.containing);
