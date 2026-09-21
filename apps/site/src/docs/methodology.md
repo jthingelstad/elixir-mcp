@@ -154,6 +154,11 @@ them.
 
 `war_rivals` aggregates recorded river-race observations: races seen, fame,
 zero-fame races and seasons spanned. This is observed history, not a forecast.
+`races_observed` counts every sighting, the week in progress included;
+the fame statistics (`mean_fame`, `median_fame`, `max_fame`,
+`zero_fame_races`) pool the finished races only, and `finished_races` is
+their count, the denominator to read them over. A rival with no finished
+shared race has `null` fame statistics, not zero.
 
 Every response carries [an envelope](/docs/responses) with its computation time.
 Subject tools expose history and source freshness where applicable. Check

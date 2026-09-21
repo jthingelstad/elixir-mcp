@@ -328,15 +328,31 @@ because that endpoint does not report the former current-day value.
 - `in_progress`, true while the week is still being fought; on older weeks a
   `null` `our_rank` or `our_fame` means the week was observed without a
   standings capture, a capture gap rather than a zero.
-- `finished_early`, true when the boat reached the 10,000-fame line before
-  the week ended. Decks used after the finish earn zero points, so per-deck
-  arithmetic over such a week is invalid.
+- `finished_early`, true on a regular week whose boat reached the
+  10,000-fame line, false when it did not, and `null` on a Colosseum week
+  (which has no finish line) or a week observed without a standings
+  capture. Decks used after the finish earn zero points, so `decks_used`
+  is not the denominator of a points-per-deck rate on a finished week.
+- `finish_war_day`, the war day whose close carried the boat over the line,
+  from the race's own day-by-day; `null` when the boat did not finish or
+  the log does not hold the week. The game banks a boat's progress at each
+  war day's close, so a finish is a day close: POAP KINGS closed war day 3
+  of 136/0 over the line, its `finish_time` is that close
+  (2026-09-13T09:38:04Z), and war day 4 earned 0. `our_fame` on such a
+  week can read past 10,000 (10,134): the race log caps a finished boat's
+  fame at the line, the live race reports its progress past it, and the
+  record keeps the larger.
 - `history_starts_at`, the recording horizon: fewer seasons than requested is
   coverage, not absence.
 - `member_weeks` (with `player_tag`) for one member week by week:
   `war_days_battled` counts the days they fought and `war_days` lists the day
   indices; `null` `war_days_battled` means per-day attendance is unknown for
-  that week, not zero.
+  that week, not zero. `scoring_decks` is `decks_used` less the decks
+  played on the war days after the finish, the denominator for a
+  points-per-deck rate: equal to `decks_used` on an unfinished week, `null`
+  when the record cannot separate the two (no day-by-day log for the week,
+  or no poll saw the days past the finish). It can overstate by a deck where
+  a poll missed a day's last battle.
 
 - `closed_at`, the API's own close instant for the week (its
   `createdDate` on the race log), beside `finished`, which is when the
@@ -354,11 +370,11 @@ closed-week roster path. The exact week also carries:
 
 - `standings[]`, every clan in the week's bracket with `fame`, `rank`,
   `trophy_change`, `finish_time`, `clan_score` and `repair_points`.
-  `finish_time` is when the clan's boat crossed the line and `null` for a
-  clan that did not: the API marks those with an epoch-zero sentinel
-  (`19691231T235959.000Z`), which the record stores as observed and never
-  serves as a time. The same rule holds on `war_current.standings[]` and
-  `race_finished_at`.
+  `finish_time` is the war-day close at which the clan's banked fame
+  reached the line and `null` for a clan that did not finish: the API marks
+  those with an epoch-zero sentinel (`19691231T235959.000Z`), which the
+  record stores as observed and never serves as a time. The same rule holds
+  on `war_current.standings[]` and `race_finished_at`.
 - `days[]`, the race's own day-by-day: the API's `periodLogs`, one entry per
   closed war day (`war_day`, `period_index`) with `standings[]` per clan:
   `points_earned` (that day's score), `progress_start` and `progress_end`
@@ -380,6 +396,14 @@ own word for the day (`training`, `warDay`, `colosseum`) beside the policy
 grid's `period.kind`; the two differ only when the clan's reset has drifted
 across the boundary. `war_rivals` rows carry each rival's latest observed
 `clan_score`.
+
+Once the clan's boat has finished, `war_current` says so: `race_finished_at`
+is the finish (a war-day close, as above), `finish_war_day` the day it
+closed, and a note names both with the count of decks played on the days
+since, which earned nothing. `participants[].scoring_decks` sits beside
+`decks_used` with the same meaning as on `war_history.member_weeks[]`: the
+denominator for a points-per-deck rate, `null` when the record cannot
+separate the decks that scored from the decks that did not.
 
 **Clan score and repair points.** `clan_score` is the game's own strength
 number for a clan (the `clanScore` the race poll reports per bracket clan,

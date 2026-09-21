@@ -1075,14 +1075,14 @@ test("war_history: finished_early flags 10000-fame regular weeks; horizon named"
   const one = (await call(invoke, "war_history", { seasons: 1 })).body;
   assert.ok(one.weeks.every((w) => w.season_id === 134));
   assert.deepEqual(one.history_starts_at, body.history_starts_at);
-  const flagged = body.weeks.filter((w) => w.finished_early);
-  const tenK = body.weeks.filter(
-    (w) => w.our_fame === 10000 && !w.is_colosseum,
-  );
+  // 6.11.0: at or past the line, never === 10000 (the API stopped capping
+  // fame at the line in 2026-09 and the flag vanished from every row).
+  const flagged = body.weeks.filter((w) => w.finished_early === true);
+  const tenK = body.weeks.filter((w) => w.our_fame >= 10000 && !w.is_colosseum);
   assert.equal(
     flagged.length,
     tenK.length,
-    "every 10000-fame regular week carries the flag",
+    "every regular week at or past 10000 fame carries the flag",
   );
   assert.match(body.notes.join(" "), /finished_early/);
   assert.match(body.notes.join(" "), /history_starts_at/);
@@ -1624,4 +1624,321 @@ test("war_current on a clan the game has no race for says so instead of pointing
   assert.match(known.body.error.message, /The game reports no river race/);
   assert.match(known.body.error.hint, /live: true answers the same/);
   assert.match(known.body.error.hint, /clans_roster/);
+});
+
+// ---------------------------------------------------- 6.11.0 (feedback #81, #82)
+// The Gym's war run: finished_early was computed as fame === 10000 and the
+// API stopped capping fame at the line in 2026-09 (10134, 10305), so the
+// flag the docs promised and every note named was served on no row, and
+// war_current put points beside decks_used with no word that the decks
+// after the finish earned nothing.
+test("6.11.0: finished_early on every week, finish_war_day, scoring_decks (feedback #81)", async () => {
+  const { projectRaceSeries } = await import("../../ingest/src/war.mjs");
+  const race = await fixture("currentriverrace/war_day.json");
+  const own = async (season, section) =>
+    (
+      await db.query(
+        `select fame, finish_time from war_week_clan
+         where clan_tag = $1 and participant_clan_tag = $1 and season_id = $2 and section_index = $3`,
+        [CLAN, season, section],
+      )
+    ).rows[0];
+  const before = { "134:2": await own(134, 2), "133:0": await own(133, 0) };
+  // Overshoot, as the API serves it now; and a regular week the boat did
+  // not finish (the fixture has none).
+  await db.query(
+    `update war_week_clan set fame = 10305 where clan_tag = $1 and participant_clan_tag = $1
+       and season_id = 134 and section_index = 2`,
+    [CLAN],
+  );
+  await db.query(
+    `update war_week_clan set fame = 8400, finish_time = null where clan_tag = $1 and participant_clan_tag = $1
+       and season_id = 133 and section_index = 0`,
+    [CLAN],
+  );
+  // The race fixture's day-by-day into 133/3 (its periods 24-26 are
+  // section 3): day 3 closed at the line. Its earlier sections fill 133/0-2
+  // as well; 134/1's log is removed so one finished week has none.
+  await projectRaceSeries(db, {
+    payload: race,
+    fetchedAt: "2026-06-28T12:00:00Z",
+    seasonId: 133,
+    sectionIndex: 3,
+  });
+  await db.query(
+    `delete from war_period_log where clan_tag = $1 and season_id = 134 and section_index = 1`,
+    [CLAN],
+  );
+  const members = (
+    await db.query(
+      `select player_tag, decks_used from war_participation
+       where clan_tag = $1 and season_id = 133 and section_index = 3
+       order by points desc, player_tag limit 2`,
+      [CLAN],
+    )
+  ).rows;
+  assert.equal(members.length, 2, "the log fixture recorded 133/3's members");
+  // Polls past the finish: one member played four decks on day 4, the
+  // other none (a poll writes every participant's row).
+  await db.query(
+    `insert into war_attendance_day (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
+     values ($1, 133, 3, 3, $2, 4), ($1, 133, 3, 4, $2, 4), ($1, 133, 3, 4, $3, 0)
+     on conflict (clan_tag, season_id, section_index, war_day, player_tag)
+       do update set decks_used_today = excluded.decks_used_today`,
+    [CLAN, members[0].player_tag, members[1].player_tag],
+  );
+  try {
+    const all = (await call(invoke, "war_history", { seasons: 12 })).body;
+    assert.ok(all.weeks.length >= 10);
+    for (const w of all.weeks) {
+      assert.ok(
+        "finished_early" in w,
+        `finished_early served on ${w.season_id}/${w.section_index}`,
+      );
+      assert.ok("finish_war_day" in w);
+      if (w.is_colosseum)
+        assert.equal(
+          w.finished_early,
+          null,
+          "no finish line in a Colosseum week",
+        );
+      else if (w.our_fame >= 10000)
+        assert.equal(
+          w.finished_early,
+          true,
+          `${w.season_id}/${w.section_index} at ${w.our_fame}`,
+        );
+      else assert.equal(w.finished_early, false);
+    }
+    const week = (s, i) =>
+      all.weeks.find((w) => w.season_id === s && w.section_index === i);
+    assert.equal(week(134, 2).finished_early, true, "10305 is over the line");
+    assert.equal(week(133, 0).finished_early, false, "8400 is not");
+    assert.equal(
+      week(133, 3).finish_war_day,
+      3,
+      "day 3's close carried the boat over",
+    );
+    assert.equal(week(134, 1).finish_war_day, null, "finished, no log");
+    // (134/3 is the log fixture's newest section, which the log projector
+    // leaves unflagged for the live projector, so it reads as a regular
+    // week here; the loop above pins the Colosseum null on 132/3 and 133/4.)
+    assert.equal(week(133, 4).is_colosseum, true);
+    assert.equal(week(133, 4).finished_early, null, "Colosseum");
+    assert.equal(week(133, 4).finish_war_day, null);
+    assert.match(
+      all.notes.join(" "),
+      /finished_early is true on a regular week/,
+    );
+    assert.match(all.notes.join(" "), /finish_war_day/);
+
+    // The exact week: scoring_decks subtracts the decks past the finish.
+    const exact = (
+      await call(invoke, "war_history", { season_id: 133, section_index: 3 })
+    ).body;
+    assert.equal(exact.weeks[0].finished_early, true);
+    assert.equal(exact.weeks[0].finish_war_day, 3);
+    const a = exact.member_weeks.find(
+      (m) => m.player_tag === members[0].player_tag,
+    );
+    const b = exact.member_weeks.find(
+      (m) => m.player_tag === members[1].player_tag,
+    );
+    assert.equal(a.scoring_decks, a.decks_used - 4);
+    assert.equal(b.scoring_decks, b.decks_used);
+    assert.ok(
+      exact.member_weeks.every((m) => Number.isInteger(m.scoring_decks)),
+    );
+    assert.match(exact.notes.join(" "), /scoring_decks is decks_used less/);
+
+    // Finished with no day-by-day log: the record cannot separate them.
+    const unlogged = (
+      await call(invoke, "war_history", { season_id: 134, section_index: 1 })
+    ).body;
+    assert.equal(unlogged.weeks[0].finished_early, true);
+    assert.ok(unlogged.member_weeks.length > 0);
+    assert.ok(
+      unlogged.member_weeks.every((m) => m.scoring_decks === null),
+      "null, not decks_used",
+    );
+
+    // Not finished: every deck scored.
+    const open = (
+      await call(invoke, "war_history", { season_id: 133, section_index: 0 })
+    ).body;
+    assert.equal(open.weeks[0].finished_early, false);
+    assert.ok(open.member_weeks.every((m) => m.scoring_decks === m.decks_used));
+
+    // One member's weeks carry it too.
+    const one = (
+      await call(invoke, "war_history", {
+        seasons: 12,
+        player_tag: members[0].player_tag,
+      })
+    ).body;
+    const oneWeek = one.member_weeks.find(
+      (m) => m.season_id === 133 && m.section_index === 3,
+    );
+    assert.equal(oneWeek.scoring_decks, a.scoring_decks);
+  } finally {
+    for (const [key, row] of Object.entries(before)) {
+      const [season, section] = key.split(":").map(Number);
+      await db.query(
+        `update war_week_clan set fame = $2, finish_time = $3 where clan_tag = $1 and participant_clan_tag = $1
+           and season_id = $4 and section_index = $5`,
+        [CLAN, row.fame, row.finish_time, season, section],
+      );
+    }
+  }
+});
+
+test("6.11.0: war_current says the boat finished, names the day, and serves the scoring denominator (feedback #81)", async () => {
+  const { projectRaceSeries } = await import("../../ingest/src/war.mjs");
+  const race = await fixture("currentriverrace/war_day.json");
+  // The race fixture as its own week, 135/3: a regular week, finished at
+  // the close of day 3 (finishTime 2026-08-30T09:34:04Z), now the latest.
+  await projectRaceSeries(db, {
+    payload: race,
+    fetchedAt: "2026-08-30T12:00:00Z",
+    seasonId: 135,
+    sectionIndex: 3,
+  });
+  const tags = (
+    await db.query(`select player_tag from player order by player_tag limit 2`)
+  ).rows.map((r) => r.player_tag);
+  await db.query(
+    `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used)
+     values ($1, 135, 3, $2, 1350, 12), ($1, 135, 3, $3, 1900, 12)`,
+    [CLAN, tags[0], tags[1]],
+  );
+  await db.query(
+    `insert into war_attendance_day (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
+     values ($1, 135, 3, 4, $2, 4), ($1, 135, 3, 4, $3, 0)`,
+    [CLAN, tags[0], tags[1]],
+  );
+  try {
+    const { body, isError } = await call(invoke, "war_current", {});
+    assert.equal(isError, false, JSON.stringify(body));
+    assert.equal(body.season_id, 135);
+    assert.equal(body.race_finished_at, "2026-08-30T09:34:04.000Z");
+    assert.equal(body.finish_war_day, 3);
+    const p0 = body.participants.find((p) => p.player_tag === tags[0]);
+    const p1 = body.participants.find((p) => p.player_tag === tags[1]);
+    assert.equal(p0.decks_used, 12);
+    assert.equal(p0.scoring_decks, 8, "four decks on day 4 earned nothing");
+    assert.equal(p1.scoring_decks, 12);
+    const note = body.notes.find((n) => /boat finished the race/.test(n));
+    assert.ok(note, "the finished note fires");
+    assert.match(
+      note,
+      /at 2026-08-30T09:34:04\.000Z \(the close of war day 3\)/,
+    );
+    assert.match(
+      note,
+      /4 decks were played on the war days since, for 0 clan points/,
+    );
+    assert.match(note, /decks_used is not the denominator/);
+    assert.match(note, /scoring_decks is\./);
+    const compact = (
+      await call(invoke, "war_current", { verbosity: "compact" })
+    ).body;
+    assert.equal(compact.finish_war_day, 3);
+    assert.equal(compact.participants, undefined);
+
+    // war_rivals (#82): the bracket's fame statistics pool finished races
+    // only, and finished_races is their count; races_observed is not. A
+    // sixth clan seen only in the running week has no finished race.
+    await db.query(
+      `insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag, participant_name, fame)
+       values ($1, 135, 3, '#2FRESH0', 'First sighting', 0)`,
+      [CLAN],
+    );
+    const rivals = (await call(invoke, "war_rivals", {})).body;
+    const fresh = rivals.rivals.find((r) => r.clan_tag === "#2FRESH0");
+    assert.deepEqual(
+      {
+        races_observed: fresh.races_observed,
+        finished_races: fresh.finished_races,
+        mean_fame: fresh.mean_fame,
+        median_fame: fresh.median_fame,
+        max_fame: fresh.max_fame,
+        zero_fame_races: fresh.zero_fame_races,
+        current_race_fame: fresh.current_race_fame,
+      },
+      {
+        races_observed: 1,
+        finished_races: 0,
+        mean_fame: null,
+        median_fame: null,
+        max_fame: null,
+        zero_fame_races: 0,
+        current_race_fame: 0,
+      },
+      "unobserved is null, not a clan that scored nothing",
+    );
+    assert.ok(rivals.rivals.length >= 4);
+    for (const r of rivals.rivals) {
+      assert.ok(Number.isInteger(r.finished_races));
+      assert.ok(r.finished_races <= r.races_observed);
+      assert.ok(r.zero_fame_races <= r.finished_races);
+      if (r.finished_races === 0) {
+        assert.equal(r.mean_fame, null, "unobserved is not zero");
+        assert.equal(r.max_fame, null);
+        assert.equal(r.zero_fame_races, 0);
+      }
+    }
+    // Every rival in this bracket is in the running week, and the earlier
+    // tests projected the same bracket into 133/3 and 134/3: the running
+    // week is the one race each has beyond its finished count.
+    for (const r of rivals.rivals) {
+      assert.equal(r.finished_races, r.races_observed - 1, r.clan_tag);
+      assert.ok(Number.isInteger(r.current_race_fame));
+    }
+    assert.equal(
+      rivals.rivals.find((r) => r.clan_tag === "#RJQQLLV9").mean_fame,
+      5400,
+      "the two earlier projections of the same bracket, finished",
+    );
+    assert.match(rivals.notes.join(" "), /finished_races is their count/);
+
+    // Once the recorder has seen the week close, the latest week is a
+    // finished race, not the one in progress.
+    await db.query(
+      `update war_week set finished_observed_at = '2026-08-30T09:40:00Z'
+       where clan_tag = $1 and season_id = 135 and section_index = 3`,
+      [CLAN],
+    );
+    const closed = (await call(invoke, "war_rivals", {})).body;
+    for (const r of closed.rivals) {
+      assert.equal(r.finished_races, r.races_observed);
+      assert.equal(r.current_race_fame, null);
+    }
+    const rjqq = closed.rivals.find((r) => r.clan_tag === "#RJQQLLV9");
+    assert.equal(
+      rjqq.mean_fame,
+      5400,
+      "the closed week's fame is the statistic",
+    );
+  } finally {
+    await db.query(
+      `delete from war_attendance_day where clan_tag = $1 and season_id = 135`,
+      [CLAN],
+    );
+    await db.query(
+      `delete from war_participation where clan_tag = $1 and season_id = 135`,
+      [CLAN],
+    );
+    await db.query(
+      `delete from war_period_log where clan_tag = $1 and season_id = 135`,
+      [CLAN],
+    );
+    await db.query(
+      `delete from war_week_clan where clan_tag = $1 and season_id = 135`,
+      [CLAN],
+    );
+    await db.query(
+      `delete from war_week where clan_tag = $1 and season_id = 135`,
+      [CLAN],
+    );
+  }
 });

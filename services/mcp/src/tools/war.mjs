@@ -82,6 +82,99 @@ async function warDaysLog(db, clanTag, seasonId, sectionIndex) {
   return [...days.values()];
 }
 
+/** A regular week's finish line. The API banks a boat's progress at each
+ *  war day's close, so a clan's finishTime is the close of the day whose
+ *  banked fame reached this (POAP KINGS 136/0: day 3 closed at the line,
+ *  finishTime 2026-09-13T09:38:04Z, day 4 earned 0) - not a mid-day
+ *  crossing. The race LOG caps fame at exactly 10000 (and the finish
+ *  day's progressEndOfDay); the LIVE race reports the boat's progress
+ *  past it (10134 as the next day's progressStartOfDay and as the live
+ *  fame), and the record keeps the larger - so a live-polled week reads
+ *  10134 or 10305 here and a week known from the log alone reads 10000
+ *  (probed 2026-09-21). */
+const FINISH_LINE = 10000;
+
+const weekKey = (r) => `${r.season_id}:${r.section_index}`;
+
+/** Whether a week's boat finished: a regular week whose own standings
+ *  row carries a finish instant or fame at the line. Null when the week
+ *  has no finish line (Colosseum) or no standings capture. */
+function boatFinished({ is_colosseum, fame, finish_time }) {
+  if (is_colosseum) return null;
+  if (finishInstant(finish_time)) return true;
+  if (!Number.isInteger(fame)) return null;
+  return fame >= FINISH_LINE;
+}
+
+/** The war day whose close carried each week's own boat over the line,
+ *  from the race's own day-by-day: the first closed day with progress_end
+ *  at or past 10,000. Keyed by weekKey; a week without such a day (not
+ *  finished, Colosseum, or recorded before the log was kept) is absent. */
+async function finishWarDays(db, clanTag, keys) {
+  if (keys.length === 0) return new Map();
+  const { rows } = await db.query(
+    `select l.season_id, l.section_index, min(p.war_day)::int as war_day
+       from war_period_log l
+       join war_period p on p.war_season_id = l.season_id and p.period_index = l.period_index
+       join unnest($2::int[], $3::int[]) as k(season_id, section_index)
+         on k.season_id = l.season_id and k.section_index = l.section_index
+      where l.clan_tag = $1 and l.participant_clan_tag = $1
+        and l.progress_end >= $4 and p.war_day is not null
+      group by l.season_id, l.section_index`,
+    [
+      clanTag,
+      keys.map((k) => k.season_id),
+      keys.map((k) => k.section_index),
+      FINISH_LINE,
+    ],
+  );
+  return new Map(rows.map((r) => [weekKey(r), r.war_day]));
+}
+
+/** Decks each member used on the war days AFTER the finish day, from the
+ *  attendance polls: weekKey -> Map(player_tag -> decks). A week the polls
+ *  never saw past its finish day is absent (a poll writes every
+ *  participant's row, zeros included, so no rows means no sighting, and
+ *  the subtraction must not read as zero). */
+async function decksAfterFinish(db, clanTag, finishDays) {
+  const entries = [...finishDays.entries()];
+  if (entries.length === 0) return new Map();
+  const { rows } = await db.query(
+    `select ad.season_id, ad.section_index, ad.player_tag,
+            sum(ad.decks_used_today)::int as decks
+       from war_attendance_day ad
+       join unnest($2::int[], $3::int[], $4::int[]) as k(season_id, section_index, finish_day)
+         on k.season_id = ad.season_id and k.section_index = ad.section_index
+      where ad.clan_tag = $1 and ad.war_day > k.finish_day
+      group by ad.season_id, ad.section_index, ad.player_tag`,
+    [
+      clanTag,
+      entries.map(([k]) => Number(k.split(":")[0])),
+      entries.map(([k]) => Number(k.split(":")[1])),
+      entries.map(([, day]) => day),
+    ],
+  );
+  const out = new Map();
+  for (const r of rows) {
+    const key = weekKey(r);
+    if (!out.has(key)) out.set(key, new Map());
+    out.get(key).set(r.player_tag, r.decks);
+  }
+  return out;
+}
+
+/** The denominator of a points-per-deck rate (feedback #81): decks_used
+ *  less the decks the member played on war days after the boat finished,
+ *  which earn nothing. decks_used itself on an unfinished week; null when
+ *  the record cannot separate the two (no day-by-day log for the week, or
+ *  no poll saw the days past the finish). */
+function scoringDecks({ decksUsed, finished, finishDay, after, playerTag }) {
+  if (!Number.isInteger(decksUsed)) return null;
+  if (finished !== true) return decksUsed;
+  if (!Number.isInteger(finishDay) || !after) return null;
+  return decksUsed - (after.get(playerTag) ?? 0);
+}
+
 async function clanSubject(ctx, args, endpoint) {
   if (args.live === true) {
     let tag;
@@ -213,6 +306,7 @@ export const warTools = {
                   bool_or(w.clan_tag = $1) as shared_with_you,
                   bool_or(wk.is_colosseum) as is_colosseum,
                   (w.season_id, w.section_index) = (select season_id, section_index from latest)
+                    and bool_and(wk.finished_observed_at is null)
                     as in_progress
            from war_week_clan w
            join war_week wk on wk.clan_tag = w.clan_tag and wk.season_id = w.season_id
@@ -222,6 +316,7 @@ export const warTools = {
          select participant_clan_tag as clan_tag,
                 max(name) as name,
                 count(*)::int as races_observed,
+                count(*) filter (where not in_progress)::int as finished_races,
                 count(*) filter (where is_colosseum)::int as colosseum_races,
                 count(*) filter (where shared_with_you)::int as races_shared_with_you,
                 min(season_id)::int as first_season,
@@ -250,7 +345,7 @@ export const warTools = {
         rivals: rows,
         notes: notes(
           "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
-          "Fame statistics cover finished races only; current_race_fame is the week in progress.",
+          "Fame statistics (mean_fame, median_fame, max_fame, zero_fame_races) cover the finished races only, and finished_races is their count: races_observed includes the week in progress, so it is not their denominator. current_race_fame is the week in progress; a rival with no finished race has null fame statistics, not zero.",
           rows.some((r) => r.colosseum_races > 0)
             ? "colosseum_races counts the Colosseum weeks among races_observed: a Colosseum week is a period-point contest with no finish line, so its fame pools badly with a regular week's; read the fame statistics beside that count."
             : null,
@@ -441,10 +536,43 @@ export const warTools = {
       // Our own boat's finish, if it has one this week: standings carry
       // finish_time per participant, and ours is the one that decides
       // whether remaining decks still add fame.
-      const raceFinishedAt = finishInstant(
-        standings.rows.find((r) => r.participant_clan_tag === clanTag)
-          ?.finish_time,
+      const own = standings.rows.find(
+        (r) => r.participant_clan_tag === clanTag,
       );
+      const raceFinishedAt = finishInstant(own?.finish_time);
+      // The finish day and what was played after it (feedback #81):
+      // points and decks_used sit on one participant row, and the decks
+      // inside decks_used from the days after the finish earned nothing.
+      const raceFinished = boatFinished({
+        is_colosseum: wk.is_colosseum,
+        fame: own?.fame,
+        finish_time: own?.finish_time,
+      });
+      const finishDays =
+        raceFinished === true
+          ? await finishWarDays(ctx.db, clanTag, [wk])
+          : new Map();
+      const finishWarDay = finishDays.get(weekKey(wk)) ?? null;
+      const afterFinish = (
+        await decksAfterFinish(ctx.db, clanTag, finishDays)
+      ).get(weekKey(wk));
+      const decksAfter = afterFinish
+        ? [...afterFinish.values()].reduce((a, b) => a + b, 0)
+        : null;
+      const participants = participation.rows.map((r) => ({
+        ...r,
+        scoring_decks: scoringDecks({
+          decksUsed: r.decks_used,
+          finished: raceFinished,
+          finishDay: finishWarDay,
+          after: afterFinish,
+          playerTag: r.player_tag,
+        }),
+      }));
+      const finishedNote =
+        raceFinished === true
+          ? `This clan's boat finished the race${raceFinishedAt ? ` at ${raceFinishedAt}` : ""}${finishWarDay ? ` (the close of war day ${finishWarDay})` : ""}: decks used after that earn zero points${decksAfter !== null ? ` - ${decksAfter} ${decksAfter === 1 ? "deck was" : "decks were"} played on the war days since, for 0 clan points` : ""} - so participants[].decks_used is not the denominator of a points-per-deck rate; scoring_decks is${finishWarDay && afterFinish ? "" : " (null here: the record cannot separate the two for this week)"}.`
+          : null;
       // Today's remaining-decks picture (CLAN-PULSE.md): only while the
       // anchored war-day period is nominally still open.
       let decksToday = null;
@@ -540,6 +668,7 @@ export const warTools = {
         day_kind: period?.kind ?? null,
         war_day: period?.war_day ?? null,
         race_finished_at: raceFinishedAt,
+        finish_war_day: finishWarDay,
         next_war_day_opens_at: nextWarDayOpensAt,
         applied: appliedBlock({
           clan_tag: clanTag,
@@ -551,7 +680,7 @@ export const warTools = {
           ...row,
           finish_time: finishInstant(row.finish_time),
         })),
-        ...(compact ? {} : { participants: participation.rows }),
+        ...(compact ? {} : { participants }),
         participants_count: participation.rows.length,
         member_count:
           participation.rows.filter((r) => r.in_clan).length +
@@ -580,6 +709,7 @@ export const warTools = {
             : null,
           "standings.finish_time is null for a clan that has not finished (the API marks it with epoch zero, never a time).",
           "participants[].decks_used is the RACE WEEK's cumulative count and decks_today.*.decks_used is this policy day's; a duel consumes one deck per round played (two or three) and a 1v1 one, so four decks is two to four battles.",
+          finishedNote,
           "standings.fame is cumulative race progress banked at the day close; standings.period_points is the current day's score, so fame can be zero on war day 1 while members already have points.",
           "members_not_in_race names current members the game left out of the race roster: their game-side lastSeen predates the race start (a nudge list; the predicate is the game's).",
           decksToday
@@ -684,6 +814,7 @@ export const warTools = {
         `select w.season_id, w.section_index, w.is_colosseum, w.finished_observed_at, w.closed_at,
                 own.fame as our_fame, own.rank as our_rank, own.trophy_change,
                 own.clan_score as our_clan_score, own.repair_points as our_repair_points,
+                own.finish_time as our_finish_time,
                 (w.season_id, w.section_index) =
                   (select season_id, section_index from war_week
                    where clan_tag = $1
@@ -700,6 +831,31 @@ export const warTools = {
          order by w.season_id desc, w.section_index desc`,
         [clanTag, seasons, exactSeason, exactSection],
       );
+      // Which weeks' boats finished, on which war day, and what each
+      // member played after that (feedback #81: finished_early was
+      // computed as fame === 10000, which only a week known from the
+      // capped log alone ever equals - every live-polled week carries
+      // the overshoot - so no served week carried it while the docs
+      // promised the flag and the notes named it on every response).
+      const finished = new Map(
+        weeks.map((w) => [
+          weekKey(w),
+          boatFinished({
+            is_colosseum: w.is_colosseum,
+            fame: w.our_fame,
+            finish_time: w.our_finish_time,
+          }),
+        ]),
+      );
+      const finishDays = await finishWarDays(
+        ctx.db,
+        clanTag,
+        weeks.filter((w) => finished.get(weekKey(w)) === true),
+      );
+      const afterFinish =
+        focus || hasSeason
+          ? await decksAfterFinish(ctx.db, clanTag, finishDays)
+          : new Map();
       let memberWeeks = null;
       if (focus || hasSeason) {
         // war_days_battled unions TWO observation sources — decksUsedToday
@@ -779,6 +935,13 @@ export const warTools = {
         // "missed day 2" (feedback item 30, 2026-09-10). Null when unknown.
         memberWeeks = rows.map((r) => ({
           ...r,
+          scoring_decks: scoringDecks({
+            decksUsed: r.decks_used,
+            finished: finished.get(weekKey(r)),
+            finishDay: finishDays.get(weekKey(r)),
+            after: afterFinish.get(weekKey(r)),
+            playerTag: r.player_tag,
+          }),
           war_days: r.war_days_battled === null ? null : (r.war_days ?? []),
         }));
       }
@@ -829,11 +992,11 @@ export const warTools = {
           our_fame: w.our_fame,
           our_clan_score: w.our_clan_score,
           our_repair_points: w.our_repair_points,
-          // A regular week that hit the 10,000-fame finish line stopped
-          // earning member points; decks_used keeps counting.
-          ...(w.our_fame === 10000 && !w.is_colosseum
-            ? { finished_early: true }
-            : {}),
+          // A regular week whose boat reached the finish line stopped
+          // earning member points; decks_used keeps counting. Null on a
+          // Colosseum week (no line) or without a standings capture.
+          finished_early: finished.get(weekKey(w)),
+          finish_war_day: finishDays.get(weekKey(w)) ?? null,
           trophy_change: w.trophy_change,
         })),
         ...(!hasSeason && horizon
@@ -860,9 +1023,9 @@ export const warTools = {
             : focus
               ? "member_weeks: null war_days_battled means per-day attendance is unknown for that week (unknown, not zero); war_days lists the day indices battled."
               : "Pass player_tag for one member's week-by-week participation (member_weeks).",
-          "finished_early marks regular weeks where the boat hit the 10,000-fame line: decks used after the finish earn zero points, so per-deck math there is invalid.",
+          "finished_early is true on a regular week whose boat reached the 10,000-fame line, false when it did not, null on a Colosseum week (no finish line) or a week without a standings capture; finish_war_day is the war day whose close carried it over (null when the day-by-day log does not hold the week). Decks used after the finish earn zero points, so decks_used is not the denominator of a points-per-deck rate on a finished week.",
           focus || hasSeason
-            ? "member_weeks[].decks_used is the week's cumulative count; a duel consumes one deck per round played (two or three) and a 1v1 one, so decks are not battles."
+            ? "member_weeks[].decks_used is the week's cumulative count; a duel consumes one deck per round played (two or three) and a 1v1 one, so decks are not battles. scoring_decks is decks_used less the decks played on the war days after the finish (the denominator for a points-per-deck rate; equal to decks_used on an unfinished week; null when the record cannot separate them); it can overstate by a deck where a poll missed a day's last battle."
             : null,
           hasSeason
             ? null

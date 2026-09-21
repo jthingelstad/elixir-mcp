@@ -640,7 +640,16 @@ export const OUTPUT_SCHEMAS = {
             our_fame: NULLABLE_INT,
             our_clan_score: NULLABLE_INT,
             our_repair_points: NULLABLE_INT,
-            finished_early: { type: "boolean" },
+            finished_early: {
+              type: ["boolean", "null"],
+              description:
+                "True on a regular week whose boat reached the 10,000-fame line, false when it did not; null on a Colosseum week (no finish line) or without a standings capture (6.11.0: was computed as fame exactly 10,000, which a live-polled week never equals).",
+            },
+            finish_war_day: {
+              type: ["integer", "null"],
+              description:
+                "The war day whose close carried the boat over the line, from the race's own day-by-day; null when the log does not hold the week or the boat did not finish.",
+            },
             trophy_change: NULLABLE_INT,
           },
           required: ["season_id", "section_index", "is_colosseum", "finished"],
@@ -662,6 +671,11 @@ export const OUTPUT_SCHEMAS = {
             section_index: COUNT,
             points: NULLABLE_INT,
             decks_used: NULLABLE_INT,
+            scoring_decks: {
+              type: ["integer", "null"],
+              description:
+                "decks_used less the decks played on the war days after the boat finished, which earn nothing: the denominator of a points-per-deck rate. Equal to decks_used on an unfinished week; null when the record cannot separate the two (6.11.0).",
+            },
             boat_attacks: NULLABLE_INT,
             repair_points: NULLABLE_INT,
             war_days_battled: {
@@ -1398,6 +1412,11 @@ export const OUTPUT_SCHEMAS = {
         },
       },
       race_finished_at: { type: ["string", "null"] },
+      finish_war_day: {
+        type: ["integer", "null"],
+        description:
+          "The war day whose close carried this clan's boat over the line (6.11.0); null while it has not finished or when the day-by-day log does not say. participants[].scoring_decks is decks_used less the decks played on the days after it.",
+      },
       decks_today: {
         type: ["object", "null"],
         properties: {

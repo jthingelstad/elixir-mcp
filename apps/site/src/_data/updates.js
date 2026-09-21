@@ -9,6 +9,12 @@
  */
 export default [
   {
+    date: "2026-09-21",
+    title:
+      "A finished boat stops scoring: finished_early is served again, and the decks that earned nothing are counted out",
+    body: "The Elixir Gym's war run found the flag the docs promised on every war week - finished_early, true when the boat reached the 10,000-fame line - served on no row at all. It was computed as fame exactly 10,000; the race log caps fame there, but the live race reports the boat's progress past the line - 10,134, 10,305 - and the record keeps the larger, so a live-polled week never equalled it. Its absence read as false, which is the one wrong answer it exists to prevent, because the decks a member plays after the boat is home earn nothing and a points-per-deck ranking that counts them moves ten of twenty-six members four or more places. Now every week says true, false, or null for a Colosseum week that has no line; finish_war_day names the day whose close carried the boat over, because a finish is a day close - the game banks progress then; and scoring_decks sits beside decks_used on every member row, in war_history and in war_current, as the denominator that is actually valid. war_current says the boat has finished in a note that counts the decks played since. The scouting report gained finished_races, the count its fame statistics are really taken over, so a rival seen in one finished race and the week in progress reads one, not two. Contract 6.11.0, additive.",
+  },
+  {
     date: "2026-09-20",
     title:
       "Rune Giant beatdown: a deck can be named by its tank without pretending the tank is a win condition",
