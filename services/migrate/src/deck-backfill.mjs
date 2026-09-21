@@ -196,15 +196,19 @@ export async function explainMeta(databaseUrl, spec = {}) {
              and bp.battle_time >= $2
              and bp.deck_hash is not null and bp.outcome in ('win','loss') and bp.type_class = 'pvp'
            group by bp.deck_hash, bp.player_tag, bp.type),
+         cards as materialized (
+           select dc.deck_hash, dc.card_id, dc.form from deck_card dc
+           where dc.deck_hash in (select distinct deck_hash from pairs)),
+         joined as materialized (
+           select c.card_id, c.form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n
+           from pairs p join cards c on c.deck_hash = p.deck_hash),
          per_type as (
-           select dc.card_id, dc.form, p.type, sum(p.battles)::int as battles, sum(p.wins)::int as wins,
-                  sum(p.gap_sum) as gap_sum, sum(p.gap_n)::int as gap_n
-           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash
-           group by dc.card_id, dc.form, p.type),
+           select card_id, form, type, sum(battles)::int as battles, sum(wins)::int as wins,
+                  sum(gap_sum) as gap_sum, sum(gap_n)::int as gap_n
+           from joined group by card_id, form, type),
          per_card as (
-           select dc.card_id, dc.form, count(distinct p.player_tag)::int as players
-           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash
-           group by dc.card_id, dc.form)
+           select card_id, form, count(distinct player_tag)::int as players
+           from joined group by card_id, form)
          select pt.card_id, pt.form, sum(pt.battles)::int, pc.players
          from per_type pt join per_card pc on pc.card_id = pt.card_id and pc.form = pt.form
          group by pt.card_id, pt.form, pc.players`,

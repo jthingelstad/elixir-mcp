@@ -2270,16 +2270,24 @@ export const battlesTools = {
                                   round((sum(gap_sum) / nullif(sum(gap_n), 0))::numeric, 2) as gap
                              from pairs group by type) g) as by_type
            from pairs),
+         -- The window's decks' cards by index probe (a few thousand
+         -- decks), joined to the pairs ONCE; the planner used to hash
+         -- all 1.7M deck_card rows twice, once per aggregate below
+         -- (18.6 s of an 18 s budget on a 7-day corpus window, 6.12.0).
+         cards as materialized (
+           select dc.deck_hash, dc.card_id, dc.form from deck_card dc
+           where dc.deck_hash in (select distinct deck_hash from pairs)),
+         joined as materialized (
+           select c.card_id, c.form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n
+           from pairs p join cards c on c.deck_hash = p.deck_hash),
          per_type as (
-           select dc.card_id, dc.form, p.type,
-                  sum(p.battles)::int as battles, sum(p.wins)::int as wins,
-                  sum(p.gap_sum) as gap_sum, sum(p.gap_n)::int as gap_n
-           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash
-           group by dc.card_id, dc.form, p.type),
+           select card_id, form, type,
+                  sum(battles)::int as battles, sum(wins)::int as wins,
+                  sum(gap_sum) as gap_sum, sum(gap_n)::int as gap_n
+           from joined group by card_id, form, type),
          per_card as (
-           select dc.card_id, dc.form, count(distinct p.player_tag)::int as players
-           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash
-           group by dc.card_id, dc.form)
+           select card_id, form, count(distinct player_tag)::int as players
+           from joined group by card_id, form)
          select pt.card_id, c.name, pt.form as evolution,
                 sum(pt.battles)::int as battles,
                 sum(pt.wins)::int as wins,
