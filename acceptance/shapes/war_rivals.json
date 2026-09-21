@@ -1,0 +1,34 @@
+{
+  "tool": "war_rivals",
+  "provenance": "recorded",
+  "reason": "first baselines at 6.13.0, the day the catalogue suite shipped",
+  "contract_version": "6.13.0",
+  "updated_at": "2026-09-21T17:02:50.402Z",
+  "sets": {
+    "{}": [
+      "applied",
+      "applied.clan_tag",
+      "applied.rival_tags",
+      "applied.source",
+      "clan_tag",
+      "docs",
+      "meta",
+      "notes",
+      "rivals",
+      "rivals[].clan_score",
+      "rivals[].clan_tag",
+      "rivals[].colosseum_races",
+      "rivals[].current_race_fame",
+      "rivals[].finished_races",
+      "rivals[].first_season",
+      "rivals[].last_season",
+      "rivals[].max_fame",
+      "rivals[].mean_fame",
+      "rivals[].median_fame",
+      "rivals[].name",
+      "rivals[].races_observed",
+      "rivals[].races_shared_with_you",
+      "rivals[].zero_fame_races"
+    ]
+  }
+}

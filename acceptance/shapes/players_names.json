@@ -1,0 +1,37 @@
+{
+  "tool": "players_names",
+  "provenance": "recorded",
+  "reason": "first baselines at 6.13.0, the day the catalogue suite shipped",
+  "contract_version": "6.13.0",
+  "updated_at": "2026-09-21T17:02:50.402Z",
+  "sets": {
+    "{\"player_tags\":[\"#20299Y8PQQ\",\"#UL2V9QRG0\"]}": [
+      "applied",
+      "applied.player_tags",
+      "docs",
+      "meta",
+      "names",
+      "names[].clan_tag",
+      "names[].last_seen",
+      "names[].name",
+      "names[].player_tag",
+      "names[].source",
+      "notes",
+      "unknown"
+    ],
+    "{\"player_tags\":[\"#RCCY80VG2\",\"#YRC0J298J\",\"#QLGYYG0Q\",\"#LCUVPUYCY\",\"#UCP028JQ8\",\"#VGJJLC9PR\"]}": [
+      "applied",
+      "applied.player_tags",
+      "docs",
+      "meta",
+      "names",
+      "names[].clan_tag",
+      "names[].last_seen",
+      "names[].name",
+      "names[].player_tag",
+      "names[].source",
+      "notes",
+      "unknown"
+    ]
+  }
+}

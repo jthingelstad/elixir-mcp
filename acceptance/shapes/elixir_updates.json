@@ -1,0 +1,21 @@
+{
+  "tool": "elixir_updates",
+  "provenance": "recorded",
+  "reason": "first baselines at 6.13.0, the day the catalogue suite shipped",
+  "contract_version": "6.13.0",
+  "updated_at": "2026-09-21T17:02:50.401Z",
+  "sets": {
+    "{\"limit\":15}": [
+      "applied",
+      "applied.limit",
+      "corpus_built_at",
+      "entries",
+      "entries[].body",
+      "entries[].date",
+      "entries[].title",
+      "meta",
+      "notes",
+      "total"
+    ]
+  }
+}

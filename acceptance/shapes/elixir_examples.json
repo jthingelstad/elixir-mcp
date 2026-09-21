@@ -1,0 +1,21 @@
+{
+  "tool": "elixir_examples",
+  "provenance": "recorded",
+  "reason": "first baselines at 6.13.0, the day the catalogue suite shipped",
+  "contract_version": "6.13.0",
+  "updated_at": "2026-09-21T17:02:50.401Z",
+  "sets": {
+    "{}": [
+      "corpus_built_at",
+      "examples",
+      "examples[].group",
+      "examples[].lede",
+      "examples[].slug",
+      "examples[].title",
+      "examples[].tools",
+      "examples[].url",
+      "meta",
+      "notes"
+    ]
+  }
+}

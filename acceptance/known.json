@@ -16,5 +16,11 @@
     "reason": "clans_members_timeline at full verbosity with five metrics over a week exceeds the cap at the default limit: same question (a default that cannot be read)",
     "until": "2026-10-05",
     "filed": "2026-09-21"
+  },
+  {
+    "case": "catalogue/players_collection#notes",
+    "reason": "forms_available rides the full answer, which exceeds the cap (see players_collection#0)",
+    "until": "2026-10-05",
+    "filed": "2026-09-21"
   }
 ]

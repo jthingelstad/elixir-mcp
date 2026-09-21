@@ -100,8 +100,9 @@ node acceptance/run.mjs --only budgets   # one suite or one case by substring
 node acceptance/run.mjs --json           # the report as JSON
 ```
 
-~40 cases, ~26 distinct calls (a read one case makes is reused by the
-next), two to three minutes; the corpus meta reads are most of it.
+~215 cases, ~180 distinct calls (a read one case makes is reused by the
+next), four to five minutes, one call at a time so the budget rule's
+timings are honest; the corpus meta reads are most of it.
 
 ## Adding a case
 

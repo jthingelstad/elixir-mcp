@@ -1,0 +1,33 @@
+{
+  "tool": "players_collection",
+  "provenance": "recorded",
+  "reason": "first baselines at 6.13.0, the day the catalogue suite shipped",
+  "contract_version": "6.13.0",
+  "updated_at": "2026-09-21T17:02:50.402Z",
+  "sets": {
+    "{\"player_tag\":\"#20JJJ2CCRU\",\"verbosity\":\"compact\"}": [
+      "applied",
+      "applied.verbosity",
+      "as_of_payload",
+      "cards",
+      "cards[].forms_unlocked",
+      "cards[].id",
+      "cards[].level",
+      "cards[].name",
+      "collection_level",
+      "docs",
+      "fielded",
+      "fielded.battles",
+      "fielded.days",
+      "fielded.mean_level",
+      "meta",
+      "notes",
+      "player_tag",
+      "support_cards",
+      "support_cards[].forms_unlocked",
+      "support_cards[].id",
+      "support_cards[].level",
+      "support_cards[].name"
+    ]
+  }
+}
