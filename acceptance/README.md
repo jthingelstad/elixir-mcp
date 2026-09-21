@@ -56,18 +56,27 @@ written - nothing is hand-translated. The vocabulary:
 - **paths**: dotted, `[N]` an index, `[]` every element, `[?key=value]`
   the first element where key equals value; with `calls`, the first
   segment is an alias (`r.rivals[?clan_tag=#QUGRGLU2].mean_fame`).
-- **verbs**: `has`, `eq`, `neq`, `lte`, `count_eq`, `sum_eq`,
-  `sorted_desc`, `notes_match`, `notes_not_match`, `every_row_has`. An
-  `eq` right-hand side that parses as a path is read as one. The notes
-  verbs also read a refusal's `error.message` and `error.hint`.
-- **modifiers**: `when` (skip when false, said aloud), `for_each` (per
-  row of a list), `calls` (aliased reads), `stability` `frozen` (closed
-  data: exact values are fair) or `live` (invariants only), `control`,
-  `needs_fixture` and `open_question` (SKIP with the text).
-- **rules**: ids unique; `args` as the call was MADE (the acceptance
-  principal acts for #J2RGCRVG too, so a defaulted clan matches the
-  capture); `request_id` is what `bites/fetch.mjs` needs, and a block
-  whose answer was wrong gets a bite that must fail it.
+- **verbs**: `has`, `absent`, `eq`, `neq`, `lt`, `lte`, `gt`, `gte`,
+  `count_eq`, `sum_eq` (paths and literals), `sorted_desc`, `sorted_asc`
+  (each listed path in its own order), `notes_match`, `notes_not_match`,
+  `every_row_has`. An `eq` right-hand side that parses as a path is read
+  as one. The notes verbs also read a refusal's `error.message` and
+  `error.hint`. `null` and absent are distinct: `eq` against `null`
+  fails when the key is absent.
+- **modifiers**: `when` (false is SKIPPED, never passed; inside
+  `for_each` it filters rows), `for_each` (per row of a list), `calls`
+  (aliased reads), `stability` `frozen` (closed data: exact values are
+  fair) or `live` (invariants only), `control`, `needs_fixture`
+  (BLOCKED, with the text) and `open_question` (UNSPEC).
+- **rejected at load** (a test under `verify`): a duplicate id; a
+  finding (`<feedback>.<n>`) with no `control: true` case; an unknown
+  verb fails the case at run time.
+- **rules**: `args` as the call was MADE, defaults not filled in (the
+  acceptance principal acts for #J2RGCRVG too, so a defaulted clan
+  matches the capture) - but a player is always named, since the
+  principal has no player of its own; `request_id` is the answer that
+  SHOWED the defect, which `bites/fetch.mjs` turns into a bite that must
+  fail the case; never `live: true`, never a write tool.
 
 A verb the interpreter lacks is added to `gym-interp.mjs`, never
 paraphrased in the filing.

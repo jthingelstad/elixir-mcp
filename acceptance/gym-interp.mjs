@@ -11,8 +11,9 @@
  * element where key equals value). With `calls`, the first segment is
  * an alias (`r.rivals[...]`, `w.standings[...]`).
  *
- * Verbs: has, eq, neq, lte, count_eq, sum_eq, sorted_desc, notes_match,
- * notes_not_match, every_row_has. An `eq` right-hand side that is a
+ * Verbs: has, absent, eq, neq, lt, lte, gt, gte, count_eq, sum_eq (paths
+ * and literals), sorted_desc, sorted_asc, notes_match, notes_not_match,
+ * every_row_has. An `eq` right-hand side that is a
  * string with a dot or a bracket is read as a path (82.4 compares two
  * calls). `notes_match` reads notes[] and, on a refusal, error.message
  * and error.hint - the Gym asserts on refusals too.
@@ -96,12 +97,29 @@ export function assertOne(spec, scope, root) {
       else ok(v !== undefined, `has ${arg}: absent`);
       return;
     }
+    case "absent": {
+      ok(at(arg) === undefined, `absent ${arg}: present`);
+      return;
+    }
     case "eq": {
       const [p, want] = arg;
       const v = at(p);
       const w = rhs(want);
       ok(v !== undefined, `eq ${p}: absent`);
       ok(v === w, `eq ${p}: ${show(v)} !== ${show(w)}`);
+      return;
+    }
+    case "lt":
+    case "gt":
+    case "gte": {
+      const [a, b] = arg;
+      const va = typeof a === "number" ? a : at(a);
+      const vb = typeof b === "number" ? b : at(b);
+      ok(va !== undefined && vb !== undefined, `${verb}: ${a} or ${b} absent`);
+      if (va === null || vb === null) return;
+      const holdsV =
+        verb === "lt" ? va < vb : verb === "gt" ? va > vb : va >= vb;
+      ok(holdsV, `${verb}: ${a} ${show(va)} vs ${b} ${show(vb)}`);
       return;
     }
     case "neq": {
@@ -133,6 +151,7 @@ export function assertOne(spec, scope, root) {
     case "sum_eq": {
       const [parts, total] = arg;
       const vals = parts.flatMap((p) => {
+        if (typeof p === "number") return [p];
         const v = at(p);
         return Array.isArray(v) ? v : [v];
       });
@@ -151,15 +170,20 @@ export function assertOne(spec, scope, root) {
       );
       return;
     }
-    case "sorted_desc": {
-      // Each list keeps its order (the split is after sort; the two lists
-      // are not one sequence when concatenated).
-      for (const p of arg[0] ?? arg) {
+    case "sorted_desc":
+    case "sorted_asc": {
+      // Each listed path keeps its own order: two halves of a
+      // split-after-sort (decks[], unfieldable[]) are each sorted and
+      // are not one sequence when concatenated.
+      const desc = verb === "sorted_desc";
+      for (const p of Array.isArray(arg[0]) ? arg[0] : arg) {
         const v = at(p);
-        if (!Array.isArray(v)) fail(`sorted_desc ${p}: not a list`);
-        for (let i = 1; i < v.length; i += 1)
-          if (v[i] != null && v[i - 1] != null && v[i] > v[i - 1])
-            fail(`sorted_desc ${p}: rises at ${i}`);
+        if (!Array.isArray(v)) fail(`${verb} ${p}: not a list`);
+        for (let i = 1; i < v.length; i += 1) {
+          if (v[i] == null || v[i - 1] == null) continue;
+          if (desc ? v[i] > v[i - 1] : v[i] < v[i - 1])
+            fail(`${verb} ${p}: breaks at ${i}`);
+        }
       }
       return;
     }
@@ -207,21 +231,35 @@ function holds(spec, scope, root) {
   }
 }
 
-/** The Gym's blocks as cases. */
+/** The Gym's blocks as cases. Rejected at load: a duplicate id, and a
+ *  finding (ids `<feedback>.<n>`) with no `control: true` case - a
+ *  positive-only assert is satisfied by hardcoding the flag. */
 export function gymCases(blocks) {
   const ids = new Set();
-  return blocks.map((b) => {
+  const findings = new Map(); // feedback id -> has a control
+  for (const b of blocks) {
+    ok(
+      typeof b.id === "string" && b.id.length > 0,
+      "gym.json: a case without an id",
+    );
     ok(!ids.has(b.id), `gym.json: duplicate id ${b.id}`);
     ids.add(b.id);
+    const m = /^(\d+)\./.exec(b.id);
+    if (m)
+      findings.set(m[1], (findings.get(m[1]) ?? false) || b.control === true);
+  }
+  for (const [fid, hasControl] of findings)
+    ok(hasControl, `gym.json: finding ${fid} has no control: true case`);
+  return blocks.map((b) => {
     return {
       id: b.id,
       run: async (ctx) => {
         if (b.needs_fixture)
           return {
-            skip: `needs a fixture (the fixture tests carry it): ${b.needs_fixture}`,
+            skip: `BLOCKED (needs a fixture; the fixture tests may carry it): ${b.needs_fixture}`,
           };
         if (b.open_question)
-          return { skip: `open question: ${b.open_question}` };
+          return { skip: `UNSPEC (an open question): ${b.open_question}` };
         // The reads: one tool, or aliased calls.
         let root;
         let ms = null;
@@ -251,7 +289,9 @@ export function gymCases(blocks) {
           for (const a of b.assert ?? []) assertOne(a, t, root);
         }
         if (b.when && applied === 0)
-          return { skip: `when ${JSON.stringify(b.when)} did not hold` };
+          return {
+            skip: `SKIPPED: when ${JSON.stringify(b.when)} did not hold`,
+          };
         return { ms };
       },
     };

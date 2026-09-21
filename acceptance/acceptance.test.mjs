@@ -9,6 +9,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { makeDoor } from "./door.mjs";
 import { noteTokens, notesNameFields, deepKeys } from "./lib.mjs";
 import { runSuite, SUITES } from "./run.mjs";
@@ -153,6 +154,40 @@ test("the runner reports red and green and reuses a read", async () => {
     for (const k of Object.keys(SUITES)) delete SUITES[k];
     Object.assign(SUITES, saved);
   }
+});
+
+test("gym.json loads: unique ids, every finding has a control, the verbs are known", async () => {
+  const { gymCases, assertOne } = await import("./gym-interp.mjs");
+  const blocks = JSON.parse(
+    readFileSync(new URL("./gym.json", import.meta.url), "utf8"),
+  );
+  const cases = gymCases(blocks);
+  assert.ok(cases.length >= blocks.length);
+  assert.throws(
+    () => gymCases([{ id: "99.1", tool: "game_clock", assert: [] }]),
+    /finding 99 has no control/,
+  );
+  const body = {
+    weeks: [
+      { a: 1, b: 2 },
+      { a: 3, b: null },
+    ],
+    notes: ["finished on war day 3"],
+    s: { n: 4 },
+  };
+  assertOne({ has: "weeks[].a" }, body, body);
+  assertOne({ absent: "weeks[0].c" }, body, body);
+  assertOne({ eq: ["s.n", 4] }, body, body);
+  assertOne({ lt: ["weeks[0].a", "weeks[0].b"] }, body, body);
+  assertOne({ gte: ["s.n", 4] }, body, body);
+  assertOne({ sum_eq: [["weeks[0].a", 3], "s.n"] }, body, body);
+  assertOne({ sorted_asc: [["weeks[].a"]] }, body, body);
+  assertOne({ notes_match: "war day \\d" }, body, body);
+  assert.throws(
+    () => assertOne({ eq: ["weeks[0].c", null] }, body, body),
+    /absent/,
+  );
+  assert.throws(() => assertOne({ bogus: "x" }, body, body), /unknown verb/);
 });
 
 test("every real case is read-only: no write tool, no live: true", () => {
