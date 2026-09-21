@@ -406,11 +406,19 @@ export function makeHandler({
         }
       }
       // Same principle as the daily quota: the bucket belongs to whoever is
-      // paying. An integration may carry its own ceiling, since its traffic
-      // is a function of its userbase rather than its owner's habits.
+      // paying. A key that carries its OWN hourly ceiling (an integration's
+      // traffic is a function of its userbase; the acceptance suite's of
+      // its catalogue) spends from its own bucket - a ceiling on a shared
+      // counter would let that key starve its owner's other doors (found
+      // 2026-09-21: one acceptance run took 40% of the owner's hour, and
+      // the Discord agent shares it).
+      const ownCeiling = account.hourlyRateLimit ?? null;
       const withinRate = await checkRateLimit(db, {
-        bucket: `mcp#${account.budget?.accountId ?? account.accountId}`,
-        max: account.hourlyRateLimit ?? HOURLY_RATE_LIMIT,
+        bucket:
+          ownCeiling !== null && account.tokenId
+            ? `mcp#token#${account.tokenId}`
+            : `mcp#${account.budget?.accountId ?? account.accountId}`,
+        max: ownCeiling ?? HOURLY_RATE_LIMIT,
       });
       if (!withinRate) {
         // Windows are fixed and hour-aligned, so the wait is the remainder

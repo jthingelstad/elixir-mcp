@@ -25,6 +25,7 @@ import {
   accountTrackOp,
   principalOp,
   integrationOp,
+  serviceTokenLimitsOp,
 } from "./ops-accounts.mjs";
 import {
   replay,
@@ -205,6 +206,14 @@ export async function handler(event) {
   }
   if (event?.integration) {
     return integrationOp(process.env.DATABASE_URL, event.integration);
+  }
+  if (event?.service_token_limits) {
+    const result = await serviceTokenLimitsOp(
+      process.env.DATABASE_URL,
+      event.service_token_limits,
+    );
+    console.log(JSON.stringify(result));
+    return result;
   }
   if (event?.principal) {
     const result = await principalOp(process.env.DATABASE_URL, event.principal);

@@ -253,6 +253,50 @@ export async function principalOp(databaseUrl, spec) {
   }
 }
 
+/** {service_token_limits: {name, hourly_rate_limit?, daily_quota?}}: a
+ *  key's own ceilings. A key with its own hourly ceiling spends from its
+ *  own bucket (services/mcp/src/handler.mjs), so the acceptance suite's
+ *  run does not count against its owner's hour or the Discord agent's.
+ *  Null clears an override back to the owner's. By token NAME, the
+ *  live (unrevoked) row; never the value or the hash. */
+export async function serviceTokenLimitsOp(databaseUrl, spec) {
+  const name = String(spec?.name ?? "").trim();
+  if (!name) return { error: "name_required" };
+  const has = (k) => Object.prototype.hasOwnProperty.call(spec, k);
+  const num = (k) =>
+    spec[k] === null
+      ? null
+      : Number.isInteger(spec[k]) && spec[k] > 0
+        ? spec[k]
+        : undefined;
+  if (
+    (has("hourly_rate_limit") && num("hourly_rate_limit") === undefined) ||
+    (has("daily_quota") && num("daily_quota") === undefined)
+  )
+    return { error: "limits must be positive integers or null" };
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `update service_token set
+         hourly_rate_limit = case when $2::boolean then $3::int else hourly_rate_limit end,
+         daily_quota = case when $4::boolean then $5::int else daily_quota end
+       where name = $1 and revoked_at is null
+       returning token_id, name, hourly_rate_limit, daily_quota`,
+      [
+        name,
+        has("hourly_rate_limit"),
+        num("hourly_rate_limit") ?? null,
+        has("daily_quota"),
+        num("daily_quota") ?? null,
+      ],
+    );
+    return rows[0] ? { ok: true, token: rows[0] } : { error: "not_found" };
+  } finally {
+    await db.end();
+  }
+}
+
 /** IAM-authorized provisioning passes only a locally minted SHA-256 digest.
  * Uses the admin command implementation; no raw credential enters Lambda. */
 export async function integrationOp(databaseUrl, spec) {

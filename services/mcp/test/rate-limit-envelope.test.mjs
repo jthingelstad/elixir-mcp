@@ -103,3 +103,34 @@ test("the rate limit refuses in the contract envelope, with a real Retry-After",
     `Retry-After must be the rest of the hour, got ${res.headers["retry-after"]}`,
   );
 });
+
+test("a key with its own ceiling spends from its own bucket, not its owner's (2026-09-21)", async () => {
+  // busy-bot has spent its hour (ceiling 1) above. A second key on the
+  // SAME account with no ceiling of its own still has the account's 300:
+  // the busy key's calls did not count against the shared bucket.
+  const plain = "svt_" + "b".repeat(43);
+  await db.query(
+    `insert into service_token (account_id, name, token_hash)
+     select account_id, 'plain-bot', $1 from service_token where name = 'busy-bot'`,
+    [crypto.createHash("sha256").update(plain).digest("hex")],
+  );
+  const res = await handler({
+    rawPath: "/mcp",
+    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    headers: { authorization: `Bearer ${plain}` },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 3, method: "initialize" }),
+  });
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body).slice(0, 200));
+  const { rows } = await db.query(
+    `select bucket from rate_limit where bucket like 'mcp#%' order by bucket`,
+  );
+  const buckets = rows.map((r) => r.bucket);
+  assert.ok(
+    buckets.some((b) => b.startsWith("mcp#token#")),
+    `own bucket: ${buckets}`,
+  );
+  assert.ok(
+    buckets.some((b) => /^mcp#[0-9a-f-]{36}$/.test(b)),
+    `owner bucket: ${buckets}`,
+  );
+});

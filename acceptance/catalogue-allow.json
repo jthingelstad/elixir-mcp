@@ -1,0 +1,28 @@
+{
+  "*": {
+    "on_behalf_of": "an argument on agent connections, named in notes about the caller",
+    "display_name": "same",
+    "request_id": "meta, named by hints",
+    "contract_version": "meta",
+    "trophy_change": "a loss on the arena's trophy floor carries trophy_change null: the note says the game omits the field",
+    "pre_reset": "on a series row only at a season roll",
+    "season_roll": "same",
+    "pol_trophies": "the profile's name for the board's rating, pointed at by rankings notes"
+  },
+  "elixir_changelog": {
+    "tools_added": "on an entry only when a version added tools"
+  },
+  "players_names": {
+    "in_corpus": "on unknown[] rows, present only when a tag is unknown"
+  },
+  "clans_roster": {
+    "members_not_in_race": "war_current's field, pointed at"
+  },
+  "war_current": {
+    "points_earned": "days_closed's per-day fields, absent until a war day closes",
+    "end_of_day_rank": "same"
+  },
+  "docs": {
+    "_": "tokens the docs use as prose or as another surface's fields; each with its reason"
+  }
+}

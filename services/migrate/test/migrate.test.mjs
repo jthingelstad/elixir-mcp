@@ -989,3 +989,52 @@ test("0091 census: ingest leaves no participant without its deck or played rows,
     await db.end();
   }
 });
+
+test("service_token_limits sets a key's own ceilings by name, clears with null, refuses junk", async () => {
+  const { serviceTokenLimitsOp } = await import("../src/ops-accounts.mjs");
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  try {
+    const {
+      rows: [a],
+    } = await db.query(
+      `insert into account (email_hash, status) values ('stl-owner', 'approved') returning account_id`,
+    );
+    await db.query(
+      `insert into service_token (account_id, name, token_hash) values ($1, 'acceptance', repeat('a', 64))`,
+      [a.account_id],
+    );
+  } finally {
+    await db.end();
+  }
+  const set = await serviceTokenLimitsOp(SCRATCH_URL, {
+    name: "acceptance",
+    hourly_rate_limit: 600,
+  });
+  assert.equal(set.ok, true);
+  assert.equal(set.token.hourly_rate_limit, 600);
+  assert.equal(set.token.daily_quota, null, "untouched");
+  const cleared = await serviceTokenLimitsOp(SCRATCH_URL, {
+    name: "acceptance",
+    hourly_rate_limit: null,
+  });
+  assert.equal(cleared.token.hourly_rate_limit, null);
+  assert.deepEqual(
+    await serviceTokenLimitsOp(SCRATCH_URL, {
+      name: "acceptance",
+      hourly_rate_limit: -1,
+    }),
+    {
+      error: "limits must be positive integers or null",
+    },
+  );
+  assert.deepEqual(
+    await serviceTokenLimitsOp(SCRATCH_URL, {
+      name: "nobody",
+      hourly_rate_limit: 5,
+    }),
+    {
+      error: "not_found",
+    },
+  );
+});
