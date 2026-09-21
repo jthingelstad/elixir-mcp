@@ -39,12 +39,15 @@ export function deepKeys(value, out = new Set()) {
  *  `participants[].scoring_decks` (its last segment), `applied.window.partial`
  *  (each segment). A token with no underscore is prose, not a field. */
 const TOKEN = /[a-z][a-z0-9]*(?:_[a-z0-9]+)+/g;
-export function noteTokens(notes) {
+export function noteTokens(notes, { tools = new Set() } = {}) {
   const out = new Set();
   for (const n of notes ?? []) {
     for (const m of String(n).matchAll(/[A-Za-z_][A-Za-z0-9_.[\]]*/g)) {
-      const word = m[0].replace(/\[\]/g, "");
-      for (const seg of word.split("."))
+      const word = m[0].replace(/\[\]/g, "").replace(/\.+$/, "");
+      const segs = word.split(".");
+      // `rankings_clans.rated_players` is that tool's field, pointed at.
+      if (segs.length > 1 && tools.has(segs[0])) continue;
+      for (const seg of segs)
         for (const t of seg.matchAll(TOKEN)) out.add(t[0]);
     }
   }
@@ -100,7 +103,9 @@ export function notesNameFields(ctx, tool, body, { allow = [] } = {}) {
   );
   const allowed = new Set(allow);
   // A note may point at another tool by name.
-  const missing = [...noteTokens(body.notes)].filter(
+  const missing = [
+    ...noteTokens(body.notes, { tools: new Set(ctx.tools.keys()) }),
+  ].filter(
     (t) =>
       !keys.has(t) &&
       !args.has(t) &&

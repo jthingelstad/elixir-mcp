@@ -149,7 +149,7 @@ function fullBoardNote(snapshot, floor) {
     ? `the API offered more than the ${depth} the recorder keeps (truncated: true)`
     : `the API serves ${depth} and offered nothing past them (truncated: false)`;
   const value = floor === null || floor === undefined ? "" : ` (${floor})`;
-  return `This board holds ${depth} places and is full (${whose}): floor_rating${value} is the last place's rating, a cutoff that moves, not a qualification threshold - a player or clan can leave the board without losing rating, and rankings_clans' rated_players compared across dates moves with the cutoff as well as with play.`;
+  return `This board holds ${depth} places and is full (${whose}): floor_rating${value} is the last place's rating, a cutoff that moves, not a qualification threshold - a player or clan can leave the board without losing rating, and rankings_clans.rated_players compared across dates moves with the cutoff as well as with play.`;
 }
 
 /** The season argument as the record files it: the game clock's ordinal.

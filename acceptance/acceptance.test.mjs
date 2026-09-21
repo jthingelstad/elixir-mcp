@@ -54,6 +54,10 @@ test("note tokens: snake_case fields, dotted paths and [] segments; prose left a
     ["finished_early", "scoring_decks"].sort(),
   );
   assert.ok(!tokens.has("applied"), "no underscore, no token");
+  const pointed = noteTokens(["and rankings_clans.rated_players moves too."], {
+    tools: new Set(["rankings_clans"]),
+  });
+  assert.equal(pointed.size, 0, "another tool's field, pointed at by path");
 });
 
 test("notes-name-fields: the finished_early class fails; tool names, arguments and allowed words pass", () => {
