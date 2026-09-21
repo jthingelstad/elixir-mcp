@@ -6783,3 +6783,72 @@ since 09-19 (0144 for the burst pair, 0146 for the rhythm), which is
 the expand-and-contract rule satisfied. Small tables, no rewrite.
 `yield_bph` stays on `poll_state`: the clan row's churn signal and the
 planner's ranking under a starved budget still read it.
+
+## 2026-09-21 — The Elixir Gym's war run, actioned (contract 6.11.0): a finish is a day close
+
+The Gym's regression run against 6.10.0 (findings doc "Elixir MCP — test
+run 2026-09-21"; feedback #81, #82, praise #83; six regressions confirmed
+fixed, including #70's full `fit_for` criterion) rotated onto `war_*`.
+Both findings shipped and deployed the same morning (`4d6865d`, deploy
+~12:13Z, verify green, live acceptance read-only against the Gym's own
+repros; #81/#82 answered `done`, #83 `seen`). Backlog after: #77–#80 (the
+daily-report agent's corpus `battles_meta_*` `query_timeout` on ad-hoc
+windows, and a real compact mode for the meta tools) — filed 09-20 evening,
+not this run's scope, none overdue.
+
+**1. `finished_early` was documented, named in every note, and served on
+no row (#81).** The row computed it as `our_fame === 10000`. Probed live
+2026-09-21: the race LOG caps a finished boat's fame at exactly 10,000
+(and the finish day's `progressEndOfDay`), while the LIVE race reports
+the boat's progress past the line (`10134`, `10305` — the next day's
+`progressStartOfDay` and the live `clans[].fame`), and `war_week_clan.fame`
+MAX-merges the two. So a week known from the log alone equalled it and
+every live-polled week did not; the test pinned the same `=== 10000`
+against a July fixture and was tautological. **`finishTime` is a war-day
+close, not a mid-day crossing:** every finished week's `finishTime` sits
+exactly one day before the log entry's `createdDate` (136/1:
+`20260920T093805` vs `20260921T093805`), the close of war day 3 in the
+race's own slot; progress banks at day close and the finish is decided
+then. Written to `cr-agent-api-docs` `clans.md` (`68645dd`). Shipped:
+`finished_early` true/false on every regular week, `null` on a Colosseum
+week (no line) or without a standings capture; `finish_war_day` from the
+race's own day-by-day (min war day with `progress_end >= 10000`);
+`scoring_decks` beside `decks_used` on `war_history.member_weeks[]` and
+`war_current.participants[]` — `decks_used` less the attendance polls'
+decks on the days after the finish day, equal to `decks_used` on an
+unfinished week, `null` when the log lacks the week or no poll saw the
+days past the finish (a poll writes every participant's row, zeros
+included, so no rows means no sighting); `war_current.finish_war_day` and
+a conditional note naming the finish, the day and the count of decks
+played since for 0 points. The Gym's table reproduces live on 136/1
+(God Bless You 12 → 8, sikander 16 → 12, Alfablack 4 → 0). **Bonus:** the
+weekly clan email (`build-clan.mjs` → `render.mjs`) reads the same flag
+and had said "boat fame" instead of "crossed the line early" on every
+live-polled finished week. **Known limit:** the finish day's own
+drift-gap minutes (the ~22 min between the clan's close and 10:00Z) stay
+inside `scoring_decks`, and a poll that missed a day's last battle
+overstates it by a deck; the note says so. Weeks known only from the
+archive backfill (135/3's blackberry row) read `null`, not a guess.
+**Not done:** recorded war battles as a second source for post-finish
+decks (battles are not decks; a duel is two or three) — the polls are
+the deck source. The log projector leaves the newest season's last
+section unflagged as Colosseum (the live projector flags it), which the
+test fixture shows as 134/3 reading regular; in prod 135/4 reads `null`
+correctly.
+
+**2. `war_rivals` fame statistics had a denominator the payload did not
+contain (#82).** `finished_races` on every row; the note names it and
+says `races_observed` includes the running week; a rival with no
+finished shared race has `null` statistics (SQL semantics, now pinned).
+Alongside: the running week was "the anchor's latest recorded week",
+which excluded a just-closed race from the statistics until the next
+week's first poll; it is now latest AND not yet seen closed.
+
+**Open questions the Gym left for Jamie (not filed as defects):** (1)
+`fit.plays_family`/`plays_archetype` collapse "your win condition,
+different family" (Evo Royal Hogs cycle vs bridge spam) onto the bottom
+adoption rung — a `plays_win_condition` boolean and a middle rung is
+cheap, but whether family or win condition dominates adoption cost is a
+product call. (3) The `shrunk_win_rate` floor note reads per-row while
+the floor is per-segment (`methodology#deck-and-card-meta` is right;
+behaviour is right); reword when that note next moves.
