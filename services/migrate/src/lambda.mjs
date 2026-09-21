@@ -56,6 +56,7 @@ import {
   pollStateOp,
 } from "./ops-diagnostics.mjs";
 import { auditCensus, argsCensus, pollReplay } from "./ops-analysis.mjs";
+import { nameCensus } from "./ops-names.mjs";
 import {
   cardRolesImport,
   archetypeCensus,
@@ -100,6 +101,14 @@ export async function handler(event) {
     const result = await playerNames(
       process.env.DATABASE_URL,
       event.player_names,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.name_census) {
+    const result = await nameCensus(
+      process.env.DATABASE_URL,
+      event.name_census === true ? {} : event.name_census,
     );
     console.log(JSON.stringify(result));
     return result;
