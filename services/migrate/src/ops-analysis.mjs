@@ -345,7 +345,11 @@ export async function pollReplay(databaseUrl, spec = {}) {
               (select count(*)::int from capture_audit ca
                 where ca.subject_tag = s.player_tag and ca.gap
                   and ca.fetched_at > s.observed_from
-                  and ca.fetched_at <= s.observed_at) as gaps
+                  and ca.fetched_at <= s.observed_at) as gaps,
+              (select max(ca.fetched_at) from capture_audit ca
+                where ca.subject_tag = s.player_tag and ca.gap
+                  and ca.fetched_at > s.observed_from
+                  and ca.fetched_at <= s.observed_at) as last_gap_at
          from s
         where s.observed_from is not null
           and s.observed_at > $2::timestamptz and s.observed_at <= $3::timestamptz
@@ -463,11 +467,18 @@ export async function pollReplay(databaseUrl, spec = {}) {
     }
 
     // The loss.
+    // spec.cutoff (ISO): split the gapped intervals by whether their
+    // newest gap fell before or after it - the deploy that changed the
+    // schedule, so a day's loss can be read as the old clock's or the
+    // new one's (2026-09-21, acceptance part two).
+    const cutoffMs = spec.cutoff ? Date.parse(spec.cutoff) : null;
     const loss = {
       intervals: 0,
       players: new Set(),
       gap: { intervals: 0, expected: 0, captured: 0, shortfall: 0, over: 0 },
       no_gap: { intervals: 0, expected: 0, captured: 0, shortfall: 0, over: 0 },
+      gap_before_cutoff: { intervals: 0, expected: 0, shortfall: 0, hours: [] },
+      gap_after_cutoff: { intervals: 0, expected: 0, shortfall: 0, hours: [] },
       shortfalls: [],
       by_player: new Map(),
     };
@@ -483,6 +494,20 @@ export async function pollReplay(databaseUrl, spec = {}) {
       const short = Math.max(0, expected - captured);
       side.shortfall += short;
       side.over += Math.max(0, captured - expected);
+      if (r.gaps > 0 && cutoffMs !== null) {
+        const part =
+          new Date(r.last_gap_at).getTime() < cutoffMs
+            ? loss.gap_before_cutoff
+            : loss.gap_after_cutoff;
+        part.intervals += 1;
+        part.expected += expected;
+        part.shortfall += short;
+        part.hours.push(
+          Math.round(
+            (new Date(r.observed_at) - new Date(r.observed_from)) / 3600e3,
+          ),
+        );
+      }
       if (r.gaps > 0) {
         loss.shortfalls.push(short);
         const p = loss.by_player.get(r.player_tag) ?? {
@@ -584,6 +609,28 @@ export async function pollReplay(databaseUrl, spec = {}) {
           shortfall_share: noiseRate,
         },
         estimated_lost_battles: estimated,
+        by_cutoff:
+          cutoffMs === null
+            ? null
+            : Object.fromEntries(
+                ["gap_before_cutoff", "gap_after_cutoff"].map((k) => {
+                  const part = loss[k];
+                  return [
+                    k,
+                    {
+                      intervals: part.intervals,
+                      expected: part.expected,
+                      shortfall: part.shortfall,
+                      estimated_lost: Math.max(
+                        0,
+                        Math.round(part.shortfall - noiseRate * part.expected),
+                      ),
+                      interval_hours_median: pct(part.hours, 0.5),
+                      interval_hours_max: pct(part.hours, 1),
+                    },
+                  ];
+                }),
+              ),
         estimated_lost_share: share(
           estimated,
           estimated + loss.gap.captured + loss.no_gap.captured,
