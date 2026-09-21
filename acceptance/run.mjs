@@ -41,8 +41,11 @@ export const SUITES = { contracts, identities, budgets, gym };
  *  share `ctx.cache` (a read one case made is reused by the next, so the
  *  suite spends ~40 calls, not 100). Returns the report; prints unless
  *  `quiet`. */
-export async function runSuite(door, { only = null, quiet = false } = {}) {
-  const tools = await door.toolsList();
+export async function runSuite(
+  door,
+  { only = null, quiet = false, tools: given = null } = {},
+) {
+  const tools = given ?? (await door.toolsList());
   const ctx = {
     call: door.call,
     tools: new Map(tools.map((t) => [t.name, t])),

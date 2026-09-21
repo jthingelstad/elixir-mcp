@@ -1,0 +1,41 @@
+[
+  {
+    "feedback": 81,
+    "contract": "6.10.0",
+    "why": "finished_early documented and named in every note, served on no row",
+    "case": "contracts/war_history-seasons",
+    "captures": ["81-war_history-seasons.json"],
+    "expect": "notes name finished_early"
+  },
+  {
+    "feedback": 82,
+    "contract": "6.10.0",
+    "why": "war_rivals fame statistics with no finished_races denominator on the row",
+    "case": "identities/war_rivals-denominators",
+    "captures": ["82-war_rivals.json"],
+    "expect": "finished undefined"
+  },
+  {
+    "feedback": 82,
+    "contract": "6.10.0",
+    "why": "the same row read by the contracts suite",
+    "case": "contracts/war_rivals",
+    "captures": ["82-war_rivals.json"],
+    "expect": "rows lack finished_races"
+  },
+  {
+    "feedback": 77,
+    "contract": "6.9.0",
+    "why": "a 7-day corpus meta read answered query_timeout",
+    "rule": "answered",
+    "capture": "77-meta-decks-corpus-week.json",
+    "expect": "refused query_timeout"
+  },
+  {
+    "contract": "6.10.0",
+    "why": "in_progress emitted only when true: absent on a closed week the note describes (the acceptance suite's first finding, fixed in 6.13.0)",
+    "rule": "notesNameFields",
+    "capture": "in_progress-war_history-exact.json",
+    "expect": "notes name in_progress"
+  }
+]

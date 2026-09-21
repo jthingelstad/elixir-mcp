@@ -246,6 +246,53 @@ export async function argsCensus(databaseUrl, spec) {
   }
 }
 
+/** The acceptance catalogue ({acceptance_catalogue: {days?, per_tool?}}):
+ *  what agents actually call, as the input the acceptance suite's generic
+ *  rules run over (acceptance/README.md). Per read-only tool on the MCP
+ *  surface, the most frequent distinct argument sets among calls that
+ *  answered, with their counts, and the tool's duration percentiles. The
+ *  audit keeps bounded, redacted arguments for 90 days; this drops the
+ *  caller-identity ones (on_behalf_of, display_name) and any set asking
+ *  for a live read, and never returns values beyond the arguments. */
+export async function acceptanceCatalogue(databaseUrl, spec) {
+  const days = Math.min(Math.max(Number(spec?.days ?? 7), 1), 90);
+  const perTool = Math.min(Math.max(Number(spec?.per_tool ?? 3), 1), 10);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: sets } = await db.query(
+      `with calls as (
+         select tool,
+                (coalesce(args, '{}'::jsonb) - 'on_behalf_of' - 'display_name') as args,
+                duration_ms
+           from mcp_call_audit
+          where created_at > now() - make_interval(days => $1)
+            and surface = 'mcp' and error_code is null
+            and coalesce(args->>'live', 'false') <> 'true'),
+       ranked as (
+         select tool, args, count(*)::int as calls,
+                row_number() over (partition by tool order by count(*) desc, args::text) as rn
+           from calls group by tool, args)
+       select tool, args, calls from ranked where rn <= $2 order by tool, calls desc`,
+      [days, perTool],
+    );
+    const { rows: timing } = await db.query(
+      `select tool, count(*)::int as calls,
+              percentile_cont(0.5) within group (order by duration_ms)::int as p50_ms,
+              percentile_cont(0.95) within group (order by duration_ms)::int as p95_ms,
+              max(duration_ms)::int as max_ms
+         from mcp_call_audit
+        where created_at > now() - make_interval(days => $1)
+          and surface = 'mcp' and error_code is null and duration_ms is not null
+        group by tool order by tool`,
+      [days],
+    );
+    return { days, per_tool: perTool, sets, timing };
+  } finally {
+    await db.end();
+  }
+}
+
 /**
  * The session clock replayed over a week of battlelog polls, and what
  * the week lost ({poll_replay: {days?, to?}}). Read-only, aggregates only.

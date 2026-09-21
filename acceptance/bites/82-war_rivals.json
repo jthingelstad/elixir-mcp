@@ -1,0 +1,96 @@
+{
+  "feedback": 82,
+  "contract_version": "6.10.0",
+  "captured_at": "2026-09-21T07:16:32.827Z",
+  "request": {
+    "tool": "war_rivals",
+    "arguments": {}
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "applied": {
+      "clan_tag": "#J2RGCRVG",
+      "rival_tags": ["#G2P0PPGQ", "#L0Y2CJ8J", "#QUGRGLU2", "#YY20VJLU"],
+      "source": "current_bracket"
+    },
+    "rivals": [
+      {
+        "clan_tag": "#QUGRGLU2",
+        "name": "Happy Win",
+        "races_observed": 2,
+        "colosseum_races": 0,
+        "races_shared_with_you": 2,
+        "first_season": 136,
+        "last_season": 136,
+        "mean_fame": 8400,
+        "median_fame": 8400,
+        "max_fame": 8400,
+        "zero_fame_races": 0,
+        "current_race_fame": 3690,
+        "clan_score": 1177
+      },
+      {
+        "clan_tag": "#G2P0PPGQ",
+        "name": "De stichting",
+        "races_observed": 2,
+        "colosseum_races": 0,
+        "races_shared_with_you": 2,
+        "first_season": 136,
+        "last_season": 136,
+        "mean_fame": 0,
+        "median_fame": 0,
+        "max_fame": 0,
+        "zero_fame_races": 1,
+        "current_race_fame": 0,
+        "clan_score": 1152
+      },
+      {
+        "clan_tag": "#L0Y2CJ8J",
+        "name": "Legend Royale",
+        "races_observed": 2,
+        "colosseum_races": 0,
+        "races_shared_with_you": 2,
+        "first_season": 136,
+        "last_season": 136,
+        "mean_fame": 0,
+        "median_fame": 0,
+        "max_fame": 0,
+        "zero_fame_races": 1,
+        "current_race_fame": 1059,
+        "clan_score": 1156
+      },
+      {
+        "clan_tag": "#YY20VJLU",
+        "name": "Les champs",
+        "races_observed": 2,
+        "colosseum_races": 0,
+        "races_shared_with_you": 2,
+        "first_season": 136,
+        "last_season": 136,
+        "mean_fame": 0,
+        "median_fame": 0,
+        "max_fame": 0,
+        "zero_fame_races": 1,
+        "current_race_fame": 0,
+        "clan_score": 1156
+      }
+    ],
+    "notes": [
+      "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
+      "Fame statistics cover finished races only; current_race_fame is the week in progress.",
+      "clan_score is the game's own strength number for the clan as last observed in any recorded race (null before 2026-09-17, when the race poll began keeping it).",
+      "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) asks for a fresh read (queued if none is in hand)."
+    ],
+    "docs": "battles#war-weeks-points-and-fame",
+    "meta": {
+      "contract_version": "6.10.0"
+    }
+  },
+  "timings": {
+    "db_ms": 23,
+    "db_queries": 5,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

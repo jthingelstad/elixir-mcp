@@ -1,0 +1,32 @@
+{
+  "feedback": 77,
+  "contract_version": "6.9.0",
+  "captured_at": "2026-09-20T20:01:21.976Z",
+  "request": {
+    "tool": "battles_meta_decks",
+    "arguments": {
+      "segment": "corpus",
+      "days": 7,
+      "sort": "battles",
+      "limit": 15
+    }
+  },
+  "response": {
+    "error": {
+      "code": "query_timeout",
+      "class": "retry",
+      "message": "Tool battles_meta_decks exceeded its query time budget; no analytical result was returned.",
+      "hint": "Retry battles_meta_decks({\"segment\":\"corpus\",\"days\":7,\"sort\":\"battles\",\"limit\":15}) after a few seconds, or narrow from/to first; quote meta.request_id if it persists."
+    },
+    "meta": {
+      "contract_version": "6.9.0"
+    }
+  },
+  "timings": {
+    "db_ms": 18179,
+    "db_queries": 5,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

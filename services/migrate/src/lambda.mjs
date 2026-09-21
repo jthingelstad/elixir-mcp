@@ -56,7 +56,12 @@ import {
   vacuum,
   pollStateOp,
 } from "./ops-diagnostics.mjs";
-import { auditCensus, argsCensus, pollReplay } from "./ops-analysis.mjs";
+import {
+  auditCensus,
+  argsCensus,
+  pollReplay,
+  acceptanceCatalogue,
+} from "./ops-analysis.mjs";
 import { nameCensus } from "./ops-names.mjs";
 import {
   cardRolesImport,
@@ -394,6 +399,14 @@ export async function handler(event) {
     const result = await auditCensus(
       process.env.DATABASE_URL,
       event.audit_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.acceptance_catalogue) {
+    const result = await acceptanceCatalogue(
+      process.env.DATABASE_URL,
+      event.acceptance_catalogue,
     );
     console.log(JSON.stringify(result));
     return result;
