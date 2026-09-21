@@ -6643,3 +6643,43 @@ carries the naming card so "rune giant beatdown" filters and folds.
 Wizard, Baby Dragon, Royal Recruits, Witch - support cards, and the
 domain agent's call whether Giant Skeleton or Royal Recruits ever earn
 `names_deck` from a public title.
+
+## 2026-09-20 - Name shape versus performance: a small investment signal, no skill signal
+
+Jamie asked (after a Minecraft study Tyler saw) whether display-name
+patterns go with performance. `{name_census}` (`dceac8f`, migrate op,
+`services/migrate/src/ops-names.mjs`) is the approved read path for
+it: three populations aggregated by name feature, counts and means
+only, nothing per player leaves the database. Read 2026-09-21 00:46Z,
+125 s. Populations: **battles** 197,028 named players / 790,653
+decided pvp participant rows; **ranked** 26,094 tags on the latest
+final PoL board plus every location's latest live board; **profiles**
+33,842 latest daily snapshots.
+
+**Finding.** Name shape carries a small, consistent *investment*
+signal and essentially no *skill* signal. Decorated / non-ASCII
+names sit higher on every scale (profiles +459 trophies on 7,220,
++14% exp; ranked +106 rating on 6,814; lifetime win rate +1.1 pt);
+plain, lowercase, short and digit-suffixed names sit lower (all_lower
+-336 trophies on 6,418, len_1-4 -386 on 5,613, ends_with_digits -184
+on 1,675 and -0.8 pt per-player battle win rate on 15,928). The
+Pearson correlations of name length and digit count with win rate are
+zero (-0.007, -0.004 over 197k players). Every keyword with a striking
+delta (royale -7 pts, ez -5 pts lifetime, master/yt +5 pts) sits on
+n < 300 with a confidence interval wider than the effect. Script is a
+region proxy, not a name effect: CJK names are higher on the ranked
+boards (+148, the country boards they sit on) and Arabic names lower
+everywhere (-1,493 trophies on 472, -105 rating on 293).
+
+**Reading the battles population.** win_rate_pooled is 0.5004 by
+construction (every decided battle has one winner); the per-player mean
+is 0.421 because the corpus sees most players once, as an opponent of
+a recorded player, and recorded players win ~58% of what we hold. A
+feature's per-player delta is therefore a within-matchmaking read of
+opponents; a feature's pooled delta says which names our RECORDED
+players carry (cjk 9 decided/player, decorative 9.5).
+
+Not a product surface; the op stays as a diagnostic. If anyone wants
+the read again, invoke with `AWS_MAX_ATTEMPTS=1` and read the result
+from the log line (the CLI's 60 s read timeout retried the first call
+into `ReservedFunctionConcurrentInvocationLimitExceeded`).
