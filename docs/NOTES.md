@@ -7064,3 +7064,44 @@ p95 ceilings, both slow); 23 tools on recorded baselines. **Next:** write
 outputSchemas for the 23 (the baselines retire as each lands); the
 identity DSL; the ground-truth suite against the live CR API (2–3 calls
 from this Mac); the Gym prompt gains the JSON block in the README.
+
+## 2026-09-21 — 6.14.0: the collection is its own facts; every tool has an outputSchema; the ground suite
+
+**players_collection (Jamie's call: a minor, not a major).** The full
+answer for a mature collection was ~55k against the 48k cap and, with
+no `limit` to narrow, could not price a retry: 31k of it was the
+catalog repeated per card (`iconUrls` 22k; `rarity`, `elixirCost`,
+`maxLevel`, `maxLevelRarityScale` 9k). Gone from the rows; ~24k at
+full. Jamie declined the major: the removed fields are catalog facts,
+no client could receive the answer they rode on (the week's reads were
+all compact), and the changelog says so. `clans_members_timeline` at
+full over a week with five metrics was NOT a defect: its refusal prices
+the retry ("a limit of 21 should fit") — the suite's compact-twin rule
+now takes a priced `result_too_large` as the documented answer, and
+`answered()` prints hints. `known.json` is empty.
+
+**Every tool publishes an outputSchema (23 more).** Drafted from live
+answers by a throwaway generator, reviewed against the handlers for the
+conditional keys (`population` on corpus reads, `players_as_of` on the
+rollup path, `season` on `cards_card`, the rankings tools' unrecorded
+branch with `snapshot: null`, `clans_total` off that branch), then held
+against the fixture tests — which validate every output under the test
+runner and caught fifteen leaves typed from one observation (`war_day`
+integer-only, `mean_fame`/`clan_tag` null-only). Policy for the drafts:
+required at the top level only, every leaf nullable, permissive below.
+`acceptance/shapes/` is empty; the provenance line reads 0/0. The
+registry now validates 42 tools' outputs on every test run.
+
+**The ground suite.** Two live CR API reads from this Mac
+(`cr-api.mjs`, the operator key, never through the door): profile
+identity facts equal, trophies equal when the record is under three
+hours old; the race bracket is the game's, banked fame never ahead of
+the game's, equal under ten minutes. SKIP printed where no key answers.
+The acceptance key's own ceiling raised to 2,400/hour: a build day runs
+the suite five times an hour and 900 tripped once more (the deploy went
+red on it, correctly; re-run green).
+
+Final: **216 cases, 0 failed, 0 skipped, 184 calls, ~4.5 min**, through
+the gate. **Next in the build:** the identity DSL (one-liners for
+cross-tool number pairs); the Gym prompt's JSON block; `cards_card`
+corpus ~10 s and `battles_trends` clan ~9 s watched.
