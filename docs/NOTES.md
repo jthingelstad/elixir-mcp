@@ -7486,3 +7486,59 @@ no single deck - but the per-round decks ARE stored as
 is not. Duels are invisible to every level-gap comparison today.
 
 Not actioned: these are Jamie's calls, written up for the decision.
+
+## 2026-09-22 — The COMPLETE battle payload audit (not a sample): every field has a disposition; four are dropped on purpose
+
+Jamie's challenge: the earlier pass missed `globalRank`, `modifiers`, the
+duel round results and `arena.rawName`, so a sampled re-audit cannot give
+confidence. Correct. `payloads/` has **no expiration** (only an IA
+transition at 30 days; the 90-day rule is `calls/` only), so the archive
+IS the whole inbound history and a complete sweep is possible.
+
+`infra/scripts/payload-field-audit.mjs` (new) reads EVERY archived object
+for an endpoint and reports each field path's volume and its manifest
+disposition. It **exits non-zero when a path has no disposition**, so it
+can gate a release rather than being a thing someone remembers to run.
+
+Complete result for `player_battlelog`: **72,503 objects, 0 failed,
+964,925 battle entries, 116 distinct field paths, all twelve battle
+types** (pathOfLegend 337,798, trail 268,117, PvP 213,246, riverRacePvP
+55,337, boatBattle 40,312, friendly 22,638, riverRaceDuel 10,338,
+riverRaceDuelColosseum 4,374, clanMate 4,356, tournament 3,225, unknown
+2,757, clanMate2v2 2,427).
+
+**ZERO uncatalogued paths.** Nothing the API sends for a battle lacks a
+decision. The earlier sampled audit reached the same verdict; this one
+can be relied on.
+
+Dropped on purpose, at full volume (entries carrying the path):
+
+| path | entries | reason of record |
+| --- | --- | --- |
+| `[].team[]/opponent[].globalRank` | 964,925 each (~19.6% non-null) | Tier 2 |
+| `[].arena.rawName` | 964,925 | with the profile's arena.rawName |
+| `[].modifiers[].tag` + `.modifiers[]` | 66,821 | 0112: no reader, the column was dead |
+| `[].team[]/opponent[].rounds[].crowns`, `.kingTowerHitPoints`, `.princessTowersHitPoints[]`, `.elixirLeaked`, `.cards[].used` | 15,091 (13,347-13,937 for king HP) | per-round duel results; Tier 2 |
+
+Fifteen manifest paths are never observed: the three `challenge*` fields
+(already documented official-only) and twelve `supportCards[]` sub-fields
+the support-card object does not carry. The manifest over-specifies
+there; harmless, worth trimming when that file is next touched.
+
+**Why the nightly census missed these.** It samples twenty archived
+objects per endpoint per day, newest first - a good tripwire for a field
+the API adds to what people are playing now, and structurally blind to
+the rare: a duel is 1.5% of entries and a CHAOS modifier 6.9%, so both
+can go unsampled for long stretches. The census stays (it is cheap and
+catches additions fast); the full sweep is what gives the guarantee.
+
+**The duel claim we have been making is not true.** The public docs said
+a duel's `tower_hp` "describes the final round only" and that it "has no
+differential" - framing Elixir's own gap as a property of duels. The API
+reports every round separately. Corrected on /docs/battles today to say
+the limit is what Elixir records, not what the game reports. The fix
+itself is a pass of its own (Jamie, this session): a
+`battle_participant_round` table (the manifest already names it),
+`battle_participant.global_rank` (also already named), a home for
+`modifiers`, and a replay of the 72,503 archived payloads to fill them.
+Not started - scoped and awaiting Jamie's go.

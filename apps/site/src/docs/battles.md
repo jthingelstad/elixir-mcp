@@ -113,7 +113,14 @@ A **duel** (`riverRaceDuel`, `riverRaceDuelColosseum`) is **one row for up to
 three games**. `crowns` is summed across the rounds, `tower_hp` describes the
 final round only, `deck_hash` is `null` because there is no single deck, the
 decks sit under `deck.rounds[]` one per round, and `rounds_played` says how
-many rounds the row holds. `battles_decks`, `battles_cards` and the meta
+many rounds the row holds.
+
+That shape is Elixir's, not the game's. The API reports each round of a duel
+separately - its own crowns, king and princess tower hitpoints, and elixir
+leaked - and Elixir records the round DECKS but not the round RESULTS, so it
+cannot yet answer "how did round two go". Where this page says a duel has no
+differential, or that its tower hitpoints are the final round's, read that as
+a limit of what is recorded rather than a fact about duels. `battles_decks`, `battles_cards` and the meta
 tools exclude duels for exactly this reason: `battles_decks` itemizes them
 under `excluded {duels, no_deck}` and its `total_battles_in_window` is the
 head-to-head battles with a deck, the denominator of `share_of_battles`, so
