@@ -112,6 +112,19 @@ Establish, with receipts:
   applies here unchanged.)
 - Deploys are part of this objective: a fix that is committed but not
   deployed is not shipped. `AWS_PROFILE=jamie node infra/scripts/deploy.mjs`.
+- **A long batch against a Lambda blocks everyone else's deploy, and the
+  checkout lease will not tell them.** `elixir-mcp-migrate` and
+  `elixir-mcp-jobs` both run at `ReservedConcurrentExecutions: 1`, so a
+  backfill or repair looping invocations holds the whole function: a
+  deploy's migration step answers
+  `ReservedFunctionConcurrentInvocationLimitExceeded` (429) and the
+  deploy fails after the code has already updated. Seen twice on
+  2026-09-22, both self-inflicted. The lease guards the CHECKOUT, not the
+  cluster - a batch can run with the lease released, and an actor who
+  takes the lease meanwhile can code, verify and commit but will fail at
+  deploy until the batch ends. Say in NOTES when a long batch is running
+  and roughly when it ends; prefer a resumable op with a real remaining
+  count so anyone can tell done from stuck.
 - **Quarterly** (and after any schema-shape change to the account
   tables): rehearse restore. Restore the latest RDS snapshot to a
   scratch instance, run the schema fingerprint against it, time the
