@@ -1,0 +1,43 @@
+{
+  "feedback": 86,
+  "contract_version": "6.14.0",
+  "captured_at": "2026-09-22T07:11:14.028Z",
+  "request": {
+    "tool": "war_history",
+    "arguments": {
+      "season_id": 128,
+      "section_index": 0
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "name": "POAP KINGS",
+    "applied": {
+      "clan_tag": "#J2RGCRVG",
+      "season_id": 128,
+      "section_index": 0
+    },
+    "weeks": [],
+    "member_weeks": [],
+    "notes": [
+      "points are per-member contributions; fame belongs to the boat (the clan).",
+      "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is when the recorder saw it closed.",
+      "standings carries every clan in the week's bracket with clan_score (the game's strength number, latest observed) and repair_points; finish_time is null for a clan that did not finish (the API marks it with epoch zero, never a time). days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it; each day's standings carry rank (1-based, like every rank here; null while unranked) beside end_of_day_rank (the API's 0-based value, -1 unranked).",
+      "in_progress marks the week still being fought; on OLDER weeks a null our_rank/our_fame means the week was observed without a standings capture.",
+      "member_weeks contains every recorded participant for the exact week; null war_days_battled means per-day attendance is unknown, while war_days lists the observed day indices battled.",
+      "finished_early is true on a regular week whose boat reached the 10,000-fame line, false when it did not, null on a Colosseum week (no finish line) or a week without a standings capture; finish_war_day is the war day whose close carried it over (null when the day-by-day log does not hold the week). Decks used after the finish earn zero points, so decks_used is not the denominator of a points-per-deck rate on a finished week.",
+      "member_weeks[].decks_used is the week's cumulative count; a duel consumes one deck per round played (two or three) and a 1v1 one, so decks are not battles. scoring_decks is decks_used less the decks played on the war days after the finish (the denominator for a points-per-deck rate; equal to decks_used on an unfinished week; null when the record cannot separate them); it can overstate by a deck where a poll missed a day's last battle."
+    ],
+    "docs": "battles#war-weeks-points-and-fame",
+    "meta": {
+      "contract_version": "6.14.0"
+    }
+  },
+  "timings": {
+    "db_ms": 35,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

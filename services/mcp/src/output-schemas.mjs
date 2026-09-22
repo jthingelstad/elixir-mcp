@@ -1519,6 +1519,8 @@ export const OUTPUT_SCHEMAS = {
       },
       history_starts_at: {
         type: "object",
+        description:
+          "The recording horizon, on both paths (6.15.0; the exact-week path used to drop it): the oldest week the record holds for the clan.",
         properties: { season_id: COUNT, section_index: COUNT },
       },
       member: TAG,
@@ -1567,7 +1569,11 @@ export const OUTPUT_SCHEMAS = {
           },
         },
       },
-      days: { type: "array" },
+      days: {
+        type: "array",
+        description:
+          "The exact week's day-by-day (periodLogs), the same rows as war_current.days_closed: progress_end is the API's capped value on a finishing day and progress_end_banked the banked one (6.15.0).",
+      },
       notes: NOTES,
       docs: DOCS,
       meta: META,
@@ -2310,7 +2316,16 @@ export const OUTPUT_SCHEMAS = {
                   name: { type: ["string", "null"] },
                   points_earned: NULLABLE_INT,
                   progress_start: NULLABLE_INT,
-                  progress_end: NULLABLE_INT,
+                  progress_end: {
+                    type: ["integer", "null"],
+                    description:
+                      "The API's progressEndOfDay verbatim: capped at 10,000 on the day a boat finishes.",
+                  },
+                  progress_end_banked: {
+                    type: ["integer", "null"],
+                    description:
+                      "What the boat had banked at the day's close (6.15.0): progress_start + progress_earned + progress_from_defenses on a capped finishing row, progress_end itself everywhere else. Walk this one.",
+                  },
                   progress_earned: NULLABLE_INT,
                   end_of_day_rank: {
                     type: ["integer", "null"],

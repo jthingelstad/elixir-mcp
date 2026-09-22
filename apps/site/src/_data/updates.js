@@ -9,6 +9,12 @@
  */
 export default [
   {
+    date: "2026-09-22",
+    title:
+      "The day a boat finishes, the log says 10,000: the banked number now sits beside it",
+    body: "The Elixir Gym's second war run checked yesterday's fixes against today's numbers - all confirmed - and found three more things in the same family. The race's day-by-day is the game's own, and on the day a boat crosses the line the game caps that day's closing progress at exactly 10,000, while the next morning's opening progress carries what was really banked: 10,134. So of twenty day rows in a week, nineteen added up and one did not, and an agent walking the series saw the boat gain 134 fame on a day whose every other field said it earned nothing. progress_end stays what the API said; progress_end_banked beside it is what the boat had, and a note names the clamped row. Second: a boat battle spends a war deck, and it pays differently from a 1v1, so a points-per-deck rate pooled the member who spent all four decks on the boat with the members who spent none - and ranked him last. When any row carries boat attacks, a note now says they are counted inside the deck counts and names who. Third: asking for one exact week before the recording horizon answered exactly what asking for a week that never existed did - an empty list. The horizon now rides the exact-week path too, and an empty week says which side of it the week is on. Contract 6.15.0, additive.",
+  },
+  {
     date: "2026-09-21",
     title:
       "Your full collection can be read again: the catalog is not repeated per card",

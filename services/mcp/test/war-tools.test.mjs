@@ -1942,3 +1942,197 @@ test("6.11.0: war_current says the boat finished, names the day, and serves the 
     );
   }
 });
+
+// ---------------------------------------------------- 6.15.0 (feedback #84-#86)
+// The Gym's second war run: the race log caps a finished boat's
+// progressEndOfDay at the line (the one day row whose own arithmetic
+// breaks), boat decks pool with PvP decks under the rate scoring_decks
+// sanctions, and the exact-week path dropped history_starts_at.
+test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and the horizon on the exact week (feedback #84-#86)", async () => {
+  const { projectRaceSeries } = await import("../../ingest/src/war.mjs");
+  const race = await fixture("currentriverrace/war_day.json");
+  // The race fixture as 135/3 (its periods 24-26): war day 3 closed at the
+  // line, 6870 + 3000 + 376 = 10246 served as progressEndOfDay 10000.
+  await projectRaceSeries(db, {
+    payload: race,
+    fetchedAt: "2026-08-30T12:00:00Z",
+    seasonId: 135,
+    sectionIndex: 3,
+  });
+  const tags = (
+    await db.query(`select player_tag from player order by player_tag limit 2`)
+  ).rows.map((r) => r.player_tag);
+  await db.query(
+    `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)
+     values ($1, 135, 3, $2, 350, 4, 4), ($1, 135, 3, $3, 800, 4, 0)`,
+    [CLAN, tags[0], tags[1]],
+  );
+  try {
+    // #84: the finishing day's row carries the banked value beside the
+    // API's capped one; every other row's banked value IS progress_end.
+    const exact = (
+      await call(invoke, "war_history", { season_id: 135, section_index: 3 })
+    ).body;
+    assert.ok(exact.days.length >= 3, "the day-by-day is there");
+    const ours = (d) => d.standings.find((s) => s.clan_tag === CLAN);
+    const day3 = exact.days.find((d) => d.war_day === 3);
+    assert.equal(ours(day3).progress_end, 10000, "the API's value, verbatim");
+    assert.equal(ours(day3).progress_end_banked, 10246, "6870 + 3000 + 376");
+    let clamped = 0;
+    for (const d of exact.days)
+      for (const s of d.standings) {
+        assert.ok("progress_end_banked" in s, "on every row");
+        if (s.progress_end_banked !== s.progress_end) clamped += 1;
+        else if (Number.isInteger(s.progress_start))
+          assert.equal(
+            s.progress_end_banked,
+            s.progress_start + s.progress_earned + s.progress_from_defenses,
+            `the identity holds on ${s.clan_tag} day ${d.war_day}`,
+          );
+      }
+    assert.equal(clamped, 1, "one clamped row in the week: our finish");
+    const capNote = exact.notes.find((n) => /caps a finished boat/.test(n));
+    assert.ok(capNote, "the note fires on a week with a clamped row");
+    assert.match(
+      capNote,
+      /war day 3 progress_end reads 10000 where 10246 was banked/,
+    );
+    assert.match(
+      capNote,
+      /progress_end_banked carries the banked value on every days row/,
+    );
+
+    // #85: a row with boat attacks makes the note fire and names who.
+    const boatNote = exact.notes.find((n) =>
+      /boat_attacks are counted INSIDE/.test(n),
+    );
+    assert.ok(boatNote, "the boat note fires");
+    assert.match(boatNote, /1 of 2 member_weeks rows have boat_attacks > 0/);
+    assert.match(boatNote, /4 of 4 decks/);
+    assert.match(boatNote, /points \/ scoring_decks is not comparable/);
+    assert.match(
+      exact.notes.join(" "),
+      /a 1v1 one and a boat battle one/,
+      "the decks note lists the boat battle among what consumes a deck",
+    );
+    // #86: the horizon rides the exact-week path; no horizon note on a
+    // week the record holds.
+    assert.deepEqual(exact.history_starts_at, {
+      season_id: 132,
+      section_index: 3,
+    });
+    assert.ok(
+      !exact.notes.some((n) => /horizon|coverage gap|never existed/.test(n)),
+    );
+
+    // Controls: a week without a clamped row and without boat attacks
+    // carries neither note (133/0's clamped row un-capped and its boat
+    // attacks zeroed for the test; the log fixture's members have some).
+    await db.query(
+      `update war_participation set boat_attacks = 0
+        where clan_tag = $1 and season_id = 133 and section_index = 0`,
+      [CLAN],
+    );
+    await db.query(
+      `update war_period_log set progress_end = progress_start + progress_earned + progress_from_defenses
+        where clan_tag = $1 and participant_clan_tag = $1 and season_id = 133 and section_index = 0
+          and progress_end = 10000`,
+      [CLAN],
+    );
+    const plain = (
+      await call(invoke, "war_history", { season_id: 133, section_index: 0 })
+    ).body;
+    assert.ok(plain.member_weeks.length > 0);
+    assert.ok(
+      plain.member_weeks.every((m) => !(m.boat_attacks > 0)),
+      "no boat attacks left",
+    );
+    assert.ok(
+      !plain.notes.some((n) => /boat_attacks are counted INSIDE/.test(n)),
+      "no boat note",
+    );
+    assert.ok(
+      !plain.notes.some((n) => /caps a finished boat/.test(n)),
+      "no cap note",
+    );
+    for (const d of plain.days)
+      for (const s of d.standings)
+        assert.equal(s.progress_end_banked, s.progress_end);
+
+    // war_current: the same day-by-day and the same two notes.
+    const cur = (await call(invoke, "war_current", {})).body;
+    assert.equal(cur.season_id, 135);
+    const curDay3 = cur.days_closed.find((d) => d.war_day === 3);
+    assert.equal(ours(curDay3).progress_end_banked, 10246);
+    assert.match(cur.notes.join(" "), /every days_closed row/);
+    assert.match(
+      cur.notes.join(" "),
+      /1 of 2 participants rows have boat_attacks > 0/,
+    );
+    const compact = (
+      await call(invoke, "war_current", { verbosity: "compact" })
+    ).body;
+    assert.ok(
+      !compact.notes.some((n) => /boat_attacks are counted INSIDE/.test(n)),
+      "compact drops participants and their note",
+    );
+
+    // #86: an exact week the record does not hold says which side of the
+    // horizon it is on, with history_starts_at on the answer.
+    const before = (
+      await call(invoke, "war_history", { season_id: 128, section_index: 0 })
+    ).body;
+    assert.deepEqual(before.weeks, []);
+    assert.deepEqual(before.history_starts_at, {
+      season_id: 132,
+      section_index: 3,
+    });
+    assert.match(
+      before.notes.join(" "),
+      /before the horizon - unrecorded, not a week the clan sat out/,
+    );
+    assert.match(before.notes.join(" "), /begins at season 132 section 3/);
+    assert.equal(
+      before.notes.length,
+      2,
+      "an empty answer carries no field notes",
+    );
+    const after = (
+      await call(invoke, "war_history", { season_id: 140, section_index: 0 })
+    ).body;
+    assert.deepEqual(after.weeks, []);
+    assert.match(
+      after.notes.join(" "),
+      /after the latest recorded week for #J2RGCRVG \(135\/3\)/,
+    );
+    const never = (
+      await call(invoke, "war_history", { season_id: 134, section_index: 5 })
+    ).body;
+    assert.deepEqual(never.weeks, []);
+    assert.match(
+      never.notes.join(" "),
+      /Season 134 has no section 5.*never existed/,
+    );
+    assert.ok(
+      never.history_starts_at,
+      "the horizon rides every empty answer too",
+    );
+  } finally {
+    await db.query(
+      `delete from war_participation where clan_tag = $1 and season_id = 135`,
+      [CLAN],
+    );
+    await db.query(
+      `delete from war_period_log where clan_tag = $1 and season_id = 135`,
+      [CLAN],
+    );
+    await db.query(
+      `delete from war_week_clan where clan_tag = $1 and season_id = 135`,
+      [CLAN],
+    );
+    await db.query(
+      `delete from war_week where clan_tag = $1 and season_id = 135`,
+      [CLAN],
+    );
+  }
+});

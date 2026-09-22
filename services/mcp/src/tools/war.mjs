@@ -67,6 +67,8 @@ async function warDaysLog(db, clanTag, seasonId, sectionIndex) {
       points_earned: r.points_earned,
       progress_start: r.progress_start,
       progress_end: r.progress_end,
+      // The API verbatim above; the banked value below (feedback #84).
+      progress_end_banked: bankedProgress(r),
       progress_earned: r.progress_earned,
       end_of_day_rank: r.end_of_day_rank,
       // 1-based like every other rank on the surface; the API's
@@ -93,6 +95,57 @@ async function warDaysLog(db, clanTag, seasonId, sectionIndex) {
  *  10134 or 10305 here and a week known from the log alone reads 10000
  *  (probed 2026-09-21). */
 const FINISH_LINE = 10000;
+
+/** What a boat had banked at a day's close (feedback #84). The race
+ *  log's progressEndOfDay is capped at the line on the day a boat
+ *  finishes (10000 where 6811 + 3000 + 323 = 10134), and the next day's
+ *  progressStartOfDay carries the real figure - so an iterator walking
+ *  progress_end sees +134 on a day that earned nothing. On a clamped row
+ *  the sum of the row's own parts is the banked value; on every other
+ *  row it is progress_end itself, verbatim. */
+function bankedProgress({
+  progress_start,
+  progress_earned,
+  progress_from_defenses,
+  progress_end,
+}) {
+  const parts = [progress_start, progress_earned, progress_from_defenses];
+  if (!parts.every(Number.isInteger)) return progress_end ?? null;
+  const sum = progress_start + progress_earned + progress_from_defenses;
+  return progress_end === FINISH_LINE && sum > FINISH_LINE ? sum : progress_end;
+}
+
+/** The note beside a day-by-day whose finishing rows are clamped, or
+ *  null when none is: which clan, which day, what was banked. */
+function cappedProgressNote(days, field) {
+  const capped = [];
+  for (const d of days ?? [])
+    for (const s of d.standings)
+      if (s.progress_end_banked !== s.progress_end)
+        capped.push(
+          `${s.name ?? s.clan_tag}'s war day ${d.war_day ?? d.period_index} progress_end reads ${s.progress_end} where ${s.progress_end_banked} was banked`,
+        );
+  if (capped.length === 0) return null;
+  return `The race log caps a finished boat at the line, so ${capped.join("; ")} (the row's own progress_start + progress_earned + progress_from_defenses, and the next day's progress_start); progress_end_banked carries the banked value on every ${field} row and equals progress_end wherever no cap fired - walk it, not progress_end.`;
+}
+
+/** The note beside participant rows when any carries boat attacks
+ *  (feedback #85): a boat battle spends a war deck and is counted inside
+ *  decks_used and scoring_decks, and it scores on a different scale, so a
+ *  points-per-deck rate is not comparable between the rows that hold
+ *  boat decks and the rows that do not. Null when no row does. */
+function boatDecksNote(rows, field) {
+  const boat = (rows ?? []).filter((r) => r.boat_attacks > 0);
+  if (boat.length === 0) return null;
+  const shown = boat
+    .slice(0, 4)
+    .map(
+      (r) =>
+        `${r.name ?? r.player_tag} ${r.boat_attacks} of ${r.decks_used} decks`,
+    );
+  const more = boat.length > 4 ? `, and ${boat.length - 4} more` : "";
+  return `boat_attacks are counted INSIDE decks_used and scoring_decks: a boat battle spends a war deck and scores on a different scale from a 1v1 or a duel. ${boat.length} of ${rows.length} ${field} rows have boat_attacks > 0 (${shown.join(", ")}${more}), so points / scoring_decks is not comparable between them and the rest.`;
+}
 
 const weekKey = (r) => `${r.season_id}:${r.section_index}`;
 
@@ -710,6 +763,8 @@ export const warTools = {
           "standings.finish_time is null for a clan that has not finished (the API marks it with epoch zero, never a time).",
           "participants[].decks_used is the RACE WEEK's cumulative count and decks_today.*.decks_used is this policy day's; a duel consumes one deck per round played (two or three) and a 1v1 one, so four decks is two to four battles.",
           finishedNote,
+          compact ? null : boatDecksNote(participants, "participants"),
+          cappedProgressNote(daysClosed, "days_closed"),
           "standings.fame is cumulative race progress banked at the day close; standings.period_points is the current day's score, so fame can be zero on war day 1 while members already have points.",
           "members_not_in_race names current members the game left out of the race roster: their game-side lastSeen predates the race start (a nudge list; the predicate is the game's).",
           decksToday
@@ -803,6 +858,13 @@ export const warTools = {
       } = await ctx.db.query(
         `select season_id, section_index from war_week
          where clan_tag = $1 order by season_id, section_index limit 1`,
+        [clanTag],
+      );
+      const {
+        rows: [latest],
+      } = await ctx.db.query(
+        `select season_id, section_index from war_week
+         where clan_tag = $1 order by season_id desc, section_index desc limit 1`,
         [clanTag],
       );
       const {
@@ -964,6 +1026,30 @@ export const warTools = {
           finish_time: finishInstant(r.finish_time),
         }));
       }
+      // An exact week the record does not hold (feedback #86): the
+      // horizon rides this path too, and the empty answer says which
+      // side of it the week is on - before recording began, past the
+      // latest recorded week, a section no season has, or a gap inside
+      // the span - so "unrecorded" and "never existed" are not one payload.
+      const missing = hasSeason && weeks.length === 0;
+      let missingNote = null;
+      if (missing) {
+        const at = `${exactSeason}/${exactSection}`;
+        const before = (a, b) =>
+          a.season_id < b.season_id ||
+          (a.season_id === b.season_id && a.section_index < b.section_index);
+        const asked = { season_id: exactSeason, section_index: exactSection };
+        if (!horizon)
+          missingNote = `No war weeks are recorded for ${clanTag} yet, so week ${at} is unrecorded, not absent.`;
+        else if (exactSection > 4)
+          missingNote = `Season ${exactSeason} has no section ${exactSection}: a season has four or five sections (0-4), so this week never existed; it is not a coverage gap.`;
+        else if (before(asked, horizon))
+          missingNote = `No week ${at} is recorded for ${clanTag}: recording of this clan's war history begins at season ${horizon.season_id} section ${horizon.section_index} (history_starts_at), so this week is before the horizon - unrecorded, not a week the clan sat out.`;
+        else if (before(latest, asked))
+          missingNote = `Week ${at} is after the latest recorded week for ${clanTag} (${latest.season_id}/${latest.section_index}): not yet played or not yet observed, not a coverage gap.`;
+        else
+          missingNote = `Week ${at} falls inside the recorded span for ${clanTag} (${horizon.season_id}/${horizon.section_index} to ${latest.season_id}/${latest.section_index}) but the record does not hold it: a coverage gap, not a week the clan sat out.`;
+      }
       // The chronologically-latest unfinished week is the one still being
       // fought; older null-standings weeks are capture gaps.
       return {
@@ -1000,7 +1086,10 @@ export const warTools = {
           finish_war_day: finishDays.get(weekKey(w)) ?? null,
           trophy_change: w.trophy_change,
         })),
-        ...(!hasSeason && horizon
+        // On both paths (6.15.0): the exact-week path dropped it, so a
+        // week before the horizon and a week that never existed answered
+        // byte-identical (feedback #86).
+        ...(horizon
           ? {
               history_starts_at: {
                 season_id: horizon.season_id,
@@ -1012,26 +1101,35 @@ export const warTools = {
         ...(focus || hasSeason ? { member_weeks: memberWeeks } : {}),
         ...(standings ? { standings } : {}),
         ...(days ? { days } : {}),
-        notes: notes(
-          "points are per-member contributions; fame belongs to the boat (the clan).",
-          "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is when the recorder saw it closed.",
-          hasSeason
-            ? "standings carries every clan in the week's bracket with clan_score (the game's strength number, latest observed) and repair_points; finish_time is null for a clan that did not finish (the API marks it with epoch zero, never a time). days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it; each day's standings carry rank (1-based, like every rank here; null while unranked) beside end_of_day_rank (the API's 0-based value, -1 unranked)."
-            : null,
-          "in_progress marks the week still being fought; on OLDER weeks a null our_rank/our_fame means the week was observed without a standings capture.",
-          hasSeason && !focus
-            ? "member_weeks contains every recorded participant for the exact week; null war_days_battled means per-day attendance is unknown, while war_days lists the observed day indices battled."
-            : focus
-              ? "member_weeks: null war_days_battled means per-day attendance is unknown for that week (unknown, not zero); war_days lists the day indices battled."
-              : "Pass player_tag for one member's week-by-week participation (member_weeks).",
-          "finished_early is true on a regular week whose boat reached the 10,000-fame line, false when it did not, null on a Colosseum week (no finish line) or a week without a standings capture; finish_war_day is the war day whose close carried it over (null when the day-by-day log does not hold the week). Decks used after the finish earn zero points, so decks_used is not the denominator of a points-per-deck rate on a finished week.",
-          focus || hasSeason
-            ? "member_weeks[].decks_used is the week's cumulative count; a duel consumes one deck per round played (two or three) and a 1v1 one, so decks are not battles. scoring_decks is decks_used less the decks played on the war days after the finish (the denominator for a points-per-deck rate; equal to decks_used on an unfinished week; null when the record cannot separate them); it can overstate by a deck where a poll missed a day's last battle."
-            : null,
-          hasSeason
-            ? null
-            : "history_starts_at is the recording horizon: fewer seasons than requested is coverage, not absence.",
-        ),
+        notes: missing
+          ? notes(
+              missingNote,
+              horizon
+                ? "history_starts_at is the recording horizon: a week before it is unrecorded, not absent."
+                : null,
+            )
+          : notes(
+              "points are per-member contributions; fame belongs to the boat (the clan).",
+              "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is when the recorder saw it closed.",
+              hasSeason
+                ? "standings carries every clan in the week's bracket with clan_score (the game's strength number, latest observed) and repair_points; finish_time is null for a clan that did not finish (the API marks it with epoch zero, never a time). days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it; each day's standings carry rank (1-based, like every rank here; null while unranked) beside end_of_day_rank (the API's 0-based value, -1 unranked)."
+                : null,
+              "in_progress marks the week still being fought; on OLDER weeks a null our_rank/our_fame means the week was observed without a standings capture.",
+              hasSeason && !focus
+                ? "member_weeks contains every recorded participant for the exact week; null war_days_battled means per-day attendance is unknown, while war_days lists the observed day indices battled."
+                : focus
+                  ? "member_weeks: null war_days_battled means per-day attendance is unknown for that week (unknown, not zero); war_days lists the day indices battled."
+                  : "Pass player_tag for one member's week-by-week participation (member_weeks).",
+              "finished_early is true on a regular week whose boat reached the 10,000-fame line, false when it did not, null on a Colosseum week (no finish line) or a week without a standings capture; finish_war_day is the war day whose close carried it over (null when the day-by-day log does not hold the week). Decks used after the finish earn zero points, so decks_used is not the denominator of a points-per-deck rate on a finished week.",
+              focus || hasSeason
+                ? "member_weeks[].decks_used is the week's cumulative count; a duel consumes one deck per round played (two or three), a 1v1 one and a boat battle one, so decks are not battles. scoring_decks is decks_used less the decks played on the war days after the finish (the denominator for a points-per-deck rate; equal to decks_used on an unfinished week; null when the record cannot separate them); it can overstate by a deck where a poll missed a day's last battle."
+                : null,
+              boatDecksNote(memberWeeks, "member_weeks"),
+              cappedProgressNote(days, "days"),
+              hasSeason
+                ? null
+                : "history_starts_at is the recording horizon: fewer seasons than requested is coverage, not absence.",
+            ),
         docs: WAR_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };

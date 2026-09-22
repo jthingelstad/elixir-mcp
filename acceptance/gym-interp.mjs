@@ -12,8 +12,9 @@
  * an alias (`r.rivals[...]`, `w.standings[...]`).
  *
  * Verbs: has, absent, eq, neq, lt, lte, gt, gte, count_eq, sum_eq (paths
- * and literals), sorted_desc, sorted_asc, notes_match, notes_not_match,
- * every_row_has. An `eq` right-hand side that is a
+ * and literals; a fanned total `list[].field` is summed, 87.1), contains
+ * (a scalar list holds a value, 85.6), sorted_desc, sorted_asc,
+ * notes_match, notes_not_match, every_row_has. An `eq` right-hand side that is a
  * string with a dot or a bracket is read as a path (82.4 compares two
  * calls). `notes_match` reads notes[] and, on a refusal, error.message
  * and error.hint - the Gym asserts on refusals too.
@@ -73,6 +74,11 @@ const isPath = (v) =>
   /[.[]/.test(v) &&
   v.split(".").every((seg) => SEG.test(seg));
 const show = (v) => JSON.stringify(v);
+
+/** A notes pattern as the Gym writes it: PCRE's `(?i)` prefix is
+ *  accepted (the notes verbs already match case-insensitively; JS has no
+ *  inline flag) rather than rewritten in the filing. */
+const notesRegExp = (arg) => new RegExp(arg.replace(/^\(\?i\)/, ""), "i");
 
 /** The text a notes verb searches: the notes, and a refusal's words. */
 function noteText(body) {
@@ -161,8 +167,17 @@ export function assertOne(spec, scope, root) {
       );
       if (vals.some((v) => v === null)) return;
       const sum = vals.reduce((x, y) => x + y, 0);
-      const want = at(total);
+      let want = at(total);
       ok(want !== undefined, `sum_eq: ${total} absent`);
+      if (Array.isArray(want)) {
+        // A fanned total (member_weeks[].points) is the sum of the list.
+        ok(
+          want.every((v) => v !== undefined),
+          `sum_eq: an element of ${total} is absent`,
+        );
+        if (want.some((v) => v === null)) return;
+        want = want.reduce((x, y) => x + y, 0);
+      }
       if (want === null) return;
       ok(
         sum === want,
@@ -189,16 +204,25 @@ export function assertOne(spec, scope, root) {
     }
     case "notes_match": {
       ok(
-        new RegExp(arg, "i").test(noteText(scope.notes ? scope : root)),
+        notesRegExp(arg).test(noteText(scope.notes ? scope : root)),
         `notes_match /${arg}/: no note says it`,
       );
       return;
     }
     case "notes_not_match": {
       ok(
-        !new RegExp(arg, "i").test(noteText(scope.notes ? scope : root)),
+        !notesRegExp(arg).test(noteText(scope.notes ? scope : root)),
         `notes_not_match /${arg}/: a note says it`,
       );
+      return;
+    }
+    case "contains": {
+      const [p, want] = arg;
+      const v = at(p);
+      ok(v !== undefined, `contains ${p}: absent`);
+      if (v === null) return;
+      ok(Array.isArray(v), `contains ${p}: not a list`);
+      ok(v.includes(want), `contains ${p}: ${show(v)} lacks ${show(want)}`);
       return;
     }
     case "every_row_has": {

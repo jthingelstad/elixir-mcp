@@ -125,7 +125,12 @@ however many rounds it held.
 A **boat battle** (`boatBattle`) is an attack on a static defense, not a
 head-to-head match. The record classes every battle as `type_class` `pvp`
 (head-to-head) or `boat`, and the tools branch on it. Boat battles are
-outside every decided-battle denominator; a boat win still counts in `wins`.
+outside every decided-battle denominator (win rates, crown differentials);
+a boat win still counts in `wins`. They are **inside** the war deck counts:
+a boat battle spends one of the member's four war decks, so
+`war_current.participants[].decks_used`, `war_history.member_weeks[].decks_used`
+and `scoring_decks` include them, and `boat_attacks` on the same row says
+how many (see [War weeks, points and fame](#war-weeks-points-and-fame)).
 
 ## The control next to the number
 
@@ -311,10 +316,22 @@ is not a computation the record supports, and it is never done here.
 `decks_used` counts **decks, not battles, over the race week**:
 `war_current.participants[].decks_used` and `war_history.member_weeks[].decks_used`
 are the week's cumulative count, while `war_current.decks_today` is this
-policy day's. A war day gives each member four decks; a 1v1 consumes one and
-a duel consumes one per round played (two or three), so four decks is
-anywhere from two to four battles, and a member at `decks_used: 4` on war
-day 1 with one duel and one 1v1 in their log has finished the day.
+policy day's. A war day gives each member four decks; a 1v1 consumes one,
+a duel consumes one per round played (two or three) and a boat battle
+consumes one, so four decks is anywhere from two to four battles, and a
+member at `decks_used: 4` on war day 1 with one duel and one 1v1 in their
+log has finished the day.
+
+`boat_attacks` is counted **inside** `decks_used` and `scoring_decks`, and a
+boat battle scores on a different scale from a 1v1 or a duel: in one
+recorded week the member who spent all four decks on the boat earned 350
+points to the 700-800 of the members who spent four on 1v1s. So
+`points / scoring_decks` is not comparable between a row with boat attacks
+and a row without, and whenever any row in a response carries
+`boat_attacks > 0`, a note says so and names who (6.15.0). The record
+holds `boat_attacks` as the game's weekly counter, not per day, so no
+"PvP-only" denominator is served; `decks_used - boat_attacks` is the
+caller's one subtraction for a comparable rate on an unfinished week.
 
 During a war day, `war_current.standings` also carries `period_points`: the
 clan's score in the day currently being fought. `fame` is the cumulative boat
@@ -344,8 +361,14 @@ because that endpoint does not report the former current-day value.
   week can read past 10,000 (10,134): the race log caps a finished boat's
   fame at the line, the live race reports its progress past it, and the
   record keeps the larger.
-- `history_starts_at`, the recording horizon: fewer seasons than requested is
-  coverage, not absence.
+- `history_starts_at`, the recording horizon, the oldest week the record
+  holds for the clan: fewer seasons than requested is coverage, not
+  absence. It rides both paths (6.15.0; the exact-week path used to drop
+  it), and an exact week the record does not hold answers with empty
+  `weeks` and one note saying which side of the horizon it is on: before
+  recording began (unrecorded, not a week the clan sat out), after the
+  latest recorded week (not yet played or observed), a section no season
+  has (sections run 0-4), or a gap inside the recorded span.
 - `member_weeks` (with `player_tag`) for one member week by week:
   `war_days_battled` counts the days they fought and `war_days` lists the day
   indices; `null` `war_days_battled` means per-day attendance is unknown for
@@ -384,6 +407,14 @@ closed-week roster path. The exact week also carries:
   (the placement at day end, 1-based like every other rank here; `null`
   while unranked), `end_of_day_rank` (the API's own value, 0-based, `-1`
   for not yet ranked), `defenses_remaining` and `progress_from_defenses`.
+  `progress_end` is the API's value verbatim, and the API caps it at the
+  line on the day a boat finishes: POAP KINGS' war day 3 of 136/0 reads
+  `progress_end: 10000` where 6811 + 3000 + 323 = 10134 was banked, and
+  war day 4's `progress_start` is 10134. `progress_end_banked` beside it
+  (6.15.0) is the banked value on every row - the sum of the row's own
+  parts on a capped finishing row, `progress_end` itself everywhere else -
+  so an iterator walks one field and never sees fame arrive on a day that
+  earned nothing; a note names the clamped rows when the week has any.
   The record has kept the log since 2026-09-17 and the archive backfill
   filled earlier weeks where a race poll carried it; a week with no log
   has `days: []`. A section's fourth day closes as the section rolls, so
@@ -392,7 +423,7 @@ closed-week roster path. The exact week also carries:
 
 `war_current` carries the same day-by-day for the running week as
 `days_closed[]` (full verbosity; the day being fought joins it when it
-closes), `clan_score` and `repair_points` on every `standings[]` row,
+closes; the same `progress_end_banked` and note), `clan_score` and `repair_points` on every `standings[]` row,
 `repair_points` per participant, and `period.api_period_type`, the API's
 own word for the day (`training`, `warDay`, `colosseum`) beside the policy
 grid's `period.kind`; the two differ only when the clan's reset has drifted

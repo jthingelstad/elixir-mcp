@@ -70,5 +70,37 @@
     "case": "gym/81.7",
     "captures": ["81-7-participation-by-day-short.json"],
     "expect": "sum_eq"
+  },
+  {
+    "feedback": 84,
+    "contract": "6.14.0",
+    "why": "the Gym's block 84.1 on the answer it read: days[].progress_end clamped to 10000 on the finishing day and no note said so",
+    "case": "gym/84.1",
+    "captures": ["84-war_history-exact-136-0.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 84,
+    "contract": "6.14.0",
+    "why": "the fix's own shape (84.4): progress_end_banked on no row",
+    "case": "gym/84.4",
+    "captures": ["84-war_history-exact-136-0.json"],
+    "expect": "progress_end_banked"
+  },
+  {
+    "feedback": 85,
+    "contract": "6.14.0",
+    "why": "the Gym's block 85.1: boat decks pooled inside scoring_decks with no note, on a week where a member spent all four decks on the boat",
+    "case": "gym/85.1",
+    "captures": ["85-war_history-exact-136-1.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 86,
+    "contract": "6.14.0",
+    "why": "the Gym's block 86.1: the exact-week path answered a week before the horizon with no history_starts_at and no note",
+    "case": "gym/86.1",
+    "captures": ["86-war_history-exact-128-0.json"],
+    "expect": "has history_starts_at"
   }
 ]

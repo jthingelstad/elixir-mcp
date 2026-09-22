@@ -368,5 +368,564 @@
         ]
       }
     ]
+  },
+  {
+    "id": "84.1",
+    "feedback": 84,
+    "stability": "frozen",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 0
+    },
+    "request_id": "f1c34d87-19a2-43c5-b9c7-ff8bc8a71559",
+    "assert": [
+      {
+        "notes_match": "(?i)(caps?|capped)[^.]*(line|10,?000)|progress_end[^.]*10000"
+      },
+      {
+        "eq": [
+          "days[?war_day=4].standings[?clan_tag=#J2RGCRVG].progress_start",
+          10134
+        ]
+      },
+      {
+        "eq": ["weeks[0].our_fame", 10134]
+      },
+      {
+        "eq": [
+          "days[?war_day=3].standings[?clan_tag=#J2RGCRVG].progress_earned",
+          3000
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=4].standings[?clan_tag=#J2RGCRVG].points_earned",
+          0
+        ]
+      }
+    ]
+  },
+  {
+    "id": "84.2",
+    "feedback": 84,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 135,
+      "section_index": 4
+    },
+    "request_id": "4e920d85-f43f-4cd7-b734-a2eb40692c9f",
+    "assert": [
+      {
+        "notes_not_match": "(?i)(caps?|capped)[^.]*(line|10,?000)|progress_end[^.]*10000"
+      },
+      {
+        "eq": ["weeks[0].is_colosseum", true]
+      },
+      {
+        "eq": ["weeks[0].finished_early", null]
+      },
+      {
+        "count_eq": ["days[]", 0]
+      }
+    ]
+  },
+  {
+    "id": "84.3",
+    "feedback": 84,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 0
+    },
+    "request_id": "f1c34d87-19a2-43c5-b9c7-ff8bc8a71559",
+    "assert": [
+      {
+        "sum_eq": [
+          [
+            "days[?war_day=3].standings[?clan_tag=#QUGRGLU2].progress_start",
+            "days[?war_day=3].standings[?clan_tag=#QUGRGLU2].progress_earned",
+            "days[?war_day=3].standings[?clan_tag=#QUGRGLU2].progress_from_defenses"
+          ],
+          "days[?war_day=3].standings[?clan_tag=#QUGRGLU2].progress_end"
+        ]
+      },
+      {
+        "sum_eq": [
+          [
+            "days[?war_day=2].standings[?clan_tag=#J2RGCRVG].progress_start",
+            "days[?war_day=2].standings[?clan_tag=#J2RGCRVG].progress_earned",
+            "days[?war_day=2].standings[?clan_tag=#J2RGCRVG].progress_from_defenses"
+          ],
+          "days[?war_day=2].standings[?clan_tag=#J2RGCRVG].progress_end"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "84.4",
+    "feedback": 84,
+    "stability": "frozen",
+    "decided": "the fix's own shape (6.15.0): progress_end_banked is the banked value on the clamped row and progress_end on every other, so the identity holds on all twenty rows through it",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 0
+    },
+    "request_id": "f1c34d87-19a2-43c5-b9c7-ff8bc8a71559",
+    "assert": [
+      {
+        "eq": [
+          "days[?war_day=3].standings[?clan_tag=#J2RGCRVG].progress_end",
+          10000
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=3].standings[?clan_tag=#J2RGCRVG].progress_end_banked",
+          10134
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=2].standings[?clan_tag=#J2RGCRVG].progress_end_banked",
+          "days[?war_day=2].standings[?clan_tag=#J2RGCRVG].progress_end"
+        ]
+      },
+      {
+        "notes_match": "progress_end_banked"
+      }
+    ]
+  },
+  {
+    "id": "85.1",
+    "feedback": 85,
+    "stability": "frozen",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "e81d7d16-687b-4c75-812e-5edbb7207148",
+    "assert": [
+      {
+        "notes_match": "(?i)boat[^.]*(decks_used|scoring_decks|war deck)"
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#UCRLVL29U].boat_attacks", 4]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#UCRLVL29U].decks_used", 4]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#UCRLVL29U].scoring_decks", 4]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#UCRLVL29U].points", 350]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].boat_attacks", 8]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].scoring_decks", 12]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].points", 1600]
+      }
+    ]
+  },
+  {
+    "id": "85.2",
+    "feedback": 85,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 135,
+      "section_index": 4
+    },
+    "request_id": "4e920d85-f43f-4cd7-b734-a2eb40692c9f",
+    "assert": [
+      {
+        "notes_not_match": "(?i)boat[^.]*(decks_used|scoring_decks|war deck)"
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].boat_attacks", 0]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].scoring_decks", 12]
+      }
+    ]
+  },
+  {
+    "id": "85.3",
+    "feedback": 85,
+    "stability": "frozen",
+    "control": true,
+    "tool": "battles_query",
+    "args": {
+      "player_tag": "#UCRLVL29U",
+      "mode": "war",
+      "from": "2026-09-18T10:00:00Z",
+      "to": "2026-09-19T10:00:00Z",
+      "verbosity": "compact",
+      "include_total": true
+    },
+    "request_id": "f4147479-a4f4-4f13-9ac3-5be00f364863",
+    "for_each": "battles",
+    "assert": [
+      {
+        "eq": ["type", "boatBattle"]
+      }
+    ]
+  },
+  {
+    "id": "85.4",
+    "feedback": 85,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 1
+        }
+      },
+      "b": {
+        "tool": "battles_query",
+        "args": {
+          "player_tag": "#UCRLVL29U",
+          "mode": "war",
+          "from": "2026-09-18T10:00:00Z",
+          "to": "2026-09-19T10:00:00Z",
+          "verbosity": "compact",
+          "include_total": true
+        }
+      }
+    },
+    "request_id": "f4147479-a4f4-4f13-9ac3-5be00f364863",
+    "assert": [
+      {
+        "eq": ["b.total_count", 4]
+      },
+      {
+        "eq": [
+          "w.member_weeks[?player_tag=#UCRLVL29U].boat_attacks",
+          "b.total_count"
+        ]
+      },
+      {
+        "eq": [
+          "w.member_weeks[?player_tag=#UCRLVL29U].decks_used",
+          "b.total_count"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "85.5",
+    "feedback": 85,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "e81d7d16-687b-4c75-812e-5edbb7207148",
+    "for_each": "member_weeks",
+    "assert": [
+      {
+        "lte": ["boat_attacks", "decks_used"]
+      },
+      {
+        "lte": ["scoring_decks", "decks_used"]
+      }
+    ]
+  },
+  {
+    "id": "85.6",
+    "feedback": 85,
+    "stability": "frozen",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "e81d7d16-687b-4c75-812e-5edbb7207148",
+    "for_each": "member_weeks",
+    "when": {
+      "contains": ["war_days", 4]
+    },
+    "assert": [
+      {
+        "lt": ["scoring_decks", "decks_used"]
+      }
+    ]
+  },
+  {
+    "id": "86.1",
+    "feedback": 86,
+    "stability": "frozen",
+    "tool": "war_history",
+    "args": {
+      "season_id": 128,
+      "section_index": 0
+    },
+    "request_id": "a9d3a7c1-bf20-4500-baad-d11aa3e62d4f",
+    "assert": [
+      {
+        "has": "history_starts_at"
+      },
+      {
+        "eq": ["history_starts_at.season_id", 129]
+      },
+      {
+        "eq": ["history_starts_at.section_index", 1]
+      },
+      {
+        "count_eq": ["weeks[]", 0]
+      },
+      {
+        "notes_match": "(?i)horizon|history_starts_at|recording[^.]*begins"
+      }
+    ]
+  },
+  {
+    "id": "86.2",
+    "feedback": 86,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 0
+    },
+    "request_id": "f1c34d87-19a2-43c5-b9c7-ff8bc8a71559",
+    "assert": [
+      {
+        "count_eq": ["weeks[]", 1]
+      },
+      {
+        "eq": ["weeks[0].our_fame", 10134]
+      },
+      {
+        "notes_not_match": "(?i)horizon|before the recording|is not recorded|no week"
+      }
+    ]
+  },
+  {
+    "id": "86.3",
+    "feedback": 86,
+    "stability": "frozen",
+    "control": true,
+    "decided": "the other branch (6.15.0): a section no season has is said to never have existed, not to be unrecorded",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 5
+    },
+    "request_id": "c5061bbd-fe62-4f08-981a-2eedefadccd8",
+    "assert": [
+      {
+        "has": "history_starts_at"
+      },
+      {
+        "count_eq": ["weeks[]", 0]
+      },
+      {
+        "notes_match": "never existed"
+      },
+      {
+        "notes_not_match": "before the horizon"
+      }
+    ]
+  },
+  {
+    "id": "87.1",
+    "feedback": 87,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "e81d7d16-687b-4c75-812e-5edbb7207148",
+    "assert": [
+      {
+        "sum_eq": [
+          [
+            "days[?war_day=1].standings[?clan_tag=#J2RGCRVG].points_earned",
+            "days[?war_day=2].standings[?clan_tag=#J2RGCRVG].points_earned",
+            "days[?war_day=3].standings[?clan_tag=#J2RGCRVG].points_earned",
+            "days[?war_day=4].standings[?clan_tag=#J2RGCRVG].points_earned"
+          ],
+          "member_weeks[].points"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "87.2",
+    "feedback": 87,
+    "stability": "live",
+    "control": true,
+    "tool": "war_rivals",
+    "args": {},
+    "request_id": "d1db3abc-c432-4439-9246-ef661190d811",
+    "for_each": "rivals",
+    "assert": [
+      {
+        "lte": ["zero_fame_races", "finished_races"]
+      },
+      {
+        "lte": ["finished_races", "races_observed"]
+      },
+      {
+        "has": "finished_races"
+      }
+    ]
+  },
+  {
+    "id": "87.3",
+    "feedback": 87,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 135,
+      "section_index": 4
+    },
+    "request_id": "4e920d85-f43f-4cd7-b734-a2eb40692c9f",
+    "for_each": "member_weeks",
+    "assert": [
+      {
+        "eq": ["scoring_decks", "decks_used"]
+      }
+    ]
+  },
+  {
+    "id": "87.4",
+    "feedback": 87,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "e81d7d16-687b-4c75-812e-5edbb7207148",
+    "assert": [
+      {
+        "eq": ["weeks[0].finished_early", true]
+      },
+      {
+        "eq": ["weeks[0].finish_war_day", 3]
+      },
+      {
+        "eq": ["weeks[0].in_progress", false]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#U92P8PQG0].scoring_decks", 8]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#U92P8PQG0].decks_used", 12]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#2YG98VVQ].scoring_decks", 0]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#2YG98VVQ].decks_used", 4]
+      }
+    ]
+  },
+  {
+    "id": "87.5",
+    "feedback": 87,
+    "stability": "frozen",
+    "control": true,
+    "decided": "rival_tags names the two clans the block pins: war_rivals {} is the CURRENT bracket, which rotates with the season, and a frozen pin on a rotating default would expire at the next roll",
+    "calls": {
+      "r": {
+        "tool": "war_rivals",
+        "args": {
+          "rival_tags": ["#QUGRGLU2", "#L0Y2CJ8J"]
+        }
+      },
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 1
+        }
+      }
+    },
+    "request_id": "d1db3abc-c432-4439-9246-ef661190d811",
+    "assert": [
+      {
+        "eq": ["r.rivals[?clan_tag=#QUGRGLU2].max_fame", 8400]
+      },
+      {
+        "gte": [
+          "r.rivals[?clan_tag=#L0Y2CJ8J].max_fame",
+          "w.standings[?clan_tag=#L0Y2CJ8J].fame"
+        ]
+      },
+      {
+        "eq": ["w.standings[?clan_tag=#L0Y2CJ8J].fame", 4059]
+      }
+    ]
+  },
+  {
+    "id": "87.6",
+    "feedback": 87,
+    "stability": "live",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "seasons": 3
+    },
+    "request_id": "cb6ed658-a565-4eaf-9c83-5e8fa78ccec0",
+    "for_each": "weeks",
+    "assert": [
+      {
+        "has": "in_progress"
+      },
+      {
+        "has": "finished_early"
+      },
+      {
+        "has": "finish_war_day"
+      }
+    ]
+  },
+  {
+    "id": "87.7",
+    "feedback": 87,
+    "stability": "live",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "seasons": 3
+    },
+    "request_id": "cb6ed658-a565-4eaf-9c83-5e8fa78ccec0",
+    "for_each": "weeks",
+    "when": {
+      "eq": ["is_colosseum", true]
+    },
+    "assert": [
+      {
+        "eq": ["finished_early", null]
+      },
+      {
+        "eq": ["finish_war_day", null]
+      }
+    ]
   }
 ]

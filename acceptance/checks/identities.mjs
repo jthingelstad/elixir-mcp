@@ -125,6 +125,78 @@ export const identities = [
     () => true,
     (w) => typeof w.in_progress === "boolean",
   ),
+  // --- war: the day-by-day reconciles through the banked value (#84);
+  //     boat decks are inside the deck counts (#85); the horizon rides
+  //     the exact-week path (#86)
+  check(
+    "progress_end_banked is the day's own arithmetic on every day row",
+    "war_history",
+    closedWeek,
+    (body) => {
+      let rows = 0;
+      for (const d of body.days ?? [])
+        for (const s of d.standings) {
+          if (!("progress_end_banked" in s))
+            return `${s.clan_tag} day ${d.war_day} lacks progress_end_banked`;
+          if (
+            ![
+              s.progress_start,
+              s.progress_earned,
+              s.progress_from_defenses,
+            ].every(isInt)
+          )
+            continue;
+          rows += 1;
+          const sum =
+            s.progress_start + s.progress_earned + s.progress_from_defenses;
+          if (s.progress_end_banked !== sum)
+            return `${s.clan_tag} day ${d.war_day}: banked ${s.progress_end_banked}, parts sum ${sum}`;
+          if (
+            s.progress_end_banked !== s.progress_end &&
+            s.progress_end !== 10000
+          )
+            return `${s.clan_tag} day ${d.war_day}: banked differs from progress_end ${s.progress_end}, which is not the cap`;
+          if (
+            s.progress_end_banked !== s.progress_end &&
+            !body.notes.some((n) => /caps a finished boat/.test(n))
+          )
+            return `a clamped row with no cap note`;
+        }
+      return rows === 0 && (body.days ?? []).length > 0
+        ? "no day row carried integer parts"
+        : null;
+    },
+  ),
+  bounded(
+    "boat_attacks within decks_used",
+    "war_history",
+    closedWeek,
+    "member_weeks",
+    "boat_attacks",
+    0,
+    "decks_used",
+  ),
+  implies(
+    "a week with boat decks says they are inside the counts",
+    "war_history",
+    closedWeek,
+    null,
+    (body) => (body.member_weeks ?? []).some((m) => m.boat_attacks > 0),
+    (body) =>
+      body.notes.some((n) =>
+        /boat_attacks are counted INSIDE decks_used and scoring_decks/.test(n),
+      ),
+  ),
+  implies(
+    "history_starts_at rides the exact-week path",
+    "war_history",
+    closedWeek,
+    null,
+    () => true,
+    (body) =>
+      isInt(body.history_starts_at?.season_id) &&
+      isInt(body.history_starts_at?.section_index),
+  ),
 
   // --- war: two tools, one number
   same(
