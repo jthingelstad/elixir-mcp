@@ -7428,3 +7428,61 @@ battles provably ran three minutes or more, rising with rating.
 `cr-agent-api-docs` `d519915` carries both halves for any caller: the
 winner-inference caveat with the raw payload, and `elixirLeaked` as the
 one per-battle lower bound on elapsed time.
+
+## 2026-09-22 — Battle fidelity audit from the raw payloads: the manifest is complete; what we drop is a choice
+
+Jamie asked whether we faithfully collect everything in a battle, and
+pointed at the right place to look: the API payload, especially fields
+that do not appear in every battle. The nightly shape census samples
+**twenty archived objects per endpoint per day, newest first**, which is
+structurally blind to rare battle types - twenty recent battlelogs are
+whatever the busiest recorded players just played, so `boatBattle`,
+`riverRaceDuel`, `tournament` and `clanMate2v2` and their type-only
+fields can go unsampled for long stretches.
+
+So: enumerated every JSON key path across a **stratified sample of 1,979
+archived battlelog objects (one per distinct recorded player), 60,748
+battle entries**, using the census's own `payloadPaths` notation, and
+diffed against `PAYLOAD_KEYS.player_battlelog`. All twelve observed
+battle types were covered (pathOfLegend 34,436, trail 14,468, PvP 3,669,
+riverRacePvP 3,330, boatBattle 1,904, friendly 953, riverRaceDuel 727,
+riverRaceDuelColosseum 625, clanMate 273, tournament 188, unknown 121,
+clanMate2v2 54).
+
+**Result: ZERO paths present in payloads and absent from the manifest.**
+Nothing the API sends is uncatalogued. Fifteen manifest paths went
+unobserved: the three `challenge*` fields (already documented as
+official-only, never seen live) and twelve `supportCards[]` sub-fields
+the support-card object simply does not carry - the manifest
+over-specifies there, harmlessly.
+
+`{battle_fidelity_census}` (new, read-only) checks the other direction -
+a column the manifest promises but the projector never fills - and every
+column is filled where its type expects it (`boat_battle_side`,
+`new_towers_destroyed`, `prev_towers_destroyed`, `remaining_towers` are
+100% on `boat` rows and correctly 0% on `pvp`).
+
+**So the question is not fidelity, it is disposition.** Three drops carry
+real volume, measured over the same sample:
+
+| dropped | volume | reason of record |
+| --- | --- | --- |
+| `globalRank` | **23,764 participant rows, 19.6% of slots** (pathOfLegend 22,865) | "Tier 2 (time-series review 2.4)" |
+| `rounds[].*` (duel per-round crowns, tower HP, elixir, cards.used) | 2,802 rows (every duel) | "per-round rows are Tier 2" |
+| `modifiers[]` | **2,273 battles, 3.74%** | 0112: "CHAOS modifiers had no reader; the column was dead" |
+
+The modifiers drop has a consequence nobody priced: `trail` maps to the
+`casual` mode group, so ~2,273 CHAOS-modified battles sit pooled with
+ordinary casual battles and are now **indistinguishable from them**. The
+`comparable` guard on the deck and meta tools catches mode mixing and
+level gaps; it cannot catch this, because the field that would identify
+it is gone. Card behaviour under a modifier is not the card's behaviour.
+
+Also noted, not a drop but a gap: `riverRaceDuel` and
+`riverRaceDuelColosseum` carry `deck_hash` and `deck_avg_level` at 0%
+(8,296 participant rows). That is correct for deck IDENTITY - a duel has
+no single deck - but the per-round decks ARE stored as
+`battle_participant_card` rows, so a duel's level could be computed and
+is not. Duels are invisible to every level-gap comparison today.
+
+Not actioned: these are Jamie's calls, written up for the decision.
