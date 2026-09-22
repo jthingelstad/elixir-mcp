@@ -110,7 +110,9 @@ test("the coverage line names BOTH windows and the record they came from", () =>
     facts.coverage,
     /season 2026-09 to date \(modes, bands, partners, decks\)/,
   );
-  assert.match(facts.coverage, /1060 recorded players across 18 clans/);
+  // Thousands separated: the mail says 1,060 and 116,126, not 1060.
+  assert.match(facts.coverage, /1,060 recorded players across 18 clans/);
+  assert.match(facts.coverage, /116,126 players seen in the window/);
   assert.match(facts.coverage, /Only decided one-on-one battles count/);
 });
 

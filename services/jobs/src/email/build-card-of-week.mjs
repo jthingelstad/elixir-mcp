@@ -15,7 +15,7 @@
  *  the issue untraceable - which is exactly the bug that had the editor
  *  deleting true numbers from the Top 100. */
 import { accountCtx, callTool } from "./ctx.mjs";
-import { tryTool, cardLabel } from "./shared.mjs";
+import { tryTool, cardLabel, modeLabel } from "./shared.mjs";
 import { rankOf } from "./card-of-week-select.mjs";
 import { seasonChartAlt } from "./chart.mjs";
 
@@ -183,7 +183,9 @@ export async function buildCardOfWeekBrief({
     })),
   };
   const byMode = (seasonRead.season?.by_mode ?? []).map((m) => ({
-    mode: m.mode_group,
+    // The name a player uses, not the API's key: "ladder" is Trophy Road.
+    mode: modeLabel(m.mode_group),
+    mode_group: m.mode_group,
     battles: m.all?.battles ?? null,
     decided_battles: m.decided_battles ?? null,
     usage_share: m.all?.usage_share ?? null,

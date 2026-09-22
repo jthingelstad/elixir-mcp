@@ -14,6 +14,13 @@ const ENTITIES = {
   quot: '"',
   nbsp: " ",
   "#39": "'",
+  ldquo: "\u201c",
+  rdquo: "\u201d",
+  lsquo: "\u2018",
+  rsquo: "\u2019",
+  hellip: "\u2026",
+  mdash: "\u2014",
+  ndash: "\u2013",
 };
 
 function decode(s) {

@@ -52,12 +52,17 @@ export function cardOfWeekFacts(brief, issue) {
  *  never shows one window's number under the other's label. */
 function coverageLine(b) {
   const w = b.windows.headline;
-  const pop = b.population;
+  const n = (v) => (v == null ? "?" : Number(v).toLocaleString("en-US"));
+  const pop = {
+    recorded_players: n(b.population.recorded_players),
+    recorded_clans: n(b.population.recorded_clans),
+    players_in_window: n(b.population.players_in_window),
+  };
   return (
     `Numbers are the game week of ${w.from_day} to ${w.to_day} ${w.month} ${w.year} (headline) ` +
     `and ${b.windows.depth.label} (modes, bands, partners, decks), read from the Elixir record of ` +
-    `${pop.recorded_players ?? "?"} recorded players across ${pop.recorded_clans ?? "?"} clans and ` +
-    `${pop.players_in_window ?? "?"} players seen in the window. Only decided one-on-one battles count.`
+    `${pop.recorded_players} recorded players across ${pop.recorded_clans} clans and ` +
+    `${pop.players_in_window} players seen in the window. Only decided one-on-one battles count.`
   );
 }
 
