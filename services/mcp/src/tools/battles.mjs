@@ -10,6 +10,7 @@ import {
   responseMeta,
   MODE_GROUPS,
   typesForModeGroup,
+  EVENT_MODE_GROUP,
   formName,
   cardDisplayName,
 } from "@elixir-mcp/contracts";
@@ -367,10 +368,22 @@ import {
   trophyBattlesNote,
 } from "../controls.mjs";
 
-/** Shared: the mode filter as a WHERE clause on battle.type. */
+/** Shared: the mode filter as a WHERE clause.
+ *
+ *  `event` is not a set of types - it is the API's own eventTag, which
+ *  rides a battle played inside a time-bound event and nothing else
+ *  (6.17.0). The permanent groups must therefore also exclude tagged
+ *  battles, or `casual` would keep collecting the events that used to
+ *  fold into it. */
 function modeClause(args, add) {
   requireEnum(args.mode, MODE_GROUPS, "mode");
-  if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+  if (!args.mode) return;
+  if (args.mode === EVENT_MODE_GROUP) {
+    add("b.event_tag is not null", undefined);
+    return;
+  }
+  add("b.type = any(?)", typesForModeGroup(args.mode));
+  add("b.event_tag is null", undefined);
 }
 
 /** compact on the meta tools (feedback #80): a weekly routine comparing
@@ -567,6 +580,7 @@ export const battlesTools = {
         where.push("bp.player_tag = $1");
       }
       const add = (clause, value) => {
+        if (!clause.includes("?")) return where.push(clause);
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
       };
@@ -814,7 +828,7 @@ export const battlesTools = {
           league_number: r.league_number,
           // The contract's fold of type (modes.ts), so no consumer keeps
           // its own copy of the table (3.15.0).
-          mode_group: modeGroupOf(r.type),
+          mode_group: modeGroupOf(r.type, r.event_tag),
           // The battle's own facts (0131): which event or tournament, and
           // whether the deck was drafted or the player's own. Compact
           // keeps deck_selection alone, the one that changes what a deck
@@ -1066,6 +1080,7 @@ export const battlesTools = {
         const where = ["bp.player_tag = $1", `bp.outcome is not null`];
         const params = [tag];
         const add = (clause, value) => {
+          if (!clause.includes("?")) return where.push(clause);
           params.push(value);
           where.push(clause.replace("?", `$${params.length}`));
         };
@@ -1161,6 +1176,7 @@ export const battlesTools = {
         const where = ["bp.player_tag = $1", "bp.outcome is not null"];
         const params = [tag];
         const add = (clause, value) => {
+          if (!clause.includes("?")) return where.push(clause);
           params.push(value);
           where.push(clause.replace("?", `$${params.length}`));
         };
@@ -1208,6 +1224,7 @@ export const battlesTools = {
         const where = ["bp.player_tag = $1", "bp.outcome is not null"];
         const params = [tag];
         const add = (clause, value) => {
+          if (!clause.includes("?")) return where.push(clause);
           params.push(value);
           where.push(clause.replace("?", `$${params.length}`));
         };
@@ -1393,6 +1410,7 @@ export const battlesTools = {
       const where = ["bp.player_tag = $1", `bp.outcome in ('win','loss')`];
       const params = [tag];
       const add = (clause, value) => {
+        if (!clause.includes("?")) return where.push(clause);
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
       };
@@ -1544,6 +1562,7 @@ export const battlesTools = {
       const where = ["bp.player_tag = $1", "bp.deck_hash is not null"];
       const params = [tag];
       const add = (clause, value) => {
+        if (!clause.includes("?")) return where.push(clause);
         params.push(value);
         where.push(clause.replace("?", `$${params.length}`));
       };

@@ -53,12 +53,33 @@
  */
 
 import pg from "pg";
-import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
+import { modeGroupSql } from "@elixir-mcp/contracts";
 
 const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
-const MODE_GROUP_CASE = `case bp.type ${Object.entries(MODE_GROUP_BY_TYPE)
-  .map(([t, g]) => `when '${t}' then '${g}'`)
-  .join(" ")} else 'casual' end`;
+const MODE_GROUP_CASE = modeGroupSql("bp.type", "b.event_tag");
+
+/** The meta describes what people CHOOSE to play and how it does. Two
+ *  populations cannot say that and are excluded from it outright
+ *  (Jamie 2026-09-22, "these are not informing meta"):
+ *
+ *  - EVENT CONTENT (`event_tag is not null`, 123,562 battles). The decks
+ *    are drafted, restricted or level-boosted - Seasonal Arena II floors
+ *    cards at 15, so its recorded decks average 15.87 against 13.67 on
+ *    Trophy Road - and the rules differ per event. A win rate over them
+ *    measures the event.
+ *  - A DECK THE PLAYER DID NOT CHOOSE (`deck_selection` outside
+ *    collection and warDeckPick: eventDeck, draft, draftCompetitive,
+ *    pick, quadDeckPick, predefined and the API's own unknown).
+ *
+ *  Both are still recorded and still readable through battles_query and
+ *  a player's own rollups; they just do not describe the meta.
+ *
+ *  A NULL deck_selection is kept: it means the API did not say, and a
+ *  population is not narrowed on an absence. Every recorded battle
+ *  carries one today. */
+const META_POPULATION = `b.event_tag is null
+     and (b.deck_selection is null
+          or b.deck_selection in ('collection', 'warDeckPick'))`;
 
 /** The participant's own trophy band at battle time (0135), the five
  *  bands battles_levels speaks; null without starting trophies. */
@@ -81,6 +102,9 @@ const TROPHY_BAND_CASE = `case
  *  participant row re-grouped the whole season and the first nightly on
  *  the live corpus ran past the Lambda's 900 s (2026-09-18 19:40Z,
  *  rolled back; the 3.15.1 rebuild took 93 s). */
+// Every caller's fromWhere ends in a WHERE and joins `battle b`, so the
+// population filter rides popSelect itself: there is one meta population
+// and no call site can forget it.
 const POP_COLUMNS =
   "battle_id, player_tag, deck_hash, outcome, battle_time, type, type_class, mode_group, trophy_band, level_gap";
 function popSelect(fromWhere) {
@@ -89,7 +113,7 @@ function popSelect(fromWhere) {
               bp.type, bp.type_class, bp.deck_avg_level,
               ${MODE_GROUP_CASE} as mode_group,
               ${TROPHY_BAND_CASE} as trophy_band
-       ${fromWhere}),
+       ${fromWhere} and ${META_POPULATION}),
      sides as materialized (
        select battle_id, side, avg(deck_avg_level) as lvl from rows group by battle_id, side),
      opposing as materialized (

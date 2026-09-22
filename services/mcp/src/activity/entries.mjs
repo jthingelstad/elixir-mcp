@@ -25,7 +25,7 @@
  */
 
 import { badgeLabel } from "../badge-names.mjs";
-import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
+import { modeGroupOf } from "@elixir-mcp/contracts";
 import { periodAt } from "../war-period.mjs";
 import { warBattlesSql, WAR_BATTLE_TYPES } from "../war-battles-sql.mjs";
 import { finishInstant } from "../time.mjs";
@@ -237,7 +237,7 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
       else cur.drawn += 1;
       cur.run = 0;
     }
-    const g = MODE_GROUP_BY_TYPE[b.type] ?? "other";
+    const g = modeGroupOf(b.type, b.event_tag);
     cur.by_mode[g] = (cur.by_mode[g] ?? 0) + 1;
     if (g === "ladder") cur.trophy_net += b.trophy_change ?? 0;
     for (const [key, rungs] of Object.entries(SESSION_RUNGS)) {
@@ -310,7 +310,7 @@ async function playerLedger(db, tag, fromMs, toMs) {
  */
 async function playerBattles(db, tag, fromMs, toMs) {
   const { rows } = await db.query(
-    `select b.battle_id, b.type, b.battle_time, bp.outcome, bp.crowns,
+    `select b.battle_id, b.type, b.event_tag, b.battle_time, bp.outcome, bp.crowns,
             bp.trophy_change, bp.clan_tag
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
@@ -476,7 +476,7 @@ export async function buildPlayerEntry(
   let drawn = 0;
   let threeCrowns = 0;
   for (const b of played) {
-    const group = MODE_GROUP_BY_TYPE[b.type] ?? "other";
+    const group = modeGroupOf(b.type, b.event_tag);
     byMode[group] = (byMode[group] ?? 0) + 1;
     if (b.outcome === "win") won += 1;
     else if (b.outcome === "loss") lost += 1;
@@ -484,7 +484,7 @@ export async function buildPlayerEntry(
     if (b.outcome === "win" && b.crowns === 3) threeCrowns += 1;
   }
   const trophyNet = played
-    .filter((b) => MODE_GROUP_BY_TYPE[b.type] === "ladder")
+    .filter((b) => modeGroupOf(b.type, b.event_tag) === "ladder")
     .reduce((s, b) => s + (b.trophy_change ?? 0), 0);
   const sessions = sessionsOf(played, toMs);
 
@@ -554,7 +554,9 @@ export async function buildPlayerEntry(
   const presence = await timed(perf, "player.presence", () =>
     presenceOf(db, tag, played, fromMs, toMs),
   );
-  const warBattles = played.filter((b) => MODE_GROUP_BY_TYPE[b.type] === "war");
+  const warBattles = played.filter(
+    (b) => modeGroupOf(b.type, b.event_tag) === "war",
+  );
 
   const notables = [];
   if (best?.changed && crossed(best.from, best.to, BEST_TROPHIES_BAND))
@@ -758,7 +760,7 @@ export function clanLearnedQuery({ tag, fromMs, toMs }) {
  *  statement an empty window used to pay for (review Part 6.1). */
 export function clanMemberBattlesQuery({ tag, fromMs, toMs }) {
   return {
-    text: `select bp.player_tag, bp.battle_id, b.type, b.battle_time, bp.outcome, bp.trophy_change,
+    text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.battle_time, bp.outcome, bp.trophy_change,
                   (b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}) as learned
              from battle_participant bp
              join battle b on b.battle_id = bp.battle_id
@@ -823,7 +825,7 @@ export async function buildClanEntry(
   for (const r of memberBattles) {
     if (!distinctBattles.has(r.battle_id)) {
       distinctBattles.add(r.battle_id);
-      const g = MODE_GROUP_BY_TYPE[r.type] ?? "other";
+      const g = modeGroupOf(r.type, r.event_tag);
       byMode[g] = (byMode[g] ?? 0) + 1;
     }
     if (!byPlayer.has(r.player_tag)) byPlayer.set(r.player_tag, []);

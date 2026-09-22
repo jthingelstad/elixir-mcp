@@ -7,11 +7,12 @@
  * intervals; calendar-day rollups cannot represent a multi-day profile gap.
  */
 
-import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
+import { modeGroupSql } from "@elixir-mcp/contracts";
 
-const MODE_GROUP_CASE = `case b.type ${Object.entries(MODE_GROUP_BY_TYPE)
-  .map(([t, g]) => `when '${t}' then '${g}'`)
-  .join(" ")} else 'casual' end`;
+// A player's own record KEEPS their event battles - they played them -
+// but files them under `event` rather than folding them into casual,
+// which is what filed the Seasonal Trophy Road as casual play.
+const MODE_GROUP_CASE = modeGroupSql("b.type", "b.event_tag");
 
 /** Recompute rollups for a set of {playerTag, day} pairs. */
 export async function refreshDailyRollups(db, pairs) {

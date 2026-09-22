@@ -12,12 +12,14 @@
  * detected: signal, not boilerplate.
  */
 
-import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
+import { modeGroupOf as modeGroupFor } from "@elixir-mcp/contracts";
 
-/** The mode group a battle type folds into; the API's own odd values
- *  ('unknown', 'casual1v1', 'None') are 'other'. */
-export function modeGroupOf(type) {
-  return MODE_GROUP_BY_TYPE[type] ?? "other";
+/** The mode group a battle folds into; the API's own odd values
+ *  ('unknown', 'casual1v1', 'None') are 'other'. An event-tagged battle
+ *  is `event` whatever its type: the tag, not the type, is what marks
+ *  time-bound content (6.17.0). */
+export function modeGroupOf(type, eventTag = null) {
+  return modeGroupFor(type, eventTag);
 }
 
 /** Fold per-type counts ({type, battles, wins, losses}) into one object

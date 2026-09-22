@@ -107,6 +107,50 @@ Crazy Mode battle is a `challenge`-group battle with its own mode name, which
 `battles_query({ mode_name })` can filter by substring and
 `battles_performance({ group_by: "game_mode" })` lists.
 
+## Events are their own group, and they do not inform the meta
+
+Game modes are played as different games. A card that carries a river race
+only somewhat predicts Trophy Road and says little about Path of Legends, and
+in several modes the player does not choose the deck at all. So Elixir keeps
+populations apart rather than pooling them, and the sharpest line is between a
+permanent format and a time-bound event.
+
+**The API draws that line itself.** A battle played inside an event carries an
+`eventTag`, and a battle in a permanent format never does - `type: trail`
+carries one on 100% of 123,562 recorded battles, while `pathOfLegend`, `PvP`,
+`riverRacePvP`, `boatBattle`, `friendly` and the duels carry one on 0%. So
+`trail` is not a game mode: it is the marker for event content, and the
+`gameMode` underneath it says which format the event was running. `tournament`
+is the same shape with `tournamentTag`.
+
+Event content is the `event` mode group (6.17.0). `mode: "event"` selects it and
+every other `mode` excludes it. Before this it folded into `casual`, which filed
+the reworked Seasonal Trophy Road as casual play and pooled a fortnight's 2v2
+tournament with ordinary friendlies.
+
+**`event` is a filter, not a population.** One event is not another: `trail`
+with `gameMode: TeamVsTeam` alone has carried ten distinct event tags, because
+Supercell slots an event into a mode for a date window and reuses the slot
+later. Recurring formats are re-tagged every season - one tag ran exactly
+2026-08-03 to 2026-09-07, which is season 135 to the day. A rate over event
+content must key on `context.event_tag` itself, never on the mode's name.
+
+**What the meta counts.** `battles_meta_decks`, `battles_meta_cards` and the
+deck and card statistics are built from a population that excludes:
+
+- **event content** (`event_tag` present). Seasonal Arena II bans the player's
+  eight most-won-with cards and floors the rest at Level 15 - its recorded decks
+  average 15.87 against 13.67 on Trophy Road - and every event bends the rules
+  its own way, so a win rate over them measures the event.
+- **a deck the player did not choose** - `deck_selection` outside `collection`
+  and `warDeckPick`, which is `eventDeck`, `draft`, `draftCompetitive`, `pick`,
+  `quadDeckPick` and `predefined`. A drafted deck is not anyone's choice, so it
+  cannot say what people play or how their choices do.
+
+Both remain fully recorded and fully readable through `battles_query` and a
+player's own record; they simply do not speak for the game. A `null`
+`deck_selection` is kept, because a population is not narrowed on an absence.
+
 ## Duels and boat battles
 
 Two `war` battle types are shaped differently from a head-to-head battle.
