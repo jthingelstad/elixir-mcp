@@ -7366,3 +7366,65 @@ load-bearing, not an edge case. And in `riverRacePvP` there is no
 hitpoints would be recorded as a `draw` with its winner unrecoverable
 from crowns - none of the 76 war level-crown rows is such a battle
 (all untouched towers), but the exposure is real if one ever occurs.
+
+## 2026-09-22 — The 37 both-loss battles are Path of Legends DRAWS: the API penalises both players (ingest fix + repair)
+
+Follow-up to the battle-length census above, and a correction to it.
+Jamie brought a second opinion arguing these rows were draws rather than
+two losses. Its recommended rule (`trophyChange == 0` should be
+unresolved/draw, not loss) was already the implemented behaviour -
+`outcomeFor` tests `trophyChange !== 0` before using the sign, which is
+why the 87 level-crown DRAWS existed separately - and its stated
+signature did not match these rows, which carry non-zero NEGATIVE changes
+on both sides. But its conclusion was right, and its aside about Path of
+Legends penalising both players for a tie was the key.
+
+**Settled from the raw payload, not from argument.** Pulled the archived
+battlelog for `20260914T130806.000Z` out of
+`payloads/endpoint=player_battlelog/` and read what Supercell actually
+sent:
+
+```
+team      crowns=3 king=0 princess=None trophyChange=-15 elixirLeaked=0.0
+opponent  crowns=3 king=0 princess=None trophyChange=-14 elixirLeaked=0.82
+```
+
+The API itself reports both sides at three crowns with both King Towers
+destroyed and both losing rating. Our ingest was faithful; the reading
+was wrong. `outcomeFor` took each participant's own `trophyChange` sign
+in isolation, so two negative values became two losses - a result the
+game cannot produce.
+
+**Fixed at the source.** The sign decides only when the two sides moved
+in OPPOSITE directions; otherwise it falls through to the crowns, which
+say `draw`. Two fixture tests, the first proved to fail on the unfixed
+code. The pre-existing "outcome precedence invariants" test asserted the
+old rule and now carries the opposite-signs condition.
+
+**Repaired.** `{outcome_pair_repair}` (dry run by default) re-derived the
+37 battles / 74 participant rows; re-check and the census both read zero
+impossible pairs. All 125 level-crown battles corpus-wide are now
+`draw`, which is what they always were.
+
+**`elixirLeaked` is a duration bound, and the earlier note here
+underrated it.** It is elixir generated against a full bar, so it cannot
+exceed what the match had time to make. The level-crown rows read
+166.18/173.18 and 168.29/179.54 with every tower untouched - both players
+idle for a full five minutes - while the `3-3` both-kings-zero row read
+0.0/0.82, a match that never ran. So the 37 were two distinct real
+things wearing one shape: genuine 5:00 mutual-idle draws, and voided
+matches. Both are correctly `draw`; only the first ran any clock.
+
+**What this corrects in the entry above:** level-crown battles are NOT
+"defects that mimic" the 5:00 case - they ARE the 5:00 case, and Jamie's
+original deduction (no towers lost, resolved on remaining points, so the
+match went the distance) is sound. What it does not do is name a winner:
+level crowns almost always means neither side touched a tower, so the
+tiebreaker's hitpoints are exactly equal and it cannot separate them.
+Zero tiebreaker-DECIDED battles in 229,390. The three-crown floor
+finding is unaffected and remains the broad signal: 82.7% of ranked
+battles provably ran three minutes or more, rising with rating.
+
+`cr-agent-api-docs` `d519915` carries both halves for any caller: the
+winner-inference caveat with the raw payload, and `elixirLeaked` as the
+one per-battle lower bound on elapsed time.
