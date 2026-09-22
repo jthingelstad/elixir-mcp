@@ -84,8 +84,8 @@ export interface CrResultMessage {
 /** Email queue message — VPC Lambdas enqueue, the non-VPC relay sends
  *  (DESIGN §7 NAT-free posture). Plaintext email address rides the queue
  *  (SSE-encrypted at rest) because the relay must address the mail. */
-/** The six product mail kinds (docs/EMAIL.md, 2026-09-18): five weekly
- *  reports and the event-driven milestone mail. Every one is bulk: sent
+/** The seven product mail kinds (docs/EMAIL.md): six weekly reports
+ *  and the event-driven milestone mail. Every one is bulk: sent
  *  on a schedule to many people, switchable per kind on the account
  *  page, one-click unsubscribable. The body is RENDERED upstream (the
  *  jobs Lambda, packages/mail) and rides the message; the relay sends
@@ -95,6 +95,7 @@ export const PRODUCT_EMAIL_KINDS = [
   "arena_week",
   "tracking_report",
   "top_100",
+  "card_of_week",
   "collector_activity",
   "milestone",
 ] as const;
@@ -170,6 +171,7 @@ export const EMAIL_KIND_CLASS: Record<
   arena_week: "bulk",
   tracking_report: "bulk",
   top_100: "bulk",
+  card_of_week: "bulk",
   collector_activity: "bulk",
   milestone: "bulk",
 };

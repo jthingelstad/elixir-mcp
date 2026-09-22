@@ -9,6 +9,8 @@ const BLURB = {
   tracking_report:
     "Wednesday: everyone you track, you in full, watchers in a line.",
   top_100: "Thursday: one shared read of the global Path of Legends top 100.",
+  card_of_week:
+    "Friday: one card the record has something to say about, read in full.",
   collector_activity:
     "Sunday: what your collectors fetched and earned. Only if you run one.",
   milestone:
@@ -16,7 +18,7 @@ const BLURB = {
 };
 
 /**
- * Profile → Email: the six product emails, each a switch. Absent
+ * Profile → Email: the seven product emails, each a switch. Absent
  * preference means on; the switch writes only a change. Its own page
  * (Jamie, 2026-09-19): the switches and the record of what was sent
  * are a subject, not a panel on the profile. The "send me this now"

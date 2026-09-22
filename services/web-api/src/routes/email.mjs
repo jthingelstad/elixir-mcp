@@ -1,6 +1,6 @@
 /** Product email routes (docs/EMAIL.md).
  *
- *  GET  /api/me/email          the six switches (absent row = on)
+ *  GET  /api/me/email          every switch (absent row = on)
  *  PUT  /api/me/email          {kind, enabled}
  *  GET  /api/me/email/sends    every product email sent to me, newest
  *       first (the Activity page's Emails view)

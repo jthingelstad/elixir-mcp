@@ -45,6 +45,7 @@ export const KIND_LABELS = {
   arena_week: "Your week in the Arena",
   tracking_report: "Tracking report",
   top_100: "Top 100",
+  card_of_week: "Card of the Week",
   collector_activity: "Collector activity",
   milestone: "Milestones",
 };
