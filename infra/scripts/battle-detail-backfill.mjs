@@ -171,6 +171,32 @@ for (let i = 0; i < work.length; i += READ_CONCURRENCY) {
 }
 await post(true);
 if (!dryRun) writeFileSync(PROGRESS, JSON.stringify(progress, null, 1));
+
+// VACUUM, always, because this job's UPDATEs clear the visibility map.
+// 2026-09-22: the global_rank pass left battle_participant 54.8%
+// all-visible, which killed the index-only scan that migration 0086
+// built for clans_participation - it went from 0.3 s to REFUSING with
+// query_timeout, and Elixir Clan calls it once per evaluation. The
+// vacuum took 28 s and put it back to 100%. A backfill that does not
+// vacuum is not finished.
+if (!dryRun) {
+  for (const table of ["battle_participant", "battle_participant_round"]) {
+    const res = await lambda.send(
+      new InvokeCommand({
+        FunctionName: FUNCTION,
+        Payload: Buffer.from(JSON.stringify({ vacuum: { table } })),
+      }),
+    );
+    const out = JSON.parse(Buffer.from(res.Payload).toString("utf8"));
+    const visible = (m) =>
+      m && m.relpages
+        ? `${((m.relallvisible / m.relpages) * 100).toFixed(1)}%`
+        : "n/a";
+    console.error(
+      `  vacuum ${table}: ${out.ms ?? "?"} ms, all-visible ${visible(out.before)} -> ${visible(out.after)}`,
+    );
+  }
+}
 console.error(
   `\n${dryRun ? "DRY RUN " : ""}objects ${objects.toLocaleString()} · round rows seen ${seenRound.toLocaleString()} written ${progress.roundRows.toLocaleString()} · rank rows seen ${seenRank.toLocaleString()} written ${progress.rankRows.toLocaleString()}`,
 );

@@ -742,6 +742,7 @@ const VACUUMABLE = new Set([
   "battle",
   "battle_participant",
   "battle_participant_card",
+  "battle_participant_round",
   "player_snapshot_daily",
 ]);
 
