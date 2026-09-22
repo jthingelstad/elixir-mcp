@@ -22,7 +22,11 @@
 
 import { createHash } from "node:crypto";
 import { normalizeTag, deckHash, displayLevel } from "@elixir-mcp/contracts";
-import { projectDecks, projectPlayedCards } from "./deck-cards.mjs";
+import {
+  projectDecks,
+  projectPlayedCards,
+  projectRounds,
+} from "./deck-cards.mjs";
 import { canonicalBattleTime } from "./battle-time.mjs";
 
 function slimCards(cards) {
@@ -78,6 +82,19 @@ function participantDeck(entry) {
       : {}),
   });
   return { deck, hash };
+}
+
+/** A duel's rounds, one row per game (0151). `round` is 1-based to match
+ *  battle_participant_card.round, which already holds that round's deck.
+ *  Empty for every battle the API does not report rounds for. */
+function roundRows(entry) {
+  if (!Array.isArray(entry.rounds)) return [];
+  return entry.rounds.map((r, i) => ({
+    round: i + 1,
+    crowns: Number.isInteger(r?.crowns) ? r.crowns : null,
+    ...towerColumns(r ?? {}),
+    elixir_leaked: typeof r?.elixirLeaked === "number" ? r.elixirLeaked : null,
+  }));
 }
 
 /** The three tower columns (0123): 0 = destroyed (the API omits a
@@ -184,6 +201,13 @@ export function canonicalizeBattle(entry) {
         deck, // not a column since 0097: the card rows are cut from it (deck-cards.mjs)
         deck_hash: hash,
         elixir_leaked: p.elixirLeaked ?? null,
+        // Null unless the player was globally ranked at battle time
+        // (0151): the API rides it on every participant of every battle.
+        global_rank: Number.isInteger(p.globalRank) ? p.globalRank : null,
+        // A duel's per-round results (0151). The top-level crowns are
+        // their sum and the top-level tower hitpoints the final round's,
+        // so without these a duel cannot answer "how did round two go".
+        rounds: roundRows(p),
         ...towerColumns(p),
         outcome: outcomeFor(p, entries, otherEntries, entry, isTeamSide),
         clan_tag: p.clan?.tag ? normalizeTag(p.clan.tag) : null,
@@ -275,6 +299,7 @@ const PARTICIPANT_COLS = [
   "deck_hash",
   "deck_avg_level",
   "elixir_leaked",
+  "global_rank",
   "king_tower_hp",
   "princess_tower_hp_1",
   "princess_tower_hp_2",
@@ -516,11 +541,12 @@ export async function ingestBattlelog(
       );
     // What each written participant played, as rows (0091) - only for
     // rows that were inserted or changed, so a resubmission writes nothing.
-    await projectPlayedCards(
-      db,
-      partRows,
-      new Set(partsWritten.map((r) => `${r.battle_id}|${r.player_tag}`)),
+    const writtenKeys = new Set(
+      partsWritten.map((r) => `${r.battle_id}|${r.player_tag}`),
     );
+    await projectPlayedCards(db, partRows, writtenKeys);
+    // A duel's per-round results (0151), beside the round decks.
+    await projectRounds(db, partRows, writtenKeys);
 
     // battle_observation is no longer written (2026-09-12): the receipt
     // carries what this poll saw and dropped (0074) and what it added

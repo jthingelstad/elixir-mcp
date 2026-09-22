@@ -43,6 +43,9 @@ export function participantCardRows(deck) {
         slot: slotBase + i,
         level: Number.isInteger(c.level) ? c.level : null,
         star_level: Number.isInteger(c.starLevel) ? c.starLevel : null,
+        // Duel rounds only (0151): the API says per card, per round,
+        // whether it was played. Null where it does not say.
+        used: typeof c.used === "boolean" ? c.used : null,
       });
     });
   };
@@ -198,18 +201,65 @@ export async function projectPlayedCards(db, partRows, written) {
         slot: r.slot,
         level: r.level,
         star_level: r.star_level,
+        used: r.used,
       });
     }
   }
   if (rows.length === 0) return 0;
   const { rowCount } = await db.query(
     `insert into battle_participant_card
-       (battle_id, player_tag, round, card_id, form, slot, level, star_level)
-     select r.battle_id, r.player_tag, r.round, r.card_id, r.form, r.slot, r.level, r.star_level
+       (battle_id, player_tag, round, card_id, form, slot, level, star_level, used)
+     select r.battle_id, r.player_tag, r.round, r.card_id, r.form, r.slot,
+            r.level, r.star_level, r.used
      from jsonb_to_recordset($1::jsonb)
        as r(battle_id text, player_tag text, round smallint, card_id int,
-            form smallint, slot smallint, level smallint, star_level smallint)
-     on conflict do nothing`,
+            form smallint, slot smallint, level smallint, star_level smallint,
+            used boolean)
+     on conflict (battle_id, player_tag, round, card_id, form) do update
+       set used = coalesce(battle_participant_card.used, excluded.used)`,
+    [JSON.stringify(rows)],
+  );
+  return rowCount;
+}
+
+/** A duel's per-round results (0151), for the participants actually
+ *  written. The round decks already ride battle_participant_card.round;
+ *  these are the results beside them. `on conflict do update` fills a
+ *  row an earlier thin observation left blank without overwriting a
+ *  value, the same enrichment rule the participant row follows. */
+export async function projectRounds(db, partRows, written) {
+  const rows = [];
+  for (const p of partRows) {
+    if (!written.has(`${p.battle_id}|${p.player_tag}`)) continue;
+    for (const r of p.rounds ?? [])
+      rows.push({
+        battle_id: p.battle_id,
+        player_tag: p.player_tag,
+        round: r.round,
+        crowns: r.crowns,
+        king_tower_hp: r.king_tower_hp,
+        princess_tower_hp_1: r.princess_tower_hp_1,
+        princess_tower_hp_2: r.princess_tower_hp_2,
+        elixir_leaked: r.elixir_leaked,
+      });
+  }
+  if (rows.length === 0) return 0;
+  const { rowCount } = await db.query(
+    `insert into battle_participant_round
+       (battle_id, player_tag, round, crowns, king_tower_hp,
+        princess_tower_hp_1, princess_tower_hp_2, elixir_leaked)
+     select r.battle_id, r.player_tag, r.round, r.crowns, r.king_tower_hp,
+            r.princess_tower_hp_1, r.princess_tower_hp_2, r.elixir_leaked
+     from jsonb_to_recordset($1::jsonb)
+       as r(battle_id text, player_tag text, round smallint, crowns smallint,
+            king_tower_hp smallint, princess_tower_hp_1 smallint,
+            princess_tower_hp_2 smallint, elixir_leaked numeric)
+     on conflict (battle_id, player_tag, round) do update
+       set crowns = coalesce(battle_participant_round.crowns, excluded.crowns),
+           king_tower_hp = coalesce(battle_participant_round.king_tower_hp, excluded.king_tower_hp),
+           princess_tower_hp_1 = coalesce(battle_participant_round.princess_tower_hp_1, excluded.princess_tower_hp_1),
+           princess_tower_hp_2 = coalesce(battle_participant_round.princess_tower_hp_2, excluded.princess_tower_hp_2),
+           elixir_leaked = coalesce(battle_participant_round.elixir_leaked, excluded.elixir_leaked)`,
     [JSON.stringify(rows)],
   );
   return rowCount;

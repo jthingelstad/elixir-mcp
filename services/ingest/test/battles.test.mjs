@@ -404,3 +404,121 @@ test("battlelog participants stamp player names (fill nulls, never overwrite)", 
     "existing name never overwritten",
   );
 });
+
+// 0151: the two fields the manifest named as Tier 2 and the record threw
+// away. The duel one matters most - the public docs told players a duel's
+// tower hitpoints "describe the final round only" and that it "has no
+// differential", presenting a gap in the record as a property of duels.
+test("0151: a duel's per-round results land, so round two can be answered", async () => {
+  const log = await fixture("player_battlelog/with_boat_and_duel.json");
+  const observer = meta["player_battlelog/with_boat_and_duel.json"].entity_key;
+  await ingestBattlelog(ctx.db, {
+    observerTag: observer,
+    receiptId,
+    payload: log,
+  });
+
+  const duel = log.find((e) =>
+    [...(e.team ?? []), ...(e.opponent ?? [])].some((p) =>
+      Array.isArray(p.rounds),
+    ),
+  );
+  const { battle } = canonicalizeBattle(duel);
+  const { rows } = await ctx.db.query(
+    `select player_tag, round, crowns, king_tower_hp,
+            princess_tower_hp_1, princess_tower_hp_2, elixir_leaked
+       from battle_participant_round where battle_id = $1
+      order by player_tag, round`,
+    [battle.battle_id],
+  );
+  assert.equal(rows.length, 4, "two participants x two rounds");
+
+  // Every round row reproduces the API's own numbers for that round.
+  for (const side of ["team", "opponent"]) {
+    for (const p of duel[side]) {
+      p.rounds.forEach((r, i) => {
+        const got = rows.find(
+          (x) => x.player_tag === p.tag && x.round === i + 1,
+        );
+        assert.ok(got, `${p.tag} round ${i + 1} recorded`);
+        assert.equal(got.crowns, r.crowns, `${p.tag} r${i + 1} crowns`);
+        assert.equal(
+          got.king_tower_hp,
+          r.kingTowerHitPoints,
+          `${p.tag} r${i + 1} king`,
+        );
+        assert.equal(
+          Number(got.elixir_leaked),
+          r.elixirLeaked,
+          `${p.tag} r${i + 1} elixir`,
+        );
+      });
+    }
+  }
+
+  // The thing the docs said could not be done: a per-round differential,
+  // and a per-round result that the summed top-level crowns hide.
+  const byRound = (tag, n) =>
+    rows.find((x) => x.player_tag === tag && x.round === n);
+  const t = duel.team[0].tag;
+  const o = duel.opponent[0].tag;
+  const r1 = { me: byRound(t, 1), opp: byRound(o, 1) };
+  assert.notEqual(r1.me.crowns, null);
+  assert.notEqual(r1.opp.crowns, null);
+  assert.ok(
+    Number(r1.me.elixir_leaked) - Number(r1.opp.elixir_leaked) !== 0,
+    "round one has its own elixir differential",
+  );
+  // The round decks were already stored; the results now sit beside them
+  // on the same round number.
+  const { rows: cards } = await ctx.db.query(
+    `select distinct round from battle_participant_card
+      where battle_id = $1 and player_tag = $2 order by round`,
+    [battle.battle_id, t],
+  );
+  assert.deepEqual(
+    cards.map((c) => c.round),
+    rows.filter((r) => r.player_tag === t).map((r) => r.round),
+    "round decks and round results share their round numbers",
+  );
+  // used rides the round cards.
+  const { rows: used } = await ctx.db.query(
+    `select count(*)::int as n from battle_participant_card
+      where battle_id = $1 and used is not null`,
+    [battle.battle_id],
+  );
+  assert.ok(used[0].n > 0, "the API's per-round used flag is recorded");
+});
+
+test("0151: global_rank is recorded when the API reports one, null otherwise", async () => {
+  const log = await fixture("player_battlelog/with_path_of_legend.json");
+  const entry = structuredClone(
+    log.find((b) => b.type === "pathOfLegend") ?? log[0],
+  );
+  entry.battleTime = "20260915T010203.000Z";
+  entry.team[0].globalRank = 412;
+  entry.opponent[0].globalRank = null;
+  await ingestBattlelog(ctx.db, {
+    observerTag: entry.team[0].tag,
+    receiptId,
+    payload: [entry],
+  });
+  const { battle } = canonicalizeBattle(entry);
+  const { rows } = await ctx.db.query(
+    `select player_tag, global_rank from battle_participant
+      where battle_id = $1`,
+    [battle.battle_id],
+  );
+  const ranked = rows.find((r) => r.player_tag === entry.team[0].tag);
+  const unranked = rows.find((r) => r.player_tag === entry.opponent[0].tag);
+  assert.equal(
+    ranked.global_rank,
+    412,
+    "a globally ranked player keeps their rank",
+  );
+  assert.equal(
+    unranked.global_rank,
+    null,
+    "an unranked opponent is null, not zero",
+  );
+});

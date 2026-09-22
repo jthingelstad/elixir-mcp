@@ -53,10 +53,7 @@ function cardFields(prefix, target, { count = false, played = false } = {}) {
     ...(count ? { [`${prefix}.count`]: to(`${target}.count`) } : {}),
     ...(played
       ? {
-          [`${prefix}.used`]: dropped(
-            "whether a card was played in a duel round; per-round rows are Tier 2 (time-series review 2.4)",
-            opt,
-          ),
+          [`${prefix}.used`]: to("battle_participant_card.used", opt),
         }
       : {}),
   };
@@ -81,10 +78,7 @@ function participant(side) {
       opt,
     ),
     [`${p}.elixirLeaked`]: to("battle_participant.elixir_leaked", opt),
-    [`${p}.globalRank`]: dropped(
-      "null unless globally ranked at battle time; battle_participant.global_rank is Tier 2 (time-series review 2.4)",
-      opt,
-    ),
+    [`${p}.globalRank`]: to("battle_participant.global_rank", opt),
     [`${p}.clan.tag`]: to("battle_participant.clan_tag", opt),
     [`${p}.clan.name`]: derived(
       "the clan row when it exists, a label otherwise",
@@ -96,20 +90,17 @@ function participant(side) {
     ...cardFields(`${p}.rounds[].cards[]`, "battle_participant_card (round)", {
       played: true,
     }),
-    [`${p}.rounds[].crowns`]: dropped(
-      "per-round results of a duel; the top-level values are the sum and the final round; battle_participant_round is Tier 2 (time-series review 2.4)",
+    [`${p}.rounds[].crowns`]: to("battle_participant_round.crowns", opt),
+    [`${p}.rounds[].kingTowerHitPoints`]: to(
+      "battle_participant_round.king_tower_hp",
       opt,
     ),
-    [`${p}.rounds[].kingTowerHitPoints`]: dropped(
-      "per-round duel result; Tier 2",
+    [`${p}.rounds[].princessTowersHitPoints[]`]: to(
+      "battle_participant_round.princess_tower_hp_1 / princess_tower_hp_2",
       opt,
     ),
-    [`${p}.rounds[].princessTowersHitPoints[]`]: dropped(
-      "per-round duel result; Tier 2",
-      opt,
-    ),
-    [`${p}.rounds[].elixirLeaked`]: dropped(
-      "per-round duel result; Tier 2",
+    [`${p}.rounds[].elixirLeaked`]: to(
+      "battle_participant_round.elixir_leaked",
       opt,
     ),
   };
