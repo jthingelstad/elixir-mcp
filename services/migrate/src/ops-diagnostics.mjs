@@ -1237,6 +1237,20 @@ export async function modeShapeCensus(databaseUrl) {
               count(*)::int as n
          from battle group by 1, 2, 3 order by 4 desc`,
     );
+    // The decisive cut: the same RULESET (game_mode) under different
+    // TYPES. If trail's Ladder carried trophies the way PvP's does they
+    // would be one population; the stakes say whether they are.
+    const { rows: stakes } = await db.query(
+      `select b.type, coalesce(b.game_mode_name, '(null)') as game_mode,
+              count(*)::int as participants,
+              count(bp.trophy_change)::int as with_trophy_change,
+              count(bp.starting_trophies)::int as with_starting_trophies,
+              count(bp.global_rank)::int as with_global_rank
+         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+        where b.game_mode_name in ('Ladder', 'TeamVsTeam', 'Crazy_Arena',
+                                   'Friendly', 'PickMode', 'CW_Duel_1v1')
+        group by 1, 2 order by 3 desc`,
+    );
     const { rows: rounds } = await db.query(
       `select count(*)::int as round_rows,
               count(distinct battle_id)::int as battles,
@@ -1251,7 +1265,7 @@ export async function modeShapeCensus(databaseUrl) {
               min(global_rank)::int as best, max(global_rank)::int as worst
          from battle_participant where global_rank is not null`,
     );
-    return { modes, rounds: rounds[0], global_rank: ranks[0] };
+    return { modes, stakes, rounds: rounds[0], global_rank: ranks[0] };
   } finally {
     await db.end();
   }

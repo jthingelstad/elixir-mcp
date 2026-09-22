@@ -7668,3 +7668,65 @@ implementation of (1) and (2) until the mode grouping is decided with
 this in hand, because the two interact and a mode_group remap needs a
 rollup rebuild (mode_group is in `player_daily_battle_rollup`'s primary
 key and the meta tables' CHECK constraints).
+
+## 2026-09-22 — `type` is the CONTEXT, `gameMode` is the RULESET; and the stakes test comes back mixed
+
+Jamie, on the proposal to split `trail` into `2v2` / `event` / `casual`:
+"I don't think that is a good idea. I suspect even when those trail games
+look like an existing gameMode they are probably different... there must
+be some reason they are stored differently."
+
+**24 of 62 game modes appear under more than one `type`.** The pattern
+says the two fields are orthogonal: `gameMode` is the RULESET and `type`
+is the CONTEXT it was played in.
+
+| ruleset | contexts it appears in |
+| --- | --- |
+| `TeamVsTeam` | trail 74,169 · clanMate2v2 271 |
+| `Ladder` | PvP 36,699 · trail 13,542 |
+| `Crazy_Arena` | trail 3,110 · friendly 209 · unknown 65 · clanMate 4 |
+| `Friendly` | friendly 3,734 · clanMate 2,311 · unknown 72 |
+| `PickMode` | trail 527 · friendly 368 · clanMate 43 · tournament 39 |
+| `CW_Duel_1v1` | riverRaceDuel 3,096 · riverRaceDuelColosseum 1,066 |
+
+So neither field subsumes the other, and a population keyed on `type`
+alone (which is what `mode_group` is) merges different rulesets, while a
+population keyed on `gameMode` alone merges different stakes.
+
+**The stakes test, and it does not resolve cleanly.** Whether the same
+ruleset under a different type carries different stakes
+(`{mode_shape_census}`, participant rows):
+
+| ruleset · context | rows | trophy change | starting trophies | global rank |
+| --- | --- | --- | --- | --- |
+| Ladder · PvP | 73,432 | 97.7% | 100% | 0.8% |
+| Ladder · trail | 27,148 | **97.8%** | 100% | **8.9%** |
+| Crazy_Arena · trail | 6,220 | 6.1% | 8.4% | 0% |
+| Crazy_Arena · friendly | 418 | 0% | 100% | 0% |
+| PickMode · trail | 1,054 | 50.0% | 80.5% | 6.8% |
+| PickMode · friendly | 742 | 0% | 99.9% | 0% |
+| Friendly · friendly | 7,520 | 0% | 100% | 0% |
+| Friendly · clanMate | 4,646 | 0% | 100% | 0% |
+| TeamVsTeam · trail | 296,684 | 0% | 45.2% | 0% |
+| TeamVsTeam · clanMate2v2 | 1,084 | 0% | 0% | 0% |
+
+Jamie's suspicion holds for `Crazy_Arena` and `PickMode` - the trail
+copy has trophies at stake where the friendly copy never does - and does
+NOT hold for `Ladder`, where trail and PvP are indistinguishable on
+stakes (97.8% vs 97.7%). `Friendly` under `friendly` and under
+`clanMate` are identical on every column. Unexplained and worth a note:
+`Ladder`+`trail` carries a global rank on 8.9% of rows against 0.8% for
+`Ladder`+`PvP`, an eleven-fold difference nobody has a story for.
+
+**What follows, and it is the conservative reading.** We do not know
+what `type` encodes well enough to either merge on it or split on it.
+So: do not invent groupings. The statistical population is the PAIR
+(`type`, `game_mode_id`); `mode_group` stays a coarse FILTER convenience
+and must never be the boundary a rate is computed over. Elixir already
+does exactly this in one place - `battles_performance group_by:
+"game_mode"` keys rows on the pair and its note says "the same mode name
+recurs under different API types" - and nowhere else. The 2v2 / event /
+casual split proposed earlier is withdrawn.
+
+Open question for `cr-agent-api-docs`, not answerable from our record:
+why does the API file some Ladder battles under `trail`?
