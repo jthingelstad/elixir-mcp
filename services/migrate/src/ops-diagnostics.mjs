@@ -813,6 +813,12 @@ export async function enumCensus(databaseUrl) {
       poll_state_period_type: await values("poll_state", "period_type"),
       snapshot_kind: await values("player_snapshot_daily", "snapshot_kind"),
       participant_type_class: await values("battle_participant", "type_class"),
+      // Jamie 2026-09-22: "game modes are really played as a different
+      // game", and in some of them the player does not choose the deck.
+      // deck_selection is the API's own word for that, stored since the
+      // beginning and never used as a filter.
+      battle_deck_selection: await values("battle", "deck_selection"),
+      battle_type: await values("battle", "type"),
       deck_card_count: await values("deck", "card_count"),
       orphans: {
         participant_deck: await orphans(

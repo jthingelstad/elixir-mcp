@@ -7542,3 +7542,75 @@ itself is a pass of its own (Jamie, this session): a
 `battle_participant.global_rank` (also already named), a home for
 `modifiers`, and a replay of the 72,503 archived payloads to fill them.
 Not started - scoped and awaiting Jamie's go.
+
+## 2026-09-22 — The battle-detail pass: 0151 ships, the archive backfill runs, and mode discipline is the open decision
+
+Jamie: proceed with duel rounds, global_rank and the mode fixes; and -
+the product line that reframes the rest - "game modes are really played
+as a different game... ever querying battles without a mode is probably
+an indicator of a bug."
+
+**Shipped (0151, deployed).** `battle_participant_round` holds one row
+per game of a duel per participant (crowns, king and princess tower
+hitpoints, elixir leaked), keyed on the same round number the round
+decks already used in `battle_participant_card`; `.used` joins them;
+`battle_participant.global_rank` is the column the manifest named and
+never had. The manifest now says all of them LAND, so the full payload
+audit and the nightly census hold us to it. Two fixture tests, the duel
+one asserting a round-one elixir differential - the thing /docs/battles
+said could not be computed.
+
+**Backfill running.** `{battle_detail_backfill}` + 
+`infra/scripts/battle-detail-backfill.mjs`: Postgres caches a payload
+for two hours, so S3 is the only copy; the sweep is local and every
+entry goes through the SAME `canonicalizeBattle` the live pipeline uses,
+so a battle_id computed there is the one already recorded. Resumable on
+the last key. Two things learned: one battle sits in MANY archived
+payloads (both players' logs, every poll that still held it), so a batch
+must be deduped or ON CONFLICT DO UPDATE refuses; and the migrate Lambda
+has `ReservedConcurrentExecutions: 1`, so **a backfill and a deploy
+cannot run at once** - a deploy's migration invoke 429s with
+`ReservedFunctionConcurrentInvocationLimitExceeded`. Do not deploy while
+this runs. `battle_participant_card.used` is NOT backfilled (~700k rows
+for a flag nothing reads) and fills forward.
+
+**Still open: the surface.** Nothing serves the round rows yet, so the
+docs say plainly that the limit is now the surface, not the record.
+
+### Mode discipline: what the record actually says (decisions for Jamie)
+
+`deck_selection` has been captured since the beginning and used for
+DISPLAY only, never as a filter:
+
+| deck_selection | battles |
+| --- | --- |
+| collection | 341,753 |
+| eventDeck | 16,018 |
+| unknown | 6,572 |
+| draft | 4,833 |
+| warDeckPick | 4,162 |
+| draftCompetitive | 1,608 |
+| pick | 1,359 |
+| predefined | 238 |
+| quadDeckPick | 200 |
+
+So roughly **9% of recorded battles were not played on a deck the player
+chose from their collection**, and every one of them currently counts
+toward "which decks does this player play" and toward the meta.
+
+Two mapping defects found beside it:
+
+1. **The same battle is `casual` in the rollups and `other` in the
+   tools.** `MODE_GROUP_BY_TYPE` has no entry for `clanMate` (2,544
+   battles) or `unknown` (1,821). The rollup SQL falls back to
+   `else 'casual'` (rollups.mjs); the JS readers fall back to `?? "other"`
+   (controls.mjs, activity/entries.mjs). One battle, two answers.
+2. **`challenge` is in the `mode` enum and matches nothing.** No battle
+   of type `challenge` exists in 964,925 archived entries; the
+   challenge-shaped battles are `trail`, which maps to `casual`.
+
+Not actioned - each is a product call with a blast radius. Changing a
+mode_group mapping re-buckets `player_daily_battle_rollup` (mode_group
+is in its primary key) and the meta season tables (CHECK constraints
+enumerate the groups), so any remap needs a rebuild, not just a code
+change.

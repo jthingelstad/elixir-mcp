@@ -117,10 +117,12 @@ many rounds the row holds.
 
 That shape is Elixir's, not the game's. The API reports each round of a duel
 separately - its own crowns, king and princess tower hitpoints, and elixir
-leaked - and Elixir records the round DECKS but not the round RESULTS, so it
-cannot yet answer "how did round two go". Where this page says a duel has no
-differential, or that its tower hitpoints are the final round's, read that as
-a limit of what is recorded rather than a fact about duels. `battles_decks`, `battles_cards` and the meta
+leaked - and until 2026-09-22 Elixir recorded the round DECKS and discarded
+the round RESULTS. It records them now, and is filling them back from the
+payload archive; the tools do not expose them yet, so where this page says a
+duel has no differential, or that its tower hitpoints are the final round's,
+that remains true of what you can READ today and is a limit of the surface
+rather than a fact about duels. `battles_decks`, `battles_cards` and the meta
 tools exclude duels for exactly this reason: `battles_decks` itemizes them
 under `excluded {duels, no_deck}` and its `total_battles_in_window` is the
 head-to-head battles with a deck, the denominator of `share_of_battles`, so
