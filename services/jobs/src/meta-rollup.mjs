@@ -601,10 +601,15 @@ export async function metaRollupSeason(databaseUrl, spec = {}) {
           `delete from meta_season_pop_day where season_month = $1`,
           [month],
         );
+        // counters_through is NOT NULL: wind it back to the epoch so the
+        // hourly re-counts the season from the beginning, rather than
+        // clearing it.
         await db.query(
-          `update meta_season_state set pop_through = null, counters_through = null,
-                  bands_rebuilt_at = null where season_month = $1`,
-          [month],
+          `update meta_season_state
+              set pop_through = null, counters_through = $2,
+                  bands_rebuilt_at = null
+            where season_month = $1`,
+          [month, EPOCH],
         );
         await db.query("commit");
       } catch (err) {
