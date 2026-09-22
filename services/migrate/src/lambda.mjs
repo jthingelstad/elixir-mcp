@@ -47,6 +47,7 @@ import {
   ledger,
   warDrift,
   warWeekSeasonCensus,
+  battleLengthCensus,
   enumCensus,
   captureAudit,
   probe,
@@ -390,6 +391,14 @@ export async function handler(event) {
     const result = await explainMeta(
       process.env.DATABASE_URL,
       event.explain_meta === true ? {} : event.explain_meta,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.battle_length_census) {
+    const result = await battleLengthCensus(
+      process.env.DATABASE_URL,
+      event.battle_length_census === true ? {} : event.battle_length_census,
     );
     console.log(JSON.stringify(result));
     return result;

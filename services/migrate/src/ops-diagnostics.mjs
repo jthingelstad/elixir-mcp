@@ -929,3 +929,71 @@ export async function pollStateOp(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/** {battle_length_census}: what the record can say about how long battles
+ *  ran. The battle log carries no duration, but the game's clock makes the
+ *  crown pair a bound (cr-agent-api-docs models/battles.md "Battle Length
+ *  And Phases"): a King Tower is the ONLY way to end before 3:00, so a
+ *  finish without one ran at least regulation; and overtime ends on the
+ *  next tower, so a finish with the sides LEVEL on crowns means overtime
+ *  expired and the tower-hitpoints tiebreaker resolved it - exactly 5:00.
+ *
+ *  One pass, grouped by a small key (never by battle_id): the 1v1 types
+ *  only, since a duel row sums crowns across up to three games and a boat
+ *  battle has no overtime. starting_trophies is banded by the LOWER of the
+ *  two sides, so a band reads "both players at or above this"; the scale
+ *  differs per type (Path of Legends rating is not ladder trophies), so
+ *  bands are comparable within a type and not across them. */
+export async function battleLengthCensus(databaseUrl, spec) {
+  const band = Number(spec?.band ?? 500);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `select a.type,
+              a.crowns as c0, b.crowns as c1,
+              a.outcome as outcome_0,
+              (least(a.starting_trophies, b.starting_trophies) / $1::int) * $1::int as band,
+              count(*)::int as n
+         from battle_participant a
+         join battle_participant b
+           on b.battle_id = a.battle_id and b.side = 1
+        where a.side = 0
+          and a.type_class = 'pvp'
+          and a.type in ('PvP', 'pathOfLegend', 'riverRacePvP')
+        group by 1, 2, 3, 4, 5`,
+      [band],
+    );
+    const summary = {};
+    for (const r of rows) {
+      const t = (summary[r.type] ??= {
+        battles: 0,
+        equal_crowns: 0,
+        equal_decided: 0,
+        equal_drawn: 0,
+        three_crown: 0,
+        crowns_unknown: 0,
+        by_band: {},
+      });
+      t.battles += r.n;
+      if (r.c0 === null || r.c1 === null) {
+        t.crowns_unknown += r.n;
+        continue;
+      }
+      if (r.c0 === 3 || r.c1 === 3) t.three_crown += r.n;
+      if (r.c0 === r.c1) {
+        t.equal_crowns += r.n;
+        if (r.outcome_0 === "draw") t.equal_drawn += r.n;
+        else t.equal_decided += r.n;
+      }
+      const key = r.band === null ? "unknown" : String(r.band);
+      const bk = (t.by_band[key] ??= { battles: 0, equal: 0, three: 0 });
+      bk.battles += r.n;
+      if (r.c0 === r.c1) bk.equal += r.n;
+      if (r.c0 === 3 || r.c1 === 3) bk.three += r.n;
+    }
+    return { band, pairs: rows.length, summary };
+  } finally {
+    await db.end();
+  }
+}
