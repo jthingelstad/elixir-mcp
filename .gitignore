@@ -19,6 +19,7 @@ dist/
 # Build artifacts
 infra/dist/
 .backfill-progress.json
+.battle-detail-progress.json
 .backfill-perf.json
 .env.gw2
 

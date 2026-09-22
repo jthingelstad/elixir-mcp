@@ -1146,3 +1146,60 @@ export async function battleFidelityCensus(databaseUrl) {
     await db.end();
   }
 }
+
+/** {battle_detail_backfill}: land duel round results and global_rank on
+ *  battles recorded before 0151. The payloads live in S3 (Postgres only
+ *  caches them for two hours), so the sweep is local -
+ *  infra/scripts/battle-detail-backfill.mjs reads the archive, runs the
+ *  SAME canonicalizeBattle the pipeline uses, and posts batches here.
+ *  Rows for a battle this record does not hold are skipped by the join
+ *  rather than failing the batch. Idempotent; a value already present
+ *  is never overwritten. */
+export async function battleDetailBackfill(databaseUrl, spec) {
+  const rounds = Array.isArray(spec?.rounds) ? spec.rounds : [];
+  const ranks = Array.isArray(spec?.ranks) ? spec.ranks : [];
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    let roundRows = 0;
+    let rankRows = 0;
+    if (rounds.length > 0) {
+      const { rowCount } = await db.query(
+        `insert into battle_participant_round
+           (battle_id, player_tag, round, crowns, king_tower_hp,
+            princess_tower_hp_1, princess_tower_hp_2, elixir_leaked)
+         select r.battle_id, r.player_tag, r.round, r.crowns, r.king_tower_hp,
+                r.princess_tower_hp_1, r.princess_tower_hp_2, r.elixir_leaked
+           from jsonb_to_recordset($1::jsonb)
+             as r(battle_id text, player_tag text, round smallint,
+                  crowns smallint, king_tower_hp smallint,
+                  princess_tower_hp_1 smallint, princess_tower_hp_2 smallint,
+                  elixir_leaked numeric)
+           join battle_participant bp
+             on bp.battle_id = r.battle_id and bp.player_tag = r.player_tag
+         on conflict (battle_id, player_tag, round) do update
+           set crowns = coalesce(battle_participant_round.crowns, excluded.crowns),
+               king_tower_hp = coalesce(battle_participant_round.king_tower_hp, excluded.king_tower_hp),
+               princess_tower_hp_1 = coalesce(battle_participant_round.princess_tower_hp_1, excluded.princess_tower_hp_1),
+               princess_tower_hp_2 = coalesce(battle_participant_round.princess_tower_hp_2, excluded.princess_tower_hp_2),
+               elixir_leaked = coalesce(battle_participant_round.elixir_leaked, excluded.elixir_leaked)`,
+        [JSON.stringify(rounds)],
+      );
+      roundRows = rowCount;
+    }
+    if (ranks.length > 0) {
+      const { rowCount } = await db.query(
+        `update battle_participant bp set global_rank = r.global_rank
+           from jsonb_to_recordset($1::jsonb)
+             as r(battle_id text, player_tag text, global_rank int)
+          where bp.battle_id = r.battle_id and bp.player_tag = r.player_tag
+            and bp.global_rank is null and r.global_rank is not null`,
+        [JSON.stringify(ranks)],
+      );
+      rankRows = rowCount;
+    }
+    return { round_rows: roundRows, rank_rows: rankRows };
+  } finally {
+    await db.end();
+  }
+}

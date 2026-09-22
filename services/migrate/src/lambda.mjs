@@ -47,6 +47,7 @@ import {
   ledger,
   warDrift,
   warWeekSeasonCensus,
+  battleDetailBackfill,
   battleFidelityCensus,
   battleLengthCensus,
   outcomePairRepair,
@@ -415,6 +416,14 @@ export async function handler(event) {
   }
   if (event?.battle_fidelity_census) {
     const result = await battleFidelityCensus(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.battle_detail_backfill) {
+    const result = await battleDetailBackfill(
+      process.env.DATABASE_URL,
+      event.battle_detail_backfill,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
