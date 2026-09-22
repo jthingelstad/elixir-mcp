@@ -1,18 +1,21 @@
-# Weekly email — the five report kinds
+# Weekly email — the report kinds and the written ones
 
 **Design, ratified 2026-09-18 (Jamie, in session); BUILT AND DEPLOYED the
 same night** (NOTES 2026-09-18, "Product email shipped"). Six kinds, not
-five: the milestone mail joined during the design. The public description
-is `/docs/email`; this file is the design and the engineering shape.
-Palette: dark for all six (Jamie, from the gallery). Collector Activity is
+five: the milestone mail joined during the design. A SEVENTH,
+`card_of_week`, was designed and built 2026-09-22 and has its own
+section below. The public description is `/docs/email`; this file is the
+design and the engineering shape. Palette: dark for all of them
+(Jamie, from the gallery). Collector Activity is
 one mail per ACCOUNT, every collector it runs pooled.
 
 ## What is decided
 
-- **Six kinds**, all bulk under the mail policy (`docs/ENGINEERING.md`,
-  "Mail is transactional until a kind says otherwise"): five weekly
+- **Seven kinds**, all bulk under the mail policy (`docs/ENGINEERING.md`,
+  "Mail is transactional until a kind says otherwise"): six weekly
   (`clan_report`, `arena_week`, `tracking_report`, `top_100`,
-  `collector_activity`) and the event-driven `milestone`.
+  `card_of_week`, `collector_activity`) and the event-driven
+  `milestone`.
 - **Every kind is a switch on the account page. All default ON (opt-out),**
   the beta stance from 0051: taking part in the beta includes the product
   email, and every issue carries one-click unsubscribe. Unlike the removed
@@ -24,7 +27,10 @@ one mail per ACCOUNT, every collector it runs pooled.
   Every number comes from the readers the tools use, rendered into a fixed
   structure. ("Bring your own API key" for a narrated version was considered
   and is not near-term.)
-- **Top 100 is the one LLM email**: the same issue for everyone, content
+- **Two of the seven are WRITTEN by a model** (`top_100`, and
+  `card_of_week` since 2026-09-22); they share one pipeline in
+  `services/jobs/src/email/issue-pipeline.mjs`.
+- **Top 100 was the first LLM email**: the same issue for everyone, content
   first (a shareable read of the global top 100 with a call to action).
   Generated once a week by a multi-pass job with an editor cycle
   (Jamie's bundle in `docs/top100/`, the decisions under `top_100`
@@ -53,7 +59,8 @@ DST bookkeeping.
 | Tue 14:00Z | `arena_week` | A day for late battlelog pickups to land (a 25-battle log on an adaptive cadence records Sunday-night play on Monday afternoon); keeps "your week" apart from "the clan's week". |
 | Wed 14:00Z | `tracking_report` | Its own day; state and progress across every subject you track reads differently after the battle report, not beside it. |
 | Thu 14:00Z | `top_100` | Mid-week, standalone, shareable. |
-| Sun 14:00Z | `collector_activity` | The operator's week closes Sun→Sun; the thank-you goes out as it closes, on a day operators are around. Friday and Saturday stay quiet. |
+| Fri 14:00Z | `card_of_week` | One card, read in full; the brief builds 06:00Z after the nightly rollup. Friday was quiet and a forwardable piece earns it. |
+| Sun 14:00Z | `collector_activity` | The operator's week closes Sun→Sun; the thank-you goes out as it closes, on a day operators are around. Saturday stays quiet. |
 | Hourly (:20) | `milestone` | Firsts on the recipient's own tags since the last look, bundled; exempt from the one-a-day rule because it is the one people most want and holding it makes it late. |
 
 **Content windows.** The four game reports cover the same **game week,
@@ -70,7 +77,7 @@ complexity nobody would notice.
 
 ## The shared foundation
 
-Built once, used five times. In build order.
+Built once, used by every kind. In build order.
 
 ### 1. One-click unsubscribe (step zero)
 
@@ -96,7 +103,7 @@ kind can ship before this exists.
 `via ∈ {profile, one_click, ops}`; absent row means enabled (the default
 is ON and a backfill is not needed). Every change writes an
 `account_event`. Person principals only: agents and integrations have no
-inbox. Profile → Email shows the six switches (the "send me this one
+inbox. Profile → Email shows the switches (the "send me this one
 now" button beside each was removed 2026-09-19; the ops op is the test
 path). The Collector switch appears only for an account with a collector.
 
@@ -248,6 +255,64 @@ finals back to 2022-10. Reader gaps to add as tools: `rankings_movers`,
 `segment: {player_tags}`, segment-level battle coverage, set-wise
 head-to-head.
 
+### `card_of_week` — Fri (2026-09-22)
+
+The second WRITTEN kind, on the Top 100's pipeline rather than beside
+it: `issue-pipeline.mjs` is the shared spine (archive key, editor queue,
+lint gate, owner notice, ledger row) and each kind supplies its brief
+builder, its names and its facts. Decided with Jamie in session,
+2026-09-22.
+
+- **Selection is the ten most-played cards of the season we have not
+  featured inside a year, with one DRAWN from those ten.** The first
+  design scored a trailing 28-day usage jump against the 28 days before
+  it, and it cannot be served: `seasonRollup` answers a corpus read only
+  when the window is exactly one season, so any other window is a raw
+  scan of the participant heap, and a SEVEN-day corpus `battles_meta_cards`
+  already exceeds the tool time budget (`query_timeout`, request
+  eb9fcaf0, 2026-09-22, at 692k decided battles against August's 74k).
+  A season read is one indexed pass over ~130 rows. Jamie authorised
+  direct SQL for the selector, and it needs it for a second reason:
+  `battles_meta_cards` returns one row per (card, form) and never merges
+  them, so ranking its rows ranks Ice Wizard by its hero form alone.
+  The selector reads `card_meta_season` at `form = -1`.
+- **The draw is seeded on the period key**, not `Math.random`: random
+  across weeks, fixed within one. A dry run picks what the real send
+  will pick, a retry does not switch cards mid-week, and the choice
+  reproduces from the week plus the candidate log. A recorded pick is
+  returned as-is on a re-run, because sending removes the card from the
+  field and a naive re-selection would switch it.
+- **A card is consumed by a SEND** (`email_featured_card.sent_at`,
+  0153), never by a selection: a dry run or an issue that failed its
+  verifier leaves the card due its turn. The ten it was drawn from are
+  kept on the row, so a pick is auditable a year later without
+  re-reading a season that has since moved.
+- **The new-card queue jump is dropped.** It keyed on
+  `first_seen_in_catalog`, which is 2026-09-10 for EVERY card - the day
+  Elixir seeded its catalog, not a release date; Knight reads the same
+  instant as Barbarian Barrel - so it would have matched the whole
+  catalog every week. `first_played` per form is no better: Knight's
+  hero form reads 2026-01-03 and its base form 2026-02-20.
+- **Two windows, both named in the footer.** The headline is the closed
+  game week; modes, bands, partners and decks are season to date,
+  because `cards_card` answers those only on a corpus season read.
+- **The writer places a deck and never spells it.** It emits
+  `{{deck:N}}` and the renderer prints the cards from the brief, so
+  "every card name matches the brief exactly, in order" holds by
+  construction. Two different card sets share the label "Minion Giant
+  cycle" among this card's own top five decks; a model trusting the
+  label would print the wrong deck.
+- **Card art is mirrored, not hotlinked** (`infra/scripts/mirror-card-art.mjs`
+  and its own PNG codec): a mail client proxies or blocks a third-party
+  image. The output is gitignored - 540 thumbnails are 15 MB and this
+  repo is public - and uploaded by deploy. Re-run it when the catalog's
+  `as_of` moves.
+- **Schedule:** brief Friday 06:00Z, after the 04:40Z nightly rollup it
+  reads (both at reserved concurrency 1); send 14:00Z.
+- `/cards/<id>` is the public landing page, ids not slugs (Jamie), on
+  the `/data/now` pattern: catalog facts baked, season numbers filled by
+  `cards-live.js` from `/api/public/cards/<id>`.
+
 ### `collector_activity` — Sun
 
 Only accounts with a collector. Facts are in the collector ledger: fetches,
@@ -347,6 +412,24 @@ submit feedback from one." Built the same day, contract 4.2.0:
   the Friday sends; `email_compose_failed` in the jobs log, no alarm
   because the run itself succeeded). The deliver test now renders a
   real send.
+
+## The lint bug the second written kind found (2026-09-22)
+
+`numberSet` canonicalised every brief number as an integer, so a rate
+became `"1"` (`Math.round(0.511)`) and no percentage printed from it
+could trace. The Top 100 brief carries rates TODAY - `meta.cards[].usage_share`
+and `meta.decks[].win_rate` are the meta section's whole point - so
+every percentage the writer fetched through `brief_value` and printed
+was reported unsourced, and the editor pass, told to remove a number
+that does not trace, deleted a correct one. The second lint then passed
+over the thinner body and the issue sent: it failed QUIET, with no
+alarm and no failed issue, which is why it went unnoticed. Numbers now
+canonicalise at every spelling a writer would use, including a rate's
+percentage, and the body is scanned for whole decimals rather than
+their integer parts. `lintIssue` takes a kind: the length rules and the
+rank-and-rating pairing are the kind's, and `card_of_week` adds a word
+FLOOR, because an issue an editor pass cut to nothing satisfies every
+other rule.
 
 ## Open
 
