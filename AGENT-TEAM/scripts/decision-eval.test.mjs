@@ -18,7 +18,7 @@ const answers = () =>
 
 test("rubrics cover unique cases and are excluded from exported situations", () => {
   assert.equal(new Set(cases.map((c) => c.id)).size, cases.length);
-  assert.equal(cases.length, 12);
+  assert.equal(cases.length, 13);
   assert.ok(
     situations(cases).every(
       (c) => Object.keys(c).sort().join() === "id,situation",
