@@ -7944,3 +7944,61 @@ the script now applies it for me.
 ~23.8 s (bounded to 30 days it answers in 11.2 s). The catalogue's case
 passes, so the gate is green, but the unbounded season read is close to
 the edge and the corpus is growing fast.
+
+## 2026-09-22 — 6.17.0: event content is its own mode group, and the meta stops counting what it should never have counted
+
+Jamie: "game modes are really played as a different game... ever querying
+battles without a mode is probably an indicator of a bug", and on the
+decks the player did not choose, "yes, these are not informing meta".
+
+**The line is the API's own.** A battle inside a time-bound event carries
+an `eventTag` and a permanent format never does - `trail` 100% of
+123,562 battles, `pathOfLegend`/`PvP`/`riverRace*`/`boatBattle`/
+`friendly` 0%. So `event` is a mode group decided by the TAG, not the
+type. `modeGroupOf(type, eventTag)` and its SQL twin `modeGroupSql` live
+in contracts, so ingest, the meta rollup and every reader share one
+definition and cannot drift. Verified live: `mode: event` returns only
+`trail`, `mode: casual` only `friendly`, `mode: ladder` only `PvP` -
+casual no longer carries the Seasonal Trophy Road, and every non-event
+mode excludes tagged battles so it cannot refill.
+
+**The meta population excludes two things** (`META_POPULATION`, one
+place, because every caller's fromWhere joins `battle b`): event content,
+and a deck the player did not choose (`deck_selection` outside
+`collection` and `warDeckPick`). A null deck_selection is KEPT - a
+population is not narrowed on an absence. September's population went
+**704,594 rows -> 370,610**, and `trail` rows in the meta went to
+**zero**.
+
+### Three things that nearly shipped wrong
+
+1. **`add()` would have desynced the bind.** The shared clause helper
+   always pushed a parameter, so a parameterless predicate
+   (`b.event_tag is null`) would have left the text referencing $n while
+   the array held n+1. It now skips the push when the clause has no
+   placeholder; six definitions.
+2. **A rebuild could not express this change.** `buildPopDays` SKIPS
+   sealed days and UPSERTS the rest, so rows that no longer qualify are
+   never revisited: the first `{meta_rollup_season}` ran clean, reported
+   `days: {built: 2, changed: 180}`, and left all 326,370 `trail` rows in
+   place. It looked applied and was not. `{reset: true}` now drops the
+   population, the day ledger and the cursors first. **A rebuild that
+   only adds cannot implement a removal.**
+3. **The repair had no progress signal.** The cursor form reported the
+   same `pairs_total` every call, so a loop could not tell done from
+   stuck. An unrepaired pair is now defined as one holding an event
+   battle whose rollup has no `event` row yet - repairing it leaves the
+   set, so the count is real and the loop self-terminates.
+
+Also: pair-by-pair repair measured 20 s per 500 pairs - near two hours
+for 166k, on a Lambda with reserved concurrency 1 and a database that
+had already shown today what heavy batches do to it. One DELETE and one
+INSERT per slice instead.
+
+**Still open, both contract-breaking and deliberately not folded in
+here:** refusing a battle query with no `mode`, and (Jamie, same
+session) refusing an unbounded window - "the battle corpus is just going
+to grow". The discovery path a refusal needs already exists:
+`battles_performance group_by: "game_mode"` keys rows on the
+(game_mode, type) pair and already says "filter battles_query by
+game_mode to drill in".
