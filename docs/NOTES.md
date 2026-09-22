@@ -7296,3 +7296,73 @@ family count is pinned in the brief — nine prefixes gives `war_*` for
 week 39; counting `game_*` and `live_fetch` gives eleven and a different
 family; and two runs in one ISO week (09-21, 09-22) both landed on
 `war_*`.
+
+## 2026-09-22 — How long did a battle last? What the corpus can and cannot say ({battle_length_census})
+
+Jamie asked whether battle duration is recoverable, and whether ranked
+games against top players reach the 5:00 limit more often. The battle log
+carries no duration field, but the game's clock (now in
+`cr-agent-api-docs` `models/battles.md`, "Battle Length And Phases":
+3:00 regulation, 2:00 sudden-death overtime, elixir 1x/1x/2x/2x/3x,
+transitions at 120/180/240 s) makes the crown pair a bound. A King Tower
+is the ONLY way to end before 3:00, and overtime ends on the next tower,
+so: a three-crown finish ended early (duration unknown); any other
+finish ran at least regulation; and a finish with the sides LEVEL on
+crowns means overtime expired and the tower-hitpoints tiebreaker
+resolved it - exactly 5:00.
+
+New read-only op `{battle_length_census}` (migrate, ~5 s, one pass over
+the 1v1 types grouped by a small key, never by battle_id). Over
+**229,390 recorded 1v1 battles**:
+
+| type | battles | three-crown (early) | known >= 3:00 | level crowns |
+| --- | --- | --- | --- | --- |
+| `pathOfLegend` | 180,518 | 17.3% | **82.7%** | 46 (0.025%) |
+| `PvP` (ladder) | 36,641 | 33.4% | 66.6% | 2 (0.005%) |
+| `riverRacePvP` | 12,112 | 43.1% | 56.9% | 76 (0.627%) |
+
+**Jamie's hypothesis holds, by a mechanism other than the one proposed.**
+Ranked games do run long far more often - 82.7% of Path of Legends
+battles are provably three minutes or more, against 66.6% on ladder and
+56.9% in war - and inside Path of Legends the early-finish rate falls
+monotonically with rating (three-crown 19.0% at the 1000 band, 17.7% at
+1500, 17.3% at 2000, 12.8% at 2500, 12.3% at 3000, 10.5% at 3500). The
+cause is fewer King Tower finishes against better defence, NOT more 5:00
+tiebreakers.
+
+**The 5:00 tiebreaker is not observable in this corpus at all.** Of the
+124 level-crown battles, 114 have both princess towers on both sides at
+identical hitpoints (4808/4808, king 7678 - untouched), so no battle was
+fought; of the 10 with tower damage, every single one shares a hitpoint
+value between the two sides and three read `crowns 3-3` with BOTH kings
+at 0. There is no clean 5:00 tiebreaker in 229,390 battles. The
+deduction is sound and worth keeping in the docs; the event is rarer
+than the defects that mimic it.
+
+**Finding, not actioned: 37 `pathOfLegend` battles record BOTH sides as
+`loss`.** 0.020% of Path of Legends, zero in ladder and zero in war. All
+37 carry two NEGATIVE `trophy_change` values that sum to -29 every time
+(-13/-16, -17/-12, -15/-14, -18/-11, -16/-13), 31 of 37 have untouched
+towers, and 3 have `crowns 3-3` with both kings destroyed. A decided 1v1
+has one winner, so the pair is impossible as recorded.
+`outcomeFor` (`services/ingest/src/battles.mjs`) takes the sign of each
+participant's own `trophyChange` first, so it will label both sides
+`loss` whenever the API hands us two negative values - it is faithfully
+recording what arrived. What arrived is the open question: a voided or
+double-disconnected Path of Legends match that penalises both players
+would explain the untouched-tower rows, but not `3-3` with both kings at
+0, which looks like two entries collapsing onto one `battle_id`
+(`sha256(battle_time ":" sorted tags ":" type_class)`). Root-causing
+needs the raw payloads - `{export_payloads}` has them - and belongs to
+Keep the Record True. These 37 rows are also the ENTIRE population of
+"level crowns with a decided outcome", so any consumer reading that as a
+5:00 tiebreaker would be reading the defect.
+
+Also worth knowing for any winner-inference consumer: 43,634 Path of
+Legends battles and a large share of ladder ones carry `trophy_change`
+on one side only (sign pairs 1/0 and 0/1), so the crown fallback is
+load-bearing, not an edge case. And in `riverRacePvP` there is no
+`trophyChange` at all, so a war 1v1 that the game decided on tower
+hitpoints would be recorded as a `draw` with its winner unrecoverable
+from crowns - none of the 76 war level-crown rows is such a battle
+(all untouched towers), but the exposure is real if one ever occurs.
