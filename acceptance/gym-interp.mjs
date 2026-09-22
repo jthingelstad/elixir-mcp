@@ -16,8 +16,11 @@
  * (a scalar list holds a value, 85.6), sorted_desc, sorted_asc,
  * notes_match, notes_not_match, every_row_has. An `eq` right-hand side that is a
  * string with a dot or a bracket is read as a path (82.4 compares two
- * calls). `notes_match` reads notes[] and, on a refusal, error.message
- * and error.hint - the Gym asserts on refusals too.
+ * calls); a bare identifier that names a field on the row is the row's
+ * field (87.3: `eq scoring_decks decks_used` under for_each), and a
+ * literal otherwise (85.3: `eq type boatBattle`). `notes_match` reads
+ * notes[] and, on a refusal, error.message and error.hint - the Gym
+ * asserts on refusals too.
  *
  * Modifiers: `when` (a verb over the body or the row: false skips the
  * case, said aloud); `for_each` (the asserts run per row of a list);
@@ -91,7 +94,14 @@ function noteText(body) {
 export function assertOne(spec, scope, root) {
   const [verb, arg] = Object.entries(spec)[0];
   const at = (p) => resolve(scope, p);
-  const rhs = (v) => (isPath(v) ? resolve(root, v) : v);
+  const rhs = (v) => {
+    if (isPath(v)) return resolve(root, v);
+    if (typeof v === "string" && /^[A-Za-z_][A-Za-z0-9_]*$/.test(v)) {
+      const field = at(v);
+      if (field !== undefined) return field;
+    }
+    return v;
+  };
   switch (verb) {
     case "has": {
       const v = at(arg);
