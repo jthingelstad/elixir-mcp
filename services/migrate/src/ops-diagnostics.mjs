@@ -1403,3 +1403,70 @@ export async function modeShapeCensus(databaseUrl) {
     await db.end();
   }
 }
+
+/** {rollup_mode_group_repair}: re-derive mode_group on the daily rollup
+ *  rows written before 0152. Event-tagged battles used to fold into
+ *  `casual`; they are `event` now, and a row already written keeps the
+ *  old value until its (player, day) is recomputed. Rather than replay
+ *  the whole rollup, this recomputes only the pairs that actually hold
+ *  an event battle, in bounded slices - the rest of the table is
+ *  unaffected because no other group changed.
+ *
+ *  Dry run by default. `{apply: true, limit: N}` recomputes up to N
+ *  (player, day) pairs and returns a cursor for the next call. */
+export async function rollupModeGroupRepair(databaseUrl, spec) {
+  const apply = spec?.apply === true;
+  const limit = Math.min(Number(spec?.limit ?? 2000), 20000);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const pairsSql = `
+      select distinct bp.player_tag, bp.battle_time::date as day
+        from battle_participant bp
+        join battle b on b.battle_id = bp.battle_id
+       where b.event_tag is not null
+         and (bp.player_tag, bp.battle_time::date) > ($1, $2::date)
+       order by 1, 2 limit ${limit}`;
+    const afterTag = String(spec?.after_player ?? "");
+    const afterDay = spec?.after_day ?? "0001-01-01";
+    const { rows: pairs } = await db.query(pairsSql, [afterTag, afterDay]);
+    const {
+      rows: [remaining],
+    } = await db.query(
+      `select count(*)::int as n from (
+         select distinct bp.player_tag, bp.battle_time::date
+           from battle_participant bp
+           join battle b on b.battle_id = bp.battle_id
+          where b.event_tag is not null) t`,
+    );
+    if (!apply)
+      return {
+        dry_run: true,
+        pairs_total: remaining.n,
+        pairs_this_slice: pairs.length,
+      };
+    const { refreshDailyRollups } =
+      await import("../../ingest/src/rollups.mjs");
+    await refreshDailyRollups(
+      db,
+      pairs.map((p) => ({
+        playerTag: p.player_tag,
+        day: p.day.toISOString().slice(0, 10),
+      })),
+    );
+    const last = pairs[pairs.length - 1];
+    return {
+      dry_run: false,
+      pairs_total: remaining.n,
+      repaired: pairs.length,
+      next: last
+        ? {
+            after_player: last.player_tag,
+            after_day: last.day.toISOString().slice(0, 10),
+          }
+        : null,
+    };
+  } finally {
+    await db.end();
+  }
+}

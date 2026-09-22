@@ -49,6 +49,7 @@ import {
   warWeekSeasonCensus,
   battleDetailBackfill,
   battleFidelityCensus,
+  rollupModeGroupRepair,
   modeShapeCensus,
   battleLengthCensus,
   outcomePairRepair,
@@ -430,6 +431,16 @@ export async function handler(event) {
   }
   if (event?.mode_shape_census) {
     const result = await modeShapeCensus(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.rollup_mode_group_repair) {
+    const result = await rollupModeGroupRepair(
+      process.env.DATABASE_URL,
+      event.rollup_mode_group_repair === true
+        ? {}
+        : event.rollup_mode_group_repair,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
