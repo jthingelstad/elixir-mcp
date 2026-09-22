@@ -1445,15 +1445,54 @@ export async function rollupModeGroupRepair(databaseUrl, spec) {
         pairs_total: remaining.n,
         pairs_this_slice: pairs.length,
       };
-    const { refreshDailyRollups } =
-      await import("../../ingest/src/rollups.mjs");
-    await refreshDailyRollups(
-      db,
-      pairs.map((p) => ({
-        playerTag: p.player_tag,
-        day: p.day.toISOString().slice(0, 10),
-      })),
-    );
+    // Set-based, not pair-by-pair: refreshDailyRollups does a DELETE and
+    // an INSERT per (player, day), which measured 20 s per 500 pairs -
+    // nearly two hours for the 166k that hold an event battle, on a
+    // Lambda whose reserved concurrency is 1. One DELETE and one INSERT
+    // over the whole slice computes the same rows.
+    const { modeGroupSql } = await import("@elixir-mcp/contracts");
+    const group = modeGroupSql("b.type", "b.event_tag");
+    const tags = pairs.map((p) => p.player_tag);
+    const days = pairs.map((p) => p.day.toISOString().slice(0, 10));
+    await db.query("begin");
+    try {
+      await db.query(
+        `delete from player_daily_battle_rollup r
+           using unnest($1::text[], $2::date[]) as k(player_tag, day)
+          where r.player_tag = k.player_tag and r.day = k.day`,
+        [tags, days],
+      );
+      await db.query(
+        `insert into player_daily_battle_rollup
+           (player_tag, day, mode_group, game_mode_id, wins, losses, draws,
+            crowns_for, crowns_against, trophy_delta, battles_captured)
+         select bp.player_tag, bp.battle_time::date, ${group},
+                coalesce(b.game_mode_id, 0),
+                count(*) filter (where bp.outcome = 'win'),
+                count(*) filter (where bp.outcome = 'loss'),
+                count(*) filter (where bp.outcome = 'draw'),
+                coalesce(sum(bp.crowns), 0),
+                coalesce(sum(opp.crowns), 0),
+                coalesce(sum(bp.trophy_change), 0),
+                count(*)
+           from unnest($1::text[], $2::date[]) as k(player_tag, day)
+           join battle_participant bp
+             on bp.player_tag = k.player_tag
+            and bp.battle_time >= k.day and bp.battle_time < k.day + 1
+           join battle b on b.battle_id = bp.battle_id
+           left join lateral (
+             select max(o.crowns) as crowns from battle_participant o
+             where o.battle_id = bp.battle_id and o.side <> bp.side
+           ) opp on true
+          group by bp.player_tag, bp.battle_time::date, ${group},
+                   coalesce(b.game_mode_id, 0)`,
+        [tags, days],
+      );
+      await db.query("commit");
+    } catch (err) {
+      await db.query("rollback");
+      throw err;
+    }
     const last = pairs[pairs.length - 1];
     return {
       dry_run: false,
