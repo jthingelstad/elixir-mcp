@@ -89,3 +89,11 @@ card's win rate describes who played it as much as the card.
 
 What beats a card across the corpus - the matchup question - is not yet
 answered; it needs a rollup the record does not keep, and is queued.
+
+## A card's own page
+
+Every card in the catalog has a public page at `/cards/<card id>` —
+`/cards/28000015` is Barbarian Barrel. No sign-in: the catalog row, the
+season-by-season series, the split by mode, and the Card of the Week
+issue about it if one has been sent. The numbers are the ones
+`cards_card` gives, refreshed with the nightly rollup.

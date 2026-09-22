@@ -905,9 +905,10 @@ Resources:
       FunctionName: !Ref EditorFunction
       BatchSize: 1
 
-  # Product email (docs/EMAIL.md): five weekly kinds at 14:00Z on their
-  # days, the milestone mail hourly, the Top 100 brief on Thursday at
-  # 10:30Z after the daily board lands (its send is the 14:00Z rule).
+  # Product email (docs/EMAIL.md): six weekly kinds at 14:00Z on their
+  # days, the milestone mail hourly, and the two WRITTEN kinds' briefs
+  # ahead of their sends - the Top 100 Thursday 10:30Z after the daily
+  # board lands, Card of the Week Friday 06:00Z after the nightly rollup.
   # One rule per kind so a kind can be paused alone.
   EmailClanReportRule:
     Type: AWS::Events::Rule
@@ -989,6 +990,42 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt EmailTop100Rule.Arn
+  # Card of the Week: the brief builds Friday 06:00Z, AFTER the 04:40Z
+  # nightly meta rollup it reads (that job runs minutes and both it and
+  # this share a reserved concurrency of 1), and the send is 14:00Z like
+  # every other kind - eight hours for the editor and the verifier.
+  EmailCardOfWeekGenerateRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-card-of-week-generate
+      ScheduleExpression: cron(0 6 ? * FRI *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-card-of-week-generate
+          Input: '{"card_of_week_generate": {}}'
+  EmailCardOfWeekGeneratePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailCardOfWeekGenerateRule.Arn
+  EmailCardOfWeekRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-email-card-of-week
+      ScheduleExpression: cron(0 14 ? * FRI *)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: email-card-of-week
+          Input: '{"email": "card_of_week"}'
+  EmailCardOfWeekPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailCardOfWeekRule.Arn
   EmailCollectorActivityRule:
     Type: AWS::Events::Rule
     Properties:
@@ -1714,7 +1751,7 @@ Resources:
           '/updates': 1,
           '/support': 1
         };
-        var STATIC_PREFIXES = ['/docs/', '/examples/', '/family/', '/updates/'];
+        var STATIC_PREFIXES = ['/cards/', '/docs/', '/examples/', '/family/', '/updates/'];
 
         function handler(event) {
           var request = event.request;

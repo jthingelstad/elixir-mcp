@@ -51,6 +51,7 @@ export default function (eleventyConfig) {
       "docs/integration-api.json",
   });
   eleventyConfig.addPassthroughCopy("src/assets/data-live.js");
+  eleventyConfig.addPassthroughCopy("src/assets/cards-live.js");
   eleventyConfig.addPassthroughCopy("src/assets/chrome-menu.js");
   eleventyConfig.addPassthroughCopy("src/assets/transcript.js");
   eleventyConfig.addPassthroughCopy("src/assets/rail-anchors.js");

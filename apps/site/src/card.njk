@@ -1,0 +1,81 @@
+---
+pagination:
+  data: cards
+  size: 1
+  alias: card
+permalink: "/cards/{{ card.id }}/index.html"
+eleventyComputed:
+  title: "{{ card.name }}"
+  description: "What the Elixir record holds about {{ card.name }} in Clash Royale: how often it is played, how often it wins, by mode and by season."
+  canonical: "/cards/{{ card.id }}"
+layout: base.njk
+---
+{#- A card's record, PUBLIC and sign-in free: this is where a forwarded
+    Card of the Week lands. The catalog facts are baked at build time and
+    read true with JavaScript off; cards-live.js fills the season numbers
+    from /api/public/cards/<id>, which the nightly rollup refreshes. -#}
+<div class="page-head">
+  <div style="display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap">
+    <img
+      src="/assets/cards/{{ card.id }}-160.png"
+      alt="{{ card.name }}"
+      width="160"
+      height="236"
+      style="border-radius: 10px"
+      onerror="this.style.display='none'"
+    />
+    <div>
+      <h1 class="hero-title" style="margin-bottom: 6px">{{ card.name }}</h1>
+      <p class="lede" style="margin: 0; max-width: 60ch">
+        {{ card.rarity | capitalize }} {{ card.type }}{% if card.elixir %}, {{ card.elixir }} elixir{% endif %}{% if card.forms.length %} &middot; {{ card.forms | join(" and ") }} form{% if card.forms.length > 1 %}s{% endif %}{% endif %}.
+      </p>
+      <p class="footnote" style="margin: 10px 0 0">
+        Card <span class="mono">{{ card.id }}</span> &middot;
+        <a href="/docs/cards">how a card is counted</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<section class="panel" data-card="{{ card.id }}">
+  <div class="panel__body">
+    <h2 style="margin-top: 0; font-size: 17px">This season</h2>
+    <p style="margin: 0 0 4px; color: var(--ink-body)">
+      Played in <strong data-card-live="usage">&mdash;</strong> of decided
+      battles by <strong data-card-live="players">&mdash;</strong> recorded
+      players, winning <strong data-card-live="win">&mdash;</strong>.
+    </p>
+    <p class="footnote" style="margin: 8px 0 0">
+      A card&rsquo;s win rate describes who played it as much as the card.
+    </p>
+  </div>
+</section>
+
+<section class="panel" style="margin-top: 16px">
+  <div class="panel__body">
+    <h2 style="margin-top: 0; font-size: 17px">By season</h2>
+    <div data-card-live="history"><p class="footnote" style="margin: 0">Loading the record&hellip;</p></div>
+  </div>
+</section>
+
+<section class="panel" style="margin-top: 16px">
+  <div class="panel__body">
+    <h2 style="margin-top: 0; font-size: 17px">By mode</h2>
+    <div data-card-live="modes"><p class="footnote" style="margin: 0">Loading the record&hellip;</p></div>
+  </div>
+</section>
+
+<section class="panel" style="margin-top: 16px" data-card-live="issue" hidden>
+  <div class="panel__body">
+    <h2 style="margin-top: 0; font-size: 17px">Card of the Week</h2>
+    <p style="margin: 0" data-card-live="issue-line"></p>
+  </div>
+</section>
+
+<p class="footnote" style="margin-top: 22px">
+  Ask your own agent &ldquo;how am I doing with {{ card.name }}?&rdquo; once
+  your tag is tracked. <a href="/">Request an account</a> &middot;
+  <a href="/docs/email">the weekly email</a>
+</p>
+
+<script defer src="{{ "/assets/cards-live.js" | asset }}"></script>

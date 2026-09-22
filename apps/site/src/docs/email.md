@@ -1,30 +1,30 @@
 ---
 slug: email
 title: "Email"
-description: "The six emails Elixir sends: five weekly reports built from your record with no model in the loop, and a milestone note when something you did is a first. Every one is a switch on your account page; every issue carries a one-click off; opens and clicks are counted per issue, never per reader."
+description: "The seven emails Elixir sends: five weekly reports built from your record with no model in the loop, two written weekly pieces, and a milestone note when something you did is a first. Every one is a switch on your account page; every issue carries a one-click off; opens and clicks are counted per issue, never per reader."
 section: using
 order: 17
 navTitle: "Email"
 icon: mail
-lede: "Six kinds, each a switch, each one click from off. Five are weekly; one arrives when something you did is a first."
+lede: "Seven kinds, each a switch, each one click from off. Six are weekly; one arrives when something you did is a first."
 ---
 
 # Email
 
-Elixir sends six kinds of email. All six are **on by default** for
+Elixir sends seven kinds of email. All seven are **on by default** for
 every approved account, because taking part in the beta includes the
-product's mail, and all six are **a switch on your account page**
+product's mail, and all seven are **a switch on your account page**
 ([Profile → Email](/account/profile/email)) with a one-click *turn off* link in every
 issue. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
-Five of the six are **reports**: structured, built from your record by
-the same readers the tools answer with, no language model anywhere in
-them. Every number is the number a tool would give you, and every one
-of them carries the coverage note the tools carry, because a report
-that hides a gap in the record is a report that lies. The sixth, the
-Top 100, is a written piece, and the one place a model writes for
-Elixir; how it is kept honest is below.
+Five of the seven are **reports**: structured, built from your record
+by the same readers the tools answer with, no language model anywhere
+in them. Every number is the number a tool would give you, and every
+one of them carries the coverage note the tools carry, because a report
+that hides a gap in the record is a report that lies. The other two,
+the Top 100 and Card of the Week, are **written** pieces, and the one
+place a model writes for Elixir; how they are kept honest is below.
 
 ## The week
 
@@ -41,6 +41,7 @@ excepted.
 | Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the record by mode, the decks you played, who you faced. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
 | Wednesday | **Tracking report** | Everyone you track, ordered by who they are to you: you in full, your alts shorter, friends a paragraph, watchers a line, your clans a line. It is the [timeline](/docs/timeline) for the week, rendered. |
 | Thursday | **Top 100** | One issue for everyone: a read of the global Path of Legends top 100 over the week that ended at that morning's board. Forward it to anyone who would enjoy it. |
+| Friday | **Card of the Week** | One card the record has something to say about, read in full: how much it is played and how often it wins, where it gets played, who plays it best, what it travels with, and the decks carrying it. One issue for everyone. Forward it to someone who runs that card. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): what your collectors fetched, how much the edge filter saved, quiet stretches, and what you earned. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
 | As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked. Checked hourly; everything new since the last note rides together. |
 
@@ -51,6 +52,39 @@ moment's own identity: the arena, the league, the band, the badge. A
 season's re-climb of an arena you have already been congratulated for
 is silent; a higher one is news. A move down never mails. Friends' and
 watchers' moments belong to the Tracking report, not here.
+
+## Card of the Week, and how it stays honest
+
+Friday's issue is about one card, and the card is **chosen by a
+program, not by us**: the ten most-played cards of the season that have
+not been written up in the last year, with one drawn from those ten.
+The draw is fixed for a given week, so the same week always chooses the
+same card, and the ten it chose from are kept with the issue. A card is
+used up by an issue that actually **sends** — an issue that fails its
+checks leaves that card where it was, still due its turn.
+
+It is written the same way the Top 100 is. A program builds the
+**brief**: the closed game week's usage, win rate and players; where the
+card stands among all cards this season and the cards either side of it;
+every recorded season as a series; the split by mode and by trophy band;
+what the global Path of Legends top 100 do with it; the cards it travels
+with; and the most-played decks carrying it. The writer may print a
+number only after reading it from the brief through a tool, an editor
+pass corrects the draft, and before the issue sends a program checks
+every number in it against the brief, refuses bare tags and exclamation
+marks, and holds the length. An issue that fails does not send.
+
+Two things about that issue are worth knowing. **The headline covers
+the game week that closed on Monday; the modes, bands, partners and
+decks cover the season so far** — the record can only answer those over
+a whole season — and the footer of every issue says which is which. And
+the **decks are printed by the mail, not written by the model**: it says
+which deck, and the cards come from the record. Two different decks can
+share one archetype name, so a deck list typed from a label would be the
+wrong deck.
+
+Every issue links to that card's page, at `/cards/<id>`, which needs no
+sign-in and carries the same numbers, refreshed nightly.
 
 ## The Top 100, and how it stays honest
 

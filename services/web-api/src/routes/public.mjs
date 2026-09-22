@@ -6,6 +6,7 @@ import {
 } from "../../../scheduler/src/plan.mjs";
 
 import { json } from "../http.mjs";
+import { DISCLAIMER, cardForms, cardType } from "@elixir-mcp/contracts";
 
 export function publicRoutes({ queueStats }) {
   return {
@@ -289,6 +290,112 @@ export function publicRoutes({ queueStats }) {
           note: "Live operational snapshot, ~60s cache. Collectors go by their card names; the backfill lane is excluded.",
         },
         { "cache-control": "public, max-age=60" },
+      );
+    },
+
+    // The card catalog and one card's record, PUBLIC and sign-in free
+    // (docs/EMAIL.md, the Friday kind): this is where a forwarded Card
+    // of the Week lands, and what the art mirror reads. The same
+    // numbers the tools give, refreshed by the nightly rollup.
+    "GET /api/public/cards": async (db) => {
+      const { readCatalog } = await import("../../../mcp/src/tools/cards.mjs");
+      const catalog = await readCatalog(db);
+      if (!catalog) return json(503, { error: "catalog_empty" });
+      return json(
+        200,
+        {
+          cards: catalog.cards,
+          as_of: catalog.as_of,
+          disclaimer: DISCLAIMER,
+        },
+        { "cache-control": "public, max-age=3600" },
+      );
+    },
+
+    "GET /api/public/cards/*": async (db, event) => {
+      const cardId = Number(event.pathParam);
+      if (!Number.isInteger(cardId)) return json(404, { error: "not_found" });
+      const {
+        rows: [card],
+      } = await db.query(
+        `select card_id, name, kind, rarity, elixir_cost, max_evolution_level,
+                icon_medium, icon_evolution_medium, icon_hero_medium
+           from card where card_id = $1 and kind = 'card'`,
+        [cardId],
+      );
+      if (!card) return json(404, { error: "not_found" });
+      // Season by season, from the same rollup cards_card reads.
+      const { rows: history } = await db.query(
+        `select cm.season_month, cm.battles, cm.wins, cm.losses, cm.players,
+                t.decided
+           from card_meta_season cm
+           join meta_season_totals t
+             on t.season_month = cm.season_month and t.mode_group = cm.mode_group
+          where cm.card_id = $1 and cm.form = -1 and cm.mode_group = 'all'
+          order by cm.season_month`,
+        [cardId],
+      );
+      const current = history.at(-1)?.season_month ?? null;
+      const { rows: modes } = await db.query(
+        `select cm.mode_group, cm.battles, cm.wins, cm.losses, cm.players,
+                t.decided
+           from card_meta_season cm
+           join meta_season_totals t
+             on t.season_month = cm.season_month and t.mode_group = cm.mode_group
+          where cm.card_id = $1 and cm.form = -1 and cm.season_month = $2
+            and cm.mode_group <> 'all'
+          order by cm.battles desc`,
+        [cardId, current],
+      );
+      // The latest issue about this card, when one has actually sent.
+      const {
+        rows: [issue],
+      } = await db.query(
+        `select f.period_key, f.sent_at, i.subject_line
+           from email_featured_card f
+           left join email_issue i
+             on i.kind = 'card_of_week' and i.period_key = f.period_key
+          where f.card_id = $1 and f.sent_at is not null
+          order by f.sent_at desc limit 1`,
+        [cardId],
+      );
+      const rate = (w, l) =>
+        w + l > 0 ? Number((w / (w + l)).toFixed(3)) : null;
+      const share = (n, d) => (d > 0 ? Number((n / d).toFixed(4)) : null);
+      const row = (r) => ({
+        battles: r.battles,
+        players: r.players,
+        decided_battles: Number(r.decided),
+        usage_share: share(r.battles, Number(r.decided)),
+        win_rate: rate(r.wins, r.losses),
+      });
+      return json(
+        200,
+        {
+          card: {
+            id: card.card_id,
+            name: card.name,
+            rarity: card.rarity,
+            elixir_cost: card.elixir_cost,
+            forms_available: cardForms(card.max_evolution_level),
+            type: cardType(card.card_id),
+          },
+          season: current,
+          history: history.map((h) => ({
+            season_month: h.season_month,
+            ...row(h),
+          })),
+          by_mode: modes.map((m) => ({ mode_group: m.mode_group, ...row(m) })),
+          issue: issue
+            ? {
+                period_key: issue.period_key,
+                subject: issue.subject_line,
+                sent_at: issue.sent_at,
+              }
+            : null,
+          disclaimer: DISCLAIMER,
+        },
+        { "cache-control": "public, max-age=900" },
       );
     },
 
