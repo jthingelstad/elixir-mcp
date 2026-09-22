@@ -152,6 +152,33 @@ test("a card is consumed by a SEND, not by a selection", async () => {
   assert.equal(after.candidates.length, 10);
 });
 
+test("a week's pick is sticky: a re-run never switches cards", async () => {
+  const first = await selectCard(db, {
+    periodKey: "2026-W44",
+    now: NOW,
+    force: null,
+  });
+  await recordFeatured(db, { periodKey: "2026-W44", ...first });
+  await recordFeaturedSent(db, { periodKey: "2026-W44", at: NOW });
+  // Sending removes the card from the eligible field, so a naive
+  // re-selection of the SAME week would draw a different card and the
+  // issue would stop matching its own brief.
+  const again = await selectCard(db, {
+    periodKey: "2026-W44",
+    now: NOW,
+    force: null,
+  });
+  assert.equal(again.card.card_id, first.card.card_id);
+  assert.match(again.why, /already chosen/);
+  // Another week is unaffected and does not see the sent card.
+  const other = await selectCard(db, {
+    periodKey: "2026-W45",
+    now: NOW,
+    force: null,
+  });
+  assert.ok(!other.candidates.some((c) => c.card_id === first.card.card_id));
+});
+
 test("past a year, the card returns to the field", async () => {
   const {
     rows: [sent],

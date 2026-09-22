@@ -93,6 +93,37 @@ export async function selectCard(
   const since = new Date(now.getTime() - YEAR_MS);
   const field = await candidates(db, { seasonMonth, since });
 
+  // A week's pick, once recorded, is the week's pick. Re-selecting would
+  // quietly switch cards on a re-run: the moment the issue sends, the
+  // card leaves the eligible field, so a regenerate of the SAME week
+  // would draw a different one and the issue would stop matching its
+  // own brief. An override still wins, because an operator asking by id
+  // has said what they mean.
+  if (!force) {
+    const {
+      rows: [held],
+    } = await db.query(
+      `select f.card_id, f.score, f.reason, f.candidates, c.name
+         from email_featured_card f join card c on c.card_id = f.card_id
+        where f.period_key = $1`,
+      [periodKey],
+    );
+    if (held)
+      return {
+        season_month: seasonMonth,
+        card: {
+          card_id: held.card_id,
+          name: held.name,
+          ...((held.candidates ?? []).find((x) => x.card_id === held.card_id) ??
+            {}),
+        },
+        reason: held.reason,
+        score: held.score === null ? null : Number(held.score),
+        candidates: held.candidates ?? field,
+        why: `already chosen for ${periodKey}: ${held.name}`,
+      };
+  }
+
   if (force) {
     const cardId = Number(force);
     const { rows } = await db.query(
