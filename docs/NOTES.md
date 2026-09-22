@@ -7173,3 +7173,24 @@ reads the same rows, so it tightens too.
 Gate: **253 cases, 0 failed, 3 skipped, 194 calls.** The gym suite is
 now the Gym's own words plus five code cases the block does not cover
 (#74, #77–79, #56/64).
+
+## 2026-09-22 — Route attribution replaces the fixed collector-door cost baseline
+
+Run Elixir MCP's check-in-era cost instruction still said that a few hundred
+web-api Lambda-seconds per day was normal and treated a higher total as a
+polling regression. The 2026-09-22 read-only CloudWatch receipt disproved that
+rule: the preceding 24 hours had 72,210 web-api invocations and 7,768.992
+billed seconds, of which `POST /api/collector/lease` accounted for 49,618
+successful requests and `POST /api/collector/submit` for 22,361. The public
+status simultaneously reported active collectors, fresh admissions, empty
+queues/DLQs, and expected global rate below the 3,600/hour budget; route p95s
+were 64.969 ms for leases and 560.5038 ms for submits. This is productive
+throughput plus the designed idle check-ins, not evidence of the retired
+long-poll loop.
+
+The corrected operating rule is route attribution: each productive fetch
+normally causes a submit and a further lease, while idle collectors add leases
+at their phased cadence. Investigate a lease surplus unexplained by submissions
+and fleet idleness, rising billed time with stable admissions, or long lease
+latency. The new `collector-door-cost-attribution` decision case preserves the
+distinction. No collector, pacing, capacity, or alarm threshold changed.

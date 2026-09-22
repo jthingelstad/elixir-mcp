@@ -29,8 +29,11 @@ Establish, with receipts:
   (share of fetches that changed the record; 55–80% is normal, a
   collector far below the others is fetching the wrong things), edge
   filter (share of battle-log entries dropped before the wire; ~85–90%),
-  and calls/fetch (door calls per admitted fetch; 1.0–1.3 is right, 2+
-  means a client is polling again).
+  and edge filter. Attribute collector-door pressure with the web-api route
+  logs, not a fixed calls/fetch target: a productive fetch produces a submit
+  and normally another lease, while an idle collector produces leases without
+  submits on its phased check-in. Escalate a sustained lease surplus that
+  cannot be explained by submissions and the active fleet's idle cadence.
 - **Yield and budget.** Migrate lambda `{stats: true}` — its
   `battlelog_filter_last_hour` (`nothing_new` was 55–61% of polls before
   the roster gate; watch it fall, and watch `gaps`), the public status
@@ -85,9 +88,12 @@ Establish, with receipts:
   Close the Loop owns the resulting tool-friction and answer-quality findings.
 - **Cost.** The monthly cost alarm state; RDS storage headroom
   (autoscaling floor 20GB, max 100GB); the web-api Lambda's billed
-  seconds per day (Logs Insights on `REPORT`: ~7,000 Lambda-s an HOUR
-  before 2026-09-11, a few hundred a day after check-ins — a climb back
-  means a collector is polling again); RDS `FreeableMemory` /
+  seconds per day, attributed in Logs Insights by `http` route. Productive
+  collector throughput legitimately scales both `POST /api/collector/lease`
+  and `POST /api/collector/submit`; idle check-ins add leases. A fixed
+  daily Lambda-seconds target is not a polling detector. Investigate an
+  unexplained lease-to-submit surplus, long lease latency, or rising billed
+  time with stable admissions instead; RDS `FreeableMemory` /
   `SwapUsage` and the Enhanced Monitoring OS split (on since
   2026-09-11; the db.t4g.micro → small decision reads it); anything
   trending that would surprise Jamie at the bill.
