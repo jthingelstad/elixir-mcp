@@ -7194,3 +7194,105 @@ at their phased cadence. Investigate a lease surplus unexplained by submissions
 and fleet idleness, rising billed time with stable admissions, or long lease
 latency. The new `collector-door-cost-attribution` decision case preserves the
 distinction. No collector, pacing, capacity, or alarm threshold changed.
+
+## 2026-09-22 — 6.15.0: the Gym's second war run (feedback #84–#86), the banked progress, boat decks, the horizon on the exact week
+
+The Elixir Gym's rotation landed on `war_*` again (ISO week 39 mod 9 = 3)
+and ran yesterday's fixes as a regression pass first: #81, #82 and
+6.13.0's `in_progress` all CONFIRMED FIXED with today's numbers. Three
+new findings, all verified against independent reads, all shipped as
+one contract bump (`4a52383`, deployed `--acceptance` ~10:45Z, stack
+UPDATE_COMPLETE, migrations 150/0):
+
+- **#84 `days[].progress_end` is clamped to 10,000 on the finishing
+  day.** The API's periodLogs cap `progressEndOfDay` at the line and the
+  next day's `progressStartOfDay` carries the sum (136/0 day 3: 6811 +
+  3000 + 323 = 10134 served as 10000), so nineteen of twenty day rows
+  reconciled and the twentieth did not, and a walk over `progress_end`
+  showed +134 fame arriving on the day 6.11.0 exists to call dead. The
+  cap was documented — attached to `our_fame` on the week row, two
+  paragraphs away from `days[]`. `progress_end` stays the API's value
+  (the property the Gym asked not to give up); `progress_end_banked`
+  beside it on every day row of `war_history.days[]` and
+  `war_current.days_closed[]` is the row's own parts on a clamped
+  finishing row and `progress_end` everywhere else; a note fires only
+  when the week has a clamped row and names the clan, the day, both
+  numbers. Rival rows that never reach the line are never clamped.
+- **#85 `scoring_decks` pools boat decks with PvP decks under the rate
+  6.11.0 sanctions.** Verified from the battle log the way the Gym did:
+  Ak `decks_used: 4, boat_attacks: 4` had four `boatBattle` entries and
+  no PvP; NOBITA 8 boat + 2 PvP + 1 two-round duel = 12 = `decks_used`.
+  A boat deck scores roughly half (350 for four boat decks beside
+  700–800 for four PvP decks), so `points / scoring_decks` ranked the
+  two members who did the clan's boat attacks 26th and 22nd of 26. A
+  note fires whenever any `member_weeks[]` / `participants[]` row has
+  `boat_attacks > 0`, says they are counted INSIDE `decks_used` and
+  `scoring_decks`, and names who with their share (up to four, then
+  "and N more"). The decks note and the docs list a boat battle among
+  what consumes a deck; `battles#duels-and-boat-battles` had said boat
+  battles sit outside every denominator, true of the decided-battle
+  ones only, and now says so. **Not built:** `pvp_decks`. The record
+  holds `boat_attacks` as the game's weekly counter, not per day, so
+  "scoring decks less boat decks on scoring days" is not computable;
+  `decks_used - boat_attacks` is the caller's one subtraction on an
+  unfinished week, and the docs say so.
+- **#86 the exact-week path dropped `history_starts_at`.** 128/0 (before
+  the horizon) and 136/5 (a section no season has) answered
+  byte-identical empty payloads with the same seven field notes. The
+  horizon rides both paths now, and an empty exact week carries one
+  note saying which side of it the week is on: before recording began;
+  after the latest recorded week (not yet played or observed); a section
+  no season has (sections run 0–4; `section_index` still accepts 5 on
+  the schema, and the note is the answer); or a gap inside the span. The
+  field notes are suppressed on an empty answer so the sentence is not
+  buried.
+
+Acceptance: the Gym's blocks 84.1–84.3, 85.1–85.6, 86.1–86.2 and its
+seven negative controls 87.1–87.7 are in `gym.json` as written, plus
+84.4 and 86.3 for the fix's own shape (`progress_end_banked` on the
+clamped row; the "never existed" branch). Two blocks were annotated
+rather than paraphrased: 87.5 names its two rivals with `rival_tags`
+(`war_rivals {}` is the current bracket and rotates with the season, so
+a frozen pin on it would expire at the next roll). The interpreter
+gained what the blocks needed: `contains` (85.6), a summed fanned total
+in `sum_eq` (87.1: `member_weeks[].points`), the PCRE `(?i)` prefix the
+Gym writes (the notes verbs were already case-insensitive; JS has no
+inline flag and `new RegExp` threw), and a bare identifier on the right
+of `eq` read as the row's field (87.3: `eq scoring_decks decks_used`
+under `for_each` — the deploy gate went red on this one with the product
+right, 16 == 16; fixed forward in `649885a`, gym suite green live: 47
+cases, 0 failed, 3 skipped). Identities: banked == the row's parts on
+every clan-day with the cap note present when they differ;
+`boat_attacks <= decks_used`; the boat note fires iff a row has boat
+decks; `history_starts_at` on the exact path. Bites: the three captures
+the Gym read (`f1c34d87`, `e81d7d16`, `a9d3a7c1`) each proved to fail
+84.1/84.4, 85.1 and 86.1 on 6.14.0. Fixture: one 6.15.0 test in
+`war-tools.test.mjs` over the race fixture (period 26 is the clamped
+row: 6870 + 3000 + 376 = 10246 served as 10000).
+
+Gate on the deploy: **277 cases, 1 failed (87.3, the interpreter), 3
+skipped, 198 calls**; identities 31/0 and contracts 13/0 re-run live
+after the fix-forward. Feedback #84–#86 responded `done` (shipped_in
+6.15.0), #87 (the regression praise) `seen`; queue 0. The API reference
+(`cr-agent-api-docs` `1860409`) records the closed-day row identity, its
+one clamped exception, and `boatAttacks` inside `decksUsed`.
+
+Also today: `5347b88` had added a thirteenth decision-eval case and left
+the count pinned at 12, so `npm run verify` was red on `main`; `169d1d5`
+moves the pin.
+
+**Open, from the Gym's questions, not actioned:** (1) `progress_earned`
+saturates at 3,000 per day on every POAP KINGS row and no relationship
+to `points_earned` is stated — the Gym could not tell a game rule from a
+recorder transform and neither could this run; the next probe is a clan
+that never approaches the ceiling, and the answer belongs in
+`cr-agent-api-docs` first. (2) `finished_early` reads `false` on a week
+in progress (136/2); `in_progress` is on the row; a `null`-while-open
+would be a semantics change to a field the Gym confirmed fixed — not
+touched. (3) `war_rivals` rounds `mean_fame`/`median_fame` to an integer
+without saying so (2029.5 → 2030): one word in the note, queued. (4)
+**For Jamie:** the Gym's family rotation is deterministic only if the
+family count is pinned in the brief — nine prefixes gives `war_*` for
+week 39; counting `game_*` and `live_fetch` gives eleven and a different
+family; and two runs in one ISO week (09-21, 09-22) both landed on
+`war_*`.
