@@ -1,4 +1,4 @@
-/** The renderer: facts in, {subject, preheader, html} out, for the six
+/** The renderer: facts in, {subject, preheader, html} out, for the seven
  *  product kinds. The shell and the components are the transactional
  *  templates' idiom (services/email-relay/src/templates.mjs) grown for
  *  report mail: packages/design tokens inline, tables, 600 px, a 2x2
@@ -535,7 +535,7 @@ function clan(f, c) {
 /** A small markdown for the Top 100 body: headings, paragraphs, bold,
  *  bullet lists, pipe tables, links; player names in `players_index`
  *  become Browse links wherever they appear as text. */
-function markdownToMail(md, c, index = []) {
+function markdownToMail(md, c, index = [], blocks = null) {
   const link = (text) => {
     let out = esc(text);
     for (const { name, tag } of index) {
@@ -557,6 +557,14 @@ function markdownToMail(md, c, index = []) {
   while (i < lines.length) {
     const l = lines[i];
     if (!l.trim()) {
+      i++;
+      continue;
+    }
+    // A block the writer may PLACE but not author: it names the index
+    // and the renderer prints the record's own rows.
+    const block = /^\s*\{\{(\w+):(\d+)\}\}\s*$/.exec(l);
+    if (block) {
+      out.push(blocks?.[block[1]]?.(Number(block[2])) ?? "");
       i++;
       continue;
     }
@@ -637,6 +645,107 @@ function top100(f, c) {
         kind: f.masthead,
         title: esc(f.masthead),
         subtitle: `${esc(f.strap)} · ${esc(f.issue.label)} · Season ${f.issue.season}, day ${f.issue.day_of_season}`,
+        preheader: f.preheader ?? "",
+        body,
+        unsubscribeKind: f.masthead,
+        links,
+      }),
+  };
+}
+
+/** Card art is 2:3 portrait (the card frame, 285x420 at source), never a
+ *  square icon, so a width carries a height with it: a cell that sets
+ *  only width stretches in Outlook, which ignores `height:auto`. */
+const CARD_H = (w) => Math.round((w * 420) / 285);
+
+/** One card cell: the form's OWN icon, the card's name as alt. The name
+ *  is what the text half prints, and what a blocked-image client shows. */
+/** One line, deliberately: the text alternative breaks a line on every
+ *  newline in the source, so an indented cell puts each card on its own
+ *  line instead of the row of four the deck actually is. */
+function cardCell(card, w, c) {
+  return `<td align="center" valign="top" style="padding:4px;"><img src="${c.T(card.icon)}" alt="${esc(cardFormLabel(card))}" width="${w}" height="${CARD_H(w)}" style="display:block;border:0;outline:none;text-decoration:none;border-radius:6px;" /></td>`;
+}
+
+const cardFormLabel = (card) =>
+  `${card.form === "hero" ? "Hero " : card.form === "evolution" ? "Evo " : ""}${card.name}`;
+
+/** A deck: four cells over two rows, then its caption. Table layout
+ *  only - no flex, no grid, no background image - because Outlook's
+ *  engine is Word's and a phone client is not a browser. The cards come
+ *  from the BRIEF, never from the writer: the model names a deck by
+ *  emitting {{deck:N}} and the renderer prints what the record holds,
+ *  so a deck block cannot disagree with the record. */
+function deckBlock(d, c) {
+  if (!d) return "";
+  const cells = (d.cards ?? []).map((card) => cardCell(card, 64, c));
+  const row = (xs) =>
+    `<tr>${xs.join("")}${Array.from({ length: Math.max(0, 4 - xs.length) }, () => "<td></td>").join("")}</tr>`;
+  const facts = [
+    d.battles == null ? null : `${n(d.battles)} battles`,
+    d.players == null ? null : `${n(d.players)} players`,
+    d.win_rate == null ? null : `${(d.win_rate * 100).toFixed(1)}% win rate`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const shape = [
+    d.archetype_label,
+    d.average_elixir == null
+      ? null
+      : `${d.average_elixir.toFixed(1)} average elixir`,
+    d.tower_troop,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const caption = `<tr><td colspan="4" style="padding:6px 4px 0;font-family:${FONT};font-size:12.5px;line-height:1.5;color:${C.dim};">${esc(shape)}<br><span style="color:${C.faint};">${esc(facts)}</span></td></tr>`;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:12px 0 4px;">${row(cells.slice(0, 4))}${row(cells.slice(4, 8))}${caption}</table>`;
+}
+
+/** The card itself: the base art, and a form beside it when the card has
+ *  one, smaller because it is the footnote and not the subject. */
+function cardHero(card, c) {
+  const extra = card.icons?.hero
+    ? { url: card.icons.hero, label: `Hero ${card.name}` }
+    : card.icons?.evolution
+      ? { url: card.icons.evolution, label: `Evo ${card.name}` }
+      : null;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:6px auto 2px;"><tr>
+    <td align="center" valign="bottom" style="padding:0 6px;"><img src="${c.T(card.icons.base)}" alt="${esc(card.name)}" width="160" height="${CARD_H(160)}" style="display:block;border:0;border-radius:10px;" /></td>
+    ${extra ? `<td align="center" valign="bottom" style="padding:0 6px;"><img src="${c.T(extra.url)}" alt="${esc(extra.label)}" width="96" height="${CARD_H(96)}" style="display:block;border:0;border-radius:8px;" /></td>` : ""}
+  </tr></table>`;
+}
+
+function cardOfWeek(f, c) {
+  const card = f.card;
+  const line = [
+    card.rarity,
+    card.type,
+    card.elixir_cost == null ? null : `${card.elixir_cost} elixir`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const blocks = { deck: (i) => deckBlock(f.decks?.[i], c) };
+  const body = `
+    ${cardHero(card, c)}
+    ${c.p(`<span style="text-transform:capitalize;">${esc(line)}</span>`, `text-align:center;color:${C.faint};font-size:13px;`)}
+    ${markdownToMail(f.body_markdown, c, [], blocks)}
+    ${
+      f.chart
+        ? `<div style="margin:16px 0 4px;"><img src="${c.T(f.chart.url)}" alt="${esc(f.chart.alt)}" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0;border-radius:8px;" /></div>`
+        : ""
+    }
+    ${c.h2("Your turn")}
+    ${c.p(`Ask your agent: <strong style="color:${C.ink};">&ldquo;How am I doing with ${esc(card.name)}?&rdquo;</strong> Elixir answers from your own battles: your usage, your record with it, which of your decks carry it, and how that compares with your clan.`)}
+    ${c.p(`Not on Elixir yet? <a href="${c.T(card.page_url)}" style="color:${C.link};">See the ${esc(card.name)} record</a> · <a href="${c.T(`${SITE}/`)}" style="color:${C.link};">Request an account</a>`)}
+    ${c.cov(esc(f.coverage))}`;
+  return {
+    subject: f.subject,
+    preheader: f.preheader ?? "",
+    html: (links) =>
+      c.shell({
+        kind: f.masthead,
+        title: `Card of the Week: ${esc(card.name)}`,
+        subtitle: `${esc(f.issue.week_label)} · ${esc(f.issue.season_label)}`,
         preheader: f.preheader ?? "",
         body,
         unsubscribeKind: f.masthead,
@@ -773,6 +882,7 @@ const RENDERERS = {
   tracking_report: tracking,
   clan_report: clan,
   top_100: top100,
+  card_of_week: cardOfWeek,
   collector_activity: collector,
   milestone,
 };

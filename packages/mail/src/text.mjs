@@ -42,6 +42,13 @@ export function htmlToText(html) {
       return t === href || !/^https?:/.test(href) ? t : `${t} (${href})`;
     },
   );
+  // An image's alt is its text. A deck block is eight card icons in a
+  // table, so without this the text half loses the deck entirely; the
+  // open pixel carries alt="" and correctly leaves nothing behind.
+  s = s.replace(
+    /<img\b[^>]*\balt="([^"]*)"[^>]*>/gi,
+    (m, alt) => decode(alt) || "",
+  );
   s = s.replace(/<\/(td|th)>/gi, "  ");
   s = s.replace(/<\/(tr|p|div|h[1-6]|li|table)>/gi, "\n");
   s = s.replace(/<br\s*\/?>/gi, "\n");

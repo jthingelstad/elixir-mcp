@@ -14,6 +14,7 @@ import {
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const SITE = "https://elixir.poapkings.com";
 const fixtures = path.join(here, "../fixtures");
 const links = {
   unsubscribe: "https://elixir.poapkings.com/api/email/unsubscribe?t=x",
@@ -42,9 +43,25 @@ test("every kind renders its fixture: subject, preheader, html, and a text alter
       !/undefined|NaN|\[object Object\]/.test(out.html),
       `${kind} html has no leaks`,
     );
-    // The one image is the Tinylytics pixel, naming the mail, never the reader.
-    const imgs = out.html.match(/<img\b/gi) ?? [];
-    assert.equal(imgs.length, 1, `${kind} carries exactly the pixel`);
+    // Exactly ONE image may be a tracking image, and it is the
+    // Tinylytics pixel naming the mail rather than the reader. Card of
+    // the Week carries content images too, so the rule is stated as
+    // what it has always meant: every other image is served by us, and
+    // says what it is to a reader who cannot see it.
+    const tags = out.html.match(/<img\b[^>]*>/gi) ?? [];
+    const pixels = tags.filter((t) => /tinylytics\.app/.test(t));
+    assert.equal(pixels.length, 1, `${kind} carries exactly the pixel`);
+    for (const tag of tags.filter((t) => !/tinylytics\.app/.test(t))) {
+      const src = /src="([^"]*)"/.exec(tag)?.[1] ?? "";
+      assert.ok(
+        src.startsWith("/assets/") || src.startsWith(`${SITE}/assets/`),
+        `${kind} image is served by us, not hotlinked: ${src}`,
+      );
+      assert.ok(
+        /alt="[^"]+"/.test(tag),
+        `${kind} content image has alt text: ${tag.slice(0, 80)}`,
+      );
+    }
     assert.ok(
       out.html.includes(
         `pixel/Yzx8dUUvUPn9AEJpTMeU.gif?path=${encodeURIComponent(`/mail/${kind}/2026-W37`)}`,
@@ -296,6 +313,42 @@ test("the length rules are the kind's, and a gutted issue is refused", () => {
       /without a rating delta/.test(p),
     ),
   );
+});
+
+test("a deck block is the record's own cards, in order, four to a row", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "card_of_week.json"), "utf8"),
+  );
+  const { html } = renderMail("card_of_week", facts, links);
+  // The writer PLACES a deck ({{deck:N}}) and never spells it: the cards
+  // come from the brief, so a deck block cannot disagree with the record.
+  assert.ok(!/\{\{deck:/.test(html), "the placeholder was replaced");
+  const deck = facts.decks[1];
+  const alts = [...html.matchAll(/<img\b[^>]*alt="([^"]*)"/g)].map((m) => m[1]);
+  for (const card of deck.cards) {
+    const label =
+      (card.form === "hero"
+        ? "Hero "
+        : card.form === "evolution"
+          ? "Evo "
+          : "") + card.name;
+    assert.ok(alts.includes(label), `${label} is in the block`);
+  }
+  // A form carries its OWN art, never the base card's.
+  assert.ok(html.includes("28000015_hero-64.png"), "the hero form's icon");
+  assert.ok(html.includes("26000024_evo-64.png"), "the evolution's icon");
+  // Table layout only: Outlook's engine is Word's.
+  assert.ok(!/display:\s*(flex|grid)/.test(html), "no flex or grid");
+  assert.ok(!/background-image/.test(html), "no background images");
+  // Text: one line per row of four, then the caption.
+  const text = htmlToText(html);
+  assert.ok(
+    text.includes("Fisherman Electro Spirit Fireball Hero Barbarian Barrel"),
+    text.split("\n").filter((l) => /Fisherman/.test(l))[0],
+  );
+  assert.ok(text.includes("3,999 battles · 447 players · 52.0% win rate"));
+  // The chart describes its own series for a client that blocks images.
+  assert.ok(/alt="Barbarian Barrel usage share by season[^"]+"/.test(html));
 });
 
 test("repairNames puts a name the model's JSON mangled back from the brief", async () => {
