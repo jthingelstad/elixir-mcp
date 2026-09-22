@@ -43,6 +43,8 @@ answers from the perspective of the tag you asked about:
 | `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, `deck_hash`, `clan_tag`, `deck`, `elixir`, `tower_hp` |
 | `name_known` | `false` when no observation ever carried a name for that tag; `players_names` resolves the ones the corpus knows |
 | `rounds_played` | present on duel rows only: how many games the row collapses |
+| `rounds[]` | duel rows only: each game's own `crowns`, `tower_hp` and `elixir` (with its own differential) |
+| `global_rank` | the global leaderboard position the API reported for that player ON that battle; `null` unless they were ranked then |
 
 `deck` holds the cards as played, with levels on the in-game 1 to 16 scale
 and each card's form (see [Deck identity and forms](#deck-identity-and-forms)).
@@ -115,14 +117,18 @@ final round only, `deck_hash` is `null` because there is no single deck, the
 decks sit under `deck.rounds[]` one per round, and `rounds_played` says how
 many rounds the row holds.
 
-That shape is Elixir's, not the game's. The API reports each round of a duel
-separately - its own crowns, king and princess tower hitpoints, and elixir
-leaked - and until 2026-09-22 Elixir recorded the round DECKS and discarded
-the round RESULTS. It records them now, and is filling them back from the
-payload archive; the tools do not expose them yet, so where this page says a
-duel has no differential, or that its tower hitpoints are the final round's,
-that remains true of what you can READ today and is a limit of the surface
-rather than a fact about duels. `battles_decks`, `battles_cards` and the meta
+**`rounds[]` answers for each game** (6.16.0). The API reports every round of a
+duel separately, and until 2026-09-22 Elixir recorded the round DECKS and threw
+the round RESULTS away - which is why this page used to say a duel's tower
+hitpoints "describe the final round only" and that it "has no differential", as
+though those were facts about duels rather than limits of the record. A duel row
+now carries `rounds[]` beside `deck.rounds[]`, on the same round numbers, each
+entry with that game's own `crowns`, `tower_hp` and `elixir` - including a
+per-round `differential`, which the summed top-level counter cannot have. So
+"how did round two go" is answerable: read `rounds[]` rather than the top-level
+values whenever the question is about one game. The history was filled back from
+the payload archive (20,218 rounds across 4,362 duels); a duel older than that
+sweep has an empty `rounds[]`, and every non-duel row has none at all. `battles_decks`, `battles_cards` and the meta
 tools exclude duels for exactly this reason: `battles_decks` itemizes them
 under `excluded {duels, no_deck}` and its `total_battles_in_window` is the
 head-to-head battles with a deck, the denominator of `share_of_battles`, so

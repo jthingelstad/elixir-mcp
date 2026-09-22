@@ -268,10 +268,30 @@ const PARTICIPANT = {
     crowns: { type: ["integer", "null"] },
     deck_hash: { type: ["string", "null"] },
     clan_tag: { type: ["string", "null"] },
+    global_rank: {
+      type: ["integer", "null"],
+      description:
+        "The player's global leaderboard position as the API reported it ON this battle; null unless they were ranked then. Not a rank in this record and not comparable across seasons.",
+    },
     rounds_played: COUNT,
     deck: { type: ["object", "null"] },
     elixir: ELIXIR,
     tower_hp: { type: ["object", "null"] },
+    rounds: {
+      type: "array",
+      description:
+        "Duel rows only (6.16.0): each GAME's own result - round, crowns, tower_hp and elixir with its own differential - on the round numbers deck.rounds[] uses. Empty on a duel recorded before 0151 kept them, and absent on every non-duel row.",
+      items: {
+        type: "object",
+        properties: {
+          round: COUNT,
+          crowns: { type: ["integer", "null"] },
+          tower_hp: { type: ["object", "null"] },
+          elixir: { type: ["object", "null"] },
+        },
+        required: ["round"],
+      },
+    },
   },
   required: ["player_tag", "name_known"],
 };
@@ -2152,11 +2172,31 @@ export const OUTPUT_SCHEMAS = {
                 crowns: { type: ["integer", "null"] },
                 trophy_change: { type: ["integer", "null"] },
                 starting_trophies: { type: ["integer", "null"] },
+                global_rank: {
+                  type: ["integer", "null"],
+                  description:
+                    "The player's global leaderboard position as the API reported it ON this battle; null unless they were ranked then. Not a rank in this record and not comparable across seasons.",
+                },
                 deck_hash: { type: ["string", "null"] },
                 rounds_played: COUNT,
                 deck: { type: ["object", "null"] },
                 elixir: ELIXIR,
                 tower_hp: { type: ["object", "null"] },
+                rounds: {
+                  type: "array",
+                  description:
+                    "Duel rows only (6.16.0): each GAME's own result - round, crowns, tower_hp and elixir with its own differential - on the round numbers deck.rounds[] uses. Empty on a duel recorded before 0151 kept them, and absent on every non-duel row.",
+                  items: {
+                    type: "object",
+                    properties: {
+                      round: COUNT,
+                      crowns: { type: ["integer", "null"] },
+                      tower_hp: { type: ["object", "null"] },
+                      elixir: { type: ["object", "null"] },
+                    },
+                    required: ["round"],
+                  },
+                },
               },
               required: ["outcome"],
             },

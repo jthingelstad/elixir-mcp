@@ -265,3 +265,71 @@ test("clans_roster carries the clan's type, location and description; clans_time
     "an attribute is asked for, never default",
   );
 });
+
+// 6.16.0: the two fields 0151 started recording reach the wire. The duel
+// one is the point - Elixir told players a duel's tower hitpoints were
+// the final round's and that it had no differential, which described the
+// record rather than the game.
+test("a duel's per-round results reach the wire, with a per-round differential", async () => {
+  const full = await call("battles_query", {
+    player_tag: BOATS,
+    mode: "war",
+    limit: 25,
+  });
+  const duel = full.battles.find((b) => b.type === "riverRaceDuel");
+  assert.ok(duel, "the fixture's duel is served");
+
+  // The summed values still say what they always said.
+  assert.equal(duel.me.elixir.differential, null, "a summed duel has none");
+  assert.ok(duel.me.rounds_played >= 2);
+
+  // And the rounds now answer for themselves.
+  assert.ok(Array.isArray(duel.me.rounds), "rounds[] rides the duel row");
+  assert.equal(duel.me.rounds.length, duel.me.rounds_played, "one per game");
+  for (const r of duel.me.rounds) {
+    assert.ok(Number.isInteger(r.round) && r.round >= 1);
+    assert.ok("crowns" in r && "tower_hp" in r && "elixir" in r);
+    assert.ok(r.elixir.caveat, "the leak caveat rides every round too");
+  }
+  // The round numbers line up with the decks already served per round.
+  assert.deepEqual(
+    duel.me.rounds.map((r) => r.round),
+    duel.me.deck.rounds.map((_, i) => i + 1),
+    "round results and round decks share their numbering",
+  );
+  // The thing the docs said could not be computed.
+  const withBoth = duel.me.rounds.filter(
+    (r) => r.elixir.leaked !== null && r.elixir.opponent_leaked !== null,
+  );
+  assert.ok(withBoth.length > 0, "a round has both sides' leak");
+  for (const r of withBoth)
+    assert.equal(
+      r.elixir.differential,
+      Number((r.elixir.leaked - r.elixir.opponent_leaked).toFixed(2)),
+      `round ${r.round} differential`,
+    );
+  // A non-duel row carries none of this.
+  const boat = full.battles.find((b) => b.type === "boatBattle");
+  assert.ok(!("rounds" in boat.me), "rounds[] is duel-only");
+  // The note tells a reader to prefer it for a single game.
+  assert.match(
+    full.notes.join(" "),
+    /rounds\[\] carries each GAME's own result/,
+  );
+});
+
+test("global_rank rides every participant and is null when unranked", async () => {
+  const full = await call("battles_query", {
+    player_tag: BOATS,
+    mode: "war",
+    limit: 25,
+  });
+  for (const b of full.battles) {
+    assert.ok("global_rank" in b.me, "on me");
+    for (const o of b.opponents) assert.ok("global_rank" in o, "on opponents");
+  }
+  // The fixture's players are not globally ranked, so it reads null
+  // rather than zero - the distinction the note insists on.
+  assert.ok(full.battles.every((b) => b.me.global_rank === null));
+  assert.match(full.notes.join(" "), /global_rank is the player's global/);
+});

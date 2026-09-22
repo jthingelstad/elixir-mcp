@@ -271,6 +271,38 @@ function towerHpOf(r) {
   };
 }
 
+/** A duel's per-round results (6.16.0, recorded since 0151). The
+ *  top-level crowns are their SUM and the top-level tower hitpoints the
+ *  FINAL round's, so until these rode the row a duel could not answer
+ *  "how did round two go" - and the docs said so as if it were a
+ *  property of duels rather than of the record. The round number is the
+ *  one deck.rounds[] already uses, so a round's deck and its result line
+ *  up. Each round carries its own elixir differential, which the summed
+ *  top-level one cannot have. */
+function roundResultsOf(own, opponent) {
+  if (!own || own.length === 0) return undefined;
+  const byRound = new Map((opponent ?? []).map((r) => [r.round, r]));
+  const num = (v) => (v === null || v === undefined ? null : Number(v));
+  return own.map((r) => {
+    const mine = num(r.elixir_leaked);
+    const theirs = num(byRound.get(r.round)?.elixir_leaked);
+    return {
+      round: r.round,
+      crowns: r.crowns,
+      tower_hp: towerHpOf(r),
+      elixir: {
+        leaked: mine,
+        opponent_leaked: theirs,
+        differential:
+          mine !== null && theirs !== null
+            ? Number((mine - theirs).toFixed(2))
+            : null,
+        caveat: ELIXIR_CAVEAT,
+      },
+    };
+  });
+}
+
 const FORM_ROWS_NOTE =
   "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records.";
 
@@ -657,7 +689,7 @@ export const battlesTools = {
                 b.prev_towers_destroyed, b.remaining_towers,
                 bp.player_tag, bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck_hash,
                 bp.elixir_leaked, bp.king_tower_hp, bp.princess_tower_hp_1,
-                bp.princess_tower_hp_2, bp.outcome, p.name as player_name
+                bp.princess_tower_hp_2, bp.global_rank, bp.outcome, p.name as player_name
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
          left join player p on p.player_tag = bp.player_tag
@@ -674,11 +706,13 @@ export const battlesTools = {
         const { rows: rest } = await ctx.db.query(
           tag
             ? `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
-                  o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2, o.elixir_leaked, p.name
+                  o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2,
+                  o.elixir_leaked, o.global_rank, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            where o.battle_id = any($1) and o.player_tag <> $2`
             : `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
-                  o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2, o.elixir_leaked, p.name
+                  o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2,
+                  o.elixir_leaked, o.global_rank, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            join unnest($1::text[], $2::int[]) me(battle_id, side)
              on me.battle_id = o.battle_id
@@ -699,6 +733,26 @@ export const battlesTools = {
         rows.map((r) => r.battle_id),
       );
       const deckOf = (o) => decks.get(`${o.battle_id}|${o.player_tag}`) ?? null;
+      // A duel's round results (0151). Only a duel has them, and only
+      // full verbosity carries them, so the read is skipped entirely on
+      // a page without one.
+      const roundRows = new Map();
+      if (!compact && rows.some((r) => isDuel(r.type))) {
+        const { rows: rr } = await ctx.db.query(
+          `select battle_id, player_tag, round, crowns, king_tower_hp,
+                  princess_tower_hp_1, princess_tower_hp_2, elixir_leaked
+             from battle_participant_round
+            where battle_id = any($1)
+            order by player_tag, round`,
+          [rows.filter((r) => isDuel(r.type)).map((r) => r.battle_id)],
+        );
+        for (const x of rr) {
+          const k = `${x.battle_id}|${x.player_tag}`;
+          if (!roundRows.has(k)) roundRows.set(k, []);
+          roundRows.get(k).push(x);
+        }
+      }
+      const roundsFor = (o) => roundRows.get(`${o.battle_id}|${o.player_tag}`);
       const leaked = (v) => (v === null || v === undefined ? null : Number(v));
       let leakRows = 0;
       let floorLosses = 0;
@@ -716,6 +770,9 @@ export const battlesTools = {
           crowns: o.crowns,
           deck_hash: o.deck_hash,
           clan_tag: o.clan_tag,
+          // Their global leaderboard position at battle time, null
+          // unless they were ranked then (0151).
+          global_rank: o.global_rank ?? null,
           ...roundsPlayed(deckOf(o)),
           ...(compact
             ? {}
@@ -728,6 +785,9 @@ export const battlesTools = {
                   deckOf(o),
                 ),
                 tower_hp: towerHpOf(o),
+                ...(roundsFor(o)
+                  ? { rounds: roundResultsOf(roundsFor(o), undefined) }
+                  : {}),
               }),
         });
         const opponents = rest.filter((o) => o.side !== r.side);
@@ -790,6 +850,7 @@ export const battlesTools = {
             crowns: r.crowns,
             trophy_change: r.trophy_change,
             starting_trophies: r.starting_trophies,
+            global_rank: r.global_rank ?? null,
             deck_hash: r.deck_hash,
             ...roundsPlayed(deckOf(r)),
             ...(compact
@@ -798,6 +859,16 @@ export const battlesTools = {
                   deck: deckOf(r),
                   elixir: elixirOf(myLeak, oppLeak, r.type, deckOf(r)),
                   tower_hp: towerHpOf(r),
+                  ...(roundsFor(r)
+                    ? {
+                        rounds: roundResultsOf(
+                          roundsFor(r),
+                          opponents.length === 1
+                            ? roundsFor(opponents[0])
+                            : undefined,
+                        ),
+                      }
+                    : {}),
                 }),
           },
           teammates: rest.filter((o) => o.side === r.side).map(shape),
@@ -913,12 +984,13 @@ export const battlesTools = {
           caveats,
           deckStats &&
             "deck_stats carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
-          "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many.",
+          "global_rank is the player's global leaderboard position as the API reported it ON that battle - null unless they were ranked at the time, and not a rank in this record: it says you met a ranked opponent, never how they rank now.",
+          "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept).",
           compact
             ? null
             : "Deck card levels are the in-game 1-16 scale; form is the FORM played (base, evolution or hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
           leakRows > 0
-            ? "elixir is each side's own leaked-elixir counter with its caveat on the object: read elixir.differential (me minus the one opponent, null on duels) before elixir.leaked, and neither as a skill measure."
+            ? "elixir is each side's own leaked-elixir counter with its caveat on the object: read elixir.differential (me minus the one opponent, null on duels - a duel's per-round differentials ride rounds[]) before elixir.leaked, and neither as a skill measure."
             : null,
           floorLosses > 0
             ? `${floorLosses} ladder ${floorLosses === 1 ? "loss carries" : "losses carry"} trophy_change null: a loss standing ON the arena's trophy floor costs nothing and the game omits the field, and a loss just above the floor is clamped to it, so trophy sums understate losses for a floored player (battles_performance.trophy_floor names the floor).`
