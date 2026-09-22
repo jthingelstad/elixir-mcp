@@ -1427,31 +1427,30 @@ export async function rollupModeGroupRepair(databaseUrl, spec) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    const pairsSql = `
+    // Self-terminating rather than cursor-driven: an UNREPAIRED pair is
+    // one that holds an event battle and whose rollup has no `event` row
+    // yet. Repairing it removes it from the set, so the count is real
+    // progress and a caller just loops until it reads zero. A cursor
+    // could not say how much was left, only where it had got to.
+    const unrepaired = `
       select distinct bp.player_tag, bp.battle_time::date as day
         from battle_participant bp
         join battle b on b.battle_id = bp.battle_id
        where b.event_tag is not null
-         and (bp.player_tag, bp.battle_time::date) > ($1, $2::date)
-       order by 1, 2 limit ${limit}`;
-    const afterTag = String(spec?.after_player ?? "");
-    const afterDay = spec?.after_day ?? "0001-01-01";
-    const { rows: pairs } = await db.query(pairsSql, [afterTag, afterDay]);
+         and not exists (
+           select 1 from player_daily_battle_rollup r
+            where r.player_tag = bp.player_tag
+              and r.day = bp.battle_time::date
+              and r.mode_group = 'event')`;
     const {
       rows: [remaining],
-    } = await db.query(
-      `select count(*)::int as n from (
-         select distinct bp.player_tag, bp.battle_time::date
-           from battle_participant bp
-           join battle b on b.battle_id = bp.battle_id
-          where b.event_tag is not null) t`,
+    } = await db.query(`select count(*)::int as n from (${unrepaired}) t`);
+    if (!apply) return { dry_run: true, pairs_remaining: remaining.n };
+    const { rows: pairs } = await db.query(
+      `${unrepaired} order by 1, 2 limit ${limit}`,
     );
-    if (!apply)
-      return {
-        dry_run: true,
-        pairs_total: remaining.n,
-        pairs_this_slice: pairs.length,
-      };
+    if (pairs.length === 0)
+      return { dry_run: false, pairs_remaining: 0, repaired: 0, done: true };
     // Set-based, not pair-by-pair: refreshDailyRollups does a DELETE and
     // an INSERT per (player, day), which measured 20 s per 500 pairs -
     // nearly two hours for the 166k that hold an event battle, on a
@@ -1500,17 +1499,11 @@ export async function rollupModeGroupRepair(databaseUrl, spec) {
       await db.query("rollback");
       throw err;
     }
-    const last = pairs[pairs.length - 1];
     return {
       dry_run: false,
-      pairs_total: remaining.n,
+      pairs_remaining_before: remaining.n,
       repaired: pairs.length,
-      next: last
-        ? {
-            after_player: last.player_tag,
-            after_day: last.day.toISOString().slice(0, 10),
-          }
-        : null,
+      done: pairs.length < limit,
     };
   } finally {
     await db.end();
