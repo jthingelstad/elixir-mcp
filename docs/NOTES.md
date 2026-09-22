@@ -7789,3 +7789,51 @@ Not actioned - a remap re-buckets `player_daily_battle_rollup` (mode_group
 is in its primary key) and the meta tables' CHECK constraints, so it
 needs a rebuild and Jamie's call on the grouping. Recorded in
 `cr-agent-api-docs` for any caller.
+
+## 2026-09-22 — The 2v2 tournament, and a correction to yesterday's "trail is taking over" claim
+
+Jamie: "there was just a 2v2 tournament in CR, it ended, I bet that was
+Trail / TeamVsTeam." Correct, to the day.
+
+Daily battles, `type: trail`:
+
+| day | TeamVsTeam | players | Ladder | players |
+| --- | --- | --- | --- | --- |
+| 08-25 to 09-06 | 68-680 | 49-460 | 216-878 | 134-503 |
+| 09-07 | 3,976 | 2,646 | 1,338 | 761 |
+| 09-11 | 16,192 | 7,097 | 1,882 | 1,066 |
+| 09-20 | **40,680** | 8,790 | 1,542 | 891 |
+| 09-21 | 24,948 | 4,793 | 1,648 | 926 |
+| 09-22 | **372** | 233 | 1,022 | 588 |
+
+A two-week event: baseline until 09-06, fifteenfold on 09-07, peak
+09-20, and back to baseline the day after it ended. `Ladder` inside the
+same `type` does none of that - it runs level at 1,000-2,700 a day.
+
+**So one `type` held a permanent format and a fortnight's tournament at
+once.** That is the sharpest possible argument for Jamie's "the pair is
+the thing": grouping on `type` pools them and sees neither.
+
+**Correction to the entry above.** Its framing - trail "takes over"
+Ladder, 6.5% to 68.1% - is confounded and I have corrected the public
+copy in `cr-agent-api-docs`. Two reasons the monthly share is not a
+game-wide migration:
+
+1. **Our corpus is not a constant population.** Distinct players per
+   month: 23,895 in August, **140,943 in September**. Battles: 22,716 to
+   301,861. Broad multi-clan recording began 2026-09-03.
+2. **The new population plays a different game.** September by type:
+   `pathOfLegend` 174,240, `trail` 101,960, `riverRacePvP` 6,375, and
+   `PvP` **5,458 - flat since March**. We began recording a large, high-
+   level population that plays Path of Legends and the Seasonal Road and
+   barely touches Trophy Road. A share computed over it says who we
+   record, not what the game did.
+
+What survives unchanged, because both are measured WITHIN a population
+rather than across months: `trail`+`Ladder` does not exist before June
+2026, and its decks carry Seasonal Arena II's Level 15 floor (mean 15.87
+vs 13.67, median 16.00, 99.9% at or above 14.5). The level finding is
+the one with teeth for us, and it is untouched by the ramp.
+
+Lesson worth keeping: any month-over-month claim from this record must
+be read against `players_per_month` first. The corpus grew 6x in a month.

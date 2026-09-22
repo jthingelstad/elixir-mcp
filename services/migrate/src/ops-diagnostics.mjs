@@ -1291,6 +1291,48 @@ export async function modeShapeCensus(databaseUrl) {
         where b.game_mode_name = 'Ladder' and bp.deck_avg_level is not null
         group by 1`,
     );
+    // Is `trail` the Seasonal Road, or a misc bucket that now also holds
+    // it? If TeamVsTeam and the party modes predate June 2026 while
+    // Ladder does not, the type is older than the Seasonal Road and the
+    // grouping cannot simply follow the type.
+    const { rows: trailCalendar } = await db.query(
+      `select to_char(b.battle_time, 'YYYY-MM') as month,
+              coalesce(b.game_mode_name, '(null)') as game_mode,
+              count(*)::int as battles
+         from battle b
+        where b.type = 'trail'
+        group by 1, 2 order by 1, 3 desc`,
+    );
+    // The corpus itself ramps: broad multi-clan recording began
+    // 2026-09-03, so a month-over-month rise can be our population
+    // rather than the game's. Battles and distinct observed players per
+    // month, by type, so a share can be read against its own month.
+    const { rows: corpus } = await db.query(
+      `select to_char(b.battle_time, 'YYYY-MM') as month, b.type,
+              count(*)::int as battles
+         from battle b
+        where b.battle_time >= '2026-03-01'
+        group by 1, 2 order by 1, 3 desc`,
+    );
+    const { rows: players } = await db.query(
+      `select to_char(bp.battle_time, 'YYYY-MM') as month,
+              count(distinct bp.player_tag)::int as players
+         from battle_participant bp
+        where bp.battle_time >= '2026-03-01'
+        group by 1 order by 1`,
+    );
+    // A tournament is a window; a permanent mode is a level. Daily
+    // counts for the two modes that exploded in September say which.
+    const { rows: daily } = await db.query(
+      `select to_char(b.battle_time, 'YYYY-MM-DD') as day,
+              b.game_mode_name as game_mode,
+              count(*)::int as battles,
+              count(distinct bp.player_tag)::int as players
+         from battle b join battle_participant bp on bp.battle_id = b.battle_id
+        where b.battle_time >= '2026-08-25'
+          and b.game_mode_name in ('TeamVsTeam', 'Ladder')
+        group by 1, 2 order by 1, 2`,
+    );
     const { rows: rounds } = await db.query(
       `select count(*)::int as round_rows,
               count(distinct battle_id)::int as battles,
@@ -1311,6 +1353,10 @@ export async function modeShapeCensus(databaseUrl) {
       trophy_rule: trophyRule,
       ladder_calendar: calendar,
       ladder_levels: levels,
+      trail_calendar: trailCalendar,
+      corpus_calendar: corpus,
+      players_per_month: players,
+      daily_burst: daily,
       rounds: rounds[0],
       global_rank: ranks[0],
     };
