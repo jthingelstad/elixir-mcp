@@ -1369,6 +1369,12 @@ export async function modeShapeCensus(databaseUrl) {
               count(b.tournament_tag)::int as with_tournament_tag
          from battle b group by 1 order by 2 desc`,
     );
+    // Did the meta population actually drop event content? The pop table
+    // keeps `type`, so a trail row in it means the filter did not apply.
+    const { rows: metaPop } = await db.query(
+      `select season_month, type, mode_group, count(*)::int as rows
+         from meta_season_pop group by 1, 2, 3 order by 4 desc limit 20`,
+    );
     const { rows: rounds } = await db.query(
       `select count(*)::int as round_rows,
               count(distinct battle_id)::int as battles,
@@ -1396,6 +1402,7 @@ export async function modeShapeCensus(databaseUrl) {
       event_tags: events,
       event_tag_reuse: reuse,
       event_tag_by_type: tagged,
+      meta_pop_by_type: metaPop,
       rounds: rounds[0],
       global_rank: ranks[0],
     };

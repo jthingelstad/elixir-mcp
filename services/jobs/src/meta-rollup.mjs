@@ -585,6 +585,33 @@ export async function metaRollupSeason(databaseUrl, spec = {}) {
       [month],
     );
     if (!season) throw new Error(`no season ${month}`);
+    // {reset: true} drops the season's population and its day ledger
+    // first. buildPopDays skips SEALED days and only upserts the rest,
+    // so a change to what the population INCLUDES cannot land by
+    // rebuilding - the rows that no longer qualify are simply never
+    // revisited. 6.17.0 needed this: event content left the meta, and
+    // 326,370 trail rows sat in the September population regardless.
+    if (spec.reset === true) {
+      await db.query("begin");
+      try {
+        await db.query(`delete from meta_season_pop where season_month = $1`, [
+          month,
+        ]);
+        await db.query(
+          `delete from meta_season_pop_day where season_month = $1`,
+          [month],
+        );
+        await db.query(
+          `update meta_season_state set pop_through = null, counters_through = null,
+                  bands_rebuilt_at = null where season_month = $1`,
+          [month],
+        );
+        await db.query("commit");
+      } catch (err) {
+        await db.query("rollback");
+        throw err;
+      }
+    }
     const final =
       typeof spec.final === "boolean" ? spec.final : season.final === true;
     return await rebuildSeason(db, season, {
