@@ -1168,13 +1168,22 @@ export async function battleDetailBackfill(databaseUrl, spec) {
         `insert into battle_participant_round
            (battle_id, player_tag, round, crowns, king_tower_hp,
             princess_tower_hp_1, princess_tower_hp_2, elixir_leaked)
+         with src as (
+           -- One battle sits in many archived payloads (both players'
+           -- logs, and every poll that still held it), so a batch can
+           -- carry the same round twice: ON CONFLICT DO UPDATE cannot
+           -- touch a row twice in one statement.
+           select distinct on (battle_id, player_tag, round) *
+             from jsonb_to_recordset($1::jsonb)
+               as r(battle_id text, player_tag text, round smallint,
+                    crowns smallint, king_tower_hp smallint,
+                    princess_tower_hp_1 smallint, princess_tower_hp_2 smallint,
+                    elixir_leaked numeric)
+            order by battle_id, player_tag, round
+         )
          select r.battle_id, r.player_tag, r.round, r.crowns, r.king_tower_hp,
                 r.princess_tower_hp_1, r.princess_tower_hp_2, r.elixir_leaked
-           from jsonb_to_recordset($1::jsonb)
-             as r(battle_id text, player_tag text, round smallint,
-                  crowns smallint, king_tower_hp smallint,
-                  princess_tower_hp_1 smallint, princess_tower_hp_2 smallint,
-                  elixir_leaked numeric)
+           from src r
            join battle_participant bp
              on bp.battle_id = r.battle_id and bp.player_tag = r.player_tag
          on conflict (battle_id, player_tag, round) do update
@@ -1190,8 +1199,10 @@ export async function battleDetailBackfill(databaseUrl, spec) {
     if (ranks.length > 0) {
       const { rowCount } = await db.query(
         `update battle_participant bp set global_rank = r.global_rank
-           from jsonb_to_recordset($1::jsonb)
-             as r(battle_id text, player_tag text, global_rank int)
+           from (select distinct on (battle_id, player_tag) *
+                   from jsonb_to_recordset($1::jsonb)
+                     as t(battle_id text, player_tag text, global_rank int)
+                  order by battle_id, player_tag) r
           where bp.battle_id = r.battle_id and bp.player_tag = r.player_tag
             and bp.global_rank is null and r.global_rank is not null`,
         [JSON.stringify(ranks)],

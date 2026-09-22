@@ -71,24 +71,31 @@ console.error(
     (progress.lastKey ? ` (resuming after ${progress.lastKey})` : ""),
 );
 
-let rounds = [];
-let ranks = [];
+// Keyed, because one battle sits in many payloads: the same round would
+// otherwise ride a batch twice.
+let rounds = new Map();
+let ranks = new Map();
 let objects = 0;
 let seenRound = 0;
 let seenRank = 0;
 
 async function post(final = false) {
-  if (rounds.length === 0 && ranks.length === 0) return;
+  if (rounds.size === 0 && ranks.size === 0) return;
   if (dryRun) {
-    rounds = [];
-    ranks = [];
+    rounds.clear();
+    ranks.clear();
     return;
   }
   const res = await lambda.send(
     new InvokeCommand({
       FunctionName: FUNCTION,
       Payload: Buffer.from(
-        JSON.stringify({ battle_detail_backfill: { rounds, ranks } }),
+        JSON.stringify({
+          battle_detail_backfill: {
+            rounds: [...rounds.values()],
+            ranks: [...ranks.values()],
+          },
+        }),
       ),
     }),
   );
@@ -96,8 +103,8 @@ async function post(final = false) {
   if (out?.errorMessage) throw new Error(out.errorMessage);
   progress.roundRows += out.round_rows ?? 0;
   progress.rankRows += out.rank_rows ?? 0;
-  rounds = [];
-  ranks = [];
+  rounds.clear();
+  ranks.clear();
   if (final) console.error("  final batch posted");
 }
 
@@ -122,7 +129,7 @@ async function one(key) {
       for (const p of participants) {
         for (const r of p.rounds ?? []) {
           seenRound += 1;
-          rounds.push({
+          rounds.set(`${battle.battle_id}|${p.player_tag}|${r.round}`, {
             battle_id: battle.battle_id,
             player_tag: p.player_tag,
             round: r.round,
@@ -135,7 +142,7 @@ async function one(key) {
         }
         if (p.global_rank !== null && p.global_rank !== undefined) {
           seenRank += 1;
-          ranks.push({
+          ranks.set(`${battle.battle_id}|${p.player_tag}`, {
             battle_id: battle.battle_id,
             player_tag: p.player_tag,
             global_rank: p.global_rank,
@@ -153,7 +160,7 @@ for (let i = 0; i < work.length; i += READ_CONCURRENCY) {
   await Promise.all(slice.map(one));
   progress.lastKey = slice[slice.length - 1];
   progress.objects = (progress.objects ?? 0) + slice.length;
-  if (rounds.length + ranks.length >= POST_EVERY) {
+  if (rounds.size + ranks.size >= POST_EVERY) {
     await post();
     if (!dryRun) writeFileSync(PROGRESS, JSON.stringify(progress, null, 1));
   }
