@@ -992,7 +992,31 @@ export async function battleLengthCensus(databaseUrl, spec) {
       if (r.c0 === r.c1) bk.equal += r.n;
       if (r.c0 === 3 || r.c1 === 3) bk.three += r.n;
     }
-    return { band, pairs: rows.length, summary };
+    // The level-crown battles themselves: few enough to return whole, and
+    // the only rows whose duration is pinned. Their tower hitpoints are
+    // what the game resolved them on, so the ones with a RECORDED winner
+    // say which hitpoint rule it used, and that rule can then be read
+    // across the ones whose winner the record lost (a war 1v1 carries no
+    // trophyChange, so winner inference falls through to the crowns -
+    // level crowns, hence 'draw' - and the real result is in the towers).
+    const { rows: level } = await db.query(
+      `select a.battle_id, a.type, a.battle_time, a.crowns,
+              a.outcome as outcome_0, b.outcome as outcome_1,
+              a.trophy_change as trophy_0, b.trophy_change as trophy_1,
+              a.king_tower_hp as king_0, a.princess_tower_hp_1 as p1_0,
+              a.princess_tower_hp_2 as p2_0,
+              b.king_tower_hp as king_1, b.princess_tower_hp_1 as p1_1,
+              b.princess_tower_hp_2 as p2_1
+         from battle_participant a
+         join battle_participant b
+           on b.battle_id = a.battle_id and b.side = 1
+        where a.side = 0
+          and a.type_class = 'pvp'
+          and a.type in ('PvP', 'pathOfLegend', 'riverRacePvP')
+          and a.crowns is not null and a.crowns = b.crowns
+        order by a.battle_time`,
+    );
+    return { band, pairs: rows.length, summary, level_crown: level };
   } finally {
     await db.end();
   }
