@@ -9,8 +9,9 @@
  *  - enrich-on-dedup fills missing fields only (COALESCE), and the enrich
  *    column list is DERIVED from the insert column list so the two can
  *    never drift (elixir-bot's "deck_json stayed NULL" lesson);
- *  - outcome precedence: boatBattleWon -> trophyChange sign -> crown
- *    compare -> unresolved.
+ *  - outcome precedence: boatBattleWon -> trophyChange sign (only when the
+ *    two sides moved OPPOSITE ways; Path of Legends penalises both players
+ *    for a draw) -> crown compare -> unresolved.
  *
  * `side` semantics: 0/1 labels partition participants into their two teams
  * correctly, but WHICH team is 0 depends on whichever observer's log was
@@ -101,6 +102,13 @@ function sideCrowns(entries) {
   return values.length > 0 ? Math.max(...values) : undefined;
 }
 
+function sideTrophyChange(entries) {
+  const values = entries
+    .map((e) => e.trophyChange)
+    .filter((t) => typeof t === "number" && t !== 0);
+  return values.length > 0 ? values[0] : undefined;
+}
+
 function outcomeFor(entry, ownSide, otherSide, battle, isTeamSide) {
   if (battle.type?.startsWith("boatBattle")) {
     if (typeof battle.boatBattleWon === "boolean") {
@@ -108,8 +116,19 @@ function outcomeFor(entry, ownSide, otherSide, battle, isTeamSide) {
     }
     return "unresolved";
   }
+  // A decided battle moves the two sides in OPPOSITE directions. Path of
+  // Legends penalises BOTH players for a draw (verified 2026-09-22 against
+  // the raw payload: team crowns 3 king 0 trophyChange -15, opponent
+  // crowns 3 king 0 trophyChange -14), so reading each side's sign on its
+  // own labelled both of them 'loss' - a result the game cannot produce.
+  // Same-signed changes are not a verdict; fall through to the crowns,
+  // which say draw.
   if (typeof entry.trophyChange === "number" && entry.trophyChange !== 0) {
-    return entry.trophyChange > 0 ? "win" : "loss";
+    const other = sideTrophyChange(otherSide);
+    const sameWay =
+      typeof other === "number" &&
+      Math.sign(other) === Math.sign(entry.trophyChange);
+    if (!sameWay) return entry.trophyChange > 0 ? "win" : "loss";
   }
   const own = sideCrowns(ownSide);
   const other = sideCrowns(otherSide);

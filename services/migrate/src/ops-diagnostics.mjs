@@ -1047,3 +1047,48 @@ export async function battleLengthCensus(databaseUrl, spec) {
     await db.end();
   }
 }
+
+/** {outcome_pair_repair}: the rows the fixed derivation would now write.
+ *  A decided 1v1 moves the two sides opposite ways, so a pair of
+ *  same-signed trophy changes was never a verdict - Path of Legends
+ *  penalises BOTH players for a draw, and reading each side's sign alone
+ *  wrote 'loss' on both. Re-derives those rows as the crowns say (equal
+ *  crowns -> draw). Dry run by default; pass {apply: true} to write. */
+export async function outcomePairRepair(databaseUrl, spec) {
+  const apply = spec?.apply === true;
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const targets = `
+      select a.battle_id, a.crowns as c0, b.crowns as c1,
+             a.trophy_change as t0, b.trophy_change as t1
+        from battle_participant a
+        join battle_participant b
+          on b.battle_id = a.battle_id and b.side = 1
+       where a.side = 0
+         and a.outcome = b.outcome
+         and a.outcome in ('win', 'loss')
+         and a.trophy_change is not null and b.trophy_change is not null
+         and a.trophy_change <> 0 and b.trophy_change <> 0
+         and sign(a.trophy_change) = sign(b.trophy_change)`;
+    const { rows: found } = await db.query(
+      `with t as (${targets})
+       select count(*)::int as battles,
+              count(*) filter (where c0 = c1)::int as equal_crowns,
+              count(*) filter (where c0 <> c1)::int as unequal_crowns
+         from t`,
+    );
+    if (!apply) return { dry_run: true, ...found[0] };
+    // Only the equal-crown ones have an unambiguous answer; an unequal
+    // pair would need a rule this defect never produced, so it is left
+    // alone and reported rather than guessed at.
+    const { rowCount } = await db.query(
+      `update battle_participant p set outcome = 'draw'
+         from (${targets}) t
+        where p.battle_id = t.battle_id and t.c0 = t.c1`,
+    );
+    return { dry_run: false, ...found[0], rows_updated: rowCount };
+  } finally {
+    await db.end();
+  }
+}

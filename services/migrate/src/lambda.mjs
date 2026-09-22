@@ -48,6 +48,7 @@ import {
   warDrift,
   warWeekSeasonCensus,
   battleLengthCensus,
+  outcomePairRepair,
   enumCensus,
   captureAudit,
   probe,
@@ -399,6 +400,14 @@ export async function handler(event) {
     const result = await battleLengthCensus(
       process.env.DATABASE_URL,
       event.battle_length_census === true ? {} : event.battle_length_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.outcome_pair_repair) {
+    const result = await outcomePairRepair(
+      process.env.DATABASE_URL,
+      event.outcome_pair_repair === true ? {} : event.outcome_pair_repair,
     );
     console.log(JSON.stringify(result));
     return result;

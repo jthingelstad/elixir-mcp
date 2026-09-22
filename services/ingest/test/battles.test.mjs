@@ -141,8 +141,12 @@ test("2v2 battles carry four participants, symmetrically", async () => {
 
 test("outcome precedence invariants hold across every ingested row", async () => {
   const { rows } = await ctx.db.query(
-    `select b.type_class, bp.trophy_change, bp.outcome from battle_participant bp
-     join battle b on b.battle_id = bp.battle_id`,
+    `select b.type_class, bp.trophy_change, bp.outcome,
+            (select o.trophy_change from battle_participant o
+              where o.battle_id = bp.battle_id and o.side <> bp.side
+              limit 1) as other_change
+       from battle_participant bp
+       join battle b on b.battle_id = bp.battle_id`,
   );
   assert.ok(rows.length > 50);
   for (const r of rows) {
@@ -150,11 +154,82 @@ test("outcome precedence invariants hold across every ingested row", async () =>
     if (
       r.type_class === "pvp" &&
       r.trophy_change !== null &&
-      r.trophy_change !== 0
+      r.trophy_change !== 0 &&
+      // The sign is a verdict only where the two sides moved opposite
+      // ways; a Path of Legends draw moves both down (see below).
+      r.other_change !== null &&
+      Math.sign(r.other_change) !== Math.sign(r.trophy_change)
     ) {
       assert.equal(r.outcome, r.trophy_change > 0 ? "win" : "loss");
     }
   }
+});
+
+// The raw API can hand back a battle both sides LOST: Path of Legends
+// penalises both players for a draw, and the payload behind this shape was
+// read on 2026-09-22 (team crowns 3 king 0 trophyChange -15; opponent
+// crowns 3 king 0 trophyChange -14). Reading each side's sign alone made
+// the record say both players lost, which the game cannot produce.
+test("a Path of Legends draw that penalises BOTH players is a draw, not two losses", async () => {
+  const log = await fixture("player_battlelog/with_path_of_legend.json");
+  const source =
+    log.find((b) => b.type === "pathOfLegend") ??
+    log.find((b) => b.type === "PvP") ??
+    log[0];
+  const entry = structuredClone(source);
+  entry.battleTime = "20260914T130806.000Z";
+  entry.team[0].crowns = 3;
+  entry.team[0].trophyChange = -15;
+  entry.opponent[0].crowns = 3;
+  entry.opponent[0].trophyChange = -14;
+  await ingestBattlelog(ctx.db, {
+    observerTag: entry.team[0].tag,
+    receiptId,
+    payload: [entry],
+  });
+  const { battle } = canonicalizeBattle(entry);
+  const { rows } = await ctx.db.query(
+    `select player_tag, outcome, trophy_change from battle_participant
+      where battle_id = $1 order by player_tag`,
+    [battle.battle_id],
+  );
+  assert.equal(rows.length, 2, "both participants recorded");
+  for (const r of rows)
+    assert.equal(
+      r.outcome,
+      "draw",
+      `${r.player_tag} at ${r.trophy_change} must not read as a loss`,
+    );
+});
+
+// The ordinary case keeps working: opposite signs still decide it.
+test("opposite-signed trophy changes still decide the battle", async () => {
+  const log = await fixture("player_battlelog/with_path_of_legend.json");
+  const entry = structuredClone(
+    log.find((b) => b.type === "pathOfLegend") ?? log[0],
+  );
+  entry.battleTime = "20260914T140806.000Z";
+  entry.team[0].crowns = 1;
+  entry.team[0].trophyChange = 30;
+  entry.opponent[0].crowns = 1;
+  entry.opponent[0].trophyChange = -28;
+  await ingestBattlelog(ctx.db, {
+    observerTag: entry.team[0].tag,
+    receiptId,
+    payload: [entry],
+  });
+  const { battle } = canonicalizeBattle(entry);
+  const { rows } = await ctx.db.query(
+    `select player_tag, outcome from battle_participant
+      where battle_id = $1`,
+    [battle.battle_id],
+  );
+  const outcomes = rows.map((r) => r.outcome).sort();
+  assert.deepEqual(
+    outcomes,
+    ["loss", "win"],
+    "equal crowns but opposite trophy signs is still decided",
+  );
 });
 
 test("enrich-on-dedup fills missing fields and never overwrites", async () => {
