@@ -49,6 +49,7 @@ import {
   warWeekSeasonCensus,
   battleDetailBackfill,
   battleFidelityCensus,
+  modeShapeCensus,
   battleLengthCensus,
   outcomePairRepair,
   enumCensus,
@@ -424,6 +425,11 @@ export async function handler(event) {
       process.env.DATABASE_URL,
       event.battle_detail_backfill,
     );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.mode_shape_census) {
+    const result = await modeShapeCensus(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }

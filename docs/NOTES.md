@@ -7614,3 +7614,57 @@ mode_group mapping re-buckets `player_daily_battle_rollup` (mode_group
 is in its primary key) and the meta season tables (CHECK constraints
 enumerate the groups), so any remap needs a rebuild, not just a code
 change.
+
+## 2026-09-22 — Backfill complete, and what `trail` actually is (it changes the mode design)
+
+**Backfill done and verified.** 71,941 archived objects swept;
+**20,218 `battle_participant_round` rows across 4,362 duels** (rounds 1-3,
+crowns and elixir on every row, 4,766 players) and **129,162
+`battle_participant.global_rank` values, range 1-500** - so the global
+board the API reports against is the top 500. Deploy clean afterwards
+(migrations 151, stack UPDATE_COMPLETE). Note for next time: the
+migrate Lambda is `ReservedConcurrentExecutions: 1`, so the backfill and
+a deploy cannot overlap - the deploy's migration invoke 429s.
+
+**Jamie's answers this session:** (1) refusing a battle query with no
+mode is "probably the right answer", but a player -> what modes they
+play -> battles in that mode path must exist first; (2) decks the player
+did not choose are "not informing meta"; (3) "I don't know what trail
+is."
+
+**The discovery path for (1) already exists.** `battles_performance`
+with `group_by: "game_mode"` returns rows keyed by (game_mode, type)
+with battles, record, win rate and last_played, and its own note already
+says "filter battles_query by game_mode to drill in". A refusal can
+point straight at it; nothing new is needed before the refusal can land.
+
+**What `trail` is: the API's junk drawer.** `{mode_shape_census}` (new)
+breaks a battle type down by the game's own mode name. `trail` is
+**123,254 battles across 23 distinct game modes**:
+
+| game mode inside `trail` | battles |
+| --- | --- |
+| TeamVsTeam | **74,169** |
+| Ladder | 13,542 |
+| Challenge_AllCards_EventDeck_NoSet | 10,071 |
+| Showdown_Friendly | 6,001 |
+| All_Random_Princess_Friendly | 5,602 |
+| Chaos_1v1_Draft | 3,898 |
+| Crazy_Arena (+ InfiniteElixir, EpicOnly, SuddenDeath) | 5,302 |
+| PickMode, DraftMode_Princess, Heist_Friendly, Draft_Competitive, Event_RestlessDead, ... | the rest |
+
+**Sixty percent of `trail` is 2v2** (`TeamVsTeam`, 74,169) - a different
+game with two players a side, not a 1v1 variant. It is currently pooled
+into the `casual` mode group with `friendly` and `clanMate2v2`, and
+`clanMate2v2` (366) is a rounding error beside it. So "2v2" as a
+population is mostly hiding inside `trail`, unlabelled.
+
+This matters for the deck-selection fix: 95,135 of `trail`'s battles
+read `deck_selection: collection`, so filtering on deck selection alone
+would still let 2v2, Showdown, All_Random and Heist battles inform 1v1
+deck statistics. **Deck selection is necessary and not sufficient; the
+mode is the stronger signal**, which is what Jamie said. Holding the
+implementation of (1) and (2) until the mode grouping is decided with
+this in hand, because the two interact and a mode_group remap needs a
+rollup rebuild (mode_group is in `player_daily_battle_rollup`'s primary
+key and the meta tables' CHECK constraints).

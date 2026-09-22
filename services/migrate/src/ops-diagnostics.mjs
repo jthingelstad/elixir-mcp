@@ -1220,3 +1220,39 @@ export async function battleDetailBackfill(databaseUrl, spec) {
     await db.end();
   }
 }
+
+/** {mode_shape_census}: what a battle TYPE actually contains, by the
+ *  game's own mode name and by whether the player chose the deck. Jamie
+ *  2026-09-22: "game modes are really played as a different game", and
+ *  `trail` - a quarter of the record - is a container nobody had opened.
+ *  Also counts the duel round rows 0151 introduced, so the archive
+ *  backfill can be verified. */
+export async function modeShapeCensus(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: modes } = await db.query(
+      `select type, coalesce(game_mode_name, '(null)') as game_mode,
+              coalesce(deck_selection, '(null)') as deck_selection,
+              count(*)::int as n
+         from battle group by 1, 2, 3 order by 4 desc`,
+    );
+    const { rows: rounds } = await db.query(
+      `select count(*)::int as round_rows,
+              count(distinct battle_id)::int as battles,
+              count(distinct player_tag)::int as players,
+              min(round)::int as min_round, max(round)::int as max_round,
+              count(*) filter (where crowns is not null)::int as with_crowns,
+              count(*) filter (where elixir_leaked is not null)::int as with_elixir
+         from battle_participant_round`,
+    );
+    const { rows: ranks } = await db.query(
+      `select count(*)::int as rows_with_rank,
+              min(global_rank)::int as best, max(global_rank)::int as worst
+         from battle_participant where global_rank is not null`,
+    );
+    return { modes, rounds: rounds[0], global_rank: ranks[0] };
+  } finally {
+    await db.end();
+  }
+}

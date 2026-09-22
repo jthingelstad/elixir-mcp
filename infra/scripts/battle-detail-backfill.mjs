@@ -73,8 +73,8 @@ console.error(
 
 // Keyed, because one battle sits in many payloads: the same round would
 // otherwise ride a batch twice.
-let rounds = new Map();
-let ranks = new Map();
+const rounds = new Map();
+const ranks = new Map();
 let objects = 0;
 let seenRound = 0;
 let seenRank = 0;
