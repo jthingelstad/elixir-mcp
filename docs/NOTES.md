@@ -7898,3 +7898,49 @@ per-season tag, not a permanent format, so it never belonged in `casual`
 and does not belong in `ladder` either.
 
 We already store `event_tag` on every battle and have never read it.
+
+## 2026-09-22 — 6.16.0 ships the duel rounds; and the backfill broke clans_participation (visibility map), fixed
+
+**Shipped: contract 6.16.0.** `battles_query` duel rows carry `rounds[]`
+- each game's own crowns, `tower_hp` and `elixir` INCLUDING a per-round
+`differential` - on the round numbers `deck.rounds[]` already used, and
+`global_rank` rides every participant. Both full verbosity only. Read
+back live: a real duel returns `round 1 crowns 0, king 7728, leaked 4.60
+vs opponent 11.35, differential -6.75`. That differential is the thing
+/docs/battles told players could not be computed; the page now says what
+`rounds[]` is instead of apologising for its absence.
+
+**Then the deploy's acceptance gate went red on six cases, and one was an
+outage I had caused.** `clans_participation` was REFUSING with
+`query_timeout` - 17.5 s at one week, refused at two and eight - and
+Elixir Clan calls it once per evaluation.
+
+Cause: **my global_rank backfill UPDATEd 128,818 `battle_participant`
+rows**, which clears the visibility map. Migration 0086 exists precisely
+to make these reads index-only (`battle_participant_player_time_cover`,
+"~200 index pages instead of 14.5k heap pages"); without an all-visible
+map the index-only scan dies, the planner falls to
+`battle_participant_deck`, and the plan reads 17,323 heap blocks with
+7.9 s of I/O. `{vacuum}` reported `relallvisible` **17,882/32,642 (54.8%)
+-> 32,642/32,642 (100%)** in 28 s.
+
+| call | before | after |
+| --- | --- | --- |
+| `clans_participation {weeks:1}` | 17,555 ms | **906 ms** |
+| `clans_participation {weeks:2}` | refused | **673 ms** |
+| `clans_participation {weeks:8}` | refused (23,979 ms) | **1,830 ms** |
+| `battles_meta_decks {segment:mine}` | 10,774 ms | 8,460 ms |
+
+`battle` and `battle_participant_card` were also short (98.8% and 92.2%)
+and were vacuumed to 100%. Gate re-run: **277 cases, 0 failed.**
+
+**The durable fix:** `battle-detail-backfill.mjs` now vacuums what it
+wrote before it exits, and `battle_participant_round` joined the
+vacuumable set. A backfill that does not vacuum is not finished. The
+visibility-map trap was already written down and I did not apply it -
+the script now applies it for me.
+
+**Watch:** `battles_trends {segment:"mine"}` UNBOUNDED still refuses at
+~23.8 s (bounded to 30 days it answers in 11.2 s). The catalogue's case
+passes, so the gate is green, but the unbounded season read is close to
+the edge and the corpus is growing fast.
