@@ -1092,3 +1092,57 @@ export async function outcomePairRepair(databaseUrl, spec) {
     await db.end();
   }
 }
+
+/** {battle_fidelity_census}: for every column on the battle tables, how
+ *  many rows actually carry a value. The payload manifest
+ *  (services/ingest/src/payload-keys.mjs) says where each API field
+ *  LANDS; the nightly shape census catches a field the API adds. Neither
+ *  checks the other direction - a column the manifest promises but the
+ *  projector never fills reads as faithful and is empty. Split by
+ *  type_class, and for battle_participant by type, because most of these
+ *  are legitimately conditional (trophy_change only on PvP and Path of
+ *  Legends, the boat columns only on boat battles). */
+export async function battleFidelityCensus(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const cols = async (table) => {
+      const { rows } = await db.query(
+        `select column_name from information_schema.columns
+          where table_schema = 'public' and table_name = $1
+          order by ordinal_position`,
+        [table],
+      );
+      return rows.map((r) => r.column_name);
+    };
+    const fill = async (table, groupBy) => {
+      const names = await cols(table);
+      const counts = names
+        .map((c) => `count("${c}")::bigint as "${c}"`)
+        .join(", ");
+      const { rows } = await db.query(
+        `select ${groupBy} as bucket, count(*)::bigint as rows, ${counts}
+           from ${table} group by 1 order by 2 desc`,
+      );
+      return rows.map((r) => {
+        const total = Number(r.rows);
+        const filled = {};
+        for (const c of names) {
+          const n = Number(r[c]);
+          filled[c] = {
+            n,
+            pct: total ? Math.round((n / total) * 1000) / 10 : 0,
+          };
+        }
+        return { bucket: r.bucket, rows: total, columns: filled };
+      });
+    };
+    return {
+      battle: await fill("battle", "type_class"),
+      battle_by_type: await fill("battle", "type"),
+      battle_participant: await fill("battle_participant", "type"),
+    };
+  } finally {
+    await db.end();
+  }
+}

@@ -47,6 +47,7 @@ import {
   ledger,
   warDrift,
   warWeekSeasonCensus,
+  battleFidelityCensus,
   battleLengthCensus,
   outcomePairRepair,
   enumCensus,
@@ -409,6 +410,11 @@ export async function handler(event) {
       process.env.DATABASE_URL,
       event.outcome_pair_repair === true ? {} : event.outcome_pair_repair,
     );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.battle_fidelity_census) {
+    const result = await battleFidelityCensus(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }
