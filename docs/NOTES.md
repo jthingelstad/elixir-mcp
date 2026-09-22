@@ -7837,3 +7837,64 @@ the one with teeth for us, and it is untouched by the ramp.
 
 Lesson worth keeping: any month-over-month claim from this record must
 be read against `players_per_month` first. The corpus grew 6x in a month.
+
+## 2026-09-22 — `event_tag` is the discriminator, not the type and not the pair (Jamie's model, confirmed exactly)
+
+Jamie: "They have some event, they slot it to a type and a mode bound in
+date period or maybe even a season." That is exactly what the API does,
+and it stamps the answer on every battle.
+
+**`type: trail` means "this battle belongs to a time-bound event".**
+Event-tag presence by type, whole record:
+
+| type | battles | carry event_tag |
+| --- | --- | --- |
+| `trail` | 123,562 | **100.0%** |
+| `pathOfLegend` | 186,948 | 0.0% |
+| `PvP` | 36,742 | 0.0% |
+| `riverRacePvP` | 12,198 | 0.0% |
+| `friendly` | 6,022 | 0.0% |
+| duels / boat | 6,444 | 0.0% |
+| `tournament` | 2,144 | 0.0% (100% `tournament_tag`) |
+| `clanMate` | 2,581 | 62.2% |
+| `clanMate2v2` | 366 | 71.0% |
+
+100% and 0%. No permanent format has ever carried one. `tournament` is
+the same shape with its own tag; a `clanMate` friendly carries one when
+it was played under an event's ruleset.
+
+**The pair is a SLOT Supercell reuses, so the event is the population.**
+`trail`+`TeamVsTeam` carries ten distinct event tags,
+`trail`+`Showdown_Friendly` twelve:
+
+| type · gameMode · event_tag | battles | window | days |
+| --- | --- | --- | --- |
+| trail · TeamVsTeam · `#2C9J990U` | 67,475 | 09-07 → 09-21 | 15 |
+| trail · TeamVsTeam · `#2RC8CL00` | 1,690 | 08-03 → 09-07 | 36 |
+| trail · TeamVsTeam · `#2PRCGVPP` | 1,180 | 06-01 → 07-06 | 36 |
+| trail · Ladder · `#2C9JG9GP` | 10,719 | 09-07 → 09-22 | 16 |
+| trail · Ladder · `#2RC8C0JU` | 1,920 | 08-03 → 09-07 | 36 |
+
+And Jamie's "or maybe even a season" is literal: the **36-day windows
+land exactly on season boundaries.** `#2RC8C0JU` runs 2026-08-03 to
+2026-09-07 - season 135 to the day. `#2PRCGVPP` runs 2026-06-01 to
+2026-07-06 - season 133. A recurring format is re-tagged every season;
+one-offs get a short window of their own.
+
+One tag can span pairs: `#2C9JG9GP` is on both `trail`+`Ladder` and
+`clanMate`+`Friendly` - one event offering several ways to play it.
+
+**This supersedes the (type, gameMode) pair design.** The rule is
+simpler and it is the API's own:
+
+1. `event_tag is null` -> a permanent format; group by `type` as now.
+2. `event_tag is not null` -> event content; the EVENT is the
+   population, and it is date-bound by construction.
+3. Never pool an event-tagged battle with a permanent format, and never
+   pool two event tags because they share a mode name.
+
+Which also settles the Seasonal Road: it is event content with a
+per-season tag, not a permanent format, so it never belonged in `casual`
+and does not belong in `ladder` either.
+
+We already store `event_tag` on every battle and have never read it.

@@ -1333,6 +1333,41 @@ export async function modeShapeCensus(databaseUrl) {
           and b.game_mode_name in ('TeamVsTeam', 'Ladder')
         group by 1, 2 order by 1, 2`,
     );
+    // Jamie's model: Supercell slots an EVENT into a (type, gameMode)
+    // pair bound by a date window, and may reuse the pair later for a
+    // different event. If so the API's own eventTag is that identity,
+    // and each tag should own a window rather than sprawling.
+    const { rows: events } = await db.query(
+      `select b.type, coalesce(b.game_mode_name, '(null)') as game_mode,
+              coalesce(b.event_tag, '(none)') as event_tag,
+              count(*)::int as battles,
+              to_char(min(b.battle_time), 'YYYY-MM-DD') as first_day,
+              to_char(max(b.battle_time), 'YYYY-MM-DD') as last_day,
+              count(distinct to_char(b.battle_time, 'YYYY-MM-DD'))::int as active_days
+         from battle b
+        where b.event_tag is not null
+        group by 1, 2, 3 order by 4 desc limit 40`,
+    );
+    // Does one pair carry several event tags (reuse), and does one tag
+    // span several pairs?
+    const { rows: reuse } = await db.query(
+      `select b.type, coalesce(b.game_mode_name, '(null)') as game_mode,
+              count(distinct b.event_tag)::int as distinct_event_tags,
+              count(*)::int as battles
+         from battle b
+        where b.event_tag is not null
+        group by 1, 2 having count(distinct b.event_tag) > 1
+        order by 3 desc limit 20`,
+    );
+    // The load-bearing claim: does a PERMANENT format ever carry an
+    // event tag? If not, event_tag is the discriminator - not the type,
+    // not the mode name, not the pair.
+    const { rows: tagged } = await db.query(
+      `select b.type, count(*)::int as battles,
+              count(b.event_tag)::int as with_event_tag,
+              count(b.tournament_tag)::int as with_tournament_tag
+         from battle b group by 1 order by 2 desc`,
+    );
     const { rows: rounds } = await db.query(
       `select count(*)::int as round_rows,
               count(distinct battle_id)::int as battles,
@@ -1357,6 +1392,9 @@ export async function modeShapeCensus(databaseUrl) {
       corpus_calendar: corpus,
       players_per_month: players,
       daily_burst: daily,
+      event_tags: events,
+      event_tag_reuse: reuse,
+      event_tag_by_type: tagged,
       rounds: rounds[0],
       global_rank: ranks[0],
     };
