@@ -1016,7 +1016,33 @@ export async function battleLengthCensus(databaseUrl, spec) {
           and a.crowns is not null and a.crowns = b.crowns
         order by a.battle_time`,
     );
-    return { band, pairs: rows.length, summary, level_crown: level };
+    // The contamination the level-crown rows turned up: a decided 1v1 has
+    // ONE winner, so a pair of outcomes that is not {win, loss} (or a pair
+    // of same-signed trophy changes) is the record disagreeing with the
+    // game. Counted corpus-wide so the level-crown signal can be read net
+    // of it.
+    const { rows: outcomePairs } = await db.query(
+      `select a.type,
+              a.outcome as outcome_0, b.outcome as outcome_1,
+              sign(coalesce(a.trophy_change, 0))::int as trophy_sign_0,
+              sign(coalesce(b.trophy_change, 0))::int as trophy_sign_1,
+              count(*)::int as n
+         from battle_participant a
+         join battle_participant b
+           on b.battle_id = a.battle_id and b.side = 1
+        where a.side = 0
+          and a.type_class = 'pvp'
+          and a.type in ('PvP', 'pathOfLegend', 'riverRacePvP')
+        group by 1, 2, 3, 4, 5
+        order by 6 desc`,
+    );
+    return {
+      band,
+      pairs: rows.length,
+      summary,
+      level_crown: level,
+      outcome_pairs: outcomePairs,
+    };
   } finally {
     await db.end();
   }
