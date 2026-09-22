@@ -58,6 +58,16 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets/site-rail.js");
   // The share image every page's og:image and twitter:image name.
   eleventyConfig.addPassthroughCopy("src/assets/og.png");
+  // Card art for mail and the card pages, mirrored at the sizes they
+  // ask for by infra/scripts/mirror-card-art.mjs. Gitignored: it is a
+  // cache, so a checkout that has not mirrored yet simply builds
+  // without it rather than failing.
+  if (existsSync(path.join(import.meta.dirname, "src/assets/cards")))
+    eleventyConfig.addPassthroughCopy("src/assets/cards");
+  else
+    console.warn(
+      "[site] no mirrored card art: run infra/scripts/mirror-card-art.mjs",
+    );
 
   /** A static asset URL with its content hash on it. The bucket serves
    *  /assets/* under no Cache-Control, so browsers cache them

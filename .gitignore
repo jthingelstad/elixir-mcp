@@ -30,3 +30,8 @@ packages/design/.test-*/
 test-results/
 playwright-report/
 .backfill-*.json
+
+# Card art mirrored for mail (infra/scripts/mirror-card-art.mjs): a
+# build artifact, ~15 MB of thumbnails, uploaded by deploy. Never
+# committed - the repo is public and this is a cache, not a source.
+apps/site/src/assets/cards/
