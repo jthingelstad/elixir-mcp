@@ -6,24 +6,32 @@ import { fileURLToPath } from "node:url";
 import {
   writerPrompt,
   ISSUE_SCHEMA,
-  PIPELINE_ADDENDUM,
+  pipelineAddendum,
 } from "../src/prompt.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-test("the writer runs docs/top100/generator-prompt.md verbatim, then the pipeline addendum", () => {
-  const doc = readFileSync(
-    path.join(here, "../../../docs/top100/generator-prompt.md"),
-    "utf8",
-  ).trim();
-  const prompt = writerPrompt();
-  assert.ok(prompt.startsWith(doc), "the document is the prompt's prefix");
-  assert.ok(prompt.endsWith(PIPELINE_ADDENDUM), "the addendum follows it");
-  for (const key of ISSUE_SCHEMA.required)
+test("each written kind runs its own document verbatim, then the pipeline addendum", () => {
+  for (const [kind, doc] of [
+    ["top_100", "docs/top100/generator-prompt.md"],
+    ["card_of_week", "docs/card-of-week/generator-prompt.md"],
+  ]) {
+    const text = readFileSync(path.join(here, "../../..", doc), "utf8").trim();
+    const prompt = writerPrompt(kind);
+    assert.ok(prompt.startsWith(text), `${kind}: the document is the prefix`);
     assert.ok(
-      PIPELINE_ADDENDUM.includes(`\`${key}\``) || key === "drought_mode",
-      `addendum names ${key}`,
+      prompt.endsWith(pipelineAddendum(kind)),
+      `${kind}: the addendum follows it`,
     );
+    for (const key of ISSUE_SCHEMA.required)
+      assert.ok(
+        pipelineAddendum(kind).includes(`\`${key}\``),
+        `${kind} addendum names ${key}`,
+      );
+  }
+  // The deck placeholder is the whole reason a deck cannot be misspelled;
+  // if it leaves the prompt, the writer starts typing card lists.
+  assert.match(pipelineAddendum("card_of_week"), /\{\{deck:0\}\}/);
 });
 
 test("the gold sample issue passes the lint against its own brief, except for the numbers the sample computed", async () => {

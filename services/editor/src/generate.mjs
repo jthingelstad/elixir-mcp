@@ -94,17 +94,18 @@ async function converse(client, { system, user, brief, log }) {
 export async function generateIssue({
   brief,
   lint,
+  kind = "top_100",
   log = null,
   client = new Anthropic(),
 }) {
-  const system = writerPrompt();
+  const system = writerPrompt(kind);
   const draft = await converse(client, {
     system,
     user: `Here is this week's brief as JSON. Write the issue.\n\n<brief>\n${JSON.stringify(brief)}\n</brief>`,
     brief,
     log,
   });
-  const findings = lint(draft.issue, brief);
+  const findings = lint(draft.issue, brief, { kind });
   const edited = await converse(client, {
     system: `${system}\n\n${EDITOR_PROMPT}`,
     user: `<brief>\n${JSON.stringify(brief)}\n</brief>\n\n<draft>\n${JSON.stringify(draft.issue)}\n</draft>\n\n<lint>\n${findings.length ? findings.map((f) => `- ${f}`).join("\n") : "- no findings"}\n</lint>\n\nReturn the corrected issue.`,

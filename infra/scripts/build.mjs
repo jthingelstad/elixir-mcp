@@ -52,12 +52,13 @@ export async function buildAll() {
       logLevel: "error",
     });
     if (name === "editor") {
-      // The writer prompt is a document (docs/top100), read at runtime
-      // beside the code so the file in the repo is the one that runs.
-      await cp(
-        path.join(repoRoot, "docs/top100/generator-prompt.md"),
-        path.join(outDir, "generator-prompt.md"),
-      );
+      // A writer prompt is a DOCUMENT, read at runtime beside the code so
+      // the file in the repo is the one that runs. One per written kind.
+      for (const [doc, file] of [
+        ["docs/top100/generator-prompt.md", "generator-prompt.md"],
+        ["docs/card-of-week/generator-prompt.md", "card-of-week-prompt.md"],
+      ])
+        await cp(path.join(repoRoot, doc), path.join(outDir, file));
     }
     if (name === "migrate") {
       await cp(

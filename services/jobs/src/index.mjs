@@ -22,6 +22,8 @@ import { loadVocabulary, stampDecks } from "../../ingest/src/card-roles.mjs";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { runEmail } from "./email/index.mjs";
 import { top100Generate, top100Accept } from "./email/top100.mjs";
+import { cardOfWeekGenerate, cardOfWeekAccept } from "./email/card-of-week.mjs";
+import { cardOfWeekPreview } from "./email/card-of-week-preview.mjs";
 import { activityHistogram } from "./activity.mjs";
 import { captureEfficiency } from "./efficiency.mjs";
 import {
@@ -288,13 +290,58 @@ export async function handler(event) {
     console.log(JSON.stringify({ top100_generate: result }));
     return result;
   }
-  if (event?.top100_accept) {
-    const result = await top100Accept({
+  // The editor hands every written kind back through issue_accept;
+  // top100_accept is the older name and still arrives from a message
+  // queued before this deploy.
+  const accept = event?.issue_accept ?? event?.top100_accept;
+  if (accept) {
+    const kind = accept.kind ?? "top_100";
+    const common = {
       databaseUrl: process.env.DATABASE_URL,
       bucket: process.env.ARCHIVE_BUCKET,
-      key: event.top100_accept.key,
+      key: accept.key,
+      enqueue: enqueueEmail,
+    };
+    const result =
+      kind === "card_of_week"
+        ? await cardOfWeekAccept(common)
+        : await top100Accept(common);
+    console.log(JSON.stringify({ issue_accept: { kind, ...result } }));
+    return result;
+  }
+  if (event?.card_of_week_generate) {
+    const o = event.card_of_week_generate;
+    const result = await cardOfWeekGenerate({
+      databaseUrl: process.env.DATABASE_URL,
+      bucket: process.env.ARCHIVE_BUCKET,
+      ...(o?.force ? { force: String(o.force) } : {}),
+      dryRun: Boolean(o?.dry_run),
     });
-    console.log(JSON.stringify({ top100_accept: result }));
+    // A dry run returns the whole brief; the log gets the shape of it.
+    console.log(
+      JSON.stringify({
+        card_of_week_generate: result.brief
+          ? {
+              dry_run: true,
+              period: result.periodKey,
+              card: result.brief.card?.name,
+              rank: result.brief.rank?.position,
+              decks: result.brief.decks?.length,
+              deep_cut: result.brief.deep_cut?.type,
+            }
+          : result,
+      }),
+    );
+    return result;
+  }
+  if (event?.card_of_week_preview) {
+    const result = await cardOfWeekPreview({
+      databaseUrl: process.env.DATABASE_URL,
+      bucket: process.env.ARCHIVE_BUCKET,
+      period: event.card_of_week_preview.period ?? null,
+      secret: process.env.SESSION_SECRET,
+    });
+    console.log(JSON.stringify({ card_of_week_preview: result }));
     return result;
   }
   if (event?.shape_census) {

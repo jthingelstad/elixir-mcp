@@ -21,19 +21,22 @@ export async function handler(event) {
   // Reached through its SQS queue (one message per issue), or invoked
   // directly with {brief_key} from the ops side.
   const record = event?.Records?.[0];
-  const briefKey = record
-    ? JSON.parse(record.body)?.brief_key
-    : event?.brief_key;
+  const message = record ? JSON.parse(record.body) : (event ?? {});
+  const briefKey = message?.brief_key;
   if (!briefKey) throw new Error("editor: brief_key missing");
   const out = await s3.send(
     new GetObjectCommand({ Bucket: bucket, Key: briefKey }),
   );
   const brief = JSON.parse(await out.Body.transformToString());
+  // The brief says what it is; the message is the fallback for an ops
+  // invoke that named only a key.
+  const kind = brief.kind ?? message?.kind ?? "top_100";
   const started = Date.now();
   const result = await generateIssue({
     brief,
+    kind,
     lint: lintIssue,
-    log: (l) => console.log(JSON.stringify({ editor: l })),
+    log: (l) => console.log(JSON.stringify({ editor: l, kind })),
   });
   const issueKey = briefKey.replace(/brief\.json$/, "issue.json");
   await s3.send(
@@ -66,13 +69,14 @@ export async function handler(event) {
         FunctionName: process.env.JOBS_FUNCTION,
         InvocationType: "Event",
         Payload: Buffer.from(
-          JSON.stringify({ top100_accept: { key: issueKey } }),
+          JSON.stringify({ issue_accept: { key: issueKey, kind } }),
         ),
       }),
     );
   console.log(
     JSON.stringify({
       editor_done: {
+        kind,
         issueKey,
         draft_findings: result.draft_findings.length,
         ms: Date.now() - started,

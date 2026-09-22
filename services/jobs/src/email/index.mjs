@@ -18,6 +18,7 @@ import { buildTracking } from "./build-tracking.mjs";
 import { buildClan } from "./build-clan.mjs";
 import { buildCollector } from "./build-collector.mjs";
 import { buildMilestone, recordMilestones } from "./build-milestone.mjs";
+import { recordFeaturedSent } from "./card-of-week-select.mjs";
 import { tryTool } from "./shared.mjs";
 
 const MILESTONE_LOOKBACK_MS = 26 * 3600_000;
@@ -159,8 +160,11 @@ export async function runEmail({
           });
           periodKey = now.toISOString().slice(0, 10);
         } else if (kind === "top_100") {
-          facts = await latestTop100(db);
+          facts = await latestWritten(db, "top_100");
           periodKey = facts?.issue?.date ?? now.toISOString().slice(0, 10);
+        } else if (kind === "card_of_week") {
+          facts = await latestWritten(db, "card_of_week");
+          periodKey = facts?.issue?.date ?? lastGameWeek(now).key;
         } else {
           throw new Error(`unknown kind ${kind}`);
         }
@@ -168,13 +172,16 @@ export async function runEmail({
           result.skipped += 1;
           continue;
         }
-        const subjectKey = kind === "top_100" ? "" : account.accountId;
+        // A written kind is ONE issue for everyone, so it has no
+        // per-account subject key.
+        const written = kind === "top_100" || kind === "card_of_week";
+        const subjectKey = written ? "" : account.accountId;
         const { _moments, ...stored } = facts;
         const issueId = await upsertIssue(db, {
           kind,
           periodKey: periodKey + manual,
           subjectKey,
-          facts: kind === "top_100" ? null : stored,
+          facts: written ? null : stored,
           status: "queued",
         });
         result.composed += 1;
@@ -187,6 +194,10 @@ export async function runEmail({
         });
         if (kind === "milestone" && r.sent)
           await recordMilestones(db, account.accountId, _moments ?? []);
+        // The card is consumed by a SEND, never by a selection: a dry
+        // run or an issue that failed its verifier leaves it eligible.
+        if (kind === "card_of_week" && r.sent)
+          await recordFeaturedSent(db, { periodKey, at: now });
       } catch (err) {
         result.failed += 1;
         result.details.push({
@@ -214,12 +225,15 @@ async function seasonOf(db, account, now) {
   return clock?.season_id ?? null;
 }
 
-/** The newest composed Top 100 issue's facts (the editor pipeline wrote
- *  them); null when there is none to send. */
-async function latestTop100(db) {
+/** The newest composed issue's facts for a WRITTEN kind (the editor
+ *  pipeline wrote them); null when there is none to send. An issue that
+ *  failed its lint has no facts and is therefore never picked up here,
+ *  which is how a failing issue does not send. */
+async function latestWritten(db, kind) {
   const { rows } = await db.query(
-    `select facts from email_issue where kind = 'top_100' and subject_key = '' and facts is not null
+    `select facts from email_issue where kind = $1 and subject_key = '' and facts is not null
       order by composed_at desc limit 1`,
+    [kind],
   );
   return rows[0]?.facts ?? null;
 }

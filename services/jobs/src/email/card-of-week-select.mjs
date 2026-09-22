@@ -137,6 +137,51 @@ export async function selectCard(
   };
 }
 
+/** Where the card stands among ALL cards this season, and its
+ *  neighbours. The same merged rollup the selector ranks on, without the
+ *  featured exclusion: the rank is a fact about the card, not about what
+ *  we have already written up. */
+export async function rankOf(db, { seasonMonth, cardId }) {
+  const { rows } = await db.query(
+    `with ranked as (
+       select cm.card_id, c.name, cm.battles,
+              round(cm.battles::numeric / nullif(t.decided, 0), 4) as usage_share,
+              row_number() over (order by cm.battles desc, cm.card_id) as position,
+              count(*) over () as of_total
+         from card_meta_season cm
+         join meta_season_totals t
+           on t.season_month = cm.season_month and t.mode_group = cm.mode_group
+         join card c on c.card_id = cm.card_id
+        where cm.season_month = $1 and cm.mode_group = 'all' and cm.form = -1
+          and c.kind = 'card' and cm.battles > 0)
+     select * from ranked
+      where position between
+        (select position - 1 from ranked where card_id = $2)
+        and (select position + 1 from ranked where card_id = $2)
+      order by position`,
+    [seasonMonth, cardId],
+  );
+  const me = rows.find((r) => r.card_id === cardId);
+  if (!me) return null;
+  const shape = (r) =>
+    r && {
+      card_id: r.card_id,
+      name: r.name,
+      usage_share: Number(r.usage_share),
+      usage_share_pct: Number((Number(r.usage_share) * 100).toFixed(1)),
+    };
+  return {
+    position: Number(me.position),
+    of: Number(me.of_total),
+    above:
+      shape(rows.find((r) => Number(r.position) === Number(me.position) - 1)) ??
+      null,
+    below:
+      shape(rows.find((r) => Number(r.position) === Number(me.position) + 1)) ??
+      null,
+  };
+}
+
 /** The week's pick, written before the issue is built. sent_at stays
  *  null until a send actually happens (recordFeaturedSent), so a failed
  *  issue or a dry run does not consume the card. A re-run of the same
