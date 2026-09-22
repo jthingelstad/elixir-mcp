@@ -227,6 +227,77 @@ test("the Top 100 lint traces numbers to the brief and rejects tags, bangs and u
   assert.ok(problems.some((p) => /does not resolve/.test(p)));
 });
 
+test("a rate in the brief traces through every spelling a writer uses", () => {
+  // The bug this pins: the meta section's usage_share and win_rate are
+  // rates, canonicalised as integers (0.343 -> "1"), so every percentage
+  // the writer printed from them was reported unsourced and the editor
+  // pass deleted a true number. It failed quiet, because the second lint
+  // then passed over the stripped body.
+  const brief = {
+    meta: {
+      cards: [{ name: "Barbarian Barrel", usage_share: 0.343, players: 84 }],
+      decks: [{ battles: 7683, win_rate: 0.512, players: 742 }],
+    },
+    season: { id: 136 },
+  };
+  const ok = {
+    subject: "s",
+    body_markdown:
+      "It is in 34.3 percent of their battles, and that deck wins 51.2 percent over 7,683 battles with 742 players.",
+    numbers_used: [],
+  };
+  // The body is deliberately short, so only the number findings matter.
+  assert.deepEqual(
+    lintIssue(ok, brief, { kind: "card_of_week" }).filter((p) =>
+      /not in the brief/.test(p),
+    ),
+    [],
+  );
+  // A decimal is judged whole: a wrong one no longer passes on a right
+  // integer part.
+  const altered = {
+    subject: "s",
+    body_markdown: "It is in 34.9 percent of their battles.",
+    numbers_used: [],
+  };
+  assert.ok(
+    lintIssue(altered, brief, { kind: "card_of_week" }).some((p) =>
+      /34\.9 is not in the brief/.test(p),
+    ),
+  );
+});
+
+test("the length rules are the kind's, and a gutted issue is refused", () => {
+  const brief = { season: { id: 136 } };
+  const short = {
+    subject: "s",
+    body_markdown: "One short line.",
+    numbers_used: [],
+  };
+  // The Top 100 has no floor; Card of the Week does, because an editor
+  // pass that cuts an issue to nothing passes every other rule.
+  assert.deepEqual(lintIssue(short, brief), []);
+  assert.ok(
+    lintIssue(short, brief, { kind: "card_of_week" }).some((p) =>
+      /the floor is 380/.test(p),
+    ),
+  );
+  // The rank-and-rating pairing is the Top 100's rule alone.
+  const deckRow = {
+    subject: "s",
+    body_markdown: "| Skeletons → Hog Rider | 51 |",
+    numbers_used: [],
+  };
+  assert.ok(
+    lintIssue(deckRow, brief).some((p) => /without a rating delta/.test(p)),
+  );
+  assert.ok(
+    !lintIssue(deckRow, brief, { kind: "card_of_week" }).some((p) =>
+      /without a rating delta/.test(p),
+    ),
+  );
+});
+
 test("repairNames puts a name the model's JSON mangled back from the brief", async () => {
   const { repairNames } = await import("../src/index.mjs");
   const body =
