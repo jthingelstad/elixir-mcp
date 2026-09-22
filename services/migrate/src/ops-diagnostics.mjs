@@ -1251,6 +1251,46 @@ export async function modeShapeCensus(databaseUrl) {
                                    'Friendly', 'PickMode', 'CW_Duel_1v1')
         group by 1, 2 order by 3 desc`,
     );
+    // Supercell describes a Trail as a limited-time themed ladder where
+    // "Trophies obtained will be permanent... and will not deduct if the
+    // player loses". If that is what type=trail marks, a trail Ladder
+    // LOSS costs nothing while a Trophy Road loss does - which the sign
+    // of trophy_change by outcome settles.
+    const { rows: trophyRule } = await db.query(
+      `select b.type, bp.outcome,
+              count(*)::int as rows,
+              count(*) filter (where bp.trophy_change is null)::int as null_change,
+              count(*) filter (where bp.trophy_change = 0)::int as zero_change,
+              count(*) filter (where bp.trophy_change < 0)::int as negative,
+              count(*) filter (where bp.trophy_change > 0)::int as positive
+         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+        where b.game_mode_name = 'Ladder'
+        group by 1, 2 order by 1, 3 desc`,
+    );
+    // Event content clusters in time; a permanent format does not.
+    const { rows: calendar } = await db.query(
+      `select to_char(b.battle_time, 'YYYY-MM') as month, b.type,
+              count(*)::int as battles
+         from battle b
+        where b.game_mode_name = 'Ladder'
+        group by 1, 2 order by 1, 2`,
+    );
+    // Seasonal Arena II boosts low cards to level 15 and bans the
+    // player's top 8. If type=trail is the Seasonal Road, its recorded
+    // card levels are not the player's real ones, and every level-gap
+    // comparison that pools them is measuring the format.
+    const { rows: levels } = await db.query(
+      `select b.type,
+              count(*)::int as rows,
+              round(avg(bp.deck_avg_level)::numeric, 2) as mean_deck_level,
+              round(percentile_cont(0.5) within group
+                    (order by bp.deck_avg_level)::numeric, 2) as median,
+              count(*) filter (where bp.deck_avg_level >= 14.5)::int as at_15ish,
+              min(bp.deck_avg_level) as min, max(bp.deck_avg_level) as max
+         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+        where b.game_mode_name = 'Ladder' and bp.deck_avg_level is not null
+        group by 1`,
+    );
     const { rows: rounds } = await db.query(
       `select count(*)::int as round_rows,
               count(distinct battle_id)::int as battles,
@@ -1265,7 +1305,15 @@ export async function modeShapeCensus(databaseUrl) {
               min(global_rank)::int as best, max(global_rank)::int as worst
          from battle_participant where global_rank is not null`,
     );
-    return { modes, stakes, rounds: rounds[0], global_rank: ranks[0] };
+    return {
+      modes,
+      stakes,
+      trophy_rule: trophyRule,
+      ladder_calendar: calendar,
+      ladder_levels: levels,
+      rounds: rounds[0],
+      global_rank: ranks[0],
+    };
   } finally {
     await db.end();
   }

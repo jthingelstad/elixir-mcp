@@ -7730,3 +7730,62 @@ casual split proposed earlier is withdrawn.
 
 Open question for `cr-agent-api-docs`, not answerable from our record:
 why does the API file some Ladder battles under `trail`?
+
+## 2026-09-22 — `trail` is the Seasonal Trophy Road, it is taking over Ladder, and we file it as `casual`
+
+Jamie wondered whether `trail` was an early name for Trophy Road. It is
+the opposite: **new, and arriving fast.**
+
+`{mode_shape_census}`, Ladder-mode battles by month and type:
+
+| month | PvP | trail | trail share |
+| --- | --- | --- | --- |
+| 2026-03 | 4,377 | 0 | 0% |
+| 2026-05 | 4,909 | 0 | 0% |
+| 2026-06 | 4,678 | 323 | 6.5% |
+| 2026-07 | 5,322 | 555 | 9.4% |
+| 2026-08 | 5,269 | 1,049 | 16.6% |
+| 2026-09 | 5,458 | **11,651** | **68.1%** |
+
+Nothing before June 2026; two thirds of September. Supercell's June 2026
+release notes bring back a reworked **Seasonal Trophy Road**: Seasonal
+Arena I (your own deck) and Seasonal Arena II (your eight most-won-with
+cards BANNED, low cards boosted to a minimum Level 15). The timing is
+exact.
+
+**Jamie's suspicion was right, and for a bigger reason than stakes.**
+Trophies do NOT tell them apart - a trail Ladder loss deducts (12,993 of
+13,578) exactly as a PvP Ladder loss does (35,033 of 36,716). What tells
+them apart is the CARD LEVELS:
+
+| Ladder-mode battles | rows | mean deck level | median | >= 14.5 | range |
+| --- | --- | --- | --- | --- | --- |
+| `PvP` | 73,436 | 13.67 | 14.63 | 52.8% | 2.00-16.00 |
+| `trail` | 27,154 | **15.87** | **16.00** | **99.9%** | 11.50-16.00 |
+
+That is Seasonal Arena II's Level 15 floor, visible in our own record.
+The decks in a trail battle are not the player's decks at the player's
+levels.
+
+**The live consequence, and it is bad.** `MODE_GROUP_BY_TYPE` maps
+`trail` to `casual`. So since June we have been filing the Seasonal
+Trophy Road as casual play, and by September that is 11,651 of 17,109
+Ladder-mode battles a month. Two failures at once:
+
+1. **`ladder` statistics are losing most of the ladder.** A player's
+   Trophy Road record, trends and trophy maths see only the `PvP` third.
+2. **`casual` is contaminated with level-16 decks.** Any level gap, deck
+   strength or card win rate computed over casual - or over an unfiltered
+   population - is reading Seasonal Arena II's floor as player progress.
+   `casual` is already the largest rollup group (173,614 rows); this is
+   why.
+
+This is the concrete form of Jamie's rule ("game modes are really played
+as a different game... querying battles without a mode is probably a
+bug"), and it is not hypothetical: it is happening now and growing
+monthly.
+
+Not actioned - a remap re-buckets `player_daily_battle_rollup` (mode_group
+is in its primary key) and the meta tables' CHECK constraints, so it
+needs a rebuild and Jamie's call on the grouping. Recorded in
+`cr-agent-api-docs` for any caller.
