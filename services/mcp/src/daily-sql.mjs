@@ -33,6 +33,12 @@ import { modeGroupSql } from "@elixir-mcp/contracts";
 // supplies it.
 const MODE_GROUP_CASE = modeGroupSql("bp.type", "b.event_tag");
 
+// The rollup's `day` is a UTC day: pipeline.mjs writes the key from the
+// ISO string's first ten characters. Every date boundary here therefore
+// says `at time zone 'UTC'` rather than casting a timestamptz to date,
+// which would resolve at the SESSION zone and describe a different day
+// on any server not set to UTC.
+
 export function dailySql({
   players,
   from,
@@ -58,12 +64,12 @@ export function dailySql({
            sum(r.draws)::int as draws, sum(r.trophy_delta)::int as trophy_delta
     from player_daily_battle_rollup r
     where r.player_tag = any(${players})
-      and r.day > ${f}::date
-      and (${t} is null or r.day < ${t}::date)
+      and r.day > (${f} at time zone 'UTC')::date
+      and (${t} is null or r.day < (${t} at time zone 'UTC')::date)
       ${modeRollup}
     group by r.player_tag, r.day, r.mode_group
     union all
-    select bp.player_tag, bp.battle_time::date as day, ${MODE_GROUP_CASE} as mode_group,
+    select bp.player_tag, (bp.battle_time at time zone 'UTC')::date as day, ${MODE_GROUP_CASE} as mode_group,
            count(*)::int, count(*) filter (where bp.outcome = 'win')::int,
            count(*) filter (where bp.outcome = 'loss')::int,
            count(*) filter (where bp.outcome = 'draw')::int,
@@ -76,16 +82,16 @@ export function dailySql({
         -- index walks, never a cast the planner filters after the fact
         -- (live 2026-09-17: 12,961 rows read for 408 kept, 3.4 s of I/O).
         (bp.battle_time >= ${f}
-         and bp.battle_time < ${f}::date + 1
+         and bp.battle_time < ((${f} at time zone 'UTC')::date + 1)::timestamp at time zone 'UTC'
          and (${t} is null or bp.battle_time < ${t}))
         or
         -- The day it ends in, when that is a different day.
         (${t} is not null
-         and ${t}::date <> ${f}::date
-         and bp.battle_time >= ${t}::date
+         and (${t} at time zone 'UTC')::date <> (${f} at time zone 'UTC')::date
+         and bp.battle_time >= ((${t} at time zone 'UTC')::date)::timestamp at time zone 'UTC'
          and bp.battle_time < ${t})
       )
       ${modeRaw}
-    group by bp.player_tag, bp.battle_time::date, ${MODE_GROUP_CASE}
+    group by bp.player_tag, (bp.battle_time at time zone 'UTC')::date, ${MODE_GROUP_CASE}
   )`;
 }

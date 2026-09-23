@@ -40,7 +40,17 @@ export async function refreshDailyRollups(db, pairs) {
          where o.battle_id = bp.battle_id and o.side <> bp.side
        ) opp on true
        where bp.player_tag = $1
-         and bp.battle_time >= $2::date and bp.battle_time < $2::date + 1
+         -- The day is a UTC day, spelled so. The KEY is written in UTC
+         -- (pipeline.mjs takes battle_time.slice(0,10) off the ISO
+         -- string), but a plain date cast compared against a timestamptz
+         -- resolves at the SESSION zone, so on a non-UTC session the
+         -- window and the key describe different days and a battle in
+         -- the offset hours lands in neither. Production runs UTC and
+         -- was never wrong; a developer machine on America/Chicago is,
+         -- for the five hours after UTC midnight, which is what made
+         -- the clans_standings test red only at night (2026-09-23).
+         and bp.battle_time >= ($2::date)::timestamp at time zone 'UTC'
+         and bp.battle_time < ($2::date + 1)::timestamp at time zone 'UTC'
        group by bp.player_tag, ${MODE_GROUP_CASE}, coalesce(b.game_mode_id, 0)`,
       [playerTag, day],
     );

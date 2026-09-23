@@ -130,7 +130,11 @@ export async function tables(databaseUrl) {
       select name, setting, unit from pg_settings
       where name in ('shared_buffers', 'work_mem', 'maintenance_work_mem',
                      'effective_cache_size', 'max_connections', 'autovacuum_work_mem',
-                     'wal_buffers', 'temp_buffers')`);
+                     'wal_buffers', 'temp_buffers',
+                     -- The day-key convention depends on it: a date cast
+                     -- against a timestamptz resolves at the SESSION zone
+                     -- (2026-09-23).
+                     'TimeZone')`);
     const { rows: reset } = await db.query(
       `select stats_reset from pg_stat_database where datname = current_database()`,
     );
