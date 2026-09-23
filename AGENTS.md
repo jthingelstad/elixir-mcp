@@ -52,8 +52,10 @@ been replaced. It is archived at `docs/archive/`.
 
 **Start with `docs/ENGINEERING.md`** — the invariants that constrain how this
 is built (rate budget, migrations, contract versioning, ingest, prior-art map).
-Decisions are ratified in `docs/NOTES.md`; don't re-litigate them, and record
-new ones there as they happen.
+What still stands is `docs/DECISIONS.md`, one line per ratified decision
+and declined idea; don't re-litigate them. `docs/NOTES.md` holds the
+current week's working notes (earlier weeks in `docs/notes/`); record new
+decisions there as they happen and add the line to `DECISIONS.md`.
 
 ## Golden rules
 

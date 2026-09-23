@@ -143,7 +143,7 @@ rest):
 - a fix that changes what a number MEANS rather than how it is described,
 - a new tool,
 - a refusal that breaks existing callers,
-- anything touching a DECLINED idea in `docs/NOTES.md` (for example a branded
+- anything touching a decision or declined idea in `docs/DECISIONS.md` (for example a branded
   metric, or the 7.0.0 refusals).
 
 **The sweep ends when** all ten families are clean, or clean-or-parked. The
