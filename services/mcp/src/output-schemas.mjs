@@ -1525,7 +1525,7 @@ export const OUTPUT_SCHEMAS = {
             finished_early: {
               type: ["boolean", "null"],
               description:
-                "True on a regular week whose boat reached the 10,000-fame line, false when it did not; null on a Colosseum week (no finish line) or without a standings capture (6.11.0: was computed as fame exactly 10,000, which a live-polled week never equals).",
+                "True on a regular week whose boat reached the 10,000-fame line, false when it did not; null on a Colosseum week (no finish line), a week whose standings were never recorded, or a week still in progress (6.11.0: was computed as fame exactly 10,000, which a live-polled week never equals).",
             },
             finish_war_day: {
               type: ["integer", "null"],
