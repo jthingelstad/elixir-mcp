@@ -16,7 +16,7 @@ shipped, and both need a regression pass.
 | battles | r2 findings fixed (6.31.0-6.31.1), round 3 due | 6.30.0 | 2026-09-23 | 2 | reports/2026-09-23-battles-r2.md | #148-#151 done (148.1/148.4 refuted: event outside meta by decision), #152 praise; 41 regressions checked; open: tower level from HP needs an HP table |
 | cards | r2 findings fixed (6.32.0-6.32.1), round 3 due | 6.31.1 | 2026-09-23 | 2 | reports/2026-09-23-cards-r2.md | #153-#155 done, #156 praise; 8/10 regressions confirmed; open: Mirror out of average_elixir unnoted; modeGroupSql vs modeGroupOf unknown-type default |
 | clans | r2 findings fixed (6.33.0), round 3 due | 6.32.0 | 2026-09-23 | 2 | reports/2026-09-23-clans-r2.md | #157-#158 done, #159 praise; 13/13 regressions confirmed; donations = week high-water (Jamie); participation cap moot for Clan (now on /api/v1) |
-| collections | findings fixed (6.24.0), round 2 due | 6.22.0 | 2026-09-23 | 1 | reports/2026-09-23-collections-r1.md | #114-#116 |
+| collections | r2 findings fixed (6.33.1), round 3 due | 6.33.0 | 2026-09-23 | 2 | reports/2026-09-23-collections-r2.md | #160 done (wording), #161 praise; #114/#116 confirmed, #115 remainder in #160; open: #116 selection caveat unmeasured |
 | elixir | findings fixed (6.25.0), round 2 due | 6.23.0 | 2026-09-23 | 1 | reports/2026-09-23-elixir-r1.md | #118-#123; every tool has an outputSchema |
 | game | findings fixed (6.26.0), round 2 due | 6.25.0 | 2026-09-23 | 1 | reports/2026-09-23-game-r1.md | #125-#127 |
 | players | findings fixed (6.27.0), round 2 due | 6.25.0 | 2026-09-23 | 1 | reports/2026-09-23-players-r1.md | #129-#134; 9 regressions confirmed |
