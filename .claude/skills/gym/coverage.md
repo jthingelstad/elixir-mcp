@@ -14,7 +14,7 @@ shipped, and both need a regression pass.
 | --- | --- | --- | --- | --- | --- | --- |
 | badges | r2 findings fixed (6.30.0-6.30.1), round 3 due | 6.29.1 | 2026-09-23 | 2 | reports/2026-09-23-badges-r2.md | #144-#146 done, #147 praise; #145 decided by Jamie: corpus = recorded players |
 | battles | r2 findings fixed (6.31.0-6.31.1), round 3 due | 6.30.0 | 2026-09-23 | 2 | reports/2026-09-23-battles-r2.md | #148-#151 done (148.1/148.4 refuted: event outside meta by decision), #152 praise; 41 regressions checked; open: tower level from HP needs an HP table |
-| cards | findings fixed (6.22.0), round 2 due | 6.21.1 | 2026-09-23 | 1 | reports/2026-09-23-cards-r1.md | #102-#108 |
+| cards | r2 findings fixed (6.32.0-6.32.1), round 3 due | 6.31.1 | 2026-09-23 | 2 | reports/2026-09-23-cards-r2.md | #153-#155 done, #156 praise; 8/10 regressions confirmed; open: Mirror out of average_elixir unnoted; modeGroupSql vs modeGroupOf unknown-type default |
 | clans | findings fixed (6.23.0-6.24.2), round 2 due | 6.21.1 | 2026-09-23 | 1 | reports/2026-09-23-clans-r1.md | #110-#112; 6.24.x participation cap outage |
 | collections | findings fixed (6.24.0), round 2 due | 6.22.0 | 2026-09-23 | 1 | reports/2026-09-23-collections-r1.md | #114-#116 |
 | elixir | findings fixed (6.25.0), round 2 due | 6.23.0 | 2026-09-23 | 1 | reports/2026-09-23-elixir-r1.md | #118-#123; every tool has an outputSchema |
