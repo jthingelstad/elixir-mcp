@@ -1,0 +1,45 @@
+{
+  "feedback": 112,
+  "contract_version": "6.21.1",
+  "captured_at": "2026-09-23T16:18:23.980Z",
+  "request": {
+    "tool": "clans_roster",
+    "arguments": {
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "applied": {
+      "clan_tag": "#J2RGCRVG",
+      "verbosity": "compact"
+    },
+    "name": "POAP KINGS",
+    "type": "inviteOnly",
+    "location_id": 57000006,
+    "description": "Active. War weekly. Elder earned. Free pass every season. Full? Elixir Kings or Ship It! POAPKINGS . COM Code: RoyaleAPI",
+    "member_count": 46,
+    "role_counts": {
+      "leader": 1,
+      "coLeader": 3,
+      "elder": 14,
+      "member": 28
+    },
+    "meta": {
+      "contract_version": "6.21.1",
+      "source_polls": {
+        "clan": {
+          "observed_at": "2026-09-23T16:18:09.000Z",
+          "freshness_seconds": 15
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 24,
+    "db_queries": 4,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

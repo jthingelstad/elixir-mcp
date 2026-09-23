@@ -1371,6 +1371,7 @@ test("clans_participation: every open member, per ISO week and per war week, fac
     "war_decks",
     "war_decks_by_day",
     "war_points",
+    "war_scoring_decks",
   ]);
   // 3.16.0: the coverage controls. This clan's recording is
   // comprehensive, so basis is recorded and every member's log is.

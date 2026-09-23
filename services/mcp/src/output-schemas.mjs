@@ -1798,6 +1798,12 @@ export const OUTPUT_SCHEMAS = {
             is_colosseum: { type: "boolean" },
             started_observed_at: { type: ["string", "null"] },
             finished_observed_at: { type: ["string", "null"] },
+            finished_early: {
+              type: ["boolean", "null"],
+              description:
+                "6.23.0: the boat crossed the line before the week's last war day; null on a Colosseum week or a week still in progress.",
+            },
+            finish_war_day: NULLABLE_INT,
           },
           required: ["season_id", "section_index"],
         },
@@ -1806,7 +1812,7 @@ export const OUTPUT_SCHEMAS = {
       members: {
         type: "array",
         description:
-          "Per-member columns aligned to weeks[] (battles, ranked_battles, donations) and war_weeks[] (war_decks, war_points, war_decks_by_day, war_battles_by_day, war_days_battled), one entry each in order; null is unknown, never zero.",
+          "Per-member columns aligned to weeks[] (battles, ranked_battles, donations) and war_weeks[] (war_decks, war_points, war_scoring_decks, war_decks_by_day, war_battles_by_day, war_days_battled), one entry each in order; null is unknown, never zero. war_scoring_decks (6.23.0, full verbosity) is war_decks less the decks played after the finish: the denominator for points per deck.",
         items: {
           type: "object",
           properties: {

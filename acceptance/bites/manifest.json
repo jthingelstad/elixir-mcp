@@ -289,5 +289,53 @@
     "case": "gym/108.1",
     "captures": ["108-cards_synergy-witch-corpus.json"],
     "expect": "notes_match"
+  },
+  {
+    "feedback": 110,
+    "contract": "6.21.1",
+    "why": "the Gym's block 110.1: post-finish war decks beside war_points with no finish signal",
+    "case": "gym/110.1",
+    "captures": ["110-clans_participation.json"],
+    "expect": "finish_war_day"
+  },
+  {
+    "feedback": 110,
+    "contract": "6.21.1",
+    "why": "the Gym's block 110.2: no scoring-deck column to divide points by",
+    "case": "gym/110.2",
+    "captures": ["110-clans_participation.json"],
+    "expect": "war_scoring_decks"
+  },
+  {
+    "feedback": 111,
+    "contract": "6.21.1",
+    "why": "the Gym's block 111.1: members_collection_1000_plus counted only members profiled that day, unsaid",
+    "case": "gym/111.1",
+    "captures": ["111-clans_timeline-week.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 111,
+    "contract": "6.21.1",
+    "why": "the Gym's block 111.2: today's in-progress point unmarked",
+    "case": "gym/111.2",
+    "captures": ["111-clans_timeline-today.json"],
+    "expect": "series\\[0\\]\\.partial"
+  },
+  {
+    "feedback": 112,
+    "contract": "6.21.1",
+    "why": "the Gym's block 112.1: compact dropped notes and docs",
+    "case": "gym/112.1",
+    "captures": ["112-clans_roster-compact.json"],
+    "expect": "has notes: absent"
+  },
+  {
+    "feedback": 112,
+    "contract": "6.21.1",
+    "why": "the Gym's block 112.2: full dropped role_counts",
+    "case": "gym/112.2",
+    "captures": ["112-clans_roster-full.json"],
+    "expect": "has role_counts: absent"
   }
 ]

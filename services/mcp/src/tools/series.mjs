@@ -4,7 +4,7 @@
  *  player_snapshot_daily by (clan_tag, snapshot_date); one point per
  *  game day, the day's last observation; every point stamped. */
 
-import { normalizeTag } from "@elixir-mcp/contracts";
+import { normalizeTag, gameDay } from "@elixir-mcp/contracts";
 import {
   PLAYER_METRICS,
   metricSelect,
@@ -176,6 +176,10 @@ export const seriesTools = {
           : `select ${cols} ${fromSql} where ${where.join(" and ")} order by c.day`,
         params,
       );
+      // The game day still in progress (Gym #111): its profile-derived
+      // points cover only the members polled so far, and the early-polled
+      // skew heavy, so the point is partial, not merely noisy.
+      const today = gameDay(new Date());
       const points = (weekly ? rows.sort((a, z) => a.day - z.day) : rows).map(
         (r) => ({
           day: r.day.toISOString().slice(0, 10),
@@ -183,9 +187,23 @@ export const seriesTools = {
           kind: r.snapshot_kind,
           observed_at: r.observed_at.toISOString(),
           source: r.source,
+          ...(r.day.toISOString().slice(0, 10) === today
+            ? { partial: true }
+            : {}),
           ...Object.fromEntries(metrics.map((m) => [m, r[m] ?? null])),
         }),
       );
+      const thinDays = rows
+        .filter(
+          (r) =>
+            Number.isInteger(r.members_with_profile) &&
+            Number.isInteger(r.members) &&
+            r.members_with_profile < r.members,
+        )
+        .map(
+          (r) =>
+            `${r.day.toISOString().slice(0, 10)} (${r.members_with_profile} of ${r.members})`,
+        );
       const seasonFields = await seasonFieldsForDays(
         ctx.db,
         win.from ?? availableFrom ?? new Date().toISOString().slice(0, 10),
@@ -218,7 +236,14 @@ export const seriesTools = {
             ? "members_seen counts the member rows the roster wrote that day, including members who left during the day (their row keeps the clan's tag until the next roster places them elsewhere), so it can read above members; a day it reads below members is a partial day (the roster was polled, but not every member's row is on the game day's grid yet)."
             : null,
           metrics.some((m) => CLAN_PROFILE_AGGREGATES.includes(m))
-            ? "The profile-derived aggregates average over members with a recorded profile that day; members_with_profile is that denominator. members_6_years_plus reads the player's current players_profile.years_played, not the day's."
+            ? "The profile-derived aggregates (averages AND the members_*_plus counts) are taken over the members whose profile was polled that game day; members_with_profile is that denominator. members_6_years_plus reads the player's current players_profile.years_played, not the day's."
+            : null,
+          metrics.some((m) => CLAN_PROFILE_AGGREGATES.includes(m)) &&
+            thinDays.length
+            ? `On ${thinDays.slice(0, 8).join(", ")}${thinDays.length > 8 ? ` and ${thinDays.length - 8} more days` : ""} not every member's profile was polled, so the profile-derived values there cover only those members: a members_*_plus count below members may be members not read that day, not members below the line.`
+            : null,
+          points.some((p) => p.partial)
+            ? `The point for ${today} is the game day still in progress (partial: true): its profile-derived values cover the members polled so far.`
             : null,
           botSourceNote(points),
           ...seasonFields.seasonNotes,

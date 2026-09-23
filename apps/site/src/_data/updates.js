@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "War participation says which decks could still score",
+    body: "When a clan's boat crosses the finish line early, the war keeps going for the members who still have decks, but those decks earn nothing. In each of the last two war weeks, 15 to 19 per cent of the decks POAP KINGS played came after the finish, so a member with four decks and zero points had not played badly. The race was already won. clans_participation now marks the weeks that finished early and the day it happened, and gives each member a war_scoring_decks count to divide points by. The clan's daily series now marks today's point as still in progress, and says so on days when not every member's profile was read. The roster's summary and full views finally carry the same role counts. Contract 6.23.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "Card tools: honest trophy bands, and naming the Evo you mean",
     body: "The Elixir Gym's first run over the card tools. The most useful fix: naming an eight-card deck with cards_archetype works now, where it used to time out every time. The one that changes answers: the trophy bands were quietly counting Path of Legends players, whose rating (around 2,300 to 3,000) was read as trophies, so the lowest band was mostly the top thousand players in the game. Ranked battles now sit in no band, and the bands mean what they say. Also: 'Evo Royal Hogs bridge spam' now means the Evo decks, not both forms. A clan member's Witch count no longer includes war duels. And a card's history says when the mix of game modes shifted under it, since the record went from mostly ladder to mostly ranked this summer. Contract 6.22.0.",
   },

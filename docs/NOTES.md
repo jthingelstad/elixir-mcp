@@ -1903,3 +1903,13 @@ All 3 regressions (#19, #20, #24) were confirmed. The run spent about 55 calls. 
 - **#107:** `excluded`, `prior_win_rate` and `prior_basis` are served. The corpus-prior line of SEGMENT_NOTES is replaced where cards_card shrinks toward the segment's own mean. `insufficient_sample` is set only below the floor, because history rows are deliberately unshrunk. A player segment uses buildMeta.
 - **#106:** a history note fires when the ranked share across the shown seasons moved 20 points or more.
 - **#108:** a note.
+
+## 2026-09-23 — Gym sweep, clans round 1 (6.23.0, feedback #110-#113)
+
+All 9 regressions were confirmed. After the 6.21.0 duel recompute, standings, participation and battles_performance agree exactly (#113, praise).
+
+- **#110:** participation reuses war/common's `finishWarDays`, `decksAfterFinish` and `scoringDecks`, the same code war_history runs, rather than a second derivation.
+- **#111:** a partial point for today's game day, and a note naming the days where members_with_profile is below members. The carry-forward the Gym called better (each member's latest profile as of the day) would change the values rather than describe them. It stays in the queue as a product question for Jamie.
+- **#112:** role_counts is computed from the roster rows at full; notes and docs are served at compact.
+
+Band repair for #102 is running on the jobs Lambda (async, 2026-09 season, `repair_bands`).

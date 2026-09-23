@@ -39,6 +39,12 @@ import {
   coverageBasis,
   coverageBasisNote,
 } from "../controls.mjs";
+import {
+  weekKey,
+  finishWarDays,
+  decksAfterFinish,
+  scoringDecks,
+} from "./war/common.mjs";
 
 const CLAN_TAG_SCHEMA = {
   type: "string",
@@ -289,6 +295,13 @@ export const clansTools = {
             elder: row.elders ?? 0,
             member: row.members ?? 0,
           },
+          // notes and docs at both sizes (Gym #112), as the other clans_*
+          // tools keep them at compact.
+          notes: notes(
+            livePendingNote(live),
+            "verbosity compact is the clan's header and role_counts; the full roster adds each member's trophies, activity stamps, lifetime block and recent_events.",
+          ),
+          docs: docsRef("recording", "the-games-own-last-seen"),
           // The clan's own poll clock, not a bare as_of.
           meta: await buildMeta(ctx.db, ctx.account, clanTag, ["clan"]),
         };
@@ -359,6 +372,13 @@ export const clansTools = {
         location_id: clanRow.rows[0]?.location_id ?? null,
         description: clanRow.rows[0]?.description ?? null,
         member_count: roster.rows.length,
+        // At both sizes (Gym #112): compact had it, full did not.
+        role_counts: {
+          leader: roster.rows.filter((m) => m.role === "leader").length,
+          coLeader: roster.rows.filter((m) => m.role === "coLeader").length,
+          elder: roster.rows.filter((m) => m.role === "elder").length,
+          member: roster.rows.filter((m) => m.role === "member").length,
+        },
         members: roster.rows.map((m) => ({
           player_tag: m.player_tag,
           name: m.name,
@@ -520,6 +540,15 @@ export const clansTools = {
       };
       const donations = await run("donations_by_week");
       const warWeeks = await run("war_weeks");
+      // The finish under each war week (Gym #110): decks played after the
+      // boat crossed earn nothing, so war_points over war_decks is not a
+      // rate on a finished week. The same helpers war_history uses.
+      const finishDays = await finishWarDays(ctx.db, clanTag, warWeeks.rows);
+      const afterFinish = await decksAfterFinish(ctx.db, clanTag, finishDays);
+      const finishedEarly = (w) =>
+        w.is_colosseum || w.finished_observed_at === null
+          ? null
+          : finishDays.has(weekKey(w));
       const participation = await run("war_participation");
       const attendance = await run("war_attendance");
 
@@ -612,6 +641,19 @@ export const clansTools = {
                       `${m.player_tag}|${w.season_id}|${w.section_index}`,
                     )?.points ?? null,
                 ),
+                war_scoring_decks: warWeeks.rows.map((w) => {
+                  const k = `${m.player_tag}|${w.season_id}|${w.section_index}`;
+                  const used =
+                    partByKey.get(k)?.decks_used ??
+                    (daysByKey.get(k) || battledByKey.get(k) ? 0 : null);
+                  return scoringDecks({
+                    decksUsed: used,
+                    finished: finishedEarly(w),
+                    finishDay: finishDays.get(weekKey(w)) ?? null,
+                    after: afterFinish.get(weekKey(w)),
+                    playerTag: m.player_tag,
+                  });
+                }),
                 war_decks_by_day: warWeeks.rows.map((w) => {
                   const days = daysByKey.get(
                     `${m.player_tag}|${w.season_id}|${w.section_index}`,
@@ -669,11 +711,19 @@ export const clansTools = {
           is_colosseum: w.is_colosseum,
           started_observed_at: w.started_observed_at?.toISOString() ?? null,
           finished_observed_at: w.finished_observed_at?.toISOString() ?? null,
+          finished_early: finishedEarly(w),
+          finish_war_day: finishDays.get(weekKey(w)) ?? null,
         })),
         member_count: out.length,
         members: out,
         notes: notes(
           seasonFields.seasonNotes,
+          ...warWeeks.rows
+            .filter((w) => finishedEarly(w) === true)
+            .map(
+              (w) =>
+                `In ${w.season_id}/${w.section_index} the boat crossed the finish line at the close of war day ${finishDays.get(weekKey(w))}: decks played on the days after it earned 0 points, so war_points / war_decks is not a rate for that week - use war_scoring_decks (full verbosity) or war_history's scoring_decks.`,
+            ),
           "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
           compact
             ? null
