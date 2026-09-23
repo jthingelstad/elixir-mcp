@@ -1,0 +1,259 @@
+{
+  "feedback": 183,
+  "contract_version": "6.36.2",
+  "captured_at": "2026-09-23T23:42:34.830Z",
+  "request": {
+    "tool": "badges_holders",
+    "arguments": {
+      "badge": "MasteryValkyrie",
+      "segment": {
+        "clan_tag": "#P9GPQ2Y0"
+      }
+    }
+  },
+  "response": {
+    "badge": "MasteryValkyrie",
+    "label": "Valkyrie Mastery",
+    "kind": "tiered",
+    "applied": {
+      "badge": "MasteryValkyrie",
+      "segment": {
+        "kind": "clan",
+        "clan_tag": "#P9GPQ2Y0"
+      },
+      "limit": 50
+    },
+    "players_considered": 17,
+    "observations": {
+      "oldest": "2026-09-13T20:32:44.000Z",
+      "newest": "2026-09-23T22:47:47.000Z"
+    },
+    "holders_total": 17,
+    "holder_share": 1,
+    "holders": [
+      {
+        "player_tag": "#8UG0R0V8",
+        "name": "Bosk",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T12:22:41.000Z",
+        "since": "2026-09-10T21:07:54.000Z"
+      },
+      {
+        "player_tag": "#9L8P8GV9L",
+        "name": "BU |⚡AmaR⚡™️",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T15:37:45.000Z",
+        "since": "2026-09-11T02:13:01.000Z"
+      },
+      {
+        "player_tag": "#8QQQRU2VY",
+        "name": "۞۞E̷r̷i̷c̷k̷۞۞",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T19:03:05.000Z",
+        "since": "2026-09-21T10:12:58.000Z"
+      },
+      {
+        "player_tag": "#80VP29LJP",
+        "name": "✨️ eStey ♡アナイス",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T20:02:39.000Z",
+        "since": "2026-09-11T03:12:50.000Z"
+      },
+      {
+        "player_tag": "#PP2C9LVG",
+        "name": "Gara",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#QPY22Q0L",
+        "observed_at": "2026-09-23T16:02:39.000Z",
+        "since": "2026-09-10T21:08:13.000Z"
+      },
+      {
+        "player_tag": "#2J9CR89",
+        "name": "Klaus",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T20:12:44.000Z",
+        "since": "2026-09-21T10:12:56.000Z"
+      },
+      {
+        "player_tag": "#V8G9LC8UC",
+        "name": "⚡️NICK⚡️",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T17:47:43.000Z",
+        "since": "2026-09-17T10:13:08.000Z"
+      },
+      {
+        "player_tag": "#J0VU9CGP",
+        "name": "SK Dominik",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T14:57:40.000Z",
+        "since": "2026-09-13T10:13:08.000Z"
+      },
+      {
+        "player_tag": "#9LVP2RCLL",
+        "name": "Steeef",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T18:42:42.000Z",
+        "since": "2026-09-10T21:07:59.000Z"
+      },
+      {
+        "player_tag": "#UQQ2GGL89",
+        "name": "Ahsoka❤️Libra",
+        "name_known": true,
+        "level": 9,
+        "max_level": 10,
+        "progress": 9,
+        "target": 10,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T20:47:42.000Z",
+        "since": "2026-09-11T03:13:12.000Z"
+      },
+      {
+        "player_tag": "#GR9L9V2LU",
+        "name": "CAPGUN",
+        "name_known": true,
+        "level": 9,
+        "max_level": 10,
+        "progress": 9,
+        "target": 10,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-22T21:52:39.000Z",
+        "since": "2026-09-17T10:13:04.000Z"
+      },
+      {
+        "player_tag": "#GVVU2P8QQ",
+        "name": "DuskBeam ✨ カゲ",
+        "name_known": true,
+        "level": 9,
+        "max_level": 10,
+        "progress": 9,
+        "target": 10,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T13:42:45.000Z",
+        "since": "2026-09-13T10:13:08.000Z"
+      },
+      {
+        "player_tag": "#QY2L98GQ8",
+        "name": "TT:CaneCR",
+        "name_known": true,
+        "level": 9,
+        "max_level": 10,
+        "progress": 9,
+        "target": 10,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T22:47:41.000Z",
+        "since": "2026-09-11T11:02:42.000Z"
+      },
+      {
+        "player_tag": "#PCR9Y9LU8",
+        "name": "✖Hunter✨爱H",
+        "name_known": true,
+        "level": 8,
+        "max_level": 10,
+        "progress": 8,
+        "target": 9,
+        "clan_tag": "#L9VRJ",
+        "observed_at": "2026-09-13T20:32:44.000Z",
+        "since": "2026-09-13T20:32:44.000Z"
+      },
+      {
+        "player_tag": "#PPV80V9G2",
+        "name": "Marpa",
+        "name_known": true,
+        "level": 8,
+        "max_level": 10,
+        "progress": 8,
+        "target": 9,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T22:47:47.000Z",
+        "since": "2026-09-16T10:13:14.000Z"
+      },
+      {
+        "player_tag": "#VYGR2GUV9",
+        "name": "Rafinha Prime ☠",
+        "name_known": true,
+        "level": 7,
+        "max_level": 10,
+        "progress": 7,
+        "target": 8,
+        "clan_tag": "#P9GPQ2Y0",
+        "observed_at": "2026-09-23T16:12:45.000Z",
+        "since": "2026-09-15T10:13:20.000Z"
+      },
+      {
+        "player_tag": "#220JL80LUC",
+        "name": "Night graveyard",
+        "name_known": true,
+        "level": 4,
+        "max_level": 10,
+        "progress": 4,
+        "target": 5,
+        "clan_tag": "#RLRYUVQ2",
+        "observed_at": "2026-09-23T11:57:39.000Z",
+        "since": "2026-09-10T21:07:41.000Z"
+      }
+    ],
+    "notes": [
+      "one_off badges have no level (awarded once for an event or feat, the genuinely rare class); tiered badges carry level/max_level.",
+      "holder_share = holders_total / players_considered (the whole population, not this page).",
+      "A holder's observed_at is the last profile poll that read the badge; since is when the record first saw it at this level and progress. A since at the start of recording, or just after the player joined, is a first sighting, not when the badge was earned.",
+      "A holder's clan_tag is their clan at observed_at, not necessarily today's: a player the record no longer polls keeps the clan of that last read.",
+      "Badge names are the API's own identifiers and label is the badge as a player says it (MasterySkeletonWarriors is Guards Mastery). A versioned identifier says its version (RoyalTournamentRank_v2 is 'Royal Tournament Rank (v2)'): the original and the _v2 are two badges, often held by the same player.",
+      "observations.oldest/newest are the oldest and newest profile poll among players_considered: how fresh the reads behind these counts are."
+    ],
+    "docs": "glossary",
+    "meta": {
+      "contract_version": "6.36.2"
+    }
+  },
+  "timings": {
+    "db_ms": 475,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

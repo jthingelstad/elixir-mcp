@@ -1177,5 +1177,45 @@
     "case": "gym/181.1",
     "captures": ["181-1-elixir_docs.json"],
     "expect": "."
+  },
+  {
+    "feedback": 183,
+    "contract": "6.36.2",
+    "why": "the Gym block 183.1 on the answer it read",
+    "case": "gym/183.1",
+    "captures": ["183-1-badges_rarity.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 183,
+    "contract": "6.36.2",
+    "why": "the Gym block 183.2 on the answer it read",
+    "case": "gym/183.2",
+    "captures": ["183-2-badges_holders.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 183,
+    "contract": "6.36.2",
+    "why": "the Gym block 183.3 on the answer it read",
+    "case": "gym/183.3",
+    "captures": ["183-3-badges_holders.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 184,
+    "contract": "6.36.2",
+    "why": "the Gym block 184.1 on the answer it read",
+    "case": "gym/184.1",
+    "captures": ["184-1-badges_holders.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 184,
+    "contract": "6.36.2",
+    "why": "the Gym block 184.2 on the answer it read",
+    "case": "gym/184.2",
+    "captures": ["184-2-badges_holders.json"],
+    "expect": "."
   }
 ]

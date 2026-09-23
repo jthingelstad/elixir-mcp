@@ -2072,3 +2072,7 @@ All 7 regressions were confirmed. #126's recorder half (reads pinned to the 10:0
 - **Open (Gym, not filed):** a battle between a race's real close and 10:00Z counts toward the previous day. It needs a clan-wide scan.
 - **6.36.2:** the 6.36.1 war gate failed the contract checks. The new notes named `closed_at`, `progress_earned` and `mean_fame` on tools that do not carry them, so they are now tool-qualified. 181.1 needed `contains` to take a string, and gym-interp now does.
 
+## 2026-09-23 — Gym sweep, badges round 3 (6.36.3, feedback #183-#185): badges PARKED
+
+All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings were fixed: #183 (the clan segment follows the recorded-now rule, with a coverage note) and #184 (min_level on one-off badges is refused, and kind comes from the record). #185 is praise. **Badges is parked** by the sweep rule: three rounds without a clean run. Every finding is shipped, and a round 4 is Jamie's call. Open, not filed: King Thing's badge reads are stamped 14:27Z while his profile poll says 21:27Z.
+

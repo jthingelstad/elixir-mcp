@@ -8159,5 +8159,308 @@
         "notes_match": "season_id and section_index"
       }
     ]
+  },
+  {
+    "id": "183.1",
+    "feedback": 183,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": {
+        "clan_tag": "#P9GPQ2Y0"
+      }
+    },
+    "request_id": "f90ae631-8818-4c18-a830-8e40a766c59a",
+    "note": "activity-scope clan: 17 of 50 members read; the census must say so",
+    "assert": [
+      {
+        "notes_match": "of this clan's \\d+ current members"
+      }
+    ]
+  },
+  {
+    "id": "183.2",
+    "feedback": 183,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryValkyrie",
+      "segment": {
+        "clan_tag": "#P9GPQ2Y0"
+      }
+    },
+    "request_id": "eac80d5d-dc25-4c16-8142-ce38e57c179a",
+    "note": "holder_share 1 (17/17) read as every member; must carry the X-of-N note",
+    "assert": [
+      {
+        "notes_match": "of this clan's \\d+ current members"
+      }
+    ]
+  },
+  {
+    "id": "183.3",
+    "feedback": 183,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "Chaos_S2",
+      "segment": {
+        "clan_tag": "#P9GPQ2Y0"
+      }
+    },
+    "request_id": "cf527e24-9b98-4142-8b12-7532cde07538",
+    "note": "Hunter #PCR9Y9LU8's last read (2026-09-13, clan #L9VRJ) is no longer polled; 6.30.1's rule leaves it out on every segment",
+    "assert": [
+      {
+        "absent": "holders[?player_tag=#PCR9Y9LU8]"
+      }
+    ]
+  },
+  {
+    "id": "183.4",
+    "feedback": 183,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "r": {
+        "tool": "badges_rarity",
+        "args": {
+          "segment": {
+            "clan_tag": "#8UJ2UUJ8"
+          }
+        }
+      },
+      "k": {
+        "tool": "clans_roster",
+        "args": {
+          "clan_tag": "#8UJ2UUJ8"
+        }
+      }
+    },
+    "request_id": "8e5274a6-93ba-4c2a-a441-d55feb3c494e",
+    "note": "comprehensive clan: the census considers its whole roster (49 = 49 on 2026-09-23)",
+    "assert": [
+      {
+        "eq": ["r.players_considered", "k.member_count"]
+      }
+    ]
+  },
+  {
+    "id": "183.5",
+    "feedback": 183,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": {
+        "clan_tag": "#8UJ2UUJ8"
+      }
+    },
+    "request_id": "8e5274a6-93ba-4c2a-a441-d55feb3c494e",
+    "note": "the partial-read note is conditional: a fully read comprehensive clan does not carry it",
+    "assert": [
+      {
+        "notes_not_match": "of this clan's \\d+ current members"
+      }
+    ]
+  },
+  {
+    "id": "184.1",
+    "feedback": 184,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "BeatingDeathBadge",
+      "segment": "mine",
+      "min_level": 1
+    },
+    "request_id": "94dbf2a4-c376-489c-ac69-fd30c61e6d5a",
+    "note": "min_level on a one_off answered 0 holders / holder_share 0 when 5 hold it; must be refused naming min_level",
+    "assert": [
+      {
+        "notes_match": "min_level"
+      },
+      {
+        "absent": "holder_share"
+      }
+    ]
+  },
+  {
+    "id": "184.2",
+    "feedback": 184,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "Royal Tournament Rank",
+      "segment": {
+        "collection": "pol-global-top-100"
+      }
+    },
+    "request_id": "8c9d33c1-31de-40f3-814b-0dc67fb5da4d",
+    "note": "an empty answer still says the badge's kind (RoyalTournamentRank is tiered on badges_rarity)",
+    "assert": [
+      {
+        "eq": ["kind", "tiered"]
+      }
+    ]
+  },
+  {
+    "id": "184.3",
+    "feedback": 184,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "BeatingDeathBadge",
+      "segment": "mine"
+    },
+    "request_id": "a30f16aa-0154-405e-ba24-fa14182cf322",
+    "assert": [
+      {
+        "eq": ["kind", "one_off"]
+      },
+      {
+        "gt": ["holders_total", 0]
+      },
+      {
+        "has": "holder_share"
+      }
+    ]
+  },
+  {
+    "id": "184.4",
+    "feedback": 184,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryValkyrie",
+      "segment": "mine",
+      "min_level": 10
+    },
+    "request_id": "f2b02b2b-0c66-42f7-8e9f-f47b85caf2b0",
+    "note": "min_level on a tiered badge still filters (7 of 48 at level 10 on 2026-09-23)",
+    "assert": [
+      {
+        "eq": ["kind", "tiered"]
+      },
+      {
+        "gt": ["holders_total", 0]
+      },
+      {
+        "notes_not_match": "min_level applies to tiered"
+      }
+    ]
+  },
+  {
+    "id": "185.1",
+    "feedback": 185,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "Royal Tournament Rank",
+      "segment": {
+        "collection": "pol-global-top-100"
+      }
+    },
+    "request_id": "8c9d33c1-31de-40f3-814b-0dc67fb5da4d",
+    "assert": [
+      {
+        "notes_match": "In this population \\d+ hold RoyalTournamentRank_v2, and \\d+ distinct players? holds? either"
+      }
+    ]
+  },
+  {
+    "id": "185.2",
+    "feedback": 185,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "Valkyrie Mastry",
+      "segment": "mine"
+    },
+    "request_id": "8a8ced34-b750-44ab-9eb6-9f900278f66b",
+    "assert": [
+      {
+        "notes_match": "exactly 'Valkyrie Mastry'"
+      },
+      {
+        "notes_match": "Did you mean: MasteryValkyrie"
+      },
+      {
+        "absent": "holders"
+      }
+    ]
+  },
+  {
+    "id": "185.3",
+    "feedback": 185,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "r": {
+        "tool": "badges_rarity",
+        "args": {
+          "segment": "corpus"
+        }
+      },
+      "i": {
+        "tool": "elixir_data_insights",
+        "args": {}
+      }
+    },
+    "request_id": "006b2492-aabb-49c9-bc17-b5e394c6376d",
+    "note": "6.30.1: the corpus census is the recorded population (1081 = 1081 on 2026-09-23)",
+    "assert": [
+      {
+        "eq": ["r.players_considered", "i.recorded_players.total"]
+      },
+      {
+        "eq": ["r.population.players_in_window", "r.players_considered"]
+      }
+    ]
+  },
+  {
+    "id": "185.4",
+    "feedback": 185,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "Chaos_S2",
+      "segment": "corpus",
+      "limit": 200
+    },
+    "request_id": "bd371db7-e9ae-453c-8ef5-ce75201be41b",
+    "note": "a lapsed read (Hunter #PCR9Y9LU8, last read 2026-09-13) stays out of the corpus",
+    "assert": [
+      {
+        "absent": "holders[?player_tag=#PCR9Y9LU8]"
+      },
+      {
+        "gt": ["holders_total", 0]
+      }
+    ]
+  },
+  {
+    "id": "185.5",
+    "feedback": 185,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "corpus"
+    },
+    "request_id": "006b2492-aabb-49c9-bc17-b5e394c6376d",
+    "assert": [
+      {
+        "notes_match": "ClassicRoyaleTournamentRank / ClassicRoyaleTournamentRank_v2 is held by \\d+ distinct players"
+      },
+      {
+        "notes_not_match": "count their holders together"
+      }
+    ]
   }
 ]

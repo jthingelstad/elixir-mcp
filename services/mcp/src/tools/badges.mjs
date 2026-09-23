@@ -31,10 +31,16 @@ async function badgeScope(ctx, args, params) {
   }
   if (seg.kind === "clan") {
     params.push(seg.clanTag);
+    // A clan's current members who are RECORDED now (Gym #183): the
+    // corpus rule (#145) applies here too, so a member the record no
+    // longer polls - a stale read under an old clan tag - is left out,
+    // and the note says how many of the members that is.
     return {
       where: `pb.player_tag in (select cm.player_tag from clan_membership cm
-               where cm.clan_tag = $${params.length} and cm.left_observed_at is null)`,
+               where cm.clan_tag = $${params.length} and cm.left_observed_at is null)
+              and pb.player_tag in (${RECORDED_PLAYERS_SQL})`,
       echo: seg.echo,
+      clanTag: seg.clanTag,
     };
   }
   if (seg.kind === "collection") {
@@ -54,6 +60,22 @@ async function badgeScope(ctx, args, params) {
     echo: seg.echo,
     corpus: true,
   };
+}
+
+/** How much of a clan a clan segment could read (Gym #183): a clan
+ *  recorded at roster level has members whose badges were never read,
+ *  and a share over the rest must not read as "every member". */
+async function clanCoverageNote(db, scope, considered) {
+  if (!scope.clanTag) return null;
+  const {
+    rows: [m],
+  } = await db.query(
+    `select count(*)::int as n from clan_membership
+      where clan_tag = $1 and left_observed_at is null`,
+    [scope.clanTag],
+  );
+  if (!m || considered >= m.n) return null;
+  return `players_considered (${considered}) is ${considered} of this clan's ${m.n} current members: the others are not recorded now or their profiles were never read, so their badges are unknown, not absent, and holder_share is over the ${considered}.`;
 }
 
 /** The parameters a scope's where clause uses: one for a named segment,
@@ -307,6 +329,7 @@ export const badgesTools = {
           ),
           OBSERVATIONS_NOTE,
           corpus ? corpusNote(pop, corpus) : null,
+          await clanCoverageNote(ctx.db, scope, pop.players_considered),
         ),
         docs: BADGE_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
@@ -348,7 +371,29 @@ export const badgesTools = {
       params.push(exact.name);
       const where = [`pb.name = $${params.length}`];
       if (scope.where) where.push(scope.where);
+      // The badge's kind from the whole record (Gym #184): an empty
+      // answer had said kind null, even for a tiered badge.
+      const {
+        rows: [kindRow],
+      } = await ctx.db.query(
+        `select bool_and(level is null) as one_off from player_badge where name = $1`,
+        [exact.name],
+      );
+      const recordedKind =
+        kindRow?.one_off === null || kindRow?.one_off === undefined
+          ? null
+          : kindRow.one_off
+            ? "one_off"
+            : "tiered";
       if (args.min_level !== undefined) {
+        // A one-off badge has no level: min_level used to answer 0
+        // holders and holder_share 0 (Gym #184).
+        if (recordedKind === "one_off")
+          throw new ToolFailure(
+            "bad_request",
+            `min_level applies to tiered badges only: ${exact.name} is a one-off badge with no level.`,
+            "Omit min_level to list its holders.",
+          );
         params.push(Number(args.min_level));
         where.push(`pb.level >= $${params.length}`);
       }
@@ -385,7 +430,9 @@ export const badgesTools = {
       return {
         badge: exact.name,
         label: badgeLabel(exact.name),
-        kind: rows.length === 0 ? null : oneOff ? "one_off" : "tiered",
+        kind:
+          recordedKind ??
+          (rows.length === 0 ? null : oneOff ? "one_off" : "tiered"),
         applied: appliedBlock({
           badge: exact.name,
           segment: scope.echo,
@@ -436,6 +483,7 @@ export const badgesTools = {
           LABEL_NOTE,
           OBSERVATIONS_NOTE,
           corpus ? corpusNote(pop, corpus) : null,
+          await clanCoverageNote(ctx.db, scope, pop.players_considered),
         ),
         docs: BADGE_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),

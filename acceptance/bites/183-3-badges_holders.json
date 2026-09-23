@@ -1,0 +1,63 @@
+{
+  "feedback": 183,
+  "contract_version": "6.36.2",
+  "captured_at": "2026-09-23T23:43:04.933Z",
+  "request": {
+    "tool": "badges_holders",
+    "arguments": {
+      "badge": "Chaos_S2",
+      "segment": {
+        "clan_tag": "#P9GPQ2Y0"
+      }
+    }
+  },
+  "response": {
+    "badge": "Chaos_S2",
+    "label": "Chaos Season 2",
+    "kind": "one_off",
+    "applied": {
+      "badge": "Chaos_S2",
+      "segment": {
+        "kind": "clan",
+        "clan_tag": "#P9GPQ2Y0"
+      },
+      "limit": 50
+    },
+    "players_considered": 17,
+    "observations": {
+      "oldest": "2026-09-13T20:32:44.000Z",
+      "newest": "2026-09-23T22:47:47.000Z"
+    },
+    "holders_total": 1,
+    "holder_share": 0.059,
+    "holders": [
+      {
+        "player_tag": "#PCR9Y9LU8",
+        "name": "✖Hunter✨爱H",
+        "name_known": true,
+        "clan_tag": "#L9VRJ",
+        "observed_at": "2026-09-13T20:32:44.000Z",
+        "since": "2026-09-13T20:32:44.000Z"
+      }
+    ],
+    "notes": [
+      "one_off badges have no level (awarded once for an event or feat, the genuinely rare class); tiered badges carry level/max_level.",
+      "holder_share = holders_total / players_considered (the whole population, not this page).",
+      "A holder's observed_at is the last profile poll that read the badge; since is when the record first saw it at this level and progress. A since at the start of recording, or just after the player joined, is a first sighting, not when the badge was earned.",
+      "A holder's clan_tag is their clan at observed_at, not necessarily today's: a player the record no longer polls keeps the clan of that last read.",
+      "Badge names are the API's own identifiers and label is the badge as a player says it (MasterySkeletonWarriors is Guards Mastery). A versioned identifier says its version (RoyalTournamentRank_v2 is 'Royal Tournament Rank (v2)'): the original and the _v2 are two badges, often held by the same player.",
+      "observations.oldest/newest are the oldest and newest profile poll among players_considered: how fresh the reads behind these counts are."
+    ],
+    "docs": "glossary",
+    "meta": {
+      "contract_version": "6.36.2"
+    }
+  },
+  "timings": {
+    "db_ms": 193,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

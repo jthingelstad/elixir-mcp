@@ -1,0 +1,55 @@
+{
+  "feedback": 184,
+  "contract_version": "6.36.2",
+  "captured_at": "2026-09-23T23:44:28.320Z",
+  "request": {
+    "tool": "badges_holders",
+    "arguments": {
+      "badge": "BeatingDeathBadge",
+      "segment": "mine",
+      "min_level": 1
+    }
+  },
+  "response": {
+    "badge": "BeatingDeathBadge",
+    "label": "Beating Death",
+    "kind": null,
+    "applied": {
+      "badge": "BeatingDeathBadge",
+      "segment": {
+        "kind": "clan",
+        "clan_tag": "#J2RGCRVG",
+        "source": "mine"
+      },
+      "min_level": 1,
+      "limit": 50
+    },
+    "players_considered": 48,
+    "observations": {
+      "oldest": "2026-09-22T12:02:39.000Z",
+      "newest": "2026-09-23T23:17:39.000Z"
+    },
+    "holders_total": 0,
+    "holder_share": 0,
+    "holders": [],
+    "notes": [
+      "one_off badges have no level (awarded once for an event or feat, the genuinely rare class); tiered badges carry level/max_level.",
+      "holder_share = holders_total / players_considered (the whole population, not this page).",
+      "A holder's observed_at is the last profile poll that read the badge; since is when the record first saw it at this level and progress. A since at the start of recording, or just after the player joined, is a first sighting, not when the badge was earned.",
+      "A holder's clan_tag is their clan at observed_at, not necessarily today's: a player the record no longer polls keeps the clan of that last read.",
+      "Badge names are the API's own identifiers and label is the badge as a player says it (MasterySkeletonWarriors is Guards Mastery). A versioned identifier says its version (RoyalTournamentRank_v2 is 'Royal Tournament Rank (v2)'): the original and the _v2 are two badges, often held by the same player.",
+      "observations.oldest/newest are the oldest and newest profile poll among players_considered: how fresh the reads behind these counts are."
+    ],
+    "docs": "glossary",
+    "meta": {
+      "contract_version": "6.36.2"
+    }
+  },
+  "timings": {
+    "db_ms": 495,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}
