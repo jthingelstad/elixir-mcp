@@ -76,6 +76,7 @@ brief forbids them from using it, and your assignment header repeats that.
    Legacy list (filed from Jamie's account before 2026-09-23; treat as your own history):
    <the lines>
    Shipped since the last run of this family: <versions and one line each, if a sweep round>
+   Scratch files: /tmp/gym-<family>/ only (Gyms running together collided in one directory on 2026-09-23).
    ```
 
 4. **Check the appendix** with
@@ -101,9 +102,12 @@ day, until every family has a clean run on the build we will announce.
 and `rankings` read the corpus and are heavy on the db.t4g.micro.
 
 **Parallelism.**
-- Up to two Gym subagents at once, in the background (`run_in_background`).
+- At the account's 300 calls an hour, ONE Gym at a time: a full run spends
+  150-250 calls, and on 2026-09-23 badges and battles together emptied the
+  hour so the next two runs were refused at their first call. Up to two at
+  once only after Jamie raises the ceiling to 900.
 - Never two heavy families together.
-- If a `rate_limited` refusal comes back, drop to one.
+- If a `rate_limited` refusal comes back, drop to one and wait for the hour.
 
 Gym runs are read-only, so they may run while you fix another family.
 

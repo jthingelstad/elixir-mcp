@@ -12,10 +12,10 @@ shipped, and both need a regression pass.
 
 | Family | Status | Contract | Date | Rounds | Report | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| badges | not run | | | 0 | | |
-| battles | not run | | | 0 | | |
-| cards | not run | | | 0 | | |
-| clans | not run | | | 0 | | |
+| badges | findings fixed (6.20.0), round 2 due | 6.19.3 | 2026-09-23 | 1 | reports/2026-09-23-badges-r1.md | #91-#94 done; #18 confirmed |
+| battles | findings fixed (6.21.0-6.21.1), round 2 due | 6.19.3 | 2026-09-23 | 1 | reports/2026-09-23-battles-r1.md | #95-#100 done, #101 praise; 30/34 regressions confirmed; 140 duels repaired |
+| cards | blocked: rate limit (r1 at 300/h) | - | 2026-09-23 | 0 | reports/2026-09-23-cards-r1.md | re-run |
+| clans | blocked: rate limit (r1 at 300/h) | - | 2026-09-23 | 0 | reports/2026-09-23-clans-r1.md | re-run |
 | collections | not run | | | 0 | | |
 | elixir | not run | | | 0 | | |
 | game | not run | | | 0 | | |
