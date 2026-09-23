@@ -344,24 +344,27 @@ export async function resolveSegment(ctx, args) {
  *  5): the active clan recordings and the players whose battle logs are
  *  recorded (directly, or as current members of a comprehensive clan),
  *  the same count elixir_data_insights serves. */
+/** The players recorded now, as one select of player_tag: tracked
+ *  directly, or a current member of a comprehensively recorded clan. The
+ *  population block counts it, and the badge corpus is read over it
+ *  (6.30.1, Gym #145: the corpus had pooled every profile ever read). */
+export const RECORDED_PLAYERS_SQL = `select subject_tag as player_tag from recording
+       where subject_type = 'player' and status = 'active'
+     union
+     select cm.player_tag
+       from recording r
+       join clan_membership cm on cm.clan_tag = r.subject_tag
+         and cm.left_observed_at is null
+      where r.subject_type = 'clan' and r.status = 'active'
+        and r.scope = 'comprehensive'`;
+
 async function recordedPopulation(db) {
   const {
     rows: [r],
   } = await db.query(
-    `with direct as (
-       select subject_tag as player_tag from recording
-       where subject_type = 'player' and status = 'active'),
-     via as (
-       select cm.player_tag
-       from recording r
-       join clan_membership cm on cm.clan_tag = r.subject_tag
-         and cm.left_observed_at is null
-       where r.subject_type = 'clan' and r.status = 'active'
-         and r.scope = 'comprehensive')
-     select (select count(*) from recording
+    `select (select count(*) from recording
               where subject_type = 'clan' and status = 'active')::int as recorded_clans,
-            (select count(distinct player_tag) from
-              (select player_tag from direct union select player_tag from via) u)::int as recorded_players`,
+            (select count(distinct player_tag) from (${RECORDED_PLAYERS_SQL}) u)::int as recorded_players`,
   );
   return {
     recorded_clans: r.recorded_clans,

@@ -117,7 +117,9 @@ trophies and the ranked standing, so the two sides of it are not one series.
   `segment` is required (4.0.0): a call without it is refused with the
   three shapes in the hint, and a corpus read carries `population` (the
   recorded clans and players it was drawn from, and the distinct players
-  in the window).
+  in the window). On the badge tools the corpus is the players recorded
+  now: a player the record no longer reads is left out, since their
+  badges stopped being read with them (6.30.1).
 - **Windows are `from`/`to`**, ISO instants or `YYYY-MM-DD` resolved in the
   account's timezone; a date-only `to` covers that whole day. The daily
   series (`players_timeline`, `clans_timeline`, `clans_members_timeline`)

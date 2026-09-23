@@ -1,8 +1,8 @@
 /** badges_rarity · badges_holders — badges as a queryable dimension
  *  (feedback #18 part 2). player_badge is current state per recorded
  *  profile; these read it sideways: which badge is rarest, and who has
- *  one. The population is every player with an observed profile, or a
- *  segment (clan / collection / one player) of it. */
+ *  one. The corpus is the players recorded now (6.30.1), or a segment
+ *  (clan / collection / one player) is named. */
 
 import { badgeLabel } from "../badge-names.mjs";
 import { responseMeta } from "@elixir-mcp/contracts";
@@ -11,6 +11,7 @@ import {
   SEGMENT_SCHEMA,
   resolveSegment,
   populationBlock,
+  RECORDED_PLAYERS_SQL,
   appliedBlock,
   notes,
   docsRef,
@@ -44,8 +45,20 @@ async function badgeScope(ctx, args, params) {
       echo: seg.echo,
     };
   }
-  return { where: null, echo: seg.echo };
+  // The corpus is the players recorded now (Jamie, 2026-09-23, Gym
+  // #145): a profile the record no longer polls stays in player_badge
+  // with the badges and clan of its last read, as old as March, and
+  // pooled in it nearly doubled players_considered.
+  return {
+    where: `pb.player_tag in (${RECORDED_PLAYERS_SQL})`,
+    echo: seg.echo,
+    corpus: true,
+  };
 }
+
+/** The parameters a scope's where clause uses: one for a named segment,
+ *  none for the corpus. */
+const scopeArity = (scope) => (scope.corpus ? 0 : 1);
 
 /** The population, and how fresh its reads are: `observations` is the
  *  oldest and newest PROFILE POLL among the players considered (Gym #91).
@@ -233,7 +246,7 @@ export const badgesTools = {
       else if (args.kind !== undefined)
         throw new ToolFailure("bad_request", `kind must be one_off or tiered.`);
       const limit = Math.min(Math.max(Number(args.limit ?? 200), 1), 300);
-      const scopeParams = params.slice(0, scope.where ? 1 : 0);
+      const scopeParams = params.slice(0, scopeArity(scope));
       const pop = await population(ctx.db, scope.where, params);
       const { rows } = await ctx.db.query(
         `select pb.name,
@@ -250,7 +263,7 @@ export const badgesTools = {
          limit ${limit}`,
         params,
       );
-      const corpus = scope.where
+      const corpus = !scope.corpus
         ? null
         : await populationBlock(ctx.db, {
             playersInWindow: pop.players_considered,
@@ -342,7 +355,7 @@ export const badgesTools = {
       const pop = await population(
         ctx.db,
         scope.where,
-        params.slice(0, scope.where ? 1 : 0),
+        params.slice(0, scopeArity(scope)),
       );
       // The page first, then each row's last profile poll (Gym #91): the
       // stored stamp moves only when the badge changes, so it is `since`,
@@ -364,7 +377,7 @@ export const badgesTools = {
         params,
       );
       const oneOff = rows.length > 0 && rows.every((r) => r.level === null);
-      const corpus = scope.where
+      const corpus = !scope.corpus
         ? null
         : await populationBlock(ctx.db, {
             playersInWindow: pop.players_considered,
@@ -414,7 +427,7 @@ export const badgesTools = {
             ctx.db,
             exact.name,
             scope.where,
-            params.slice(0, scope.where ? 1 : 0),
+            params.slice(0, scopeArity(scope)),
           ),
           KIND_NOTE,
           "holder_share = holders_total / players_considered (the whole population, not this page).",
@@ -457,11 +470,8 @@ async function siblingNote(db, name, scopeWhere, scopeParams) {
   return `Versioned pair: ${c.pair} are two identifiers for one badge a player names the same way (${badgeLabel(sibling)} is the other). In this population ${s.n} ${s.n === 1 ? "holds" : "hold"} ${sibling}, and ${players(c.either)} ${c.either === 1 ? "holds" : "hold"} either (${holdBoth(c.both)}).`;
 }
 
-/** What the corpus counts (Gym #145): every player whose profile the
- *  record has read, not only the players recorded now - so it can run
- *  near twice population.recorded_players, with reads as old as the
- *  first profile poll. Said; whether the corpus should narrow is a
- *  decision, not a description, and is parked for Jamie. */
+/** What the corpus counts (Gym #145): the players recorded now, with a
+ *  profile the record has read - not every profile it ever read. */
 function corpusNote(pop, corpus) {
-  return `players_considered counts every player whose profile the record has read (${pop.players_considered}), not only the ${corpus.recorded_players ?? "players"} recorded now: the rest are no longer polled, and their badges and clan are as of their last read, as old as observations.oldest. population.players_in_window is the same count.`;
+  return `players_considered counts the players recorded now whose profile the record has read (${pop.players_considered} of the ${corpus.recorded_players} recorded now): a player no longer recorded is left out, since the record stopped reading their badges. population.players_in_window is the same count.`;
 }

@@ -1977,6 +1977,7 @@ All 5 regressions were confirmed (#38 rankings half, #71-#73, #76). #139 is prai
 
 #18, #91, #92 and #94 were confirmed fixed. #93 was partly fixed, and the rest is #146. #147 is praise. Findings:
 - **#144:** `pairCounts` gives the distinct holders of either identifier, and of both, in the segment. The rarity pair note quotes it. badges_holders gets a `siblingNote`. Resolution itself is unchanged: a bare label still names the identifier whose label it is.
-- **#145:** notes only. The corpus note says players_considered is every profile ever read (2,078), not the 1,076 recorded now, and a holder's clan_tag is described as the clan at the last read. **Parked for Jamie:** should the corpus segment narrow to recorded players, as elixir_data_insights says badge questions draw on? That changes what the numbers mean, so it is not a sweep fix.
+- **#145:** 6.30.0 shipped a note. Jamie decided the same afternoon that badge questions over the corpus include recorded players only ("there is no practical way we could do otherwise"). 6.30.1 moves `RECORDED_PLAYERS_SQL` to shared.mjs, where the population block counts it too, and the badge corpus is read over it. The note says what players_considered counts.
+- **6.30.0 gate:** gym/147.4 failed in the interpreter, not the product. `count_eq` with a list on the right compared a number to the array; it now compares to the list's length.
 - **#146:** an edit-distance candidate pass over labels and identifiers, with a budget of max(2, length/6) squashed letters. Every miss says "exactly".
 

@@ -1525,7 +1525,33 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
   assert.match(typo.body.error.message, /Did you mean: YearsPlayed/);
   assert.match(none.body.error.message, /exactly 'NoSuchBadgeAtAll'/);
   const said = rarity.body.notes.join(" ");
-  assert.match(said, /players_considered counts every player[^.]*recorded now/);
+  assert.match(
+    said,
+    /players_considered counts the players recorded now[^.]*recorded now/,
+  );
+
+  // The corpus is the players recorded now (#145): a profile the record
+  // read once and no longer polls is left out.
+  await db.query(
+    `insert into player (player_tag) values ('#9YY9YY9Q') on conflict do nothing`,
+  );
+  await db.query(
+    `insert into player_badge (player_tag, name, observed_at)
+     values ('#9YY9YY9Q', 'LapsedProbeBadge', now())`,
+  );
+  try {
+    const recorded = await call("badges_rarity", { segment: "corpus" });
+    assert.ok(
+      !recorded.body.badges.some((b) => b.name === "LapsedProbeBadge"),
+      "an unrecorded profile's badge is not in the corpus",
+    );
+    assert.ok(
+      recorded.body.players_considered <=
+        recorded.body.population.recorded_players,
+    );
+  } finally {
+    await db.query(`delete from player_badge where player_tag = '#9YY9YY9Q'`);
+  }
 
   // A pair one player holds both halves of counts that player once.
   await db.query(

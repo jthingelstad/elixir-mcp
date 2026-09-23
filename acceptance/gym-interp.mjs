@@ -164,8 +164,10 @@ export function assertOne(spec, scope, root) {
       const [p, want] = arg;
       // The count may be compared with another path's number, as eq
       // compares two paths (117.4: members[] against browse's
-      // member_count).
-      const n = typeof want === "number" ? want : rhs(want);
+      // member_count), or with another list's length (147.4: a one-player
+      // badge census against the profile's badges[]).
+      const r = typeof want === "number" ? want : rhs(want);
+      const n = Array.isArray(r) ? r.length : r;
       const v = at(p);
       const count = Array.isArray(v)
         ? v.length
