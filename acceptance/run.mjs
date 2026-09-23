@@ -128,8 +128,12 @@ export async function runSuite(
     c.tools?.length
       ? c.tools
       : [...ctx.tools.keys()].filter((t) => c.id.includes(t));
+  // A #docs case checks a shared docs section against what EVERY tool
+  // served this run, so it belongs to the whole suite, not a family's.
   const inFamily = (c) =>
-    !family || caseTools(c).some((t) => t.startsWith(`${family}_`));
+    !family ||
+    (!c.id.endsWith("#docs") &&
+      caseTools(c).some((t) => t.startsWith(`${family}_`)));
   for (const [suite, cases] of Object.entries(SUITES)) {
     const picked = cases.filter(
       (c) => (!only || `${suite}/${c.id}`.includes(only)) && inFamily(c),
