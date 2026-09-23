@@ -141,10 +141,10 @@ export const playersTools = {
                             group by x.type) t) as by_type,
                   round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap
            from battle_participant bp
-         left join lateral (
-           select avg(o.deck_avg_level) as lvl from battle_participant o
-           where o.battle_id = bp.battle_id and o.side <> bp.side
-             and bp.deck_avg_level is not null) lv on true
+         cross join lateral (
+             -- The other side's level, stamped at ingest (0156).
+             select case when bp.deck_avg_level is not null
+                         then bp.opp_deck_avg_level end as lvl) lv
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
            group by bp.deck_hash order by count(*) desc limit 2`,
@@ -165,10 +165,10 @@ export const playersTools = {
                             group by x.type) t) as by_type,
                   round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap
            from battle_participant bp
-         left join lateral (
-           select avg(o.deck_avg_level) as lvl from battle_participant o
-           where o.battle_id = bp.battle_id and o.side <> bp.side
-             and bp.deck_avg_level is not null) lv on true
+         cross join lateral (
+             -- The other side's level, stamped at ingest (0156).
+             select case when bp.deck_avg_level is not null
+                         then bp.opp_deck_avg_level end as lvl) lv
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
            group by bp.deck_hash

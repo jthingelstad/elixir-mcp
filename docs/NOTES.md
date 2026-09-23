@@ -1748,3 +1748,74 @@ ones relevant to its family as a legacy list.
   `elixir-mcp-migrate`. The session's permission check refused the live
   write.
 - Pause or retire the cloud routine. It would double-file against a sweep.
+
+## 2026-09-23 — Phase 1 engineering debt, and the clan meta timeouts traced to one probe
+
+The project review earlier today led to this. Jamie's plan, in order:
+engineering debt, then the slow tools, then a Gym sweep across every MCP
+family, then launch.
+
+**Shipped (Phase 1):**
+- **0155:** the database's default session zone is UTC. There were 68
+  unqualified date expressions over 98 places that each open their own
+  `pg.Client`. Pinning the zone at the database covers every connection at
+  once, where a client helper would have touched 257 call sites.
+- **One file per tool** for battles, elixir, war and rankings: the four
+  largest modules, 2,903, 1,580, 1,185 and 1,070 lines. The move is
+  mechanical: the old module is the index and keeps the key order.
+- **6.19.2:** the `finished_early` note says "never recorded" instead of
+  "without a standings capture". The old wording tripped the Gym's control
+  84.2, whose regex saw `cap…line`.
+- **`docs/DECISIONS.md`:** 99 standing decisions and the declined ideas.
+  NOTES.md now holds only the current week; weeks 36 to 38 are in
+  `docs/notes/`.
+
+**`{profile_tool}` replaces writing another explain op.** It runs the
+registry's own handler as a named principal, with every query timed and
+explained, on a read-only session. Its first read found that
+`{explain_meta}` was stale: it still profiled a join to `battle` that the
+tool had dropped at 0095/0099.
+
+**The clan meta timeouts, measured.** The 3-day audit counted 9
+`battles_meta_cards` and 4 `battles_meta_decks` `query_timeout` refusals,
+from the Discord agents' `segment: mine` reads. Timed through the Gym's
+door, from a quiet database:
+
+| read | before |
+| --- | --- |
+| meta_cards mine, season | 8.2 s |
+| meta_cards corpus, season (rollup) | 0.5 s |
+| meta_decks mine, season | 6.7 s |
+
+The corpus is fast and the clan, about 50 players, is slow. `{profile_tool}`
+on the mine read put 5.4 s of 11.8 s in one query. Inside that query,
+nearly everything was the level-gap lateral: 6,780 primary-key probes
+reading 8,252 blocks from a cold cache. The excluded breakdown took 9 ms.
+The same probe sat at seven reader sites and the standings SQL.
+
+**0156** stamps `opp_deck_avg_level` on the participant at ingest.
+A test holds it equal to the lateral on every fixture row.
+`{opp_level_backfill}` fills history: a battle-id keyset, 45 s per
+invocation, nulls only, then a vacuum. The readers switch to the column in
+the next commit, after the backfill is done. That keeps the order the
+0099/0151 incidents taught: expand, fill, vacuum, then read.
+
+**Jamie, for decision (not acted on):** the cost and capacity picture from
+the review.
+- The charges alarm threshold ($40) sits below normal spend of about
+  $90-100 a month. September's spike was the one-time $95 reserved-instance
+  purchase.
+- RDS storage grows 0.3-0.45 GB a day; the alarm and autoscaling are due
+  around 10-18 to 10-22.
+- The micro swapped up to 551 MB, and its EBS byte balance hit 0 three times.
+
+"RDS stays db.t4g.micro" is a standing decision. This entry records the
+evidence against it and does not reopen it.
+
+**Backfill receipt (14:36-14:59Z):**
+- 387,549 battles and about 895,000 participant rows stamped.
+- The first invocation used 5,000-battle batches. On a cold cache each batch took about 46 s, so the invocation ran 93 s, past the migrate-duration alarm line. The alarm stayed OK. The driver was stopped and restarted from its cursor at 1,000-battle batches with a 40 s budget and a 5 s pause, and the run took 20.5 minutes.
+- EBS byte balance was 90% at the start.
+- `{vacuum}`: relallvisible 14,147 went to 34,101 of 34,101, and relpages held at 34,101, because the updates were HOT.
+
+The readers then moved to the column.

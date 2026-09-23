@@ -78,10 +78,10 @@ export const battles_cards = {
     // level gap over the battles the card appeared in, and the row's
     // battles by mode group, so a card met mostly in war games does not
     // read as a ladder nemesis.
-    const levelSource = `left join lateral (
-           select avg(o.deck_avg_level) as lvl from battle_participant o
-           where o.battle_id = bp.battle_id and o.side <> bp.side
-             and bp.deck_avg_level is not null) lv on true`;
+    const levelSource = `cross join lateral (
+             -- The other side's level, stamped at ingest (0156).
+             select case when bp.deck_avg_level is not null
+                         then bp.opp_deck_avg_level end as lvl) lv`;
     const { rows } = await ctx.db.query(
       `select c.name, pc.card_id as id, pc.form as evolution,
                 count(*) filter (where bp.outcome = 'win')::int as wins,

@@ -94,10 +94,10 @@ export const battles_decks = {
                 round(avg(bp.deck_avg_level) filter (where opp.lvl is not null)::numeric, 2) as own_mean_level,
                 count(opp.lvl)::int as level_gap_battles
          from battle_participant bp join battle b on b.battle_id = bp.battle_id
-         left join lateral (
-           select avg(o.deck_avg_level) as lvl from battle_participant o
-           where o.battle_id = bp.battle_id and o.side <> bp.side
-             and bp.deck_avg_level is not null) opp on true
+         cross join lateral (
+             -- The other side's level, stamped at ingest (0156).
+             select case when bp.deck_avg_level is not null
+                         then bp.opp_deck_avg_level end as lvl) opp
          where ${where.join(" and ")}
          group by bp.deck_hash
          order by count(*) desc

@@ -80,9 +80,9 @@ async function battle({
   await scratch.db.query(
     `insert into battle_participant
        (battle_id,player_tag,side,outcome,battle_time,type,type_class,deck_hash,deck_avg_level,
-        starting_trophies,trophy_change,elixir_leaked,crowns)
-     values ($1,$2,0,$3,$4::timestamptz,$5,'pvp',$6,$7,$8,$9,$10,1),
-            ($1,$11,1,$12,$4::timestamptz,$5,'pvp',$13,$14,$8,null,$15,1)`,
+        opp_deck_avg_level,starting_trophies,trophy_change,elixir_leaked,crowns)
+     values ($1,$2,0,$3,$4::timestamptz,$5,'pvp',$6,$7,$14,$8,$9,$10,1),
+            ($1,$11,1,$12,$4::timestamptz,$5,'pvp',$13,$14,$7,$8,null,$15,1)`,
     [
       id,
       who,

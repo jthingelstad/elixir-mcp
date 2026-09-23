@@ -215,10 +215,10 @@ export const battles_meta_decks = {
                         : `sum(bp.deck_avg_level - lv.lvl) as gap_sum,
                     count(lv.lvl)::int as gap_n
              from battle_participant bp
-             left join lateral (
-               select avg(o.deck_avg_level) as lvl from battle_participant o
-               where o.battle_id = bp.battle_id and o.side <> bp.side
-                 and bp.deck_avg_level is not null) lv on true`
+             cross join lateral (
+             -- The other side's level, stamped at ingest (0156).
+             select case when bp.deck_avg_level is not null
+                         then bp.opp_deck_avg_level end as lvl) lv`
                     }
              where ${where.join(" and ")}
              group by bp.deck_hash, bp.type, bp.player_tag),

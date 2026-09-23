@@ -39,7 +39,7 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
   });
   const text = `with d as ${daily},
      s as (
-       select bp.player_tag, bp.battle_id, bp.outcome, bp.battle_time, bp.side, bp.deck_avg_level
+       select bp.player_tag, bp.battle_id, bp.outcome, bp.battle_time, bp.side, bp.deck_avg_level, bp.opp_deck_avg_level
        from battle_participant bp
        where bp.player_tag in ${members}
          and bp.battle_time >= $2
@@ -84,7 +84,7 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
      -- micro), and the whole window was 12,657 of them and 15 s on a
      -- 30-day read (2026-09-18); level_gap_battles says the sample.
      recent as (
-       select s.player_tag, s.battle_id, s.side, s.deck_avg_level,
+       select s.player_tag, s.battle_id, s.side, s.deck_avg_level, s.opp_deck_avg_level,
               row_number() over (partition by s.player_tag order by s.battle_time desc, s.battle_id desc) as rn
        from s where s.deck_avg_level is not null
      ),
@@ -93,8 +93,7 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
               round(avg(r.deck_avg_level - o.lvl)::numeric, 2) as mean_level_gap,
               count(o.lvl)::int as level_gap_battles
        from recent r
-       left join lateral (select avg(o.deck_avg_level) as lvl from battle_participant o
-                           where o.battle_id = r.battle_id and o.side <> r.side) o on true
+       cross join lateral (select r.opp_deck_avg_level as lvl) o -- stamped at ingest (0156)
        where r.rn <= 50
        group by r.player_tag
      )
