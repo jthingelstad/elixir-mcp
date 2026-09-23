@@ -167,4 +167,4 @@ correct answers" finding, or the sweep finishing.
 - Gym subagents never edit the repo. You are the only writer, under the lease.
 - The daily Claude Cloud routine (Jamie's connector, Jamie's budget) and a
   sweep double-file if both run. Jamie decides whether the cloud routine is
-  paused or retired. Until he does, tell him when a sweep starts.
+  paused or retired. Until Jamie decides, say so when a sweep starts.

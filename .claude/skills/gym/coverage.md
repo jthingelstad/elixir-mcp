@@ -14,11 +14,11 @@ shipped, and both need a regression pass.
 | --- | --- | --- | --- | --- | --- | --- |
 | badges | findings fixed (6.20.0), round 2 due | 6.19.3 | 2026-09-23 | 1 | reports/2026-09-23-badges-r1.md | #91-#94 done; #18 confirmed |
 | battles | findings fixed (6.21.0-6.21.1), round 2 due | 6.19.3 | 2026-09-23 | 1 | reports/2026-09-23-battles-r1.md | #95-#100 done, #101 praise; 30/34 regressions confirmed; 140 duels repaired |
-| cards | blocked: rate limit (r1 at 300/h) | - | 2026-09-23 | 0 | reports/2026-09-23-cards-r1.md | re-run |
-| clans | blocked: rate limit (r1 at 300/h) | - | 2026-09-23 | 0 | reports/2026-09-23-clans-r1.md | re-run |
-| collections | not run | | | 0 | | |
-| elixir | not run | | | 0 | | |
-| game | not run | | | 0 | | |
-| players | not run | | | 0 | | |
-| rankings | findings shipped, not re-run | 6.2.0 | 2026-09-20 | 1 | cloud | #71–#76 |
-| war | findings shipped, not re-run | 6.19.1 | 2026-09-23 | 3 | cloud | #81–#89 |
+| cards | findings fixed (6.22.0), round 2 due | 6.21.1 | 2026-09-23 | 1 | reports/2026-09-23-cards-r1.md | #102-#108 |
+| clans | findings fixed (6.23.0-6.24.2), round 2 due | 6.21.1 | 2026-09-23 | 1 | reports/2026-09-23-clans-r1.md | #110-#112; 6.24.x participation cap outage |
+| collections | findings fixed (6.24.0), round 2 due | 6.22.0 | 2026-09-23 | 1 | reports/2026-09-23-collections-r1.md | #114-#116 |
+| elixir | findings fixed (6.25.0), round 2 due | 6.23.0 | 2026-09-23 | 1 | reports/2026-09-23-elixir-r1.md | #118-#123; every tool has an outputSchema |
+| game | findings fixed (6.26.0), round 2 due | 6.25.0 | 2026-09-23 | 1 | reports/2026-09-23-game-r1.md | #125-#127 |
+| players | findings fixed (6.27.0), round 2 due | 6.25.0 | 2026-09-23 | 1 | reports/2026-09-23-players-r1.md | #129-#134; 9 regressions confirmed |
+| rankings | findings fixed (6.28.0), round 2 due | 6.26.0 | 2026-09-23 | 2 | reports/2026-09-23-rankings-r1.md | #136-#138, #139 praise; 5 regressions confirmed |
+| war | findings fixed (6.29.0-6.29.1), round 2 due | 6.27.0 | 2026-09-23 | 4 | reports/2026-09-23-war-r1.md | #140-#142, #143 praise; #88 closed via #141; war-day paths unchecked (training day) |
