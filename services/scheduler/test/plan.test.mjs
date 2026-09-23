@@ -339,10 +339,14 @@ test("a daily leaderboard reads once per board-day, in the tick after 10:00Z", a
   await setTokens(100);
   assert.equal((await planTick(db, at("2026-09-04T09:58:00Z"))).jobs.length, 0);
 
-  // The first tick after the next 10:00Z: both due, once.
+  // The first tick after the next 10:00Z: both boards due, once - and
+  // the global events and tournaments reads, anchored to the same
+  // board-day since Gym #126 (their 09:00Z read was yesterday's).
   await setTokens(100);
   const { jobs: j3 } = await planTick(db, at("2026-09-04T10:02:00Z"));
   assert.deepEqual(j3.map((j) => `${j.endpoint}:${j.entity_key}`).sort(), [
+    "events:GLOBAL",
+    "globaltournaments:GLOBAL",
     "rankings_pol:57000249",
     "rankings_pol:global",
   ]);

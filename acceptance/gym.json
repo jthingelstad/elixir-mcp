@@ -3203,5 +3203,364 @@
         "every_row_has": ["collectors", "lifecycle"]
       }
     ]
+  },
+  {
+    "id": "125.1",
+    "feedback": 125,
+    "stability": "frozen",
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-21T07:00:00Z",
+      "to": "2026-09-21T09:00:00Z"
+    },
+    "request_id": "f82eab4c-9378-4198-9882-40a05b3c415f",
+    "assert": [
+      {
+        "count_eq": ["events[]", 0]
+      }
+    ]
+  },
+  {
+    "id": "125.2",
+    "feedback": 125,
+    "stability": "frozen",
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22T10:00:00Z",
+      "to": "2026-09-23T10:00:00Z"
+    },
+    "request_id": "90481ed1-38ca-492c-ab07-1016328f3e29",
+    "assert": [
+      {
+        "count_eq": ["events[]", 0]
+      }
+    ]
+  },
+  {
+    "id": "125.3",
+    "feedback": 125,
+    "stability": "frozen",
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22",
+      "to": "2026-09-22",
+      "timezone": "Asia/Tokyo"
+    },
+    "request_id": "5f7a97b2-845d-47ab-8a34-9e9c7a43c0b2",
+    "assert": [
+      {
+        "absent": "events[?title=2v2 League]"
+      }
+    ]
+  },
+  {
+    "id": "125.4",
+    "feedback": 125,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22T09:00:00Z",
+      "to": "2026-09-22T09:10:00Z"
+    },
+    "request_id": "462bcc1b-f212-4a89-83d9-021c0a167efd",
+    "assert": [
+      {
+        "count_eq": ["events[]", 9]
+      }
+    ]
+  },
+  {
+    "id": "125.5",
+    "feedback": 125,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22T09:00:00Z",
+      "to": "2026-09-22T09:10:00Z"
+    },
+    "request_id": "462bcc1b-f212-4a89-83d9-021c0a167efd",
+    "for_each": "events[]",
+    "assert": [
+      {
+        "count_eq": ["game_days_seen[]", 1]
+      }
+    ]
+  },
+  {
+    "id": "126.1",
+    "feedback": 126,
+    "stability": "live",
+    "tool": "game_events",
+    "args": {},
+    "request_id": "b2b302e9-1b4c-478b-b861-042a1cde3a81",
+    "assert": [
+      {
+        "has": "game_days_read"
+      }
+    ]
+  },
+  {
+    "id": "126.2",
+    "feedback": 126,
+    "stability": "frozen",
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22T10:00:00Z",
+      "to": "2026-09-23T10:00:00Z"
+    },
+    "request_id": "90481ed1-38ca-492c-ab07-1016328f3e29",
+    "assert": [
+      {
+        "notes_match": "2026-09-22"
+      }
+    ]
+  },
+  {
+    "id": "126.3",
+    "feedback": 126,
+    "stability": "live",
+    "tool": "game_events",
+    "args": {},
+    "request_id": "b2b302e9-1b4c-478b-b861-042a1cde3a81",
+    "assert": [
+      {
+        "notes_match": "running_on_latest_day"
+      }
+    ]
+  },
+  {
+    "id": "126.4",
+    "feedback": 126,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22T09:00:00Z",
+      "to": "2026-09-22T09:10:00Z"
+    },
+    "request_id": "462bcc1b-f212-4a89-83d9-021c0a167efd",
+    "assert": [
+      {
+        "notes_not_match": "(?i)no read on game day"
+      }
+    ]
+  },
+  {
+    "id": "126.5",
+    "feedback": 126,
+    "needs_fixture": "Recorder cadence: after the events read is pinned to the game-day grid, game_events {from:'2026-09-28T10:00:00Z', to:'2026-10-05T10:00:00Z'} must show Classic 1v1 (or any permanent mode) with 7 game_days_seen. Under the observed 26h50m cadence, game day 2026-10-01 is predicted unread. No bite exists yet because the window is in the future."
+  },
+  {
+    "id": "127.1",
+    "feedback": 127,
+    "stability": "frozen",
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-18"
+    },
+    "request_id": "ad2effbb-8f9a-4c7d-bf22-78f0394bf82b",
+    "assert": [
+      {
+        "neq": ["war_day", 1]
+      },
+      {
+        "neq": ["period_index", 10]
+      }
+    ]
+  },
+  {
+    "id": "127.2",
+    "feedback": 127,
+    "stability": "frozen",
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-25"
+    },
+    "request_id": "6443413e-f664-464d-96cf-c7136e45830a",
+    "assert": [
+      {
+        "neq": ["war_day", 1]
+      }
+    ]
+  },
+  {
+    "id": "127.3",
+    "feedback": 127,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-18T10:00:00Z"
+    },
+    "request_id": "d0576b38-e041-4d8d-ac60-e71d4c503b82",
+    "assert": [
+      {
+        "eq": ["war_day", 2]
+      },
+      {
+        "eq": ["period_index", 11]
+      }
+    ]
+  },
+  {
+    "id": "127.4",
+    "feedback": 127,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "garbage"
+    },
+    "request_id": "bab481d5-1822-45ff-8cfc-97934170bd24",
+    "assert": [
+      {
+        "notes_match": "garbage"
+      }
+    ]
+  },
+  {
+    "id": "128.1",
+    "feedback": 128,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-10-05T09:59:59Z"
+    },
+    "request_id": "abeb6e06-cb02-42d2-a2fd-07c73078a00d",
+    "assert": [
+      {
+        "eq": ["season_id", 136]
+      },
+      {
+        "eq": ["war_day", 4]
+      },
+      {
+        "eq": ["week", 4]
+      }
+    ]
+  },
+  {
+    "id": "128.2",
+    "feedback": 128,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-10-05T10:00:00Z"
+    },
+    "request_id": "10cfe2f8-cf14-4683-9118-0350235c1c19",
+    "assert": [
+      {
+        "eq": ["season_id", 137]
+      },
+      {
+        "eq": ["week", 1]
+      },
+      {
+        "eq": ["period_index", 0]
+      }
+    ]
+  },
+  {
+    "id": "128.3",
+    "feedback": 128,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "g": {
+        "tool": "game_clock",
+        "args": {}
+      },
+      "w": {
+        "tool": "war_current",
+        "args": {}
+      }
+    },
+    "request_id": "86d5bce6-29d2-4aae-bb07-6a1e2830197e",
+    "assert": [
+      {
+        "eq": ["g.next_war_day_opens_at", "w.next_war_day_opens_at"]
+      }
+    ]
+  },
+  {
+    "id": "128.4",
+    "feedback": 128,
+    "stability": "live",
+    "control": true,
+    "tool": "war_current",
+    "args": {},
+    "request_id": "9a3768db-2c09-44f6-b57f-7dda00574f8b",
+    "when": {
+      "eq": ["day_kind", "training"]
+    },
+    "assert": [
+      {
+        "has": "decks_today_reason"
+      },
+      {
+        "eq": ["war_day", null]
+      }
+    ]
+  },
+  {
+    "id": "128.5",
+    "feedback": 128,
+    "stability": "live",
+    "control": true,
+    "tool": "game_events",
+    "args": {},
+    "request_id": "b2b302e9-1b4c-478b-b861-042a1cde3a81",
+    "assert": [
+      {
+        "has": "events[].event_tag"
+      },
+      {
+        "has": "events[].title"
+      },
+      {
+        "has": "events[].description"
+      }
+    ]
+  },
+  {
+    "id": "128.6",
+    "feedback": 128,
+    "stability": "live",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "verbosity": "compact",
+      "days": 2
+    },
+    "request_id": "c015562c-b3a0-466b-abe7-c48a800880d9",
+    "assert": [
+      {
+        "notes_match": "one size"
+      }
+    ]
+  },
+  {
+    "id": "128.7",
+    "feedback": 128,
+    "stability": "live",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-06-01",
+      "limit": 3
+    },
+    "request_id": "1c2706ad-9565-467c-b627-be1cef28ddbf",
+    "assert": [
+      {
+        "notes_match": "Window spans \\d+ seasons"
+      },
+      {
+        "has": "applied.window.crosses"
+      }
+    ]
   }
 ]

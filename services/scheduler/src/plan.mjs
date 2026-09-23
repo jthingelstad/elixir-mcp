@@ -273,6 +273,13 @@ export const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multipl
  *  whose row says less than a day keeps its own cadence (0068). */
 export const BOARD_DAY_ANCHOR_HOUR_UTC = 10;
 
+/** Global daily reads anchored to the same board-day (Gym #126): on an
+ *  elapsed-day cadence (1440 min x jitter, plus planning latency) the
+ *  events read drifted ~26h50m apart and skipped a game day about every
+ *  ten days (2026-09-12, 09-22), which the events calendar then showed
+ *  as an event being off. */
+const ANCHORED_DAILY = new Set(["events", "globaltournaments"]);
+
 /** Start of the current board-day: the most recent 10:00Z. */
 export function boardDayStartMs(nowMs) {
   const d = new Date(nowMs);
@@ -501,9 +508,10 @@ async function selectEligible(db, now) {
     // A daily board is due once per board-day, anchored, not once per
     // elapsed day: every daily board reads in the tick after 10:00Z.
     const dailyBoard =
-      BOARD_ENDPOINTS.has(r.endpoint) &&
-      r.board_every != null &&
-      Number(r.board_every) >= 1440;
+      ANCHORED_DAILY.has(r.endpoint) ||
+      (BOARD_ENDPOINTS.has(r.endpoint) &&
+        r.board_every != null &&
+        Number(r.board_every) >= 1440);
     const due = dailyBoard
       ? referenceMs < boardDayStartMs(nowMs)
       : nowMs - referenceMs >= yieldCadenceMinutes(row, now) * jitter;

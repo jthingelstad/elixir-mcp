@@ -1,0 +1,245 @@
+{
+  "feedback": 126,
+  "contract_version": "6.25.0",
+  "captured_at": "2026-09-23T17:07:07.826Z",
+  "request": {
+    "tool": "game_events",
+    "arguments": {}
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": "2026-09-23T17:07:07.770Z",
+        "source": "default",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "limit": 50
+    },
+    "first_sighting_day": "2026-06-13",
+    "latest_sighting_day": "2026-09-23",
+    "events": [
+      {
+        "event_tag": "#2C9J8QUU",
+        "title": "Royale Shuffle",
+        "description": "Battle in a random mode with a random deck. Spin the wheel and test your skill!",
+        "game_days_seen": ["2026-09-21", "2026-09-23"],
+        "first_seen_at": "2026-09-22T09:02:50.000Z",
+        "last_seen_at": "2026-09-23T11:52:50.000Z",
+        "running_on_latest_day": true
+      },
+      {
+        "event_tag": "#2C9J9YRL",
+        "title": "Princess Gambit Tournament",
+        "description": "Compete to earn amazing rewards and lay claim to glory!",
+        "game_days_seen": ["2026-09-21", "2026-09-23"],
+        "first_seen_at": "2026-09-22T09:02:50.000Z",
+        "last_seen_at": "2026-09-23T11:52:50.000Z",
+        "running_on_latest_day": true
+      },
+      {
+        "event_tag": "#2C9JGGCL",
+        "title": "Classic 1v1",
+        "description": "Play a good old-fashioned Battle with a deck of your choice.",
+        "game_days_seen": [
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-13",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-19",
+          "2026-09-20",
+          "2026-09-21",
+          "2026-09-23"
+        ],
+        "first_seen_at": "2026-09-11T04:42:42.000Z",
+        "last_seen_at": "2026-09-23T11:52:50.000Z",
+        "running_on_latest_day": true
+      },
+      {
+        "event_tag": "#2C9JGJ2J",
+        "title": "Classic 2v2",
+        "description": "Play a classic game of 2v2! Bring a friend, Clanmate, or find a teammate to battle against another duo!",
+        "game_days_seen": [
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-13",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-19",
+          "2026-09-20",
+          "2026-09-21",
+          "2026-09-23"
+        ],
+        "first_seen_at": "2026-09-11T04:42:42.000Z",
+        "last_seen_at": "2026-09-23T11:52:50.000Z",
+        "running_on_latest_day": true
+      },
+      {
+        "event_tag": "#2C9JGL8U",
+        "title": "Merge Tactics",
+        "description": null,
+        "game_days_seen": [
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-13",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-19",
+          "2026-09-20",
+          "2026-09-21",
+          "2026-09-23"
+        ],
+        "first_seen_at": "2026-09-01T08:27:02.000Z",
+        "last_seen_at": "2026-09-23T11:52:50.000Z",
+        "running_on_latest_day": true
+      },
+      {
+        "event_tag": "#2PRCR2UU",
+        "title": "Mega Draft Challenge",
+        "description": "Each win in a Challenge will increase your final prize. The Challenge is over at 12 wins, or 3 losses!",
+        "game_days_seen": [
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-13",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-19",
+          "2026-09-20",
+          "2026-09-21",
+          "2026-09-23"
+        ],
+        "first_seen_at": "2026-06-13T11:51:40.000Z",
+        "last_seen_at": "2026-09-23T11:52:50.000Z",
+        "running_on_latest_day": true
+      },
+      {
+        "event_tag": "#2PRCR998",
+        "title": "Classic Challenge",
+        "description": "Each win in a Challenge will increase your final prize. The Challenge is over at 12 wins, or 3 losses!",
+        "game_days_seen": [
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-13",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-19",
+          "2026-09-20",
+          "2026-09-21",
+          "2026-09-23"
+        ],
+        "first_seen_at": "2026-06-13T11:51:40.000Z",
+        "last_seen_at": "2026-09-23T11:52:50.000Z",
+        "running_on_latest_day": true
+      },
+      {
+        "event_tag": "#2PRCRPQL",
+        "title": "Grand Challenge",
+        "description": "Each win in a Challenge will increase your final prize. The Challenge is over at 12 wins, or 3 losses!",
+        "game_days_seen": [
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-13",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-19",
+          "2026-09-20",
+          "2026-09-21",
+          "2026-09-23"
+        ],
+        "first_seen_at": "2026-06-13T11:51:40.000Z",
+        "last_seen_at": "2026-09-23T11:52:50.000Z",
+        "running_on_latest_day": true
+      },
+      {
+        "event_tag": "#2C9JG9GP",
+        "title": "Seasonal Trophy Road",
+        "description": null,
+        "game_days_seen": [
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-13",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-19",
+          "2026-09-20",
+          "2026-09-21",
+          "2026-09-23"
+        ],
+        "first_seen_at": "2026-09-11T04:42:42.000Z",
+        "last_seen_at": "2026-09-23T11:52:50.000Z",
+        "running_on_latest_day": true
+      },
+      {
+        "event_tag": "#2C9J990U",
+        "title": "2v2 League",
+        "description": "Grab a friend and prepare your strategy to dominate the 2v2 leaderboard!",
+        "game_days_seen": [
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-13",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-19",
+          "2026-09-20"
+        ],
+        "first_seen_at": "2026-09-11T04:42:42.000Z",
+        "last_seen_at": "2026-09-21T06:12:39.000Z",
+        "running_on_latest_day": false
+      }
+    ],
+    "notes": [
+      "game_days_seen is the game days (the 10:00Z grid the series tools use; a read before 10:00Z belongs to the day before) on which /events listed the event; the API gives no start or end, so an event's span is its first and last sighting, at daily resolution.",
+      "Sightings began 2026-06-13; nothing before that date is known, and days without a read are unknown, not empty.",
+      "The game-mode leaderboards (rankings_players with board: mode) are the same modes' standings; a title here and a board name there usually match."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.25.0",
+      "source_polls": {
+        "events": {
+          "observed_at": "2026-09-23T11:52:50.000Z",
+          "freshness_seconds": 18858
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 44,
+    "db_queries": 5,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

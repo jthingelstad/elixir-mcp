@@ -150,10 +150,15 @@ before(async () => {
      values ($1, 'rk-gw', '127.0.0.1', 'active') returning gateway_id`,
     [owner.account_id],
   );
+  // Every sighting comes from an admitted read, and game_events selects
+  // by the reads inside its window (Gym #125), so each sighting above has
+  // its receipt too.
   await db.query(
     `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
-     values ('events', 'GLOBAL', '2026-09-13T04:00:00Z', 'h-events-3', $1, 'admitted')`,
-    [gw.gateway_id],
+     values ('events', 'GLOBAL', $2, 'h-events-1', $1, 'admitted'),
+            ('events', 'GLOBAL', '2026-09-12T10:00:00Z', 'h-events-2', $1, 'admitted'),
+            ('events', 'GLOBAL', '2026-09-13T04:00:00Z', 'h-events-3', $1, 'admitted')`,
+    [gw.gateway_id, T1],
   );
   await projectEvents(db, {
     fetchedAt: "2026-09-13T04:00:00Z",

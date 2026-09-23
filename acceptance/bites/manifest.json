@@ -465,5 +465,61 @@
     "case": "gym/123.2",
     "captures": ["123-elixir_docs-section.json"],
     "expect": "has notes"
+  },
+  {
+    "feedback": 125,
+    "contract": "6.25.0",
+    "why": "the Gym's block 125.1: a window holding no events read returned rows from the UTC dates around it",
+    "case": "gym/125.1",
+    "captures": ["125-game_events-no-read.json"],
+    "expect": "count_eq events"
+  },
+  {
+    "feedback": 125,
+    "contract": "6.25.0",
+    "why": "the Gym's block 125.2: a game day with no read returned the day before's sighting",
+    "case": "gym/125.2",
+    "captures": ["125-game_events-day.json"],
+    "expect": "count_eq events"
+  },
+  {
+    "feedback": 125,
+    "contract": "6.25.0",
+    "why": "the Gym's block 125.3: timezone echoed but not applied: a 35-hour-old sighting returned",
+    "case": "gym/125.3",
+    "captures": ["125-game_events-tokyo.json"],
+    "expect": "absent events"
+  },
+  {
+    "feedback": 126,
+    "contract": "6.25.0",
+    "why": "the Gym's block 126.1: no list of the game days a read covered",
+    "case": "gym/126.1",
+    "captures": ["126-game_events-season.json"],
+    "expect": "game_days_read"
+  },
+  {
+    "feedback": 126,
+    "contract": "6.25.0",
+    "why": "the Gym's block 126.3: running_on_latest_day documented nowhere",
+    "case": "gym/126.3",
+    "captures": ["126-game_events-season.json"],
+    "expect": "running_on_latest_day"
+  },
+  {
+    "feedback": 127,
+    "contract": "6.25.0",
+    "why": "the Gym's block 127.1: a bare date read as 00:00Z, the game day before",
+    "case": "gym/127.1",
+    "captures": ["127-game_clock-0918.json"],
+    "expect": "neq war_day"
+  },
+  {
+    "feedback": 127,
+    "contract": "6.25.0",
+    "why": "the Gym's block 127.2: the same on another date",
+    "case": "gym/127.2",
+    "captures": ["127-game_clock-0925.json"],
+    "expect": "neq war_day"
   }
 ]

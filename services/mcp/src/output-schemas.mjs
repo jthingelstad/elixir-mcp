@@ -1411,6 +1411,12 @@ export const OUTPUT_SCHEMAS = {
     type: "object",
     properties: {
       applied: { type: "object" },
+      game_days_read: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "6.26.0: the game days an events read inside the window covered; a day missing here was not read, so an event's absence from it says nothing.",
+      },
       docs: DOCS,
       events: {
         type: "array",

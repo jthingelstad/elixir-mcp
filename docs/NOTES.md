@@ -1938,3 +1938,10 @@ Regressions: #4, #5, #18, #31 and #47 were confirmed. #48 was NOT fixed for hist
 - **#121:** a dedupe at read time (subject, kind, facts) serves #48's rows once and deletes nothing. `step: null` goes on steps from before the rule, with the ledger-start note.
 - **#122, #123, #115:** the refusal gives its size; notes and docs are served. All 55 tools now have an outputSchema, and a test pins it.
 - **Interpreter:** new verb `unique_by` (121.3).
+
+## 2026-09-23 — Gym sweep, game round 1 (6.26.0, feedback #125-#128)
+
+Regressions #28 and #50-#52 were confirmed. Findings:
+- **#125:** game_events filtered `game_event_day` by the UTC dates around the window. It now selects the days an admitted events read inside the window's instants saw. The fixture's two earlier sightings gained the receipts real ingest would have.
+- **#126:** the events and globaltournaments reads join the anchored board-day rule. Their cadence was 1440 min × jitter + planning latency, which drifted about 3 h a day. `game_days_read` is served, and a note lists unread game days.
+- **#127:** a date-only `at` on game_clock is read as that game day's start (10:00Z), with a note saying so.
