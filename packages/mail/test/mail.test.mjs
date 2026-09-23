@@ -339,6 +339,18 @@ test("a deck block is the record's own cards, in order, four to a row", () => {
   assert.ok(html.includes("28000015_hero-128.png"), "the hero form's icon");
   assert.ok(html.includes("26000024_evo-128.png"), "the evolution's icon");
   assert.ok(/width="64" height="94"/.test(html), "displayed at 64, not 128");
+  // An image src carries NO campaign tag. It is not a link anyone
+  // follows, so the tag measures nothing - and a per-campaign URL would
+  // give every week its own copy of the same art in the reader's cache.
+  const imgSrcs = [...html.matchAll(/<img\b[^>]*src="([^"]*)"/g)].map(
+    (m) => m[1],
+  );
+  for (const src of imgSrcs.filter((s) => s.includes("/assets/")))
+    assert.ok(!src.includes("utm_"), `image src is untagged: ${src}`);
+  assert.ok(
+    imgSrcs.some((s) => s.includes("/assets/")),
+    "there are images",
+  );
   // Table layout only: Outlook's engine is Word's.
   assert.ok(!/display:\s*(flex|grid)/.test(html), "no flex or grid");
   assert.ok(!/background-image/.test(html), "no background images");

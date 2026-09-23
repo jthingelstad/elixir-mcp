@@ -663,8 +663,8 @@ const CARD_H = (w) => Math.round((w * 420) / 285);
 /** One line, deliberately: the text alternative breaks a line on every
  *  newline in the source, so an indented cell puts each card on its own
  *  line instead of the row of four the deck actually is. */
-function cardCell(card, w, c) {
-  return `<td align="center" valign="top" style="padding:4px;"><img src="${c.T(card.icon)}" alt="${esc(cardFormLabel(card))}" width="${w}" height="${CARD_H(w)}" style="display:block;border:0;outline:none;text-decoration:none;border-radius:6px;" /></td>`;
+function cardCell(card, w) {
+  return `<td align="center" valign="top" style="padding:4px;"><img src="${card.icon}" alt="${esc(cardFormLabel(card))}" width="${w}" height="${CARD_H(w)}" style="display:block;border:0;outline:none;text-decoration:none;border-radius:6px;" /></td>`;
 }
 
 const cardFormLabel = (card) =>
@@ -676,9 +676,9 @@ const cardFormLabel = (card) =>
  *  from the BRIEF, never from the writer: the model names a deck by
  *  emitting {{deck:N}} and the renderer prints what the record holds,
  *  so a deck block cannot disagree with the record. */
-function deckBlock(d, c) {
+function deckBlock(d) {
   if (!d) return "";
-  const cells = (d.cards ?? []).map((card) => cardCell(card, 64, c));
+  const cells = (d.cards ?? []).map((card) => cardCell(card, 64));
   const row = (xs) =>
     `<tr>${xs.join("")}${Array.from({ length: Math.max(0, 4 - xs.length) }, () => "<td></td>").join("")}</tr>`;
   const facts = [
@@ -703,15 +703,15 @@ function deckBlock(d, c) {
 
 /** The card itself: the base art, and a form beside it when the card has
  *  one, smaller because it is the footnote and not the subject. */
-function cardHero(card, c) {
+function cardHero(card) {
   const extra = card.icons?.hero
     ? { url: card.icons.hero, label: `Hero ${card.name}` }
     : card.icons?.evolution
       ? { url: card.icons.evolution, label: `Evo ${card.name}` }
       : null;
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:6px auto 2px;"><tr>
-    <td align="center" valign="bottom" style="padding:0 6px;"><img src="${c.T(card.icons.base)}" alt="${esc(card.name)}" width="160" height="${CARD_H(160)}" style="display:block;border:0;border-radius:10px;" /></td>
-    ${extra ? `<td align="center" valign="bottom" style="padding:0 6px;"><img src="${c.T(extra.url)}" alt="${esc(extra.label)}" width="96" height="${CARD_H(96)}" style="display:block;border:0;border-radius:8px;" /></td>` : ""}
+    <td align="center" valign="bottom" style="padding:0 6px;"><img src="${card.icons.base}" alt="${esc(card.name)}" width="160" height="${CARD_H(160)}" style="display:block;border:0;border-radius:10px;" /></td>
+    ${extra ? `<td align="center" valign="bottom" style="padding:0 6px;"><img src="${extra.url}" alt="${esc(extra.label)}" width="96" height="${CARD_H(96)}" style="display:block;border:0;border-radius:8px;" /></td>` : ""}
   </tr></table>`;
 }
 
@@ -724,14 +724,14 @@ function cardOfWeek(f, c) {
   ]
     .filter(Boolean)
     .join(" · ");
-  const blocks = { deck: (i) => deckBlock(f.decks?.[i], c) };
+  const blocks = { deck: (i) => deckBlock(f.decks?.[i]) };
   const body = `
-    ${cardHero(card, c)}
+    ${cardHero(card)}
     ${c.p(`<span style="text-transform:capitalize;">${esc(line)}</span>`, `text-align:center;color:${C.faint};font-size:13px;`)}
     ${markdownToMail(f.body_markdown, c, [], blocks)}
     ${
       f.chart
-        ? `<div style="margin:16px 0 4px;"><img src="${c.T(f.chart.url)}" alt="${esc(f.chart.alt)}" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0;border-radius:8px;" /></div>`
+        ? `<div style="margin:16px 0 4px;"><img src="${f.chart.url}" alt="${esc(f.chart.alt)}" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0;border-radius:8px;" /></div>`
         : ""
     }
     ${c.h2("Your turn")}
