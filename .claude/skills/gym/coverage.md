@@ -12,7 +12,7 @@ shipped, and both need a regression pass.
 
 | Family | Status | Contract | Date | Rounds | Report | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| badges | r2 findings fixed (6.30.0-6.30.1), round 3 due | 6.29.1 | 2026-09-23 | 2 | reports/2026-09-23-badges-r2.md | #144-#146 done, #147 praise; #145 decided by Jamie: corpus = recorded players |
+| badges | **PARKED, needs Jamie** (3 rounds, none clean; every finding shipped through 6.36.4) | 6.36.2 | 2026-09-23 | 3 | reports/2026-09-23-badges-r3.md | r3: #183-#184 done, #185 praise, 8/8 regressions confirmed. Questions: should clan segments follow the corpus recorded-now rule (#183, 183.3 held)? Run a round 4? |
 | battles | r2 findings fixed (6.31.0-6.31.1), round 3 due | 6.30.0 | 2026-09-23 | 2 | reports/2026-09-23-battles-r2.md | #148-#151 done (148.1/148.4 refuted: event outside meta by decision), #152 praise; 41 regressions checked; open: tower level from HP needs an HP table |
 | cards | r2 findings fixed (6.32.0-6.32.1), round 3 due | 6.31.1 | 2026-09-23 | 2 | reports/2026-09-23-cards-r2.md | #153-#155 done, #156 praise; 8/10 regressions confirmed; open: Mirror out of average_elixir unnoted; modeGroupSql vs modeGroupOf unknown-type default |
 | clans | r2 findings fixed (6.33.0), round 3 due | 6.32.0 | 2026-09-23 | 2 | reports/2026-09-23-clans-r2.md | #157-#158 done, #159 praise; 13/13 regressions confirmed; donations = week high-water (Jamie); participation cap moot for Clan (now on /api/v1) |
