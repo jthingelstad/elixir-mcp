@@ -236,11 +236,11 @@ export const seriesTools = {
             ? "members_seen counts the member rows the roster wrote that day, including members who left during the day (their row keeps the clan's tag until the next roster places them elsewhere), so it can read above members; a day it reads below members is a partial day (the roster was polled, but not every member's row is on the game day's grid yet)."
             : null,
           metrics.some((m) => CLAN_PROFILE_AGGREGATES.includes(m))
-            ? "The profile-derived aggregates (averages AND the members_*_plus counts) are taken over the members whose profile was polled that game day; members_with_profile is that denominator. members_6_years_plus reads the player's current players_profile.years_played, not the day's."
+            ? "The profile-derived aggregates average over members with a recorded profile that day; members_with_profile is that denominator. members_6_years_plus reads the player's current players_profile.years_played, not the day's."
             : null,
           metrics.some((m) => CLAN_PROFILE_AGGREGATES.includes(m)) &&
             thinDays.length
-            ? `On ${thinDays.slice(0, 8).join(", ")}${thinDays.length > 8 ? ` and ${thinDays.length - 8} more days` : ""} not every member's profile was polled, so the profile-derived values there cover only those members: a members_*_plus count below members may be members not read that day, not members below the line.`
+            ? `On ${thinDays.slice(0, 8).join(", ")}${thinDays.length > 8 ? ` and ${thinDays.length - 8} more days` : ""} not every member's profile was polled, so the profile-derived values there (the members_*_plus counts too) cover only members_with_profile of them: a count below members may be members not read that day, not members below the line.`
             : null,
           points.some((p) => p.partial)
             ? `The point for ${today} is the game day still in progress (partial: true): its profile-derived values cover the members polled so far.`

@@ -51,6 +51,10 @@ const CLAN_TAG_SCHEMA = {
   description: "Clan tag like #J2RGCRVG. Omit to mean your recorded clan.",
 };
 
+/** The war weeks war_scoring_decks rides on (full verbosity): the
+ *  default window; past it the response outgrows the result cap. */
+const SCORING_DECKS_WEEKS = 5;
+
 export const clansTools = {
   clans_standings: {
     description:
@@ -641,19 +645,26 @@ export const clansTools = {
                       `${m.player_tag}|${w.season_id}|${w.section_index}`,
                     )?.points ?? null,
                 ),
-                war_scoring_decks: warWeeks.rows.map((w) => {
-                  const k = `${m.player_tag}|${w.season_id}|${w.section_index}`;
-                  const used =
-                    partByKey.get(k)?.decks_used ??
-                    (daysByKey.get(k) || battledByKey.get(k) ? 0 : null);
-                  return scoringDecks({
-                    decksUsed: used,
-                    finished: finishedEarly(w),
-                    finishDay: finishDays.get(weekKey(w)) ?? null,
-                    after: afterFinish.get(weekKey(w)),
-                    playerTag: m.player_tag,
-                  });
-                }),
+                // Up to five war weeks (the default): at six to eight the
+                // full response ran past the result cap (6.23.0 gate);
+                // war_history's scoring_decks has every week.
+                ...(warWeeks.rows.length <= SCORING_DECKS_WEEKS
+                  ? {
+                      war_scoring_decks: warWeeks.rows.map((w) => {
+                        const k = `${m.player_tag}|${w.season_id}|${w.section_index}`;
+                        const used =
+                          partByKey.get(k)?.decks_used ??
+                          (daysByKey.get(k) || battledByKey.get(k) ? 0 : null);
+                        return scoringDecks({
+                          decksUsed: used,
+                          finished: finishedEarly(w),
+                          finishDay: finishDays.get(weekKey(w)) ?? null,
+                          after: afterFinish.get(weekKey(w)),
+                          playerTag: m.player_tag,
+                        });
+                      }),
+                    }
+                  : {}),
                 war_decks_by_day: warWeeks.rows.map((w) => {
                   const days = daysByKey.get(
                     `${m.player_tag}|${w.season_id}|${w.section_index}`,
@@ -722,7 +733,7 @@ export const clansTools = {
             .filter((w) => finishedEarly(w) === true)
             .map(
               (w) =>
-                `In ${w.season_id}/${w.section_index} the boat crossed the finish line at the close of war day ${finishDays.get(weekKey(w))}: decks played on the days after it earned 0 points, so war_points / war_decks is not a rate for that week - use war_scoring_decks (full verbosity) or war_history's scoring_decks.`,
+                `In ${w.season_id}/${w.section_index} the boat crossed the finish line at the close of war day ${finishDays.get(weekKey(w))}: decks played on the days after it earned 0 points, so war_points / war_decks is not a rate for that week - use war_scoring_decks (full verbosity, up to ${SCORING_DECKS_WEEKS} war weeks) or war_history.scoring_decks.`,
             ),
           "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
           compact
