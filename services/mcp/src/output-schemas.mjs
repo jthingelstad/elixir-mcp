@@ -2174,7 +2174,14 @@ export const OUTPUT_SCHEMAS = {
                     at_least_s: { type: ["integer", "null"] },
                     at_most_s: { type: ["integer", "null"] },
                     exact_s: { type: ["integer", "null"] },
-                    basis: { type: "string" },
+                    basis: {
+                      type: "string",
+                      enum: [
+                        "king_tower_fell",
+                        "regulation_ran",
+                        "overtime_expired",
+                      ],
+                    },
                   },
                 },
               },

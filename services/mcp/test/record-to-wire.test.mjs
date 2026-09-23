@@ -410,10 +410,10 @@ test("inferred.duration bounds the battle from its crown pair, and says which ru
       // A King Tower fell: it ended then, and nothing bounds it below.
       assert.equal(d.at_least_s, null);
       assert.equal(d.at_most_s, 300);
-      assert.match(d.basis, /King Tower/);
+      assert.equal(d.basis, "king_tower_fell");
     } else if (mine === theirs) {
       assert.equal(d.exact_s, 300, "level crowns is exactly five minutes");
-      assert.match(d.basis, /overtime expired/);
+      assert.equal(d.basis, "overtime_expired");
     } else {
       assert.equal(d.at_least_s, 180, "no King Tower means regulation ran");
       assert.equal(d.at_most_s, 300);

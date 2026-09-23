@@ -220,7 +220,7 @@ ends on the next tower, so:
 | unequal, neither 3 | `at_least_s` 180, `at_most_s` 300 | no King Tower, so regulation ran; 3:00 or overtime is not recorded |
 | level | `exact_s` **300** | overtime expired without a tower falling, and the tower-hitpoints tiebreaker resolved it |
 
-`basis` names the rule that fired. It is absent on duels (crowns sum over
+`basis` is the rule that fired: `king_tower_fell`, `regulation_ran` or `overtime_expired`. It is absent on duels (crowns sum over
 up to three games) and boat battles (no overtime), and present only on
 head-to-head 1v1 types. It is a bound, never a measurement: nothing here
 times a battle.
