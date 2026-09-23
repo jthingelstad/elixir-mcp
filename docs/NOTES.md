@@ -1922,3 +1922,9 @@ This is a first run with no legacy items.
 - **#115:** three outputSchemas. The 6.14.0 "every tool" claim is still false for cards_archetype, elixir_identify, elixir_my_identities, elixir_nickname, elixir_send_feedback and live_fetch. The elixir family's run is open now, and the rest follow in their rounds.
 
 The #102 band repair is also done: the 2026-09 rebuild took 230 s and unbanded 288,868 of 400,238 population rows (72% were ranked). 2026-08 was run the same way.
+
+**6.23.0-6.24.2 gate trouble, and one outage caused by me.**
+- **Outage:** 6.23.0 added a note per finished-early war week to clans_participation. The eight-week full read, which is Elixir Clan's call (21 in the catalogue), was already near the 48,000-character cap and went over it, so it was refused `result_too_large` from about 16:30Z. 6.24.2 (about 17:05Z) folds the caveat into one sentence and fixed it. war_scoring_decks rides windows of up to six war weeks. The gate caught the break on 6.23.0 and on 6.24.1. I shipped 6.24.1 believing war_scoring_decks alone was the overflow, and the note count was the rest. Measure the response, not the diff.
+- **Load:** the 6.23.0 gate also ran while the #102 band rebuilds were running (16:33-16:40Z). Its timeouts and budget overruns were that load; 6.24.1's run, on a quiet database, had none.
+- **Interpreter:** `count_eq` now resolves a path on its right-hand side, as eq does (117.4).
+- **Collections:** synced_from and the new descriptions are set on the four board collections through `{collection: upsert}`. Gym 110-117 pass live.

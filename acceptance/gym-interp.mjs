@@ -155,14 +155,18 @@ export function assertOne(spec, scope, root) {
       return;
     }
     case "count_eq": {
-      const [p, n] = arg;
+      const [p, want] = arg;
+      // The count may be compared with another path's number, as eq
+      // compares two paths (117.4: members[] against browse's
+      // member_count).
+      const n = typeof want === "number" ? want : rhs(want);
       const v = at(p);
       const count = Array.isArray(v)
         ? v.length
         : v === undefined
           ? undefined
           : 1;
-      ok(count === n, `count_eq ${p}: ${count} !== ${n}`);
+      ok(count === n, `count_eq ${p}: ${count} !== ${show(n)}`);
       return;
     }
     case "sum_eq": {
