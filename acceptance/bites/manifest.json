@@ -929,5 +929,21 @@
     "case": "gym/158.2",
     "captures": ["158-2-players_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 160,
+    "contract": "6.33.0",
+    "why": "the Gym block 160.1 on the answer it read",
+    "case": "gym/160.1",
+    "captures": ["160-1-collections_get.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 160,
+    "contract": "6.33.0",
+    "why": "the Gym block 160.2 on the answer it read",
+    "case": "gym/160.2",
+    "captures": ["160-2-collections_get.json"],
+    "expect": "."
   }
 ]

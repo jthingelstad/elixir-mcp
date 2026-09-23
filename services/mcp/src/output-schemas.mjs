@@ -712,7 +712,7 @@ export const OUTPUT_SCHEMAS = {
       members: {
         type: "array",
         description:
-          "Player collections: player_tag, name, trophies (Trophy Road, as last polled; rows are ordered by it, not by any board rank), years_played, recording, curator_note. Clan collections: clan_tag, name, open_members (the clan's current member count, not open places), recording, curator_note.",
+          "Player collections: player_tag, name, trophies (Trophy Road, as last polled; rows are ordered by it, not by any board rank), years_played (the account's age in whole years, the game's YearsPlayed badge level; not time in this collection; null until a profile poll has read the badge), recording, curator_note. Clan collections: clan_tag, name, open_members (the clan's current member count, not open places), recording, curator_note.",
         items: {
           type: "object",
           properties: {
@@ -720,7 +720,11 @@ export const OUTPUT_SCHEMAS = {
             clan_tag: TAG,
             name: { type: ["string", "null"] },
             trophies: NULLABLE_INT,
-            years_played: NULLABLE_INT,
+            years_played: {
+              type: ["integer", "null"],
+              description:
+                "The account's age in whole years (the game's YearsPlayed badge level), not time in this collection; null until a profile poll has read the badge.",
+            },
             open_members: NULLABLE_INT,
             recording: { type: "boolean" },
             curator_note: { type: ["string", "null"] },

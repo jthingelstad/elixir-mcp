@@ -2027,3 +2027,7 @@ Jamie made three decisions. `/api/v1` is Elixir's public, versioned JSON API bes
 - **Gym sweep:** paused after clans round 2. It resumes after the Clan move. Grid: badges, battles, cards and clans are in round 2; the other six are due.
 - **Phases 2 and 3 (JSON API 1.2.0):** person operations for participation, roster, the live clan read, names, profile and battles. Each runs the matching MCP tool through the same registry and invoker: the same facts and the same 15 s query budget, with no agent cap. `live` is `makeLive` over the job ledger, as MCP builds it. A tool refusal becomes problem+json with the tool's code, hint and retry_after_s, mapped to HTTP status by the code's class. `liveBudgetFor` treats `firstParty` as unlimited: no one's quota, while the fleet's global budget still governs. **Split to keep (Jamie's question):** the public API mirrors the MCP tools. The first-party apps get an unversioned internal API the first time they need a shape that is not a tool.
 
+## 2026-09-23 — Gym sweep, collections round 2 (6.33.1, feedback #160-#161)
+
+#114 and #116 were confirmed fixed. #115 was partly fixed, and its description remainder is folded into #160. #161 is praise. The fix is wording: the tool description, the schema field and a player-collection note. Open, not filed: #116's selection-on-outcome caveat was never shipped, and its effect is not measured.
+

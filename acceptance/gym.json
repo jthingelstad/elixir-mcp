@@ -6328,5 +6328,209 @@
         "absent": "modes.ladder"
       }
     ]
+  },
+  {
+    "id": "160.1",
+    "feedback": 160,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "pol-global-top-100"
+    },
+    "request_id": "c92b35ba-5719-4569-9cda-148a5364db78",
+    "assert": [
+      {
+        "notes_match": "years_played"
+      }
+    ]
+  },
+  {
+    "id": "160.2",
+    "feedback": 160,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "elixir-drop"
+    },
+    "request_id": "a766ad47-f5fe-47a1-80a1-019be5215676",
+    "assert": [
+      {
+        "notes_match": "years_played"
+      }
+    ]
+  },
+  {
+    "id": "160.3",
+    "feedback": 160,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "collections_get",
+        "args": {
+          "collection": "pros"
+        }
+      },
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#GU2YR209R"
+        }
+      }
+    },
+    "request_id": "baac2985-f5d9-4b61-916a-1145e3749acc",
+    "assert": [
+      {
+        "eq": [
+          "c.members[?player_tag=#GU2YR209R].years_played",
+          "p.attributes.years_played"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "160.4",
+    "feedback": 160,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "clans-to-watch",
+      "verbosity": "compact"
+    },
+    "request_id": "b7b5568a-d953-44c6-817f-78502a09825d",
+    "assert": [
+      {
+        "notes_not_match": "years_played"
+      }
+    ]
+  },
+  {
+    "id": "160.5",
+    "feedback": 160,
+    "needs_fixture": "tools/list: the collections_get description must not describe years_played as 'tenure' or open_members as an 'open-member count', and the members[] schema description must define years_played and its null. The case language has no verb over tools/list (see New verbs needed; same gap as 115.4)."
+  },
+  {
+    "id": "161.1",
+    "feedback": 161,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "pol-jp-top-100"
+    },
+    "request_id": "6d08cd0a-20bf-42d4-9514-36ba50968bac",
+    "assert": [
+      {
+        "notes_match": "follows the live board pol:jp"
+      },
+      {
+        "notes_match": "Trophy Road"
+      }
+    ]
+  },
+  {
+    "id": "161.2",
+    "feedback": 161,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "89d077e5-56a3-4fc8-9ad9-f98bb3c6f308",
+    "assert": [
+      {
+        "notes_match": "membership as of this call"
+      }
+    ]
+  },
+  {
+    "id": "161.3",
+    "feedback": 161,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card": "Hog Rider",
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "df50c66e-29e1-465e-917d-b1ced2672e84",
+    "assert": [
+      {
+        "notes_match": "membership as of this call"
+      }
+    ]
+  },
+  {
+    "id": "161.4",
+    "feedback": 161,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_browse",
+    "args": {},
+    "request_id": "88fdf616-dcaa-480e-b2d4-f21f143c955a",
+    "assert": [
+      {
+        "every_row_has": ["collections", "synced_from"]
+      },
+      {
+        "notes_match": "not a fixed cohort"
+      }
+    ]
+  },
+  {
+    "id": "161.5",
+    "feedback": 161,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "collection": "global-top-10-clans"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "bf18b7a9-33ba-4477-af1b-68e4f35ff266",
+    "assert": [
+      {
+        "notes_match": "No player collection"
+      },
+      {
+        "notes_match": "collections_browse"
+      }
+    ]
+  },
+  {
+    "id": "161.6",
+    "feedback": 161,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "collections_get",
+        "args": {
+          "collection": "global-top-10-clans"
+        }
+      },
+      "r": {
+        "tool": "rankings_clans",
+        "args": {
+          "limit": 10
+        }
+      }
+    },
+    "request_id": "29dd5072-d064-4a2f-a2fd-b2fa43b2a3d6",
+    "assert": [
+      {
+        "count_eq": ["c.members[]", "r.clans"]
+      }
+    ]
   }
 ]

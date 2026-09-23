@@ -61,7 +61,7 @@ export const collectionsTools = {
 
   collections_get: {
     description:
-      "One collection's members, enriched: players come with name, latest trophies, tenure and recording status; clans with name and open-member count. Fan into the player and battle tools per tag from here, or pass the collection as a segment to the meta tools.",
+      "One collection's members, enriched: players come with name, latest trophies, account age (years_played) and recording status; clans with name and current member count (open_members). Fan into the player and battle tools per tag from here, or pass the collection as a segment to the meta tools.",
     inputSchema: {
       type: "object",
       properties: { collection: COLLECTION_SCHEMA },
@@ -146,6 +146,11 @@ export const collectionsTools = {
           c.kind === "player"
             ? "Rows are ordered by trophies, each member's Trophy Road count as last polled (it caps at 14,000): not a Path of Legends rating or a rank. rankings_players has a board's own order."
             : "open_members is the clan's current member count (clans_roster.member_count), not open places; rows are ordered by it, not by any ranking. rankings_clans has a board's own order.",
+          // What years_played is (Gym #160): the account's age, never the
+          // member's time here.
+          c.kind === "player"
+            ? "years_played is the account's age in whole years (the game's YearsPlayed badge level), not time in this collection; null until a profile poll has read the badge."
+            : null,
           c.synced_from
             ? `Membership follows the live board ${c.synced_from}: it is re-synced every day after the 10:00Z board snapshot, so this is today's membership, not a fixed cohort, and a segment read over a past window applies today's members.`
             : null,

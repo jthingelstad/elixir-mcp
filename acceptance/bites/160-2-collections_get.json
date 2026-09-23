@@ -1,0 +1,144 @@
+{
+  "feedback": 160,
+  "contract_version": "6.33.0",
+  "captured_at": "2026-09-23T21:45:32.346Z",
+  "request": {
+    "tool": "collections_get",
+    "arguments": {
+      "collection": "elixir-drop"
+    }
+  },
+  "response": {
+    "slug": "elixir-drop",
+    "applied": {
+      "collection": "elixir-drop"
+    },
+    "title": "Elixir Drop Players",
+    "kind": "player",
+    "description": null,
+    "scope": "comprehensive",
+    "synced_from": null,
+    "members": [
+      {
+        "player_tag": "#VGC22YGP",
+        "name": "MONICA",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2CY2RJL9G",
+        "name": "L-Drxgo⚡",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2G2RPVPP",
+        "name": "Aaqib Javed",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2P9GRU2Q0",
+        "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#C920YGLC2",
+        "name": "Vijay",
+        "trophies": 14000,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#UL2V9QRG0",
+        "name": "raquaza",
+        "trophies": 13966,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#20GQQ9CRYP",
+        "name": "G4",
+        "trophies": 13175,
+        "years_played": null,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#PLGRC9GLJ",
+        "name": "BIRDY",
+        "trophies": 12623,
+        "years_played": 7,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#20JJJ2CCRU",
+        "name": "King Thing",
+        "trophies": 12533,
+        "years_played": null,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#VGJJLC9PR",
+        "name": "Ditaka",
+        "trophies": 12530,
+        "years_played": null,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#UCRLVL29U",
+        "name": "Ak",
+        "trophies": 11675,
+        "years_played": 2,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#8RLRY9GJY",
+        "name": "YK",
+        "trophies": 10056,
+        "years_played": 8,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#20GQQ90QV9",
+        "name": "Cheese",
+        "trophies": 7479,
+        "years_played": null,
+        "recording": true,
+        "curator_note": null
+      }
+    ],
+    "notes": [
+      "Rows are ordered by trophies, each member's Trophy Road count as last polled (it caps at 14,000): not a Path of Legends rating or a rank. rankings_players has a board's own order.",
+      "scope says how deeply members are recorded: comprehensive captures battles, activity only the surface.",
+      "recording false members may have thin or no data yet; elixir_coverage tells the capture story per tag."
+    ],
+    "docs": "recording#collections",
+    "meta": {
+      "contract_version": "6.33.0"
+    }
+  },
+  "timings": {
+    "db_ms": 21,
+    "db_queries": 2,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}
