@@ -1913,3 +1913,12 @@ All 9 regressions were confirmed. After the 6.21.0 duel recompute, standings, pa
 - **#112:** role_counts is computed from the roster rows at full; notes and docs are served at compact.
 
 Band repair for #102 is running on the jobs Lambda (async, 2026-09 season, `repair_bands`).
+
+## 2026-09-23 — Gym sweep, collections round 1 (6.24.0, feedback #114-#117)
+
+This is a first run with no legacy items.
+- **#116:** needed a way to tell a board collection from a curated one, and a slug-prefix rule would have been a hack. 0157 adds `collection.synced_from`, set once through `{collection: {op: "upsert", synced_from}}` on the four board collections, and their descriptions stop saying "a snapshot". `collectionSegmentNote` rides on the collection segment of meta_decks, meta_cards and cards_card.
+- **#114:** a note, not a rank. The board rank lives in rankings, and a collection row does not know which board placed it.
+- **#115:** three outputSchemas. The 6.14.0 "every tool" claim is still false for cards_archetype, elixir_identify, elixir_my_identities, elixir_nickname, elixir_send_feedback and live_fetch. The elixir family's run is open now, and the rest follow in their rounds.
+
+The #102 band repair is also done: the 2026-09 rebuild took 230 s and unbanded 288,868 of 400,238 population rows (72% were ranked). 2026-08 was run the same way.

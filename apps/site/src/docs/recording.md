@@ -137,6 +137,16 @@ collection's scope (`comprehensive` by default). `collections_edit` takes
 call on one malformed tag. Collections are a family-tier feature; reading
 public ones needs only `cr:read`.
 
+Some collections follow a live board rather than a curator: the Path of
+Legends top 100s (global, US, Japan) and the top 10 clans are re-synced
+from their board every day after the 10:00Z snapshot. They carry
+`synced_from` (6.24.0), and their membership is today's top of the board,
+not a fixed cohort; 36 of the global 100 can turn over in a day. A
+collection segment on the meta tools applies the membership as of the
+call, so rates over a past window describe today's members. A board
+collection's rows are ordered by Trophy Road trophies, which is not the
+board's order: `rankings_players` and `rankings_clans` have that.
+
 ## Leaderboards
 
 The CR API shows a ranking as it is this minute and forgets it. The recorder

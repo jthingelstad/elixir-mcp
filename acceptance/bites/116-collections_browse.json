@@ -1,0 +1,99 @@
+{
+  "feedback": 116,
+  "contract_version": "6.22.0",
+  "captured_at": "2026-09-23T16:28:25.891Z",
+  "request": {
+    "tool": "collections_browse",
+    "arguments": {}
+  },
+  "response": {
+    "collections": [
+      {
+        "slug": "pros",
+        "title": "Pros",
+        "kind": "player",
+        "description": "Elite Clash Royale accounts — CRL competitors, top-ladder regulars and well-known creators. Membership is by account, not by person; several top players run more than one.",
+        "visibility": "public",
+        "scope": "comprehensive",
+        "member_count": 18
+      },
+      {
+        "slug": "clans-to-watch",
+        "title": "Clans to Watch",
+        "kind": "clan",
+        "description": "Five Clash Royale clans tracked for contrast rather than rank.",
+        "visibility": "public",
+        "scope": "comprehensive",
+        "member_count": 5
+      },
+      {
+        "slug": "elixir-drop",
+        "title": "Elixir Drop Players",
+        "kind": "player",
+        "description": null,
+        "visibility": "public",
+        "scope": "comprehensive",
+        "member_count": 13
+      },
+      {
+        "slug": "pol-global-top-100",
+        "title": "Path of Legends Global 100",
+        "kind": "player",
+        "description": "A snapshot of the global Path of Legends ladder, recorded so elite deck and card meta can be compared against ordinary play.",
+        "visibility": "public",
+        "scope": "comprehensive",
+        "member_count": 100
+      },
+      {
+        "slug": "creators",
+        "title": "Creators",
+        "kind": "player",
+        "description": "Clash Royale streamers and YouTubers who play at a high level. They play for an audience, so their decks skew toward what's entertaining rather than what wins — read this segment against Pros, not as a substitute for it.",
+        "visibility": "public",
+        "scope": "comprehensive",
+        "member_count": 16
+      },
+      {
+        "slug": "pol-us-top-100",
+        "title": "Path of Legends US 100",
+        "kind": "player",
+        "description": "A snapshot of the Path of Legends ladder in the United States, recorded so elite deck and card meta can be compared against ordinary play.",
+        "visibility": "public",
+        "scope": "comprehensive",
+        "member_count": 100
+      },
+      {
+        "slug": "pol-jp-top-100",
+        "title": "Path of Legends Japan 100",
+        "kind": "player",
+        "description": "A snapshot of the Path of Legends ladder in Japan, recorded so elite deck and card meta can be compared against ordinary play.",
+        "visibility": "public",
+        "scope": "comprehensive",
+        "member_count": 100
+      },
+      {
+        "slug": "global-top-10-clans",
+        "title": "Top 10 Global Clans",
+        "kind": "clan",
+        "description": "The ten clans with the most players currently rated in Path of Legends, globally",
+        "visibility": "public",
+        "scope": "activity",
+        "member_count": 10
+      }
+    ],
+    "notes": [
+      "Everything in a collection is recorded for as long as it stays there, at the collection's scope."
+    ],
+    "docs": "recording#collections",
+    "meta": {
+      "contract_version": "6.22.0"
+    }
+  },
+  "timings": {
+    "db_ms": 13,
+    "db_queries": 1,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -142,13 +142,14 @@ export async function collectionOp(databaseUrl, spec) {
     const slug = String(spec?.slug ?? "").toLowerCase();
     if (spec.op === "upsert") {
       const { rows } = await db.query(
-        `insert into collection (slug, title, kind, description, visibility, owner_account)
+        `insert into collection (slug, title, kind, description, visibility, owner_account, synced_from)
          values ($1, $2, $3, $4, coalesce($5, 'public'),
-                 (select account_id from account where is_owner limit 1))
+                 (select account_id from account where is_owner limit 1), $6)
          on conflict (slug) do update set
            title = excluded.title,
            description = coalesce(excluded.description, collection.description),
-           visibility = coalesce($5, collection.visibility)
+           visibility = coalesce($5, collection.visibility),
+           synced_from = coalesce($6, collection.synced_from)
          returning collection_id`,
         [
           slug,
@@ -156,6 +157,7 @@ export async function collectionOp(databaseUrl, spec) {
           spec.kind,
           spec.description ?? null,
           spec.visibility ?? null,
+          spec.synced_from ?? null,
         ],
       );
       return { collection_id: rows[0].collection_id, slug };

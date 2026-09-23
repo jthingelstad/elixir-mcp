@@ -512,6 +512,87 @@ export const OUTPUT_SCHEMAS = {
   // acceptance suite (acceptance/shapes/). Drafted from live answers on
   // 2026-09-21 and reviewed against the handlers for what is conditional;
   // permissive below the top level, as above. Each one retired a baseline.
+  collections_browse: {
+    type: "object",
+    properties: {
+      collections: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            slug: { type: "string" },
+            title: { type: "string" },
+            kind: { type: "string", enum: ["player", "clan"] },
+            description: { type: ["string", "null"] },
+            visibility: { type: "string" },
+            scope: { type: "string" },
+            member_count: COUNT,
+            synced_from: {
+              type: ["string", "null"],
+              description:
+                "6.24.0: the live board this collection's membership is re-synced from daily (pol:global, clans:global, ...); null for a curated collection.",
+            },
+          },
+        },
+      },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["collections", "docs", "meta", "notes"],
+  },
+  collections_get: {
+    type: "object",
+    properties: {
+      slug: { type: "string" },
+      applied: { type: "object" },
+      title: { type: "string" },
+      kind: { type: "string", enum: ["player", "clan"] },
+      description: { type: ["string", "null"] },
+      scope: { type: "string" },
+      synced_from: { type: ["string", "null"] },
+      members: {
+        type: "array",
+        description:
+          "Player collections: player_tag, name, trophies (Trophy Road, as last polled; rows are ordered by it, not by any board rank), years_played, recording, curator_note. Clan collections: clan_tag, name, open_members (the clan's current member count, not open places), recording, curator_note.",
+        items: {
+          type: "object",
+          properties: {
+            player_tag: TAG,
+            clan_tag: TAG,
+            name: { type: ["string", "null"] },
+            trophies: NULLABLE_INT,
+            years_played: NULLABLE_INT,
+            open_members: NULLABLE_INT,
+            recording: { type: "boolean" },
+            curator_note: { type: ["string", "null"] },
+          },
+        },
+      },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["slug", "applied", "kind", "members", "docs", "meta", "notes"],
+  },
+  collections_edit: {
+    type: "object",
+    properties: {
+      slug: { type: "string" },
+      applied: { type: "object" },
+      kind: { type: "string", enum: ["player", "clan"] },
+      scope: { type: "string" },
+      added: COUNT,
+      removed: COUNT,
+      members: COUNT,
+      recordings_started: COUNT,
+      recordings_stopped: COUNT,
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["slug", "applied", "added", "removed", "members", "notes"],
+  },
   badges_holders: {
     type: "object",
     properties: {

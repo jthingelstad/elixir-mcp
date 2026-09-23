@@ -28,7 +28,7 @@ export const collectionsTools = {
     async handler(ctx) {
       const { rows } = await ctx.db.query(
         `select c.slug, c.title, c.kind, c.description, c.visibility, c.scope,
-                c.created_at,
+                c.created_at, c.synced_from,
                 (select count(*)::int from collection_member m
                  where m.collection_id = c.collection_id) as member_count
          from collection c
@@ -45,9 +45,13 @@ export const collectionsTools = {
           visibility: r.visibility,
           scope: r.scope,
           member_count: r.member_count,
+          synced_from: r.synced_from,
         })),
         notes: notes(
           "Everything in a collection is recorded for as long as it stays there, at the collection's scope.",
+          rows.some((r) => r.synced_from)
+            ? "A collection with synced_from follows that live board: its membership is re-synced every day after the 10:00Z board snapshot, so it is today's top of the board, not a fixed cohort. One with synced_from null is edited by its curator."
+            : null,
         ),
         docs: COLLECTION_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
@@ -134,8 +138,17 @@ export const collectionsTools = {
         kind: c.kind,
         description: c.description,
         scope: c.scope,
+        synced_from: c.synced_from ?? null,
         members,
         notes: notes(
+          // How the rows are ordered, and what they are not (Gym #114,
+          // #115): a board collection's order is not the board's.
+          c.kind === "player"
+            ? "Rows are ordered by trophies, each member's Trophy Road count as last polled (it caps at 14,000): not a Path of Legends rating or a rank. rankings_players has a board's own order."
+            : "open_members is the clan's current member count (clans_roster.member_count), not open places; rows are ordered by it, not by any ranking. rankings_clans has a board's own order.",
+          c.synced_from
+            ? `Membership follows the live board ${c.synced_from}: it is re-synced every day after the 10:00Z board snapshot, so this is today's membership, not a fixed cohort, and a segment read over a past window applies today's members.`
+            : null,
           "scope says how deeply members are recorded: comprehensive captures battles, activity only the surface.",
           "recording false members may have thin or no data yet; elixir_coverage tells the capture story per tag.",
         ),

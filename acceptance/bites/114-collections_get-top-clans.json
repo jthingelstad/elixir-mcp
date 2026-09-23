@@ -1,0 +1,108 @@
+{
+  "feedback": 114,
+  "contract_version": "6.22.0",
+  "captured_at": "2026-09-23T16:30:11.595Z",
+  "request": {
+    "tool": "collections_get",
+    "arguments": {
+      "collection": "global-top-10-clans"
+    }
+  },
+  "response": {
+    "slug": "global-top-10-clans",
+    "applied": {
+      "collection": "global-top-10-clans"
+    },
+    "title": "Top 10 Global Clans",
+    "kind": "clan",
+    "description": "The ten clans with the most players currently rated in Path of Legends, globally",
+    "scope": "activity",
+    "members": [
+      {
+        "clan_tag": "#Q9QPPGGG",
+        "name": "NoA",
+        "open_members": 50,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#QYGL80RR",
+        "name": "Sunlight",
+        "open_members": 50,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#9V9GGVCQ",
+        "name": "Lifetime",
+        "open_members": 50,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#QPY22Q0L",
+        "name": "Top Flame",
+        "open_members": 49,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#L28V902R",
+        "name": "Iran Hplow",
+        "open_members": 49,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#P9GPQ2Y0",
+        "name": "BalkanUnion",
+        "open_members": 49,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#G89QUY2P",
+        "name": "GUERREIROS PT",
+        "open_members": 49,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#JYJ980J8",
+        "name": "Fantasy",
+        "open_members": 48,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#RL0ULLGV",
+        "name": "Sandstorm",
+        "open_members": 48,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#RYUYJRGJ",
+        "name": "NOLITO BANEADO",
+        "open_members": 43,
+        "recording": true,
+        "curator_note": null
+      }
+    ],
+    "notes": [
+      "scope says how deeply members are recorded: comprehensive captures battles, activity only the surface.",
+      "recording false members may have thin or no data yet; elixir_coverage tells the capture story per tag."
+    ],
+    "docs": "recording#collections",
+    "meta": {
+      "contract_version": "6.22.0"
+    }
+  },
+  "timings": {
+    "db_ms": 56,
+    "db_queries": 2,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

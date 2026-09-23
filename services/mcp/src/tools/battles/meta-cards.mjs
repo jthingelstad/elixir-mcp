@@ -10,6 +10,7 @@ import {
   SEASON_ARG_SCHEMA,
   SEGMENT_DOCS,
   SEGMENT_NOTES,
+  collectionSegmentNote,
   SEGMENT_SCHEMA,
   VERBOSITY,
   WINDOW_ARGS,
@@ -384,6 +385,7 @@ export const battles_meta_cards = {
           ? "excluded counts the season and mode, not the band (a duel or a boat battle has no band); decided_battles and every row are the band's."
           : null,
         SEGMENT_NOTES,
+        collectionSegmentNote(seg),
         win.seasonNotes,
         roll?.note,
         pop?.note,

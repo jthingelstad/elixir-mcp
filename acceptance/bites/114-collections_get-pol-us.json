@@ -1,0 +1,838 @@
+{
+  "feedback": 114,
+  "contract_version": "6.22.0",
+  "captured_at": "2026-09-23T16:29:04.276Z",
+  "request": {
+    "tool": "collections_get",
+    "arguments": {
+      "collection": "pol-us-top-100"
+    }
+  },
+  "response": {
+    "slug": "pol-us-top-100",
+    "applied": {
+      "collection": "pol-us-top-100"
+    },
+    "title": "Path of Legends US 100",
+    "kind": "player",
+    "description": "A snapshot of the Path of Legends ladder in the United States, recorded so elite deck and card meta can be compared against ordinary play.",
+    "scope": "comprehensive",
+    "members": [
+      {
+        "player_tag": "#200L88QURG",
+        "name": "Spandaleon YT",
+        "trophies": 14000,
+        "years_played": 1,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#LU2P82C09",
+        "name": "LowLadderMenace",
+        "trophies": 14000,
+        "years_played": 6,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#RCPJRU890",
+        "name": "Mashrio",
+        "trophies": 14000,
+        "years_played": 5,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#PG88V9GV",
+        "name": "Lava Ben",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2JJ2J9VR",
+        "name": "REN I M & S™",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#J9PPGV2",
+        "name": "Dinosaur",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#VPRVY8L8Y",
+        "name": "Tipp",
+        "trophies": 14000,
+        "years_played": 1,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#8GGPC08QY",
+        "name": "아뚱",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#Y9R22RQ2",
+        "name": "Ian77",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#90UUVJYY",
+        "name": "⚠_Roman_⚠",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#209LJVGU",
+        "name": "PrakashChopped",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#RU98PPPRL",
+        "name": "Ralsei❤️Noelle",
+        "trophies": 14000,
+        "years_played": 5,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#Q8LPG90LR",
+        "name": "100TWIZSHOT",
+        "trophies": 14000,
+        "years_played": 5,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#QCPVVLCU0",
+        "name": "Ian",
+        "trophies": 14000,
+        "years_played": 5,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#92GLC028",
+        "name": "iluvmoms",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#20PJYGRJUR",
+        "name": "Bam",
+        "trophies": 14000,
+        "years_played": 1,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#CVUGGQQCU",
+        "name": "✨♣️♦️Pedal♥️♠️✨",
+        "trophies": 14000,
+        "years_played": 3,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#U28U2RV8U",
+        "name": "画眼线的狗",
+        "trophies": 14000,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#J99Y0U8U",
+        "name": "Pro✨",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#YCG2PLQG",
+        "name": "BlastinShoota",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#U0PG9LCPU",
+        "name": "Bob",
+        "trophies": 14000,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#QQVYPJQ92",
+        "name": "SENSEI LPT",
+        "trophies": 14000,
+        "years_played": 5,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#UPYPG8C0J",
+        "name": "✨貓頭貓•͈ᴗ⁃͈★",
+        "trophies": 14000,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#9Q8YPLLQ",
+        "name": "killerinstinc",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#U929CVQPL",
+        "name": "卡布达",
+        "trophies": 14000,
+        "years_played": 2,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#LGGVPVR",
+        "name": "Blazed™︎",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#JJCJR2P",
+        "name": "Get Wrecked",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#YPVYL0RY",
+        "name": "trumps uber",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#CVULP8RVY",
+        "name": "Kyo♥️ソフィア",
+        "trophies": 14000,
+        "years_played": 3,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#20J2QURU",
+        "name": "Nemesis™✨",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#YCLQ8PJC",
+        "name": "Rome",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#LGQJ0CJ0Y",
+        "name": "GetDestroyedTV",
+        "trophies": 14000,
+        "years_played": 6,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#YUJG0CL82",
+        "name": "雪落下的时刻",
+        "trophies": 14000,
+        "years_played": 6,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2RRGRRQ0R",
+        "name": "Ben",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#8UY9VLJLU",
+        "name": "thitay04",
+        "trophies": 14000,
+        "years_played": 8,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#R9GL0PPLG",
+        "name": "Tiktok Jaxon.CR",
+        "trophies": 14000,
+        "years_played": 5,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#URC98000C",
+        "name": "Ali Killer",
+        "trophies": 14000,
+        "years_played": 1,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2YP2ULCQ",
+        "name": "Meta",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#R8JVPUGR",
+        "name": "Abraham ✝",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#JPUQRGQYU",
+        "name": "Kampfholz",
+        "trophies": 14000,
+        "years_played": 5,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#G0CUG00L",
+        "name": "Chirby",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#RVULGCQ9",
+        "name": "TT:Jordon❤️BM™️",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2JGLJPQU",
+        "name": "Klondike",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#CJYC0R8PV",
+        "name": "じゃゔぃん",
+        "trophies": 14000,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#LC8R89CRC",
+        "name": "best ❤️ yan",
+        "trophies": 14000,
+        "years_played": 6,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#CLQ9YV028",
+        "name": "Paxton❤️Ameer",
+        "trophies": 14000,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#U2PJCP2CP",
+        "name": "DT丨午后惊蛰❤️北✨",
+        "trophies": 14000,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#CVCUPV99",
+        "name": "Henry",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#YJ90QGQV8",
+        "name": "Sixio Foreign",
+        "trophies": 14000,
+        "years_played": 6,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#LVCLC8RL",
+        "name": "赞美耶稣 | John B ✨",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2GP2LJUGU",
+        "name": "Intriga",
+        "trophies": 14000,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#JLJVRV8V2",
+        "name": "Chainkiller",
+        "trophies": 14000,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#VUYV2G89Y",
+        "name": "MarviToykoDrift",
+        "trophies": 14000,
+        "years_played": 1,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#U28CQGP8R",
+        "name": "LF｜Dinner❤️棍母",
+        "trophies": 14000,
+        "years_played": 3,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#VQQ9G8PY2",
+        "name": "oe❤️Sweety^",
+        "trophies": 14000,
+        "years_played": 2,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#22G9UGYCL",
+        "name": "NOT JuicyJ",
+        "trophies": 14000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#PUQQGVU80",
+        "name": "Ian77",
+        "trophies": 13991,
+        "years_played": 7,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#G9Q2L0J09",
+        "name": "Drew",
+        "trophies": 13734,
+        "years_played": 6,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#VC00Q02LC",
+        "name": "Shiv Kirk",
+        "trophies": 13524,
+        "years_played": null,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#JJUJ0Q908",
+        "name": "Hubert",
+        "trophies": 13349,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#C9P8Q29LV",
+        "name": "mini alby",
+        "trophies": 13343,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#RJQ8GLGJ",
+        "name": "Jon Snow",
+        "trophies": 13326,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#VCYJV22Y9",
+        "name": "快乐小猴",
+        "trophies": 13194,
+        "years_played": null,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#LU8QQJPJ",
+        "name": "Awake苏醒",
+        "trophies": 13110,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2J2GL9PLP",
+        "name": "[JnJ] J I D",
+        "trophies": 13095,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#V98RPVYVR",
+        "name": "幽灵聚宝盆",
+        "trophies": 13079,
+        "years_played": null,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#GCQVYV9C0",
+        "name": "DWESS❤️NIGHT",
+        "trophies": 13076,
+        "years_played": 5,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#20JQY0V88J",
+        "name": "Buster",
+        "trophies": 13039,
+        "years_played": null,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#UULVJC9LY",
+        "name": "Chisa",
+        "trophies": 13006,
+        "years_played": 1,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#U2P99YYQJ",
+        "name": "각기",
+        "trophies": 13005,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#VL8C9VQ8Y",
+        "name": "redrum",
+        "trophies": 13002,
+        "years_played": 2,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#V0VUJ90U8",
+        "name": "plpl✨太阳❤️Yoko",
+        "trophies": 13002,
+        "years_played": 3,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#YGGYQYV",
+        "name": "Juicy",
+        "trophies": 13002,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2P9QCVLRY",
+        "name": "beached whale",
+        "trophies": 12842,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#YJPLQRR09",
+        "name": "Lil Log",
+        "trophies": 12693,
+        "years_played": 6,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#J2JR9RGLU",
+        "name": "♾️",
+        "trophies": 12561,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#ULCJ292",
+        "name": "RoN",
+        "trophies": 12500,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#20YGQLGYJC",
+        "name": "AK✨MADISON BEER",
+        "trophies": 12171,
+        "years_played": 1,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2JVPR8U8V",
+        "name": "SPARKY❤️Giant",
+        "trophies": 12088,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2Y2Q29YP0",
+        "name": "Code: Juicy",
+        "trophies": 12000,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#GPPYR9JYR",
+        "name": "Clown",
+        "trophies": 11778,
+        "years_played": 5,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#8RYVJLY8J",
+        "name": "❦Diegoᵥ₆✨",
+        "trophies": 11619,
+        "years_played": 8,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#8LC88VLG",
+        "name": "Hazard™",
+        "trophies": 11536,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#9YPP8PQVV",
+        "name": "SpicyCheetos",
+        "trophies": 11519,
+        "years_played": 8,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#J9VJPVRL",
+        "name": "Dr.HELLCAT⚡️mig",
+        "trophies": 11406,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#8R20J89G",
+        "name": "CODE Dave",
+        "trophies": 11267,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#CR8P920CC",
+        "name": "Gzx❤️一颗小卤蛋",
+        "trophies": 11111,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#UGUVUQJPJ",
+        "name": "ジョーイ",
+        "trophies": 10968,
+        "years_played": 2,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#YUULJP2JP",
+        "name": "Taurus ♉️",
+        "trophies": 10874,
+        "years_played": 6,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#9Y8PJVQ9G",
+        "name": "Yersons #1 Fan",
+        "trophies": 10832,
+        "years_played": 8,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#JG28LUJQ8",
+        "name": "Alcatraz〽️",
+        "trophies": 10797,
+        "years_played": 4,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2YJRUQ2Q",
+        "name": "19-3 McGee",
+        "trophies": 10791,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#2U9UPQL0C",
+        "name": "Tiny Jason",
+        "trophies": 10323,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#299PLGC",
+        "name": "Trainer Chris™",
+        "trophies": 10264,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#VUGGQ980Y",
+        "name": "Amir | Giant",
+        "trophies": 10219,
+        "years_played": 1,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#9YJUJC2QQ",
+        "name": "6ÏXŃÏŃË❤️",
+        "trophies": 10144,
+        "years_played": 8,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#80QCJYPJ0",
+        "name": "ケイド",
+        "trophies": 10084,
+        "years_played": 9,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#R0L9L0Q9J",
+        "name": "安水Light_CR✨",
+        "trophies": 10081,
+        "years_played": 5,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#GPR2CPGLY",
+        "name": "Baby Nateee",
+        "trophies": 10000,
+        "years_played": 6,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "player_tag": "#GP80RY2G",
+        "name": "avvvv",
+        "trophies": 9858,
+        "years_played": 10,
+        "recording": true,
+        "curator_note": null
+      }
+    ],
+    "notes": [
+      "scope says how deeply members are recorded: comprehensive captures battles, activity only the surface.",
+      "recording false members may have thin or no data yet; elixir_coverage tells the capture story per tag."
+    ],
+    "docs": "recording#collections",
+    "meta": {
+      "contract_version": "6.22.0"
+    }
+  },
+  "timings": {
+    "db_ms": 314,
+    "db_queries": 2,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

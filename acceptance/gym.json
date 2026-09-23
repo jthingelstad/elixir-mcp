@@ -2560,5 +2560,268 @@
         "has": "members[].modes"
       }
     ]
+  },
+  {
+    "id": "114.1",
+    "feedback": 114,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "pol-global-top-100"
+    },
+    "request_id": "ac4312f2-83ea-4475-af75-38c9eca27e87",
+    "assert": [
+      {
+        "notes_match": "Trophy Road"
+      }
+    ]
+  },
+  {
+    "id": "114.2",
+    "feedback": 114,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "pol-us-top-100"
+    },
+    "request_id": "a7f6f149-d582-403b-9ca2-d4ef0971b430",
+    "assert": [
+      {
+        "notes_match": "Trophy Road"
+      }
+    ]
+  },
+  {
+    "id": "114.3",
+    "feedback": 114,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "global-top-10-clans"
+    },
+    "request_id": "784b8827-5d79-44f2-9d04-9ce4de98db86",
+    "assert": [
+      {
+        "notes_match": "rankings_clans"
+      }
+    ]
+  },
+  {
+    "id": "114.4",
+    "feedback": 114,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "clans-to-watch",
+      "verbosity": "compact"
+    },
+    "request_id": "67b304e9-5f62-475b-a990-77afc775e3ee",
+    "assert": [
+      {
+        "notes_not_match": "Trophy Road"
+      }
+    ]
+  },
+  {
+    "id": "115.1",
+    "feedback": 115,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "clans-to-watch",
+      "verbosity": "compact"
+    },
+    "request_id": "67b304e9-5f62-475b-a990-77afc775e3ee",
+    "assert": [
+      {
+        "notes_match": "open_members"
+      }
+    ]
+  },
+  {
+    "id": "115.2",
+    "feedback": 115,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "collections_get",
+        "args": {
+          "collection": "clans-to-watch",
+          "verbosity": "compact"
+        }
+      },
+      "r": {
+        "tool": "clans_roster",
+        "args": {
+          "clan_tag": "#PPLCV9G2"
+        }
+      }
+    },
+    "request_id": "e7c8dbb0-e74a-448b-9213-359c0c198d95",
+    "assert": [
+      {
+        "eq": ["c.members[?clan_tag=#PPLCV9G2].open_members", "r.member_count"]
+      }
+    ]
+  },
+  {
+    "id": "115.3",
+    "feedback": 115,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "pol-global-top-100"
+    },
+    "request_id": "ac4312f2-83ea-4475-af75-38c9eca27e87",
+    "assert": [
+      {
+        "notes_not_match": "open_members"
+      }
+    ]
+  },
+  {
+    "id": "115.4",
+    "feedback": 115,
+    "needs_fixture": "tools/list must declare an outputSchema for collections_browse, collections_get and collections_edit (and, per the 6.14.0 claim, for every tool: cards_archetype, elixir_identify, elixir_my_identities, elixir_nickname, elixir_send_feedback and live_fetch lacked one at 6.22.0). The case language has no verb over tools/list; see New verbs needed."
+  },
+  {
+    "id": "116.1",
+    "feedback": 116,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "pol-global-top-100"
+    },
+    "request_id": "ac4312f2-83ea-4475-af75-38c9eca27e87",
+    "assert": [
+      {
+        "notes_match": "(fixed cohort|follows the .*board|re-?synced|re-?set at each)"
+      }
+    ]
+  },
+  {
+    "id": "116.2",
+    "feedback": 116,
+    "stability": "live",
+    "tool": "collections_browse",
+    "args": {},
+    "request_id": "c565a2dd-eb1f-4623-b335-408a39b9a693",
+    "assert": [
+      {
+        "notes_match": "(fixed cohort|follows the .*board|re-?synced|re-?set at each)"
+      }
+    ]
+  },
+  {
+    "id": "116.3",
+    "feedback": 116,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "86c0f348-d722-4bc5-8820-a7581d9a64e9",
+    "assert": [
+      {
+        "notes_match": "(membership|members as of)"
+      }
+    ]
+  },
+  {
+    "id": "116.4",
+    "feedback": 116,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "Pros"
+    },
+    "request_id": "64d5901a-38a1-47bd-86a2-bd663de846db",
+    "assert": [
+      {
+        "notes_not_match": "(fixed cohort|follows the .*board|re-?synced|re-?set at each)"
+      }
+    ]
+  },
+  {
+    "id": "117.1",
+    "feedback": 117,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "no-such-collection"
+    },
+    "request_id": "43bbd95f-910e-4da5-8a9c-8965cf0cef6f",
+    "assert": [
+      {
+        "notes_match": "collections_browse"
+      }
+    ]
+  },
+  {
+    "id": "117.2",
+    "feedback": 117,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "Pros"
+    },
+    "request_id": "64d5901a-38a1-47bd-86a2-bd663de846db",
+    "assert": [
+      {
+        "eq": ["slug", "applied.collection"]
+      }
+    ]
+  },
+  {
+    "id": "117.3",
+    "feedback": 117,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_browse",
+    "args": {
+      "verbosity": "compact"
+    },
+    "request_id": "050afc1c-53af-4014-ba86-c934ec7cdfdf",
+    "assert": [
+      {
+        "notes_match": "one size"
+      }
+    ]
+  },
+  {
+    "id": "117.4",
+    "feedback": 117,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "b": {
+        "tool": "collections_browse",
+        "args": {}
+      },
+      "g": {
+        "tool": "collections_get",
+        "args": {
+          "collection": "global-top-10-clans"
+        }
+      }
+    },
+    "request_id": "784b8827-5d79-44f2-9d04-9ce4de98db86",
+    "assert": [
+      {
+        "count_eq": [
+          "g.members[]",
+          "b.collections[?slug=global-top-10-clans].member_count"
+        ]
+      }
+    ]
   }
 ]

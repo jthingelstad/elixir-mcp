@@ -1040,6 +1040,15 @@ export function ebShrink(
 
 /** The one-sentence caveats every meta tool carries; the formulas are on
  *  the methodology page (docsRef below). */
+/** A collection segment applies the collection's membership as it
+ *  stands now (Gym #116): a board-synced collection turns over daily,
+ *  so a season's rates are over today's members, not the season's. */
+export function collectionSegmentNote(seg) {
+  const echo = seg?.echo ?? seg;
+  if (echo?.kind !== "collection") return null;
+  return `The collection segment applies ${echo.collection}'s membership as of this call (collections_get lists it); a collection that follows a live board (synced_from) turns over daily, so rates over a past window describe today's members, not the ones on the board then.`;
+}
+
 export const SEGMENT_NOTES = [
   "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
   "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",

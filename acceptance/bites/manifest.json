@@ -337,5 +337,61 @@
     "case": "gym/112.2",
     "captures": ["112-clans_roster-full.json"],
     "expect": "has role_counts: absent"
+  },
+  {
+    "feedback": 114,
+    "contract": "6.22.0",
+    "why": "the Gym's block 114.1: Global 100 ordered by Trophy Road trophies with no word that it is not the board's order",
+    "case": "gym/114.1",
+    "captures": ["114-collections_get-pol-global.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 114,
+    "contract": "6.22.0",
+    "why": "the Gym's block 114.2: US 100 the same",
+    "case": "gym/114.2",
+    "captures": ["114-collections_get-pol-us.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 114,
+    "contract": "6.22.0",
+    "why": "the Gym's block 114.3: top clans ordered by member count, unsaid",
+    "case": "gym/114.3",
+    "captures": ["114-collections_get-top-clans.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 115,
+    "contract": "6.22.0",
+    "why": "the Gym's block 115.1: open_members defined nowhere; it is the member count",
+    "case": "gym/115.1",
+    "captures": ["115-collections_get-clans-to-watch.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 116,
+    "contract": "6.22.0",
+    "why": "the Gym's block 116.1: a board collection read as a fixed cohort",
+    "case": "gym/116.1",
+    "captures": ["114-collections_get-pol-global.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 116,
+    "contract": "6.22.0",
+    "why": "the Gym's block 116.2: browse said nothing of board-synced membership",
+    "case": "gym/116.2",
+    "captures": ["116-collections_browse.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 116,
+    "contract": "6.22.0",
+    "why": "the Gym's block 116.3: a collection segment read did not say which membership it applied",
+    "case": "gym/116.3",
+    "captures": ["116-battles_meta_decks-collection.json"],
+    "expect": "notes_match"
   }
 ]
