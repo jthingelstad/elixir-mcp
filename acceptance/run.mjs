@@ -23,7 +23,9 @@
  *   gym        - the Elixir Gym's filed repros (#70-#82) with their
  *                acceptance criteria, its Pass 2 automated
  *
- * Usage: node acceptance/run.mjs [--only <substring>] [--json]
+ * Usage: node acceptance/run.mjs [--only <substring>] [--family <family>] [--json]
+ *   --family battles runs only the cases that read a battles_* tool: the
+ *   per-family deploy gate (deploy.mjs --acceptance=<family>).
  * Needs acceptance/.env (ELIXIR_MCP_URL, ELIXIR_MCP_TOKEN); the deploy
  * runs it after the smoke gate and fails on a red case. It never writes,
  * never passes live: true, and its token cannot: cr:read only.
@@ -68,7 +70,7 @@ const CONCURRENCY = { catalogue: 1 };
  *  `quiet`. */
 export async function runSuite(
   door,
-  { only = null, quiet = false, tools: given = null } = {},
+  { only = null, family = null, quiet = false, tools: given = null } = {},
 ) {
   const tools = given ?? (await door.toolsList());
   const ctx = {
@@ -118,9 +120,19 @@ export async function runSuite(
       `${skip ? "SKIP" : !error ? "ok  " : counts ? "FAIL" : "KNOWN"} ${id}${skip ? ` - ${skip}` : ""}${ms !== null ? ` (${ms} ms)` : ""}${error ? `\n     ${error}` : ""}${known && !expired ? `\n     known until ${known.until}: ${known.reason}` : ""}${expired ? `\n     the known-failure entry expired ${known.until}` : ""}`,
     );
   };
+  // A per-family gate (2026-09-23): the cases that read a tool of that
+  // family - a case's own `tools`, else the tool names in its id - so a
+  // family's deploy stops paying for every other family's corpus reads.
+  // That full pass drained the micro's EBS byte balance in an afternoon.
+  const caseTools = (c) =>
+    c.tools?.length
+      ? c.tools
+      : [...ctx.tools.keys()].filter((t) => c.id.includes(t));
+  const inFamily = (c) =>
+    !family || caseTools(c).some((t) => t.startsWith(`${family}_`));
   for (const [suite, cases] of Object.entries(SUITES)) {
     const picked = cases.filter(
-      (c) => !only || `${suite}/${c.id}`.includes(only),
+      (c) => (!only || `${suite}/${c.id}`.includes(only)) && inFamily(c),
     );
     const width = CONCURRENCY[suite] ?? 1;
     // Phase 2 cases read what phase 1 left in the cache (a tool's docs
@@ -175,6 +187,9 @@ if (isMain) {
   const only = args.includes("--only")
     ? args[args.indexOf("--only") + 1]
     : null;
+  const family = args.includes("--family")
+    ? args[args.indexOf("--family") + 1]
+    : null;
   const json = args.includes("--json");
   const updateShapes = args.includes("--update-shapes");
   const reason = args.includes("--reason")
@@ -190,7 +205,7 @@ if (isMain) {
     url: env.ELIXIR_MCP_URL,
     token: env.ELIXIR_MCP_TOKEN,
   });
-  const report = await runSuite(door, { only, quiet: json });
+  const report = await runSuite(door, { only, family, quiet: json });
   const status = baselineStatus(report.ctx.tools);
   if (updateShapes) {
     const contract =

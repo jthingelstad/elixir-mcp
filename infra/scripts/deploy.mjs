@@ -326,8 +326,16 @@ if (smoke.status !== 0) {
 const { existsSync } = await import("node:fs");
 const acceptanceEnv = new URL("../../acceptance/.env", import.meta.url)
   .pathname;
+// --acceptance=<family> runs only that family's cases (2026-09-23: a
+// full pass on every deploy of a sweep drained the database's EBS byte
+// balance). Plain --acceptance is the whole suite, for releases that
+// touch shared code.
+const familyArg = process.argv.find((a) => a.startsWith("--acceptance="));
+const acceptanceFamily = familyArg ? familyArg.split("=")[1] : null;
 const wantAcceptance =
-  process.argv.includes("--acceptance") || process.env.ACCEPTANCE === "1";
+  process.argv.includes("--acceptance") ||
+  Boolean(familyArg) ||
+  process.env.ACCEPTANCE === "1";
 if (!wantAcceptance) {
   console.log(
     "acceptance: not run (opt in with --acceptance or ACCEPTANCE=1; npm run acceptance any time).",
@@ -335,7 +343,10 @@ if (!wantAcceptance) {
 } else if (existsSync(acceptanceEnv)) {
   const acceptance = spawnSync(
     process.execPath,
-    [new URL("../../acceptance/run.mjs", import.meta.url).pathname],
+    [
+      new URL("../../acceptance/run.mjs", import.meta.url).pathname,
+      ...(acceptanceFamily ? ["--family", acceptanceFamily] : []),
+    ],
     { stdio: "inherit" },
   );
   if (acceptance.status !== 0) {

@@ -323,6 +323,12 @@ export function gymCases(blocks) {
   return blocks.map((b) => {
     return {
       id: b.id,
+      // The tools the block reads: a per-family gate picks by them.
+      tools: b.calls
+        ? Object.values(b.calls).map((c) => c.tool)
+        : b.tool
+          ? [b.tool]
+          : [],
       run: async (ctx) => {
         if (b.needs_fixture)
           return {

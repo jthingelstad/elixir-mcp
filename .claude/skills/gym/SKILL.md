@@ -136,7 +136,11 @@ Gym runs are read-only, so they may run while you fix another family.
      would need one is a Jamie decision.
    - Run `npm run verify` and check that it reached the tests: a knip
      failure stops before them.
-   - Deploy: `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --acceptance`.
+   - Deploy: `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --acceptance=<family>`.
+     This runs only that family's cases. Use the whole suite (`--acceptance`)
+     only for a change to shared code (protocol, tools.mjs, shared.mjs,
+     ingest). On 2026-09-23 a full gate on every deploy, plus the Gym runs,
+     drained the database's EBS byte balance in one afternoon.
      Read the fix back live.
    - Answer each item with `{feedback_respond}`, `done` naming the version,
      following close-the-loop.md's write rules. Add a short `docs/NOTES.md`

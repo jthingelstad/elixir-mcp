@@ -10,6 +10,7 @@ import { answered, ok } from "../lib.mjs";
 function budget(id, tool, args, ceilingMs) {
   return {
     id,
+    tools: [tool],
     run: async (ctx) => {
       const r = await ctx.read(tool, args);
       answered(r, `${tool} ${JSON.stringify(args)}`);
