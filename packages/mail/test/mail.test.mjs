@@ -334,9 +334,11 @@ test("a deck block is the record's own cards, in order, four to a row", () => {
           : "") + card.name;
     assert.ok(alts.includes(label), `${label} is in the block`);
   }
-  // A form carries its OWN art, never the base card's.
-  assert.ok(html.includes("28000015_hero-64.png"), "the hero form's icon");
-  assert.ok(html.includes("26000024_evo-64.png"), "the evolution's icon");
+  // A form carries its OWN art, never the base card's. A 64px deck cell
+  // loads the 128px file: displayed at 64, so it is sharp on retina.
+  assert.ok(html.includes("28000015_hero-128.png"), "the hero form's icon");
+  assert.ok(html.includes("26000024_evo-128.png"), "the evolution's icon");
+  assert.ok(/width="64" height="94"/.test(html), "displayed at 64, not 128");
   // Table layout only: Outlook's engine is Word's.
   assert.ok(!/display:\s*(flex|grid)/.test(html), "no flex or grid");
   assert.ok(!/background-image/.test(html), "no background images");
