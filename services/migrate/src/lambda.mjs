@@ -16,6 +16,7 @@ import {
 import { migrate } from "./migrate.mjs";
 import { activityPreview, explainTimeline } from "./ops-activity.mjs";
 import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
+import { profileTool } from "./ops-profile.mjs";
 
 import {
   seed,
@@ -186,6 +187,14 @@ export async function handler(event) {
     const result = await explainParticipation(
       process.env.DATABASE_URL,
       event.explain_participation,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.profile_tool) {
+    const result = await profileTool(
+      process.env.DATABASE_URL,
+      event.profile_tool,
     );
     console.log(JSON.stringify(result));
     return result;
