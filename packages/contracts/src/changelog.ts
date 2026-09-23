@@ -24,6 +24,12 @@ const list = (...items: string[]) => items.map((i) => `- ${i}`).join("\n");
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "6.36.2",
+    date: "2026-09-23",
+    summary:
+      "The 6.36.1 notes name other tools' fields in the tool.field form (`war_history.closed_at`, `war_history.progress_earned`, `war_rivals.mean_fame`), so a response never names a field it does not carry.",
+  },
+  {
     version: "6.36.1",
     date: "2026-09-23",
     summary: md(

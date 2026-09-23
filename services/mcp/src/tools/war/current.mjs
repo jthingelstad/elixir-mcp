@@ -385,7 +385,7 @@ export const war_current = {
         raceFinishedNote,
         "Days follow the 10:00 UTC policy reset for every clan and the period is the calendar's: cite the *_nominal instants; started_observed_at is when the recorder first saw this period open (null when it has not), observed_offset_minutes its distance from the policy hour including polling latency.",
         // The race closes before the grid (Gym #169, #179).
-        "A race closes each war day before the 10:00 UTC grid, in the half hour before it and per race (observed 09:30 to 10:00Z); observed_offset_minutes is when the recorder saw a period open, never when the race closed. war_history's closed_at has past weeks' real closes.",
+        "A race closes each war day before the 10:00 UTC grid, in the half hour before it and per race (observed 09:30 to 10:00Z); observed_offset_minutes is when the recorder saw a period open, never when the race closed. war_history.closed_at has past weeks' real closes.",
         "period.api_period_type is the API's own word for the day at the last race poll (training, warDay, colosseum); period.kind is the policy grid's, and the two disagree only when the clan's reset has drifted across the boundary.",
         "war_day is 1-based, day_in_week 0-based; attendance_by_war_day is empty before the week's first war day.",
       ),

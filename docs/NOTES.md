@@ -2070,4 +2070,5 @@ All 7 regressions were confirmed. #126's recorder half (reads pinned to the 10:0
 - **#180:** WAR_FAME_BY_PLACEMENT goes on war_history and war_rivals. The fact is also pushed to cr-agent-api-docs clans.md (2e63b8b), since it holds for any caller.
 - **#181:** the battles.md war-trophies paragraph.
 - **Open (Gym, not filed):** a battle between a race's real close and 10:00Z counts toward the previous day. It needs a clan-wide scan.
+- **6.36.2:** the 6.36.1 war gate failed the contract checks. The new notes named `closed_at`, `progress_earned` and `mean_fame` on tools that do not carry them, so they are now tool-qualified. 181.1 needed `contains` to take a string, and gym-interp now does.
 

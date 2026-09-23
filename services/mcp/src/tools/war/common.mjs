@@ -42,7 +42,7 @@ export const warTrophyTiming = (field = "clan_war_trophies") =>
  *  points, so fame measures where a clan finished each day, not how much
  *  it played. Only the observed payouts are stated. */
 export const WAR_FAME_BY_PLACEMENT =
-  "A war day's fame (progress_earned) is paid by the clan's placement that day on points, not by the points: observed 3,000 for first, 1,800 for second and 1,000 for third. So fame, and mean_fame on war_rivals, measures where a clan placed each day, not how much it played: compare points for effort.";
+  "A war day's fame (war_history.progress_earned) is paid by the clan's placement that day on points, not by the points: observed 3,000 for first, 1,800 for second and 1,000 for third. So fame, and war_rivals.mean_fame, measures where a clan placed each day, not how much it played: compare points for effort.";
 export const WAR_DOCS = docsRef("battles", "war-weeks-points-and-fame");
 
 export const CLAN_TAG_SCHEMA = {

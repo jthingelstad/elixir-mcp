@@ -269,8 +269,16 @@ export function assertOne(spec, scope, root) {
       const v = at(p);
       ok(v !== undefined, `contains ${p}: absent`);
       if (v === null) return;
-      ok(Array.isArray(v), `contains ${p}: not a list`);
-      ok(v.includes(want), `contains ${p}: ${show(v)} lacks ${show(want)}`);
+      // A list holds the value; a string holds it as a substring (181.1:
+      // a docs section's markdown).
+      ok(
+        Array.isArray(v) || typeof v === "string",
+        `contains ${p}: not a list or a string`,
+      );
+      ok(
+        v.includes(want),
+        `contains ${p}: ${typeof v === "string" ? `${v.length} characters` : show(v)} lack ${show(want)}`,
+      );
       return;
     }
     case "unique_by": {
