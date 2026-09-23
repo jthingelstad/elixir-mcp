@@ -309,7 +309,11 @@ test("a duel's per-round results reach the wire, with a per-round differential",
   for (const r of duel.me.rounds) {
     assert.ok(Number.isInteger(r.round) && r.round >= 1);
     assert.ok("crowns" in r && "tower_hp" in r && "elixir" in r);
-    assert.ok(r.elixir.caveat, "the leak caveat rides every round too");
+    assert.equal(
+      r.elixir.caveat,
+      undefined,
+      "the caveat rides the row once, not every round",
+    );
   }
   // The round numbers line up with the decks already served per round.
   assert.deepEqual(

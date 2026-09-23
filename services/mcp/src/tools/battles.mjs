@@ -298,7 +298,9 @@ function roundResultsOf(own, opponent) {
           mine !== null && theirs !== null
             ? Number((mine - theirs).toFixed(2))
             : null,
-        caveat: ELIXIR_CAVEAT,
+        // The caveat rides the row's own elixir object once; repeating
+        // it per round per side cost ~1.8 KB on a three-round duel and
+        // helped nobody.
       },
     };
   });
@@ -392,8 +394,13 @@ const roundsPlayed = (deck) =>
 // fact. `rounds` is what the counters sum over; a duel's sides each sum
 // two or three games on different decks, so its differential is null
 // (feedback #65: the 3.13.0 spec said so and the code did not).
+// Carried ON the value, not beside it (6.0.0, feedback #66), so it
+// travels with the number - but tightly: it rides every participant of
+// every row, and at ~295 characters it was 6 KB of one repeated
+// sentence on a ten-battle page, which is what pushed battles_query
+// full past the result cap in 6.18.0.
 const ELIXIR_CAVEAT =
-  "Not a skill measure. Do not describe a player's leak as good or poor play: holding elixir to make the opponent commit first is a deliberate line that raises leak by design, and the record has no placement timestamps to separate that from waste. At high trophies both sides routinely hold and both leak.";
+  "Not a skill measure: holding elixir to make the opponent commit is a deliberate line that raises leak by design, and the record cannot tell that from waste. Read the differential, never the absolute.";
 const isDuel = (type) => /^riverRaceDuel/.test(String(type ?? ""));
 const elixirOf = (own, opponent, type, deck) => {
   if (own === null) return null;

@@ -38,5 +38,10 @@
     "last_battle_at": "on a `returned` timeline item, a rare kind",
     "returned_after_days": "same",
     "player_activity": "a timeline entry kind for a player subject; the acceptance principal is a clan agent and follows no player"
+  },
+  "battles_query": {
+    "king_tower_fell": "a VALUE of inferred.duration.basis, not a field; the note explains the three rules",
+    "regulation_ran": "same",
+    "overtime_expired": "same"
   }
 }
