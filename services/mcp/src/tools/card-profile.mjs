@@ -1,8 +1,3 @@
-import {
-  META_EVENT_NOTE,
-  metaPopulationClause,
-  participantModeClause,
-} from "../mode-filter.mjs";
 /** cards_card - everything the record knows about ONE card, in one call
  *  (5.0.0; docs/reviews/2026-09-19-CARDS-REVIEW.md). Before it, a card
  *  question cost the whole 130-row card meta and a hand search of the
@@ -12,6 +7,12 @@ import {
  *  season rollups (this season, by band, every season) on a corpus read,
  *  the raw participant rows on a segment or an explicit window, and
  *  player_card / battle_participant_card for a clan's members. */
+
+import {
+  META_EVENT_NOTE,
+  metaPopulationClause,
+  participantModeClause,
+} from "../mode-filter.mjs";
 import {
   responseMeta,
   MODE_GROUPS,

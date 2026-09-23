@@ -24,6 +24,12 @@ const list = (...items: string[]) => items.map((i) => `- ${i}`).join("\n");
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "6.32.1",
+    date: "2026-09-23",
+    summary:
+      "`cards_synergy`'s raw-window mode split uses the season rollup's mode-group rule, so a battle of an odd API type reads `casual` on both paths, not `other` on one (#154).",
+  },
+  {
     version: "6.32.0",
     date: "2026-09-23",
     summary: md(

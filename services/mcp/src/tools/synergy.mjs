@@ -1,8 +1,3 @@
-import {
-  META_EVENT_NOTE,
-  metaPopulationClause,
-  participantModeClause,
-} from "../mode-filter.mjs";
 /** cards_synergy — the card-pair axis (feedback #19): "what is Witch
  *  played with" needed co-occurrence, per-pair distinct players and lift,
  *  none of which the per-card or per-deck meta could give. */
@@ -10,10 +5,16 @@ import {
 import {
   responseMeta,
   MODE_GROUPS,
+  modeGroupSql,
   typesForModeGroup,
   cardForms,
   formName,
 } from "@elixir-mcp/contracts";
+import {
+  META_EVENT_NOTE,
+  metaPopulationClause,
+  participantModeClause,
+} from "../mode-filter.mjs";
 import {
   ToolFailure,
   MODE_SCHEMA,
@@ -74,6 +75,8 @@ export async function resolveCard(db, { card_id, card }) {
     "Names resolve only on an exact match so Witch is never read as Mother Witch; pass card_id to be unambiguous.",
   );
 }
+
+const RAW_MODE_GROUP = modeGroupSql("bp.type", "null::text");
 
 export const synergyTools = {
   cards_synergy: {
@@ -216,12 +219,15 @@ export const synergyTools = {
       } else {
         await rawScanMemory(ctx.db);
         const { rows: byType } = await ctx.db.query(
-          `select bp.type, count(*)::int as battles,
+          // The rollup's own group rule (#154: one odd-typed battle read
+          // `other` here and `casual` on the season read). Event battles
+          // are outside the meta population, so no tag is needed.
+          `select ${RAW_MODE_GROUP} as mode_group, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses
            from battle_participant bp
            where ${where.join(" and ")} and ${anchorMatch}
-           group by bp.type`,
+           group by 1`,
           params,
         );
         anchorModes = modeSplit(byType);

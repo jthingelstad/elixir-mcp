@@ -2005,4 +2005,5 @@ All 5 regressions were confirmed (#38 rankings half, #71-#73, #76). #139 is prai
 - **#155:** the ranked by_band note is corrected. methodology.prior_source follows prior_basis.
 - **Open, not filed:** Mirror is left out of average_elixir with no note.
 - **Gate:** first per-family deploy, `--acceptance=cards`.
+- **6.32.1:** the 6.32.0 cards gate failed 154.2 only. Raw and season now agree exactly (44,956 decided, 7,620 Witch), but one odd-typed battle read `other` on the raw path and `casual` on the rollup. **Follow-up:** `modeGroupSql` defaults an unknown type to `casual` while `modeGroupOf` (JS) says `other`. Unifying them changes rollup rows and needs a rebuild. For now, raw synergy groups with the SQL rule, as the rollup does.
 
