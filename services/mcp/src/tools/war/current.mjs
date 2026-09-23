@@ -1,0 +1,394 @@
+import { observedStart, periodAt } from "../../war-period.mjs";
+import { WAR_BATTLE_TYPES, warBattlesSql } from "../../war-battles-sql.mjs";
+import { finishInstant } from "../../time.mjs";
+import {
+  VERBOSITY,
+  appliedBlock,
+  buildMeta,
+  livePendingNote,
+  liveStatus,
+  notRecordedOrPending,
+  notes,
+} from "../shared.mjs";
+import {
+  CLAN_SCORE_DEPRECATION,
+  CLAN_TAG_SCHEMA,
+  CLOCK_DOCS,
+  boatDecksNote,
+  boatFinished,
+  cappedProgressNote,
+  clanSubject,
+  decksAfterFinish,
+  finishWarDays,
+  scoringDecks,
+  warDaysLog,
+  warTrophyAlias,
+  weekKey,
+} from "./common.mjs";
+
+export const war_current = {
+  description:
+    "The current (latest recorded) river race for a clan, yours by default: standings across the five clans with banked fame and current-day period_points, per-member points and decks used, the war day and attendance so far. On a war day decks_today names who is untouched, partial and finished (the nudge list); off one it is null with decks_today_reason. verbosity compact keeps standings, the period, the counts and the nudge lists and drops participants. live: true asks for a read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      clan_tag: CLAN_TAG_SCHEMA,
+      verbosity: VERBOSITY(
+        "drops the participants array and attendance history; keeps standings, period, counts, members_not_in_race and the decks_today lists.",
+      ),
+      live: {
+        type: "boolean",
+        description:
+          "Ask for a read of this clan's race no older than two minutes; works for a clan nobody records. Served if in hand, otherwise queued while the record answers with live_status pending.",
+      },
+    },
+    additionalProperties: false,
+  },
+  async handler(ctx, args) {
+    const { tag: clanTag, live } = await clanSubject(
+      ctx,
+      args,
+      "currentriverrace",
+    );
+    const compact = args.verbosity === "compact";
+    const { rows: weekRows } = await ctx.db.query(
+      `select season_id, section_index, is_colosseum from war_week
+         where clan_tag = $1 order by season_id desc, section_index desc limit 1`,
+      [clanTag],
+    );
+    if (!weekRows[0]) {
+      // Say what the record knows before pointing at live (feedback
+      // #53: a one-member clan's routine was told "live reads the race
+      // now" when the game itself has no race for the clan: its log
+      // poll was admitted empty and the race read is a 404). A live
+      // read would answer the same, and the caller's rule is to spend
+      // one only when it changes the answer.
+      const {
+        rows: [known],
+      } = await ctx.db.query(
+        `select (select max(last_admitted_at) from poll_state
+                    where subject_tag = $1 and endpoint = 'riverracelog') as log_admitted_at,
+                  (select max(fetched_at) from collector_fetch_error
+                    where entity_key = $1 and endpoint = 'currentriverrace'
+                      and http_status = 404 and fetched_at > now() - interval '2 days') as race_404_at`,
+        [clanTag],
+      );
+      const noRace = known?.log_admitted_at && known?.race_404_at;
+      throw notRecordedOrPending(
+        live,
+        noRace
+          ? "The game reports no river race for this clan: its race log was read empty and the current race is not found."
+          : "No war weeks recorded for this clan yet.",
+        args.live
+          ? "The live payload was admitted but no race projected; the clan may be between races. Try war_rivals for its history."
+          : noRace
+            ? `A clan that has not entered a river race has nothing to record and live: true answers the same (race log admitted ${known.log_admitted_at.toISOString()}, race read 404 at ${known.race_404_at.toISOString()}); clans_roster({ clan_tag }) says how many members it has.`
+            : "The first riverracelog poll lands within a day of tracking; live: true reads the race now.",
+      );
+    }
+    const wk = weekRows[0];
+    const meta = await buildMeta(ctx.db, ctx.account, clanTag, [
+      "currentriverrace",
+    ]);
+    // Grounded time (feedback #8: an agent asserted "the week just
+    // finished" from schema alone): the period from the calendar
+    // (war_period, the policy grid) gives fields a temporal claim can
+    // CITE; the clan's own first sighting of it rides beside, when it
+    // has one, as the observation. A stale or missing anchor no
+    // longer blanks the day (0105; this session).
+    const nowMs = Date.now();
+    const p = await periodAt(ctx.db, nowMs);
+    const anchor = await observedStart(ctx.db, clanTag, p);
+    let period = null;
+    let nextWarDayOpensAt = null;
+    if (p) {
+      period = {
+        period_index: p.periodIndex,
+        kind: p.kind,
+        ...(p.warDay ? { war_day: p.warDay } : {}),
+        day_in_week: p.dayInSection,
+        started_observed_at: anchor ? anchor.toISOString() : null,
+        source_observed_at: meta.source_polls.currentriverrace.observed_at,
+        freshness_seconds: meta.source_polls.currentriverrace.freshness_seconds,
+        period_start_nominal: new Date(p.startMs).toISOString(),
+        period_end_nominal: new Date(p.endMs).toISOString(),
+        week_end_nominal: new Date(p.weekEndMs).toISOString(),
+        // How far this clan's observed start sat from the policy hour,
+        // INCLUDING our polling latency: an upper bound on the drift.
+        // Null when the recorder has not seen this period open.
+        observed_offset_minutes: anchor
+          ? Math.round((anchor.getTime() - p.startMs) / 60_000)
+          : null,
+        next_war_day_opens_at: p.nextWarDayOpensMs
+          ? new Date(p.nextWarDayOpensMs).toISOString()
+          : null,
+      };
+      nextWarDayOpensAt = period.next_war_day_opens_at;
+    }
+    const standings = await ctx.db.query(
+      `select participant_clan_tag, participant_name, fame, period_points,
+                rank, trophy_change, finish_time, clan_score, repair_points
+           from war_week_clan
+           where clan_tag = $1 and season_id = $2 and section_index = $3
+           order by rank nulls last, fame desc`,
+      [clanTag, wk.season_id, wk.section_index],
+    );
+    // The closed days of the running week (3.15.0), and the API's own
+    // word for today beside the grid's kind.
+    const daysClosed = compact
+      ? null
+      : await warDaysLog(ctx.db, clanTag, wk.season_id, wk.section_index);
+    const {
+      rows: [apiPeriod],
+    } = await ctx.db.query(
+      `select period_type from poll_state
+          where subject_tag = $1 and endpoint = 'currentriverrace'`,
+      [clanTag],
+    );
+    if (period) period.api_period_type = apiPeriod?.period_type ?? null;
+    const participation = await ctx.db.query(
+      `select wp.player_tag, p.name, wp.points, wp.decks_used, wp.boat_attacks, wp.repair_points,
+                  exists (select 1 from clan_membership cm
+                          where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
+                            and cm.left_observed_at is null) as in_clan
+           from war_participation wp join player p on p.player_tag = wp.player_tag
+           where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
+           order by wp.points desc,
+                    exists (select 1 from clan_membership cm2
+                            where cm2.clan_tag = wp.clan_tag and cm2.player_tag = wp.player_tag
+                              and cm2.left_observed_at is null) desc,
+                    p.name nulls last`,
+      [clanTag, wk.season_id, wk.section_index],
+    );
+    // WHO IS IN THE CLAN BUT NOT IN THE RACE. Verified against the live
+    // API 2026-09-09: the game seeds the race roster from members SEEN
+    // since the race began, so the omitted members are the ones whose
+    // lastSeen predates the race start (written up in cr-agent-api-docs).
+    const notInRace = await ctx.db.query(
+      `select cm.player_tag, p.name
+         from clan_membership cm
+         left join player p on p.player_tag = cm.player_tag
+         where cm.clan_tag = $1 and cm.left_observed_at is null
+           and not exists (
+             select 1 from war_participation wp
+             where wp.clan_tag = cm.clan_tag and wp.player_tag = cm.player_tag
+               and wp.season_id = $2 and wp.section_index = $3)
+         order by p.name nulls last`,
+      [clanTag, wk.season_id, wk.section_index],
+    );
+    // Battled = decksUsedToday observed >0 at any poll, OR a recorded
+    // war battle by that member that day — polls alone undercount
+    // when the cadence misses a member's play window (round-3).
+    const attendance = await ctx.db.query(
+      `with att as (
+             select war_day, player_tag, decks_used_today > 0 as battled
+             from war_attendance_day
+             where clan_tag = $1 and season_id = $2 and section_index = $3),
+           fought as (
+             select distinct wb.war_day, wb.player_tag
+             from (${warBattlesSql({ clan: "$1", season: "$2", section: "$3", types: "$4" })}) wb),
+           merged as (
+             select war_day, player_tag, bool_or(battled) as battled from (
+               select war_day, player_tag, battled from att
+               union all
+               select war_day, player_tag, true from fought) x
+             group by war_day, player_tag)
+           select war_day,
+                  count(*) filter (where battled)::int as battled,
+                  count(*)::int as participants
+           from merged
+           group by war_day order by war_day`,
+      [clanTag, wk.season_id, wk.section_index, WAR_BATTLE_TYPES],
+    );
+    // Our own boat's finish, if it has one this week: standings carry
+    // finish_time per participant, and ours is the one that decides
+    // whether remaining decks still add fame.
+    const own = standings.rows.find((r) => r.participant_clan_tag === clanTag);
+    const raceFinishedAt = finishInstant(own?.finish_time);
+    // The finish day and what was played after it (feedback #81):
+    // points and decks_used sit on one participant row, and the decks
+    // inside decks_used from the days after the finish earned nothing.
+    const raceFinished = boatFinished({
+      is_colosseum: wk.is_colosseum,
+      fame: own?.fame,
+      finish_time: own?.finish_time,
+    });
+    const finishDays =
+      raceFinished === true
+        ? await finishWarDays(ctx.db, clanTag, [wk])
+        : new Map();
+    const finishWarDay = finishDays.get(weekKey(wk)) ?? null;
+    const afterFinish = (
+      await decksAfterFinish(ctx.db, clanTag, finishDays)
+    ).get(weekKey(wk));
+    const decksAfter = afterFinish
+      ? [...afterFinish.values()].reduce((a, b) => a + b, 0)
+      : null;
+    const participants = participation.rows.map((r) => ({
+      ...r,
+      scoring_decks: scoringDecks({
+        decksUsed: r.decks_used,
+        finished: raceFinished,
+        finishDay: finishWarDay,
+        after: afterFinish,
+        playerTag: r.player_tag,
+      }),
+    }));
+    const finishedNote =
+      raceFinished === true
+        ? `This clan's boat finished the race${raceFinishedAt ? ` at ${raceFinishedAt}` : ""}${finishWarDay ? ` (the close of war day ${finishWarDay})` : ""}: decks used after that earn zero points${decksAfter !== null ? ` - ${decksAfter} ${decksAfter === 1 ? "deck was" : "decks were"} played on the war days since, for 0 clan points` : ""} - so participants[].decks_used is not the denominator of a points-per-deck rate; scoring_decks is${finishWarDay && afterFinish ? "" : " (null here: the record cannot separate the two for this week)"}.`
+        : null;
+    // Today's remaining-decks picture (CLAN-PULSE.md): only while the
+    // anchored war-day period is nominally still open.
+    let decksToday = null;
+    let overCapNote = null;
+    let raceFinishedNote = null;
+    if (period?.war_day && Date.now() < Date.parse(period.period_end_nominal)) {
+      const { rows: dayRows } = await ctx.db.query(
+        `with base as (
+             select wp.player_tag, p.name
+             from war_participation wp join player p on p.player_tag = wp.player_tag
+             where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
+               and exists (select 1 from clan_membership cm
+                           where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
+                             and cm.left_observed_at is null)),
+           att as (
+             select player_tag, decks_used_today from war_attendance_day
+             where clan_tag = $1 and season_id = $2 and section_index = $3 and war_day = $4),
+           fought as (
+             select wb.player_tag, count(distinct wb.battle_id)::int as n
+             from (${warBattlesSql({ clan: "$1", season: "$2", section: "$3", warDay: "$4", types: "$5" })}) wb
+             group by wb.player_tag)
+           select base.player_tag, base.name,
+                  least(greatest(coalesce(att.decks_used_today, 0),
+                                 coalesce(fought.n, 0)), 4)::int as decks_used,
+                  greatest(coalesce(att.decks_used_today, 0),
+                           coalesce(fought.n, 0))::int as decks_raw
+           from base
+           left join att on att.player_tag = base.player_tag
+           left join fought on fought.player_tag = base.player_tag
+           order by decks_used, base.name nulls last`,
+        [
+          clanTag,
+          wk.season_id,
+          wk.section_index,
+          period.war_day,
+          WAR_BATTLE_TYPES,
+        ],
+      );
+      const pick = (lo, hi) =>
+        dayRows
+          .filter((r) => r.decks_used >= lo && r.decks_used <= hi)
+          .map(({ player_tag, name, decks_used }) => ({
+            player_tag,
+            name,
+            decks_used,
+          }));
+      // A day holds four decks. Following the 10:00Z POLICY reset rather
+      // than each clan's drifted start means battles in the drift gap
+      // land on the previous policy day; the first sign is somebody
+      // counting FIVE decks. Surface it instead of rounding it away.
+      const overCap = dayRows
+        .filter((r) => r.decks_raw > 4)
+        .map((r) => ({
+          player_tag: r.player_tag,
+          name: r.name,
+          decks_observed: r.decks_raw,
+        }));
+      decksToday = {
+        war_day: period.war_day,
+        // The boat may already have crossed the line (POAP KINGS did on
+        // day 4 at 09:38Z, 2026-09-13, with 40 still "untouched"). The
+        // lists stay - who played today is still a fact - but the
+        // instant is beside them so no reader nudges toward nothing.
+        race_finished_at: raceFinishedAt,
+        untouched: pick(0, 0),
+        partial: pick(1, 3),
+        finished: pick(4, 4),
+        counts: {
+          untouched: pick(0, 0).length,
+          partial: pick(1, 3).length,
+          finished: pick(4, 4).length,
+          participants: dayRows.length,
+        },
+        ...(overCap.length > 0 ? { over_cap: overCap } : {}),
+      };
+      if (raceFinishedAt)
+        raceFinishedNote =
+          "race_finished_at is set: this clan's boat has crossed the finish line this week, so decks_today reports who played today, not who still owes the race anything.";
+      if (overCap.length > 0)
+        overCapNote =
+          "over_cap lists members observed with more than four decks in this policy day: this clan's real reset drifts far enough from the policy hour to move battles across the boundary.";
+    }
+    return {
+      clan_tag: clanTag,
+      season_id: wk.season_id,
+      section_index: wk.section_index,
+      is_colosseum: wk.is_colosseum,
+      // What KIND of day this is, beside season_id and mirroring
+      // game_clock (playtest round, 2026-09-09).
+      day_kind: period?.kind ?? null,
+      war_day: period?.war_day ?? null,
+      race_finished_at: raceFinishedAt,
+      finish_war_day: finishWarDay,
+      next_war_day_opens_at: nextWarDayOpensAt,
+      applied: appliedBlock({
+        clan_tag: clanTag,
+        verbosity: compact ? "compact" : "full",
+        live: args.live === true ? true : undefined,
+      }),
+      ...(live ? { live_status: liveStatus(live) } : {}),
+      standings: standings.rows.map((row) => ({
+        ...row,
+        ...warTrophyAlias(row),
+        finish_time: finishInstant(row.finish_time),
+      })),
+      ...(compact ? {} : { participants }),
+      participants_count: participation.rows.length,
+      member_count:
+        participation.rows.filter((r) => r.in_clan).length +
+        notInRace.rows.length,
+      members_not_in_race: notInRace.rows.map((r) => ({
+        player_tag: r.player_tag,
+        name: r.name,
+        reason: "not_in_race_roster",
+      })),
+      ...(period ? { period } : {}),
+      // decks_today is an ANSWER when it is null, not an omission.
+      decks_today: decksToday,
+      ...(decksToday
+        ? {}
+        : {
+            decks_today_reason: !period ? "period_unknown" : "training_day",
+          }),
+      ...(compact ? {} : { attendance_by_war_day: attendance.rows }),
+      ...(daysClosed ? { days_closed: daysClosed } : {}),
+      notes: notes(
+        livePendingNote(live),
+        "points are per-member contributions; fame belongs to the boat (the clan).",
+        "standings.clan_war_trophies is each bracket clan's WAR trophies (latest observed) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
+        CLAN_SCORE_DEPRECATION,
+        daysClosed
+          ? "days_closed is the race's own day-by-day (the API's periodLogs): one entry per closed war day with every clan's points_earned, progress, rank (1-based; null while unranked) and end_of_day_rank (the API's 0-based value); the running day is not in it until it closes."
+          : null,
+        "standings.finish_time is null for a clan that has not finished (the API marks it with epoch zero, never a time).",
+        "participants[].decks_used is the RACE WEEK's cumulative count and decks_today.*.decks_used is this policy day's; a duel consumes one deck per round played (two or three) and a 1v1 one, so four decks is two to four battles.",
+        finishedNote,
+        compact ? null : boatDecksNote(participants, "participants"),
+        cappedProgressNote(daysClosed, "days_closed"),
+        "standings.fame is cumulative race progress banked at the day close; standings.period_points is the current day's score, so fame can be zero on war day 1 while members already have points.",
+        "members_not_in_race names current members the game left out of the race roster: their game-side lastSeen predates the race start (a nudge list; the predicate is the game's).",
+        decksToday
+          ? "decks_today trails actual play early in a day: cite it as observed so far, never as final."
+          : null,
+        overCapNote,
+        raceFinishedNote,
+        "Days follow the 10:00 UTC policy reset for every clan and the period is the calendar's: cite the *_nominal instants; started_observed_at is when the recorder first saw this period open (null when it has not), observed_offset_minutes its distance from the policy hour including polling latency.",
+        "period.api_period_type is the API's own word for the day at the last race poll (training, warDay, colosseum); period.kind is the policy grid's, and the two disagree only when the clan's reset has drifted across the boundary.",
+        "war_day is 1-based, day_in_week 0-based; attendance_by_war_day is empty before the week's first war day.",
+      ),
+      docs: CLOCK_DOCS,
+      meta,
+    };
+  },
+};

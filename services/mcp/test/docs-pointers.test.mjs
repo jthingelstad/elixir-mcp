@@ -11,7 +11,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DOCS } from "@elixir-mcp/docs";
@@ -19,11 +19,24 @@ import { DOCS } from "@elixir-mcp/docs";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const src = path.resolve(here, "../src");
 
-const files = [
-  ...readdirSync(path.join(src, "tools"))
-    .filter((f) => f.endsWith(".mjs") && !f.endsWith(".test.mjs"))
-    .map((f) => path.join(src, "tools", f)),
-];
+/** Every tool module, including a split family's own directory
+ *  (tools/battles/*.mjs since 2026-09-23). */
+function toolModules(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...toolModules(full));
+    else if (entry.name.endsWith(".mjs") && !entry.name.endsWith(".test.mjs"))
+      out.push(full);
+  }
+  return out;
+}
+const files = toolModules(path.join(src, "tools"));
+/** A split family's index (tools/battles.mjs beside tools/battles/) only
+ *  assembles the tools; its files carry the pointers. */
+const isSplitIndex = (file) =>
+  existsSync(file.replace(/\.mjs$/, "")) &&
+  statSync(file.replace(/\.mjs$/, "")).isDirectory();
 
 /** [{ file, page, section|null, literal }] for every pointer in the source. */
 function pointers() {
@@ -44,11 +57,19 @@ function pointers() {
 test("docs pointers: the source declares some, in every tool module", () => {
   const found = pointers();
   assert.ok(found.length >= 30, `only ${found.length} pointers found`);
-  const filesWithPointers = new Set(found.map((p) => p.file));
+  // The rule is per tool MODULE as it stood before the split: a family
+  // split into tools/<family>/ answers as one module, since not every
+  // tool emits a pointer (elixir_docs is the docs).
+  const moduleOf = (rel) => rel.replace(/^(tools\/[^/]+)\/[^/]+\.mjs$/, "$1");
+  const modulesWithPointers = new Set(found.map((p) => moduleOf(p.file)));
   for (const file of files) {
     const rel = path.relative(src, file);
     if (rel === "tools/shared.mjs" || rel === "tools/synergy.mjs") continue;
-    assert.ok(filesWithPointers.has(rel), `${rel} emits no docs pointer`);
+    if (isSplitIndex(file)) continue;
+    assert.ok(
+      modulesWithPointers.has(moduleOf(rel)),
+      `${moduleOf(rel)} emits no docs pointer`,
+    );
   }
 });
 
