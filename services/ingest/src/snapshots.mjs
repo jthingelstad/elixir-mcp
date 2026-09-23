@@ -185,9 +185,14 @@ export async function upsertProfileSnapshot(
      on conflict (player_tag, snapshot_date, snapshot_kind) do update set
        trophies = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
                        then excluded.trophies else player_snapshot_daily.trophies end,
-       donations = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+       -- pre_reset keeps the week's high-water mark (series.mjs, 2026-09-23).
+       donations = case when $3 = 'pre_reset'
+                        then greatest(excluded.donations, player_snapshot_daily.donations)
+                        when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
                         then excluded.donations else player_snapshot_daily.donations end,
-       donations_received = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+       donations_received = case when $3 = 'pre_reset'
+                                 then greatest(excluded.donations_received, player_snapshot_daily.donations_received)
+                                 when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
                                  then excluded.donations_received else player_snapshot_daily.donations_received end,
        arena_id = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
                        then excluded.arena_id else player_snapshot_daily.arena_id end,

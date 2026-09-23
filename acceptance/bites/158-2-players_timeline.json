@@ -1,0 +1,101 @@
+{
+  "feedback": 158,
+  "contract_version": "6.32.1",
+  "captured_at": "2026-09-23T20:05:59.025Z",
+  "request": {
+    "tool": "players_timeline",
+    "arguments": {
+      "player_tag": "#20JJJ2CCRU",
+      "from": "2026-09-06",
+      "to": "2026-09-22",
+      "kind": "pre_reset",
+      "metrics": ["donations"]
+    }
+  },
+  "response": {
+    "player_tag": "#20JJJ2CCRU",
+    "applied": {
+      "window": {
+        "from": "2026-09-06",
+        "to": "2026-09-22",
+        "source": "argument",
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ],
+        "season_age_days": 35
+      },
+      "granularity": "day",
+      "kind": "pre_reset",
+      "metrics": ["donations"]
+    },
+    "snapshots_available_from": "2026-03-07",
+    "series": [
+      {
+        "day": "2026-09-06",
+        "kind": "pre_reset",
+        "observed_at": "2026-09-07T00:07:41.000Z",
+        "profile_observed_at": "2026-09-06T23:13:02.000Z",
+        "roster_observed_at": "2026-09-07T00:07:41.000Z",
+        "source": "api",
+        "donations": 0
+      },
+      {
+        "day": "2026-09-13",
+        "kind": "pre_reset",
+        "observed_at": "2026-09-14T00:03:00.000Z",
+        "profile_observed_at": "2026-09-13T23:13:31.000Z",
+        "roster_observed_at": "2026-09-14T00:03:00.000Z",
+        "source": "api",
+        "donations": 0
+      },
+      {
+        "day": "2026-09-20",
+        "kind": "pre_reset",
+        "observed_at": "2026-09-20T23:38:21.000Z",
+        "profile_observed_at": "2026-09-20T23:28:05.000Z",
+        "roster_observed_at": "2026-09-20T23:38:21.000Z",
+        "source": "api",
+        "donations": 400
+      }
+    ],
+    "notes": [
+      "donations is the weekly counter as of each snapshot; it resets Mondays around 00:10 UTC (kind: pre_reset is the row from the hour before).",
+      "Window spans S135 (2026-08) and S136 (2026-09); the seasonal trophies and the Path of Legends standing reset on the roll, so points on either side of it are not one series.",
+      "Days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; a point is the day's last observation."
+    ],
+    "docs": "recording#daily-series",
+    "meta": {
+      "contract_version": "6.32.1",
+      "source_polls": {
+        "player": {
+          "observed_at": "2026-09-23T14:27:49.000Z",
+          "freshness_seconds": 20290
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 38,
+    "db_queries": 9,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -13,7 +13,7 @@
  * battles_performance per member for this).
  */
 
-import { typesForModeGroup } from "@elixir-mcp/contracts";
+import { modeGroupSql } from "@elixir-mcp/contracts";
 import { dailySql } from "./daily-sql.mjs";
 
 export function standingsQuery({ clanTag, from, to = null, mode = null }) {
@@ -21,21 +21,22 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
                     where cm.clan_tag = $1 and cm.left_observed_at is null)`;
   const values = [clanTag, from, to];
   const rawClauses = [];
-  let types = null;
   let modeGroup = null;
   if (mode) {
-    values.push(typesForModeGroup(mode));
-    types = `$${values.length}`;
-    rawClauses.push(`and bp.type = any(${types})`);
     values.push(mode);
     modeGroup = `$${values.length}`;
+    // Event-aware (Gym #157): the rollup's own group rule over the raw
+    // rows the streak and the level gap read, not a battle-type list.
+    rawClauses.push(
+      `and exists (select 1 from battle b where b.battle_id = bp.battle_id
+                     and ${modeGroupSql("bp.type", "b.event_tag")} = ${modeGroup})`,
+    );
   }
   const daily = dailySql({
     players: `array(${members})`,
     from: "$2",
     to: "$3",
     modeGroup,
-    types,
   });
   const text = `with d as ${daily},
      s as (

@@ -361,8 +361,9 @@ the bot's own profile payloads; that replay wrote rows and never moments, so
 the timeline for those players is quiet over those weeks by rule, not by
 absence of play.
 
-`kind` selects the daily row (the default), the `pre_reset` row (the hour
-before the Monday 00:10 UTC donation reset, the honest weekly donation total)
+`kind` selects the daily row (the default), the `pre_reset` row (the highest
+weekly donation counter the record saw before the counters dropped to 0 at the
+start of Monday UTC: the week's donation total)
 or the `season_roll` row (the hour before the season rolls). A bucket of the
 progress series that reads zero trophies and zero best trophies is not a row:
 no record for no activity.

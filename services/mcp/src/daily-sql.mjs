@@ -18,9 +18,9 @@
  * on the raw rows; the rollup does not carry them.
  *
  * `$players` is a text[] parameter, `$from` a timestamptz, `$to` a
- * timestamptz or null; `types` (a text[] parameter) restricts the raw
- * half by battle type and `modeGroup` (text) the rollup half - the two
- * spellings of one mode filter (typesForModeGroup).
+ * timestamptz or null; `modeGroup` (text) restricts both halves by the
+ * one event-aware group rule (6.33.0, Gym #157: the raw half had taken a
+ * battle-type list, which cannot see the event tag).
  */
 
 import { modeGroupSql } from "@elixir-mcp/contracts";
@@ -39,15 +39,12 @@ const MODE_GROUP_CASE = modeGroupSql("bp.type", "b.event_tag");
 // which would resolve at the SESSION zone and describe a different day
 // on any server not set to UTC.
 
-export function dailySql({
-  players,
-  from,
-  to,
-  modeGroup = null,
-  types = null,
-}) {
+export function dailySql({ players, from, to, modeGroup = null }) {
   const modeRollup = modeGroup ? `and r.mode_group = ${modeGroup}` : "";
-  const modeRaw = types ? `and bp.type = any(${types})` : "";
+  // The edge days' raw rows by the SAME rule the rollup wrote (Gym #157:
+  // a type filter pulled event battles into casual and left event ones
+  // out of event); the battle join supplies the tag.
+  const modeRaw = modeGroup ? `and ${MODE_GROUP_CASE} = ${modeGroup}` : "";
   // The instants are cast timestamptz at EVERY use. A bound parameter
   // takes its type from its first appearance, and `($2)::date` first
   // typed the whole parameter DATE: every later `battle_time >= $2`

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Clans: weekly donations that survive the reset",
+    body: "The Elixir Gym's second run over the clan tools. A player's weekly donations only go up until the game resets them to zero, so Elixir now takes a week's donations as the highest number it saw that week. A read just after the reset can no longer wipe the week out, which had zeroed two recent weeks for whole clans; those weeks are repaired to the best value on record. Clan standings filtered to casual or event play now count event battles correctly. Contract 6.33.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "Cards: one population, however the window is written",
     body: "The Elixir Gym's second run over the card tools. A card's usage and win rate for a custom date range now come from the same population as a whole-season read, without event battles or drafted decks. The same card over the same days no longer gives two answers. Card pairings by trophy band no longer show impossible rates above 100%. Contract 6.32.0.",
   },

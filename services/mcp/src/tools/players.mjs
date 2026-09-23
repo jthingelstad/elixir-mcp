@@ -626,7 +626,7 @@ export const playersTools = {
             ? `Requested from ${win.from}, but daily snapshots begin ${snapshotsFrom}; earlier dates have battles (see elixir_coverage) but no snapshots.`
             : null,
           metrics.includes("donations")
-            ? "donations is the weekly counter as of each snapshot; it resets Mondays around 00:10 UTC (kind: pre_reset is the row from the hour before)."
+            ? "donations is the weekly counter as of each snapshot; it climbs all week and drops to 0 around the start of Monday UTC; kind: pre_reset is the week's highest value, the week's total."
             : null,
           rosterOnly > 0
             ? `${rosterOnly} of ${points.length} points are roster-only (profile_observed_at null): the roster's columns are the day's, the lifetime block is null there.`

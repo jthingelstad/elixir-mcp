@@ -308,6 +308,17 @@ test("the kinds: pre_reset and season_roll rows from the roster inside their win
     1200,
   );
   assert.equal((await memberRow(A, "2026-09-06", "pre_reset")).donations, 400);
+  // A read after the weekly reset, still inside the window (Monday
+  // 00:05Z): the counter reads 0, and the pre_reset row keeps the week's
+  // high-water mark (Jamie, 2026-09-23; Gym #158: 00:03 and 00:07 reads
+  // had zeroed two weeks).
+  const late = "2026-09-07T00:05:00Z";
+  await projectClanSeries(ctx.db, {
+    payload: roster({ at: late, members: [{ tag: A, donations: 0 }] }),
+    observedAt: late,
+  });
+  assert.equal((await memberRow(A, "2026-09-06", "pre_reset")).donations, 400);
+  assert.equal((await memberRow(A, "2026-09-06", "daily")).donations, 0);
   // Monday 09:30Z: the hour before S135 rolls at 10:00Z, game day 09-06.
   const roll = "2026-09-07T09:30:00Z";
   const r2 = await projectClanSeries(ctx.db, {

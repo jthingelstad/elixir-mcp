@@ -68,13 +68,17 @@ export function participationQueries({
       values: [tags, from, rankedTypes, clanTag, warTypes],
     },
     {
-      // The donation counter at the end of each ISO week: the largest
-      // daily snapshot inside it (the counter resets Mondays).
+      // A week's donations are the highest counter value the record saw
+      // in its game days (Jamie, 2026-09-23: the counter only climbs until
+      // the weekly reset). snapshot_date is the game day, so the week is
+      // Monday 10:00Z to Monday 10:00Z; the pre_reset row (the high-water
+      // mark near the reset) counts beside the daily rows.
       name: "donations_by_week",
       text: `select player_tag, date_trunc('week', snapshot_date::timestamp) as week_start,
                     max(donations)::int as donations, count(*)::int as snapshots
              from player_snapshot_daily
-             where player_tag = any($1) and snapshot_kind = 'daily' and snapshot_date >= $2::date
+             where player_tag = any($1) and snapshot_kind in ('daily', 'pre_reset')
+               and snapshot_date >= $2::date
              group by player_tag, date_trunc('week', snapshot_date::timestamp)`,
       values: [tags, from],
     },

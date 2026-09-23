@@ -480,8 +480,8 @@ async function selectEligible(db, now) {
   );
 
   const nowMs = now.getTime();
-  // The two watchers (§5.3): in the hour before the Monday-00:10Z
-  // donation reset, and in the hour before the season rolls (first
+  // The two watchers (§5.3): in the hour to Monday 00:10Z, around the
+  // weekly donation reset (the pre_reset row keeps the highest read), and in the hour before the season rolls (first
   // Monday 10:00Z; 0111), profile polls are forced for every recorded
   // player not yet captured inside the window — the counter and the
   // season's league standing are irrecoverable after.

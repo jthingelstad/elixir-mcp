@@ -1,18 +1,22 @@
 /**
  * Pre-reset snapshot window — DESIGN §4.5/§5.3.
  *
- * Weekly donation counters reset Mondays ~00:10 UTC and are IRRECOVERABLE
- * after the reset. In the final hour before it, the scheduler forces
+ * Weekly donation counters climb all week and drop to 0 once a week,
+ * around the start of Monday UTC; what they held is IRRECOVERABLE after
+ * the drop. This window (the hour to Monday 00:10 UTC) is when extra polls
+ * are forced, not a claim about the reset's minute: the pre_reset row keeps
+ * the highest value it is shown, so a read on either side of the reset is
+ * harmless (Jamie, 2026-09-23; Gym #158). In the final hour before it, the scheduler forces
  * profile polls and the snapshot projector writes an extra 'season_roll'
  * row. One window function shared by both so they can never disagree.
  * (Monthly trophy-season data survives via leagueStatistics.previousSeason
  * for a day, so the weekly window is the one that matters.)
  */
 
-const RESET_UTC_MINUTES = 10; // Monday 00:10 UTC
+const RESET_UTC_MINUTES = 10; // the window's end, Monday 00:10 UTC
 const WINDOW_MINUTES = 60;
 
-/** Milliseconds of the next Monday-00:10Z reset at or after `from`. */
+/** Milliseconds of the next Monday-00:10Z window end at or after `from`. */
 export function nextDonationResetMs(from: Date): number {
   const d = new Date(from);
   const day = d.getUTCDay(); // 0 Sun .. 1 Mon

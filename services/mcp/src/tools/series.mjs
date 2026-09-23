@@ -432,7 +432,7 @@ export const seriesTools = {
             ? `${rosterOnly} of ${allPoints.length} points are roster-only (profile_observed_at null): the roster's metrics are the day's, the profile metrics null there.`
             : null,
           metrics.includes("donations")
-            ? "donations is the weekly counter as of each point; it resets Mondays around 00:10 UTC (kind: pre_reset is the row from the hour before)."
+            ? "donations is the weekly counter as of each point; it climbs all week and drops to 0 around the start of Monday UTC; kind: pre_reset is the week's highest value, the week's total."
             : null,
           "A member's point carries clan_tag: the clan the day's last roster placed them in, so a member who moved clans that day is under the later clan's tag.",
           botSourceNote(allPoints),

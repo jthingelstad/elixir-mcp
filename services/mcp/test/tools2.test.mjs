@@ -2088,11 +2088,11 @@ test("dailySql sums equal the raw rows over any instant window, edge days includ
     );
     assert.deepEqual(daily, raw, `${from} .. ${to}`);
   }
-  // A mode filter, both spellings.
+  // A mode filter: one group rule on both halves (#157).
   const { rows: dailyLadder } = await db.query(
     `select coalesce(sum(battles), 0)::int as battles
-     from ${dailySql({ players: "$1", from: "$2", to: "null", modeGroup: "$3", types: "$4" })} d`,
-    [players, "2026-08-20T14:30:00Z", "ladder", typesForModeGroup("ladder")],
+     from ${dailySql({ players: "$1", from: "$2", to: "null", modeGroup: "$3" })} d`,
+    [players, "2026-08-20T14:30:00Z", "ladder"],
   );
   const { rows: rawLadder } = await db.query(
     `select count(*)::int as battles from battle_participant

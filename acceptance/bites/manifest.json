@@ -889,5 +889,45 @@
     "case": "gym/155.2",
     "captures": ["155-2-cards_card.json"],
     "expect": "."
+  },
+  {
+    "feedback": 157,
+    "contract": "6.32.0",
+    "why": "the Gym block 157.1 on the answer it read",
+    "case": "gym/157.1",
+    "captures": ["157-1-clans_standings.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 157,
+    "contract": "6.32.0",
+    "why": "the Gym block 157.2 on the answer it read",
+    "case": "gym/157.2",
+    "captures": ["157-2-clans_standings.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 157,
+    "contract": "6.32.0",
+    "why": "the Gym block 157.3 on the answer it read",
+    "case": "gym/157.3",
+    "captures": ["157-3-clans_standings.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 158,
+    "contract": "6.32.0",
+    "why": "the Gym block 158.1 on the answer it read",
+    "case": "gym/158.1",
+    "captures": ["158-1-clans_members_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 158,
+    "contract": "6.32.0",
+    "why": "the Gym block 158.2 on the answer it read",
+    "case": "gym/158.2",
+    "captures": ["158-2-players_timeline.json"],
+    "expect": "."
   }
 ]

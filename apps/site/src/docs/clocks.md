@@ -72,8 +72,12 @@ newest observation, and every point carries the instants that produced it -
 (the profile poll that wrote the lifetime columns) and, on member rows,
 `roster_observed_at` (the roster poll that wrote the clan columns). Null means
 that writer never touched the row. Two extra rows are kept where a counter is
-about to reset: `kind: pre_reset` in the hour before the Monday 00:10 UTC
-donation reset, and `kind: season_roll` in the hour before the season rolls.
+about to reset: `kind: pre_reset` for the weekly donation counters, and
+`kind: season_roll` in the hour before the season rolls. The donation counters
+climb all week and drop to 0 once a week, around the start of Monday UTC. The
+`pre_reset` row keeps the highest value the record saw late that Sunday, so it
+never holds the new week's numbers. A week's donations everywhere are the
+highest value seen in its game days (Monday 10:00 to Monday 10:00 UTC; 6.33.0).
 
 ## The policy day
 

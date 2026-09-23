@@ -1207,11 +1207,15 @@ export async function buildClanEntry(
     db.query(
       `with m as (select player_tag from clan_membership
                  where clan_tag = $1 and left_observed_at is null),
-     latest as (select distinct on (s.player_tag) s.player_tag, s.donations
+     -- The week's donations are the highest counter value seen in its
+     -- game days (Monday 10:00Z on; Jamie, 2026-09-23), not the latest
+     -- read, which after the weekly reset is the new week's.
+     latest as (select s.player_tag, max(s.donations)::int as donations
                   from player_snapshot_daily s join m on m.player_tag = s.player_tag
                  where s.observed_at <= ${ts(toMs)}
-                   and s.observed_at >= date_trunc('week', ${ts(toMs)})
-                 order by s.player_tag, s.observed_at desc)
+                   and s.snapshot_date >= date_trunc('week', game_day(${ts(toMs)}))::date
+                   and s.snapshot_kind in ('daily', 'pre_reset')
+                 group by s.player_tag)
      select coalesce(sum(latest.donations), 0)::int as total,
             count(*)::int as counted,
             (select json_build_object('tag', l.player_tag, 'name', p.name, 'given', l.donations)

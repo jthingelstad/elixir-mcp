@@ -1,0 +1,1144 @@
+{
+  "feedback": 157,
+  "contract_version": "6.32.0",
+  "captured_at": "2026-09-23T20:02:21.245Z",
+  "request": {
+    "tool": "clans_standings",
+    "arguments": {
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "mode": "event"
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "applied": {
+      "clan_tag": "#J2RGCRVG",
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": "2026-09-21T10:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 14
+      },
+      "min_battles": 10,
+      "mode": "event"
+    },
+    "ranked_members": 24,
+    "median_win_rate": 0.48,
+    "comparable": true,
+    "basis": "recorded",
+    "members": [
+      {
+        "player_tag": "#9QQLPJRLV",
+        "name": "duki suzuki",
+        "years_played": 8,
+        "battles": 37,
+        "wins": 28,
+        "losses": 9,
+        "draws": 0,
+        "win_rate": 0.757,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 37,
+            "wins": 28,
+            "losses": 9
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-09-17T07:00:41.000Z",
+        "current_streak": null,
+        "rank": 1,
+        "percentile": 1
+      },
+      {
+        "player_tag": "#CV20JCY0V",
+        "name": "BigNorton",
+        "years_played": 4,
+        "battles": 20,
+        "wins": 14,
+        "losses": 6,
+        "draws": 0,
+        "win_rate": 0.7,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 20,
+            "wins": 14,
+            "losses": 6
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-07-12T21:38:42.000Z",
+        "current_streak": null,
+        "rank": 2,
+        "percentile": 0.958
+      },
+      {
+        "player_tag": "#RJ9RRQPVU",
+        "name": "OllieTurtle",
+        "years_played": 4,
+        "battles": 30,
+        "wins": 20,
+        "losses": 10,
+        "draws": 0,
+        "win_rate": 0.667,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 30,
+            "wins": 20,
+            "losses": 10
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-23T15:06:58.000Z",
+        "current_streak": null,
+        "rank": 3,
+        "percentile": 0.917
+      },
+      {
+        "player_tag": "#229QY8UL9U",
+        "name": "Mega Goblin",
+        "years_played": null,
+        "battles": 20,
+        "wins": 13,
+        "losses": 7,
+        "draws": 0,
+        "win_rate": 0.65,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 20,
+            "wins": 13,
+            "losses": 7
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-07-09T17:35:51.000Z",
+        "current_streak": null,
+        "rank": 4,
+        "percentile": 0.875
+      },
+      {
+        "player_tag": "#JRVV9VC0C",
+        "name": "NOBITA",
+        "years_played": 4,
+        "battles": 11,
+        "wins": 7,
+        "losses": 4,
+        "draws": 0,
+        "win_rate": 0.636,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 11,
+            "wins": 7,
+            "losses": 4
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-08-27T12:13:44.000Z",
+        "current_streak": null,
+        "rank": 5,
+        "percentile": 0.833
+      },
+      {
+        "player_tag": "#UCRLVL29U",
+        "name": "Ak",
+        "years_played": 2,
+        "battles": 41,
+        "wins": 26,
+        "losses": 15,
+        "draws": 0,
+        "win_rate": 0.634,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 41,
+            "wins": 26,
+            "losses": 15
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-06-12T18:27:00.000Z",
+        "current_streak": null,
+        "rank": 6,
+        "percentile": 0.792
+      },
+      {
+        "player_tag": "#PR8YLQ2CV",
+        "name": "The Joesma",
+        "years_played": 7,
+        "battles": 16,
+        "wins": 10,
+        "losses": 6,
+        "draws": 0,
+        "win_rate": 0.625,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 16,
+            "wins": 10,
+            "losses": 6
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-12T04:39:13.000Z",
+        "current_streak": null,
+        "rank": 7,
+        "percentile": 0.75
+      },
+      {
+        "player_tag": "#VJG09L9YY",
+        "name": "£eoππe§§;",
+        "years_played": null,
+        "battles": 11,
+        "wins": 6,
+        "losses": 5,
+        "draws": 0,
+        "win_rate": 0.545,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 11,
+            "wins": 6,
+            "losses": 5
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-08-12T13:06:40.000Z",
+        "current_streak": null,
+        "rank": 8,
+        "percentile": 0.708
+      },
+      {
+        "player_tag": "#2G2RPVPP",
+        "name": "Aaqib Javed",
+        "years_played": 10,
+        "battles": 763,
+        "wins": 409,
+        "losses": 354,
+        "draws": 0,
+        "win_rate": 0.536,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 763,
+            "wins": 409,
+            "losses": 354
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-04-17T06:57:19.000Z",
+        "current_streak": null,
+        "rank": 9,
+        "percentile": 0.667
+      },
+      {
+        "player_tag": "#VGC22YGP",
+        "name": "MONICA",
+        "years_played": 9,
+        "battles": 142,
+        "wins": 71,
+        "losses": 71,
+        "draws": 0,
+        "win_rate": 0.5,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 142,
+            "wins": 71,
+            "losses": 71
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-02-01T12:49:27.000Z",
+        "current_streak": null,
+        "rank": 10,
+        "percentile": 0.625
+      },
+      {
+        "player_tag": "#2LRYLQPL",
+        "name": "Andy",
+        "years_played": 10,
+        "battles": 12,
+        "wins": 6,
+        "losses": 6,
+        "draws": 0,
+        "win_rate": 0.5,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 12,
+            "wins": 6,
+            "losses": 6
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-06-23T04:51:31.000Z",
+        "current_streak": null,
+        "rank": 11,
+        "percentile": 0.583
+      },
+      {
+        "player_tag": "#C920YGLC2",
+        "name": "Vijay",
+        "years_played": 4,
+        "battles": 356,
+        "wins": 176,
+        "losses": 180,
+        "draws": 0,
+        "win_rate": 0.494,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 356,
+            "wins": 176,
+            "losses": 180
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-06T17:00:03.000Z",
+        "current_streak": null,
+        "rank": 12,
+        "percentile": 0.542
+      },
+      {
+        "player_tag": "#20LP8UPJ8R",
+        "name": "I Hate Witch",
+        "years_played": 1,
+        "battles": 99,
+        "wins": 46,
+        "losses": 53,
+        "draws": 0,
+        "win_rate": 0.465,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 99,
+            "wins": 46,
+            "losses": 53
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-07-17T10:10:49.000Z",
+        "current_streak": null,
+        "rank": 13,
+        "percentile": 0.5
+      },
+      {
+        "player_tag": "#2CY2RJL9G",
+        "name": "L-Drxgo⚡",
+        "years_played": 9,
+        "battles": 192,
+        "wins": 88,
+        "losses": 104,
+        "draws": 0,
+        "win_rate": 0.458,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 192,
+            "wins": 88,
+            "losses": 104
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-06T17:54:52.000Z",
+        "current_streak": null,
+        "rank": 14,
+        "percentile": 0.458
+      },
+      {
+        "player_tag": "#8U2P0JPR",
+        "name": "Fullboat",
+        "years_played": 10,
+        "battles": 21,
+        "wins": 9,
+        "losses": 12,
+        "draws": 0,
+        "win_rate": 0.429,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 21,
+            "wins": 9,
+            "losses": 12
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-02-22T02:09:07.000Z",
+        "current_streak": null,
+        "rank": 15,
+        "percentile": 0.417
+      },
+      {
+        "player_tag": "#UQ2R9RGVP",
+        "name": "Sandeep",
+        "years_played": 4,
+        "battles": 124,
+        "wins": 53,
+        "losses": 71,
+        "draws": 0,
+        "win_rate": 0.427,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 124,
+            "wins": 53,
+            "losses": 71
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-10T10:04:33.000Z",
+        "current_streak": null,
+        "rank": 16,
+        "percentile": 0.375
+      },
+      {
+        "player_tag": "#20GPQPC9RV",
+        "name": "bonus",
+        "years_played": null,
+        "battles": 276,
+        "wins": 117,
+        "losses": 159,
+        "draws": 0,
+        "win_rate": 0.424,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 276,
+            "wins": 117,
+            "losses": 159
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-04-24T13:39:42.000Z",
+        "current_streak": null,
+        "rank": 17,
+        "percentile": 0.333
+      },
+      {
+        "player_tag": "#JYRQ8U92C",
+        "name": "sikander sidhu",
+        "years_played": 4,
+        "battles": 129,
+        "wins": 54,
+        "losses": 75,
+        "draws": 0,
+        "win_rate": 0.419,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 129,
+            "wins": 54,
+            "losses": 75
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-06-06T12:35:32.000Z",
+        "current_streak": null,
+        "rank": 18,
+        "percentile": 0.292
+      },
+      {
+        "player_tag": "#U92P8PQG0",
+        "name": "God Bless You",
+        "years_played": 2,
+        "battles": 36,
+        "wins": 15,
+        "losses": 21,
+        "draws": 0,
+        "win_rate": 0.417,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 36,
+            "wins": 15,
+            "losses": 21
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-06-14T15:01:17.000Z",
+        "current_streak": null,
+        "rank": 19,
+        "percentile": 0.25
+      },
+      {
+        "player_tag": "#P2U0PC2UU",
+        "name": "canavar",
+        "years_played": 8,
+        "battles": 34,
+        "wins": 13,
+        "losses": 21,
+        "draws": 0,
+        "win_rate": 0.382,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 34,
+            "wins": 13,
+            "losses": 21
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-05-28T12:38:00.000Z",
+        "current_streak": null,
+        "rank": 20,
+        "percentile": 0.208
+      },
+      {
+        "player_tag": "#V8Q8PUL0U",
+        "name": "ryguy67",
+        "years_played": 1,
+        "battles": 107,
+        "wins": 38,
+        "losses": 69,
+        "draws": 0,
+        "win_rate": 0.355,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 107,
+            "wins": 38,
+            "losses": 69
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-29T00:39:37.000Z",
+        "current_streak": null,
+        "rank": 21,
+        "percentile": 0.167
+      },
+      {
+        "player_tag": "#G2CUUJQ8V",
+        "name": "kiruba⚜️",
+        "years_played": 6,
+        "battles": 21,
+        "wins": 7,
+        "losses": 14,
+        "draws": 0,
+        "win_rate": 0.333,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 21,
+            "wins": 7,
+            "losses": 14
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-02-21T12:26:11.000Z",
+        "current_streak": null,
+        "rank": 22,
+        "percentile": 0.125
+      },
+      {
+        "player_tag": "#U08P889Y0",
+        "name": "Tere",
+        "years_played": 4,
+        "battles": 12,
+        "wins": 2,
+        "losses": 10,
+        "draws": 0,
+        "win_rate": 0.167,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 12,
+            "wins": 2,
+            "losses": 10
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-04-17T16:15:44.000Z",
+        "current_streak": null,
+        "rank": 23,
+        "percentile": 0.083
+      },
+      {
+        "player_tag": "#20G9RY299P",
+        "name": "Waltadr",
+        "years_played": null,
+        "battles": 12,
+        "wins": 2,
+        "losses": 10,
+        "draws": 0,
+        "win_rate": 0.167,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 12,
+            "wins": 2,
+            "losses": 10
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-04-16T16:14:42.000Z",
+        "current_streak": null,
+        "rank": 24,
+        "percentile": 0.042
+      }
+    ],
+    "below_floor": [
+      {
+        "player_tag": "#PLCCYUQL",
+        "name": "TDuck",
+        "years_played": 10,
+        "battles": 7,
+        "wins": 6,
+        "losses": 1,
+        "draws": 0,
+        "win_rate": 0.857,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 7,
+            "wins": 6,
+            "losses": 1
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-04-08T00:59:09.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#URPCLR8UQ",
+        "name": "x.x.hari.x.x",
+        "years_played": 4,
+        "battles": 5,
+        "wins": 2,
+        "losses": 3,
+        "draws": 0,
+        "win_rate": 0.4,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 5,
+            "wins": 2,
+            "losses": 3
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-08-28T07:48:06.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#20CLVPLG8R",
+        "name": "VVSBUDGET",
+        "years_played": null,
+        "battles": 4,
+        "wins": 4,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": 1,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 4,
+            "wins": 4,
+            "losses": 0
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-08-25T13:28:34.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#2YG98VVQ",
+        "name": "Alfablack",
+        "years_played": 10,
+        "battles": 4,
+        "wins": 1,
+        "losses": 3,
+        "draws": 0,
+        "win_rate": 0.25,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 4,
+            "wins": 1,
+            "losses": 3
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-07-02T16:40:02.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#2209PJPVGG",
+        "name": "shimmeringhost",
+        "years_played": null,
+        "battles": 3,
+        "wins": 0,
+        "losses": 3,
+        "draws": 0,
+        "win_rate": 0,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 3,
+            "wins": 0,
+            "losses": 3
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-10T03:55:18.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#RRU9PGJQ9",
+        "name": "Brotherinpants",
+        "years_played": 5,
+        "battles": 1,
+        "wins": 0,
+        "losses": 1,
+        "draws": 0,
+        "win_rate": 0,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 1,
+            "wins": 0,
+            "losses": 1
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-08-11T03:52:01.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#20JJJ2CCRU",
+        "name": "King Thing",
+        "years_played": null,
+        "battles": 1,
+        "wins": 0,
+        "losses": 1,
+        "draws": 0,
+        "win_rate": 0,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 1,
+            "wins": 0,
+            "losses": 1
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-03T04:38:28.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#9Q9QRCPPU",
+        "name": "dez42",
+        "years_played": 8,
+        "battles": 1,
+        "wins": 0,
+        "losses": 1,
+        "draws": 0,
+        "win_rate": 0,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {
+          "event": {
+            "battles": 1,
+            "wins": 0,
+            "losses": 1
+          }
+        },
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-04-11T16:46:19.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#UL2V9QRG0",
+        "name": "raquaza",
+        "years_played": 4,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-01-11T23:30:51.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#U8RYG9Y2U",
+        "name": "King Levy",
+        "years_played": 4,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-01-16T18:57:55.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#2P9GRU2Q0",
+        "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+        "years_played": 9,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-02-13T15:14:20.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#VR0QRP2PG",
+        "name": "round hamster",
+        "years_played": null,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-02-07T03:05:33.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#20CGPVUL92",
+        "name": "pigsareus",
+        "years_played": null,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-26T01:25:57.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#V0CRYP2GG",
+        "name": "pokemon",
+        "years_played": 1,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-02-09T02:38:44.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#YC8LLR8Q2",
+        "name": "sniperhendo",
+        "years_played": 6,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-12T04:39:13.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#VQUQJP8Q9",
+        "name": "1spaceO2",
+        "years_played": null,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-25T18:10:36.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#20G0JGQLPL",
+        "name": "alex",
+        "years_played": null,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-07-08T00:39:03.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#UVQ8RJYG9",
+        "name": "AHMOメŞΛDØW",
+        "years_played": 1,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-07-22T15:21:13.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#20R8QRLYLP",
+        "name": "Chanco",
+        "years_played": null,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-03-05T09:06:58.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#8G8UYG2PQ",
+        "name": "Gabriel",
+        "years_played": 9,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-07-31T23:07:16.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#VC8VY8R29",
+        "name": "nyje47",
+        "years_played": null,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-08-02T19:58:29.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#2G09Q20QC",
+        "name": "Kurd Paraw",
+        "years_played": 9,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-08-07T14:07:18.000Z",
+        "current_streak": null
+      },
+      {
+        "player_tag": "#20GQUGPRC2",
+        "name": "Gem",
+        "years_played": null,
+        "battles": 0,
+        "wins": 0,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": null,
+        "net_trophies": null,
+        "ladder_battles": 0,
+        "modes": {},
+        "mean_level_gap": null,
+        "level_gap_battles": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-05-09T12:36:55.000Z",
+        "current_streak": null
+      }
+    ],
+    "notes": [
+      "Covers RECORDED battles only, and capture starts differ per member (recorded_since per member; elixir_coverage per tag).",
+      "win_rate = wins/(wins+losses), draws excluded; percentile = 1 - (rank-1)/ranked_members; members below min_battles are in below_floor without a rank.",
+      "net_trophies sums trophy_change on ladder battles in the window and is null when ladder_battles is 0; modes splits each member's battles by mode group and mean_level_gap is their deck's average level minus the opposing side's over their latest level_gap_battles (at most 50) battles in the window; current_streak is the run of equal decided outcomes ending at the member's latest recorded battle in the window, null with no decided battle."
+    ],
+    "docs": "recording#completeness",
+    "meta": {
+      "contract_version": "6.32.0"
+    }
+  },
+  "timings": {
+    "db_ms": 257,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": true
+  }
+}

@@ -18,8 +18,9 @@
  * subject per day, the last observation wins under the observed_at
  * guard; a poll whose values did not move writes nothing; every upsert
  * is guarded on its own columns and its own timestamp; every function
- * returns facts (0077). The kinds: pre_reset (the hour before the Monday
- * 00:10Z donation reset) and season_roll (the hour before the season
+ * returns facts (0077). The kinds: pre_reset (the late-Sunday window
+ * before the weekly donation reset; the row keeps the highest counter it
+ * is shown) and season_roll (the hour before the season
  * rolls) are the same function called again with `kind`, inside the
  * window; the progress series has no weekly counter and gets
  * season_roll only.
@@ -251,9 +252,16 @@ export async function projectClanSeries(
          source = excluded.source,
          trophies = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
                          then excluded.trophies else player_snapshot_daily.trophies end,
-         donations = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+         -- The weekly counters only climb until the weekly reset (Jamie,
+         -- 2026-09-23): the pre_reset row keeps the highest value it was
+         -- ever shown, so a read after the reset cannot replace the week.
+         donations = case when $2 = 'pre_reset'
+                          then greatest(excluded.donations, player_snapshot_daily.donations)
+                          when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
                           then excluded.donations else player_snapshot_daily.donations end,
-         donations_received = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
+         donations_received = case when $2 = 'pre_reset'
+                                   then greatest(excluded.donations_received, player_snapshot_daily.donations_received)
+                                   when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
                                    then excluded.donations_received else player_snapshot_daily.donations_received end,
          arena_id = case when excluded.observed_at >= coalesce(player_snapshot_daily.observed_at, '-infinity')
                          then excluded.arena_id else player_snapshot_daily.arena_id end,
