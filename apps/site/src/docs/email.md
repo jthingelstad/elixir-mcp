@@ -74,14 +74,19 @@ pass corrects the draft, and before the issue sends a program checks
 every number in it against the brief, refuses bare tags and exclamation
 marks, and holds the length. An issue that fails does not send.
 
-Two things about that issue are worth knowing. **The headline covers
+Three things about that issue are worth knowing. **The headline covers
 the game week that closed on Monday; the modes, bands, partners and
 decks cover the season so far** — the record can only answer those over
 a whole season — and the footer of every issue says which is which. And
 the **decks are printed by the mail, not written by the model**: it says
 which deck, and the cards come from the record. Two different decks can
 share one archetype name, so a deck list typed from a label would be the
-wrong deck.
+wrong deck. And **there is no season-by-season trend**, on purpose:
+Elixir has been recording for months rather than years, and the amount
+it records grew by two orders of magnitude over that time, so a card's
+share "rising" across those months would mostly be a picture of our own
+coverage. The issue will carry a trend once enough seasons are large
+enough to compare with each other, and not before.
 
 Every issue links to that card's page, at `/cards/<id>`, which needs no
 sign-in and carries the same numbers, refreshed nightly.

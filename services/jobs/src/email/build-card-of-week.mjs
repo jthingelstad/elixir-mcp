@@ -24,6 +24,15 @@ const ELITE = "pol-global-top-100";
 // A mode or band row under this many decided battles is called thin,
 // wherever it appears - in a table, and to the writer that reads it.
 const THIN = 2000;
+// A season enters the trend only if the corpus that month was large
+// enough for its usage share to mean what September's means. Elixir
+// recorded 194 decided battles in January and 367,736 in September, so
+// "12 percent in June, 31 percent now" is mostly a story about how much
+// Elixir was recording - which is not a story about the card.
+const TREND_SEASON_FLOOR = 50_000;
+const TREND_MIN_SEASONS = 4;
+// The two ends of the trophy range, compared only when both are real.
+const BAND_FLOOR = 2000;
 const MONTHS = [
   "January",
   "February",
@@ -150,7 +159,6 @@ export async function buildCardOfWeekBrief({
     card_id: cardId,
     segment: { collection: ELITE },
     season: "current",
-    verbosity: "compact",
   });
   // 4. The top 100's OWN win rate over everything they played, so the
   //    writer can say how much of the elite number is just the players.
@@ -206,6 +214,7 @@ export async function buildCardOfWeekBrief({
   }));
   const history = (seasonRead.history ?? []).map((h) => ({
     season_month: h.season?.month ?? null,
+    comparable: Number(h.decided_battles ?? 0) >= TREND_SEASON_FLOOR,
     war_season: h.season?.war ?? null,
     battles: h.battles ?? null,
     decided_battles: h.decided_battles ?? null,
@@ -239,13 +248,29 @@ export async function buildCardOfWeekBrief({
     win_rate_pct: pctOf(d.win_rate),
     cards: deckCards(d.cards),
   }));
-  const decks = allDecks.slice(0, 3);
-  // The best of the five most played, when it is not already shown.
+  const decks = allDecks.slice(0, 4);
+  // The best of the five most played, when it is not already one of the
+  // four shown - which after widening to four is usually the fifth alone.
   const best = [...allDecks]
     .filter((d) => d.win_rate != null)
     .sort((a, z) => z.win_rate - a.win_rate)[0];
   const bestOfFive =
     best && !decks.some((d) => d.deck_hash === best.deck_hash) ? best : null;
+
+  // Played more low and won more high, or the reverse - stated only when
+  // BOTH ends are real, and only with the level gap beside it, because
+  // that is the one thing that would otherwise explain it.
+  const low = byBand.find((b) => b.trophy_band === "under_5000");
+  const high = byBand.find((b) => b.trophy_band === "13000_plus");
+  const bandContrast =
+    low && high && low.battles >= BAND_FLOOR && high.battles >= BAND_FLOOR
+      ? {
+          low: { band: "under 5,000 trophies", ...low },
+          high: { band: "13,000 trophies and up", ...high },
+          usage_falls: low.usage_share > high.usage_share,
+          win_rises: high.win_rate > low.win_rate,
+        }
+      : null;
 
   const elite = eliteRead
     ? {
@@ -255,6 +280,19 @@ export async function buildCardOfWeekBrief({
           ...usageBlock(f, eliteRead.season?.decided_battles),
         })),
         collection: ELITE,
+        // How the best players actually build it. Tiny player counts are
+        // the norm here (84 people), so each row carries its own, and
+        // the prompt refuses to generalise from a deck two people run.
+        decks: (eliteRead.decks ?? []).slice(0, 3).map((d) => ({
+          archetype_label: d.archetype?.label ?? null,
+          average_elixir: d.archetype?.average_elixir ?? null,
+          battles: d.battles ?? null,
+          players: d.players ?? null,
+          win_rate: d.win_rate ?? null,
+          win_rate_pct: pctOf(d.win_rate),
+          same_as_corpus_top:
+            d.deck_hash === (seasonRead.decks ?? [])[0]?.deck_hash,
+        })),
         // What the top 100 win across EVERYTHING, so the card's elite
         // win rate can be read against the players rather than the card.
         baseline_win_rate: eliteBaseline?.segment_win_rate ?? null,
@@ -264,7 +302,15 @@ export async function buildCardOfWeekBrief({
       }
     : null;
 
-  const chartAlt = seasonChartAlt(history, card.name);
+  // The trend is a section the record has to EARN. Today one season
+  // clears the floor, so there is no trend and no chart; it turns itself
+  // on once four dense seasons exist, without anyone editing this.
+  const comparable = history.filter((h) => h.comparable);
+  const trend =
+    comparable.length >= TREND_MIN_SEASONS
+      ? { seasons: comparable, floor: TREND_SEASON_FLOOR }
+      : null;
+  const chartAlt = trend ? seasonChartAlt(comparable, card.name) : null;
   const pop = seasonRead.population ?? headlineRead.population ?? {};
 
   return {
@@ -316,8 +362,10 @@ export async function buildCardOfWeekBrief({
     season,
     rank,
     history,
+    trend,
     by_mode: byMode,
     by_band: byBand,
+    band_contrast: bandContrast,
     elite,
     partners,
     decks,

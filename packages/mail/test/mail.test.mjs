@@ -347,8 +347,28 @@ test("a deck block is the record's own cards, in order, four to a row", () => {
     text.split("\n").filter((l) => /Fisherman/.test(l))[0],
   );
   assert.ok(text.includes("3,999 battles · 447 players · 52.0% win rate"));
-  // The chart describes its own series for a client that blocks images.
+  // Four decks, not three (Jamie, 2026-09-22).
+  assert.equal(facts.decks.length, 4);
+  assert.ok(html.includes('alt="Rune Giant"'), "the fourth deck is placed");
+  // No trend, no chart. Elixir's corpus grew two orders of magnitude over
+  // the months it has been recording, so a season series would draw our
+  // own coverage and call it the card's popularity. The brief withholds
+  // it until enough seasons are comparable, and the mail draws nothing.
+  assert.equal(facts.chart, null);
+  assert.ok(!/usage share by season/.test(html));
+});
+
+test("a chart, when the record has earned one, carries its series in alt text", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "card_of_week.json"), "utf8"),
+  );
+  facts.chart = {
+    url: "/assets/mail/card_of_week/2026-W38/season.png",
+    alt: "Barbarian Barrel usage share by season: 2026-08 21.7 percent, 2026-09 31.2 percent.",
+  };
+  const { html } = renderMail("card_of_week", facts, links);
   assert.ok(/alt="Barbarian Barrel usage share by season[^"]+"/.test(html));
+  assert.ok(html.includes('width="560"'));
 });
 
 test("repairNames puts a name the model's JSON mangled back from the brief", async () => {

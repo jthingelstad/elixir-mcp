@@ -23,11 +23,8 @@
     "season_label": "Season 2026-09 to date",
     "data_as_of": "2026-09-25T05:10:00.000Z"
   },
-  "body_markdown": "Two elixir, one Barbarian, and the most-played card in the record right now. For the game week that closed Monday, Barbarian Barrel appeared in 121,968 of the 414,408 decided battles Elixir recorded, played by 18,926 different players. That is 29.4 percent of everything, ahead of Minion Giant on 23.7 percent and Golden Knight on 20.9 percent. It won 51.0 percent of them.\n\nThe win rate is the less interesting number. A two-elixir spell is not what wins a game; it is what keeps you from losing it. The usage curve is the story.\n\n### The climb\n\nThe Barrel sat between 12 and 17 percent of battles from March through July. August took it to 20.1 percent. September, two weeks in, has it at 28.7 percent of 692,724 decided battles. The Hero form, first played on 2 March, is still a niche pick at 2.6 percent, and it wins slightly less (49.4 percent) than the base card (51.4 percent).\n\n### Where it gets played\n\n| Mode | Usage | Win rate | Battles |\n| ---- | ---- | ---- | ---- |\n| Ranked (Path of Legends) | 32.1% | 50.9% | 107,306 |\n| Casual | 26.1% | 51.6% | 88,370 |\n| Tournament | 24.9% | 49.3% | 1,012 (thin) |\n| War | 14.8% | 49.7% | 1,281 (thin) |\n| Trophy Road | 10.6% | 61.9% | 847 (thin) |\n\nRanked is where it lives: one in three ranked battles has a Barrel in it. War players reach for it half as often, though that row is thin. The 61.9 percent on Trophy Road is 847 battles, so read it as a curiosity, not a fact.\n\n### The top 100 play it more, and win more with it\n\nAmong the global Path of Legends top 100, 84 of the players have used Barbarian Barrel this season. It is in 34.0 percent of their battles and wins 59.7 percent of them, against 51.3 percent for everyone. The gap is not the card getting better in better hands; it is that the top 100 win 58.5 percent of everything they play. A card's win rate describes who played it as much as the card.\n\nOne detail that does hold up: the top 100 win more with the Hero form (63.4 percent) than the base card (59.4 percent), the reverse of the whole record.\n\n### Who it travels with\n\nLift measures how much more often a card shows up beside the Barrel than it would by chance.\n\n| Partner | Together | Lift |\n| ---- | ---- | ---- |\n| Goblinstein | 22.7% | 2.02x |\n| Electro Spirit | 21.7% | 2.01x |\n| Hero Ice Wizard | 26.2% | 1.81x |\n| Poison | 25.4% | 1.46x |\n| Minion Giant | 32.6% | 1.38x |\n\nMinion Giant is its most common partner by raw count; Goblinstein is the one that most predicts a Barrel in the deck.\n\n### The decks\n\nThe three most-played decks carrying Barbarian Barrel this season, across everyone in the record.\n\n{{deck:0}}\n\n{{deck:1}}\n\n{{deck:2}}\n",
-  "chart": {
-    "url": "/assets/cards/../charts/card-of-week/2026-W39.png",
-    "alt": "Barbarian Barrel usage share by season, January to September 2026: 10.8, 6.4, 17.1, 13.2, 17.0, 12.2, 12.1, 20.1 and 28.7 percent, September highlighted."
-  },
+  "body_markdown": "Two elixir, one Barbarian, and the most-played card in the record right now. For the game week that closed Monday, Barbarian Barrel appeared in 121,968 of the 414,408 decided battles Elixir recorded, played by 18,926 different players. That is 29.4 percent of everything, ahead of Minion Giant on 23.7 percent and Golden Knight on 20.9 percent. It won 51.0 percent of them.\n\nThe win rate is the less interesting number. A two-elixir spell is not what wins a game; it is what keeps you from losing it. The usage curve is the story.\n\n### Where it gets played\n\n| Mode | Usage | Win rate | Battles |\n| ---- | ---- | ---- | ---- |\n| Ranked (Path of Legends) | 32.1% | 50.9% | 107,306 |\n| Casual | 26.1% | 51.6% | 88,370 |\n| Tournament | 24.9% | 49.3% | 1,012 (thin) |\n| War | 14.8% | 49.7% | 1,281 (thin) |\n| Trophy Road | 10.6% | 61.9% | 847 (thin) |\n\nRanked is where it lives: one in three ranked battles has a Barrel in it. War players reach for it half as often, though that row is thin. The 61.9 percent on Trophy Road is 847 battles, so read it as a curiosity, not a fact.\n\n### The top 100 play it more, and win more with it\n\nAmong the global Path of Legends top 100, 84 of the players have used Barbarian Barrel this season. It is in 34.0 percent of their battles and wins 59.7 percent of them, against 51.3 percent for everyone. The gap is not the card getting better in better hands; it is that the top 100 win 58.5 percent of everything they play. A card's win rate describes who played it as much as the card.\n\nOne detail that does hold up: the top 100 win more with the Hero form (63.4 percent) than the base card (59.4 percent), the reverse of the whole record.\n\n### Who it travels with\n\nLift measures how much more often a card shows up beside the Barrel than it would by chance.\n\n| Partner | Together | Lift |\n| ---- | ---- | ---- |\n| Goblinstein | 22.7% | 2.02x |\n| Electro Spirit | 21.7% | 2.01x |\n| Hero Ice Wizard | 26.2% | 1.81x |\n| Poison | 25.4% | 1.46x |\n| Minion Giant | 32.6% | 1.38x |\n\nMinion Giant is its most common partner by raw count; Goblinstein is the one that most predicts a Barrel in the deck.\n\n### The decks\n\nThe three most-played decks carrying Barbarian Barrel this season, across everyone in the record.\n\n{{deck:0}}\n\n{{deck:1}}\n\n{{deck:2}}\n\n{{deck:3}}\n",
+  "chart": null,
   "decks": [
     {
       "archetype_label": "Hog Rider cycle",
@@ -194,6 +191,64 @@
           "name": "Tornado",
           "form": null,
           "icon": "/assets/cards/28000012-64.png"
+        },
+        {
+          "id": 28000015,
+          "name": "Barbarian Barrel",
+          "form": null,
+          "icon": "/assets/cards/28000015-64.png"
+        }
+      ]
+    },
+    {
+      "archetype_label": "Minion Giant control",
+      "average_elixir": 4.25,
+      "tower_troop": "Tower Princess",
+      "battles": 3457,
+      "players": 790,
+      "win_rate": 0.532,
+      "cards": [
+        {
+          "id": 26000017,
+          "name": "Wizard",
+          "form": "evolution",
+          "icon": "/assets/cards/26000017_evo-64.png"
+        },
+        {
+          "id": 26000035,
+          "name": "Lumberjack",
+          "form": "evolution",
+          "icon": "/assets/cards/26000035_evo-64.png"
+        },
+        {
+          "id": 26000083,
+          "name": "Mother Witch",
+          "form": null,
+          "icon": "/assets/cards/26000083-64.png"
+        },
+        {
+          "id": 26000099,
+          "name": "Goblinstein",
+          "form": null,
+          "icon": "/assets/cards/26000099-64.png"
+        },
+        {
+          "id": 26000101,
+          "name": "Rune Giant",
+          "form": null,
+          "icon": "/assets/cards/26000101-64.png"
+        },
+        {
+          "id": 26000107,
+          "name": "Minion Giant",
+          "form": null,
+          "icon": "/assets/cards/26000107-64.png"
+        },
+        {
+          "id": 28000007,
+          "name": "Lightning",
+          "form": null,
+          "icon": "/assets/cards/28000007-64.png"
         },
         {
           "id": 28000015,

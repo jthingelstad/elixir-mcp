@@ -42,18 +42,29 @@ Roughly in this order, 450 to 600 words of prose plus the tables:
    battles in the corpus, share, players, win rate. Its rank among all
    cards this season, with the cards just above and below it
    (`rank.above`, `rank.below`) when that makes the point.
-2. **The climb, or the fall.** What `history` shows season by season.
-   The chart is placed automatically after this section; do not describe
-   it as a picture, just tell the reader what happened.
-3. **Where it gets played.** A table from `by_mode`.
-4. **Who plays it best.** `elite` — the global Path of Legends top 100
+2. **Where it gets played.** A table from `by_mode`.
+3. **Who plays it best.** `elite` — the global Path of Legends top 100
    against everyone. This section carries the caveat below.
+4. **How the best players build it**, when `elite.decks` has a row with
+   enough players behind it: what the top 100 actually put it in. If
+   `same_as_corpus_top` is true on their most-played, say so — the best
+   players and everyone else arriving at the same deck is the more
+   interesting fact, not a coincidence to skip over.
 5. **Who it travels with.** A table from `partners`, with a one-line
    explanation of what lift means.
 6. **The decks.** Introduce them, then place each with `{{deck:N}}`.
 7. **The deep cut**, if `deep_cut.type` is not `none`: the one
    counterintuitive thing the program found. Omit the section entirely
    when there is none.
+
+**There is no season-by-season section**, and there is deliberately no
+trend to write about unless `trend` is present in the brief. Elixir has
+been recording for months, not years, and the corpus itself grew by two
+orders of magnitude over that time: a card's share "rising" across those
+months is mostly a picture of how much Elixir was recording. The brief
+withholds the series until enough seasons are large enough to compare,
+and `trend: null` means there is nothing honest to say about change over
+time. Do not reach for `history` to fill the gap.
 
 ## The caveat that is not optional
 
@@ -63,6 +74,17 @@ let any sentence anywhere imply that a high win rate makes a card good.
 The brief gives you `elite.baseline_win_rate_pct`: what the top 100 win
 across *everything* they play. Use it. The honest sentence is that the
 gap is mostly the players, not the card.
+
+## The trophy range
+
+`band_contrast` is present when both ends of the trophy range have a
+real sample. It is worth a sentence or two: whether the card is played
+more or less as trophies rise, and whether it wins more or less. Always
+quote `mean_level_gap` for both ends — a card that wins more at the top
+because the players there are better is a different claim from one that
+wins more because its opponents are underlevelled, and the level gap is
+what tells them apart. When `band_contrast` is null, say nothing about
+trophy ranges.
 
 ## Thin rows
 
@@ -74,8 +96,8 @@ after the battle count). Never build an argument on one.
 ## Decks
 
 **You never spell a deck's cards.** Write the introduction, then put
-`{{deck:0}}`, `{{deck:1}}`, `{{deck:2}}` each on their own line, in
-order. The mail prints the cards, their art, the archetype label, the
+`{{deck:0}}`, `{{deck:1}}`, `{{deck:2}}`, `{{deck:3}}` each on their own
+line, in order — one for every row in `decks`. The mail prints the cards, their art, the archetype label, the
 average elixir, the tower troop and the counts from the record. You may
 name a deck by its `archetype_label` and quote its battles, players and
 win rate in prose.
@@ -84,8 +106,9 @@ Two different sets of cards can share one archetype label. That is
 exactly why you do not type deck lists: the label is not the deck.
 
 If `best_of_five` is present, it is the best-performing of the five
-most-played decks and is not one of the three shown. A sentence naming
-it and its win rate is worth having.
+most-played decks and is not one of the four shown. A sentence naming
+it and its win rate is worth having. It is often absent, because the
+four shown usually contain it.
 
 ## House rules
 

@@ -110,9 +110,13 @@ export async function cardOfWeekGenerate({
     });
     // The chart is rendered here so the writer never sees the series
     // except through the brief. A chart that fails to render is not a
-    // reason to lose the issue.
+    // reason to lose the issue, and a record with no comparable seasons
+    // yet has no chart to draw: a picture of our own coverage growing
+    // is not a picture of the card.
     try {
-      const png = seasonChart(brief.history, brief.windows.depth.season_month);
+      const png = brief.trend
+        ? seasonChart(brief.trend.seasons, brief.windows.depth.season_month)
+        : null;
       if (png && brief.chart) {
         const key = `mail/${KIND}/${periodKey}/season.png`;
         await putAsset(bucket, key, png, "image/png");
