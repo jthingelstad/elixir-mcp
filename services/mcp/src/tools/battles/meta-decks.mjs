@@ -148,6 +148,10 @@ export const battles_meta_decks = {
       params.push(typesForModeGroup(args.mode));
       scope.push(`bp.type = any($${params.length})`);
     } else if (args.mode) scope.push(participantModeClause(args.mode, params));
+    // A raw read considers the meta population the rollup is built from
+    // (no event content, chosen decks only), so `excluded` and `considered`
+    // reconcile with decided_battles as they do on a season read.
+    if (!pop) scope.push(metaPopulationClause());
     requireEnum(args.trophy_band, TROPHY_BAND_NAMES, "trophy_band");
     if (args.trophy_band)
       scope.push(
@@ -160,7 +164,6 @@ export const battles_meta_decks = {
       "bp.deck_hash is not null",
       "bp.outcome in ('win','loss')",
       "bp.type_class = 'pvp'",
-      ...(pop ? [] : [metaPopulationClause()]),
     ];
     const minBattles = args.min_battles ?? 5;
     // A corpus read over one season comes from the rollup (0121); a
