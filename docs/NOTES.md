@@ -8318,3 +8318,64 @@ here, because earlier tests in the file rewrite individual weeks. The
 test asserts magnitude instead (a clan score is five or six figures, war
 trophies four), which catches the same regression and does not depend on
 what ran before it.
+
+## 2026-09-23 — Closing out: the clock-edge was the environment, and four small fixes
+
+Jamie dropped the 7.0.0 refusals and asked for the remaining items.
+
+**The `clans_standings` clock-edge is NOT a product bug.** The daily
+rollup's day KEY is written in UTC (pipeline.mjs takes
+`battle_time.slice(0,10)` off the ISO string) while its day WINDOW was a
+plain date cast against a timestamptz, which resolves at the SESSION
+zone. Where the two zones disagree a battle in the offset hours lands in
+neither. Proven in SQL rather than argued: on a `Pacific/Kiritimati`
+session a battle at 11:00Z on 2026-09-23 has UTC key 2026-09-23, session
+date 2026-09-24, and the old window matches **0** rows where the new one
+matches **1**.
+
+`{tables}` now reports `TimeZone`, and **production reads UTC** - it was
+never wrong there. What was wrong is a developer machine on
+America/Chicago, for the five hours after UTC midnight, which is exactly
+when the test went red and looked like a live bug. Every date boundary in
+`rollups.mjs` and `daily-sql.mjs` now says `at time zone 'UTC'` instead
+of depending on a setting nobody had checked. Worth keeping: node-pg does
+NOT read `PGTZ` (libpq does), so `PGTZ=... npm test` proves nothing - the
+session zone has to ride the connection string.
+
+**6.19.1, three honesty fixes.** `war_rivals` rounds `mean_fame` and
+`median_fame` and now says so; `weeks[].finished_early` is NULL rather
+than `false` on a week still in progress, which is the one wrong answer
+that flag exists to prevent; `battles_query`'s `limit` description no
+longer implies 25 full battles is a safe page.
+
+**A guard I tried and reverted.** Lowering the full-verbosity page limit
+from 25 to 10 broke 30 tests - and they were right: a page that FITS
+should still be served, and the `result_too_large` refusal already
+prices the retry from the actual bytes. The description was the only
+thing that had gone stale.
+
+**`princessTowersHitPoints`: no bug.** I had flagged that our
+`tower_hp.princess` served `[2069, 0]` where the reference says a `0`
+never appears on head-to-head rows. Checked the live API directly: 52
+head-to-head participant rows, **zero** entries containing a 0 - 24 with
+a destroyed tower omitted, 11 null. The reference is right, the `0` is
+OUR padding, and our own docs already say so ("the array is always
+padded to length 2"). Both were correct; only my reading was not.
+
+**The meta timeouts, diagnosed not fixed.** 29 `query_timeout` refusals
+in 30 days. The argument sets are whole-population, whole-season reads
+with a sort and a limit - and `mode` appears on exactly **1 of 29**.
+Narrowing the population is what these calls never do. A real fix is
+query work and wants its own session; the shapes are recorded here so it
+does not start from scratch.
+
+**`cards_archetype` has never been called, and the reason is testable.**
+Zero calls since 6.8.0. It is on three docs pages and named in its own
+tool's note - and in no other tool's RESPONSE. The contrast is
+`battles_performance group_by: "game_mode"`, which `battles_query`'s
+description names and which agents used 112 times in the same window.
+So: an agent finds a tool because another tool's ANSWER names it, not
+because a docs page does. `group_by: "archetype"` now folds decks into
+labels and then says what reads a label. If the call count moves, the
+hypothesis holds and the same move is worth making for the other unused
+tools.
