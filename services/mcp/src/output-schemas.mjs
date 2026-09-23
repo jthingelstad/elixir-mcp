@@ -1637,7 +1637,16 @@ export const OUTPUT_SCHEMAS = {
         items: {
           type: "object",
           properties: {
-            clan_score: { type: ["number", "null"] },
+            clan_war_trophies: {
+              type: ["integer", "null"],
+              description:
+                "The clan's WAR trophies from the latest recorded race it was in, going into that race (its trophy_change not included).",
+            },
+            clan_score: {
+              type: ["number", "null"],
+              description:
+                "DEPRECATED, removed in 7.0.0: the same number as clan_war_trophies under the old, wrong name.",
+            },
             clan_tag: { type: ["string", "null"] },
             colosseum_races: { type: ["number", "null"] },
             current_race_fame: { type: ["number", "null"] },
@@ -1841,7 +1850,16 @@ export const OUTPUT_SCHEMAS = {
             closed_at: { type: ["string", "null"] },
             our_rank: NULLABLE_INT,
             our_fame: NULLABLE_INT,
-            our_clan_score: NULLABLE_INT,
+            our_clan_war_trophies: {
+              type: ["integer", "null"],
+              description:
+                "Our clan's WAR trophies as the race payload carried them during the week, going into it: the week's own trophy_change is not included.",
+            },
+            our_clan_score: {
+              type: ["integer", "null"],
+              description:
+                "DEPRECATED, removed in 7.0.0: the same number as our_clan_war_trophies under the old, wrong name.",
+            },
             our_repair_points: NULLABLE_INT,
             finished_early: {
               type: ["boolean", "null"],
@@ -1908,7 +1926,7 @@ export const OUTPUT_SCHEMAS = {
             clan_war_trophies: {
               type: ["integer", "null"],
               description:
-                "The clan's WAR trophies, latest observed (6.19.0). The race payload's clanScore carries this, not the ~100x larger clan score a profile shows.",
+                "The clan's WAR trophies (6.19.0). As the race payload carried them during the week, going into it: the week's own trophy_change is not included. The race payload's clanScore carries this, not the ~100x larger clan score a profile shows.",
             },
             clan_score: {
               type: ["integer", "null"],
@@ -2685,10 +2703,15 @@ export const OUTPUT_SCHEMAS = {
               description:
                 "When the clan's boat crossed the line; null for a clan that has not (the API's epoch-zero sentinel is never served).",
             },
+            clan_war_trophies: {
+              type: ["integer", "null"],
+              description:
+                "The clan's WAR trophies going into this race, as the race payload carries them (6.19.0); not the ~100x larger clan score a profile shows.",
+            },
             clan_score: {
               type: ["integer", "null"],
               description:
-                "The game's own strength number for the clan, latest observed (3.15.0).",
+                "DEPRECATED, removed in 7.0.0: the same number as clan_war_trophies under the old, wrong name.",
             },
             repair_points: { type: ["integer", "null"] },
           },

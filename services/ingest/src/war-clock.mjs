@@ -193,6 +193,17 @@ export function monthForSeasonId(seasonId) {
   return monthKey(Date.UTC(2026, 7 + (n - SEASON_ANCHOR.id), 15));
 }
 
+/** How many race weeks a season holds: four or five, by how many
+ *  Mondays fall between its first-Monday start and the next (S136 is
+ *  2026-09-07 -> 2026-10-05, four: sections 0-3). */
+export function sectionsInSeason(seasonId) {
+  const month = monthForSeasonId(seasonId);
+  if (!month) return null;
+  const [y, m] = month.split("-").map(Number);
+  const startMs = firstMondayResetMs(y, m - 1);
+  return Math.round((nextSeasonStartMs(startMs) - startMs) / WEEK_MS);
+}
+
 /** The hour before the season rolls (first Monday 10:00Z): the one
  *  observation that captures leagueStatistics.currentSeason and the
  *  last Path of Legends standing before they reset. The scheduler

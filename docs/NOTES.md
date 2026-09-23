@@ -1965,3 +1965,10 @@ All 5 regressions were confirmed (#38 rankings half, #71-#73, #76). #139 is prai
 - **#138:** the notes point at `battles_query.global_rank` and the other two fields, in the tool-qualified form the catalogue check accepts.
 - **6.27.0 gate:** `catalogue/players_profile#notes` failed, because the #131 note named `lifetime.total_donations`, which the profile does not carry. It now points at the players_timeline series.
 
+## 2026-09-23 — Gym sweep, war round 1 (6.29.0, feedback #140-#143)
+
+12 of 15 regressions were confirmed. #88 was partly fixed and is filed as #141. #8 and #30 could not be re-derived from the legacy text, and the war-day paths could not be checked on a training day. #143 is praise. Findings:
+- **#140:** WAR_TROPHY_TIMING on war_history, and matching wording on war_current and war_rivals. The race payload's clanScore is the figure going into the race: the Gym found it chained W+change = W+1 on 26 of 26 closed weeks, and clans_timeline agrees. Only the note changes.
+- **#141:** the outputSchemas declare clan_war_trophies (war_current, war_rivals) and our_clan_war_trophies (war_history), and clan_score is a DEPRECATED alias. The false "null before 2026-09-17" clause is gone. 141.2 stays needs_fixture in gym.json, and a unit test in war-tools.test pins the schemas.
+- **#142:** `sectionsInSeason(seasonId)` in war-clock. A missing exact week at or past the season's own count never existed.
+

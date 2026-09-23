@@ -2128,6 +2128,17 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
       after.notes.join(" "),
       /after the latest recorded week for #J2RGCRVG \(135\/3\)/,
     );
+    // A season's own count, not the largest any season has (#142):
+    // S140 has four sections, so its section 4 never existed, past the
+    // latest recorded week or not.
+    const fifth = (
+      await call(invoke, "war_history", { season_id: 140, section_index: 4 })
+    ).body;
+    assert.match(
+      fifth.notes.join(" "),
+      /Season 140 has no section 4: it has four sections \(0-3\)/,
+    );
+    assert.doesNotMatch(fifth.notes.join(" "), /not yet played/);
     const never = (
       await call(invoke, "war_history", { season_id: 134, section_index: 5 })
     ).body;
@@ -2207,4 +2218,16 @@ test("6.19.0: the war surfaces carry clan_war_trophies, with clan_score kept as 
       w.our_clan_war_trophies < 50_000,
       `${w.season_id}/${w.section_index} reads ${w.our_clan_war_trophies}, which is a clan score rather than war trophies`,
     );
+});
+
+test("6.29.0: the war outputSchemas declare clan_war_trophies and call clan_score what it is (feedback #141)", async () => {
+  const { OUTPUT_SCHEMAS } = await import("../src/output-schemas.mjs");
+  const row = (tool, list) =>
+    OUTPUT_SCHEMAS[tool].properties[list].items.properties;
+  const current = row("war_current", "standings");
+  assert.ok(current.clan_war_trophies);
+  assert.doesNotMatch(current.clan_score.description, /strength number/);
+  assert.match(current.clan_score.description, /DEPRECATED/);
+  assert.ok(row("war_rivals", "rivals").clan_war_trophies);
+  assert.ok(row("war_history", "weeks").our_clan_war_trophies);
 });

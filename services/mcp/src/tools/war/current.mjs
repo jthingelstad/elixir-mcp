@@ -366,7 +366,7 @@ export const war_current = {
       notes: notes(
         livePendingNote(live),
         "points are per-member contributions; fame belongs to the boat (the clan).",
-        "standings.clan_war_trophies is each bracket clan's WAR trophies (latest observed) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
+        "standings.clan_war_trophies is each bracket clan's WAR trophies going into this race (the race's own trophy_change lands in the next one's figure) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
         CLAN_SCORE_DEPRECATION,
         daysClosed
           ? "days_closed is the race's own day-by-day (the API's periodLogs): one entry per closed war day with every clan's points_earned, progress, rank (1-based; null while unranked) and end_of_day_rank (the API's 0-based value); the running day is not in it until it closes."

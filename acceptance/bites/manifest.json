@@ -705,5 +705,37 @@
     "case": "gym/138.2",
     "captures": ["138-2-rankings_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 140,
+    "contract": "6.27.0",
+    "why": "the Gym block 140.1 on the answer it read",
+    "case": "gym/140.1",
+    "captures": ["140-1-war_history.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 140,
+    "contract": "6.27.0",
+    "why": "the Gym block 140.2 on the answer it read",
+    "case": "gym/140.2",
+    "captures": ["140-2-war_history.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 141,
+    "contract": "6.27.0",
+    "why": "the Gym block 141.1 on the answer it read",
+    "case": "gym/141.1",
+    "captures": ["141-1-war_rivals.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 142,
+    "contract": "6.27.0",
+    "why": "the Gym block 142.1 on the answer it read",
+    "case": "gym/142.1",
+    "captures": ["142-1-war_history.json"],
+    "expect": "."
   }
 ]

@@ -1,4 +1,5 @@
 import { responseMeta } from "@elixir-mcp/contracts";
+import { sectionsInSeason } from "../../../../ingest/src/war-clock.mjs";
 import { WAR_BATTLE_TYPES, warBattlesSql } from "../../war-battles-sql.mjs";
 import { finishInstant } from "../../time.mjs";
 import {
@@ -12,6 +13,7 @@ import {
 } from "../shared.mjs";
 import {
   CLAN_SCORE_DEPRECATION,
+  WAR_TROPHY_TIMING,
   CLAN_TAG_SCHEMA,
   WAR_DOCS,
   boatDecksNote,
@@ -278,8 +280,8 @@ export const war_history = {
       const asked = { season_id: exactSeason, section_index: exactSection };
       if (!horizon)
         missingNote = `No war weeks are recorded for ${clanTag} yet, so week ${at} is unrecorded, not absent.`;
-      else if (exactSection > 4)
-        missingNote = `Season ${exactSeason} has no section ${exactSection}: a season has four or five sections (0-4), so this week never existed; it is not a coverage gap.`;
+      else if (exactSection >= (sectionsInSeason(exactSeason) ?? 5))
+        missingNote = seasonHasNoSection(exactSeason, exactSection);
       else if (before(asked, horizon))
         missingNote = `No week ${at} is recorded for ${clanTag}: recording of this clan's war history begins at season ${horizon.season_id} section ${horizon.section_index} (history_starts_at), so this week is before the horizon - unrecorded, not a week the clan sat out.`;
       else if (before(latest, asked))
@@ -360,8 +362,9 @@ export const war_history = {
             "points are per-member contributions; fame belongs to the boat (the clan).",
             "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is when the recorder saw it closed.",
             hasSeason ? CLAN_SCORE_DEPRECATION : null,
+            WAR_TROPHY_TIMING,
             hasSeason
-              ? "standings carries every clan in the week's bracket with clan_war_trophies (its WAR trophies, latest observed) and repair_points; finish_time is null for a clan that did not finish (the API marks it with epoch zero, never a time). days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it; each day's standings carry rank (1-based, like every rank here; null while unranked) beside end_of_day_rank (the API's 0-based value, -1 unranked)."
+              ? "standings carries every clan in the week's bracket with clan_war_trophies (its WAR trophies going into the week) and repair_points; finish_time is null for a clan that did not finish (the API marks it with epoch zero, never a time). days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it; each day's standings carry rank (1-based, like every rank here; null while unranked) beside end_of_day_rank (the API's 0-based value, -1 unranked)."
               : null,
             "in_progress marks the week still being fought; on OLDER weeks a null our_rank/our_fame means the week was observed without a standings capture.",
             hasSeason && !focus
@@ -384,3 +387,12 @@ export const war_history = {
     };
   },
 };
+
+/** A week the calendar never held (feedback #142: 136/4 read "not yet
+ *  played", but S136 has four sections). A season's own count, from the
+ *  calendar; the old check was against the largest any season has. */
+function seasonHasNoSection(seasonId, section) {
+  const n = sectionsInSeason(seasonId);
+  const count = n === 4 ? "four" : n === 5 ? "five" : String(n);
+  return `Season ${seasonId} has no section ${section}: it has ${count} sections (0-${n - 1}), so this week never existed; it is not a coverage gap.`;
+}

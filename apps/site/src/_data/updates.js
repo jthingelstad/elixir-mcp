@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "War history: when a clan's war trophies are counted",
+    body: "The Elixir Gym's first run over the war tools. A week's war trophies are the clan's figure going into that race, and the week's own gain or loss lands in the next week's figure. The tools now say so, so a closed week is no longer read as finishing on the number it started with. Asking about a week a season never had now says it never existed, not that it is still to come. Contract 6.29.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "Leaderboards: ties, and events that have closed",
     body: "The Elixir Gym's first run over the ranking tools. The global clan ladder has hundreds of clans tied at the top clan score, and the game lists them in its own order, so the ladder now says they are tied instead of letting rank 1 read as a winner. The mode leaderboards (Merge Tactics and the other event boards) no longer describe themselves as Path of Legends, and each now says when its standings last moved. Several share a name, and a closed event keeps refreshing its players' clans, so without that it looked like today's leaderboard. Contract 6.28.0.",
   },

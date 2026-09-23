@@ -1,0 +1,42 @@
+{
+  "feedback": 142,
+  "contract_version": "6.27.0",
+  "captured_at": "2026-09-23T17:45:09.078Z",
+  "request": {
+    "tool": "war_history",
+    "arguments": {
+      "season_id": 136,
+      "section_index": 4
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "name": "POAP KINGS",
+    "applied": {
+      "clan_tag": "#J2RGCRVG",
+      "season_id": 136,
+      "section_index": 4
+    },
+    "weeks": [],
+    "history_starts_at": {
+      "season_id": 129,
+      "section_index": 1
+    },
+    "member_weeks": [],
+    "notes": [
+      "Week 136/4 is after the latest recorded week for #J2RGCRVG (136/2): not yet played or not yet observed, not a coverage gap.",
+      "history_starts_at is the recording horizon: a week before it is unrecorded, not absent."
+    ],
+    "docs": "battles#war-weeks-points-and-fame",
+    "meta": {
+      "contract_version": "6.27.0"
+    }
+  },
+  "timings": {
+    "db_ms": 23,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

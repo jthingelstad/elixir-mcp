@@ -4460,5 +4460,348 @@
         "notes_match": "a limit of \\d+ should fit"
       }
     ]
+  },
+  {
+    "id": "140.1",
+    "feedback": 140,
+    "stability": "frozen",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "61a452e6-ee64-4a92-87f1-99b1eedf092f",
+    "assert": [
+      {
+        "has": "standings[].clan_war_trophies"
+      },
+      {
+        "has": "standings[].trophy_change"
+      },
+      {
+        "notes_match": "clan_war_trophies[^.]*(before|going into|entering|at the start of|during)[^.]*(week|race)|trophy_change[^.]*not (yet )?(included|applied|in it)"
+      }
+    ]
+  },
+  {
+    "id": "140.2",
+    "feedback": 140,
+    "stability": "live",
+    "tool": "war_history",
+    "args": {},
+    "request_id": "855e8ee2-f3cc-4a20-b78a-b156b787eaf7",
+    "assert": [
+      {
+        "has": "weeks[].our_clan_war_trophies"
+      },
+      {
+        "notes_match": "clan_war_trophies[^.]*(before|going into|entering|at the start of|during)[^.]*(week|race)|trophy_change[^.]*not (yet )?(included|applied|in it)"
+      }
+    ]
+  },
+  {
+    "id": "140.3",
+    "feedback": 140,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 0
+        }
+      },
+      "x": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 1
+        }
+      }
+    },
+    "request_id": "42e76517-02ce-4324-b827-395ef14790fc",
+    "assert": [
+      {
+        "sum_eq": [
+          [
+            "w.standings[?clan_tag=#QUGRGLU2].clan_war_trophies",
+            "w.standings[?clan_tag=#QUGRGLU2].trophy_change"
+          ],
+          "x.standings[?clan_tag=#QUGRGLU2].clan_war_trophies"
+        ]
+      },
+      {
+        "sum_eq": [
+          [
+            "w.standings[?clan_tag=#J2RGCRVG].clan_war_trophies",
+            "w.standings[?clan_tag=#J2RGCRVG].trophy_change"
+          ],
+          "x.standings[?clan_tag=#J2RGCRVG].clan_war_trophies"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "140.4",
+    "feedback": 140,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 1
+        }
+      },
+      "t": {
+        "tool": "clans_timeline",
+        "args": {
+          "metrics": ["clan_war_trophies"],
+          "from": "2026-09-10",
+          "to": "2026-09-23"
+        }
+      }
+    },
+    "request_id": "04228bed-7319-4ddd-927b-3732ad30688a",
+    "assert": [
+      {
+        "eq": [
+          "w.standings[?clan_tag=#J2RGCRVG].clan_war_trophies",
+          "t.series[?day=2026-09-19].clan_war_trophies"
+        ]
+      },
+      {
+        "sum_eq": [
+          [
+            "w.standings[?clan_tag=#J2RGCRVG].clan_war_trophies",
+            "w.standings[?clan_tag=#J2RGCRVG].trophy_change"
+          ],
+          "t.series[?day=2026-09-20].clan_war_trophies"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "141.1",
+    "feedback": 141,
+    "stability": "live",
+    "tool": "war_rivals",
+    "args": {
+      "rival_tags": ["#RJQQLLV9", "#RJ9UJ9L8"]
+    },
+    "request_id": "2cb68ca3-d75e-4c1a-b376-572523a76b31",
+    "assert": [
+      {
+        "has": "rivals[?clan_tag=#RJQQLLV9].clan_war_trophies"
+      },
+      {
+        "notes_not_match": "null before 2026-09-17"
+      }
+    ]
+  },
+  {
+    "id": "141.2",
+    "feedback": 141,
+    "needs_fixture": "tools/list: war_current's outputSchema must not describe standings.items.properties.clan_score as 'the game's own strength number'; it must name it a deprecated alias of clan_war_trophies and declare clan_war_trophies. war_rivals' outputSchema must declare rivals[].clan_war_trophies, and war_history's must declare weeks[].our_clan_war_trophies. Bite: the tools/list served at contract 6.27.0 (2026-09-23T17:4xZ). The case verbs run over tool responses, not over tools/list, so this needs a schema-reading fixture."
+  },
+  {
+    "id": "141.3",
+    "feedback": 141,
+    "stability": "live",
+    "control": true,
+    "tool": "war_rivals",
+    "args": {},
+    "request_id": "cd4d2d5f-c055-4c16-a03f-25b74afd18ad",
+    "assert": [
+      {
+        "every_row_has": ["rivals", "clan_war_trophies"]
+      },
+      {
+        "notes_match": "WAR trophies"
+      },
+      {
+        "notes_match": "DEPRECATED"
+      }
+    ]
+  },
+  {
+    "id": "142.1",
+    "feedback": 142,
+    "stability": "frozen",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 4
+    },
+    "request_id": "7b4315a5-b4b2-4b0d-925a-4b0b6ff964d5",
+    "assert": [
+      {
+        "count_eq": ["weeks[]", 0]
+      },
+      {
+        "notes_match": "never existed|has no section 4|four sections"
+      },
+      {
+        "notes_not_match": "not yet played"
+      }
+    ]
+  },
+  {
+    "id": "142.2",
+    "feedback": 142,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 5
+    },
+    "request_id": "75ab44c0-17f0-4d60-8d6c-c12d29ba8507",
+    "assert": [
+      {
+        "notes_match": "never existed"
+      }
+    ]
+  },
+  {
+    "id": "142.3",
+    "feedback": 142,
+    "stability": "live",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 3
+    },
+    "request_id": "506f6f07-4ec9-4c60-882a-c0ac671fd7d9",
+    "assert": [
+      {
+        "notes_not_match": "never existed"
+      }
+    ]
+  },
+  {
+    "id": "143.1",
+    "feedback": 143,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "61a452e6-ee64-4a92-87f1-99b1eedf092f",
+    "assert": [
+      {
+        "eq": [
+          "days[?war_day=3].standings[?clan_tag=#J2RGCRVG].progress_end_banked",
+          "standings[?clan_tag=#J2RGCRVG].fame"
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=4].standings[?clan_tag=#J2RGCRVG].progress_start",
+          "days[?war_day=3].standings[?clan_tag=#J2RGCRVG].progress_end_banked"
+        ]
+      },
+      {
+        "eq": ["weeks[0].finished_early", true]
+      },
+      {
+        "eq": ["weeks[0].finish_war_day", 3]
+      },
+      {
+        "has": "history_starts_at"
+      },
+      {
+        "notes_match": "up to \\d+ of \\d+ scoring decks"
+      }
+    ]
+  },
+  {
+    "id": "143.2",
+    "feedback": 143,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "61a452e6-ee64-4a92-87f1-99b1eedf092f",
+    "for_each": "member_weeks[]",
+    "assert": [
+      {
+        "lte": ["scoring_decks", "decks_used"]
+      },
+      {
+        "lte": ["boat_attacks", "decks_used"]
+      }
+    ]
+  },
+  {
+    "id": "143.3",
+    "feedback": 143,
+    "stability": "live",
+    "control": true,
+    "tool": "war_current",
+    "args": {},
+    "request_id": "913be435-02b3-49e8-9662-a596110e40a9",
+    "when": {
+      "eq": ["day_kind", "training"]
+    },
+    "assert": [
+      {
+        "eq": ["decks_today", null]
+      },
+      {
+        "eq": ["decks_today_reason", "training_day"]
+      },
+      {
+        "count_eq": ["days_closed[]", 0]
+      },
+      {
+        "notes_match": "attendance_by_war_day is empty before the week's first war day"
+      }
+    ]
+  },
+  {
+    "id": "143.4",
+    "feedback": 143,
+    "stability": "live",
+    "control": true,
+    "tool": "war_rivals",
+    "args": {},
+    "request_id": "cd4d2d5f-c055-4c16-a03f-25b74afd18ad",
+    "for_each": "rivals[]",
+    "assert": [
+      {
+        "lte": ["finished_races", "races_observed"]
+      },
+      {
+        "lte": ["zero_fame_races", "finished_races"]
+      },
+      {
+        "lte": ["colosseum_races", "races_observed"]
+      }
+    ]
+  },
+  {
+    "id": "143.5",
+    "feedback": 143,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136
+    },
+    "request_id": "ef6456ff-1ba0-49fc-80ad-1a1026eadd0b",
+    "assert": [
+      {
+        "notes_match": "season_id and section_index"
+      }
+    ]
   }
 ]
