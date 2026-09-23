@@ -12,8 +12,8 @@ shipped, and both need a regression pass.
 
 | Family | Status | Contract | Date | Rounds | Report | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| badges | findings fixed (6.20.0), round 2 due | 6.19.3 | 2026-09-23 | 1 | reports/2026-09-23-badges-r1.md | #91-#94 done; #18 confirmed |
-| battles | findings fixed (6.21.0-6.21.1), round 2 due | 6.19.3 | 2026-09-23 | 1 | reports/2026-09-23-battles-r1.md | #95-#100 done, #101 praise; 30/34 regressions confirmed; 140 duels repaired |
+| badges | r2 findings fixed (6.30.0-6.30.1), round 3 due | 6.29.1 | 2026-09-23 | 2 | reports/2026-09-23-badges-r2.md | #144-#146 done, #147 praise; #145 decided by Jamie: corpus = recorded players |
+| battles | r2 findings fixed (6.31.0-6.31.1), round 3 due | 6.30.0 | 2026-09-23 | 2 | reports/2026-09-23-battles-r2.md | #148-#151 done (148.1/148.4 refuted: event outside meta by decision), #152 praise; 41 regressions checked; open: tower level from HP needs an HP table |
 | cards | findings fixed (6.22.0), round 2 due | 6.21.1 | 2026-09-23 | 1 | reports/2026-09-23-cards-r1.md | #102-#108 |
 | clans | findings fixed (6.23.0-6.24.2), round 2 due | 6.21.1 | 2026-09-23 | 1 | reports/2026-09-23-clans-r1.md | #110-#112; 6.24.x participation cap outage |
 | collections | findings fixed (6.24.0), round 2 due | 6.22.0 | 2026-09-23 | 1 | reports/2026-09-23-collections-r1.md | #114-#116 |
@@ -22,3 +22,6 @@ shipped, and both need a regression pass.
 | players | findings fixed (6.27.0), round 2 due | 6.25.0 | 2026-09-23 | 1 | reports/2026-09-23-players-r1.md | #129-#134; 9 regressions confirmed |
 | rankings | findings fixed (6.28.0), round 2 due | 6.26.0 | 2026-09-23 | 2 | reports/2026-09-23-rankings-r1.md | #136-#138, #139 praise; 5 regressions confirmed |
 | war | findings fixed (6.29.0-6.29.1), round 2 due | 6.27.0 | 2026-09-23 | 4 | reports/2026-09-23-war-r1.md | #140-#142, #143 praise; #88 closed via #141; war-day paths unchecked (training day) |
+
+**2026-09-23 incident:** the sweep's afternoon load drained the db.t4g.micro's EBS byte balance to 0. The database is now db.t4g.small (Jamie). Deploy gates run per family (`--acceptance=<family>`).
+
