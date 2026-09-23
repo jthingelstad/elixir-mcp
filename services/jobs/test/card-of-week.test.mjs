@@ -146,6 +146,15 @@ test("what accept produces renders as mail", () => {
   assert.ok(!/undefined|NaN/.test(html));
 });
 
+test("a failed issue tells the owner only when the SCHEDULE built it", async () => {
+  const { shouldNotifyOwner } = await import("../src/email/issue-pipeline.mjs");
+  // The Friday rule builds a brief with no ops flag: a failure there is
+  // a week with no mail and nobody watching, so it must speak up.
+  assert.equal(shouldNotifyOwner({ kind: "card_of_week" }), true);
+  // An operator forcing a regenerate is already reading the result.
+  assert.equal(shouldNotifyOwner({ kind: "card_of_week", ops: true }), false);
+});
+
 test("card art is ours, by id and form, at the size the mail asks for", () => {
   assert.equal(
     cardAsset(28000015, "base", 160),

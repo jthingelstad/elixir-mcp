@@ -95,6 +95,13 @@ export async function generateIssue({
   return { brief_key: key, period_key: periodKey, queued };
 }
 
+/** The owner hears about a SCHEDULED issue failing, because that is a
+ *  week with no mail and nobody else is watching. An operator who forced
+ *  a regenerate is already looking at the result, and mailing them their
+ *  own iteration is noise that teaches people to ignore the alert that
+ *  matters. */
+export const shouldNotifyOwner = (brief) => !brief?.ops;
+
 /** The editor's answer, linted and stored - or refused, with the owner
  *  told why. `names` are the brief's own spellings (a name the model
  *  wrote through a broken escape comes back from the brief before
@@ -126,9 +133,9 @@ export async function acceptIssue({
       periodKey: period,
       subjectKey,
       status: "failed",
-      note: problems.join("; "),
+      note: `${brief.ops ? "[ops] " : ""}${problems.join("; ")}`,
     });
-    if (enqueue)
+    if (enqueue && shouldNotifyOwner(brief))
       await enqueue({
         v: 1,
         kind: "owner_notify",

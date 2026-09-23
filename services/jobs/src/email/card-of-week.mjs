@@ -127,6 +127,10 @@ export async function cardOfWeekGenerate({
       console.error("card_of_week_chart_failed", err?.message);
       brief.chart = null;
     }
+    // An operator regenerating a week is not the Friday send failing.
+    // The brief remembers which it was, so acceptIssue knows whether a
+    // failure is news.
+    brief.ops = Boolean(force) || dryRun;
     if (dryRun) return { dry_run: true, periodKey, brief };
     const out = await generateIssue({
       db,
