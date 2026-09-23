@@ -1,0 +1,30 @@
+{
+  "feedback": 146,
+  "contract_version": "6.29.1",
+  "captured_at": "2026-09-23T18:11:48.799Z",
+  "request": {
+    "tool": "badges_holders",
+    "arguments": {
+      "badge": "Valkyrie Mastry",
+      "segment": "mine"
+    }
+  },
+  "response": {
+    "error": {
+      "code": "not_found",
+      "class": "subject",
+      "message": "No badge is named or labelled 'Valkyrie Mastry' in the record.",
+      "hint": "badges_rarity lists every badge observed in the recorded population, identifier and label."
+    },
+    "meta": {
+      "contract_version": "6.29.1"
+    }
+  },
+  "timings": {
+    "db_ms": 294,
+    "db_queries": 4,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

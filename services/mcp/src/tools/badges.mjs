@@ -82,15 +82,51 @@ const LABEL_NOTE =
 const OBSERVATIONS_NOTE =
   "observations.oldest/newest are the oldest and newest profile poll among players_considered: how fresh the reads behind these counts are.";
 
-/** A versioned identifier beside its original in one list (Gym #92):
- *  said, so "rarest" is not read off the legacy one alone. */
-function versionPairNote(names) {
+/** The versioned pairs among `names` (RoyalTournamentRank beside
+ *  RoyalTournamentRank_v2), as [original, versioned]. */
+function versionPairs(names) {
   const set = new Set(names);
-  const pairs = names
+  return names
     .filter((n) => /_v\d+$/.test(n) && set.has(n.replace(/_v\d+$/, "")))
-    .map((n) => `${n.replace(/_v\d+$/, "")} / ${n}`);
-  return pairs.length
-    ? `Versioned pairs listed separately: ${pairs.join(", ")}. They are different identifiers for one badge a player would name the same way; count their holders together, not the legacy row alone, when saying how rare it is.`
+    .map((n) => [n.replace(/_v\d+$/, ""), n]);
+}
+
+/** Distinct holders of either identifier in each pair, and of both, in
+ *  the same population (Gym #144): the two holder sets overlap by an
+ *  amount only the record knows - in POAP KINGS both Royal Tournament
+ *  Rank rows were one player, while the corpus Classic pair was disjoint -
+ *  so "add them" was sometimes right and sometimes a double count. */
+async function pairCounts(db, pairs, scopeWhere, scopeParams) {
+  if (pairs.length === 0) return [];
+  const params = [...scopeParams, pairs.flat()];
+  const { rows } = await db.query(
+    `select base, count(*)::int as either, count(*) filter (where k > 1)::int as both
+       from (select regexp_replace(pb.name, '_v\\d+$', '') as base, pb.player_tag,
+                    count(distinct pb.name) as k
+               from player_badge pb
+              where pb.name = any($${params.length}::text[])
+                ${scopeWhere ? `and ${scopeWhere}` : ""}
+              group by 1, 2) x
+      group by base`,
+    params,
+  );
+  const by = new Map(rows.map((r) => [r.base, r]));
+  return pairs.map(([a, b]) => ({
+    pair: `${a} / ${b}`,
+    either: by.get(a)?.either ?? 0,
+    both: by.get(a)?.both ?? 0,
+  }));
+}
+
+const players = (n) => `${n} distinct player${n === 1 ? "" : "s"}`;
+const holdBoth = (n) => `${n} ${n === 1 ? "holds" : "hold"} both`;
+
+/** A versioned identifier beside its original (Gym #92, #144): said, with
+ *  the distinct count, so "rarest" is read neither off the legacy row
+ *  alone nor off a sum that counts one player twice. */
+function versionPairNote(counts) {
+  return counts.length
+    ? `Versioned pairs listed separately, one badge a player would name the same way: ${counts.map((c) => `${c.pair} is held by ${players(c.either)} (${holdBoth(c.both)})`).join("; ")}; quote the distinct count, not a sum of the two rows, when saying how rare it is.`
     : null;
 }
 
@@ -125,16 +161,49 @@ async function resolveBadge(db, badge) {
   const labelNear = all
     .filter((n) => squash(badgeLabel(n.name)).includes(squash(badge)))
     .map((n) => n.name);
+  // A typo (Gym #146: "Valkyrie Mastry", "Gaurds Mastery") contains no
+  // label and is inside none, so it had no candidates: the nearest by
+  // edit distance over label and identifier, within about one slip per
+  // six letters.
+  const want = squash(badge);
+  const budget = Math.max(2, Math.floor(want.length / 6));
+  const typoNear = all
+    .map((n) => ({
+      name: n.name,
+      d: Math.min(
+        editDistance(want, squash(badgeLabel(n.name))),
+        editDistance(want, squash(n.name)),
+      ),
+    }))
+    .filter((x) => x.d <= budget)
+    .sort((a, z) => a.d - z.d || a.name.localeCompare(z.name))
+    .map((x) => x.name);
   const candidates = [
-    ...new Set([...near.map((n) => n.name), ...labelNear]),
+    ...new Set([...near.map((n) => n.name), ...labelNear, ...typoNear]),
   ].slice(0, 8);
   throw new ToolFailure(
     "not_found",
     candidates.length
       ? `No badge is named or labelled exactly '${badge}'. Did you mean: ${candidates.map((n) => `${n} (${badgeLabel(n)})`).join(", ")}?`
-      : `No badge is named or labelled '${badge}' in the record.`,
+      : `No badge is named or labelled exactly '${badge}', and none is close to it.`,
     "badges_rarity lists every badge observed in the recorded population, identifier and label.",
   );
+}
+
+/** Levenshtein distance, two rows; badge names are short. */
+function editDistance(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++)
+      cur[j] = Math.min(
+        prev[j] + 1,
+        cur[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    prev = cur;
+  }
+  return prev[b.length];
 }
 
 export const badgesTools = {
@@ -164,6 +233,7 @@ export const badgesTools = {
       else if (args.kind !== undefined)
         throw new ToolFailure("bad_request", `kind must be one_off or tiered.`);
       const limit = Math.min(Math.max(Number(args.limit ?? 200), 1), 300);
+      const scopeParams = params.slice(0, scope.where ? 1 : 0);
       const pop = await population(ctx.db, scope.where, params);
       const { rows } = await ctx.db.query(
         `select pb.name,
@@ -214,8 +284,16 @@ export const badgesTools = {
           KIND_NOTE,
           "by_level counts holders per level on a tiered badge; holder_share = holders / players_considered.",
           LABEL_NOTE,
-          versionPairNote(rows.map((r) => r.name)),
+          versionPairNote(
+            await pairCounts(
+              ctx.db,
+              versionPairs(rows.map((r) => r.name)),
+              scope.where,
+              scopeParams,
+            ),
+          ),
           OBSERVATIONS_NOTE,
+          corpus ? corpusNote(pop, corpus) : null,
         ),
         docs: BADGE_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
@@ -225,7 +303,7 @@ export const badgesTools = {
 
   badges_holders: {
     description:
-      "Who holds a badge: every recorded player in a named population (segment 'mine', 'corpus' or an object) with the named badge, with level and progress where tiered, names not just tags, and their current clan. The badge is its API identifier or its label (badges_rarity lists both); a near-miss or a label two badges share is refused with candidates rather than guessed.",
+      "Who holds a badge: every recorded player in a named population (segment 'mine', 'corpus' or an object) with the named badge, with level and progress where tiered, names not just tags, and their clan as of the last profile read. The badge is its API identifier or its label (badges_rarity lists both); a near-miss or a label two badges share is refused with candidates rather than guessed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -332,11 +410,19 @@ export const badgesTools = {
           exact.via_label
             ? `'${badge}' is the label of ${exact.name}; answered for ${exact.name}.`
             : null,
+          await siblingNote(
+            ctx.db,
+            exact.name,
+            scope.where,
+            params.slice(0, scope.where ? 1 : 0),
+          ),
           KIND_NOTE,
           "holder_share = holders_total / players_considered (the whole population, not this page).",
           "A holder's observed_at is the last profile poll that read the badge; since is when the record first saw it at this level and progress. A since at the start of recording, or just after the player joined, is a first sighting, not when the badge was earned.",
+          "A holder's clan_tag is their clan at observed_at, not necessarily today's: a player the record no longer polls keeps the clan of that last read.",
           LABEL_NOTE,
           OBSERVATIONS_NOTE,
+          corpus ? corpusNote(pop, corpus) : null,
         ),
         docs: BADGE_DOCS,
         meta: responseMeta({ as_of: new Date().toISOString() }),
@@ -344,3 +430,38 @@ export const badgesTools = {
     },
   },
 };
+
+/** The other half of a versioned pair, when the record holds it (Gym
+ *  #144): "Royal Tournament Rank" resolves to the legacy identifier, 1
+ *  holder in the corpus, while 746 hold the _v2 - the label a person
+ *  says carries no version. Not merged: said, with both counts. */
+async function siblingNote(db, name, scopeWhere, scopeParams) {
+  const sibling = /_v\d+$/.test(name)
+    ? name.replace(/_v\d+$/, "")
+    : `${name}_v2`;
+  const {
+    rows: [held],
+  } = await db.query(`select 1 from player_badge where name = $1 limit 1`, [
+    sibling,
+  ]);
+  if (!held) return null;
+  const [pair] = /_v\d+$/.test(name) ? [[sibling, name]] : [[name, sibling]];
+  const [c] = await pairCounts(db, [pair], scopeWhere, scopeParams);
+  const {
+    rows: [s],
+  } = await db.query(
+    `select count(*)::int as n from player_badge pb
+      where pb.name = $${scopeParams.length + 1}${scopeWhere ? ` and ${scopeWhere}` : ""}`,
+    [...scopeParams, sibling],
+  );
+  return `Versioned pair: ${c.pair} are two identifiers for one badge a player names the same way (${badgeLabel(sibling)} is the other). In this population ${s.n} ${s.n === 1 ? "holds" : "hold"} ${sibling}, and ${players(c.either)} ${c.either === 1 ? "holds" : "hold"} either (${holdBoth(c.both)}).`;
+}
+
+/** What the corpus counts (Gym #145): every player whose profile the
+ *  record has read, not only the players recorded now - so it can run
+ *  near twice population.recorded_players, with reads as old as the
+ *  first profile poll. Said; whether the corpus should narrow is a
+ *  decision, not a description, and is parked for Jamie. */
+function corpusNote(pop, corpus) {
+  return `players_considered counts every player whose profile the record has read (${pop.players_considered}), not only the ${corpus.recorded_players ?? "players"} recorded now: the rest are no longer polled, and their badges and clan are as of their last read, as old as observations.oldest. population.players_in_window is the same count.`;
+}

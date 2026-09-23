@@ -192,6 +192,11 @@ the month; a versioned identifier says its version (`RoyalTournamentRank_v2`
 is `Royal Tournament Rank (v2)`, a different badge from the original). Say
 `label`. `badges_holders` takes either the identifier or a label that is
 unique; one two badges share is refused with both identifiers (6.20.0).
+A near-miss or a misspelling is refused with the closest badges
+(6.30.0). The original and its `_v2` are held by overlapping sets of
+players, so `badges_rarity` quotes each pair as distinct players and how
+many hold both, and `badges_holders` names the other half of a pair
+(6.30.0).
 
 **since** — on a `badges_holders` row, when the record first saw the badge
 at its current level and progress. The row's `observed_at` is the last

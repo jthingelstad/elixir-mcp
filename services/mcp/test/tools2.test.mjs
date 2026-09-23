@@ -1514,6 +1514,50 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
     byLabel.body.notes.some((n) => /is the label of YearsPlayed/.test(n)),
   );
 
+  // A typo gets candidates by edit distance (#146), and the census says
+  // what it counts (#145) and quotes a versioned pair as distinct players
+  // (#144) when the fixture holds one.
+  const typo = await call("badges_holders", {
+    segment: "corpus",
+    badge: "Years Plaeyd",
+  });
+  assert.equal(typo.body.error.code, "not_found");
+  assert.match(typo.body.error.message, /Did you mean: YearsPlayed/);
+  assert.match(none.body.error.message, /exactly 'NoSuchBadgeAtAll'/);
+  const said = rarity.body.notes.join(" ");
+  assert.match(said, /players_considered counts every player[^.]*recorded now/);
+
+  // A pair one player holds both halves of counts that player once.
+  await db.query(
+    `insert into player_badge (player_tag, name, observed_at)
+     values ($1, 'PairProbeBadge', now()), ($1, 'PairProbeBadge_v2', now())`,
+    [OBSERVER],
+  );
+  try {
+    const paired = await call("badges_rarity", { segment: "corpus" });
+    assert.match(
+      paired.body.notes.join(" "),
+      /PairProbeBadge \/ PairProbeBadge_v2 is held by 1 distinct player \(1 holds both\)/,
+    );
+    assert.doesNotMatch(
+      paired.body.notes.join(" "),
+      /count their holders together/,
+    );
+    const sib = await call("badges_holders", {
+      segment: { player_tag: OBSERVER },
+      badge: "PairProbeBadge",
+    });
+    assert.equal(sib.isError, false, JSON.stringify(sib.body));
+    assert.match(
+      sib.body.notes.join(" "),
+      /Versioned pair: PairProbeBadge \/ PairProbeBadge_v2[^]*1 holds PairProbeBadge_v2, and 1 distinct player holds either \(1 holds both\)/,
+    );
+  } finally {
+    await db.query(
+      `delete from player_badge where name in ('PairProbeBadge', 'PairProbeBadge_v2')`,
+    );
+  }
+
   // since is the stored first sighting; observed_at is never older (#91),
   // and holder_share is over the population, not the page (#94).
   for (const h of holders.body.holders)

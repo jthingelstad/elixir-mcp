@@ -1973,3 +1973,10 @@ All 5 regressions were confirmed (#38 rankings half, #71-#73, #76). #139 is prai
 - **#142:** `sectionsInSeason(seasonId)` in war-clock. A missing exact week at or past the season's own count never existed.
 - **6.29.1:** the 6.29.0 gate failed contracts/war_history-seasons and contracts/war_rivals. The timing note named clan_war_trophies where only our_clan_war_trophies is served, and trophy_change on rivals rows. It is now `warTrophyTiming(field)`, scoped to what each response serves.
 
+## 2026-09-23 — Gym sweep, badges round 2 (6.30.0, feedback #144-#147)
+
+#18, #91, #92 and #94 were confirmed fixed. #93 was partly fixed, and the rest is #146. #147 is praise. Findings:
+- **#144:** `pairCounts` gives the distinct holders of either identifier, and of both, in the segment. The rarity pair note quotes it. badges_holders gets a `siblingNote`. Resolution itself is unchanged: a bare label still names the identifier whose label it is.
+- **#145:** notes only. The corpus note says players_considered is every profile ever read (2,078), not the 1,076 recorded now, and a holder's clan_tag is described as the clan at the last read. **Parked for Jamie:** should the corpus segment narrow to recorded players, as elixir_data_insights says badge questions draw on? That changes what the numbers mean, so it is not a sweep fix.
+- **#146:** an edit-distance candidate pass over labels and identifiers, with a budget of max(2, length/6) squashed letters. Every miss says "exactly".
+

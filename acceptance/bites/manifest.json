@@ -737,5 +737,53 @@
     "case": "gym/142.1",
     "captures": ["142-1-war_history.json"],
     "expect": "."
+  },
+  {
+    "feedback": 144,
+    "contract": "6.29.1",
+    "why": "the Gym block 144.1 on the answer it read",
+    "case": "gym/144.1",
+    "captures": ["144-1-badges_holders.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 144,
+    "contract": "6.29.1",
+    "why": "the Gym block 144.2 on the answer it read",
+    "case": "gym/144.2",
+    "captures": ["144-2-badges_rarity.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 145,
+    "contract": "6.29.1",
+    "why": "the Gym block 145.1 on the answer it read",
+    "case": "gym/145.1",
+    "captures": ["145-1-badges_rarity.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 145,
+    "contract": "6.29.1",
+    "why": "the Gym block 145.2 on the answer it read",
+    "case": "gym/145.2",
+    "captures": ["145-2-badges_holders.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 146,
+    "contract": "6.29.1",
+    "why": "the Gym block 146.1 on the answer it read",
+    "case": "gym/146.1",
+    "captures": ["146-1-badges_holders.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 146,
+    "contract": "6.29.1",
+    "why": "the Gym block 146.2 on the answer it read",
+    "case": "gym/146.2",
+    "captures": ["146-2-badges_holders.json"],
+    "expect": "."
   }
 ]

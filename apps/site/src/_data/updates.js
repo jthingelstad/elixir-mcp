@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Badges: the two Royal Tournament badges, and typos",
+    body: "The Elixir Gym's second run over the badge tools. Some badges exist twice, an original and a newer version that most players now hold. The badge tools now name both and count the distinct players holding either, so asking about Royal Tournament Rank no longer shows almost nobody holding it. A misspelled badge name now gets suggestions instead of a flat refusal. Contract 6.30.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "War history: when a clan's war trophies are counted",
     body: "The Elixir Gym's first run over the war tools. A week's war trophies are the clan's figure going into that race, and the week's own gain or loss lands in the next week's figure. The tools now say so, so a closed week is no longer read as finishing on the number it started with. Asking about a week a season never had now says it never existed, not that it is still to come. Contract 6.29.0.",
   },
