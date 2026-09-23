@@ -138,7 +138,7 @@ test("what accept produces renders as mail", () => {
   assert.equal(subject, "Card of the Week: Barbarian Barrel");
   assert.ok(!/\{\{deck:/.test(html), "the deck placeholder was filled");
   assert.ok(html.includes('alt="Skeletons"'), "the deck's own cards");
-  assert.ok(html.includes("28000015_hero-96.png"), "the hero form's art");
+  assert.ok(html.includes("28000015_hero-192.png"), "the hero form's art");
   assert.ok(
     html.includes("https://elixir.poapkings.com/cards/28000015"),
     "the issue links its card page",
@@ -157,15 +157,17 @@ test("a failed issue tells the owner only when the SCHEDULE built it", async () 
 
 test("card art is ours, by id and form, at the size the mail asks for", () => {
   assert.equal(
+    // Asked for at the DISPLAY width, served at the source's own 285:
+    // a 160px file shown at 160 CSS pixels is upscaled on retina.
     cardAsset(28000015, "base", 160),
-    "https://elixir.poapkings.com/assets/cards/28000015-160.png",
+    "https://elixir.poapkings.com/assets/cards/28000015-285.png",
   );
   assert.equal(
     cardAsset(26000024, "evolution", 64),
-    "https://elixir.poapkings.com/assets/cards/26000024_evo-64.png",
+    "https://elixir.poapkings.com/assets/cards/26000024_evo-128.png",
   );
   assert.equal(
     cardAsset(28000015, "hero", 96),
-    "https://elixir.poapkings.com/assets/cards/28000015_hero-96.png",
+    "https://elixir.poapkings.com/assets/cards/28000015_hero-192.png",
   );
 });

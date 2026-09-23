@@ -62,10 +62,17 @@ const MONTHS = [
 const pctOf = (v, dp = 1) =>
   v == null ? null : Number((Number(v) * 100).toFixed(dp));
 
+/** The asset served for a given DISPLAY width. Mail asks for 64, 96 and
+ *  160 CSS pixels; the file behind each is twice that, so a retina
+ *  screen has real pixels to draw with instead of upscaling one. The
+ *  hero's 160 maps to 285 rather than 320 because 285 is the source
+ *  art's own width and inventing pixels above it would only add bytes. */
+const ASSET_FOR_DISPLAY = { 64: 128, 96: 192, 160: 285 };
+
 /** Cached card art, never Supercell's CDN: a mail client proxies or
  *  blocks a third-party image, and we do not hotlink in mail. */
-export const cardAsset = (cardId, form, width) =>
-  `${SITE}/assets/cards/${cardId}${form === "hero" ? "_hero" : form === "evolution" ? "_evo" : ""}-${width}.png`;
+export const cardAsset = (cardId, form, displayWidth) =>
+  `${SITE}/assets/cards/${cardId}${form === "hero" ? "_hero" : form === "evolution" ? "_evo" : ""}-${ASSET_FOR_DISPLAY[displayWidth] ?? displayWidth}.png`;
 
 const deckCards = (cards = []) =>
   cards.map((c) => ({

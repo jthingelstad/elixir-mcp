@@ -32,9 +32,12 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../..");
 const OUT = path.join(repoRoot, "apps/site/src/assets/cards");
 const DEFAULT_CATALOG = "https://elixir.poapkings.com/api/public/cards";
-// The widths the mail uses: a deck cell, a form beside the hero, the
-// hero itself. Height follows the 2:3 card frame.
-const WIDTHS = [64, 96, 160];
+// Assets are stored at TWICE the size they are displayed at, because a
+// 160px image shown at 160 CSS pixels is upscaled 2x on every retina
+// screen and looks soft - which is exactly how it looked. The source
+// art is 285 wide, so the 160px hero cannot reach a true 2x and takes
+// the native 285 instead: the sharpest that exists.
+const WIDTHS = [128, 192, 285];
 const FORMS = [
   ["base", "medium", ""],
   ["evolution", "evolutionMedium", "_evo"],

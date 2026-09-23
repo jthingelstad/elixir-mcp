@@ -12,8 +12,8 @@
       "hero"
     ],
     "icons": {
-      "base": "/assets/cards/28000015-160.png",
-      "hero": "/assets/cards/28000015_hero-96.png"
+      "base": "/assets/cards/28000015-285.png",
+      "hero": "/assets/cards/28000015_hero-192.png"
     },
     "page_url": "https://elixir.poapkings.com/cards/28000015"
   },
@@ -38,49 +38,49 @@
           "id": 26000010,
           "name": "Skeletons",
           "form": null,
-          "icon": "/assets/cards/26000010-64.png"
+          "icon": "/assets/cards/26000010-128.png"
         },
         {
           "id": 26000021,
           "name": "Hog Rider",
           "form": null,
-          "icon": "/assets/cards/26000021-64.png"
+          "icon": "/assets/cards/26000021-128.png"
         },
         {
           "id": 26000064,
           "name": "Firecracker",
           "form": "evolution",
-          "icon": "/assets/cards/26000064_evo-64.png"
+          "icon": "/assets/cards/26000064_evo-128.png"
         },
         {
           "id": 26000065,
           "name": "Mighty Miner",
           "form": null,
-          "icon": "/assets/cards/26000065-64.png"
+          "icon": "/assets/cards/26000065-128.png"
         },
         {
           "id": 26000084,
           "name": "Electro Spirit",
           "form": null,
-          "icon": "/assets/cards/26000084-64.png"
+          "icon": "/assets/cards/26000084-128.png"
         },
         {
           "id": 27000006,
           "name": "Tesla",
           "form": "evolution",
-          "icon": "/assets/cards/27000006_evo-64.png"
+          "icon": "/assets/cards/27000006_evo-128.png"
         },
         {
           "id": 28000014,
           "name": "Earthquake",
           "form": null,
-          "icon": "/assets/cards/28000014-64.png"
+          "icon": "/assets/cards/28000014-128.png"
         },
         {
           "id": 28000015,
           "name": "Barbarian Barrel",
           "form": null,
-          "icon": "/assets/cards/28000015-64.png"
+          "icon": "/assets/cards/28000015-128.png"
         }
       ]
     },
@@ -96,49 +96,49 @@
           "id": 26000010,
           "name": "Skeletons",
           "form": null,
-          "icon": "/assets/cards/26000010-64.png"
+          "icon": "/assets/cards/26000010-128.png"
         },
         {
           "id": 26000024,
           "name": "Royal Giant",
           "form": "evolution",
-          "icon": "/assets/cards/26000024_evo-64.png"
+          "icon": "/assets/cards/26000024_evo-128.png"
         },
         {
           "id": 26000044,
           "name": "Hunter",
           "form": null,
-          "icon": "/assets/cards/26000044-64.png"
+          "icon": "/assets/cards/26000044-128.png"
         },
         {
           "id": 26000050,
           "name": "Royal Ghost",
           "form": "evolution",
-          "icon": "/assets/cards/26000050_evo-64.png"
+          "icon": "/assets/cards/26000050_evo-128.png"
         },
         {
           "id": 26000061,
           "name": "Fisherman",
           "form": null,
-          "icon": "/assets/cards/26000061-64.png"
+          "icon": "/assets/cards/26000061-128.png"
         },
         {
           "id": 26000084,
           "name": "Electro Spirit",
           "form": null,
-          "icon": "/assets/cards/26000084-64.png"
+          "icon": "/assets/cards/26000084-128.png"
         },
         {
           "id": 28000000,
           "name": "Fireball",
           "form": null,
-          "icon": "/assets/cards/28000000-64.png"
+          "icon": "/assets/cards/28000000-128.png"
         },
         {
           "id": 28000015,
           "name": "Barbarian Barrel",
           "form": "hero",
-          "icon": "/assets/cards/28000015_hero-64.png"
+          "icon": "/assets/cards/28000015_hero-128.png"
         }
       ]
     },
@@ -154,49 +154,49 @@
           "id": 26000000,
           "name": "Knight",
           "form": null,
-          "icon": "/assets/cards/26000000-64.png"
+          "icon": "/assets/cards/26000000-128.png"
         },
         {
           "id": 26000015,
           "name": "Baby Dragon",
           "form": "evolution",
-          "icon": "/assets/cards/26000015_evo-64.png"
+          "icon": "/assets/cards/26000015_evo-128.png"
         },
         {
           "id": 26000023,
           "name": "Ice Wizard",
           "form": "hero",
-          "icon": "/assets/cards/26000023_hero-64.png"
+          "icon": "/assets/cards/26000023_hero-128.png"
         },
         {
           "id": 27000009,
           "name": "Tombstone",
           "form": "hero",
-          "icon": "/assets/cards/27000009_hero-64.png"
+          "icon": "/assets/cards/27000009_hero-128.png"
         },
         {
           "id": 28000009,
           "name": "Poison",
           "form": null,
-          "icon": "/assets/cards/28000009-64.png"
+          "icon": "/assets/cards/28000009-128.png"
         },
         {
           "id": 28000010,
           "name": "Graveyard",
           "form": null,
-          "icon": "/assets/cards/28000010-64.png"
+          "icon": "/assets/cards/28000010-128.png"
         },
         {
           "id": 28000012,
           "name": "Tornado",
           "form": null,
-          "icon": "/assets/cards/28000012-64.png"
+          "icon": "/assets/cards/28000012-128.png"
         },
         {
           "id": 28000015,
           "name": "Barbarian Barrel",
           "form": null,
-          "icon": "/assets/cards/28000015-64.png"
+          "icon": "/assets/cards/28000015-128.png"
         }
       ]
     },
@@ -212,49 +212,49 @@
           "id": 26000017,
           "name": "Wizard",
           "form": "evolution",
-          "icon": "/assets/cards/26000017_evo-64.png"
+          "icon": "/assets/cards/26000017_evo-128.png"
         },
         {
           "id": 26000035,
           "name": "Lumberjack",
           "form": "evolution",
-          "icon": "/assets/cards/26000035_evo-64.png"
+          "icon": "/assets/cards/26000035_evo-128.png"
         },
         {
           "id": 26000083,
           "name": "Mother Witch",
           "form": null,
-          "icon": "/assets/cards/26000083-64.png"
+          "icon": "/assets/cards/26000083-128.png"
         },
         {
           "id": 26000099,
           "name": "Goblinstein",
           "form": null,
-          "icon": "/assets/cards/26000099-64.png"
+          "icon": "/assets/cards/26000099-128.png"
         },
         {
           "id": 26000101,
           "name": "Rune Giant",
           "form": null,
-          "icon": "/assets/cards/26000101-64.png"
+          "icon": "/assets/cards/26000101-128.png"
         },
         {
           "id": 26000107,
           "name": "Minion Giant",
           "form": null,
-          "icon": "/assets/cards/26000107-64.png"
+          "icon": "/assets/cards/26000107-128.png"
         },
         {
           "id": 28000007,
           "name": "Lightning",
           "form": null,
-          "icon": "/assets/cards/28000007-64.png"
+          "icon": "/assets/cards/28000007-128.png"
         },
         {
           "id": 28000015,
           "name": "Barbarian Barrel",
           "form": null,
-          "icon": "/assets/cards/28000015-64.png"
+          "icon": "/assets/cards/28000015-128.png"
         }
       ]
     }
