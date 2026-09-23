@@ -33,6 +33,17 @@ const TREND_SEASON_FLOOR = 50_000;
 const TREND_MIN_SEASONS = 4;
 // The two ends of the trophy range, compared only when both are real.
 const BAND_FLOOR = 2000;
+// A band's own boundaries, as NUMBERS. The band is named `under_5000`
+// and a writer naturally says "under 5,000 trophies" - which the lint
+// refused, correctly, because 5000 existed only inside a string. The
+// boundary is a fact about the band; it belongs in the brief.
+const BAND_BOUNDS = {
+  under_5000: { trophies_from: 0, trophies_to: 5000 },
+  "5000_8000": { trophies_from: 5000, trophies_to: 8000 },
+  "8000_11000": { trophies_from: 8000, trophies_to: 11000 },
+  "11000_13000": { trophies_from: 11000, trophies_to: 13000 },
+  "13000_plus": { trophies_from: 13000, trophies_to: null },
+};
 const MONTHS = [
   "January",
   "February",
@@ -204,6 +215,7 @@ export async function buildCardOfWeekBrief({
   }));
   const byBand = (seasonRead.by_band ?? []).map((b) => ({
     trophy_band: b.trophy_band,
+    ...(BAND_BOUNDS[b.trophy_band] ?? {}),
     battles: b.battles ?? null,
     usage_share: b.usage_share ?? null,
     usage_share_pct: pctOf(b.usage_share),
