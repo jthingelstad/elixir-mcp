@@ -214,6 +214,17 @@ export function canonicalizeBattle(entry) {
       });
     }
   }
+  // The other side's deck level, stamped at the seam (0156): the mean of
+  // its participants' deck_avg_level, nulls ignored, null when none -
+  // what every level-gap reader used to compute per row at read time.
+  for (const p of participants) {
+    const levels = participants
+      .filter((o) => o.side !== p.side && o.deck_avg_level !== null)
+      .map((o) => o.deck_avg_level);
+    p.opp_deck_avg_level = levels.length
+      ? Number((levels.reduce((a, l) => a + l, 0) / levels.length).toFixed(4))
+      : null;
+  }
 
   const battleId = canonicalBattleId(
     battleTime,
@@ -298,6 +309,7 @@ const PARTICIPANT_COLS = [
   "starting_trophies",
   "deck_hash",
   "deck_avg_level",
+  "opp_deck_avg_level",
   "elixir_leaked",
   "global_rank",
   "king_tower_hp",

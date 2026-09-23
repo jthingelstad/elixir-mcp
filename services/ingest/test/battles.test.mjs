@@ -522,3 +522,26 @@ test("0151: global_rank is recorded when the API reports one, null otherwise", a
     "an unranked opponent is null, not zero",
   );
 });
+
+test("0156: the opponents' deck level on each row is what the read-time lateral computed", async () => {
+  // Every row the fixtures above ingested - 1v1, 2v2, duels, boats -
+  // against the probe the level-gap readers used before 0156.
+  const { rows } = await ctx.db.query(
+    `select bp.battle_id, bp.player_tag, bp.opp_deck_avg_level as stamped,
+            (select avg(o.deck_avg_level) from battle_participant o
+              where o.battle_id = bp.battle_id and o.side <> bp.side) as lateral
+       from battle_participant bp`,
+  );
+  assert.ok(rows.length > 20);
+  const mismatched = rows.filter((r) =>
+    r.lateral === null
+      ? r.stamped !== null
+      : r.stamped === null ||
+        Math.abs(Number(r.stamped) - Number(r.lateral)) > 1e-9,
+  );
+  assert.deepEqual(mismatched, []);
+  assert.ok(
+    rows.some((r) => r.stamped !== null),
+    "some rows carry a level to compare",
+  );
+});

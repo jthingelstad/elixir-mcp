@@ -12,6 +12,7 @@ import {
   listBackends,
   typeBackfill,
   towerHpBackfill,
+  oppLevelBackfill,
 } from "./deck-backfill.mjs";
 import { migrate } from "./migrate.mjs";
 import { activityPreview, explainTimeline } from "./ops-activity.mjs";
@@ -361,6 +362,14 @@ export async function handler(event) {
     const result = await captureAudit(
       process.env.DATABASE_URL,
       event.capture_audit,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.opp_level_backfill) {
+    const result = await oppLevelBackfill(
+      process.env.DATABASE_URL,
+      event.opp_level_backfill === true ? {} : event.opp_level_backfill,
     );
     console.log(JSON.stringify(result));
     return result;

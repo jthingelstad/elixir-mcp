@@ -423,3 +423,69 @@ export async function towerHpBackfill(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/**
+ * {opp_level_backfill: {after?, batch?, budget_ms?}} (0156): stamp
+ * battle_participant.opp_deck_avg_level on rows written before ingest did.
+ *
+ * Keyset over battle ids, whole battles at a time, so both sides of a
+ * battle are filled together. Each batch is one statement: the sides'
+ * mean deck_avg_level, then every participant takes the OTHER side's.
+ * Only null rows are written, so a re-run, an overlap with ingest, and a
+ * resumed cursor all converge. It loops batches until `budget_ms` (45 s,
+ * clear of the 90 s migrate-duration alarm) and returns its cursor:
+ * pass `after` back until `done`. Then {vacuum: {table:
+ * "battle_participant"}} - a bulk UPDATE clears the visibility map, and
+ * index-only reads die without it (NOTES 2026-09-22).
+ */
+export async function oppLevelBackfill(databaseUrl, spec = {}) {
+  const batch = Math.min(Math.max(Number(spec.batch ?? 5000), 1), 20000);
+  const budgetMs = Math.min(
+    Math.max(Number(spec.budget_ms ?? 45000), 1000),
+    60000,
+  );
+  let after = typeof spec.after === "string" ? spec.after : "";
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  const started = Date.now();
+  let battles = 0;
+  let filled = 0;
+  let batches = 0;
+  let done = false;
+  try {
+    while (Date.now() - started < budgetMs) {
+      const { rows } = await db.query(
+        `with todo as (
+           select battle_id from battle
+            where battle_id > $1 order by battle_id limit $2),
+         sides as (
+           select bp.battle_id, bp.side, avg(bp.deck_avg_level) as lvl
+             from battle_participant bp join todo using (battle_id)
+            group by bp.battle_id, bp.side),
+         wrote as (
+           update battle_participant bp
+              set opp_deck_avg_level = o.lvl
+             from sides o
+            where o.battle_id = bp.battle_id and o.side <> bp.side
+              and o.lvl is not null and bp.opp_deck_avg_level is null
+           returning 1)
+         select (select count(*)::int from todo) as battles,
+                (select count(*)::int from wrote) as filled,
+                (select max(battle_id) from todo) as last`,
+        [after, batch],
+      );
+      const r = rows[0];
+      batches += 1;
+      battles += r.battles;
+      filled += r.filled;
+      if (r.battles > 0) after = r.last;
+      if (r.battles < batch) {
+        done = true;
+        break;
+      }
+    }
+    return { batches, battles, filled, after, done, ms: Date.now() - started };
+  } finally {
+    await db.end();
+  }
+}
