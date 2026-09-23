@@ -1,0 +1,340 @@
+{
+  "feedback": 107,
+  "contract_version": "6.21.1",
+  "captured_at": "2026-09-23T16:02:44.860Z",
+  "request": {
+    "tool": "cards_card",
+    "arguments": {
+      "card": "Witch",
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      }
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "player",
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "verbosity": "full"
+    },
+    "card": {
+      "id": 26000007,
+      "name": "Witch",
+      "type": "troop",
+      "rarity": "epic",
+      "elixir_cost": 5,
+      "forms_available": ["evolution"],
+      "icon_urls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/cfwk1vzehVyHC-uloEIH6NOI0hOdofCutR5PyhIgO6w.png",
+        "evolutionMedium": "https://api-assets.clashroyale.com/cardevolutions/300/cfwk1vzehVyHC-uloEIH6NOI0hOdofCutR5PyhIgO6w.png"
+      },
+      "first_seen_in_catalog": "2026-09-10T23:57:37.591Z",
+      "first_played": {
+        "base": "2026-01-05T12:42:26.000Z",
+        "evolution": "2026-01-03T07:34:30.000Z",
+        "hero": null
+      }
+    },
+    "season": {
+      "mode_group": "all",
+      "decided_battles": 41,
+      "all": {
+        "battles": 32,
+        "wins": 13,
+        "losses": 19,
+        "players": 1,
+        "usage_share": 0.78,
+        "win_rate": 0.406,
+        "shrunk_win_rate": 0.419
+      },
+      "forms": [
+        {
+          "form": "base",
+          "battles": 8,
+          "wins": 3,
+          "losses": 5,
+          "players": null,
+          "usage_share": 0.195,
+          "win_rate": 0.375,
+          "shrunk_win_rate": 0.421
+        },
+        {
+          "form": "evolution",
+          "battles": 24,
+          "wins": 10,
+          "losses": 14,
+          "players": null,
+          "usage_share": 0.585,
+          "win_rate": 0.417,
+          "shrunk_win_rate": 0.427
+        }
+      ]
+    },
+    "decks": [
+      {
+        "deck_hash": "b2860741bee79ef1a9af7dd990055ad2aaeebdb6685a02d83f114c6a3d46ba9f",
+        "battles": 20,
+        "wins": 8,
+        "losses": 12,
+        "players": 1,
+        "usage_share": 0.488,
+        "win_rate": 0.4,
+        "cards": [
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000012,
+            "name": "Skeleton Army",
+            "form": "base"
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "hero"
+          },
+          {
+            "id": 26000037,
+            "name": "Inferno Dragon",
+            "form": "base"
+          },
+          {
+            "id": 26000050,
+            "name": "Royal Ghost",
+            "form": "evolution"
+          },
+          {
+            "id": 26000059,
+            "name": "Royal Hogs",
+            "form": "base"
+          },
+          {
+            "id": 27000000,
+            "name": "Cannon",
+            "form": "base"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "bridge_spam",
+          "win_conditions": [
+            {
+              "id": 26000059,
+              "name": "Royal Hogs",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Royal Hogs bridge spam",
+          "average_elixir": 3.75,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "1eb930078d2540f51c6b93d887a9db6c4d72eda7ad91ef5656a66439465aa4c2",
+        "battles": 8,
+        "wins": 3,
+        "losses": 5,
+        "players": 1,
+        "usage_share": 0.195,
+        "win_rate": 0.375,
+        "cards": [
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "base"
+          },
+          {
+            "id": 26000012,
+            "name": "Skeleton Army",
+            "form": "base"
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "hero"
+          },
+          {
+            "id": 26000037,
+            "name": "Inferno Dragon",
+            "form": "base"
+          },
+          {
+            "id": 26000050,
+            "name": "Royal Ghost",
+            "form": "base"
+          },
+          {
+            "id": 26000059,
+            "name": "Royal Hogs",
+            "form": "evolution"
+          },
+          {
+            "id": 27000000,
+            "name": "Cannon",
+            "form": "evolution"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "bridge_spam",
+          "win_conditions": [
+            {
+              "id": 26000059,
+              "name": "Royal Hogs",
+              "form": "evolution"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Evo Royal Hogs bridge spam",
+          "average_elixir": 3.75,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "d984fe5a4c6be4c9e34b0d41516fa74e8fb86bb9a62e2f6be645479a93002804",
+        "battles": 4,
+        "wins": 2,
+        "losses": 2,
+        "players": 1,
+        "usage_share": 0.098,
+        "win_rate": 0.5,
+        "cards": [
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000012,
+            "name": "Skeleton Army",
+            "form": "base"
+          },
+          {
+            "id": 26000014,
+            "name": "Musketeer",
+            "form": "base"
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "hero"
+          },
+          {
+            "id": 26000037,
+            "name": "Inferno Dragon",
+            "form": "base"
+          },
+          {
+            "id": 26000050,
+            "name": "Royal Ghost",
+            "form": "evolution"
+          },
+          {
+            "id": 26000059,
+            "name": "Royal Hogs",
+            "form": "base"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          }
+        ],
+        "archetype": {
+          "family": "bridge_spam",
+          "win_conditions": [
+            {
+              "id": 26000059,
+              "name": "Royal Hogs",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Royal Hogs bridge spam",
+          "average_elixir": 3.88,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      }
+    ],
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "notes": [
+      "Forms: season.all merges the card's forms; season.forms carries one row per form played (base, evolution, hero); usage_share is the row's decided observations over the population's decided_battles.",
+      "A card's win rate describes who played it as much as the card: compare within one mode and similar mean_level_gap, never across segments.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "history (one point per recorded season) is a corpus series; a segment read carries this window's usage only.",
+      "by_band (usage by trophy band) is answered from the season rollup on a corpus season read only.",
+      "partners ride the corpus season read; cards_synergy answers them for any segment and window.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld below 30 decided observations (insufficient_sample: true).",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals."
+    ],
+    "docs": "cards#one-card-in-one-call",
+    "meta": {
+      "contract_version": "6.21.1"
+    }
+  },
+  "timings": {
+    "db_ms": 1630,
+    "db_queries": 22,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

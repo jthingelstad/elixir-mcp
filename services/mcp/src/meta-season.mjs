@@ -12,6 +12,7 @@
  * counters are hourly and the distinct-player counts nightly.
  */
 
+import { typesForModeGroup } from "@elixir-mcp/contracts";
 import { META_METHODOLOGY } from "./tools/shared.mjs";
 
 /** The raw meta scans spill at the micro's 4 MB work_mem (review 2.6:
@@ -32,11 +33,18 @@ const TROPHY_BANDS = {
 };
 export const TROPHY_BAND_NAMES = Object.keys(TROPHY_BANDS);
 
+/** Said wherever bands and ranked observations meet (Gym #102). */
+export const RANKED_NO_BAND_NOTE =
+  "Trophy bands are Trophy Road trophies. A ranked (Path of Legends) observation carries a rating, not trophies, so it sits in no band; pass mode 'ladder' for a trophy view of the ladder.";
+
 /** The raw-path predicate for a band, appended to a where list. */
 export function trophyBandClause(band, params) {
   const [lo, hi] = TROPHY_BANDS[band];
   params.push(lo);
   const clauses = [`bp.starting_trophies >= $${params.length}`];
+  // Ranked rows carry a rating, not trophies (Gym #102): no band.
+  params.push(typesForModeGroup("ranked"));
+  clauses.push(`not (bp.type = any($${params.length}))`);
   if (hi !== null) {
     params.push(hi);
     clauses.push(`bp.starting_trophies < $${params.length}`);

@@ -31,6 +31,7 @@ import {
   rollupCardModes,
   TROPHY_BAND_NAMES,
   trophyBandClause,
+  RANKED_NO_BAND_NOTE,
 } from "../meta-season.mjs";
 import { modeSplit } from "../controls.mjs";
 import { catalogItems } from "./cards.mjs";
@@ -345,6 +346,10 @@ export const synergyTools = {
           "co_occurrence_rate = decks with anchor AND partner / decks with anchor; baseline_usage = the partner's share of all decided decks in the segment; lift = co_occurrence_rate / baseline_usage.",
           "players is distinct pilots for the pair and is what tells a personal habit from a pattern; win_rate_with_anchor describes who plays the pair, not the pair.",
           "Decided head-to-head player-battle observations only (duels, boat battles, draws excluded; both sides of a match can contribute); partners keep forms as separate rows.",
+          args.trophy_band && args.mode !== "ladder"
+            ? RANKED_NO_BAND_NOTE
+            : null,
+          "anchor.decks counts decided player-battle observations with the anchor, not distinct deck identities (cards_archetype and battles_meta_decks count identities as decks); it is the denominator co_occurrence_rate divides by.",
           win.seasonNotes,
           roll?.note,
         ),

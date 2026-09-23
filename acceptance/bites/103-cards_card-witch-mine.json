@@ -1,0 +1,1174 @@
+{
+  "feedback": 103,
+  "contract_version": "6.21.1",
+  "captured_at": "2026-09-23T16:09:20.429Z",
+  "request": {
+    "tool": "cards_card",
+    "arguments": {
+      "card": "Witch",
+      "segment": "mine"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "clan",
+        "clan_tag": "#J2RGCRVG",
+        "source": "mine"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "verbosity": "full"
+    },
+    "card": {
+      "id": 26000007,
+      "name": "Witch",
+      "type": "troop",
+      "rarity": "epic",
+      "elixir_cost": 5,
+      "forms_available": ["evolution"],
+      "icon_urls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/cfwk1vzehVyHC-uloEIH6NOI0hOdofCutR5PyhIgO6w.png",
+        "evolutionMedium": "https://api-assets.clashroyale.com/cardevolutions/300/cfwk1vzehVyHC-uloEIH6NOI0hOdofCutR5PyhIgO6w.png"
+      },
+      "first_seen_in_catalog": "2026-09-10T23:57:37.591Z",
+      "first_played": {
+        "base": "2026-01-05T12:42:26.000Z",
+        "evolution": "2026-01-03T07:34:30.000Z",
+        "hero": null
+      }
+    },
+    "season": {
+      "mode_group": "all",
+      "decided_battles": 6810,
+      "all": {
+        "battles": 1290,
+        "wins": 649,
+        "losses": 641,
+        "players": 29,
+        "usage_share": 0.189,
+        "win_rate": 0.503,
+        "shrunk_win_rate": 0.503
+      },
+      "forms": [
+        {
+          "form": "base",
+          "battles": 594,
+          "wins": 290,
+          "losses": 304,
+          "players": null,
+          "usage_share": 0.087,
+          "win_rate": 0.488,
+          "shrunk_win_rate": 0.489
+        },
+        {
+          "form": "evolution",
+          "battles": 696,
+          "wins": 359,
+          "losses": 337,
+          "players": null,
+          "usage_share": 0.102,
+          "win_rate": 0.516,
+          "shrunk_win_rate": 0.515
+        }
+      ]
+    },
+    "decks": [
+      {
+        "deck_hash": "7f857c21b1533e42e312f22bbc6ec01169ecda6c93158c1a2ac6fc5cff329f89",
+        "battles": 197,
+        "wins": 116,
+        "losses": 81,
+        "players": 1,
+        "usage_share": 0.029,
+        "win_rate": 0.589,
+        "cards": [
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base"
+          },
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "base"
+          },
+          {
+            "id": 26000015,
+            "name": "Baby Dragon",
+            "form": "evolution"
+          },
+          {
+            "id": 26000043,
+            "name": "Elite Barbarians",
+            "form": "evolution"
+          },
+          {
+            "id": 26000084,
+            "name": "Electro Spirit",
+            "form": "base"
+          },
+          {
+            "id": 26000102,
+            "name": "Berserker",
+            "form": "hero"
+          },
+          {
+            "id": 27000000,
+            "name": "Cannon",
+            "form": "base"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [
+            {
+              "id": 26000043,
+              "name": "Elite Barbarians",
+              "form": "evolution"
+            }
+          ],
+          "named_by": null,
+          "label": "Giant beatdown",
+          "average_elixir": 3.63,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "36f7685e93285c822e9d33720428be4393af1d4631a6d328dbe5787f106181a2",
+        "battles": 89,
+        "wins": 44,
+        "losses": 45,
+        "players": 1,
+        "usage_share": 0.013,
+        "win_rate": 0.494,
+        "cards": [
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000037,
+            "name": "Inferno Dragon",
+            "form": "base"
+          },
+          {
+            "id": 26000055,
+            "name": "Mega Knight",
+            "form": "base"
+          },
+          {
+            "id": 26000059,
+            "name": "Royal Hogs",
+            "form": "base"
+          },
+          {
+            "id": 26000064,
+            "name": "Firecracker",
+            "form": "evolution"
+          },
+          {
+            "id": 26000106,
+            "name": "Ronin",
+            "form": "base"
+          },
+          {
+            "id": 28000000,
+            "name": "Fireball",
+            "form": "base"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "bridge_spam",
+          "win_conditions": [
+            {
+              "id": 26000055,
+              "name": "Mega Knight",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [
+            {
+              "id": 26000059,
+              "name": "Royal Hogs",
+              "form": "base"
+            },
+            {
+              "id": 26000106,
+              "name": "Ronin",
+              "form": "base"
+            }
+          ],
+          "named_by": null,
+          "label": "Mega Knight bridge spam",
+          "average_elixir": 4.5,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "0b2b5ee2191e4d604eefa76d378864fc44ceae5154ee8471f360418b0ecb5a46",
+        "battles": 85,
+        "wins": 52,
+        "losses": 33,
+        "players": 1,
+        "usage_share": 0.012,
+        "win_rate": 0.612,
+        "cards": [
+          {
+            "id": 26000006,
+            "name": "Balloon",
+            "form": "base"
+          },
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "base"
+          },
+          {
+            "id": 26000008,
+            "name": "Barbarians",
+            "form": "evolution"
+          },
+          {
+            "id": 26000011,
+            "name": "Valkyrie",
+            "form": "base"
+          },
+          {
+            "id": 26000012,
+            "name": "Skeleton Army",
+            "form": "base"
+          },
+          {
+            "id": 26000037,
+            "name": "Inferno Dragon",
+            "form": "base"
+          },
+          {
+            "id": 26000045,
+            "name": "Executioner",
+            "form": "base"
+          },
+          {
+            "id": 26000055,
+            "name": "Mega Knight",
+            "form": "evolution"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000006,
+              "name": "Balloon",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [
+            {
+              "id": 26000055,
+              "name": "Mega Knight",
+              "form": "evolution"
+            }
+          ],
+          "named_by": null,
+          "label": "Balloon beatdown",
+          "average_elixir": 4.75,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "1bf504a62b23c6bf95f0db0a822bb3b2eef5f5d3e5e7ef867187d24ab0b2493d",
+        "battles": 71,
+        "wins": 34,
+        "losses": 37,
+        "players": 1,
+        "usage_share": 0.01,
+        "win_rate": 0.479,
+        "cards": [
+          {
+            "id": 26000005,
+            "name": "Minions",
+            "form": "base"
+          },
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000023,
+            "name": "Ice Wizard",
+            "form": "base"
+          },
+          {
+            "id": 26000039,
+            "name": "Mega Minion",
+            "form": "hero"
+          },
+          {
+            "id": 26000041,
+            "name": "Goblin Gang",
+            "form": "base"
+          },
+          {
+            "id": 26000057,
+            "name": "Flying Machine",
+            "form": "base"
+          },
+          {
+            "id": 26000064,
+            "name": "Firecracker",
+            "form": "evolution"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "cycle",
+          "win_conditions": [],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Cycle",
+          "average_elixir": 3.38,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "efbc2b2a109e61cae6404538fdca696d1eb0731d74c9c7a395f3c7deab85d208",
+        "battles": 65,
+        "wins": 35,
+        "losses": 30,
+        "players": 1,
+        "usage_share": 0.01,
+        "win_rate": 0.538,
+        "cards": [
+          {
+            "id": 26000005,
+            "name": "Minions",
+            "form": "base"
+          },
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000039,
+            "name": "Mega Minion",
+            "form": "hero"
+          },
+          {
+            "id": 26000041,
+            "name": "Goblin Gang",
+            "form": "base"
+          },
+          {
+            "id": 26000049,
+            "name": "Bats",
+            "form": "base"
+          },
+          {
+            "id": 26000057,
+            "name": "Flying Machine",
+            "form": "base"
+          },
+          {
+            "id": 26000064,
+            "name": "Firecracker",
+            "form": "evolution"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "cycle",
+          "win_conditions": [],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Cycle",
+          "average_elixir": 3.25,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      }
+    ],
+    "members": {
+      "played": [
+        {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "battles": 261,
+          "wins": 125,
+          "losses": 136,
+          "win_rate": 0.479,
+          "level_played": 15.3,
+          "forms": ["base", "evolution"]
+        },
+        {
+          "player_tag": "#URPCLR8UQ",
+          "name": "x.x.hari.x.x",
+          "battles": 244,
+          "wins": 132,
+          "losses": 112,
+          "win_rate": 0.541,
+          "level_played": 11.8,
+          "forms": ["base", "evolution"]
+        },
+        {
+          "player_tag": "#20R8QRLYLP",
+          "name": "Chanco",
+          "battles": 170,
+          "wins": 89,
+          "losses": 81,
+          "win_rate": 0.524,
+          "level_played": 16,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#JRVV9VC0C",
+          "name": "NOBITA",
+          "battles": 154,
+          "wins": 76,
+          "losses": 78,
+          "win_rate": 0.494,
+          "level_played": 13,
+          "forms": ["base"]
+        },
+        {
+          "player_tag": "#U92P8PQG0",
+          "name": "God Bless You",
+          "battles": 154,
+          "wins": 81,
+          "losses": 73,
+          "win_rate": 0.526,
+          "level_played": 14,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#UQ2R9RGVP",
+          "name": "Sandeep",
+          "battles": 72,
+          "wins": 31,
+          "losses": 41,
+          "win_rate": 0.431,
+          "level_played": 14.1,
+          "forms": ["base"]
+        },
+        {
+          "player_tag": "#V8Q8PUL0U",
+          "name": "ryguy67",
+          "battles": 47,
+          "wins": 18,
+          "losses": 29,
+          "win_rate": 0.383,
+          "level_played": 13.6,
+          "forms": ["base", "evolution"]
+        },
+        {
+          "player_tag": "#20JJJ2CCRU",
+          "name": "King Thing",
+          "battles": 35,
+          "wins": 15,
+          "losses": 20,
+          "win_rate": 0.429,
+          "level_played": 16,
+          "forms": ["base", "evolution"]
+        },
+        {
+          "player_tag": "#VJG09L9YY",
+          "name": "£eoππe§§;",
+          "battles": 31,
+          "wins": 19,
+          "losses": 12,
+          "win_rate": 0.613,
+          "level_played": 12.4,
+          "forms": ["base", "evolution"]
+        },
+        {
+          "player_tag": "#U8RYG9Y2U",
+          "name": "King Levy",
+          "battles": 28,
+          "wins": 13,
+          "losses": 15,
+          "win_rate": 0.464,
+          "level_played": 16,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#UL2V9QRG0",
+          "name": "raquaza",
+          "battles": 24,
+          "wins": 17,
+          "losses": 7,
+          "win_rate": 0.708,
+          "level_played": 15.6,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#20GPQPC9RV",
+          "name": "bonus",
+          "battles": 21,
+          "wins": 10,
+          "losses": 11,
+          "win_rate": 0.476,
+          "level_played": 12.5,
+          "forms": ["base"]
+        },
+        {
+          "player_tag": "#CV20JCY0V",
+          "name": "BigNorton",
+          "battles": 11,
+          "wins": 5,
+          "losses": 6,
+          "win_rate": 0.455,
+          "level_played": 15,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "battles": 7,
+          "wins": 3,
+          "losses": 4,
+          "win_rate": 0.429,
+          "level_played": 15.3,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#2209PJPVGG",
+          "name": "shimmeringhost",
+          "battles": 6,
+          "wins": 4,
+          "losses": 2,
+          "win_rate": 0.667,
+          "level_played": 16,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#YC8LLR8Q2",
+          "name": "sniperhendo",
+          "battles": 5,
+          "wins": 5,
+          "losses": 0,
+          "win_rate": 1,
+          "level_played": 11,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#20G0JGQLPL",
+          "name": "alex",
+          "battles": 5,
+          "wins": 4,
+          "losses": 1,
+          "win_rate": 0.8,
+          "level_played": 12,
+          "forms": ["base"]
+        },
+        {
+          "player_tag": "#2G2RPVPP",
+          "name": "Aaqib Javed",
+          "battles": 5,
+          "wins": 3,
+          "losses": 2,
+          "win_rate": 0.6,
+          "level_played": 15,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#PLCCYUQL",
+          "name": "TDuck",
+          "battles": 5,
+          "wins": 3,
+          "losses": 2,
+          "win_rate": 0.6,
+          "level_played": 16,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#U08P889Y0",
+          "name": "Tere",
+          "battles": 5,
+          "wins": 4,
+          "losses": 1,
+          "win_rate": 0.8,
+          "level_played": 16,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#G2CUUJQ8V",
+          "name": "kiruba⚜️",
+          "battles": 4,
+          "wins": 1,
+          "losses": 3,
+          "win_rate": 0.25,
+          "level_played": 11,
+          "forms": ["base"]
+        },
+        {
+          "player_tag": "#VGC22YGP",
+          "name": "MONICA",
+          "battles": 4,
+          "wins": 2,
+          "losses": 2,
+          "win_rate": 0.5,
+          "level_played": 13,
+          "forms": ["base", "evolution"]
+        },
+        {
+          "player_tag": "#20CGPVUL92",
+          "name": "pigsareus",
+          "battles": 3,
+          "wins": 1,
+          "losses": 2,
+          "win_rate": 0.333,
+          "level_played": 11,
+          "forms": ["base"]
+        },
+        {
+          "player_tag": "#RRU9PGJQ9",
+          "name": "Brotherinpants",
+          "battles": 2,
+          "wins": 2,
+          "losses": 0,
+          "win_rate": 1,
+          "level_played": 11,
+          "forms": ["base", "evolution"]
+        },
+        {
+          "player_tag": "#VC8VY8R29",
+          "name": "nyje47",
+          "battles": 2,
+          "wins": 0,
+          "losses": 2,
+          "win_rate": 0,
+          "level_played": 13,
+          "forms": ["base"]
+        },
+        {
+          "player_tag": "#2CY2RJL9G",
+          "name": "L-Drxgo⚡",
+          "battles": 2,
+          "wins": 1,
+          "losses": 1,
+          "win_rate": 0.5,
+          "level_played": 13.5,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#UCRLVL29U",
+          "name": "Ak",
+          "battles": 2,
+          "wins": 0,
+          "losses": 2,
+          "win_rate": 0,
+          "level_played": 11.5,
+          "forms": ["base", "evolution"]
+        },
+        {
+          "player_tag": "#8G8UYG2PQ",
+          "name": "Gabriel",
+          "battles": 2,
+          "wins": 1,
+          "losses": 1,
+          "win_rate": 0.5,
+          "level_played": 11,
+          "forms": ["base"]
+        },
+        {
+          "player_tag": "#229QY8UL9U",
+          "name": "Mega Goblin",
+          "battles": 1,
+          "wins": 1,
+          "losses": 0,
+          "win_rate": 1,
+          "level_played": 11,
+          "forms": ["evolution"]
+        },
+        {
+          "player_tag": "#2P9GRU2Q0",
+          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "battles": 1,
+          "wins": 1,
+          "losses": 0,
+          "win_rate": 1,
+          "level_played": 16,
+          "forms": ["evolution"]
+        }
+      ],
+      "held": [
+        {
+          "player_tag": "#2P9GRU2Q0",
+          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": null,
+          "observed_at": "2026-09-14T12:57:39.000Z"
+        },
+        {
+          "player_tag": "#2G2RPVPP",
+          "name": "Aaqib Javed",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-12T00:38:13.000Z"
+        },
+        {
+          "player_tag": "#20R8QRLYLP",
+          "name": "Chanco",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T22:07:50.000Z"
+        },
+        {
+          "player_tag": "#9Q9QRCPPU",
+          "name": "dez42",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T19:32:52.000Z"
+        },
+        {
+          "player_tag": "#8U2P0JPR",
+          "name": "Fullboat",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T21:32:50.000Z"
+        },
+        {
+          "player_tag": "#U8RYG9Y2U",
+          "name": "King Levy",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T23:12:49.000Z"
+        },
+        {
+          "player_tag": "#20JJJ2CCRU",
+          "name": "King Thing",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T16:07:42.000Z"
+        },
+        {
+          "player_tag": "#G2CUUJQ8V",
+          "name": "kiruba⚜️",
+          "level": 16,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-11T17:32:48.000Z"
+        },
+        {
+          "player_tag": "#2CY2RJL9G",
+          "name": "L-Drxgo⚡",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 1,
+          "observed_at": "2026-09-11T17:07:50.000Z"
+        },
+        {
+          "player_tag": "#UL2V9QRG0",
+          "name": "raquaza",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T17:47:42.000Z"
+        },
+        {
+          "player_tag": "#V8Q8PUL0U",
+          "name": "ryguy67",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T20:37:48.000Z"
+        },
+        {
+          "player_tag": "#UQ2R9RGVP",
+          "name": "Sandeep",
+          "level": 16,
+          "forms_unlocked": [],
+          "star_level": 2,
+          "observed_at": "2026-09-11T23:32:50.000Z"
+        },
+        {
+          "player_tag": "#2209PJPVGG",
+          "name": "shimmeringhost",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T18:37:51.000Z"
+        },
+        {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T16:17:53.000Z"
+        },
+        {
+          "player_tag": "#YC8LLR8Q2",
+          "name": "sniperhendo",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": null,
+          "observed_at": "2026-09-13T20:17:40.000Z"
+        },
+        {
+          "player_tag": "#PLCCYUQL",
+          "name": "TDuck",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T17:12:45.000Z"
+        },
+        {
+          "player_tag": "#U08P889Y0",
+          "name": "Tere",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T22:12:45.000Z"
+        },
+        {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "level": 16,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T17:07:50.000Z"
+        },
+        {
+          "player_tag": "#2YG98VVQ",
+          "name": "Alfablack",
+          "level": 15,
+          "forms_unlocked": [],
+          "star_level": 1,
+          "observed_at": "2026-09-15T20:37:49.000Z"
+        },
+        {
+          "player_tag": "#CV20JCY0V",
+          "name": "BigNorton",
+          "level": 15,
+          "forms_unlocked": ["evolution"],
+          "star_level": null,
+          "observed_at": "2026-09-14T22:17:39.000Z"
+        },
+        {
+          "player_tag": "#VGC22YGP",
+          "name": "MONICA",
+          "level": 15,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-20T19:02:51.000Z"
+        },
+        {
+          "player_tag": "#9QQLPJRLV",
+          "name": "duki suzuki",
+          "level": 14,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-19T16:42:41.000Z"
+        },
+        {
+          "player_tag": "#U92P8PQG0",
+          "name": "God Bless You",
+          "level": 14,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-20T04:42:46.000Z"
+        },
+        {
+          "player_tag": "#2G09Q20QC",
+          "name": "Kurd Paraw",
+          "level": 14,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-12T11:22:46.000Z"
+        },
+        {
+          "player_tag": "#JRVV9VC0C",
+          "name": "NOBITA",
+          "level": 14,
+          "forms_unlocked": [],
+          "star_level": 2,
+          "observed_at": "2026-09-20T00:02:40.000Z"
+        },
+        {
+          "player_tag": "#20GPQPC9RV",
+          "name": "bonus",
+          "level": 13,
+          "forms_unlocked": [],
+          "star_level": 1,
+          "observed_at": "2026-09-22T06:12:41.000Z"
+        },
+        {
+          "player_tag": "#VJG09L9YY",
+          "name": "£eoππe§§;",
+          "level": 13,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-18T05:37:49.000Z"
+        },
+        {
+          "player_tag": "#8G8UYG2PQ",
+          "name": "Gabriel",
+          "level": 13,
+          "forms_unlocked": ["evolution"],
+          "star_level": 2,
+          "observed_at": "2026-09-11T16:18:08.000Z"
+        },
+        {
+          "player_tag": "#VC8VY8R29",
+          "name": "nyje47",
+          "level": 13,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-22T18:57:42.000Z"
+        },
+        {
+          "player_tag": "#RJ9RRQPVU",
+          "name": "OllieTurtle",
+          "level": 13,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-11T16:18:00.000Z"
+        },
+        {
+          "player_tag": "#UCRLVL29U",
+          "name": "Ak",
+          "level": 12,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-11T18:47:45.000Z"
+        },
+        {
+          "player_tag": "#20G0JGQLPL",
+          "name": "alex",
+          "level": 12,
+          "forms_unlocked": [],
+          "star_level": 1,
+          "observed_at": "2026-09-13T01:52:40.000Z"
+        },
+        {
+          "player_tag": "#P2U0PC2UU",
+          "name": "canavar",
+          "level": 12,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-11T23:47:41.000Z"
+        },
+        {
+          "player_tag": "#PR8YLQ2CV",
+          "name": "The Joesma",
+          "level": 12,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-11T16:17:40.000Z"
+        },
+        {
+          "player_tag": "#URPCLR8UQ",
+          "name": "x.x.hari.x.x",
+          "level": 12,
+          "forms_unlocked": [],
+          "star_level": 2,
+          "observed_at": "2026-09-19T22:47:40.000Z"
+        },
+        {
+          "player_tag": "#UVQ8RJYG9",
+          "name": "AHMOメŞΛDØW",
+          "level": 11,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-12T12:42:39.000Z"
+        },
+        {
+          "player_tag": "#2LRYLQPL",
+          "name": "Andy",
+          "level": 11,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-11T17:52:59.000Z"
+        },
+        {
+          "player_tag": "#RRU9PGJQ9",
+          "name": "Brotherinpants",
+          "level": 11,
+          "forms_unlocked": ["evolution"],
+          "star_level": null,
+          "observed_at": "2026-09-18T15:52:41.000Z"
+        },
+        {
+          "player_tag": "#20LP8UPJ8R",
+          "name": "I Hate Witch",
+          "level": 11,
+          "forms_unlocked": ["evolution"],
+          "star_level": null,
+          "observed_at": "2026-09-11T17:58:04.000Z"
+        },
+        {
+          "player_tag": "#229QY8UL9U",
+          "name": "Mega Goblin",
+          "level": 11,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-20T06:47:39.000Z"
+        },
+        {
+          "player_tag": "#V0CRYP2GG",
+          "name": "pokemon",
+          "level": 11,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-12T16:42:45.000Z"
+        },
+        {
+          "player_tag": "#VR0QRP2PG",
+          "name": "round hamster",
+          "level": 11,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-13T02:12:39.000Z"
+        },
+        {
+          "player_tag": "#20G9RY299P",
+          "name": "Waltadr",
+          "level": 11,
+          "forms_unlocked": ["evolution"],
+          "star_level": null,
+          "observed_at": "2026-09-11T16:17:45.000Z"
+        },
+        {
+          "player_tag": "#VQUQJP8Q9",
+          "name": "1spaceO2",
+          "level": 10,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-12T21:02:51.000Z"
+        },
+        {
+          "player_tag": "#20CGPVUL92",
+          "name": "pigsareus",
+          "level": 9,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-06-23T03:27:03.000Z"
+        },
+        {
+          "player_tag": "#20CLVPLG8R",
+          "name": "VVSBUDGET",
+          "level": 8,
+          "forms_unlocked": [],
+          "star_level": null,
+          "observed_at": "2026-09-12T13:47:41.000Z"
+        }
+      ],
+      "members_with_collection": 46,
+      "members": 46
+    },
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "notes": [
+      "Forms: season.all merges the card's forms; season.forms carries one row per form played (base, evolution, hero); usage_share is the row's decided observations over the population's decided_battles.",
+      "A card's win rate describes who played it as much as the card: compare within one mode and similar mean_level_gap, never across segments.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "history (one point per recorded season) is a corpus series; a segment read carries this window's usage only.",
+      "by_band (usage by trophy band) is answered from the season rollup on a corpus season read only.",
+      "partners ride the corpus season read; cards_synergy answers them for any segment and window.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld below 30 decided observations (insufficient_sample: true).",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals."
+    ],
+    "docs": "cards#one-card-in-one-call",
+    "meta": {
+      "contract_version": "6.21.1"
+    }
+  },
+  "timings": {
+    "db_ms": 8414,
+    "db_queries": 22,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

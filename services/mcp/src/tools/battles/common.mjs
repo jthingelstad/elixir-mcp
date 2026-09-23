@@ -44,7 +44,7 @@ export const META_TROPHY_BAND_SCHEMA = {
   type: "string",
   enum: TROPHY_BAND_NAMES,
   description:
-    "Only battles the deck's own player entered with starting trophies in this band: the meta at a level. A corpus season read answers from the banded rollup once the nightly rebuild has filled it, else from the raw rows with a note.",
+    "Only battles the deck's own player entered with starting trophies in this band: the meta at a level. Ranked (Path of Legends) battles carry a rating, not trophies, and sit in no band. A corpus season read answers from the banded rollup once the nightly rebuild has filled it, else from the raw rows with a note.",
 };
 
 /** The band fallback sentence when the rollup is not yet built. */

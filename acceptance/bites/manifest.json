@@ -217,5 +217,77 @@
     "case": "gym/100.1",
     "captures": ["100-battles_query-princess-both-fell.json"],
     "expect": "princess\\[0\\]: absent"
+  },
+  {
+    "feedback": 102,
+    "contract": "6.21.1",
+    "why": "the Gym's block 102.1: ranked ratings filed under the under_5000 trophy band with no note",
+    "case": "gym/102.1",
+    "captures": ["102-cards_card-witch-ranked.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 102,
+    "contract": "6.21.1",
+    "why": "the Gym's block 102.2: the under_5000 band 98.8% ranked observations, unsaid",
+    "case": "gym/102.2",
+    "captures": ["102-cards_synergy-witch-under5000.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 103,
+    "contract": "6.21.1",
+    "why": "the Gym's block 103.1: members.played counted war duels that season excludes",
+    "case": "gym/103.1",
+    "captures": ["103-cards_card-witch-mine.json"],
+    "expect": "sum_eq: members\\.played"
+  },
+  {
+    "feedback": 104,
+    "contract": "6.21.1",
+    "why": "the Gym's block 104.1: an eight-card exact-set lookup timed out every time",
+    "case": "gym/104.1",
+    "captures": ["104-cards_archetype-eight-cards.json"],
+    "expect": "refused query_timeout"
+  },
+  {
+    "feedback": 105,
+    "contract": "6.21.1",
+    "why": "the Gym's block 105.1: 'Evo Royal Hogs bridge spam' resolved without its form",
+    "case": "gym/105.1",
+    "captures": ["105-cards_archetype-evo-royal-hogs.json"],
+    "expect": "eq resolved\\.label"
+  },
+  {
+    "feedback": 105,
+    "contract": "6.21.1",
+    "why": "the Gym's block 105.3: the Evo archetype filter returned both forms' rows",
+    "case": "gym/105.3",
+    "captures": ["105-battles_meta_decks-evo-filter.json"],
+    "expect": "count_eq archetypes"
+  },
+  {
+    "feedback": 106,
+    "contract": "6.21.1",
+    "why": "the Gym's block 106.1: history pooled every mode across an 18% to 92% ranked shift, unsaid",
+    "case": "gym/106.1",
+    "captures": ["106-cards_card-witch-corpus.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 107,
+    "contract": "6.21.1",
+    "why": "the Gym's block 107.1: notes promised excluded counts that were never served",
+    "case": "gym/107.1",
+    "captures": ["107-cards_card-witch-player.json"],
+    "expect": "has excluded\\.duels: absent"
+  },
+  {
+    "feedback": 108,
+    "contract": "6.21.1",
+    "why": "the Gym's block 108.1: anchor.decks counted battles beside tools whose decks count identities",
+    "case": "gym/108.1",
+    "captures": ["108-cards_synergy-witch-corpus.json"],
+    "expect": "notes_match"
   }
 ]

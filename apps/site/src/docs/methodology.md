@@ -125,7 +125,10 @@ path it is computed in the same scan.
 own player entered the battle with starting trophies in the band
 (`under_5000`, `5000_8000`, `8000_11000`, `11000_13000`, `13000_plus`, the
 bands the meta tools speak): the meta at a level, since a deck that
-dominates at 13,000 may not exist at 6,000. A corpus season read answers
+dominates at 13,000 may not exist at 6,000. Bands are Trophy Road
+trophies, so a ranked (Path of Legends) observation, which carries a
+rating of about 2,300-3,000 and not trophies, sits in no band (6.22.0:
+before it, the top-1,000 board filled `under_5000`). A corpus season read answers
 from the banded rollup, which the nightly rebuild keeps beside the
 unbanded one, once it has been filled for the season; before that (the
 first night after the band arrived, or a season the job has not reached)

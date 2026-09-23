@@ -84,6 +84,10 @@ function publishedInputSchema(schema) {
 export function makeRegistry() {
   return {
     has: (name) => Object.hasOwn(TOOLS, name),
+    /** Whether a tool declares an argument (a refusal's hint names only
+     *  arguments the tool takes: Gym #104). */
+    accepts: (name, arg) =>
+      Object.hasOwn(TOOLS[name]?.inputSchema?.properties ?? {}, arg),
     requiredScope: (name) => requiredOAuthScope(name),
     /** Omitted from the list AND refused on call: clients cache tools/list
      *  forever, so a tool that merely disappears is still callable. */

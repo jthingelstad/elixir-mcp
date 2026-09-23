@@ -298,7 +298,13 @@ export interface DeckAlias {
 
 export interface ArchetypeResolution {
   family: Family | null;
-  win_conditions: { id: number; name: string }[];
+  /** `form` only when the name said one ("Evo Royal Hogs"): then only
+   *  that form's decks match (Gym #105). Absent means every form. */
+  win_conditions: {
+    id: number;
+    name: string;
+    form?: "evolution" | "hero";
+  }[];
   resolved_from: "alias" | "family" | "label";
   aliases: string[];
 }
@@ -381,9 +387,19 @@ export function resolveArchetypeName(
     if (!words) continue;
     const found = resolveCards(words, resolveCard);
     if (!found) return null;
+    // The form a player said, kept on the card it was said of: "evo
+    // royal hogs" is the Evo form's decks, not both (Gym #105).
+    const formed = found.map((c) => {
+      const card = normalizeName(c.name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b(evo|evolution) ${card}\\b`).test(head))
+        return { ...c, form: "evolution" as const };
+      if (new RegExp(`\\bhero ${card}\\b`).test(head))
+        return { ...c, form: "hero" as const };
+      return c;
+    });
     return {
       family,
-      win_conditions: found,
+      win_conditions: formed,
       resolved_from: "label",
       aliases: aliasesOf(
         family,

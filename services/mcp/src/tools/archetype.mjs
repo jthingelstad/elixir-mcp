@@ -24,6 +24,7 @@ import {
   CYCLE_MAX,
   BEATDOWN_MIN,
   GRAMMAR_VERSION,
+  cardDisplayName,
 } from "@elixir-mcp/contracts";
 import { seasonFromDate, monthKey } from "../../../ingest/src/war-clock.mjs";
 import { cachedVocabulary } from "../../../ingest/src/card-roles.mjs";
@@ -34,6 +35,7 @@ import {
   docsRef,
   buildMeta,
   resolveArchetypeArg,
+  formedLabelParts,
   ARCHETYPE_NOTE,
 } from "./shared.mjs";
 
@@ -87,13 +89,16 @@ async function seasonOn(db, resolved) {
        join deck_meta_season m on m.deck_hash = d.deck_hash
         and m.season_month = $1 and m.mode_group = 'all'
       where ($2::text is null or d.archetype_family = $2)
-        and ($3::int[] is null or d.archetype_win_conditions @> $3)`,
+        and ($3::int[] is null or d.archetype_win_conditions @> $3)
+        and (select bool_and(d.archetype_label like '%' || part || '%')
+               from unnest($4::text[]) part) is not false`,
     [
       season,
       resolved.family,
       resolved.win_conditions.length
         ? resolved.win_conditions.map((w) => w.id)
         : null,
+      formedLabelParts(resolved),
     ],
   );
   return { season, ...rows[0] };
@@ -159,7 +164,7 @@ export const archetypeTools = {
             aliases: resolved.aliases,
             label:
               resolved.win_conditions.length && familyWord
-                ? `${resolved.win_conditions.map((w) => w.name).join(" ")} ${familyWord}`
+                ? `${resolved.win_conditions.map((w) => cardDisplayName({ name: w.name, form: w.form ?? "base" })).join(" ")} ${familyWord}`
                 : familyWord
                   ? familyWord.charAt(0).toUpperCase() + familyWord.slice(1)
                   : null,
@@ -169,6 +174,14 @@ export const archetypeTools = {
           notes: notes(
             `'${args.name}' resolved by ${resolved.resolved_from === "alias" ? "a community alias" : resolved.resolved_from === "family" ? "its family word" : "its label (card names and the family)"}${resolved.family ? ` to ${familyWord}` : " to any family"}${resolved.win_conditions.length ? ` with ${resolved.win_conditions.map((w) => w.name).join(" and ")}` : ""}.`,
             `this_season counts the recorded decks whose stamped archetype has that family${resolved.win_conditions.length ? " and those win conditions" : ""} in season ${on.season}; players sums the decks' distinct players, so a player on two such decks counts twice. Pass the same name as archetype to battles_meta_decks for the decks themselves.`,
+            resolved.win_conditions.some((w) => !w.form)
+              ? `A win condition named without 'Evo ' or 'Hero ' counts every form of it (${resolved.win_conditions
+                  .filter((w) => !w.form)
+                  .map((w) => w.name)
+                  .join(
+                    ", ",
+                  )} decks in any form); say the form to count one ('Evo ${resolved.win_conditions.find((w) => !w.form)?.name}').`
+              : null,
             ARCHETYPE_NOTE,
           ),
           docs,
@@ -210,11 +223,19 @@ export const archetypeTools = {
         // these cards (forms and tower aside), and its season.
         const season = monthKey(seasonFromDate(Date.now()).seasonStartMs);
         const { rows: known } = await ctx.db.query(
+          // Exactly these cards: every one of them (through the card
+          // index, one probe per card) and no more (card_count). The
+          // old form scanned every deck of that size with two
+          // correlated subqueries each, and an eight-card set - the
+          // tool's main use - timed out every time (Gym #104).
           `with same as (
-             select d.deck_hash from deck d
-              where d.card_count = $2
-                and not exists (select 1 from deck_card dc where dc.deck_hash = d.deck_hash and dc.card_id <> all($1::int[]))
-                and (select count(distinct dc.card_id) from deck_card dc where dc.deck_hash = d.deck_hash) = $2)
+             select d.deck_hash
+               from (select deck_hash from deck_card
+                      where card_id = any($1::int[])
+                      group by deck_hash
+                     having count(distinct card_id) = $2) c
+               join deck d on d.deck_hash = c.deck_hash
+              where d.card_count = $2)
            select count(*)::int as identities,
                   coalesce(sum(m.battles), 0)::int as battles,
                   coalesce(sum(m.players), 0)::int as players

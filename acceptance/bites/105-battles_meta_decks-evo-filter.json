@@ -1,0 +1,162 @@
+{
+  "feedback": 105,
+  "contract_version": "6.21.1",
+  "captured_at": "2026-09-23T16:08:45.374Z",
+  "request": {
+    "tool": "battles_meta_decks",
+    "arguments": {
+      "segment": "corpus",
+      "group_by": "archetype",
+      "archetype": "Evo Royal Hogs bridge spam",
+      "limit": 40,
+      "min_battles": 1
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "corpus"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "archetype": {
+        "requested": "Evo Royal Hogs bridge spam",
+        "family": "bridge_spam",
+        "win_conditions": [
+          {
+            "id": 26000059,
+            "name": "Royal Hogs"
+          }
+        ],
+        "resolved_from": "label",
+        "aliases": ["Archer Queen Royal Hogs"]
+      },
+      "group_by": "archetype",
+      "min_battles": 1,
+      "sort": "battles",
+      "limit": 40,
+      "verbosity": "full"
+    },
+    "population": {
+      "recorded_clans": 18,
+      "recorded_players": 1071,
+      "players_in_window": 43314
+    },
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "decided_battles": 393710,
+    "segment_win_rate": 0.5,
+    "prior_win_rate": 0.5,
+    "prior_basis": "corpus_window",
+    "excluded": {
+      "considered": 398452,
+      "duels": 3702,
+      "boat": 808,
+      "draws": 232,
+      "unresolved": 0,
+      "no_deck": 0
+    },
+    "players_as_of": "2026-09-23T04:40:34.046Z",
+    "comparable": true,
+    "modes_in_window": [
+      {
+        "mode": "casual",
+        "battles": 9886,
+        "mean_level_gap": 0
+      },
+      {
+        "mode": "ladder",
+        "battles": 8356,
+        "mean_level_gap": 0
+      },
+      {
+        "mode": "ranked",
+        "battles": 363004,
+        "mean_level_gap": 0
+      },
+      {
+        "mode": "tournament",
+        "battles": 3640,
+        "mean_level_gap": 0
+      },
+      {
+        "mode": "war",
+        "battles": 8824,
+        "mean_level_gap": 0
+      }
+    ],
+    "archetypes": [
+      {
+        "label": "Evo Royal Hogs bridge spam",
+        "family": "bridge_spam",
+        "win_condition_ids": [26000059],
+        "decks": 864,
+        "battles": 2281,
+        "wins": 1072,
+        "losses": 1209,
+        "players": 1066,
+        "win_rate": 0.47,
+        "share": 0.397
+      },
+      {
+        "label": "Royal Hogs bridge spam",
+        "family": "bridge_spam",
+        "win_condition_ids": [26000059],
+        "decks": 363,
+        "battles": 3458,
+        "wins": 1802,
+        "losses": 1656,
+        "players": 699,
+        "win_rate": 0.521,
+        "share": 0.603
+      }
+    ],
+    "decks": [],
+    "notes": [
+      "Folded 1227 decks over min_battles into 2 archetypes by their stamped label, sorted by who plays them (players, then battles); share is of the 5739 decided battles those decks hold. cards_archetype({ name }) says what one of these labels MEANS - its family, its win conditions, the other names for the shape - and cards_archetype({ cards }) names a deck you hand it. players sums the decks' distinct players, so a player on two decks of one shape counts twice. No win rate is shrunk or ranked here: the same label wins and loses with the player.",
+      "These are the population's decks and levels; nothing here checks what any one player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "archetype 'Evo Royal Hogs bridge spam' resolved to bridge spam with Royal Hogs (label); the filter ran over all 47133 decks over min_battles, and decided_battles and usage_share stay the population's.",
+      "Pooled across modes: ranked 363004 (mean level gap +0.00), casual 9886 (mean level gap +0.00), war 8824 (mean level gap +0.00), ladder 8356 (mean level gap +0.00), tournament 3640 (mean level gap +0.00); pass mode to isolate one.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld below 30 decided observations (insufficient_sample: true).",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "Read from the season rollup: counters through 2026-09-23T15:40:15.770Z, distinct players as of 2026-09-23T04:40:34.046Z (a deck or card first seen since then carries players: null until tonight's rebuild)."
+    ],
+    "docs": "methodology#deck-and-card-meta-exactly-what-is-counted",
+    "meta": {
+      "contract_version": "6.21.1"
+    }
+  },
+  "timings": {
+    "db_ms": 3947,
+    "db_queries": 13,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -423,7 +423,7 @@ export function makeInvoker({
               new ToolFailure(
                 "query_timeout",
                 `Tool ${name} exceeded its query time budget; no analytical result was returned.`,
-                `Retry ${name}(${JSON.stringify(args ?? {})}) after a few seconds, or narrow from/to first; quote meta.request_id if it persists.`,
+                `Retry ${name}(${JSON.stringify(args ?? {})}) after a few seconds${registry.accepts?.(name, "from") ? ", or narrow from/to first" : ""}; quote meta.request_id if it persists.`,
               ),
           }
         : null;

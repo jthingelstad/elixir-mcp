@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Card tools: honest trophy bands, and naming the Evo you mean",
+    body: "The Elixir Gym's first run over the card tools. The most useful fix: naming an eight-card deck with cards_archetype works now, where it used to time out every time. The one that changes answers: the trophy bands were quietly counting Path of Legends players, whose rating (around 2,300 to 3,000) was read as trophies, so the lowest band was mostly the top thousand players in the game. Ranked battles now sit in no band, and the bands mean what they say. Also: 'Evo Royal Hogs bridge spam' now means the Evo decks, not both forms. A clan member's Witch count no longer includes war duels. And a card's history says when the mix of game modes shifted under it, since the record went from mostly ladder to mostly ranked this summer. Contract 6.22.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "Duels are won on games, not crowns",
     body: "A river race duel is best of three games, and the player who wins two wins the duel. Elixir was deciding the result from the crowns summed across all three games, so a duel won 0-3, 1-0, 1-0 was recorded as a loss at 2 crowns to 3. The Elixir Gym found 7 of one player's 70 duels recorded wrong this way. Duels are now decided on games, and every duel already in the record was recomputed from its games, with the daily totals behind them. The same pass fixed a duel's leaked elixir, which is now the sum of its games. It also fixed three comparisons: tower hitpoints when the towers started at different levels, starting trophies on war battles (war matchmaking does not pair on them), and a player who climbs through several trophy floors in one window, who now gets a floor-by-floor account instead of one number. Contract 6.21.0.",
   },

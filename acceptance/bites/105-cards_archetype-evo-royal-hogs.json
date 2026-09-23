@@ -1,0 +1,64 @@
+{
+  "feedback": 105,
+  "contract_version": "6.21.1",
+  "captured_at": "2026-09-23T16:08:11.812Z",
+  "request": {
+    "tool": "cards_archetype",
+    "arguments": {
+      "name": "Evo Royal Hogs bridge spam"
+    }
+  },
+  "response": {
+    "applied": {
+      "name": "Evo Royal Hogs bridge spam"
+    },
+    "resolved": {
+      "family": "bridge_spam",
+      "family_definition": "fast units at the bridge to deny the opponent a build-up and punish mistakes",
+      "win_conditions": [
+        {
+          "id": 26000059,
+          "name": "Royal Hogs"
+        }
+      ],
+      "resolved_from": "label",
+      "aliases": ["Archer Queen Royal Hogs"],
+      "label": "Royal Hogs bridge spam"
+    },
+    "this_season": {
+      "season": "2026-09",
+      "decks": 1227,
+      "battles": 5739,
+      "players": 1765
+    },
+    "version": {
+      "grammar_version": "2026-09",
+      "roles_version": "2026-09-20T20:16:47.000Z",
+      "source_commit": "d160d5be2f59c54a4a782eb5ed0da9ca814824c6",
+      "cycle_max": 3.4,
+      "beatdown_min": 4
+    },
+    "notes": [
+      "'Evo Royal Hogs bridge spam' resolved by its label (card names and the family) to bridge spam with Royal Hogs.",
+      "this_season counts the recorded decks whose stamped archetype has that family and those win conditions in season 2026-09; players sums the decks' distinct players, so a player on two such decks counts twice. Pass the same name as archetype to battles_meta_decks for the decks themselves.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone."
+    ],
+    "docs": "archetypes",
+    "meta": {
+      "contract_version": "6.21.1",
+      "source_polls": {
+        "cards": {
+          "observed_at": "2026-09-23T13:57:45.000Z",
+          "freshness_seconds": 7825
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 1512,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

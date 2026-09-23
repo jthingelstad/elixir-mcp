@@ -32,6 +32,7 @@ import {
   resolveArchetypeName,
   normalizeName,
   FAMILIES,
+  cardDisplayName,
 } from "@elixir-mcp/contracts";
 import { cachedVocabulary } from "../../../ingest/src/card-roles.mjs";
 import { reconcileRecording } from "@elixir-mcp/claims";
@@ -1245,8 +1246,22 @@ export async function resolveArchetypeArg(db, text) {
 export function matchesArchetype(archetype, resolved) {
   if (!archetype) return false;
   if (resolved.family && archetype.family !== resolved.family) return false;
-  const ids = new Set(archetype.win_conditions.map((w) => w.id));
-  return resolved.win_conditions.every((w) => ids.has(w.id));
+  // A form the name said must be the form played (Gym #105); no form
+  // means any.
+  return resolved.win_conditions.every((w) =>
+    archetype.win_conditions.some(
+      (x) => x.id === w.id && (!w.form || x.form === w.form),
+    ),
+  );
+}
+
+/** The label fragment a formed win condition prints ("Evo Royal Hogs"):
+ *  the stamp keeps win condition ids without forms, and its label is
+ *  the grammar's own spelling of the form. */
+export function formedLabelParts(resolved) {
+  return resolved.win_conditions
+    .filter((w) => w.form)
+    .map((w) => cardDisplayName({ name: w.name, form: w.form }));
 }
 
 /** The stamped archetype of many decks at once (0148): family, label,
@@ -1287,8 +1302,13 @@ export async function deckStamps(db, hashes) {
 export function stampMatches(stamp, resolved) {
   if (!stamp) return false;
   if (resolved.family && stamp.family !== resolved.family) return false;
-  return resolved.win_conditions.every((w) =>
-    stamp.win_condition_ids.includes(w.id),
+  return (
+    resolved.win_conditions.every((w) =>
+      stamp.win_condition_ids.includes(w.id),
+    ) &&
+    formedLabelParts(resolved).every((part) =>
+      String(stamp.label ?? "").includes(part),
+    )
   );
 }
 

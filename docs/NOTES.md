@@ -1891,3 +1891,15 @@ The interpreter gained a decimal tolerance on `sum_eq` (96.1: 1.43 + 4.43 + 4.88
 - `catalogue/badges_rarity#notes`: the contracts rule's snake_case scan read `ank_v2` out of the CamelCase identifier `RoyalTournamentRank_v2`. The rule now skips a segment with a capital, since API identifiers are CamelCase and our fields are snake_case.
 
 `{duel_outcome_repair}` applied: 140 duels, 280 rows (70 win and loss flips, 70 false draws, both sides each), 280 player-day rollups re-derived. Gym 95.1-95.3 pass live.
+
+## 2026-09-23 — Gym sweep, cards round 1 (6.22.0, feedback #102-#108)
+
+All 3 regressions (#19, #20, #24) were confirmed. The run spent about 55 calls. Findings:
+
+- **#104, blocks correct answers:** the eight-card exact-set lookup scanned every deck of that size with two correlated subqueries each. It now goes through `deck_card`'s card index plus `card_count`, which gives the same set. The `query_timeout` hint says "narrow from/to" only when the tool takes `from` (`registry.accepts`).
+- **#102:** TROPHY_BAND_CASE, the pop builder and the raw `trophyBandClause` all leave ranked rows unbanded, because starting_trophies holds the rating there. `{meta_rollup_season: {season_month, repair_bands: true}}` nulls the band on those population rows and rebuilds the aggregates from the population. This is not a reset: the rows stay and only one column changes. The note RANKED_NO_BAND_NOTE, and the band argument's description, say so.
+- **#105:** the resolver dropped evo and hero by design (6.8.0). A said form is now kept on its card and matched against the stamp's label, which spells the form ("Evo Royal Hogs"). A bare name still merges forms and says so.
+- **#103:** `members.played` gains `deck_hash is not null`, which is season's population.
+- **#107:** `excluded`, `prior_win_rate` and `prior_basis` are served. The corpus-prior line of SEGMENT_NOTES is replaced where cards_card shrinks toward the segment's own mean. `insufficient_sample` is set only below the floor, because history rows are deliberately unshrunk. A player segment uses buildMeta.
+- **#106:** a history note fires when the ranked share across the shown seasons moved 20 points or more.
+- **#108:** a note.

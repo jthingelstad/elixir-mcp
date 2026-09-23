@@ -745,8 +745,11 @@ test("names resolve: alias, family, composed label; nonsense refuses", () => {
   assert.deepEqual(composed.win_conditions, [
     { id: 26000059, name: "Royal Hogs" },
   ]);
+  // The form a player says is kept on its card (Gym #105): "evo royal
+  // hogs" is the Evo form's decks only; the bare name carries no form
+  // and matches every form.
   assert.deepEqual(r("evo royal hogs bridge spam").win_conditions, [
-    { id: 26000059, name: "Royal Hogs" },
+    { id: 26000059, name: "Royal Hogs", form: "evolution" },
   ]);
   const two = r("lava hound balloon beatdown");
   assert.equal(two.win_conditions.length, 2);

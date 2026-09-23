@@ -53,7 +53,10 @@
  */
 
 import pg from "pg";
-import { modeGroupSql } from "@elixir-mcp/contracts";
+import { modeGroupSql, typesForModeGroup } from "@elixir-mcp/contracts";
+
+/** The ranked battle types: a rating, not trophies, so no trophy band. */
+const RANKED_TYPES = typesForModeGroup("ranked");
 
 const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
 const MODE_GROUP_CASE = modeGroupSql("bp.type", "b.event_tag");
@@ -85,6 +88,10 @@ const META_POPULATION = `b.event_tag is null
  *  bands battles_levels speaks; null without starting trophies. */
 const TROPHY_BAND_CASE = `case
   when bp.starting_trophies is null then null
+  -- A Path of Legends row's starting_trophies is its RATING (about
+  -- 2,300-3,000), which read as trophies filed the top-1,000 ladder
+  -- under under_5000 (Gym #102). Ranked has no trophy band.
+  when bp.type = any('{${RANKED_TYPES.join(",")}}'::text[]) then null
   when bp.starting_trophies < 5000 then 'under_5000'
   when bp.starting_trophies < 8000 then '5000_8000'
   when bp.starting_trophies < 11000 then '8000_11000'
@@ -585,6 +592,20 @@ export async function metaRollupSeason(databaseUrl, spec = {}) {
       [month],
     );
     if (!season) throw new Error(`no season ${month}`);
+    // {repair_bands: true} (6.22.0, Gym #102): a ranked row banded by its
+    // rating before the population builder learned better. One UPDATE on
+    // the cache table; the rebuild below re-derives every band aggregate
+    // from the population, so nothing else needs touching.
+    let bandsRepaired = null;
+    if (spec.repair_bands === true) {
+      const { rowCount } = await db.query(
+        `update meta_season_pop set trophy_band = null
+          where season_month = $1 and trophy_band is not null
+            and type = any($2::text[])`,
+        [month, RANKED_TYPES],
+      );
+      bandsRepaired = rowCount;
+    }
     // {reset: true} drops the season's population and its day ledger
     // first. buildPopDays skips SEALED days and only upserts the rest,
     // so a change to what the population INCLUDES cannot land by
@@ -619,10 +640,13 @@ export async function metaRollupSeason(databaseUrl, spec = {}) {
     }
     const final =
       typeof spec.final === "boolean" ? spec.final : season.final === true;
-    return await rebuildSeason(db, season, {
+    const rebuilt = await rebuildSeason(db, season, {
       final,
       deadlineMs: Date.now() + POP_DEADLINE_MS,
     });
+    return bandsRepaired === null
+      ? rebuilt
+      : { ...rebuilt, bands_repaired: bandsRepaired };
   } finally {
     await db.end();
   }

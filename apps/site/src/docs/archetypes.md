@@ -193,7 +193,10 @@ record required and a note on whether anyone recorded has played that
 exact set. Called with nothing it returns the vocabulary itself.
 
 `battles_meta_decks`, `battles_decks` and `cards_card` take `archetype`, a
-string, resolved the same way in three layers, first match wins:
+string, resolved the same way in three layers, first match wins. A form
+said before a win condition ("Evo Royal Hogs bridge spam") keeps to that
+form's decks; a name without one ("Royal Hogs bridge spam") matches every
+form of the card, and `cards_archetype` says so in a note (6.22.0).
 
 1. **An alias** — the community names the grammar does not produce:
    *LavaLoon*, *LumberLoon*, *Log Bait*, *Splashyard*, *Miner Poison*, *Hog

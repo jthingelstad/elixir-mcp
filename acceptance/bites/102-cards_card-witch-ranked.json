@@ -1,0 +1,687 @@
+{
+  "feedback": 102,
+  "contract_version": "6.21.1",
+  "captured_at": "2026-09-23T16:04:18.566Z",
+  "request": {
+    "tool": "cards_card",
+    "arguments": {
+      "card": "Witch",
+      "segment": "corpus",
+      "mode": "ranked"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "corpus"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mode": "ranked",
+      "verbosity": "full"
+    },
+    "card": {
+      "id": 26000007,
+      "name": "Witch",
+      "type": "troop",
+      "rarity": "epic",
+      "elixir_cost": 5,
+      "forms_available": ["evolution"],
+      "icon_urls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/cfwk1vzehVyHC-uloEIH6NOI0hOdofCutR5PyhIgO6w.png",
+        "evolutionMedium": "https://api-assets.clashroyale.com/cardevolutions/300/cfwk1vzehVyHC-uloEIH6NOI0hOdofCutR5PyhIgO6w.png"
+      },
+      "first_seen_in_catalog": "2026-09-10T23:57:37.591Z",
+      "first_played": {
+        "base": "2026-01-05T12:42:26.000Z",
+        "evolution": "2026-01-03T07:34:30.000Z",
+        "hero": null
+      }
+    },
+    "season": {
+      "mode_group": "ranked",
+      "decided_battles": 363004,
+      "all": {
+        "battles": 25816,
+        "wins": 12591,
+        "losses": 13225,
+        "players": 4293,
+        "usage_share": 0.071,
+        "win_rate": 0.488,
+        "shrunk_win_rate": 0.488
+      },
+      "forms": [
+        {
+          "form": "base",
+          "battles": 1080,
+          "wins": 442,
+          "losses": 638,
+          "players": 569,
+          "usage_share": 0.003,
+          "win_rate": 0.409,
+          "shrunk_win_rate": 0.411
+        },
+        {
+          "form": "evolution",
+          "battles": 24736,
+          "wins": 12149,
+          "losses": 12587,
+          "players": 3741,
+          "usage_share": 0.068,
+          "win_rate": 0.491,
+          "shrunk_win_rate": 0.491
+        }
+      ]
+    },
+    "population": {
+      "recorded_clans": 18,
+      "recorded_players": 1071,
+      "players_in_window": 33224
+    },
+    "history": [
+      {
+        "season": {
+          "month": "2026-03",
+          "war": 130
+        },
+        "decided_battles": 2052,
+        "battles": 113,
+        "wins": 65,
+        "losses": 48,
+        "players": 110,
+        "usage_share": 0.055,
+        "win_rate": 0.575
+      },
+      {
+        "season": {
+          "month": "2026-04",
+          "war": 131
+        },
+        "decided_battles": 2726,
+        "battles": 271,
+        "wins": 111,
+        "losses": 160,
+        "players": 194,
+        "usage_share": 0.099,
+        "win_rate": 0.41
+      },
+      {
+        "season": {
+          "month": "2026-05",
+          "war": 132
+        },
+        "decided_battles": 3022,
+        "battles": 240,
+        "wins": 132,
+        "losses": 108,
+        "players": 200,
+        "usage_share": 0.079,
+        "win_rate": 0.55
+      },
+      {
+        "season": {
+          "month": "2026-06",
+          "war": 133
+        },
+        "decided_battles": 2840,
+        "battles": 335,
+        "wins": 179,
+        "losses": 156,
+        "players": 204,
+        "usage_share": 0.118,
+        "win_rate": 0.534
+      },
+      {
+        "season": {
+          "month": "2026-07",
+          "war": 134
+        },
+        "decided_battles": 5166,
+        "battles": 1056,
+        "wins": 511,
+        "losses": 545,
+        "players": 416,
+        "usage_share": 0.204,
+        "win_rate": 0.484
+      },
+      {
+        "season": {
+          "month": "2026-08",
+          "war": 135
+        },
+        "decided_battles": 24398,
+        "battles": 2848,
+        "wins": 1395,
+        "losses": 1453,
+        "players": 1651,
+        "usage_share": 0.117,
+        "win_rate": 0.49
+      },
+      {
+        "season": {
+          "month": "2026-09",
+          "war": 136
+        },
+        "decided_battles": 363004,
+        "battles": 25816,
+        "wins": 12591,
+        "losses": 13225,
+        "players": 4293,
+        "usage_share": 0.071,
+        "win_rate": 0.488
+      }
+    ],
+    "by_band": [
+      {
+        "trophy_band": "under_5000",
+        "decided_battles": 304382,
+        "mean_level_gap": 0,
+        "battles": 19521,
+        "wins": 9769,
+        "losses": 9752,
+        "players": 1023,
+        "usage_share": 0.064,
+        "win_rate": 0.5,
+        "shrunk_win_rate": 0.5
+      }
+    ],
+    "partners": [
+      {
+        "card_id": 28000001,
+        "name": "Arrows",
+        "form": "base",
+        "co_battles": 16478,
+        "players": 2285,
+        "co_occurrence_rate": 0.638,
+        "lift": 3.1
+      },
+      {
+        "card_id": 28000010,
+        "name": "Graveyard",
+        "form": "base",
+        "co_battles": 7320,
+        "players": 577,
+        "co_occurrence_rate": 0.284,
+        "lift": 4.03
+      },
+      {
+        "card_id": 28000017,
+        "name": "Giant Snowball",
+        "form": "evolution",
+        "co_battles": 6854,
+        "players": 455,
+        "co_occurrence_rate": 0.265,
+        "lift": 4.85
+      },
+      {
+        "card_id": 26000052,
+        "name": "Zappies",
+        "form": "base",
+        "co_battles": 6472,
+        "players": 448,
+        "co_occurrence_rate": 0.251,
+        "lift": 4.92
+      },
+      {
+        "card_id": 28000002,
+        "name": "Rage",
+        "form": "base",
+        "co_battles": 6361,
+        "players": 564,
+        "co_occurrence_rate": 0.246,
+        "lift": 4.5
+      },
+      {
+        "card_id": 26000003,
+        "name": "Giant",
+        "form": "base",
+        "co_battles": 6343,
+        "players": 479,
+        "co_occurrence_rate": 0.246,
+        "lift": 5.72
+      },
+      {
+        "card_id": 26000034,
+        "name": "Bowler",
+        "form": "hero",
+        "co_battles": 5801,
+        "players": 455,
+        "co_occurrence_rate": 0.225,
+        "lift": 5.22
+      },
+      {
+        "card_id": 26000018,
+        "name": "Mini P.E.K.K.A",
+        "form": "base",
+        "co_battles": 5598,
+        "players": 625,
+        "co_occurrence_rate": 0.217,
+        "lift": 5.05
+      }
+    ],
+    "decks": [
+      {
+        "deck_hash": "9cd90cae42b6f7706b9453a8b39647002879c08b40c4dc489b09a505029931e3",
+        "battles": 2893,
+        "wins": 1507,
+        "losses": 1386,
+        "players": 201,
+        "usage_share": 0.008,
+        "win_rate": 0.521,
+        "cards": [
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base"
+          },
+          {
+            "id": 26000005,
+            "name": "Minions",
+            "form": "base"
+          },
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000034,
+            "name": "Bowler",
+            "form": "hero"
+          },
+          {
+            "id": 26000052,
+            "name": "Zappies",
+            "form": "base"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          },
+          {
+            "id": 28000010,
+            "name": "Graveyard",
+            "form": "base"
+          },
+          {
+            "id": 28000017,
+            "name": "Giant Snowball",
+            "form": "evolution"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 28000010,
+              "name": "Graveyard",
+              "form": "base"
+            },
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Graveyard Giant beatdown",
+          "average_elixir": 4,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "485f3f6317ec682eadf357581a130eae4f9a4598417fc602380ff6c636abc8ce",
+        "battles": 1716,
+        "wins": 890,
+        "losses": 826,
+        "players": 72,
+        "usage_share": 0.005,
+        "win_rate": 0.519,
+        "cards": [
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "hero"
+          },
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "base"
+          },
+          {
+            "id": 26000043,
+            "name": "Elite Barbarians",
+            "form": "evolution"
+          },
+          {
+            "id": 27000007,
+            "name": "Elixir Collector",
+            "form": "base"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          },
+          {
+            "id": 28000002,
+            "name": "Rage",
+            "form": "base"
+          },
+          {
+            "id": 28000016,
+            "name": "Heal Spirit",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "hero"
+            }
+          ],
+          "secondary_win_conditions": [
+            {
+              "id": 26000043,
+              "name": "Elite Barbarians",
+              "form": "evolution"
+            }
+          ],
+          "named_by": null,
+          "label": "Hero Giant beatdown",
+          "average_elixir": 4,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "bb054026941b46f3a9434fc39f097c6f6b9e52bd35264e0375a92b4e1f7b3004",
+        "battles": 1568,
+        "wins": 792,
+        "losses": 776,
+        "players": 91,
+        "usage_share": 0.004,
+        "win_rate": 0.505,
+        "cards": [
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base"
+          },
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000025,
+            "name": "Guards",
+            "form": "base"
+          },
+          {
+            "id": 26000034,
+            "name": "Bowler",
+            "form": "hero"
+          },
+          {
+            "id": 26000052,
+            "name": "Zappies",
+            "form": "base"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          },
+          {
+            "id": 28000010,
+            "name": "Graveyard",
+            "form": "base"
+          },
+          {
+            "id": 28000017,
+            "name": "Giant Snowball",
+            "form": "evolution"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 28000010,
+              "name": "Graveyard",
+              "form": "base"
+            },
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Graveyard Giant beatdown",
+          "average_elixir": 4,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "a3e2f53459b9a39cc71129421b41594700c9ae5206b7d0f84b475ffaff2a3581",
+        "battles": 1530,
+        "wins": 786,
+        "losses": 744,
+        "players": 169,
+        "usage_share": 0.004,
+        "win_rate": 0.514,
+        "cards": [
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000012,
+            "name": "Skeleton Army",
+            "form": "evolution"
+          },
+          {
+            "id": 26000048,
+            "name": "Night Witch",
+            "form": "base"
+          },
+          {
+            "id": 26000067,
+            "name": "Elixir Golem",
+            "form": "base"
+          },
+          {
+            "id": 26000069,
+            "name": "Skeleton King",
+            "form": "base"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          },
+          {
+            "id": 28000002,
+            "name": "Rage",
+            "form": "base"
+          },
+          {
+            "id": 28000007,
+            "name": "Lightning",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000067,
+              "name": "Elixir Golem",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Elixir Golem beatdown",
+          "average_elixir": 3.75,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "ef141d46f2b96098868a98ce65217a330607cd812e0a2b8750058752213d6633",
+        "battles": 1434,
+        "wins": 712,
+        "losses": 722,
+        "players": 130,
+        "usage_share": 0.004,
+        "win_rate": 0.497,
+        "cards": [
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000012,
+            "name": "Skeleton Army",
+            "form": "evolution"
+          },
+          {
+            "id": 26000048,
+            "name": "Night Witch",
+            "form": "base"
+          },
+          {
+            "id": 26000067,
+            "name": "Elixir Golem",
+            "form": "base"
+          },
+          {
+            "id": 26000069,
+            "name": "Skeleton King",
+            "form": "base"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          },
+          {
+            "id": 28000007,
+            "name": "Lightning",
+            "form": "base"
+          },
+          {
+            "id": 28000024,
+            "name": "Goblin Curse",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000067,
+              "name": "Elixir Golem",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Elixir Golem beatdown",
+          "average_elixir": 3.75,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      }
+    ],
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "notes": [
+      "Forms: season.all merges the card's forms; season.forms carries one row per form played (base, evolution, hero); usage_share is the row's decided observations over the population's decided_battles.",
+      "A card's win rate describes who played it as much as the card: compare within one mode and similar mean_level_gap, never across segments.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld below 30 decided observations (insufficient_sample: true).",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "Read from the season rollup: counters through 2026-09-23T15:40:15.770Z, distinct players as of 2026-09-23T04:40:34.046Z (a deck or card first seen since then carries players: null until tonight's rebuild)."
+    ],
+    "docs": "cards#one-card-in-one-call",
+    "meta": {
+      "contract_version": "6.21.1"
+    }
+  },
+  "timings": {
+    "db_ms": 7461,
+    "db_queries": 20,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

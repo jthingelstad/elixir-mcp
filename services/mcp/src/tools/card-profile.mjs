@@ -31,6 +31,8 @@ import {
   segmentFilter,
   ebShrink,
   META_METHODOLOGY,
+  excludedBreakdown,
+  buildMeta,
   deckIdentities,
   ARCHETYPE_NOTE,
   ARCHETYPE_ARG,
@@ -45,6 +47,7 @@ import {
   rollupDecks,
   rollupSynergy,
   rawScanMemory,
+  RANKED_NO_BAND_NOTE,
 } from "../meta-season.mjs";
 import { resolveCard } from "./synergy.mjs";
 
@@ -102,6 +105,10 @@ function usageRow(r, decided, prior) {
     prior !== undefined
   )
     out.shrunk_win_rate = ebShrink(wins, wins + losses, prior);
+  // The notes promise the flag where the shrunk rate is withheld (Gym
+  // #107): below the floor, say so rather than leave the key absent.
+  else if (decided < META_METHODOLOGY.segment_min_decided)
+    out.insufficient_sample = true;
   return out;
 }
 
@@ -204,6 +211,14 @@ export const cardProfileTools = {
         }),
         card,
         season: usage.season,
+        // Gym #107: the counts and the prior the notes speak of, served
+        // as battles_meta_decks serves them.
+        excluded: usage.excluded,
+        prior_win_rate:
+          usage.prior.mean === null || usage.prior.mean === undefined
+            ? null
+            : Number(usage.prior.mean.toFixed(3)),
+        prior_basis: usage.prior.basis,
       };
       if (!seg.where)
         out.population = await populationBlock(ctx.db, {
@@ -233,6 +248,36 @@ export const cardProfileTools = {
           extraNotes.push(
             "history is empty: no season rollup holds this card in this mode group yet (rollups are rebuilt nightly).",
           );
+        // A pooled series across a changing mode mix (Gym #106): the
+        // corpus went from mostly ladder to mostly ranked, so a card's
+        // pooled usage moves with the mix. Said when the ranked share
+        // moved 20 points or more across the seasons shown.
+        if (!args.mode && rows.length >= 2) {
+          const { rows: mix } = await ctx.db.query(
+            `select a.season_month,
+                    coalesce(r.decided, 0)::numeric / nullif(a.decided, 0) as ranked_share
+               from meta_season_totals a
+               left join meta_season_totals r
+                 on r.season_month = a.season_month and r.mode_group = 'ranked'
+              where a.mode_group = 'all' and a.season_month = any($1)
+              order by a.season_month`,
+            [rows.map((r) => r.season_month)],
+          );
+          const shares = mix
+            .filter((m) => m.ranked_share !== null)
+            .map((m) => ({
+              month: m.season_month,
+              share: Number(m.ranked_share),
+            }));
+          if (shares.length >= 2) {
+            const lo = shares.reduce((a, m) => (m.share < a.share ? m : a));
+            const hi = shares.reduce((a, m) => (m.share > a.share ? m : a));
+            if (hi.share - lo.share >= 0.2)
+              extraNotes.push(
+                `history pools every mode, and the mode mix moved: ranked (Path of Legends) was ${Math.round(lo.share * 100)}% of decided observations in ${lo.month} and ${Math.round(hi.share * 100)}% in ${hi.month}. A pooled usage_share or win_rate moves with that mix, not only with the card; pass mode to compare seasons within one mode.`,
+              );
+          }
+        }
       } else
         extraNotes.push(
           "history (one point per recorded season) is a corpus series; a segment read carries this window's usage only.",
@@ -343,15 +388,32 @@ export const cardProfileTools = {
         "A card's win rate describes who played it as much as the card: compare within one mode and similar mean_level_gap, never across segments.",
         out.decks ? ARCHETYPE_NOTE : null,
         ...extraNotes,
-        SEGMENT_NOTES,
+        args.mode === "ladder" ? null : RANKED_NO_BAND_NOTE,
+        SEGMENT_NOTES.filter((n) => !n.includes("CORPUS mean")),
+        `shrunk_win_rate shrinks toward prior_win_rate: ${usage.prior.basis === "corpus_season" ? "the corpus season's decided mean" : "this population's own decided mean over the window"} (prior_basis), and is withheld below ${META_METHODOLOGY.segment_min_decided} decided observations, where the row says insufficient_sample: true.`,
         win.seasonNotes,
         roll?.note,
       );
       out.docs = CARD_DOCS;
-      out.meta = responseMeta({
-        as_of: new Date().toISOString(),
-        ...(win.timezone ? { timezone_applied: win.timezone } : {}),
-      });
+      // One player's read carries the player's freshness, as the battle
+      // tools do (Gym #107: freshness_seconds and recorded_since absent).
+      const playerTag =
+        seg.echo && typeof seg.echo === "object" ? seg.echo.player_tag : null;
+      out.meta = playerTag
+        ? await buildMeta(
+            ctx.db,
+            ctx.account,
+            playerTag,
+            ["player_battlelog"],
+            {
+              timezone: win.timezone,
+              windowTo: win.to,
+            },
+          )
+        : responseMeta({
+            as_of: new Date().toISOString(),
+            ...(win.timezone ? { timezone_applied: win.timezone } : {}),
+          });
       return out;
     },
   },
@@ -413,6 +475,8 @@ async function seasonUsage(
       season,
       decided: main.decided_battles,
       playersInWindow: roll.players,
+      excluded: roll.excluded,
+      prior: { mean: roll.prior.mean, basis: "corpus_season" },
     };
   }
   // Raw path: the population's decided total, then the card's rows by
@@ -481,7 +545,18 @@ async function seasonUsage(
     ),
     forms,
   };
-  return { season, decided, playersInWindow: pop?.players ?? 0 };
+  // What the window held outside the decided head-to-head population
+  // (the SEGMENT_NOTES promise, Gym #107): the scope without the three
+  // population filters scopeClauses opens with.
+  const scopeParams = params.slice(0, -1);
+  const excluded = await excludedBreakdown(ctx.db, where.slice(3), scopeParams);
+  return {
+    season,
+    decided,
+    playersInWindow: pop?.players ?? 0,
+    excluded,
+    prior: { mean: prior, basis: "segment_window" },
+  };
 }
 
 /** The most-played decks containing the card in the window: the rollup's
@@ -548,7 +623,11 @@ async function topDecks(
  *  what level), who holds it and at what level and forms. */
 async function clanMembers(ctx, { anchor, clanTag, win, args }) {
   const params = [clanTag, anchor.id, win.from.toISOString()];
+  // The population season counts (scopeClauses): a deck identity, so a
+  // war duel - no single deck - is out here too (Gym #103: 35 Witch
+  // battles beside season's 32, the 3 being duels).
   const where = [
+    "bp.deck_hash is not null",
     "bp.outcome in ('win','loss')",
     "bp.type_class = 'pvp'",
     "bp.battle_time >= $3",
