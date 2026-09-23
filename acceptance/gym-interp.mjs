@@ -96,7 +96,13 @@ export function assertOne(spec, scope, root) {
   const [verb, arg] = Object.entries(spec)[0];
   const at = (p) => resolve(scope, p);
   const rhs = (v) => {
-    if (isPath(v)) return resolve(root, v);
+    // A path on the right reads the row first, as the left side does,
+    // then the whole response (119.1: eq facts.days_quiet facts.rung
+    // under for_each is the row's own rung; 82.4 compares two calls).
+    if (isPath(v)) {
+      const own = at(v);
+      return own !== undefined ? own : resolve(root, v);
+    }
     if (typeof v === "string" && /^[A-Za-z_][A-Za-z0-9_]*$/.test(v)) {
       const field = at(v);
       if (field !== undefined) return field;
