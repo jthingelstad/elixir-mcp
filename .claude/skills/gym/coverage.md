@@ -18,7 +18,7 @@ shipped, and both need a regression pass.
 | clans | r2 findings fixed (6.33.0), round 3 due | 6.32.0 | 2026-09-23 | 2 | reports/2026-09-23-clans-r2.md | #157-#158 done, #159 praise; 13/13 regressions confirmed; donations = week high-water (Jamie); participation cap moot for Clan (now on /api/v1) |
 | collections | r2 findings fixed (6.33.1), round 3 due | 6.33.0 | 2026-09-23 | 2 | reports/2026-09-23-collections-r2.md | #160 done (wording), #161 praise; #114/#116 confirmed, #115 remainder in #160; open: #116 selection caveat unmeasured |
 | elixir | r2 findings fixed (6.34.0-6.34.2), round 3 due | 6.33.1 | 2026-09-23 | 2 | reports/2026-09-23-elixir-r2.md | #162-#167 done, #168 praise; timeline pages by observed_at and by size (40k chars); 164.3/122.1/168.4 refuted or superseded; elixir_my_players not exposed to the gym principal |
-| game | findings fixed (6.26.0), round 2 due | 6.25.0 | 2026-09-23 | 1 | reports/2026-09-23-game-r1.md | #125-#127 |
+| game | r2 findings fixed (6.34.3, note only), round 3 due | 6.34.2 | 2026-09-23 | 2 | reports/2026-09-23-game-r2.md | #169 done, #170 praise; 7/7 regressions confirmed; 126.5 needs the first grid-pinned read (09-24) |
 | players | findings fixed (6.27.0), round 2 due | 6.25.0 | 2026-09-23 | 1 | reports/2026-09-23-players-r1.md | #129-#134; 9 regressions confirmed |
 | rankings | findings fixed (6.28.0), round 2 due | 6.26.0 | 2026-09-23 | 2 | reports/2026-09-23-rankings-r1.md | #136-#138, #139 praise; 5 regressions confirmed |
 | war | findings fixed (6.29.0-6.29.1), round 2 due | 6.27.0 | 2026-09-23 | 4 | reports/2026-09-23-war-r1.md | #140-#142, #143 praise; #88 closed via #141; war-day paths unchecked (training day) |
