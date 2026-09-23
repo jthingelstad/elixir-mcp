@@ -21,7 +21,9 @@ shipped, and both need a regression pass.
 | game | r2 findings fixed (6.34.3, note only), round 3 due | 6.34.2 | 2026-09-23 | 2 | reports/2026-09-23-game-r2.md | #169 done, #170 praise; 7/7 regressions confirmed; 126.5 needs the first grid-pinned read (09-24) |
 | players | r2 findings fixed (6.35.0), round 3 due | 6.34.3 | 2026-09-23 | 2 | reports/2026-09-23-players-r2.md | #171-#172 done, #173 praise; 14/16 regressions confirmed; #172 unify-the-ranges held for Jamie; open: donations high-water vs lifetime (414 vs 386) |
 | rankings | r2 findings fixed (6.36.0), round 3 due | 6.35.0 | 2026-09-23 | 3 | reports/2026-09-23-rankings-r2.md | #174-#177 done, #178 praise; #136/#138 + legacy confirmed, #137 remainder = #174 |
-| war | findings fixed (6.29.0-6.29.1), round 2 due | 6.27.0 | 2026-09-23 | 4 | reports/2026-09-23-war-r1.md | #140-#142, #143 praise; #88 closed via #141; war-day paths unchecked (training day) |
+| war | r2 findings fixed (6.36.1-6.36.2), round 3 due | 6.36.0 | 2026-09-23 | 5 | reports/2026-09-23-war-r2.md | #179-#181 done, #182 praise; 15/16 regressions confirmed; war-day paths untested (training day); fame-by-placement also in cr-agent-api-docs |
 
 **2026-09-23 incident:** the sweep's afternoon load drained the db.t4g.micro's EBS byte balance to 0. The database is now db.t4g.small (Jamie). Deploy gates run per family (`--acceptance=<family>`).
+
+**Round 2 complete (2026-09-23):** all ten families ran; none was clean, and every finding shipped (6.30.0 to 6.36.2). Round 3 is the last before a family is parked for Jamie (SKILL.md, "The sweep").
 
