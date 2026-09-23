@@ -8190,3 +8190,60 @@ which tools were called around the walk, by the same account, in the
 same minute. A call-sequence cut of `mcp_call_audit` would turn the
 loudest signal into a named tool. That is one op and it should come
 before any new battle tool is designed.
+
+## 2026-09-23 — The sequence census, and a correction: the loudest signal was our own test harness
+
+`{call_sequence_census}` groups `mcp_call_audit` into TURNS (one account,
+no gap over `gap_s`) and collapses runs, so the shape of a turn is
+visible. 19,824 calls, 10,274 turns, 30 days.
+
+**Correction to the entry above.** It said 316 of 816 `battles_query`
+calls were "a MODEL deciding it needs every battle" and that "nothing in
+our own clients does this". Both wrong. The walk is the **acceptance
+suite**:
+
+```
+turns 2   pages 347   [acceptance]   battles_query | with: (nothing else)
+```
+
+Two turns, 347 pages, no other tool beside them - our own gate paging
+through battles, which is what it is supposed to do. Counting arguments
+found a pattern; only the sequence said whose it was. That is exactly
+the failure mode the sequence cut exists to catch, and it caught it on
+its first run against my own claim.
+
+**What the turns actually look like:**
+
+| turns | shape | client |
+| --- | --- | --- |
+| 7,683 | `elixir_timeline` alone | Claude Code |
+| 655 | `elixir_events -> elixir_my_feedback` | elixir-mcp-discord |
+| 435 | `elixir_my_feedback -> elixir_events` | elixir-mcp-discord |
+| 468 | `elixir_events` alone | Claude Code |
+| 22 | `players_timeline -> battles_performance` | elixir-bot |
+| 18/16 | `elixir_timeline <-> game_clock` | elixir-kings-discord |
+| 9 | `elixir_timeline -> war_current -> game_clock` | elixir-kings-discord |
+
+**So the evidence does not currently support a new battle index.** The
+dominant traffic is timeline polling; the battle tools are used in
+ISOLATION, in ones and twos, and the only real multi-tool battle turn is
+elixir-bot's `players_timeline -> battles_performance` (22 turns). The
+rich 8-9 tool turns exist but are single occurrences - an agent
+exploring once, not a pattern.
+
+That is a useful answer rather than a disappointing one: the method
+stopped us building on a signal that was our own test harness. Three
+things it leaves standing, all from the earlier counts and none
+refuted by sequence:
+
+1. `battles_meta_cards` / `battles_meta_decks` `query_timeout` (18 + 11
+   in 30 days) - a question the product cannot answer at all.
+2. `battles_query` truncation (17 in 30 days, avg 18.5 KB, max 130 KB) -
+   the fattest tool we serve, and at its ceiling since 6.18.0.
+3. `cards_archetype` shipped in 6.8.0 and has never been called once.
+   Before designing another battle tool, it is worth knowing why that
+   one found no users.
+
+**The method stands; only my reading of it was wrong.** Any future claim
+from the audit should be checked against the sequence and the CLIENT
+before it is believed - a count alone cannot tell an agent from a test.
