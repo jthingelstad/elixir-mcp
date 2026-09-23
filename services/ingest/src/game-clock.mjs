@@ -73,6 +73,9 @@ export function gameClock(atMs = Date.now()) {
     notes: [
       "war_day_closes_at is this day's end on a war day and null on a training day; next_war_day_opens_at is the next war day to open after this one; next_training_starts_at is when the next training block begins, after the coming war days. Schedule from these; nothing in the event feed announces the time.",
       "Days roll at 10:00 UTC, the same hour the season rolls.",
+      // The policy grid, not the race (Gym #169: POAP KINGS' war days
+      // closed at 09:34-09:38Z while this still said the day was open).
+      "A clan's race closes each war day before this grid, somewhere in the half hour before 10:00 UTC and per race (observed 09:30 to 10:00Z): war_day_closes_at is the policy boundary, not the moment a race stops taking battles, so do not schedule a last attack for its final half hour. war_current carries a race's observed close.",
       "A season runs first Monday of the month to first Monday of the next; weeks are the Mondays between.",
       "The final week of a season is Colosseum; its practice days still report as training.",
       "season_id is the season number the API's war data carries (riverrace seasonId) and the record files everything under; season_month is the API's name for the same season on its Path of Legends finals. The in-game Pass shows a third number (a lower one) that the API does not use anywhere.",

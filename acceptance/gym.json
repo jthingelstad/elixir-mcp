@@ -7124,5 +7124,195 @@
         "notes_match": "one size"
       }
     ]
+  },
+  {
+    "id": "169.1",
+    "feedback": 169,
+    "stability": "frozen",
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-21T09:40:00Z"
+    },
+    "request_id": "b27fc378-7f65-4fb7-8a39-d2736a5ce056",
+    "assert": [
+      {
+        "notes_match": "(?i)race[^.]*clos[^.]*(before|earlier)"
+      }
+    ]
+  },
+  {
+    "id": "169.2",
+    "feedback": 169,
+    "stability": "frozen",
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-18T05:00:00-05:00"
+    },
+    "request_id": "8b0dccf5-f323-4994-a030-5c3ba8145de3",
+    "assert": [
+      {
+        "notes_match": "(?i)race[^.]*clos[^.]*(before|earlier)"
+      }
+    ]
+  },
+  {
+    "id": "169.3",
+    "feedback": 169,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-21T09:59:59Z"
+    },
+    "request_id": "f1dc0f42-3e47-4a39-bc0b-6457df8e07c5",
+    "assert": [
+      {
+        "eq": ["war_day", 4]
+      },
+      {
+        "eq": ["period_index", 13]
+      },
+      {
+        "has": "war_day_closes_at"
+      }
+    ]
+  },
+  {
+    "id": "169.4",
+    "feedback": 169,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-21T10:00:00Z"
+    },
+    "request_id": "d9b02e13-2e32-489f-8a94-f3763012f8a7",
+    "assert": [
+      {
+        "eq": ["war_day", null]
+      },
+      {
+        "eq": ["period_index", 14]
+      },
+      {
+        "eq": ["week", 3]
+      }
+    ]
+  },
+  {
+    "id": "170.1",
+    "feedback": 170,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-08-03T10:00:00Z",
+      "to": "2026-09-07T10:00:00Z"
+    },
+    "request_id": "89f3c2cf-38f7-42a2-bf60-31be78316226",
+    "assert": [
+      {
+        "count_eq": ["game_days_read[]", 6]
+      },
+      {
+        "notes_match": "No events read covered the game days 2026-08-04"
+      }
+    ]
+  },
+  {
+    "id": "170.2",
+    "feedback": 170,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22",
+      "to": "2026-09-22",
+      "timezone": "Asia/Tokyo"
+    },
+    "request_id": "628ccd1b-2404-42d1-9cd2-5b85f0be526d",
+    "assert": [
+      {
+        "count_eq": ["game_days_read[]", 1]
+      },
+      {
+        "count_eq": ["events[]", 9]
+      }
+    ]
+  },
+  {
+    "id": "170.3",
+    "feedback": 170,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22",
+      "to": "2026-09-22",
+      "timezone": "Asia/Tokyo"
+    },
+    "request_id": "628ccd1b-2404-42d1-9cd2-5b85f0be526d",
+    "for_each": "events[]",
+    "assert": [
+      {
+        "count_eq": ["game_days_seen[]", 1]
+      }
+    ]
+  },
+  {
+    "id": "170.4",
+    "feedback": 170,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-18"
+    },
+    "request_id": "8c08b667-b16f-44c8-a17d-c651a7e0f9d6",
+    "assert": [
+      {
+        "eq": ["war_day", 2]
+      },
+      {
+        "eq": ["period_index", 11]
+      },
+      {
+        "notes_match": "read as that game day's start"
+      }
+    ]
+  },
+  {
+    "id": "170.5",
+    "feedback": 170,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "g": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-08-31"
+        }
+      },
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 135,
+          "section_index": 4,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "b56d12dd-bd7b-4c3b-abbd-2f42e77d90cb",
+    "assert": [
+      {
+        "eq": ["g.section_index", 4]
+      },
+      {
+        "eq": ["g.week", 5]
+      },
+      {
+        "eq": ["w.weeks[0].is_colosseum", true]
+      }
+    ]
   }
 ]

@@ -1049,5 +1049,21 @@
     "case": "gym/167.3",
     "captures": ["167-3-elixir_docs.json"],
     "expect": "."
+  },
+  {
+    "feedback": 169,
+    "contract": "6.34.2",
+    "why": "the Gym block 169.1 on the answer it read",
+    "case": "gym/169.1",
+    "captures": ["169-1-game_clock.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 169,
+    "contract": "6.34.2",
+    "why": "the Gym block 169.2 on the answer it read",
+    "case": "gym/169.2",
+    "captures": ["169-2-game_clock.json"],
+    "expect": "."
   }
 ]
