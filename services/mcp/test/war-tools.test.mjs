@@ -1963,8 +1963,19 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
     await db.query(`select player_tag from player order by player_tag limit 2`)
   ).rows.map((r) => r.player_tag);
   await db.query(
+    // ryguy67's shape from feedback #89: a week that FINISHED, so
+    // scoring_decks is decks_used less the decks played after it, and
+    // the two denominators differ. 8 used, 4 of them on war day 4
+    // (after the day-3 finish) -> scoring_decks 4, boat_attacks 1.
     `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)
-     values ($1, 135, 3, $2, 350, 4, 4), ($1, 135, 3, $3, 800, 4, 0)`,
+     values ($1, 135, 3, $2, 525, 8, 1), ($1, 135, 3, $3, 800, 4, 0)`,
+    [CLAN, tags[0], tags[1]],
+  );
+  await db.query(
+    `insert into war_attendance_day (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
+     values ($1, 135, 3, 4, $2, 4), ($1, 135, 3, 4, $3, 0)
+     on conflict (clan_tag, season_id, section_index, war_day, player_tag)
+       do update set decks_used_today = excluded.decks_used_today`,
     [CLAN, tags[0], tags[1]],
   );
   try {
@@ -2008,7 +2019,18 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
     );
     assert.ok(boatNote, "the boat note fires");
     assert.match(boatNote, /1 of 2 member_weeks rows have boat_attacks > 0/);
-    assert.match(boatNote, /4 of 4 decks/);
+    // The share is of scoring_decks - the denominator the sentence names
+    // - not of decks_used, and it is a ceiling because boat_attacks is
+    // the week's counter (feedback #89).
+    // decks_used 8 but scoring_decks 4: the old note said "1 of 8", the
+    // rate's own denominator makes it 1 of 4 - exactly the doubling #89
+    // reported.
+    assert.match(boatNote, /up to 1 of 4 scoring decks/);
+    assert.match(boatNote, /ceiling/);
+    assert.ok(
+      !/\b1 of 8 decks\b/.test(boatNote),
+      "the share is never quoted against decks_used",
+    );
     assert.match(boatNote, /points \/ scoring_decks is not comparable/);
     assert.match(
       exact.notes.join(" "),
@@ -2118,6 +2140,10 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
       "the horizon rides every empty answer too",
     );
   } finally {
+    await db.query(
+      `delete from war_attendance_day where clan_tag = $1 and season_id = 135`,
+      [CLAN],
+    );
     await db.query(
       `delete from war_participation where clan_tag = $1 and season_id = 135`,
       [CLAN],

@@ -137,14 +137,27 @@ function cappedProgressNote(days, field) {
 function boatDecksNote(rows, field) {
   const boat = (rows ?? []).filter((r) => r.boat_attacks > 0);
   if (boat.length === 0) return null;
+  // The share must be of the denominator this sentence names. 6.15.0
+  // named scoring_decks as the rate at risk and then quoted the share
+  // against decks_used, which for a member whose week had a finish is a
+  // different, larger number - ryguy67 read "1 of 8" where the rate's
+  // own denominator made it 1 of 4, exactly double (feedback #89, the
+  // Gym's Pass 2 on its own #85).
+  //
+  // "up to", because boat_attacks is the WEEK's counter: the record
+  // cannot say which of them fell on a scoring day, so a boat attack
+  // played after the boat finished is outside scoring_decks entirely.
+  // The count is therefore a ceiling on the contamination, never a
+  // measurement of it, and it is clamped to the denominator.
+  const share = (r) =>
+    Number.isInteger(r.scoring_decks)
+      ? `up to ${Math.min(r.boat_attacks, r.scoring_decks)} of ${r.scoring_decks} scoring decks`
+      : `${r.boat_attacks} of ${r.decks_used} decks, scoring_decks unknown`;
   const shown = boat
     .slice(0, 4)
-    .map(
-      (r) =>
-        `${r.name ?? r.player_tag} ${r.boat_attacks} of ${r.decks_used} decks`,
-    );
+    .map((r) => `${r.name ?? r.player_tag} ${share(r)}`);
   const more = boat.length > 4 ? `, and ${boat.length - 4} more` : "";
-  return `boat_attacks are counted INSIDE decks_used and scoring_decks: a boat battle spends a war deck and scores on a different scale from a 1v1 or a duel. ${boat.length} of ${rows.length} ${field} rows have boat_attacks > 0 (${shown.join(", ")}${more}), so points / scoring_decks is not comparable between them and the rest.`;
+  return `boat_attacks are counted INSIDE decks_used and scoring_decks: a boat battle spends a war deck and scores on a different scale from a 1v1 or a duel. ${boat.length} of ${rows.length} ${field} rows have boat_attacks > 0 (${shown.join(", ")}${more}), so points / scoring_decks is not comparable between them and the rest. The per-member count is a ceiling: boat_attacks is the week's counter and the record cannot say which of them fell on a scoring day.`;
 }
 
 const weekKey = (r) => `${r.season_id}:${r.section_index}`;
