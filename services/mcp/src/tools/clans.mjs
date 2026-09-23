@@ -53,7 +53,7 @@ const CLAN_TAG_SCHEMA = {
 
 /** The war weeks war_scoring_decks rides on (full verbosity): the
  *  default window; past it the response outgrows the result cap. */
-const SCORING_DECKS_WEEKS = 5;
+const SCORING_DECKS_WEEKS = 6;
 
 export const clansTools = {
   clans_standings: {
@@ -729,12 +729,15 @@ export const clansTools = {
         members: out,
         notes: notes(
           seasonFields.seasonNotes,
-          ...warWeeks.rows
-            .filter((w) => finishedEarly(w) === true)
-            .map(
-              (w) =>
-                `In ${w.season_id}/${w.section_index} the boat crossed the finish line at the close of war day ${finishDays.get(weekKey(w))}: decks played on the days after it earned 0 points, so war_points / war_decks is not a rate for that week - use war_scoring_decks (full verbosity, up to ${SCORING_DECKS_WEEKS} war weeks) or war_history.scoring_decks.`,
-            ),
+          (() => {
+            // ONE sentence for every finished week: a note per week pushed
+            // the eight-week full read (Elixir Clan's call) past the
+            // result cap (6.23.0).
+            const done = warWeeks.rows.filter((w) => finishedEarly(w) === true);
+            return done.length
+              ? `The boat crossed the finish line early in ${done.map((w) => `${w.season_id}/${w.section_index} (war day ${finishDays.get(weekKey(w))})`).join(", ")}: decks played on the days after it earned 0 points, so war_points / war_decks is not a rate for those weeks - use war_scoring_decks (full verbosity, up to ${SCORING_DECKS_WEEKS} war weeks) or war_history.scoring_decks.`
+              : null;
+          })(),
           "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
           compact
             ? null
