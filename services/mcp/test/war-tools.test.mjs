@@ -2162,3 +2162,48 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
     );
   }
 });
+
+// 6.19.0 (feedback #88): the war family's clan_score is WAR TROPHIES.
+// The race payload spells it clanScore, which is the API overloading the
+// key - a clan profile carries both, ~129,000 and ~1,200 - and the docs
+// used to call it "the same figure a clan's profile shows".
+test("6.19.0: the war surfaces carry clan_war_trophies, with clan_score kept as a deprecated alias", async () => {
+  const seasons = (await call(invoke, "war_history", { seasons: 12 })).body;
+  const scored = seasons.weeks.filter((w) => w.our_clan_score !== null);
+  assert.ok(scored.length > 0, "a week with the figure");
+  for (const w of scored)
+    assert.equal(
+      w.our_clan_war_trophies,
+      w.our_clan_score,
+      `${w.season_id}/${w.section_index}: the alias is the same number`,
+    );
+
+  const exact = (
+    await call(invoke, "war_history", {
+      season_id: scored[0].season_id,
+      section_index: scored[0].section_index,
+    })
+  ).body;
+  for (const row of exact.standings)
+    assert.equal(row.clan_war_trophies, row.clan_score, row.clan_tag);
+  assert.match(exact.notes.join(" "), /clan_war_trophies/);
+  assert.match(exact.notes.join(" "), /DEPRECATED/);
+
+  const rivals = (await call(invoke, "war_rivals", {})).body;
+  for (const r of rivals.rivals)
+    assert.equal(r.clan_war_trophies, r.clan_score, r.clan_tag);
+  assert.match(rivals.notes.join(" "), /clan_war_trophies/);
+
+  // It is a WAR TROPHY ladder, not a clan score. Earlier tests in this
+  // file rewrite individual weeks' fame and standings, so the step-by-
+  // step series is not stable here (the run-order-independent version of
+  // that check lives in the changelog's evidence); what IS stable is the
+  // magnitude. A clan score is five or six figures - 129,512 for
+  // #J2RGCRVG on 2026-09-23 - and war trophies are four. Anyone who
+  // swaps the real clanScore back in fails this.
+  for (const w of scored)
+    assert.ok(
+      w.our_clan_war_trophies < 50_000,
+      `${w.season_id}/${w.section_index} reads ${w.our_clan_war_trophies}, which is a clan score rather than war trophies`,
+    );
+});

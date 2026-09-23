@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: 'The war standings\' "clan score" was war trophies all along',
+    body: "A clan in Clash Royale has two numbers that both get called a score: its clan score, a five- or six-figure strength rating a profile shows, and its war trophies, a four-figure ladder it climbs twenty at a time. The river race payload reports the second one under the first one's key, and Elixir relayed that faithfully and then told you in the docs that it was \"the same figure a clan's profile shows\". It is that figure divided by about a hundred. Anyone who joined the war standings to a clan's timeline was out by two orders of magnitude. The war surfaces now carry clan_war_trophies, which is what the number has always been; clan_score stays beside it as a deprecated alias so nothing breaks today, and goes in the next major. Found by the Elixir Gym, and confirmed a second way without the API at all: our own record of POAP KINGS' weekly figure runs 980, 1000, 1020, 1040, 1060, 1160, rising by exactly the trophies each week's race awarded. Contract 6.19.0.",
+  },
+  {
+    date: "2026-09-23",
     title:
       "Battles now say how they compare, and how long they must have taken",
     body: "Elixir has always recorded both sides of a battle and then left you to difference them yourself. Elixir leaked is the clearest case - the number means almost nothing alone, and everything against what the other player leaked - but the same is true of deck level, of the trophies matchmaking paired you with, and of the hitpoints left standing on each side when it ended. Every head-to-head row now carries me.vs: crowns, deck_level, starting_trophies and tower_hp, each as you minus your opponent. The tower figure is a margin of victory: won with both towers nearly full, or scraped it. And a second thing, which surprised us: the battle log carries no duration at all, but the game's clock means the crowns prove one anyway. A King Tower is the only way a battle ends before regulation, so a three-crown finish is the one whose length is unknown; any other finish ran at least three minutes; and if the two sides finish level on crowns, overtime expired without a tower falling and the match was exactly five minutes. inferred.duration says which of those holds and names the rule it used. Contract 6.18.0, additive.",

@@ -531,10 +531,20 @@ since, which earned nothing. `participants[].scoring_decks` sits beside
 denominator for a points-per-deck rate, `null` when the record cannot
 separate the decks that scored from the decks that did not.
 
-**Clan score and repair points.** `clan_score` is the game's own strength
-number for a clan (the `clanScore` the race poll reports per bracket clan,
-the same figure a clan's profile shows); it is the number a scout wants
-first and the record keeps the latest observation per race. `repair_points`
+**War trophies and repair points.** `clan_war_trophies` is the clan's WAR
+trophies, and the record keeps the latest observation per race. The race
+payload spells it `clanScore`, which is the API overloading that key: a
+clan's profile carries BOTH `clanScore` (a five- or six-figure strength
+number, ~129,000 for a mid clan) and `clanWarTrophies` (a four-figure war
+ladder), and the race reports the second under the first's name. The same
+overload is already known on the war leaderboard. So this is NOT the figure
+a clan's profile shows as its score, and joining it to `clans_timeline`'s
+`clan_score` metric is out by about two orders of magnitude - that timeline
+serves `clan_score` and `clan_war_trophies` as separate metrics, and this is
+the latter.
+
+`clan_score` on the war surfaces is the same number under the old, wrong
+name. It is **deprecated** (6.19.0) and is removed in 7.0.0. `repair_points`
 is what repairing the boat cost: per clan on the standings, per member on
 participation, MAX-merged like every war counter.
 

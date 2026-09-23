@@ -359,7 +359,9 @@ export const PAYLOAD_KEYS = {
     "clan.fame": to("war_week_clan.fame"),
     "clan.repairPoints": to("war_week_clan.repair_points"),
     "clan.periodPoints": to("war_week_clan.period_points"),
-    "clan.clanScore": to("war_week_clan.clan_score"),
+    "clan.clanScore": to(
+      "war_week_clan.clan_score (WAR trophies on a race payload, not the profile's clan score; see locations.md for the same overload on the war board)",
+    ),
     "clan.finishTime": to("war_week_clan.finish_time", opt),
     "clan.participants[].tag": to("war_participation.player_tag"),
     "clan.participants[].name": to("player.name"),
@@ -376,7 +378,9 @@ export const PAYLOAD_KEYS = {
     "clans[].fame": to("war_week_clan.fame"),
     "clans[].repairPoints": to("war_week_clan.repair_points"),
     "clans[].periodPoints": to("war_week_clan.period_points"),
-    "clans[].clanScore": to("war_week_clan.clan_score"),
+    "clans[].clanScore": to(
+      "war_week_clan.clan_score (war trophies, as above)",
+    ),
     "clans[].finishTime": to("war_week_clan.finish_time", opt),
     "clans[].participants[].tag": derived(
       "the rivals' members: the observing clan's own participants are the same array under clan.participants; rivals' participation is not recorded (multi-tenant: a rival that is itself recorded has its own week)",

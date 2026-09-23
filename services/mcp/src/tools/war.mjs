@@ -26,6 +26,24 @@ import {
 } from "./shared.mjs";
 
 const CLOCK_DOCS = docsRef("clocks", "the-policy-day");
+
+/** The war family's `clan_score` is the API's `clanScore` ON A RACE
+ *  PAYLOAD, and there it means WAR TROPHIES - not the ~129,000 clan
+ *  score a profile shows (feedback #88). Our own series proved it
+ *  independently of the API: our_clan_score ran 980, 1000, 1020, 1040,
+ *  1060, 1160 across 135/0-136/0, rising by exactly each week's
+ *  trophy_change. The overload is the API's and is already recorded for
+ *  the war BOARD (cr-agent-api-docs locations.md); the race payload is
+ *  where it was inherited silently.
+ *
+ *  6.19.0 serves the honest name beside the old one. `clan_score` stays
+ *  as a DEPRECATED alias so no caller breaks today, and goes at 7.0.0
+ *  with the other breaking changes - one break, not two. */
+const warTrophyAlias = (row, key = "clan_score") => ({
+  clan_war_trophies: row[key] ?? null,
+});
+const CLAN_SCORE_DEPRECATION =
+  "clan_war_trophies is the clan's WAR trophies, which is what the race payload's clanScore actually carries - not the clan score a profile shows (that is ~100x larger; clans_timeline serves both as separate metrics). clan_score is the same number under the old, wrong name: it is DEPRECATED, kept so nothing breaks today, and is removed in 7.0.0.";
 const WAR_DOCS = docsRef("battles", "war-weeks-points-and-fame");
 
 const CLAN_TAG_SCHEMA = {
@@ -408,14 +426,15 @@ export const warTools = {
           rival_tags: rivals,
           source: args.rival_tags?.length ? "argument" : "current_bracket",
         }),
-        rivals: rows,
+        rivals: rows.map((r) => ({ ...r, ...warTrophyAlias(r) })),
         notes: notes(
           "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
           "Fame statistics (mean_fame, median_fame, max_fame, zero_fame_races) cover the finished races only, and finished_races is their count: races_observed includes the week in progress, so it is not their denominator. current_race_fame is the week in progress; a rival with no finished race has null fame statistics, not zero.",
           rows.some((r) => r.colosseum_races > 0)
             ? "colosseum_races counts the Colosseum weeks among races_observed: a Colosseum week is a period-point contest with no finish line, so its fame pools badly with a regular week's; read the fame statistics beside that count."
             : null,
-          "clan_score is the game's own strength number for the clan as last observed in any recorded race (null before 2026-09-17, when the race poll began keeping it).",
+          "clan_war_trophies is the clan's WAR trophies as last observed in any recorded race (null before 2026-09-17, when the race poll began keeping it).",
+          CLAN_SCORE_DEPRECATION,
           "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) asks for a fresh read (queued if none is in hand).",
         ),
         docs: WAR_DOCS,
@@ -744,6 +763,7 @@ export const warTools = {
         ...(live ? { live_status: liveStatus(live) } : {}),
         standings: standings.rows.map((row) => ({
           ...row,
+          ...warTrophyAlias(row),
           finish_time: finishInstant(row.finish_time),
         })),
         ...(compact ? {} : { participants }),
@@ -769,7 +789,8 @@ export const warTools = {
         notes: notes(
           livePendingNote(live),
           "points are per-member contributions; fame belongs to the boat (the clan).",
-          "standings.clan_score is the game's own strength number for each clan in the bracket (latest observed) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
+          "standings.clan_war_trophies is each bracket clan's WAR trophies (latest observed) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
+          CLAN_SCORE_DEPRECATION,
           daysClosed
             ? "days_closed is the race's own day-by-day (the API's periodLogs): one entry per closed war day with every clan's points_earned, progress, rank (1-based; null while unranked) and end_of_day_rank (the API's 0-based value); the running day is not in it until it closes."
             : null,
@@ -1036,6 +1057,7 @@ export const warTools = {
         );
         standings = rows.map((r) => ({
           ...r,
+          ...warTrophyAlias(r),
           finish_time: finishInstant(r.finish_time),
         }));
       }
@@ -1090,6 +1112,9 @@ export const warTools = {
           closed_at: w.closed_at?.toISOString() ?? null,
           our_rank: w.our_rank,
           our_fame: w.our_fame,
+          our_clan_war_trophies: w.our_clan_score,
+          // DEPRECATED, removed in 7.0.0: the name says clan score and
+          // the number is war trophies (feedback #88).
           our_clan_score: w.our_clan_score,
           our_repair_points: w.our_repair_points,
           // A regular week whose boat reached the finish line stopped
@@ -1124,8 +1149,9 @@ export const warTools = {
           : notes(
               "points are per-member contributions; fame belongs to the boat (the clan).",
               "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is when the recorder saw it closed.",
+              hasSeason ? CLAN_SCORE_DEPRECATION : null,
               hasSeason
-                ? "standings carries every clan in the week's bracket with clan_score (the game's strength number, latest observed) and repair_points; finish_time is null for a clan that did not finish (the API marks it with epoch zero, never a time). days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it; each day's standings carry rank (1-based, like every rank here; null while unranked) beside end_of_day_rank (the API's 0-based value, -1 unranked)."
+                ? "standings carries every clan in the week's bracket with clan_war_trophies (its WAR trophies, latest observed) and repair_points; finish_time is null for a clan that did not finish (the API marks it with epoch zero, never a time). days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it; each day's standings carry rank (1-based, like every rank here; null while unranked) beside end_of_day_rank (the API's 0-based value, -1 unranked)."
                 : null,
               "in_progress marks the week still being fought; on OLDER weeks a null our_rank/our_fame means the week was observed without a standings capture.",
               hasSeason && !focus

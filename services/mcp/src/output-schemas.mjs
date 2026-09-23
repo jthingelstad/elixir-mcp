@@ -1584,7 +1584,16 @@ export const OUTPUT_SCHEMAS = {
             rank: NULLABLE_INT,
             trophy_change: NULLABLE_INT,
             finish_time: { type: ["string", "null"] },
-            clan_score: NULLABLE_INT,
+            clan_war_trophies: {
+              type: ["integer", "null"],
+              description:
+                "The clan's WAR trophies, latest observed (6.19.0). The race payload's clanScore carries this, not the ~100x larger clan score a profile shows.",
+            },
+            clan_score: {
+              type: ["integer", "null"],
+              description:
+                "DEPRECATED, removed in 7.0.0: the same number as clan_war_trophies under the old, wrong name.",
+            },
             repair_points: NULLABLE_INT,
           },
         },
