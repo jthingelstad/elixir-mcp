@@ -439,7 +439,7 @@ export const playersTools = {
         notes: notes(
           livePendingNote(live),
           "last_seen_in_game is the game's own lastSeen from clan roster polls (when the player was last active); null until a polled roster carried them.",
-          "attributes.war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations. For war results use battles_performance mode war; for donations, lifetime.total_donations.",
+          "attributes.war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations. For war results use battles_performance mode war; for lifetime donations, the players_timeline.total_donations series.",
           "attributes and clan carry ids only; names and icons resolve through cards_catalog.",
           "path_of_legend.seasons lists the last twelve season finals the record kept (the API's lastPathOfLegendSeasonResult, read in the following month; rank null unless globally ranked), newest first; empty for a player recorded after their last final or never ranked.",
         ),

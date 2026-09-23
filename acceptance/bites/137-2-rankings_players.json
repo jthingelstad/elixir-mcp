@@ -1,0 +1,201 @@
+{
+  "feedback": 137,
+  "contract_version": "6.26.0",
+  "captured_at": "2026-09-23T17:33:10.956Z",
+  "request": {
+    "tool": "rankings_players",
+    "arguments": {
+      "board": "mode",
+      "location": "list"
+    }
+  },
+  "response": {
+    "board": "mode",
+    "boards": [
+      {
+        "location": "170000001",
+        "name": "Goblin Queen's Journey",
+        "enabled": true
+      },
+      {
+        "location": "170000003",
+        "name": "2v2 League",
+        "enabled": true
+      },
+      {
+        "location": "170000004",
+        "name": "2v2 League",
+        "enabled": true
+      },
+      {
+        "location": "170000005",
+        "name": "Retro Royale",
+        "enabled": true
+      },
+      {
+        "location": "170000007",
+        "name": "2v2 League",
+        "enabled": true
+      },
+      {
+        "location": "170000008",
+        "name": "Merge Tactics",
+        "enabled": true
+      },
+      {
+        "location": "170000012",
+        "name": "Merge Tactics",
+        "enabled": true
+      },
+      {
+        "location": "170000013",
+        "name": "Merge Tactics",
+        "enabled": true
+      },
+      {
+        "location": "170000014",
+        "name": "2v2 League",
+        "enabled": true
+      },
+      {
+        "location": "170000015",
+        "name": "Mega Draft Challenge",
+        "enabled": true
+      },
+      {
+        "location": "170000016",
+        "name": "Merge Tactics",
+        "enabled": true
+      },
+      {
+        "location": "170000017",
+        "name": "Merge Tactics",
+        "enabled": true
+      },
+      {
+        "location": "170000018",
+        "name": "Touchdown",
+        "enabled": true
+      },
+      {
+        "location": "170000019",
+        "name": "Merge Tactics",
+        "enabled": true
+      },
+      {
+        "location": "270785",
+        "name": "270785",
+        "enabled": true
+      },
+      {
+        "location": "270787",
+        "name": "270787",
+        "enabled": true
+      },
+      {
+        "location": "270849",
+        "name": "270849",
+        "enabled": true
+      },
+      {
+        "location": "447994",
+        "name": "447994",
+        "enabled": true
+      },
+      {
+        "location": "447996",
+        "name": "447996",
+        "enabled": true
+      },
+      {
+        "location": "448031",
+        "name": "448031",
+        "enabled": true
+      },
+      {
+        "location": "502514",
+        "name": "502514",
+        "enabled": true
+      },
+      {
+        "location": "502516",
+        "name": "502516",
+        "enabled": true
+      },
+      {
+        "location": "550018",
+        "name": "550018",
+        "enabled": true
+      },
+      {
+        "location": "550020",
+        "name": "550020",
+        "enabled": true
+      },
+      {
+        "location": "550072",
+        "name": "550072",
+        "enabled": true
+      },
+      {
+        "location": "679855",
+        "name": "679855",
+        "enabled": true
+      },
+      {
+        "location": "679910",
+        "name": "679910",
+        "enabled": true
+      },
+      {
+        "location": "699960",
+        "name": "699960",
+        "enabled": true
+      },
+      {
+        "location": "699962",
+        "name": "699962",
+        "enabled": true
+      },
+      {
+        "location": "743144",
+        "name": "743144",
+        "enabled": true
+      },
+      {
+        "location": "743146",
+        "name": "Princess Gambit Tournament",
+        "enabled": true
+      },
+      {
+        "location": "743200",
+        "name": "Merge Tactics",
+        "enabled": true
+      }
+    ],
+    "applied": {
+      "board": "mode",
+      "location": "list"
+    },
+    "notes": [
+      "These are the recorded mode-board ids; a board's presence does not establish battle-log coverage for that mode."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.26.0",
+      "source_polls": {
+        "leaderboards": {
+          "observed_at": "2026-09-22T22:07:44.000Z",
+          "freshness_seconds": 69927
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 12,
+    "db_queries": 2,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

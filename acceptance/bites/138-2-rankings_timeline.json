@@ -1,0 +1,329 @@
+{
+  "feedback": 138,
+  "contract_version": "6.26.0",
+  "captured_at": "2026-09-23T17:34:15.726Z",
+  "request": {
+    "tool": "rankings_timeline",
+    "arguments": {
+      "player_tag": "#20JJJ2CCRU"
+    }
+  },
+  "response": {
+    "board": "pol",
+    "location": {
+      "key": "global",
+      "label": "Global"
+    },
+    "applied": {
+      "board": "pol",
+      "location": "global",
+      "subject": "player",
+      "tag": "#20JJJ2CCRU",
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": "2026-09-23T17:34:15.692Z",
+        "source": "default",
+        "partial": true,
+        "covers": {
+          "from": "2026-09-11T03:09:55.000Z",
+          "to": "2026-09-23T17:34:15.692Z"
+        },
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "limit": 800
+    },
+    "points": [
+      {
+        "observed_at": "2026-09-11T03:09:55.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T03:09:55.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T03:29:54.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T03:29:54.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T03:44:55.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T03:44:55.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T03:59:56.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T03:59:56.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T04:19:59.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T04:19:59.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T04:34:56.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T04:34:56.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T05:04:36.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T05:04:36.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T06:13:25.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T06:13:25.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T07:22:53.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T07:22:53.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T08:32:57.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T08:32:57.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T09:45:56.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T09:45:56.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T10:58:04.000Z",
+        "day": "2026-09-11",
+        "unchanged_until": "2026-09-11T10:58:04.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T12:07:57.000Z",
+        "day": "2026-09-11",
+        "unchanged_until": "2026-09-11T12:07:57.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T13:18:02.000Z",
+        "day": "2026-09-11",
+        "unchanged_until": "2026-09-11T13:18:02.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T14:27:54.000Z",
+        "day": "2026-09-11",
+        "unchanged_until": "2026-09-11T14:27:54.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-11T15:37:59.000Z",
+        "day": "2026-09-11",
+        "unchanged_until": "2026-09-11T15:37:59.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-12T00:36:40.000Z",
+        "day": "2026-09-11",
+        "unchanged_until": "2026-09-12T00:36:40.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-12T10:07:55.000Z",
+        "day": "2026-09-12",
+        "unchanged_until": "2026-09-12T10:07:55.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-13T10:07:54.000Z",
+        "day": "2026-09-13",
+        "unchanged_until": "2026-09-13T10:07:54.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-14T10:07:51.000Z",
+        "day": "2026-09-14",
+        "unchanged_until": "2026-09-14T10:07:51.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-15T10:07:50.000Z",
+        "day": "2026-09-15",
+        "unchanged_until": "2026-09-15T10:07:50.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-16T10:07:51.000Z",
+        "day": "2026-09-16",
+        "unchanged_until": "2026-09-16T10:07:51.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-17T10:07:50.000Z",
+        "day": "2026-09-17",
+        "unchanged_until": "2026-09-17T10:07:50.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-18T10:07:50.000Z",
+        "day": "2026-09-18",
+        "unchanged_until": "2026-09-18T10:07:50.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-19T10:07:53.000Z",
+        "day": "2026-09-19",
+        "unchanged_until": "2026-09-19T10:07:53.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-20T10:07:53.000Z",
+        "day": "2026-09-20",
+        "unchanged_until": "2026-09-20T10:07:53.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-21T10:07:52.000Z",
+        "day": "2026-09-21",
+        "unchanged_until": "2026-09-21T10:07:52.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-22T10:07:52.000Z",
+        "day": "2026-09-22",
+        "unchanged_until": "2026-09-22T10:07:52.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      },
+      {
+        "observed_at": "2026-09-23T10:07:57.000Z",
+        "day": "2026-09-23",
+        "unchanged_until": "2026-09-23T10:07:57.000Z",
+        "rank": null,
+        "rating": null,
+        "clan_tag": null,
+        "on_board": false
+      }
+    ],
+    "notes": [
+      "No snapshots exist before 2026-09-11 (recording of this board began then); this window starts 2026-09-07, so the series covers 2026-09-11 onward (applied.window.covers), not the window you asked for.",
+      "One point per recorded snapshot; a snapshot is written only when the board changed, so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
+      "on_board false means the player was not on the board at that snapshot - below the rating floor, or below the cutoff once the board is full; rank and rating are then null, not zero. Per-battle rank and rating for a recorded player are on their battles (globalRank, startingTrophies, trophyChange).",
+      "Path of Legends lists players above a rating floor, at most 1,000 places: a board is small in a season's first days and grows as players cross the floor, and once it holds 1,000 it is full - from then on floor_rating is the 1,000th place's rating, a cutoff that rises with play, not a qualification threshold."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.26.0",
+      "source_polls": {
+        "rankings_pol": {
+          "observed_at": "2026-09-23T10:07:57.000Z",
+          "freshness_seconds": 26779
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 37,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

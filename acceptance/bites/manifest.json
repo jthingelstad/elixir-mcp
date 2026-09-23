@@ -649,5 +649,61 @@
     "case": "gym/134.4",
     "captures": ["134-4-players_collection.json"],
     "expect": "."
+  },
+  {
+    "feedback": 136,
+    "contract": "6.26.0",
+    "why": "the Gym block 136.1 on the answer it read",
+    "case": "gym/136.1",
+    "captures": ["136-1-rankings_clan_ladder.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 136,
+    "contract": "6.26.0",
+    "why": "the Gym block 136.2 on the answer it read",
+    "case": "gym/136.2",
+    "captures": ["136-2-rankings_clan_ladder.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 137,
+    "contract": "6.26.0",
+    "why": "the Gym block 137.1 on the answer it read",
+    "case": "gym/137.1",
+    "captures": ["137-1-rankings_players.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 137,
+    "contract": "6.26.0",
+    "why": "the Gym block 137.2 on the answer it read",
+    "case": "gym/137.2",
+    "captures": ["137-2-rankings_players.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 137,
+    "contract": "6.26.0",
+    "why": "the Gym block 137.3 on the answer it read",
+    "case": "gym/137.3",
+    "captures": ["137-3-rankings_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 138,
+    "contract": "6.26.0",
+    "why": "the Gym block 138.1 on the answer it read",
+    "case": "gym/138.1",
+    "captures": ["138-1-rankings_players.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 138,
+    "contract": "6.26.0",
+    "why": "the Gym block 138.2 on the answer it read",
+    "case": "gym/138.2",
+    "captures": ["138-2-rankings_timeline.json"],
+    "expect": "."
   }
 ]

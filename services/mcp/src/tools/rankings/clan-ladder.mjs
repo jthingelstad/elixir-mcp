@@ -111,6 +111,21 @@ export const rankings_clan_ladder = {
          from clan_ranking_entry where snapshot_id = $1 order by rank limit $2 offset $3`,
       [snapshot.snapshot_id, limit, offset],
     );
+    // A shared score is a tie the game lists in its own order (feedback
+    // #136: 360 clans at the 140,000 ceiling ranked 1..360, previous_rank
+    // beside each reading as movement). Counted over the whole snapshot,
+    // since a tie runs past the page.
+    const pageScores = [...new Set(rows.map((r) => r.score))];
+    const { rows: ties } = pageScores.length
+      ? await ctx.db.query(
+          `select score, count(*)::int as clans, min(rank) as first, max(rank) as last
+             from clan_ranking_entry
+            where snapshot_id = $1 and score = any($2::int[])
+            group by score having count(*) > 1
+            order by score desc`,
+          [snapshot.snapshot_id, pageScores],
+        )
+      : { rows: [] };
     return {
       board,
       location,
@@ -133,6 +148,7 @@ export const rankings_clan_ladder = {
           ? "score is clan war trophies on this board."
           : "score is clan score - the sum the game ranks clans by - on this board.",
         "previous_rank is the game's own field: where the clan stood at its previous ranking, not at our previous snapshot.",
+        tieNote(ties),
         offset + rows.length < snapshot.entries
           ? `Page ${Math.floor(offset / limit) + 1}: pass offset ${offset + limit} for the next places.`
           : null,
@@ -142,3 +158,19 @@ export const rankings_clan_ladder = {
     };
   },
 };
+
+/** Places on the page that share a score, stated as ties (#136). */
+function tieNote(ties) {
+  if (ties.length === 0) return null;
+  const shown = ties
+    .slice(0, 3)
+    .map(
+      (t) =>
+        `${t.clans} clans share score ${Number(t.score).toLocaleString("en-US")} (ranks ${t.first}-${t.last})`,
+    );
+  const more =
+    ties.length > 3
+      ? `, and ${ties.length - 3} more tied scores on this page`
+      : "";
+  return `${shown.join("; ")}${more}: the game lists a tie in its own order, so rank inside it - and rank against previous_rank - is not a standing; quote those clans as tied.`;
+}

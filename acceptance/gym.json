@@ -4125,5 +4125,340 @@
         "notes_match": "was an instant"
       }
     ]
+  },
+  {
+    "id": "136.1",
+    "feedback": 136,
+    "stability": "frozen",
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "as_of": "2026-09-16T12:00:00Z",
+      "limit": 250,
+      "offset": 250
+    },
+    "request_id": "ff47b844-eddf-42c1-a658-8a9644942fce",
+    "assert": [
+      {
+        "eq": ["clans[0].score", 140000]
+      },
+      {
+        "notes_match": "(?i)\\btied?\\b|\\bshare"
+      }
+    ]
+  },
+  {
+    "id": "136.2",
+    "feedback": 136,
+    "stability": "live",
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "limit": 5
+    },
+    "request_id": "794d22ec-0fca-41a6-9c2e-af45f2542df8",
+    "when": {
+      "eq": ["clans[0].score", "clans[4].score"]
+    },
+    "assert": [
+      {
+        "notes_match": "(?i)\\btied?\\b|\\bshare"
+      }
+    ]
+  },
+  {
+    "id": "136.3",
+    "feedback": 136,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "board": "clanwars",
+      "as_of": "2026-09-16T12:00:00Z",
+      "limit": 5
+    },
+    "request_id": "60cc0d2e-d756-4e7b-8324-92a28480bb26",
+    "assert": [
+      {
+        "gt": ["clans[0].score", "clans[1].score"]
+      },
+      {
+        "notes_not_match": "(?i)\\btied?\\b|\\bshare"
+      }
+    ]
+  },
+  {
+    "id": "137.1",
+    "feedback": 137,
+    "stability": "live",
+    "tool": "rankings_players",
+    "args": {
+      "board": "mode",
+      "location": "170000008",
+      "limit": 300
+    },
+    "request_id": "8c7d3071-e631-4fd2-96ba-7d5da4c03b61",
+    "assert": [
+      {
+        "notes_not_match": "pol_trophies"
+      },
+      {
+        "notes_not_match": "Path of Legends lists players"
+      },
+      {
+        "has": "snapshot.standings_changed_at"
+      }
+    ]
+  },
+  {
+    "id": "137.2",
+    "feedback": 137,
+    "stability": "live",
+    "tool": "rankings_players",
+    "args": {
+      "board": "mode",
+      "location": "list"
+    },
+    "request_id": "6424c9e9-3a9d-4bfe-b749-8bda2784d9d4",
+    "assert": [
+      {
+        "every_row_has": ["boards", "standings_changed_at"]
+      }
+    ]
+  },
+  {
+    "id": "137.3",
+    "feedback": 137,
+    "stability": "live",
+    "tool": "rankings_timeline",
+    "args": {
+      "board": "mode",
+      "location": "170000008",
+      "days": 3
+    },
+    "request_id": "8e372bb8-e0c2-4ee9-a66c-e3ffc08c9be5",
+    "assert": [
+      {
+        "notes_not_match": "Path of Legends lists players"
+      }
+    ]
+  },
+  {
+    "id": "137.4",
+    "feedback": 137,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "limit": 5
+    },
+    "request_id": "e861324a-0f85-4fc5-96cd-2d5860e9e92c",
+    "assert": [
+      {
+        "eq": ["board", "pol"]
+      },
+      {
+        "notes_match": "Path of Legends"
+      },
+      {
+        "notes_match": "pol_trophies"
+      }
+    ]
+  },
+  {
+    "id": "138.1",
+    "feedback": 138,
+    "stability": "live",
+    "tool": "rankings_players",
+    "args": {
+      "limit": 5
+    },
+    "request_id": "e861324a-0f85-4fc5-96cd-2d5860e9e92c",
+    "assert": [
+      {
+        "notes_not_match": "globalRank|startingTrophies|trophyChange"
+      },
+      {
+        "notes_match": "global_rank"
+      }
+    ]
+  },
+  {
+    "id": "138.2",
+    "feedback": 138,
+    "stability": "live",
+    "tool": "rankings_timeline",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "cede5fa1-b8a9-47b3-9c99-60f47e5828d4",
+    "assert": [
+      {
+        "notes_not_match": "globalRank|startingTrophies|trophyChange"
+      },
+      {
+        "notes_match": "global_rank"
+      }
+    ]
+  },
+  {
+    "id": "138.3",
+    "feedback": 138,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_query",
+    "args": {
+      "player_tag": "#20JJJ2CCRU",
+      "limit": 2
+    },
+    "request_id": "ca1a01d1-bb80-4f5f-8e65-756f00fa13c1",
+    "assert": [
+      {
+        "notes_match": "global_rank"
+      },
+      {
+        "notes_not_match": "globalRank|startingTrophies|trophyChange"
+      }
+    ]
+  },
+  {
+    "id": "139.1",
+    "feedback": 139,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_timeline",
+    "args": {
+      "from": "2026-09-01",
+      "to": "2026-09-05"
+    },
+    "request_id": "d8a0897f-4762-451c-a12d-47aa575de8d9",
+    "assert": [
+      {
+        "eq": ["applied.window.partial", true]
+      },
+      {
+        "eq": ["applied.window.covers", null]
+      },
+      {
+        "count_eq": ["points[]", 0]
+      },
+      {
+        "notes_match": "unrecorded for the window, not unchanged"
+      }
+    ]
+  },
+  {
+    "id": "139.2",
+    "feedback": 139,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "board": "pol_final",
+      "season": 88,
+      "limit": 3
+    },
+    "request_id": "910101c6-668c-4d6c-9ab0-a0d7a1b72da2",
+    "assert": [
+      {
+        "eq": ["applied.season", null]
+      },
+      {
+        "eq": ["applied.season_requested", 88]
+      },
+      {
+        "eq": ["snapshot", null]
+      },
+      {
+        "notes_match": "S89"
+      }
+    ]
+  },
+  {
+    "id": "139.3",
+    "feedback": 139,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_clans",
+    "args": {
+      "limit": 5
+    },
+    "request_id": "209fb1fa-7419-42f9-9359-49ebbc7b2ff6",
+    "assert": [
+      {
+        "sorted_desc": ["clans[].rated_players"]
+      },
+      {
+        "notes_match": "ordered by best_rank"
+      },
+      {
+        "lte": ["snapshot.entries", "snapshot.depth"]
+      },
+      {
+        "has": "players_without_clan"
+      }
+    ]
+  },
+  {
+    "id": "139.4",
+    "feedback": 139,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "limit": 5
+    },
+    "request_id": "e861324a-0f85-4fc5-96cd-2d5860e9e92c",
+    "when": {
+      "eq": ["snapshot.full", true]
+    },
+    "assert": [
+      {
+        "has": "snapshot.floor_rating"
+      },
+      {
+        "notes_match": "truncated: (true|false)"
+      },
+      {
+        "notes_match": "not a qualification threshold"
+      }
+    ]
+  },
+  {
+    "id": "139.5",
+    "feedback": 139,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "location": "XX",
+      "limit": 2
+    },
+    "request_id": "cf38cf92-1ae3-4789-b082-38a449a80110",
+    "assert": [
+      {
+        "eq": ["error.code", "not_found"]
+      },
+      {
+        "notes_match": "location 'XX'"
+      }
+    ]
+  },
+  {
+    "id": "139.7",
+    "feedback": 139,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "limit": 500
+    },
+    "request_id": "69a178f7-589e-4f3f-9769-7cabd360bf50",
+    "when": {
+      "eq": ["error.code", "result_too_large"]
+    },
+    "assert": [
+      {
+        "notes_match": "a limit of \\d+ should fit"
+      }
+    ]
   }
 ]

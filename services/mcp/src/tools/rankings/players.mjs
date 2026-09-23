@@ -17,6 +17,7 @@ import {
   ENDPOINT_OF,
   FLOOR_NOTE,
   LOCATION_SCHEMA,
+  MODE_RATING_NOTE,
   SEASON_SCHEMA,
   boardHorizon,
   boardRow,
@@ -28,6 +29,7 @@ import {
   seasonArg,
   snapshotBlock,
   snapshotFor,
+  standingsStaleNote,
 } from "./common.mjs";
 
 export const rankings_players = {
@@ -72,9 +74,17 @@ export const rankings_players = {
           "Mode discovery reads the recorded catalog, not a board snapshot.",
           'Call rankings_players({ board: "mode", location: "list" }) without live or as_of.',
         );
+      // Seven boards can share a name ("Merge Tactics"); when each last
+      // moved is what tells a live event from a closed one (#137).
       const { rows } = await ctx.db.query(
-        `select location_key, label, enabled from ranking_board
-           where board = 'mode' order by location_key`,
+        `select b.location_key, b.label, b.enabled,
+                s.observed_at, s.standings_changed_at
+           from ranking_board b
+           left join lateral (
+             select observed_at, standings_changed_at from ranking_snapshot
+              where board = b.board and location_key = b.location_key
+              order by observed_at desc limit 1) s on true
+          where b.board = 'mode' order by b.location_key`,
       );
       return {
         board,
@@ -82,10 +92,13 @@ export const rankings_players = {
           location: r.location_key,
           name: r.label,
           enabled: r.enabled,
+          observed_at: r.observed_at?.toISOString() ?? null,
+          standings_changed_at: r.standings_changed_at?.toISOString() ?? null,
         })),
         applied: appliedBlock({ board, location: "list" }),
         notes: notes(
           "These are the recorded mode-board ids; a board's presence does not establish battle-log coverage for that mode.",
+          "Several boards can share a name: standings_changed_at (when rank or rating last moved) tells a running event from a closed one whose snapshots refresh only names and clans; null means no snapshot yet.",
         ),
         docs: docsRef("recording", "leaderboards"),
         meta: await buildMeta(ctx.db, ctx.account, "GLOBAL", ["leaderboards"]),
@@ -160,7 +173,9 @@ export const rankings_players = {
             ? "The Trophy Road board has been served empty by the API for recent seasons; Path of Legends (board: pol) is the competitive ranking."
             : board === "pol_final"
               ? null
-              : FLOOR_NOTE,
+              : board === "mode"
+                ? MODE_RATING_NOTE
+                : FLOOR_NOTE,
         ),
         docs: docsRef("recording", "leaderboards"),
         meta,
@@ -201,14 +216,19 @@ export const rankings_players = {
         fullBoardNote(snapshot, floor),
         board === "pol_final"
           ? "A season final is the settled standing: the API serves its top 9,999 places and the record keeps them all."
-          : FLOOR_NOTE,
+          : board === "mode"
+            ? MODE_RATING_NOTE
+            : FLOOR_NOTE,
+        standingsStaleNote(snapshot, row),
         snapshot.truncated
           ? "The API offered more places than this snapshot holds (truncated: true); the tail of the board is missing."
           : null,
         offset + rows.length < snapshot.entries
           ? `Page ${Math.floor(offset / limit) + 1}: pass offset ${offset + limit} for the next ${Math.min(limit, snapshot.entries - offset - rows.length)} places.`
           : null,
-        "rating on the pol board is the player's Path of Legends rating: the same number the profile carries as pol_trophies (players_timeline, players_profile), verified equal on the live API; per-battle rating and rank for a recorded player are on their battles (startingTrophies, trophyChange, globalRank).",
+        board === "mode"
+          ? null
+          : "rating on the pol board is the player's Path of Legends rating: the same number the profile carries as pol_trophies (players_timeline, players_profile), verified equal on the live API; per-battle rating and rank for a recorded player are on their battles (battles_query.global_rank, battles_query.starting_trophies, battles_query.trophy_change).",
       ),
       docs: docsRef("recording", "leaderboards"),
       meta,

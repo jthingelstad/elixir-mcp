@@ -750,6 +750,48 @@ test("a Path of Legends board is recorded as a snapshot, and its top-N become re
   );
   assert.equal(presence[0].best_rank, 2);
   assert.equal(presence[0].sticky, true);
+
+  // A clan change alone writes a snapshot, but the standings did not
+  // move: standings_changed_at carries the last move forward (0158,
+  // feedback #137), and the hash matches the backfill's SQL md5.
+  const reclanned = board([
+    { tag: "#99GU92P0", name: "Top One", rank: 1, eloRating: 2120 },
+    { tag: "#8LR0P09LR", name: "Third", rank: 2, eloRating: 2060 },
+    {
+      tag: "#2PPLQQ",
+      name: "Top Two",
+      rank: 3,
+      eloRating: 2040,
+      clan: { tag: "#GRGYQ0JU", name: "PTL Germany" },
+    },
+  ]);
+  const r4 = await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_pol",
+      entityKey: "57009999",
+      payload: reclanned,
+      fetchedAt: at(0),
+    }),
+  );
+  assert.equal(r4.projection.wrote, true);
+  const { rows: stamps } = await ctx.db.query(
+    `select s.observed_at, s.standings_changed_at,
+            s.standings_hash = (select md5(string_agg(e.rank || ':' || e.player_tag || ':' || coalesce(e.rating::text, ''), ',' order by e.rank))
+                                  from ranking_entry e where e.snapshot_id = s.snapshot_id) as sql_equal
+       from ranking_snapshot s where board = 'pol' and location_key = '57009999'
+      order by observed_at`,
+  );
+  assert.equal(stamps.length, 3);
+  assert.equal(stamps[2].sql_equal, true);
+  assert.equal(
+    stamps[2].standings_changed_at.toISOString(),
+    stamps[1].observed_at.toISOString(),
+  );
+  assert.equal(
+    stamps[1].standings_changed_at.toISOString(),
+    stamps[1].observed_at.toISOString(),
+  );
 });
 
 test("a board admission stamps poll_state under the board's own key, so the planner sees it fetched", async () => {

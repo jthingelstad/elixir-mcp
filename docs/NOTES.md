@@ -1956,3 +1956,12 @@ All 9 regressions were confirmed. Findings:
 - **#133:** `fieldedLevel` returns recent_mean_level, which the meta tools' fit_for inherits.
 - **#134:** season echo on players_summary; `season` on players_timeline (its game days); a window echo on players_collection.
 - **Checker:** check-appendix requires player_tag only on players_* tools that declare it. players_search and players_names don't.
+
+## 2026-09-23 — Gym sweep, rankings round 1 (6.28.0, feedback #136-#139)
+
+All 5 regressions were confirmed (#38 rankings half, #71-#73, #76). #139 is praise that pins the horizon, pol_final and full-board behaviour. Findings:
+- **#136:** the clan ladder gets a tie note. It is counted over the whole snapshot for every score on the page that is shared, since a tie runs past a page.
+- **#137:** mode boards get MODE_RATING_NOTE in place of FLOOR_NOTE and the pol rating note. 0158 adds `standings_hash` and `standings_changed_at` to ranking_snapshot. Ingest stamps them on every player board, and the migration backfills the mode boards only (a few hundred rows). The readers serve the field on mode boards and catalog rows. The existing content hash includes clan_tag, which is why frozen boards still wrote a snapshot each day.
+- **#138:** the notes point at `battles_query.global_rank` and the other two fields, in the tool-qualified form the catalogue check accepts.
+- **6.27.0 gate:** `catalogue/players_profile#notes` failed, because the #131 note named `lifetime.total_donations`, which the profile does not carry. It now points at the players_timeline series.
+

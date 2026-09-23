@@ -89,6 +89,21 @@ function contentHash(entries) {
   return h.digest("hex");
 }
 
+/** The standings alone - rank, tag, rating - without names or clans
+ *  (0158, feedback #137): a closed board whose players change clan keeps
+ *  writing snapshots, and only this says whether anyone moved. The same
+ *  md5 and format as the 0158 backfill, so the first run compares. */
+function standingsHash(entries) {
+  return createHash("md5")
+    .update(
+      [...entries]
+        .sort((a, b) => a.rank - b.rank)
+        .map((e) => `${e.rank}:${e.tag}:${e.rating ?? ""}`)
+        .join(","),
+    )
+    .digest("hex");
+}
+
 /**
  * Project one ranking payload. `board` is 'pol' or 'trophy'; `entityKey`
  * is the location key the job carried ('global' or a numeric id).
@@ -143,10 +158,10 @@ export async function projectRankingBoard(
   const hash = contentHash(entries);
   const { rows: last } = await db.query(
     board === "pol_final"
-      ? `select snapshot_id, content_hash from ranking_snapshot
+      ? `select snapshot_id, content_hash, standings_hash, standings_changed_at from ranking_snapshot
          where board = $1 and location_key = $2 and season_month = $3
          order by observed_at desc limit 1`
-      : `select snapshot_id, content_hash from ranking_snapshot
+      : `select snapshot_id, content_hash, standings_hash, standings_changed_at from ranking_snapshot
          where board = $1 and location_key = $2
          order by observed_at desc limit 1`,
     board === "pol_final" ? [board, locationKey, month] : [board, locationKey],
@@ -162,10 +177,16 @@ export async function projectRankingBoard(
     );
     snapshotId = last[0].snapshot_id;
   } else if (entries.length > 0) {
+    const standings = standingsHash(entries);
+    const standingsChangedAt =
+      last[0]?.standings_hash === standings
+        ? (last[0].standings_changed_at ?? observedAt)
+        : observedAt;
     const { rows } = await db.query(
       `insert into ranking_snapshot
-         (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries, truncated, receipt_id)
-       values ($1, $2, $3, $4, $4, $5, $6, $7, $8)
+         (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries, truncated, receipt_id,
+          standings_hash, standings_changed_at)
+       values ($1, $2, $3, $4, $4, $5, $6, $7, $8, $9, $10)
        returning snapshot_id`,
       [
         board,
@@ -176,6 +197,8 @@ export async function projectRankingBoard(
         entries.length,
         truncated,
         receiptId ?? null,
+        standings,
+        standingsChangedAt,
       ],
     );
     snapshotId = rows[0].snapshot_id;

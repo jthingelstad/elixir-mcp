@@ -19,6 +19,7 @@ import {
   AS_OF_SCHEMA,
   ENDPOINT_OF,
   FLOOR_NOTE,
+  MODE_RATING_NOTE,
   LOCATION_SCHEMA,
   boardHorizon,
   boardRow,
@@ -254,14 +255,14 @@ export const rankings_timeline = {
         seasonFields.seasonNotes,
         "One point per recorded snapshot; a snapshot is written only when the board changed, so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
         subject === "player"
-          ? "on_board false means the player was not on the board at that snapshot - below the rating floor, or below the cutoff once the board is full; rank and rating are then null, not zero. Per-battle rank and rating for a recorded player are on their battles (globalRank, startingTrophies, trophyChange)."
+          ? `on_board false means the player was not on the board at that snapshot - below the rating floor, or below the cutoff once the board is full; rank and rating are then null, not zero.${board === "mode" ? "" : " Per-battle rank and rating for a recorded player are on their battles (battles_query.global_rank, battles_query.starting_trophies, battles_query.trophy_change)."}`
           : subject === "clan"
             ? "rated_players counts the clan's players on the board at each snapshot; it moves with the cutoff (board_floor_rating, once board_full) as well as with play, and can fall while every one of the clan's players improves."
             : `floor_rating is the last place's rating: the rating floor while rated_players is below depth, and once the board is full (full: true) the cutoff for the last of its ${depthOf(board).toLocaleString("en-US")} places, which rises as the field plays (floor_delta is its move since the previous point) while rated_players stays pinned at depth.`,
         fullPoints > 0 && subject !== "player"
           ? `${fullPoints} of ${points.length} points are at the board's full ${depthOf(board).toLocaleString("en-US")} places: a player or clan can leave the board without losing rating there, so compare rated_players across dates only against the cutoff.`
           : null,
-        FLOOR_NOTE,
+        board === "mode" ? MODE_RATING_NOTE : FLOOR_NOTE,
       ),
       docs: docsRef("recording", "leaderboards"),
       meta,

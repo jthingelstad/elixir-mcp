@@ -1,0 +1,111 @@
+{
+  "feedback": 136,
+  "contract_version": "6.26.0",
+  "captured_at": "2026-09-23T17:35:21.960Z",
+  "request": {
+    "tool": "rankings_clan_ladder",
+    "arguments": {
+      "limit": 5
+    }
+  },
+  "response": {
+    "board": "clans",
+    "location": {
+      "key": "global",
+      "label": "Clan score · global",
+      "kind": "global",
+      "country_code": null
+    },
+    "applied": {
+      "board": "clans",
+      "location": "global",
+      "limit": 5,
+      "offset": 0
+    },
+    "snapshot": {
+      "observed_at": "2026-09-23T10:02:51.000Z",
+      "unchanged_until": "2026-09-23T10:02:51.000Z",
+      "season_id": "136",
+      "season_month": "2026-09",
+      "entries": 1000,
+      "depth": 1000,
+      "full": true,
+      "truncated": false,
+      "cadence_minutes": 1440
+    },
+    "clans": [
+      {
+        "rank": 1,
+        "previous_rank": 1,
+        "clan_tag": "#G8Y8UGLV",
+        "name": "TajikistanCR",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000128,
+        "location_id": 57000229
+      },
+      {
+        "rank": 2,
+        "previous_rank": 2,
+        "clan_tag": "#PRLU9J8G",
+        "name": "50인용 전자오락실",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000104,
+        "location_id": 57000216
+      },
+      {
+        "rank": 3,
+        "previous_rank": 3,
+        "clan_tag": "#Q9QYCRJ9",
+        "name": "Dark Nation",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000249
+      },
+      {
+        "rank": 4,
+        "previous_rank": 4,
+        "clan_tag": "#GQVQVP9J",
+        "name": "Carpe Diem Lad",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000078,
+        "location_id": 57000087
+      },
+      {
+        "rank": 5,
+        "previous_rank": 5,
+        "clan_tag": "#QQYRVPJC",
+        "name": "INDIANS",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000010,
+        "location_id": 57000113
+      }
+    ],
+    "notes": [
+      "score is clan score - the sum the game ranks clans by - on this board.",
+      "previous_rank is the game's own field: where the clan stood at its previous ranking, not at our previous snapshot.",
+      "Page 1: pass offset 5 for the next places."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.26.0",
+      "source_polls": {
+        "rankings_clans_loc": {
+          "observed_at": "2026-09-23T10:02:51.000Z",
+          "freshness_seconds": 27151
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 31,
+    "db_queries": 5,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

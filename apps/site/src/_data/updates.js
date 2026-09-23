@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Leaderboards: ties, and events that have closed",
+    body: "The Elixir Gym's first run over the ranking tools. The global clan ladder has hundreds of clans tied at the top clan score, and the game lists them in its own order, so the ladder now says they are tied instead of letting rank 1 read as a winner. The mode leaderboards (Merge Tactics and the other event boards) no longer describe themselves as Path of Legends, and each now says when its standings last moved. Several share a name, and a closed event keeps refreshing its players' clans, so without that it looked like today's leaderboard. Contract 6.28.0.",
+  },
+  {
+    date: "2026-09-23",
     title:
       "Player summaries: event battles, starter decks and the level you field now",
     body: "The Elixir Gym's first run over the player tools. A player's top deck no longer counts battles in decks an event handed them, and those battles are filed as event rather than casual play. The best deck now says the trophies it was played at, since a 10-0 run at 200 trophies with the starter deck is not a better deck than the one played at 1,300. The collection view now gives the level you have fielded in your last ten battles beside the 30-day average, which runs two levels low on an account that is levelling up. And searching a name from a clan agent finally puts that clan's members first. Contract 6.27.0.",

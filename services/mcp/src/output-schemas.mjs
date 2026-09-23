@@ -1739,6 +1739,12 @@ export const OUTPUT_SCHEMAS = {
             location: { type: "string" },
             name: { type: ["string", "null"] },
             enabled: { type: "boolean" },
+            observed_at: { type: ["string", "null"] },
+            standings_changed_at: {
+              type: ["string", "null"],
+              description:
+                "When the board's ranks or ratings last moved; null before its first snapshot.",
+            },
           },
         },
       },
@@ -1774,6 +1780,11 @@ export const OUTPUT_SCHEMAS = {
               "The API offered a cursor past the places the recorder keeps. false on a full board means the API itself served nothing past depth.",
           },
           cadence_minutes: NULLABLE_INT,
+          standings_changed_at: {
+            type: ["string", "null"],
+            description:
+              "Mode boards only: when rank or rating last moved. A snapshot is also written when only a clan changes, so observed_at alone can be today on a closed event.",
+          },
         },
         required: [
           "observed_at",

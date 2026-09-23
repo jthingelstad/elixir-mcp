@@ -123,7 +123,11 @@ export function fullBoardNote(snapshot, floor) {
     ? `the API offered more than the ${depth} the recorder keeps (truncated: true)`
     : `the API serves ${depth} and offered nothing past them (truncated: false)`;
   const value = floor === null || floor === undefined ? "" : ` (${floor})`;
-  return `This board holds ${depth} places and is full (${whose}): floor_rating${value} is the last place's rating, a cutoff that moves, not a qualification threshold - a player or clan can leave the board without losing rating, and rankings_clans.rated_players compared across dates moves with the cutoff as well as with play.`;
+  const leave =
+    snapshot.board === "mode"
+      ? "a player can leave the board without losing rating."
+      : "a player or clan can leave the board without losing rating, and rankings_clans.rated_players compared across dates moves with the cutoff as well as with play.";
+  return `This board holds ${depth} places and is full (${whose}): floor_rating${value} is the last place's rating, a cutoff that moves, not a qualification threshold - ${leave}`;
 }
 
 /** The season argument as the record files it: the game clock's ordinal.
@@ -177,7 +181,8 @@ export async function snapshotFor(ctx, args, row) {
       );
   }
   const { rows } = await ctx.db.query(
-    `select snapshot_id, board, season_month, observed_at, last_confirmed_at, entries, truncated
+    `select snapshot_id, board, season_month, observed_at, last_confirmed_at, entries, truncated,
+            standings_changed_at
      from ranking_snapshot
      where board = $1 and location_key = $2
        and ($3::timestamptz is null or observed_at <= $3)
@@ -228,7 +233,33 @@ export function snapshotBlock(snapshot, row, floor) {
     ...(floor === undefined ? {} : { floor_rating: floor }),
     truncated: snapshot.truncated,
     cadence_minutes: row.every_minutes,
+    // A mode board's snapshot is rewritten when a placed player changes
+    // clan, so observed_at can be today on an event that closed weeks
+    // ago; this is when rank or rating last moved (0158, feedback #137).
+    ...(row.board === "mode"
+      ? {
+          standings_changed_at:
+            snapshot.standings_changed_at?.toISOString() ?? null,
+        }
+      : {}),
   };
+}
+
+/** A mode board is its event's own leaderboard (feedback #137): the Path
+ *  of Legends notes were riding it, calling its rating pol_trophies and
+ *  its cutoff one that rises with play. */
+export const MODE_RATING_NOTE =
+  "rating on a mode board is that event's own leaderboard rating, not a Path of Legends rating: it is not comparable to one, or to another board's rating.";
+
+/** Says so when a mode board's standings have stopped moving while its
+ *  snapshots still refresh (feedback #137): two days without a rank or
+ *  rating change on a daily board. */
+export function standingsStaleNote(snapshot, row) {
+  const changed = snapshot?.standings_changed_at;
+  if (row.board !== "mode" || !changed) return null;
+  const held = snapshot.last_confirmed_at.getTime() - changed.getTime();
+  if (held < 2 * 86_400_000) return null;
+  return `This board's ranks and ratings have not moved since ${changed.toISOString().slice(0, 10)} (standings_changed_at); only names and clans have refreshed since (observed_at ${snapshot.observed_at.toISOString().slice(0, 10)}), so it reads as a closed event, not today's leaderboard.`;
 }
 
 /** The last place's rating on a player board: the floor while the board

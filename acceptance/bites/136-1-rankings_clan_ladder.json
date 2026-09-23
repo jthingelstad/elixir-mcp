@@ -1,0 +1,2564 @@
+{
+  "feedback": 136,
+  "contract_version": "6.26.0",
+  "captured_at": "2026-09-23T17:36:04.335Z",
+  "request": {
+    "tool": "rankings_clan_ladder",
+    "arguments": {
+      "as_of": "2026-09-16T12:00:00Z",
+      "limit": 250,
+      "offset": 250
+    }
+  },
+  "response": {
+    "board": "clans",
+    "location": {
+      "key": "global",
+      "label": "Clan score · global",
+      "kind": "global",
+      "country_code": null
+    },
+    "applied": {
+      "board": "clans",
+      "location": "global",
+      "as_of": "2026-09-16T12:00:00.000Z",
+      "limit": 250,
+      "offset": 250
+    },
+    "snapshot": {
+      "observed_at": "2026-09-16T10:02:45.000Z",
+      "unchanged_until": "2026-09-16T10:02:45.000Z",
+      "season_id": "136",
+      "season_month": "2026-09",
+      "entries": 1000,
+      "depth": 1000,
+      "full": true,
+      "truncated": false,
+      "cadence_minutes": 1440
+    },
+    "clans": [
+      {
+        "rank": 251,
+        "previous_rank": 308,
+        "clan_tag": "#2RGLQ",
+        "name": "FURIA MEXICANA",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000163,
+        "location_id": 57000153
+      },
+      {
+        "rank": 252,
+        "previous_rank": 309,
+        "clan_tag": "#GYRPQJ0L",
+        "name": "Play To win",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000012,
+        "location_id": 57000184
+      },
+      {
+        "rank": 253,
+        "previous_rank": 310,
+        "clan_tag": "#QGUQ9PLG",
+        "name": "!!TIERRA PLANA2",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000122,
+        "location_id": 57000017
+      },
+      {
+        "rank": 254,
+        "previous_rank": 311,
+        "clan_tag": "#2YCJGVLV",
+        "name": "Assassins CR",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000032,
+        "location_id": 57000064
+      },
+      {
+        "rank": 255,
+        "previous_rank": 312,
+        "clan_tag": "#G2LV9L0J",
+        "name": "Mad Bulls",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000095,
+        "location_id": 57000125
+      },
+      {
+        "rank": 256,
+        "previous_rank": 313,
+        "clan_tag": "#LGJ2U8P2",
+        "name": "THE BIJUUS CLAN",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000043,
+        "location_id": 57000059
+      },
+      {
+        "rank": 257,
+        "previous_rank": 315,
+        "clan_tag": "#QVC0RRYC",
+        "name": "LUSOWAR EVO",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000002,
+        "location_id": 57000188
+      },
+      {
+        "rank": 258,
+        "previous_rank": 318,
+        "clan_tag": "#GUCCL9P0",
+        "name": "La GR",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000166,
+        "location_id": 57000087
+      },
+      {
+        "rank": 259,
+        "previous_rank": 320,
+        "clan_tag": "#9R0CRUY",
+        "name": "PERU ROYALE 2",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000013,
+        "location_id": 57000184
+      },
+      {
+        "rank": 260,
+        "previous_rank": 322,
+        "clan_tag": "#GV8UQUU",
+        "name": "尺ﾘЦ Team 龍",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000044,
+        "location_id": 57000059
+      },
+      {
+        "rank": 261,
+        "previous_rank": 323,
+        "clan_tag": "#P2CVL9VV",
+        "name": "ROYALE ATIVO",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000004,
+        "location_id": 57000038
+      },
+      {
+        "rank": 262,
+        "previous_rank": 324,
+        "clan_tag": "#8LQPLCJJ",
+        "name": "Alianza Royal",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000063,
+        "location_id": 57000184
+      },
+      {
+        "rank": 263,
+        "previous_rank": 325,
+        "clan_tag": "#QUQCVVQJ",
+        "name": "ANDROMEDA",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000108,
+        "location_id": 57000064
+      },
+      {
+        "rank": 264,
+        "previous_rank": 326,
+        "clan_tag": "#RL0VJYL9",
+        "name": "Brazil Empire",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 265,
+        "previous_rank": 330,
+        "clan_tag": "#QVRPCVLP",
+        "name": "Furia Ibérica 2",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000172,
+        "location_id": 57000218
+      },
+      {
+        "rank": 266,
+        "previous_rank": 1320,
+        "clan_tag": "#QRR9GYCC",
+        "name": "StormBreaker",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000164,
+        "location_id": 57000239
+      },
+      {
+        "rank": 267,
+        "previous_rank": 171,
+        "clan_tag": "#QVG8J8QV",
+        "name": "Parabellum☔️",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000029,
+        "location_id": 57000254
+      },
+      {
+        "rank": 268,
+        "previous_rank": 1330,
+        "clan_tag": "#QJRRCPCU",
+        "name": "ERRKEK KAHVESİ",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000032,
+        "location_id": 57000239
+      },
+      {
+        "rank": 269,
+        "previous_rank": 1371,
+        "clan_tag": "#G29C90L0",
+        "name": "01",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 270,
+        "previous_rank": 1336,
+        "clan_tag": "#GQ9U2G8L",
+        "name": "Elit Goblinler",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000168,
+        "location_id": 57000239
+      },
+      {
+        "rank": 271,
+        "previous_rank": 2664,
+        "clan_tag": "#QUUYL92C",
+        "name": "ANCIENT EGY'S",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000159,
+        "location_id": 57000077
+      },
+      {
+        "rank": 272,
+        "previous_rank": 1318,
+        "clan_tag": "#QJ0V8PVG",
+        "name": "Depo gäng",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000063,
+        "location_id": 57000086
+      },
+      {
+        "rank": 273,
+        "previous_rank": 1322,
+        "clan_tag": "#L88Q9RYP",
+        "name": "114kings",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000080,
+        "location_id": 57000094
+      },
+      {
+        "rank": 274,
+        "previous_rank": 1345,
+        "clan_tag": "#9UL02QPV",
+        "name": "\" Black mask “",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000032,
+        "location_id": 57000204
+      },
+      {
+        "rank": 275,
+        "previous_rank": 1359,
+        "clan_tag": "#YQPGYRLV",
+        "name": "Ataraxia",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000122
+      },
+      {
+        "rank": 276,
+        "previous_rank": 319,
+        "clan_tag": "#C8UJ22",
+        "name": "840 Royale",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000035,
+        "location_id": 57000249
+      },
+      {
+        "rank": 277,
+        "previous_rank": 321,
+        "clan_tag": "#RVJL2PRR",
+        "name": "LEGION MXN",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000163,
+        "location_id": 57000153
+      },
+      {
+        "rank": 278,
+        "previous_rank": 1258,
+        "clan_tag": "#RRPLCRVG",
+        "name": "StarAlliance SS",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000039,
+        "location_id": 57000192
+      },
+      {
+        "rank": 279,
+        "previous_rank": 1361,
+        "clan_tag": "#QLCCGCRV",
+        "name": "DarkSpace",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000029,
+        "location_id": 57000239
+      },
+      {
+        "rank": 280,
+        "previous_rank": 1313,
+        "clan_tag": "#G2GYPQLC",
+        "name": "tumbadoteam",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000169
+      },
+      {
+        "rank": 281,
+        "previous_rank": 1350,
+        "clan_tag": "#LUP2CQYQ",
+        "name": "Canadian Elite",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000002,
+        "location_id": 57000047
+      },
+      {
+        "rank": 282,
+        "previous_rank": 196,
+        "clan_tag": "#9G8CPVY9",
+        "name": "KSA Demons",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000146,
+        "location_id": 57000204
+      },
+      {
+        "rank": 283,
+        "previous_rank": 1360,
+        "clan_tag": "#QQ2UPRGG",
+        "name": "FANTŌM'SV",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000136,
+        "location_id": 57000078
+      },
+      {
+        "rank": 284,
+        "previous_rank": 227,
+        "clan_tag": "#8CUVC2L0",
+        "name": "Clan-Arg",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000113,
+        "location_id": 57000017
+      },
+      {
+        "rank": 285,
+        "previous_rank": 143,
+        "clan_tag": "#L8CGRJYJ",
+        "name": "Colombia Humana",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000073,
+        "location_id": 57000059
+      },
+      {
+        "rank": 286,
+        "previous_rank": 1298,
+        "clan_tag": "#RL8LP08J",
+        "name": "#NOTFOUND",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000123,
+        "location_id": 57000006
+      },
+      {
+        "rank": 287,
+        "previous_rank": 1342,
+        "clan_tag": "#GVY92VU8",
+        "name": "Dark Elixir",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000107,
+        "location_id": 57000249
+      },
+      {
+        "rank": 288,
+        "previous_rank": 1288,
+        "clan_tag": "#L289RVRR",
+        "name": "#MomBods",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000130,
+        "location_id": 57000249
+      },
+      {
+        "rank": 289,
+        "previous_rank": 1259,
+        "clan_tag": "#9GVLVC0L",
+        "name": "⚡⚡Energy Team⚡⚡",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000010,
+        "location_id": 57000153
+      },
+      {
+        "rank": 290,
+        "previous_rank": 144,
+        "clan_tag": "#8L0CRRL",
+        "name": "Jesus is Risen",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000063,
+        "location_id": 57000249
+      },
+      {
+        "rank": 291,
+        "previous_rank": 1315,
+        "clan_tag": "#QLU0P0CL",
+        "name": "⚡️PREDATORS⚡️",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000008,
+        "location_id": 57000120
+      },
+      {
+        "rank": 292,
+        "previous_rank": 327,
+        "clan_tag": "#YYRP9CC2",
+        "name": "# BHARAT",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000059,
+        "location_id": 57000113
+      },
+      {
+        "rank": 293,
+        "previous_rank": 1307,
+        "clan_tag": "#2YR2L9VG",
+        "name": "[24/7] Supports",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000006,
+        "location_id": 57000094
+      },
+      {
+        "rank": 294,
+        "previous_rank": 265,
+        "clan_tag": "#GULCVUCV",
+        "name": "NICA PREMIUM ✨️",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000077,
+        "location_id": 57000169
+      },
+      {
+        "rank": 295,
+        "previous_rank": 232,
+        "clan_tag": "#9J2U8GU",
+        "name": "Los Aliados :v",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000109,
+        "location_id": 57000153
+      },
+      {
+        "rank": 296,
+        "previous_rank": 56,
+        "clan_tag": "#RPGR8J00",
+        "name": "+46 Guys",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000139,
+        "location_id": 57000225
+      },
+      {
+        "rank": 297,
+        "previous_rank": 2686,
+        "clan_tag": "#GUL808PP",
+        "name": "Farsight",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000122,
+        "location_id": 57000153
+      },
+      {
+        "rank": 298,
+        "previous_rank": 183,
+        "clan_tag": "#GY8U8Y0Y",
+        "name": "\"NICARAGUA\"",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000159,
+        "location_id": 57000169
+      },
+      {
+        "rank": 299,
+        "previous_rank": 151,
+        "clan_tag": "#QVP9U29L",
+        "name": "Altınmürettebat",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000030,
+        "location_id": 57000239
+      },
+      {
+        "rank": 300,
+        "previous_rank": 1275,
+        "clan_tag": "#Q9YVYR98",
+        "name": "UZBEKISTAN ELIT",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000032,
+        "location_id": 57000251
+      },
+      {
+        "rank": 301,
+        "previous_rank": 1257,
+        "clan_tag": "#R8PC2LUU",
+        "name": "EestiLeiud",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000014,
+        "location_id": 57000081
+      },
+      {
+        "rank": 302,
+        "previous_rank": 1303,
+        "clan_tag": "#GVUPVQGJ",
+        "name": "IR Excellently",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000081,
+        "location_id": 57000115
+      },
+      {
+        "rank": 303,
+        "previous_rank": 1262,
+        "clan_tag": "#G0Y909L0",
+        "name": "MantaCity",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000142,
+        "location_id": 57000076
+      },
+      {
+        "rank": 304,
+        "previous_rank": 1284,
+        "clan_tag": "#GRLLRPUP",
+        "name": "MidnightSociety",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000121,
+        "location_id": 57000166
+      },
+      {
+        "rank": 305,
+        "previous_rank": 228,
+        "clan_tag": "#G09C8G8Q",
+        "name": "WarriorS™️",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000005,
+        "location_id": 57000034
+      },
+      {
+        "rank": 306,
+        "previous_rank": 1338,
+        "clan_tag": "#PUGCP0JV",
+        "name": "ELITE INDIANS",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000043,
+        "location_id": 57000113
+      },
+      {
+        "rank": 307,
+        "previous_rank": 1310,
+        "clan_tag": "#Q9VLL208",
+        "name": "Powerade ☔️",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000008,
+        "location_id": 57000094
+      },
+      {
+        "rank": 308,
+        "previous_rank": 139,
+        "clan_tag": "#RVCUG",
+        "name": "CR Ecuador",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000073,
+        "location_id": 57000076
+      },
+      {
+        "rank": 309,
+        "previous_rank": 1366,
+        "clan_tag": "#8P08R98P",
+        "name": "Latin Souls",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000037,
+        "location_id": 57000075
+      },
+      {
+        "rank": 310,
+        "previous_rank": 296,
+        "clan_tag": "#GJGP98JG",
+        "name": "Light 3.0™️",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000032,
+        "location_id": 57000087
+      },
+      {
+        "rank": 311,
+        "previous_rank": 57,
+        "clan_tag": "#20GVJUQV",
+        "name": "고고",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000035,
+        "location_id": 57000216
+      },
+      {
+        "rank": 312,
+        "previous_rank": 1347,
+        "clan_tag": "#RYRQRVV9",
+        "name": "100IQ France",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000078,
+        "location_id": 57000087
+      },
+      {
+        "rank": 313,
+        "previous_rank": 1332,
+        "clan_tag": "#VQ2UYPP",
+        "name": "iraq steel",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000026,
+        "location_id": 57000116
+      },
+      {
+        "rank": 314,
+        "previous_rank": 2659,
+        "clan_tag": "#PU9Q99UP",
+        "name": "LA UNION",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000109,
+        "location_id": 57000153
+      },
+      {
+        "rank": 315,
+        "previous_rank": 1354,
+        "clan_tag": "#QV98CVCC",
+        "name": "Legends ✨",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000121,
+        "location_id": 57000249
+      },
+      {
+        "rank": 316,
+        "previous_rank": 1323,
+        "clan_tag": "#YV22QG9V",
+        "name": "Royal Unity",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000175,
+        "location_id": 57000246
+      },
+      {
+        "rank": 317,
+        "previous_rank": 1308,
+        "clan_tag": "#RYURVLQ8",
+        "name": "CC_FAMILY",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000027,
+        "location_id": 57000120
+      },
+      {
+        "rank": 318,
+        "previous_rank": 120,
+        "clan_tag": "#QLQJJVY8",
+        "name": "Mugiwara",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000171,
+        "location_id": 57000087
+      },
+      {
+        "rank": 319,
+        "previous_rank": 1319,
+        "clan_tag": "#LLCCRCL0",
+        "name": "Almasdefuego4",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000000,
+        "location_id": 57000218
+      },
+      {
+        "rank": 320,
+        "previous_rank": 1314,
+        "clan_tag": "#GC0CCCQ0",
+        "name": "Los Excluidos",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000218
+      },
+      {
+        "rank": 321,
+        "previous_rank": 255,
+        "clan_tag": "#QVVVURCJ",
+        "name": "oljefondet",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000107,
+        "location_id": 57000176
+      },
+      {
+        "rank": 322,
+        "previous_rank": 1292,
+        "clan_tag": "#GRRYY2YV",
+        "name": "Iraqi barcalona",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000144,
+        "location_id": 57000116
+      },
+      {
+        "rank": 323,
+        "previous_rank": 1321,
+        "clan_tag": "#YV0QY2R9",
+        "name": "Flanders Fire",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000002,
+        "location_id": 57000029
+      },
+      {
+        "rank": 324,
+        "previous_rank": 1305,
+        "clan_tag": "#G00G2R29",
+        "name": "German Elite",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000013,
+        "location_id": 57000094
+      },
+      {
+        "rank": 325,
+        "previous_rank": 2670,
+        "clan_tag": "#Q9GGGQ8C",
+        "name": "royale family",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000029,
+        "location_id": 57000165
+      },
+      {
+        "rank": 326,
+        "previous_rank": 249,
+        "clan_tag": "#GRQC0LGV",
+        "name": "Cyrus' Eagles",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000029,
+        "location_id": 57000115
+      },
+      {
+        "rank": 327,
+        "previous_rank": 1256,
+        "clan_tag": "#GQYLQQPQ",
+        "name": "Сверху",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000012,
+        "location_id": 57000028
+      },
+      {
+        "rank": 328,
+        "previous_rank": 282,
+        "clan_tag": "#999U8CRU",
+        "name": "Kaptan-ı Derya",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000030,
+        "location_id": 57000239
+      },
+      {
+        "rank": 329,
+        "previous_rank": 149,
+        "clan_tag": "#QVGUPCYU",
+        "name": "machikne",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000029,
+        "location_id": 57000165
+      },
+      {
+        "rank": 330,
+        "previous_rank": 51,
+        "clan_tag": "#9RUCY02",
+        "name": "Alpha",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000043,
+        "location_id": 57000248
+      },
+      {
+        "rank": 331,
+        "previous_rank": 83,
+        "clan_tag": "#QGV9Y98G",
+        "name": "! Arrakis A !",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000098,
+        "location_id": 57000087
+      },
+      {
+        "rank": 332,
+        "previous_rank": 75,
+        "clan_tag": "#G0QPVVQ0",
+        "name": "River Plate",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000054,
+        "location_id": 57000017
+      },
+      {
+        "rank": 333,
+        "previous_rank": 316,
+        "clan_tag": "#QJQJQ2RP",
+        "name": "❤️LegendsIndia❤",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000145,
+        "location_id": 57000113
+      },
+      {
+        "rank": 334,
+        "previous_rank": 246,
+        "clan_tag": "#RRCRV8LQ",
+        "name": "TURKISH STORM",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000030,
+        "location_id": 57000239
+      },
+      {
+        "rank": 335,
+        "previous_rank": 1304,
+        "clan_tag": "#YRV0R0R2",
+        "name": "50+1.KZ",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000055,
+        "location_id": 57000125
+      },
+      {
+        "rank": 336,
+        "previous_rank": 207,
+        "clan_tag": "#CL0P0V",
+        "name": "الاقوياء",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000136,
+        "location_id": 57000204
+      },
+      {
+        "rank": 337,
+        "previous_rank": 181,
+        "clan_tag": "#Y2URCLJ",
+        "name": "#Eclypse",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000106,
+        "location_id": 57000087
+      },
+      {
+        "rank": 338,
+        "previous_rank": 166,
+        "clan_tag": "#YVJ9PQ8Y",
+        "name": "Clan #YVJ9PQ8Y",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000177,
+        "location_id": 57000115
+      },
+      {
+        "rank": 339,
+        "previous_rank": 175,
+        "clan_tag": "#8Y08VVC",
+        "name": "영웅",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000044,
+        "location_id": 57000216
+      },
+      {
+        "rank": 340,
+        "previous_rank": 317,
+        "clan_tag": "#9LLL2URJ",
+        "name": "Sandstorm EGY",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000097,
+        "location_id": 57000077
+      },
+      {
+        "rank": 341,
+        "previous_rank": 1287,
+        "clan_tag": "#LVL0QVC9",
+        "name": "Dutch Corps Jr",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000028,
+        "location_id": 57000166
+      },
+      {
+        "rank": 342,
+        "previous_rank": 87,
+        "clan_tag": "#GJ2LUGJQ",
+        "name": "Altınmürettebat",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000030,
+        "location_id": 57000239
+      },
+      {
+        "rank": 343,
+        "previous_rank": 2650,
+        "clan_tag": "#RUP22RRG",
+        "name": "Sarı Bereliler",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000122,
+        "location_id": 57000239
+      },
+      {
+        "rank": 344,
+        "previous_rank": 1353,
+        "clan_tag": "#G8RGY82P",
+        "name": "Shambala",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000073,
+        "location_id": 57000059
+      },
+      {
+        "rank": 345,
+        "previous_rank": 229,
+        "clan_tag": "#PC0YYRU2",
+        "name": "Persian Warrior",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000029,
+        "location_id": 57000115
+      },
+      {
+        "rank": 346,
+        "previous_rank": 226,
+        "clan_tag": "#QUC0PG00",
+        "name": "ir stars",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000120,
+        "location_id": 57000115
+      },
+      {
+        "rank": 347,
+        "previous_rank": 332,
+        "clan_tag": "#9P9LUCJL",
+        "name": "PROFFI $",
+        "score": 139999,
+        "members": 50,
+        "badge_id": 16000175,
+        "location_id": 57000246
+      },
+      {
+        "rank": 348,
+        "previous_rank": 333,
+        "clan_tag": "#29GC89R",
+        "name": "無言",
+        "score": 139999,
+        "members": 50,
+        "badge_id": 16000054,
+        "location_id": 57000122
+      },
+      {
+        "rank": 349,
+        "previous_rank": 334,
+        "clan_tag": "#9GUGPL92",
+        "name": "Br@zil Legends",
+        "score": 139997,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 350,
+        "previous_rank": 335,
+        "clan_tag": "#GRLRCJR9",
+        "name": "*/DinoRampage/*",
+        "score": 139997,
+        "members": 50,
+        "badge_id": 16000021,
+        "location_id": 57000034
+      },
+      {
+        "rank": 351,
+        "previous_rank": 349,
+        "clan_tag": "#P0YYJJC9",
+        "name": "¡¡THE FAMILY!!",
+        "score": 139997,
+        "members": 50,
+        "badge_id": 16000146,
+        "location_id": 57000078
+      },
+      {
+        "rank": 352,
+        "previous_rank": 336,
+        "clan_tag": "#QJURLQYJ",
+        "name": "TT CR SUDE",
+        "score": 139996,
+        "members": 50,
+        "badge_id": 16000008,
+        "location_id": 57000239
+      },
+      {
+        "rank": 353,
+        "previous_rank": 337,
+        "clan_tag": "#P2Q90RCJ",
+        "name": "LA GRAN CAMPAÑA",
+        "score": 139996,
+        "members": 50,
+        "badge_id": 16000044,
+        "location_id": 57000184
+      },
+      {
+        "rank": 354,
+        "previous_rank": 338,
+        "clan_tag": "#G2GUY98Q",
+        "name": "50 Masters™️ ✊",
+        "score": 139995,
+        "members": 50,
+        "badge_id": 16000012,
+        "location_id": 57000076
+      },
+      {
+        "rank": 355,
+        "previous_rank": 339,
+        "clan_tag": "#QV8QPPPP",
+        "name": "Amaru Kancha",
+        "score": 139995,
+        "members": 50,
+        "badge_id": 16000065,
+        "location_id": 57000184
+      },
+      {
+        "rank": 356,
+        "previous_rank": 342,
+        "clan_tag": "#2YG28L9R",
+        "name": "EpicShockZz ❤",
+        "score": 139994,
+        "members": 50,
+        "badge_id": 16000154,
+        "location_id": 57000094
+      },
+      {
+        "rank": 357,
+        "previous_rank": 344,
+        "clan_tag": "#G20CC090",
+        "name": "SmcLegends",
+        "score": 139994,
+        "members": 50,
+        "badge_id": 16000064,
+        "location_id": 57000109
+      },
+      {
+        "rank": 358,
+        "previous_rank": 340,
+        "clan_tag": "#9CLUGV9Q",
+        "name": "!nd!an Elites™3",
+        "score": 139994,
+        "members": 50,
+        "badge_id": 16000004,
+        "location_id": 57000113
+      },
+      {
+        "rank": 359,
+        "previous_rank": 1389,
+        "clan_tag": "#G20LLV9L",
+        "name": "019 E-Sports ⚔️",
+        "score": 139994,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 360,
+        "previous_rank": 352,
+        "clan_tag": "#RYJU22GL",
+        "name": "OLD TIMES BACK",
+        "score": 139994,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000005
+      },
+      {
+        "rank": 361,
+        "previous_rank": 345,
+        "clan_tag": "#QLRU9U0V",
+        "name": "Pluizers 2",
+        "score": 139993,
+        "members": 50,
+        "badge_id": 16000096,
+        "location_id": 57000166
+      },
+      {
+        "rank": 362,
+        "previous_rank": 347,
+        "clan_tag": "#PGQUP0QJ",
+        "name": "TeamLiquid AZ",
+        "score": 139992,
+        "members": 50,
+        "badge_id": 16000063,
+        "location_id": 57000023
+      },
+      {
+        "rank": 363,
+        "previous_rank": 351,
+        "clan_tag": "#GLVYQQRV",
+        "name": "Brasil Team ExP",
+        "score": 139991,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 364,
+        "previous_rank": 353,
+        "clan_tag": "#LPRRR8V2",
+        "name": "FENOMENAL",
+        "score": 139991,
+        "members": 50,
+        "badge_id": 16000081,
+        "location_id": 57000120
+      },
+      {
+        "rank": 365,
+        "previous_rank": 355,
+        "clan_tag": "#989VGGV8",
+        "name": "ComeBack",
+        "score": 139991,
+        "members": 50,
+        "badge_id": 16000010,
+        "location_id": 57000087
+      },
+      {
+        "rank": 366,
+        "previous_rank": 350,
+        "clan_tag": "#GVJQVPLY",
+        "name": "! Savage",
+        "score": 139991,
+        "members": 50,
+        "badge_id": 16000025,
+        "location_id": 57000038
+      },
+      {
+        "rank": 367,
+        "previous_rank": 354,
+        "clan_tag": "#P0JVLLV0",
+        "name": "RED MACHINE",
+        "score": 139991,
+        "members": 50,
+        "badge_id": 16000072,
+        "location_id": 57000193
+      },
+      {
+        "rank": 368,
+        "previous_rank": 356,
+        "clan_tag": "#CLPRPV",
+        "name": "Les TucHe",
+        "score": 139991,
+        "members": 50,
+        "badge_id": 16000136,
+        "location_id": 57000087
+      },
+      {
+        "rank": 369,
+        "previous_rank": 1393,
+        "clan_tag": "#YU2LQJC9",
+        "name": "ASSASSIN SOULS",
+        "score": 139991,
+        "members": 50,
+        "badge_id": 16000002,
+        "location_id": 57000113
+      },
+      {
+        "rank": 370,
+        "previous_rank": 357,
+        "clan_tag": "#QJP90RR0",
+        "name": "alza3eem 1",
+        "score": 139990,
+        "members": 50,
+        "badge_id": 16000144,
+        "location_id": 57000025
+      },
+      {
+        "rank": 371,
+        "previous_rank": 1357,
+        "clan_tag": "#8GRYCLLR",
+        "name": "ClashHead COL",
+        "score": 139990,
+        "members": 50,
+        "badge_id": 16000073,
+        "location_id": 57000059
+      },
+      {
+        "rank": 372,
+        "previous_rank": 358,
+        "clan_tag": "#89RJVLL",
+        "name": "ALLEANZA",
+        "score": 139989,
+        "members": 50,
+        "badge_id": 16000112,
+        "location_id": 57000120
+      },
+      {
+        "rank": 373,
+        "previous_rank": 361,
+        "clan_tag": "#GJRUGYG0",
+        "name": "Czechmate",
+        "score": 139989,
+        "members": 50,
+        "badge_id": 16000087,
+        "location_id": 57000070
+      },
+      {
+        "rank": 374,
+        "previous_rank": 362,
+        "clan_tag": "#8J2LVY80",
+        "name": "Brazilian Squad",
+        "score": 139988,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 375,
+        "previous_rank": 363,
+        "clan_tag": "#2LR0YQLL",
+        "name": "Al-King",
+        "score": 139988,
+        "members": 50,
+        "badge_id": 16000000,
+        "location_id": 57000077
+      },
+      {
+        "rank": 376,
+        "previous_rank": 1403,
+        "clan_tag": "#R88QR80L",
+        "name": "IMPOSSIBLE!",
+        "score": 139988,
+        "members": 50,
+        "badge_id": 16000030,
+        "location_id": 57000239
+      },
+      {
+        "rank": 377,
+        "previous_rank": 364,
+        "clan_tag": "#8YUGUVLJ",
+        "name": "Palmeiras",
+        "score": 139987,
+        "members": 50,
+        "badge_id": 16000081,
+        "location_id": 57000038
+      },
+      {
+        "rank": 378,
+        "previous_rank": 365,
+        "clan_tag": "#GG800YJ8",
+        "name": "200IQ FRANCE",
+        "score": 139987,
+        "members": 50,
+        "badge_id": 16000078,
+        "location_id": 57000087
+      },
+      {
+        "rank": 379,
+        "previous_rank": 376,
+        "clan_tag": "#VQL0VG8",
+        "name": "Ac Sparta",
+        "score": 139987,
+        "members": 50,
+        "badge_id": 16000081,
+        "location_id": 57000000
+      },
+      {
+        "rank": 380,
+        "previous_rank": 367,
+        "clan_tag": "#GLP0PYL8",
+        "name": "tronus Christi",
+        "score": 139986,
+        "members": 50,
+        "badge_id": 16000020,
+        "location_id": 57000218
+      },
+      {
+        "rank": 381,
+        "previous_rank": 368,
+        "clan_tag": "#RRJ92L9L",
+        "name": "PERU ROYALE",
+        "score": 139986,
+        "members": 50,
+        "badge_id": 16000107,
+        "location_id": 57000184
+      },
+      {
+        "rank": 382,
+        "previous_rank": 369,
+        "clan_tag": "#GCVPR90U",
+        "name": "FC Oficial",
+        "score": 139985,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 383,
+        "previous_rank": 370,
+        "clan_tag": "#RYVULY8V",
+        "name": "PERÚ 1024",
+        "score": 139985,
+        "members": 50,
+        "badge_id": 16000149,
+        "location_id": 57000184
+      },
+      {
+        "rank": 384,
+        "previous_rank": 371,
+        "clan_tag": "#PC0VG9J9",
+        "name": "East Storm",
+        "score": 139985,
+        "members": 50,
+        "badge_id": 16000106,
+        "location_id": 57000227
+      },
+      {
+        "rank": 385,
+        "previous_rank": 372,
+        "clan_tag": "#29P2RYP",
+        "name": "Green team",
+        "score": 139985,
+        "members": 50,
+        "badge_id": 16000035,
+        "location_id": 57000038
+      },
+      {
+        "rank": 386,
+        "previous_rank": 401,
+        "clan_tag": "#2900PQJR",
+        "name": "Difuzed",
+        "score": 139985,
+        "members": 50,
+        "badge_id": 16000125,
+        "location_id": 57000055
+      },
+      {
+        "rank": 387,
+        "previous_rank": 2732,
+        "clan_tag": "#QGQJRGPU",
+        "name": "Repretel Canal6",
+        "score": 139985,
+        "members": 50,
+        "badge_id": 16000012,
+        "location_id": 57000064
+      },
+      {
+        "rank": 388,
+        "previous_rank": 373,
+        "clan_tag": "#QVC0VL8",
+        "name": "Galacticos 2",
+        "score": 139985,
+        "members": 50,
+        "badge_id": 16000168,
+        "location_id": 57000119
+      },
+      {
+        "rank": 389,
+        "previous_rank": 375,
+        "clan_tag": "#L8QVV0LY",
+        "name": "Desertores Mx",
+        "score": 139984,
+        "members": 50,
+        "badge_id": 16000044,
+        "location_id": 57000153
+      },
+      {
+        "rank": 390,
+        "previous_rank": 377,
+        "clan_tag": "#RPVU2CQJ",
+        "name": "CC Legends",
+        "score": 139983,
+        "members": 50,
+        "badge_id": 16000171,
+        "location_id": 57000094
+      },
+      {
+        "rank": 391,
+        "previous_rank": 378,
+        "clan_tag": "#R8UP98V2",
+        "name": "Brasil Busters2",
+        "score": 139983,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 392,
+        "previous_rank": 382,
+        "clan_tag": "#2QQC0YQ",
+        "name": "POLSKA",
+        "score": 139981,
+        "members": 50,
+        "badge_id": 16000067,
+        "location_id": 57000187
+      },
+      {
+        "rank": 393,
+        "previous_rank": 385,
+        "clan_tag": "#QJRCJG8Y",
+        "name": "CRL LEAGUE",
+        "score": 139981,
+        "members": 50,
+        "badge_id": 16000032,
+        "location_id": 57000204
+      },
+      {
+        "rank": 394,
+        "previous_rank": 386,
+        "clan_tag": "#9VUQVPG",
+        "name": "Whitebeard Crew",
+        "score": 139980,
+        "members": 50,
+        "badge_id": 16000153,
+        "location_id": 57000022
+      },
+      {
+        "rank": 395,
+        "previous_rank": 387,
+        "clan_tag": "#PVVQY9PQ",
+        "name": "%99 SUSPECT %99",
+        "score": 139980,
+        "members": 50,
+        "badge_id": 16000030,
+        "location_id": 57000239
+      },
+      {
+        "rank": 396,
+        "previous_rank": 388,
+        "clan_tag": "#R0PGPJ8P",
+        "name": "❤️زلم_العراق♥️",
+        "score": 139980,
+        "members": 50,
+        "badge_id": 16000016,
+        "location_id": 57000116
+      },
+      {
+        "rank": 397,
+        "previous_rank": 389,
+        "clan_tag": "#98VVPJGR",
+        "name": "Biohazard",
+        "score": 139980,
+        "members": 50,
+        "badge_id": 16000029,
+        "location_id": 57000038
+      },
+      {
+        "rank": 398,
+        "previous_rank": 380,
+        "clan_tag": "#G9Q2R9L2",
+        "name": "-morfin-",
+        "score": 139980,
+        "members": 50,
+        "badge_id": 16000030,
+        "location_id": 57000239
+      },
+      {
+        "rank": 399,
+        "previous_rank": 1432,
+        "clan_tag": "#L0VQ0U0U",
+        "name": "1. Bundesliga",
+        "score": 139980,
+        "members": 50,
+        "badge_id": 16000080,
+        "location_id": 57000094
+      },
+      {
+        "rank": 400,
+        "previous_rank": 391,
+        "clan_tag": "#9VLVVY8P",
+        "name": "syria",
+        "score": 139979,
+        "members": 50,
+        "badge_id": 16000077,
+        "location_id": 57000227
+      },
+      {
+        "rank": 401,
+        "previous_rank": 394,
+        "clan_tag": "#2GQ209",
+        "name": "#zeus#",
+        "score": 139978,
+        "members": 50,
+        "badge_id": 16000011,
+        "location_id": 57000249
+      },
+      {
+        "rank": 402,
+        "previous_rank": 396,
+        "clan_tag": "#Q2PR8G",
+        "name": "Eternity",
+        "score": 139978,
+        "members": 50,
+        "badge_id": 16000035,
+        "location_id": 57000165
+      },
+      {
+        "rank": 403,
+        "previous_rank": 398,
+        "clan_tag": "#LJU2UC2R",
+        "name": "BOGOTA D. C",
+        "score": 139978,
+        "members": 50,
+        "badge_id": 16000073,
+        "location_id": 57000059
+      },
+      {
+        "rank": 404,
+        "previous_rank": 1442,
+        "clan_tag": "#YC2YUQJU",
+        "name": "ChetardosPy",
+        "score": 139978,
+        "members": 50,
+        "badge_id": 16000144,
+        "location_id": 57000183
+      },
+      {
+        "rank": 405,
+        "previous_rank": 390,
+        "clan_tag": "#QRP8PJ89",
+        "name": "!USA! 2",
+        "score": 139978,
+        "members": 50,
+        "badge_id": 16000038,
+        "location_id": 57000249
+      },
+      {
+        "rank": 406,
+        "previous_rank": 395,
+        "clan_tag": "#PYUVCPL",
+        "name": "لحية بيضاء",
+        "score": 139978,
+        "members": 50,
+        "badge_id": 16000029,
+        "location_id": 57000177
+      },
+      {
+        "rank": 407,
+        "previous_rank": 397,
+        "clan_tag": "#QGG2RYJ",
+        "name": ">>AY YILDIZ<<",
+        "score": 139977,
+        "members": 50,
+        "badge_id": 16000030,
+        "location_id": 57000239
+      },
+      {
+        "rank": 408,
+        "previous_rank": 404,
+        "clan_tag": "#9GY2UUQQ",
+        "name": "SUR AMERICA",
+        "score": 139976,
+        "members": 50,
+        "badge_id": 16000073,
+        "location_id": 57000076
+      },
+      {
+        "rank": 409,
+        "previous_rank": 1449,
+        "clan_tag": "#J9QVUGVJ",
+        "name": "Artos",
+        "score": 139976,
+        "members": 50,
+        "badge_id": 16000098,
+        "location_id": 57000248
+      },
+      {
+        "rank": 410,
+        "previous_rank": 1446,
+        "clan_tag": "#QPQYC2JR",
+        "name": "FunSauce",
+        "score": 139976,
+        "members": 50,
+        "badge_id": 16000121,
+        "location_id": 57000249
+      },
+      {
+        "rank": 411,
+        "previous_rank": 402,
+        "clan_tag": "#G9V80JYQ",
+        "name": "GOOD BAIT",
+        "score": 139975,
+        "members": 50,
+        "badge_id": 16000154,
+        "location_id": 57000153
+      },
+      {
+        "rank": 412,
+        "previous_rank": 405,
+        "clan_tag": "#2V2VRRLJ",
+        "name": "Dark Humor",
+        "score": 139973,
+        "members": 50,
+        "badge_id": 16000028,
+        "location_id": 57000249
+      },
+      {
+        "rank": 413,
+        "previous_rank": 409,
+        "clan_tag": "#Y2VYQJ0Y",
+        "name": "Kings of Saudi",
+        "score": 139972,
+        "members": 50,
+        "badge_id": 16000028,
+        "location_id": 57000204
+      },
+      {
+        "rank": 414,
+        "previous_rank": 408,
+        "clan_tag": "#QVVLLLCY",
+        "name": "Baleadas Elite",
+        "score": 139971,
+        "members": 50,
+        "badge_id": 16000144,
+        "location_id": 57000109
+      },
+      {
+        "rank": 415,
+        "previous_rank": 410,
+        "clan_tag": "#RGP0QV9P",
+        "name": "Gold Mine™️",
+        "score": 139971,
+        "members": 50,
+        "badge_id": 16000104,
+        "location_id": 57000094
+      },
+      {
+        "rank": 416,
+        "previous_rank": 412,
+        "clan_tag": "#QJVG8CYL",
+        "name": "YT:LUFFY CR",
+        "score": 139971,
+        "members": 50,
+        "badge_id": 16000028,
+        "location_id": 57000116
+      },
+      {
+        "rank": 417,
+        "previous_rank": 411,
+        "clan_tag": "#LJRGJV80",
+        "name": "GUERREIROS PT 2",
+        "score": 139971,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 418,
+        "previous_rank": 407,
+        "clan_tag": "#G2LYGQPJ",
+        "name": "7mda&toto7nksh",
+        "score": 139971,
+        "members": 50,
+        "badge_id": 16000004,
+        "location_id": 57000077
+      },
+      {
+        "rank": 419,
+        "previous_rank": 429,
+        "clan_tag": "#G0V0YLR9",
+        "name": "ABG Satellite",
+        "score": 139971,
+        "members": 50,
+        "badge_id": 16000177,
+        "location_id": 57000249
+      },
+      {
+        "rank": 420,
+        "previous_rank": 400,
+        "clan_tag": "#R8RPR0C0",
+        "name": "LOVE UKRAINE",
+        "score": 139971,
+        "members": 50,
+        "badge_id": 16000066,
+        "location_id": 57000246
+      },
+      {
+        "rank": 421,
+        "previous_rank": 413,
+        "clan_tag": "#28GVYLU",
+        "name": "royale italy",
+        "score": 139970,
+        "members": 50,
+        "badge_id": 16000081,
+        "location_id": 57000120
+      },
+      {
+        "rank": 422,
+        "previous_rank": 414,
+        "clan_tag": "#Q9C80JJ",
+        "name": "BANGLADESH star",
+        "score": 139970,
+        "members": 50,
+        "badge_id": 16000041,
+        "location_id": 57000026
+      },
+      {
+        "rank": 423,
+        "previous_rank": 415,
+        "clan_tag": "#VLVUJJG",
+        "name": "BAHRAIN ARMY 2",
+        "score": 139970,
+        "members": 50,
+        "badge_id": 16000067,
+        "location_id": 57000025
+      },
+      {
+        "rank": 424,
+        "previous_rank": 416,
+        "clan_tag": "#R2JGU2V2",
+        "name": "BATERIA SR GOLD",
+        "score": 139970,
+        "members": 50,
+        "badge_id": 16000124,
+        "location_id": 57000184
+      },
+      {
+        "rank": 425,
+        "previous_rank": 418,
+        "clan_tag": "#PGC82PGR",
+        "name": "Bengkulu Indo",
+        "score": 139970,
+        "members": 50,
+        "badge_id": 16000173,
+        "location_id": 57000114
+      },
+      {
+        "rank": 426,
+        "previous_rank": 419,
+        "clan_tag": "#QQYVGJYG",
+        "name": "Agentes Libres",
+        "score": 139970,
+        "members": 50,
+        "badge_id": 16000172,
+        "location_id": 57000218
+      },
+      {
+        "rank": 427,
+        "previous_rank": 421,
+        "clan_tag": "#RQPQYPLP",
+        "name": "THE FAMOUS",
+        "score": 139970,
+        "members": 50,
+        "badge_id": 16000020,
+        "location_id": 57000077
+      },
+      {
+        "rank": 428,
+        "previous_rank": 417,
+        "clan_tag": "#Y8U9VLJJ",
+        "name": "BRASIL IMPÉRIO",
+        "score": 139970,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 429,
+        "previous_rank": 1466,
+        "clan_tag": "#GQG8RL2J",
+        "name": "BD BURNERS OG",
+        "score": 139970,
+        "members": 50,
+        "badge_id": 16000050,
+        "location_id": 57000026
+      },
+      {
+        "rank": 430,
+        "previous_rank": 423,
+        "clan_tag": "#82PLRYR",
+        "name": "RSA Masters",
+        "score": 139969,
+        "members": 50,
+        "badge_id": 16000147,
+        "location_id": 57000215
+      },
+      {
+        "rank": 431,
+        "previous_rank": 424,
+        "clan_tag": "#YVCQLR08",
+        "name": "1⁰ lugar sempre",
+        "score": 139969,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 432,
+        "previous_rank": 425,
+        "clan_tag": "#GG9J9L09",
+        "name": "HAKAI TEAM 1CM",
+        "score": 139969,
+        "members": 50,
+        "badge_id": 16000142,
+        "location_id": 57000017
+      },
+      {
+        "rank": 433,
+        "previous_rank": 422,
+        "clan_tag": "#20CGJU2L",
+        "name": "좋은 클랜을 만들자",
+        "score": 139969,
+        "members": 50,
+        "badge_id": 16000126,
+        "location_id": 57000216
+      },
+      {
+        "rank": 434,
+        "previous_rank": 426,
+        "clan_tag": "#9U0RLCY2",
+        "name": "AD TSCH1",
+        "score": 139968,
+        "members": 50,
+        "badge_id": 16000078,
+        "location_id": 57000087
+      },
+      {
+        "rank": 435,
+        "previous_rank": 427,
+        "clan_tag": "#G9LRLU0J",
+        "name": "50 Icons",
+        "score": 139968,
+        "members": 50,
+        "badge_id": 16000080,
+        "location_id": 57000094
+      },
+      {
+        "rank": 436,
+        "previous_rank": 435,
+        "clan_tag": "#GUUVPV0J",
+        "name": "العرب",
+        "score": 139966,
+        "members": 50,
+        "badge_id": 16000003,
+        "location_id": 57000204
+      },
+      {
+        "rank": 437,
+        "previous_rank": 432,
+        "clan_tag": "#QLCRPJL0",
+        "name": "#100France",
+        "score": 139964,
+        "members": 50,
+        "badge_id": 16000078,
+        "location_id": 57000087
+      },
+      {
+        "rank": 438,
+        "previous_rank": 439,
+        "clan_tag": "#YRCPRQJR",
+        "name": "British Gods",
+        "score": 139964,
+        "members": 50,
+        "badge_id": 16000047,
+        "location_id": 57000248
+      },
+      {
+        "rank": 439,
+        "previous_rank": 431,
+        "clan_tag": "#QYVQVP0J",
+        "name": "BARRET II",
+        "score": 139964,
+        "members": 50,
+        "badge_id": 16000172,
+        "location_id": 57000218
+      },
+      {
+        "rank": 440,
+        "previous_rank": 433,
+        "clan_tag": "#88VUY20Q",
+        "name": "IL Warriors",
+        "score": 139963,
+        "members": 50,
+        "badge_id": 16000146,
+        "location_id": 57000119
+      },
+      {
+        "rank": 441,
+        "previous_rank": 434,
+        "clan_tag": "#G2PLU8V8",
+        "name": "Clash Mexico",
+        "score": 139963,
+        "members": 50,
+        "badge_id": 16000059,
+        "location_id": 57000153
+      },
+      {
+        "rank": 442,
+        "previous_rank": 440,
+        "clan_tag": "#G2Q2YLG8",
+        "name": "#German Legends",
+        "score": 139963,
+        "members": 50,
+        "badge_id": 16000144,
+        "location_id": 57000094
+      },
+      {
+        "rank": 443,
+        "previous_rank": 437,
+        "clan_tag": "#PLCVJ29V",
+        "name": "19 Ess Dz 58",
+        "score": 139963,
+        "members": 50,
+        "badge_id": 16000029,
+        "location_id": 57000010
+      },
+      {
+        "rank": 444,
+        "previous_rank": 436,
+        "clan_tag": "#QRCVG0PV",
+        "name": "PitaGyro GR",
+        "score": 139962,
+        "members": 50,
+        "badge_id": 16000040,
+        "location_id": 57000097
+      },
+      {
+        "rank": 445,
+        "previous_rank": 445,
+        "clan_tag": "#QCU2RQQC",
+        "name": "BRAZIL ROYALE™",
+        "score": 139961,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 446,
+        "previous_rank": 443,
+        "clan_tag": "#RGGQLLYV",
+        "name": "Al Sancak",
+        "score": 139960,
+        "members": 50,
+        "badge_id": 16000030,
+        "location_id": 57000239
+      },
+      {
+        "rank": 447,
+        "previous_rank": 442,
+        "clan_tag": "#QLCPU0JU",
+        "name": "joblife",
+        "score": 139960,
+        "members": 50,
+        "badge_id": 16000177,
+        "location_id": 57000087
+      },
+      {
+        "rank": 448,
+        "previous_rank": 447,
+        "clan_tag": "#GLP0Q8GR",
+        "name": "Upside Down",
+        "score": 139960,
+        "members": 50,
+        "badge_id": 16000131,
+        "location_id": 57000111
+      },
+      {
+        "rank": 449,
+        "previous_rank": 444,
+        "clan_tag": "#9R00JU28",
+        "name": "saudi",
+        "score": 139960,
+        "members": 50,
+        "badge_id": 16000170,
+        "location_id": 57000204
+      },
+      {
+        "rank": 450,
+        "previous_rank": 448,
+        "clan_tag": "#LV89YYG8",
+        "name": "La Panaca Real",
+        "score": 139958,
+        "members": 50,
+        "badge_id": 16000074,
+        "location_id": 57000184
+      },
+      {
+        "rank": 451,
+        "previous_rank": 452,
+        "clan_tag": "#QC02UV89",
+        "name": "7я",
+        "score": 139958,
+        "members": 50,
+        "badge_id": 16000142,
+        "location_id": 57000193
+      },
+      {
+        "rank": 452,
+        "previous_rank": 449,
+        "clan_tag": "#Q2RRGG0G",
+        "name": "JORDAN",
+        "score": 139957,
+        "members": 50,
+        "badge_id": 16000139,
+        "location_id": 57000124
+      },
+      {
+        "rank": 453,
+        "previous_rank": 450,
+        "clan_tag": "#28VJJJ9R",
+        "name": "DaBeans",
+        "score": 139957,
+        "members": 50,
+        "badge_id": 16000077,
+        "location_id": 57000249
+      },
+      {
+        "rank": 454,
+        "previous_rank": 451,
+        "clan_tag": "#LQ292UYV",
+        "name": "Goblin Gang",
+        "score": 139957,
+        "members": 50,
+        "badge_id": 16000038,
+        "location_id": 57000249
+      },
+      {
+        "rank": 455,
+        "previous_rank": 453,
+        "clan_tag": "#8UY9Q0GL",
+        "name": "Libya Pro☠",
+        "score": 139957,
+        "members": 50,
+        "badge_id": 16000146,
+        "location_id": 57000136
+      },
+      {
+        "rank": 456,
+        "previous_rank": 455,
+        "clan_tag": "#G0CGLJ08",
+        "name": "Dunkle Spelunke",
+        "score": 139957,
+        "members": 50,
+        "badge_id": 16000130,
+        "location_id": 57000094
+      },
+      {
+        "rank": 457,
+        "previous_rank": 454,
+        "clan_tag": "#G980GCGY",
+        "name": "141 MARINA MX",
+        "score": 139956,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000153
+      },
+      {
+        "rank": 458,
+        "previous_rank": 463,
+        "clan_tag": "#R2RJC9V0",
+        "name": "Akatsuki",
+        "score": 139955,
+        "members": 50,
+        "badge_id": 16000032,
+        "location_id": 57000153
+      },
+      {
+        "rank": 459,
+        "previous_rank": 456,
+        "clan_tag": "#8PQJPGPU",
+        "name": "LOS DURAKKOS",
+        "score": 139953,
+        "members": 50,
+        "badge_id": 16000163,
+        "location_id": 57000218
+      },
+      {
+        "rank": 460,
+        "previous_rank": 458,
+        "clan_tag": "#9QQRVGG",
+        "name": "Aura.Atom",
+        "score": 139952,
+        "members": 50,
+        "badge_id": 16000020,
+        "location_id": 57000144
+      },
+      {
+        "rank": 461,
+        "previous_rank": 459,
+        "clan_tag": "#R0LVVJJC",
+        "name": "4M",
+        "score": 139952,
+        "members": 50,
+        "badge_id": 16000080,
+        "location_id": 57000094
+      },
+      {
+        "rank": 462,
+        "previous_rank": 457,
+        "clan_tag": "#QYPQRJPV",
+        "name": "Arg Unida 2",
+        "score": 139952,
+        "members": 50,
+        "badge_id": 16000109,
+        "location_id": 57000017
+      },
+      {
+        "rank": 463,
+        "previous_rank": 460,
+        "clan_tag": "#RJ2CLJU0",
+        "name": "SEM GUERRA",
+        "score": 139951,
+        "members": 50,
+        "badge_id": 16000101,
+        "location_id": 57000038
+      },
+      {
+        "rank": 464,
+        "previous_rank": 462,
+        "clan_tag": "#LJ9980LV",
+        "name": "K_W_T",
+        "score": 139951,
+        "members": 50,
+        "badge_id": 16000165,
+        "location_id": 57000129
+      },
+      {
+        "rank": 465,
+        "previous_rank": 474,
+        "clan_tag": "#QJGJ9VY2",
+        "name": "CR Lima PER.",
+        "score": 139950,
+        "members": 50,
+        "badge_id": 16000000,
+        "location_id": 57000184
+      },
+      {
+        "rank": 466,
+        "previous_rank": 465,
+        "clan_tag": "#GLUYCLLQ",
+        "name": "雲遊四海",
+        "score": 139949,
+        "members": 50,
+        "badge_id": 16000008,
+        "location_id": 57000228
+      },
+      {
+        "rank": 467,
+        "previous_rank": 1509,
+        "clan_tag": "#RRVRPPJJ",
+        "name": "DarkEmpireᴱᶜ",
+        "score": 139949,
+        "members": 50,
+        "badge_id": 16000028,
+        "location_id": 57000076
+      },
+      {
+        "rank": 468,
+        "previous_rank": 471,
+        "clan_tag": "#LGL2YLUL",
+        "name": "jordan",
+        "score": 139949,
+        "members": 50,
+        "badge_id": 16000044,
+        "location_id": 57000124
+      },
+      {
+        "rank": 469,
+        "previous_rank": 472,
+        "clan_tag": "#GYGLQQ2P",
+        "name": "Bad Boy",
+        "score": 139949,
+        "members": 50,
+        "badge_id": 16000110,
+        "location_id": 57000115
+      },
+      {
+        "rank": 470,
+        "previous_rank": 468,
+        "clan_tag": "#QCJL2JLU",
+        "name": "Amiral Gemisi",
+        "score": 139948,
+        "members": 50,
+        "badge_id": 16000016,
+        "location_id": 57000239
+      },
+      {
+        "rank": 471,
+        "previous_rank": 469,
+        "clan_tag": "#RCGGRJL2",
+        "name": "@DEFENSA.MX",
+        "score": 139948,
+        "members": 50,
+        "badge_id": 16000081,
+        "location_id": 57000153
+      },
+      {
+        "rank": 472,
+        "previous_rank": 470,
+        "clan_tag": "#R0RQRUUJ",
+        "name": "los mega legend",
+        "score": 139948,
+        "members": 50,
+        "badge_id": 16000146,
+        "location_id": 57000153
+      },
+      {
+        "rank": 473,
+        "previous_rank": 466,
+        "clan_tag": "#YC8CPYV8",
+        "name": "Greece",
+        "score": 139948,
+        "members": 50,
+        "badge_id": 16000095,
+        "location_id": 57000097
+      },
+      {
+        "rank": 474,
+        "previous_rank": 473,
+        "clan_tag": "#GP9GRQ",
+        "name": "Eiseskälte",
+        "score": 139947,
+        "members": 50,
+        "badge_id": 16000168,
+        "location_id": 57000094
+      },
+      {
+        "rank": 475,
+        "previous_rank": 479,
+        "clan_tag": "#2JR02U",
+        "name": "Texas",
+        "score": 139946,
+        "members": 50,
+        "badge_id": 16000038,
+        "location_id": 57000249
+      },
+      {
+        "rank": 476,
+        "previous_rank": 492,
+        "clan_tag": "#QPLLQQJJ",
+        "name": "RSA Potch",
+        "score": 139946,
+        "members": 50,
+        "badge_id": 16000144,
+        "location_id": 57000215
+      },
+      {
+        "rank": 477,
+        "previous_rank": 476,
+        "clan_tag": "#QV2J8U8G",
+        "name": "Joystikeros™",
+        "score": 139945,
+        "members": 50,
+        "badge_id": 16000008,
+        "location_id": 57000059
+      },
+      {
+        "rank": 478,
+        "previous_rank": 477,
+        "clan_tag": "#9RQVY8L0",
+        "name": "FUERZA ELITE",
+        "score": 139945,
+        "members": 50,
+        "badge_id": 16000040,
+        "location_id": 57000153
+      },
+      {
+        "rank": 479,
+        "previous_rank": 478,
+        "clan_tag": "#8Q8JRPQV",
+        "name": "Radium Bananen",
+        "score": 139944,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000094
+      },
+      {
+        "rank": 480,
+        "previous_rank": 484,
+        "clan_tag": "#LCL9LPGC",
+        "name": "Fall Out Boy",
+        "score": 139943,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000254
+      },
+      {
+        "rank": 481,
+        "previous_rank": 482,
+        "clan_tag": "#GYQUR0G8",
+        "name": "Bolivia Lotte",
+        "score": 139942,
+        "members": 50,
+        "badge_id": 16000121,
+        "location_id": 57000034
+      },
+      {
+        "rank": 482,
+        "previous_rank": 483,
+        "clan_tag": "#GLQJUG8J",
+        "name": "Army Rangers",
+        "score": 139942,
+        "members": 50,
+        "badge_id": 16000165,
+        "location_id": 57000249
+      },
+      {
+        "rank": 483,
+        "previous_rank": 480,
+        "clan_tag": "#2900",
+        "name": "Dhaka Alliance",
+        "score": 139942,
+        "members": 50,
+        "badge_id": 16000010,
+        "location_id": 57000026
+      },
+      {
+        "rank": 484,
+        "previous_rank": 481,
+        "clan_tag": "#92Q920P0",
+        "name": "FECR-İ ATİ",
+        "score": 139942,
+        "members": 50,
+        "badge_id": 16000020,
+        "location_id": 57000239
+      },
+      {
+        "rank": 485,
+        "previous_rank": 1528,
+        "clan_tag": "#GL2JGPP2",
+        "name": "Shinhadores.",
+        "score": 139942,
+        "members": 50,
+        "badge_id": 16000128,
+        "location_id": 57000169
+      },
+      {
+        "rank": 486,
+        "previous_rank": 485,
+        "clan_tag": "#GPLG8289",
+        "name": "+58 Team",
+        "score": 139941,
+        "members": 50,
+        "badge_id": 16000032,
+        "location_id": 57000254
+      },
+      {
+        "rank": 487,
+        "previous_rank": 486,
+        "clan_tag": "#G8RGPPPC",
+        "name": "AUGE BOYS",
+        "score": 139941,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 488,
+        "previous_rank": 488,
+        "clan_tag": "#G2J2UPY9",
+        "name": "SkillNation",
+        "score": 139941,
+        "members": 50,
+        "badge_id": 16000026,
+        "location_id": 57000038
+      },
+      {
+        "rank": 489,
+        "previous_rank": 1534,
+        "clan_tag": "#PU0U98CL",
+        "name": "I PEKKA BETA",
+        "score": 139941,
+        "members": 50,
+        "badge_id": 16000050,
+        "location_id": 57000120
+      },
+      {
+        "rank": 490,
+        "previous_rank": 487,
+        "clan_tag": "#8LQUQ0G",
+        "name": "SG Wolves",
+        "score": 139940,
+        "members": 50,
+        "badge_id": 16000164,
+        "location_id": 57000209
+      },
+      {
+        "rank": 491,
+        "previous_rank": 489,
+        "clan_tag": "#8QVQY00V",
+        "name": "Bolivia eSports",
+        "score": 139939,
+        "members": 50,
+        "badge_id": 16000015,
+        "location_id": 57000034
+      },
+      {
+        "rank": 492,
+        "previous_rank": 495,
+        "clan_tag": "#PV0288VL",
+        "name": "CLAN OF PROS",
+        "score": 139938,
+        "members": 50,
+        "badge_id": 16000004,
+        "location_id": 57000113
+      },
+      {
+        "rank": 493,
+        "previous_rank": 491,
+        "clan_tag": "#Q8P2RY8G",
+        "name": "Brazil Furious",
+        "score": 139938,
+        "members": 50,
+        "badge_id": 16000058,
+        "location_id": 57000038
+      },
+      {
+        "rank": 494,
+        "previous_rank": 1542,
+        "clan_tag": "#RLPJJLPY",
+        "name": "Templod’España",
+        "score": 139938,
+        "members": 50,
+        "badge_id": 16000172,
+        "location_id": 57000218
+      },
+      {
+        "rank": 495,
+        "previous_rank": 498,
+        "clan_tag": "#2VVVRQLC",
+        "name": "Caldo Riders",
+        "score": 139938,
+        "members": 50,
+        "badge_id": 16000016,
+        "location_id": 57000218
+      },
+      {
+        "rank": 496,
+        "previous_rank": 497,
+        "clan_tag": "#G28CU89L",
+        "name": "50 Legendas",
+        "score": 139937,
+        "members": 50,
+        "badge_id": 16000139,
+        "location_id": 57000059
+      },
+      {
+        "rank": 497,
+        "previous_rank": 499,
+        "clan_tag": "#RRRL9QUR",
+        "name": "Dark Legends",
+        "score": 139937,
+        "members": 50,
+        "badge_id": 16000014,
+        "location_id": 57000169
+      },
+      {
+        "rank": 498,
+        "previous_rank": 500,
+        "clan_tag": "#L0CQ02LR",
+        "name": "AlebrijesOaxac2",
+        "score": 139937,
+        "members": 50,
+        "badge_id": 16000139,
+        "location_id": 57000153
+      },
+      {
+        "rank": 499,
+        "previous_rank": 496,
+        "clan_tag": "#802UY9J9",
+        "name": "!TOP MEXICO¡",
+        "score": 139937,
+        "members": 50,
+        "badge_id": 16000029,
+        "location_id": 57000153
+      },
+      {
+        "rank": 500,
+        "previous_rank": 501,
+        "clan_tag": "#R8V8GUVQ",
+        "name": "IRAN 2",
+        "score": 139937,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000115
+      }
+    ],
+    "notes": [
+      "score is clan score - the sum the game ranks clans by - on this board.",
+      "previous_rank is the game's own field: where the clan stood at its previous ranking, not at our previous snapshot.",
+      "Page 2: pass offset 500 for the next places."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.26.0",
+      "source_polls": {
+        "rankings_clans_loc": {
+          "observed_at": "2026-09-23T10:02:51.000Z",
+          "freshness_seconds": 27193
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 23,
+    "db_queries": 5,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

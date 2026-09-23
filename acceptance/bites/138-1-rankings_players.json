@@ -1,0 +1,104 @@
+{
+  "feedback": 138,
+  "contract_version": "6.26.0",
+  "captured_at": "2026-09-23T17:33:11.353Z",
+  "request": {
+    "tool": "rankings_players",
+    "arguments": {
+      "limit": 5
+    }
+  },
+  "response": {
+    "board": "pol",
+    "location": {
+      "key": "global",
+      "label": "Global",
+      "kind": "global",
+      "country_code": null
+    },
+    "applied": {
+      "board": "pol",
+      "location": "global",
+      "limit": 5,
+      "offset": 0,
+      "verbosity": "full"
+    },
+    "snapshot": {
+      "observed_at": "2026-09-23T10:07:57.000Z",
+      "unchanged_until": "2026-09-23T10:07:57.000Z",
+      "season_id": "136",
+      "season_month": "2026-09",
+      "entries": 1000,
+      "depth": 1000,
+      "full": true,
+      "floor_rating": 2281,
+      "truncated": false,
+      "cadence_minutes": 1440
+    },
+    "players": [
+      {
+        "rank": 1,
+        "player_tag": "#208R8PQJP9",
+        "name": "AK Tanjiro",
+        "rating": 2951,
+        "clan_tag": "#RYUVYVRY",
+        "clan_name": "InTheStorm™"
+      },
+      {
+        "rank": 2,
+        "player_tag": "#LPRR9P",
+        "name": "RUBIZALEZ",
+        "rating": 2931,
+        "clan_tag": "#2PGP98",
+        "clan_name": "chocotojos crew"
+      },
+      {
+        "rank": 3,
+        "player_tag": "#2LQ2YP98",
+        "name": "SK xopxsam",
+        "rating": 2919,
+        "clan_tag": "#GJRRVJ29",
+        "clan_name": "Anti-Rehwald"
+      },
+      {
+        "rank": 4,
+        "player_tag": "#R00RUL09U",
+        "name": "Tuco❤️rainbet",
+        "rating": 2915,
+        "clan_tag": "#GJGURLUU",
+        "clan_name": "Rainbet.com"
+      },
+      {
+        "rank": 5,
+        "player_tag": "#VC0JRC2JU",
+        "name": "TKK.jackbest2.6",
+        "rating": 2911,
+        "clan_tag": "#G89QUY2P",
+        "clan_name": "GUERREIROS PT"
+      }
+    ],
+    "notes": [
+      "This board holds 1,000 places and is full (the API serves 1,000 and offered nothing past them (truncated: false)): floor_rating (2281) is the last place's rating, a cutoff that moves, not a qualification threshold - a player or clan can leave the board without losing rating, and rankings_clans.rated_players compared across dates moves with the cutoff as well as with play.",
+      "Path of Legends lists players above a rating floor, at most 1,000 places: a board is small in a season's first days and grows as players cross the floor, and once it holds 1,000 it is full - from then on floor_rating is the 1,000th place's rating, a cutoff that rises with play, not a qualification threshold.",
+      "Page 1: pass offset 5 for the next 5 places.",
+      "rating on the pol board is the player's Path of Legends rating: the same number the profile carries as pol_trophies (players_timeline, players_profile), verified equal on the live API; per-battle rating and rank for a recorded player are on their battles (startingTrophies, trophyChange, globalRank)."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.26.0",
+      "source_polls": {
+        "rankings_pol": {
+          "observed_at": "2026-09-23T10:07:57.000Z",
+          "freshness_seconds": 26714
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 54,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}
