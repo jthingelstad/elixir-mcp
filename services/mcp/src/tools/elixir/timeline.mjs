@@ -20,6 +20,10 @@ import { FEED_DOCS } from "./common.mjs";
 /** When the profile-derived moment ledger begins (Gym #121). */
 const PROFILE_MOMENTS_FROM_MS = Date.parse("2026-09-14T04:27:51Z");
 
+/** Characters a timeline page may spend on entries and items, under the
+ *  48,000-character result cap with room for notes, applied and meta. */
+const PAGE_CHAR_BUDGET = 40_000;
+
 export const elixir_timeline = {
   description:
     "Your timeline: what happened to the players and clans you track since your read pointer, as ITEMS in order plus one summary ENTRY per subject (a person's: the players and clans they track; an agent's: its clan). Items are named moments with an instant: battle sessions, badges, arena and ranked moves, new bests, cards unlocked, joins, departures, role changes, war milestones, quiet rungs, returns. Facts, never advice; nothing announces the time (game_clock does). Omit from to read from your pointer (none: 24 hours; cap 30 days); mark_read moves it to the window end, false is a dry run.",
@@ -217,14 +221,41 @@ export const elixir_timeline = {
     const observedMs = (it) => Date.parse(it.observed_at ?? it.at);
     // Never at or before from: a cursor there would hand a reader the
     // same window forever.
-    const cutMs = droppedShown.length
-      ? Math.max(fromMs + 2, Math.min(...droppedShown.map(observedMs)))
-      : null;
     const all = built.timeline.filter(shown);
+    // A page also fits the result cap (6.34.2): items are taken in the
+    // order they were observed until the page's characters reach the
+    // budget, and the cut falls on the first item that would not fit -
+    // the same observed_at cut as the item cap, so next_cursor pages on
+    // exactly. A count alone could not promise it: a standout carries the
+    // whole session shape, and 7 days of them ran past 48,000.
+    const entriesChars = JSON.stringify(entries).length;
+    let used = entriesChars;
+    let sizeCutMs = null;
+    const byObserved = [...all].sort((a, b) => observedMs(a) - observedMs(b));
+    for (const [i, it] of byObserved.entries()) {
+      used += JSON.stringify(it).length + 1;
+      if (used > PAGE_CHAR_BUDGET) {
+        // Every page takes at least one item, or a page whose entries
+        // alone fill the budget would hand back the same cursor forever.
+        const at =
+          i === 0 ? byObserved.find((x) => observedMs(x) > observedMs(it)) : it;
+        sizeCutMs = at ? observedMs(at) : null;
+        break;
+      }
+    }
+    const firstLeftOut = Math.min(
+      ...droppedShown.map(observedMs),
+      sizeCutMs ?? Infinity,
+    );
+    const cutMs = Number.isFinite(firstLeftOut)
+      ? Math.max(fromMs + 2, firstLeftOut)
+      : null;
     const timeline =
       cutMs === null ? all : all.filter((it) => observedMs(it) < cutMs);
     const remaining =
       cutMs === null ? 0 : all.length - timeline.length + droppedShown.length;
+    // If the first items alone exceed the budget, the cut cannot move
+    // below from + 2 ms; the page then holds what fits and says so.
     const endMs = cutMs === null ? toMs : cutMs - 1;
     // How late the record learned this page's items, for the widen advice.
     const lagHours = Math.ceil(

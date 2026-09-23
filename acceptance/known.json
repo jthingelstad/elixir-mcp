@@ -4,5 +4,23 @@
     "reason": "war_decks_by_day sums short of war_decks on weeks recorded before 2026-09-21: polls missed a day's last deck and nothing carried it. The ingest carries rolled-past decks to the previous day from this deploy; weeks:2 is clean once both weeks post-date it.",
     "until": "2026-10-06",
     "filed": "2026-09-21"
+  },
+  {
+    "case": "catalogue/clans_participation#0",
+    "reason": "clans_participation at weeks 8 for POAP KINGS (48 members) is over the 48,000-character agent cap and answers result_too_large with the narrowing hint. That is the designed agent behaviour. Elixir Clan, which needed the full read, moved to the JSON API (/api/v1) on 2026-09-23 (Jamie). Reshaping the tool for agents is the 7.0.0 batch (elixir-family/plans/clan-app-api.md, phase 5).",
+    "until": "2026-10-21",
+    "filed": "2026-09-23"
+  },
+  {
+    "case": "catalogue/clans_participation#1",
+    "reason": "clans_participation at weeks 8 for POAP KINGS (48 members) is over the 48,000-character agent cap and answers result_too_large with the narrowing hint. That is the designed agent behaviour. Elixir Clan, which needed the full read, moved to the JSON API (/api/v1) on 2026-09-23 (Jamie). Reshaping the tool for agents is the 7.0.0 batch (elixir-family/plans/clan-app-api.md, phase 5).",
+    "until": "2026-10-21",
+    "filed": "2026-09-23"
+  },
+  {
+    "case": "gym/159.1",
+    "reason": "clans_participation at weeks 8 for POAP KINGS (48 members) is over the 48,000-character agent cap and answers result_too_large with the narrowing hint. That is the designed agent behaviour. Elixir Clan, which needed the full read, moved to the JSON API (/api/v1) on 2026-09-23 (Jamie). Reshaping the tool for agents is the 7.0.0 batch (elixir-family/plans/clan-app-api.md, phase 5).",
+    "until": "2026-10-21",
+    "filed": "2026-09-23"
   }
 ]
