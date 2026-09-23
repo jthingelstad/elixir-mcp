@@ -37,6 +37,12 @@ export const CLAN_SCORE_DEPRECATION =
  *  closed weeks in the Gym's check, and clans_timeline agrees. */
 export const warTrophyTiming = (field = "clan_war_trophies") =>
   `${field} is the figure the race payload carried during the week, going into it: the week's own trophy_change is not included, so after a closed week the clan stood at ${field} + trophy_change, the next week's figure.`;
+/** How a war day pays fame (Gym #180, 28 of 28 scoring rows over four
+ *  weeks and two brackets): by the day's placement on points, not by the
+ *  points, so fame measures where a clan finished each day, not how much
+ *  it played. Only the observed payouts are stated. */
+export const WAR_FAME_BY_PLACEMENT =
+  "A war day's fame (progress_earned) is paid by the clan's placement that day on points, not by the points: observed 3,000 for first, 1,800 for second and 1,000 for third. So fame, and mean_fame on war_rivals, measures where a clan placed each day, not how much it played: compare points for effort.";
 export const WAR_DOCS = docsRef("battles", "war-weeks-points-and-fame");
 
 export const CLAN_TAG_SCHEMA = {

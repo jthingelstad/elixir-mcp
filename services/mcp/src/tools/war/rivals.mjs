@@ -6,7 +6,12 @@ import {
   entitledClan,
   notes,
 } from "../shared.mjs";
-import { CLAN_SCORE_DEPRECATION, WAR_DOCS, warTrophyAlias } from "./common.mjs";
+import {
+  CLAN_SCORE_DEPRECATION,
+  WAR_DOCS,
+  warTrophyAlias,
+  WAR_FAME_BY_PLACEMENT,
+} from "./common.mjs";
 
 export const war_rivals = {
   description:
@@ -114,6 +119,8 @@ export const war_rivals = {
       }),
       rivals: rows.map((r) => ({ ...r, ...warTrophyAlias(r) })),
       notes: notes(
+        // mean_fame measures placements (Gym #180).
+        WAR_FAME_BY_PLACEMENT,
         "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
         "Fame statistics (mean_fame, median_fame, max_fame, zero_fame_races) cover the finished races only, and finished_races is their count: races_observed includes the week in progress, so it is not their denominator. current_race_fame is the week in progress; a rival with no finished race has null fame statistics, not zero. mean_fame and median_fame are ROUNDED to whole fame, so recomputing them from the standings can differ by half a point (0 and 4059 give 2030, not 2029.5).",
         rows.some((r) => r.colosseum_races > 0)

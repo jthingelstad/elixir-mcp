@@ -1129,5 +1129,53 @@
     "case": "gym/177.1",
     "captures": ["177-1-rankings_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 179,
+    "contract": "6.36.0",
+    "why": "the Gym block 179.1 on the answer it read",
+    "case": "gym/179.1",
+    "captures": ["179-1-game_clock.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 179,
+    "contract": "6.36.0",
+    "why": "the Gym block 179.2 on the answer it read",
+    "case": "gym/179.2",
+    "captures": ["179-2-war_current.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 179,
+    "contract": "6.36.0",
+    "why": "the Gym block 179.3 on the answer it read",
+    "case": "gym/179.3",
+    "captures": ["179-3-war_history.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 180,
+    "contract": "6.36.0",
+    "why": "the Gym block 180.1 on the answer it read",
+    "case": "gym/180.1",
+    "captures": ["180-1-war_rivals.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 180,
+    "contract": "6.36.0",
+    "why": "the Gym block 180.2 on the answer it read",
+    "case": "gym/180.2",
+    "captures": ["180-2-war_history.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 181,
+    "contract": "6.36.0",
+    "why": "the Gym block 181.1 on the answer it read",
+    "case": "gym/181.1",
+    "captures": ["181-1-elixir_docs.json"],
+    "expect": "."
   }
 ]

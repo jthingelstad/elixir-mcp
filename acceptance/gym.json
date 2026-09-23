@@ -7803,5 +7803,361 @@
         "notes_not_match": "Path of Legends lists players|pol_trophies"
       }
     ]
+  },
+  {
+    "id": "179.1",
+    "feedback": 179,
+    "stability": "live",
+    "tool": "game_clock",
+    "args": {},
+    "request_id": "672adb20-650b-45bf-b18f-bba8e1523d26",
+    "assert": [
+      {
+        "notes_match": "closed_at"
+      }
+    ]
+  },
+  {
+    "id": "179.2",
+    "feedback": 179,
+    "stability": "live",
+    "tool": "war_current",
+    "args": {},
+    "request_id": "2dcd000a-6732-4079-b0a2-ef53e0cfe8af",
+    "assert": [
+      {
+        "has": "period.started_observed_at"
+      },
+      {
+        "notes_match": "clos\\w*[^.]*before (the )?10:00|before the (10:00Z? )?grid|observed_offset_minutes[^.]*(not|never)[^.]*(close|drift)"
+      }
+    ]
+  },
+  {
+    "id": "179.3",
+    "feedback": 179,
+    "stability": "live",
+    "tool": "war_history",
+    "args": {},
+    "request_id": "c0f4d54d-b532-4315-82d6-e327f7cb77af",
+    "assert": [
+      {
+        "has": "weeks[].closed_at"
+      },
+      {
+        "notes_not_match": "finished is when the recorder saw it closed"
+      }
+    ]
+  },
+  {
+    "id": "179.4",
+    "feedback": 179,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-21T09:40:00Z"
+    },
+    "request_id": "c4d892c0-149c-4978-9359-e3a0ee9b49ea",
+    "assert": [
+      {
+        "eq": ["war_day", 4]
+      },
+      {
+        "eq": ["war_day_closes_at", "2026-09-21T10:00:00.000Z"]
+      },
+      {
+        "notes_match": "09:30"
+      }
+    ]
+  },
+  {
+    "id": "179.5",
+    "feedback": 179,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "86d94b7f-931d-4ac0-b600-9a88c648988d",
+    "assert": [
+      {
+        "eq": ["weeks[0].closed_at", "2026-09-21T09:38:05.000Z"]
+      },
+      {
+        "eq": ["weeks[0].finished", "weeks[0].closed_at"]
+      },
+      {
+        "eq": [
+          "standings[?clan_tag=#J2RGCRVG].finish_time",
+          "2026-09-20T09:38:05.000Z"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "180.1",
+    "feedback": 180,
+    "stability": "live",
+    "tool": "war_rivals",
+    "args": {},
+    "request_id": "9c10a4f3-0a68-4b4b-a9e1-0740bb89325d",
+    "assert": [
+      {
+        "has": "rivals[].mean_fame"
+      },
+      {
+        "notes_match": "(placement|finishing place|day.s rank)[^.]*(fame|progress)|(fame|progress)[^.]*(placement|day.s rank)"
+      }
+    ]
+  },
+  {
+    "id": "180.2",
+    "feedback": 180,
+    "stability": "frozen",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "86d94b7f-931d-4ac0-b600-9a88c648988d",
+    "assert": [
+      {
+        "has": "days[].standings[].progress_earned"
+      },
+      {
+        "notes_match": "(placement|finishing place|day.s rank)[^.]*(fame|progress)|(fame|progress)[^.]*(placement|day.s rank)"
+      }
+    ]
+  },
+  {
+    "id": "180.3",
+    "feedback": 180,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "86d94b7f-931d-4ac0-b600-9a88c648988d",
+    "assert": [
+      {
+        "eq": [
+          "days[?war_day=4].standings[?clan_tag=#L0Y2CJ8J].points_earned",
+          700
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=4].standings[?clan_tag=#L0Y2CJ8J].progress_earned",
+          3000
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=2].standings[?clan_tag=#QUGRGLU2].points_earned",
+          700
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=2].standings[?clan_tag=#QUGRGLU2].progress_earned",
+          1800
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=2].standings[?clan_tag=#J2RGCRVG].progress_earned",
+          3000
+        ]
+      }
+    ]
+  },
+  {
+    "id": "180.4",
+    "feedback": 180,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 135,
+      "section_index": 3
+    },
+    "request_id": "a5a470ba-281d-4e03-a4e0-d8ab2ed0820e",
+    "assert": [
+      {
+        "eq": [
+          "days[?war_day=2].standings[?clan_tag=#RJ9UJ9L8].points_earned",
+          100
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=2].standings[?clan_tag=#RJ9UJ9L8].progress_earned",
+          1000
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=2].standings[?clan_tag=#J2RGCRVG].points_earned",
+          8950
+        ]
+      },
+      {
+        "eq": [
+          "days[?war_day=2].standings[?clan_tag=#J2RGCRVG].progress_earned",
+          3000
+        ]
+      }
+    ]
+  },
+  {
+    "id": "181.1",
+    "feedback": 181,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "battles",
+      "section": "war-weeks-points-and-fame"
+    },
+    "request_id": "f96e9b9a-eb58-4c8a-b151-642d08a48eaf",
+    "assert": [
+      {
+        "contains": ["markdown", "going into"]
+      }
+    ]
+  },
+  {
+    "id": "181.2",
+    "feedback": 181,
+    "stability": "live",
+    "control": true,
+    "tool": "war_history",
+    "args": {},
+    "request_id": "c0f4d54d-b532-4315-82d6-e327f7cb77af",
+    "assert": [
+      {
+        "notes_match": "our_clan_war_trophies[^.]*going into"
+      }
+    ]
+  },
+  {
+    "id": "182.1",
+    "feedback": 182,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 4
+    },
+    "request_id": "dacd4db2-f56d-4759-abc1-525f7f5daf39",
+    "assert": [
+      {
+        "count_eq": ["weeks[]", 0]
+      },
+      {
+        "notes_match": "never existed"
+      },
+      {
+        "notes_not_match": "not yet played"
+      },
+      {
+        "has": "history_starts_at"
+      }
+    ]
+  },
+  {
+    "id": "182.2",
+    "feedback": 182,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 0
+        }
+      },
+      "x": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 1
+        }
+      }
+    },
+    "request_id": "bb730102-bcf0-417b-badb-dda65732855e",
+    "assert": [
+      {
+        "sum_eq": [
+          [
+            "w.standings[?clan_tag=#L0Y2CJ8J].clan_war_trophies",
+            "w.standings[?clan_tag=#L0Y2CJ8J].trophy_change"
+          ],
+          "x.standings[?clan_tag=#L0Y2CJ8J].clan_war_trophies"
+        ]
+      },
+      {
+        "sum_eq": [
+          [
+            "w.standings[?clan_tag=#YY20VJLU].clan_war_trophies",
+            "w.standings[?clan_tag=#YY20VJLU].trophy_change"
+          ],
+          "x.standings[?clan_tag=#YY20VJLU].clan_war_trophies"
+        ]
+      },
+      {
+        "sum_eq": [
+          [
+            "w.standings[?clan_tag=#G2P0PPGQ].clan_war_trophies",
+            "w.standings[?clan_tag=#G2P0PPGQ].trophy_change"
+          ],
+          "x.standings[?clan_tag=#G2P0PPGQ].clan_war_trophies"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "182.3",
+    "feedback": 182,
+    "stability": "live",
+    "control": true,
+    "tool": "war_rivals",
+    "args": {
+      "rival_tags": ["#RJQQLLV9", "#RJ9UJ9L8"]
+    },
+    "request_id": "27bc1dba-98f5-4597-a6cc-9f297e296ceb",
+    "assert": [
+      {
+        "every_row_has": ["rivals", "clan_war_trophies"]
+      },
+      {
+        "notes_not_match": "null before 2026-09-17"
+      },
+      {
+        "notes_match": "going into that race"
+      }
+    ]
+  },
+  {
+    "id": "182.5",
+    "feedback": 182,
+    "stability": "live",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "section_index": 1
+    },
+    "request_id": "c4ef2514-04d7-42fc-a785-27b974d81742",
+    "assert": [
+      {
+        "notes_match": "season_id and section_index"
+      }
+    ]
   }
 ]

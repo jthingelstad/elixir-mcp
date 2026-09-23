@@ -1,0 +1,639 @@
+{
+  "feedback": 179,
+  "contract_version": "6.36.0",
+  "captured_at": "2026-09-23T23:17:51.951Z",
+  "request": {
+    "tool": "war_current",
+    "arguments": {}
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "season_id": 136,
+    "section_index": 2,
+    "is_colosseum": false,
+    "day_kind": "training",
+    "war_day": null,
+    "race_finished_at": null,
+    "finish_war_day": null,
+    "next_war_day_opens_at": "2026-09-24T10:00:00.000Z",
+    "applied": {
+      "clan_tag": "#J2RGCRVG",
+      "verbosity": "full"
+    },
+    "standings": [
+      {
+        "participant_clan_tag": "#YY20VJLU",
+        "participant_name": "Les champs",
+        "fame": 0,
+        "period_points": 0,
+        "rank": null,
+        "trophy_change": null,
+        "finish_time": null,
+        "clan_score": 1147,
+        "repair_points": 0,
+        "clan_war_trophies": 1147
+      },
+      {
+        "participant_clan_tag": "#QUGRGLU2",
+        "participant_name": "Happy Win",
+        "fame": 0,
+        "period_points": 0,
+        "rank": null,
+        "trophy_change": null,
+        "finish_time": null,
+        "clan_score": 1174,
+        "repair_points": 0,
+        "clan_war_trophies": 1174
+      },
+      {
+        "participant_clan_tag": "#L0Y2CJ8J",
+        "participant_name": "Legend Royale",
+        "fame": 0,
+        "period_points": 0,
+        "rank": null,
+        "trophy_change": null,
+        "finish_time": null,
+        "clan_score": 1166,
+        "repair_points": 0,
+        "clan_war_trophies": 1166
+      },
+      {
+        "participant_clan_tag": "#G2P0PPGQ",
+        "participant_name": "De stichting",
+        "fame": 0,
+        "period_points": 0,
+        "rank": null,
+        "trophy_change": null,
+        "finish_time": null,
+        "clan_score": 1143,
+        "repair_points": 0,
+        "clan_war_trophies": 1143
+      },
+      {
+        "participant_clan_tag": "#J2RGCRVG",
+        "participant_name": "POAP KINGS",
+        "fame": 0,
+        "period_points": 0,
+        "rank": null,
+        "trophy_change": null,
+        "finish_time": null,
+        "clan_score": 1200,
+        "repair_points": 0,
+        "clan_war_trophies": 1200
+      }
+    ],
+    "participants": [
+      {
+        "player_tag": "#2P9GRU2Q0",
+        "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#VQUQJP8Q9",
+        "name": "1spaceO2",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#2G2RPVPP",
+        "name": "Aaqib Javed",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#UVQ8RJYG9",
+        "name": "AHMOメŞΛDØW",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#UCRLVL29U",
+        "name": "Ak",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#20G0JGQLPL",
+        "name": "alex",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#P8URQGR2U",
+        "name": "alex",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#2YG98VVQ",
+        "name": "Alfablack",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#2LRYLQPL",
+        "name": "Andy",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#CV20JCY0V",
+        "name": "BigNorton",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#20GPQPC9RV",
+        "name": "bonus",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#RRU9PGJQ9",
+        "name": "Brotherinpants",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#P2U0PC2UU",
+        "name": "canavar",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#20R8QRLYLP",
+        "name": "Chanco",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#9Q9QRCPPU",
+        "name": "dez42",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#9QQLPJRLV",
+        "name": "duki suzuki",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#VJG09L9YY",
+        "name": "£eoππe§§;",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#8U2P0JPR",
+        "name": "Fullboat",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#8G8UYG2PQ",
+        "name": "Gabriel",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#20GQUGPRC2",
+        "name": "Gem",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#U92P8PQG0",
+        "name": "God Bless You",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#20LP8UPJ8R",
+        "name": "I Hate Witch",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#U8RYG9Y2U",
+        "name": "King Levy",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#20JJJ2CCRU",
+        "name": "King Thing",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#G2CUUJQ8V",
+        "name": "kiruba⚜️",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#2G09Q20QC",
+        "name": "Kurd Paraw",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#2CY2RJL9G",
+        "name": "L-Drxgo⚡",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#229QY8UL9U",
+        "name": "Mega Goblin",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#VGC22YGP",
+        "name": "MONICA",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#JRVV9VC0C",
+        "name": "NOBITA",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#VC8VY8R29",
+        "name": "nyje47",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#RJ9RRQPVU",
+        "name": "OllieTurtle",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#20CGPVUL92",
+        "name": "pigsareus",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#V0CRYP2GG",
+        "name": "pokemon",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#UL2V9QRG0",
+        "name": "raquaza",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#VR0QRP2PG",
+        "name": "round hamster",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#V8Q8PUL0U",
+        "name": "ryguy67",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#UQ2R9RGVP",
+        "name": "Sandeep",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#2209PJPVGG",
+        "name": "shimmeringhost",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#JYRQ8U92C",
+        "name": "sikander sidhu",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#YC8LLR8Q2",
+        "name": "sniperhendo",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#PLCCYUQL",
+        "name": "TDuck",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#U08P889Y0",
+        "name": "Tere",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#PR8YLQ2CV",
+        "name": "The Joesma",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#C920YGLC2",
+        "name": "Vijay",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#20CLVPLG8R",
+        "name": "VVSBUDGET",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#20G9RY299P",
+        "name": "Waltadr",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#URPCLR8UQ",
+        "name": "x.x.hari.x.x",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": true,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#LCUVPUYCY",
+        "name": "ㅤᴀɴᴅᴇʀㅤ:)",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": false,
+        "scoring_decks": 0
+      },
+      {
+        "player_tag": "#L9CUUJPLJ",
+        "name": "blackberry",
+        "points": 0,
+        "decks_used": 0,
+        "boat_attacks": 0,
+        "repair_points": 0,
+        "in_clan": false,
+        "scoring_decks": 0
+      }
+    ],
+    "participants_count": 50,
+    "member_count": 48,
+    "members_not_in_race": [],
+    "period": {
+      "period_index": 16,
+      "kind": "training",
+      "day_in_week": 2,
+      "started_observed_at": "2026-09-23T10:13:03.000Z",
+      "source_observed_at": "2026-09-23T22:12:59.000Z",
+      "freshness_seconds": 3892,
+      "period_start_nominal": "2026-09-23T10:00:00.000Z",
+      "period_end_nominal": "2026-09-24T10:00:00.000Z",
+      "week_end_nominal": "2026-09-28T10:00:00.000Z",
+      "observed_offset_minutes": 13,
+      "next_war_day_opens_at": "2026-09-24T10:00:00.000Z",
+      "api_period_type": "training"
+    },
+    "decks_today": null,
+    "decks_today_reason": "training_day",
+    "attendance_by_war_day": [],
+    "days_closed": [],
+    "notes": [
+      "points are per-member contributions; fame belongs to the boat (the clan).",
+      "standings.clan_war_trophies is each bracket clan's WAR trophies going into this race (the race's own trophy_change lands in the next one's figure) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
+      "clan_war_trophies is the clan's WAR trophies, which is what the race payload's clanScore actually carries - not the clan score a profile shows (that is ~100x larger; clans_timeline serves both as separate metrics). clan_score is the same number under the old, wrong name: it is DEPRECATED, kept so nothing breaks today, and is removed in 7.0.0.",
+      "days_closed is the race's own day-by-day (the API's periodLogs): one entry per closed war day with every clan's points_earned, progress, rank (1-based; null while unranked) and end_of_day_rank (the API's 0-based value); the running day is not in it until it closes.",
+      "standings.finish_time is null for a clan that has not finished (the API marks it with epoch zero, never a time).",
+      "participants[].decks_used is the RACE WEEK's cumulative count and decks_today.*.decks_used is this policy day's; a duel consumes one deck per round played (two or three) and a 1v1 one, so four decks is two to four battles.",
+      "standings.fame is cumulative race progress banked at the day close; standings.period_points is the current day's score, so fame can be zero on war day 1 while members already have points.",
+      "members_not_in_race names current members the game left out of the race roster: their game-side lastSeen predates the race start (a nudge list; the predicate is the game's).",
+      "Days follow the 10:00 UTC policy reset for every clan and the period is the calendar's: cite the *_nominal instants; started_observed_at is when the recorder first saw this period open (null when it has not), observed_offset_minutes its distance from the policy hour including polling latency.",
+      "period.api_period_type is the API's own word for the day at the last race poll (training, warDay, colosseum); period.kind is the policy grid's, and the two disagree only when the clan's reset has drifted across the boundary.",
+      "war_day is 1-based, day_in_week 0-based; attendance_by_war_day is empty before the week's first war day."
+    ],
+    "docs": "clocks#the-policy-day",
+    "meta": {
+      "contract_version": "6.36.0",
+      "source_polls": {
+        "currentriverrace": {
+          "observed_at": "2026-09-23T22:12:59.000Z",
+          "freshness_seconds": 3892
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 1228,
+    "db_queries": 12,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "feedback": 180,
+  "contract_version": "6.36.0",
+  "captured_at": "2026-09-23T23:17:53.685Z",
+  "request": {
+    "tool": "war_rivals",
+    "arguments": {}
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "applied": {
+      "clan_tag": "#J2RGCRVG",
+      "rival_tags": ["#YY20VJLU", "#QUGRGLU2", "#L0Y2CJ8J", "#G2P0PPGQ"],
+      "source": "current_bracket"
+    },
+    "rivals": [
+      {
+        "clan_tag": "#QUGRGLU2",
+        "name": "Happy Win",
+        "races_observed": 3,
+        "finished_races": 2,
+        "colosseum_races": 0,
+        "races_shared_with_you": 3,
+        "first_season": 136,
+        "last_season": 136,
+        "mean_fame": 6045,
+        "median_fame": 6045,
+        "max_fame": 8400,
+        "zero_fame_races": 0,
+        "current_race_fame": 0,
+        "clan_score": 1174,
+        "clan_war_trophies": 1174
+      },
+      {
+        "clan_tag": "#L0Y2CJ8J",
+        "name": "Legend Royale",
+        "races_observed": 3,
+        "finished_races": 2,
+        "colosseum_races": 0,
+        "races_shared_with_you": 3,
+        "first_season": 136,
+        "last_season": 136,
+        "mean_fame": 2030,
+        "median_fame": 2030,
+        "max_fame": 4059,
+        "zero_fame_races": 1,
+        "current_race_fame": 0,
+        "clan_score": 1166,
+        "clan_war_trophies": 1166
+      },
+      {
+        "clan_tag": "#G2P0PPGQ",
+        "name": "De stichting",
+        "races_observed": 3,
+        "finished_races": 2,
+        "colosseum_races": 0,
+        "races_shared_with_you": 3,
+        "first_season": 136,
+        "last_season": 136,
+        "mean_fame": 0,
+        "median_fame": 0,
+        "max_fame": 0,
+        "zero_fame_races": 2,
+        "current_race_fame": 0,
+        "clan_score": 1143,
+        "clan_war_trophies": 1143
+      },
+      {
+        "clan_tag": "#YY20VJLU",
+        "name": "Les champs",
+        "races_observed": 3,
+        "finished_races": 2,
+        "colosseum_races": 0,
+        "races_shared_with_you": 3,
+        "first_season": 136,
+        "last_season": 136,
+        "mean_fame": 0,
+        "median_fame": 0,
+        "max_fame": 0,
+        "zero_fame_races": 2,
+        "current_race_fame": 0,
+        "clan_score": 1147,
+        "clan_war_trophies": 1147
+      }
+    ],
+    "notes": [
+      "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
+      "Fame statistics (mean_fame, median_fame, max_fame, zero_fame_races) cover the finished races only, and finished_races is their count: races_observed includes the week in progress, so it is not their denominator. current_race_fame is the week in progress; a rival with no finished race has null fame statistics, not zero. mean_fame and median_fame are ROUNDED to whole fame, so recomputing them from the standings can differ by half a point (0 and 4059 give 2030, not 2029.5).",
+      "clan_war_trophies is the clan's WAR trophies from the latest recorded race it was in, going into that race (what that race itself won or lost is not included); null only when no recorded race carried it.",
+      "clan_war_trophies is the clan's WAR trophies, which is what the race payload's clanScore actually carries - not the clan score a profile shows (that is ~100x larger; clans_timeline serves both as separate metrics). clan_score is the same number under the old, wrong name: it is DEPRECATED, kept so nothing breaks today, and is removed in 7.0.0.",
+      "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) asks for a fresh read (queued if none is in hand)."
+    ],
+    "docs": "battles#war-weeks-points-and-fame",
+    "meta": {
+      "contract_version": "6.36.0"
+    }
+  },
+  "timings": {
+    "db_ms": 22,
+    "db_queries": 4,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

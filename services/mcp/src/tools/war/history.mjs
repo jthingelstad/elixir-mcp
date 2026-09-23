@@ -25,6 +25,7 @@ import {
   warDaysLog,
   warTrophyAlias,
   weekKey,
+  WAR_FAME_BY_PLACEMENT,
 } from "./common.mjs";
 
 export const war_history = {
@@ -360,7 +361,9 @@ export const war_history = {
           )
         : notes(
             "points are per-member contributions; fame belongs to the boat (the clan).",
-            "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is when the recorder saw it closed.",
+            "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is that same instant where the API gave it, else when the recorder first saw the week closed (Gym #179).",
+            // Fame is paid for placement (Gym #180).
+            WAR_FAME_BY_PLACEMENT,
             hasSeason ? CLAN_SCORE_DEPRECATION : null,
             warTrophyTiming(
               hasSeason ? "clan_war_trophies" : "our_clan_war_trophies",

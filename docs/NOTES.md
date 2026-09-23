@@ -2063,3 +2063,11 @@ All 7 regressions were confirmed. #126's recorder half (reads pinned to the 10:0
 - **#176:** boardRow refuses a trophy board with the empty-API reason.
 - **#177:** rankings_timeline takes `season`, through resolveSeasonWindow (source season).
 
+## 2026-09-23 — Gym sweep, war round 2 (6.36.1, feedback #179-#182)
+
+15 of 16 regressions were confirmed. #140 was partly fixed, and its docs remnant is #181. It was a training day, so the war-day paths are untested. #182 is praise.
+- **#179:** my own 6.34.3 note pointed at war_current for a close it does not carry. The game_clock note now points at war_history's `closed_at`, war_current gets the close-before-grid note, and the `finished` note is corrected.
+- **#180:** WAR_FAME_BY_PLACEMENT goes on war_history and war_rivals. The fact is also pushed to cr-agent-api-docs clans.md (2e63b8b), since it holds for any caller.
+- **#181:** the battles.md war-trophies paragraph.
+- **Open (Gym, not filed):** a battle between a race's real close and 10:00Z counts toward the previous day. It needs a clan-wide scan.
+

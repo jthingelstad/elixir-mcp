@@ -546,7 +546,10 @@ denominator for a points-per-deck rate, `null` when the record cannot
 separate the decks that scored from the decks that did not.
 
 **War trophies and repair points.** `clan_war_trophies` is the clan's WAR
-trophies, and the record keeps the latest observation per race. The race
+trophies as the race payload carries them during the week, going into that
+race: the week's own `trophy_change` is not included, so after a closed week
+the clan stood at `clan_war_trophies + trophy_change`, the next week's figure
+(6.29.0). The race
 payload spells it `clanScore`, which is the API overloading that key: a
 clan's profile carries BOTH `clanScore` (a five- or six-figure strength
 number, ~129,000 for a mid clan) and `clanWarTrophies` (a four-figure war
@@ -556,6 +559,11 @@ a clan's profile shows as its score, and joining it to `clans_timeline`'s
 `clan_score` metric is out by about two orders of magnitude - that timeline
 serves `clan_score` and `clan_war_trophies` as separate metrics, and this is
 the latter.
+
+**Fame is paid for placement.** A war day's fame (`progress_earned`) is paid
+by the clan's placement that day on points, not by the points: observed 3,000
+for first, 1,800 for second and 1,000 for third. Fame measures where a clan
+placed each day; points measure how much it played.
 
 `clan_score` on the war surfaces is the same number under the old, wrong
 name. It is **deprecated** (6.19.0) and is removed in 7.0.0. `repair_points`
