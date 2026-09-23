@@ -50,6 +50,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **Read-only tools race a deadline, writes never do** — the result is `query_timeout` with a request_id; a priced `result_too_large` is an answer, not a defect. (2026-09-19 Phase 1, 2026-09-21; engineering)
 - **The war family's `clan_score` is war trophies** — `clan_war_trophies` is added; the old names are deprecated aliases for 7.0.0 ("one break, not two"). (2026-09-23 6.19.0; Jamie)
 - **Omit the tag to mean yourself** — the server brief names the caller at initialize; `game_clock` is subject-free. (2026-09-08; Jamie)
+- **Elixir Clan does not read Elixir through MCP** — Clan is a program, not an agent; it moves to an app API (plan: ../elixir-family/plans/clan-app-api.md). Clan may be broken meanwhile. (2026-09-23; Jamie)
 
 ## Tools and data semantics
 
