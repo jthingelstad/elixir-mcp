@@ -1,4 +1,8 @@
-import { participantModeClause } from "../mode-filter.mjs";
+import {
+  META_EVENT_NOTE,
+  metaPopulationClause,
+  participantModeClause,
+} from "../mode-filter.mjs";
 /** cards_card - everything the record knows about ONE card, in one call
  *  (5.0.0; docs/reviews/2026-09-19-CARDS-REVIEW.md). Before it, a card
  *  question cost the whole 130-row card meta and a hand search of the
@@ -71,6 +75,10 @@ function scopeClauses(seg, win, args, params) {
     where.push(`${seg.timeColumn} < $${params.length}`);
   }
   if (args.mode) where.push(participantModeClause(args.mode, params));
+  // The meta population a season read counts (Gym #154): a raw from/to
+  // window had kept event battles and drafted decks the rollup leaves
+  // out, so the same window read two ways (74,770 decided against 44,956).
+  where.push(metaPopulationClause());
   return where;
 }
 const FORM_ROWS = [
@@ -312,7 +320,11 @@ export const cardProfileTools = {
           }));
           if (rows.length === 0)
             extraNotes.push(
-              "by_band is empty: the banded rollup has not been filled for this season yet.",
+              // Ranked rows have no band by rule (Gym #102, #155): the
+              // rollup is filled; there is nothing to band.
+              modeGroup === "ranked"
+                ? "by_band is empty on ranked: a Path of Legends row carries a rating, not trophies, so it has no trophy band."
+                : "by_band is empty: the banded rollup has not been filled for this season yet.",
             );
         } else
           extraNotes.push(
@@ -375,8 +387,19 @@ export const cardProfileTools = {
         }
       }
 
-      out.methodology = META_METHODOLOGY;
+      // prior_source says what THIS read shrank toward (Gym #155): the
+      // shared text names the corpus, and a segment read's basis is the
+      // segment's own window mean.
+      out.methodology =
+        usage.prior.basis === "segment_window"
+          ? {
+              ...META_METHODOLOGY,
+              prior_source:
+                "this population's own decided mean over the window (prior_basis segment_window); 0.5 below segment_min_decided",
+            }
+          : META_METHODOLOGY;
       out.notes = notes(
+        args.mode === "event" ? META_EVENT_NOTE : null,
         `Forms: season.all merges the card's forms; season.forms carries one row per form played (${FORM_ROWS.slice(
           1,
         )
@@ -637,6 +660,7 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
     where.push(`bp.battle_time < $${params.length}`);
   }
   if (args.mode) where.push(participantModeClause(args.mode, params));
+  where.push(metaPopulationClause());
   const { rows: played } = await ctx.db.query(
     `select bp.player_tag, p.name,
             count(*)::int as battles,

@@ -1,0 +1,154 @@
+{
+  "feedback": 153,
+  "contract_version": "6.31.1",
+  "captured_at": "2026-09-23T19:49:40.939Z",
+  "request": {
+    "tool": "cards_synergy",
+    "arguments": {
+      "card": "Hog Rider",
+      "segment": "corpus",
+      "trophy_band": "under_5000",
+      "limit": 5
+    }
+  },
+  "response": {
+    "population": {
+      "recorded_clans": 18,
+      "recorded_players": 1072,
+      "players_in_window": 1395
+    },
+    "anchor": {
+      "card_id": 26000021,
+      "name": "Hog Rider",
+      "forms_available": [],
+      "forms_merged": true,
+      "decks": 469,
+      "players": 160,
+      "win_rate": 0.554,
+      "usage_share": 0.13,
+      "modes": {
+        "casual": {
+          "battles": 11,
+          "wins": 1,
+          "losses": 10
+        },
+        "ladder": {
+          "battles": 30,
+          "wins": 24,
+          "losses": 6
+        },
+        "tournament": {
+          "battles": 424,
+          "wins": 234,
+          "losses": 190
+        },
+        "war": {
+          "battles": 4,
+          "wins": 1,
+          "losses": 3
+        }
+      }
+    },
+    "applied": {
+      "segment": {
+        "kind": "corpus"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "trophy_band": "under_5000",
+      "merge_forms": true,
+      "min_pair_battles": 5,
+      "limit": 5
+    },
+    "decided_battles": 3598,
+    "players_as_of": "2026-09-23T16:33:19.038Z",
+    "partners": [
+      {
+        "card_id": 28000011,
+        "name": "The Log",
+        "form": "base",
+        "co_battles": 3912,
+        "players": 1904,
+        "co_occurrence_rate": 8.341,
+        "baseline_usage": 0.161,
+        "lift": 51.92,
+        "win_rate_with_anchor": 0.506
+      },
+      {
+        "card_id": 26000010,
+        "name": "Skeletons",
+        "form": "base",
+        "co_battles": 2124,
+        "players": 1164,
+        "co_occurrence_rate": 4.529,
+        "baseline_usage": 0.141,
+        "lift": 32.2,
+        "win_rate_with_anchor": 0.507
+      },
+      {
+        "card_id": 28000000,
+        "name": "Fireball",
+        "form": "base",
+        "co_battles": 1914,
+        "players": 1202,
+        "co_occurrence_rate": 4.081,
+        "baseline_usage": 0.245,
+        "lift": 16.65,
+        "win_rate_with_anchor": 0.462
+      },
+      {
+        "card_id": 26000030,
+        "name": "Ice Spirit",
+        "form": "base",
+        "co_battles": 1819,
+        "players": 1023,
+        "co_occurrence_rate": 3.878,
+        "baseline_usage": 0.108,
+        "lift": 35.87,
+        "win_rate_with_anchor": 0.476
+      },
+      {
+        "card_id": 26000064,
+        "name": "Firecracker",
+        "form": "evolution",
+        "co_battles": 1790,
+        "players": 1069,
+        "co_occurrence_rate": 3.817,
+        "baseline_usage": 0.028,
+        "lift": 138.71,
+        "win_rate_with_anchor": 0.501
+      }
+    ],
+    "notes": [
+      "anchor.modes splits the anchor's decks by mode group: war and ladder pool different decks, so pass mode before reading a partner as a ladder habit.",
+      "co_occurrence_rate = decks with anchor AND partner / decks with anchor; baseline_usage = the partner's share of all decided decks in the segment; lift = co_occurrence_rate / baseline_usage.",
+      "players is distinct pilots for the pair and is what tells a personal habit from a pattern; win_rate_with_anchor describes who plays the pair, not the pair.",
+      "Decided head-to-head player-battle observations only (duels, boat battles, draws excluded; both sides of a match can contribute); partners keep forms as separate rows.",
+      "Trophy bands are Trophy Road trophies. A ranked (Path of Legends) observation carries a rating, not trophies, so it sits in no band; pass mode 'ladder' for a trophy view of the ladder.",
+      "anchor.decks counts decided player-battle observations with the anchor, not distinct deck identities (cards_archetype and battles_meta_decks count identities as decks); it is the denominator co_occurrence_rate divides by.",
+      "Read from the season rollup: counters through 2026-09-23T19:40:15.730Z, distinct players as of 2026-09-23T16:33:19.038Z (a deck or card first seen since then carries players: null until tonight's rebuild)."
+    ],
+    "docs": "methodology#deck-and-card-meta-exactly-what-is-counted",
+    "meta": {
+      "contract_version": "6.31.1"
+    }
+  },
+  "timings": {
+    "db_ms": 2580,
+    "db_queries": 10,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

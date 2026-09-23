@@ -1,4 +1,8 @@
-import { participantModeClause } from "../mode-filter.mjs";
+import {
+  META_EVENT_NOTE,
+  metaPopulationClause,
+  participantModeClause,
+} from "../mode-filter.mjs";
 /** cards_synergy — the card-pair axis (feedback #19): "what is Witch
  *  played with" needed co-occurrence, per-pair distinct players and lift,
  *  none of which the per-card or per-deck meta could give. */
@@ -138,6 +142,8 @@ export const synergyTools = {
       }
       requireEnum(args.mode, MODE_GROUPS, "mode");
       if (args.mode) where.push(participantModeClause(args.mode, params));
+      // The meta population the season rollup counts (Gym #154).
+      where.push(metaPopulationClause());
       requireEnum(args.trophy_band, TROPHY_BAND_NAMES, "trophy_band");
       if (args.trophy_band)
         where.push(trophyBandClause(args.trophy_band, params));
@@ -335,6 +341,7 @@ export const synergyTools = {
           };
         }),
         notes: notes(
+          args.mode === "event" ? META_EVENT_NOTE : null,
           bandPending
             ? "trophy_band answered from the raw rows (the season's banded rollup is not built yet; the nightly rebuild fills it)."
             : null,

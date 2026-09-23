@@ -1998,3 +1998,11 @@ All 5 regressions were confirmed (#38 rankings half, #71-#73, #76). #139 is prai
 - **Resize to db.t4g.small (Jamie, 2026-09-23: "we've been fighting this micro instance nearly every day").** The shared_buffers pin (88 MB) is dropped back to the engine default. The one-year all-upfront micro reservation (elixir-mcp-pg-1yr-2026-09, $95, from 09-07) is size-flexible for RDS PostgreSQL within t4g, so it covers half of the small's normalized units. The other half is on demand, about $12 a month. The acceptance gate goes per family (next entry).
 - **Per-family gate:** `deploy.mjs --acceptance=<family>` passes `--family` to run.mjs. That runs the cases whose `tools` (gym blocks, budgets) or id (catalogue, contracts) name a tool of that family: 15-94 cases instead of about 500. Plain `--acceptance` is the whole suite, for changes to shared code.
 
+## 2026-09-23 — Gym sweep, cards round 2 (6.32.0, feedback #153-#156)
+
+8 of 10 regressions were confirmed. #102 and #107 were partly fixed, and the rest is #155. #156 is praise.
+- **#153 and #154 share one cause:** the raw reads never applied META_POPULATION. `rollupSynergy`'s partner walk, the card profile's `scopeClauses` and member read, and raw synergy now take `metaPopulationClause()`. The Gym's open question (tournament and event battles filling 88-90% of under_5000) is the same leak.
+- **#155:** the ranked by_band note is corrected. methodology.prior_source follows prior_basis.
+- **Open, not filed:** Mirror is left out of average_elixir with no note.
+- **Gate:** first per-family deploy, `--acceptance=cards`.
+

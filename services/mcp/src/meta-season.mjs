@@ -13,6 +13,7 @@
  */
 
 import { typesForModeGroup } from "@elixir-mcp/contracts";
+import { metaPopulationClause } from "./mode-filter.mjs";
 import { META_METHODOLOGY } from "./tools/shared.mjs";
 
 /** The raw meta scans spill at the micro's 4 MB work_mem (review 2.6:
@@ -326,6 +327,11 @@ export async function rollupSynergy(
        join battle_participant bp on bp.deck_hash = ad.deck_hash
        where bp.battle_time >= $1 and bp.battle_time < $2
          and bp.outcome in ('win', 'loss') and bp.type_class = 'pvp' ${typeClause} ${bandClause}
+         -- The rollup's own population (Gym #153): the anchor row and the
+         -- baseline come from the rollup, which excludes event content and
+         -- drafted decks, so the partner walk must too - without it
+         -- co_occurrence_rate reached 4.92 and lift 139.
+         and ${metaPopulationClause()}
        group by bp.deck_hash, bp.player_tag),
      pairs as (
        select dc.card_id, dc.form,

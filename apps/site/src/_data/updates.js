@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Cards: one population, however the window is written",
+    body: "The Elixir Gym's second run over the card tools. A card's usage and win rate for a custom date range now come from the same population as a whole-season read, without event battles or drafted decks. The same card over the same days no longer gives two answers. Card pairings by trophy band no longer show impossible rates above 100%. Contract 6.32.0.",
+  },
+  {
+    date: "2026-09-23",
     title:
       "Battles: event play kept out of the meta, and counted as events everywhere",
     body: "The Elixir Gym's second run over the battle tools. The meta tools already left out event battles and drafted decks for whole seasons. They now do the same for custom date ranges and single players or clans, so a week's meta no longer mixes in a boosted event deck. Everywhere else, event battles are counted as events, never as casual play. Asking for one deck's battles in a date range now gives that range's totals, not the deck's lifetime. Contract 6.31.0.",
