@@ -308,10 +308,15 @@ export function gymCases(blocks) {
           const r = await ctx.read(b.tool, b.args ?? {});
           root = r.body;
           ms = r.ms;
-          // A block asserting on error.* reads a refusal on purpose.
+          // A block that reads the refusal reads it on purpose: a path
+          // into error (error.code, or has: "error"), or the notes verbs,
+          // which read error.message and error.hint on a refusal (the
+          // README's vocabulary; Gym 93.3-93.5 were refused-and-right).
           if (
             r.isError &&
-            !b.assert?.some((a) => JSON.stringify(a).includes("error."))
+            !b.assert?.some((a) =>
+              /"error\b|"notes_(not_)?match"/.test(JSON.stringify(a)),
+            )
           )
             answered(r, `${b.tool} ${JSON.stringify(b.args)}`);
         }
