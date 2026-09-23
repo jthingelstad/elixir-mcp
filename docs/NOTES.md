@@ -8123,3 +8123,70 @@ Anything added to that row now costs someone a page. The `limit > 25`
 refusal should probably become a size the row can actually honour.
 
 Gate green after the fix: 277 cases, 0 failed.
+
+## 2026-09-23 — How to decide which battle indexes are worth building (method, and what the evidence says today)
+
+Jamie asked how we would determine which new ways of indexing battles
+would be good. The answer is that we already collect the evidence and
+have barely read it. Five signals, ranked by how sharply each points at
+a missing tool. All are read-only ops that exist.
+
+**1. Pagination walks — the loudest.** A `cursor` in an argument set
+means the tool did not answer the question and the caller is assembling
+the answer itself. `{args_census: {days: 30}}`, `key_sets`:
+
+```
+battles_query  cursor,days,limit,player_tag,verbosity   316 calls
+```
+
+**316 of 816 `battles_query` calls (39%) are one agent walking a
+player's history page by page**, at ~18.5 KB a page. Nothing in our own
+clients does this - `elixir-mcp-discord` uses `next_cursor` only for the
+events feed - so it is a MODEL deciding it needs every battle. That is
+the shape of a missing index: whatever it computes from the raw list is
+a tool we do not have.
+
+**2. Refusals, by code.** A refusal is a question the product could not
+answer. `{refusal_census: {code, days}}` and `top_errors`:
+`battles_meta_cards query_timeout` 18, `battles_meta_decks
+query_timeout` 11, `battles_query bad_request` 10, `battles_cards
+bad_request` 10, `battles_query timeout` 8.
+
+**3. Truncation — the shape is wrong for the question.** `battles_query`
+is the fattest tool we serve: avg 18.5 KB, max 130 KB, truncated 17
+times in 30 days. Everything else is under 12 KB.
+
+**4. Never called.** `elixir_track_player`, `elixir_track_clan`,
+`badges_holders`, `cards_archetype` - zero calls in 30 days.
+`cards_archetype` shipped in 6.8.0 and no one has used it once: either
+undiscoverable, or it answers a question nobody has. Worth knowing
+before building another like it.
+
+**5. Cost.** A tool that is slow is often indexed on the wrong thing
+rather than merely unoptimised: `battles_levels` avg 6.6 s,
+`battles_meta_cards` avg 5.8 s / p95 18.2 s, `battles_trends` p95 16.3 s.
+
+### What makes a candidate good
+
+1. It collapses a measured pagination walk (signal 1), a refusal (2) or
+   a truncation (3) - not a shape someone imagined.
+2. The index is ALREADY in the data. This session added four axes
+   nothing can query on yet: `event_tag` (which event a battle belonged
+   to), `inferred.duration` (how long it must have run), `vs.deck_level`
+   (the level edge in that battle) and `global_rank` (whether the
+   opponent was ranked). Each is a "show me battles where..." nobody can
+   ask.
+3. It respects the population rules, or it is another pooled number:
+   mode, event content, and decks the player did not choose.
+4. It answers a question a PLAYER asks, not a shape the data happens to
+   have. "Did I lose that while outlevelled?" is a question; "index by
+   princess tower hitpoint bucket" is not.
+
+### The decisive next measurement, not yet taken
+
+Identify what the 316-call walker is computing. The audit has the
+caller, the arguments and the timings; what it lacks is the sequence -
+which tools were called around the walk, by the same account, in the
+same minute. A call-sequence cut of `mcp_call_audit` would turn the
+loudest signal into a named tool. That is one op and it should come
+before any new battle tool is designed.
