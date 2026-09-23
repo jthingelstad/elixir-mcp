@@ -114,7 +114,7 @@ export const elixir_docs = {
       notes: notes(
         "Read one with page, one section with page + section, or search with query. The tool reference is tools/list itself (also at https://elixir.poapkings.com/docs/tools); elixir_changelog says what changed in it.",
       ),
-      docs: docsRef("quickstart"),
+      docs: docsRef("about"),
       corpus_built_at: CORPUS_BUILT_AT,
       meta,
     };

@@ -33,7 +33,7 @@ export const elixir_updates = {
       entries: all.slice(0, limit),
       notes: notes("The tool contract's own history is elixir_changelog."),
       // Every answer points at a page (Gym #123, #167).
-      docs: docsRef("protocol", "versioning-and-the-cache-buster"),
+      docs: docsRef("about"),
       corpus_built_at: CORPUS_BUILT_AT,
       meta: responseMeta({ as_of: new Date().toISOString() }),
     };

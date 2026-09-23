@@ -19,7 +19,7 @@ what to consider, and so a person can read the same thing and simply know.
 
 It is **synthesized when you read it**, from the record and the per-subject
 ledger. Nothing is queued, fanned out or pruned. A reader that comes back
-after a month gets a month's timeline (capped at 30 days and 200 items).
+after a month gets a month's timeline (capped at 30 days and 150 items a page).
 
 ## `elixir_timeline`
 
@@ -42,7 +42,7 @@ docs, meta }`.
   selects items by `observed_at`, when the record learned them, in
   `(from, to]`. So an item can happen before `from` (it was observed late),
   and a moment in the window that was observed after `to` is in the next one.
-- `next_cursor` is `window.to`, or, when the 200-item cap cut the window,
+- `next_cursor` is `window.to`, or, when the 150-item cap cut the window,
   1 ms before the first left-out item's `observed_at`. Pass it back as `from`
   to continue: nothing is lost at the cut and nothing repeats (6.34.0).
 - `read_to` is your pointer after this call. With `mark_read: false` it is
@@ -113,7 +113,7 @@ Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 | `account_*` | your account | feedback answered, recordings started or stopped, tier changes, connections |
 
 Every member moment and every `session_standout` is an item; the response's
-200-item cap and `next_cursor` bound them (6.34.0). The clan entry's `war` is
+150-item cap and `next_cursor` bound them (6.34.0). The clan entry's `war` is
 the calendar's week at the window's end: its fame, place and decks are that
 week's recorded race, and null when the record holds no race for it.
 

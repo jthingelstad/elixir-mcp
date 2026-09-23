@@ -2041,4 +2041,5 @@ Jamie made three decisions. `/api/v1` is Elixir's public, versioned JSON API bes
 - **#166:** war reads the recorded week at or before the calendar's week at `to`. The race facts are null when that week is not recorded. The test that pinned "the latest recorded week" was updated: it had asserted the bug.
 - **#167:** `docs` on elixir_updates, elixir_examples and the elixir_docs index. The participation donations note is corrected, as the Gym noted for the clans run.
 - **Interpreter:** new verbs `before` and `all_before` (the latter inclusive, since the cursor is exclusive).
+- **6.34.1:** the 6.34.0 gate failed on three things. (1) gym/164.x: the interpreter split paths on dots inside `[?at=...000Z]`; `splitPath` now splits outside brackets only. (2) catalogue/elixir_timeline#3: a 7-day compact read reached 54,766 characters once every standout was an item, so TIMELINE_CAP is 150. (3) The docs pointers for elixir_docs and elixir_updates named pages whose fields those responses do not carry; both now point at `about`.
 

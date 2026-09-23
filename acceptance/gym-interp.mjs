@@ -38,11 +38,29 @@ import { answered, ok, fail } from "./lib.mjs";
 
 const SEG = /^([A-Za-z_][A-Za-z0-9_]*)((?:\[[^\]]*\])*)$/;
 
+/** A path's segments: dots split it, except inside brackets, where a
+ *  filter value may be an instant (164.1: `timeline[?at=...07:15.000Z]`). */
+function splitPath(path) {
+  const segs = [];
+  let cur = "";
+  let depth = 0;
+  for (const ch of path) {
+    if (ch === "[") depth += 1;
+    if (ch === "]") depth -= 1;
+    if (ch === "." && depth === 0) {
+      segs.push(cur);
+      cur = "";
+    } else cur += ch;
+  }
+  segs.push(cur);
+  return segs;
+}
+
 /** Resolve a path on a value; `[]` fans out to an array of values. */
 export function resolve(value, path) {
   let current = [value];
   let fanned = false;
-  for (const seg of path.split(".")) {
+  for (const seg of splitPath(path)) {
     const m = SEG.exec(seg);
     if (!m) throw new Error(`bad path segment ${seg}`);
     const [, name, brackets] = m;
@@ -79,7 +97,7 @@ export function resolve(value, path) {
 const isPath = (v) =>
   typeof v === "string" &&
   /[.[]/.test(v) &&
-  v.split(".").every((seg) => SEG.test(seg));
+  splitPath(v).every((seg) => SEG.test(seg));
 const show = (v) => JSON.stringify(v);
 
 /** A notes pattern as the Gym writes it: PCRE's `(?i)` prefix is

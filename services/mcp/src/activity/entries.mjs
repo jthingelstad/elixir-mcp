@@ -64,7 +64,10 @@ const SESSION_RUNGS = {
 };
 const LIST_CAP = 20;
 const STANDOUT_CAP = 5;
-const TIMELINE_CAP = 200;
+// Items per response, sized to the 48,000-character result cap: 200
+// compact items ran 54,766 once every session_standout became an item
+// (6.34.0); the rest page through next_cursor.
+const TIMELINE_CAP = 150;
 const MEMBER_MOMENTS_CAP = 100;
 
 /** The current-scale ranked league names (elixir-bot normalize.py). */
