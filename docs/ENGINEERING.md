@@ -145,6 +145,10 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
 - **Windows.** `from`/`to` (`WINDOW_ARGS`) on every windowed tool, `days` /
   `weeks` as sugar, resolved once by `resolveWindow()`; date-only bounds in
   `zoneFor()`'s zone, which the per-call `timezone` argument overrides.
+  The SESSION zone is UTC, pinned on the database itself (0155), so a bare
+  `::date` or `current_date` over a timestamptz is a UTC day on every
+  connection, in tests and in production alike. A caller's zone is applied
+  in SQL (`at time zone`), never by setting the session.
 - **One `applied` block** per response (`appliedBlock()`): `window` with its
   `source`, plus `limit`, `sort`, `mode`, `segment`, `verbosity` as used.
   Never `filters_applied`, `window_*`, `limit_applied`.

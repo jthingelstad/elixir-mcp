@@ -54,6 +54,24 @@ test("ladder applies cleanly and is idempotent", async () => {
   assert.equal(second.ran, 0);
 });
 
+test("a new session on a migrated database reads UTC, whatever the server's default (0155)", async () => {
+  // The server's own default is the machine's zone on a laptop, which is
+  // exactly the case this pins: the clock-edge of 2026-09-23.
+  const db = new pg.Client({ connectionString: SCRATCH_URL });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `select current_setting('TimeZone') as tz,
+              ('2026-09-23T03:00:00Z'::timestamptz)::date::text as day`,
+    );
+    assert.equal(rows[0].tz, "UTC");
+    // 03:00Z is still the 22nd in Chicago; the UTC session says the 23rd.
+    assert.equal(rows[0].day, "2026-09-23");
+  } finally {
+    await db.end();
+  }
+});
+
 test("schema fingerprint matches the committed pin", async () => {
   const actual = await schemaFingerprint(SCRATCH_URL);
   const pinned = (await readFile(FINGERPRINT_FILE, "utf8")).trim();
