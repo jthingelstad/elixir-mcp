@@ -24,7 +24,13 @@ Agents use MCP. Programs use the **JSON API at
   `https://elixir.poapkings.com/api/v1` (scope `cr:read`). This is how the
   family's own apps read Elixir as the signed-in person; Elixir Clan is the
   first. `GET /api/v1/me` returns who you are to Elixir and the players you
-  track. A client whose every redirect URI is on a family origin is
+  track. A person's operations answer with the structured result of the
+  Elixir tool they mirror, the same fields as its outputSchema on the
+  [tools page](/docs/tools), without the agent response cap:
+  `GET /clans/{tag}/participation` (`clans_participation`), `GET
+  /clans/{tag}/roster` (`clans_roster`), `GET /clans/{tag}/live` (a live clan
+  read), `POST /players/names`, `GET /players/{tag}/profile` and `GET
+  /players/{tag}/battles` (`fresh=1` asks for a live read). A client whose every redirect URI is on a family origin is
   first-party and is not metered; any other client is limited per person per
   hour.
 

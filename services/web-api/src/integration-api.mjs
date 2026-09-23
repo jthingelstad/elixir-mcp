@@ -14,6 +14,10 @@ import {
 } from "@elixir-mcp/auth";
 import { describeIdentity, principalBlock } from "../../mcp/src/identity.mjs";
 import { myPlayers } from "../../mcp/src/tools/elixir/my-players.mjs";
+import { makeRegistry } from "../../mcp/src/tools.mjs";
+import { makeInvoker } from "../../mcp/src/invoker.mjs";
+import { makeLive } from "../../mcp/src/live.mjs";
+import { ERROR_CLASS } from "@elixir-mcp/contracts";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { setCollectionMembers } from "@elixir-mcp/claims";
 import { gameClock } from "../../ingest/src/game-clock.mjs";
@@ -43,8 +47,31 @@ const API_RESOURCE = "https://elixir.poapkings.com/api/v1";
  *  account per hour. First-party clients are not (Jamie, 2026-09-23). */
 const PERSON_HOURLY_LIMIT = 600;
 
-/** The operations a person may call, by method and path. */
-function personRoute(db, account, method, path) {
+/** The tools behind the person operations run in the same registry and
+ *  invoker as MCP (one data layer): the same facts, the same query
+ *  budget, the same live lane, and none of the agent's 48,000-character
+ *  cap (2026-09-23: the eight-week clan read crossed it at 48 members). */
+let registry = null;
+const toolRegistry = () => (registry ??= makeRegistry());
+const live = makeLive({ enqueue: (db, job) => enqueueJob(db, job) });
+const PERSON_TOOL_BUDGET_MS = 15_000;
+
+/** HTTP status for a tool refusal, by the error code's class. */
+const STATUS_OF_CLASS = {
+  input: 400,
+  subject: 404,
+  budget: 429,
+  retry: 503,
+  server: 502,
+};
+
+const flag = (v) => v === "1" || v === "true";
+
+/** The operations a person may call, by method and path: each is one
+ *  read the family's apps make, answered with the tool's structured
+ *  result (Elixir Clan's reads, plan clan-app-api phases 1-3). */
+function personRoute(db, account, method, path, query, body) {
+  let m;
   if (method === "GET" && path === "/api/v1/me")
     return {
       operation: "me.read",
@@ -56,15 +83,105 @@ function personRoute(db, account, method, path) {
         players: await myPlayers(db, account.accountId),
       }),
     };
+  if (
+    method === "GET" &&
+    (m = /^\/api\/v1\/clans\/([^/]+)\/(participation|roster|live)$/.exec(path))
+  ) {
+    const clanTag = tag(decodeURIComponent(m[1]));
+    if (m[2] === "participation") {
+      const weeks = query.weeks === undefined ? undefined : Number(query.weeks);
+      return {
+        operation: "clans.participation",
+        tool: "clans_participation",
+        args: { clan_tag: clanTag, ...(weeks === undefined ? {} : { weeks }) },
+      };
+    }
+    if (m[2] === "roster")
+      return {
+        operation: "clans.roster",
+        tool: "clans_roster",
+        args: { clan_tag: clanTag },
+      };
+    return {
+      operation: "clans.live",
+      tool: "live_fetch",
+      args: { path: `/clans/${encodeURIComponent(clanTag)}` },
+    };
+  }
+  if (method === "POST" && path === "/api/v1/players/names") {
+    if (!Array.isArray(body.player_tags))
+      throw new ApiError(400, "bad_request", "player_tags must be an array.");
+    return {
+      operation: "players.names",
+      tool: "players_names",
+      args: { player_tags: body.player_tags },
+    };
+  }
+  if (
+    method === "GET" &&
+    (m = /^\/api\/v1\/players\/([^/]+)\/(profile|battles)$/.exec(path))
+  ) {
+    const playerTag = tag(decodeURIComponent(m[1]));
+    const fresh = flag(query.fresh);
+    if (m[2] === "profile")
+      return {
+        operation: "players.profile",
+        tool: "players_profile",
+        args: { player_tag: playerTag, ...(fresh ? { live: true } : {}) },
+      };
+    const limit = query.limit === undefined ? 25 : Number(query.limit);
+    return {
+      operation: "players.battles",
+      tool: "battles_query",
+      args: {
+        player_tag: playerTag,
+        limit,
+        verbosity: "compact",
+        ...(fresh ? { live: true } : {}),
+      },
+    };
+  }
   return null;
 }
 
+/** Run a person operation's tool; a refusal becomes the problem body. */
+async function runPersonTool(db, account, route) {
+  const invoke = makeInvoker({
+    db,
+    account,
+    registry: toolRegistry(),
+    live,
+    surface: "rest",
+    queryBudgetMs: PERSON_TOOL_BUDGET_MS,
+  });
+  const result = await invoke(route.tool, route.args);
+  if (result.isError) {
+    const e = result.body?.error ?? {};
+    const code = e.code ?? "internal";
+    const status = STATUS_OF_CLASS[ERROR_CLASS[code]] ?? 502;
+    throw new ApiError(
+      code === "not_entitled" ? 403 : status,
+      code,
+      e.message,
+      e.retry_after_s ?? (status === 503 ? 5 : undefined),
+      {
+        ...(e.hint ? { hint: e.hint } : {}),
+        ...(e.retry_after_s !== undefined
+          ? { retry_after_s: e.retry_after_s }
+          : {}),
+      },
+    );
+  }
+  return result.body;
+}
+
 class ApiError extends Error {
-  constructor(status, code, detail, retryAfter) {
+  constructor(status, code, detail, retryAfter, extra) {
     super(detail ?? code);
     this.status = status;
     this.code = code;
     this.retryAfter = retryAfter;
+    this.extra = extra;
   }
 }
 export function integrationProblem(
@@ -73,6 +190,7 @@ export function integrationProblem(
   requestId,
   detail,
   retryAfter,
+  extra,
 ) {
   return json(
     status,
@@ -83,6 +201,7 @@ export function integrationProblem(
       code,
       detail: detail ?? code,
       request_id: requestId,
+      ...(extra ?? {}),
     },
     {
       "content-type": "application/problem+json",
@@ -237,7 +356,9 @@ export async function integrationApi(db, event, body) {
     started = Date.now();
   let account,
     operation = "unknown",
-    response;
+    response,
+    // A person operation that ran a tool is audited by the invoker.
+    toolAudited = false;
   const method =
     event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
   try {
@@ -252,7 +373,8 @@ export async function integrationApi(db, event, body) {
       });
       if (!account || (account.kind ?? "person") !== "person")
         throw new ApiError(401, "unauthenticated");
-      const route = personRoute(db, account, method, path);
+      const query = event.queryStringParameters ?? {};
+      const route = personRoute(db, account, method, path, query, body);
       if (!route) throw new ApiError(404, "not_found");
       operation = route.operation;
       if (!account.firstParty) {
@@ -268,9 +390,15 @@ export async function integrationApi(db, event, body) {
             3600 - new Date().getUTCMinutes() * 60,
           );
       }
+      if (route.tool) toolAudited = true;
       response = json(
         200,
-        { data: await route.run(), request_id: requestId },
+        {
+          data: route.tool
+            ? await runPersonTool(db, account, route)
+            : await route.run(),
+          request_id: requestId,
+        },
         { "x-request-id": requestId },
       );
     } else {
@@ -435,9 +563,10 @@ export async function integrationApi(db, event, body) {
       requestId,
       error.status ? error.message : undefined,
       error.retryAfter ?? (status === 503 ? 5 : undefined),
+      error.extra,
     );
   }
-  if (account)
+  if (account && !toolAudited)
     await db
       .query(
         `insert into mcp_call_audit(account_id,token_id,request_id,surface,tool,args,duration_ms,result_bytes,error_code,http_status)

@@ -393,3 +393,47 @@ test("a person reads /api/v1/me with a grant for this door; an MCP grant is refu
   });
   assert.equal(thirdParty.firstParty, false);
 });
+
+test("the person operations answer with the tools' structured results, uncapped, and refusals become problems with the tool's code (plan clan-app-api phases 2-3)", async () => {
+  const clan = await registerClient(db, {
+    clientName: "Elixir Clan",
+    redirectUris: ["https://clan.poapkings.com/auth/callback"],
+  });
+  const grant = await mintTokens(db, {
+    clientId: clan.clientId,
+    accountId: person,
+    scope: "cr:read",
+    resource: "https://elixir.poapkings.com/api/v1",
+  });
+  const call = (method, path, body, query) =>
+    handler({
+      rawPath: path,
+      requestContext: { http: { method } },
+      headers: { authorization: `Bearer ${grant.accessToken}` },
+      queryStringParameters: query,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  await db.query(
+    `insert into player (player_tag, name) values ('#2PP', 'Known') on conflict do nothing`,
+  );
+  const names = await call("POST", "/api/v1/players/names", {
+    player_tags: ["#2PP", "#9YY9YY9Q"],
+  });
+  assert.equal(names.statusCode, 200, names.body);
+  const known = data(names).data.names.find((n) => n.player_tag === "#2PP");
+  assert.equal(known.name, "Known");
+
+  // A clan the record does not hold: the tool's refusal, as a problem.
+  const roster = await call(
+    "GET",
+    `/api/v1/clans/${encodeURIComponent("#2PPQQ")}/roster`,
+  );
+  assert.equal(roster.statusCode, 404, roster.body);
+  assert.equal(data(roster).code, "not_recorded");
+  assert.equal(roster.headers["content-type"], "application/problem+json");
+
+  const bad = await call("POST", "/api/v1/players/names", { player_tags: "x" });
+  assert.equal(bad.statusCode, 400);
+  const unknown = await call("GET", "/api/v1/clans/%232PPQQ/everything");
+  assert.equal(unknown.statusCode, 404);
+});

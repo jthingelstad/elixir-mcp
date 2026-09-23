@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration). Supplied tags are unverified. Collection grants allow additions only."
   },
   "servers": [
@@ -445,6 +445,504 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}/participation": {
+      "get": {
+        "operationId": "clanParticipation",
+        "summary": "Every current member of a clan over whole ISO weeks and the war weeks inside them: facts only.",
+        "x-permission": "cr:read",
+        "x-principals": ["person"],
+        "x-tool": "clans_participation",
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A tag, # included and URL-encoded (%23)."
+          },
+          {
+            "name": "weeks",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the clans_participation tool's structured result, the same fields its outputSchema declares at /docs/tools, without the agent response cap.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "clans_participation"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}/roster": {
+      "get": {
+        "operationId": "clanRoster",
+        "summary": "A clan's current roster and the recent membership events.",
+        "x-permission": "cr:read",
+        "x-principals": ["person"],
+        "x-tool": "clans_roster",
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A tag, # included and URL-encoded (%23)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the clans_roster tool's structured result, the same fields its outputSchema declares at /docs/tools, without the agent response cap.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "clans_roster"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}/live": {
+      "get": {
+        "operationId": "clanLive",
+        "summary": "A fresh read of the clan from the game: served if in hand, else live_pending with retry_after_s.",
+        "x-permission": "cr:read",
+        "x-principals": ["person"],
+        "x-tool": "live_fetch",
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A tag, # included and URL-encoded (%23)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the live_fetch tool's structured result, the same fields its outputSchema declares at /docs/tools, without the agent response cap.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "live_fetch"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/names": {
+      "post": {
+        "operationId": "playerNames",
+        "summary": "Tag to name for up to 100 players.",
+        "x-permission": "cr:read",
+        "x-principals": ["person"],
+        "x-tool": "players_names",
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success: the players_names tool's structured result, the same fields its outputSchema declares at /docs/tools, without the agent response cap.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "players_names"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["player_tags"],
+                "properties": {
+                  "player_tags": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{tag}/profile": {
+      "get": {
+        "operationId": "playerProfile",
+        "summary": "The latest recorded profile; fresh=1 asks for a live read.",
+        "x-permission": "cr:read",
+        "x-principals": ["person"],
+        "x-tool": "players_profile",
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A tag, # included and URL-encoded (%23)."
+          },
+          {
+            "name": "fresh",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the players_profile tool's structured result, the same fields its outputSchema declares at /docs/tools, without the agent response cap.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "players_profile"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{tag}/battles": {
+      "get": {
+        "operationId": "playerBattles",
+        "summary": "Recent battles, compact; fresh=1 asks for a live battle-log read.",
+        "x-permission": "cr:read",
+        "x-principals": ["person"],
+        "x-tool": "battles_query",
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A tag, # included and URL-encoded (%23)."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "fresh",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the battles_query tool's structured result, the same fields its outputSchema declares at /docs/tools, without the agent response cap.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "battles_query"
+                    }
+                  }
                 }
               }
             }

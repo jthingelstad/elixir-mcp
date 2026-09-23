@@ -59,8 +59,12 @@ export function liveBudgetFor(account) {
     role: account.role,
     liveOverride: account.liveDailyQuota ?? null,
   };
+  // A family app's call (a first-party client on the JSON API) spends no
+  // one's quota (Jamie, 2026-09-23); the fleet's global rate budget still
+  // governs every fetch.
   const unlimited =
     account.isOwner === true ||
+    account.firstParty === true ||
     budget.role === "owner" ||
     budget.role === "admin";
   const cap = unlimited
