@@ -8061,3 +8061,65 @@ game_mode to drill in".
 
 Main is green and unchanged; nothing from this experiment is committed
 beyond this note.
+
+## 2026-09-23 — 6.18.0: the comparisons the row always held, and the duration its signature proves
+
+Jamie, 2026-09-22: "battles contain information that we should connect
+for consumers. Elixir leaked for example is most meaningful in a
+comparison between... are there comparison metrics we should be
+calculating?" The record held both halves of every one and made none.
+
+**`me.vs`** on every head-to-head row, each as me MINUS the one
+opponent: `crowns`, `deck_level` (the level edge in THAT battle, from the
+cards as played - not a career average), `starting_trophies` (what
+matchmaking paired) and `tower_hp` (hitpoints REMAINING on both sides, so
+a margin of victory, never a tower level). Null on 2v2 and duels, and per
+field where a side's value is missing. Live, one page of ladder:
+
+```
+2-1 win   vs: crowns +1  level +1.00  trophies  -29  towerHP +5265
+0-1 loss  vs: crowns -1  level +1.75  trophies    0  towerHP  -205
+```
+
+The second row is the point: a loss while a full 1.75 levels up, decided
+by 205 hitpoints. Neither number was reachable without a caller reaching
+into two nested objects and differencing them.
+
+**`inferred.duration`** on head-to-head 1v1 rows. The log carries no
+duration; the game's clock makes the crown pair a bound. A King Tower is
+the only way to end before regulation, and overtime ends on the next
+tower, so: three crowns -> `at_most_s` 300 with no floor; unequal and
+neither 3 -> `at_least_s` 180; level -> `exact_s` 300, because overtime
+expired and the tiebreaker resolved it. `basis` is
+`king_tower_fell` / `regulation_ran` / `overtime_expired`. Absent on
+duels and boat battles, where neither rule holds. A bound the signature
+PROVES, never a timing.
+
+Asked for and NOT built: king tower LEVEL comparison. The payload has
+only `kingTowerHitPoints`, which is hitpoints remaining; a tower's level
+is in the player profile, not the battle. `tower_hp` is the honest
+version of that question.
+
+### The row had no room, and the gate caught it
+
+`battles_query` full at limit 10 went to 51,097 characters against the
+48,000 cap - a shape a real caller uses, which is why the usage-derived
+catalogue had a case for it. Three rounds of trimming, in order of how
+much they were worth:
+
+1. `basis` was a SENTENCE on every row. It is an enum now, explained
+   once in the note. (~500 characters.)
+2. The elixir caveat rode every ROUND of a duel, which I had added -
+   ~1.8 KB on a three-round duel. The row's own elixir object already
+   carries it.
+3. `ELIXIR_CAVEAT` itself was ~295 characters on every participant of
+   every row: **6 KB of one repeated sentence on a ten-battle page.** It
+   stays ON the value, which is the 6.0.0 decision from feedback #66, at
+   about half the length.
+
+The lesson worth keeping: `battles_query` at full verbosity is at its
+ceiling, and its guard still allows `limit: 25` while about 9 rows fit.
+Anything added to that row now costs someone a page. The `limit > 25`
+refusal should probably become a size the row can actually honour.
+
+Gate green after the fix: 277 cases, 0 failed.
