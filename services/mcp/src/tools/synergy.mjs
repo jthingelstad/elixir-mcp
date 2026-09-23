@@ -1,3 +1,4 @@
+import { participantModeClause } from "../mode-filter.mjs";
 /** cards_synergy — the card-pair axis (feedback #19): "what is Witch
  *  played with" needed co-occurrence, per-pair distinct players and lift,
  *  none of which the per-card or per-deck meta could give. */
@@ -136,10 +137,7 @@ export const synergyTools = {
         where.push(`${seg.timeColumn} < $${params.length}`);
       }
       requireEnum(args.mode, MODE_GROUPS, "mode");
-      if (args.mode) {
-        params.push(typesForModeGroup(args.mode));
-        where.push(`bp.type = any($${params.length})`);
-      }
+      if (args.mode) where.push(participantModeClause(args.mode, params));
       requireEnum(args.trophy_band, TROPHY_BAND_NAMES, "trophy_band");
       if (args.trophy_band)
         where.push(trophyBandClause(args.trophy_band, params));

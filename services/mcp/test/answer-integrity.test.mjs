@@ -225,6 +225,40 @@ test("an oversized page says which limit would have fit (feedback #56)", async (
   assert.ok(fits >= 10 && fits <= 12, body.error.hint);
 });
 
+test("a one-size tool's oversized page never advises compact (feedback #151)", async () => {
+  const response = await handleMcpMessage(
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: {
+        name: "battles_decks",
+        arguments: { limit: 40, verbosity: "compact" },
+      },
+    },
+    {
+      registry,
+      spendQuota: async () => ({ allowed: true, max: Infinity }),
+      invokeTool: async () => ({
+        body: {
+          applied: { window: {}, limit: 40, verbosity: "full" },
+          decks: "x".repeat(96000),
+          meta: {
+            request_id: "00000000-0000-0000-0000-000000000003",
+            as_of: new Date().toISOString(),
+          },
+        },
+        isError: false,
+      }),
+    },
+  );
+  const body = JSON.parse(response.payload.result.content[0].text);
+  assert.equal(body.error.code, "result_too_large");
+  assert.doesNotMatch(body.error.hint, /compact/);
+  assert.doesNotMatch(body.error.hint, /verbosity/);
+  assert.match(body.error.hint, /a limit of \d+ should fit/);
+});
+
 test("unknown snapshot times and incompatible lifetime counters do not assert coverage", async () => {
   const tag = "#P0R";
   await scratch.db.query("insert into player (player_tag) values ($1)", [tag]);

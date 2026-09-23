@@ -156,7 +156,13 @@ export function makeRegistry() {
       }
       // The declared schema is the contract clients see; enforce it before
       // a handler can see anything the schema did not promise.
-      const problem = validateArgs(TOOLS[name].inputSchema, args);
+      // Validated against the published schema, so an unknown-argument
+      // refusal's "Known:" list names verbosity on a one-size tool too
+      // (Gym #151); verbosity itself was taken off args above.
+      const problem = validateArgs(
+        publishedInputSchema(TOOLS[name].inputSchema),
+        args,
+      );
       if (problem) {
         // A missing required argument's hint is that argument's own
         // description (4.0.0): a segment tool called without segment is

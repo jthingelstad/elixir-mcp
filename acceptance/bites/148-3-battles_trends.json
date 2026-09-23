@@ -1,0 +1,55 @@
+{
+  "feedback": 148,
+  "contract_version": "6.30.0",
+  "captured_at": "2026-09-23T18:30:57.031Z",
+  "request": {
+    "tool": "battles_trends",
+    "arguments": {
+      "segment": {
+        "player_tag": "#C920YGLC2"
+      },
+      "mode": "event",
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "player",
+        "player_tag": "#C920YGLC2"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": "2026-09-14T10:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 7
+      },
+      "mode": "event"
+    },
+    "weeks": [],
+    "notes": [
+      "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",
+      "season_month is the season the week's Tuesday to Sunday fall in; a season rolls on Monday at 10:00 UTC, so a roll week's first hours belong to the season before (applied.window.crosses says where).",
+      "Recording start dates differ per player, so early weeks may be thin because capture was, not because play was."
+    ],
+    "docs": "recording#completeness",
+    "meta": {
+      "contract_version": "6.30.0"
+    }
+  },
+  "timings": {
+    "db_ms": 105,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -1981,3 +1981,16 @@ All 5 regressions were confirmed (#38 rankings half, #71-#73, #76). #139 is prai
 - **6.30.0 gate:** gym/147.4 failed in the interpreter, not the product. `count_eq` with a list on the right compared a number to the array; it now compares to the list's length.
 - **#146:** an edit-distance candidate pass over labels and identifiers, with a budget of max(2, length/6) squashed letters. Every miss says "exactly".
 
+## 2026-09-23 — Gym sweep, badges and battles round 2 (6.30.0-6.31.0, feedback #144-#152)
+
+- **6.30.1:** Jamie decided that the badge corpus is the players recorded now (#145), and it is in DECISIONS.md. The 6.30.0 gate failure was the interpreter's `count_eq` against a list.
+- **Battles r2:** 41 regressions checked. #95-#100 and 31 legacy items were confirmed. #97 was partly fixed and the rest is #150. The #122 remainder surfaced as #151.
+- **#148:** `mode-filter.mjs`.
+  - `participantModeClause` reads battle.event_tag through a semi-join, only when a mode is named. A live read showed event battles come as `trail` AND `unknown`, so no type set can stand in for the tag.
+  - `metaPopulationClause` is the rollup's META_POPULATION for raw meta reads. The raw path had kept event and non-chosen decks, and disagreed with the season rollup and with the battles docs.
+  - 148.1 and 148.4 (meta tools must answer event) are `refuted` in gym.json. The interpreter gained that skip.
+- **#149:** deck_stats reads the same `setWhere` as total_count, with params up to the highest one named.
+- **#150:** a note fires when rows carry no tower level. Inferring the level from untouched-tower HP needs a per-level HP table, which is not built. That is a follow-up, not done.
+- **#151:** protocol.mjs knows a one-size tool by its published verbosity description, and validation reads the published schema, so "Known:" lists verbosity. 151.1 has no bite: the archive holds the body before the cap.
+- **Not done:** clans_standings (standings-sql.mjs) still filters mode by type. That belongs to the clans family and is for round 2 there.
+

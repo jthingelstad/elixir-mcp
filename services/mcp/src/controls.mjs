@@ -112,10 +112,10 @@ export function zeroSeriesNote(points, field) {
   return `${field} is 0 at every point in the window: nobody was rated on this board then, so the curve describes an empty field, not a flat one.`;
 }
 
-/** Battle types to a count per mode group: { ladder: 10, war: 4 }. */
-export function countByMode(types) {
+/** Mode groups already derived (event-aware) to a count per group. */
+export function countByModeGroup(groups) {
   const out = {};
-  for (const t of types) out[modeGroupOf(t)] = (out[modeGroupOf(t)] ?? 0) + 1;
+  for (const g of groups) out[g] = (out[g] ?? 0) + 1;
   return out;
 }
 
@@ -125,7 +125,7 @@ export function countByMode(types) {
 export function modeGaps(typeRows) {
   const pooled = new Map();
   for (const r of typeRows) {
-    const mode = modeGroupOf(r.type);
+    const mode = r.mode_group ?? modeGroupOf(r.type);
     const cur = pooled.get(mode) ?? { mode, battles: 0, gapSum: 0, gapN: 0 };
     cur.battles += r.battles;
     const n = r.level_battles ?? r.battles;

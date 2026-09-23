@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-23",
+    title:
+      "Battles: event play kept out of the meta, and counted as events everywhere",
+    body: "The Elixir Gym's second run over the battle tools. The meta tools already left out event battles and drafted decks for whole seasons. They now do the same for custom date ranges and single players or clans, so a week's meta no longer mixes in a boosted event deck. Everywhere else, event battles are counted as events, never as casual play. Asking for one deck's battles in a date range now gives that range's totals, not the deck's lifetime. Contract 6.31.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "Badges: the two Royal Tournament badges, and typos",
     body: "The Elixir Gym's second run over the badge tools. Some badges exist twice, an original and a newer version that most players now hold. The badge tools now name both and count the distinct players holding either, so asking about Royal Tournament Rank no longer shows almost nobody holding it. A misspelled badge name now gets suggestions instead of a flat refusal. And badge counts across everyone now include only the players Elixir records today, not every profile it has ever read. Contract 6.30.1.",
   },

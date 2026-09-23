@@ -1,0 +1,74 @@
+{
+  "feedback": 149,
+  "contract_version": "6.30.0",
+  "captured_at": "2026-09-23T18:30:38.709Z",
+  "request": {
+    "tool": "battles_query",
+    "arguments": {
+      "deck_hash": "f8d031ebe3788c632e8a8c2cecd2018b941064ac6c01919b237c8f95f57862c2",
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z",
+      "mode": "ranked",
+      "limit": 1,
+      "verbosity": "compact",
+      "include_total": true
+    }
+  },
+  "response": {
+    "deck_hash": "f8d031ebe3788c632e8a8c2cecd2018b941064ac6c01919b237c8f95f57862c2",
+    "deck_stats": {
+      "battles": 265,
+      "wins": 131,
+      "losses": 134,
+      "players": 1,
+      "first_used": "2026-08-31T05:16:16.000Z",
+      "last_used": "2026-09-16T21:03:04.000Z"
+    },
+    "applied": {
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": "2026-09-14T10:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 7
+      },
+      "limit": 1,
+      "verbosity": "compact",
+      "mode": "ranked",
+      "deck_hash": "f8d031ebe3788c632e8a8c2cecd2018b941064ac6c01919b237c8f95f57862c2"
+    },
+    "battles": [],
+    "total_count": 0,
+    "next_cursor": null,
+    "notes": [
+      "deck_stats carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
+      "me.vs is every comparison the row already held both halves of, as me MINUS the one opponent: crowns, deck_level (the level edge in THIS battle, from the cards as played), starting_trophies (on ladder, what matchmaking paired), tower_hp (hitpoints REMAINING on both sides) and tower_level (the tower troop's level). tower_hp is a margin of victory only when tower_level is 0. Null on 2v2, duels and boat battles (a defense against an attack), and a field is null where the record lacks a side's value. Read these before the absolute numbers - a leak, a level or a tower total means little except against the other side's.",
+      "inferred.duration is what the battle's signature PROVES about its length, never a measurement: the log carries no duration. A King Tower is the only way to end before regulation, so a three-crown finish is at_most_s 300 with no floor; any other finish ran at least 180 s; and level crowns means overtime expired and the tiebreaker resolved it, which is exactly 300 s. Head-to-head 1v1 only - a duel sums crowns over up to three games and a boat battle has no overtime - basis is which rule fired: king_tower_fell (a King Tower ended it, so nothing bounds it below), regulation_ran (no King Tower, so it reached at least 3:00; whether it ended there or in overtime is not recorded) or overtime_expired.",
+      "global_rank is the player's global leaderboard position as the API reported it ON that battle - null unless they were ranked at the time, and not a rank in this record: it says you met a ranked opponent, never how they rank now.",
+      "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept)."
+    ],
+    "docs": "battles#what-a-battle-record-holds",
+    "meta": {
+      "contract_version": "6.30.0",
+      "source_polls": {
+        "player_battlelog": {
+          "observed_at": null,
+          "freshness_seconds": null
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 33,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

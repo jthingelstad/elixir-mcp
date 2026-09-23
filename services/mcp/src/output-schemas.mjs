@@ -2451,7 +2451,19 @@ export const OUTPUT_SCHEMAS = {
       name: NAME,
       battle_id: { type: "string" },
       deck_hash: { type: "string" },
-      deck_stats: { type: "object" },
+      deck_stats: {
+        type: "object",
+        description:
+          "With deck_hash alone: the deck's battles in this call's match set (window, mode and filters; every page), with wins, losses, distinct players and first/last use. No pooled win rate by design.",
+        properties: {
+          battles: COUNT,
+          wins: COUNT,
+          losses: COUNT,
+          players: COUNT,
+          first_used: { type: ["string", "null"] },
+          last_used: { type: ["string", "null"] },
+        },
+      },
       applied: {
         type: "object",
         properties: {

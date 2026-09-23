@@ -1,3 +1,4 @@
+import { participantModeClause } from "../mode-filter.mjs";
 /** cards_card - everything the record knows about ONE card, in one call
  *  (5.0.0; docs/reviews/2026-09-19-CARDS-REVIEW.md). Before it, a card
  *  question cost the whole 130-row card meta and a hand search of the
@@ -69,10 +70,7 @@ function scopeClauses(seg, win, args, params) {
     params.push(win.to);
     where.push(`${seg.timeColumn} < $${params.length}`);
   }
-  if (args.mode) {
-    params.push(typesForModeGroup(args.mode));
-    where.push(`bp.type = any($${params.length})`);
-  }
+  if (args.mode) where.push(participantModeClause(args.mode, params));
   return where;
 }
 const FORM_ROWS = [
@@ -638,10 +636,7 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
     params.push(win.to);
     where.push(`bp.battle_time < $${params.length}`);
   }
-  if (args.mode) {
-    params.push(typesForModeGroup(args.mode));
-    where.push(`bp.type = any($${params.length})`);
-  }
+  if (args.mode) where.push(participantModeClause(args.mode, params));
   const { rows: played } = await ctx.db.query(
     `select bp.player_tag, p.name,
             count(*)::int as battles,

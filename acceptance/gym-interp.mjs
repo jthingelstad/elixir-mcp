@@ -28,7 +28,9 @@
  * `stability` frozen (closed data: exact values are fair) or live
  * (invariants); `control` (a negative control, run the same);
  * `needs_fixture` and `open_question` (not runnable live: SKIP with the
- * text, and a note that the fixture tests carry the former).
+ * text, and a note that the fixture tests carry the former); `refuted`
+ * (the orchestrator's answer to a finding the record contradicts: the
+ * Gym's case stays as filed, SKIPPED with the reason, 148.1).
  */
 
 import { answered, ok, fail } from "./lib.mjs";
@@ -328,6 +330,8 @@ export function gymCases(blocks) {
           };
         if (b.open_question)
           return { skip: `UNSPEC (an open question): ${b.open_question}` };
+        if (b.refuted)
+          return { skip: `REFUTED (answered with evidence): ${b.refuted}` };
         // The reads: one tool, or aliased calls.
         let root;
         let ms = null;

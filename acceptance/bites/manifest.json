@@ -785,5 +785,45 @@
     "case": "gym/146.2",
     "captures": ["146-2-badges_holders.json"],
     "expect": "."
+  },
+  {
+    "feedback": 148,
+    "contract": "6.30.0",
+    "why": "the Gym block 148.2 on the answer it read",
+    "case": "gym/148.2",
+    "captures": ["148-2-battles_cards.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 148,
+    "contract": "6.30.0",
+    "why": "the Gym block 148.3 on the answer it read",
+    "case": "gym/148.3",
+    "captures": ["148-3-battles_trends.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 149,
+    "contract": "6.30.0",
+    "why": "the Gym block 149.1 on the answer it read",
+    "case": "gym/149.1",
+    "captures": ["149-1-battles_query.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 150,
+    "contract": "6.30.0",
+    "why": "the Gym block 150.1 on the answer it read",
+    "case": "gym/150.1",
+    "captures": ["150-1-battles_query.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 151,
+    "contract": "6.30.0",
+    "why": "the Gym block 151.2 on the answer it read",
+    "case": "gym/151.2",
+    "captures": ["151-2-battles_cards.json"],
+    "expect": "."
   }
 ]

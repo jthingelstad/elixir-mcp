@@ -3,6 +3,7 @@ import {
   formName,
   responseMeta,
   typesForModeGroup,
+  EVENT_MODE_GROUP,
 } from "@elixir-mcp/contracts";
 import {
   META_METHODOLOGY,
@@ -46,6 +47,11 @@ import {
   pooledModesNote,
   singlePlayerNote,
 } from "../../controls.mjs";
+import {
+  META_EVENT_NOTE,
+  metaPopulationClause,
+  participantModeClause,
+} from "../../mode-filter.mjs";
 import {
   BAND_FALLBACK_NOTE,
   CARD_IDS_ARG,
@@ -114,10 +120,15 @@ export const battles_meta_cards = {
       scope.push(`${seg.timeColumn} < $${params.length}`);
     }
     requireEnum(args.mode, MODE_GROUPS, "mode");
-    if (args.mode) {
+    // Event content is outside the meta population (6.17.0): mode event
+    // answers empty and says why (#148), never a silent zero. The
+    // population table and the season rollup already exclude it; a raw
+    // read excludes it below with the rollup's own rule.
+    if (args.mode === EVENT_MODE_GROUP) scope.push("false");
+    else if (args.mode && pop) {
       params.push(typesForModeGroup(args.mode));
       scope.push(`bp.type = any($${params.length})`);
-    }
+    } else if (args.mode) scope.push(participantModeClause(args.mode, params));
     requireEnum(args.trophy_band, TROPHY_BAND_NAMES, "trophy_band");
     if (args.trophy_band)
       scope.push(
@@ -130,6 +141,7 @@ export const battles_meta_cards = {
       "bp.deck_hash is not null",
       "bp.outcome in ('win','loss')",
       "bp.type_class = 'pvp'",
+      ...(pop ? [] : [metaPopulationClause()]),
     ];
     const minBattles = args.min_battles ?? 10;
     const rolled = await seasonRollup(ctx.db, {
@@ -376,6 +388,7 @@ export const battles_meta_cards = {
       ...(fitBlock ? { fit_for: fitBlock } : {}),
       cards: shaped,
       notes: notes(
+        args.mode === EVENT_MODE_GROUP ? META_EVENT_NOTE : null,
         fitBlock ? cardFitNote(fitBlock, shaped) : NO_FIT_NOTE,
         clash,
         modeGroups ? pooledModesNote(modeGroups) : null,

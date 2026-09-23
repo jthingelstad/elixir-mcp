@@ -382,6 +382,7 @@ export const battles_query = {
     };
     let leakRows = 0;
     let towerGapRows = 0;
+    let towerUnknownRows = 0;
     let warVsRows = 0;
     let floorLosses = 0;
     const battles = rows.map((r) => {
@@ -421,6 +422,9 @@ export const battles_query = {
         const a = towerLevel(r);
         const b = towerLevel(opponents[0]);
         if (a !== null && b !== null && a !== b) towerGapRows++;
+        // River race rows record no support cards on either side (#150),
+        // so the level is unknown there - which is not "equal".
+        if (a === null || b === null) towerUnknownRows++;
         if (/^riverRace/.test(String(r.type)) && r.starting_trophies !== null)
           warVsRows++;
       }
@@ -525,12 +529,30 @@ export const battles_query = {
       };
     });
 
+    // The whole match set: the page's filters minus the cursor (the
+    // cursor positions a page; the total and deck_stats describe every
+    // page). Parameters up to the highest one the clauses name.
+    const setWhere = where.filter(
+      (w) => !w.includes("(bp.battle_time, bp.battle_id) <"),
+    );
+    const setParams = params.slice(
+      0,
+      Math.max(
+        0,
+        ...[...setWhere.join(" ").matchAll(/\$(\d+)/g)].map((m) =>
+          Number(m[1]),
+        ),
+      ),
+    );
+
     let deckStats;
     if (corpusDeck) {
-      // The honest aggregate: counts, W-L, distinct pilots, span.
-      // Deliberately NO win rate - a deck's pooled rate describes who
-      // plays it (docs/META-INTEL §2); lift with a sample size is an
-      // agent tool (battles_meta_decks).
+      // The honest aggregate over THIS call's match set (feedback #149:
+      // it had counted the deck's lifetime whatever the window and
+      // filters said): counts, W-L, distinct pilots, span. Deliberately
+      // NO win rate - a deck's pooled rate describes who plays it
+      // (docs/META-INTEL §2); lift with a sample size is an agent tool
+      // (battles_meta_decks).
       const { rows: ds } = await ctx.db.query(
         `select count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
@@ -539,8 +561,8 @@ export const battles_query = {
                   min(b.battle_time) as first_used,
                   max(b.battle_time) as last_used
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
-           where bp.deck_hash = $1`,
-        [String(args.deck_hash)],
+           where ${setWhere.join(" and ")}`,
+        setParams,
       );
       deckStats = {
         battles: ds[0].battles,
@@ -554,16 +576,11 @@ export const battles_query = {
 
     let totalCount;
     if (args.include_total === true) {
-      // Same filters minus the cursor: the cursor positions a page, the
-      // total describes the whole match set.
-      const countWhere = where.filter(
-        (w) => !w.includes("(bp.battle_time, bp.battle_id) <"),
-      );
       const { rows: cnt } = await ctx.db.query(
         `select count(*)::int as n
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
-           where ${countWhere.join(" and ")}`,
-        params.slice(0, countWhere.length),
+           where ${setWhere.join(" and ")}`,
+        setParams,
       );
       totalCount = cnt[0].n;
     }
@@ -632,10 +649,13 @@ export const battles_query = {
         win.seasonNotes,
         caveats,
         deckStats &&
-          "deck_stats carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
+          "deck_stats counts the battles this call matches (its window, mode and other filters; every page, not this one) and carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
         "me.vs is every comparison the row already held both halves of, as me MINUS the one opponent: crowns, deck_level (the level edge in THIS battle, from the cards as played), starting_trophies (on ladder, what matchmaking paired), tower_hp (hitpoints REMAINING on both sides) and tower_level (the tower troop's level). tower_hp is a margin of victory only when tower_level is 0. Null on 2v2, duels and boat battles (a defense against an attack), and a field is null where the record lacks a side's value. Read these before the absolute numbers - a leak, a level or a tower total means little except against the other side's.",
         towerGapRows > 0
           ? `${towerGapRows} ${towerGapRows === 1 ? "row's towers" : "rows' towers"} started unequal (tower levels differ; vs.tower_level is not 0): a tower one level higher starts with more hitpoints (1,564 more across the three towers at 16 against 15), so vs.tower_hp there carries the starting gap as well as the damage - it is not a margin of victory.`
+          : null,
+        towerUnknownRows > 0
+          ? `${towerUnknownRows} ${towerUnknownRows === 1 ? "row carries" : "rows carry"} no tower level on one side or both (vs.tower_level null: river race rows record no support cards), so those towers may have started unequal and vs.tower_hp there is not a margin of victory.`
           : null,
         warVsRows > 0
           ? `On river race rows, starting_trophies is each side's Trophy Road count, and war matchmaking draws opponents from the racing clans without pairing on it, so vs.starting_trophies there is not what matchmaking paired (on ladder it is).`

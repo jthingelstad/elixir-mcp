@@ -204,7 +204,15 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
   let body = invoked;
   if (truncated) {
     const spec = registry.declarations(kind).find((d) => d.name === name);
-    const params = Object.keys(spec?.inputSchema?.properties ?? {});
+    // A one-size tool publishes verbosity so clients may send it, but it
+    // narrows nothing there (Gym #151: battles_decks was told compact is
+    // usually enough, and a compact retry still read "verbosity full").
+    const oneSize = /^This tool has one size/.test(
+      spec?.inputSchema?.properties?.verbosity?.description ?? "",
+    );
+    const params = Object.keys(spec?.inputSchema?.properties ?? {}).filter(
+      (p) => !(oneSize && p === "verbosity"),
+    );
     const narrowing = params.filter((p) =>
       [
         "limit",
@@ -236,7 +244,7 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
     const sizing =
       fits !== null && fits < applied
         ? ` This page was ${text.length} characters at limit ${applied}${
-            invoked?.applied?.verbosity
+            invoked?.applied?.verbosity && !oneSize
               ? ` (verbosity ${invoked.applied.verbosity})`
               : ""
           }; a limit of ${fits} should fit the same arguments.`

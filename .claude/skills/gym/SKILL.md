@@ -121,7 +121,10 @@ Gym runs are read-only, so they may run while you fix another family.
    - Claim the `loop` lease: `AGENT-TEAM/scripts/objective-lease.mjs claim loop`.
    - Verify every finding against the record before touching code. The Gym
      is evidence, not authority. A finding you refute gets an answer with
-     the evidence, not a fix.
+     the evidence, not a fix. Its case still joins `gym.json` as filed, with
+     a `refuted` field giving the answer; the interpreter skips it with
+     that reason (148.1, 148.4: event content is outside the meta population
+     by decision).
    - Fix at the source. The site docs and `apps/site/src/_data/updates.js`
      go in the same commit.
    - Merge the report's appendix into `acceptance/gym.json` unchanged.

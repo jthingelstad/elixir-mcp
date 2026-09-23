@@ -1,8 +1,5 @@
-import {
-  MODE_GROUPS,
-  responseMeta,
-  typesForModeGroup,
-} from "@elixir-mcp/contracts";
+import { participantModeClause } from "../../mode-filter.mjs";
+import { MODE_GROUPS, responseMeta } from "@elixir-mcp/contracts";
 import {
   MODE_SCHEMA,
   SEASON_ARG_SCHEMA,
@@ -63,10 +60,7 @@ export const battles_trends = {
       where.push(`${seg.timeColumn} < $${params.length}`);
     }
     requireEnum(args.mode, MODE_GROUPS, "mode");
-    if (args.mode) {
-      params.push(typesForModeGroup(args.mode));
-      where.push(`bp.type = any($${params.length})`);
-    }
+    if (args.mode) where.push(participantModeClause(args.mode, params));
     const { rows } = await ctx.db.query(
       `select w.*,
                 (select s.season_month from season s

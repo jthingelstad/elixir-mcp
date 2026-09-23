@@ -1,0 +1,383 @@
+{
+  "feedback": 150,
+  "contract_version": "6.30.0",
+  "captured_at": "2026-09-23T18:31:27.323Z",
+  "request": {
+    "tool": "battles_query",
+    "arguments": {
+      "battle_id": "253614f62df10a7956c95157e5111b3d6532a1ce2d658d4f4759eea24dd40065"
+    }
+  },
+  "response": {
+    "battle_id": "253614f62df10a7956c95157e5111b3d6532a1ce2d658d4f4759eea24dd40065",
+    "applied": {
+      "window": {
+        "from": null,
+        "to": null,
+        "source": "unbounded",
+        "season": null,
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-01-05T10:00:00.000Z",
+            "from_season": {
+              "month": "2025-12",
+              "war": 127
+            },
+            "to_season": {
+              "month": "2026-01",
+              "war": 128
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-02-02T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-01",
+              "war": 128
+            },
+            "to_season": {
+              "month": "2026-02",
+              "war": 129
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-03-02T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-02",
+              "war": 129
+            },
+            "to_season": {
+              "month": "2026-03",
+              "war": 130
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-04-06T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-03",
+              "war": 130
+            },
+            "to_season": {
+              "month": "2026-04",
+              "war": 131
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-05-04T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-04",
+              "war": 131
+            },
+            "to_season": {
+              "month": "2026-05",
+              "war": 132
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-06-01T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-05",
+              "war": 132
+            },
+            "to_season": {
+              "month": "2026-06",
+              "war": 133
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-07-06T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-06",
+              "war": 133
+            },
+            "to_season": {
+              "month": "2026-07",
+              "war": 134
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-08-03T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-07",
+              "war": 134
+            },
+            "to_season": {
+              "month": "2026-08",
+              "war": 135
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ]
+      },
+      "limit": 25,
+      "verbosity": "full"
+    },
+    "battles": [
+      {
+        "battle_id": "253614f62df10a7956c95157e5111b3d6532a1ce2d658d4f4759eea24dd40065",
+        "battle_time": "2026-09-21T00:59:07.000Z",
+        "type": "riverRacePvP",
+        "game_mode": {
+          "id": 72000268,
+          "name": "CW_Battle_1v1"
+        },
+        "arena": {
+          "id": 54000142,
+          "name": "Ultimate Clash Pit"
+        },
+        "league_number": 1,
+        "mode_group": "war",
+        "context": {
+          "event_tag": null,
+          "tournament_tag": null,
+          "ladder_tournament": false,
+          "hosted": false,
+          "deck_selection": "collection"
+        },
+        "inferred": {
+          "duration": {
+            "at_least_s": 180,
+            "at_most_s": 300,
+            "exact_s": null,
+            "basis": "regulation_ran"
+          }
+        },
+        "me": {
+          "player_tag": "#20JJJ2CCRU",
+          "name": "King Thing",
+          "outcome": "loss",
+          "crowns": 0,
+          "trophy_change": null,
+          "starting_trophies": 12533,
+          "global_rank": null,
+          "deck_hash": "ce06788aed5c01a8989b4ba549d81bb5c2f2fcdc6a3586859333bab89dd4e8a0",
+          "deck": {
+            "cards": [
+              {
+                "id": 27000002,
+                "name": "Mortar",
+                "level": 16,
+                "evolutionLevel": 1,
+                "starLevel": 1
+              },
+              {
+                "id": 26000074,
+                "name": "Golden Knight",
+                "level": 15
+              },
+              {
+                "id": 28000017,
+                "name": "Giant Snowball",
+                "level": 16,
+                "evolutionLevel": 1,
+                "starLevel": 1
+              },
+              {
+                "id": 26000063,
+                "name": "Electro Dragon",
+                "level": 16,
+                "starLevel": 1
+              },
+              {
+                "id": 26000046,
+                "name": "Bandit",
+                "level": 15
+              },
+              {
+                "id": 28000011,
+                "name": "The Log",
+                "level": 15,
+                "starLevel": 1
+              },
+              {
+                "id": 26000019,
+                "name": "Spear Goblins",
+                "level": 15,
+                "starLevel": 1
+              },
+              {
+                "id": 26000040,
+                "name": "Dart Goblin",
+                "level": 16,
+                "starLevel": 2
+              }
+            ],
+            "archetype": {
+              "family": "siege",
+              "win_conditions": [
+                {
+                  "id": 27000002,
+                  "name": "Mortar",
+                  "form": "evolution"
+                }
+              ],
+              "secondary_win_conditions": [],
+              "named_by": null,
+              "label": "Evo Mortar siege",
+              "average_elixir": 3.13,
+              "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+              "grammar_version": "2026-09",
+              "roles_version": "2026-09-20T20:16:47.000Z"
+            }
+          },
+          "elixir": {
+            "leaked": 1.37,
+            "opponent_leaked": 4.1,
+            "differential": -2.73,
+            "rounds": 1,
+            "caveat": "Not a skill measure: holding elixir to make the opponent commit is a deliberate line that raises leak by design, and the record cannot tell that from waste. Read the differential, never the absolute."
+          },
+          "tower_hp": {
+            "king": 7728,
+            "princess": [4769, 0]
+          },
+          "vs": {
+            "crowns": -1,
+            "deck_level": 2,
+            "starting_trophies": 1933,
+            "tower_hp": -2669,
+            "tower_level": null
+          }
+        },
+        "teammates": [],
+        "opponents": [
+          {
+            "player_tag": "#20RGRCU2UV",
+            "name": "《アレシート》",
+            "name_known": true,
+            "crowns": 1,
+            "deck_hash": "214e9572ba5383f9ed5472fc0ffbd9d5fc7411edf447deb0dd93b0dcf4d5ed4b",
+            "clan_tag": "#GPJ8Y9PV",
+            "global_rank": null,
+            "deck": {
+              "cards": [
+                {
+                  "id": 26000007,
+                  "name": "Witch",
+                  "level": 16,
+                  "evolutionLevel": 1,
+                  "starLevel": 2
+                },
+                {
+                  "id": 26000038,
+                  "name": "Ice Golem",
+                  "level": 14,
+                  "evolutionLevel": 2
+                },
+                {
+                  "id": 26000012,
+                  "name": "Skeleton Army",
+                  "level": 12,
+                  "evolutionLevel": 1
+                },
+                {
+                  "id": 26000021,
+                  "name": "Hog Rider",
+                  "level": 16,
+                  "starLevel": 3
+                },
+                {
+                  "id": 27000003,
+                  "name": "Inferno Tower",
+                  "level": 12,
+                  "starLevel": 2
+                },
+                {
+                  "id": 28000000,
+                  "name": "Fireball",
+                  "level": 13
+                },
+                {
+                  "id": 28000001,
+                  "name": "Arrows",
+                  "level": 13,
+                  "starLevel": 3
+                },
+                {
+                  "id": 26000011,
+                  "name": "Valkyrie",
+                  "level": 12
+                }
+              ],
+              "archetype": {
+                "family": "control",
+                "win_conditions": [
+                  {
+                    "id": 26000021,
+                    "name": "Hog Rider",
+                    "form": "base"
+                  }
+                ],
+                "secondary_win_conditions": [],
+                "named_by": null,
+                "label": "Hog Rider control",
+                "average_elixir": 3.75,
+                "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+                "grammar_version": "2026-09",
+                "roles_version": "2026-09-20T20:16:47.000Z"
+              }
+            },
+            "elixir": {
+              "leaked": 4.1,
+              "opponent_leaked": null,
+              "differential": null,
+              "rounds": 1,
+              "caveat": "Not a skill measure: holding elixir to make the opponent commit is a deliberate line that raises leak by design, and the record cannot tell that from waste. Read the differential, never the absolute."
+            },
+            "tower_hp": {
+              "king": 7032,
+              "princess": [4424, 3710]
+            }
+          }
+        ]
+      }
+    ],
+    "next_cursor": null,
+    "notes": [
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "Window spans 10 seasons, S127 (2025-12) to S136 (2026-09); balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.",
+      "me.vs is every comparison the row already held both halves of, as me MINUS the one opponent: crowns, deck_level (the level edge in THIS battle, from the cards as played), starting_trophies (on ladder, what matchmaking paired), tower_hp (hitpoints REMAINING on both sides) and tower_level (the tower troop's level). tower_hp is a margin of victory only when tower_level is 0. Null on 2v2, duels and boat battles (a defense against an attack), and a field is null where the record lacks a side's value. Read these before the absolute numbers - a leak, a level or a tower total means little except against the other side's.",
+      "On river race rows, starting_trophies is each side's Trophy Road count, and war matchmaking draws opponents from the racing clans without pairing on it, so vs.starting_trophies there is not what matchmaking paired (on ladder it is).",
+      "inferred.duration is what the battle's signature PROVES about its length, never a measurement: the log carries no duration. A King Tower is the only way to end before regulation, so a three-crown finish is at_most_s 300 with no floor; any other finish ran at least 180 s; and level crowns means overtime expired and the tiebreaker resolved it, which is exactly 300 s. Head-to-head 1v1 only - a duel sums crowns over up to three games and a boat battle has no overtime - basis is which rule fired: king_tower_fell (a King Tower ended it, so nothing bounds it below), regulation_ran (no King Tower, so it reached at least 3:00; whether it ended there or in overtime is not recorded) or overtime_expired.",
+      "global_rank is the player's global leaderboard position as the API reported it ON that battle - null unless they were ranked at the time, and not a rank in this record: it says you met a ranked opponent, never how they rank now.",
+      "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept).",
+      "Deck card levels are the in-game 1-16 scale; form is the FORM played (base, evolution or hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
+      "elixir is each side's own leaked-elixir counter with its caveat on the object: read elixir.differential (me minus the one opponent, null on duels - a duel's per-round differentials ride rounds[]) before elixir.leaked, and neither as a skill measure."
+    ],
+    "docs": "battles#what-a-battle-record-holds",
+    "meta": {
+      "contract_version": "6.30.0",
+      "source_polls": {
+        "player_battlelog": {
+          "observed_at": "2026-09-23T18:13:07.000Z",
+          "freshness_seconds": 1100
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 68,
+    "db_queries": 11,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

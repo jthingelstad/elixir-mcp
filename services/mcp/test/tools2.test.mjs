@@ -936,6 +936,24 @@ test("battles_query addressing modes: battle_id alone, corpus deck_hash alone", 
   });
   assert.equal(byDeck.isError, false, JSON.stringify(byDeck.body));
   assert.equal(byDeck.body.deck_hash, one[0].deck_hash);
+  // deck_stats is the call's match set, not the deck's lifetime (#149):
+  // a window that holds none of its battles counts none.
+  const emptyWindow = await call("battles_query", {
+    deck_hash: one[0].deck_hash,
+    verbosity: "compact",
+    from: "2001-01-01",
+    to: "2001-01-02",
+    include_total: true,
+  });
+  assert.equal(emptyWindow.isError, false, JSON.stringify(emptyWindow.body));
+  assert.equal(emptyWindow.body.total_count, 0);
+  assert.equal(emptyWindow.body.deck_stats.battles, 0);
+  const all = await call("battles_query", {
+    deck_hash: one[0].deck_hash,
+    verbosity: "compact",
+    include_total: true,
+  });
+  assert.equal(all.body.deck_stats.battles, all.body.total_count);
   assert.ok(byDeck.body.battles.length > 0);
   for (const battle of byDeck.body.battles) {
     assert.ok(
@@ -1434,6 +1452,26 @@ test("battles_performance: decided vs boat denominators, mode key documented", a
   const modes = await call("battles_performance", { group_by: "game_mode" });
   assert.match(modes.body.notes.join(" "), /\(game_mode, type\)/);
   assert.ok(modes.body.by_mode.every((r) => "type" in r));
+});
+
+test("meta tools say event content is outside their population (feedback #148)", async () => {
+  for (const tool of ["battles_meta_decks", "battles_meta_cards"]) {
+    const { body, isError } = await call(tool, {
+      segment: { player_tag: OBSERVER },
+      mode: "event",
+      min_battles: 1,
+      from: "2020-01-01",
+    });
+    assert.equal(isError, false, JSON.stringify(body));
+    assert.equal(body.decided_battles ?? 0, 0, tool);
+    assert.match(body.notes.join(" "), /not in the meta population/, tool);
+  }
+  const ranked = await call("battles_trends", {
+    segment: { player_tag: OBSERVER },
+    mode: "casual",
+    from: "2020-01-01",
+  });
+  assert.equal(ranked.isError, false, JSON.stringify(ranked.body));
 });
 
 test("meta tools shrink toward the corpus prior, itemize exclusions, exclude boats", async () => {

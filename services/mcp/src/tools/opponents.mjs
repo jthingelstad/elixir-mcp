@@ -2,7 +2,11 @@
  *  every opponent tag and exposed no way to group on it, so "have I faced
  *  this player before" cost a five-page sweep tallied client-side. */
 
-import { MODE_GROUPS, typesForModeGroup } from "@elixir-mcp/contracts";
+import {
+  EVENT_MODE_GROUP,
+  MODE_GROUPS,
+  typesForModeGroup,
+} from "@elixir-mcp/contracts";
 import {
   requireEnum,
   ToolFailure,
@@ -77,7 +81,12 @@ export const opponentsTools = {
       if (win.from) add("me.battle_time >= ?", win.from);
       if (win.to) add("me.battle_time < ?", win.to);
       requireEnum(args.mode, MODE_GROUPS, "mode");
-      if (args.mode) add("b.type = any(?)", typesForModeGroup(args.mode));
+      // Event-aware (#148): the tag, not the type, marks event content.
+      if (args.mode === EVENT_MODE_GROUP) where.push("b.event_tag is not null");
+      else if (args.mode) {
+        add("b.type = any(?)", typesForModeGroup(args.mode));
+        where.push("b.event_tag is null");
+      }
       requireEnum(args.sort, ["battles", "last_seen", "wins"], "sort");
       const minBattles = Math.max(1, Number(args.min_battles ?? 1));
       if (!Number.isInteger(minBattles))

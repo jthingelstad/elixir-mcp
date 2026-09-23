@@ -1,4 +1,4 @@
-import { formName } from "@elixir-mcp/contracts";
+import { formName, modeGroupSql } from "@elixir-mcp/contracts";
 import {
   DISPLAY_NAME_SCHEMA,
   MODE_SCHEMA,
@@ -12,7 +12,15 @@ import {
   resolveSeasonWindow,
   subject,
 } from "../shared.mjs";
-import { countByMode, modeGaps, pooledModesNote } from "../../controls.mjs";
+import {
+  countByModeGroup,
+  modeGaps,
+  pooledModesNote,
+} from "../../controls.mjs";
+
+// Event-aware labels (#148): the tag, not the type, marks event content,
+// so an event battle is never counted as casual.
+const MODE_GROUP = modeGroupSql("b.type", "b.event_tag");
 import { CONTROLS_DOCS, FORM_ROWS_NOTE, modeClause } from "./common.mjs";
 
 export const battles_cards = {
@@ -87,7 +95,7 @@ export const battles_cards = {
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses,
                 round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap,
-                array_agg(b.type) as types
+                array_agg(${MODE_GROUP}) as mode_groups
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
          ${cardSource}
@@ -104,13 +112,13 @@ export const battles_cards = {
     // level gap per mode group over every battle the rows were drawn
     // from (duels excluded as the rows are).
     const { rows: groups } = await ctx.db.query(
-      `select b.type, count(*)::int as battles, count(lv.lvl)::int as level_battles,
+      `select ${MODE_GROUP} as mode_group, count(*)::int as battles, count(lv.lvl)::int as level_battles,
                 round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
          ${levelSource}
          where ${where.join(" and ")} and bp.deck_hash is not null
-         group by b.type`,
+         group by 1`,
       params,
     );
     const pooledGroups = modeGaps(groups);
@@ -138,7 +146,7 @@ export const battles_cards = {
         wins: r.wins,
         losses: r.losses,
         win_rate: Number((r.wins / (r.wins + r.losses)).toFixed(3)),
-        modes: countByMode(r.types),
+        modes: countByModeGroup(r.mode_groups),
         mean_level_gap:
           r.mean_level_gap === null ? null : Number(r.mean_level_gap),
       })),

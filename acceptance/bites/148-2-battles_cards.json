@@ -1,0 +1,677 @@
+{
+  "feedback": 148,
+  "contract_version": "6.30.0",
+  "captured_at": "2026-09-23T18:30:56.584Z",
+  "request": {
+    "tool": "battles_cards",
+    "arguments": {
+      "player_tag": "#C920YGLC2",
+      "mode": "event",
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z"
+    }
+  },
+  "response": {
+    "player_tag": "#C920YGLC2",
+    "applied": {
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": "2026-09-14T10:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 7
+      },
+      "perspective": "mine",
+      "mode": "event",
+      "min_battles": 3
+    },
+    "modes_in_window": {
+      "casual": {
+        "battles": 287,
+        "mean_level_gap": 0.01
+      }
+    },
+    "comparable": true,
+    "cards": [
+      {
+        "id": 28000012,
+        "name": "Tornado",
+        "form": "base",
+        "battles": 256,
+        "wins": 119,
+        "losses": 137,
+        "win_rate": 0.465,
+        "modes": {
+          "casual": 256
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 28000007,
+        "name": "Lightning",
+        "form": "base",
+        "battles": 244,
+        "wins": 119,
+        "losses": 125,
+        "win_rate": 0.488,
+        "modes": {
+          "casual": 244
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000015,
+        "name": "Baby Dragon",
+        "form": "evolution",
+        "battles": 223,
+        "wins": 109,
+        "losses": 114,
+        "win_rate": 0.489,
+        "modes": {
+          "casual": 223
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 28000015,
+        "name": "Barbarian Barrel",
+        "form": "base",
+        "battles": 215,
+        "wins": 103,
+        "losses": 112,
+        "win_rate": 0.479,
+        "modes": {
+          "casual": 215
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000102,
+        "name": "Berserker",
+        "form": "hero",
+        "battles": 203,
+        "wins": 98,
+        "losses": 105,
+        "win_rate": 0.483,
+        "modes": {
+          "casual": 203
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 27000009,
+        "name": "Tombstone",
+        "form": "hero",
+        "battles": 199,
+        "wins": 99,
+        "losses": 100,
+        "win_rate": 0.497,
+        "modes": {
+          "casual": 199
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000085,
+        "name": "Electro Giant",
+        "form": "base",
+        "battles": 188,
+        "wins": 91,
+        "losses": 97,
+        "win_rate": 0.484,
+        "modes": {
+          "casual": 188
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 28000025,
+        "name": "Spirit Empress",
+        "form": "base",
+        "battles": 187,
+        "wins": 95,
+        "losses": 92,
+        "win_rate": 0.508,
+        "modes": {
+          "casual": 187
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000080,
+        "name": "Skeleton Dragons",
+        "form": "base",
+        "battles": 42,
+        "wins": 20,
+        "losses": 22,
+        "win_rate": 0.476,
+        "modes": {
+          "casual": 42
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000063,
+        "name": "Electro Dragon",
+        "form": "evolution",
+        "battles": 40,
+        "wins": 17,
+        "losses": 23,
+        "win_rate": 0.425,
+        "modes": {
+          "casual": 40
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000009,
+        "name": "Golem",
+        "form": "base",
+        "battles": 34,
+        "wins": 14,
+        "losses": 20,
+        "win_rate": 0.412,
+        "modes": {
+          "casual": 34
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000037,
+        "name": "Inferno Dragon",
+        "form": "evolution",
+        "battles": 34,
+        "wins": 17,
+        "losses": 17,
+        "win_rate": 0.5,
+        "modes": {
+          "casual": 34
+        },
+        "mean_level_gap": 0.05
+      },
+      {
+        "id": 26000011,
+        "name": "Valkyrie",
+        "form": "hero",
+        "battles": 26,
+        "wins": 13,
+        "losses": 13,
+        "win_rate": 0.5,
+        "modes": {
+          "casual": 26
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000020,
+        "name": "Giant Skeleton",
+        "form": "base",
+        "battles": 24,
+        "wins": 12,
+        "losses": 12,
+        "win_rate": 0.5,
+        "modes": {
+          "casual": 24
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 28000001,
+        "name": "Arrows",
+        "form": "base",
+        "battles": 20,
+        "wins": 11,
+        "losses": 9,
+        "win_rate": 0.55,
+        "modes": {
+          "casual": 20
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000027,
+        "name": "Dark Prince",
+        "form": "hero",
+        "battles": 19,
+        "wins": 7,
+        "losses": 12,
+        "win_rate": 0.368,
+        "modes": {
+          "casual": 19
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000013,
+        "name": "Bomber",
+        "form": "base",
+        "battles": 19,
+        "wins": 11,
+        "losses": 8,
+        "win_rate": 0.579,
+        "modes": {
+          "casual": 19
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000029,
+        "name": "Lava Hound",
+        "form": "base",
+        "battles": 18,
+        "wins": 11,
+        "losses": 7,
+        "win_rate": 0.611,
+        "modes": {
+          "casual": 18
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000023,
+        "name": "Ice Wizard",
+        "form": "base",
+        "battles": 18,
+        "wins": 7,
+        "losses": 11,
+        "win_rate": 0.389,
+        "modes": {
+          "casual": 18
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000074,
+        "name": "Golden Knight",
+        "form": "base",
+        "battles": 17,
+        "wins": 7,
+        "losses": 10,
+        "win_rate": 0.412,
+        "modes": {
+          "casual": 17
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000054,
+        "name": "Cannon Cart",
+        "form": "base",
+        "battles": 17,
+        "wins": 8,
+        "losses": 9,
+        "win_rate": 0.471,
+        "modes": {
+          "casual": 17
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 28000013,
+        "name": "Clone",
+        "form": "base",
+        "battles": 17,
+        "wins": 8,
+        "losses": 9,
+        "win_rate": 0.471,
+        "modes": {
+          "casual": 17
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 27000010,
+        "name": "Furnace",
+        "form": "evolution",
+        "battles": 17,
+        "wins": 8,
+        "losses": 9,
+        "win_rate": 0.471,
+        "modes": {
+          "casual": 17
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000087,
+        "name": "Phoenix",
+        "form": "base",
+        "battles": 17,
+        "wins": 6,
+        "losses": 11,
+        "win_rate": 0.353,
+        "modes": {
+          "casual": 17
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000056,
+        "name": "Skeleton Barrel",
+        "form": "evolution",
+        "battles": 17,
+        "wins": 8,
+        "losses": 9,
+        "win_rate": 0.471,
+        "modes": {
+          "casual": 17
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 27000001,
+        "name": "Goblin Hut",
+        "form": "base",
+        "battles": 15,
+        "wins": 8,
+        "losses": 7,
+        "win_rate": 0.533,
+        "modes": {
+          "casual": 15
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000102,
+        "name": "Berserker",
+        "form": "base",
+        "battles": 12,
+        "wins": 5,
+        "losses": 7,
+        "win_rate": 0.417,
+        "modes": {
+          "casual": 12
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000055,
+        "name": "Mega Knight",
+        "form": "evolution",
+        "battles": 10,
+        "wins": 6,
+        "losses": 4,
+        "win_rate": 0.6,
+        "modes": {
+          "casual": 10
+        },
+        "mean_level_gap": 0.17
+      },
+      {
+        "id": 26000041,
+        "name": "Goblin Gang",
+        "form": "base",
+        "battles": 10,
+        "wins": 6,
+        "losses": 4,
+        "win_rate": 0.6,
+        "modes": {
+          "casual": 10
+        },
+        "mean_level_gap": 0.17
+      },
+      {
+        "id": 26000049,
+        "name": "Bats",
+        "form": "base",
+        "battles": 9,
+        "wins": 6,
+        "losses": 3,
+        "win_rate": 0.667,
+        "modes": {
+          "casual": 9
+        },
+        "mean_level_gap": 0.19
+      },
+      {
+        "id": 26000064,
+        "name": "Firecracker",
+        "form": "base",
+        "battles": 9,
+        "wins": 6,
+        "losses": 3,
+        "win_rate": 0.667,
+        "modes": {
+          "casual": 9
+        },
+        "mean_level_gap": 0.19
+      },
+      {
+        "id": 26000045,
+        "name": "Executioner",
+        "form": "evolution",
+        "battles": 9,
+        "wins": 3,
+        "losses": 6,
+        "win_rate": 0.333,
+        "modes": {
+          "casual": 9
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000032,
+        "name": "Miner",
+        "form": "base",
+        "battles": 9,
+        "wins": 6,
+        "losses": 3,
+        "win_rate": 0.667,
+        "modes": {
+          "casual": 9
+        },
+        "mean_level_gap": 0.19
+      },
+      {
+        "id": 28000008,
+        "name": "Zap",
+        "form": "base",
+        "battles": 9,
+        "wins": 6,
+        "losses": 3,
+        "win_rate": 0.667,
+        "modes": {
+          "casual": 9
+        },
+        "mean_level_gap": 0.19
+      },
+      {
+        "id": 26000056,
+        "name": "Skeleton Barrel",
+        "form": "base",
+        "battles": 9,
+        "wins": 6,
+        "losses": 3,
+        "win_rate": 0.667,
+        "modes": {
+          "casual": 9
+        },
+        "mean_level_gap": 0.19
+      },
+      {
+        "id": 28000003,
+        "name": "Rocket",
+        "form": "base",
+        "battles": 7,
+        "wins": 2,
+        "losses": 5,
+        "win_rate": 0.286,
+        "modes": {
+          "casual": 7
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 27000012,
+        "name": "Goblin Cage",
+        "form": "evolution",
+        "battles": 7,
+        "wins": 3,
+        "losses": 4,
+        "win_rate": 0.429,
+        "modes": {
+          "casual": 7
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 28000011,
+        "name": "The Log",
+        "form": "base",
+        "battles": 7,
+        "wins": 2,
+        "losses": 5,
+        "win_rate": 0.286,
+        "modes": {
+          "casual": 7
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000030,
+        "name": "Ice Spirit",
+        "form": "base",
+        "battles": 7,
+        "wins": 2,
+        "losses": 5,
+        "win_rate": 0.286,
+        "modes": {
+          "casual": 7
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000021,
+        "name": "Hog Rider",
+        "form": "base",
+        "battles": 7,
+        "wins": 3,
+        "losses": 4,
+        "win_rate": 0.429,
+        "modes": {
+          "casual": 7
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 28000005,
+        "name": "Freeze",
+        "form": "base",
+        "battles": 6,
+        "wins": 2,
+        "losses": 4,
+        "win_rate": 0.333,
+        "modes": {
+          "casual": 6
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 28000010,
+        "name": "Graveyard",
+        "form": "base",
+        "battles": 4,
+        "wins": 1,
+        "losses": 3,
+        "win_rate": 0.25,
+        "modes": {
+          "casual": 4
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000043,
+        "name": "Elite Barbarians",
+        "form": "evolution",
+        "battles": 4,
+        "wins": 1,
+        "losses": 3,
+        "win_rate": 0.25,
+        "modes": {
+          "casual": 4
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000034,
+        "name": "Bowler",
+        "form": "base",
+        "battles": 3,
+        "wins": 1,
+        "losses": 2,
+        "win_rate": 0.333,
+        "modes": {
+          "casual": 3
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000042,
+        "name": "Electro Wizard",
+        "form": "base",
+        "battles": 3,
+        "wins": 1,
+        "losses": 2,
+        "win_rate": 0.333,
+        "modes": {
+          "casual": 3
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000052,
+        "name": "Zappies",
+        "form": "base",
+        "battles": 3,
+        "wins": 1,
+        "losses": 2,
+        "win_rate": 0.333,
+        "modes": {
+          "casual": 3
+        },
+        "mean_level_gap": 0
+      },
+      {
+        "id": 26000050,
+        "name": "Royal Ghost",
+        "form": "evolution",
+        "battles": 3,
+        "wins": 1,
+        "losses": 2,
+        "win_rate": 0.333,
+        "modes": {
+          "casual": 3
+        },
+        "mean_level_gap": 0
+      }
+    ],
+    "notes": [
+      "win_rate is YOUR record when this card is in your deck.",
+      "Each row's modes counts its battles by mode group and mean_level_gap is your deck's average level minus the opposing side's in those battles; a row's record is comparable to another's only at similar values of both.",
+      "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records."
+    ],
+    "docs": "battles#the-control-next-to-the-number",
+    "meta": {
+      "contract_version": "6.30.0",
+      "source_polls": {
+        "player_battlelog": {
+          "observed_at": "2026-09-23T18:22:56.000Z",
+          "freshness_seconds": 481
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 587,
+    "db_queries": 8,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

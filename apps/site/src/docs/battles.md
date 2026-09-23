@@ -150,6 +150,13 @@ deck and card statistics are built from a population that excludes:
 Both remain fully recorded and fully readable through `battles_query` and a
 player's own record; they simply do not speak for the game. A `null`
 `deck_selection` is kept, because a population is not narrowed on an absence.
+The rule holds on every window, a season read from the rollup or a custom
+window or segment read raw (6.31.0: the raw reads had kept both), and
+`mode: "event"` on the meta tools answers empty with a note saying why.
+Everywhere else `event` is the event tag, not a battle type, so
+`battles_trends`, `battles_cards`, `cards_synergy`, the card profile and
+`battles_opponents` filter and label event battles as `event`, never
+`casual` (6.31.0).
 
 ## Duels and boat battles
 
