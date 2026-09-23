@@ -2015,3 +2015,14 @@ All 13 regressions were confirmed. #159 is praise.
 - **Needs Jamie:** clans_participation at weeks 8 for POAP KINGS is 47,770 of the 48,000 cap, at about 892 characters a member with 47 members. A 48th member refuses the read Elixir Clan makes for every evaluation. Recommendation: serve `null` for a week with no per-day poll in `war_decks_by_day`, not four nulls. That saves about 4,000 characters here, and Clan's engine already treats the two alike. For other clients it is a shape change.
 - **The 6.33.0 gate failed on clans_participation's cap** (48 members, 48,680 characters) and on gym/91.5 (the roster moved from 47 to 48). The rest passed. **Decision (Jamie):** no stopgap; Clan moves off MCP onto an app API (plan: ../elixir-family/plans/clan-app-api.md). Clan's evaluations are refused until then; nobody uses it yet.
 
+## 2026-09-23 — the JSON API is a public product; Clan's door (phase 1)
+
+Jamie made three decisions. `/api/v1` is Elixir's public, versioned JSON API beside MCP. Elixir Clan is its first consumer as a person's program. Clan is not metered and uses no MCP. The plan is ../elixir-family/plans/clan-app-api.md.
+- **Phase 1:**
+  - 0160 widens the stored-audience CHECK to `/api/v1`. `RESOURCE_PATH_RE` gains kind `api`, the MCP handler refuses it, and OAuth consent treats it as the person's own grant.
+  - The v1 handler takes `eat_` tokens with audience `/api/v1` as a person. Operations declare `x-principals` in the contract, and INTEGRATION_SCOPES counts integration operations only.
+  - `GET /api/v1/me` returns the principal block and `myPlayers` (shared with elixir_my_players).
+  - First-party is `isFirstPartyClient(redirect_uris)`: every URI on a family origin, derived rather than stored. A third-party person is limited to 600 an hour.
+- **Contract:** the JSON API contract is 1.1.0, titled "Elixir JSON API". AGENTS.md's platform-integrations rule is amended.
+- **Gym sweep:** paused after clans round 2. It resumes after the Clan move. Grid: badges, battles, cards and clans are in round 2; the other six are due.
+

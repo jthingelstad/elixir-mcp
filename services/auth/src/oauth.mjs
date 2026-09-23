@@ -157,18 +157,25 @@ export function canonicalResource(value) {
  * proving it is the credential's job, and the mismatch between the two is the
  * whole reason distinct URLs are worth having.
  */
-const RESOURCE_PATH_RE = /^\/(?:mcp|([ai])\/([a-z0-9]{8,16})\/mcp)$/;
+const RESOURCE_PATH_RE = /^\/(?:mcp|(api\/v1)|([ai])\/([a-z0-9]{8,16})\/mcp)$/;
 
+/**
+ * `/api/v1` (2026-09-23, Jamie: the JSON API is a public product beside
+ * MCP) is a fourth shape and a different DOOR: a person's grant for the
+ * JSON API. Its kind is `api`, and the MCP handler refuses it, so a token
+ * for one door is never accepted at the other.
+ */
 export function resourceForPath(path, issuer) {
   const match = RESOURCE_PATH_RE.exec(String(path ?? ""));
   if (!match) return null;
   const resource = canonicalResource(new URL(path, issuer).toString());
   if (!resource) return null;
-  if (!match[1]) return { resource, kind: "person", publicId: null };
+  if (match[1]) return { resource, kind: "api", publicId: null };
+  if (!match[2]) return { resource, kind: "person", publicId: null };
   return {
     resource,
-    kind: match[1] === "a" ? "agent" : "integration",
-    publicId: match[2],
+    kind: match[2] === "a" ? "agent" : "integration",
+    publicId: match[3],
   };
 }
 
@@ -181,6 +188,8 @@ export function resourceForPath(path, issuer) {
 export function principalMatchesResource(account, target) {
   if (!account || !target) return false;
   const kind = account.kind ?? "person";
+  // The JSON API's grant is a person's (/api/v1 is a person door).
+  if (target.kind === "api") return kind === "person";
   if (kind !== target.kind) return false;
   if (target.kind === "person") return true;
   return Boolean(account.publicId) && account.publicId === target.publicId;
@@ -471,7 +480,7 @@ export async function validateAccessToken(db, token, { resource } = {}) {
   const audience = canonicalResource(resource);
   if (!raw || !audience) return null;
   const { rows } = await db.query(
-    `select f.client_id, f.scope, f.resource, f.family_id, c.client_name,
+    `select f.client_id, f.scope, f.resource, f.family_id, c.client_name, c.redirect_uris,
             a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota,
             a.role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
             o.role as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
@@ -505,6 +514,7 @@ export async function validateAccessToken(db, token, { resource } = {}) {
         // Carried so a call can be attributed to the CONNECTION a person can
         // revoke, and labelled with what that client calls itself.
         clientName: row.client_name,
+        firstParty: isFirstPartyClient(row.redirect_uris),
         oauthFamilyId: row.family_id,
         scope: row.scope,
         scopes: row.scope.split(" "),
@@ -516,6 +526,31 @@ export async function validateAccessToken(db, token, { resource } = {}) {
         credentialType: "oauth",
       }
     : null;
+}
+
+/** The family's own apps (2026-09-23). A client is first-party when EVERY
+ *  redirect URI it registered is on one of these origins over https: its
+ *  authorization codes can only ever reach the family's servers, which is
+ *  what makes it ours. Registration is open, so a stored flag keyed on a
+ *  URI anyone can copy would prove nothing; this proves where the code
+ *  goes. First-party clients are not metered on the JSON API (Jamie). */
+export const FIRST_PARTY_ORIGINS = [
+  "https://clan.poapkings.com",
+  "https://drop.poapkings.com",
+  "https://elixir.poapkings.com",
+];
+export function isFirstPartyClient(redirectUris) {
+  const list = Array.isArray(redirectUris) ? redirectUris : [];
+  return (
+    list.length > 0 &&
+    list.every((u) => {
+      try {
+        return FIRST_PARTY_ORIGINS.includes(new URL(u).origin);
+      } catch {
+        return false;
+      }
+    })
+  );
 }
 
 const SERVICE_TOKEN_PREFIX = "svt_";

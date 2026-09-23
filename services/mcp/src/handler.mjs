@@ -175,7 +175,8 @@ export function makeHandler({
     }
 
     const target = method === "POST" ? resourceForPath(path, issuer) : null;
-    if (!target) {
+    // /api/v1 is the JSON API's door, never MCP's (2026-09-23).
+    if (!target || target.kind === "api") {
       return { statusCode: 405, headers: { allow: "POST" }, body: "" };
     }
     // The challenge must name the resource actually being addressed.

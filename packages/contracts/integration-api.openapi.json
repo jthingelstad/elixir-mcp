@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Elixir Integration API",
-    "version": "1.0.0",
-    "description": "Admin-provisioned platform API. Supplied tags are unverified. Collection grants allow additions only."
+    "title": "Elixir JSON API",
+    "version": "1.1.0",
+    "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration). Supplied tags are unverified. Collection grants allow additions only."
   },
   "servers": [
     {
@@ -418,6 +418,61 @@
           }
         }
       }
+    },
+    "/me": {
+      "get": {
+        "operationId": "me",
+        "summary": "Who the signed-in person is to Elixir: their principal and the players they track.",
+        "x-permission": "me:read",
+        "x-principals": ["person"],
+        "security": [
+          {
+            "personOAuth": ["cr:read"]
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -426,6 +481,19 @@
         "type": "http",
         "scheme": "bearer",
         "description": "An integration_api audience key; MCP and OAuth tokens are refused."
+      },
+      "personOAuth": {
+        "type": "oauth2",
+        "description": "A person's OAuth 2.1 grant (PKCE) with resource https://elixir.poapkings.com/api/v1 and scope cr:read. Clients registered only with the family's own redirect origins are first-party and are not metered; other clients are limited per person per hour.",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://elixir.poapkings.com/oauth/authorize",
+            "tokenUrl": "https://elixir.poapkings.com/oauth/token",
+            "scopes": {
+              "cr:read": "Read the record as the signed-in person"
+            }
+          }
+        }
       }
     },
     "schemas": {
@@ -686,6 +754,101 @@
           }
         },
         "required": ["data", "request_id"]
+      },
+      "MeResponse": {
+        "type": "object",
+        "required": ["data", "request_id"],
+        "properties": {
+          "request_id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": ["principal", "players"],
+            "properties": {
+              "principal": {
+                "type": "object",
+                "description": "The same block MCP initialize carries in _meta: kind, subject (the primary player) and clan.",
+                "required": ["kind"],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": ["person"]
+                  },
+                  "subject": {
+                    "type": ["object", "null"],
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "clan": {
+                    "type": "object",
+                    "properties": {
+                      "tag": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "players": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "player_tag",
+                    "relationship",
+                    "is_primary",
+                    "claim_status",
+                    "recording"
+                  ],
+                  "properties": {
+                    "player_tag": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": ["string", "null"]
+                    },
+                    "nickname": {
+                      "type": "string"
+                    },
+                    "relationship": {
+                      "type": "string",
+                      "enum": ["primary", "alt", "friend", "watching"]
+                    },
+                    "is_primary": {
+                      "type": "boolean"
+                    },
+                    "claim_status": {
+                      "type": "string"
+                    },
+                    "notify": {},
+                    "recording": {
+                      "type": "string"
+                    },
+                    "clan_tag": {
+                      "type": ["string", "null"]
+                    },
+                    "clan_role": {
+                      "type": ["string", "null"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

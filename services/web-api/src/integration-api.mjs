@@ -1,7 +1,19 @@
 import integrationContract from "@elixir-mcp/contracts/integration-api.openapi.json" with { type: "json" };
-/** Versioned platform API. Identity is an integration, never its human sponsor. */
+/** The versioned JSON API (/api/v1): Elixir's public product beside MCP
+ *  (Jamie, 2026-09-23). Two kinds of caller: an integration, by its `svt_`
+ *  key (identity is the integration, never its human sponsor), and a person,
+ *  by an OAuth grant whose audience is /api/v1 (an `eat_` token; an MCP
+ *  token is refused here, as this door's token is refused at MCP). Each
+ *  operation declares which kinds it admits (`x-principals`). A
+ *  first-party client (the family's own apps) is not metered. */
 import { randomUUID } from "node:crypto";
-import { validateServiceToken, checkRateLimit } from "@elixir-mcp/auth";
+import {
+  validateServiceToken,
+  validateAccessToken,
+  checkRateLimit,
+} from "@elixir-mcp/auth";
+import { describeIdentity, principalBlock } from "../../mcp/src/identity.mjs";
+import { myPlayers } from "../../mcp/src/tools/elixir/my-players.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { setCollectionMembers } from "@elixir-mcp/claims";
 import { gameClock } from "../../ingest/src/game-clock.mjs";
@@ -9,13 +21,43 @@ import { readRecordedProfile } from "../../ingest/src/recorded-profile.mjs";
 import { enqueueJob } from "../../scheduler/src/ledger.mjs";
 import { json, bearer, UUID_RE } from "./http.mjs";
 
+/** Who an operation admits; an operation that says nothing is the
+ *  integration API it was before people could call v1. */
+const principalsOf = (operation) =>
+  operation["x-principals"] ?? ["integration"];
+
 export const INTEGRATION_SCOPES = [
   ...new Set(
     Object.values(integrationContract.paths).flatMap((methods) =>
-      Object.values(methods).map((operation) => operation["x-permission"]),
+      Object.values(methods)
+        .filter((operation) => principalsOf(operation).includes("integration"))
+        .map((operation) => operation["x-permission"]),
     ),
   ),
 ];
+
+/** The audience a person's grant for this door carries (0160). */
+const API_RESOURCE = "https://elixir.poapkings.com/api/v1";
+
+/** A person calling v1 through a third-party OAuth client: metered per
+ *  account per hour. First-party clients are not (Jamie, 2026-09-23). */
+const PERSON_HOURLY_LIMIT = 600;
+
+/** The operations a person may call, by method and path. */
+function personRoute(db, account, method, path) {
+  if (method === "GET" && path === "/api/v1/me")
+    return {
+      operation: "me.read",
+      run: async () => ({
+        principal: principalBlock(
+          "person",
+          await describeIdentity(db, account),
+        ),
+        players: await myPlayers(db, account.accountId),
+      }),
+    };
+  return null;
+}
 
 class ApiError extends Error {
   constructor(status, code, detail, retryAfter) {
@@ -201,139 +243,169 @@ export async function integrationApi(db, event, body) {
   try {
     if (!body || typeof body !== "object" || Array.isArray(body))
       throw new ApiError(400, "invalid_json");
-    account = await validateServiceToken(db, bearer(event), {
-      audience: "integration_api",
-    });
-    if (!account || account.kind !== "integration")
-      throw new ApiError(401, "unauthenticated");
-    const policy = (
-      await db.query("select * from integration where account_id=$1", [
-        account.accountId,
-      ])
-    ).rows[0];
-    if (!policy) throw new ApiError(401, "unauthenticated");
-    const ok = await checkRateLimit(db, {
-      bucket: `rest-hour:${account.accountId}`,
-      max: policy.hourly_limit,
-    });
-    if (!ok)
-      throw new ApiError(
-        429,
-        "rate_limited",
-        undefined,
-        3600 - new Date().getUTCMinutes() * 60,
-      );
-    const usage = (
-      await db.query(
-        `insert into integration_usage(account_id,day,calls) values($1,(now() at time zone 'UTC')::date,1)
-    on conflict(account_id,day) do update set calls=integration_usage.calls+1 returning calls`,
-        [account.accountId],
-      )
-    ).rows[0];
-    if (usage.calls > policy.daily_limit)
-      throw new ApiError(
-        429,
-        "daily_quota_exceeded",
-        undefined,
-        86400 - (Math.floor(Date.now() / 1000) % 86400),
-      );
+    const token = bearer(event);
     const path = event.rawPath ?? event.path;
-    let match,
-      scope,
-      run,
-      status = 200,
-      headers = {};
-    if (method === "GET" && path === "/api/v1/game/clock") {
-      operation = "game.clock";
-      scope = "game:read";
-      run = () => ({ ...gameClock(), source: "policy" });
-    } else if (
-      method === "GET" &&
-      (match = /^\/api\/v1\/players\/([^/]+)$/.exec(path))
-    ) {
-      operation = "players.read";
-      scope = "players:read";
-      const playerTag = tag(decodeURIComponent(match[1]));
-      run = () => profile(db, playerTag);
-    } else if (method === "POST" && path === "/api/v1/profile-refreshes") {
-      operation = "profiles.refresh";
-      scope = "profiles:refresh";
-      status = 202;
-      run = async () => {
-        const r = await requestRefresh(db, account, policy, body, event);
-        headers = {
-          location: `/api/v1/profile-refreshes/${r.id}`,
-          "retry-after": "5",
-        };
-        return r;
-      };
-    } else if (
-      method === "GET" &&
-      (match = /^\/api\/v1\/profile-refreshes\/([^/]+)$/.exec(path))
-    ) {
-      operation = "profiles.status";
-      scope = "profiles:refresh";
-      const id = match[1];
-      if (!UUID_RE.test(id)) throw new ApiError(404, "not_found");
-      run = () => refreshStatus(db, account.accountId, id);
-    } else if (
-      (method === "PUT" || method === "POST") &&
-      (match = /^\/api\/v1\/collections\/([^/]+)\/members(?:\/([^/]+))?$/.exec(
-        path,
-      ))
-    ) {
-      if ((method === "PUT") !== Boolean(match[2]))
-        throw new ApiError(404, "not_found");
-      operation = "collections.members.add";
-      scope = "collections:members:add";
-      const id = decodeURIComponent(match[1]);
-      const values =
-        method === "PUT" ? [decodeURIComponent(match[2])] : body.tags;
-      if (!Array.isArray(values) || values.length < 1 || values.length > 500)
-        throw new ApiError(400, "invalid_members");
-      const tags = values.map(tag);
-      run = async () => {
-        const grant = (
-          await db.query(
-            `select c.*,g.member_limit from integration_collection_grant g join collection c using(collection_id)
-        where g.account_id=$1 and (c.collection_id::text=$2 or c.slug=$2) and c.kind='player'`,
-            [account.accountId, id],
-          )
-        ).rows[0];
-        if (!grant) throw new ApiError(404, "not_found");
-        const result = await setCollectionMembers(
-          db,
-          {
-            collectionId: grant.collection_id,
-            kind: grant.kind,
-            ownerAccount: grant.owner_account,
-          },
-          tags,
-          {
-            mode: "add",
-            reconcileProvided: true,
-            memberLimit: grant.member_limit,
-            integrationId: account.accountId,
-          },
+    if (String(token ?? "").startsWith("eat_")) {
+      // A person, by an OAuth grant for THIS door (audience /api/v1).
+      account = await validateAccessToken(db, token, {
+        resource: API_RESOURCE,
+      });
+      if (!account || (account.kind ?? "person") !== "person")
+        throw new ApiError(401, "unauthenticated");
+      const route = personRoute(db, account, method, path);
+      if (!route) throw new ApiError(404, "not_found");
+      operation = route.operation;
+      if (!account.firstParty) {
+        const ok = await checkRateLimit(db, {
+          bucket: `rest-person-hour:${account.accountId}`,
+          max: PERSON_HOURLY_LIMIT,
+        });
+        if (!ok)
+          throw new ApiError(
+            429,
+            "rate_limited",
+            undefined,
+            3600 - new Date().getUTCMinutes() * 60,
+          );
+      }
+      response = json(
+        200,
+        { data: await route.run(), request_id: requestId },
+        { "x-request-id": requestId },
+      );
+    } else {
+      account = await validateServiceToken(db, token, {
+        audience: "integration_api",
+      });
+      if (!account || account.kind !== "integration")
+        throw new ApiError(401, "unauthenticated");
+      const policy = (
+        await db.query("select * from integration where account_id=$1", [
+          account.accountId,
+        ])
+      ).rows[0];
+      if (!policy) throw new ApiError(401, "unauthenticated");
+      const ok = await checkRateLimit(db, {
+        bucket: `rest-hour:${account.accountId}`,
+        max: policy.hourly_limit,
+      });
+      if (!ok)
+        throw new ApiError(
+          429,
+          "rate_limited",
+          undefined,
+          3600 - new Date().getUTCMinutes() * 60,
         );
-        return {
-          collection_id: grant.collection_id,
-          added: result.added,
-          already_present: new Set(tags).size - result.added,
-          total: result.total,
-          enrollment_established: true,
-          recordings_started: result.recordingsStarted,
+      const usage = (
+        await db.query(
+          `insert into integration_usage(account_id,day,calls) values($1,(now() at time zone 'UTC')::date,1)
+    on conflict(account_id,day) do update set calls=integration_usage.calls+1 returning calls`,
+          [account.accountId],
+        )
+      ).rows[0];
+      if (usage.calls > policy.daily_limit)
+        throw new ApiError(
+          429,
+          "daily_quota_exceeded",
+          undefined,
+          86400 - (Math.floor(Date.now() / 1000) % 86400),
+        );
+      let match,
+        scope,
+        run,
+        status = 200,
+        headers = {};
+      if (method === "GET" && path === "/api/v1/game/clock") {
+        operation = "game.clock";
+        scope = "game:read";
+        run = () => ({ ...gameClock(), source: "policy" });
+      } else if (
+        method === "GET" &&
+        (match = /^\/api\/v1\/players\/([^/]+)$/.exec(path))
+      ) {
+        operation = "players.read";
+        scope = "players:read";
+        const playerTag = tag(decodeURIComponent(match[1]));
+        run = () => profile(db, playerTag);
+      } else if (method === "POST" && path === "/api/v1/profile-refreshes") {
+        operation = "profiles.refresh";
+        scope = "profiles:refresh";
+        status = 202;
+        run = async () => {
+          const r = await requestRefresh(db, account, policy, body, event);
+          headers = {
+            location: `/api/v1/profile-refreshes/${r.id}`,
+            "retry-after": "5",
+          };
+          return r;
         };
-      };
-    } else throw new ApiError(404, "not_found");
-    if (!policy.scopes.includes(scope))
-      throw new ApiError(403, "insufficient_scope");
-    const result = await run();
-    response = json(
-      status,
-      { data: result, request_id: requestId },
-      { "x-request-id": requestId, ...headers },
-    );
+      } else if (
+        method === "GET" &&
+        (match = /^\/api\/v1\/profile-refreshes\/([^/]+)$/.exec(path))
+      ) {
+        operation = "profiles.status";
+        scope = "profiles:refresh";
+        const id = match[1];
+        if (!UUID_RE.test(id)) throw new ApiError(404, "not_found");
+        run = () => refreshStatus(db, account.accountId, id);
+      } else if (
+        (method === "PUT" || method === "POST") &&
+        (match =
+          /^\/api\/v1\/collections\/([^/]+)\/members(?:\/([^/]+))?$/.exec(path))
+      ) {
+        if ((method === "PUT") !== Boolean(match[2]))
+          throw new ApiError(404, "not_found");
+        operation = "collections.members.add";
+        scope = "collections:members:add";
+        const id = decodeURIComponent(match[1]);
+        const values =
+          method === "PUT" ? [decodeURIComponent(match[2])] : body.tags;
+        if (!Array.isArray(values) || values.length < 1 || values.length > 500)
+          throw new ApiError(400, "invalid_members");
+        const tags = values.map(tag);
+        run = async () => {
+          const grant = (
+            await db.query(
+              `select c.*,g.member_limit from integration_collection_grant g join collection c using(collection_id)
+        where g.account_id=$1 and (c.collection_id::text=$2 or c.slug=$2) and c.kind='player'`,
+              [account.accountId, id],
+            )
+          ).rows[0];
+          if (!grant) throw new ApiError(404, "not_found");
+          const result = await setCollectionMembers(
+            db,
+            {
+              collectionId: grant.collection_id,
+              kind: grant.kind,
+              ownerAccount: grant.owner_account,
+            },
+            tags,
+            {
+              mode: "add",
+              reconcileProvided: true,
+              memberLimit: grant.member_limit,
+              integrationId: account.accountId,
+            },
+          );
+          return {
+            collection_id: grant.collection_id,
+            added: result.added,
+            already_present: new Set(tags).size - result.added,
+            total: result.total,
+            enrollment_established: true,
+            recordings_started: result.recordingsStarted,
+          };
+        };
+      } else throw new ApiError(404, "not_found");
+      if (!policy.scopes.includes(scope))
+        throw new ApiError(403, "insufficient_scope");
+      const result = await run();
+      response = json(
+        status,
+        { data: result, request_id: requestId },
+        { "x-request-id": requestId, ...headers },
+      );
+    }
   } catch (error) {
     if (
       !error.status &&

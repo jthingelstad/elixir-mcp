@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "The JSON API opens to people",
+    body: "Elixir's JSON API at /api/v1, until now for connected platforms, admits people too: sign in with Elixir for the API, and GET /api/v1/me says who you are to Elixir and which players you track. Agents keep using MCP; programs use the JSON API, and a token for one is never accepted by the other. Elixir Clan is moving onto it, the first of the family's apps to read Elixir as a program rather than as an agent. JSON API contract 1.1.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "Clans: weekly donations that survive the reset",
     body: "The Elixir Gym's second run over the clan tools. A player's weekly donations only go up until the game resets them to zero, so Elixir now takes a week's donations as the highest number it saw that week. A read just after the reset can no longer wipe the week out, which had zeroed two recent weeks for whole clans; those weeks are repaired to the best value on record. Clan standings filtered to casual or event play now count event battles correctly. Contract 6.33.0.",
   },

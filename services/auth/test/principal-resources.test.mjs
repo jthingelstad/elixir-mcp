@@ -12,17 +12,26 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resourceForPath, principalMatchesResource } from "../src/oauth.mjs";
+import {
+  resourceForPath,
+  principalMatchesResource,
+  isFirstPartyClient,
+} from "../src/oauth.mjs";
 
 const ISSUER = "https://elixir.poapkings.com";
-// Kept identical to the CHECK in db/migrations/0054_principal_resources.sql.
+// Kept identical to the CHECK in db/migrations/0160_oauth_api_resource.sql.
 const SQL_PATTERN =
-  /^https:\/\/elixir\.poapkings\.com\/(mcp|[ai]\/[a-z0-9]{8,16}\/mcp)$/;
+  /^https:\/\/elixir\.poapkings\.com\/(mcp|api\/v1|[ai]\/[a-z0-9]{8,16}\/mcp)$/;
 
 const CASES = [
   ["/mcp", "person", null],
   ["/a/abcd1234/mcp", "agent", "abcd1234"],
   ["/i/abcd12345678/mcp", "integration", "abcd12345678"],
+  ["/api/v1", "api", null],
+  ["/api/v1/", null, null],
+  ["/api/v1/me", null, null],
+  ["/api/v2", null, null],
+  ["/api", null, null],
   // Everything below must produce nothing at all.
   ["/a/AB/mcp", null, null],
   ["/a//mcp", null, null],
@@ -38,7 +47,7 @@ const CASES = [
   ["", null, null],
 ];
 
-test("only three shapes name a resource, and the code agrees with the constraint", () => {
+test("only four shapes name a resource, and the code agrees with the constraint", () => {
   for (const [path, kind, publicId] of CASES) {
     const got = resourceForPath(path, ISSUER);
     if (kind === null) {
@@ -110,6 +119,41 @@ test("a credential belongs at exactly one door", () => {
   );
   assert.ok(!principalMatchesResource(null, personUrl));
   assert.ok(!principalMatchesResource(agent, null));
+
+  // The JSON API is a person's door of its own (0160): a person's grant,
+  // never an agent's or an integration's.
+  const apiUrl = resourceForPath("/api/v1", ISSUER);
+  assert.equal(apiUrl.kind, "api");
+  assert.notEqual(apiUrl.resource, personUrl.resource, "a different audience");
+  assert.ok(principalMatchesResource(person, apiUrl));
+  assert.ok(!principalMatchesResource(agent, apiUrl), "agent at the JSON API");
+  assert.ok(
+    !principalMatchesResource(integration, apiUrl),
+    "integration at the JSON API by OAuth",
+  );
+});
+
+test("a first-party client is one whose codes can only reach the family's servers", () => {
+  assert.ok(isFirstPartyClient(["https://clan.poapkings.com/auth/callback"]));
+  assert.ok(
+    isFirstPartyClient([
+      "https://clan.poapkings.com/auth/callback",
+      "https://drop.poapkings.com/auth/callback",
+    ]),
+  );
+  // One foreign redirect makes the whole client third-party.
+  assert.ok(
+    !isFirstPartyClient([
+      "https://clan.poapkings.com/auth/callback",
+      "https://evil.example/cb",
+    ]),
+  );
+  assert.ok(!isFirstPartyClient(["http://clan.poapkings.com/auth/callback"]));
+  assert.ok(
+    !isFirstPartyClient(["https://clan.poapkings.com.evil.example/cb"]),
+  );
+  assert.ok(!isFirstPartyClient([]));
+  assert.ok(!isFirstPartyClient(null));
 });
 
 test("an agent with no public id cannot match anything", () => {

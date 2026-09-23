@@ -271,7 +271,9 @@ function consentCapabilities(scope) {
  * capability — because owning the agent is the entire basis of the authority.
  */
 async function principalForTarget(db, target) {
-  if (target.kind === "person") return { ok: true, principal: null };
+  // A JSON API grant (/api/v1) is the signed-in person's, as /mcp is.
+  if (target.kind === "person" || target.kind === "api")
+    return { ok: true, principal: null };
   const { rows } = await db.query(
     `select a.account_id, a.kind, a.public_id, a.owned_by_account_id,
             (select ac.clan_tag from account_clan ac
@@ -375,7 +377,7 @@ export function makeOauthRoutes({
 
   /** What the client will be able to do, worded for the target's kind. */
   const capabilitiesBlock = (v, verb) =>
-    v.target.kind === "person"
+    v.target.kind === "person" || v.target.kind === "api"
       ? `<p><strong>${verb} authorizes ${esc(v.client.clientName)} to:</strong></p>${consentCapabilities(v.scope)}`
       : `<p><strong>This connects ${esc(v.client.clientName)} as one of your ${esc(v.target.kind === "agent" ? "agents" : "integrations")}, not as you.</strong></p>
          <p>It will act with that principal&rsquo;s own identity and see its data, not your players or your feed. You can only do this for a principal you own.</p>

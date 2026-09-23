@@ -10,8 +10,22 @@ export const elixir_my_players = {
     additionalProperties: false,
   },
   async handler(ctx) {
-    const { rows } = await ctx.db.query(
-      `select c.player_tag, c.status as claim_status, c.is_primary,
+    return {
+      players: await myPlayers(ctx.db, ctx.account.accountId),
+      notes: notes(
+        "Omit player_tag on any tool to mean your primary; name a tag only for somebody else.",
+      ),
+      docs: docsRef("recording", "relationships-primary-nicknames"),
+      meta: responseMeta({ as_of: new Date().toISOString() }),
+    };
+  },
+};
+
+/** The players an account tracks and who each is to them: one read shared
+ *  by elixir_my_players and the JSON API's /api/v1/me (2026-09-23). */
+export async function myPlayers(db, accountId) {
+  const { rows } = await db.query(
+    `select c.player_tag, c.status as claim_status, c.is_primary,
                 -- is_primary is still the read path (0055 expand window), so
                 -- the label follows it and the two cannot appear to disagree.
                 case when c.is_primary then 'primary' else c.relationship end
@@ -28,26 +42,18 @@ export const elixir_my_players = {
          left join clan_membership cm on cm.player_tag = c.player_tag and cm.left_observed_at is null
          where c.account_id = $1
          order by c.is_primary desc, c.player_tag`,
-      [ctx.account.accountId],
-    );
-    return {
-      players: rows.map((r) => ({
-        player_tag: r.player_tag,
-        name: r.name,
-        ...(r.nickname ? { nickname: r.nickname } : {}),
-        relationship: r.relationship,
-        is_primary: r.is_primary,
-        claim_status: r.claim_status,
-        notify: r.notify,
-        recording: r.recording_status ?? "not_recording",
-        clan_tag: r.member_of ?? r.last_known_clan_tag,
-        clan_role: r.role,
-      })),
-      notes: notes(
-        "Omit player_tag on any tool to mean your primary; name a tag only for somebody else.",
-      ),
-      docs: docsRef("recording", "relationships-primary-nicknames"),
-      meta: responseMeta({ as_of: new Date().toISOString() }),
-    };
-  },
-};
+    [accountId],
+  );
+  return rows.map((r) => ({
+    player_tag: r.player_tag,
+    name: r.name,
+    ...(r.nickname ? { nickname: r.nickname } : {}),
+    relationship: r.relationship,
+    is_primary: r.is_primary,
+    claim_status: r.claim_status,
+    notify: r.notify,
+    recording: r.recording_status ?? "not_recording",
+    clan_tag: r.member_of ?? r.last_known_clan_tag,
+    clan_role: r.role,
+  }));
+}

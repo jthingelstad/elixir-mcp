@@ -167,10 +167,17 @@ www.supercell.com/fan-content-policy.*
 
 ### Platform integrations
 
-Admin-managed platform integrations use `/api/v1`, not MCP. Read
+`/api/v1` is Elixir's versioned JSON API, a public product beside MCP (Jamie,
+2026-09-23). It admits two kinds of caller. Admin-managed platform integrations
+use their `svt_` integration key. People use an OAuth grant whose audience is
+`/api/v1`, which the family's own apps use (Elixir Clan reads Elixir through it,
+not through MCP). Each operation declares the callers it admits
+(`x-principals`). First-party clients (every redirect URI on a family origin)
+are not metered. Read
 [`apps/site/src/docs/integrations.md`](apps/site/src/docs/integrations.md) and
 `packages/contracts/integration-api.openapi.json` before changing this contract.
-Preserve REST/MCP credential audience separation, integration-owned quotas,
+Preserve REST/MCP credential audience separation (an MCP token never
+authenticates at `/api/v1`, and a `/api/v1` token never at MCP), integration-owned quotas,
 principal-bound asynchronous refreshes and narrow collection-add grants. Drop's
 automatic membership is deliberate; supplied tags are unverified, enrollment is
 not capture, and canonical game facts still enter only through collectors.

@@ -319,3 +319,77 @@ test("IAM provisioning accepts only a digest and returns no credential", async (
     person,
   ]);
 });
+
+test("a person reads /api/v1/me with a grant for this door; an MCP grant is refused here, and this grant is refused at MCP (2026-09-23)", async () => {
+  const clan = await registerClient(db, {
+    clientName: "Elixir Clan",
+    redirectUris: ["https://clan.poapkings.com/auth/callback"],
+  });
+  const other = await registerClient(db, {
+    clientName: "Someone's app",
+    redirectUris: ["https://example.org/callback"],
+  });
+  const apiGrant = await mintTokens(db, {
+    clientId: clan.clientId,
+    accountId: person,
+    scope: "cr:read",
+    resource: "https://elixir.poapkings.com/api/v1",
+  });
+  const me = await request(
+    "GET",
+    "/api/v1/me",
+    undefined,
+    apiGrant.accessToken,
+  );
+  assert.equal(me.statusCode, 200, me.body);
+  assert.equal(data(me).data.principal.kind, "person");
+  assert.ok(Array.isArray(data(me).data.players));
+  assert.ok(data(me).request_id);
+
+  // The same person's MCP grant is not a JSON API credential.
+  const mcpGrant = await mintTokens(db, {
+    clientId: clan.clientId,
+    accountId: person,
+    scope: "cr:read",
+    resource: "https://elixir.poapkings.com/mcp",
+  });
+  const refused = await request(
+    "GET",
+    "/api/v1/me",
+    undefined,
+    mcpGrant.accessToken,
+  );
+  assert.equal(refused.statusCode, 401);
+  // And this door's grant is not an MCP credential.
+  assert.equal(
+    await validateAccessToken(db, apiGrant.accessToken, {
+      resource: "https://elixir.poapkings.com/mcp",
+    }),
+    null,
+  );
+
+  // A person reaches person operations only.
+  const clock = await request(
+    "GET",
+    "/api/v1/game/clock",
+    undefined,
+    apiGrant.accessToken,
+  );
+  assert.equal(clock.statusCode, 404);
+
+  // First-party is derived from where the client's codes can go.
+  const firstParty = await validateAccessToken(db, apiGrant.accessToken, {
+    resource: "https://elixir.poapkings.com/api/v1",
+  });
+  assert.equal(firstParty.firstParty, true);
+  const third = await mintTokens(db, {
+    clientId: other.clientId,
+    accountId: person,
+    scope: "cr:read",
+    resource: "https://elixir.poapkings.com/api/v1",
+  });
+  const thirdParty = await validateAccessToken(db, third.accessToken, {
+    resource: "https://elixir.poapkings.com/api/v1",
+  });
+  assert.equal(thirdParty.firstParty, false);
+});

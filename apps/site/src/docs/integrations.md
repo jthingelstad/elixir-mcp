@@ -1,7 +1,7 @@
 ---
 slug: integrations
 title: "Integrations"
-description: "The REST API for platforms: admin-issued credentials, recorded profiles, asynchronous refreshes, a game clock, and automatic collection enrollment."
+description: "The JSON API at /api/v1: people by OAuth, platforms by admin-issued key; recorded profiles, asynchronous refreshes, a game clock, and automatic collection enrollment."
 section: record
 order: 24
 navTitle: "Integrations"
@@ -16,10 +16,23 @@ identity, or human admin powers. [Elixir Drop](https://drop.poapkings.com) is th
 first consumer: it reads game context and automatically enrolls supplied player
 tags for recording. Drop keeps its accounts, scores, XP and badges in Drop.
 
-People and clan agents use MCP. Integrations use **REST at
-`https://elixir.poapkings.com/api/v1`**. These routes share the recorder and its
+Agents use MCP. Programs use the **JSON API at
+`https://elixir.poapkings.com/api/v1`**, which admits two kinds of caller:
+
+- **An integration**, by its admin-issued key (the rest of this page).
+- **A person**, by an OAuth grant whose resource is
+  `https://elixir.poapkings.com/api/v1` (scope `cr:read`). This is how the
+  family's own apps read Elixir as the signed-in person; Elixir Clan is the
+  first. `GET /api/v1/me` returns who you are to Elixir and the players you
+  track. A client whose every redirect URI is on a family origin is
+  first-party and is not metered; any other client is limited per person per
+  hour.
+
+The two doors keep their credentials apart. An MCP token is refused here, and a
+JSON API token is refused at MCP. These routes share the recorder and its
 collector job ledger; they do not call MCP tools over HTTP. The
-[OpenAPI contract](/docs/integration-api.json) describes the wire format.
+[OpenAPI contract](/docs/integration-api.json) describes the wire format, and
+each operation names the callers it admits (`x-principals`).
 
 ## Provisioning and administration
 
