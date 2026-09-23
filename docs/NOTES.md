@@ -1884,3 +1884,10 @@ Regressions: 30 of 34 confirmed fixed. #59 was partially fixed and is now #99. #
 The interpreter gained a decimal tolerance on `sum_eq` (96.1: 1.43 + 4.43 + 4.88 in floats).
 
 **Throughput:** the Gym account's 300/hour bucket carried badges and battles, then refused both the cards and clans runs at their first call. Until Jamie raises it (`{service_token_limits: {name: "gym", hourly_rate_limit: 900}}`), the sweep runs one family an hour.
+
+**6.21.0 gate, and fix-forward (6.21.1).** 311 cases ran and 5 failed:
+- 95.1 and 95.2 were waiting on the repair.
+- 97.1 and 98.2 were my note wording. The Gym's cases asserted "tower levels differ" and, on ladder, "what matchmaking paired", which I had moved out of the general note.
+- `catalogue/badges_rarity#notes`: the contracts rule's snake_case scan read `ank_v2` out of the CamelCase identifier `RoyalTournamentRank_v2`. The rule now skips a segment with a capital, since API identifiers are CamelCase and our fields are snake_case.
+
+`{duel_outcome_repair}` applied: 140 duels, 280 rows (70 win and loss flips, 70 false draws, both sides each), 280 player-day rollups re-derived. Gym 95.1-95.3 pass live.

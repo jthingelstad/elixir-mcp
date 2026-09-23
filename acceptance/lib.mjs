@@ -76,8 +76,12 @@ export function noteTokens(notes, { tools = new Set() } = {}) {
       const segs = word.split(".");
       // `rankings_clans.rated_players` is that tool's field, pointed at.
       if (segs.length > 1 && tools.has(segs[0])) continue;
-      for (const seg of segs)
+      for (const seg of segs) {
+        // An API identifier (RoyalTournamentRank_v2) is CamelCase; our
+        // fields are snake_case. Scanning it would name `ank_v2`.
+        if (/[A-Z]/.test(seg)) continue;
         for (const t of seg.matchAll(TOKEN)) out.add(t[0]);
+      }
     }
   }
   return out;
