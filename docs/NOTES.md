@@ -2075,4 +2075,5 @@ All 7 regressions were confirmed. #126's recorder half (reads pinned to the 10:0
 ## 2026-09-23 — Gym sweep, badges round 3 (6.36.3, feedback #183-#185): badges PARKED
 
 All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings were fixed: #183 (the clan segment follows the recorded-now rule, with a coverage note) and #184 (min_level on one-off badges is refused, and kind comes from the record). #185 is praise. **Badges is parked** by the sweep rule: three rounds without a clean run. Every finding is shipped, and a round 4 is Jamie's call. Open, not filed: King Thing's badge reads are stamped 14:27Z while his profile poll says 21:27Z.
+- **6.36.4:** the 6.36.3 gate failed 145.3, 183.4 and 183.5. The recorded-now filter on clan segments dropped a current member of the covered control clan (49 of 50), so it is reverted and the coverage note is kept. 183.3 (the stale holder) is `refuted` and held. **Question for Jamie:** should a clan segment follow the corpus's recorded-now rule?
 

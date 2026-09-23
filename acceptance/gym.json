@@ -8214,7 +8214,8 @@
       {
         "absent": "holders[?player_tag=#PCR9Y9LU8]"
       }
-    ]
+    ],
+    "refuted": "Held for Jamie: making a clan segment follow the corpus recorded-now rule (which would drop this stale read) also dropped a current, covered member of #8UJ2UUJ8 (49 of 50) and broke three controls. 6.36.4 ships the coverage note instead; whether clan segments follow the corpus rule is Jamie's call."
   },
   {
     "id": "183.4",

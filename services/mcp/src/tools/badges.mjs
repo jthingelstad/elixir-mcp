@@ -31,14 +31,13 @@ async function badgeScope(ctx, args, params) {
   }
   if (seg.kind === "clan") {
     params.push(seg.clanTag);
-    // A clan's current members who are RECORDED now (Gym #183): the
-    // corpus rule (#145) applies here too, so a member the record no
-    // longer polls - a stale read under an old clan tag - is left out,
-    // and the note says how many of the members that is.
+    // A clan's current members with a profile read. Whether a clan
+    // segment should also follow the corpus's recorded-now rule (#145)
+    // is held for Jamie (Gym #183): it dropped a covered clan's member.
+    // The coverage note says how many of the members are counted.
     return {
       where: `pb.player_tag in (select cm.player_tag from clan_membership cm
-               where cm.clan_tag = $${params.length} and cm.left_observed_at is null)
-              and pb.player_tag in (${RECORDED_PLAYERS_SQL})`,
+               where cm.clan_tag = $${params.length} and cm.left_observed_at is null)`,
       echo: seg.echo,
       clanTag: seg.clanTag,
     };

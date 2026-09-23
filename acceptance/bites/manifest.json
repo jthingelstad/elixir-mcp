@@ -1195,14 +1195,6 @@
     "expect": "."
   },
   {
-    "feedback": 183,
-    "contract": "6.36.2",
-    "why": "the Gym block 183.3 on the answer it read",
-    "case": "gym/183.3",
-    "captures": ["183-3-badges_holders.json"],
-    "expect": "."
-  },
-  {
     "feedback": 184,
     "contract": "6.36.2",
     "why": "the Gym block 184.1 on the answer it read",
