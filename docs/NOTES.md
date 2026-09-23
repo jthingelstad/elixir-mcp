@@ -1819,3 +1819,21 @@ evidence against it and does not reopen it.
 - `{vacuum}`: relallvisible 14,147 went to 34,101 of 34,101, and relpages held at 34,101, because the updates were HOT.
 
 The readers then moved to the column.
+
+**6.19.3, and where Phase 2 stops.** Timed live after each deploy through
+the Gym's door (the acceptance gate passed every time, 277 cases and 0
+failed):
+
+| call | before | after |
+| --- | --- | --- |
+| meta_decks mine, season | 6.7 s | 0.4 s |
+| meta_cards mine, season | 8.2 s | 2.3 s (1.0 s warm) |
+| trends clan, 4 weeks | 14.5-22 s | 4.3 s |
+| trends player, 8 weeks | - | 0.2 s |
+| cards_card Knight corpus season | 9.5 s | 8.4 s |
+| meta_cards corpus, 7 days | 7.5-9 s | 7.5 s |
+
+Two corpus reads are left. Both are inside the 18 s budget now that they
+carry the 32 MB `work_mem` and return a structured `query_timeout`. Taking
+them lower means a card-pair or deck-player rollup, and 0122 already
+measured the pair rollup as not fitting the micro. Phase 2 stops here.
