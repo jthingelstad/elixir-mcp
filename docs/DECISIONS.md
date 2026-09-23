@@ -117,6 +117,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **No Lambda-to-Lambda from the NAT-free VPC** — use a queue; metrics go out as EMF on stdout. (2026-09-18, 2026-09-06; engineering)
 - **DNS stays at Namecheap** — Jamie applies records by hand. (2026-09-03; Jamie)
 - **Collector-door cost is judged by route attribution** — no fixed baseline. Supersedes the check-in-era rule. (2026-09-22; engineering)
+- **The database is db.t4g.small** — the micro ran out of EBS byte balance and memory under ordinary pre-launch load; the micro reservation still applies (size-flexible). (2026-09-23; Jamie)
 
 ## Agent team and process
 
