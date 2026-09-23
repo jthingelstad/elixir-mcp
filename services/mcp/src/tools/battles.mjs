@@ -235,7 +235,7 @@ async function groupByArchetype(
   out.sort((a, z) => z.players - a.players || z.battles - a.battles);
   return {
     rows: out.slice(0, limit),
-    folded: `Folded ${rows.length} decks over min_battles into ${out.length} ${groupBy === "family" ? "families" : "archetypes"} by their stamped label, sorted by who plays them (players, then battles); share is of the ${total} decided battles those decks hold. ${
+    folded: `Folded ${rows.length} decks over min_battles into ${out.length} ${groupBy === "family" ? "families" : "archetypes"} by their stamped label, sorted by who plays them (players, then battles); share is of the ${total} decided battles those decks hold. cards_archetype({ name }) says what one of these labels MEANS - its family, its win conditions, the other names for the shape - and cards_archetype({ cards }) names a deck you hand it. ${
       withMembers
         ? "members lists each player of the shape with their most-played deck of it; players is exact."
         : "players sums the decks' distinct players, so a player on two decks of one shape counts twice."
