@@ -56,8 +56,16 @@ export function fitNotes(fitBlock, decks, unfieldable) {
   const fielded =
     fitBlock.fielded_mean_level === null
       ? `${fitBlock.player_tag} has no decided pvp battles with a recorded deck in this window, so fit.vs_fielded and fit.upgrades are null: there is no fielded level to measure against`
-      : `${fitBlock.player_tag} has fielded a mean card level of ${fitBlock.fielded_mean_level} over ${fitBlock.fielded_battles} decided battles in this window; fit.vs_fielded is each row's own_mean_level against that, and fit.upgrades is the path to it`;
+      : `${fitBlock.player_tag} has fielded a mean card level of ${fitBlock.fielded_mean_level} over ${fitBlock.fielded_battles} decided battles in this window, and ${fitBlock.recent_mean_level ?? fitBlock.fielded_mean_level} over their last ten (recent_mean_level); fit.vs_fielded is each row's own_mean_level against the recent level, and fit.upgrades is the path to it`;
+  const levelling =
+    fitBlock.recent_mean_level !== null &&
+    fitBlock.recent_mean_level !== undefined &&
+    fitBlock.fielded_mean_level !== null &&
+    Math.abs(fitBlock.recent_mean_level - fitBlock.fielded_mean_level) >= 1
+      ? `${fitBlock.player_tag} is levelling up: they field ${fitBlock.recent_mean_level} now against ${fitBlock.fielded_mean_level} over the window, so vs_fielded and the upgrade targets read against the recent level (Gym #171).`
+      : null;
   return [
+    ...(levelling ? [levelling] : []),
     `Checked against ${fitBlock.player_tag}'s collection as of ${fitBlock.collection_as_of}: ${decks.length} of the top ${decks.length + unfieldable.length} rows are fieldable as held (decks[]); ${unfieldable.length} are not (unfieldable[], each naming the card or form missing). The population's ranking is unchanged - the split is after sort and limit, so raise limit for more fieldable rows.`,
     `${fielded}. mean_level_gap on a row is the population's players' edge over their opponents, not ${fitBlock.player_tag}'s; own_mean_level is what the deck would be at their levels, and held_level rides each card.`,
     `fit.plays_archetype, fit.plays_win_condition and fit.plays_family say whether ${fitBlock.player_tag} already fields this row's exact shape, its win condition (form included: Evo Royal Hogs is not Royal Hogs) or its family (fit_for.plays lists theirs). Adoption cost reads off them in that order: the exact shape costs the least; the same win condition in another family is the card they have leveled and learned played at a different pace (the usual next step); the same family around a new win condition is a new card to level; a row sharing neither is a new deck to learn as well as levels to buy.`,

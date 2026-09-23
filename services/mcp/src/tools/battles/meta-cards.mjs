@@ -348,6 +348,9 @@ export const battles_meta_cards = {
         player_tag: fit.tag,
         collection_as_of: fit.as_of,
         fielded_mean_level: fielded.mean_level,
+        // The level fielded NOW (Gym #133, #171): players_collection's
+        // own recent mean, the benchmark a levelling account is judged by.
+        recent_mean_level: fielded.recent_mean_level,
         fielded_battles: fielded.battles,
       };
     }

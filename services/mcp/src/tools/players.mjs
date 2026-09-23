@@ -331,6 +331,10 @@ export const playersTools = {
           ARCHETYPE_NOTE,
           deckClash,
           trophyFloorNote(floor),
+          // Two trophy ranges, two quantities (Gym #172).
+          floor && (topDeck?.trophy_range || bestDeck?.trophy_range)
+            ? "trophy_floor.trophy_range is the trophies landed on after each ladder battle; a deck's trophy_range is the trophies its battles STARTED at, so a deck's lowest can sit below the floor's lowest by a win's gain."
+            : null,
           "History may predate active recording; elixir_coverage has the capture story.",
         ),
         docs: docsRef("recording", "completeness"),

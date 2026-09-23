@@ -1065,5 +1065,21 @@
     "case": "gym/169.2",
     "captures": ["169-2-game_clock.json"],
     "expect": "."
+  },
+  {
+    "feedback": 171,
+    "contract": "6.34.3",
+    "why": "the Gym block 171.1 on the answer it read",
+    "case": "gym/171.1",
+    "captures": ["171-1-battles_meta_decks.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 171,
+    "contract": "6.34.3",
+    "why": "the Gym block 171.2 on the answer it read",
+    "case": "gym/171.2",
+    "captures": ["171-2-battles_meta_decks.json"],
+    "expect": "."
   }
 ]

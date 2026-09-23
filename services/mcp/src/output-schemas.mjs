@@ -345,10 +345,21 @@ const TROPHY_FLOOR = {
     },
     trophy_range: {
       type: "object",
+      description:
+        "The trophies the player LANDED on after each ladder battle in the window (starting trophies plus the change): where they stood, not where a deck was played. A deck's trophy_range (top_deck, best_deck) is its battles' STARTING trophies, so the two can differ by a battle's change (feedback #172).",
       properties: { lowest: COUNT, highest: COUNT },
     },
   },
   required: ["floor", "floored", "on_floor_losses"],
+};
+
+/** A deck's ladder trophies (6.27.0, #172): its battles' STARTING
+ *  trophies, the trophies it was played at. */
+const DECK_TROPHY_RANGE = {
+  type: ["object", "null"],
+  description:
+    "The STARTING trophies of the deck's ladder battles in the window (what it was played at); null with no ladder battle. trophy_floor.trophy_range is trophies landed on after each battle, a different quantity.",
+  properties: { lowest: COUNT, highest: COUNT },
 };
 
 /** The seven schemas the call log asked for next (3.18.0, review Part
@@ -438,6 +449,11 @@ const FIT_FOR_BLOCK = {
       type: ["number", "null"],
       description:
         "The mean card level of the decks the player actually played (decided pvp, this window and mode); null with none.",
+    },
+    recent_mean_level: {
+      type: ["number", "null"],
+      description:
+        "The mean card level of the player's last ten decided pvp battles in the window: the level fielded now, which vs_fielded and the upgrade targets read against (6.35.0).",
     },
     fielded_battles: COUNT,
     plays: {
@@ -2195,9 +2211,28 @@ export const OUTPUT_SCHEMAS = {
             description:
               "Mean of the player's deck-average level minus the opposing side's over the deck's battles (3.17.0); the figure the comparability note compares between the two decks.",
           },
+          trophy_range: DECK_TROPHY_RANGE,
+          last_played_at: {
+            type: ["string", "null"],
+            description: "The deck's latest battle in the window (6.27.0).",
+          },
         },
       },
-      best_deck: { type: ["object", "null"] },
+      best_deck: {
+        type: ["object", "null"],
+        description:
+          "The chosen deck with the best record over enough decided battles; the same shape as top_deck.",
+        properties: {
+          deck_hash: { type: "string" },
+          cards: { type: "array", items: DECK_CARD },
+          archetype: ARCHETYPE,
+          battles: COUNT,
+          win_rate: RATE,
+          modes: MODE_SPLIT,
+          trophy_range: DECK_TROPHY_RANGE,
+          last_played_at: { type: ["string", "null"] },
+        },
+      },
       notes: NOTES,
       docs: DOCS,
       meta: META,

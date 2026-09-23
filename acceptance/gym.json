@@ -7314,5 +7314,182 @@
         "eq": ["w.weeks[0].is_colosseum", true]
       }
     ]
+  },
+  {
+    "id": "171.1",
+    "feedback": 171,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "player_tag": "#VJQV8G8RL"
+      },
+      "fit_for": "#VJQV8G8RL",
+      "min_battles": 1
+    },
+    "request_id": "1fe2afe0-78b5-46fc-bde0-e94a9e63473a",
+    "assert": [
+      {
+        "has": "fit_for.recent_mean_level"
+      }
+    ]
+  },
+  {
+    "id": "171.2",
+    "feedback": 171,
+    "stability": "live",
+    "calls": {
+      "m": {
+        "tool": "battles_meta_decks",
+        "args": {
+          "segment": {
+            "player_tag": "#VJQV8G8RL"
+          },
+          "fit_for": "#VJQV8G8RL",
+          "min_battles": 1
+        }
+      },
+      "c": {
+        "tool": "players_collection",
+        "args": {
+          "player_tag": "#VJQV8G8RL"
+        }
+      }
+    },
+    "request_id": "1fe2afe0-78b5-46fc-bde0-e94a9e63473a",
+    "when": {
+      "gte": ["m.fit_for.fielded_battles", 10]
+    },
+    "assert": [
+      {
+        "eq": ["m.fit_for.recent_mean_level", "c.fielded.recent_mean_level"]
+      }
+    ]
+  },
+  {
+    "id": "171.3",
+    "feedback": 171,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "fit_for": "#20JJJ2CCRU",
+      "min_battles": 1,
+      "verbosity": "compact"
+    },
+    "request_id": "fa572239-6b48-440c-9bfa-1b6238d6ced4",
+    "assert": [
+      {
+        "has": "fit_for.fielded_mean_level"
+      },
+      {
+        "notes_not_match": "levelling up"
+      }
+    ]
+  },
+  {
+    "id": "172.1",
+    "feedback": 172,
+    "stability": "live",
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#VJG0J29QP"
+    },
+    "request_id": "9f54b992-575d-43d4-9bf2-73293e72c499",
+    "when": {
+      "has": "best_deck.trophy_range.lowest"
+    },
+    "assert": [
+      {
+        "gte": [
+          "best_deck.trophy_range.lowest",
+          "trophy_floor.trophy_range.lowest"
+        ]
+      }
+    ],
+    "refuted": "Held for Jamie: the two trophy_range fields measure different things (trophy_floor: trophies landed on after each battle; a deck: starting trophies). Making them one quantity changes what a served number means, which is Jamie's call, not a sweep fix. 6.35.0 declares and documents both instead. This case assumes one meaning, so it cannot pass until that decision."
+  },
+  {
+    "id": "172.2",
+    "feedback": 172,
+    "stability": "live",
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#VJQV8G8RL"
+    },
+    "request_id": "0a49fe79-1a0c-40b3-a04b-ee46c593b5e8",
+    "when": {
+      "has": "best_deck.trophy_range.lowest"
+    },
+    "assert": [
+      {
+        "gte": [
+          "best_deck.trophy_range.lowest",
+          "trophy_floor.trophy_range.lowest"
+        ]
+      }
+    ],
+    "refuted": "Held for Jamie: the two trophy_range fields measure different things (trophy_floor: trophies landed on after each battle; a deck: starting trophies). Making them one quantity changes what a served number means, which is Jamie's call, not a sweep fix. 6.35.0 declares and documents both instead. This case assumes one meaning, so it cannot pass until that decision."
+  },
+  {
+    "id": "172.3",
+    "feedback": 172,
+    "stability": "live",
+    "control": true,
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#VJG0J29QP"
+    },
+    "request_id": "9f54b992-575d-43d4-9bf2-73293e72c499",
+    "when": {
+      "has": "top_deck.trophy_range.highest"
+    },
+    "assert": [
+      {
+        "lte": [
+          "top_deck.trophy_range.highest",
+          "trophy_floor.trophy_range.highest"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "173.1",
+    "feedback": 173,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "t": {
+        "tool": "players_timeline",
+        "args": {
+          "player_tag": "#20JJJ2CCRU",
+          "metrics": ["donations"],
+          "kind": "pre_reset",
+          "days": 8
+        }
+      },
+      "p": {
+        "tool": "clans_participation",
+        "args": {
+          "weeks": 2,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "715afb61-78f8-4b54-afdf-a155e1595731",
+    "when": {
+      "has": "t.series[0].donations"
+    },
+    "assert": [
+      {
+        "eq": [
+          "t.series[0].donations",
+          "p.members[?player_tag=#20JJJ2CCRU].donations[0]"
+        ]
+      }
+    ]
   }
 ]

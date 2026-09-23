@@ -1,0 +1,1003 @@
+{
+  "feedback": 171,
+  "contract_version": "6.34.3",
+  "captured_at": "2026-09-23T22:53:20.080Z",
+  "request": {
+    "tool": "battles_meta_decks",
+    "arguments": {
+      "segment": {
+        "player_tag": "#VJQV8G8RL"
+      },
+      "fit_for": "#VJQV8G8RL",
+      "min_battles": 1
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "player",
+        "player_tag": "#VJQV8G8RL"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "fit_for": "#VJQV8G8RL",
+      "min_battles": 1,
+      "sort": "battles",
+      "limit": 20,
+      "verbosity": "full"
+    },
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "decided_battles": 55,
+    "segment_win_rate": 0.945,
+    "prior_win_rate": 0.5,
+    "prior_basis": "corpus_window",
+    "excluded": {
+      "considered": 55,
+      "duels": 0,
+      "boat": 0,
+      "draws": 0,
+      "unresolved": 0,
+      "no_deck": 0
+    },
+    "comparable": false,
+    "modes_in_window": [
+      {
+        "mode": "ladder",
+        "battles": 55,
+        "mean_level_gap": 0.82
+      }
+    ],
+    "fit_for": {
+      "player_tag": "#VJQV8G8RL",
+      "collection_as_of": "2026-09-23T02:07:50.000Z",
+      "fielded_mean_level": 5.99,
+      "fielded_battles": 56,
+      "plays": {
+        "families": ["beatdown"],
+        "win_conditions": ["Giant"],
+        "archetypes": ["Giant beatdown"]
+      }
+    },
+    "decks": [
+      {
+        "deck_hash": "30cc33c596928ff7fdaec7e0160836f371230334675400276c30626c355a01b3",
+        "battles": 15,
+        "wins": 14,
+        "losses": 1,
+        "players": 1,
+        "usage_share": 0.273,
+        "win_rate": 0.933,
+        "shrunk_win_rate": 0.686,
+        "first_used": "2026-09-16T00:40:09.000Z",
+        "last_used": "2026-09-19T03:37:34.000Z",
+        "mean_level_gap": 0.89,
+        "level_gap_battles": 15,
+        "modes": {
+          "ladder": {
+            "battles": 15,
+            "wins": 14,
+            "losses": 1
+          }
+        },
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 1
+        },
+        "cards": [
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000008,
+            "name": "Barbarians",
+            "form": "base",
+            "held_level": 9
+          },
+          {
+            "id": 26000011,
+            "name": "Valkyrie",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000013,
+            "name": "Bomber",
+            "form": "base",
+            "held_level": 7
+          },
+          {
+            "id": 26000014,
+            "name": "Musketeer",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 27000000,
+            "name": "Cannon",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base",
+            "held_level": 8
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Giant beatdown",
+          "average_elixir": 3.75,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        },
+        "fit": {
+          "fieldable": true,
+          "missing": [],
+          "own_mean_level": 8,
+          "vs_fielded": 2.01,
+          "upgrades": [],
+          "mean_level_after_upgrades": 8,
+          "plays_family": true,
+          "plays_win_condition": true,
+          "plays_archetype": true
+        }
+      },
+      {
+        "deck_hash": "24b7678466756fcb8d06f6f8ec7f9137c5299d09410ef48dd2be2d7865b05da1",
+        "battles": 10,
+        "wins": 10,
+        "losses": 0,
+        "players": 1,
+        "usage_share": 0.182,
+        "win_rate": 1,
+        "shrunk_win_rate": 0.667,
+        "first_used": "2026-09-08T05:48:07.000Z",
+        "last_used": "2026-09-11T00:52:41.000Z",
+        "mean_level_gap": -0.06,
+        "level_gap_battles": 10,
+        "modes": {
+          "ladder": {
+            "battles": 10,
+            "wins": 10,
+            "losses": 0
+          }
+        },
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 1
+        },
+        "cards": [
+          {
+            "id": 26000000,
+            "name": "Knight",
+            "form": "base",
+            "held_level": 6
+          },
+          {
+            "id": 26000001,
+            "name": "Archers",
+            "form": "base",
+            "held_level": 9
+          },
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000005,
+            "name": "Minions",
+            "form": "base",
+            "held_level": 5
+          },
+          {
+            "id": 26000014,
+            "name": "Musketeer",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 28000000,
+            "name": "Fireball",
+            "form": "base",
+            "held_level": 5
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base",
+            "held_level": 8
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Giant beatdown",
+          "average_elixir": 3.63,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        },
+        "fit": {
+          "fieldable": true,
+          "missing": [],
+          "own_mean_level": 7.125,
+          "vs_fielded": 1.135,
+          "upgrades": [
+            {
+              "id": 26000005,
+              "name": "Minions",
+              "form": "base",
+              "held_level": 5,
+              "to_level": 6,
+              "levels": 1
+            },
+            {
+              "id": 28000000,
+              "name": "Fireball",
+              "form": "base",
+              "held_level": 5,
+              "to_level": 6,
+              "levels": 1
+            }
+          ],
+          "mean_level_after_upgrades": 7.375,
+          "plays_family": true,
+          "plays_win_condition": true,
+          "plays_archetype": true
+        }
+      },
+      {
+        "deck_hash": "1ea0130a5d4d7bb201da18bfb0b9c1fe1916eab28762154b7faa54b7dce8479c",
+        "battles": 9,
+        "wins": 7,
+        "losses": 2,
+        "players": 1,
+        "usage_share": 0.164,
+        "win_rate": 0.778,
+        "shrunk_win_rate": 0.586,
+        "first_used": "2026-09-20T03:23:23.000Z",
+        "last_used": "2026-09-21T00:16:34.000Z",
+        "mean_level_gap": 1.17,
+        "level_gap_battles": 9,
+        "modes": {
+          "ladder": {
+            "battles": 9,
+            "wins": 7,
+            "losses": 2
+          }
+        },
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 1
+        },
+        "cards": [
+          {
+            "id": 26000001,
+            "name": "Archers",
+            "form": "base",
+            "held_level": 9
+          },
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000008,
+            "name": "Barbarians",
+            "form": "base",
+            "held_level": 9
+          },
+          {
+            "id": 26000011,
+            "name": "Valkyrie",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000014,
+            "name": "Musketeer",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 27000000,
+            "name": "Cannon",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base",
+            "held_level": 8
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Giant beatdown",
+          "average_elixir": 3.88,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        },
+        "fit": {
+          "fieldable": true,
+          "missing": [],
+          "own_mean_level": 8.25,
+          "vs_fielded": 2.26,
+          "upgrades": [],
+          "mean_level_after_upgrades": 8.25,
+          "plays_family": true,
+          "plays_win_condition": true,
+          "plays_archetype": true
+        }
+      },
+      {
+        "deck_hash": "0bea124113953a6ec23f726e0e0d74b83edf44ac2220a1d9b5b6b7b2105e88aa",
+        "battles": 8,
+        "wins": 8,
+        "losses": 0,
+        "players": 1,
+        "usage_share": 0.145,
+        "win_rate": 1,
+        "shrunk_win_rate": 0.643,
+        "first_used": "2026-09-12T00:05:34.000Z",
+        "last_used": "2026-09-16T00:29:16.000Z",
+        "mean_level_gap": 0.94,
+        "level_gap_battles": 8,
+        "modes": {
+          "ladder": {
+            "battles": 8,
+            "wins": 8,
+            "losses": 0
+          }
+        },
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 1
+        },
+        "cards": [
+          {
+            "id": 26000001,
+            "name": "Archers",
+            "form": "base",
+            "held_level": 9
+          },
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000011,
+            "name": "Valkyrie",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000013,
+            "name": "Bomber",
+            "form": "base",
+            "held_level": 7
+          },
+          {
+            "id": 26000014,
+            "name": "Musketeer",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 28000000,
+            "name": "Fireball",
+            "form": "base",
+            "held_level": 5
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base",
+            "held_level": 8
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Giant beatdown",
+          "average_elixir": 3.63,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        },
+        "fit": {
+          "fieldable": true,
+          "missing": [],
+          "own_mean_level": 7.625,
+          "vs_fielded": 1.635,
+          "upgrades": [
+            {
+              "id": 28000000,
+              "name": "Fireball",
+              "form": "base",
+              "held_level": 5,
+              "to_level": 6,
+              "levels": 1
+            }
+          ],
+          "mean_level_after_upgrades": 7.75,
+          "plays_family": true,
+          "plays_win_condition": true,
+          "plays_archetype": true
+        }
+      },
+      {
+        "deck_hash": "70c921ecb21a639edefff5ddeca0895267b0bbc96e20f0dae9b6f8c620ebee50",
+        "battles": 5,
+        "wins": 5,
+        "losses": 0,
+        "players": 1,
+        "usage_share": 0.091,
+        "win_rate": 1,
+        "shrunk_win_rate": 0.6,
+        "first_used": "2026-09-21T00:20:20.000Z",
+        "last_used": "2026-09-22T03:37:25.000Z",
+        "mean_level_gap": 1.25,
+        "level_gap_battles": 5,
+        "modes": {
+          "ladder": {
+            "battles": 5,
+            "wins": 5,
+            "losses": 0
+          }
+        },
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 1
+        },
+        "cards": [
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000008,
+            "name": "Barbarians",
+            "form": "base",
+            "held_level": 9
+          },
+          {
+            "id": 26000011,
+            "name": "Valkyrie",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000014,
+            "name": "Musketeer",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000017,
+            "name": "Wizard",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 27000000,
+            "name": "Cannon",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base",
+            "held_level": 8
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Giant beatdown",
+          "average_elixir": 4.13,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        },
+        "fit": {
+          "fieldable": true,
+          "missing": [],
+          "own_mean_level": 8.125,
+          "vs_fielded": 2.135,
+          "upgrades": [],
+          "mean_level_after_upgrades": 8.125,
+          "plays_family": true,
+          "plays_win_condition": true,
+          "plays_archetype": true
+        }
+      },
+      {
+        "deck_hash": "a226773dde85737ca36c89664e2c056147dcec5a21fcdae92af039615499b268",
+        "battles": 5,
+        "wins": 5,
+        "losses": 0,
+        "players": 1,
+        "usage_share": 0.091,
+        "win_rate": 1,
+        "shrunk_win_rate": 0.6,
+        "first_used": "2026-09-22T03:43:32.000Z",
+        "last_used": "2026-09-23T01:54:30.000Z",
+        "mean_level_gap": 1.33,
+        "level_gap_battles": 5,
+        "modes": {
+          "ladder": {
+            "battles": 5,
+            "wins": 5,
+            "losses": 0
+          }
+        },
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 1
+        },
+        "cards": [
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000008,
+            "name": "Barbarians",
+            "form": "evolution",
+            "held_level": 9
+          },
+          {
+            "id": 26000011,
+            "name": "Valkyrie",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000014,
+            "name": "Musketeer",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000017,
+            "name": "Wizard",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 27000000,
+            "name": "Cannon",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base",
+            "held_level": 8
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Giant beatdown",
+          "average_elixir": 4.13,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        },
+        "fit": {
+          "fieldable": true,
+          "missing": [],
+          "own_mean_level": 8.125,
+          "vs_fielded": 2.135,
+          "upgrades": [],
+          "mean_level_after_upgrades": 8.125,
+          "plays_family": true,
+          "plays_win_condition": true,
+          "plays_archetype": true
+        }
+      },
+      {
+        "deck_hash": "f608acab15acb79da053fd7e73878016b2dfbc036861a2f6f5da792ddc48b2d6",
+        "battles": 2,
+        "wins": 2,
+        "losses": 0,
+        "players": 1,
+        "usage_share": 0.036,
+        "win_rate": 1,
+        "shrunk_win_rate": 0.545,
+        "first_used": "2026-09-11T01:08:06.000Z",
+        "last_used": "2026-09-11T01:09:24.000Z",
+        "mean_level_gap": 0.26,
+        "level_gap_battles": 2,
+        "modes": {
+          "ladder": {
+            "battles": 2,
+            "wins": 2,
+            "losses": 0
+          }
+        },
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 1
+        },
+        "cards": [
+          {
+            "id": 26000001,
+            "name": "Archers",
+            "form": "base",
+            "held_level": 9
+          },
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000011,
+            "name": "Valkyrie",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000014,
+            "name": "Musketeer",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000019,
+            "name": "Spear Goblins",
+            "form": "base",
+            "held_level": 6
+          },
+          {
+            "id": 28000000,
+            "name": "Fireball",
+            "form": "base",
+            "held_level": 5
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base",
+            "held_level": 8
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Giant beatdown",
+          "average_elixir": 3.63,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        },
+        "fit": {
+          "fieldable": true,
+          "missing": [],
+          "own_mean_level": 7.5,
+          "vs_fielded": 1.51,
+          "upgrades": [
+            {
+              "id": 28000000,
+              "name": "Fireball",
+              "form": "base",
+              "held_level": 5,
+              "to_level": 6,
+              "levels": 1
+            }
+          ],
+          "mean_level_after_upgrades": 7.625,
+          "plays_family": true,
+          "plays_win_condition": true,
+          "plays_archetype": true
+        }
+      },
+      {
+        "deck_hash": "c6d5c71d5a8bb43eb017a36046f006b0afd75cc17b8dc810dd9ed052efb46a95",
+        "battles": 1,
+        "wins": 1,
+        "losses": 0,
+        "players": 1,
+        "usage_share": 0.018,
+        "win_rate": 1,
+        "shrunk_win_rate": 0.524,
+        "first_used": "2026-09-16T00:34:11.000Z",
+        "last_used": "2026-09-16T00:34:11.000Z",
+        "mean_level_gap": 1.13,
+        "level_gap_battles": 1,
+        "modes": {
+          "ladder": {
+            "battles": 1,
+            "wins": 1,
+            "losses": 0
+          }
+        },
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 1
+        },
+        "cards": [
+          {
+            "id": 26000001,
+            "name": "Archers",
+            "form": "base",
+            "held_level": 9
+          },
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000011,
+            "name": "Valkyrie",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000013,
+            "name": "Bomber",
+            "form": "base",
+            "held_level": 7
+          },
+          {
+            "id": 26000014,
+            "name": "Musketeer",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 27000000,
+            "name": "Cannon",
+            "form": "base",
+            "held_level": 8
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base",
+            "held_level": 8
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000003,
+              "name": "Giant",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Giant beatdown",
+          "average_elixir": 3.5,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        },
+        "fit": {
+          "fieldable": true,
+          "missing": [],
+          "own_mean_level": 8,
+          "vs_fielded": 2.01,
+          "upgrades": [],
+          "mean_level_after_upgrades": 8,
+          "plays_family": true,
+          "plays_win_condition": true,
+          "plays_archetype": true
+        }
+      }
+    ],
+    "unfieldable": [],
+    "notes": [
+      "Checked against #VJQV8G8RL's collection as of 2026-09-23T02:07:50.000Z: 8 of the top 8 rows are fieldable as held (decks[]); 0 are not (unfieldable[], each naming the card or form missing). The population's ranking is unchanged - the split is after sort and limit, so raise limit for more fieldable rows.",
+      "#VJQV8G8RL has fielded a mean card level of 5.99 over 56 decided battles in this window; fit.vs_fielded is each row's own_mean_level against that, and fit.upgrades is the path to it. mean_level_gap on a row is the population's players' edge over their opponents, not #VJQV8G8RL's; own_mean_level is what the deck would be at their levels, and held_level rides each card.",
+      "fit.plays_archetype, fit.plays_win_condition and fit.plays_family say whether #VJQV8G8RL already fields this row's exact shape, its win condition (form included: Evo Royal Hogs is not Royal Hogs) or its family (fit_for.plays lists theirs). Adoption cost reads off them in that order: the exact shape costs the least; the same win condition in another family is the card they have leveled and learned played at a different pace (the usual next step); the same family around a new win condition is a new card to level; a row sharing neither is a new deck to learn as well as levels to buy.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "Win rates here are NOT comparable across rows: deck 30cc33c5… faced opponents at mean level gap +0.89 and deck 24b76784… at gap -0.06; matchmaking differs by mode (war draws opponents from the racing clans, not from your trophies, so a strong player meets weaker ones there) and a level gap moves the expected win rate, so rank decks only within one mode and similar mean_level_gap (pass mode; the record describes the gap and does not adjust for it).",
+      "Every deck row here was played by ONE player (players: 1): this segment's numbers describe a few players' habits, not a meta; widen the segment or read the corpus for the field.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld below 30 decided observations (insufficient_sample: true).",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals."
+    ],
+    "docs": "methodology#deck-and-card-meta-exactly-what-is-counted",
+    "meta": {
+      "contract_version": "6.34.3"
+    }
+  },
+  "timings": {
+    "db_ms": 87,
+    "db_queries": 21,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

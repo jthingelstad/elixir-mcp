@@ -2048,3 +2048,10 @@ Jamie made three decisions. `/api/v1` is Elixir's public, versioned JSON API bes
 
 All 7 regressions were confirmed. #126's recorder half (reads pinned to the 10:00Z grid) is not observable until the first pinned read on game day 09-24, so 126.5 stays needs_fixture. #169 is fixed with a note only: game_clock's grid is the policy boundary, and races close per race in the half hour before it. The note rides the JSON API's game clock too, because that is the same function. #170 is praise.
 
+## 2026-09-23 — Gym sweep, players round 2 (6.35.0, feedback #171-#173)
+
+14 of 16 regressions were confirmed. #133 was partly fixed: fit_for had never received recent_mean_level, although the 6.27.0 reply said it had. That is now #171. #134's players_collection window echo has no season or crosses, which the Gym noted and did not file. #173 is praise.
+- **#171:** fitBlock.recent_mean_level, with deckFit's target from it, and a levelling-up note when the two means differ by a level or more.
+- **#172:** described, not unified. Both trophy_ranges are declared and a note explains them. 172.1 and 172.2 are `refuted` as held for Jamie. **Question for Jamie:** make every trophy_range starting trophies? That changes what trophy_floor.trophy_range means on three tools.
+- **Open (Gym, not filed):** in one week King Thing's lifetime donations rose 28 more than the week's high-water mark (414 against 386). A stale roster read near the reset may miss late donations. It needs more weeks before the 6.33.0 claim that the highest read is the week's total is qualified.
+
