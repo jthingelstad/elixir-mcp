@@ -126,12 +126,41 @@ function sideTrophyChange(entries) {
   return values.length > 0 ? values[0] : undefined;
 }
 
+/** Games won and lost in a duel, from each side's rounds[] crowns;
+ *  null when either side carries no rounds. */
+function duelGames(entry, otherSide) {
+  const mine = Array.isArray(entry.rounds) ? entry.rounds : [];
+  const theirs = Array.isArray(otherSide[0]?.rounds) ? otherSide[0].rounds : [];
+  if (mine.length === 0 || theirs.length === 0) return null;
+  let won = 0;
+  let lost = 0;
+  for (let i = 0; i < Math.min(mine.length, theirs.length); i++) {
+    const a = mine[i]?.crowns;
+    const b = theirs[i]?.crowns;
+    if (!Number.isInteger(a) || !Number.isInteger(b)) continue;
+    if (a > b) won += 1;
+    else if (a < b) lost += 1;
+  }
+  return { won, lost };
+}
+
 function outcomeFor(entry, ownSide, otherSide, battle, isTeamSide) {
   if (battle.type?.startsWith("boatBattle")) {
     if (typeof battle.boatBattleWon === "boolean") {
       return battle.boatBattleWon === isTeamSide ? "win" : "loss";
     }
     return "unresolved";
+  }
+  // A duel is best of three GAMES (Gym #95): who won more of them won
+  // the duel. Its top-level crowns are the sum across games, so a 0-3,
+  // 1-0, 1-0 duel is won 2-1 on games and "lost" 2-3 on crowns - and the
+  // crowns rule below recorded 7 of 70 duels that way. The per-game
+  // crowns ride rounds[] on both sides; only when they are missing, or
+  // the games tie, do the summed crowns decide.
+  if (/^riverRaceDuel/.test(String(battle.type ?? ""))) {
+    const games = duelGames(entry, otherSide);
+    if (games && games.won !== games.lost)
+      return games.won > games.lost ? "win" : "loss";
   }
   // A decided battle moves the two sides in OPPOSITE directions. Path of
   // Legends penalises BOTH players for a draw (verified 2026-09-22 against

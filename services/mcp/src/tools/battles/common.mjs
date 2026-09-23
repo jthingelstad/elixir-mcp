@@ -200,9 +200,14 @@ export function towerHpOf(r) {
   if (r.king_tower_hp === null && r.princess_tower_hp_1 === null) return null;
   return {
     ...(r.king_tower_hp !== null ? { king: r.king_tower_hp } : {}),
+    // The API omits a destroyed princess tower, and omits the whole
+    // array when both fell; with the king carried, no array is [0, 0],
+    // as the docs promise (Gym #100: 78 of 400 sides served no key).
     ...(r.princess_tower_hp_1 !== null
       ? { princess: [r.princess_tower_hp_1, r.princess_tower_hp_2 ?? 0] }
-      : {}),
+      : r.king_tower_hp !== null
+        ? { princess: [0, 0] }
+        : {}),
   };
 }
 
@@ -250,7 +255,10 @@ export function roundResultsOf(own, opponent) {
  *  whose sides played different decks per round), and per-field null
  *  where the record lacks a side's value. */
 export function versusOf(me, opponent, type) {
-  if (!opponent || isDuel(type)) return null;
+  // A boat battle is a defense against an attack: nothing to difference
+  // (Gym #97).
+  if (!opponent || isDuel(type) || /^boatBattle/.test(String(type ?? "")))
+    return null;
   const diff = (a, b) =>
     typeof a === "number" && typeof b === "number"
       ? Number((a - b).toFixed(2))
@@ -274,9 +282,11 @@ export function versusOf(me, opponent, type) {
       opponent.deck_avg_level === null ? null : Number(opponent.deck_avg_level),
     ),
     starting_trophies: diff(me.starting_trophies, opponent.starting_trophies),
-    // Hitpoints REMAINING, so a margin of victory: won with both towers
-    // near full, or scraped it. Never a tower level.
+    // Hitpoints REMAINING. A margin of victory only between equal
+    // towers: a one-level gap starts 1,564 HP apart (Gym #97), so
+    // tower_level rides beside it and a note fires when it is not 0.
     tower_hp: diff(towers(me), towers(opponent)),
+    tower_level: diff(me.tower_level ?? null, opponent.tower_level ?? null),
   };
 }
 

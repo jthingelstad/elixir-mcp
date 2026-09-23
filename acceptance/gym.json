@@ -1311,5 +1311,366 @@
         "eq": ["h.players_considered", "r.players_considered"]
       }
     ]
+  },
+  {
+    "id": "95.1",
+    "feedback": 95,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "6f09ca0b6b9d6b9bd8bb7457e786eb03030d17f2e22b443da41807b7ea91a095"
+    },
+    "request_id": "f5689c1e-56f1-4f43-b57e-fc9a6ca277ee",
+    "assert": [
+      {
+        "eq": ["battles[0].me.rounds_played", 3]
+      },
+      {
+        "eq": ["battles[0].me.outcome", "win"]
+      }
+    ]
+  },
+  {
+    "id": "95.2",
+    "feedback": 95,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "f485f7520559cf56fb946c8bfdea0a70757f81285ecac71282e665b272a6a7ab"
+    },
+    "request_id": "f5d0d1bd-a856-4ff8-bf7a-902719ea7797",
+    "assert": [
+      {
+        "eq": ["battles[0].me.outcome", "loss"]
+      }
+    ]
+  },
+  {
+    "id": "95.3",
+    "feedback": 95,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "93aaedfcf3aa063e9a9b71fab76c41e9efac4ab1d898b5478c3919134d703559"
+    },
+    "request_id": "f05bd3e6-72f2-4946-9f30-47104e62b2de",
+    "assert": [
+      {
+        "eq": ["battles[0].me.rounds_played", 3]
+      },
+      {
+        "eq": ["battles[0].me.outcome", "win"]
+      }
+    ]
+  },
+  {
+    "id": "96.1",
+    "feedback": 96,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "6f09ca0b6b9d6b9bd8bb7457e786eb03030d17f2e22b443da41807b7ea91a095"
+    },
+    "request_id": "f5689c1e-56f1-4f43-b57e-fc9a6ca277ee",
+    "assert": [
+      {
+        "sum_eq": [
+          ["battles[0].me.rounds[].elixir.leaked"],
+          "battles[0].me.elixir.leaked"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "96.2",
+    "feedback": 96,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "93aaedfcf3aa063e9a9b71fab76c41e9efac4ab1d898b5478c3919134d703559"
+    },
+    "request_id": "f05bd3e6-72f2-4946-9f30-47104e62b2de",
+    "assert": [
+      {
+        "eq": ["battles[0].me.elixir.differential", null]
+      },
+      {
+        "eq": ["battles[0].me.elixir.rounds", "battles[0].me.rounds_played"]
+      },
+      {
+        "eq": ["battles[0].me.rounds[2].elixir.leaked", 8.85]
+      }
+    ]
+  },
+  {
+    "id": "97.1",
+    "feedback": 97,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "2233df0224115e76234f8b6dfa5612eb106520d9e454b4079ec0dcbd6d225c44"
+    },
+    "request_id": "9f8addf2-7cf2-45c0-a5fa-5c475484feb6",
+    "assert": [
+      {
+        "eq": ["battles[0].me.vs.tower_level", 1]
+      },
+      {
+        "notes_match": "(?i)tower levels? differ"
+      }
+    ]
+  },
+  {
+    "id": "97.2",
+    "feedback": 97,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "4ddb0db7a7d2ed71922a41d1ed64c862be36923ae6819c0bb34fef301ecb4831"
+    },
+    "request_id": "00a154f6-90c8-4a70-9737-e68a34471529",
+    "assert": [
+      {
+        "eq": ["battles[0].type", "boatBattle"]
+      },
+      {
+        "eq": ["battles[0].me.vs", null]
+      }
+    ]
+  },
+  {
+    "id": "97.3",
+    "feedback": 97,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "35c17d7223d29b483488a40fb3d03df1409470b9c5ab2b67357396079ce9d001"
+    },
+    "request_id": "3ba34b18-a25d-4c6c-b8d7-d94b9fd60901",
+    "assert": [
+      {
+        "eq": ["battles[0].me.vs.tower_hp", 5265]
+      },
+      {
+        "notes_not_match": "(?i)tower levels? differ"
+      }
+    ]
+  },
+  {
+    "id": "98.1",
+    "feedback": 98,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "36ab97cf200f49897b744e4757bc56306189607894292583c3cea0f5e9739eed"
+    },
+    "request_id": "af6e4a3e-fbd1-4099-8bf6-612414f80354",
+    "assert": [
+      {
+        "eq": ["battles[0].mode_group", "war"]
+      },
+      {
+        "notes_match": "(?i)war matchmaking|racing clans"
+      }
+    ]
+  },
+  {
+    "id": "98.2",
+    "feedback": 98,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "2233df0224115e76234f8b6dfa5612eb106520d9e454b4079ec0dcbd6d225c44"
+    },
+    "request_id": "9f8addf2-7cf2-45c0-a5fa-5c475484feb6",
+    "assert": [
+      {
+        "eq": ["battles[0].mode_group", "ladder"]
+      },
+      {
+        "notes_match": "what matchmaking paired"
+      },
+      {
+        "notes_not_match": "(?i)war matchmaking|racing clans"
+      }
+    ]
+  },
+  {
+    "id": "99.1",
+    "feedback": 99,
+    "stability": "frozen",
+    "tool": "battles_performance",
+    "args": {
+      "player_tag": "#20JJJ2CCRU",
+      "from": "2026-06-01",
+      "to": "2026-09-22"
+    },
+    "request_id": "e09329f8-67e5-469b-9ed9-e4cf3e9772ea",
+    "assert": [
+      {
+        "eq": ["trophy_floor.floor", 12500]
+      },
+      {
+        "has": "trophy_floor.floors"
+      },
+      {
+        "notes_match": "12,000.{0,80}12,500|12,500.{0,80}12,000"
+      }
+    ]
+  },
+  {
+    "id": "99.2",
+    "feedback": 99,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_performance",
+    "args": {
+      "player_tag": "#20JJJ2CCRU",
+      "from": "2026-09-07",
+      "to": "2026-09-22"
+    },
+    "request_id": "dce78638-31e3-4bde-9d46-39fcbed32d08",
+    "assert": [
+      {
+        "eq": ["trophy_floor.floor", 12500]
+      },
+      {
+        "eq": ["trophy_floor.on_floor_losses", 3]
+      },
+      {
+        "lte": ["trophy_floor.floor", "trophy_floor.trophy_range.lowest"]
+      }
+    ]
+  },
+  {
+    "id": "100.1",
+    "feedback": 100,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "35c17d7223d29b483488a40fb3d03df1409470b9c5ab2b67357396079ce9d001"
+    },
+    "request_id": "3ba34b18-a25d-4c6c-b8d7-d94b9fd60901",
+    "assert": [
+      {
+        "eq": ["battles[0].opponents[0].tower_hp.princess[0]", 0]
+      },
+      {
+        "eq": ["battles[0].opponents[0].tower_hp.princess[1]", 0]
+      }
+    ]
+  },
+  {
+    "id": "100.2",
+    "feedback": 100,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "35c17d7223d29b483488a40fb3d03df1409470b9c5ab2b67357396079ce9d001"
+    },
+    "request_id": "3ba34b18-a25d-4c6c-b8d7-d94b9fd60901",
+    "assert": [
+      {
+        "eq": ["battles[0].me.tower_hp.princess[0]", 3873]
+      },
+      {
+        "eq": ["battles[0].me.tower_hp.princess[1]", 0]
+      },
+      {
+        "eq": ["battles[0].opponents[0].tower_hp.king", 4389]
+      }
+    ]
+  },
+  {
+    "id": "101.1",
+    "feedback": 101,
+    "control": true,
+    "stability": "live",
+    "tool": "battles_query",
+    "args": {
+      "player_tag": "#20JJJ2CCRU",
+      "mode": "event",
+      "limit": 25
+    },
+    "request_id": "d652b037-92f6-45c2-a731-40108a893540",
+    "assert": [
+      {
+        "eq": ["error.code", "result_too_large"]
+      },
+      {
+        "notes_match": "a limit of \\d+ should fit"
+      }
+    ]
+  },
+  {
+    "id": "101.2",
+    "feedback": 101,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "3cedabb9882ba9892ae25a55b8073f307df7c475ee0d05175a0773ef50b2fb17"
+    },
+    "request_id": "16cfc2e0-a3c7-41e3-a126-1c029968fd3c",
+    "assert": [
+      {
+        "eq": ["battles[0].mode_group", "event"]
+      },
+      {
+        "eq": ["battles[0].inferred.duration", null]
+      }
+    ]
+  },
+  {
+    "id": "101.3",
+    "feedback": 101,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "6f09ca0b6b9d6b9bd8bb7457e786eb03030d17f2e22b443da41807b7ea91a095"
+    },
+    "request_id": "f5689c1e-56f1-4f43-b57e-fc9a6ca277ee",
+    "assert": [
+      {
+        "eq": ["battles[0].me.vs", null]
+      },
+      {
+        "eq": ["battles[0].me.elixir.differential", null]
+      },
+      {
+        "eq": ["battles[0].me.rounds[1].elixir.differential", 4.42]
+      },
+      {
+        "eq": ["battles[0].inferred.duration", null]
+      }
+    ]
+  },
+  {
+    "id": "101.4",
+    "feedback": 101,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "35c17d7223d29b483488a40fb3d03df1409470b9c5ab2b67357396079ce9d001"
+    },
+    "request_id": "3ba34b18-a25d-4c6c-b8d7-d94b9fd60901",
+    "assert": [
+      {
+        "eq": ["battles[0].inferred.duration.basis", "regulation_ran"]
+      },
+      {
+        "eq": ["battles[0].inferred.duration.at_least_s", 180]
+      },
+      {
+        "eq": ["battles[0].me.vs.crowns", 1]
+      }
+    ]
   }
 ]

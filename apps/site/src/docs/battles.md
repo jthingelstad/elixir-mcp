@@ -156,7 +156,10 @@ player's own record; they simply do not speak for the game. A `null`
 Two `war` battle types are shaped differently from a head-to-head battle.
 
 A **duel** (`riverRaceDuel`, `riverRaceDuelColosseum`) is **one row for up to
-three games**. `crowns` is summed across the rounds, `tower_hp` describes the
+three games**. `outcome` is the games won, first to two, not the summed
+crowns: a duel won 0-3, 1-0, 1-0 is a win at 2 crowns to 3 (6.21.0; duels
+recorded before were recomputed from their rounds). `crowns` is summed across
+the rounds, `elixir.leaked` is summed across them, `tower_hp` describes the
 final round only, `deck_hash` is `null` because there is no single deck, the
 decks sit under `deck.rounds[]` one per round, and `rounds_played` says how
 many rounds the row holds.
@@ -201,11 +204,13 @@ opponent**:
 | --- | --- |
 | `crowns` | the crown margin |
 | `deck_level` | the level edge in THIS battle, from the cards as played - not a career average |
-| `starting_trophies` | what matchmaking paired you with |
-| `tower_hp` | hitpoints REMAINING on both sides: a margin of victory, never a tower level |
+| `starting_trophies` | on ladder, what matchmaking paired you with; on river race rows each side's Trophy Road count, which war matchmaking does not pair on |
+| `tower_hp` | hitpoints REMAINING on both sides: a margin of victory only between equal towers |
+| `tower_level` | the tower troop's level edge (6.21.0); a tower one level higher starts with more hitpoints (1,564 more across the three towers at 16 against 15), so when this is not `0`, `tower_hp` carries that starting gap too |
 
-`vs` is `null` on 2v2 and on duels (whose sides played different decks per
-round), and a field is `null` where the record lacks one side's value. Read
+`vs` is `null` on 2v2, on duels (whose sides played different decks per
+round) and on boat battles (a defense against an attack), and a field is
+`null` where the record lacks one side's value. Read
 these before the absolute numbers - a leak, a level or a tower total says
 little except against the other side's.
 
@@ -255,7 +260,9 @@ therefore serves the controls beside it:
   war's matchmaking, so a "nemesis" table pooled across modes is a mode
   table first; pass `mode` before reading a row as a weakness.
 - `battles_performance` carries `trophy_floor` when the window holds ladder
-  battles and the arena's floor is known (see `trophy_change` above), and
+  battles and the arena's floor is known (see `trophy_change` above;
+  `floors[]` lists every floor the window stood on, since a climbing player
+  stands on several and `floor` is the most recent, with its own counts), and
   with `group_by: "week"` marks every bucket the window clips with
   `partial: true` and `covers {from, to}`: a `days: 30` series usually opens
   on two thirds of a week shaped exactly like the whole ones, and that row

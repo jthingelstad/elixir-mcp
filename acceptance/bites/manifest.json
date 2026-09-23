@@ -153,5 +153,69 @@
     "case": "gym/94.1",
     "captures": ["91-badges_holders-valkyrie-mine.json"],
     "expect": "has holder_share: absent"
+  },
+  {
+    "feedback": 95,
+    "contract": "6.19.3",
+    "why": "the Gym's block 95.1: a duel won two games to one recorded as a loss on 2 crowns to 3",
+    "case": "gym/95.1",
+    "captures": ["95-battles_query-duel-lww.json"],
+    "expect": "eq battles\\[0\\]\\.me\\.outcome"
+  },
+  {
+    "feedback": 95,
+    "contract": "6.19.3",
+    "why": "the Gym's block 95.2: a duel lost one game to two recorded as a draw on 3 crowns to 3",
+    "case": "gym/95.2",
+    "captures": ["95-battles_query-duel-false-draw.json"],
+    "expect": "eq battles\\[0\\]\\.me\\.outcome"
+  },
+  {
+    "feedback": 96,
+    "contract": "6.19.3",
+    "why": "the Gym's block 96.1: a duel's top-level elixir.leaked was the final game's, not the documented sum",
+    "case": "gym/96.1",
+    "captures": ["95-battles_query-duel-lww.json"],
+    "expect": "sum_eq: battles\\[0\\]\\.me\\.rounds"
+  },
+  {
+    "feedback": 97,
+    "contract": "6.19.3",
+    "why": "the Gym's block 97.1: vs.tower_hp +916 on a 0-1 loss: the towers started 1,564 HP apart and nothing said so",
+    "case": "gym/97.1",
+    "captures": ["97-battles_query-tower-gap.json"],
+    "expect": "vs\\.tower_level: absent"
+  },
+  {
+    "feedback": 97,
+    "contract": "6.19.3",
+    "why": "the Gym's block 97.2: vs served on a boat battle, a defense differenced against an attack",
+    "case": "gym/97.2",
+    "captures": ["97-battles_query-boat-vs.json"],
+    "expect": "eq battles\\[0\\]\\.me\\.vs"
+  },
+  {
+    "feedback": 98,
+    "contract": "6.19.3",
+    "why": "the Gym's block 98.1: vs.starting_trophies +6,693 on a river race row called what matchmaking paired",
+    "case": "gym/98.1",
+    "captures": ["98-battles_query-war-trophies.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 99,
+    "contract": "6.19.3",
+    "why": "the Gym's block 99.1: one trophy floor named for a window that stood on 12,000 and 12,500",
+    "case": "gym/99.1",
+    "captures": ["99-battles_performance-floors.json"],
+    "expect": "eq trophy_floor\\.floor"
+  },
+  {
+    "feedback": 100,
+    "contract": "6.19.3",
+    "why": "the Gym's block 100.1: tower_hp without princess on a side that lost both towers",
+    "case": "gym/100.1",
+    "captures": ["100-battles_query-princess-both-fell.json"],
+    "expect": "princess\\[0\\]: absent"
   }
 ]

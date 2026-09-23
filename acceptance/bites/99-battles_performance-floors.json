@@ -1,0 +1,138 @@
+{
+  "feedback": 99,
+  "contract_version": "6.19.3",
+  "captured_at": "2026-09-23T15:27:14.429Z",
+  "request": {
+    "tool": "battles_performance",
+    "arguments": {
+      "player_tag": "#20JJJ2CCRU",
+      "from": "2026-06-01",
+      "to": "2026-09-22"
+    }
+  },
+  "response": {
+    "player_tag": "#20JJJ2CCRU",
+    "applied": {
+      "window": {
+        "from": "2026-06-01T00:00:00.000Z",
+        "to": "2026-09-23T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-05",
+          "war": 132,
+          "starts_at": "2026-05-04T10:00:00.000Z",
+          "ends_at": "2026-06-01T10:00:00.000Z"
+        },
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-06-01T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-05",
+              "war": 132
+            },
+            "to_season": {
+              "month": "2026-06",
+              "war": 133
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-07-06T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-06",
+              "war": 133
+            },
+            "to_season": {
+              "month": "2026-07",
+              "war": 134
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-08-03T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-07",
+              "war": 134
+            },
+            "to_season": {
+              "month": "2026-08",
+              "war": 135
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ],
+        "season_age_days": 28
+      }
+    },
+    "window": {
+      "battles": 462,
+      "wins": 260,
+      "losses": 201,
+      "draws": 1,
+      "boat_battles": 0,
+      "duel_battles": 57,
+      "crowns_for": 668,
+      "crowns_against": 439,
+      "net_trophies": 1353,
+      "current_streak": 1,
+      "decided_battles": 461,
+      "decided_wins": 260,
+      "decided_losses": 201,
+      "win_rate": 0.564,
+      "head_to_head_battles": 405,
+      "three_crown_rate": 0.215
+    },
+    "trophy_floor": {
+      "floor": 12000,
+      "arena": {
+        "id": 54000142,
+        "name": "Ultimate Clash Pit"
+      },
+      "source": "losses_on_floor",
+      "floored": true,
+      "on_floor_losses": 13,
+      "losses_landing_on_floor": 3,
+      "ladder_battles": 288,
+      "trophy_range": {
+        "lowest": 11128,
+        "highest": 12622
+      }
+    },
+    "notes": [
+      "This player stood on the 12,000 trophy floor (Ultimate Clash Pit) during the window: 13 ladder losses ON the floor cost nothing (trophy_change null) and 3 landed exactly on it (clamped or full), so net_trophies counts wins in full and those losses at zero and tracks how recently the player played more than how well; read trophy_range and win_rate instead.",
+      "Window spans 5 seasons, S132 (2026-05) to S136 (2026-09); balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.",
+      "win_rate = decided_wins / decided_battles, where decided_battles = decided_wins + decided_losses: boat battles and draws are outside both sides, while wins/losses still count boat wins.",
+      "duel_battles collapse up to three games and count crowns once per round, so crowns_for/against mix units when duels are present.",
+      "three_crown_rate = three-crown wins / head_to_head_battles, duels and boat battles excluded from both sides."
+    ],
+    "docs": "battles#decided-battles-and-denominators",
+    "meta": {
+      "contract_version": "6.19.3",
+      "source_polls": {
+        "player_battlelog": {
+          "observed_at": "2026-09-23T15:13:07.000Z",
+          "freshness_seconds": 847
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 62,
+    "db_queries": 11,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

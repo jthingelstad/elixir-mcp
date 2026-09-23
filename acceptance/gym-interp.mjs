@@ -12,7 +12,8 @@
  * an alias (`r.rivals[...]`, `w.standings[...]`).
  *
  * Verbs: has, absent, eq, neq, lt, lte, gt, gte, count_eq, sum_eq (paths
- * and literals; a fanned total `list[].field` is summed, 87.1), contains
+ * and literals; a fanned total `list[].field` is summed, 87.1; a decimal
+ * compares to 0.005, 96.1), contains
  * (a scalar list holds a value, 85.6), sorted_desc, sorted_asc,
  * notes_match, notes_not_match, every_row_has. An `eq` right-hand side that is a
  * string with a dot or a bracket is read as a path (82.4 compares two
@@ -189,8 +190,12 @@ export function assertOne(spec, scope, root) {
         want = want.reduce((x, y) => x + y, 0);
       }
       if (want === null) return;
+      // Counts compare exactly; a served decimal (elixir to two places,
+      // 96.1) compares to half its last place, so float addition of
+      // 1.43 + 4.43 + 4.88 still equals 10.74.
+      const decimal = !Number.isInteger(sum) || !Number.isInteger(want);
       ok(
-        sum === want,
+        decimal ? Math.abs(sum - want) <= 0.005 : sum === want,
         `sum_eq: ${parts.join(" + ")} = ${sum}, ${total} = ${want}`,
       );
       return;

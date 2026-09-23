@@ -316,7 +316,7 @@ const LEVEL_GAP = {
 const TROPHY_FLOOR = {
   type: "object",
   description:
-    "The Trophy Road floor the player stood on in the window (3.13.0): present when the window holds ladder battles and the arena's floor is known. floored is true when a loss touched it, and then net_trophies counts wins in full and those losses at zero.",
+    "The Trophy Road floor the player stood on in the window (3.13.0): present when the window holds ladder battles and the arena's floor is known. floored is true when a loss touched it, and then net_trophies counts wins in full and those losses at zero. floor is the floor stood on MOST RECENTLY, with its own on_floor_losses and losses_landing_on_floor; floors[] (6.21.0) is every floor the window stood on, each with its own counts and last time.",
   properties: {
     floor: COUNT,
     arena: {
@@ -331,6 +331,18 @@ const TROPHY_FLOOR = {
     on_floor_losses: COUNT,
     losses_landing_on_floor: COUNT,
     ladder_battles: COUNT,
+    floors: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          floor: COUNT,
+          on_floor_losses: COUNT,
+          losses_landing_on_floor: COUNT,
+          last_at: ISO,
+        },
+      },
+    },
     trophy_range: {
       type: "object",
       properties: { lowest: COUNT, highest: COUNT },
@@ -2264,12 +2276,13 @@ export const OUTPUT_SCHEMAS = {
                 vs: {
                   type: ["object", "null"],
                   description:
-                    "Me MINUS the one opponent: crowns, deck_level, starting_trophies, tower_hp (remaining hitpoints, a margin of victory). Null on 2v2 and duels; a field is null where a side's value is missing.",
+                    "Me MINUS the one opponent: crowns, deck_level, starting_trophies, tower_hp (remaining hitpoints; a margin of victory only when tower_level is 0) and tower_level (the tower troop's level, 6.21.0). Null on 2v2, duels and boat battles; a field is null where a side's value is missing.",
                   properties: {
                     crowns: { type: ["number", "null"] },
                     deck_level: { type: ["number", "null"] },
                     starting_trophies: { type: ["number", "null"] },
                     tower_hp: { type: ["number", "null"] },
+                    tower_level: { type: ["number", "null"] },
                   },
                 },
                 rounds: {

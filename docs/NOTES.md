@@ -1869,3 +1869,18 @@ publish no outputSchema despite 6.14.0 (cards_archetype, collections_*,
 elixir_identify, elixir_my_identities, elixir_nickname,
 elixir_send_feedback, live_fetch), and `elixir_timeline` may drop items
 past its cap unreachably.
+
+## 2026-09-23 — Gym sweep, battles round 1 (6.21.0, feedback #95-#101)
+
+Regressions: 30 of 34 confirmed fixed. #59 was partially fixed and is now #99. #55, #57 and #62 retired with battles_levels. Findings, each verified against the code:
+
+- **#95, blocks correct answers:** outcomeFor let a duel fall through to the summed-crowns rule, so 7 of 70 duels were wrong. Ingest now counts games won from `rounds[]` and falls back to crowns only on a tie or when no rounds are carried. `{duel_outcome_repair}` recomputes the recorded duels from battle_participant_round and re-derives each affected player-day's rollup. The upsert's coalesce never overwrites an outcome, so the repair is the only way history changes.
+- **#96:** a duel's leak is summed from its rounds at read time.
+- **#97:** `vs.tower_level` comes from the tower troop's played level (supportCards). A conditional note fires when the levels differ, and `vs` is null on boats.
+- **#98:** a conditional note on river race rows.
+- **#99:** `floor` is the floor stood on most recently, with its own counts, and `floors[]` holds every floor. The Gym's case asserted that meaning. Taking the lowest had been an artifact of `min()`, not a decision.
+- **#100:** princess is padded to `[0, 0]` when the king is carried and the array was omitted.
+
+The interpreter gained a decimal tolerance on `sum_eq` (96.1: 1.43 + 4.43 + 4.88 in floats).
+
+**Throughput:** the Gym account's 300/hour bucket carried badges and battles, then refused both the cards and clans runs at their first call. Until Jamie raises it (`{service_token_limits: {name: "gym", hourly_rate_limit: 900}}`), the sweep runs one family an hour.

@@ -1,0 +1,428 @@
+{
+  "feedback": 97,
+  "contract_version": "6.19.3",
+  "captured_at": "2026-09-23T15:29:13.351Z",
+  "request": {
+    "tool": "battles_query",
+    "arguments": {
+      "battle_id": "4ddb0db7a7d2ed71922a41d1ed64c862be36923ae6819c0bb34fef301ecb4831"
+    }
+  },
+  "response": {
+    "battle_id": "4ddb0db7a7d2ed71922a41d1ed64c862be36923ae6819c0bb34fef301ecb4831",
+    "applied": {
+      "window": {
+        "from": null,
+        "to": null,
+        "source": "unbounded",
+        "season": null,
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-01-05T10:00:00.000Z",
+            "from_season": {
+              "month": "2025-12",
+              "war": 127
+            },
+            "to_season": {
+              "month": "2026-01",
+              "war": 128
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-02-02T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-01",
+              "war": 128
+            },
+            "to_season": {
+              "month": "2026-02",
+              "war": 129
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-03-02T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-02",
+              "war": 129
+            },
+            "to_season": {
+              "month": "2026-03",
+              "war": 130
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-04-06T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-03",
+              "war": 130
+            },
+            "to_season": {
+              "month": "2026-04",
+              "war": 131
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-05-04T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-04",
+              "war": 131
+            },
+            "to_season": {
+              "month": "2026-05",
+              "war": 132
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-06-01T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-05",
+              "war": 132
+            },
+            "to_season": {
+              "month": "2026-06",
+              "war": 133
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-07-06T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-06",
+              "war": 133
+            },
+            "to_season": {
+              "month": "2026-07",
+              "war": 134
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-08-03T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-07",
+              "war": 134
+            },
+            "to_season": {
+              "month": "2026-08",
+              "war": 135
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ]
+      },
+      "limit": 25,
+      "verbosity": "full"
+    },
+    "battles": [
+      {
+        "battle_id": "4ddb0db7a7d2ed71922a41d1ed64c862be36923ae6819c0bb34fef301ecb4831",
+        "battle_time": "2026-02-21T12:30:26.000Z",
+        "type": "boatBattle",
+        "game_mode": {
+          "id": 72000266,
+          "name": "ClanWar_BoatBattle"
+        },
+        "arena": {
+          "id": 54000046,
+          "name": "Legendary Arena"
+        },
+        "league_number": 1,
+        "mode_group": "war",
+        "context": {
+          "event_tag": null,
+          "tournament_tag": null,
+          "ladder_tournament": false,
+          "hosted": false,
+          "deck_selection": "collection"
+        },
+        "boat": {
+          "side": "defender",
+          "towers_before": 2,
+          "towers_after": 1,
+          "remaining": 0
+        },
+        "inferred": {
+          "duration": null
+        },
+        "me": {
+          "player_tag": "#G2CUUJQ8V",
+          "name": "kiruba⚜️",
+          "outcome": "loss",
+          "crowns": 0,
+          "trophy_change": null,
+          "starting_trophies": null,
+          "global_rank": null,
+          "deck_hash": "ada79bb655a389ef151fc79db69bed0d9e2b5594ef09d62ea42204095c382f45",
+          "deck": {
+            "cards": [
+              {
+                "id": 26000064,
+                "name": "Firecracker",
+                "level": 16,
+                "evolutionLevel": 1,
+                "starLevel": 1
+              },
+              {
+                "id": 26000018,
+                "name": "Mini P.E.K.K.A",
+                "level": 16,
+                "starLevel": 2
+              },
+              {
+                "id": 26000043,
+                "name": "Elite Barbarians",
+                "level": 15,
+                "starLevel": 2
+              },
+              {
+                "id": 26000041,
+                "name": "Goblin Gang",
+                "level": 14,
+                "starLevel": 3
+              },
+              {
+                "id": 26000046,
+                "name": "Bandit",
+                "level": 14,
+                "starLevel": 1
+              },
+              {
+                "id": 26000011,
+                "name": "Valkyrie",
+                "level": 16,
+                "evolutionLevel": 1,
+                "starLevel": 2
+              },
+              {
+                "id": 26000055,
+                "name": "Mega Knight",
+                "level": 16,
+                "evolutionLevel": 1,
+                "starLevel": 2
+              },
+              {
+                "id": 26000000,
+                "name": "Knight",
+                "level": 16,
+                "starLevel": 3
+              },
+              {
+                "id": 27000000,
+                "name": "Cannon",
+                "level": 16,
+                "starLevel": 3
+              },
+              {
+                "id": 26000040,
+                "name": "Dart Goblin",
+                "level": 14,
+                "evolutionLevel": 1,
+                "starLevel": 2
+              },
+              {
+                "id": 26000021,
+                "name": "Hog Rider",
+                "level": 16,
+                "starLevel": 3
+              },
+              {
+                "id": 26000042,
+                "name": "Electro Wizard",
+                "level": 15,
+                "starLevel": 1
+              }
+            ],
+            "archetype": {
+              "family": "bridge_spam",
+              "win_conditions": [
+                {
+                  "id": 26000055,
+                  "name": "Mega Knight",
+                  "form": "evolution"
+                }
+              ],
+              "secondary_win_conditions": [
+                {
+                  "id": 26000021,
+                  "name": "Hog Rider",
+                  "form": "base"
+                },
+                {
+                  "id": 26000043,
+                  "name": "Elite Barbarians",
+                  "form": "base"
+                }
+              ],
+              "named_by": null,
+              "label": "Evo Mega Knight bridge spam",
+              "average_elixir": 3.92,
+              "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+              "grammar_version": "2026-09",
+              "roles_version": "2026-09-20T20:16:47.000Z"
+            }
+          },
+          "elixir": {
+            "leaked": 0,
+            "opponent_leaked": 9.13,
+            "differential": -9.13,
+            "rounds": 1,
+            "caveat": "Not a skill measure: holding elixir to make the opponent commit is a deliberate line that raises leak by design, and the record cannot tell that from waste. Read the differential, never the absolute."
+          },
+          "tower_hp": {
+            "king": 0
+          },
+          "vs": {
+            "crowns": -3,
+            "deck_level": 1.33,
+            "starting_trophies": null,
+            "tower_hp": -879
+          }
+        },
+        "teammates": [],
+        "opponents": [
+          {
+            "player_tag": "#JY9YUQVUY",
+            "name": "Vikings",
+            "name_known": true,
+            "crowns": 3,
+            "deck_hash": "ee09b8d1e445ae155fa750869467d289c90d2f6f015d62fec695d49b1d6680b2",
+            "clan_tag": "#QYU9VLV2",
+            "global_rank": null,
+            "deck": {
+              "cards": [
+                {
+                  "id": 26000015,
+                  "name": "Baby Dragon",
+                  "level": 14,
+                  "evolutionLevel": 1,
+                  "starLevel": 2
+                },
+                {
+                  "id": 26000001,
+                  "name": "Archers",
+                  "level": 14,
+                  "evolutionLevel": 1,
+                  "starLevel": 2
+                },
+                {
+                  "id": 27000010,
+                  "name": "Furnace",
+                  "level": 14,
+                  "starLevel": 1
+                },
+                {
+                  "id": 26000024,
+                  "name": "Royal Giant",
+                  "level": 14,
+                  "starLevel": 2
+                },
+                {
+                  "id": 26000021,
+                  "name": "Hog Rider",
+                  "level": 14,
+                  "starLevel": 2
+                },
+                {
+                  "id": 26000016,
+                  "name": "Prince",
+                  "level": 14,
+                  "starLevel": 1
+                },
+                {
+                  "id": 26000057,
+                  "name": "Flying Machine",
+                  "level": 14,
+                  "starLevel": 1
+                },
+                {
+                  "id": 26000040,
+                  "name": "Dart Goblin",
+                  "level": 14,
+                  "starLevel": 1
+                }
+              ],
+              "archetype": {
+                "family": "control",
+                "win_conditions": [
+                  {
+                    "id": 26000024,
+                    "name": "Royal Giant",
+                    "form": "base"
+                  }
+                ],
+                "secondary_win_conditions": [
+                  {
+                    "id": 26000021,
+                    "name": "Hog Rider",
+                    "form": "base"
+                  }
+                ],
+                "named_by": null,
+                "label": "Royal Giant control",
+                "average_elixir": 4.13,
+                "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+                "grammar_version": "2026-09",
+                "roles_version": "2026-09-20T20:16:47.000Z"
+              }
+            },
+            "elixir": {
+              "leaked": 9.13,
+              "opponent_leaked": null,
+              "differential": null,
+              "rounds": 1,
+              "caveat": "Not a skill measure: holding elixir to make the opponent commit is a deliberate line that raises leak by design, and the record cannot tell that from waste. Read the differential, never the absolute."
+            },
+            "tower_hp": {
+              "king": 879
+            }
+          }
+        ]
+      }
+    ],
+    "next_cursor": null,
+    "notes": [
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "Window spans 10 seasons, S127 (2025-12) to S136 (2026-09); balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.",
+      "me.vs is every comparison the row already held both halves of, as me MINUS the one opponent: crowns, deck_level (the level edge in THIS battle, from the cards as played), starting_trophies (what matchmaking paired) and tower_hp (hitpoints REMAINING on both sides, so a margin of victory, never a tower level). Null on 2v2 and on duels, and a field is null where the record lacks a side's value. Read these before the absolute numbers - a leak, a level or a tower total means little except against the other side's.",
+      "inferred.duration is what the battle's signature PROVES about its length, never a measurement: the log carries no duration. A King Tower is the only way to end before regulation, so a three-crown finish is at_most_s 300 with no floor; any other finish ran at least 180 s; and level crowns means overtime expired and the tiebreaker resolved it, which is exactly 300 s. Head-to-head 1v1 only - a duel sums crowns over up to three games and a boat battle has no overtime - basis is which rule fired: king_tower_fell (a King Tower ended it, so nothing bounds it below), regulation_ran (no King Tower, so it reached at least 3:00; whether it ended there or in overtime is not recorded) or overtime_expired.",
+      "global_rank is the player's global leaderboard position as the API reported it ON that battle - null unless they were ranked at the time, and not a rank in this record: it says you met a ranked opponent, never how they rank now.",
+      "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept).",
+      "Deck card levels are the in-game 1-16 scale; form is the FORM played (base, evolution or hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
+      "elixir is each side's own leaked-elixir counter with its caveat on the object: read elixir.differential (me minus the one opponent, null on duels - a duel's per-round differentials ride rounds[]) before elixir.leaked, and neither as a skill measure."
+    ],
+    "docs": "battles#what-a-battle-record-holds",
+    "meta": {
+      "contract_version": "6.19.3",
+      "source_polls": {
+        "player_battlelog": {
+          "observed_at": "2026-09-23T15:13:09.000Z",
+          "freshness_seconds": 964
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 50,
+    "db_queries": 11,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

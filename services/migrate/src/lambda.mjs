@@ -55,6 +55,7 @@ import {
   modeShapeCensus,
   battleLengthCensus,
   outcomePairRepair,
+  duelOutcomeRepair,
   enumCensus,
   captureAudit,
   probe,
@@ -362,6 +363,14 @@ export async function handler(event) {
     const result = await captureAudit(
       process.env.DATABASE_URL,
       event.capture_audit,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.duel_outcome_repair) {
+    const result = await duelOutcomeRepair(
+      process.env.DATABASE_URL,
+      event.duel_outcome_repair === true ? {} : event.duel_outcome_repair,
     );
     console.log(JSON.stringify(result));
     return result;

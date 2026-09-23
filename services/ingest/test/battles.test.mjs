@@ -545,3 +545,36 @@ test("0156: the opponents' deck level on each row is what the read-time lateral 
     "some rows carry a level to compare",
   );
 });
+
+test("a duel is won on games, not on summed crowns (Gym #95)", () => {
+  const side = (tag, rounds) => ({
+    tag,
+    crowns: rounds.reduce((a, c) => a + c, 0),
+    rounds: rounds.map((crowns) => ({ crowns, cards: [] })),
+    cards: [],
+  });
+  const duel = (mine, theirs) =>
+    canonicalizeBattle({
+      type: "riverRaceDuel",
+      battleTime: "20260923T120000.000Z",
+      team: [side("#2PP0V9PP", mine)],
+      opponent: [side("#2PP0V9QQ", theirs)],
+    });
+  const outcome = (b, tag) =>
+    b.participants.find((p) => p.player_tag === tag).outcome;
+  // 0-3, 1-0, 1-0: two games to one, though 2 crowns to 3.
+  const lww = duel([0, 1, 1], [3, 0, 0]);
+  assert.equal(outcome(lww, "#2PP0V9PP"), "win");
+  assert.equal(outcome(lww, "#2PP0V9QQ"), "loss");
+  // 3-1, 0-1, 0-1 (sum 3-3): one game to two is a loss, not a draw.
+  const wll = duel([3, 0, 0], [1, 1, 1]);
+  assert.equal(outcome(wll, "#2PP0V9PP"), "loss");
+  // Without rounds, the crowns still decide (pre-0151 shape).
+  const bare = canonicalizeBattle({
+    type: "riverRaceDuel",
+    battleTime: "20260923T120100.000Z",
+    team: [{ tag: "#2PP0V9PP", crowns: 2, cards: [] }],
+    opponent: [{ tag: "#2PP0V9QQ", crowns: 1, cards: [] }],
+  });
+  assert.equal(outcome(bare, "#2PP0V9PP"), "win");
+});

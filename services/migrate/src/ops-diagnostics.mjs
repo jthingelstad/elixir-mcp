@@ -1513,3 +1513,74 @@ export async function rollupModeGroupRepair(databaseUrl, spec) {
     await db.end();
   }
 }
+
+/** {duel_outcome_repair: {apply?}} (Gym #95): a duel's outcome is games
+ *  won, not summed crowns. Ingest decides it that way since 6.21.0; the
+ *  rows written before are recomputed here from battle_participant_round
+ *  (0151, backfilled from the archive), each side's crowns per game.
+ *  Only rows whose games do not tie change; a tie, or a duel with no
+ *  rounds, keeps its crown-sum outcome. Dry run by default: the counts.
+ *  Applied, it rewrites those participants and re-derives every
+ *  (player, UTC day) rollup they fall in. */
+export async function duelOutcomeRepair(databaseUrl, spec = {}) {
+  const apply = spec?.apply === true;
+  const { refreshDailyRollups } = await import("../../ingest/src/rollups.mjs");
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const targets = `
+      with g as (
+        select a.battle_id, a.player_tag, a.outcome, a.battle_time,
+               count(*) filter (where ra.crowns > rb.crowns)::int as won,
+               count(*) filter (where ra.crowns < rb.crowns)::int as lost
+          from battle_participant a
+          join battle_participant b
+            on b.battle_id = a.battle_id and b.side <> a.side
+          join battle_participant_round ra
+            on ra.battle_id = a.battle_id and ra.player_tag = a.player_tag
+          join battle_participant_round rb
+            on rb.battle_id = b.battle_id and rb.player_tag = b.player_tag
+           and rb.round = ra.round
+         where a.type like 'riverRaceDuel%'
+         group by a.battle_id, a.player_tag, a.outcome, a.battle_time)
+      select battle_id, player_tag, outcome, battle_time, won, lost,
+             case when won > lost then 'win' else 'loss' end as want
+        from g
+       where won <> lost
+         and outcome is distinct from case when won > lost then 'win' else 'loss' end`;
+    const { rows } = await db.query(targets);
+    const byChange = {};
+    for (const r of rows) {
+      const k = `${r.outcome ?? "null"}->${r.want}`;
+      byChange[k] = (byChange[k] ?? 0) + 1;
+    }
+    const summary = {
+      rows: rows.length,
+      battles: new Set(rows.map((r) => r.battle_id)).size,
+      by_change: byChange,
+    };
+    if (!apply) return { dry_run: true, ...summary };
+    await db.query("begin");
+    try {
+      for (const r of rows)
+        await db.query(
+          `update battle_participant set outcome = $3
+            where battle_id = $1 and player_tag = $2`,
+          [r.battle_id, r.player_tag, r.want],
+        );
+      const pairs = new Map();
+      for (const r of rows) {
+        const day = r.battle_time.toISOString().slice(0, 10);
+        pairs.set(`${r.player_tag}|${day}`, { playerTag: r.player_tag, day });
+      }
+      await refreshDailyRollups(db, [...pairs.values()]);
+      await db.query("commit");
+      return { dry_run: false, ...summary, rollup_days: pairs.size };
+    } catch (err) {
+      await db.query("rollback");
+      throw err;
+    }
+  } finally {
+    await db.end();
+  }
+}

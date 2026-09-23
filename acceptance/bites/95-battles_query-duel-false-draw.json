@@ -1,0 +1,768 @@
+{
+  "feedback": 95,
+  "contract_version": "6.19.3",
+  "captured_at": "2026-09-23T15:24:32.016Z",
+  "request": {
+    "tool": "battles_query",
+    "arguments": {
+      "battle_id": "f485f7520559cf56fb946c8bfdea0a70757f81285ecac71282e665b272a6a7ab"
+    }
+  },
+  "response": {
+    "battle_id": "f485f7520559cf56fb946c8bfdea0a70757f81285ecac71282e665b272a6a7ab",
+    "applied": {
+      "window": {
+        "from": null,
+        "to": null,
+        "source": "unbounded",
+        "season": null,
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-01-05T10:00:00.000Z",
+            "from_season": {
+              "month": "2025-12",
+              "war": 127
+            },
+            "to_season": {
+              "month": "2026-01",
+              "war": 128
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-02-02T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-01",
+              "war": 128
+            },
+            "to_season": {
+              "month": "2026-02",
+              "war": 129
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-03-02T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-02",
+              "war": 129
+            },
+            "to_season": {
+              "month": "2026-03",
+              "war": 130
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-04-06T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-03",
+              "war": 130
+            },
+            "to_season": {
+              "month": "2026-04",
+              "war": 131
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-05-04T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-04",
+              "war": 131
+            },
+            "to_season": {
+              "month": "2026-05",
+              "war": 132
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-06-01T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-05",
+              "war": 132
+            },
+            "to_season": {
+              "month": "2026-06",
+              "war": 133
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-07-06T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-06",
+              "war": 133
+            },
+            "to_season": {
+              "month": "2026-07",
+              "war": 134
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-08-03T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-07",
+              "war": 134
+            },
+            "to_season": {
+              "month": "2026-08",
+              "war": 135
+            }
+          },
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ]
+      },
+      "limit": 25,
+      "verbosity": "full"
+    },
+    "battles": [
+      {
+        "battle_id": "f485f7520559cf56fb946c8bfdea0a70757f81285ecac71282e665b272a6a7ab",
+        "battle_time": "2026-08-09T21:13:38.000Z",
+        "type": "riverRaceDuel",
+        "game_mode": {
+          "id": 72000267,
+          "name": "CW_Duel_1v1"
+        },
+        "arena": {
+          "id": 54000142,
+          "name": "Ultimate Clash Pit"
+        },
+        "league_number": 1,
+        "mode_group": "war",
+        "context": {
+          "event_tag": null,
+          "tournament_tag": null,
+          "ladder_tournament": false,
+          "hosted": false,
+          "deck_selection": "warDeckPick"
+        },
+        "inferred": {
+          "duration": null
+        },
+        "me": {
+          "player_tag": "#20JJJ2CCRU",
+          "name": "King Thing",
+          "outcome": "draw",
+          "crowns": 3,
+          "trophy_change": null,
+          "starting_trophies": 12500,
+          "global_rank": null,
+          "deck_hash": null,
+          "rounds_played": 3,
+          "deck": {
+            "rounds": [
+              {
+                "cards": [
+                  {
+                    "id": 26000007,
+                    "name": "Witch",
+                    "level": 16,
+                    "evolutionLevel": 1,
+                    "starLevel": 2
+                  },
+                  {
+                    "id": 26000018,
+                    "name": "Mini P.E.K.K.A",
+                    "level": 16,
+                    "evolutionLevel": 2,
+                    "starLevel": 2
+                  },
+                  {
+                    "id": 26000050,
+                    "name": "Royal Ghost",
+                    "level": 16,
+                    "evolutionLevel": 1,
+                    "starLevel": 1
+                  },
+                  {
+                    "id": 26000014,
+                    "name": "Musketeer",
+                    "level": 15,
+                    "starLevel": 1
+                  },
+                  {
+                    "id": 28000001,
+                    "name": "Arrows",
+                    "level": 16,
+                    "starLevel": 3
+                  },
+                  {
+                    "id": 26000059,
+                    "name": "Royal Hogs",
+                    "level": 16,
+                    "starLevel": 2
+                  },
+                  {
+                    "id": 26000012,
+                    "name": "Skeleton Army",
+                    "level": 16,
+                    "starLevel": 3
+                  },
+                  {
+                    "id": 26000037,
+                    "name": "Inferno Dragon",
+                    "level": 16,
+                    "starLevel": 3
+                  }
+                ],
+                "archetype": {
+                  "family": "bridge_spam",
+                  "win_conditions": [
+                    {
+                      "id": 26000059,
+                      "name": "Royal Hogs",
+                      "form": "base"
+                    }
+                  ],
+                  "secondary_win_conditions": [],
+                  "named_by": null,
+                  "label": "Royal Hogs bridge spam",
+                  "average_elixir": 3.88,
+                  "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+                  "grammar_version": "2026-09",
+                  "roles_version": "2026-09-20T20:16:47.000Z"
+                }
+              },
+              {
+                "cards": [
+                  {
+                    "id": 27000010,
+                    "name": "Furnace",
+                    "level": 16,
+                    "evolutionLevel": 1,
+                    "starLevel": 1
+                  },
+                  {
+                    "id": 26000103,
+                    "name": "Boss Bandit",
+                    "level": 15
+                  },
+                  {
+                    "id": 26000056,
+                    "name": "Skeleton Barrel",
+                    "level": 16,
+                    "evolutionLevel": 1,
+                    "starLevel": 1
+                  },
+                  {
+                    "id": 26000025,
+                    "name": "Guards",
+                    "level": 15,
+                    "starLevel": 2
+                  },
+                  {
+                    "id": 26000013,
+                    "name": "Bomber",
+                    "level": 15,
+                    "starLevel": 1
+                  },
+                  {
+                    "id": 28000018,
+                    "name": "Royal Delivery",
+                    "level": 15,
+                    "starLevel": 1
+                  },
+                  {
+                    "id": 26000021,
+                    "name": "Hog Rider",
+                    "level": 15,
+                    "starLevel": 1
+                  },
+                  {
+                    "id": 26000005,
+                    "name": "Minions",
+                    "level": 15
+                  }
+                ],
+                "archetype": {
+                  "family": "bait",
+                  "win_conditions": [
+                    {
+                      "id": 26000056,
+                      "name": "Skeleton Barrel",
+                      "form": "evolution"
+                    }
+                  ],
+                  "secondary_win_conditions": [
+                    {
+                      "id": 26000021,
+                      "name": "Hog Rider",
+                      "form": "base"
+                    },
+                    {
+                      "id": 26000103,
+                      "name": "Boss Bandit",
+                      "form": "base"
+                    }
+                  ],
+                  "named_by": null,
+                  "label": "Evo Skeleton Barrel bait",
+                  "average_elixir": 3.5,
+                  "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+                  "grammar_version": "2026-09",
+                  "roles_version": "2026-09-20T20:16:47.000Z"
+                }
+              },
+              {
+                "cards": [
+                  {
+                    "id": 26000011,
+                    "name": "Valkyrie",
+                    "level": 16,
+                    "evolutionLevel": 1,
+                    "starLevel": 1
+                  },
+                  {
+                    "id": 28000015,
+                    "name": "Barbarian Barrel",
+                    "level": 16,
+                    "evolutionLevel": 2,
+                    "starLevel": 1
+                  },
+                  {
+                    "id": 26000069,
+                    "name": "Skeleton King",
+                    "level": 14
+                  },
+                  {
+                    "id": 26000010,
+                    "name": "Skeletons",
+                    "level": 14
+                  },
+                  {
+                    "id": 26000058,
+                    "name": "Wall Breakers",
+                    "level": 15,
+                    "starLevel": 1
+                  },
+                  {
+                    "id": 27000000,
+                    "name": "Cannon",
+                    "level": 16,
+                    "starLevel": 3
+                  },
+                  {
+                    "id": 28000004,
+                    "name": "Goblin Barrel",
+                    "level": 15,
+                    "starLevel": 2
+                  },
+                  {
+                    "id": 26000041,
+                    "name": "Goblin Gang",
+                    "level": 15,
+                    "starLevel": 1
+                  }
+                ],
+                "archetype": {
+                  "family": "bait",
+                  "win_conditions": [
+                    {
+                      "id": 28000004,
+                      "name": "Goblin Barrel",
+                      "form": "base"
+                    }
+                  ],
+                  "secondary_win_conditions": [
+                    {
+                      "id": 26000058,
+                      "name": "Wall Breakers",
+                      "form": "base"
+                    }
+                  ],
+                  "named_by": null,
+                  "label": "Goblin Barrel bait",
+                  "average_elixir": 2.75,
+                  "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+                  "grammar_version": "2026-09",
+                  "roles_version": "2026-09-20T20:16:47.000Z"
+                }
+              }
+            ]
+          },
+          "elixir": {
+            "leaked": 0.86,
+            "opponent_leaked": 0.85,
+            "differential": null,
+            "rounds": 3,
+            "caveat": "Not a skill measure: holding elixir to make the opponent commit is a deliberate line that raises leak by design, and the record cannot tell that from waste. Read the differential, never the absolute."
+          },
+          "tower_hp": {
+            "king": 7728,
+            "princess": [4858, 0]
+          },
+          "rounds": [
+            {
+              "round": 1,
+              "crowns": 3,
+              "tower_hp": {
+                "king": 6465,
+                "princess": [2068, 0]
+              },
+              "elixir": {
+                "leaked": 0.63,
+                "opponent_leaked": 0.48,
+                "differential": 0.15
+              }
+            },
+            {
+              "round": 2,
+              "crowns": 0,
+              "tower_hp": {
+                "king": 7290,
+                "princess": [1468, 0]
+              },
+              "elixir": {
+                "leaked": 0.15,
+                "opponent_leaked": 2.38,
+                "differential": -2.23
+              }
+            },
+            {
+              "round": 3,
+              "crowns": 0,
+              "tower_hp": {
+                "king": 7728,
+                "princess": [4858, 0]
+              },
+              "elixir": {
+                "leaked": 0.86,
+                "opponent_leaked": 0.85,
+                "differential": 0.01
+              }
+            }
+          ],
+          "vs": null
+        },
+        "teammates": [],
+        "opponents": [
+          {
+            "player_tag": "#U9PPQC0V0",
+            "name": "HIRAM_75",
+            "name_known": true,
+            "crowns": 3,
+            "deck_hash": null,
+            "clan_tag": "#G2UUVCVC",
+            "global_rank": null,
+            "rounds_played": 3,
+            "deck": {
+              "rounds": [
+                {
+                  "cards": [
+                    {
+                      "id": 26000043,
+                      "name": "Elite Barbarians",
+                      "level": 15,
+                      "evolutionLevel": 1,
+                      "starLevel": 1
+                    },
+                    {
+                      "id": 26000014,
+                      "name": "Musketeer",
+                      "level": 13,
+                      "evolutionLevel": 2
+                    },
+                    {
+                      "id": 26000069,
+                      "name": "Skeleton King",
+                      "level": 13
+                    },
+                    {
+                      "id": 26000001,
+                      "name": "Archers",
+                      "level": 13
+                    },
+                    {
+                      "id": 28000009,
+                      "name": "Poison",
+                      "level": 13
+                    },
+                    {
+                      "id": 27000003,
+                      "name": "Inferno Tower",
+                      "level": 15
+                    },
+                    {
+                      "id": 26000035,
+                      "name": "Lumberjack",
+                      "level": 13
+                    },
+                    {
+                      "id": 26000006,
+                      "name": "Balloon",
+                      "level": 14
+                    }
+                  ],
+                  "archetype": {
+                    "family": "beatdown",
+                    "win_conditions": [
+                      {
+                        "id": 26000006,
+                        "name": "Balloon",
+                        "form": "base"
+                      }
+                    ],
+                    "secondary_win_conditions": [
+                      {
+                        "id": 26000043,
+                        "name": "Elite Barbarians",
+                        "form": "evolution"
+                      }
+                    ],
+                    "named_by": null,
+                    "label": "Balloon beatdown",
+                    "average_elixir": 4.38,
+                    "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+                    "grammar_version": "2026-09",
+                    "roles_version": "2026-09-20T20:16:47.000Z"
+                  }
+                },
+                {
+                  "cards": [
+                    {
+                      "id": 26000055,
+                      "name": "Mega Knight",
+                      "level": 16,
+                      "evolutionLevel": 1,
+                      "starLevel": 2
+                    },
+                    {
+                      "id": 26000011,
+                      "name": "Valkyrie",
+                      "level": 16,
+                      "starLevel": 2
+                    },
+                    {
+                      "id": 26000056,
+                      "name": "Skeleton Barrel",
+                      "level": 16,
+                      "evolutionLevel": 1,
+                      "starLevel": 3
+                    },
+                    {
+                      "id": 26000007,
+                      "name": "Witch",
+                      "level": 16,
+                      "starLevel": 2
+                    },
+                    {
+                      "id": 28000001,
+                      "name": "Arrows",
+                      "level": 14,
+                      "starLevel": 3
+                    },
+                    {
+                      "id": 28000011,
+                      "name": "The Log",
+                      "level": 14,
+                      "starLevel": 1
+                    },
+                    {
+                      "id": 28000004,
+                      "name": "Goblin Barrel",
+                      "level": 16,
+                      "starLevel": 3
+                    },
+                    {
+                      "id": 26000040,
+                      "name": "Dart Goblin",
+                      "level": 15,
+                      "starLevel": 2
+                    }
+                  ],
+                  "archetype": {
+                    "family": "control",
+                    "win_conditions": [
+                      {
+                        "id": 26000055,
+                        "name": "Mega Knight",
+                        "form": "evolution"
+                      }
+                    ],
+                    "secondary_win_conditions": [
+                      {
+                        "id": 26000056,
+                        "name": "Skeleton Barrel",
+                        "form": "evolution"
+                      },
+                      {
+                        "id": 28000004,
+                        "name": "Goblin Barrel",
+                        "form": "base"
+                      }
+                    ],
+                    "named_by": null,
+                    "label": "Evo Mega Knight control",
+                    "average_elixir": 3.75,
+                    "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+                    "grammar_version": "2026-09",
+                    "roles_version": "2026-09-20T20:16:47.000Z"
+                  }
+                },
+                {
+                  "cards": [
+                    {
+                      "id": 26000026,
+                      "name": "Princess",
+                      "level": 13,
+                      "evolutionLevel": 1
+                    },
+                    {
+                      "id": 26000016,
+                      "name": "Prince",
+                      "level": 14,
+                      "starLevel": 1
+                    },
+                    {
+                      "id": 26000074,
+                      "name": "Golden Knight",
+                      "level": 13
+                    },
+                    {
+                      "id": 26000020,
+                      "name": "Giant Skeleton",
+                      "level": 14,
+                      "starLevel": 2
+                    },
+                    {
+                      "id": 27000013,
+                      "name": "Goblin Drill",
+                      "level": 14
+                    },
+                    {
+                      "id": 26000041,
+                      "name": "Goblin Gang",
+                      "level": 14
+                    },
+                    {
+                      "id": 27000000,
+                      "name": "Cannon",
+                      "level": 14
+                    },
+                    {
+                      "id": 26000046,
+                      "name": "Bandit",
+                      "level": 13
+                    }
+                  ],
+                  "archetype": {
+                    "family": "control",
+                    "win_conditions": [
+                      {
+                        "id": 27000013,
+                        "name": "Goblin Drill",
+                        "form": "base"
+                      }
+                    ],
+                    "secondary_win_conditions": [],
+                    "named_by": null,
+                    "label": "Goblin Drill control",
+                    "average_elixir": 3.88,
+                    "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+                    "grammar_version": "2026-09",
+                    "roles_version": "2026-09-20T20:16:47.000Z"
+                  }
+                }
+              ]
+            },
+            "elixir": {
+              "leaked": 0.85,
+              "opponent_leaked": null,
+              "differential": null,
+              "rounds": 3,
+              "caveat": "Not a skill measure: holding elixir to make the opponent commit is a deliberate line that raises leak by design, and the record cannot tell that from waste. Read the differential, never the absolute."
+            },
+            "tower_hp": {
+              "king": 7032,
+              "princess": [968, 4424]
+            },
+            "rounds": [
+              {
+                "round": 1,
+                "crowns": 1,
+                "tower_hp": {
+                  "princess": [4424, 0]
+                },
+                "elixir": {
+                  "leaked": 0.48,
+                  "opponent_leaked": null,
+                  "differential": null
+                }
+              },
+              {
+                "round": 2,
+                "crowns": 1,
+                "tower_hp": {
+                  "king": 7032,
+                  "princess": [2575, 3657]
+                },
+                "elixir": {
+                  "leaked": 2.38,
+                  "opponent_leaked": null,
+                  "differential": null
+                }
+              },
+              {
+                "round": 3,
+                "crowns": 1,
+                "tower_hp": {
+                  "king": 7032,
+                  "princess": [968, 4424]
+                },
+                "elixir": {
+                  "leaked": 0.85,
+                  "opponent_leaked": null,
+                  "differential": null
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "next_cursor": null,
+    "notes": [
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "Window spans 10 seasons, S127 (2025-12) to S136 (2026-09); balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.",
+      "me.vs is every comparison the row already held both halves of, as me MINUS the one opponent: crowns, deck_level (the level edge in THIS battle, from the cards as played), starting_trophies (what matchmaking paired) and tower_hp (hitpoints REMAINING on both sides, so a margin of victory, never a tower level). Null on 2v2 and on duels, and a field is null where the record lacks a side's value. Read these before the absolute numbers - a leak, a level or a tower total means little except against the other side's.",
+      "inferred.duration is what the battle's signature PROVES about its length, never a measurement: the log carries no duration. A King Tower is the only way to end before regulation, so a three-crown finish is at_most_s 300 with no floor; any other finish ran at least 180 s; and level crowns means overtime expired and the tiebreaker resolved it, which is exactly 300 s. Head-to-head 1v1 only - a duel sums crowns over up to three games and a boat battle has no overtime - basis is which rule fired: king_tower_fell (a King Tower ended it, so nothing bounds it below), regulation_ran (no King Tower, so it reached at least 3:00; whether it ended there or in overtime is not recorded) or overtime_expired.",
+      "global_rank is the player's global leaderboard position as the API reported it ON that battle - null unless they were ranked at the time, and not a rank in this record: it says you met a ranked opponent, never how they rank now.",
+      "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept).",
+      "Deck card levels are the in-game 1-16 scale; form is the FORM played (base, evolution or hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
+      "elixir is each side's own leaked-elixir counter with its caveat on the object: read elixir.differential (me minus the one opponent, null on duels - a duel's per-round differentials ride rounds[]) before elixir.leaked, and neither as a skill measure."
+    ],
+    "docs": "battles#what-a-battle-record-holds",
+    "meta": {
+      "contract_version": "6.19.3",
+      "source_polls": {
+        "player_battlelog": {
+          "observed_at": "2026-09-23T15:13:07.000Z",
+          "freshness_seconds": 685
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 58,
+    "db_queries": 12,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

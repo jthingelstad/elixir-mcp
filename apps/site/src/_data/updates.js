@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Duels are won on games, not crowns",
+    body: "A river race duel is best of three games, and the player who wins two wins the duel. Elixir was deciding the result from the crowns summed across all three games, so a duel won 0-3, 1-0, 1-0 was recorded as a loss at 2 crowns to 3. The Elixir Gym found 7 of one player's 70 duels recorded wrong this way. Duels are now decided on games, and every duel already in the record was recomputed from its games, with the daily totals behind them. The same pass fixed a duel's leaked elixir, which is now the sum of its games. It also fixed three comparisons: tower hitpoints when the towers started at different levels, starting trophies on war battles (war matchmaking does not pair on them), and a player who climbs through several trophy floors in one window, who now gets a floor-by-floor account instead of one number. Contract 6.21.0.",
+  },
+  {
+    date: "2026-09-23",
     title:
       "Badges: honest dates, labels that name one badge, and asking by name",
     body: 'Three things the Elixir Gym found on its first run over the badge tools. First, the date on a badge holder was when the badge last changed, not when Elixir last looked, so a clan read yesterday showed most members as untouched since early September. A holder now carries observed_at, the last profile read, and since, when the record first saw the badge at that level. A since at the start of recording, or just after someone joined, is a first sighting, not when they earned it. Second, the game keeps a few badges in two versions, and both read "Royal Tournament Rank", so the legacy one, held by a single player, looked like the rarest badge in the game. The newer one now says (v2), and the rarity list points out the pair. Third, badges_holders now accepts the name a player uses, like "Valkyrie Mastery", as well as the game\'s identifier. Contract 6.20.0.',

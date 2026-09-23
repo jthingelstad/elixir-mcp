@@ -317,14 +317,52 @@ export async function trophyFloor(db, tag, { from, to }) {
     [...params, floor],
   );
   const touches = l.on_floor_losses + c.landing;
+  // Every floor the window stood on (Gym #99): a climbing player stands
+  // on several (10,500, 11,000, 12,000, 12,500 in one window), and one
+  // `floor` - the lowest - put every free loss on it. Each free loss is
+  // its own evidence of the floor it happened at.
+  const { rows: fl } = await db.query(
+    `with free as (
+       select bp.starting_trophies as floor, count(*)::int as n, max(bp.battle_time) as last_at
+         from battle_participant bp
+        where ${where.join(" and ")} and bp.outcome = 'loss' and bp.trophy_change is null
+          and bp.starting_trophies is not null
+        group by 1),
+     landed as (
+       select bp.starting_trophies + bp.trophy_change as floor, count(*)::int as n
+         from battle_participant bp
+        where ${where.join(" and ")} and bp.outcome = 'loss' and bp.trophy_change is not null
+          and bp.starting_trophies + bp.trophy_change in (select floor from free)
+        group by 1)
+     select f.floor, f.n as on_floor_losses, coalesce(l.n, 0) as losses_landing_on_floor, f.last_at
+       from free f left join landed l on l.floor = f.floor
+      order by f.floor`,
+    params,
+  );
+  const floors = fl.map((r) => ({
+    floor: Number(r.floor),
+    on_floor_losses: r.on_floor_losses,
+    losses_landing_on_floor: r.losses_landing_on_floor,
+    last_at: r.last_at.toISOString(),
+  }));
+  // `floor` is the one the player stood on MOST RECENTLY (Gym #99), with
+  // its own counts beside it; floors[] holds every one. With a single
+  // floor nothing changes.
+  const current = floors.reduce(
+    (a, f) => (a === null || f.last_at > a.last_at ? f : a),
+    null,
+  );
   return {
-    floor,
+    floor: current ? current.floor : floor,
     arena,
     source: fromLosses !== null ? "losses_on_floor" : "arena_snapshots",
     floored: touches > 0,
-    on_floor_losses: l.on_floor_losses,
-    losses_landing_on_floor: c.landing,
+    on_floor_losses: current ? current.on_floor_losses : l.on_floor_losses,
+    losses_landing_on_floor: current
+      ? current.losses_landing_on_floor
+      : c.landing,
     ladder_battles: l.ladder_battles,
+    floors,
     trophy_range: {
       lowest: Number(l.lowest),
       highest: Number(l.highest),
@@ -335,6 +373,8 @@ export async function trophyFloor(db, tag, { from, to }) {
 /** The one sentence a floored window carries. */
 export function trophyFloorNote(tf) {
   if (!tf?.floored) return null;
+  if ((tf.floors ?? []).length > 1)
+    return `This player stood on ${tf.floors.length} trophy floors during the window: ${tf.floors.map((f) => `${f.floor.toLocaleString("en-US")} (${f.on_floor_losses} free ${f.on_floor_losses === 1 ? "loss" : "losses"}, last ${f.last_at.slice(0, 10)})`).join(", ")}. floor is the most recent of them, with its own counts; floors[] has every one. Free losses cost nothing (trophy_change null), so net_trophies counts wins in full and those losses at zero and tracks how recently the player played more than how well; read trophy_range and win_rate instead.`;
   return `This player stood on the ${tf.floor.toLocaleString("en-US")} trophy floor${tf.arena ? ` (${tf.arena.name})` : ""} during the window: ${tf.on_floor_losses} ladder losses ON the floor cost nothing (trophy_change null) and ${tf.losses_landing_on_floor} landed exactly on it (clamped or full), so net_trophies counts wins in full and those losses at zero and tracks how recently the player played more than how well; read trophy_range and win_rate instead.`;
 }
 

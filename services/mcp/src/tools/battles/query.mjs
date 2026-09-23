@@ -343,6 +343,9 @@ export const battles_query = {
       rows.map((r) => r.battle_id),
     );
     const deckOf = (o) => decks.get(`${o.battle_id}|${o.player_tag}`) ?? null;
+    // The tower troop's level (slot 0, rendered as supportCards): towers
+    // one level apart start 1,564 HP apart (Gym #97).
+    const towerLevel = (o) => deckOf(o)?.supportCards?.[0]?.level ?? null;
     // A duel's round results (0151). Only a duel has them, and only
     // full verbosity carries them, so the read is skipped entirely on
     // a page without one.
@@ -364,7 +367,22 @@ export const battles_query = {
     }
     const roundsFor = (o) => roundRows.get(`${o.battle_id}|${o.player_tag}`);
     const leaked = (v) => (v === null || v === undefined ? null : Number(v));
+    // A duel's leaked elixir is the SUM of its games, as the note, the
+    // outputSchema and the docs say (Gym #96): the API's top-level
+    // counter is the final game's. The per-game rows carry each; a duel
+    // recorded before them keeps the counter it has.
+    const leakOf = (o) => {
+      const rounds = roundsFor(o); // loaded for duel battles only
+      const games = (rounds ?? [])
+        .map((g) => leaked(g.elixir_leaked))
+        .filter((v) => v !== null);
+      return games.length
+        ? Number(games.reduce((a, v) => a + v, 0).toFixed(2))
+        : leaked(o.elixir_leaked);
+    };
     let leakRows = 0;
+    let towerGapRows = 0;
+    let warVsRows = 0;
     let floorLosses = 0;
     const battles = rows.map((r) => {
       const rest = others.get(r.battle_id) ?? [];
@@ -388,12 +406,7 @@ export const battles_query = {
           ? {}
           : {
               deck: deckOf(o),
-              elixir: elixirOf(
-                leaked(o.elixir_leaked),
-                null,
-                r.type,
-                deckOf(o),
-              ),
+              elixir: elixirOf(leakOf(o), null, r.type, deckOf(o)),
               tower_hp: towerHpOf(o),
               ...(roundsFor(o)
                 ? { rounds: roundResultsOf(roundsFor(o), undefined) }
@@ -401,10 +414,16 @@ export const battles_query = {
             }),
       });
       const opponents = rest.filter((o) => o.side !== r.side);
-      const myLeak = leaked(r.elixir_leaked);
-      const oppLeak =
-        opponents.length === 1 ? leaked(opponents[0].elixir_leaked) : null;
+      const myLeak = leakOf(r);
+      const oppLeak = opponents.length === 1 ? leakOf(opponents[0]) : null;
       if (!compact && myLeak !== null) leakRows++;
+      if (!compact && opponents.length === 1 && !isDuel(r.type)) {
+        const a = towerLevel(r);
+        const b = towerLevel(opponents[0]);
+        if (a !== null && b !== null && a !== b) towerGapRows++;
+        if (/^riverRace/.test(String(r.type)) && r.starting_trophies !== null)
+          warVsRows++;
+      }
       if (r.type === "PvP" && r.outcome === "loss" && r.trophy_change === null)
         floorLosses++;
       return {
@@ -490,7 +509,14 @@ export const battles_query = {
                 // The differences the row always held both halves of.
                 vs:
                   opponents.length === 1
-                    ? versusOf(r, opponents[0], r.type)
+                    ? versusOf(
+                        { ...r, tower_level: towerLevel(r) },
+                        {
+                          ...opponents[0],
+                          tower_level: towerLevel(opponents[0]),
+                        },
+                        r.type,
+                      )
                     : null,
               }),
         },
@@ -607,7 +633,13 @@ export const battles_query = {
         caveats,
         deckStats &&
           "deck_stats carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
-        "me.vs is every comparison the row already held both halves of, as me MINUS the one opponent: crowns, deck_level (the level edge in THIS battle, from the cards as played), starting_trophies (what matchmaking paired) and tower_hp (hitpoints REMAINING on both sides, so a margin of victory, never a tower level). Null on 2v2 and on duels, and a field is null where the record lacks a side's value. Read these before the absolute numbers - a leak, a level or a tower total means little except against the other side's.",
+        "me.vs is every comparison the row already held both halves of, as me MINUS the one opponent: crowns, deck_level (the level edge in THIS battle, from the cards as played), starting_trophies, tower_hp (hitpoints REMAINING on both sides) and tower_level (the tower troop's level). tower_hp is a margin of victory only when tower_level is 0. Null on 2v2, duels and boat battles (a defense against an attack), and a field is null where the record lacks a side's value. Read these before the absolute numbers - a leak, a level or a tower total means little except against the other side's.",
+        towerGapRows > 0
+          ? `${towerGapRows} ${towerGapRows === 1 ? "row's towers" : "rows' towers"} started unequal (vs.tower_level is not 0): a tower one level higher starts with more hitpoints (1,564 more across the three towers at 16 against 15), so vs.tower_hp there carries the starting gap as well as the damage - it is not a margin of victory.`
+          : null,
+        warVsRows > 0
+          ? `On river race rows, starting_trophies is each side's Trophy Road count, and war matchmaking draws opponents from the racing clans without pairing on it, so vs.starting_trophies there is not what matchmaking paired (on ladder it is).`
+          : null,
         "inferred.duration is what the battle's signature PROVES about its length, never a measurement: the log carries no duration. A King Tower is the only way to end before regulation, so a three-crown finish is at_most_s 300 with no floor; any other finish ran at least 180 s; and level crowns means overtime expired and the tiebreaker resolved it, which is exactly 300 s. Head-to-head 1v1 only - a duel sums crowns over up to three games and a boat battle has no overtime - basis is which rule fired: king_tower_fell (a King Tower ended it, so nothing bounds it below), regulation_ran (no King Tower, so it reached at least 3:00; whether it ended there or in overtime is not recorded) or overtime_expired.",
         "global_rank is the player's global leaderboard position as the API reported it ON that battle - null unless they were ranked at the time, and not a rank in this record: it says you met a ranked opponent, never how they rank now.",
         "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept).",
