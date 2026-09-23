@@ -3,8 +3,8 @@
  * Land duel round results and global_rank on battles recorded before
  * migration 0151, from the S3 payload archive.
  *
- *   AWS_PROFILE=jamie node infra/scripts/battle-detail-backfill.mjs --dry-run
- *   AWS_PROFILE=jamie node infra/scripts/battle-detail-backfill.mjs
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/battle-detail-backfill.mjs --dry-run
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/battle-detail-backfill.mjs
  *
  * Postgres caches a payload for two hours, so the archive is the only
  * copy; the sweep is local because reading 72k objects is I/O the Lambda

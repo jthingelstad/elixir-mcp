@@ -10,7 +10,7 @@
  * so the tests run in CI without the sibling. Run by deploy.mjs after
  * migrations; runnable alone:
  *
- *   AWS_PROFILE=jamie node infra/scripts/import-card-roles.mjs
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/import-card-roles.mjs
  *   node infra/scripts/import-card-roles.mjs --snapshot-only   (no AWS)
  */
 

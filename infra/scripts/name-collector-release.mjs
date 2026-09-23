@@ -8,8 +8,8 @@
  * `update: {}` went out to every collector and no released binary has
  * ever updated itself. This is the step that names one.
  *
- *   AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs [tag]
- *   AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs --dry-run
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/name-collector-release.mjs [tag]
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/name-collector-release.mjs --dry-run
  *
  * With no tag it reads the collector repo's latest GitHub release. It
  * pulls that release's SHA256SUMS, re-derives each platform key from

@@ -5,7 +5,7 @@
  * terminal, log line, or agent context. Existing keys are never
  * overwritten unless --overwrite names them.
  *
- *   AWS_PROFILE=jamie node infra/scripts/secret-add-keys.mjs \
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/secret-add-keys.mjs \
  *     tinylytics_api_token=TINYLYTICS_API_TOKEN \
  *     buttondown_api_token=BUTTONDOWN_API_TOKEN
  *

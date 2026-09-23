@@ -3,7 +3,7 @@
  * Every field the API has ever sent for an endpoint, against the manifest
  * — the COMPLETE sweep, not the nightly census's sample.
  *
- *   AWS_PROFILE=jamie node infra/scripts/payload-field-audit.mjs [endpoint]
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/payload-field-audit.mjs [endpoint]
  *
  * The nightly shape census (services/jobs/src/shape-census.mjs) reads
  * twenty archived objects per endpoint per day, newest first. That is a

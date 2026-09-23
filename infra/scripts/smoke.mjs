@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Read-only smoke checks (house rule: reads and refusal paths only).
- * Run with AWS_PROFILE=jamie after any deploy.
+ * Run with AWS_PROFILE=cloud-engineer after any deploy.
  */
 
 import {

@@ -4,7 +4,7 @@
  * credentials — the NAT-free VPC lambdas cannot reach the IAM API, and
  * no public lambda should hold IAM powers:
  *
- *   AWS_PROFILE=jamie node infra/scripts/provision-gateway.mjs <gateway-name>
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/provision-gateway.mjs <gateway-name>
  *
  * Creates (idempotently) the per-gateway IAM user elixir-mcp-gw-<name>
  * with the standard queue/metrics policy, mints a fresh access key,

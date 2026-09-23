@@ -111,7 +111,7 @@ Establish, with receipts:
   watch, don't churn. (The awareness-tick triage rule from elixir-bot
   applies here unchanged.)
 - Deploys are part of this objective: a fix that is committed but not
-  deployed is not shipped. `AWS_PROFILE=jamie node infra/scripts/deploy.mjs`.
+  deployed is not shipped. `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`.
 - **A long batch against a Lambda blocks everyone else's deploy, and the
   checkout lease will not tell them.** `elixir-mcp-migrate` and
   `elixir-mcp-jobs` both run at `ReservedConcurrentExecutions: 1`, so a

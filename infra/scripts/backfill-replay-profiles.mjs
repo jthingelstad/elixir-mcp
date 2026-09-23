@@ -11,8 +11,8 @@
  * PoL final, the frozen counters) and never a moment. Runs BEFORE the
  * series import, so the import sees those days as overlapping.
  *
- *   AWS_PROFILE=jamie node infra/scripts/backfill-replay-profiles.mjs --dry-run
- *   AWS_PROFILE=jamie node infra/scripts/backfill-replay-profiles.mjs
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/backfill-replay-profiles.mjs --dry-run
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/backfill-replay-profiles.mjs
  *
  * The bot's database is opened strictly read-only. Resumable: progress
  * in .backfill-profiles-progress.json.

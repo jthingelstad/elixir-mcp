@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Deploy (run with AWS_PROFILE=jamie). Order is the design (§11.1):
+ * Deploy (run with AWS_PROFILE=cloud-engineer). Order is the design (§11.1):
  * build -> upload -> stack create/update -> MIGRATE -> web sync -> outputs.
  *
  *   node infra/scripts/deploy.mjs --create   # first deploy (GATED)

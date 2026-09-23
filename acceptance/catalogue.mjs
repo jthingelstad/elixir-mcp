@@ -9,7 +9,7 @@
  * writes acceptance/catalogue.json - a committed file, so a refresh is a
  * reviewed diff and a run needs no AWS.
  *
- *   AWS_PROFILE=jamie node acceptance/catalogue.mjs --refresh [--days 7] [--per-tool 3]
+ *   AWS_PROFILE=cloud-engineer node acceptance/catalogue.mjs --refresh [--days 7] [--per-tool 3]
  *
  * What is dropped: write tools (the token could not call them anyway),
  * live reads, caller identity (the op already drops on_behalf_of and

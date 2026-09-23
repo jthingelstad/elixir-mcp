@@ -4,7 +4,7 @@
  * so a rule can be proved against it forever (the bucket expires calls/
  * after 90 days; the proof must not).
  *
- *   AWS_PROFILE=jamie node acceptance/bites/fetch.mjs <YYYY-MM-DD> <request_id prefix> <name> [feedback id]
+ *   AWS_PROFILE=cloud-engineer node acceptance/bites/fetch.mjs <YYYY-MM-DD> <request_id prefix> <name> [feedback id]
  *
  * Writes bites/<name>.json: the request, the response with its meta
  * reduced to contract_version (no request id, no quota), the contract

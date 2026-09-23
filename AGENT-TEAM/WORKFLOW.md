@@ -92,7 +92,7 @@ READING is a document map, not a second product specification.
    GENERATED from the MCP registry - never hand-edit it; fix the tool's
    declaration instead. Commit small and message-first, push `main`, and
    when runtime code changed, deploy:
-   `AWS_PROFILE=jamie node infra/scripts/deploy.mjs`. Migrations run
+   `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`. Migrations run
    BEFORE the code flip (expand-and-contract makes that safe) and a
    failed migration stops the deploy; the smoke checks after the flip
    REPORT failure loudly but do not roll back — a red smoke means fix

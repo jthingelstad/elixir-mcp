@@ -344,7 +344,7 @@ tie sponsorship (`/support`) to anything on an account.
 
 ## Deploying
 
-`node infra/scripts/deploy.mjs` with `AWS_PROFILE=jamie` **in the environment** —
+`node infra/scripts/deploy.mjs` with `AWS_PROFILE=cloud-engineer` **in the environment** —
 the CLI profile flag alone does not satisfy the SDK's provider chain. Order is
 build → upload → migrate → vocabulary import → stack → web. It is smoke-gated,
 and acceptance-gated when asked (`--acceptance`; below), and deploys are cumulative: never deploy past a commit whose infrastructure

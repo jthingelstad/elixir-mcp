@@ -218,6 +218,25 @@
         "mandatory-research-handoff",
         "edit-other-consumer"
       ]
+    },
+    {
+      "id": "durable-automation-aws-profile",
+      "situation": "A scheduled run needs an IAM-bearing CloudFormation deployment. Jamie's human profile is expired, while Otto's documented cloud-engineer profile resolves to the authorized ProjectsCloudEngineer role and passes the deployment readiness checks.",
+      "expected": {
+        "owner": "run",
+        "action": "use-canonical-automation-profile",
+        "mutation": "lease-required",
+        "evidence": [
+          "cloud-engineer-caller-identity",
+          "deployment-permission-readiness",
+          "rollback-and-smoke-plan"
+        ]
+      },
+      "forbidden_actions": [
+        "block-on-jamie-expiry",
+        "request-jamie-refresh",
+        "use-root"
+      ]
     }
   ]
 }

@@ -16,7 +16,7 @@
  *
  * abort is the blocked-run exit: it releases the lease AND queues a note
  * for Jamie. Keep the Record True stalled on an ExpiredToken for
- * --profile jamie (2026-09-08), held the `record` lease, and blocked
+ * --profile cloud-engineer (2026-09-08), held the `record` lease, and blocked
  * Close the Loop the same morning — a run that cannot do its job must
  * not keep the checkout hostage.
  *

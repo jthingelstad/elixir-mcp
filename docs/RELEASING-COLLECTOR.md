@@ -79,8 +79,8 @@ first — it prints exactly what it would write and touches nothing:
 
 ```sh
 cd ~/Projects/clash-royale/elixir-mcp
-AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs --dry-run
-AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs [tag]
+AWS_PROFILE=cloud-engineer node infra/scripts/name-collector-release.mjs --dry-run
+AWS_PROFILE=cloud-engineer node infra/scripts/name-collector-release.mjs [tag]
 ```
 
 With no tag it takes the newest release of any kind. It is idempotent:
@@ -136,7 +136,7 @@ back, and collectors downgrade themselves on their next config call
 exactly the way they upgraded:
 
 ```sh
-AWS_PROFILE=jamie node infra/scripts/name-collector-release.mjs v2.0.PREVIOUS
+AWS_PROFILE=cloud-engineer node infra/scripts/name-collector-release.mjs v2.0.PREVIOUS
 ```
 
 Rollback is naming, not deleting. Never delete a release that is named

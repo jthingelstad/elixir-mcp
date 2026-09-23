@@ -21,9 +21,9 @@
  * import is harmless — same gateway + endpoint + entity + fetched_at is a
  * receipt conflict, reported as `duplicate`, no projection.
  *
- *   AWS_PROFILE=jamie node infra/scripts/backfill-replay-backups.mjs --dry-run <db...>
- *   AWS_PROFILE=jamie node infra/scripts/backfill-replay-backups.mjs --limit 200 <db...>
- *   AWS_PROFILE=jamie node infra/scripts/backfill-replay-backups.mjs <db...>
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/backfill-replay-backups.mjs --dry-run <db...>
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/backfill-replay-backups.mjs --limit 200 <db...>
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/backfill-replay-backups.mjs <db...>
  *
  *   --local postgres://...   rehearse in-process against a scratch DB
  *                            (ops-record replay(), no Lambda, no S3)

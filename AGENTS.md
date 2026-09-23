@@ -103,7 +103,7 @@ new ones there as they happen.
 
 ## AWS
 
-- Always `--profile jamie`, region `us-east-1`. Hobby-account rules from
+- Always `--profile cloud-engineer`, region `us-east-1`. Hobby-account rules from
   `~/Projects/AGENTS.md` apply: smallest understandable solution, no em
   dashes in resource names.
 - One CloudFormation stack in `infra/`. Port Drop's `parameters.mjs`

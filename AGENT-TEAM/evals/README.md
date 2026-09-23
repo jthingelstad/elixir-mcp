@@ -1,6 +1,6 @@
 # Scheduled-owner decision pilot
 
-These twelve cases test operating decisions, not product answer quality. They
+These fourteen cases test operating decisions, not product answer quality. They
 cover current public/private access, checkout contention, deployment handoff,
 healthy no-ops, untrusted feedback, retries, contract changes, natural acceptance,
 production play, shared-reference ownership and stale reading maps. No case

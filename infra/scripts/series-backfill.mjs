@@ -5,8 +5,8 @@
  * `done`, repeat. The Lambda's reserved concurrency is one, so a deploy
  * during the run waits (429) - run this to the end first.
  *
- *   AWS_PROFILE=jamie node infra/scripts/series-backfill.mjs --lane clan
- *   AWS_PROFILE=jamie node infra/scripts/series-backfill.mjs --lane player --budget 240 --batch 200
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/series-backfill.mjs --lane clan
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/series-backfill.mjs --lane player --budget 240 --batch 200
  *
  * Prints one line per invocation (receipts, rows, objects read, cache
  * hits, misses, remaining, ms) and a summary at the end. Exits non-zero

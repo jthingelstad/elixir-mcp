@@ -90,7 +90,7 @@ Cross-cutting work keeps one originating owner through acceptance.
   `mcp_call_audit`. Per-gateway CloudWatch metrics were retired with the
   zero-trust collector door.
 - Gates: `npm run verify` before push; deploys via
-  `AWS_PROFILE=jamie node infra/scripts/deploy.mjs` (smoke-gated; add
+  `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs` (smoke-gated; add
   `--acceptance` to gate the deploy on `acceptance/` too - read-only
   against the live door, ~4.5 min, a red case fails the deploy - for a
   contract bump, a query change or a release; `npm run acceptance` on

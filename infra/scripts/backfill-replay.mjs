@@ -11,9 +11,9 @@
  * Cutoff: payloads fetched before elixir-mcp's own recording began;
  * everything after is already first-party.
  *
- *   AWS_PROFILE=jamie node infra/scripts/backfill-replay.mjs --dry-run
- *   AWS_PROFILE=jamie node infra/scripts/backfill-replay.mjs --limit 50
- *   AWS_PROFILE=jamie node infra/scripts/backfill-replay.mjs
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/backfill-replay.mjs --dry-run
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/backfill-replay.mjs --limit 50
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/backfill-replay.mjs
  *
  * Resumable: progress (last fetched_at+payload_id) in .backfill-progress.json.
  */

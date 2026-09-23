@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-time account bootstrap (run with AWS_PROFILE=jamie, before the first
+ * One-time account bootstrap (run with AWS_PROFILE=cloud-engineer, before the first
  * deploy — GATED like the deploy itself; creates IAM/S3/secret resources):
  *
  *  1. code bucket elixir-mcp-code-<account>

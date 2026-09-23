@@ -71,7 +71,7 @@ Establish, with receipts:
   reverse. Every added board is fetches, and every recording board is up
   to N more recorded players — say the cost in the note.
 - Deploys are part of this objective when a fix needs one:
-  `AWS_PROFILE=jamie node infra/scripts/deploy.mjs`.
+  `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`.
 
 ## Not this owner's
 
