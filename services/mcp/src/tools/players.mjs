@@ -4,7 +4,17 @@ import { readRecordedProfile } from "../../../ingest/src/recorded-profile.mjs";
  *  players_collection · players_names · players_search. Conventions
  *  (1.0.0): `applied`, `notes[]` + `docs`, `verbosity`. */
 
-import { cardForms, normalizeTag, responseMeta } from "@elixir-mcp/contracts";
+import {
+  cardForms,
+  normalizeTag,
+  responseMeta,
+  modeGroupSql,
+  gameDay,
+} from "@elixir-mcp/contracts";
+
+/** A deck row's mode group, event-aware (Gym #130: by type alone filed
+ *  the Seasonal Trophy Road's event battles as casual). */
+const DECK_MODE_GROUP = modeGroupSql("x.type", "xb.event_tag");
 import {
   PLAYER_METRICS,
   metricSelect,
@@ -41,6 +51,9 @@ import {
   seasonFieldsForDays,
   fieldedLevel,
   ARCHETYPE_NOTE,
+  seasonFieldsForInstants,
+  SEASON_ARG_SCHEMA,
+  resolveSeasonWindow,
 } from "./shared.mjs";
 import { dailySql } from "../daily-sql.mjs";
 import {
@@ -110,7 +123,9 @@ export const playersTools = {
                 coalesce(sum(d.wins), 0)::int as wins,
                 coalesce(sum(d.losses), 0)::int as losses,
                 coalesce(sum(d.draws), 0)::int as draws,
-                coalesce(sum(d.trophy_delta), 0)::int as net_trophies,
+                -- Trophy Road only (Gym #130): an event's +1 is its own
+                -- counter, not the ladder's.
+                coalesce(sum(d.trophy_delta) filter (where d.mode_group = 'ladder'), 0)::int as net_trophies,
                 (select min(battle_time) from battle_participant
                   where player_tag = $1 and battle_time >= $2) as first_recorded
          from d`,
@@ -130,16 +145,23 @@ export const playersTools = {
         `select bp.deck_hash, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
-                  (select json_agg(json_build_object('type', t.type, 'battles', t.n,
+                  (select json_agg(json_build_object('type', t.type, 'mode_group', t.mode_group, 'battles', t.n,
                                                      'wins', t.w, 'losses', t.l))
-                     from (select x.type, count(*)::int as n,
+                     from (select x.type, ${DECK_MODE_GROUP} as mode_group,
+                                  count(*)::int as n,
                                   count(*) filter (where x.outcome = 'win')::int as w,
                                   count(*) filter (where x.outcome = 'loss')::int as l
                              from battle_participant x
+                             join battle xb on xb.battle_id = x.battle_id
                             where x.player_tag = $1 and x.deck_hash = bp.deck_hash
                               and x.battle_time > now() - interval '30 days'
-                            group by x.type) t) as by_type,
-                  round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap
+                            group by x.type, 2) t) as by_type,
+                  round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap,
+                  -- Where the deck was played (Gym #132): a starter deck
+                  -- at 30-276 trophies is no rival to one at 1,300.
+                  min(bp.starting_trophies) filter (where bp.type = 'PvP') as trophies_low,
+                  max(bp.starting_trophies) filter (where bp.type = 'PvP') as trophies_high,
+                  max(bp.battle_time) as last_played_at
            from battle_participant bp
          cross join lateral (
              -- The other side's level, stamped at ingest (0156).
@@ -147,6 +169,11 @@ export const playersTools = {
                          then bp.opp_deck_avg_level end as lvl) lv
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
+             -- A deck the player chose (Gym #130): an event that issues
+             -- the deck is not the player's deck, as the meta rules.
+             and exists (select 1 from battle cb where cb.battle_id = bp.battle_id
+                          and (cb.deck_selection is null
+                               or cb.deck_selection in ('collection', 'warDeckPick')))
            group by bp.deck_hash order by count(*) desc limit 2`,
         [tag],
       );
@@ -154,16 +181,23 @@ export const playersTools = {
         `select bp.deck_hash, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
-                  (select json_agg(json_build_object('type', t.type, 'battles', t.n,
+                  (select json_agg(json_build_object('type', t.type, 'mode_group', t.mode_group, 'battles', t.n,
                                                      'wins', t.w, 'losses', t.l))
-                     from (select x.type, count(*)::int as n,
+                     from (select x.type, ${DECK_MODE_GROUP} as mode_group,
+                                  count(*)::int as n,
                                   count(*) filter (where x.outcome = 'win')::int as w,
                                   count(*) filter (where x.outcome = 'loss')::int as l
                              from battle_participant x
+                             join battle xb on xb.battle_id = x.battle_id
                             where x.player_tag = $1 and x.deck_hash = bp.deck_hash
                               and x.battle_time > now() - interval '30 days'
-                            group by x.type) t) as by_type,
-                  round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap
+                            group by x.type, 2) t) as by_type,
+                  round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap,
+                  -- Where the deck was played (Gym #132): a starter deck
+                  -- at 30-276 trophies is no rival to one at 1,300.
+                  min(bp.starting_trophies) filter (where bp.type = 'PvP') as trophies_low,
+                  max(bp.starting_trophies) filter (where bp.type = 'PvP') as trophies_high,
+                  max(bp.battle_time) as last_played_at
            from battle_participant bp
          cross join lateral (
              -- The other side's level, stamped at ingest (0156).
@@ -171,6 +205,11 @@ export const playersTools = {
                          then bp.opp_deck_avg_level end as lvl) lv
            where bp.player_tag = $1 and bp.deck_hash is not null
              and bp.battle_time > now() - interval '30 days'
+             -- A deck the player chose (Gym #130): an event that issues
+             -- the deck is not the player's deck, as the meta rules.
+             and exists (select 1 from battle cb where cb.battle_id = bp.battle_id
+                          and (cb.deck_selection is null
+                               or cb.deck_selection in ('collection', 'warDeckPick')))
            group by bp.deck_hash
            having count(*) >= 10 and count(*) filter (where bp.outcome in ('win','loss')) > 0
            order by (count(*) filter (where bp.outcome = 'win'))::numeric
@@ -213,6 +252,11 @@ export const playersTools = {
           // decks, as battles_decks carries per row.
           mean_level_gap:
             row.mean_level_gap === null ? null : Number(row.mean_level_gap),
+          trophy_range:
+            row.trophies_low === null
+              ? null
+              : { lowest: row.trophies_low, highest: row.trophies_high },
+          last_played_at: row.last_played_at?.toISOString() ?? null,
         };
       };
       const windowModes = modeSplit(modeRows.rows);
@@ -222,6 +266,25 @@ export const playersTools = {
         [topDeck, bestDeck]
           .filter(Boolean)
           .map((x) => ({ ...x, label: shortHash(x.deck_hash) })),
+      );
+      // The two decks' ladder ranges not overlapping (Gym #132): a mode
+      // and level check cannot see that one was played at 30 trophies.
+      const tr = (x) => x?.trophy_range;
+      const rangeClash =
+        tr(topDeck) &&
+        tr(bestDeck) &&
+        (tr(bestDeck).highest < tr(topDeck).lowest ||
+          tr(topDeck).highest < tr(bestDeck).lowest)
+          ? `top_deck and best_deck are NOT comparable: ${shortHash(bestDeck.deck_hash)} was played at ${tr(bestDeck).lowest}-${tr(bestDeck).highest} trophies; ${shortHash(topDeck.deck_hash)} at ${tr(topDeck).lowest}-${tr(topDeck).highest} trophies. A win rate at a lower trophy band is not a better deck.`
+          : null;
+      // The window's season and every roll inside it (Gym #134), from the
+      // shared helper every windowed tool uses.
+      const summaryFrom = new Date(asOf.getTime() - 30 * 86400_000);
+      const seasonFields = await seasonFieldsForInstants(
+        ctx.db,
+        summaryFrom,
+        asOf,
+        { flavor: "plain" },
       );
       return {
         player_tag: tag,
@@ -236,10 +299,11 @@ export const playersTools = {
           : null,
         applied: appliedBlock({
           window: {
-            from: new Date(asOf.getTime() - 30 * 86400_000).toISOString(),
+            from: summaryFrom.toISOString(),
             to: asOf.toISOString(),
             source: "fixed",
             days: 30,
+            ...seasonFields.echo,
           },
         }),
         last_30_days: {
@@ -260,7 +324,9 @@ export const playersTools = {
         // most-played is often NOT the best-performing deck.
         best_deck: bestDeck,
         notes: notes(
-          "Counts include every recorded battle (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded.",
+          seasonFields.seasonNotes,
+          rangeClash,
+          "Counts include every recorded battle (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded; net_trophies is Trophy Road's only.",
           "best_deck needs 10+ battles in the window and is omitted when it IS the top deck.",
           ARCHETYPE_NOTE,
           deckClash,
@@ -373,6 +439,7 @@ export const playersTools = {
         notes: notes(
           livePendingNote(live),
           "last_seen_in_game is the game's own lastSeen from clan roster polls (when the player was last active); null until a polled roster carried them.",
+          "attributes.war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations. For war results use battles_performance mode war; for donations, lifetime.total_donations.",
           "attributes and clan carry ids only; names and icons resolve through cards_catalog.",
           "path_of_legend.seasons lists the last twelve season finals the record kept (the API's lastPathOfLegendSeasonResult, read in the following month; rank null unless globally ranked), newest first; empty for a player recorded after their last final or never ranked.",
         ),
@@ -391,6 +458,8 @@ export const playersTools = {
         player_tag: TAG_SCHEMA,
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
         display_name: DISPLAY_NAME_SCHEMA,
+        // The shared contract's season (Gym #134): refused before.
+        season: SEASON_ARG_SCHEMA,
         metrics: {
           type: "array",
           items: { type: "string", enum: PLAYER_METRICS },
@@ -422,7 +491,19 @@ export const playersTools = {
         )
       ).tag;
       const tz = zoneFor(ctx, rawArgs);
-      const win = dayWindow(rawArgs);
+      let win = dayWindow(rawArgs);
+      if (rawArgs.season !== undefined) {
+        // A season is its game days: the day it starts on through the
+        // day before it ends (or today, for the running one).
+        const sw = await resolveSeasonWindow(ctx, { season: rawArgs.season });
+        win = {
+          ...win,
+          from: gameDay(sw.from),
+          to: sw.to ? gameDay(sw.to.getTime() - 1) : null,
+          source: "season",
+          echoExtra: {},
+        };
+      }
       requireEnum(rawArgs.granularity, ["day", "week"], "granularity");
       requireEnum(rawArgs.kind, KINDS, "kind");
       for (const metric of rawArgs.metrics ?? [])
@@ -620,8 +701,9 @@ export const playersTools = {
       const compact = args.verbosity === "compact";
       // The benchmark (6.4.0, feedback #70): 128 held levels mean little
       // without the level the player actually fields.
+      const fieldedFrom = new Date(Date.now() - 30 * 86_400_000).toISOString();
       const fielded = await fieldedLevel(ctx.db, tag, {
-        from: new Date(Date.now() - 30 * 86_400_000).toISOString(),
+        from: fieldedFrom,
         to: null,
         types: null,
       });
@@ -658,17 +740,30 @@ export const playersTools = {
       };
       return {
         player_tag: tag,
-        applied: appliedBlock({ verbosity: compact ? "compact" : "full" }),
+        applied: appliedBlock({
+          // The window fielded is measured over (Gym #134).
+          window: { from: fieldedFrom, to: null, source: "fixed", days: 30 },
+          verbosity: compact ? "compact" : "full",
+        }),
         collection_level: lvl[0]?.collection_level ?? null,
         fielded: {
           days: 30,
+          // The window behind it, echoed (Gym #134).
+          from: fieldedFrom,
+          to: null,
           mean_level: fielded.mean_level,
+          recent_mean_level: fielded.recent_mean_level,
           battles: fielded.battles,
         },
         cards: rows.filter((r) => r.kind !== "support").map(shape),
         support_cards: rows.filter((r) => r.kind === "support").map(shape),
         as_of_payload: asOf.toISOString(),
         notes: notes(
+          fielded.mean_level !== null &&
+            fielded.recent_mean_level !== null &&
+            Math.abs(fielded.recent_mean_level - fielded.mean_level) >= 1
+            ? `fielded.mean_level (${fielded.mean_level}) is a 30-day mean and this player's last ten decided battles fielded ${fielded.recent_mean_level}: the account is ${fielded.recent_mean_level > fielded.mean_level ? "levelling up" : "fielding lower now"}, so set an upgrade target from recent_mean_level.`
+            : null,
           "forms_available decodes maxEvolutionLevel (which forms exist), forms_unlocked decodes evolutionLevel (which the player holds); both are bit fields, never levels or progress.",
           "Levels are the in-game 1-16 scale (every card caps at 16); starLevel is cosmetic. The catalog's facts - rarity, elixirCost, maxLevelRarityScale, iconUrls - are not repeated per card here: cards_catalog carries them, once.",
           fielded.mean_level === null
@@ -799,6 +894,12 @@ export const playersTools = {
                                  join clan_membership cm2 on cm2.clan_tag = cm.clan_tag
                                    and cm2.left_observed_at is null
                                  where c.account_id = $1 and cm2.player_tag = p.player_tag)
+                      -- The account's own clans too: an agent claims no
+                      -- player, so its clan came only through here (Gym #129).
+                      or exists (select 1 from account_clan ac
+                                 join clan_membership cm3 on cm3.clan_tag = ac.clan_tag
+                                   and cm3.left_observed_at is null
+                                 where ac.account_id = $1 and cm3.player_tag = p.player_tag)
                       then 'clanmate'
                     else 'corpus'
                   end as source
@@ -807,7 +908,8 @@ export const playersTools = {
              and nn.player_tag = p.player_tag
            where p.name ilike $2 or nn.nickname ilike $2)
          select h.player_tag, h.name, h.nickname, h.source,
-                cl.clan_tag, cl.name as clan_name
+                cl.clan_tag, cl.name as clan_name,
+                count(*) over ()::int as total_matches
          from hits h
          left join lateral (
            select cm.clan_tag, c.name from clan_membership cm
@@ -815,17 +917,26 @@ export const playersTools = {
            where cm.player_tag = h.player_tag and cm.left_observed_at is null
            limit 1) cl on true
          order by case h.source when 'nickname' then -1 when 'claim' then 0 when 'clanmate' then 1 else 2 end,
+                  -- A whole-name match before a substring one.
+                  (lower(h.name) = lower($4)) desc,
                   h.name
          limit $3`,
-        [ctx.account.accountId, pattern, limit],
+        [ctx.account.accountId, pattern, limit, q],
       );
+      const total = rows[0]?.total_matches ?? 0;
+      for (const r of rows) delete r.total_matches;
       return {
         applied: appliedBlock({ query: q, limit }),
         matches: rows,
+        total_matches: total,
+        truncated: total > rows.length,
         notes: notes(
+          total > rows.length
+            ? `${total - rows.length} more recorded names matched than the ${rows.length} shown; add letters, or raise limit (up to 20).`
+            : null,
           rows.length === 0
             ? "No recorded player matches that name; names change, tags are permanent, and only players the service has observed are findable."
-            : "Your own players and clanmates rank first (source: nickname | claim | clanmate | corpus); names are as last observed.",
+            : "Your own players and clanmates rank first (source: nickname | claim | clanmate | corpus; an agent's clanmates are its own clan's members), a whole-name match before a partial one; names are as last observed.",
         ),
         docs: docsRef("protocol", "argument-conventions"),
         meta: responseMeta({ as_of: new Date().toISOString() }),

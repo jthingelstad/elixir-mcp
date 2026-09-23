@@ -435,6 +435,7 @@ export const clansTools = {
           "last_seen_in_game is the game's own lastSeen (when the player was last ACTIVE), captured from roster polls; last_recorded_battle only moves when a battle was captured; null means no polled roster has carried them.",
           "A member whose last_seen_in_game predates a race start is left out of that race's roster by the game (see war_current.members_not_in_race).",
           "recent_events are events observed since roster recording began (events_recorded_since), never a complete history.",
+          "war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations (Gym #131). War results: clans_participation or battles_performance mode war.",
         ),
         docs: docsRef("recording", "the-games-own-last-seen"),
         meta: {

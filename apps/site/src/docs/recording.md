@@ -323,10 +323,14 @@ carries each member's latest profile row as
 `three_crown_wins`, `collection_level`, `king_tower_level`,
 `total_donations`), `null` for a member whose profile is not recorded, plus
 the three frozen career counters the profile carries on the player rather
-than the day: `war_day_wins` (the game's own `warDayWins`, war day wins over
-the account's life), `clan_cards_collected` (cards donated to clans over the
-account's life) and `legacy_trophy_road_high_score` (the best on the old
-Trophy Road). `players_profile.attributes` carries the same three.
+than the day: `war_day_wins` (the game's own `warDayWins`) and
+`clan_cards_collected` (`clanCardsCollected`), both counters of the retired
+Clan Wars format, frozen since it ended, so 0 on newer accounts and never
+counting a River Race battle or a donation (6.27.0: they used to be
+described as lifetime war wins and donations), and
+`legacy_trophy_road_high_score` (the best on the old Trophy Road). For war
+results use `battles_performance` with `mode: "war"`; for donations,
+`total_donations`. `players_profile.attributes` carries the same three.
 
 A player's past Path of Legends finals are kept once per season: the
 profile poll in the following month carries the API's

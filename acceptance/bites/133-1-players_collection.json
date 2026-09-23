@@ -1,0 +1,318 @@
+{
+  "feedback": 133,
+  "contract_version": "6.25.0",
+  "captured_at": "2026-09-23T17:19:56.326Z",
+  "request": {
+    "tool": "players_collection",
+    "arguments": {
+      "player_tag": "#VJQV8G8RL"
+    }
+  },
+  "response": {
+    "player_tag": "#VJQV8G8RL",
+    "applied": {
+      "verbosity": "full"
+    },
+    "collection_level": 222,
+    "fielded": {
+      "days": 30,
+      "mean_level": 5.99,
+      "battles": 56
+    },
+    "cards": [
+      {
+        "id": 26000000,
+        "name": "Knight",
+        "level": 6,
+        "count": 4,
+        "maxEvolutionLevel": 3,
+        "forms_available": ["evolution", "hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000001,
+        "name": "Archers",
+        "level": 9,
+        "count": 141,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000002,
+        "name": "Goblins",
+        "level": 6,
+        "count": 34,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000003,
+        "name": "Giant",
+        "level": 8,
+        "count": 0,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000005,
+        "name": "Minions",
+        "level": 5,
+        "count": 3,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000008,
+        "name": "Barbarians",
+        "level": 9,
+        "count": 0,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000010,
+        "name": "Skeletons",
+        "level": 6,
+        "count": 74,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000011,
+        "name": "Valkyrie",
+        "level": 8,
+        "count": 0,
+        "maxEvolutionLevel": 3,
+        "forms_available": ["evolution", "hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000013,
+        "name": "Bomber",
+        "level": 7,
+        "count": 86,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000014,
+        "name": "Musketeer",
+        "level": 8,
+        "count": 0,
+        "maxEvolutionLevel": 3,
+        "forms_available": ["evolution", "hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000017,
+        "name": "Wizard",
+        "level": 8,
+        "count": 19,
+        "maxEvolutionLevel": 3,
+        "forms_available": ["evolution", "hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000018,
+        "name": "Mini P.E.K.K.A",
+        "level": 8,
+        "count": 0,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000019,
+        "name": "Spear Goblins",
+        "level": 6,
+        "count": 15,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000031,
+        "name": "Fire Spirit",
+        "level": 7,
+        "count": 130,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000036,
+        "name": "Battle Ram",
+        "level": 5,
+        "count": 8,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000039,
+        "name": "Mega Minion",
+        "level": 7,
+        "count": 4,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000049,
+        "name": "Bats",
+        "level": 8,
+        "count": 60,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000080,
+        "name": "Skeleton Dragons",
+        "level": 7,
+        "count": 140,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000084,
+        "name": "Electro Spirit",
+        "level": 5,
+        "count": 42,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000000,
+        "name": "Cannon",
+        "level": 8,
+        "count": 393,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000001,
+        "name": "Goblin Hut",
+        "level": 8,
+        "count": 8,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000002,
+        "name": "Mortar",
+        "level": 8,
+        "count": 0,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000003,
+        "name": "Inferno Tower",
+        "level": 8,
+        "count": 17,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000004,
+        "name": "Bomb Tower",
+        "level": 5,
+        "count": 7,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000009,
+        "name": "Tombstone",
+        "level": 6,
+        "count": 14,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000012,
+        "name": "Goblin Cage",
+        "level": 6,
+        "count": 2,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000000,
+        "name": "Fireball",
+        "level": 5,
+        "count": 2,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000001,
+        "name": "Arrows",
+        "level": 8,
+        "count": 0,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000003,
+        "name": "Rocket",
+        "level": 7,
+        "count": 14,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000008,
+        "name": "Zap",
+        "level": 6,
+        "count": 9,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      }
+    ],
+    "support_cards": [
+      {
+        "id": 159000000,
+        "name": "Tower Princess",
+        "level": 9,
+        "count": 1,
+        "forms_available": [],
+        "forms_unlocked": []
+      }
+    ],
+    "as_of_payload": "2026-09-23T02:07:50.000Z",
+    "notes": [
+      "forms_available decodes maxEvolutionLevel (which forms exist), forms_unlocked decodes evolutionLevel (which the player holds); both are bit fields, never levels or progress.",
+      "Levels are the in-game 1-16 scale (every card caps at 16); starLevel is cosmetic. The catalog's facts - rarity, elixirCost, maxLevelRarityScale, iconUrls - are not repeated per card here: cards_catalog carries them, once.",
+      "fielded.mean_level (5.99 over 56 decided battles, 30 days) is the mean card level of the decks this player actually plays; a held level below it is an upgrade target, and battles_meta_decks with fit_for checks the population's decks against this collection."
+    ],
+    "docs": "battles#deck-identity-and-forms",
+    "meta": {
+      "contract_version": "6.25.0",
+      "source_polls": {
+        "player": {
+          "observed_at": "2026-09-23T16:37:54.000Z",
+          "freshness_seconds": 2522
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 47,
+    "db_queries": 8,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

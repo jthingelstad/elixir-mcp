@@ -15,6 +15,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { gymCases } from "../../../acceptance/gym-interp.mjs";
+import { makeRegistry } from "../../../services/mcp/src/tools.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const file = process.argv[2];
@@ -66,6 +67,13 @@ const WRITE_TOOLS = new Set([
   "elixir_identify",
   "elixir_send_feedback",
 ]);
+const TAKES_PLAYER_TAG = new Set(
+  makeRegistry()
+    .declarations()
+    .filter((d) => Object.hasOwn(d.inputSchema?.properties ?? {}, "player_tag"))
+    .filter((d) => d.name.startsWith("players_"))
+    .map((d) => d.name),
+);
 const reads = (c) =>
   c.calls ? Object.values(c.calls) : c.tool ? [{ tool: c.tool, args: c.args }] : [];
 
@@ -75,7 +83,9 @@ for (const c of cases) {
     const a = r.args ?? {};
     if (a.live === true) problems.push(`${c.id}: sends live: true`);
     if (WRITE_TOOLS.has(r.tool)) problems.push(`${c.id}: calls ${r.tool}`);
-    if (/^players_/.test(r.tool ?? "") && !a.player_tag)
+    // Only a tool that TAKES player_tag needs it named (players_search
+    // and players_names do not, and refuse an unknown argument).
+    if (TAKES_PLAYER_TAG.has(r.tool) && !a.player_tag)
       problems.push(`${c.id}: ${r.tool} without player_tag`);
   }
   // The bite is the defect's answer; a control asserts what must hold and

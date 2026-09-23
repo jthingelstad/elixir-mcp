@@ -1,0 +1,194 @@
+{
+  "feedback": 129,
+  "contract_version": "6.26.0",
+  "captured_at": "2026-09-23T17:24:26.821Z",
+  "request": {
+    "tool": "players_search",
+    "arguments": {
+      "query": "King",
+      "limit": 20
+    }
+  },
+  "response": {
+    "applied": {
+      "query": "King",
+      "limit": 20
+    },
+    "matches": [
+      {
+        "player_tag": "#QRRJJURJ8",
+        "name": "102% KingDog",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#2CJPLUL2J",
+        "name": "〽️10_King〽️utlu",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": "#8LPVRUJQ",
+        "clan_name": "Osmanli 1453"
+      },
+      {
+        "player_tag": "#2UUL0PLG2",
+        "name": "⭐2Good4King⭐",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#9PPRCCYVC",
+        "name": "2tokeking",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#Y092UU2J",
+        "name": "3BOOD-KinG",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#9J2L9CVCR",
+        "name": "3〽️King❤️神气猪",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#9VRCJUQ82",
+        "name": "<4>KING⚡WOLF❤️",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#JRUYUYR2Y",
+        "name": "⚡55 king 22⚡",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#8PG0RC892",
+        "name": "5KingKey5",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#8YPJQCVGJ",
+        "name": "8KING",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#29QPY9JJ",
+        "name": "AARKING",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#QRQJ8928J",
+        "name": "Aaron_DaKing",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": "#R0J9ULGG",
+        "clan_name": "CharlieRoyale"
+      },
+      {
+        "player_tag": "#2C229Q2QJ",
+        "name": "ABAS ALKING",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#L0JP9Y0C",
+        "name": "abbas king",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#L9CU8QCV8",
+        "name": "ABBAS KING\"",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#8RY8PP0RR",
+        "name": "Abd the king",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#VGGUGVL2G",
+        "name": "Abid King",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#9VPPJGPL",
+        "name": "AboKing",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#LJVV802Y",
+        "name": "Abood King",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#C2Y92RVPR",
+        "name": "AC I The King",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      }
+    ],
+    "notes": [
+      "Your own players and clanmates rank first (source: nickname | claim | clanmate | corpus); names are as last observed."
+    ],
+    "docs": "protocol#argument-conventions",
+    "meta": {
+      "contract_version": "6.26.0"
+    }
+  },
+  "timings": {
+    "db_ms": 359,
+    "db_queries": 1,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

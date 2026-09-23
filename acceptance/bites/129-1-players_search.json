@@ -1,0 +1,194 @@
+{
+  "feedback": 129,
+  "contract_version": "6.26.0",
+  "captured_at": "2026-09-23T17:24:27.502Z",
+  "request": {
+    "tool": "players_search",
+    "arguments": {
+      "query": "Andy",
+      "limit": 20
+    }
+  },
+  "response": {
+    "applied": {
+      "query": "Andy",
+      "limit": 20
+    },
+    "matches": [
+      {
+        "player_tag": "#QLQV89L8",
+        "name": "123andyessir",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#PVR2GL",
+        "name": "AC I ANDYNTHSDE",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#RPRPUJ2JL",
+        "name": "ako.zandy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#899CV0U9",
+        "name": "AMIC_Andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#288PC9",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#VP9LJPYG",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#9GY8RYR2P",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#8080PR8G0",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#20P0RP9GUR",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#VLRPYVUJ2",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#2RUJVQQC9",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#QPRGCCVQ9",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#UQCRQQYVJ",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#QG0VQU",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": "#RPV0G9YP",
+        "clan_name": "Vibin’"
+      },
+      {
+        "player_tag": "#YQLY0LC2R",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#8PRYPR28",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": "#PG029R08",
+        "clan_name": "castrexos lugo"
+      },
+      {
+        "player_tag": "#8UUJGJCY",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#9LJYC0YCC",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#208LP8CR9U",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "player_tag": "#V9J8LV0U0",
+        "name": "andy",
+        "nickname": null,
+        "source": "corpus",
+        "clan_tag": null,
+        "clan_name": null
+      }
+    ],
+    "notes": [
+      "Your own players and clanmates rank first (source: nickname | claim | clanmate | corpus); names are as last observed."
+    ],
+    "docs": "protocol#argument-conventions",
+    "meta": {
+      "contract_version": "6.26.0"
+    }
+  },
+  "timings": {
+    "db_ms": 267,
+    "db_queries": 1,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

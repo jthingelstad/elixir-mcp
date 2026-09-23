@@ -1,0 +1,1180 @@
+{
+  "feedback": 134,
+  "contract_version": "6.25.0",
+  "captured_at": "2026-09-23T17:19:35.978Z",
+  "request": {
+    "tool": "players_collection",
+    "arguments": {
+      "player_tag": "#20JJJ2CCRU"
+    }
+  },
+  "response": {
+    "player_tag": "#20JJJ2CCRU",
+    "applied": {
+      "verbosity": "full"
+    },
+    "collection_level": 1759,
+    "fielded": {
+      "days": 30,
+      "mean_level": 15.77,
+      "battles": 71
+    },
+    "cards": [
+      {
+        "id": 26000000,
+        "name": "Knight",
+        "level": 13,
+        "count": 1596,
+        "evolutionLevel": 2,
+        "maxEvolutionLevel": 3,
+        "forms_available": ["evolution", "hero"],
+        "forms_unlocked": ["hero"]
+      },
+      {
+        "id": 26000001,
+        "name": "Archers",
+        "level": 11,
+        "count": 2422,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000002,
+        "name": "Goblins",
+        "level": 12,
+        "count": 6235,
+        "evolutionLevel": 2,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": ["hero"]
+      },
+      {
+        "id": 26000003,
+        "name": "Giant",
+        "level": 13,
+        "count": 790,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000004,
+        "name": "P.E.K.K.A",
+        "level": 11,
+        "count": 148,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000005,
+        "name": "Minions",
+        "level": 15,
+        "count": 810,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000006,
+        "name": "Balloon",
+        "level": 11,
+        "count": 151,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000007,
+        "name": "Witch",
+        "level": 16,
+        "count": 0,
+        "starLevel": 2,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000008,
+        "name": "Barbarians",
+        "level": 13,
+        "count": 8878,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000009,
+        "name": "Golem",
+        "level": 10,
+        "count": 144,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000010,
+        "name": "Skeletons",
+        "level": 15,
+        "count": 512,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000011,
+        "name": "Valkyrie",
+        "level": 16,
+        "count": 0,
+        "starLevel": 2,
+        "evolutionLevel": 3,
+        "maxEvolutionLevel": 3,
+        "forms_available": ["evolution", "hero"],
+        "forms_unlocked": ["evolution", "hero"]
+      },
+      {
+        "id": 26000012,
+        "name": "Skeleton Army",
+        "level": 16,
+        "count": 0,
+        "starLevel": 3,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000013,
+        "name": "Bomber",
+        "level": 15,
+        "count": 8489,
+        "starLevel": 1,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000014,
+        "name": "Musketeer",
+        "level": 15,
+        "count": 646,
+        "starLevel": 1,
+        "evolutionLevel": 3,
+        "maxEvolutionLevel": 3,
+        "forms_available": ["evolution", "hero"],
+        "forms_unlocked": ["evolution", "hero"]
+      },
+      {
+        "id": 26000015,
+        "name": "Baby Dragon",
+        "level": 12,
+        "count": 264,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000016,
+        "name": "Prince",
+        "level": 12,
+        "count": 80,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000017,
+        "name": "Wizard",
+        "level": 13,
+        "count": 1192,
+        "starLevel": 1,
+        "evolutionLevel": 3,
+        "maxEvolutionLevel": 3,
+        "forms_available": ["evolution", "hero"],
+        "forms_unlocked": ["evolution", "hero"]
+      },
+      {
+        "id": 26000018,
+        "name": "Mini P.E.K.K.A",
+        "level": 16,
+        "count": 0,
+        "starLevel": 2,
+        "evolutionLevel": 2,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": ["hero"]
+      },
+      {
+        "id": 26000019,
+        "name": "Spear Goblins",
+        "level": 15,
+        "count": 678,
+        "starLevel": 1,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000020,
+        "name": "Giant Skeleton",
+        "level": 11,
+        "count": 172,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000021,
+        "name": "Hog Rider",
+        "level": 15,
+        "count": 1400,
+        "starLevel": 1,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000022,
+        "name": "Minion Horde",
+        "level": 13,
+        "count": 11671,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000023,
+        "name": "Ice Wizard",
+        "level": 10,
+        "count": 16,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000024,
+        "name": "Royal Giant",
+        "level": 11,
+        "count": 6550,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000025,
+        "name": "Guards",
+        "level": 15,
+        "count": 70,
+        "starLevel": 2,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000026,
+        "name": "Princess",
+        "level": 11,
+        "count": 22,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000027,
+        "name": "Dark Prince",
+        "level": 10,
+        "count": 193,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000028,
+        "name": "Three Musketeers",
+        "level": 10,
+        "count": 1510,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000029,
+        "name": "Lava Hound",
+        "level": 10,
+        "count": 19,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000030,
+        "name": "Ice Spirit",
+        "level": 12,
+        "count": 6407,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000031,
+        "name": "Fire Spirit",
+        "level": 13,
+        "count": 16521,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000032,
+        "name": "Miner",
+        "level": 12,
+        "count": 1,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000033,
+        "name": "Sparky",
+        "level": 12,
+        "count": 26,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000034,
+        "name": "Bowler",
+        "level": 11,
+        "count": 373,
+        "evolutionLevel": 2,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": ["hero"]
+      },
+      {
+        "id": 26000035,
+        "name": "Lumberjack",
+        "level": 12,
+        "count": 8,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000036,
+        "name": "Battle Ram",
+        "level": 11,
+        "count": 715,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000037,
+        "name": "Inferno Dragon",
+        "level": 16,
+        "count": 0,
+        "starLevel": 3,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000038,
+        "name": "Ice Golem",
+        "level": 11,
+        "count": 1419,
+        "evolutionLevel": 2,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": ["hero"]
+      },
+      {
+        "id": 26000039,
+        "name": "Mega Minion",
+        "level": 10,
+        "count": 2881,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000040,
+        "name": "Dart Goblin",
+        "level": 16,
+        "count": 0,
+        "starLevel": 2,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000041,
+        "name": "Goblin Gang",
+        "level": 15,
+        "count": 7500,
+        "starLevel": 1,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000042,
+        "name": "Electro Wizard",
+        "level": 11,
+        "count": 15,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000043,
+        "name": "Elite Barbarians",
+        "level": 12,
+        "count": 5414,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000044,
+        "name": "Hunter",
+        "level": 11,
+        "count": 266,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000045,
+        "name": "Executioner",
+        "level": 12,
+        "count": 99,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000046,
+        "name": "Bandit",
+        "level": 15,
+        "count": 6,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000047,
+        "name": "Royal Recruits",
+        "level": 10,
+        "count": 7558,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000048,
+        "name": "Night Witch",
+        "level": 11,
+        "count": 11,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000049,
+        "name": "Bats",
+        "level": 11,
+        "count": 3780,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000050,
+        "name": "Royal Ghost",
+        "level": 16,
+        "count": 0,
+        "starLevel": 1,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000051,
+        "name": "Ram Rider",
+        "level": 12,
+        "count": 11,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000052,
+        "name": "Zappies",
+        "level": 11,
+        "count": 815,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000053,
+        "name": "Rascals",
+        "level": 10,
+        "count": 8647,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000054,
+        "name": "Cannon Cart",
+        "level": 11,
+        "count": 205,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000055,
+        "name": "Mega Knight",
+        "level": 11,
+        "count": 7,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000056,
+        "name": "Skeleton Barrel",
+        "level": 16,
+        "count": 0,
+        "starLevel": 1,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000057,
+        "name": "Flying Machine",
+        "level": 10,
+        "count": 1098,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000058,
+        "name": "Wall Breakers",
+        "level": 16,
+        "count": 0,
+        "starLevel": 1,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000059,
+        "name": "Royal Hogs",
+        "level": 16,
+        "count": 0,
+        "starLevel": 2,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000060,
+        "name": "Goblin Giant",
+        "level": 10,
+        "count": 216,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000061,
+        "name": "Fisherman",
+        "level": 11,
+        "count": 26,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000062,
+        "name": "Magic Archer",
+        "level": 11,
+        "count": 13,
+        "evolutionLevel": 2,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": ["hero"]
+      },
+      {
+        "id": 26000063,
+        "name": "Electro Dragon",
+        "level": 16,
+        "count": 0,
+        "starLevel": 1,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 26000064,
+        "name": "Firecracker",
+        "level": 12,
+        "count": 2657,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000065,
+        "name": "Mighty Miner",
+        "level": 12,
+        "count": 2,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000067,
+        "name": "Elixir Golem",
+        "level": 10,
+        "count": 1034,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000068,
+        "name": "Battle Healer",
+        "level": 11,
+        "count": 604,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000069,
+        "name": "Skeleton King",
+        "level": 15,
+        "count": 0,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000072,
+        "name": "Archer Queen",
+        "level": 11,
+        "count": 3,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000074,
+        "name": "Golden Knight",
+        "level": 15,
+        "count": 8,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000077,
+        "name": "Monk",
+        "level": 12,
+        "count": 2,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000080,
+        "name": "Skeleton Dragons",
+        "level": 11,
+        "count": 7360,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000083,
+        "name": "Mother Witch",
+        "level": 11,
+        "count": 13,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000084,
+        "name": "Electro Spirit",
+        "level": 11,
+        "count": 3734,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000085,
+        "name": "Electro Giant",
+        "level": 10,
+        "count": 253,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000087,
+        "name": "Phoenix",
+        "level": 10,
+        "count": 29,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000093,
+        "name": "Little Prince",
+        "level": 12,
+        "count": 15,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000095,
+        "name": "Goblin Demolisher",
+        "level": 11,
+        "count": 624,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000096,
+        "name": "Goblin Machine",
+        "level": 11,
+        "count": 26,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000097,
+        "name": "Suspicious Bush",
+        "level": 11,
+        "count": 596,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000099,
+        "name": "Goblinstein",
+        "level": 11,
+        "count": 3,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000101,
+        "name": "Rune Giant",
+        "level": 11,
+        "count": 49,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000102,
+        "name": "Berserker",
+        "level": 11,
+        "count": 2938,
+        "evolutionLevel": 2,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": ["hero"]
+      },
+      {
+        "id": 26000103,
+        "name": "Boss Bandit",
+        "level": 15,
+        "count": 0,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 26000106,
+        "name": "Ronin",
+        "level": 16,
+        "count": 0,
+        "starLevel": 1,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000000,
+        "name": "Cannon",
+        "level": 16,
+        "count": 0,
+        "starLevel": 3,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 27000001,
+        "name": "Goblin Hut",
+        "level": 11,
+        "count": 1260,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000002,
+        "name": "Mortar",
+        "level": 16,
+        "count": 0,
+        "starLevel": 1,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 27000003,
+        "name": "Inferno Tower",
+        "level": 12,
+        "count": 967,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000004,
+        "name": "Bomb Tower",
+        "level": 10,
+        "count": 1201,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000005,
+        "name": "Barbarian Hut",
+        "level": 10,
+        "count": 1100,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000006,
+        "name": "Tesla",
+        "level": 13,
+        "count": 1038,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 27000007,
+        "name": "Elixir Collector",
+        "level": 10,
+        "count": 1941,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000008,
+        "name": "X-Bow",
+        "level": 11,
+        "count": 91,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 27000009,
+        "name": "Tombstone",
+        "level": 12,
+        "count": 2603,
+        "evolutionLevel": 2,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": ["hero"]
+      },
+      {
+        "id": 27000010,
+        "name": "Furnace",
+        "level": 16,
+        "count": 0,
+        "starLevel": 1,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 27000012,
+        "name": "Goblin Cage",
+        "level": 11,
+        "count": 1548,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 27000013,
+        "name": "Goblin Drill",
+        "level": 11,
+        "count": 100,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000000,
+        "name": "Fireball",
+        "level": 13,
+        "count": 750,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000001,
+        "name": "Arrows",
+        "level": 16,
+        "count": 0,
+        "starLevel": 3,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000002,
+        "name": "Rage",
+        "level": 10,
+        "count": 299,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000003,
+        "name": "Rocket",
+        "level": 13,
+        "count": 1059,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000004,
+        "name": "Goblin Barrel",
+        "level": 15,
+        "count": 34,
+        "starLevel": 2,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000005,
+        "name": "Freeze",
+        "level": 10,
+        "count": 145,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000006,
+        "name": "Mirror",
+        "level": 10,
+        "count": 272,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000007,
+        "name": "Lightning",
+        "level": 10,
+        "count": 280,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000008,
+        "name": "Zap",
+        "level": 12,
+        "count": 3901,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 28000009,
+        "name": "Poison",
+        "level": 10,
+        "count": 133,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000010,
+        "name": "Graveyard",
+        "level": 11,
+        "count": 11,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000011,
+        "name": "The Log",
+        "level": 15,
+        "count": 2,
+        "starLevel": 1,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000012,
+        "name": "Tornado",
+        "level": 11,
+        "count": 52,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000013,
+        "name": "Clone",
+        "level": 10,
+        "count": 175,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000014,
+        "name": "Earthquake",
+        "level": 10,
+        "count": 1780,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000015,
+        "name": "Barbarian Barrel",
+        "level": 16,
+        "count": 0,
+        "starLevel": 1,
+        "evolutionLevel": 2,
+        "maxEvolutionLevel": 2,
+        "forms_available": ["hero"],
+        "forms_unlocked": ["hero"]
+      },
+      {
+        "id": 28000016,
+        "name": "Heal Spirit",
+        "level": 11,
+        "count": 1025,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000017,
+        "name": "Giant Snowball",
+        "level": 16,
+        "count": 0,
+        "starLevel": 1,
+        "evolutionLevel": 1,
+        "maxEvolutionLevel": 1,
+        "forms_available": ["evolution"],
+        "forms_unlocked": ["evolution"]
+      },
+      {
+        "id": 28000018,
+        "name": "Royal Delivery",
+        "level": 16,
+        "count": 0,
+        "starLevel": 1,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000023,
+        "name": "Void",
+        "level": 11,
+        "count": 56,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000024,
+        "name": "Goblin Curse",
+        "level": 10,
+        "count": 315,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000025,
+        "name": "Spirit Empress",
+        "level": 11,
+        "count": 13,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 28000026,
+        "name": "Vines",
+        "level": 11,
+        "count": 123,
+        "forms_available": [],
+        "forms_unlocked": []
+      }
+    ],
+    "support_cards": [
+      {
+        "id": 159000000,
+        "name": "Tower Princess",
+        "level": 16,
+        "count": 0,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 159000001,
+        "name": "Cannoneer",
+        "level": 10,
+        "count": 44,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 159000002,
+        "name": "Dagger Duchess",
+        "level": 10,
+        "count": 3,
+        "forms_available": [],
+        "forms_unlocked": []
+      },
+      {
+        "id": 159000004,
+        "name": "Royal Chef",
+        "level": 9,
+        "count": 3,
+        "forms_available": [],
+        "forms_unlocked": []
+      }
+    ],
+    "as_of_payload": "2026-09-23T07:27:49.000Z",
+    "notes": [
+      "forms_available decodes maxEvolutionLevel (which forms exist), forms_unlocked decodes evolutionLevel (which the player holds); both are bit fields, never levels or progress.",
+      "Levels are the in-game 1-16 scale (every card caps at 16); starLevel is cosmetic. The catalog's facts - rarity, elixirCost, maxLevelRarityScale, iconUrls - are not repeated per card here: cards_catalog carries them, once.",
+      "fielded.mean_level (15.77 over 71 decided battles, 30 days) is the mean card level of the decks this player actually plays; a held level below it is an upgrade target, and battles_meta_decks with fit_for checks the population's decks against this collection."
+    ],
+    "docs": "battles#deck-identity-and-forms",
+    "meta": {
+      "contract_version": "6.25.0",
+      "source_polls": {
+        "player": {
+          "observed_at": "2026-09-23T14:27:49.000Z",
+          "freshness_seconds": 10307
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 55,
+    "db_queries": 8,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

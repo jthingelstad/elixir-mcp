@@ -1,3 +1,4 @@
+import { modeGroupSql } from "@elixir-mcp/contracts";
 import {
   ARCHETYPE_ARG,
   ARCHETYPE_NOTE,
@@ -105,13 +106,15 @@ export const battles_decks = {
       params,
     );
     const { rows: byType } = await ctx.db.query(
-      `select bp.deck_hash, b.type,
+      // The mode group is event-aware (Gym #130): by type alone, the
+      // Seasonal Trophy Road's event battles were filed as casual.
+      `select bp.deck_hash, b.type, ${modeGroupSql("b.type", "b.event_tag")} as mode_group,
                 count(*)::int as battles,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses
          from battle_participant bp join battle b on b.battle_id = bp.battle_id
          where ${where.join(" and ")}
-         group by bp.deck_hash, b.type`,
+         group by bp.deck_hash, b.type, 3`,
       params,
     );
     const typesByDeck = new Map();

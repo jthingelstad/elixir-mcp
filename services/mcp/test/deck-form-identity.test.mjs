@@ -561,7 +561,17 @@ test("6.4.0 fit_for: a row the player cannot field leaves decks[]; a fieldable r
 
   // players_collection carries the same benchmark.
   const coll = await call("players_collection", { player_tag: FIT });
-  assert.deepEqual(coll.fielded, { days: 30, mean_level: 15.4, battles: 3 });
+  // 6.27.0 (Gym #133, #134): the window behind it and the level fielded
+  // in the last ten decided battles ride beside the 30-day mean.
+  const { from: fieldedFrom, ...fieldedRest } = coll.fielded;
+  assert.ok(Date.parse(fieldedFrom) > 0);
+  assert.deepEqual(fieldedRest, {
+    days: 30,
+    to: null,
+    mean_level: 15.4,
+    recent_mean_level: 15.4,
+    battles: 3,
+  });
 });
 
 // --- 6.5.0: the archetype on every deck object, and the archetype filter --

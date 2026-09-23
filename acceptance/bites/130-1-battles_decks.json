@@ -1,0 +1,241 @@
+{
+  "feedback": 130,
+  "contract_version": "6.26.0",
+  "captured_at": "2026-09-23T17:27:29.095Z",
+  "request": {
+    "tool": "battles_decks",
+    "arguments": {
+      "player_tag": "#2P9GRU2Q0",
+      "from": "2026-08-31T00:00:00Z",
+      "to": "2026-09-06T00:00:00Z"
+    }
+  },
+  "response": {
+    "player_tag": "#2P9GRU2Q0",
+    "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+    "applied": {
+      "window": {
+        "from": "2026-08-31T00:00:00.000Z",
+        "to": "2026-09-06T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 33
+      },
+      "sort": "battles",
+      "limit": 40
+    },
+    "total_battles_in_window": 3,
+    "excluded": {
+      "duels": 0,
+      "no_deck": 0
+    },
+    "comparable": false,
+    "decks": [
+      {
+        "deck_hash": "1afe6811c6cf55b215f88d377647b2080c7643a478ca0995f34684180f0b43b3",
+        "cards": [
+          {
+            "id": 26000012,
+            "name": "Skeleton Army",
+            "form": "base"
+          },
+          {
+            "id": 26000042,
+            "name": "Electro Wizard",
+            "form": "base"
+          },
+          {
+            "id": 26000045,
+            "name": "Executioner",
+            "form": "base"
+          },
+          {
+            "id": 26000048,
+            "name": "Night Witch",
+            "form": "base"
+          },
+          {
+            "id": 26000055,
+            "name": "Mega Knight",
+            "form": "base"
+          },
+          {
+            "id": 27000006,
+            "name": "Tesla",
+            "form": "base"
+          },
+          {
+            "id": 28000010,
+            "name": "Graveyard",
+            "form": "base"
+          },
+          {
+            "id": 28000011,
+            "name": "The Log",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "control",
+          "win_conditions": [
+            {
+              "id": 28000010,
+              "name": "Graveyard",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [
+            {
+              "id": 26000055,
+              "name": "Mega Knight",
+              "form": "base"
+            }
+          ],
+          "named_by": null,
+          "label": "Graveyard control",
+          "average_elixir": 4.25,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        },
+        "battles": 2,
+        "wins": 1,
+        "losses": 1,
+        "draws": 0,
+        "win_rate": 0.5,
+        "share_of_battles": 0.667,
+        "modes": {
+          "casual": {
+            "battles": 2,
+            "wins": 1,
+            "losses": 1
+          }
+        },
+        "dominant_mode": "casual",
+        "dominant_mode_share": 1,
+        "mean_level_gap": 0,
+        "own_mean_level": 11,
+        "opponent_mean_level": 11,
+        "level_gap_battles": 2,
+        "first_used": "2026-08-31T16:13:24.000Z",
+        "last_used": "2026-08-31T16:17:08.000Z"
+      },
+      {
+        "deck_hash": "50e9e24d4a89dac7a38ae42818bb558fc220fd3872036c1b3a2c915648cc0637",
+        "cards": [
+          {
+            "id": 26000011,
+            "name": "Valkyrie",
+            "form": "hero"
+          },
+          {
+            "id": 26000014,
+            "name": "Musketeer",
+            "form": "base"
+          },
+          {
+            "id": 26000034,
+            "name": "Bowler",
+            "form": "hero"
+          },
+          {
+            "id": 26000035,
+            "name": "Lumberjack",
+            "form": "base"
+          },
+          {
+            "id": 26000043,
+            "name": "Elite Barbarians",
+            "form": "evolution"
+          },
+          {
+            "id": 27000010,
+            "name": "Furnace",
+            "form": "base"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          },
+          {
+            "id": 28000017,
+            "name": "Giant Snowball",
+            "form": "base"
+          }
+        ],
+        "archetype": {
+          "family": "bridge_spam",
+          "win_conditions": [
+            {
+              "id": 26000043,
+              "name": "Elite Barbarians",
+              "form": "evolution"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Evo Elite Barbarians bridge spam",
+          "average_elixir": 4,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        },
+        "battles": 1,
+        "wins": 1,
+        "losses": 0,
+        "draws": 0,
+        "win_rate": 1,
+        "share_of_battles": 0.333,
+        "modes": {
+          "war": {
+            "battles": 1,
+            "wins": 1,
+            "losses": 0
+          }
+        },
+        "dominant_mode": "war",
+        "dominant_mode_share": 1,
+        "mean_level_gap": 0.13,
+        "own_mean_level": 15.88,
+        "opponent_mean_level": 15.75,
+        "level_gap_battles": 1,
+        "first_used": "2026-09-05T15:54:49.000Z",
+        "last_used": "2026-09-05T15:54:49.000Z"
+      }
+    ],
+    "notes": [
+      "Win rates here are NOT comparable across rows: deck 1afe6811… was played 100% in casual (mean level gap +0.00) and deck 50e9e24d… 100% in war (gap +0.13); matchmaking differs by mode (war draws opponents from the racing clans, not from your trophies, so a strong player meets weaker ones there) and a level gap moves the expected win rate, so rank decks only within one mode and similar mean_level_gap (pass mode; the record describes the gap and does not adjust for it).",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "Deck identity includes each card's form and the tower troop, so two decks with the same eight names can be different decks.",
+      "mean_level_gap is this deck's average card level minus the opposing side's over level_gap_battles (positive = you outlevelled them); modes splits the row by mode group, and win rates across rows are comparable only when comparable is true."
+    ],
+    "docs": "battles#the-control-next-to-the-number",
+    "meta": {
+      "contract_version": "6.26.0",
+      "source_polls": {
+        "player_battlelog": {
+          "observed_at": "2026-09-23T16:03:04.000Z",
+          "freshness_seconds": 5065
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 158,
+    "db_queries": 15,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

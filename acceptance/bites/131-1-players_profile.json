@@ -1,0 +1,761 @@
+{
+  "feedback": 131,
+  "contract_version": "6.25.0",
+  "captured_at": "2026-09-23T17:18:40.854Z",
+  "request": {
+    "tool": "players_profile",
+    "arguments": {
+      "player_tag": "#20JJJ2CCRU"
+    }
+  },
+  "response": {
+    "player_tag": "#20JJJ2CCRU",
+    "name": "King Thing",
+    "applied": {},
+    "clan": {
+      "clan_tag": "#J2RGCRVG",
+      "name": "POAP KINGS",
+      "badge_id": 16000013,
+      "role": "leader"
+    },
+    "last_seen_in_game": "2026-09-23T02:59:49.000Z",
+    "attributes": {
+      "arena_id": 54000142,
+      "best_trophies": 12622,
+      "favorite_card_id": 26000059,
+      "years_played": null,
+      "account_age_days": null,
+      "war_day_wins": 0,
+      "clan_cards_collected": 0,
+      "legacy_trophy_road_high_score": null
+    },
+    "badges": [
+      {
+        "name": "BannerCollection",
+        "label": "Banner Collection",
+        "level": 5,
+        "target": 200,
+        "progress": 191,
+        "max_level": 8
+      },
+      {
+        "name": "BattleWins",
+        "label": "Battle Wins",
+        "level": 5,
+        "target": 2500,
+        "progress": 1188,
+        "max_level": 8
+      },
+      {
+        "name": "BeatingDeathBadge",
+        "label": "Beating Death",
+        "level": null,
+        "target": null,
+        "progress": 1,
+        "max_level": null
+      },
+      {
+        "name": "Chaos_S2",
+        "label": "Chaos Season 2",
+        "level": null,
+        "target": null,
+        "progress": 1,
+        "max_level": null
+      },
+      {
+        "name": "ClanDonations",
+        "label": "Clan Donations",
+        "level": 5,
+        "target": 25000,
+        "progress": 16049,
+        "max_level": 8
+      },
+      {
+        "name": "ClanWarWins",
+        "label": "Clan War Wins",
+        "level": 5,
+        "target": 500,
+        "progress": 298,
+        "max_level": 8
+      },
+      {
+        "name": "CollectionLevel",
+        "label": "Collection Level",
+        "level": 8,
+        "target": null,
+        "progress": 1759,
+        "max_level": 8
+      },
+      {
+        "name": "EasterEgg",
+        "label": "Easter Egg",
+        "level": null,
+        "target": null,
+        "progress": 1,
+        "max_level": null
+      },
+      {
+        "name": "EmoteCollection",
+        "label": "Emote Collection",
+        "level": 5,
+        "target": 200,
+        "progress": 152,
+        "max_level": 8
+      },
+      {
+        "name": "MasteryArrows",
+        "label": "Arrows Mastery",
+        "level": 9,
+        "target": 10,
+        "progress": 9,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryAssassin",
+        "label": "Bandit Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryBabyDragon",
+        "label": "Baby Dragon Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryBarbarians",
+        "label": "Barbarians Mastery",
+        "level": 3,
+        "target": 4,
+        "progress": 3,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryBarbLog",
+        "label": "Barbarian Barrel Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryBats",
+        "label": "Bats Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryBattleRam",
+        "label": "Battle Ram Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryBerserker",
+        "label": "Berserker Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryBlowdartGoblin",
+        "label": "Dart Goblin Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryBomber",
+        "label": "Bomber Mastery",
+        "level": 6,
+        "target": 7,
+        "progress": 6,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryBombTower",
+        "label": "Bomb Tower Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryBossBandit",
+        "label": "Boss Bandit Mastery",
+        "level": 5,
+        "target": 6,
+        "progress": 5,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryCannon",
+        "label": "Cannon Mastery",
+        "level": 7,
+        "target": 8,
+        "progress": 7,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryEarthquake",
+        "label": "Earthquake Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryElectroDragon",
+        "label": "Electro Dragon Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryElectroGiant",
+        "label": "Electro Giant Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryFireball",
+        "label": "Fireball Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryFirespiritHut",
+        "label": "Furnace Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryFireSpirits",
+        "label": "Fire Spirit Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryFreeze",
+        "label": "Freeze Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryGhost",
+        "label": "Royal Ghost Mastery",
+        "level": 7,
+        "target": 8,
+        "progress": 7,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryGiant",
+        "label": "Giant Mastery",
+        "level": 2,
+        "target": 3,
+        "progress": 2,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryGoblinBarrel",
+        "label": "Goblin Barrel Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryGoblinCage",
+        "label": "Goblin Cage Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryGoblinGang",
+        "label": "Goblin Gang Mastery",
+        "level": 5,
+        "target": 6,
+        "progress": 5,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryGoblinHut",
+        "label": "Goblin Hut Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryGoblins",
+        "label": "Goblins Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryGoldenKnight",
+        "label": "Golden Knight Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryGraveyard",
+        "label": "Graveyard Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryHeal",
+        "label": "Heal Spirit Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryHogRider",
+        "label": "Hog Rider Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryHunter",
+        "label": "Hunter Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryIceGolemite",
+        "label": "Ice Golem Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryInfernoDragon",
+        "label": "Inferno Dragon Mastery",
+        "level": 7,
+        "target": 8,
+        "progress": 7,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryKnight",
+        "label": "Knight Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryLightning",
+        "label": "Lightning Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryLog",
+        "label": "The Log Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryMegaMinion",
+        "label": "Mega Minion Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryMinions",
+        "label": "Minions Mastery",
+        "level": 5,
+        "target": 6,
+        "progress": 5,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryMiniPekka",
+        "label": "Mini P.E.K.K.A Mastery",
+        "level": 9,
+        "target": 10,
+        "progress": 9,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryMortar",
+        "label": "Mortar Mastery",
+        "level": 5,
+        "target": 6,
+        "progress": 5,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryMovingCannon",
+        "label": "Cannon Cart Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryMusketeer",
+        "label": "Musketeer Mastery",
+        "level": 5,
+        "target": 6,
+        "progress": 5,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryPoison",
+        "label": "Poison Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryPrince",
+        "label": "Prince Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryRageBarbarian",
+        "label": "Lumberjack Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryRamRider",
+        "label": "Ram Rider Mastery",
+        "level": 2,
+        "target": 3,
+        "progress": 2,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryRonin",
+        "label": "Ronin Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryRoyalDelivery",
+        "label": "Royal Delivery Mastery",
+        "level": 5,
+        "target": 6,
+        "progress": 5,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryRoyalGiant",
+        "label": "Royal Giant Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryRoyalHogs",
+        "label": "Royal Hogs Mastery",
+        "level": 7,
+        "target": 8,
+        "progress": 7,
+        "max_level": 10
+      },
+      {
+        "name": "MasterySkeletonArmy",
+        "label": "Skeleton Army Mastery",
+        "level": 7,
+        "target": 8,
+        "progress": 7,
+        "max_level": 10
+      },
+      {
+        "name": "MasterySkeletonBalloon",
+        "label": "Skeleton Barrel Mastery",
+        "level": 3,
+        "target": 4,
+        "progress": 3,
+        "max_level": 10
+      },
+      {
+        "name": "MasterySkeletonKing",
+        "label": "Skeleton King Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasterySkeletons",
+        "label": "Skeletons Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasterySkeletonWarriors",
+        "label": "Guards Mastery",
+        "level": 5,
+        "target": 6,
+        "progress": 5,
+        "max_level": 10
+      },
+      {
+        "name": "MasterySnowball",
+        "label": "Giant Snowball Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasterySpearGoblins",
+        "label": "Spear Goblins Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryTesla",
+        "label": "Tesla Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryTombstone",
+        "label": "Tombstone Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryTornado",
+        "label": "Tornado Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryValkyrie",
+        "label": "Valkyrie Mastery",
+        "level": 6,
+        "target": 7,
+        "progress": 6,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryVines",
+        "label": "Vines Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryWallbreakers",
+        "label": "Wall Breakers Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryWitch",
+        "label": "Witch Mastery",
+        "level": 7,
+        "target": 8,
+        "progress": 7,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryWitchMother",
+        "label": "Mother Witch Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryWizard",
+        "label": "Wizard Mastery",
+        "level": 4,
+        "target": 5,
+        "progress": 4,
+        "max_level": 10
+      },
+      {
+        "name": "MasteryZap",
+        "label": "Zap Mastery",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 10
+      },
+      {
+        "name": "MegaDraftLeagueBadge",
+        "label": "Mega Draft League",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 2
+      },
+      {
+        "name": "TouchdownLeagueBadge",
+        "label": "Touchdown League",
+        "level": 1,
+        "target": 2,
+        "progress": 1,
+        "max_level": 2
+      }
+    ],
+    "snapshot": {
+      "date": "2026-09-23",
+      "trophies": 12533,
+      "path_of_legend": {
+        "current": {
+          "leagueNumber": 1,
+          "trophies": 0,
+          "rank": null
+        },
+        "best": {
+          "leagueNumber": 1,
+          "trophies": 0,
+          "rank": null
+        },
+        "seasons": [
+          {
+            "rank": null,
+            "league": 1,
+            "trophies": 0,
+            "season_month": "2026-08"
+          },
+          {
+            "rank": null,
+            "league": 1,
+            "trophies": 0,
+            "season_month": "2026-07"
+          },
+          {
+            "rank": null,
+            "league": 1,
+            "trophies": 0,
+            "season_month": "2026-06"
+          },
+          {
+            "rank": null,
+            "league": 1,
+            "trophies": 0,
+            "season_month": "2026-05"
+          },
+          {
+            "rank": null,
+            "league": 1,
+            "trophies": 0,
+            "season_month": "2026-04"
+          },
+          {
+            "rank": null,
+            "league": 1,
+            "trophies": 0,
+            "season_month": "2026-03"
+          },
+          {
+            "rank": null,
+            "league": 1,
+            "trophies": 0,
+            "season_month": "2026-02"
+          }
+        ]
+      },
+      "league_statistics": null,
+      "donations_this_week": 131,
+      "donations_received_this_week": 200,
+      "lifetime": {
+        "battle_count": 1960,
+        "wins": 1188,
+        "losses": 772,
+        "three_crown_wins": 608,
+        "star_points": 5886,
+        "exp_points": 135967,
+        "collection_level": 1759
+      }
+    },
+    "notes": [
+      "last_seen_in_game is the game's own lastSeen from clan roster polls (when the player was last active); null until a polled roster carried them.",
+      "attributes and clan carry ids only; names and icons resolve through cards_catalog.",
+      "path_of_legend.seasons lists the last twelve season finals the record kept (the API's lastPathOfLegendSeasonResult, read in the following month; rank null unless globally ranked), newest first; empty for a player recorded after their last final or never ranked."
+    ],
+    "docs": "recording#the-games-own-last-seen",
+    "meta": {
+      "contract_version": "6.25.0",
+      "source_polls": {
+        "player": {
+          "observed_at": "2026-09-23T14:27:49.000Z",
+          "freshness_seconds": 10252
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 41,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "feedback": 132,
+  "contract_version": "6.25.0",
+  "captured_at": "2026-09-23T17:17:43.228Z",
+  "request": {
+    "tool": "players_summary",
+    "arguments": {
+      "player_tag": "#VJQV8G8RL"
+    }
+  },
+  "response": {
+    "player_tag": "#VJQV8G8RL",
+    "name": "thingles",
+    "clan": {
+      "clan_tag": "#GJ09RJP8",
+      "name": "Elixir Kings"
+    },
+    "trophies": 1478,
+    "trophies_as_of": "2026-09-23",
+    "applied": {
+      "window": {
+        "from": "2026-08-24T17:17:43.094Z",
+        "to": "2026-09-23T17:17:43.094Z",
+        "source": "fixed",
+        "days": 30
+      }
+    },
+    "last_30_days": {
+      "battles": 56,
+      "wins": 53,
+      "losses": 3,
+      "draws": 0,
+      "net_trophies": 1478,
+      "win_rate": 0.946,
+      "first_recorded": "2026-09-08T05:48:07.000Z",
+      "modes": {
+        "event": {
+          "battles": 1,
+          "wins": 1,
+          "losses": 0
+        },
+        "ladder": {
+          "battles": 55,
+          "wins": 52,
+          "losses": 3
+        }
+      }
+    },
+    "trophy_floor": {
+      "floor": 1300,
+      "arena": {
+        "id": 54000005,
+        "name": "Builder's Workshop"
+      },
+      "source": "arena_snapshots",
+      "floored": false,
+      "on_floor_losses": 0,
+      "losses_landing_on_floor": 0,
+      "ladder_battles": 55,
+      "floors": [],
+      "trophy_range": {
+        "lowest": 62,
+        "highest": 1478
+      }
+    },
+    "top_deck": {
+      "deck_hash": "30cc33c596928ff7fdaec7e0160836f371230334675400276c30626c355a01b3",
+      "cards": [
+        {
+          "id": 26000003,
+          "name": "Giant",
+          "form": "base"
+        },
+        {
+          "id": 26000008,
+          "name": "Barbarians",
+          "form": "base"
+        },
+        {
+          "id": 26000011,
+          "name": "Valkyrie",
+          "form": "base"
+        },
+        {
+          "id": 26000013,
+          "name": "Bomber",
+          "form": "base"
+        },
+        {
+          "id": 26000014,
+          "name": "Musketeer",
+          "form": "base"
+        },
+        {
+          "id": 26000018,
+          "name": "Mini P.E.K.K.A",
+          "form": "base"
+        },
+        {
+          "id": 27000000,
+          "name": "Cannon",
+          "form": "base"
+        },
+        {
+          "id": 28000001,
+          "name": "Arrows",
+          "form": "base"
+        }
+      ],
+      "archetype": {
+        "family": "beatdown",
+        "win_conditions": [
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base"
+          }
+        ],
+        "secondary_win_conditions": [],
+        "named_by": null,
+        "label": "Giant beatdown",
+        "average_elixir": 3.75,
+        "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+        "grammar_version": "2026-09",
+        "roles_version": "2026-09-20T20:16:47.000Z"
+      },
+      "battles": 15,
+      "win_rate": 0.933,
+      "modes": {
+        "ladder": {
+          "battles": 15,
+          "wins": 14,
+          "losses": 1
+        }
+      },
+      "dominant_mode": {
+        "mode": "ladder",
+        "share": 1
+      },
+      "mean_level_gap": 0.89
+    },
+    "best_deck": {
+      "deck_hash": "24b7678466756fcb8d06f6f8ec7f9137c5299d09410ef48dd2be2d7865b05da1",
+      "cards": [
+        {
+          "id": 26000000,
+          "name": "Knight",
+          "form": "base"
+        },
+        {
+          "id": 26000001,
+          "name": "Archers",
+          "form": "base"
+        },
+        {
+          "id": 26000003,
+          "name": "Giant",
+          "form": "base"
+        },
+        {
+          "id": 26000005,
+          "name": "Minions",
+          "form": "base"
+        },
+        {
+          "id": 26000014,
+          "name": "Musketeer",
+          "form": "base"
+        },
+        {
+          "id": 26000018,
+          "name": "Mini P.E.K.K.A",
+          "form": "base"
+        },
+        {
+          "id": 28000000,
+          "name": "Fireball",
+          "form": "base"
+        },
+        {
+          "id": 28000001,
+          "name": "Arrows",
+          "form": "base"
+        }
+      ],
+      "archetype": {
+        "family": "beatdown",
+        "win_conditions": [
+          {
+            "id": 26000003,
+            "name": "Giant",
+            "form": "base"
+          }
+        ],
+        "secondary_win_conditions": [],
+        "named_by": null,
+        "label": "Giant beatdown",
+        "average_elixir": 3.63,
+        "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+        "grammar_version": "2026-09",
+        "roles_version": "2026-09-20T20:16:47.000Z"
+      },
+      "battles": 10,
+      "win_rate": 1,
+      "modes": {
+        "ladder": {
+          "battles": 10,
+          "wins": 10,
+          "losses": 0
+        }
+      },
+      "dominant_mode": {
+        "mode": "ladder",
+        "share": 1
+      },
+      "mean_level_gap": -0.06
+    },
+    "notes": [
+      "Counts include every recorded battle (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded.",
+      "best_deck needs 10+ battles in the window and is omitted when it IS the top deck.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "Win rates here are NOT comparable across rows: deck 30cc33c5… faced opponents at mean level gap +0.89 and deck 24b76784… at gap -0.06; matchmaking differs by mode (war draws opponents from the racing clans, not from your trophies, so a strong player meets weaker ones there) and a level gap moves the expected win rate, so rank decks only within one mode and similar mean_level_gap (pass mode; the record describes the gap and does not adjust for it).",
+      "History may predate active recording; elixir_coverage has the capture story."
+    ],
+    "docs": "recording#completeness",
+    "meta": {
+      "contract_version": "6.25.0",
+      "source_polls": {
+        "player": {
+          "observed_at": "2026-09-23T16:37:54.000Z",
+          "freshness_seconds": 2389
+        },
+        "player_battlelog": {
+          "observed_at": "2026-09-23T16:42:57.000Z",
+          "freshness_seconds": 2086
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 137,
+    "db_queries": 19,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

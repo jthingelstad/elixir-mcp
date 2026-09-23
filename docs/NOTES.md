@@ -1945,3 +1945,14 @@ Regressions #28 and #50-#52 were confirmed. Findings:
 - **#125:** game_events filtered `game_event_day` by the UTC dates around the window. It now selects the days an admitted events read inside the window's instants saw. The fixture's two earlier sightings gained the receipts real ingest would have.
 - **#126:** the events and globaltournaments reads join the anchored board-day rule. Their cadence was 1440 min × jitter + planning latency, which drifted about 3 h a day. `game_days_read` is served, and a note lists unread game days.
 - **#127:** a date-only `at` on game_clock is read as that game day's start (10:00Z), with a note saying so.
+
+## 2026-09-23 — Gym sweep, players round 1 (6.27.0, feedback #129-#135)
+
+All 9 regressions were confirmed. Findings:
+- **#129:** the clanmate rule reached a clan only through the account's claimed players, and an agent claims none. `account_clan` is now a path too. Whole-name matches come first, and total_matches and truncated are served.
+- **#130:** the deck by-type splits now carry the event-aware mode_group (modeGroupSql over event_tag). top_deck and best_deck require a chosen deck (deck_selection null, collection or warDeckPick), and net_trophies sums ladder rows only. battles_decks gets the same mode_group.
+- **#131:** the docs sentence is corrected, and a note rides players_profile and clans_roster.
+- **#132:** trophy_range and last_played_at on both decks, plus a range-clash note.
+- **#133:** `fieldedLevel` returns recent_mean_level, which the meta tools' fit_for inherits.
+- **#134:** season echo on players_summary; `season` on players_timeline (its game days); a window echo on players_collection.
+- **Checker:** check-appendix requires player_tag only on players_* tools that declare it. players_search and players_names don't.

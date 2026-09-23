@@ -521,5 +521,133 @@
     "case": "gym/127.2",
     "captures": ["127-game_clock-0925.json"],
     "expect": "neq war_day"
+  },
+  {
+    "feedback": 129,
+    "contract": "6.26.0",
+    "why": "the Gym block 129.1 on the answer it read",
+    "case": "gym/129.1",
+    "captures": ["129-1-players_search.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 129,
+    "contract": "6.26.0",
+    "why": "the Gym block 129.2 on the answer it read",
+    "case": "gym/129.2",
+    "captures": ["129-2-players_search.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 129,
+    "contract": "6.26.0",
+    "why": "the Gym block 129.3 on the answer it read",
+    "case": "gym/129.3",
+    "captures": ["129-1-players_search.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 130,
+    "contract": "6.26.0",
+    "why": "the Gym block 130.1 on the answer it read",
+    "case": "gym/130.1",
+    "captures": ["130-1-battles_decks.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 130,
+    "contract": "6.26.0",
+    "why": "the Gym block 130.2 on the answer it read",
+    "case": "gym/130.2",
+    "captures": ["130-2-players_summary.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 130,
+    "contract": "6.26.0",
+    "why": "the Gym block 130.3 on the answer it read",
+    "case": "gym/130.3",
+    "captures": ["130-2-players_summary.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 131,
+    "contract": "6.26.0",
+    "why": "the Gym block 131.1 on the answer it read",
+    "case": "gym/131.1",
+    "captures": ["131-1-players_profile.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 131,
+    "contract": "6.26.0",
+    "why": "the Gym block 131.2 on the answer it read",
+    "case": "gym/131.2",
+    "captures": ["131-2-clans_roster.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 132,
+    "contract": "6.26.0",
+    "why": "the Gym block 132.1 on the answer it read",
+    "case": "gym/132.1",
+    "captures": ["132-1-players_summary.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 132,
+    "contract": "6.26.0",
+    "why": "the Gym block 132.2 on the answer it read",
+    "case": "gym/132.2",
+    "captures": ["132-1-players_summary.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 132,
+    "contract": "6.26.0",
+    "why": "the Gym block 132.3 on the answer it read",
+    "case": "gym/132.3",
+    "captures": ["132-3-players_summary.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 133,
+    "contract": "6.26.0",
+    "why": "the Gym block 133.1 on the answer it read",
+    "case": "gym/133.1",
+    "captures": ["133-1-players_collection.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 133,
+    "contract": "6.26.0",
+    "why": "the Gym block 133.2 on the answer it read",
+    "case": "gym/133.2",
+    "captures": ["133-2-players_collection.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 134,
+    "contract": "6.26.0",
+    "why": "the Gym block 134.1 on the answer it read",
+    "case": "gym/134.1",
+    "captures": ["134-1-players_summary.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 134,
+    "contract": "6.26.0",
+    "why": "the Gym block 134.3 on the answer it read",
+    "case": "gym/134.3",
+    "captures": ["134-3-players_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 134,
+    "contract": "6.26.0",
+    "why": "the Gym block 134.4 on the answer it read",
+    "case": "gym/134.4",
+    "captures": ["134-4-players_collection.json"],
+    "expect": "."
   }
 ]

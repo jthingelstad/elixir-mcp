@@ -1479,6 +1479,12 @@ export const OUTPUT_SCHEMAS = {
     properties: {
       applied: { type: "object" },
       docs: DOCS,
+      total_matches: {
+        type: "integer",
+        description:
+          "6.27.0: every recorded name the query matched; truncated is true when more matched than were shown.",
+      },
+      truncated: { type: "boolean" },
       matches: {
         type: "array",
         items: {

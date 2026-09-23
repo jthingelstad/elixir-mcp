@@ -1502,9 +1502,24 @@ export async function fieldedLevel(db, tag, { from, to, types }) {
     [tag, from, to ?? null, types ?? null],
   );
   const r = rows[0];
+  // The level fielded NOW (Gym #133): a levelling account's 30-day mean
+  // sits about two levels below its last battles, and a target set from
+  // it misses most upgrades. The last ten decided battles in the window.
+  const { rows: recent } = await db.query(
+    `select round(avg(l)::numeric, 2) as mean
+       from (select deck_avg_level as l from battle_participant
+              where player_tag = $1 and battle_time >= $2
+                and ($3::timestamptz is null or battle_time < $3)
+                and ($4::text[] is null or type = any($4))
+                and type_class = 'pvp' and outcome in ('win', 'loss')
+                and deck_avg_level is not null
+              order by battle_time desc limit 10) x`,
+    [tag, from, to ?? null, types ?? null],
+  );
+  const num = (v) => (v === null || v === undefined ? null : Number(v));
   return {
-    mean_level:
-      r?.mean === null || r?.mean === undefined ? null : Number(r.mean),
+    mean_level: num(r?.mean),
+    recent_mean_level: num(recent[0]?.mean),
     battles: r?.battles ?? 0,
   };
 }
