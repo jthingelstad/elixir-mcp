@@ -8379,3 +8379,41 @@ because a docs page does. `group_by: "archetype"` now folds decks into
 labels and then says what reads a label. If the call count moves, the
 hypothesis holds and the same move is worth making for the other unused
 tools.
+
+## 2026-09-23 — The Gym moves into the repo as a skill, with its own account
+
+Jamie's direction, after the session's project review: Elixir is not public
+yet on purpose, and the Gym exists so that the first outside user finds no
+bugs. The Gym had run as a daily Claude Cloud routine on Jamie's connector.
+In practice it kept landing on the war tools, and only `rankings` and `war`
+have ever been explored. The plan: sweep all ten MCP families (`live_*`
+excluded) in a loop until each has a clean run, then announce.
+
+**Built:**
+- `.claude/skills/gym/`:
+  - `brief.md` is Jamie's prompt, adapted only where running here requires it.
+  - `SKILL.md` is the orchestrator: `/gym`, `/gym <family>`, `/gym sweep`.
+  - `call.mjs` is the Gym's connection.
+  - `check-appendix.mjs` holds the same load rules as `gymCases`, plus
+    no-live, no-write and player_tag.
+  - `coverage.md` is the grid.
+- **Jamie's standing authority for the sweep:** fix and deploy each family's
+  findings without asking. There is one contract bump per family round, and
+  no majors.
+
+**The Gym's own account.** It is the `gym` agent principal:
+- clan `#J2RGCRVG`, scope `cr:read feedback:write`, door `/a/cd9e89e10d09/mcp`;
+- the token was minted locally, the way `acceptance`'s was, and the raw value
+  sits in `.claude/skills/gym/.env`, mode 0600 and ignored by git.
+
+It spends from its own bucket, so it no longer takes Jamie's hour or the
+Discord agent's. Its filings also stop counting as Jamie's feedback.
+
+Findings #1–#89 stay on Jamie's account. The orchestrator hands the Gym the
+ones relevant to its family as a legacy list.
+
+**Queued for Jamie:**
+- `{service_token_limits: {name: "gym", hourly_rate_limit: 900}}` on
+  `elixir-mcp-migrate`. The session's permission check refused the live
+  write.
+- Pause or retire the cloud routine. It would double-file against a sweep.
