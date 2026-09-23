@@ -8002,3 +8002,62 @@ to grow". The discovery path a refusal needs already exists:
 `battles_performance group_by: "game_mode"` keys rows on the
 (game_mode, type) pair and already says "filter battles_query by
 game_mode to drill in".
+
+## 2026-09-23 — The refusals are a 7.0.0 with a real migration: measured, not shipped
+
+Jamie asked to move forward with refusing a battle query that names no
+`mode` and, separately, one with no window ("the battle corpus is just
+going to grow"). Both were built and both were measured against the
+suite. **Neither shipped**, because the migration is larger than the
+change and the numbers are the argument.
+
+**Mode refusal.** `requireMode` on the tools that AGGREGATE
+(`battles_performance` except `group_by: "game_mode"`, `battles_cards`,
+`battles_decks`, `battles_compare`, `battles_opponents`,
+`battles_trends`, `battles_meta_decks`, `battles_meta_cards`), with a
+refusal naming the discovery path. Result: **107 failing tests across
+152 call sites in 10+ files.** Those call sites are the same shape every
+consumer uses - elixir-bot, the Discord preview, Elixir Clan, the web
+app - and each needs the RIGHT mode for its fixture, which varies, so it
+is not a find-and-replace.
+
+**Window default.** Flipping `seasonDefault` from false to true on the
+player battle tools, so an unbounded read bounds to the current season
+and says `applied.window.source: "season"`. Non-breaking in shape but a
+real behaviour change: **21 failing tests**, because the fixtures'
+battles sit outside the current season and a bounded read correctly
+returns nothing.
+
+A caution on how that was measured: `npm run verify` is
+`format:check && lint && knip && typecheck && test`, so a knip failure
+(an unused export, while the guard was half-reverted) SHORT-CIRCUITS
+before the tests run. A run that ends on knip is not a green test run -
+it is no test run. That briefly read as "the window default breaks
+nothing".
+
+**A better shape for the mode half, worth weighing before the migration
+is paid for.** The tools already compute what is needed:
+`pooledModesNote(groups)` returns null when fewer than two mode groups
+carry battles, and already drives `comparable`. Escalating THAT to a
+refusal - refuse only when the population actually spans mode groups,
+and name the split - has the properties the blanket rule lacks:
+
+- it refuses exactly the wrong answers and nothing else;
+- a caller whose window was always one mode keeps working, so most of
+  the 152 sites never change;
+- the refusal can print the real split rather than a generic "pass mode".
+
+Its cost is that the same call can succeed for one player and refuse for
+another, which is worse for a client author than a flat contract. That
+is the trade, and it is Jamie's call.
+
+**Recommendation:** do it as a deliberate 7.0.0 with the migration
+planned - update the suite, then elixir-bot, `elixir-mcp-discord`,
+Elixir Clan and the web app - rather than as a tail-end change. The
+discovery path a refusal needs already exists and needs no work:
+`battles_performance group_by: "game_mode"` keys rows on the
+(game_mode, type) pair and already says "filter battles_query by
+game_mode to drill in".
+
+Main is green and unchanged; nothing from this experiment is committed
+beyond this note.
