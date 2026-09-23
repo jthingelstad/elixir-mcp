@@ -157,6 +157,14 @@ export async function boardRow(db, board, location) {
      order by (location_key = $2) desc limit 1`,
     [board, key, raw],
   );
+  // Trophy Road is its own case (Gym #176): the API has served it empty
+  // for recent seasons, so a missing board is the API's, not the tag's.
+  if (!rows[0] && board === "trophy")
+    throw new ToolFailure(
+      "not_found",
+      `No trophy board is recorded for '${raw}': the API has served the Trophy Road leaderboard empty for recent seasons, so there is nothing to record at any location.`,
+      'Path of Legends is the competitive ranking: rankings_players({ board: "pol", location }) with the same location.',
+    );
   if (!rows[0])
     throw new ToolFailure(
       "not_found",
@@ -253,13 +261,19 @@ export const MODE_RATING_NOTE =
 
 /** Says so when a mode board's standings have stopped moving while its
  *  snapshots still refresh (feedback #137): two days without a rank or
- *  rating change on a daily board. */
-export function standingsStaleNote(snapshot, row) {
+ *  rating change on a daily board. When they have not moved since the
+ *  board's first snapshot, the date is when RECORDING began, not when
+ *  they last moved (Gym #175: 21 of 32 boards read 09-11, the record's
+ *  first day), and nothing has refreshed on a one-snapshot board. */
+export function standingsStaleNote(snapshot, row, horizon = null) {
   const changed = snapshot?.standings_changed_at;
   if (row.board !== "mode" || !changed) return null;
   const held = snapshot.last_confirmed_at.getTime() - changed.getTime();
   if (held < 2 * 86_400_000) return null;
-  return `This board's ranks and ratings have not moved since ${changed.toISOString().slice(0, 10)} (standings_changed_at); only names and clans have refreshed since (observed_at ${snapshot.observed_at.toISOString().slice(0, 10)}), so it reads as a closed event, not today's leaderboard.`;
+  const day = (d) => d.toISOString().slice(0, 10);
+  if (horizon && changed.getTime() <= horizon.getTime())
+    return `This board's ranks and ratings have not moved since recording began on ${day(horizon)} (recorded_since): when they last moved before that is unknown, and the record has confirmed them unchanged through ${day(snapshot.last_confirmed_at)}, so it reads as a closed event, not today's leaderboard.`;
+  return `This board's ranks and ratings have not moved since ${day(changed)} (standings_changed_at); only names and clans have refreshed since (observed_at ${day(snapshot.observed_at)}), so it reads as a closed event, not today's leaderboard.`;
 }
 
 /** The last place's rating on a player board: the floor while the board

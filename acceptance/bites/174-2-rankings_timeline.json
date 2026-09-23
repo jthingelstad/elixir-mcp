@@ -1,0 +1,209 @@
+{
+  "feedback": 174,
+  "contract_version": "6.35.0",
+  "captured_at": "2026-09-23T23:07:46.327Z",
+  "request": {
+    "tool": "rankings_timeline",
+    "arguments": {
+      "board": "mode",
+      "location": "170000008",
+      "from": "2026-09-12",
+      "to": "2026-09-20"
+    }
+  },
+  "response": {
+    "board": "mode",
+    "location": {
+      "key": "170000008",
+      "label": "Merge Tactics"
+    },
+    "applied": {
+      "board": "mode",
+      "location": "170000008",
+      "subject": "board",
+      "window": {
+        "from": "2026-09-12T00:00:00.000Z",
+        "to": "2026-09-21T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 13
+      },
+      "limit": 800
+    },
+    "points": [
+      {
+        "observed_at": "2026-09-12T10:07:52.000Z",
+        "day": "2026-09-12",
+        "unchanged_until": "2026-09-12T10:07:52.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 4922,
+        "floor_delta": null,
+        "first": {
+          "player_tag": "#YQ0GJLR0",
+          "name": "NairCaos",
+          "rating": 21037
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-13T10:07:51.000Z",
+        "day": "2026-09-13",
+        "unchanged_until": "2026-09-13T10:07:51.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 4922,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#YQ0GJLR0",
+          "name": "NairCaos",
+          "rating": 21037
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-14T10:07:47.000Z",
+        "day": "2026-09-14",
+        "unchanged_until": "2026-09-14T10:07:47.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 4922,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#YQ0GJLR0",
+          "name": "NairCaos",
+          "rating": 21037
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-15T10:07:47.000Z",
+        "day": "2026-09-15",
+        "unchanged_until": "2026-09-15T10:07:47.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 4922,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#YQ0GJLR0",
+          "name": "NairCaos",
+          "rating": 21037
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-16T10:07:49.000Z",
+        "day": "2026-09-16",
+        "unchanged_until": "2026-09-16T10:07:49.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 4922,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#YQ0GJLR0",
+          "name": "NairCaos",
+          "rating": 21037
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-17T10:07:48.000Z",
+        "day": "2026-09-17",
+        "unchanged_until": "2026-09-17T10:07:48.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 4922,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#YQ0GJLR0",
+          "name": "NairCaos",
+          "rating": 21037
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-18T10:07:48.000Z",
+        "day": "2026-09-18",
+        "unchanged_until": "2026-09-18T10:07:48.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 4922,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#YQ0GJLR0",
+          "name": "NairCaos",
+          "rating": 21037
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-19T10:07:51.000Z",
+        "day": "2026-09-19",
+        "unchanged_until": "2026-09-19T10:07:51.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 4922,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#YQ0GJLR0",
+          "name": "NairCaos",
+          "rating": 21037
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-20T10:07:51.000Z",
+        "day": "2026-09-20",
+        "unchanged_until": "2026-09-20T10:07:51.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 4922,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#YQ0GJLR0",
+          "name": "NairCaos",
+          "rating": 21037
+        },
+        "truncated": true
+      }
+    ],
+    "notes": [
+      "One point per recorded snapshot; a snapshot is written only when the board changed, so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
+      "floor_rating is the last place's rating: the rating floor while rated_players is below depth, and once the board is full (full: true) the cutoff for the last of its 1,000 places, which rises as the field plays (floor_delta is its move since the previous point) while rated_players stays pinned at depth.",
+      "9 of 9 points are at the board's full 1,000 places: a player or clan can leave the board without losing rating there, so compare rated_players across dates only against the cutoff.",
+      "rating on a mode board is that event's own leaderboard rating, not a Path of Legends rating: it is not comparable to one, or to another board's rating."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.35.0",
+      "source_polls": {
+        "leaderboard": {
+          "observed_at": "2026-09-23T10:07:54.000Z",
+          "freshness_seconds": 46792
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 23,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

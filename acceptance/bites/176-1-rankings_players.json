@@ -1,0 +1,31 @@
+{
+  "feedback": 176,
+  "contract_version": "6.35.0",
+  "captured_at": "2026-09-23T23:08:41.108Z",
+  "request": {
+    "tool": "rankings_players",
+    "arguments": {
+      "board": "trophy",
+      "location": "US",
+      "limit": 3
+    }
+  },
+  "response": {
+    "error": {
+      "code": "not_found",
+      "class": "subject",
+      "message": "No trophy board for location 'US'.",
+      "hint": "Call rankings_players({ location: \"global\" }) or pass a numeric CR location id or a two-letter country code."
+    },
+    "meta": {
+      "contract_version": "6.35.0"
+    }
+  },
+  "timings": {
+    "db_ms": 7,
+    "db_queries": 1,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

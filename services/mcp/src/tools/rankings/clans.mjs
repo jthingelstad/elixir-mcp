@@ -15,6 +15,8 @@ import {
   BOARD_SCHEMA,
   ENDPOINT_OF,
   FLOOR_NOTE,
+  MODE_RATING_NOTE,
+  standingsStaleNote,
   LOCATION_SCHEMA,
   SEASON_SCHEMA,
   boardHorizon,
@@ -153,7 +155,12 @@ export const rankings_clans = {
         `Counted over every placed player in the snapshot (field_size: ${snapshot.entries}${isFull(snapshot) ? `, the board's full ${depthOf(board).toLocaleString("en-US")}` : ""}); rated_players moves with the cutoff as well as with play - it can fall while every one of the clan's players improves - so compare clans within one snapshot, not counts across dates.`,
         fullBoardNote(snapshot, floor),
         "Ties in rated_players are ordered by best_rank, the rank of the clan's best-placed player.",
-        board === "pol_final" ? null : FLOOR_NOTE,
+        board === "pol_final"
+          ? null
+          : board === "mode"
+            ? MODE_RATING_NOTE
+            : FLOOR_NOTE,
+        standingsStaleNote(snapshot, row, horizon),
       ),
       docs: docsRef("recording", "leaderboards"),
       meta,

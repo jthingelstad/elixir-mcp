@@ -1,0 +1,92 @@
+{
+  "feedback": 175,
+  "contract_version": "6.35.0",
+  "captured_at": "2026-09-23T23:07:45.577Z",
+  "request": {
+    "tool": "rankings_players",
+    "arguments": {
+      "board": "mode",
+      "location": "170000001",
+      "limit": 3
+    }
+  },
+  "response": {
+    "board": "mode",
+    "location": {
+      "key": "170000001",
+      "label": "Goblin Queen's Journey",
+      "kind": "mode",
+      "country_code": null
+    },
+    "applied": {
+      "board": "mode",
+      "location": "170000001",
+      "limit": 3,
+      "offset": 0,
+      "verbosity": "full"
+    },
+    "snapshot": {
+      "observed_at": "2026-09-11T05:01:30.000Z",
+      "unchanged_until": "2026-09-23T10:02:51.000Z",
+      "season_id": "136",
+      "season_month": "2026-09",
+      "entries": 1000,
+      "depth": 1000,
+      "full": true,
+      "floor_rating": 4080,
+      "truncated": true,
+      "cadence_minutes": 1440,
+      "standings_changed_at": "2026-09-11T05:01:30.000Z"
+    },
+    "players": [
+      {
+        "rank": 1,
+        "player_tag": "#VP20YCQY2",
+        "name": "zero",
+        "rating": 4090,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 2,
+        "player_tag": "#UJ2R9JVJ2",
+        "name": "Blake",
+        "rating": 4090,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 3,
+        "player_tag": "#URRRLYGYJ",
+        "name": "zaid",
+        "rating": 4089,
+        "clan_tag": null,
+        "clan_name": null
+      }
+    ],
+    "notes": [
+      "This board holds 1,000 places and is full (the API offered more than the 1,000 the recorder keeps (truncated: true)): floor_rating (4080) is the last place's rating, a cutoff that moves, not a qualification threshold - a player can leave the board without losing rating.",
+      "rating on a mode board is that event's own leaderboard rating, not a Path of Legends rating: it is not comparable to one, or to another board's rating.",
+      "This board's ranks and ratings have not moved since 2026-09-11 (standings_changed_at); only names and clans have refreshed since (observed_at 2026-09-11), so it reads as a closed event, not today's leaderboard.",
+      "The API offered more places than this snapshot holds (truncated: true); the tail of the board is missing.",
+      "Page 1: pass offset 3 for the next 3 places."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.35.0",
+      "source_polls": {
+        "leaderboard": {
+          "observed_at": "2026-09-23T10:02:51.000Z",
+          "freshness_seconds": 47094
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 716,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

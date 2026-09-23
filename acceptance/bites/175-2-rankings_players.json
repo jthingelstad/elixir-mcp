@@ -1,0 +1,2468 @@
+{
+  "feedback": 175,
+  "contract_version": "6.35.0",
+  "captured_at": "2026-09-23T23:06:09.030Z",
+  "request": {
+    "tool": "rankings_players",
+    "arguments": {
+      "board": "mode",
+      "location": "170000008",
+      "limit": 300
+    }
+  },
+  "response": {
+    "board": "mode",
+    "location": {
+      "key": "170000008",
+      "label": "Merge Tactics",
+      "kind": "mode",
+      "country_code": null
+    },
+    "applied": {
+      "board": "mode",
+      "location": "170000008",
+      "limit": 300,
+      "offset": 0,
+      "verbosity": "full"
+    },
+    "snapshot": {
+      "observed_at": "2026-09-23T10:07:54.000Z",
+      "unchanged_until": "2026-09-23T10:07:54.000Z",
+      "season_id": "136",
+      "season_month": "2026-09",
+      "entries": 1000,
+      "depth": 1000,
+      "full": true,
+      "floor_rating": 4922,
+      "truncated": true,
+      "cadence_minutes": 1440,
+      "standings_changed_at": "2026-09-11T05:06:49.000Z"
+    },
+    "players": [
+      {
+        "rank": 1,
+        "player_tag": "#YQ0GJLR0",
+        "name": "NairCaos",
+        "rating": 21037,
+        "clan_tag": "#GC28LJL9",
+        "clan_name": "Labirinto"
+      },
+      {
+        "rank": 2,
+        "player_tag": "#8GLU9V00",
+        "name": "♥ROYALE TFT♥",
+        "rating": 19519,
+        "clan_tag": "#GGU08QVQ",
+        "clan_name": "ROYALE SAMURAI"
+      },
+      {
+        "rank": 3,
+        "player_tag": "#CQ8VUQCR2",
+        "name": "WOS.INDONESIA",
+        "rating": 16707,
+        "clan_tag": "#Q9L9GRUQ",
+        "clan_name": "Wkwk Of Silent"
+      },
+      {
+        "rank": 4,
+        "player_tag": "#2PRQQLCU0",
+        "name": "Nova I Backhus",
+        "rating": 14633,
+        "clan_tag": "#J0YJGPQ8",
+        "clan_name": "RoWarlords VI"
+      },
+      {
+        "rank": 5,
+        "player_tag": "#P0JPL9UL0",
+        "name": "NotGVersus",
+        "rating": 13561,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 6,
+        "player_tag": "#289QUJYLG",
+        "name": "骇客✨RezonK",
+        "rating": 13463,
+        "clan_tag": "#GRJ20LQP",
+        "clan_name": "TWITCH :thober_"
+      },
+      {
+        "rank": 7,
+        "player_tag": "#C28LJU802",
+        "name": "Setris",
+        "rating": 13294,
+        "clan_tag": "#GJVG28JP",
+        "clan_name": "威猛集团"
+      },
+      {
+        "rank": 8,
+        "player_tag": "#CLRC9L8PG",
+        "name": "Fan Gardieh YT",
+        "rating": 13259,
+        "clan_tag": "#QCQVQCQL",
+        "clan_name": "No Looser Aloud"
+      },
+      {
+        "rank": 9,
+        "player_tag": "#CQ02LQ29",
+        "name": "Ajerk",
+        "rating": 13219,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 10,
+        "player_tag": "#9CQJQYP2",
+        "name": "Xiake",
+        "rating": 12746,
+        "clan_tag": "#GLUR220V",
+        "clan_name": "YTXiake職業MT棋院"
+      },
+      {
+        "rank": 11,
+        "player_tag": "#PG0Y9LU02",
+        "name": "Queen",
+        "rating": 12301,
+        "clan_tag": "#8QGV882",
+        "clan_name": "Loser Nightmare"
+      },
+      {
+        "rank": 12,
+        "player_tag": "#GQR0PYGQG",
+        "name": "Jeremy",
+        "rating": 11835,
+        "clan_tag": "#RGPVVY9V",
+        "clan_name": "UDA HOUSE"
+      },
+      {
+        "rank": 13,
+        "player_tag": "#2RQL82L2V",
+        "name": "амиэВоТ",
+        "rating": 11658,
+        "clan_tag": "#RYUQPULJ",
+        "clan_name": "nox"
+      },
+      {
+        "rank": 14,
+        "player_tag": "#P8QGULG92",
+        "name": "Mörkö",
+        "rating": 11553,
+        "clan_tag": "#LCRLL8LY",
+        "clan_name": "FIN Golemit"
+      },
+      {
+        "rank": 15,
+        "player_tag": "#QVY8PG0UC",
+        "name": "cc",
+        "rating": 11457,
+        "clan_tag": "#LVJ0LQLL",
+        "clan_name": "喵喵旅團"
+      },
+      {
+        "rank": 16,
+        "player_tag": "#9QQ8280CJ",
+        "name": "GP PRO",
+        "rating": 11362,
+        "clan_tag": "#2PJ2UJGQ",
+        "clan_name": "Lame infernali"
+      },
+      {
+        "rank": 17,
+        "player_tag": "#8UQY2RRGG",
+        "name": "グしクス✨Greksx",
+        "rating": 11360,
+        "clan_tag": "#QV9Y9YQV",
+        "clan_name": "return of regno"
+      },
+      {
+        "rank": 18,
+        "player_tag": "#9QC998Y8",
+        "name": "Nafm",
+        "rating": 11349,
+        "clan_tag": "#RGLVYJLP",
+        "clan_name": "AgainAgainAgain"
+      },
+      {
+        "rank": 19,
+        "player_tag": "#PYVQ0JQL",
+        "name": "TimelessTurtle",
+        "rating": 11245,
+        "clan_tag": "#G9RVRV0",
+        "clan_name": "Shibbies"
+      },
+      {
+        "rank": 20,
+        "player_tag": "#RLL9JQ90G",
+        "name": "kolloxkollo",
+        "rating": 11137,
+        "clan_tag": "#RYLC0VGV",
+        "clan_name": "se klubi"
+      },
+      {
+        "rank": 21,
+        "player_tag": "#U8QGU00CP",
+        "name": "奶茶✨Wafer✨Lapras",
+        "rating": 11126,
+        "clan_tag": "#J990RRQV",
+        "clan_name": "PekkaBS"
+      },
+      {
+        "rank": 22,
+        "player_tag": "#P09CR2CJ",
+        "name": "miLTon",
+        "rating": 11111,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 23,
+        "player_tag": "#20999UY298",
+        "name": "AlexS",
+        "rating": 10869,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 24,
+        "player_tag": "#V8PLJ2RUP",
+        "name": "Tala",
+        "rating": 10725,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 25,
+        "player_tag": "#9GV222CUC",
+        "name": "RIVVV.",
+        "rating": 10517,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 26,
+        "player_tag": "#CCUPCUUJ8",
+        "name": "VIVA CRISTO REY",
+        "rating": 10184,
+        "clan_tag": "#Q28J0CJ9",
+        "clan_name": "Clan Of Ponies™"
+      },
+      {
+        "rank": 27,
+        "player_tag": "#2QCR9YUY",
+        "name": "Jabuti",
+        "rating": 10118,
+        "clan_tag": "#9CJV2QYJ",
+        "clan_name": "\"Animus\""
+      },
+      {
+        "rank": 28,
+        "player_tag": "#92YQ9VVU0",
+        "name": "Iosif",
+        "rating": 10098,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 29,
+        "player_tag": "#8G0Q80GUC",
+        "name": "VanDerLuigi❤️RH",
+        "rating": 10057,
+        "clan_tag": "#Q0P88QY2",
+        "clan_name": "RoadToGloryPL"
+      },
+      {
+        "rank": 30,
+        "player_tag": "#CP2LLCPL8",
+        "name": "Arthur",
+        "rating": 9902,
+        "clan_tag": "#RGGVLC80",
+        "clan_name": "CLASH ROYALE"
+      },
+      {
+        "rank": 31,
+        "player_tag": "#P2UUJ8J",
+        "name": "Nogueira™️",
+        "rating": 9872,
+        "clan_tag": "#LJGQ2YUV",
+        "clan_name": "Nova Brasil"
+      },
+      {
+        "rank": 32,
+        "player_tag": "#2PLVR020",
+        "name": "checho",
+        "rating": 9810,
+        "clan_tag": "#J8RVRVJL",
+        "clan_name": "thePower"
+      },
+      {
+        "rank": 33,
+        "player_tag": "#9VV29GVCL",
+        "name": "ALL IN",
+        "rating": 9690,
+        "clan_tag": "#Q0R08YLJ",
+        "clan_name": "Aliança Lusa"
+      },
+      {
+        "rank": 34,
+        "player_tag": "#QJ9CGYG",
+        "name": "Andry",
+        "rating": 9679,
+        "clan_tag": "#RPY2YVU2",
+        "clan_name": "AssasinsWBABY"
+      },
+      {
+        "rank": 35,
+        "player_tag": "#8CLP9GR0",
+        "name": "ReTaik",
+        "rating": 9641,
+        "clan_tag": "#RYUQJ0PQ",
+        "clan_name": "2v2"
+      },
+      {
+        "rank": 36,
+        "player_tag": "#RCQ0V0QUG",
+        "name": "frug",
+        "rating": 9505,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 37,
+        "player_tag": "#8YVLQLG0",
+        "name": "Jay",
+        "rating": 9437,
+        "clan_tag": "#YLJLL2J",
+        "clan_name": "Noobsard"
+      },
+      {
+        "rank": 38,
+        "player_tag": "#PGPV2G29R",
+        "name": "MrHikmalマ",
+        "rating": 9181,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 39,
+        "player_tag": "#VYGJY9UPG",
+        "name": "shakazzz",
+        "rating": 9180,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 40,
+        "player_tag": "#2QJPC9LPU",
+        "name": "Karanbas",
+        "rating": 9140,
+        "clan_tag": "#9RRRYYJQ",
+        "clan_name": "YouTubeNoob's T"
+      },
+      {
+        "rank": 41,
+        "player_tag": "#29L22GC0",
+        "name": "Xiki",
+        "rating": 9115,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 42,
+        "player_tag": "#2Q9QG89G0",
+        "name": "£€¥€£$",
+        "rating": 9089,
+        "clan_tag": "#R9YLLY02",
+        "clan_name": "Yumi Seo"
+      },
+      {
+        "rank": 43,
+        "player_tag": "#80Y2JC0G8",
+        "name": "Diego",
+        "rating": 9051,
+        "clan_tag": "#GPYRPU0R",
+        "clan_name": "volleyparque"
+      },
+      {
+        "rank": 44,
+        "player_tag": "#2YJVQJQUP",
+        "name": "雨琦弟弟❤️",
+        "rating": 9045,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 45,
+        "player_tag": "#JYUV2UC9",
+        "name": "NianoKid-AA",
+        "rating": 8883,
+        "clan_tag": "#8RYLYVJJ",
+        "clan_name": "CUF"
+      },
+      {
+        "rank": 46,
+        "player_tag": "#CQJQJ2892",
+        "name": "vvh",
+        "rating": 8858,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 47,
+        "player_tag": "#2RYQ2LJ82",
+        "name": "G-On",
+        "rating": 8801,
+        "clan_tag": "#GYY2J8JU",
+        "clan_name": "대한민국 합체전술 쉼터"
+      },
+      {
+        "rank": 48,
+        "player_tag": "#8VPJ2V0RC",
+        "name": "均康醋",
+        "rating": 8758,
+        "clan_tag": "#9P8JJR2R",
+        "clan_name": "♡THE LIGHTER♡"
+      },
+      {
+        "rank": 49,
+        "player_tag": "#220JCPYGJ",
+        "name": "我天生不爱炫耀但艺术细胞太多",
+        "rating": 8696,
+        "clan_tag": "#8J2RQRYC",
+        "clan_name": "***ready2die***"
+      },
+      {
+        "rank": 50,
+        "player_tag": "#VJQL88JJ",
+        "name": "不可以瑟瑟哦",
+        "rating": 8663,
+        "clan_tag": "#CV8YLP",
+        "clan_name": "-=轉身射個AirBall=-"
+      },
+      {
+        "rank": 51,
+        "player_tag": "#UGLVVUUCJ",
+        "name": "輪回絕境",
+        "rating": 8565,
+        "clan_tag": "#QUVLP8GU",
+        "clan_name": "哈尔滨"
+      },
+      {
+        "rank": 52,
+        "player_tag": "#P0RLLPG8",
+        "name": "SH3LDON",
+        "rating": 8543,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 53,
+        "player_tag": "#89820YCP",
+        "name": "goop",
+        "rating": 8536,
+        "clan_tag": "#2CR92CC",
+        "clan_name": "Absolute Chaos"
+      },
+      {
+        "rank": 54,
+        "player_tag": "#LUU29PJRL",
+        "name": "HUN ZaZa 용암",
+        "rating": 8481,
+        "clan_tag": "#GUCV2R90",
+        "clan_name": "zM"
+      },
+      {
+        "rank": 55,
+        "player_tag": "#9UR9LLC0L",
+        "name": "Nizofissura",
+        "rating": 8466,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 56,
+        "player_tag": "#U8PLCC0P8",
+        "name": "aner08",
+        "rating": 8456,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 57,
+        "player_tag": "#ULLU0YYVL",
+        "name": "Miɴi P.K.猿.圆.袁",
+        "rating": 8425,
+        "clan_tag": "#LU2R2UV2",
+        "clan_name": "天空之城"
+      },
+      {
+        "rank": 58,
+        "player_tag": "#CC09VGRC2",
+        "name": "집게로 썰린 돼지예준",
+        "rating": 8422,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 59,
+        "player_tag": "#8VGP2GUU",
+        "name": "geo",
+        "rating": 8400,
+        "clan_tag": "#GR099VJV",
+        "clan_name": "MafiaCosoba"
+      },
+      {
+        "rank": 60,
+        "player_tag": "#9RJR2P90",
+        "name": "soccerboss9",
+        "rating": 8348,
+        "clan_tag": "#Q2GRP9RL",
+        "clan_name": "DaFools"
+      },
+      {
+        "rank": 61,
+        "player_tag": "#LYL08P9",
+        "name": "TMD Aaron",
+        "rating": 8331,
+        "clan_tag": "#8PY9J0GY",
+        "clan_name": "HKAFC"
+      },
+      {
+        "rank": 62,
+        "player_tag": "#JV88L8RCY",
+        "name": "kevin12836cd",
+        "rating": 8309,
+        "clan_tag": "#YUYLGP2J",
+        "clan_name": "f en el chat"
+      },
+      {
+        "rank": 63,
+        "player_tag": "#2RJGLGQJV",
+        "name": "공유",
+        "rating": 8308,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 64,
+        "player_tag": "#GQRC80Y0",
+        "name": "VYNIXINDO22",
+        "rating": 8295,
+        "clan_tag": "#G29LP28J",
+        "clan_name": "bebi clan"
+      },
+      {
+        "rank": 65,
+        "player_tag": "#29Q9LG0Y",
+        "name": "PaulPogba00",
+        "rating": 8232,
+        "clan_tag": "#2LJGVGGR",
+        "clan_name": "S.E.R.T."
+      },
+      {
+        "rank": 66,
+        "player_tag": "#QVYRLRY",
+        "name": "Duy Anh",
+        "rating": 8184,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 67,
+        "player_tag": "#8JCGCJQ99",
+        "name": "M A R T I N",
+        "rating": 8120,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 68,
+        "player_tag": "#2JYVGR99",
+        "name": "Absolut.",
+        "rating": 8111,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 69,
+        "player_tag": "#2Y2YYR8UL",
+        "name": "다람쥐",
+        "rating": 8014,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 70,
+        "player_tag": "#9VGP80JYL",
+        "name": "VantorX99",
+        "rating": 7880,
+        "clan_tag": "#LCQ09V9U",
+        "clan_name": "Team Bedon"
+      },
+      {
+        "rank": 71,
+        "player_tag": "#8LPP8VGV",
+        "name": "iTzTriickii ❤️",
+        "rating": 7860,
+        "clan_tag": "#QC9G8P8L",
+        "clan_name": "Just the Dumon"
+      },
+      {
+        "rank": 72,
+        "player_tag": "#20UYPQ2",
+        "name": "Emty01",
+        "rating": 7846,
+        "clan_tag": "#L9UP0C8Y",
+        "clan_name": "Anntx No skill"
+      },
+      {
+        "rank": 73,
+        "player_tag": "#GVCC0ULR",
+        "name": "Yakku",
+        "rating": 7834,
+        "clan_tag": "#2J2VLG20",
+        "clan_name": "Pandemic"
+      },
+      {
+        "rank": 74,
+        "player_tag": "#JGYYLG0R",
+        "name": "O5>N6>i4>x",
+        "rating": 7813,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 75,
+        "player_tag": "#P8C0LPQVQ",
+        "name": "linli",
+        "rating": 7807,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 76,
+        "player_tag": "#UYQ08UQV2",
+        "name": "重新開始",
+        "rating": 7715,
+        "clan_tag": "#Q2U0RRJG",
+        "clan_name": "建建建"
+      },
+      {
+        "rank": 77,
+        "player_tag": "#CRLJQQLYU",
+        "name": "Castor",
+        "rating": 7663,
+        "clan_tag": "#J90YUPQL",
+        "clan_name": "UCRL"
+      },
+      {
+        "rank": 78,
+        "player_tag": "#220RC8Y8",
+        "name": "Spz I Selkis",
+        "rating": 7639,
+        "clan_tag": "#GJ2QCGYR",
+        "clan_name": "SBS Tactics"
+      },
+      {
+        "rank": 79,
+        "player_tag": "#U2Y22R9VJ",
+        "name": "Madoka",
+        "rating": 7608,
+        "clan_tag": "#Y9L0VYR2",
+        "clan_name": "七つの大罪"
+      },
+      {
+        "rank": 80,
+        "player_tag": "#RR9CQYV9U",
+        "name": "abelqtata",
+        "rating": 7607,
+        "clan_tag": "#L8UPYJJ2",
+        "clan_name": "abcw"
+      },
+      {
+        "rank": 81,
+        "player_tag": "#V8JL0JU29",
+        "name": "Rango",
+        "rating": 7587,
+        "clan_tag": "#QQ89JJ9P",
+        "clan_name": "恶人谷"
+      },
+      {
+        "rank": 82,
+        "player_tag": "#8LRQRCYLR",
+        "name": "Cyanchan13",
+        "rating": 7573,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 83,
+        "player_tag": "#82J00R8J",
+        "name": "SoniXi0",
+        "rating": 7571,
+        "clan_tag": "#QV9P2VVP",
+        "clan_name": "HGE esports"
+      },
+      {
+        "rank": 84,
+        "player_tag": "#VPCJUJQLP",
+        "name": "Faded",
+        "rating": 7563,
+        "clan_tag": "#L80L0",
+        "clan_name": "亞洲电視"
+      },
+      {
+        "rank": 85,
+        "player_tag": "#2GGYPLVV",
+        "name": "ciambellone",
+        "rating": 7525,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 86,
+        "player_tag": "#20088RJ8CG",
+        "name": "問我",
+        "rating": 7486,
+        "clan_tag": "#LG8988PC",
+        "clan_name": "保夾大帝信仰中心"
+      },
+      {
+        "rank": 87,
+        "player_tag": "#2QGVJUC8",
+        "name": "Dani Clash",
+        "rating": 7466,
+        "clan_tag": "#GJ0UJGGJ",
+        "clan_name": "VIPPERHUNT"
+      },
+      {
+        "rank": 88,
+        "player_tag": "#LLV0QRY9G",
+        "name": "Bowwow",
+        "rating": 7461,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 89,
+        "player_tag": "#2L09LGQP",
+        "name": "⭐サムス・アラン⭐",
+        "rating": 7434,
+        "clan_tag": "#QJ9J9PRU",
+        "clan_name": "Blones"
+      },
+      {
+        "rank": 90,
+        "player_tag": "#UCCCJVLJC",
+        "name": "TJ",
+        "rating": 7432,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 91,
+        "player_tag": "#2LP9LCG2R",
+        "name": "HÉCTOR _ACHE",
+        "rating": 7430,
+        "clan_tag": "#QRUCP8V9",
+        "clan_name": "mavs"
+      },
+      {
+        "rank": 92,
+        "player_tag": "#9JLYRR2R",
+        "name": "hicoar",
+        "rating": 7418,
+        "clan_tag": "#GLUR220V",
+        "clan_name": "YTXiake職業MT棋院"
+      },
+      {
+        "rank": 93,
+        "player_tag": "#LJYLRYQ99",
+        "name": "Kさく",
+        "rating": 7405,
+        "clan_tag": "#G9888CC2",
+        "clan_name": "Kさクラン～戦略の漢～"
+      },
+      {
+        "rank": 94,
+        "player_tag": "#29VUY9U2U",
+        "name": "jkid1134",
+        "rating": 7357,
+        "clan_tag": "#GRJUQ8VL",
+        "clan_name": "HB™️"
+      },
+      {
+        "rank": 95,
+        "player_tag": "#PU9RLRVV9",
+        "name": "Bachpro205",
+        "rating": 7259,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 96,
+        "player_tag": "#2VP902PP2",
+        "name": "Awesome",
+        "rating": 7254,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 97,
+        "player_tag": "#899RYQ90",
+        "name": "Lightning",
+        "rating": 7222,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 98,
+        "player_tag": "#LQJG0GRGC",
+        "name": "Ferny❤️snipe",
+        "rating": 7220,
+        "clan_tag": "#GQURQ8CG",
+        "clan_name": "Clan  #GQURQ8CG"
+      },
+      {
+        "rank": 99,
+        "player_tag": "#2C00PYPC0",
+        "name": "ДИМАН",
+        "rating": 7186,
+        "clan_tag": "#J9PQVUL",
+        "clan_name": "Skill Friends"
+      },
+      {
+        "rank": 100,
+        "player_tag": "#CJGCUQGGV",
+        "name": "QuantumSlayer",
+        "rating": 7157,
+        "clan_tag": "#RQ2V20",
+        "clan_name": "ChainSmokers"
+      },
+      {
+        "rank": 101,
+        "player_tag": "#8YYLQ9UJ",
+        "name": "COSMIC FACE",
+        "rating": 7156,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 102,
+        "player_tag": "#89G82C2G",
+        "name": "mc",
+        "rating": 7110,
+        "clan_tag": "#U9P0GC",
+        "clan_name": "Apple"
+      },
+      {
+        "rank": 103,
+        "player_tag": "#UVP9CYGRR",
+        "name": "Zuchi",
+        "rating": 7084,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 104,
+        "player_tag": "#JG99VQCG",
+        "name": "기린",
+        "rating": 7080,
+        "clan_tag": "#2QC2YVCC",
+        "clan_name": "아재"
+      },
+      {
+        "rank": 105,
+        "player_tag": "#PGJUCPJV",
+        "name": "forster82",
+        "rating": 7057,
+        "clan_tag": "#QUQQVGR0",
+        "clan_name": "abatira"
+      },
+      {
+        "rank": 106,
+        "player_tag": "#2V8LUYYUJ",
+        "name": "BlazeMalbus",
+        "rating": 7050,
+        "clan_tag": "#8UL00CU",
+        "clan_name": "newbsrus"
+      },
+      {
+        "rank": 107,
+        "player_tag": "#8L8L2CQU",
+        "name": "ichnichtnochmal",
+        "rating": 6895,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 108,
+        "player_tag": "#880UJPV22",
+        "name": "⭐️Bull_x⭐️",
+        "rating": 6881,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 109,
+        "player_tag": "#CCVVL0YVC",
+        "name": "Jackson",
+        "rating": 6843,
+        "clan_tag": "#200RJ8L8",
+        "clan_name": "ПРОСТО KOCMOC"
+      },
+      {
+        "rank": 110,
+        "player_tag": "#LGCUV9LQP",
+        "name": "Mason89",
+        "rating": 6836,
+        "clan_tag": "#L2YC9GGL",
+        "clan_name": "co-papi"
+      },
+      {
+        "rank": 111,
+        "player_tag": "#QJ90LU2C0",
+        "name": "難辦？那就別辦",
+        "rating": 6825,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 112,
+        "player_tag": "#2QY2JRPQ9",
+        "name": "Ulquiorra",
+        "rating": 6812,
+        "clan_tag": "#LJ08CC",
+        "clan_name": "Indo Celestial"
+      },
+      {
+        "rank": 113,
+        "player_tag": "#PR0UPG02",
+        "name": "Kalle Mois",
+        "rating": 6765,
+        "clan_tag": "#GJL08GVV",
+        "clan_name": "Cherry on Top"
+      },
+      {
+        "rank": 114,
+        "player_tag": "#2PJURYY89",
+        "name": "Speedybii",
+        "rating": 6757,
+        "clan_tag": "#L00P9L0U",
+        "clan_name": "Vengeance™"
+      },
+      {
+        "rank": 115,
+        "player_tag": "#8YQC2QV2C",
+        "name": "Jingerman",
+        "rating": 6744,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 116,
+        "player_tag": "#8RQ29L80C",
+        "name": "A2L0E0X8",
+        "rating": 6725,
+        "clan_tag": "#LUP09VRR",
+        "clan_name": "4ClashWarriors"
+      },
+      {
+        "rank": 117,
+        "player_tag": "#CCVV2VRCL",
+        "name": "只会吃饭睡大觉",
+        "rating": 6703,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 118,
+        "player_tag": "#8G9PGUQY9",
+        "name": "고양이wars",
+        "rating": 6688,
+        "clan_tag": "#GLJCVCR8",
+        "clan_name": "강백호"
+      },
+      {
+        "rank": 119,
+        "player_tag": "#YG8R8CGC",
+        "name": "ITA \\ Carmine",
+        "rating": 6657,
+        "clan_tag": "#PYV0PQYJ",
+        "clan_name": "QLASH Revenge"
+      },
+      {
+        "rank": 120,
+        "player_tag": "#Q9C9YJUJ",
+        "name": "Raiden",
+        "rating": 6655,
+        "clan_tag": "#2GQGVGJU",
+        "clan_name": "El Bar de Moe"
+      },
+      {
+        "rank": 121,
+        "player_tag": "#8YQPLPG",
+        "name": "Sandalo",
+        "rating": 6649,
+        "clan_tag": "#QCJPCJP0",
+        "clan_name": "Sgcapitalchalsh"
+      },
+      {
+        "rank": 122,
+        "player_tag": "#2LJ202QJQ",
+        "name": "⚡ChrisKim⚡",
+        "rating": 6641,
+        "clan_tag": "#2VLCGVUV",
+        "clan_name": "자유"
+      },
+      {
+        "rank": 123,
+        "player_tag": "#GRC9CYCR8",
+        "name": "gino",
+        "rating": 6635,
+        "clan_tag": "#R88JGJL2",
+        "clan_name": "SheLovesMyDeck"
+      },
+      {
+        "rank": 124,
+        "player_tag": "#2G9UGPYV2",
+        "name": "Michałek997",
+        "rating": 6606,
+        "clan_tag": "#QLYGQ8JQ",
+        "clan_name": "ROYALE FAN"
+      },
+      {
+        "rank": 125,
+        "player_tag": "#L9CRUQ82",
+        "name": "la patate",
+        "rating": 6604,
+        "clan_tag": "#GLLY08QR",
+        "clan_name": "LFI"
+      },
+      {
+        "rank": 126,
+        "player_tag": "#RCJG2LYJ",
+        "name": "GPU",
+        "rating": 6596,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 127,
+        "player_tag": "#90UPUVRC9",
+        "name": "Kayo",
+        "rating": 6562,
+        "clan_tag": "#PVC9ULVJ",
+        "clan_name": "Basaglar"
+      },
+      {
+        "rank": 128,
+        "player_tag": "#9RL92LJL",
+        "name": "林小安",
+        "rating": 6559,
+        "clan_tag": "#QJQ920",
+        "clan_name": "吃人夠夠"
+      },
+      {
+        "rank": 129,
+        "player_tag": "#8G88QGVVQ",
+        "name": "白のワルツ",
+        "rating": 6545,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 130,
+        "player_tag": "#PC8P88LJ",
+        "name": "Paratoxa",
+        "rating": 6518,
+        "clan_tag": "#82V9V",
+        "clan_name": "Munich Warriors"
+      },
+      {
+        "rank": 131,
+        "player_tag": "#YVRJJ0C2",
+        "name": "CAMEL BLUE",
+        "rating": 6516,
+        "clan_tag": "#G8RV8999",
+        "clan_name": "TALENTO OCULTO"
+      },
+      {
+        "rank": 132,
+        "player_tag": "#2JQ0LUQR",
+        "name": "Dude2023",
+        "rating": 6506,
+        "clan_tag": "#Y298VVYY",
+        "clan_name": "ForbiddenRoyale"
+      },
+      {
+        "rank": 133,
+        "player_tag": "#2GQJ90UV",
+        "name": "B_Rod22",
+        "rating": 6477,
+        "clan_tag": "#2PC2289",
+        "clan_name": "Death Knell"
+      },
+      {
+        "rank": 134,
+        "player_tag": "#PUGVG2RCP",
+        "name": "Dominator",
+        "rating": 6472,
+        "clan_tag": "#L8Q2RR90",
+        "clan_name": "Good Manners"
+      },
+      {
+        "rank": 135,
+        "player_tag": "#J80Y20RV8",
+        "name": "Javi",
+        "rating": 6434,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 136,
+        "player_tag": "#PP0888GJG",
+        "name": "dav2zz on insta",
+        "rating": 6409,
+        "clan_tag": "#9LJJJRVC",
+        "clan_name": "Maratonci"
+      },
+      {
+        "rank": 137,
+        "player_tag": "#8GU9LQUL",
+        "name": "sun",
+        "rating": 6373,
+        "clan_tag": "#PP9GLQYL",
+        "clan_name": "Malaysia"
+      },
+      {
+        "rank": 138,
+        "player_tag": "#QY0YQ20",
+        "name": "Davi139_YouTube",
+        "rating": 6335,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 139,
+        "player_tag": "#2R0PVJJQ0",
+        "name": "max",
+        "rating": 6333,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 140,
+        "player_tag": "#8G2L2P88V",
+        "name": "撒Lncx7",
+        "rating": 6327,
+        "clan_tag": "#RYVCPUYJ",
+        "clan_name": "floripa clash"
+      },
+      {
+        "rank": 141,
+        "player_tag": "#UGLGJ922J",
+        "name": "China.发",
+        "rating": 6324,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 142,
+        "player_tag": "#VVJUQLJYG",
+        "name": "ysong",
+        "rating": 6318,
+        "clan_tag": "#89C0P9L",
+        "clan_name": "6nays Finest"
+      },
+      {
+        "rank": 143,
+        "player_tag": "#L8PCR9J2R",
+        "name": "bot 5",
+        "rating": 6303,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 144,
+        "player_tag": "#28GRR2QJ9",
+        "name": "Hii",
+        "rating": 6301,
+        "clan_tag": "#9JRP0R80",
+        "clan_name": "Wonderstarzs"
+      },
+      {
+        "rank": 145,
+        "player_tag": "#9R8RJCLY",
+        "name": "启恒",
+        "rating": 6285,
+        "clan_tag": "#QG8CLJYG",
+        "clan_name": "MALAYSIA"
+      },
+      {
+        "rank": 146,
+        "player_tag": "#U8V029RVL",
+        "name": "吃斋の狼",
+        "rating": 6275,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 147,
+        "player_tag": "#880JU2JY9",
+        "name": "알짜배기",
+        "rating": 6267,
+        "clan_tag": "#RQVJGLJY",
+        "clan_name": "환영여단"
+      },
+      {
+        "rank": 148,
+        "player_tag": "#VC9RU9JG0",
+        "name": "風間",
+        "rating": 6262,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 149,
+        "player_tag": "#2LJ2V8G9",
+        "name": "Taint McGrundle",
+        "rating": 6260,
+        "clan_tag": "#LUCQVPRV",
+        "clan_name": "!Baked! 1.5"
+      },
+      {
+        "rank": 150,
+        "player_tag": "#2GYUQRC",
+        "name": "lukas",
+        "rating": 6259,
+        "clan_tag": "#GYL2GJJ",
+        "clan_name": "Berserker's"
+      },
+      {
+        "rank": 151,
+        "player_tag": "#9UU00LQLJ",
+        "name": "Kerem Waller",
+        "rating": 6244,
+        "clan_tag": "#GLQYLLPR",
+        "clan_name": "KyroChambered"
+      },
+      {
+        "rank": 152,
+        "player_tag": "#Y8PL0G0",
+        "name": "✨Wilzy✨",
+        "rating": 6226,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 153,
+        "player_tag": "#220CC22VY",
+        "name": "Raphael",
+        "rating": 6217,
+        "clan_tag": "#QGGJ882",
+        "clan_name": "BRs Royale"
+      },
+      {
+        "rank": 154,
+        "player_tag": "#Q82PJQG9",
+        "name": "jooaaansa",
+        "rating": 6195,
+        "clan_tag": "#L0PVGQVY",
+        "clan_name": "FansDeMontychoz"
+      },
+      {
+        "rank": 155,
+        "player_tag": "#20QL00JLY",
+        "name": "Saitama",
+        "rating": 6185,
+        "clan_tag": "#GJQ0QY",
+        "clan_name": "Sniping kings"
+      },
+      {
+        "rank": 156,
+        "player_tag": "#808YGRVPY",
+        "name": "frswim",
+        "rating": 6179,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 157,
+        "player_tag": "#CVV8RJJ8P",
+        "name": "Ray",
+        "rating": 6175,
+        "clan_tag": "#Q8VYYL8U",
+        "clan_name": "串生聯盟"
+      },
+      {
+        "rank": 158,
+        "player_tag": "#9PYU9YQY",
+        "name": "ビオ.csv",
+        "rating": 6166,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 159,
+        "player_tag": "#298LV8YV9",
+        "name": "Yuki",
+        "rating": 6155,
+        "clan_tag": "#GLUR220V",
+        "clan_name": "YTXiake職業MT棋院"
+      },
+      {
+        "rank": 160,
+        "player_tag": "#LJYR2LGG2",
+        "name": "VOID",
+        "rating": 6152,
+        "clan_tag": "#QJGLR8CR",
+        "clan_name": "SUPER SENIORS"
+      },
+      {
+        "rank": 161,
+        "player_tag": "#R090LUGQ",
+        "name": "Mert",
+        "rating": 6144,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 162,
+        "player_tag": "#28PLJ9G09",
+        "name": "Shadow Killer",
+        "rating": 6136,
+        "clan_tag": "#PL8PLVYR",
+        "clan_name": "BLUNT TRAUMA"
+      },
+      {
+        "rank": 163,
+        "player_tag": "#2YCRUP909",
+        "name": "l uk",
+        "rating": 6125,
+        "clan_tag": "#GCYGCP",
+        "clan_name": "Italian Gears"
+      },
+      {
+        "rank": 164,
+        "player_tag": "#YYP0L0RU",
+        "name": "LB ⚡️Ligh_Ty⚡️",
+        "rating": 6123,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 165,
+        "player_tag": "#YYVL2YGPJ",
+        "name": "iAlexYT♥️MKBAIT",
+        "rating": 6118,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 166,
+        "player_tag": "#8L8YC9Q22",
+        "name": "[ ]",
+        "rating": 6117,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 167,
+        "player_tag": "#VU2UUQPJV",
+        "name": "安之✨zlq❤️分割线",
+        "rating": 6115,
+        "clan_tag": "#YVGG2QV",
+        "clan_name": "Berserker"
+      },
+      {
+        "rank": 168,
+        "player_tag": "#UUGUGUC8U",
+        "name": "起床啦别睡啦",
+        "rating": 6111,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 169,
+        "player_tag": "#8R8RL9PU9",
+        "name": "BOXU",
+        "rating": 6103,
+        "clan_tag": "#8RL0GUUC",
+        "clan_name": "아빠"
+      },
+      {
+        "rank": 170,
+        "player_tag": "#28CQUL02L",
+        "name": "戰國時代",
+        "rating": 6101,
+        "clan_tag": "#G28YVV",
+        "clan_name": "Chinese League"
+      },
+      {
+        "rank": 171,
+        "player_tag": "#8VRRYJQRR",
+        "name": "N7CO",
+        "rating": 6097,
+        "clan_tag": "#GPYULQL9",
+        "clan_name": "My Dooom is CR"
+      },
+      {
+        "rank": 172,
+        "player_tag": "#UC2LU288V",
+        "name": "LAITO",
+        "rating": 6078,
+        "clan_tag": "#GLLUJGLQ",
+        "clan_name": "ВзРоСлЫе_ДеТи"
+      },
+      {
+        "rank": 173,
+        "player_tag": "#2VV898CJQ",
+        "name": "SnackCat",
+        "rating": 6072,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 174,
+        "player_tag": "#J2RYVG9G",
+        "name": "juanjo",
+        "rating": 6071,
+        "clan_tag": "#G2UPPVYY",
+        "clan_name": "ALMUÑECAR KLKTH"
+      },
+      {
+        "rank": 175,
+        "player_tag": "#2RPU20LQR",
+        "name": "kevin",
+        "rating": 6071,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 176,
+        "player_tag": "#YJR2G92Q",
+        "name": "D~jagoo",
+        "rating": 6063,
+        "clan_tag": "#GPGLQ89C",
+        "clan_name": "NASGOR INDO"
+      },
+      {
+        "rank": 177,
+        "player_tag": "#Q9GLGQQ9",
+        "name": "Rafa",
+        "rating": 6050,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 178,
+        "player_tag": "#PRJ0LJ28",
+        "name": "✨༺࿇[A]dam࿇༻✨",
+        "rating": 6036,
+        "clan_tag": "#RQ2VRL98",
+        "clan_name": "poopy poo"
+      },
+      {
+        "rank": 179,
+        "player_tag": "#9RV2CR2G",
+        "name": "DavyXIV",
+        "rating": 6035,
+        "clan_tag": "#GGCL2VG8",
+        "clan_name": "Clan  #GGCL2VG8"
+      },
+      {
+        "rank": 180,
+        "player_tag": "#LPVUUGQ",
+        "name": "Maxime 10 ASSE",
+        "rating": 6023,
+        "clan_tag": "#G2JL2R0V",
+        "clan_name": "Lames d'Hécate"
+      },
+      {
+        "rank": 181,
+        "player_tag": "#998Y8LV",
+        "name": "jordan",
+        "rating": 6021,
+        "clan_tag": "#G9J2Y299",
+        "clan_name": "savage"
+      },
+      {
+        "rank": 182,
+        "player_tag": "#2U2GYVRYC",
+        "name": "tymta10",
+        "rating": 6019,
+        "clan_tag": "#QY2LCYGQ",
+        "clan_name": "Cyce Zbyszka"
+      },
+      {
+        "rank": 183,
+        "player_tag": "#JP0GR8LGP",
+        "name": "安安安安安吧",
+        "rating": 6016,
+        "clan_tag": "#GP9PJYP0",
+        "clan_name": "哥们"
+      },
+      {
+        "rank": 184,
+        "player_tag": "#2P0GUC2VG",
+        "name": "면남",
+        "rating": 6014,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 185,
+        "player_tag": "#V8880PCJC",
+        "name": "Star Ι Yogurt",
+        "rating": 6010,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 186,
+        "player_tag": "#2R0CGCQV",
+        "name": "Toni",
+        "rating": 6006,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 187,
+        "player_tag": "#QJR9UCP",
+        "name": "GP •l ＡＺｚｅｕｓツ !",
+        "rating": 5993,
+        "clan_tag": "#GPUG0YYL",
+        "clan_name": "PonDIOS"
+      },
+      {
+        "rank": 188,
+        "player_tag": "#L0G8PLGY",
+        "name": "<c6>SK Kratoshi",
+        "rating": 5989,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 189,
+        "player_tag": "#2UUCVCURP",
+        "name": "새 이름 입력",
+        "rating": 5931,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 190,
+        "player_tag": "#CCUVULR",
+        "name": "ste junior",
+        "rating": 5924,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 191,
+        "player_tag": "#2YLJ0U9QJ",
+        "name": "Salsicha",
+        "rating": 5921,
+        "clan_tag": "#9YY990C2",
+        "clan_name": "ELITE BRASIL"
+      },
+      {
+        "rank": 192,
+        "player_tag": "#RJYJU99L",
+        "name": "Isaac Play ツ",
+        "rating": 5908,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 193,
+        "player_tag": "#YJRVCV",
+        "name": "Тимур I FL",
+        "rating": 5905,
+        "clan_tag": "#G2LV9L0J",
+        "clan_name": "Mad Bulls"
+      },
+      {
+        "rank": 194,
+        "player_tag": "#22PGPJ2GU",
+        "name": "Diego G.",
+        "rating": 5895,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 195,
+        "player_tag": "#2UCC29UPJ",
+        "name": "傳奇專賣店",
+        "rating": 5884,
+        "clan_tag": "#G092PULR",
+        "clan_name": "雲遊四海_雷震八方"
+      },
+      {
+        "rank": 196,
+        "player_tag": "#22L9RJQG0",
+        "name": "Pikis",
+        "rating": 5879,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 197,
+        "player_tag": "#CPULLVRL8",
+        "name": "88.",
+        "rating": 5877,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 198,
+        "player_tag": "#PRR9UVGGG",
+        "name": "Undying Passion",
+        "rating": 5833,
+        "clan_tag": "#Y9L0VYR2",
+        "clan_name": "七つの大罪"
+      },
+      {
+        "rank": 199,
+        "player_tag": "#9QRYLJ90L",
+        "name": "斯N很斯N",
+        "rating": 5831,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 200,
+        "player_tag": "#2P92LVJ",
+        "name": "Austin",
+        "rating": 5821,
+        "clan_tag": "#QR0VVYLU",
+        "clan_name": "1st Death Star"
+      },
+      {
+        "rank": 201,
+        "player_tag": "#2Q9GCCYG",
+        "name": "-Lørd-brënø",
+        "rating": 5818,
+        "clan_tag": "#RYG8QYG8",
+        "clan_name": "DOA GAMING"
+      },
+      {
+        "rank": 202,
+        "player_tag": "#9GPGU9UQ",
+        "name": "Nevermore",
+        "rating": 5817,
+        "clan_tag": "#9LU9YLR",
+        "clan_name": "3Q very much"
+      },
+      {
+        "rank": 203,
+        "player_tag": "#PJ02PGGL",
+        "name": "wickedRayz",
+        "rating": 5813,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 204,
+        "player_tag": "#PVJG9GYQC",
+        "name": "КоТяРа",
+        "rating": 5811,
+        "clan_tag": "#92PY0JP",
+        "clan_name": "United Ukraine"
+      },
+      {
+        "rank": 205,
+        "player_tag": "#9V9C8GYRR",
+        "name": "水煎包",
+        "rating": 5782,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 206,
+        "player_tag": "#YVR8YQQY",
+        "name": "dymekk",
+        "rating": 5772,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 207,
+        "player_tag": "#VQC82UP0",
+        "name": "GraveyardMaster",
+        "rating": 5759,
+        "clan_tag": "#QCC0UVCC",
+        "clan_name": "e個人momo等著你"
+      },
+      {
+        "rank": 208,
+        "player_tag": "#22888CJ8",
+        "name": "Sopro d Ternura",
+        "rating": 5736,
+        "clan_tag": "#89R0GP0",
+        "clan_name": "Recanto Do Amor"
+      },
+      {
+        "rank": 209,
+        "player_tag": "#CJUGU8JPU",
+        "name": "枕边书",
+        "rating": 5717,
+        "clan_tag": "#28J288G",
+        "clan_name": "男人帮"
+      },
+      {
+        "rank": 210,
+        "player_tag": "#L8J8VUPL",
+        "name": "Marker",
+        "rating": 5711,
+        "clan_tag": "#R2CG2UQ8",
+        "clan_name": "Wu Tang Clan"
+      },
+      {
+        "rank": 211,
+        "player_tag": "#99RUUPLC8",
+        "name": "ceвula",
+        "rating": 5664,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 212,
+        "player_tag": "#Y9QQ9V2GL",
+        "name": "™Yael ♥ Z",
+        "rating": 5613,
+        "clan_tag": "#QVPGVLLV",
+        "clan_name": "Mexinakos"
+      },
+      {
+        "rank": 213,
+        "player_tag": "#Y2CCCR08P",
+        "name": "Xtharenx",
+        "rating": 5586,
+        "clan_tag": "#JVPQLQ",
+        "clan_name": "Cœur de glace"
+      },
+      {
+        "rank": 214,
+        "player_tag": "#C00RJ8P",
+        "name": "mald",
+        "rating": 5574,
+        "clan_tag": "#LPGGUP09",
+        "clan_name": "Big uff"
+      },
+      {
+        "rank": 215,
+        "player_tag": "#9288RP8GC",
+        "name": "Kvn31",
+        "rating": 5571,
+        "clan_tag": "#LGYJ2YCC",
+        "clan_name": "MAESTROSDELSOL"
+      },
+      {
+        "rank": 216,
+        "player_tag": "#Q800PU0R",
+        "name": "나는나는나",
+        "rating": 5571,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 217,
+        "player_tag": "#QLV8P2U0G",
+        "name": "♥️ 千坂お嬢様 ♥️",
+        "rating": 5567,
+        "clan_tag": "#G0VVY90G",
+        "clan_name": "♥️魔女的侵袭♥️"
+      },
+      {
+        "rank": 218,
+        "player_tag": "#VPJP0C8VU",
+        "name": "月下",
+        "rating": 5561,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 219,
+        "player_tag": "#UGRLVJ9P8",
+        "name": "我是逆蝶",
+        "rating": 5546,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 220,
+        "player_tag": "#JYLJYGYG",
+        "name": "<c",
+        "rating": 5542,
+        "clan_tag": "#YRYJRR0Q",
+        "clan_name": "The roadmen"
+      },
+      {
+        "rank": 221,
+        "player_tag": "#820LQRUPV",
+        "name": "j3y.py",
+        "rating": 5508,
+        "clan_tag": "#G00UVY9C",
+        "clan_name": ".."
+      },
+      {
+        "rank": 222,
+        "player_tag": "#UY9YLP2RC",
+        "name": "Super daqiqi",
+        "rating": 5502,
+        "clan_tag": "#GVL0GUVP",
+        "clan_name": "⚡️戰神的绿胖❤️电车之家⚡️"
+      },
+      {
+        "rank": 223,
+        "player_tag": "#PG9JR0YYG",
+        "name": "blobby",
+        "rating": 5479,
+        "clan_tag": "#G00UGGG8",
+        "clan_name": "The Dons"
+      },
+      {
+        "rank": 224,
+        "player_tag": "#P2JLYP9Q2",
+        "name": "Fifi Royale",
+        "rating": 5468,
+        "clan_tag": "#QC2L8QV2",
+        "clan_name": "Chmurki Fifiego"
+      },
+      {
+        "rank": 225,
+        "player_tag": "#C8JRPQG",
+        "name": "Sir Dřypp",
+        "rating": 5467,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 226,
+        "player_tag": "#82PPCLJ0",
+        "name": "El bicho",
+        "rating": 5461,
+        "clan_tag": "#89RGR8",
+        "clan_name": ".#YouTeam#."
+      },
+      {
+        "rank": 227,
+        "player_tag": "#2CPQC2QU0",
+        "name": "PENETRATOR777",
+        "rating": 5451,
+        "clan_tag": "#GGRRYY8V",
+        "clan_name": "Triple A"
+      },
+      {
+        "rank": 228,
+        "player_tag": "#282JJ8Y9R",
+        "name": "✨OC I SWAN✨",
+        "rating": 5433,
+        "clan_tag": "#LLYCLYQY",
+        "clan_name": "Op Cycle"
+      },
+      {
+        "rank": 229,
+        "player_tag": "#9U9VLUU8",
+        "name": "철이",
+        "rating": 5399,
+        "clan_tag": "#LG9288L",
+        "clan_name": "Royal Clan"
+      },
+      {
+        "rank": 230,
+        "player_tag": "#CJCU9LU82",
+        "name": "抖音搜CR青羽儿",
+        "rating": 5398,
+        "clan_tag": "#RYPYPVVL",
+        "clan_name": "Timeking"
+      },
+      {
+        "rank": 231,
+        "player_tag": "#8VP0PJYLY",
+        "name": "YAMIRSV",
+        "rating": 5387,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 232,
+        "player_tag": "#PUG8YRGC",
+        "name": "Atra3000",
+        "rating": 5382,
+        "clan_tag": "#G9YUCJJP",
+        "clan_name": "BM OVER SKILL"
+      },
+      {
+        "rank": 233,
+        "player_tag": "#UR0L8L9",
+        "name": "DieGod",
+        "rating": 5380,
+        "clan_tag": "#RVQRQGJQ",
+        "clan_name": "Spanish Gods"
+      },
+      {
+        "rank": 234,
+        "player_tag": "#222PQ2RVP",
+        "name": "Lynx",
+        "rating": 5356,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 235,
+        "player_tag": "#VLUVG02J9",
+        "name": "Shabarai",
+        "rating": 5354,
+        "clan_tag": "#R8CLGQ2J",
+        "clan_name": "Celestial Doom"
+      },
+      {
+        "rank": 236,
+        "player_tag": "#YJ0PYRQR8",
+        "name": "Aluse",
+        "rating": 5353,
+        "clan_tag": "#YU9YR2GP",
+        "clan_name": "35分了 回座位"
+      },
+      {
+        "rank": 237,
+        "player_tag": "#2YQV8QCG",
+        "name": "Conserwator",
+        "rating": 5308,
+        "clan_tag": "#RQ2YQGC9",
+        "clan_name": "Дота 2"
+      },
+      {
+        "rank": 238,
+        "player_tag": "#2CLYYR9CQ",
+        "name": "へぶん",
+        "rating": 5304,
+        "clan_tag": "#RYQ092LL",
+        "clan_name": "MER汁 TACTICツ"
+      },
+      {
+        "rank": 239,
+        "player_tag": "#Y882PQ2L",
+        "name": "Stevenlol",
+        "rating": 5302,
+        "clan_tag": "#YY9CPYQP",
+        "clan_name": "The Icy Tribe"
+      },
+      {
+        "rank": 240,
+        "player_tag": "#U9RPU0QCJ",
+        "name": "莫听穿林打叶声",
+        "rating": 5291,
+        "clan_tag": "#QRJRJ9GC",
+        "clan_name": "神猪"
+      },
+      {
+        "rank": 241,
+        "player_tag": "#PUVVP8L80",
+        "name": "三宅ロース_YT",
+        "rating": 5277,
+        "clan_tag": "#GP8292Y8",
+        "clan_name": "Miyake YT"
+      },
+      {
+        "rank": 242,
+        "player_tag": "#8RURVU9C",
+        "name": "一风一",
+        "rating": 5267,
+        "clan_tag": "#RYGP99U9",
+        "clan_name": "从零开始的大羁绊"
+      },
+      {
+        "rank": 243,
+        "player_tag": "#PU9RCVYUG",
+        "name": "最弱ＩFJ21",
+        "rating": 5265,
+        "clan_tag": "#JYU8JLRQ",
+        "clan_name": "mt is dead"
+      },
+      {
+        "rank": 244,
+        "player_tag": "#YP2PYUUP",
+        "name": "Stormy",
+        "rating": 5257,
+        "clan_tag": "#L28L0PV",
+        "clan_name": "Malaysian"
+      },
+      {
+        "rank": 245,
+        "player_tag": "#9GUQ8JJ2Y",
+        "name": "arn_runcolt",
+        "rating": 5256,
+        "clan_tag": "#LJR2PCL9",
+        "clan_name": "♣️Tumbao's♣️"
+      },
+      {
+        "rank": 246,
+        "player_tag": "#JQ9GQ8QUL",
+        "name": "dusanntadicc",
+        "rating": 5250,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 247,
+        "player_tag": "#PQQP8QP8P",
+        "name": "Wilson",
+        "rating": 5246,
+        "clan_tag": "#J0J202C0",
+        "clan_name": "✨DanyVerse✨"
+      },
+      {
+        "rank": 248,
+        "player_tag": "#U209LQ0J9",
+        "name": "・・・",
+        "rating": 5243,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 249,
+        "player_tag": "#QJ8UJ0GYQ",
+        "name": "CyberSportsmen",
+        "rating": 5241,
+        "clan_tag": "#GGVG8VVQ",
+        "clan_name": "чубчик сороки"
+      },
+      {
+        "rank": 250,
+        "player_tag": "#LRQ0U20",
+        "name": "BryZal",
+        "rating": 5231,
+        "clan_tag": "#LJUQP229",
+        "clan_name": "German Legends"
+      },
+      {
+        "rank": 251,
+        "player_tag": "#GU9PRPU2",
+        "name": "bllade",
+        "rating": 5227,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 252,
+        "player_tag": "#2LQ2YP98",
+        "name": "SK xopxsam",
+        "rating": 5225,
+        "clan_tag": "#GJRRVJ29",
+        "clan_name": "Anti-Rehwald"
+      },
+      {
+        "rank": 253,
+        "player_tag": "#QR92GV0R",
+        "name": "DiegoMG",
+        "rating": 5221,
+        "clan_tag": "#GG92C9PY",
+        "clan_name": "BARDEROS"
+      },
+      {
+        "rank": 254,
+        "player_tag": "#Q99Q998",
+        "name": "En¿gma",
+        "rating": 5220,
+        "clan_tag": "#LP0RQ2CJ",
+        "clan_name": "DemonSoul™️ ITA"
+      },
+      {
+        "rank": 255,
+        "player_tag": "#Y8RL90U0",
+        "name": "Abraham Lincoln",
+        "rating": 5209,
+        "clan_tag": "#JYU8JLRQ",
+        "clan_name": "mt is dead"
+      },
+      {
+        "rank": 256,
+        "player_tag": "#RLQJRL8YL",
+        "name": "さくらとほうげつ",
+        "rating": 5208,
+        "clan_tag": "#LU0VPPG0",
+        "clan_name": "おやじ(株)"
+      },
+      {
+        "rank": 257,
+        "player_tag": "#PLY0R282J",
+        "name": "k5",
+        "rating": 5208,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 258,
+        "player_tag": "#9VLYC0V98",
+        "name": "クラり",
+        "rating": 5205,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 259,
+        "player_tag": "#JYRV8Y8V0",
+        "name": "rufus",
+        "rating": 5205,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 260,
+        "player_tag": "#YCCYCQJC",
+        "name": "ルンバ",
+        "rating": 5204,
+        "clan_tag": "#RYQ092LL",
+        "clan_name": "MER汁 TACTICツ"
+      },
+      {
+        "rank": 261,
+        "player_tag": "#CVUUQR0PQ",
+        "name": "うこと",
+        "rating": 5203,
+        "clan_tag": "#GQ8828YP",
+        "clan_name": "初心者サポート"
+      },
+      {
+        "rank": 262,
+        "player_tag": "#UC20VR09P",
+        "name": "てるみみ",
+        "rating": 5200,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 263,
+        "player_tag": "#9QR0UVYU",
+        "name": "ShadowIF7",
+        "rating": 5193,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 264,
+        "player_tag": "#JVCQJPJP",
+        "name": "노루",
+        "rating": 5181,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 265,
+        "player_tag": "#8J90PR9P",
+        "name": "✨rydog 狗燃",
+        "rating": 5179,
+        "clan_tag": "#GLCVJR2U",
+        "clan_name": "jazzycat"
+      },
+      {
+        "rank": 266,
+        "player_tag": "#CUC99QGL0",
+        "name": "Q.",
+        "rating": 5169,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 267,
+        "player_tag": "#YYGP9Y0PV",
+        "name": "TwoBeerss",
+        "rating": 5165,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 268,
+        "player_tag": "#LC2PYC",
+        "name": "mrshadow92",
+        "rating": 5160,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 269,
+        "player_tag": "#2V2R28JL",
+        "name": "ESOCIRE",
+        "rating": 5159,
+        "clan_tag": "#L8V9PG89",
+        "clan_name": "happy(^^)"
+      },
+      {
+        "rank": 270,
+        "player_tag": "#GJJQ0JV",
+        "name": "Raffy",
+        "rating": 5158,
+        "clan_tag": "#QUYPL0JR",
+        "clan_name": "FLAVIO1111"
+      },
+      {
+        "rank": 271,
+        "player_tag": "#RGLYRL",
+        "name": "Ikeer",
+        "rating": 5157,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 272,
+        "player_tag": "#QGLQCU098",
+        "name": "APPLE JUICE",
+        "rating": 5153,
+        "clan_tag": "#CJ08L",
+        "clan_name": "team canada"
+      },
+      {
+        "rank": 273,
+        "player_tag": "#J9YYQVLJU",
+        "name": "satoshi",
+        "rating": 5145,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 274,
+        "player_tag": "#8JGGJUQG9",
+        "name": "しーしーのおかず I けん",
+        "rating": 5144,
+        "clan_tag": "#QVYP9VCP",
+        "clan_name": "nodo"
+      },
+      {
+        "rank": 275,
+        "player_tag": "#8PQUP0CPJ",
+        "name": "ミクシー",
+        "rating": 5143,
+        "clan_tag": "#R0YGQCPV",
+        "clan_name": "パチアーク"
+      },
+      {
+        "rank": 276,
+        "player_tag": "#R22YJJJR0",
+        "name": "Zappy Zappies",
+        "rating": 5142,
+        "clan_tag": "#2CVJY8V0",
+        "clan_name": "Cantera ESPAÑA"
+      },
+      {
+        "rank": 277,
+        "player_tag": "#JYGYUCUR0",
+        "name": "ちん",
+        "rating": 5141,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 278,
+        "player_tag": "#22CLV029",
+        "name": "Oさく",
+        "rating": 5141,
+        "clan_tag": "#GCG28QRG",
+        "clan_name": "Kさクラン第2～汝強求めるか～"
+      },
+      {
+        "rank": 279,
+        "player_tag": "#C8GYGLU",
+        "name": "Happy",
+        "rating": 5140,
+        "clan_tag": "#G9JUUG0V",
+        "clan_name": "MergeGam(BL)ING"
+      },
+      {
+        "rank": 280,
+        "player_tag": "#PL2GV2VLL",
+        "name": "EVA✨Astronaut",
+        "rating": 5139,
+        "clan_tag": "#PRUC2V8",
+        "clan_name": "憲兵團"
+      },
+      {
+        "rank": 281,
+        "player_tag": "#CUUP9GRV9",
+        "name": "hyeon",
+        "rating": 5137,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 282,
+        "player_tag": "#J992U08Y",
+        "name": "@_(",
+        "rating": 5136,
+        "clan_tag": "#2GVRGL",
+        "clan_name": "The Diver"
+      },
+      {
+        "rank": 283,
+        "player_tag": "#CQ0V0Y0CV",
+        "name": "Jhosep",
+        "rating": 5136,
+        "clan_tag": "#GVQUJ9JR",
+        "clan_name": "Honduras 504"
+      },
+      {
+        "rank": 284,
+        "player_tag": "#Y0890J02",
+        "name": "Laet",
+        "rating": 5136,
+        "clan_tag": "#YV88PUL0",
+        "clan_name": "705"
+      },
+      {
+        "rank": 285,
+        "player_tag": "#92CJ9URLL",
+        "name": "by_Issız Adam",
+        "rating": 5136,
+        "clan_tag": "#8982CV8",
+        "clan_name": "Warrior Turks"
+      },
+      {
+        "rank": 286,
+        "player_tag": "#88R2C0V9",
+        "name": "てる",
+        "rating": 5133,
+        "clan_tag": "#2GPJQ0J0",
+        "clan_name": "ポコポコハンマー"
+      },
+      {
+        "rank": 287,
+        "player_tag": "#YC202LCRC",
+        "name": "Labinnac",
+        "rating": 5132,
+        "clan_tag": "#G2YLJLYC",
+        "clan_name": "きたねえ花火だ"
+      },
+      {
+        "rank": 288,
+        "player_tag": "#8GLCPJVRY",
+        "name": "blddlb",
+        "rating": 5129,
+        "clan_tag": "#G9JUUG0V",
+        "clan_name": "MergeGam(BL)ING"
+      },
+      {
+        "rank": 289,
+        "player_tag": "#RG882QGUG",
+        "name": "Trainer Simon",
+        "rating": 5129,
+        "clan_tag": "#JPY0QV",
+        "clan_name": "Alpha Warriors"
+      },
+      {
+        "rank": 290,
+        "player_tag": "#8RC0V8Q0",
+        "name": "싼체르",
+        "rating": 5128,
+        "clan_tag": "#RJQV92YR",
+        "clan_name": "대한민국 합체전술 클랜"
+      },
+      {
+        "rank": 291,
+        "player_tag": "#9LLLUVLJR",
+        "name": "幸栄",
+        "rating": 5127,
+        "clan_tag": "#2CP9JJLJ",
+        "clan_name": "rs"
+      },
+      {
+        "rank": 292,
+        "player_tag": "#80G8LLVU8",
+        "name": "냥뇽녕냥 사랑해❤️",
+        "rating": 5127,
+        "clan_tag": "#G9JUUG0V",
+        "clan_name": "MergeGam(BL)ING"
+      },
+      {
+        "rank": 293,
+        "player_tag": "#PCURQVJLJ",
+        "name": "caydouge",
+        "rating": 5126,
+        "clan_tag": "#QL8VQYJU",
+        "clan_name": "fittypea fans"
+      },
+      {
+        "rank": 294,
+        "player_tag": "#8P0YJY2UG",
+        "name": "DLB",
+        "rating": 5126,
+        "clan_tag": "#QYUPJ922",
+        "clan_name": "the gays"
+      },
+      {
+        "rank": 295,
+        "player_tag": "#CJJQUR2RC",
+        "name": "响亮的名字！",
+        "rating": 5124,
+        "clan_tag": "#QYUPR020",
+        "clan_name": "皇族精英"
+      },
+      {
+        "rank": 296,
+        "player_tag": "#9R0JV2CC",
+        "name": "supu",
+        "rating": 5123,
+        "clan_tag": "#R0990LPY",
+        "clan_name": "Supu Gang"
+      },
+      {
+        "rank": 297,
+        "player_tag": "#292C9VG0J",
+        "name": "Coronel⚽",
+        "rating": 5122,
+        "clan_tag": "#UG2YUY9",
+        "clan_name": "G-6"
+      },
+      {
+        "rank": 298,
+        "player_tag": "#VQG92QQJV",
+        "name": "canphesation",
+        "rating": 5121,
+        "clan_tag": "#RYJCYRGL",
+        "clan_name": "ove3"
+      },
+      {
+        "rank": 299,
+        "player_tag": "#YVLLCLQGJ",
+        "name": "Keter",
+        "rating": 5120,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 300,
+        "player_tag": "#9PGCQCJ8",
+        "name": "新月喵",
+        "rating": 5116,
+        "clan_tag": "#202L0GPQ",
+        "clan_name": "快樂新手村"
+      }
+    ],
+    "notes": [
+      "This board holds 1,000 places and is full (the API offered more than the 1,000 the recorder keeps (truncated: true)): floor_rating (4922) is the last place's rating, a cutoff that moves, not a qualification threshold - a player can leave the board without losing rating.",
+      "rating on a mode board is that event's own leaderboard rating, not a Path of Legends rating: it is not comparable to one, or to another board's rating.",
+      "This board's ranks and ratings have not moved since 2026-09-11 (standings_changed_at); only names and clans have refreshed since (observed_at 2026-09-23), so it reads as a closed event, not today's leaderboard.",
+      "The API offered more places than this snapshot holds (truncated: true); the tail of the board is missing.",
+      "Page 1: pass offset 300 for the next 300 places."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.35.0",
+      "source_polls": {
+        "leaderboard": {
+          "observed_at": "2026-09-23T10:07:54.000Z",
+          "freshness_seconds": 46695
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 43,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

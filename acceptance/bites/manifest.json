@@ -1081,5 +1081,53 @@
     "case": "gym/171.2",
     "captures": ["171-2-battles_meta_decks.json"],
     "expect": "."
+  },
+  {
+    "feedback": 174,
+    "contract": "6.35.0",
+    "why": "the Gym block 174.1 on the answer it read",
+    "case": "gym/174.1",
+    "captures": ["174-1-rankings_clans.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 174,
+    "contract": "6.35.0",
+    "why": "the Gym block 174.2 on the answer it read",
+    "case": "gym/174.2",
+    "captures": ["174-2-rankings_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 175,
+    "contract": "6.35.0",
+    "why": "the Gym block 175.1 on the answer it read",
+    "case": "gym/175.1",
+    "captures": ["175-1-rankings_players.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 175,
+    "contract": "6.35.0",
+    "why": "the Gym block 175.2 on the answer it read",
+    "case": "gym/175.2",
+    "captures": ["175-2-rankings_players.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 176,
+    "contract": "6.35.0",
+    "why": "the Gym block 176.1 on the answer it read",
+    "case": "gym/176.1",
+    "captures": ["176-1-rankings_players.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 177,
+    "contract": "6.35.0",
+    "why": "the Gym block 177.1 on the answer it read",
+    "case": "gym/177.1",
+    "captures": ["177-1-rankings_timeline.json"],
+    "expect": "."
   }
 ]

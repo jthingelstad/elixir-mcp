@@ -1,0 +1,113 @@
+{
+  "feedback": 174,
+  "contract_version": "6.35.0",
+  "captured_at": "2026-09-23T23:08:24.433Z",
+  "request": {
+    "tool": "rankings_clans",
+    "arguments": {
+      "board": "mode",
+      "location": "170000008",
+      "limit": 5
+    }
+  },
+  "response": {
+    "board": "mode",
+    "location": {
+      "key": "170000008",
+      "label": "Merge Tactics",
+      "kind": "mode",
+      "country_code": null
+    },
+    "applied": {
+      "board": "mode",
+      "location": "170000008",
+      "limit": 5
+    },
+    "snapshot": {
+      "observed_at": "2026-09-23T10:07:54.000Z",
+      "unchanged_until": "2026-09-23T10:07:54.000Z",
+      "season_id": "136",
+      "season_month": "2026-09",
+      "entries": 1000,
+      "depth": 1000,
+      "full": true,
+      "floor_rating": 4922,
+      "truncated": true,
+      "cadence_minutes": 1440,
+      "standings_changed_at": "2026-09-11T05:06:49.000Z"
+    },
+    "field_size": 1000,
+    "clans_total": 647,
+    "players_without_clan": 281,
+    "clans": [
+      {
+        "rank": 1,
+        "clan_tag": "#RYQ092LL",
+        "clan_name": "MER汁 TACTICツ",
+        "rated_players": 13,
+        "best_rank": 238,
+        "best_player_tag": "#2CLYYR9CQ",
+        "best_player_name": "へぶん"
+      },
+      {
+        "rank": 2,
+        "clan_tag": "#G9888CC2",
+        "clan_name": "Kさクラン～戦略の漢～",
+        "rated_players": 8,
+        "best_rank": 93,
+        "best_player_tag": "#LJYLRYQ99",
+        "best_player_name": "Kさく"
+      },
+      {
+        "rank": 3,
+        "clan_tag": "#JYU8JLRQ",
+        "clan_name": "mt is dead",
+        "rated_players": 7,
+        "best_rank": 243,
+        "best_player_tag": "#PU9RCVYUG",
+        "best_player_name": "最弱ＩFJ21"
+      },
+      {
+        "rank": 4,
+        "clan_tag": "#G9JUUG0V",
+        "clan_name": "MergeGam(BL)ING",
+        "rated_players": 7,
+        "best_rank": 279,
+        "best_player_tag": "#C8GYGLU",
+        "best_player_name": "Happy"
+      },
+      {
+        "rank": 5,
+        "clan_tag": "#GLUR220V",
+        "clan_name": "YTXiake職業MT棋院",
+        "rated_players": 6,
+        "best_rank": 10,
+        "best_player_tag": "#9CQJQYP2",
+        "best_player_name": "Xiake"
+      }
+    ],
+    "notes": [
+      "Counted over every placed player in the snapshot (field_size: 1000, the board's full 1,000); rated_players moves with the cutoff as well as with play - it can fall while every one of the clan's players improves - so compare clans within one snapshot, not counts across dates.",
+      "This board holds 1,000 places and is full (the API offered more than the 1,000 the recorder keeps (truncated: true)): floor_rating (4922) is the last place's rating, a cutoff that moves, not a qualification threshold - a player can leave the board without losing rating.",
+      "Ties in rated_players are ordered by best_rank, the rank of the clan's best-placed player.",
+      "Path of Legends lists players above a rating floor, at most 1,000 places: a board is small in a season's first days and grows as players cross the floor, and once it holds 1,000 it is full - from then on floor_rating is the 1,000th place's rating, a cutoff that rises with play, not a qualification threshold."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.35.0",
+      "source_polls": {
+        "leaderboard": {
+          "observed_at": "2026-09-23T10:07:54.000Z",
+          "freshness_seconds": 46830
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 27,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

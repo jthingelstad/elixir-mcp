@@ -13,6 +13,8 @@ import {
   requireEnum,
   seasonFieldsForInstants,
   withWindowSugar,
+  SEASON_ARG_SCHEMA,
+  resolveSeasonWindow,
   zoneFor,
 } from "../shared.mjs";
 import {
@@ -47,6 +49,8 @@ export const rankings_timeline = {
       board: { type: "string", enum: ["pol", "mode"], default: "pol" },
       location: LOCATION_SCHEMA,
       ...WINDOW_ARGS,
+      // Every windowed tool takes season (Gym #177).
+      season: SEASON_ARG_SCHEMA,
       limit: {
         type: "integer",
         minimum: 1,
@@ -64,12 +68,19 @@ export const rankings_timeline = {
     requireEnum(board, ["pol", "mode"], "board");
     const row = await boardRow(ctx.db, board, args.location);
     const tz = zoneFor(ctx, args);
-    const to =
-      args.to !== undefined
+    // season bounds one season, as on every windowed tool (Gym #177).
+    const seasonWin =
+      args.season !== undefined
+        ? await resolveSeasonWindow(ctx, args, { flavor: "series" })
+        : null;
+    const to = seasonWin
+      ? (seasonWin.to ?? new Date())
+      : args.to !== undefined
         ? resolveInstant(tz, args.to, { endOfDay: true })
         : new Date();
-    const from =
-      args.from !== undefined
+    const from = seasonWin
+      ? seasonWin.from
+      : args.from !== undefined
         ? resolveInstant(tz, args.from)
         : new Date(seasonStartOf(to));
     if (!from || !to)
@@ -133,8 +144,9 @@ export const rankings_timeline = {
       window: {
         from: from.toISOString(),
         to: to.toISOString(),
-        source:
-          args.from !== undefined || args.to !== undefined
+        source: seasonWin
+          ? "season"
+          : args.from !== undefined || args.to !== undefined
             ? "argument"
             : "default",
         ...(beforeHorizon ? { partial: true, covers } : {}),
@@ -253,7 +265,11 @@ export const rankings_timeline = {
         horizonNote,
         subject === "player" ? null : zeroSeriesNote(points, "rated_players"),
         seasonFields.seasonNotes,
-        "One point per recorded snapshot; a snapshot is written only when the board changed, so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
+        "One point per recorded snapshot; a snapshot is written when the board's content changed (ranks, ratings, names or clans), so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
+        // A closed event keeps writing points (Gym #174).
+        board === "mode"
+          ? "On a mode board a point is also written when only names or clans changed, so consecutive points can hold the same ranks and ratings: a closed event keeps writing points. rankings_players says when the standings last moved (snapshot.standings_changed_at)."
+          : null,
         subject === "player"
           ? `on_board false means the player was not on the board at that snapshot - below the rating floor, or below the cutoff once the board is full; rank and rating are then null, not zero.${board === "mode" ? "" : " Per-battle rank and rating for a recorded player are on their battles (battles_query.global_rank, battles_query.starting_trophies, battles_query.trophy_change)."}`
           : subject === "clan"

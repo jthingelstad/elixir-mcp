@@ -2055,3 +2055,11 @@ All 7 regressions were confirmed. #126's recorder half (reads pinned to the 10:0
 - **#172:** described, not unified. Both trophy_ranges are declared and a note explains them. 172.1 and 172.2 are `refuted` as held for Jamie. **Question for Jamie:** make every trophy_range starting trophies? That changes what trophy_floor.trophy_range means on three tools.
 - **Open (Gym, not filed):** in one week King Thing's lifetime donations rose 28 more than the week's high-water mark (414 against 386). A stale roster read near the reset may miss late donations. It needs more weeks before the 6.33.0 claim that the highest read is the week's total is qualified.
 
+## 2026-09-23 — Gym sweep, rankings round 2 (6.36.0, feedback #174-#178)
+
+7 of 8 regressions were confirmed. #137 was partly fixed and the rest is #174. #178 is praise.
+- **#174:** rankings_clans takes MODE_RATING_NOTE and the stale note on mode boards. rankings_timeline says points are written when names or clans change, and the generic note now says "content changed (ranks, ratings, names or clans)", which was already true.
+- **#175:** standingsStaleNote gets the horizon. At or before it, the note says recording began then, and says nothing about a refresh.
+- **#176:** boardRow refuses a trophy board with the empty-API reason.
+- **#177:** rankings_timeline takes `season`, through resolveSeasonWindow (source season).
+

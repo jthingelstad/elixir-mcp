@@ -219,7 +219,7 @@ export const rankings_players = {
           : board === "mode"
             ? MODE_RATING_NOTE
             : FLOOR_NOTE,
-        standingsStaleNote(snapshot, row),
+        standingsStaleNote(snapshot, row, horizon),
         snapshot.truncated
           ? "The API offered more places than this snapshot holds (truncated: true); the tail of the board is missing."
           : null,
