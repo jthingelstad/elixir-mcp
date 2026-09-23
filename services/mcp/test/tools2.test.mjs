@@ -1500,6 +1500,30 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
     badge: "NoSuchBadgeAtAll",
   });
   assert.equal(none.body.error.code, "not_found");
+  // The refusal is about the argument, not a claim about the world (#93).
+  assert.doesNotMatch(none.body.error.message, /No recorded player holds/);
+
+  // A label resolves to its identifier and says so (#93).
+  const byLabel = await call("badges_holders", {
+    segment: "corpus",
+    badge: "Years Played",
+  });
+  assert.equal(byLabel.isError, false, JSON.stringify(byLabel.body));
+  assert.equal(byLabel.body.badge, "YearsPlayed");
+  assert.ok(
+    byLabel.body.notes.some((n) => /is the label of YearsPlayed/.test(n)),
+  );
+
+  // since is the stored first sighting; observed_at is never older (#91),
+  // and holder_share is over the population, not the page (#94).
+  for (const h of holders.body.holders)
+    assert.ok(Date.parse(h.observed_at) >= Date.parse(h.since), h.player_tag);
+  assert.equal(
+    holders.body.holder_share,
+    Number(
+      (holders.body.holders_total / holders.body.players_considered).toFixed(3),
+    ),
+  );
 });
 
 test("meta tools default to the current season, take a season, and say what a window crosses (3.10.0)", async () => {

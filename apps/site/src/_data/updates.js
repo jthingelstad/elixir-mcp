@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-23",
+    title:
+      "Badges: honest dates, labels that name one badge, and asking by name",
+    body: 'Three things the Elixir Gym found on its first run over the badge tools. First, the date on a badge holder was when the badge last changed, not when Elixir last looked, so a clan read yesterday showed most members as untouched since early September. A holder now carries observed_at, the last profile read, and since, when the record first saw the badge at that level. A since at the start of recording, or just after someone joined, is a first sighting, not when they earned it. Second, the game keeps a few badges in two versions, and both read "Royal Tournament Rank", so the legacy one, held by a single player, looked like the rarest badge in the game. The newer one now says (v2), and the rarity list points out the pair. Third, badges_holders now accepts the name a player uses, like "Valkyrie Mastery", as well as the game\'s identifier. Contract 6.20.0.',
+  },
+  {
+    date: "2026-09-23",
     title: 'The war standings\' "clan score" was war trophies all along',
     body: "A clan in Clash Royale has two numbers that both get called a score: its clan score, a five- or six-figure strength rating a profile shows, and its war trophies, a four-figure ladder it climbs twenty at a time. The river race payload reports the second one under the first one's key, and Elixir relayed that faithfully and then told you in the docs that it was \"the same figure a clan's profile shows\". It is that figure divided by about a hundred. Anyone who joined the war standings to a clan's timeline was out by two orders of magnitude. The war surfaces now carry clan_war_trophies, which is what the number has always been; clan_score stays beside it as a deprecated alias so nothing breaks today, and goes in the next major. Found by the Elixir Gym, and confirmed a second way without the API at all: our own record of POAP KINGS' weekly figure runs 980, 1000, 1020, 1040, 1060, 1160, rising by exactly the trophies each week's race awarded. Contract 6.19.0.",
   },

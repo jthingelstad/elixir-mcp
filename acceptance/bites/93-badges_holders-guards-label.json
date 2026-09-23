@@ -1,0 +1,30 @@
+{
+  "feedback": 93,
+  "contract_version": "6.19.3",
+  "captured_at": "2026-09-23T15:23:41.204Z",
+  "request": {
+    "tool": "badges_holders",
+    "arguments": {
+      "badge": "Guards Mastery",
+      "segment": "mine"
+    }
+  },
+  "response": {
+    "error": {
+      "code": "not_found",
+      "class": "subject",
+      "message": "No recorded player holds a badge named 'Guards Mastery'.",
+      "hint": "badges_rarity lists every badge name observed in the recorded population."
+    },
+    "meta": {
+      "contract_version": "6.19.3"
+    }
+  },
+  "timings": {
+    "db_ms": 170,
+    "db_queries": 3,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

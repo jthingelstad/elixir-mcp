@@ -1837,3 +1837,35 @@ Two corpus reads are left. Both are inside the 18 s budget now that they
 carry the 32 MB `work_mem` and return a structured `query_timeout`. Taking
 them lower means a card-pair or deck-player rollup, and 0122 already
 measured the pair rollup as not fitting the micro. Phase 2 stops here.
+
+## 2026-09-23 — Gym sweep, badges round 1 (6.20.0, feedback #91-#94)
+
+The first run of the sweep from the repo, on the Gym's own account (report
+`.claude/skills/gym/reports/2026-09-23-badges-r1.md`, local). Regression
+#18 was confirmed fixed. Four findings, all verified against the code
+before touching it:
+
+- **#91:** a holder row's `observed_at` was player_badge's stored stamp.
+  The upsert moves that stamp only when a badge CHANGES, which is the
+  write-avoidance rule of 2026-09-11. It is now served as `since`, and
+  `observed_at` is the last profile poll, as the glossary defines it. The
+  poll comes from a lateral per row on the page, after the limit.
+  `observations` on both tools is the range of profile polls.
+- **#92:** `_v2` was dropped from labels by design (09-19), which made two
+  badges share one label. A versioned identifier now says `(v2)`, while a
+  dated seasonal badge keeps its month label. Rarity notes a listed pair,
+  and "2v 2" is fixed.
+- **#93:** a label resolves to its identifier. A shared label is refused
+  with both identifiers, and a miss is refused about the argument, with
+  identifier and label candidates.
+- **#94:** `holder_share` is served; the notes are scoped per tool; and
+  `badges_holders` has an outputSchema.
+
+The Gym's 16 cases went into gym.json unchanged, and six bites fail on the
+captures. `bites/fetch.mjs` now keeps `meta.source_polls`, because 91.1
+compares against it and the old strip made the bite fail for the wrong
+reason. Found in passing, for the families that own them: nine tools
+publish no outputSchema despite 6.14.0 (cards_archetype, collections_*,
+elixir_identify, elixir_my_identities, elixir_nickname,
+elixir_send_feedback, live_fetch), and `elixir_timeline` may drop items
+past its cap unreachably.

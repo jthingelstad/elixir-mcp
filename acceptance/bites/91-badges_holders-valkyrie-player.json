@@ -1,0 +1,61 @@
+{
+  "feedback": 91,
+  "contract_version": "6.19.3",
+  "captured_at": "2026-09-23T15:22:45.372Z",
+  "request": {
+    "tool": "badges_holders",
+    "arguments": {
+      "badge": "MasteryValkyrie",
+      "segment": {
+        "player_tag": "#2G2RPVPP"
+      }
+    }
+  },
+  "response": {
+    "badge": "MasteryValkyrie",
+    "label": "Valkyrie Mastery",
+    "kind": "tiered",
+    "applied": {
+      "badge": "MasteryValkyrie",
+      "segment": {
+        "kind": "player",
+        "player_tag": "#2G2RPVPP"
+      },
+      "limit": 50
+    },
+    "players_considered": 1,
+    "observations": {
+      "oldest": "2026-05-15T14:00:01.000Z",
+      "newest": "2026-09-23T12:52:44.000Z"
+    },
+    "holders_total": 1,
+    "holders": [
+      {
+        "player_tag": "#2G2RPVPP",
+        "name": "Aaqib Javed",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:12:37.581Z"
+      }
+    ],
+    "notes": [
+      "one_off badges have no level (awarded once for an event or feat, the genuinely rare class); tiered badges carry level/max_level and by_level counts holders per level.",
+      "holder_share = holders / players_considered; badge names are the API's own identifiers and label is the badge as a player says it (MasterySkeletonWarriors is Guards Mastery)."
+    ],
+    "docs": "glossary",
+    "meta": {
+      "contract_version": "6.19.3"
+    }
+  },
+  "timings": {
+    "db_ms": 541,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -188,7 +188,16 @@ badge by the game's internal identifier and carries no display name, so
 its `name` on `players_profile`, `badges_rarity` and `badges_holders`,
 and as `badge_label` on a timeline badge item (4.2.0). Mastery badges
 resolve the card's internal codename to its shown name; dated badges say
-the month. Match on `name`; say `label`.
+the month; a versioned identifier says its version (`RoyalTournamentRank_v2`
+is `Royal Tournament Rank (v2)`, a different badge from the original). Say
+`label`. `badges_holders` takes either the identifier or a label that is
+unique; one two badges share is refused with both identifiers (6.20.0).
+
+**since** — on a `badges_holders` row, when the record first saw the badge
+at its current level and progress. The row's `observed_at` is the last
+profile poll that read it, as everywhere else. A `since` at the start of
+recording, or just after the player joined, is a first sighting, not when
+the badge was earned (6.20.0).
 
 **kind** — a local enum, five of them: a series point's snapshot kind
 (`daily`, `pre_reset`, `season_roll`); a timeline item's kind

@@ -18,7 +18,7 @@ test("Mastery badges name the card a player knows, codename or not", () => {
   assert.equal(masteryCard("Crl20Wins2024"), null);
 });
 
-test("the other badges read as words, with the API's suffixes dropped", () => {
+test("the other badges read as words, with the API's Badge suffix dropped", () => {
   assert.equal(badgeLabel("Crl20Wins2024"), "CRL 20 Wins 2024");
   assert.equal(badgeLabel("CrlSpectator2025"), "CRL Spectator 2025");
   assert.equal(badgeLabel("SeasonalBadge_202509"), "Season September 2025");
@@ -27,7 +27,8 @@ test("the other badges read as words, with the API's suffixes dropped", () => {
     badgeLabel("MergeTacticsBadge_202506"),
     "Merge Tactics June 2025",
   );
-  assert.equal(badgeLabel("RoyalTournamentRank_v2"), "Royal Tournament Rank");
+  // A trailing `Badge` is dropped; `_v2` is said (Gym #92), since the
+  // original identifier is also held and one label for both lied.
   assert.equal(badgeLabel("CrazyArenaBadge3"), "Crazy Arena Badge 3");
   assert.equal(badgeLabel("2026YearBadge"), "2026 Year Badge");
   assert.equal(badgeLabel("2xElixir"), "Double Elixir");
@@ -38,4 +39,18 @@ test("the other badges read as words, with the API's suffixes dropped", () => {
   assert.equal(badgeLabel("SomethingNewBadge"), "Something New");
   assert.equal(badgeLabel(""), "");
   assert.equal(badgeLabel(null), "");
+});
+
+test("a versioned identifier says its version, and 2v2 stays one word (Gym #92)", () => {
+  assert.equal(badgeLabel("RoyalTournamentRank"), "Royal Tournament Rank");
+  assert.equal(
+    badgeLabel("RoyalTournamentRank_v2"),
+    "Royal Tournament Rank (v2)",
+  );
+  assert.notEqual(
+    badgeLabel("ClassicRoyaleTournamentRank"),
+    badgeLabel("ClassicRoyaleTournamentRank_v2"),
+  );
+  assert.equal(badgeLabel("2v2LeagueRank"), "2v2 League Rank");
+  assert.equal(badgeLabel("SeasonalBadge_202507_v2"), "Season July 2025");
 });

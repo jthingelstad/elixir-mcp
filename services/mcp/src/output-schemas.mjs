@@ -500,6 +500,53 @@ export const OUTPUT_SCHEMAS = {
   // acceptance suite (acceptance/shapes/). Drafted from live answers on
   // 2026-09-21 and reviewed against the handlers for what is conditional;
   // permissive below the top level, as above. Each one retired a baseline.
+  badges_holders: {
+    type: "object",
+    properties: {
+      applied: { type: "object" },
+      badge: { type: "string" },
+      label: { type: "string" },
+      kind: { type: ["string", "null"] },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+      observations: { type: "object" },
+      players_considered: { type: ["number", "null"] },
+      population: { type: "object" },
+      holders_total: COUNT,
+      holder_share: { type: ["number", "null"] },
+      holders: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            player_tag: TAG,
+            name: { type: ["string", "null"] },
+            name_known: { type: "boolean" },
+            level: NULLABLE_INT,
+            max_level: NULLABLE_INT,
+            progress: NULLABLE_INT,
+            target: NULLABLE_INT,
+            clan_tag: { type: ["string", "null"] },
+            observed_at: ISO,
+            since: ISO,
+          },
+        },
+      },
+    },
+    required: [
+      "applied",
+      "badge",
+      "docs",
+      "holder_share",
+      "holders",
+      "holders_total",
+      "meta",
+      "notes",
+      "observations",
+      "players_considered",
+    ],
+  },
   badges_rarity: {
     type: "object",
     properties: {

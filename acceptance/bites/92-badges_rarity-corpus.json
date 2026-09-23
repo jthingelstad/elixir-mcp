@@ -1,0 +1,3068 @@
+{
+  "feedback": 92,
+  "contract_version": "6.19.3",
+  "captured_at": "2026-09-23T15:21:07.625Z",
+  "request": {
+    "tool": "badges_rarity",
+    "arguments": {
+      "segment": "corpus"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "corpus"
+      },
+      "limit": 200
+    },
+    "population": {
+      "recorded_clans": 18,
+      "recorded_players": 1070,
+      "players_in_window": 2076
+    },
+    "players_considered": 2076,
+    "observations": {
+      "oldest": "2026-03-07T22:39:13.000Z",
+      "newest": "2026-09-23T15:17:42.000Z"
+    },
+    "badges": [
+      {
+        "name": "CrlChampion2024",
+        "label": "CRL Champion 2024",
+        "kind": "one_off",
+        "holders": 1,
+        "holder_share": 0
+      },
+      {
+        "name": "CrlChampion2025",
+        "label": "CRL Champion 2025",
+        "kind": "one_off",
+        "holders": 1,
+        "holder_share": 0
+      },
+      {
+        "name": "RoyalTournamentRank",
+        "label": "Royal Tournament Rank",
+        "kind": "tiered",
+        "holders": 1,
+        "holder_share": 0,
+        "max_level": 10,
+        "by_level": {
+          "1": 1
+        }
+      },
+      {
+        "name": "SupercellEmployee",
+        "label": "Supercell Employee",
+        "kind": "one_off",
+        "holders": 1,
+        "holder_share": 0
+      },
+      {
+        "name": "ClassicRoyaleTournamentRank",
+        "label": "Classic Royale Tournament Rank",
+        "kind": "tiered",
+        "holders": 3,
+        "holder_share": 0.001,
+        "max_level": 10,
+        "by_level": {
+          "1": 3
+        }
+      },
+      {
+        "name": "CrlFinalist2024",
+        "label": "CRL Finalist 2024",
+        "kind": "one_off",
+        "holders": 7,
+        "holder_share": 0.003
+      },
+      {
+        "name": "CrlFinalist2025",
+        "label": "CRL Finalist 2025",
+        "kind": "one_off",
+        "holders": 11,
+        "holder_share": 0.005
+      },
+      {
+        "name": "SupercellPancake",
+        "label": "Supercell Pancake",
+        "kind": "one_off",
+        "holders": 11,
+        "holder_share": 0.005
+      },
+      {
+        "name": "RouletteAllModes",
+        "label": "Roulette All Modes",
+        "kind": "one_off",
+        "holders": 17,
+        "holder_share": 0.008
+      },
+      {
+        "name": "CrlCompetitor2022",
+        "label": "CRL Competitor 2022",
+        "kind": "one_off",
+        "holders": 31,
+        "holder_share": 0.015
+      },
+      {
+        "name": "Creator",
+        "label": "Creator",
+        "kind": "one_off",
+        "holders": 36,
+        "holder_share": 0.017
+      },
+      {
+        "name": "ChaosDraftLeagueRank",
+        "label": "Chaos Draft League Rank",
+        "kind": "tiered",
+        "holders": 85,
+        "holder_share": 0.041,
+        "max_level": 10,
+        "by_level": {
+          "1": 85
+        }
+      },
+      {
+        "name": "Crl20Wins2019",
+        "label": "CRL 20 Wins 2019",
+        "kind": "one_off",
+        "holders": 97,
+        "holder_share": 0.047
+      },
+      {
+        "name": "AnarchyLeagueRank",
+        "label": "Anarchy League Rank",
+        "kind": "tiered",
+        "holders": 124,
+        "holder_share": 0.06,
+        "max_level": 10,
+        "by_level": {
+          "1": 124
+        }
+      },
+      {
+        "name": "CrlSpectator2024",
+        "label": "CRL Spectator 2024",
+        "kind": "one_off",
+        "holders": 139,
+        "holder_share": 0.067
+      },
+      {
+        "name": "Chaos_S2",
+        "label": "Chaos Season 2",
+        "kind": "one_off",
+        "holders": 154,
+        "holder_share": 0.074
+      },
+      {
+        "name": "CrlSpectator2025",
+        "label": "CRL Spectator 2025",
+        "kind": "one_off",
+        "holders": 156,
+        "holder_share": 0.075
+      },
+      {
+        "name": "Crl20Wins",
+        "label": "CRL 20 Wins",
+        "kind": "one_off",
+        "holders": 159,
+        "holder_share": 0.077
+      },
+      {
+        "name": "CrazyArenaRank",
+        "label": "Crazy Arena Rank",
+        "kind": "tiered",
+        "holders": 177,
+        "holder_share": 0.085,
+        "max_level": 10,
+        "by_level": {
+          "1": 177
+        }
+      },
+      {
+        "name": "TripleDraftLeagueRank",
+        "label": "Triple Draft League Rank",
+        "kind": "tiered",
+        "holders": 194,
+        "holder_share": 0.093,
+        "max_level": 10,
+        "by_level": {
+          "1": 194
+        }
+      },
+      {
+        "name": "CrazyArenaBadge3",
+        "label": "Crazy Arena Badge 3",
+        "kind": "one_off",
+        "holders": 240,
+        "holder_share": 0.116
+      },
+      {
+        "name": "CrlSpectator2022",
+        "label": "CRL Spectator 2022",
+        "kind": "one_off",
+        "holders": 255,
+        "holder_share": 0.123
+      },
+      {
+        "name": "Crl20Wins2021",
+        "label": "CRL 20 Wins 2021",
+        "kind": "one_off",
+        "holders": 279,
+        "holder_share": 0.134
+      },
+      {
+        "name": "SuddenDeathTrailRank",
+        "label": "Sudden Death Trail Rank",
+        "kind": "tiered",
+        "holders": 321,
+        "holder_share": 0.155,
+        "max_level": 10,
+        "by_level": {
+          "1": 321
+        }
+      },
+      {
+        "name": "ClassicRoyaleTournamentRank_v2",
+        "label": "Classic Royale Tournament Rank",
+        "kind": "tiered",
+        "holders": 328,
+        "holder_share": 0.158,
+        "max_level": 10,
+        "by_level": {
+          "1": 328
+        }
+      },
+      {
+        "name": "2v2LeagueRank",
+        "label": "2v 2 League Rank",
+        "kind": "tiered",
+        "holders": 334,
+        "holder_share": 0.161,
+        "max_level": 10,
+        "by_level": {
+          "1": 334
+        }
+      },
+      {
+        "name": "Crl20Wins2022",
+        "label": "CRL 20 Wins 2022",
+        "kind": "one_off",
+        "holders": 349,
+        "holder_share": 0.168
+      },
+      {
+        "name": "Crl20Wins2023",
+        "label": "CRL 20 Wins 2023",
+        "kind": "one_off",
+        "holders": 382,
+        "holder_share": 0.184
+      },
+      {
+        "name": "Crl20Wins2025",
+        "label": "CRL 20 Wins 2025",
+        "kind": "one_off",
+        "holders": 396,
+        "holder_share": 0.191
+      },
+      {
+        "name": "BeatingDeathBadge",
+        "label": "Beating Death",
+        "kind": "one_off",
+        "holders": 421,
+        "holder_share": 0.203
+      },
+      {
+        "name": "2026YearBadge",
+        "label": "2026 Year Badge",
+        "kind": "tiered",
+        "holders": 472,
+        "holder_share": 0.227,
+        "max_level": 6,
+        "by_level": {
+          "1": 225,
+          "2": 225,
+          "3": 22
+        }
+      },
+      {
+        "name": "ClassicRoyaleTournamentCompletion",
+        "label": "Classic Royale Tournament Completion",
+        "kind": "tiered",
+        "holders": 484,
+        "holder_share": 0.233,
+        "max_level": 10,
+        "by_level": {
+          "1": 484
+        }
+      },
+      {
+        "name": "Crl20Wins2024",
+        "label": "CRL 20 Wins 2024",
+        "kind": "one_off",
+        "holders": 490,
+        "holder_share": 0.236
+      },
+      {
+        "name": "TripleDraftLeagueCompletion",
+        "label": "Triple Draft League Completion",
+        "kind": "tiered",
+        "holders": 500,
+        "holder_share": 0.241,
+        "max_level": 10,
+        "by_level": {
+          "1": 500
+        }
+      },
+      {
+        "name": "CrazyArenaBadge2",
+        "label": "Crazy Arena Badge 2",
+        "kind": "one_off",
+        "holders": 515,
+        "holder_share": 0.248
+      },
+      {
+        "name": "AnarchyLeagueCompletion",
+        "label": "Anarchy League Completion",
+        "kind": "tiered",
+        "holders": 544,
+        "holder_share": 0.262,
+        "max_level": 10,
+        "by_level": {
+          "1": 544
+        }
+      },
+      {
+        "name": "CrazyArenaCompletion",
+        "label": "Crazy Arena Completion",
+        "kind": "tiered",
+        "holders": 618,
+        "holder_share": 0.298,
+        "max_level": 10,
+        "by_level": {
+          "1": 618
+        }
+      },
+      {
+        "name": "LadderTournamentTop1000",
+        "label": "Ladder Tournament Top 1000",
+        "kind": "tiered",
+        "holders": 649,
+        "holder_share": 0.313,
+        "max_level": 10,
+        "by_level": {
+          "1": 138,
+          "2": 77,
+          "3": 48,
+          "4": 42,
+          "5": 38,
+          "6": 23,
+          "7": 35,
+          "8": 15,
+          "9": 19,
+          "10": 214
+        }
+      },
+      {
+        "name": "MasteryMinionGiant",
+        "label": "Minion Giant Mastery",
+        "kind": "tiered",
+        "holders": 664,
+        "holder_share": 0.32,
+        "max_level": 10,
+        "by_level": {
+          "1": 136,
+          "2": 71,
+          "3": 122,
+          "4": 104,
+          "5": 45,
+          "6": 103,
+          "7": 83
+        }
+      },
+      {
+        "name": "2v2LeagueCompletion",
+        "label": "2v 2 League Completion",
+        "kind": "tiered",
+        "holders": 673,
+        "holder_share": 0.324,
+        "max_level": 10,
+        "by_level": {
+          "1": 673
+        }
+      },
+      {
+        "name": "RoyalTournamentRank_v2",
+        "label": "Royal Tournament Rank",
+        "kind": "tiered",
+        "holders": 746,
+        "holder_share": 0.359,
+        "max_level": 10,
+        "by_level": {
+          "1": 290,
+          "2": 252,
+          "3": 131,
+          "4": 60,
+          "5": 13
+        }
+      },
+      {
+        "name": "SuddenDeathTrailCompletion",
+        "label": "Sudden Death Trail Completion",
+        "kind": "tiered",
+        "holders": 776,
+        "holder_share": 0.374,
+        "max_level": 10,
+        "by_level": {
+          "1": 776
+        }
+      },
+      {
+        "name": "LadderTop1000",
+        "label": "Ladder Top 1000",
+        "kind": "tiered",
+        "holders": 810,
+        "holder_share": 0.39,
+        "max_level": 10,
+        "by_level": {
+          "1": 135,
+          "2": 78,
+          "3": 71,
+          "4": 43,
+          "5": 41,
+          "6": 34,
+          "7": 29,
+          "8": 24,
+          "9": 27,
+          "10": 328
+        }
+      },
+      {
+        "name": "EasterEgg",
+        "label": "Easter Egg",
+        "kind": "one_off",
+        "holders": 848,
+        "holder_share": 0.408
+      },
+      {
+        "name": "ChaosDraftLeagueCompletion",
+        "label": "Chaos Draft League Completion",
+        "kind": "tiered",
+        "holders": 851,
+        "holder_share": 0.41,
+        "max_level": 10,
+        "by_level": {
+          "1": 851
+        }
+      },
+      {
+        "name": "RoyalTournamentCompletion",
+        "label": "Royal Tournament Completion",
+        "kind": "tiered",
+        "holders": 914,
+        "holder_share": 0.44,
+        "max_level": 10,
+        "by_level": {
+          "1": 294,
+          "2": 269,
+          "3": 212,
+          "4": 112,
+          "5": 27
+        }
+      },
+      {
+        "name": "MergeTacticsBadge_202506",
+        "label": "Merge Tactics June 2025",
+        "kind": "tiered",
+        "holders": 992,
+        "holder_share": 0.478,
+        "max_level": 9,
+        "by_level": {
+          "1": 121,
+          "2": 124,
+          "3": 78,
+          "4": 73,
+          "5": 51,
+          "6": 78,
+          "7": 125,
+          "8": 127,
+          "9": 215
+        }
+      },
+      {
+        "name": "SeasonalBadge_202507_v2",
+        "label": "Season July 2025",
+        "kind": "tiered",
+        "holders": 1071,
+        "holder_share": 0.516,
+        "max_level": 3,
+        "by_level": {
+          "1": 19,
+          "2": 12,
+          "3": 1040
+        }
+      },
+      {
+        "name": "Grand12Wins",
+        "label": "Grand Challenge 12 Wins",
+        "kind": "tiered",
+        "holders": 1086,
+        "holder_share": 0.523,
+        "max_level": 8,
+        "by_level": {
+          "1": 488,
+          "2": 203,
+          "3": 154,
+          "4": 92,
+          "5": 120,
+          "6": 21,
+          "7": 7,
+          "8": 1
+        }
+      },
+      {
+        "name": "RampUp",
+        "label": "Ramp Up",
+        "kind": "tiered",
+        "holders": 1120,
+        "holder_share": 0.539,
+        "max_level": 7,
+        "by_level": {
+          "1": 489,
+          "2": 313,
+          "3": 202,
+          "4": 94,
+          "5": 22
+        }
+      },
+      {
+        "name": "ClanWarsVeteran",
+        "label": "Clan Wars Veteran",
+        "kind": "tiered",
+        "holders": 1145,
+        "holder_share": 0.552,
+        "max_level": 3,
+        "by_level": {
+          "1": 145,
+          "2": 598,
+          "3": 402
+        }
+      },
+      {
+        "name": "SeasonalBadge_202508",
+        "label": "Season August 2025",
+        "kind": "tiered",
+        "holders": 1161,
+        "holder_share": 0.559,
+        "max_level": 3,
+        "by_level": {
+          "1": 44,
+          "2": 161,
+          "3": 956
+        }
+      },
+      {
+        "name": "2xElixir",
+        "label": "Double Elixir",
+        "kind": "tiered",
+        "holders": 1189,
+        "holder_share": 0.573,
+        "max_level": 7,
+        "by_level": {
+          "1": 470,
+          "2": 338,
+          "3": 241,
+          "4": 110,
+          "5": 30
+        }
+      },
+      {
+        "name": "Classic12Wins",
+        "label": "Classic Challenge 12 Wins",
+        "kind": "tiered",
+        "holders": 1223,
+        "holder_share": 0.589,
+        "max_level": 8,
+        "by_level": {
+          "1": 708,
+          "2": 249,
+          "3": 109,
+          "4": 94,
+          "5": 49,
+          "6": 11,
+          "7": 3
+        }
+      },
+      {
+        "name": "ClassicRoyale_2025",
+        "label": "Classic Royale 2025",
+        "kind": "tiered",
+        "holders": 1236,
+        "holder_share": 0.595,
+        "max_level": 2,
+        "by_level": {
+          "1": 319,
+          "2": 917
+        }
+      },
+      {
+        "name": "GoblinJourney2024",
+        "label": "Goblin Journey 2024",
+        "kind": "tiered",
+        "holders": 1296,
+        "holder_share": 0.624,
+        "max_level": 5,
+        "by_level": {
+          "1": 355,
+          "2": 175,
+          "3": 199,
+          "4": 122,
+          "5": 445
+        }
+      },
+      {
+        "name": "SeasonalBadge_202509",
+        "label": "Season September 2025",
+        "kind": "tiered",
+        "holders": 1319,
+        "holder_share": 0.635,
+        "max_level": 3,
+        "by_level": {
+          "1": 53,
+          "2": 222,
+          "3": 1044
+        }
+      },
+      {
+        "name": "SeasonalBadge_202510",
+        "label": "Season October 2025",
+        "kind": "tiered",
+        "holders": 1327,
+        "holder_share": 0.639,
+        "max_level": 3,
+        "by_level": {
+          "1": 69,
+          "2": 256,
+          "3": 1002
+        }
+      },
+      {
+        "name": "MasteryMergeMaiden",
+        "label": "Spirit Empress Mastery",
+        "kind": "tiered",
+        "holders": 1338,
+        "holder_share": 0.645,
+        "max_level": 10,
+        "by_level": {
+          "1": 337,
+          "2": 184,
+          "3": 68,
+          "4": 184,
+          "5": 109,
+          "6": 261,
+          "7": 195
+        }
+      },
+      {
+        "name": "MasteryRonin",
+        "label": "Ronin Mastery",
+        "kind": "tiered",
+        "holders": 1381,
+        "holder_share": 0.665,
+        "max_level": 10,
+        "by_level": {
+          "1": 352,
+          "2": 270,
+          "3": 128,
+          "4": 263,
+          "5": 184,
+          "6": 113,
+          "7": 71
+        }
+      },
+      {
+        "name": "SeasonalBadge_202511",
+        "label": "Season November 2025",
+        "kind": "tiered",
+        "holders": 1436,
+        "holder_share": 0.692,
+        "max_level": 3,
+        "by_level": {
+          "1": 79,
+          "2": 343,
+          "3": 1014
+        }
+      },
+      {
+        "name": "MasteryGoblinMachine",
+        "label": "Goblin Machine Mastery",
+        "kind": "tiered",
+        "holders": 1456,
+        "holder_share": 0.701,
+        "max_level": 10,
+        "by_level": {
+          "1": 461,
+          "2": 255,
+          "3": 114,
+          "4": 207,
+          "5": 70,
+          "6": 177,
+          "7": 172
+        }
+      },
+      {
+        "name": "CrazyArenaBadge1",
+        "label": "Crazy Arena Badge 1",
+        "kind": "one_off",
+        "holders": 1469,
+        "holder_share": 0.708
+      },
+      {
+        "name": "MasteryClone",
+        "label": "Clone Mastery",
+        "kind": "tiered",
+        "holders": 1500,
+        "holder_share": 0.723,
+        "max_level": 10,
+        "by_level": {
+          "1": 511,
+          "2": 203,
+          "3": 223,
+          "4": 126,
+          "5": 151,
+          "6": 109,
+          "7": 177
+        }
+      },
+      {
+        "name": "MasteryGiantBuffer",
+        "label": "Rune Giant Mastery",
+        "kind": "tiered",
+        "holders": 1524,
+        "holder_share": 0.734,
+        "max_level": 10,
+        "by_level": {
+          "1": 705,
+          "2": 136,
+          "3": 258,
+          "4": 179,
+          "5": 61,
+          "6": 116,
+          "7": 69
+        }
+      },
+      {
+        "name": "MasteryBarbarianHut",
+        "label": "Barbarian Hut Mastery",
+        "kind": "tiered",
+        "holders": 1555,
+        "holder_share": 0.749,
+        "max_level": 10,
+        "by_level": {
+          "1": 710,
+          "2": 194,
+          "3": 263,
+          "4": 150,
+          "5": 62,
+          "6": 93,
+          "7": 83
+        }
+      },
+      {
+        "name": "2025YearBadge",
+        "label": "2025 Year Badge",
+        "kind": "one_off",
+        "holders": 1584,
+        "holder_share": 0.763
+      },
+      {
+        "name": "MasteryBossBandit",
+        "label": "Boss Bandit Mastery",
+        "kind": "tiered",
+        "holders": 1630,
+        "holder_share": 0.785,
+        "max_level": 10,
+        "by_level": {
+          "1": 372,
+          "2": 137,
+          "3": 237,
+          "4": 112,
+          "5": 174,
+          "6": 83,
+          "7": 515
+        }
+      },
+      {
+        "name": "MasteryMonk",
+        "label": "Monk Mastery",
+        "kind": "tiered",
+        "holders": 1633,
+        "holder_share": 0.787,
+        "max_level": 10,
+        "by_level": {
+          "1": 434,
+          "2": 132,
+          "3": 228,
+          "4": 118,
+          "5": 124,
+          "6": 101,
+          "7": 496
+        }
+      },
+      {
+        "name": "Royals2v2_2024",
+        "label": "Royals 2v2 2024",
+        "kind": "tiered",
+        "holders": 1634,
+        "holder_share": 0.787,
+        "max_level": 2,
+        "by_level": {
+          "1": 284,
+          "2": 1350
+        }
+      },
+      {
+        "name": "ClanWarWins",
+        "label": "Clan War Wins",
+        "kind": "tiered",
+        "holders": 1636,
+        "holder_share": 0.788,
+        "max_level": 8,
+        "by_level": {
+          "1": 140,
+          "2": 124,
+          "3": 152,
+          "4": 283,
+          "5": 320,
+          "6": 295,
+          "7": 319,
+          "8": 3
+        }
+      },
+      {
+        "name": "MasteryGoblinCurse",
+        "label": "Goblin Curse Mastery",
+        "kind": "tiered",
+        "holders": 1647,
+        "holder_share": 0.793,
+        "max_level": 10,
+        "by_level": {
+          "1": 496,
+          "2": 326,
+          "3": 83,
+          "4": 191,
+          "5": 176,
+          "6": 222,
+          "7": 153
+        }
+      },
+      {
+        "name": "MasteryGoblinstein",
+        "label": "Goblinstein Mastery",
+        "kind": "tiered",
+        "holders": 1652,
+        "holder_share": 0.796,
+        "max_level": 10,
+        "by_level": {
+          "1": 323,
+          "2": 122,
+          "3": 141,
+          "4": 115,
+          "5": 68,
+          "6": 143,
+          "7": 740
+        }
+      },
+      {
+        "name": "MasteryLittlePrince",
+        "label": "Little Prince Mastery",
+        "kind": "tiered",
+        "holders": 1700,
+        "holder_share": 0.819,
+        "max_level": 10,
+        "by_level": {
+          "1": 330,
+          "2": 268,
+          "3": 152,
+          "4": 169,
+          "5": 228,
+          "6": 246,
+          "7": 307
+        }
+      },
+      {
+        "name": "SuddenDeath",
+        "label": "Sudden Death",
+        "kind": "tiered",
+        "holders": 1716,
+        "holder_share": 0.827,
+        "max_level": 7,
+        "by_level": {
+          "1": 226,
+          "2": 314,
+          "3": 429,
+          "4": 404,
+          "5": 304,
+          "6": 36,
+          "7": 3
+        }
+      },
+      {
+        "name": "MasteryElixir Collector",
+        "label": "Elixir Collector Mastery",
+        "kind": "tiered",
+        "holders": 1719,
+        "holder_share": 0.828,
+        "max_level": 10,
+        "by_level": {
+          "1": 321,
+          "2": 157,
+          "3": 211,
+          "4": 152,
+          "5": 159,
+          "6": 143,
+          "7": 576
+        }
+      },
+      {
+        "name": "MasterySuspiciousBush",
+        "label": "Suspicious Bush Mastery",
+        "kind": "tiered",
+        "holders": 1734,
+        "holder_share": 0.835,
+        "max_level": 10,
+        "by_level": {
+          "1": 527,
+          "2": 428,
+          "3": 123,
+          "4": 205,
+          "5": 319,
+          "6": 87,
+          "7": 45
+        }
+      },
+      {
+        "name": "MasteryMightyMiner",
+        "label": "Mighty Miner Mastery",
+        "kind": "tiered",
+        "holders": 1737,
+        "holder_share": 0.837,
+        "max_level": 10,
+        "by_level": {
+          "1": 318,
+          "2": 274,
+          "3": 81,
+          "4": 181,
+          "5": 156,
+          "6": 303,
+          "7": 424
+        }
+      },
+      {
+        "name": "MasteryDarkMagic",
+        "label": "Void Mastery",
+        "kind": "tiered",
+        "holders": 1756,
+        "holder_share": 0.846,
+        "max_level": 10,
+        "by_level": {
+          "1": 454,
+          "2": 342,
+          "3": 73,
+          "4": 221,
+          "5": 145,
+          "6": 263,
+          "7": 258
+        }
+      },
+      {
+        "name": "MasteryGoblinDemolisher",
+        "label": "Goblin Demolisher Mastery",
+        "kind": "tiered",
+        "holders": 1788,
+        "holder_share": 0.861,
+        "max_level": 10,
+        "by_level": {
+          "1": 280,
+          "2": 242,
+          "3": 143,
+          "4": 265,
+          "5": 91,
+          "6": 381,
+          "7": 386
+        }
+      },
+      {
+        "name": "MasteryVines",
+        "label": "Vines Mastery",
+        "kind": "tiered",
+        "holders": 1795,
+        "holder_share": 0.865,
+        "max_level": 10,
+        "by_level": {
+          "1": 282,
+          "2": 219,
+          "3": 197,
+          "4": 189,
+          "5": 379,
+          "6": 292,
+          "7": 216,
+          "8": 15,
+          "9": 6
+        }
+      },
+      {
+        "name": "MasteryArcherQueen",
+        "label": "Archer Queen Mastery",
+        "kind": "tiered",
+        "holders": 1801,
+        "holder_share": 0.868,
+        "max_level": 10,
+        "by_level": {
+          "1": 248,
+          "2": 178,
+          "3": 131,
+          "4": 152,
+          "5": 90,
+          "6": 169,
+          "7": 833
+        }
+      },
+      {
+        "name": "MasteryMovingCannon",
+        "label": "Cannon Cart Mastery",
+        "kind": "tiered",
+        "holders": 1805,
+        "holder_share": 0.869,
+        "max_level": 10,
+        "by_level": {
+          "1": 308,
+          "2": 194,
+          "3": 100,
+          "4": 228,
+          "5": 70,
+          "6": 304,
+          "7": 601
+        }
+      },
+      {
+        "name": "MasteryLavaHound",
+        "label": "Lava Hound Mastery",
+        "kind": "tiered",
+        "holders": 1811,
+        "holder_share": 0.872,
+        "max_level": 10,
+        "by_level": {
+          "1": 479,
+          "2": 277,
+          "3": 257,
+          "4": 117,
+          "5": 159,
+          "6": 92,
+          "7": 430
+        }
+      },
+      {
+        "name": "MegaDraftLeagueBadge",
+        "label": "Mega Draft League",
+        "kind": "tiered",
+        "holders": 1815,
+        "holder_share": 0.874,
+        "max_level": 2,
+        "by_level": {
+          "1": 1129,
+          "2": 686
+        }
+      },
+      {
+        "name": "MasterySkeletonKing",
+        "label": "Skeleton King Mastery",
+        "kind": "tiered",
+        "holders": 1821,
+        "holder_share": 0.877,
+        "max_level": 10,
+        "by_level": {
+          "1": 309,
+          "2": 197,
+          "3": 150,
+          "4": 174,
+          "5": 93,
+          "6": 180,
+          "7": 718
+        }
+      },
+      {
+        "name": "MasteryXbow",
+        "label": "X-Bow Mastery",
+        "kind": "tiered",
+        "holders": 1823,
+        "holder_share": 0.878,
+        "max_level": 10,
+        "by_level": {
+          "1": 292,
+          "2": 383,
+          "3": 155,
+          "4": 200,
+          "5": 293,
+          "6": 253,
+          "7": 247
+        }
+      },
+      {
+        "name": "MasteryBattleHealer",
+        "label": "Battle Healer Mastery",
+        "kind": "tiered",
+        "holders": 1828,
+        "holder_share": 0.881,
+        "max_level": 10,
+        "by_level": {
+          "1": 304,
+          "2": 197,
+          "3": 265,
+          "4": 155,
+          "5": 214,
+          "6": 93,
+          "7": 131,
+          "8": 220,
+          "9": 119,
+          "10": 130
+        }
+      },
+      {
+        "name": "MasteryPhoenix",
+        "label": "Phoenix Mastery",
+        "kind": "tiered",
+        "holders": 1833,
+        "holder_share": 0.883,
+        "max_level": 10,
+        "by_level": {
+          "1": 308,
+          "2": 161,
+          "3": 149,
+          "4": 113,
+          "5": 76,
+          "6": 104,
+          "7": 922
+        }
+      },
+      {
+        "name": "MasteryThreeMusketeers",
+        "label": "Three Musketeers Mastery",
+        "kind": "tiered",
+        "holders": 1840,
+        "holder_share": 0.886,
+        "max_level": 10,
+        "by_level": {
+          "1": 410,
+          "2": 384,
+          "3": 208,
+          "4": 334,
+          "5": 86,
+          "6": 227,
+          "7": 191
+        }
+      },
+      {
+        "name": "2v2",
+        "label": "2v2",
+        "kind": "tiered",
+        "holders": 1841,
+        "holder_share": 0.887,
+        "max_level": 7,
+        "by_level": {
+          "1": 145,
+          "2": 170,
+          "3": 277,
+          "4": 305,
+          "5": 443,
+          "6": 279,
+          "7": 222
+        }
+      },
+      {
+        "name": "MasteryMirror",
+        "label": "Mirror Mastery",
+        "kind": "tiered",
+        "holders": 1843,
+        "holder_share": 0.888,
+        "max_level": 10,
+        "by_level": {
+          "1": 215,
+          "2": 185,
+          "3": 131,
+          "4": 215,
+          "5": 125,
+          "6": 358,
+          "7": 614
+        }
+      },
+      {
+        "name": "MasteryBerserker",
+        "label": "Berserker Mastery",
+        "kind": "tiered",
+        "holders": 1854,
+        "holder_share": 0.893,
+        "max_level": 10,
+        "by_level": {
+          "1": 232,
+          "2": 159,
+          "3": 112,
+          "4": 228,
+          "5": 63,
+          "6": 243,
+          "7": 817
+        }
+      },
+      {
+        "name": "MasteryElectroGiant",
+        "label": "Electro Giant Mastery",
+        "kind": "tiered",
+        "holders": 1854,
+        "holder_share": 0.893,
+        "max_level": 10,
+        "by_level": {
+          "1": 390,
+          "2": 243,
+          "3": 242,
+          "4": 218,
+          "5": 114,
+          "6": 246,
+          "7": 401
+        }
+      },
+      {
+        "name": "MasteryElixirGolem",
+        "label": "Elixir Golem Mastery",
+        "kind": "tiered",
+        "holders": 1858,
+        "holder_share": 0.895,
+        "max_level": 10,
+        "by_level": {
+          "1": 326,
+          "2": 293,
+          "3": 225,
+          "4": 310,
+          "5": 89,
+          "6": 310,
+          "7": 305
+        }
+      },
+      {
+        "name": "MasteryMinionHorde",
+        "label": "Minion Horde Mastery",
+        "kind": "tiered",
+        "holders": 1863,
+        "holder_share": 0.897,
+        "max_level": 10,
+        "by_level": {
+          "1": 345,
+          "2": 282,
+          "3": 233,
+          "4": 335,
+          "5": 60,
+          "6": 269,
+          "7": 338,
+          "8": 1
+        }
+      },
+      {
+        "name": "MasteryEarthquake",
+        "label": "Earthquake Mastery",
+        "kind": "tiered",
+        "holders": 1869,
+        "holder_share": 0.9,
+        "max_level": 10,
+        "by_level": {
+          "1": 170,
+          "2": 189,
+          "3": 71,
+          "4": 116,
+          "5": 192,
+          "6": 144,
+          "7": 167,
+          "8": 130,
+          "9": 262,
+          "10": 428
+        }
+      },
+      {
+        "name": "TouchdownLeagueBadge",
+        "label": "Touchdown League",
+        "kind": "tiered",
+        "holders": 1871,
+        "holder_share": 0.901,
+        "max_level": 2,
+        "by_level": {
+          "1": 1462,
+          "2": 409
+        }
+      },
+      {
+        "name": "MasteryElectroDragon",
+        "label": "Electro Dragon Mastery",
+        "kind": "tiered",
+        "holders": 1883,
+        "holder_share": 0.907,
+        "max_level": 10,
+        "by_level": {
+          "1": 168,
+          "2": 150,
+          "3": 149,
+          "4": 172,
+          "5": 123,
+          "6": 251,
+          "7": 870
+        }
+      },
+      {
+        "name": "MasteryBombTower",
+        "label": "Bomb Tower Mastery",
+        "kind": "tiered",
+        "holders": 1887,
+        "holder_share": 0.909,
+        "max_level": 10,
+        "by_level": {
+          "1": 243,
+          "2": 205,
+          "3": 108,
+          "4": 208,
+          "5": 105,
+          "6": 327,
+          "7": 691
+        }
+      },
+      {
+        "name": "MasteryGoblinHut",
+        "label": "Goblin Hut Mastery",
+        "kind": "tiered",
+        "holders": 1888,
+        "holder_share": 0.909,
+        "max_level": 10,
+        "by_level": {
+          "1": 354,
+          "2": 152,
+          "3": 239,
+          "4": 146,
+          "5": 197,
+          "6": 117,
+          "7": 683
+        }
+      },
+      {
+        "name": "MasteryZapMachine",
+        "label": "Sparky Mastery",
+        "kind": "tiered",
+        "holders": 1889,
+        "holder_share": 0.91,
+        "max_level": 10,
+        "by_level": {
+          "1": 389,
+          "2": 263,
+          "3": 270,
+          "4": 212,
+          "5": 157,
+          "6": 144,
+          "7": 454
+        }
+      },
+      {
+        "name": "MasteryFisherman",
+        "label": "Fisherman Mastery",
+        "kind": "tiered",
+        "holders": 1891,
+        "holder_share": 0.911,
+        "max_level": 10,
+        "by_level": {
+          "1": 267,
+          "2": 286,
+          "3": 146,
+          "4": 152,
+          "5": 87,
+          "6": 131,
+          "7": 647,
+          "8": 105,
+          "9": 30,
+          "10": 40
+        }
+      },
+      {
+        "name": "MasteryDarkWitch",
+        "label": "Night Witch Mastery",
+        "kind": "tiered",
+        "holders": 1892,
+        "holder_share": 0.911,
+        "max_level": 10,
+        "by_level": {
+          "1": 266,
+          "2": 273,
+          "3": 190,
+          "4": 195,
+          "5": 133,
+          "6": 240,
+          "7": 595
+        }
+      },
+      {
+        "name": "MasteryGoblinGiant",
+        "label": "Goblin Giant Mastery",
+        "kind": "tiered",
+        "holders": 1894,
+        "holder_share": 0.912,
+        "max_level": 10,
+        "by_level": {
+          "1": 259,
+          "2": 191,
+          "3": 159,
+          "4": 171,
+          "5": 117,
+          "6": 202,
+          "7": 795
+        }
+      },
+      {
+        "name": "MasteryRoyalRecruits",
+        "label": "Royal Recruits Mastery",
+        "kind": "tiered",
+        "holders": 1896,
+        "holder_share": 0.913,
+        "max_level": 10,
+        "by_level": {
+          "1": 232,
+          "2": 212,
+          "3": 125,
+          "4": 294,
+          "5": 138,
+          "6": 355,
+          "7": 540
+        }
+      },
+      {
+        "name": "MasteryHeal",
+        "label": "Heal Spirit Mastery",
+        "kind": "tiered",
+        "holders": 1899,
+        "holder_share": 0.915,
+        "max_level": 10,
+        "by_level": {
+          "1": 203,
+          "2": 234,
+          "3": 144,
+          "4": 200,
+          "5": 245,
+          "6": 336,
+          "7": 537
+        }
+      },
+      {
+        "name": "MasteryMortar",
+        "label": "Mortar Mastery",
+        "kind": "tiered",
+        "holders": 1899,
+        "holder_share": 0.915,
+        "max_level": 10,
+        "by_level": {
+          "1": 205,
+          "2": 249,
+          "3": 75,
+          "4": 178,
+          "5": 209,
+          "6": 166,
+          "7": 182,
+          "8": 153,
+          "9": 282,
+          "10": 200
+        }
+      },
+      {
+        "name": "MasteryGiantSkeleton",
+        "label": "Giant Skeleton Mastery",
+        "kind": "tiered",
+        "holders": 1903,
+        "holder_share": 0.917,
+        "max_level": 10,
+        "by_level": {
+          "1": 235,
+          "2": 280,
+          "3": 135,
+          "4": 227,
+          "5": 294,
+          "6": 399,
+          "7": 333
+        }
+      },
+      {
+        "name": "MasteryGoldenKnight",
+        "label": "Golden Knight Mastery",
+        "kind": "tiered",
+        "holders": 1904,
+        "holder_share": 0.917,
+        "max_level": 10,
+        "by_level": {
+          "1": 233,
+          "2": 192,
+          "3": 150,
+          "4": 140,
+          "5": 131,
+          "6": 178,
+          "7": 880
+        }
+      },
+      {
+        "name": "MasteryGolem",
+        "label": "Golem Mastery",
+        "kind": "tiered",
+        "holders": 1905,
+        "holder_share": 0.918,
+        "max_level": 10,
+        "by_level": {
+          "1": 322,
+          "2": 271,
+          "3": 265,
+          "4": 245,
+          "5": 146,
+          "6": 241,
+          "7": 415
+        }
+      },
+      {
+        "name": "MasteryRascals",
+        "label": "Rascals Mastery",
+        "kind": "tiered",
+        "holders": 1906,
+        "holder_share": 0.918,
+        "max_level": 10,
+        "by_level": {
+          "1": 254,
+          "2": 222,
+          "3": 204,
+          "4": 333,
+          "5": 65,
+          "6": 360,
+          "7": 468
+        }
+      },
+      {
+        "name": "MasterySkeletonDragons",
+        "label": "Skeleton Dragons Mastery",
+        "kind": "tiered",
+        "holders": 1907,
+        "holder_share": 0.919,
+        "max_level": 10,
+        "by_level": {
+          "1": 248,
+          "2": 143,
+          "3": 191,
+          "4": 199,
+          "5": 83,
+          "6": 241,
+          "7": 802
+        }
+      },
+      {
+        "name": "MasteryGraveyard",
+        "label": "Graveyard Mastery",
+        "kind": "tiered",
+        "holders": 1909,
+        "holder_share": 0.92,
+        "max_level": 10,
+        "by_level": {
+          "1": 324,
+          "2": 260,
+          "3": 171,
+          "4": 183,
+          "5": 94,
+          "6": 119,
+          "7": 134,
+          "8": 218,
+          "9": 238,
+          "10": 168
+        }
+      },
+      {
+        "name": "MasteryGoblinDrill",
+        "label": "Goblin Drill Mastery",
+        "kind": "tiered",
+        "holders": 1911,
+        "holder_share": 0.921,
+        "max_level": 10,
+        "by_level": {
+          "1": 276,
+          "2": 144,
+          "3": 220,
+          "4": 129,
+          "5": 199,
+          "6": 111,
+          "7": 832
+        }
+      },
+      {
+        "name": "Draft",
+        "label": "Draft",
+        "kind": "tiered",
+        "holders": 1912,
+        "holder_share": 0.921,
+        "max_level": 7,
+        "by_level": {
+          "1": 116,
+          "2": 150,
+          "3": 281,
+          "4": 454,
+          "5": 656,
+          "6": 218,
+          "7": 37
+        }
+      },
+      {
+        "name": "MasteryDartBarrell",
+        "label": "Flying Machine Mastery",
+        "kind": "tiered",
+        "holders": 1912,
+        "holder_share": 0.921,
+        "max_level": 10,
+        "by_level": {
+          "1": 328,
+          "2": 252,
+          "3": 129,
+          "4": 150,
+          "5": 149,
+          "6": 76,
+          "7": 95,
+          "8": 180,
+          "9": 121,
+          "10": 432
+        }
+      },
+      {
+        "name": "MasteryFirespiritHut",
+        "label": "Furnace Mastery",
+        "kind": "tiered",
+        "holders": 1912,
+        "holder_share": 0.921,
+        "max_level": 10,
+        "by_level": {
+          "1": 227,
+          "2": 123,
+          "3": 227,
+          "4": 113,
+          "5": 179,
+          "6": 147,
+          "7": 896
+        }
+      },
+      {
+        "name": "MasteryInfernoTower",
+        "label": "Inferno Tower Mastery",
+        "kind": "tiered",
+        "holders": 1914,
+        "holder_share": 0.922,
+        "max_level": 10,
+        "by_level": {
+          "1": 238,
+          "2": 247,
+          "3": 124,
+          "4": 244,
+          "5": 253,
+          "6": 386,
+          "7": 422
+        }
+      },
+      {
+        "name": "MasteryRamRider",
+        "label": "Ram Rider Mastery",
+        "kind": "tiered",
+        "holders": 1915,
+        "holder_share": 0.922,
+        "max_level": 10,
+        "by_level": {
+          "1": 305,
+          "2": 303,
+          "3": 203,
+          "4": 216,
+          "5": 102,
+          "6": 223,
+          "7": 563
+        }
+      },
+      {
+        "name": "MasteryMiniSparkys",
+        "label": "Zappies Mastery",
+        "kind": "tiered",
+        "holders": 1923,
+        "holder_share": 0.926,
+        "max_level": 10,
+        "by_level": {
+          "1": 255,
+          "2": 171,
+          "3": 184,
+          "4": 151,
+          "5": 118,
+          "6": 204,
+          "7": 840
+        }
+      },
+      {
+        "name": "MasteryWitchMother",
+        "label": "Mother Witch Mastery",
+        "kind": "tiered",
+        "holders": 1923,
+        "holder_share": 0.926,
+        "max_level": 10,
+        "by_level": {
+          "1": 298,
+          "2": 256,
+          "3": 203,
+          "4": 155,
+          "5": 117,
+          "6": 174,
+          "7": 720
+        }
+      },
+      {
+        "name": "MasteryRoyalDelivery",
+        "label": "Royal Delivery Mastery",
+        "kind": "tiered",
+        "holders": 1924,
+        "holder_share": 0.927,
+        "max_level": 10,
+        "by_level": {
+          "1": 183,
+          "2": 109,
+          "3": 146,
+          "4": 188,
+          "5": 92,
+          "6": 262,
+          "7": 944
+        }
+      },
+      {
+        "name": "MasteryBowler",
+        "label": "Bowler Mastery",
+        "kind": "tiered",
+        "holders": 1926,
+        "holder_share": 0.928,
+        "max_level": 10,
+        "by_level": {
+          "1": 209,
+          "2": 152,
+          "3": 143,
+          "4": 172,
+          "5": 91,
+          "6": 132,
+          "7": 200,
+          "8": 271,
+          "9": 288,
+          "10": 268
+        }
+      },
+      {
+        "name": "MasteryRageBarbarian",
+        "label": "Lumberjack Mastery",
+        "kind": "tiered",
+        "holders": 1926,
+        "holder_share": 0.928,
+        "max_level": 10,
+        "by_level": {
+          "1": 151,
+          "2": 197,
+          "3": 123,
+          "4": 179,
+          "5": 122,
+          "6": 237,
+          "7": 917
+        }
+      },
+      {
+        "name": "MasteryFreeze",
+        "label": "Freeze Mastery",
+        "kind": "tiered",
+        "holders": 1933,
+        "holder_share": 0.931,
+        "max_level": 10,
+        "by_level": {
+          "1": 267,
+          "2": 177,
+          "3": 225,
+          "4": 154,
+          "5": 238,
+          "6": 154,
+          "7": 718
+        }
+      },
+      {
+        "name": "MasteryAssassin",
+        "label": "Bandit Mastery",
+        "kind": "tiered",
+        "holders": 1938,
+        "holder_share": 0.934,
+        "max_level": 10,
+        "by_level": {
+          "1": 216,
+          "2": 218,
+          "3": 157,
+          "4": 187,
+          "5": 116,
+          "6": 153,
+          "7": 891
+        }
+      },
+      {
+        "name": "MasteryBarbarians",
+        "label": "Barbarians Mastery",
+        "kind": "tiered",
+        "holders": 1938,
+        "holder_share": 0.934,
+        "max_level": 10,
+        "by_level": {
+          "1": 282,
+          "2": 239,
+          "3": 141,
+          "4": 287,
+          "5": 67,
+          "6": 312,
+          "7": 609,
+          "10": 1
+        }
+      },
+      {
+        "name": "MasteryTornado",
+        "label": "Tornado Mastery",
+        "kind": "tiered",
+        "holders": 1939,
+        "holder_share": 0.934,
+        "max_level": 10,
+        "by_level": {
+          "1": 137,
+          "2": 96,
+          "3": 118,
+          "4": 125,
+          "5": 83,
+          "6": 158,
+          "7": 1222
+        }
+      },
+      {
+        "name": "MasteryEliteArcher",
+        "label": "Magic Archer Mastery",
+        "kind": "tiered",
+        "holders": 1940,
+        "holder_share": 0.934,
+        "max_level": 10,
+        "by_level": {
+          "1": 180,
+          "2": 180,
+          "3": 166,
+          "4": 176,
+          "5": 126,
+          "6": 180,
+          "7": 932
+        }
+      },
+      {
+        "name": "MasteryIceWizard",
+        "label": "Ice Wizard Mastery",
+        "kind": "tiered",
+        "holders": 1943,
+        "holder_share": 0.936,
+        "max_level": 10,
+        "by_level": {
+          "1": 208,
+          "2": 171,
+          "3": 141,
+          "4": 159,
+          "5": 125,
+          "6": 169,
+          "7": 970
+        }
+      },
+      {
+        "name": "MasteryHunter",
+        "label": "Hunter Mastery",
+        "kind": "tiered",
+        "holders": 1945,
+        "holder_share": 0.937,
+        "max_level": 10,
+        "by_level": {
+          "1": 207,
+          "2": 189,
+          "3": 154,
+          "4": 269,
+          "5": 76,
+          "6": 308,
+          "7": 742
+        }
+      },
+      {
+        "name": "MasteryAxeMan",
+        "label": "Executioner Mastery",
+        "kind": "tiered",
+        "holders": 1946,
+        "holder_share": 0.937,
+        "max_level": 10,
+        "by_level": {
+          "1": 191,
+          "2": 152,
+          "3": 154,
+          "4": 225,
+          "5": 69,
+          "6": 354,
+          "7": 801
+        }
+      },
+      {
+        "name": "MasteryMegaMinion",
+        "label": "Mega Minion Mastery",
+        "kind": "tiered",
+        "holders": 1947,
+        "holder_share": 0.938,
+        "max_level": 10,
+        "by_level": {
+          "1": 223,
+          "2": 266,
+          "3": 131,
+          "4": 241,
+          "5": 60,
+          "6": 309,
+          "7": 717
+        }
+      },
+      {
+        "name": "MasteryRage",
+        "label": "Rage Mastery",
+        "kind": "tiered",
+        "holders": 1949,
+        "holder_share": 0.939,
+        "max_level": 10,
+        "by_level": {
+          "1": 195,
+          "2": 197,
+          "3": 140,
+          "4": 202,
+          "5": 96,
+          "6": 288,
+          "7": 831
+        }
+      },
+      {
+        "name": "MasterySkeletonBalloon",
+        "label": "Skeleton Barrel Mastery",
+        "kind": "tiered",
+        "holders": 1951,
+        "holder_share": 0.94,
+        "max_level": 10,
+        "by_level": {
+          "1": 172,
+          "2": 179,
+          "3": 89,
+          "4": 287,
+          "5": 110,
+          "6": 376,
+          "7": 738
+        }
+      },
+      {
+        "name": "MasteryTombstone",
+        "label": "Tombstone Mastery",
+        "kind": "tiered",
+        "holders": 1951,
+        "holder_share": 0.94,
+        "max_level": 10,
+        "by_level": {
+          "1": 241,
+          "2": 141,
+          "3": 230,
+          "4": 115,
+          "5": 197,
+          "6": 139,
+          "7": 888
+        }
+      },
+      {
+        "name": "MasteryGhost",
+        "label": "Royal Ghost Mastery",
+        "kind": "tiered",
+        "holders": 1953,
+        "holder_share": 0.941,
+        "max_level": 10,
+        "by_level": {
+          "1": 135,
+          "2": 140,
+          "3": 115,
+          "4": 148,
+          "5": 78,
+          "6": 157,
+          "7": 1180
+        }
+      },
+      {
+        "name": "MasteryRoyalGiant",
+        "label": "Royal Giant Mastery",
+        "kind": "tiered",
+        "holders": 1955,
+        "holder_share": 0.942,
+        "max_level": 10,
+        "by_level": {
+          "1": 213,
+          "2": 209,
+          "3": 139,
+          "4": 313,
+          "5": 46,
+          "6": 106,
+          "7": 268,
+          "8": 85,
+          "9": 269,
+          "10": 307
+        }
+      },
+      {
+        "name": "MasteryAngryBarbarians",
+        "label": "Elite Barbarians Mastery",
+        "kind": "tiered",
+        "holders": 1956,
+        "holder_share": 0.942,
+        "max_level": 10,
+        "by_level": {
+          "1": 173,
+          "2": 105,
+          "3": 186,
+          "4": 204,
+          "5": 87,
+          "6": 278,
+          "7": 923
+        }
+      },
+      {
+        "name": "MasteryFireSpirits",
+        "label": "Fire Spirit Mastery",
+        "kind": "tiered",
+        "holders": 1957,
+        "holder_share": 0.943,
+        "max_level": 10,
+        "by_level": {
+          "1": 135,
+          "2": 193,
+          "3": 91,
+          "4": 249,
+          "5": 137,
+          "6": 331,
+          "7": 133,
+          "8": 350,
+          "9": 248,
+          "10": 90
+        }
+      },
+      {
+        "name": "MasteryLightning",
+        "label": "Lightning Mastery",
+        "kind": "tiered",
+        "holders": 1957,
+        "holder_share": 0.943,
+        "max_level": 10,
+        "by_level": {
+          "1": 150,
+          "2": 124,
+          "3": 73,
+          "4": 142,
+          "5": 65,
+          "6": 236,
+          "7": 1167
+        }
+      },
+      {
+        "name": "MasteryBattleRam",
+        "label": "Battle Ram Mastery",
+        "kind": "tiered",
+        "holders": 1959,
+        "holder_share": 0.944,
+        "max_level": 10,
+        "by_level": {
+          "1": 248,
+          "2": 250,
+          "3": 125,
+          "4": 261,
+          "5": 91,
+          "6": 121,
+          "7": 226,
+          "8": 94,
+          "9": 201,
+          "10": 342
+        }
+      },
+      {
+        "name": "MasterySpearGoblins",
+        "label": "Spear Goblins Mastery",
+        "kind": "tiered",
+        "holders": 1960,
+        "holder_share": 0.944,
+        "max_level": 10,
+        "by_level": {
+          "1": 185,
+          "2": 167,
+          "3": 171,
+          "4": 265,
+          "5": 82,
+          "6": 327,
+          "7": 763
+        }
+      },
+      {
+        "name": "YearsPlayed",
+        "label": "Years Played",
+        "kind": "tiered",
+        "holders": 1961,
+        "holder_share": 0.945,
+        "max_level": 11,
+        "by_level": {
+          "1": 116,
+          "2": 92,
+          "3": 80,
+          "4": 184,
+          "5": 155,
+          "6": 158,
+          "7": 149,
+          "8": 170,
+          "9": 341,
+          "10": 516
+        }
+      },
+      {
+        "name": "MasteryGoblinCage",
+        "label": "Goblin Cage Mastery",
+        "kind": "tiered",
+        "holders": 1962,
+        "holder_share": 0.945,
+        "max_level": 10,
+        "by_level": {
+          "1": 298,
+          "2": 121,
+          "3": 241,
+          "4": 81,
+          "5": 233,
+          "6": 67,
+          "7": 921
+        }
+      },
+      {
+        "name": "MasteryMiner",
+        "label": "Miner Mastery",
+        "kind": "tiered",
+        "holders": 1964,
+        "holder_share": 0.946,
+        "max_level": 10,
+        "by_level": {
+          "1": 134,
+          "2": 159,
+          "3": 115,
+          "4": 158,
+          "5": 84,
+          "6": 176,
+          "7": 1138
+        }
+      },
+      {
+        "name": "MasteryIceGolemite",
+        "label": "Ice Golem Mastery",
+        "kind": "tiered",
+        "holders": 1966,
+        "holder_share": 0.947,
+        "max_level": 10,
+        "by_level": {
+          "1": 231,
+          "2": 127,
+          "3": 179,
+          "4": 210,
+          "5": 136,
+          "6": 245,
+          "7": 838
+        }
+      },
+      {
+        "name": "MasteryWallbreakers",
+        "label": "Wall Breakers Mastery",
+        "kind": "tiered",
+        "holders": 1967,
+        "holder_share": 0.947,
+        "max_level": 10,
+        "by_level": {
+          "1": 201,
+          "2": 162,
+          "3": 109,
+          "4": 192,
+          "5": 59,
+          "6": 102,
+          "7": 184,
+          "8": 91,
+          "9": 214,
+          "10": 653
+        }
+      },
+      {
+        "name": "MasteryRocket",
+        "label": "Rocket Mastery",
+        "kind": "tiered",
+        "holders": 1971,
+        "holder_share": 0.949,
+        "max_level": 10,
+        "by_level": {
+          "1": 111,
+          "2": 125,
+          "3": 87,
+          "4": 183,
+          "5": 102,
+          "6": 315,
+          "7": 1048
+        }
+      },
+      {
+        "name": "MasteryPrince",
+        "label": "Prince Mastery",
+        "kind": "tiered",
+        "holders": 1973,
+        "holder_share": 0.95,
+        "max_level": 10,
+        "by_level": {
+          "1": 186,
+          "2": 179,
+          "3": 154,
+          "4": 228,
+          "5": 99,
+          "6": 299,
+          "7": 828
+        }
+      },
+      {
+        "name": "MasteryElectroWizard",
+        "label": "Electro Wizard Mastery",
+        "kind": "tiered",
+        "holders": 1974,
+        "holder_share": 0.951,
+        "max_level": 10,
+        "by_level": {
+          "1": 167,
+          "2": 185,
+          "3": 140,
+          "4": 177,
+          "5": 142,
+          "6": 136,
+          "7": 215,
+          "8": 211,
+          "9": 263,
+          "10": 338
+        }
+      },
+      {
+        "name": "MasteryRoyalHogs",
+        "label": "Royal Hogs Mastery",
+        "kind": "tiered",
+        "holders": 1976,
+        "holder_share": 0.952,
+        "max_level": 10,
+        "by_level": {
+          "1": 225,
+          "2": 196,
+          "3": 135,
+          "4": 205,
+          "5": 89,
+          "6": 282,
+          "7": 844
+        }
+      },
+      {
+        "name": "MasteryFirecracker",
+        "label": "Firecracker Mastery",
+        "kind": "tiered",
+        "holders": 1979,
+        "holder_share": 0.953,
+        "max_level": 10,
+        "by_level": {
+          "1": 114,
+          "2": 58,
+          "3": 86,
+          "4": 88,
+          "5": 59,
+          "6": 137,
+          "7": 238,
+          "8": 436,
+          "9": 485,
+          "10": 278
+        }
+      },
+      {
+        "name": "MasterySnowball",
+        "label": "Giant Snowball Mastery",
+        "kind": "tiered",
+        "holders": 1980,
+        "holder_share": 0.954,
+        "max_level": 10,
+        "by_level": {
+          "1": 112,
+          "2": 81,
+          "3": 101,
+          "4": 183,
+          "5": 59,
+          "6": 240,
+          "7": 1204
+        }
+      },
+      {
+        "name": "MasteryInfernoDragon",
+        "label": "Inferno Dragon Mastery",
+        "kind": "tiered",
+        "holders": 1981,
+        "holder_share": 0.954,
+        "max_level": 10,
+        "by_level": {
+          "1": 177,
+          "2": 279,
+          "3": 142,
+          "4": 197,
+          "5": 147,
+          "6": 307,
+          "7": 732
+        }
+      },
+      {
+        "name": "MasteryBalloon",
+        "label": "Balloon Mastery",
+        "kind": "tiered",
+        "holders": 1982,
+        "holder_share": 0.955,
+        "max_level": 10,
+        "by_level": {
+          "1": 198,
+          "2": 168,
+          "3": 204,
+          "4": 180,
+          "5": 114,
+          "6": 113,
+          "7": 162,
+          "8": 229,
+          "9": 285,
+          "10": 329
+        }
+      },
+      {
+        "name": "MasteryTesla",
+        "label": "Tesla Mastery",
+        "kind": "tiered",
+        "holders": 1983,
+        "holder_share": 0.955,
+        "max_level": 10,
+        "by_level": {
+          "1": 90,
+          "2": 77,
+          "3": 73,
+          "4": 144,
+          "5": 34,
+          "6": 250,
+          "7": 1315
+        }
+      },
+      {
+        "name": "MasteryPoison",
+        "label": "Poison Mastery",
+        "kind": "tiered",
+        "holders": 1984,
+        "holder_share": 0.956,
+        "max_level": 10,
+        "by_level": {
+          "1": 80,
+          "2": 75,
+          "3": 54,
+          "4": 110,
+          "5": 92,
+          "6": 214,
+          "7": 1359
+        }
+      },
+      {
+        "name": "MasteryGoblinGang",
+        "label": "Goblin Gang Mastery",
+        "kind": "tiered",
+        "holders": 1986,
+        "holder_share": 0.957,
+        "max_level": 10,
+        "by_level": {
+          "1": 98,
+          "2": 63,
+          "3": 76,
+          "4": 111,
+          "5": 52,
+          "6": 276,
+          "7": 1310
+        }
+      },
+      {
+        "name": "MasteryGoblins",
+        "label": "Goblins Mastery",
+        "kind": "tiered",
+        "holders": 1987,
+        "holder_share": 0.957,
+        "max_level": 10,
+        "by_level": {
+          "1": 108,
+          "2": 131,
+          "3": 63,
+          "4": 141,
+          "5": 129,
+          "6": 258,
+          "7": 1157
+        }
+      },
+      {
+        "name": "MasteryMegaKnight",
+        "label": "Mega Knight Mastery",
+        "kind": "tiered",
+        "holders": 1988,
+        "holder_share": 0.958,
+        "max_level": 10,
+        "by_level": {
+          "1": 154,
+          "2": 169,
+          "3": 107,
+          "4": 197,
+          "5": 84,
+          "6": 109,
+          "7": 229,
+          "8": 161,
+          "9": 303,
+          "10": 475
+        }
+      },
+      {
+        "name": "MasterySkeletonWarriors",
+        "label": "Guards Mastery",
+        "kind": "tiered",
+        "holders": 1988,
+        "holder_share": 0.958,
+        "max_level": 10,
+        "by_level": {
+          "1": 172,
+          "2": 121,
+          "3": 89,
+          "4": 158,
+          "5": 66,
+          "6": 192,
+          "7": 1190
+        }
+      },
+      {
+        "name": "MasteryElectroSpirit",
+        "label": "Electro Spirit Mastery",
+        "kind": "tiered",
+        "holders": 1989,
+        "holder_share": 0.958,
+        "max_level": 10,
+        "by_level": {
+          "1": 115,
+          "2": 110,
+          "3": 69,
+          "4": 158,
+          "5": 60,
+          "6": 79,
+          "7": 175,
+          "8": 96,
+          "9": 236,
+          "10": 891
+        }
+      },
+      {
+        "name": "MasteryCannon",
+        "label": "Cannon Mastery",
+        "kind": "tiered",
+        "holders": 1990,
+        "holder_share": 0.959,
+        "max_level": 10,
+        "by_level": {
+          "1": 108,
+          "2": 92,
+          "3": 59,
+          "4": 146,
+          "5": 67,
+          "6": 277,
+          "7": 1241
+        }
+      },
+      {
+        "name": "MasteryBats",
+        "label": "Bats Mastery",
+        "kind": "tiered",
+        "holders": 1995,
+        "holder_share": 0.961,
+        "max_level": 10,
+        "by_level": {
+          "1": 104,
+          "2": 74,
+          "3": 119,
+          "4": 96,
+          "5": 94,
+          "6": 148,
+          "7": 1360
+        }
+      },
+      {
+        "name": "MasteryPrincess",
+        "label": "Princess Mastery",
+        "kind": "tiered",
+        "holders": 1995,
+        "holder_share": 0.961,
+        "max_level": 10,
+        "by_level": {
+          "1": 166,
+          "2": 237,
+          "3": 142,
+          "4": 185,
+          "5": 151,
+          "6": 140,
+          "7": 175,
+          "8": 168,
+          "9": 188,
+          "10": 443
+        }
+      },
+      {
+        "name": "MasteryBomber",
+        "label": "Bomber Mastery",
+        "kind": "tiered",
+        "holders": 1996,
+        "holder_share": 0.961,
+        "max_level": 10,
+        "by_level": {
+          "1": 111,
+          "2": 107,
+          "3": 103,
+          "4": 139,
+          "5": 68,
+          "6": 217,
+          "7": 1251
+        }
+      },
+      {
+        "name": "MasteryPekka",
+        "label": "P.E.K.K.A Mastery",
+        "kind": "tiered",
+        "holders": 1996,
+        "holder_share": 0.961,
+        "max_level": 10,
+        "by_level": {
+          "1": 173,
+          "2": 144,
+          "3": 133,
+          "4": 140,
+          "5": 87,
+          "6": 99,
+          "7": 166,
+          "8": 109,
+          "9": 283,
+          "10": 662
+        }
+      },
+      {
+        "name": "MasteryGiant",
+        "label": "Giant Mastery",
+        "kind": "tiered",
+        "holders": 1997,
+        "holder_share": 0.962,
+        "max_level": 10,
+        "by_level": {
+          "1": 215,
+          "2": 262,
+          "3": 172,
+          "4": 302,
+          "5": 93,
+          "6": 413,
+          "7": 540
+        }
+      },
+      {
+        "name": "MasteryIceSpirits",
+        "label": "Ice Spirit Mastery",
+        "kind": "tiered",
+        "holders": 2000,
+        "holder_share": 0.963,
+        "max_level": 10,
+        "by_level": {
+          "1": 83,
+          "2": 80,
+          "3": 55,
+          "4": 100,
+          "5": 41,
+          "6": 229,
+          "7": 1412
+        }
+      },
+      {
+        "name": "MasteryBlowdartGoblin",
+        "label": "Dart Goblin Mastery",
+        "kind": "tiered",
+        "holders": 2001,
+        "holder_share": 0.964,
+        "max_level": 10,
+        "by_level": {
+          "1": 102,
+          "2": 91,
+          "3": 79,
+          "4": 111,
+          "5": 65,
+          "6": 109,
+          "7": 119,
+          "8": 109,
+          "9": 261,
+          "10": 955
+        }
+      },
+      {
+        "name": "MasteryDarkPrince",
+        "label": "Dark Prince Mastery",
+        "kind": "tiered",
+        "holders": 2001,
+        "holder_share": 0.964,
+        "max_level": 10,
+        "by_level": {
+          "1": 141,
+          "2": 139,
+          "3": 120,
+          "4": 184,
+          "5": 67,
+          "6": 294,
+          "7": 1056
+        }
+      },
+      {
+        "name": "MasteryBarbLog",
+        "label": "Barbarian Barrel Mastery",
+        "kind": "tiered",
+        "holders": 2003,
+        "holder_share": 0.965,
+        "max_level": 10,
+        "by_level": {
+          "1": 84,
+          "2": 62,
+          "3": 81,
+          "4": 100,
+          "5": 65,
+          "6": 109,
+          "7": 1502
+        }
+      },
+      {
+        "name": "MasteryWitch",
+        "label": "Witch Mastery",
+        "kind": "tiered",
+        "holders": 2003,
+        "holder_share": 0.965,
+        "max_level": 10,
+        "by_level": {
+          "1": 201,
+          "2": 166,
+          "3": 169,
+          "4": 251,
+          "5": 83,
+          "6": 329,
+          "7": 804
+        }
+      },
+      {
+        "name": "MasteryArcher",
+        "label": "Archers Mastery",
+        "kind": "tiered",
+        "holders": 2005,
+        "holder_share": 0.966,
+        "max_level": 10,
+        "by_level": {
+          "1": 109,
+          "2": 113,
+          "3": 110,
+          "4": 169,
+          "5": 72,
+          "6": 261,
+          "7": 1171
+        }
+      },
+      {
+        "name": "MasteryMinions",
+        "label": "Minions Mastery",
+        "kind": "tiered",
+        "holders": 2005,
+        "holder_share": 0.966,
+        "max_level": 10,
+        "by_level": {
+          "1": 115,
+          "2": 101,
+          "3": 145,
+          "4": 131,
+          "5": 102,
+          "6": 192,
+          "7": 1219
+        }
+      },
+      {
+        "name": "MasteryWizard",
+        "label": "Wizard Mastery",
+        "kind": "tiered",
+        "holders": 2011,
+        "holder_share": 0.969,
+        "max_level": 10,
+        "by_level": {
+          "1": 147,
+          "2": 166,
+          "3": 110,
+          "4": 213,
+          "5": 85,
+          "6": 261,
+          "7": 144,
+          "8": 366,
+          "9": 305,
+          "10": 214
+        }
+      },
+      {
+        "name": "MasteryGoblinBarrel",
+        "label": "Goblin Barrel Mastery",
+        "kind": "tiered",
+        "holders": 2013,
+        "holder_share": 0.97,
+        "max_level": 10,
+        "by_level": {
+          "1": 119,
+          "2": 148,
+          "3": 101,
+          "4": 227,
+          "5": 78,
+          "6": 374,
+          "7": 966
+        }
+      },
+      {
+        "name": "MasterySkeletonArmy",
+        "label": "Skeleton Army Mastery",
+        "kind": "tiered",
+        "holders": 2016,
+        "holder_share": 0.971,
+        "max_level": 10,
+        "by_level": {
+          "1": 135,
+          "2": 131,
+          "3": 144,
+          "4": 178,
+          "5": 119,
+          "6": 338,
+          "7": 971
+        }
+      },
+      {
+        "name": "MasterySkeletons",
+        "label": "Skeletons Mastery",
+        "kind": "tiered",
+        "holders": 2020,
+        "holder_share": 0.973,
+        "max_level": 10,
+        "by_level": {
+          "1": 60,
+          "2": 59,
+          "3": 37,
+          "4": 77,
+          "5": 52,
+          "6": 170,
+          "7": 1565
+        }
+      },
+      {
+        "name": "MasteryMusketeer",
+        "label": "Musketeer Mastery",
+        "kind": "tiered",
+        "holders": 2024,
+        "holder_share": 0.975,
+        "max_level": 10,
+        "by_level": {
+          "1": 110,
+          "2": 102,
+          "3": 71,
+          "4": 133,
+          "5": 122,
+          "6": 113,
+          "7": 177,
+          "8": 136,
+          "9": 266,
+          "10": 794
+        }
+      },
+      {
+        "name": "MasteryHogRider",
+        "label": "Hog Rider Mastery",
+        "kind": "tiered",
+        "holders": 2027,
+        "holder_share": 0.976,
+        "max_level": 10,
+        "by_level": {
+          "1": 113,
+          "2": 110,
+          "3": 59,
+          "4": 160,
+          "5": 71,
+          "6": 230,
+          "7": 124,
+          "8": 391,
+          "9": 431,
+          "10": 338
+        }
+      },
+      {
+        "name": "MasteryBabyDragon",
+        "label": "Baby Dragon Mastery",
+        "kind": "tiered",
+        "holders": 2029,
+        "holder_share": 0.977,
+        "max_level": 10,
+        "by_level": {
+          "1": 171,
+          "2": 121,
+          "3": 114,
+          "4": 160,
+          "5": 88,
+          "6": 131,
+          "7": 193,
+          "8": 108,
+          "9": 325,
+          "10": 618
+        }
+      },
+      {
+        "name": "MasteryZap",
+        "label": "Zap Mastery",
+        "kind": "tiered",
+        "holders": 2029,
+        "holder_share": 0.977,
+        "max_level": 10,
+        "by_level": {
+          "1": 45,
+          "2": 71,
+          "3": 54,
+          "4": 114,
+          "5": 76,
+          "6": 223,
+          "7": 1446
+        }
+      },
+      {
+        "name": "MasteryMiniPekka",
+        "label": "Mini P.E.K.K.A Mastery",
+        "kind": "tiered",
+        "holders": 2030,
+        "holder_share": 0.978,
+        "max_level": 10,
+        "by_level": {
+          "1": 98,
+          "2": 125,
+          "3": 103,
+          "4": 189,
+          "5": 76,
+          "6": 125,
+          "7": 228,
+          "8": 112,
+          "9": 365,
+          "10": 609
+        }
+      },
+      {
+        "name": "MasteryLog",
+        "label": "The Log Mastery",
+        "kind": "tiered",
+        "holders": 2032,
+        "holder_share": 0.979,
+        "max_level": 10,
+        "by_level": {
+          "1": 53,
+          "2": 49,
+          "3": 45,
+          "4": 75,
+          "5": 59,
+          "6": 108,
+          "7": 117,
+          "8": 223,
+          "9": 326,
+          "10": 977
+        }
+      },
+      {
+        "name": "ClanDonations",
+        "label": "Clan Donations",
+        "kind": "tiered",
+        "holders": 2037,
+        "holder_share": 0.981,
+        "max_level": 8,
+        "by_level": {
+          "1": 76,
+          "2": 58,
+          "3": 271,
+          "4": 238,
+          "5": 498,
+          "6": 496,
+          "7": 336,
+          "8": 64
+        }
+      },
+      {
+        "name": "MasteryValkyrie",
+        "label": "Valkyrie Mastery",
+        "kind": "tiered",
+        "holders": 2042,
+        "holder_share": 0.984,
+        "max_level": 10,
+        "by_level": {
+          "1": 83,
+          "2": 69,
+          "3": 80,
+          "4": 105,
+          "5": 53,
+          "6": 138,
+          "7": 180,
+          "8": 369,
+          "9": 425,
+          "10": 540
+        }
+      },
+      {
+        "name": "MasteryKnight",
+        "label": "Knight Mastery",
+        "kind": "tiered",
+        "holders": 2044,
+        "holder_share": 0.985,
+        "max_level": 10,
+        "by_level": {
+          "1": 48,
+          "2": 39,
+          "3": 59,
+          "4": 81,
+          "5": 33,
+          "6": 129,
+          "7": 1655
+        }
+      },
+      {
+        "name": "MasteryFireball",
+        "label": "Fireball Mastery",
+        "kind": "tiered",
+        "holders": 2048,
+        "holder_share": 0.987,
+        "max_level": 10,
+        "by_level": {
+          "1": 43,
+          "2": 38,
+          "3": 38,
+          "4": 65,
+          "5": 58,
+          "6": 137,
+          "7": 1669
+        }
+      },
+      {
+        "name": "MasteryArrows",
+        "label": "Arrows Mastery",
+        "kind": "tiered",
+        "holders": 2053,
+        "holder_share": 0.989,
+        "max_level": 10,
+        "by_level": {
+          "1": 41,
+          "2": 51,
+          "3": 40,
+          "4": 55,
+          "5": 47,
+          "6": 93,
+          "7": 120,
+          "8": 89,
+          "9": 189,
+          "10": 1328
+        }
+      },
+      {
+        "name": "EmoteCollection",
+        "label": "Emote Collection",
+        "kind": "tiered",
+        "holders": 2063,
+        "holder_share": 0.994,
+        "max_level": 8,
+        "by_level": {
+          "1": 39,
+          "2": 94,
+          "3": 287,
+          "4": 334,
+          "5": 446,
+          "6": 371,
+          "7": 233,
+          "8": 259
+        }
+      },
+      {
+        "name": "BannerCollection",
+        "label": "Banner Collection",
+        "kind": "tiered",
+        "holders": 2065,
+        "holder_share": 0.995,
+        "max_level": 8,
+        "by_level": {
+          "1": 17,
+          "2": 36,
+          "3": 106,
+          "4": 121,
+          "5": 210,
+          "6": 469,
+          "7": 510,
+          "8": 596
+        }
+      },
+      {
+        "name": "BattleWins",
+        "label": "Battle Wins",
+        "kind": "tiered",
+        "holders": 2072,
+        "holder_share": 0.998,
+        "max_level": 8,
+        "by_level": {
+          "1": 3,
+          "2": 9,
+          "3": 20,
+          "4": 37,
+          "5": 128,
+          "6": 302,
+          "7": 424,
+          "8": 1149
+        }
+      },
+      {
+        "name": "CollectionLevel",
+        "label": "Collection Level",
+        "kind": "tiered",
+        "holders": 2074,
+        "holder_share": 0.999,
+        "max_level": 8,
+        "by_level": {
+          "1": 3,
+          "2": 4,
+          "3": 10,
+          "4": 5,
+          "5": 7,
+          "6": 21,
+          "7": 51,
+          "8": 1973
+        }
+      }
+    ],
+    "notes": [
+      "Rarity is within the RECORDED population, not the game: a badge nobody here holds does not appear at all.",
+      "one_off badges have no level (awarded once for an event or feat, the genuinely rare class); tiered badges carry level/max_level and by_level counts holders per level.",
+      "holder_share = holders / players_considered; badge names are the API's own identifiers and label is the badge as a player says it (MasterySkeletonWarriors is Guards Mastery)."
+    ],
+    "docs": "glossary",
+    "meta": {
+      "contract_version": "6.19.3"
+    }
+  },
+  "timings": {
+    "db_ms": 1454,
+    "db_queries": 3,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

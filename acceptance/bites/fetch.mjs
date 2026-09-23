@@ -52,7 +52,16 @@ const raw = gunzipSync(Buffer.from(await obj.Body.transformToByteArray()));
 const capture = JSON.parse(raw.toString("utf8"));
 const contract = capture.response?.meta?.contract_version ?? null;
 const response = { ...capture.response };
-if (response.meta) response.meta = { contract_version: contract };
+// meta keeps the contract version and the poll times a case may compare
+// against (source_polls: public freshness, Gym 91.1); never the request
+// id or the caller's quota.
+if (response.meta)
+  response.meta = {
+    contract_version: contract,
+    ...(response.meta.source_polls
+      ? { source_polls: response.meta.source_polls }
+      : {}),
+  };
 const out = {
   ...(feedback ? { feedback: Number(feedback) } : {}),
   contract_version: contract,

@@ -927,5 +927,389 @@
         "eq": ["finish_war_day", null]
       }
     ]
+  },
+  {
+    "id": "91.1",
+    "feedback": 91,
+    "stability": "live",
+    "calls": {
+      "h": {
+        "tool": "badges_holders",
+        "args": {
+          "badge": "MasteryValkyrie",
+          "segment": {
+            "player_tag": "#2G2RPVPP"
+          }
+        }
+      },
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#2G2RPVPP"
+        }
+      }
+    },
+    "request_id": "392e0d6d-6618-4d73-8e70-788bf807a743",
+    "note": "holder row observed_at must be the profile poll that last read the badge (glossary 'stamp'); bite shows 2026-09-06T15:12:37.581Z vs poll 2026-09-23T12:52:44Z",
+    "assert": [
+      {
+        "eq": [
+          "h.holders[0].observed_at",
+          "p.meta.source_polls.player.observed_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "91.2",
+    "feedback": 91,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryValkyrie",
+      "segment": "mine"
+    },
+    "request_id": "3e3221d0-98d5-4ada-a284-151ec6e4fbc4",
+    "assert": [
+      {
+        "notes_match": "observed_at"
+      },
+      {
+        "notes_match": "[Ff]irst (seen|sighting|observ)"
+      }
+    ]
+  },
+  {
+    "id": "91.3",
+    "feedback": 91,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "h": {
+        "tool": "badges_holders",
+        "args": {
+          "badge": "BattleWins",
+          "segment": {
+            "player_tag": "#PYG8YG0UV"
+          }
+        }
+      },
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#PYG8YG0UV"
+        }
+      }
+    },
+    "request_id": "b50d9872-2e09-47b0-b4f8-05153dacf9d0",
+    "note": "a genuinely stale, unrecorded player: row stamp already equals his last poll (2026-09-13T08:42:49Z) and must stay so; catches a fix that stamps as_of instead of the poll",
+    "assert": [
+      {
+        "eq": [
+          "h.holders[0].observed_at",
+          "p.meta.source_polls.player.observed_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "91.4",
+    "feedback": 91,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "h": {
+        "tool": "badges_holders",
+        "args": {
+          "badge": "MasteryValkyrie",
+          "segment": {
+            "player_tag": "#2G2RPVPP"
+          }
+        }
+      },
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#2G2RPVPP"
+        }
+      }
+    },
+    "request_id": "392e0d6d-6618-4d73-8e70-788bf807a743",
+    "assert": [
+      {
+        "eq": [
+          "h.observations.newest",
+          "p.meta.source_polls.player.observed_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "91.5",
+    "feedback": 91,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "r": {
+        "tool": "badges_rarity",
+        "args": {
+          "segment": "mine"
+        }
+      },
+      "k": {
+        "tool": "clans_roster",
+        "args": {}
+      }
+    },
+    "request_id": "1610d97c-68c1-4a20-88a5-5c5c261b5ddd",
+    "note": "I2 pair: the census considers exactly the current roster (46 = 46 on 2026-09-23; sum of holders 5055 = sum of roster badge_count 5055)",
+    "assert": [
+      {
+        "eq": ["r.players_considered", "k.member_count"]
+      }
+    ]
+  },
+  {
+    "id": "92.1",
+    "feedback": 92,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "corpus"
+    },
+    "request_id": "c753ba43-1a27-4c87-b82c-8949133b61d1",
+    "assert": [
+      {
+        "neq": [
+          "badges[?name=RoyalTournamentRank].label",
+          "badges[?name=RoyalTournamentRank_v2].label"
+        ]
+      },
+      {
+        "neq": [
+          "badges[?name=ClassicRoyaleTournamentRank].label",
+          "badges[?name=ClassicRoyaleTournamentRank_v2].label"
+        ]
+      },
+      {
+        "neq": ["badges[?name=2v2LeagueRank].label", "2v 2 League Rank"]
+      }
+    ]
+  },
+  {
+    "id": "92.2",
+    "feedback": 92,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "corpus"
+    },
+    "request_id": "c753ba43-1a27-4c87-b82c-8949133b61d1",
+    "assert": [
+      {
+        "eq": ["badges[?name=MasterySkeletonWarriors].label", "Guards Mastery"]
+      },
+      {
+        "eq": [
+          "badges[?name=SeasonalBadge_202509].label",
+          "Season September 2025"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "93.1",
+    "feedback": 93,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "Valkyrie Mastery",
+      "segment": "mine"
+    },
+    "request_id": "2a62a126-b669-4994-917f-268c203441e1",
+    "assert": [
+      {
+        "notes_not_match": "No recorded player holds"
+      },
+      {
+        "eq": ["label", "Valkyrie Mastery"]
+      },
+      {
+        "gt": ["holders_total", 0]
+      }
+    ]
+  },
+  {
+    "id": "93.2",
+    "feedback": 93,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "Guards Mastery",
+      "segment": "mine"
+    },
+    "request_id": "457454e8-e25b-4222-aa04-1967f04008a1",
+    "assert": [
+      {
+        "notes_not_match": "No recorded player holds"
+      },
+      {
+        "eq": ["label", "Guards Mastery"]
+      },
+      {
+        "gt": ["holders_total", 0]
+      }
+    ]
+  },
+  {
+    "id": "93.3",
+    "feedback": 93,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryValkyri",
+      "segment": "mine"
+    },
+    "request_id": "dd32e056-7e65-49c9-af9d-ee63c8f96d03",
+    "assert": [
+      {
+        "notes_match": "Did you mean: MasteryValkyrie"
+      },
+      {
+        "absent": "holders"
+      }
+    ]
+  },
+  {
+    "id": "93.4",
+    "feedback": 93,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "NotARealBadgeXyz",
+      "segment": "mine"
+    },
+    "request_id": "97f2ac58-ea23-4e9b-8a28-9d9f7c2218a5",
+    "assert": [
+      {
+        "has": "error"
+      },
+      {
+        "absent": "holders"
+      },
+      {
+        "notes_match": "NotARealBadgeXyz"
+      }
+    ]
+  },
+  {
+    "id": "93.5",
+    "feedback": 93,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryValkyrie"
+    },
+    "request_id": "01e59c1f-4833-4632-a644-c5dc691fae76",
+    "assert": [
+      {
+        "notes_match": "segment is required"
+      }
+    ]
+  },
+  {
+    "id": "94.1",
+    "feedback": 94,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryValkyrie",
+      "segment": "mine"
+    },
+    "request_id": "3e3221d0-98d5-4ada-a284-151ec6e4fbc4",
+    "assert": [
+      {
+        "has": "holder_share"
+      },
+      {
+        "notes_not_match": "by_level counts"
+      }
+    ]
+  },
+  {
+    "id": "94.2",
+    "feedback": 94,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "mine"
+    },
+    "request_id": "1610d97c-68c1-4a20-88a5-5c5c261b5ddd",
+    "assert": [
+      {
+        "has": "badges[].holder_share"
+      },
+      {
+        "notes_match": "by_level"
+      },
+      {
+        "has": "badges[?name=MasteryValkyrie].by_level"
+      }
+    ]
+  },
+  {
+    "id": "94.3",
+    "feedback": 94,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "mine",
+      "verbosity": "compact"
+    },
+    "request_id": "adbd90af-a118-4619-bc4d-d4facc7e23dd",
+    "assert": [
+      {
+        "notes_match": "one size"
+      },
+      {
+        "has": "badges[].label"
+      }
+    ]
+  },
+  {
+    "id": "94.4",
+    "feedback": 94,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "r": {
+        "tool": "badges_rarity",
+        "args": {
+          "segment": "mine"
+        }
+      },
+      "h": {
+        "tool": "badges_holders",
+        "args": {
+          "badge": "MasteryValkyrie",
+          "segment": "mine"
+        }
+      }
+    },
+    "request_id": "3e3221d0-98d5-4ada-a284-151ec6e4fbc4",
+    "assert": [
+      {
+        "eq": ["h.holders_total", "r.badges[?name=MasteryValkyrie].holders"]
+      },
+      {
+        "eq": ["h.players_considered", "r.players_considered"]
+      }
+    ]
   }
 ]

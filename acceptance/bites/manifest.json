@@ -102,5 +102,56 @@
     "case": "gym/86.1",
     "captures": ["86-war_history-exact-128-0.json"],
     "expect": "has history_starts_at"
+  },
+  {
+    "feedback": 91,
+    "contract": "6.19.3",
+    "why": "the Gym's block 91.1: holder observed_at older than the profile poll that read it",
+    "case": "gym/91.1",
+    "captures": [
+      "91-badges_holders-valkyrie-player.json",
+      "91-players_profile-2G2RPVPP.json"
+    ],
+    "expect": "eq h\\.holders\\[0\\]\\.observed_at"
+  },
+  {
+    "feedback": 91,
+    "contract": "6.19.3",
+    "why": "the Gym's block 91.2: 38 of 46 clan rows stamped at the start of recording though every member was re-read within 27 hours",
+    "case": "gym/91.2",
+    "captures": ["91-badges_holders-valkyrie-mine.json"],
+    "expect": "notes_match /observed_at/"
+  },
+  {
+    "feedback": 92,
+    "contract": "6.19.3",
+    "why": "the Gym's block 92.1: RoyalTournamentRank and its _v2 served under one label; the legacy one read as the rarest",
+    "case": "gym/92.1",
+    "captures": ["92-badges_rarity-corpus.json"],
+    "expect": "neq badges\\[\\?name=RoyalTournamentRank\\]\\.label"
+  },
+  {
+    "feedback": 93,
+    "contract": "6.19.3",
+    "why": "the Gym's block 93.1: the label 'Valkyrie Mastery' refused as no recorded player holding it; 46 of 46 did",
+    "case": "gym/93.1",
+    "captures": ["93-badges_holders-valkyrie-label.json"],
+    "expect": "No recorded player holds"
+  },
+  {
+    "feedback": 93,
+    "contract": "6.19.3",
+    "why": "the Gym's block 93.2: the notes' own example label 'Guards Mastery' refused the same way",
+    "case": "gym/93.2",
+    "captures": ["93-badges_holders-guards-label.json"],
+    "expect": "No recorded player holds"
+  },
+  {
+    "feedback": 94,
+    "contract": "6.19.3",
+    "why": "the Gym's block 94.1: notes name holder_share and by_level; the response serves neither",
+    "case": "gym/94.1",
+    "captures": ["91-badges_holders-valkyrie-mine.json"],
+    "expect": "has holder_share: absent"
   }
 ]

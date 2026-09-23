@@ -108,12 +108,28 @@ const MONTHS = [
 /** "SkeletonDragons" -> "Skeleton Dragons"; digits and runs of capitals
  *  stay together ("Crl20Wins2024" -> "Crl 20 Wins 2024"). */
 function words(id) {
-  return String(id)
-    .replace(/_/g, " ")
-    .replace(/([a-z])([A-Z0-9])/g, "$1 $2")
-    .replace(/([0-9])([A-Z])/g, "$1 $2")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    String(id)
+      .replace(/_/g, " ")
+      .replace(/([a-z])([A-Z0-9])/g, "$1 $2")
+      .replace(/([0-9])([A-Z])/g, "$1 $2")
+      .replace(/\s+/g, " ")
+      // "2v2LeagueRank": the mode is one word, not "2v 2" (Gym #92).
+      .replace(/(\d)v (\d)/g, "$1v$2")
+      .trim()
+  );
+}
+
+/** The API's version suffix (`RoyalTournamentRank_v2`), said: two
+ *  identifiers that differ only by it are two badges, and one label for
+ *  both made the legacy one read as the rarest badge in the game (Gym
+ *  #92: 1 holder of "Royal Tournament Rank" beside 746 of the same
+ *  label). Only the suffixed one says it; the original keeps its name.
+ *  A dated badge (SeasonalBadge_202507_v2) is left alone: the month is
+ *  what a player says, and the corpus shows no dated pair colliding. */
+function versioned(id, label) {
+  const v = /_v(\d+)$/.exec(id);
+  return v ? `${label} (v${v[1]})` : label;
 }
 
 /** The card a Mastery badge is for, by its shown name; null for a badge
@@ -145,7 +161,10 @@ export function badgeLabel(name) {
   // capitals. `_v2` and a trailing `Badge` are the API's, not a player's
   // (CrazyArenaBadge3 keeps its word: the digit is the badge's number).
   const bare = id.replace(/_v\d+$/, "").replace(/Badge$/, "");
-  return words(bare)
-    .replace(/^Crl\b/, "CRL")
-    .replace(/^(\d{4}) Year$/, "$1 Year Badge");
+  return versioned(
+    id,
+    words(bare)
+      .replace(/^Crl\b/, "CRL")
+      .replace(/^(\d{4}) Year$/, "$1 Year Badge"),
+  );
 }

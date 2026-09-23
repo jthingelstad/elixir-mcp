@@ -1,0 +1,555 @@
+{
+  "feedback": 91,
+  "contract_version": "6.19.3",
+  "captured_at": "2026-09-23T15:19:49.373Z",
+  "request": {
+    "tool": "badges_holders",
+    "arguments": {
+      "badge": "MasteryValkyrie",
+      "segment": "mine"
+    }
+  },
+  "response": {
+    "badge": "MasteryValkyrie",
+    "label": "Valkyrie Mastery",
+    "kind": "tiered",
+    "applied": {
+      "badge": "MasteryValkyrie",
+      "segment": {
+        "kind": "clan",
+        "clan_tag": "#J2RGCRVG",
+        "source": "mine"
+      },
+      "limit": 50
+    },
+    "players_considered": 46,
+    "observations": {
+      "oldest": "2026-04-03T14:00:03.000Z",
+      "newest": "2026-09-23T15:07:42.000Z"
+    },
+    "holders_total": 46,
+    "holders": [
+      {
+        "player_tag": "#2G2RPVPP",
+        "name": "Aaqib Javed",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:12:37.581Z"
+      },
+      {
+        "player_tag": "#9Q9QRCPPU",
+        "name": "dez42",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:08:59.378Z"
+      },
+      {
+        "player_tag": "#2CY2RJL9G",
+        "name": "L-Drxgo⚡",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:00.727Z"
+      },
+      {
+        "player_tag": "#RJ9RRQPVU",
+        "name": "OllieTurtle",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:08:53.448Z"
+      },
+      {
+        "player_tag": "#UQ2R9RGVP",
+        "name": "Sandeep",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T19:22:42.123Z"
+      },
+      {
+        "player_tag": "#JYRQ8U92C",
+        "name": "sikander sidhu",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T14:32:36.957Z"
+      },
+      {
+        "player_tag": "#C920YGLC2",
+        "name": "Vijay",
+        "name_known": true,
+        "level": 10,
+        "max_level": 10,
+        "progress": 10,
+        "target": null,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T13:22:38.840Z"
+      },
+      {
+        "player_tag": "#2P9GRU2Q0",
+        "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+        "name_known": true,
+        "level": 9,
+        "max_level": 10,
+        "progress": 9,
+        "target": 10,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:08.017Z"
+      },
+      {
+        "player_tag": "#UCRLVL29U",
+        "name": "Ak",
+        "name_known": true,
+        "level": 9,
+        "max_level": 10,
+        "progress": 9,
+        "target": 10,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-16T19:47:50.000Z"
+      },
+      {
+        "player_tag": "#9QQLPJRLV",
+        "name": "duki suzuki",
+        "name_known": true,
+        "level": 9,
+        "max_level": 10,
+        "progress": 9,
+        "target": 10,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-19T16:42:41.000Z"
+      },
+      {
+        "player_tag": "#8U2P0JPR",
+        "name": "Fullboat",
+        "name_known": true,
+        "level": 9,
+        "max_level": 10,
+        "progress": 9,
+        "target": 10,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T13:07:37.469Z"
+      },
+      {
+        "player_tag": "#G2CUUJQ8V",
+        "name": "kiruba⚜️",
+        "name_known": true,
+        "level": 9,
+        "max_level": 10,
+        "progress": 9,
+        "target": 10,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:00.825Z"
+      },
+      {
+        "player_tag": "#2YG98VVQ",
+        "name": "Alfablack",
+        "name_known": true,
+        "level": 8,
+        "max_level": 10,
+        "progress": 8,
+        "target": 9,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:08:56.359Z"
+      },
+      {
+        "player_tag": "#2LRYLQPL",
+        "name": "Andy",
+        "name_known": true,
+        "level": 8,
+        "max_level": 10,
+        "progress": 8,
+        "target": 9,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:08:57.572Z"
+      },
+      {
+        "player_tag": "#U8RYG9Y2U",
+        "name": "King Levy",
+        "name_known": true,
+        "level": 8,
+        "max_level": 10,
+        "progress": 8,
+        "target": 9,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:02.483Z"
+      },
+      {
+        "player_tag": "#VC8VY8R29",
+        "name": "nyje47",
+        "name_known": true,
+        "level": 8,
+        "max_level": 10,
+        "progress": 8,
+        "target": 9,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T19:22:43.635Z"
+      },
+      {
+        "player_tag": "#PLCCYUQL",
+        "name": "TDuck",
+        "name_known": true,
+        "level": 8,
+        "max_level": 10,
+        "progress": 8,
+        "target": 9,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:03.918Z"
+      },
+      {
+        "player_tag": "#U08P889Y0",
+        "name": "Tere",
+        "name_known": true,
+        "level": 8,
+        "max_level": 10,
+        "progress": 8,
+        "target": 9,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:01.004Z"
+      },
+      {
+        "player_tag": "#20GPQPC9RV",
+        "name": "bonus",
+        "name_known": true,
+        "level": 7,
+        "max_level": 10,
+        "progress": 7,
+        "target": 8,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T17:57:42.084Z"
+      },
+      {
+        "player_tag": "#VJG09L9YY",
+        "name": "£eoππe§§;",
+        "name_known": true,
+        "level": 7,
+        "max_level": 10,
+        "progress": 7,
+        "target": 8,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:02.460Z"
+      },
+      {
+        "player_tag": "#U92P8PQG0",
+        "name": "God Bless You",
+        "name_known": true,
+        "level": 7,
+        "max_level": 10,
+        "progress": 7,
+        "target": 8,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T13:17:37.378Z"
+      },
+      {
+        "player_tag": "#VGC22YGP",
+        "name": "MONICA",
+        "name_known": true,
+        "level": 7,
+        "max_level": 10,
+        "progress": 7,
+        "target": 8,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:03.829Z"
+      },
+      {
+        "player_tag": "#PR8YLQ2CV",
+        "name": "The Joesma",
+        "name_known": true,
+        "level": 7,
+        "max_level": 10,
+        "progress": 7,
+        "target": 8,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:08.505Z"
+      },
+      {
+        "player_tag": "#20G0JGQLPL",
+        "name": "alex",
+        "name_known": true,
+        "level": 6,
+        "max_level": 10,
+        "progress": 6,
+        "target": 7,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:08:56.435Z"
+      },
+      {
+        "player_tag": "#P2U0PC2UU",
+        "name": "canavar",
+        "name_known": true,
+        "level": 6,
+        "max_level": 10,
+        "progress": 6,
+        "target": 7,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:08:59.513Z"
+      },
+      {
+        "player_tag": "#20JJJ2CCRU",
+        "name": "King Thing",
+        "name_known": true,
+        "level": 6,
+        "max_level": 10,
+        "progress": 6,
+        "target": 7,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T18:08:08.998Z"
+      },
+      {
+        "player_tag": "#2G09Q20QC",
+        "name": "Kurd Paraw",
+        "name_known": true,
+        "level": 6,
+        "max_level": 10,
+        "progress": 6,
+        "target": 7,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T17:17:39.067Z"
+      },
+      {
+        "player_tag": "#YC8LLR8Q2",
+        "name": "sniperhendo",
+        "name_known": true,
+        "level": 6,
+        "max_level": 10,
+        "progress": 6,
+        "target": 7,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T17:08:18.815Z"
+      },
+      {
+        "player_tag": "#20CLVPLG8R",
+        "name": "VVSBUDGET",
+        "name_known": true,
+        "level": 6,
+        "max_level": 10,
+        "progress": 6,
+        "target": 7,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-12T13:47:41.000Z"
+      },
+      {
+        "player_tag": "#JRVV9VC0C",
+        "name": "NOBITA",
+        "name_known": true,
+        "level": 5,
+        "max_level": 10,
+        "progress": 5,
+        "target": 6,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-20T00:02:40.000Z"
+      },
+      {
+        "player_tag": "#20G9RY299P",
+        "name": "Waltadr",
+        "name_known": true,
+        "level": 5,
+        "max_level": 10,
+        "progress": 5,
+        "target": 6,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-18T08:07:52.000Z"
+      },
+      {
+        "player_tag": "#URPCLR8UQ",
+        "name": "x.x.hari.x.x",
+        "name_known": true,
+        "level": 5,
+        "max_level": 10,
+        "progress": 5,
+        "target": 6,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T17:57:43.105Z"
+      },
+      {
+        "player_tag": "#CV20JCY0V",
+        "name": "BigNorton",
+        "name_known": true,
+        "level": 4,
+        "max_level": 10,
+        "progress": 4,
+        "target": 5,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:05.459Z"
+      },
+      {
+        "player_tag": "#20R8QRLYLP",
+        "name": "Chanco",
+        "name_known": true,
+        "level": 4,
+        "max_level": 10,
+        "progress": 4,
+        "target": 5,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T13:37:37.225Z"
+      },
+      {
+        "player_tag": "#20LP8UPJ8R",
+        "name": "I Hate Witch",
+        "name_known": true,
+        "level": 4,
+        "max_level": 10,
+        "progress": 4,
+        "target": 5,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T13:07:38.364Z"
+      },
+      {
+        "player_tag": "#229QY8UL9U",
+        "name": "Mega Goblin",
+        "name_known": true,
+        "level": 4,
+        "max_level": 10,
+        "progress": 4,
+        "target": 5,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-22T18:07:43.000Z"
+      },
+      {
+        "player_tag": "#UL2V9QRG0",
+        "name": "raquaza",
+        "name_known": true,
+        "level": 4,
+        "max_level": 10,
+        "progress": 4,
+        "target": 5,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T20:21:52.223Z"
+      },
+      {
+        "player_tag": "#V8Q8PUL0U",
+        "name": "ryguy67",
+        "name_known": true,
+        "level": 4,
+        "max_level": 10,
+        "progress": 4,
+        "target": 5,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T19:57:42.277Z"
+      },
+      {
+        "player_tag": "#2209PJPVGG",
+        "name": "shimmeringhost",
+        "name_known": true,
+        "level": 4,
+        "max_level": 10,
+        "progress": 4,
+        "target": 5,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-08T07:32:56.000Z"
+      },
+      {
+        "player_tag": "#8G8UYG2PQ",
+        "name": "Gabriel",
+        "name_known": true,
+        "level": 2,
+        "max_level": 10,
+        "progress": 2,
+        "target": 3,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:08:54.801Z"
+      },
+      {
+        "player_tag": "#20CGPVUL92",
+        "name": "pigsareus",
+        "name_known": true,
+        "level": 2,
+        "max_level": 10,
+        "progress": 2,
+        "target": 3,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:06.679Z"
+      },
+      {
+        "player_tag": "#VQUQJP8Q9",
+        "name": "1spaceO2",
+        "name_known": true,
+        "level": 1,
+        "max_level": 10,
+        "progress": 1,
+        "target": 2,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:06.983Z"
+      },
+      {
+        "player_tag": "#UVQ8RJYG9",
+        "name": "AHMOメŞΛDØW",
+        "name_known": true,
+        "level": 1,
+        "max_level": 10,
+        "progress": 1,
+        "target": 2,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T19:57:45.631Z"
+      },
+      {
+        "player_tag": "#RRU9PGJQ9",
+        "name": "Brotherinpants",
+        "name_known": true,
+        "level": 1,
+        "max_level": 10,
+        "progress": 1,
+        "target": 2,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-09T02:52:38.000Z"
+      },
+      {
+        "player_tag": "#V0CRYP2GG",
+        "name": "pokemon",
+        "name_known": true,
+        "level": 1,
+        "max_level": 10,
+        "progress": 1,
+        "target": 2,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:09:05.458Z"
+      },
+      {
+        "player_tag": "#VR0QRP2PG",
+        "name": "round hamster",
+        "name_known": true,
+        "level": 1,
+        "max_level": 10,
+        "progress": 1,
+        "target": 2,
+        "clan_tag": "#J2RGCRVG",
+        "observed_at": "2026-09-06T15:08:57.922Z"
+      }
+    ],
+    "notes": [
+      "one_off badges have no level (awarded once for an event or feat, the genuinely rare class); tiered badges carry level/max_level and by_level counts holders per level.",
+      "holder_share = holders / players_considered; badge names are the API's own identifiers and label is the badge as a player says it (MasterySkeletonWarriors is Guards Mastery)."
+    ],
+    "docs": "glossary",
+    "meta": {
+      "contract_version": "6.19.3"
+    }
+  },
+  "timings": {
+    "db_ms": 604,
+    "db_queries": 5,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}
