@@ -1,0 +1,118 @@
+{
+  "feedback": 167,
+  "contract_version": "6.33.1",
+  "captured_at": "2026-09-23T21:54:50.643Z",
+  "request": {
+    "tool": "elixir_examples",
+    "arguments": {}
+  },
+  "response": {
+    "examples": [
+      {
+        "slug": "play",
+        "group": "For players",
+        "title": "Understand your own play",
+        "lede": "Not “you won 61%” — which deck, which mode, which week, and whether the grind is actually paying off.",
+        "tools": ["players_timeline", "battles_decks", "battles_performance"],
+        "url": "https://elixir.poapkings.com/examples/play"
+      },
+      {
+        "slug": "deck",
+        "group": "For players",
+        "title": "Pick your next deck",
+        "lede": "What is winning in the recorded corpus, weighted by results rather than by how often you see it on a stream — with the sample sizes attached.",
+        "tools": ["battles_meta_decks", "battles_decks"],
+        "url": "https://elixir.poapkings.com/examples/deck"
+      },
+      {
+        "slug": "ladder",
+        "group": "For players",
+        "title": "Push with evidence",
+        "lede": "Trophy pushes stall for boring, findable reasons. A record of every battle makes the pattern visible instead of anecdotal.",
+        "tools": ["players_profile", "players_timeline", "battles_performance"],
+        "url": "https://elixir.poapkings.com/examples/ladder"
+      },
+      {
+        "slug": "friends",
+        "group": "For players",
+        "title": "Follow your friends",
+        "lede": "The people you play with, tracked because you asked — what they are on, how much they are playing, and what changed since you last looked.",
+        "tools": [
+          "players_profile",
+          "players_timeline",
+          "battles_decks",
+          "elixir_timeline"
+        ],
+        "url": "https://elixir.poapkings.com/examples/friends"
+      },
+      {
+        "slug": "clan",
+        "group": "For clan leaders",
+        "title": "Win your river race",
+        "lede": "The finished race, the one that just opened, and who has battled so far today — from a record the game's own API forgets after twenty weeks.",
+        "tools": ["war_current", "war_history", "clans_roster"],
+        "url": "https://elixir.poapkings.com/examples/clan"
+      },
+      {
+        "slug": "roster",
+        "group": "For clan leaders",
+        "title": "Keep the roster healthy",
+        "lede": "Who has gone quiet, who just arrived, and who the game itself has stopped counting — so a check-in happens before a race is lost.",
+        "tools": ["clans_roster", "war_current", "clans_standings"],
+        "url": "https://elixir.poapkings.com/examples/roster"
+      },
+      {
+        "slug": "scout",
+        "group": "For clan leaders",
+        "title": "Scout the other clan",
+        "lede": "Every race captures all five clans in the bracket, and a curated collection keeps the clans you care about recorded — so the comparison is always there to ask for.",
+        "tools": ["collections_get", "war_rivals", "war_history"],
+        "url": "https://elixir.poapkings.com/examples/scout"
+      },
+      {
+        "slug": "recap",
+        "group": "For clan leaders",
+        "title": "Write the weekly recap",
+        "lede": "The numbers are already recorded; the writing is the only work. Your agent drafts it and you paste it into clan chat.",
+        "tools": ["war_history", "clans_standings", "clans_roster"],
+        "url": "https://elixir.poapkings.com/examples/recap"
+      },
+      {
+        "slug": "discord",
+        "group": "For builders",
+        "title": "Answer your clanmates",
+        "lede": "An agent acts for one clan rather than for you: its own door, its own key, its own feed — and a map from a Discord id to a player tag.",
+        "tools": ["elixir_docs"],
+        "url": "https://elixir.poapkings.com/examples/discord"
+      },
+      {
+        "slug": "publish",
+        "group": "For builders",
+        "title": "Publish your own stats",
+        "lede": "Build a clan site or a bot on the record instead of on a second Clash key. Pull at build time; no scraping, no push.",
+        "tools": ["elixir_docs", "war_history", "clans_standings"],
+        "url": "https://elixir.poapkings.com/examples/publish"
+      },
+      {
+        "slug": "collector",
+        "group": "For builders",
+        "title": "Run a collector",
+        "lede": "Volunteer a machine that fetches for the corpus. It is named for a card, credited to you, and it raises what Elixir records for you.",
+        "tools": ["elixir_collectors", "elixir_coverage", "elixir_docs"],
+        "url": "https://elixir.poapkings.com/examples/collector"
+      }
+    ],
+    "notes": ["Read one with example: <slug>."],
+    "corpus_built_at": "2026-09-23T21:49:08.183Z",
+    "meta": {
+      "contract_version": "6.33.1"
+    }
+  },
+  "timings": {
+    "db_ms": 0,
+    "db_queries": 0,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

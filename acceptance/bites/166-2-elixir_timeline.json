@@ -1,0 +1,410 @@
+{
+  "feedback": 166,
+  "contract_version": "6.33.1",
+  "captured_at": "2026-09-23T21:52:27.893Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-07T00:00:00Z",
+      "to": "2026-09-14T00:00:00Z",
+      "mark_read": false,
+      "kinds": [
+        "collection_level_step",
+        "best_trophies_band",
+        "badge_earned",
+        "card_unlocked"
+      ]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-07T00:00:00.000Z",
+        "to": "2026-09-14T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ],
+        "season_age_days": 35
+      },
+      "mark_read": false,
+      "kinds": [
+        "collection_level_step",
+        "best_trophies_band",
+        "badge_earned",
+        "card_unlocked"
+      ],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-07T00:00:00.000Z",
+      "to": "2026-09-14T00:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-07T00:00:00.000Z",
+          "to": "2026-09-14T00:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 3205 battles in 803 sessions by 47 of 47 members since Sep 7; joined: Brotherinpants, ㅤᴀɴᴅᴇʀㅤ:), VVSBUDGET; left: pax, Ditaka, Th15_Guy, ㅤᴀɴᴅᴇʀㅤ:); roles: pax elder→member, Th15_Guy elder→member; roster 48→47; war day 4 (0 fame, place 1 of 5): 47 untouched, 0 partial, 0 finished of 47; quiet past 5d: sniperhendo (6d); back: pokemon after 10d, round hamster after 7d; most battles: Aaqib Javed 442, Vijay 305, L-Drxgo⚡ 196; standout sessions: NOBITA 10W-34L -34, L-Drxgo⚡ 24W-24L, Aaqib Javed 23W-18L; donations this week 8,977, led by Aaqib Javed (915).",
+        "activity": {
+          "battles": 3205,
+          "members_active": 47,
+          "members_total": 47,
+          "sessions": 803,
+          "by_mode": {
+            "ladder": 855,
+            "casual": 51,
+            "event": 1659,
+            "war": 232,
+            "ranked": 407,
+            "other": 1
+          },
+          "late_captures": 0,
+          "basis": "recorded"
+        },
+        "roster": {
+          "joined": {
+            "items": [
+              {
+                "tag": "#RRU9PGJQ9",
+                "name": "Brotherinpants",
+                "role": "member",
+                "at": "2026-09-09T02:47:43.000Z"
+              },
+              {
+                "tag": "#LCUVPUYCY",
+                "name": "ㅤᴀɴᴅᴇʀㅤ:)",
+                "role": "member",
+                "at": "2026-09-12T13:37:58.000Z"
+              },
+              {
+                "tag": "#20CLVPLG8R",
+                "name": "VVSBUDGET",
+                "role": "member",
+                "at": "2026-09-12T13:37:58.000Z"
+              }
+            ],
+            "more": 0
+          },
+          "left": {
+            "items": [
+              {
+                "tag": "#UCP028JQ8",
+                "name": "pax",
+                "role": "member",
+                "at": "2026-09-11T01:37:44.000Z",
+                "tenure_days": 7
+              },
+              {
+                "tag": "#VGJJLC9PR",
+                "name": "Ditaka",
+                "role": "member",
+                "at": "2026-09-11T01:37:44.000Z",
+                "tenure_days": 7
+              },
+              {
+                "tag": "#QLGYYG0Q",
+                "name": "Th15_Guy",
+                "role": "member",
+                "at": "2026-09-11T01:37:44.000Z",
+                "tenure_days": 7
+              },
+              {
+                "tag": "#LCUVPUYCY",
+                "name": "ㅤᴀɴᴅᴇʀㅤ:)",
+                "role": "member",
+                "at": "2026-09-12T16:18:13.000Z",
+                "tenure_days": 0
+              }
+            ],
+            "more": 0
+          },
+          "role_changes": {
+            "items": [
+              {
+                "tag": "#UCP028JQ8",
+                "name": "pax",
+                "from": "elder",
+                "to": "member",
+                "direction": "demoted",
+                "at": "2026-09-07T13:27:38.000Z"
+              },
+              {
+                "tag": "#QLGYYG0Q",
+                "name": "Th15_Guy",
+                "from": "elder",
+                "to": "member",
+                "direction": "demoted",
+                "at": "2026-09-07T13:27:38.000Z"
+              }
+            ],
+            "more": 0
+          },
+          "bounced": 1,
+          "size": {
+            "from": 48,
+            "to": 47
+          }
+        },
+        "war": {
+          "season_id": 136,
+          "week": 3,
+          "is_colosseum": false,
+          "day_kind": "war",
+          "war_day": 4,
+          "fame": 0,
+          "place_of_five": 1,
+          "race_finished_at": null,
+          "decks": {
+            "as_of": "2026-09-14T00:00:00.000Z",
+            "untouched": 47,
+            "partial": 0,
+            "finished": 0,
+            "participants": 47
+          },
+          "resolved": []
+        },
+        "presence": {
+          "quiet_crossed": {
+            "items": [
+              {
+                "tag": "#YC8LLR8Q2",
+                "name": "sniperhendo",
+                "role": "member",
+                "days_quiet": 6,
+                "days_since_poll": null,
+                "rung": 5
+              }
+            ],
+            "more": 0
+          },
+          "returned": {
+            "items": [
+              {
+                "tag": "#V0CRYP2GG",
+                "name": "pokemon",
+                "after_days": 10
+              },
+              {
+                "tag": "#VR0QRP2PG",
+                "name": "round hamster",
+                "after_days": 7
+              }
+            ],
+            "more": 0
+          },
+          "never_recorded": 1,
+          "rungs_days": [5, 10, 20]
+        },
+        "standouts": {
+          "most_battles": [
+            {
+              "tag": "#2G2RPVPP",
+              "name": "Aaqib Javed",
+              "battles": 442
+            },
+            {
+              "tag": "#C920YGLC2",
+              "name": "Vijay",
+              "battles": 305
+            },
+            {
+              "tag": "#2CY2RJL9G",
+              "name": "L-Drxgo⚡",
+              "battles": 196
+            },
+            {
+              "tag": "#20GPQPC9RV",
+              "name": "bonus",
+              "battles": 191
+            },
+            {
+              "tag": "#VGC22YGP",
+              "name": "MONICA",
+              "battles": 150
+            }
+          ],
+          "new_bests": {
+            "items": [],
+            "more": 0
+          },
+          "arena_promotions": {
+            "items": [],
+            "more": 0
+          },
+          "ranked_promotions": {
+            "items": [],
+            "more": 0
+          },
+          "collection_levels": {
+            "items": [],
+            "more": 0
+          },
+          "badges": [],
+          "sessions": {
+            "items": [
+              {
+                "tag": "#JRVV9VC0C",
+                "name": "NOBITA",
+                "player_tag": "#JRVV9VC0C",
+                "started_at": "2026-09-07T19:16:29.000Z",
+                "ended_at": "2026-09-07T22:52:48.000Z",
+                "battles": 44,
+                "won": 10,
+                "lost": 34,
+                "drawn": 0,
+                "by_mode": {
+                  "ladder": 7,
+                  "event": 37
+                },
+                "trophy_net": -34,
+                "won_in_a_row": 1,
+                "open": false,
+                "crossed": ["battles>=20", "battles>=40"]
+              },
+              {
+                "tag": "#2CY2RJL9G",
+                "name": "L-Drxgo⚡",
+                "player_tag": "#2CY2RJL9G",
+                "started_at": "2026-09-12T18:12:08.000Z",
+                "ended_at": "2026-09-12T22:07:11.000Z",
+                "battles": 48,
+                "won": 24,
+                "lost": 24,
+                "drawn": 0,
+                "by_mode": {
+                  "event": 24,
+                  "ranked": 24
+                },
+                "trophy_net": 0,
+                "won_in_a_row": 3,
+                "open": false,
+                "crossed": ["battles>=20", "battles>=40"]
+              },
+              {
+                "tag": "#2G2RPVPP",
+                "name": "Aaqib Javed",
+                "player_tag": "#2G2RPVPP",
+                "started_at": "2026-09-09T12:00:37.000Z",
+                "ended_at": "2026-09-09T15:21:05.000Z",
+                "battles": 41,
+                "won": 23,
+                "lost": 18,
+                "drawn": 0,
+                "by_mode": {
+                  "event": 41
+                },
+                "trophy_net": 0,
+                "won_in_a_row": 3,
+                "open": false,
+                "crossed": ["battles>=20", "battles>=40"]
+              },
+              {
+                "tag": "#2G2RPVPP",
+                "name": "Aaqib Javed",
+                "player_tag": "#2G2RPVPP",
+                "started_at": "2026-09-12T11:55:11.000Z",
+                "ended_at": "2026-09-12T15:00:38.000Z",
+                "battles": 37,
+                "won": 28,
+                "lost": 9,
+                "drawn": 0,
+                "by_mode": {
+                  "event": 37
+                },
+                "trophy_net": 0,
+                "won_in_a_row": 12,
+                "open": false,
+                "crossed": [
+                  "won_in_a_row>=5",
+                  "won_in_a_row>=10",
+                  "battles>=20"
+                ]
+              },
+              {
+                "tag": "#8U2P0JPR",
+                "name": "Fullboat",
+                "player_tag": "#8U2P0JPR",
+                "started_at": "2026-09-06T21:59:09.000Z",
+                "ended_at": "2026-09-06T23:03:03.000Z",
+                "battles": 15,
+                "won": 14,
+                "lost": 1,
+                "drawn": 0,
+                "by_mode": {
+                  "ranked": 15
+                },
+                "trophy_net": 0,
+                "won_in_a_row": 13,
+                "open": false,
+                "crossed": ["won_in_a_row>=5", "won_in_a_row>=10"]
+              }
+            ],
+            "more": 47
+          },
+          "session_rungs": {
+            "won_in_a_row": [5, 10, 20],
+            "trophy_net": [150, 300, 500],
+            "battles": [20, 40]
+          }
+        },
+        "donations": {
+          "week_total": 8977,
+          "members_counted": 46,
+          "leader": {
+            "tag": "#2G2RPVPP",
+            "name": "Aaqib Javed",
+            "given": 915
+          },
+          "as_of": "2026-09-14T00:00:00.000Z"
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-14T00:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "Window spans S135 (2026-08) and S136 (2026-09); the season rolls on the first Monday at 10:00Z and applied.window.crosses says where, so read either side as its own season.",
+      "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "6.33.1"
+    }
+  },
+  "timings": {
+    "db_ms": 581,
+    "db_queries": 23,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

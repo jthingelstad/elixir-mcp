@@ -1,0 +1,232 @@
+{
+  "feedback": 164,
+  "contract_version": "6.33.1",
+  "captured_at": "2026-09-23T21:56:38.650Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-14T00:00:00.000Z",
+        "to": "2026-09-23T21:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mark_read": false,
+      "kinds": ["session_standout"],
+      "verbosity": "compact"
+    },
+    "window": {
+      "from": "2026-09-14T00:00:00.000Z",
+      "to": "2026-09-23T21:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T16:09:28.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#VGC22YGP",
+          "name": "MONICA",
+          "started_at": "2026-09-15T15:44:19.000Z",
+          "ended_at": "2026-09-15T16:58:43.000Z",
+          "battles": 19,
+          "won": 13,
+          "lost": 6,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 19
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 11,
+          "open": false,
+          "crossed": ["won_in_a_row>=5", "won_in_a_row>=10"],
+          "newly": ["won_in_a_row>=5", "won_in_a_row>=10"]
+        },
+        "observed_at": "2026-09-15T16:09:28.000Z",
+        "text": "Tue 16:09 MONICA played 19 battles in one sitting (13W-6L; 19 ranked, 11 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-18T12:04:58.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JRVV9VC0C",
+          "name": "NOBITA",
+          "started_at": "2026-09-18T11:13:58.000Z",
+          "ended_at": "2026-09-18T12:04:58.000Z",
+          "battles": 10,
+          "won": 8,
+          "lost": 2,
+          "drawn": 0,
+          "by_mode": {
+            "ladder": 10
+          },
+          "trophy_net": 168,
+          "won_in_a_row": 3,
+          "open": false,
+          "crossed": ["trophy_net>=150"],
+          "newly": ["trophy_net>=150"]
+        },
+        "observed_at": "2026-09-18T12:04:58.000Z",
+        "text": "Fri 12:04 NOBITA played 10 battles in one sitting (8W-2L; 10 ladder, +168 trophies)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-20T16:55:56.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "started_at": "2026-09-20T16:36:11.000Z",
+          "ended_at": "2026-09-20T19:09:03.000Z",
+          "battles": 44,
+          "won": 22,
+          "lost": 22,
+          "drawn": 0,
+          "by_mode": {
+            "ladder": 44
+          },
+          "trophy_net": 7,
+          "won_in_a_row": 6,
+          "open": false,
+          "crossed": [
+            "won_in_a_row>=5",
+            "trophy_net>=150",
+            "battles>=20",
+            "battles>=40"
+          ],
+          "newly": [
+            "won_in_a_row>=5",
+            "trophy_net>=150",
+            "battles>=20",
+            "battles>=40"
+          ]
+        },
+        "observed_at": "2026-09-20T16:55:56.000Z",
+        "text": "Sun 16:55 sikander sidhu played 44 battles in one sitting (22W-22L; 44 ladder, +7 trophies, 6 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-21T06:31:30.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "started_at": "2026-09-21T06:03:40.000Z",
+          "ended_at": "2026-09-21T07:29:31.000Z",
+          "battles": 22,
+          "won": 17,
+          "lost": 5,
+          "drawn": 0,
+          "by_mode": {
+            "ladder": 21,
+            "event": 1
+          },
+          "trophy_net": 318,
+          "won_in_a_row": 7,
+          "open": false,
+          "crossed": [
+            "trophy_net>=150",
+            "won_in_a_row>=5",
+            "battles>=20",
+            "trophy_net>=300"
+          ],
+          "newly": [
+            "trophy_net>=150",
+            "won_in_a_row>=5",
+            "battles>=20",
+            "trophy_net>=300"
+          ]
+        },
+        "observed_at": "2026-09-21T06:31:30.000Z",
+        "text": "Mon 06:31 sikander sidhu played 22 battles in one sitting (17W-5L; 21 ladder, 1 event, +318 trophies, 7 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-22T10:20:26.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "started_at": "2026-09-22T09:24:11.000Z",
+          "ended_at": "2026-09-22T12:51:41.000Z",
+          "battles": 55,
+          "won": 10,
+          "lost": 45,
+          "drawn": 0,
+          "by_mode": {
+            "event": 55
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 2,
+          "open": false,
+          "crossed": ["battles>=20", "battles>=40"],
+          "newly": ["battles>=20", "battles>=40"]
+        },
+        "observed_at": "2026-09-22T10:20:26.000Z",
+        "text": "Tue 10:20 sikander sidhu played 55 battles in one sitting (10W-45L; 55 event)."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-14T00:00:00.000Z",
+          "to": "2026-09-23T21:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 3983 battles in 999 sessions by 44 of 47 members since Sep 14; joined: duki suzuki, Gem, alex; left: blackberry, Gem, alex; roles: L-Drxgo⚡ member→elder, Mega Goblin member→elder; week 1 finished in place 1 with 10,000 fame; week 2 finished in place 1 with 10,000 fame; training day; quiet past 10d: Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ (12d), pokemon (11d), VVSBUDGET (10d), alex (10d), Brotherinpants (5d); back: kiruba⚜️ after 10d, Brotherinpants after 7d, sniperhendo after 7d; most battles: Vijay 518, sikander sidhu 453, Aaqib Javed 419; new bests: sikander sidhu 14,000, Ak 11,509, nyje47 9,056 +2; 6 arena promotions (x.x.hari.x.x → Royal Crypt, x.x.hari.x.x → Silent Sanctuary, Ak → Summit of Heroes); ranked: Aaqib Javed → Master 2, Aaqib Javed → Master 2, TDuck → Master 2; standout sessions: sikander sidhu 17W-5L +318 (7 in a row), sikander sidhu 22W-22L +7 (6 in a row), sikander sidhu 10W-45L; badges: bonus 23 (Miner Mastery, Dark Prince Mastery, Sparky Mastery), Mega Goblin 20 (Barbarian Barrel Mastery, Golden Knight Mastery, Battle Ram Mastery), sikander sidhu 13 (Ice Wizard Mastery, 2v2, Royal Hogs Mastery); donations this week 2,899, led by Vijay (300)."
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-23T21:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "6.33.1"
+    }
+  },
+  "timings": {
+    "db_ms": 989,
+    "db_queries": 26,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

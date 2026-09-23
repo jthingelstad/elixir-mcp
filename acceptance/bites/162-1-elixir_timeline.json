@@ -1,0 +1,824 @@
+{
+  "feedback": 162,
+  "contract_version": "6.33.1",
+  "captured_at": "2026-09-23T21:56:04.631Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": [
+        "ranked_promotion",
+        "arena_changed",
+        "best_trophies_band",
+        "career_wins_step",
+        "session_standout"
+      ]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-14T00:00:00.000Z",
+        "to": "2026-09-23T21:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mark_read": false,
+      "kinds": [
+        "ranked_promotion",
+        "arena_changed",
+        "best_trophies_band",
+        "career_wins_step",
+        "session_standout"
+      ],
+      "verbosity": "compact"
+    },
+    "window": {
+      "from": "2026-09-14T00:00:00.000Z",
+      "to": "2026-09-23T21:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T07:22:48.000Z",
+        "observed_at": "2026-09-14T07:22:48.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2G2RPVPP",
+          "name": "Aaqib Javed",
+          "from": 1,
+          "to": 2,
+          "from_name": "Master 1",
+          "to_name": "Master 2"
+        },
+        "text": "Mon 07:22 Aaqib Javed was promoted to Master 2."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T05:07:46.000Z",
+        "observed_at": "2026-09-15T05:07:46.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#PLCCYUQL",
+          "name": "TDuck",
+          "from": 1,
+          "to": 2,
+          "from_name": "Master 1",
+          "to_name": "Master 2"
+        },
+        "text": "Tue 05:07 TDuck was promoted to Master 2."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T14:27:48.000Z",
+        "observed_at": "2026-09-15T14:27:48.000Z",
+        "kind": "arena_changed",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#URPCLR8UQ",
+          "name": "x.x.hari.x.x",
+          "from": 54000013,
+          "to": 54000014,
+          "to_name": "Royal Crypt",
+          "from_name": "Executioner's Kitchen"
+        },
+        "text": "Tue 14:27 x.x.hari.x.x moved to Royal Crypt from Executioner's Kitchen."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T14:27:48.000Z",
+        "observed_at": "2026-09-15T14:27:48.000Z",
+        "kind": "best_trophies_band",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#URPCLR8UQ",
+          "name": "x.x.hari.x.x",
+          "best": 6087
+        },
+        "text": "Tue 14:27 x.x.hari.x.x set a new best of 6,087 trophies."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T16:03:44.000Z",
+        "observed_at": "2026-09-15T20:02:51.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#VGC22YGP",
+          "name": "MONICA",
+          "from": 2,
+          "to": 3,
+          "promoted_by": {
+            "battle_id": "7065b3e823f4b3002115c44f4b3381a088acea812890494e987c638e29484c8f",
+            "battle_time": "2026-09-15T16:03:44.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#2CGJUY2",
+              "name": "jawad",
+              "starting_trophies": null
+            },
+            "crowns": 2,
+            "crowns_against": 1,
+            "trophy_change": 30
+          },
+          "from_name": "Master 2",
+          "to_name": "Master 3"
+        },
+        "text": "Tue 16:03 MONICA was promoted to Master 3, on a 2-1 win over jawad, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T16:09:28.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#VGC22YGP",
+          "name": "MONICA",
+          "started_at": "2026-09-15T15:44:19.000Z",
+          "ended_at": "2026-09-15T16:58:43.000Z",
+          "battles": 19,
+          "won": 13,
+          "lost": 6,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 19
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 11,
+          "open": false,
+          "crossed": ["won_in_a_row>=5", "won_in_a_row>=10"],
+          "newly": ["won_in_a_row>=5", "won_in_a_row>=10"]
+        },
+        "observed_at": "2026-09-15T16:09:28.000Z",
+        "text": "Tue 16:09 MONICA played 19 battles in one sitting (13W-6L; 19 ranked, 11 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T21:21:37.000Z",
+        "observed_at": "2026-09-16T00:57:50.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2G09Q20QC",
+          "name": "Kurd Paraw",
+          "from": 1,
+          "to": 2,
+          "promoted_by": {
+            "battle_id": "68e2aaac0d6a089badeec6f0ccf610b39eb774ba960de1774996087e07b2c3eb",
+            "battle_time": "2026-09-15T21:21:37.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#L02G8LQ0G",
+              "name": "우리",
+              "starting_trophies": null
+            },
+            "crowns": 3,
+            "crowns_against": 0,
+            "trophy_change": 30
+          },
+          "from_name": "Master 1",
+          "to_name": "Master 2"
+        },
+        "text": "Tue 21:21 Kurd Paraw was promoted to Master 2, on a 3-0 win over 우리, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T17:27:48.000Z",
+        "observed_at": "2026-09-16T17:27:48.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "from": 2,
+          "to": 4,
+          "from_name": "Master 2",
+          "to_name": "Champion"
+        },
+        "text": "Wed 17:27 Vijay was promoted to Champion."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T18:29:39.000Z",
+        "observed_at": "2026-09-17T01:17:53.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2CY2RJL9G",
+          "name": "L-Drxgo⚡",
+          "from": 3,
+          "to": 4,
+          "promoted_by": {
+            "battle_id": "257d7a349e5929b27f1d935b0f0c24973d64143e7845e6fce1361d72b7e55525",
+            "battle_time": "2026-09-16T18:29:39.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#9YU0QCYQ",
+              "name": "Mika",
+              "starting_trophies": null
+            },
+            "crowns": 3,
+            "crowns_against": 0,
+            "trophy_change": 30
+          },
+          "from_name": "Master 3",
+          "to_name": "Champion"
+        },
+        "text": "Wed 18:29 L-Drxgo⚡ was promoted to Champion, on a 3-0 win over Mika, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-17T09:35:34.000Z",
+        "observed_at": "2026-09-17T16:17:50.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#VGC22YGP",
+          "name": "MONICA",
+          "from": 3,
+          "to": 4,
+          "promoted_by": {
+            "battle_id": "589df32b925671646d0ae50f916654b761bfc14b1115b8fba3f2904e1df668e9",
+            "battle_time": "2026-09-17T09:35:34.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#VPVP8VCC",
+              "name": "te la quito",
+              "starting_trophies": null
+            },
+            "crowns": 1,
+            "crowns_against": 0,
+            "trophy_change": 30
+          },
+          "from_name": "Master 3",
+          "to_name": "Champion"
+        },
+        "text": "Thu 09:35 MONICA was promoted to Champion, on a 1-0 win over te la quito, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-18T12:04:58.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JRVV9VC0C",
+          "name": "NOBITA",
+          "started_at": "2026-09-18T11:13:58.000Z",
+          "ended_at": "2026-09-18T12:04:58.000Z",
+          "battles": 10,
+          "won": 8,
+          "lost": 2,
+          "drawn": 0,
+          "by_mode": {
+            "ladder": 10
+          },
+          "trophy_net": 168,
+          "won_in_a_row": 3,
+          "open": false,
+          "crossed": ["trophy_net>=150"],
+          "newly": ["trophy_net>=150"]
+        },
+        "observed_at": "2026-09-18T12:04:58.000Z",
+        "text": "Fri 12:04 NOBITA played 10 battles in one sitting (8W-2L; 10 ladder, +168 trophies)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-19T12:07:06.000Z",
+        "observed_at": "2026-09-19T12:17:59.000Z",
+        "kind": "arena_changed",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#URPCLR8UQ",
+          "name": "x.x.hari.x.x",
+          "from": 54000014,
+          "to": 54000015,
+          "to_name": "Silent Sanctuary",
+          "promoted_by": {
+            "battle_id": "55bf80076d99fa6423daca34bd08833caeee0d70f10063d265f3f4c0de0edaa1",
+            "battle_time": "2026-09-19T12:07:06.000Z",
+            "type": "PvP",
+            "opponent": {
+              "player_tag": "#VRLP0CVUG",
+              "name": "Shikamaru55⚡",
+              "starting_trophies": 6500
+            },
+            "crowns": 2,
+            "crowns_against": 1,
+            "trophy_change": 32,
+            "trophies_after": 6503,
+            "arena_floor": 6500
+          },
+          "from_name": "Royal Crypt"
+        },
+        "text": "Sat 12:07 x.x.hari.x.x moved to Silent Sanctuary from Royal Crypt, on a 2-1 win over Shikamaru55⚡ (6,500), +32 to 6,503."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-19T12:07:06.000Z",
+        "observed_at": "2026-09-19T22:47:40.000Z",
+        "kind": "best_trophies_band",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#URPCLR8UQ",
+          "name": "x.x.hari.x.x",
+          "best": 6530,
+          "band": 6500,
+          "crossed_by": {
+            "battle_id": "55bf80076d99fa6423daca34bd08833caeee0d70f10063d265f3f4c0de0edaa1",
+            "battle_time": "2026-09-19T12:07:06.000Z",
+            "type": "PvP",
+            "opponent": {
+              "player_tag": "#VRLP0CVUG",
+              "name": "Shikamaru55⚡",
+              "starting_trophies": 6500
+            },
+            "crowns": 2,
+            "crowns_against": 1,
+            "trophy_change": 32,
+            "trophies_after": 6503
+          }
+        },
+        "text": "Sat 12:07 x.x.hari.x.x set a new best of 6,530 trophies, crossing 6,500, on a 2-1 win over Shikamaru55⚡ (6,500), +32 to 6,503."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-19T16:54:50.000Z",
+        "observed_at": "2026-09-19T18:57:51.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "from": 4,
+          "to": 5,
+          "promoted_by": {
+            "battle_id": "08064ad33b3847c335011d4fe22d08ff6824b8991a47b6a4dc0c67a73b0bb946",
+            "battle_time": "2026-09-19T16:54:50.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#JG0CVGCGU",
+              "name": "bad trip :(",
+              "starting_trophies": null
+            },
+            "crowns": 1,
+            "crowns_against": 0,
+            "trophy_change": 30
+          },
+          "from_name": "Champion",
+          "to_name": "Grand Champion"
+        },
+        "text": "Sat 16:54 Vijay was promoted to Grand Champion, on a 1-0 win over bad trip :(, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-19T18:26:34.000Z",
+        "observed_at": "2026-09-19T18:37:57.000Z",
+        "kind": "arena_changed",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#UCRLVL29U",
+          "name": "Ak",
+          "from": 54000131,
+          "to": 54000132,
+          "to_name": "Summit of Heroes",
+          "promoted_by": {
+            "battle_id": "52bc4b79fa52ce55f7d9caba9c8ccf5dce13a12e9c5a31d6d942a9cd1fc7d2fc",
+            "battle_time": "2026-09-19T18:26:34.000Z",
+            "type": "PvP",
+            "opponent": {
+              "player_tag": "#20820YYCRQ",
+              "name": "aaadiscutie",
+              "starting_trophies": 11473
+            },
+            "crowns": 2,
+            "crowns_against": 0,
+            "trophy_change": 29,
+            "trophies_after": 11509,
+            "arena_floor": 11500
+          },
+          "from_name": "Musketeer Street"
+        },
+        "text": "Sat 18:26 Ak moved to Summit of Heroes from Musketeer Street, on a 2-0 win over aaadiscutie (11,473), +29 to 11,509."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-19T18:52:53.000Z",
+        "observed_at": "2026-09-19T18:52:53.000Z",
+        "kind": "best_trophies_band",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#UCRLVL29U",
+          "name": "Ak",
+          "best": 11509,
+          "band": 11500
+        },
+        "text": "Sat 18:52 Ak set a new best of 11,509 trophies."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-19T19:03:33.000Z",
+        "observed_at": "2026-09-19T19:18:02.000Z",
+        "kind": "arena_changed",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#VC8VY8R29",
+          "name": "nyje47",
+          "from": 54000019,
+          "to": 54000020,
+          "to_name": "Valkalla",
+          "promoted_by": {
+            "battle_id": "7fe937c2f903d4659e8118227b2a0bbfa5b6e0aa26f8ef360cf1f9313f79ab2c",
+            "battle_time": "2026-09-19T19:03:33.000Z",
+            "type": "PvP",
+            "opponent": {
+              "player_tag": "#VRJ8R0QLR",
+              "name": "Drowsy",
+              "starting_trophies": 9000
+            },
+            "crowns": 2,
+            "crowns_against": 1,
+            "trophy_change": 30,
+            "trophies_after": 9023,
+            "arena_floor": 9000
+          },
+          "from_name": "PANCAKES!"
+        },
+        "text": "Sat 19:03 nyje47 moved to Valkalla from PANCAKES!, on a 2-1 win over Drowsy (9,000), +30 to 9,023."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-19T19:03:33.000Z",
+        "observed_at": "2026-09-19T22:12:39.000Z",
+        "kind": "best_trophies_band",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#VC8VY8R29",
+          "name": "nyje47",
+          "best": 9056,
+          "band": 9000,
+          "crossed_by": {
+            "battle_id": "7fe937c2f903d4659e8118227b2a0bbfa5b6e0aa26f8ef360cf1f9313f79ab2c",
+            "battle_time": "2026-09-19T19:03:33.000Z",
+            "type": "PvP",
+            "opponent": {
+              "player_tag": "#VRJ8R0QLR",
+              "name": "Drowsy",
+              "starting_trophies": 9000
+            },
+            "crowns": 2,
+            "crowns_against": 1,
+            "trophy_change": 30,
+            "trophies_after": 9023
+          }
+        },
+        "text": "Sat 19:03 nyje47 set a new best of 9,056 trophies, crossing 9,000, on a 2-1 win over Drowsy (9,000), +30 to 9,023."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-19T20:25:21.000Z",
+        "observed_at": "2026-09-19T22:22:44.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2CY2RJL9G",
+          "name": "L-Drxgo⚡",
+          "from": 4,
+          "to": 5,
+          "promoted_by": {
+            "battle_id": "8fb63ba6c2493c091caf9a7c404897f3f08f8b121ffccd1682733c441f127e4f",
+            "battle_time": "2026-09-19T20:25:21.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#LJUQ9RLUQ",
+              "name": "イキイキした毎日",
+              "starting_trophies": null
+            },
+            "crowns": 3,
+            "crowns_against": 0,
+            "trophy_change": 30
+          },
+          "from_name": "Champion",
+          "to_name": "Grand Champion"
+        },
+        "text": "Sat 20:25 L-Drxgo⚡ was promoted to Grand Champion, on a 3-0 win over イキイキした毎日, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-20T09:49:12.000Z",
+        "observed_at": "2026-09-20T23:13:24.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#P2U0PC2UU",
+          "name": "canavar",
+          "from": 3,
+          "to": 4,
+          "promoted_by": {
+            "battle_id": "0775fc58db893ecfc427f52e3e48c102418b7239fe04a20c649d7076f3d2c47c",
+            "battle_time": "2026-09-20T09:49:12.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#CU8UGVP9R",
+              "name": "juanxv",
+              "starting_trophies": null
+            },
+            "crowns": 1,
+            "crowns_against": 0,
+            "trophy_change": 30
+          },
+          "from_name": "Master 3",
+          "to_name": "Champion"
+        },
+        "text": "Sun 09:49 canavar was promoted to Champion, on a 1-0 win over juanxv, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-20T16:55:56.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "started_at": "2026-09-20T16:36:11.000Z",
+          "ended_at": "2026-09-20T19:09:03.000Z",
+          "battles": 44,
+          "won": 22,
+          "lost": 22,
+          "drawn": 0,
+          "by_mode": {
+            "ladder": 44
+          },
+          "trophy_net": 7,
+          "won_in_a_row": 6,
+          "open": false,
+          "crossed": [
+            "won_in_a_row>=5",
+            "trophy_net>=150",
+            "battles>=20",
+            "battles>=40"
+          ],
+          "newly": [
+            "won_in_a_row>=5",
+            "trophy_net>=150",
+            "battles>=20",
+            "battles>=40"
+          ]
+        },
+        "observed_at": "2026-09-20T16:55:56.000Z",
+        "text": "Sun 16:55 sikander sidhu played 44 battles in one sitting (22W-22L; 44 ladder, +7 trophies, 6 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-21T02:54:23.000Z",
+        "observed_at": "2026-09-21T20:52:44.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#PLCCYUQL",
+          "name": "TDuck",
+          "from": 2,
+          "to": 3,
+          "promoted_by": {
+            "battle_id": "08cb04d849ee1a6f9c15fc4054b5d7843de44b5467cde858a5b25b097fed289b",
+            "battle_time": "2026-09-21T02:54:23.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#VCRGQVQYQ",
+              "name": "Güstävö",
+              "starting_trophies": null
+            },
+            "crowns": 1,
+            "crowns_against": 0,
+            "trophy_change": 30
+          },
+          "from_name": "Master 2",
+          "to_name": "Master 3"
+        },
+        "text": "Mon 02:54 TDuck was promoted to Master 3, on a 1-0 win over Güstävö, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-21T06:31:30.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "started_at": "2026-09-21T06:03:40.000Z",
+          "ended_at": "2026-09-21T07:29:31.000Z",
+          "battles": 22,
+          "won": 17,
+          "lost": 5,
+          "drawn": 0,
+          "by_mode": {
+            "ladder": 21,
+            "event": 1
+          },
+          "trophy_net": 318,
+          "won_in_a_row": 7,
+          "open": false,
+          "crossed": [
+            "trophy_net>=150",
+            "won_in_a_row>=5",
+            "battles>=20",
+            "trophy_net>=300"
+          ],
+          "newly": [
+            "trophy_net>=150",
+            "won_in_a_row>=5",
+            "battles>=20",
+            "trophy_net>=300"
+          ]
+        },
+        "observed_at": "2026-09-21T06:31:30.000Z",
+        "text": "Mon 06:31 sikander sidhu played 22 battles in one sitting (17W-5L; 21 ladder, 1 event, +318 trophies, 7 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-21T07:26:06.000Z",
+        "observed_at": "2026-09-21T07:42:51.000Z",
+        "kind": "best_trophies_band",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "best": 14000,
+          "band": 14000,
+          "crossed_by": {
+            "battle_id": "7c666cdb2e315aef66d9bb1650fdb5d244725136707e8445ddac2a520ba876df",
+            "battle_time": "2026-09-21T07:26:06.000Z",
+            "type": "PvP",
+            "opponent": {
+              "player_tag": "#JRJLGGQ8R",
+              "name": "FC:rodo sx",
+              "starting_trophies": 13993
+            },
+            "crowns": 1,
+            "crowns_against": 0,
+            "trophy_change": 25,
+            "trophies_after": 14000
+          }
+        },
+        "text": "Mon 07:26 sikander sidhu set a new best of 14,000 trophies, crossing 14,000, on a 1-0 win over FC:rodo sx (13,993), +25 to 14,000."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-21T19:50:08.000Z",
+        "observed_at": "2026-09-21T22:42:47.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#RJ9RRQPVU",
+          "name": "OllieTurtle",
+          "from": 4,
+          "to": 5,
+          "promoted_by": {
+            "battle_id": "fc17f0dc6b39d646adccb6854575ef0a91c21076057bd1717a8bc3684e8c6d50",
+            "battle_time": "2026-09-21T19:50:08.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#2RV8V9L2G",
+              "name": "007",
+              "starting_trophies": null
+            },
+            "crowns": 2,
+            "crowns_against": 1,
+            "trophy_change": 30
+          },
+          "from_name": "Champion",
+          "to_name": "Grand Champion"
+        },
+        "text": "Mon 19:50 OllieTurtle was promoted to Grand Champion, on a 2-1 win over 007, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-21T23:33:01.000Z",
+        "observed_at": "2026-09-22T16:37:46.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#9Q9QRCPPU",
+          "name": "dez42",
+          "from": 2,
+          "to": 3,
+          "promoted_by": {
+            "battle_id": "861fa1d3173ca1b6b0e8cff0158d0cb43b1bf061eb49f031384321cc8bfd2180",
+            "battle_time": "2026-09-21T23:33:01.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#RR2JC9U8",
+              "name": "Zagulina",
+              "starting_trophies": null
+            },
+            "crowns": 2,
+            "crowns_against": 1,
+            "trophy_change": 30
+          },
+          "from_name": "Master 2",
+          "to_name": "Master 3"
+        },
+        "text": "Mon 23:33 dez42 was promoted to Master 3, on a 2-1 win over Zagulina, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-22T10:20:26.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "started_at": "2026-09-22T09:24:11.000Z",
+          "ended_at": "2026-09-22T12:51:41.000Z",
+          "battles": 55,
+          "won": 10,
+          "lost": 45,
+          "drawn": 0,
+          "by_mode": {
+            "event": 55
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 2,
+          "open": false,
+          "crossed": ["battles>=20", "battles>=40"],
+          "newly": ["battles>=20", "battles>=40"]
+        },
+        "observed_at": "2026-09-22T10:20:26.000Z",
+        "text": "Tue 10:20 sikander sidhu played 55 battles in one sitting (10W-45L; 55 event)."
+      }
+    ],
+    "timeline_more": 5,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-14T00:00:00.000Z",
+          "to": "2026-09-23T21:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 3983 battles in 999 sessions by 44 of 47 members since Sep 14; joined: duki suzuki, Gem, alex; left: blackberry, Gem, alex; roles: L-Drxgo⚡ member→elder, Mega Goblin member→elder; week 1 finished in place 1 with 10,000 fame; week 2 finished in place 1 with 10,000 fame; training day; quiet past 10d: Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ (12d), pokemon (11d), VVSBUDGET (10d), alex (10d), Brotherinpants (5d); back: kiruba⚜️ after 10d, Brotherinpants after 7d, sniperhendo after 7d; most battles: Vijay 518, sikander sidhu 453, Aaqib Javed 419; new bests: sikander sidhu 14,000, Ak 11,509, nyje47 9,056 +2; 6 arena promotions (x.x.hari.x.x → Royal Crypt, x.x.hari.x.x → Silent Sanctuary, Ak → Summit of Heroes); ranked: Aaqib Javed → Master 2, Aaqib Javed → Master 2, TDuck → Master 2; standout sessions: sikander sidhu 17W-5L +318 (7 in a row), sikander sidhu 22W-22L +7 (6 in a row), sikander sidhu 10W-45L; badges: bonus 23 (Miner Mastery, Dark Prince Mastery, Sparky Mastery), Mega Goblin 20 (Barbarian Barrel Mastery, Golden Knight Mastery, Battle Ram Mastery), sikander sidhu 13 (Ice Wizard Mastery, 2v2, Royal Hogs Mastery); donations this week 2,899, led by Vijay (300)."
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-22T13:05:21.000Z",
+    "has_more": true,
+    "notes": [
+      "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step.",
+      "The item cap cut this window at 2026-09-22T13:05:21.000Z: timeline holds everything before that instant, timeline_more (5) items from it on are not here, and has_more is true. Pass next_cursor as from for the rest."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "6.33.1"
+    }
+  },
+  "timings": {
+    "db_ms": 1031,
+    "db_queries": 26,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "feedback": 166,
+  "contract_version": "6.33.1",
+  "captured_at": "2026-09-23T21:58:04.142Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-18T12:00:00Z",
+      "to": "2026-09-19T12:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-18T12:00:00.000Z",
+        "to": "2026-09-19T12:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 12
+      },
+      "mark_read": false,
+      "sections": ["war"],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-18T12:00:00.000Z",
+      "to": "2026-09-19T12:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-18T12:00:00.000Z",
+          "to": "2026-09-19T12:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 417 battles in 114 sessions by 33 of 46 members since Fri 12:00; war day 3 (0 fame, place 1 of 5): 47 untouched, 0 partial, 0 finished of 47; back: Brotherinpants after 7d; most battles: Aaqib Javed 66, Vijay 52, sikander sidhu 47; standout sessions: NOBITA 8W-2L +168, Ak 11W-8L +94, Aaqib Javed 11W-18L; badges: Vijay 3 (Night Witch Mastery, Night Witch Mastery, Clan War Wins), sikander sidhu 2 (2v2, Giant Skeleton Mastery), bonus 2 (P.E.K.K.A Mastery, Giant Snowball Mastery); donations this week 7,621, led by Vijay (875).",
+        "war": {
+          "season_id": 136,
+          "week": 3,
+          "is_colosseum": false,
+          "day_kind": "war",
+          "war_day": 3,
+          "fame": 0,
+          "place_of_five": 1,
+          "race_finished_at": null,
+          "decks": {
+            "as_of": "2026-09-19T12:00:00.000Z",
+            "untouched": 47,
+            "partial": 0,
+            "finished": 0,
+            "participants": 47
+          },
+          "resolved": []
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-19T12:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "6.33.1"
+    }
+  },
+  "timings": {
+    "db_ms": 319,
+    "db_queries": 23,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

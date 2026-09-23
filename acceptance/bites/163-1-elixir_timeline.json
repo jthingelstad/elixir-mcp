@@ -1,0 +1,656 @@
+{
+  "feedback": 163,
+  "contract_version": "6.33.1",
+  "captured_at": "2026-09-23T21:52:24.023Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "mark_read": false,
+      "kinds": ["quiet_crossed"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-14T00:00:00.000Z",
+        "to": "2026-09-21T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 13
+      },
+      "mark_read": false,
+      "kinds": ["quiet_crossed"],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-14T00:00:00.000Z",
+      "to": "2026-09-21T00:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T02:33:43.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#G2CUUJQ8V",
+          "name": "kiruba⚜️",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": null
+        },
+        "observed_at": "2026-09-16T02:33:43.000Z",
+        "text": "Wed 02:33 kiruba⚜️ passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T13:18:57.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#2P9GRU2Q0",
+          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "role": "elder",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": null
+        },
+        "observed_at": "2026-09-16T13:18:57.000Z",
+        "text": "Wed 13:18 Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-17T16:34:46.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#V0CRYP2GG",
+          "name": "pokemon",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": null
+        },
+        "observed_at": "2026-09-17T16:34:46.000Z",
+        "text": "Thu 16:34 pokemon passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-18T01:49:27.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#20G0JGQLPL",
+          "name": "alex",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": null
+        },
+        "observed_at": "2026-09-18T01:49:27.000Z",
+        "text": "Fri 01:49 alex passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-18T11:28:02.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#20CLVPLG8R",
+          "name": "VVSBUDGET",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": null
+        },
+        "observed_at": "2026-09-18T11:28:02.000Z",
+        "text": "Fri 11:28 VVSBUDGET passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-20T03:37:44.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#20GQUGPRC2",
+          "name": "Gem",
+          "role": "member",
+          "rung": 10,
+          "days_quiet": 10,
+          "days_since_poll": null
+        },
+        "observed_at": "2026-09-20T03:37:44.000Z",
+        "text": "Sun 03:37 Gem passed 10 recorded-quiet days."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-14T00:00:00.000Z",
+          "to": "2026-09-21T00:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 2920 battles in 742 sessions by 42 of 46 members since Sep 14; joined: duki suzuki; left: blackberry, Gem; roles: L-Drxgo⚡ member→elder, Mega Goblin member→elder; roster 47→46; week 1 finished in place 1 with 10,000 fame; war day 4 (0 fame, place 1 of 5): 47 untouched, 0 partial, 0 finished of 47; quiet past 10d: Gem (10d), Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ (9d), kiruba⚜️ (9d), pokemon (8d), VVSBUDGET (7d); back: Brotherinpants after 7d, sniperhendo after 7d; most battles: Vijay 375, Aaqib Javed 373, sikander sidhu 292; new bests: Ak 11,509, nyje47 9,056, x.x.hari.x.x 6,530; 4 arena promotions (x.x.hari.x.x → Royal Crypt, x.x.hari.x.x → Silent Sanctuary, Ak → Summit of Heroes); ranked: Aaqib Javed → Master 2, Aaqib Javed → Master 2, TDuck → Master 2; standout sessions: sikander sidhu 22W-22L +7 (6 in a row), MONICA 13W-6L (11 in a row), NOBITA 8W-2L +168; badges: bonus 21 (Miner Mastery, Dark Prince Mastery, Sparky Mastery), sikander sidhu 7 (Ice Wizard Mastery, 2v2, Royal Hogs Mastery), Mega Goblin 7 (Barbarian Barrel Mastery, Golden Knight Mastery, Battle Ram Mastery); donations this week 10,121, led by Vijay (1256).",
+        "activity": {
+          "battles": 2920,
+          "members_active": 42,
+          "members_total": 46,
+          "sessions": 742,
+          "by_mode": {
+            "casual": 65,
+            "ladder": 809,
+            "war": 265,
+            "event": 1056,
+            "ranked": 725
+          },
+          "late_captures": 39911,
+          "basis": "recorded"
+        },
+        "roster": {
+          "joined": {
+            "items": [
+              {
+                "tag": "#9QQLPJRLV",
+                "name": "duki suzuki",
+                "role": "member",
+                "at": "2026-09-19T16:37:56.000Z"
+              }
+            ],
+            "more": 0
+          },
+          "left": {
+            "items": [
+              {
+                "tag": "#L9CUUJPLJ",
+                "name": "blackberry",
+                "role": "member",
+                "at": "2026-09-17T04:42:55.000Z",
+                "tenure_days": 45
+              },
+              {
+                "tag": "#20GQUGPRC2",
+                "name": "Gem",
+                "role": "member",
+                "at": "2026-09-19T15:38:04.000Z",
+                "tenure_days": 100
+              }
+            ],
+            "more": 0
+          },
+          "role_changes": {
+            "items": [
+              {
+                "tag": "#2CY2RJL9G",
+                "name": "L-Drxgo⚡",
+                "from": "member",
+                "to": "elder",
+                "direction": "promoted",
+                "at": "2026-09-15T02:32:59.000Z"
+              },
+              {
+                "tag": "#229QY8UL9U",
+                "name": "Mega Goblin",
+                "from": "member",
+                "to": "elder",
+                "direction": "promoted",
+                "at": "2026-09-15T02:32:59.000Z"
+              }
+            ],
+            "more": 0
+          },
+          "bounced": 0,
+          "size": {
+            "from": 47,
+            "to": 46
+          }
+        },
+        "war": {
+          "season_id": 136,
+          "week": 3,
+          "is_colosseum": false,
+          "day_kind": "war",
+          "war_day": 4,
+          "fame": 0,
+          "place_of_five": 1,
+          "race_finished_at": null,
+          "decks": {
+            "as_of": "2026-09-21T00:00:00.000Z",
+            "untouched": 47,
+            "partial": 0,
+            "finished": 0,
+            "participants": 47
+          },
+          "resolved": [
+            {
+              "season_id": 136,
+              "week": 1,
+              "is_colosseum": false,
+              "finished_at": "2026-09-14T09:38:05.000Z",
+              "fame": 10000,
+              "rank": 1,
+              "trophy_change": 20
+            }
+          ]
+        },
+        "presence": {
+          "quiet_crossed": {
+            "items": [
+              {
+                "tag": "#20GQUGPRC2",
+                "name": "Gem",
+                "role": "member",
+                "days_quiet": 10,
+                "days_since_poll": null,
+                "rung": 10
+              },
+              {
+                "tag": "#2P9GRU2Q0",
+                "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+                "role": "elder",
+                "days_quiet": 9,
+                "days_since_poll": null,
+                "rung": 5
+              },
+              {
+                "tag": "#G2CUUJQ8V",
+                "name": "kiruba⚜️",
+                "role": "member",
+                "days_quiet": 9,
+                "days_since_poll": null,
+                "rung": 5
+              },
+              {
+                "tag": "#V0CRYP2GG",
+                "name": "pokemon",
+                "role": "member",
+                "days_quiet": 8,
+                "days_since_poll": null,
+                "rung": 5
+              },
+              {
+                "tag": "#20CLVPLG8R",
+                "name": "VVSBUDGET",
+                "role": "member",
+                "days_quiet": 7,
+                "days_since_poll": null,
+                "rung": 5
+              },
+              {
+                "tag": "#20G0JGQLPL",
+                "name": "alex",
+                "role": "member",
+                "days_quiet": 7,
+                "days_since_poll": null,
+                "rung": 5
+              }
+            ],
+            "more": 0
+          },
+          "returned": {
+            "items": [
+              {
+                "tag": "#RRU9PGJQ9",
+                "name": "Brotherinpants",
+                "after_days": 7
+              },
+              {
+                "tag": "#YC8LLR8Q2",
+                "name": "sniperhendo",
+                "after_days": 7
+              }
+            ],
+            "more": 0
+          },
+          "never_recorded": 0,
+          "rungs_days": [5, 10, 20]
+        },
+        "standouts": {
+          "most_battles": [
+            {
+              "tag": "#C920YGLC2",
+              "name": "Vijay",
+              "battles": 375
+            },
+            {
+              "tag": "#2G2RPVPP",
+              "name": "Aaqib Javed",
+              "battles": 373
+            },
+            {
+              "tag": "#JYRQ8U92C",
+              "name": "sikander sidhu",
+              "battles": 292
+            },
+            {
+              "tag": "#20GPQPC9RV",
+              "name": "bonus",
+              "battles": 204
+            },
+            {
+              "tag": "#2CY2RJL9G",
+              "name": "L-Drxgo⚡",
+              "battles": 171
+            }
+          ],
+          "new_bests": {
+            "items": [
+              {
+                "tag": "#UCRLVL29U",
+                "name": "Ak",
+                "best": 11509
+              },
+              {
+                "tag": "#VC8VY8R29",
+                "name": "nyje47",
+                "best": 9056
+              },
+              {
+                "tag": "#URPCLR8UQ",
+                "name": "x.x.hari.x.x",
+                "best": 6530
+              },
+              {
+                "tag": "#URPCLR8UQ",
+                "name": "x.x.hari.x.x",
+                "best": 6087
+              }
+            ],
+            "more": 0
+          },
+          "arena_promotions": {
+            "items": [
+              {
+                "tag": "#URPCLR8UQ",
+                "name": "x.x.hari.x.x",
+                "arena": "Royal Crypt"
+              },
+              {
+                "tag": "#URPCLR8UQ",
+                "name": "x.x.hari.x.x",
+                "arena": "Silent Sanctuary",
+                "over": "Shikamaru55⚡",
+                "score": "2-1"
+              },
+              {
+                "tag": "#UCRLVL29U",
+                "name": "Ak",
+                "arena": "Summit of Heroes",
+                "over": "aaadiscutie",
+                "score": "2-0"
+              },
+              {
+                "tag": "#VC8VY8R29",
+                "name": "nyje47",
+                "arena": "Valkalla",
+                "over": "Drowsy",
+                "score": "2-1"
+              }
+            ],
+            "more": 0
+          },
+          "ranked_promotions": {
+            "items": [
+              {
+                "tag": "#2G2RPVPP",
+                "name": "Aaqib Javed",
+                "league": "Master 2"
+              },
+              {
+                "tag": "#2G2RPVPP",
+                "name": "Aaqib Javed",
+                "league": "Master 2"
+              },
+              {
+                "tag": "#PLCCYUQL",
+                "name": "TDuck",
+                "league": "Master 2"
+              },
+              {
+                "tag": "#PLCCYUQL",
+                "name": "TDuck",
+                "league": "Master 2"
+              },
+              {
+                "tag": "#VGC22YGP",
+                "name": "MONICA",
+                "league": "Master 3",
+                "over": "jawad",
+                "score": "2-1"
+              }
+            ],
+            "more": 7
+          },
+          "collection_levels": {
+            "items": [
+              {
+                "tag": "#JRVV9VC0C",
+                "name": "NOBITA",
+                "level": 1365
+              },
+              {
+                "tag": "#2G2RPVPP",
+                "name": "Aaqib Javed",
+                "level": 2140
+              },
+              {
+                "tag": "#2LRYLQPL",
+                "name": "Andy",
+                "level": 1451
+              },
+              {
+                "tag": "#229QY8UL9U",
+                "name": "Mega Goblin",
+                "level": 1365
+              },
+              {
+                "tag": "#2G2RPVPP",
+                "name": "Aaqib Javed",
+                "level": 2140
+              }
+            ],
+            "more": 24
+          },
+          "badges": [
+            {
+              "tag": "#20GPQPC9RV",
+              "name": "bonus",
+              "count": 21,
+              "names": [
+                "MasteryMiner",
+                "MasteryDarkPrince",
+                "MasteryZapMachine"
+              ]
+            },
+            {
+              "tag": "#JYRQ8U92C",
+              "name": "sikander sidhu",
+              "count": 7,
+              "names": ["MasteryIceWizard", "2v2", "MasteryRoyalHogs"]
+            },
+            {
+              "tag": "#229QY8UL9U",
+              "name": "Mega Goblin",
+              "count": 7,
+              "names": [
+                "MasteryBarbLog",
+                "MasteryGoldenKnight",
+                "MasteryBattleRam"
+              ]
+            },
+            {
+              "tag": "#CV20JCY0V",
+              "name": "BigNorton",
+              "count": 7,
+              "names": ["MasteryMusketeer", "MasteryRage", "MasteryHeal"]
+            },
+            {
+              "tag": "#VC8VY8R29",
+              "name": "nyje47",
+              "count": 6,
+              "names": [
+                "MasteryGoblinGang",
+                "MasteryMinionHorde",
+                "BannerCollection"
+              ]
+            }
+          ],
+          "sessions": {
+            "items": [
+              {
+                "tag": "#JYRQ8U92C",
+                "name": "sikander sidhu",
+                "player_tag": "#JYRQ8U92C",
+                "started_at": "2026-09-20T16:36:11.000Z",
+                "ended_at": "2026-09-20T19:09:03.000Z",
+                "battles": 44,
+                "won": 22,
+                "lost": 22,
+                "drawn": 0,
+                "by_mode": {
+                  "ladder": 44
+                },
+                "trophy_net": 7,
+                "won_in_a_row": 6,
+                "open": false,
+                "crossed": [
+                  "won_in_a_row>=5",
+                  "trophy_net>=150",
+                  "battles>=20",
+                  "battles>=40"
+                ]
+              },
+              {
+                "tag": "#VGC22YGP",
+                "name": "MONICA",
+                "player_tag": "#VGC22YGP",
+                "started_at": "2026-09-15T15:44:19.000Z",
+                "ended_at": "2026-09-15T16:58:43.000Z",
+                "battles": 19,
+                "won": 13,
+                "lost": 6,
+                "drawn": 0,
+                "by_mode": {
+                  "ranked": 19
+                },
+                "trophy_net": 0,
+                "won_in_a_row": 11,
+                "open": false,
+                "crossed": ["won_in_a_row>=5", "won_in_a_row>=10"]
+              },
+              {
+                "tag": "#JRVV9VC0C",
+                "name": "NOBITA",
+                "player_tag": "#JRVV9VC0C",
+                "started_at": "2026-09-18T11:13:58.000Z",
+                "ended_at": "2026-09-18T12:04:58.000Z",
+                "battles": 10,
+                "won": 8,
+                "lost": 2,
+                "drawn": 0,
+                "by_mode": {
+                  "ladder": 10
+                },
+                "trophy_net": 168,
+                "won_in_a_row": 3,
+                "open": false,
+                "crossed": ["trophy_net>=150"]
+              },
+              {
+                "tag": "#URPCLR8UQ",
+                "name": "x.x.hari.x.x",
+                "player_tag": "#URPCLR8UQ",
+                "started_at": "2026-09-15T06:24:35.000Z",
+                "ended_at": "2026-09-15T06:52:20.000Z",
+                "battles": 6,
+                "won": 5,
+                "lost": 1,
+                "drawn": 0,
+                "by_mode": {
+                  "ladder": 6
+                },
+                "trophy_net": 146,
+                "won_in_a_row": 5,
+                "open": false,
+                "crossed": ["won_in_a_row>=5"]
+              },
+              {
+                "tag": "#JYRQ8U92C",
+                "name": "sikander sidhu",
+                "player_tag": "#JYRQ8U92C",
+                "started_at": "2026-09-14T03:36:35.000Z",
+                "ended_at": "2026-09-14T05:01:00.000Z",
+                "battles": 21,
+                "won": 12,
+                "lost": 9,
+                "drawn": 0,
+                "by_mode": {
+                  "ladder": 21
+                },
+                "trophy_net": 98,
+                "won_in_a_row": 4,
+                "open": false,
+                "crossed": ["trophy_net>=150", "battles>=20"]
+              }
+            ],
+            "more": 30
+          },
+          "session_rungs": {
+            "won_in_a_row": [5, 10, 20],
+            "trophy_net": [150, 300, 500],
+            "battles": [20, 40]
+          }
+        },
+        "donations": {
+          "week_total": 10121,
+          "members_counted": 47,
+          "leader": {
+            "tag": "#C920YGLC2",
+            "name": "Vijay",
+            "given": 1256
+          },
+          "as_of": "2026-09-21T00:00:00.000Z"
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-21T00:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "6.33.1"
+    }
+  },
+  "timings": {
+    "db_ms": 1418,
+    "db_queries": 27,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

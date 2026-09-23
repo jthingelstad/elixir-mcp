@@ -38,13 +38,18 @@ Response: `{ window: { from, to }, read_to, timeline: [...], timeline_more,
 entries: [...], quiet: [...], subjects, next_cursor, has_more, notes,
 docs, meta }`.
 
-- `timeline` is oldest first. `next_cursor` is `window.to`; pass it back as
-  `from` to continue.
+- `timeline` is oldest first by `at` (when a moment happened). A window
+  selects items by `observed_at`, when the record learned them, in
+  `(from, to]`. So an item can happen before `from` (it was observed late),
+  and a moment in the window that was observed after `to` is in the next one.
+- `next_cursor` is `window.to`, or, when the 200-item cap cut the window,
+  1 ms before the first left-out item's `observed_at`. Pass it back as `from`
+  to continue: nothing is lost at the cut and nothing repeats (6.34.0).
 - `read_to` is your pointer after this call. With `mark_read: false` it is
   unchanged: that is the dry run. It is `null` until something has been
   marked read on the account; the default window is then the last day.
-- `has_more` is always `false`; `timeline_more` says how many items the cap
-  left out.
+- `has_more` is `true` when the cap cut the window. `timeline_more` says how
+  many items this call's filters would have shown from the cut on.
 - `meta.timeline_pending` on any response counts subjects of yours the
   recorder has admitted something for since the oldest named reader's
   pointer when any reader has marked in the last 30 days (a reader silent
@@ -107,8 +112,10 @@ Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 | `quiet_crossed`, `returned` | player, or a clan's member | a member crossed 5, 10 or 20 recorded-quiet days (never while the silence is ours: `days_since_poll` rides along), or played again after seven or more |
 | `account_*` | your account | feedback answered, recordings started or stopped, tier changes, connections |
 
-Members' moments on a clan's timeline are capped per response; the entry's
-standouts keep the aggregate.
+Every member moment and every `session_standout` is an item; the response's
+200-item cap and `next_cursor` bound them (6.34.0). The clan entry's `war` is
+the calendar's week at the window's end: its fame, place and decks are that
+week's recorded race, and null when the record holds no race for it.
 
 ### The `facts` keys, by kind
 

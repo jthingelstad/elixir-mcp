@@ -207,10 +207,12 @@ test("a clan entry names roster moves from the ledger, war state, presence and s
   assert.equal(e.roster.left.items[0].tenure_days, 1);
   assert.ok(e.activity.battles > 0, "battles played while in the clan");
   assert.equal(e.activity.basis, "recorded");
-  assert.ok(
-    e.war && e.war.season_id === 134,
-    "latest recorded week from the log",
-  );
+  // The war section is the calendar's week at the window's end (#166);
+  // the fixture's race is S134, long closed, so today's week has no race
+  // in the record: no fame, never S134's under today's label.
+  assert.ok(e.war, "a clan entry has a war section");
+  assert.notEqual(e.war.season_id, 134, "not the old week's race");
+  assert.equal(e.war.fame, null);
   assert.ok(e.standouts.most_battles.some((m) => m.tag === OBSERVER));
   assert.ok(
     e.presence.never_recorded > 40,

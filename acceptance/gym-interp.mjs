@@ -15,7 +15,8 @@
  * and literals; a fanned total `list[].field` is summed, 87.1; a decimal
  * compares to 0.005, 96.1), contains
  * (a scalar list holds a value, 85.6), sorted_desc, sorted_asc,
- * notes_match, notes_not_match, every_row_has, unique_by (121.3). An `eq` right-hand side that is a
+ * notes_match, notes_not_match, every_row_has, unique_by (121.3), before and
+ * all_before (instants: 162.1, 162.2). An `eq` right-hand side that is a
  * string with a dot or a bracket is read as a path (82.4 compares two
  * calls); a bare identifier that names a field on the row is the row's
  * field (87.3: `eq scoring_decks decks_used` under for_each), and a
@@ -269,6 +270,37 @@ export function assertOne(spec, scope, root) {
         );
         seen.set(k, i);
       }
+      return;
+    }
+    case "before": {
+      // Two instants, a strictly before b (162.2: a standout happened
+      // before the record observed it).
+      const [a, b] = arg;
+      const va = Date.parse(at(a));
+      const vb = Date.parse(rhs(b));
+      ok(
+        Number.isFinite(va) && Number.isFinite(vb),
+        `before: ${a} or ${b} is not an instant`,
+      );
+      ok(
+        va < vb,
+        `before: ${a} ${show(at(a))} is not before ${b} ${show(rhs(b))}`,
+      );
+      return;
+    }
+    case "all_before": {
+      // Every instant in a list at or before a bound (162.1: every item on
+      // a page was observed no later than next_cursor, which the next page
+      // excludes).
+      const [list, bound] = arg;
+      const values = [].concat(at(list) ?? []);
+      const vb = Date.parse(rhs(bound));
+      ok(Number.isFinite(vb), `all_before: ${bound} is not an instant`);
+      const late = values.filter((v) => !(Date.parse(v) <= vb));
+      ok(
+        late.length === 0,
+        `all_before ${list}: ${late.length} of ${values.length} after ${show(rhs(bound))}`,
+      );
       return;
     }
     case "every_row_has": {

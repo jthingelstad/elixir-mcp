@@ -1,0 +1,220 @@
+{
+  "feedback": 164,
+  "contract_version": "6.33.1",
+  "captured_at": "2026-09-23T21:56:50.364Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-18T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-18T00:00:00.000Z",
+        "to": "2026-09-21T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 13
+      },
+      "mark_read": false,
+      "kinds": ["session_standout"],
+      "verbosity": "compact"
+    },
+    "window": {
+      "from": "2026-09-18T00:00:00.000Z",
+      "to": "2026-09-21T00:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-18T07:23:12.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2G2RPVPP",
+          "name": "Aaqib Javed",
+          "started_at": "2026-09-18T07:04:03.000Z",
+          "ended_at": "2026-09-18T07:38:47.000Z",
+          "battles": 8,
+          "won": 7,
+          "lost": 1,
+          "drawn": 0,
+          "by_mode": {
+            "event": 8
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 7,
+          "open": false,
+          "crossed": ["won_in_a_row>=5"],
+          "newly": ["won_in_a_row>=5"]
+        },
+        "observed_at": "2026-09-18T07:23:12.000Z",
+        "text": "Fri 07:23 Aaqib Javed played 8 battles in one sitting (7W-1L; 8 event, 7 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-18T12:04:58.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JRVV9VC0C",
+          "name": "NOBITA",
+          "started_at": "2026-09-18T11:13:58.000Z",
+          "ended_at": "2026-09-18T12:04:58.000Z",
+          "battles": 10,
+          "won": 8,
+          "lost": 2,
+          "drawn": 0,
+          "by_mode": {
+            "ladder": 10
+          },
+          "trophy_net": 168,
+          "won_in_a_row": 3,
+          "open": false,
+          "crossed": ["trophy_net>=150"],
+          "newly": ["trophy_net>=150"]
+        },
+        "observed_at": "2026-09-18T12:04:58.000Z",
+        "text": "Fri 12:04 NOBITA played 10 battles in one sitting (8W-2L; 10 ladder, +168 trophies)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-18T18:56:19.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#UCRLVL29U",
+          "name": "Ak",
+          "started_at": "2026-09-18T17:56:18.000Z",
+          "ended_at": "2026-09-18T19:05:35.000Z",
+          "battles": 19,
+          "won": 11,
+          "lost": 8,
+          "drawn": 0,
+          "by_mode": {
+            "ladder": 19
+          },
+          "trophy_net": 94,
+          "won_in_a_row": 4,
+          "open": false,
+          "crossed": ["trophy_net>=150"],
+          "newly": ["trophy_net>=150"]
+        },
+        "observed_at": "2026-09-18T18:56:19.000Z",
+        "text": "Fri 18:56 Ak played 19 battles in one sitting (11W-8L; 19 ladder, +94 trophies)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-19T20:20:30.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2CY2RJL9G",
+          "name": "L-Drxgo⚡",
+          "started_at": "2026-09-19T18:01:26.000Z",
+          "ended_at": "2026-09-19T20:55:58.000Z",
+          "battles": 27,
+          "won": 17,
+          "lost": 10,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 27
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 4,
+          "open": false,
+          "crossed": ["battles>=20"],
+          "newly": ["battles>=20"]
+        },
+        "observed_at": "2026-09-19T20:20:30.000Z",
+        "text": "Sat 20:20 L-Drxgo⚡ played 27 battles in one sitting (17W-10L; 27 ranked)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-20T16:55:56.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "started_at": "2026-09-20T16:36:11.000Z",
+          "ended_at": "2026-09-20T19:09:03.000Z",
+          "battles": 44,
+          "won": 22,
+          "lost": 22,
+          "drawn": 0,
+          "by_mode": {
+            "ladder": 44
+          },
+          "trophy_net": 7,
+          "won_in_a_row": 6,
+          "open": false,
+          "crossed": [
+            "won_in_a_row>=5",
+            "trophy_net>=150",
+            "battles>=20",
+            "battles>=40"
+          ],
+          "newly": [
+            "won_in_a_row>=5",
+            "trophy_net>=150",
+            "battles>=20",
+            "battles>=40"
+          ]
+        },
+        "observed_at": "2026-09-20T16:55:56.000Z",
+        "text": "Sun 16:55 sikander sidhu played 44 battles in one sitting (22W-22L; 44 ladder, +7 trophies, 6 wins in a row)."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-18T00:00:00.000Z",
+          "to": "2026-09-21T00:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 1289 battles in 334 sessions by 41 of 46 members since Sep 18; joined: duki suzuki; left: Gem; war day 4 (0 fame, place 1 of 5): 47 untouched, 0 partial, 0 finished of 47; quiet past 10d: Gem (10d), VVSBUDGET (7d), alex (7d); back: Brotherinpants after 7d; most battles: Aaqib Javed 196, Vijay 179, sikander sidhu 136; new bests: Ak 11,509, nyje47 9,056, x.x.hari.x.x 6,530; 3 arena promotions (x.x.hari.x.x → Silent Sanctuary, Ak → Summit of Heroes, nyje47 → Valkalla); ranked: Vijay → Grand Champion, L-Drxgo⚡ → Grand Champion, canavar → Champion; standout sessions: sikander sidhu 22W-22L +7 (6 in a row), NOBITA 8W-2L +168, Ak 11W-8L +94; badges: bonus 12 (Night Witch Mastery, Mighty Miner Mastery, P.E.K.K.A Mastery), Aaqib Javed 5 (Bowler Mastery, Graveyard Mastery, Minion Giant Mastery), I Hate Witch 5 (Banner Collection, Wizard Mastery, Skeleton Dragons Mastery); donations this week 10,121, led by Vijay (1256)."
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-21T00:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "6.33.1"
+    }
+  },
+  "timings": {
+    "db_ms": 344,
+    "db_queries": 27,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

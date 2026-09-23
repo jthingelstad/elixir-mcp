@@ -2031,3 +2031,14 @@ Jamie made three decisions. `/api/v1` is Elixir's public, versioned JSON API bes
 
 #114 and #116 were confirmed fixed. #115 was partly fixed, and its description remainder is folded into #160. #161 is praise. The fix is wording: the tool description, the schema field and a player-collection note. Open, not filed: #116's selection-on-outcome caveat was never shipped, and its effect is not measured.
 
+## 2026-09-23 — Gym sweep, elixir round 2 (6.34.0, feedback #162-#168)
+
+19 regressions were checked. #118, #119, #120 and #123 were partly fixed and reopened as #162, #163 and #167. #168 is praise.
+- **#162:** timeline.mjs cuts on `observed_at` (the selector, `(from, to]`), with next_cursor at cut minus 1 ms. Sessions and standouts carry the record's learned instant (`b.created_at`, now read by playerBattles and clanMemberBattlesQuery). The lag advice quotes the page's longest lag. One edge remains: an item whose stored instant falls strictly inside the millisecond before the cut can be served on both pages. It cannot be lost.
+- **#163:** days_since_poll is `max(api_receipt.fetched_at) <= to` for player_battlelog, on the `(entity_key, fetched_at desc)` index. poll_state holds only the latest read.
+- **#164:** every standout is an item. 164.3, which asserted the counted-cap alternative, is `refuted` with that answer.
+- **#165:** donations read `game_day(to - 1 ms)`'s week.
+- **#166:** war reads the recorded week at or before the calendar's week at `to`. The race facts are null when that week is not recorded. The test that pinned "the latest recorded week" was updated: it had asserted the bug.
+- **#167:** `docs` on elixir_updates, elixir_examples and the elixir_docs index. The participation donations note is corrected, as the Gym noted for the clans run.
+- **Interpreter:** new verbs `before` and `all_before` (the latter inclusive, since the cursor is exclusive).
+

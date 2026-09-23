@@ -1264,6 +1264,7 @@ export const OUTPUT_SCHEMAS = {
   elixir_docs: {
     type: "object",
     properties: {
+      docs: DOCS,
       applied: { type: "object" },
       corpus_built_at: { type: ["string", "null"] },
       fallback: { type: ["boolean", "null"] },
@@ -1312,6 +1313,7 @@ export const OUTPUT_SCHEMAS = {
   elixir_examples: {
     type: "object",
     properties: {
+      docs: DOCS,
       corpus_built_at: { type: ["string", "null"] },
       examples: {
         type: "array",
@@ -1336,6 +1338,7 @@ export const OUTPUT_SCHEMAS = {
   elixir_updates: {
     type: "object",
     properties: {
+      docs: DOCS,
       applied: { type: "object" },
       corpus_built_at: { type: ["string", "null"] },
       entries: {

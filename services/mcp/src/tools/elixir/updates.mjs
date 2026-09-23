@@ -1,6 +1,6 @@
 import { responseMeta } from "@elixir-mcp/contracts";
 import { CORPUS_BUILT_AT, UPDATES } from "@elixir-mcp/docs";
-import { ToolFailure, appliedBlock, notes } from "../shared.mjs";
+import { ToolFailure, appliedBlock, docsRef, notes } from "../shared.mjs";
 
 export const elixir_updates = {
   description:
@@ -32,6 +32,8 @@ export const elixir_updates = {
       total: all.length,
       entries: all.slice(0, limit),
       notes: notes("The tool contract's own history is elixir_changelog."),
+      // Every answer points at a page (Gym #123, #167).
+      docs: docsRef("protocol", "versioning-and-the-cache-buster"),
       corpus_built_at: CORPUS_BUILT_AT,
       meta: responseMeta({ as_of: new Date().toISOString() }),
     };

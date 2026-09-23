@@ -1,0 +1,103 @@
+{
+  "feedback": 162,
+  "contract_version": "6.33.1",
+  "captured_at": "2026-09-23T21:58:40.571Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-23T17:52:36.000Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-23T17:52:36.000Z",
+        "to": "2026-09-23T21:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mark_read": false,
+      "kinds": ["session_standout"],
+      "verbosity": "compact"
+    },
+    "window": {
+      "from": "2026-09-23T17:52:36.000Z",
+      "to": "2026-09-23T21:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T17:52:36.000Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T17:37:51.000Z",
+          "ended_at": "2026-09-23T17:59:01.000Z",
+          "battles": 7,
+          "won": 7,
+          "lost": 0,
+          "drawn": 0,
+          "by_mode": {
+            "casual": 6,
+            "ranked": 1
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 7,
+          "open": false,
+          "crossed": ["won_in_a_row>=5"],
+          "newly": ["won_in_a_row>=5"]
+        },
+        "observed_at": "2026-09-23T17:52:36.000Z",
+        "text": "Wed 17:52 Vijay played 7 battles in one sitting (7W-0L; 6 casual, 1 ranked, 7 wins in a row)."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-23T17:52:36.000Z",
+          "to": "2026-09-23T21:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 33 battles in 9 sessions by 8 of 47 members since Wed 17:52; joined: alex; left: alex; training day; most battles: Vijay 12, Ak 5, MONICA 5; standout sessions: Vijay 7W-0L (7 in a row); donations this week 2,899, led by Vijay (300)."
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-23T21:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "6.33.1"
+    }
+  },
+  "timings": {
+    "db_ms": 232,
+    "db_queries": 22,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

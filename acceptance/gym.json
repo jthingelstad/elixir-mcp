@@ -6532,5 +6532,595 @@
         "count_eq": ["c.members[]", "r.clans"]
       }
     ]
+  },
+  {
+    "id": "162.1",
+    "feedback": 162,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": [
+        "ranked_promotion",
+        "arena_changed",
+        "best_trophies_band",
+        "career_wins_step",
+        "session_standout"
+      ]
+    },
+    "request_id": "3d5d6242-c3f2-4742-9b64-03306ff2b831",
+    "when": {
+      "eq": ["has_more", true]
+    },
+    "assert": [
+      {
+        "all_before": ["timeline[].observed_at", "next_cursor"]
+      }
+    ]
+  },
+  {
+    "id": "162.2",
+    "feedback": 162,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T17:52:36.000Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    },
+    "request_id": "f44406db-a9ea-42ae-a265-de892e3676c4",
+    "for_each": "timeline[]",
+    "assert": [
+      {
+        "before": ["at", "observed_at"]
+      }
+    ]
+  },
+  {
+    "id": "162.3",
+    "feedback": 162,
+    "open_question": "The item at a cap's cut must be recoverable from the served cursor. On 3a5fa4e3-a1a3-4520-863e-62cea66f5a23, next_cursor 2026-09-22T12:02:46.000Z, but the continuation (705f8674-244f-4f9c-9d52-abe6f97fe35e) and from=2026-09-22T12:02:46.000Z (0a249b93-1063-4248-84b7-d66e3d387f5a) both omit Chanco's badge, served with observed_at 2026-09-22T12:02:46.000Z. A literal-args case cannot pin this, because the fix may legitimately move the cursor to a sub-second instant. It needs a case that feeds one call's next_cursor into the next call's from."
+  },
+  {
+    "id": "162.4",
+    "feedback": 162,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-08-24T16:40:30.377Z",
+      "to": "2026-09-23T16:40:30.377Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+    },
+    "request_id": "3a5fa4e3-a1a3-4520-863e-62cea66f5a23",
+    "when": {
+      "eq": ["has_more", true]
+    },
+    "assert": [
+      {
+        "all_before": ["timeline[].observed_at", "next_cursor"]
+      }
+    ]
+  },
+  {
+    "id": "163.1",
+    "feedback": 163,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "mark_read": false,
+      "kinds": ["quiet_crossed"]
+    },
+    "request_id": "c5cb48c3-9c69-4b5c-ac43-ba9ed97d8a69",
+    "for_each": "timeline[]",
+    "assert": [
+      {
+        "neq": ["facts.days_since_poll", null]
+      }
+    ]
+  },
+  {
+    "id": "163.2",
+    "feedback": 163,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-16T00:00:00Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "kinds": ["quiet_crossed", "returned"]
+    },
+    "request_id": "d9c9f66a-b333-4fe3-9f6d-a4306f02db2b",
+    "for_each": "timeline[]",
+    "when": {
+      "eq": ["kind", "quiet_crossed"]
+    },
+    "assert": [
+      {
+        "neq": ["facts.days_since_poll", null]
+      },
+      {
+        "gte": ["facts.days_since_poll", 0]
+      }
+    ]
+  },
+  {
+    "id": "163.3",
+    "feedback": 163,
+    "control": true,
+    "stability": "live",
+    "tool": "elixir_timeline",
+    "args": {
+      "days": 7,
+      "mark_read": false,
+      "kinds": ["quiet_crossed"]
+    },
+    "request_id": "9e858633-1a61-4fa2-90ed-2cd2d106c7ba",
+    "for_each": "timeline[]",
+    "assert": [
+      {
+        "gte": ["facts.days_since_poll", 0]
+      }
+    ]
+  },
+  {
+    "id": "164.1",
+    "feedback": 164,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    },
+    "request_id": "196a2740-1cba-40df-81ac-3b7106c3ce1f",
+    "when": {
+      "eq": ["has_more", false]
+    },
+    "assert": [
+      {
+        "has": "timeline[?at=2026-09-21T07:07:15.000Z]"
+      },
+      {
+        "has": "timeline[?at=2026-09-20T07:35:33.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "164.2",
+    "feedback": 164,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-18T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    },
+    "request_id": "bf54efa0-ebba-41a1-acbc-e2182a5ee86a",
+    "when": {
+      "eq": ["has_more", false]
+    },
+    "assert": [
+      {
+        "has": "timeline[?at=2026-09-20T07:35:33.000Z]"
+      },
+      {
+        "has": "timeline[?at=2026-09-20T14:06:32.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "164.3",
+    "feedback": 164,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    },
+    "request_id": "196a2740-1cba-40df-81ac-3b7106c3ce1f",
+    "when": {
+      "eq": ["has_more", true]
+    },
+    "assert": [
+      {
+        "gt": ["timeline_more", 0]
+      },
+      {
+        "notes_match": "(?i)session_standout|cap"
+      }
+    ],
+    "refuted": "Fixed the other way the Gym proposed: every session_standout is served as an item (6.34.0), so nothing is dropped and there is no per-kind cap to count; the timeline cap and next_cursor bound them like any item. 164.1 and 164.2 pin the fix."
+  },
+  {
+    "id": "164.4",
+    "feedback": 164,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T17:52:36.000Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    },
+    "request_id": "f44406db-a9ea-42ae-a265-de892e3676c4",
+    "assert": [
+      {
+        "has": "timeline[?at=2026-09-23T17:52:36.000Z]"
+      },
+      {
+        "eq": ["timeline_more", 0]
+      },
+      {
+        "eq": ["has_more", false]
+      }
+    ]
+  },
+  {
+    "id": "165.1",
+    "feedback": 165,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "mark_read": false,
+      "sections": ["donations"]
+    },
+    "request_id": "c1298af8-be8e-46b5-8eb9-326c07e6abb2",
+    "assert": [
+      {
+        "gt": ["entries[?kind=clan_activity].donations.members_counted", 0]
+      },
+      {
+        "gt": ["entries[?kind=clan_activity].donations.week_total", 0]
+      }
+    ]
+  },
+  {
+    "id": "165.2",
+    "feedback": 165,
+    "stability": "frozen",
+    "calls": {
+      "w": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "mark_read": false,
+          "sections": ["donations"]
+        }
+      },
+      "p": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T09:59:59Z",
+          "mark_read": false,
+          "sections": ["donations"],
+          "verbosity": "full"
+        }
+      }
+    },
+    "request_id": "c1298af8-be8e-46b5-8eb9-326c07e6abb2",
+    "assert": [
+      {
+        "eq": [
+          "w.entries[?kind=clan_activity].donations.week_total",
+          "p.entries[?kind=clan_activity].donations.week_total"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "165.3",
+    "feedback": 165,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z",
+      "mark_read": false,
+      "sections": ["donations"]
+    },
+    "request_id": "77c30628-4755-4263-957b-7e2dc3d00c2a",
+    "assert": [
+      {
+        "gt": ["entries[?kind=clan_activity].donations.members_counted", 0]
+      }
+    ]
+  },
+  {
+    "id": "165.4",
+    "feedback": 165,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T09:59:59Z",
+      "mark_read": false,
+      "sections": ["donations"],
+      "verbosity": "full"
+    },
+    "request_id": "c48852d0-ebda-472e-b443-86cc69cf5ce6",
+    "assert": [
+      {
+        "gt": ["entries[?kind=clan_activity].donations.members_counted", 0]
+      },
+      {
+        "gt": ["entries[?kind=clan_activity].donations.week_total", 0]
+      }
+    ]
+  },
+  {
+    "id": "166.1",
+    "feedback": 166,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-18T12:00:00Z",
+          "to": "2026-09-19T12:00:00Z",
+          "mark_read": false,
+          "sections": ["war"]
+        }
+      },
+      "g": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-09-19T11:59:59Z"
+        }
+      }
+    },
+    "request_id": "63b7331a-4b71-430a-bf17-4810cbdeea0b",
+    "assert": [
+      {
+        "eq": ["t.entries[?kind=clan_activity].war.week", "g.week"]
+      },
+      {
+        "gt": ["t.entries[?kind=clan_activity].war.fame", 0]
+      }
+    ]
+  },
+  {
+    "id": "166.2",
+    "feedback": 166,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-07T00:00:00Z",
+      "to": "2026-09-14T00:00:00Z",
+      "mark_read": false,
+      "kinds": [
+        "collection_level_step",
+        "best_trophies_band",
+        "badge_earned",
+        "card_unlocked"
+      ]
+    },
+    "request_id": "427c317f-3521-48fb-ac77-1cf9ac446933",
+    "assert": [
+      {
+        "eq": ["entries[?kind=clan_activity].war.week", 1]
+      },
+      {
+        "gte": ["entries[?kind=clan_activity].war.fame", 10000]
+      }
+    ]
+  },
+  {
+    "id": "166.3",
+    "feedback": 166,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "t": {
+        "tool": "elixir_timeline",
+        "args": {
+          "days": 1,
+          "mark_read": false,
+          "sections": ["war"]
+        }
+      },
+      "g": {
+        "tool": "game_clock",
+        "args": {}
+      }
+    },
+    "request_id": "a79b8411-e1fb-4246-ab58-dcee0ab19120",
+    "assert": [
+      {
+        "eq": ["t.entries[?kind=clan_activity].war.week", "g.week"]
+      }
+    ]
+  },
+  {
+    "id": "167.1",
+    "feedback": 167,
+    "stability": "live",
+    "tool": "elixir_updates",
+    "args": {
+      "limit": 5
+    },
+    "request_id": "917dcc52-045e-4f72-a829-70f77a6007b3",
+    "assert": [
+      {
+        "has": "docs"
+      }
+    ]
+  },
+  {
+    "id": "167.2",
+    "feedback": 167,
+    "stability": "live",
+    "tool": "elixir_examples",
+    "args": {},
+    "request_id": "1ad68fd0-3cdd-44df-bc30-f2b47521755e",
+    "assert": [
+      {
+        "has": "docs"
+      }
+    ]
+  },
+  {
+    "id": "167.3",
+    "feedback": 167,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {},
+    "request_id": "7568f396-b859-4a33-a52a-176539ce99cc",
+    "assert": [
+      {
+        "has": "docs"
+      }
+    ]
+  },
+  {
+    "id": "167.4",
+    "feedback": 167,
+    "control": true,
+    "stability": "live",
+    "tool": "elixir_changelog",
+    "args": {
+      "since": "6.23.0"
+    },
+    "request_id": "42651977-7dca-44a9-9efc-5ec5657ff751",
+    "assert": [
+      {
+        "has": "docs"
+      },
+      {
+        "has": "notes"
+      }
+    ]
+  },
+  {
+    "id": "168.1",
+    "feedback": 168,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-21T16:37:10.458Z",
+      "to": "2026-09-22T16:37:10.458Z",
+      "mark_read": false
+    },
+    "request_id": "344f01d9-65c5-4cf2-b757-29f9d5e2556f",
+    "assert": [
+      {
+        "notes_match": "happened before from"
+      },
+      {
+        "every_row_has": ["timeline", "observed_at"]
+      }
+    ]
+  },
+  {
+    "id": "168.2",
+    "feedback": 168,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "mark_read": false,
+      "kinds": ["quiet_crossed"]
+    },
+    "request_id": "c5cb48c3-9c69-4b5c-ac43-ba9ed97d8a69",
+    "for_each": "timeline[]",
+    "assert": [
+      {
+        "eq": ["facts.days_quiet", "facts.rung"]
+      }
+    ]
+  },
+  {
+    "id": "168.3",
+    "feedback": 168,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-07T00:00:00Z",
+      "to": "2026-09-14T00:00:00Z",
+      "mark_read": false,
+      "kinds": [
+        "collection_level_step",
+        "best_trophies_band",
+        "badge_earned",
+        "card_unlocked"
+      ]
+    },
+    "request_id": "427c317f-3521-48fb-ac77-1cf9ac446933",
+    "assert": [
+      {
+        "notes_match": "2026-09-14T04:27Z"
+      }
+    ]
+  },
+  {
+    "id": "168.4",
+    "feedback": 168,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-08-25",
+      "to": "2026-09-21",
+      "mark_read": false,
+      "verbosity": "compact"
+    },
+    "request_id": "fe1e0d02-5e97-4f32-a57c-fe6affed4e06",
+    "assert": [
+      {
+        "notes_match": "Result is \\d+ characters"
+      },
+      {
+        "notes_not_match": "compact' is usually enough"
+      },
+      {
+        "notes_match": "kinds"
+      }
+    ]
+  },
+  {
+    "id": "168.5",
+    "feedback": 168,
+    "control": true,
+    "stability": "live",
+    "tool": "elixir_my_identities",
+    "args": {
+      "verbosity": "compact"
+    },
+    "request_id": "ac2ce5df-8f8f-4371-a8e4-baf0d1bae5b6",
+    "assert": [
+      {
+        "notes_match": "No humans are mapped"
+      },
+      {
+        "notes_match": "one size"
+      }
+    ]
   }
 ]

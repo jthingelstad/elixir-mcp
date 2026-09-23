@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "The timeline pages cleanly and reads past weeks as they were",
+    body: "The Elixir Gym's second run over the timeline. When a long window is split across pages, continuing from where the last one stopped no longer loses a moment at the split or repeats one. Every standout session is listed, not just the first five. And a look back at a past week now shows that week's war and donations, not today's. Contract 6.34.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "The JSON API opens to people",
     body: "Elixir's JSON API at /api/v1, until now for connected platforms, admits people too: sign in with Elixir for the API, and GET /api/v1/me says who you are to Elixir and which players you track. Agents keep using MCP; programs use the JSON API, and a token for one is never accepted by the other. Elixir Clan is moving onto it, the first of the family's apps to read Elixir as a program rather than as an agent. JSON API contract 1.1.0.",
   },

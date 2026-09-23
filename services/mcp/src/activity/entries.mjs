@@ -223,10 +223,18 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
         // learned (the battle that crossed it, for the item's instant).
         crossed: [],
         newly: [],
+        // When the record LEARNED this session (Gym #162): the latest
+        // commit of a battle this window learned, the instant that
+        // selects the session into a window.
+        learnedMs: null,
       };
       sessions.push(cur);
     }
     cur.endMs = t;
+    if (b.created_at && learned(b)) {
+      const c = b.created_at.getTime();
+      if (cur.learnedMs === null || c > cur.learnedMs) cur.learnedMs = c;
+    }
     cur.battles += 1;
     if (b.outcome === "win") {
       cur.won += 1;
@@ -246,7 +254,12 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
         const label = `${key}>=${rung}`;
         if (value >= rung && !cur.crossed.includes(label)) {
           cur.crossed.push(label);
-          if (learned(b)) cur.newly.push({ label, at: t });
+          if (learned(b))
+            cur.newly.push({
+              label,
+              at: t,
+              learnedAt: b.created_at ? b.created_at.getTime() : t,
+            });
         }
       }
     }
@@ -264,11 +277,12 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     open: toMs - s.endMs < SESSION_GAP_MS,
     crossed: s.crossed,
     newly: s.newly,
+    learned_at: s.learnedMs === null ? null : iso(s.learnedMs),
   }));
 }
 
 /** The wire shape of a session: the bookkeeping fields stay here. */
-function sessionFacts({ crossed: _c, newly: _n, ...rest }) {
+function sessionFacts({ crossed: _c, newly: _n, learned_at: _l, ...rest }) {
   return rest;
 }
 
@@ -310,7 +324,7 @@ async function playerLedger(db, tag, fromMs, toMs) {
  */
 async function playerBattles(db, tag, fromMs, toMs) {
   const { rows } = await db.query(
-    `select b.battle_id, b.type, b.event_tag, b.battle_time, bp.outcome, bp.crowns,
+    `select b.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.crowns,
             bp.trophy_change, bp.clan_tag
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
@@ -359,13 +373,15 @@ async function presenceOf(db, tag, played, fromMs, toMs) {
     }
   }
   const { rows: pollRows } = await db.query(
-    // Null when the only poll we know of came after the window's end: a
-    // past window cannot say how long before its end the member was last
-    // read, and a negative day count read as nonsense (Gym #119).
-    `select case when last_admitted_at > ${ts(toMs)} then null
-                 else floor(extract(epoch from (${ts(toMs)} - last_admitted_at)) / 86400)::int end
+    // Null only when no read at or before the window's end exists (Gym
+    // #119: a negative day count read as nonsense). The last battle-log read at or before the window's end, from the
+    // receipts (Gym #163): poll_state holds only the latest read, so a
+    // past window had read null whenever a later poll existed.
+    `select floor(extract(epoch from (${ts(toMs)} - max(r.fetched_at))) / 86400)::int
               as days_since_poll
-       from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
+       from api_receipt r
+      where r.entity_key = $1 and r.endpoint = 'player_battlelog'
+        and r.fetched_at <= ${ts(toMs)}`,
     [tag],
   );
   const daysSincePoll = pollRows[0]?.days_since_poll ?? null;
@@ -698,6 +714,7 @@ export async function buildPlayerEntry(
     items.push({
       ...subject,
       at: s.started_at,
+      observed_at: s.learned_at ?? s.started_at,
       kind: "battle_session",
       section: "battles",
       facts: sessionFacts(s),
@@ -774,7 +791,7 @@ export function clanLearnedQuery({ tag, fromMs, toMs }) {
  *  statement an empty window used to pay for (review Part 6.1). */
 export function clanMemberBattlesQuery({ tag, fromMs, toMs }) {
   return {
-    text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.battle_time, bp.outcome, bp.trophy_change,
+    text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.trophy_change,
                   (b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}) as learned
              from battle_participant bp
              join battle b on b.battle_id = bp.battle_id
@@ -943,17 +960,24 @@ export async function buildClanEntry(
     left.some((l) => l.tag === j.tag),
   ).length;
 
-  // War: the state at `to`.
+  // War: the week the window ENDS in (Gym #166: a past window had
+  // served the current week's race under the past day's label), or the
+  // latest recorded week before it; the period from the calendar.
   let war = null;
+  const p = await periodAt(db, toMs);
   const { rows: wk } = await db.query(
     `select season_id, section_index, is_colosseum, finished_observed_at
        from war_week where clan_tag = $1
+        and ($2::int is null or (season_id, section_index) <= ($2::int, $3::int))
       order by season_id desc, section_index desc limit 1`,
-    [tag],
+    [tag, p?.warSeasonId ?? null, p?.sectionIndex ?? null],
   );
+  const sameWeek =
+    p &&
+    wk[0] &&
+    wk[0].season_id === p.warSeasonId &&
+    wk[0].section_index === p.sectionIndex;
   if (wk[0]) {
-    // The period at the window's end, from the calendar (war_period).
-    const p = await periodAt(db, toMs);
     const { rows: ours } = await db.query(
       `select fame, rank, trophy_change, finish_time from war_week_clan
         where clan_tag = $1 and participant_clan_tag = $1
@@ -966,21 +990,27 @@ export async function buildClanEntry(
           and participant_clan_tag <> $1 and fame > $4`,
       [tag, wk[0].season_id, wk[0].section_index, ours[0]?.fame ?? 0],
     );
+    // The day is the calendar's at the window's end, always; the race's
+    // facts are that week's record, and null when the record holds no
+    // race for it - never another week's under this day's label (#166).
     war = {
-      season_id: wk[0].season_id,
-      week: wk[0].section_index + 1,
-      is_colosseum: wk[0].is_colosseum,
+      season_id: sameWeek || !p ? wk[0].season_id : p.warSeasonId,
+      week: (sameWeek || !p ? wk[0].section_index : p.sectionIndex) + 1,
+      is_colosseum: sameWeek || !p ? wk[0].is_colosseum : null,
       day_kind: null,
       war_day: null,
-      fame: ours[0]?.fame ?? null,
-      place_of_five: standing[0]?.place ?? null,
-      race_finished_at: finishInstant(ours[0]?.finish_time),
+      fame: sameWeek || !p ? (ours[0]?.fame ?? null) : null,
+      place_of_five: sameWeek || !p ? (standing[0]?.place ?? null) : null,
+      race_finished_at:
+        sameWeek || !p ? finishInstant(ours[0]?.finish_time) : null,
       decks: null,
       resolved,
     };
     if (p) {
       war.day_kind = p.kind;
       war.war_day = p.warDay ?? null;
+    }
+    if (p && sameWeek) {
       if (p.warDay) {
         const { rows: decks } = await db.query(
           `with base as (
@@ -1028,10 +1058,10 @@ export async function buildClanEntry(
       `select cm.player_tag, p.name, cm.role,
             (select max(bp.battle_time) from battle_participant bp
               where bp.player_tag = cm.player_tag and bp.battle_time <= ${ts(toMs)}) as last_battle,
-            (select case when ps.last_admitted_at > ${ts(toMs)} then null
-                         else floor(extract(epoch from (${ts(toMs)} - ps.last_admitted_at)) / 86400)::int end
-               from poll_state ps
-              where ps.subject_tag = cm.player_tag and ps.endpoint = 'player_battlelog')
+            (select floor(extract(epoch from (${ts(toMs)} - max(r.fetched_at))) / 86400)::int
+               from api_receipt r
+              where r.entity_key = cm.player_tag and r.endpoint = 'player_battlelog'
+                and r.fetched_at <= ${ts(toMs)})
               as days_since_poll
        from clan_membership cm
        join player p on p.player_tag = cm.player_tag
@@ -1213,7 +1243,10 @@ export async function buildClanEntry(
      latest as (select s.player_tag, max(s.donations)::int as donations
                   from player_snapshot_daily s join m on m.player_tag = s.player_tag
                  where s.observed_at <= ${ts(toMs)}
-                   and s.snapshot_date >= date_trunc('week', game_day(${ts(toMs)}))::date
+                   -- The game week the window ends in, read from its last
+                   -- instant before to: a window ending on the Monday 10:00Z
+                   -- boundary is the week that just closed (Gym #165).
+                   and s.snapshot_date >= date_trunc('week', game_day(${ts(toMs - 1)}))::date
                    and s.snapshot_kind in ('daily', 'pre_reset')
                  group by s.player_tag)
      select coalesce(sum(latest.donations), 0)::int as total,
@@ -1347,11 +1380,14 @@ export async function buildClanEntry(
   memberItems.sort((a, b) => a.at.localeCompare(b.at));
   items.push(...memberItems.slice(0, MEMBER_MOMENTS_CAP));
   // A standout session is an item at the instant of the first rung this
-  // window learned; the cap keeps a busy clan to its five strongest.
-  for (const sess of standoutSessions.slice(0, STANDOUT_CAP))
+  // window learned, observed when the record learned that battle. Every
+  // standout is an item (Gym #164: five were served and the rest dropped
+  // with has_more false); the timeline's own cap and cursor bound them.
+  for (const sess of standoutSessions)
     items.push({
       ...subject,
       at: iso(sess.newly[0].at),
+      observed_at: iso(sess.newly[0].learnedAt),
       kind: "session_standout",
       section: "standouts",
       facts: {

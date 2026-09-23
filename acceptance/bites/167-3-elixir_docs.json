@@ -1,0 +1,394 @@
+{
+  "feedback": 167,
+  "contract_version": "6.33.1",
+  "captured_at": "2026-09-23T21:51:59.327Z",
+  "request": {
+    "tool": "elixir_docs",
+    "arguments": {}
+  },
+  "response": {
+    "pages": [
+      {
+        "slug": "quickstart",
+        "group": "Start here",
+        "title": "Connect a client",
+        "lede": "Connect your MCP client, tell Elixir what to record, and ask it about Clash Royale history. Five minutes, no key to paste.",
+        "url": "https://elixir.poapkings.com/docs/quickstart",
+        "sections": [
+          "1-get-an-account",
+          "2-track-your-player",
+          "3-connect",
+          "4-ask-something",
+          "what-next",
+          "if-something-goes-wrong"
+        ]
+      },
+      {
+        "slug": "about",
+        "group": "Start here",
+        "title": "About Elixir MCP",
+        "lede": "A hub that records Clash Royale history and serves it to agents over MCP.",
+        "url": "https://elixir.poapkings.com/docs/about",
+        "sections": []
+      },
+      {
+        "slug": "recording",
+        "group": "Start here",
+        "title": "Recording and coverage",
+        "lede": "What Elixir captures, how often, and why an answer is never a live scrape.",
+        "url": "https://elixir.poapkings.com/docs/recording",
+        "sections": [
+          "the-games-own-last-seen",
+          "added-means-recorded",
+          "one-recording-many-reasons",
+          "scope-what-is-actually-polled",
+          "relationships-primary-nicknames",
+          "collections",
+          "leaderboards",
+          "how-often-a-subject-is-fetched",
+          "freshness-as-the-envelope-reports-it",
+          "daily-series",
+          "completeness",
+          "participation-by-week",
+          "reading-the-game-live"
+        ]
+      },
+      {
+        "slug": "choosing-a-tool",
+        "group": "Using it",
+        "title": "Choosing a tool",
+        "lede": "The tool reference is exhaustive. This page is the map: question in, tool out.",
+        "url": "https://elixir.poapkings.com/docs/choosing-a-tool",
+        "sections": [
+          "question-shape-to-tool",
+          "four-sequences",
+          "conventions-on-one-screen"
+        ]
+      },
+      {
+        "slug": "protocol",
+        "group": "Using it",
+        "title": "Protocol reference",
+        "lede": "The MCP surface: transport, sessions, errors and versioning.",
+        "url": "https://elixir.poapkings.com/docs/protocol",
+        "sections": [
+          "transport",
+          "authentication",
+          "oauth-2-1",
+          "principals-and-what-each-sees",
+          "initialize",
+          "versioning-and-the-cache-buster",
+          "errors",
+          "the-response-cap",
+          "argument-conventions",
+          "identifiers-the-record-uses",
+          "feedback-and-the-changelog-over-the-wire",
+          "machine-readable-surfaces"
+        ]
+      },
+      {
+        "slug": "responses",
+        "group": "Using it",
+        "title": "Reading a response",
+        "lede": "The shape of what comes back, and how to read the footnotes on a number.",
+        "url": "https://elixir.poapkings.com/docs/responses",
+        "sections": [
+          "the-fields",
+          "knowing-who-you-are-connected-as",
+          "honesty-is-a-design-position",
+          "coverage-and-result-limits",
+          "errors"
+        ]
+      },
+      {
+        "slug": "limits",
+        "group": "Using it",
+        "title": "Limits",
+        "lede": "Calls per hour, calls per day, live fetches, and what a tier changes.",
+        "url": "https://elixir.poapkings.com/docs/limits",
+        "sections": [
+          "windows-and-resets",
+          "the-table",
+          "reading-your-balance",
+          "what-is-deliberately-unlimited",
+          "retention-windows"
+        ]
+      },
+      {
+        "slug": "connections",
+        "group": "Using it",
+        "title": "Users, agents and integrations",
+        "lede": "Clients that act as you: OAuth grants, capabilities and disconnecting.",
+        "url": "https://elixir.poapkings.com/docs/connections",
+        "sections": [
+          "you",
+          "an-agent",
+          "an-integration",
+          "which-do-i-want",
+          "one-connection-at-a-time",
+          "where-things-are-in-the-console",
+          "making-one"
+        ]
+      },
+      {
+        "slug": "agents",
+        "group": "Using it",
+        "title": "Building an agent",
+        "lede": "A runtime that acts for one clan, with its own door, key, identity map and feed.",
+        "url": "https://elixir.poapkings.com/docs/agents",
+        "sections": [
+          "create-one",
+          "connect-it",
+          "what-initialize-tells-it",
+          "knowing-which-human-is-asking",
+          "consuming-the-timeline",
+          "key-lifecycle",
+          "knowing-whether-it-is-working",
+          "feedback-from-an-agent"
+        ]
+      },
+      {
+        "slug": "timeline",
+        "group": "Using it",
+        "title": "The timeline",
+        "lede": "What happened to the players and clans you track, in order, written so a person can read it and an agent can act on it.",
+        "url": "https://elixir.poapkings.com/docs/timeline",
+        "sections": [
+          "elixirtimeline",
+          "who-is-a-subject",
+          "items",
+          "entries",
+          "what-the-timeline-never-does",
+          "a-routine-that-uses-it"
+        ]
+      },
+      {
+        "slug": "email",
+        "group": "Using it",
+        "title": "Email",
+        "lede": "Seven kinds, each a switch, each one click from off. Six are weekly; one arrives when something you did is a first.",
+        "url": "https://elixir.poapkings.com/docs/email",
+        "sections": [
+          "the-week",
+          "milestones-are-firsts",
+          "card-of-the-week-and-how-it-stays-honest",
+          "the-top-100-and-how-it-stays-honest",
+          "turning-one-off",
+          "every-email-on-the-record",
+          "what-the-mail-counts"
+        ]
+      },
+      {
+        "slug": "verify",
+        "group": "Using it",
+        "title": "Verify: proving a player is yours",
+        "lede": "Play one battle with a deck we name, and the claim on your player becomes a fact rather than a promise.",
+        "url": "https://elixir.poapkings.com/docs/verify",
+        "sections": [
+          "the-challenge",
+          "what-is-matched",
+          "why-a-battle-not-a-deck-slot",
+          "what-it-proves-and-does-not",
+          "privacy-and-cost"
+        ]
+      },
+      {
+        "slug": "activity",
+        "group": "Using it",
+        "title": "Battle activity: a year of days",
+        "lede": "Every player you track shows a year of days, drawn from what Elixir recorded, with the days it was not watching marked as exactly that.",
+        "url": "https://elixir.poapkings.com/docs/activity",
+        "sections": [
+          "what-is-drawn",
+          "not-recorded-is-not-zero",
+          "how-it-is-computed",
+          "what-became-of-the-rhythm"
+        ]
+      },
+      {
+        "slug": "battles",
+        "group": "The record",
+        "title": "The battle model",
+        "lede": "One row per battle, both sides of it, and the words the numbers are built from.",
+        "url": "https://elixir.poapkings.com/docs/battles",
+        "sections": [
+          "what-a-battle-record-holds",
+          "mode-groups",
+          "events-are-their-own-group-and-they-do-not-inform-the-meta",
+          "duels-and-boat-battles",
+          "comparisons-and-what-a-battle-proves-about-its-own-length",
+          "the-control-next-to-the-number",
+          "decided-battles-and-denominators",
+          "deck-identity-and-forms",
+          "war-weeks-points-and-fame"
+        ]
+      },
+      {
+        "slug": "cards",
+        "group": "The record",
+        "title": "Cards in the record",
+        "lede": "One card, every place the record holds it, and the one call that gathers them.",
+        "url": "https://elixir.poapkings.com/docs/cards",
+        "sections": [
+          "the-five-places-a-card-lives",
+          "one-card-in-one-call",
+          "which-tool-for-which-card-question",
+          "a-cards-own-page"
+        ]
+      },
+      {
+        "slug": "clocks",
+        "group": "The record",
+        "title": "Time and clocks",
+        "lede": "Computed, observed and played are three different times. Which one a field means, and what day it is in the game.",
+        "url": "https://elixir.poapkings.com/docs/clocks",
+        "sections": [
+          "computed-observed-played",
+          "the-game-day",
+          "the-policy-day",
+          "windows-and-timezones",
+          "seasons"
+        ]
+      },
+      {
+        "slug": "archetypes",
+        "group": "The record",
+        "title": "Deck archetypes",
+        "lede": "Royal Hogs bridge spam, Hog cycle, Log Bait - the names players use, on every deck Elixir serves, and understood when a person says one.",
+        "url": "https://elixir.poapkings.com/docs/archetypes",
+        "sections": [
+          "two-layers-kept-apart",
+          "the-grammar",
+          "where-the-vocabulary-lives-and-who-keeps-it",
+          "resolving-a-name",
+          "who-plays-what",
+          "what-is-not-here"
+        ]
+      },
+      {
+        "slug": "glossary",
+        "group": "The record",
+        "title": "Glossary",
+        "lede": "Sixty-odd words the service uses precisely, so a search for one of them finds the page that uses it.",
+        "url": "https://elixir.poapkings.com/docs/glossary",
+        "sections": [
+          "the-record",
+          "battles-and-numbers",
+          "war-and-the-clock",
+          "cards-and-decks",
+          "principals-and-the-service",
+          "responses"
+        ]
+      },
+      {
+        "slug": "methodology",
+        "group": "The record",
+        "title": "How the numbers are made",
+        "lede": "How derived numbers are computed — meta segments, shrinkage, war participation.",
+        "url": "https://elixir.poapkings.com/docs/methodology",
+        "sections": [
+          "what-the-corpus-actually-is",
+          "deck-and-card-meta-exactly-what-is-counted",
+          "card-levels-described-not-adjusted-for",
+          "rival-intelligence-and-coverage"
+        ]
+      },
+      {
+        "slug": "architecture",
+        "group": "The record",
+        "title": "Architecture",
+        "lede": "Collectors, the door, the job ledger, admission and retention.",
+        "url": "https://elixir.poapkings.com/docs/architecture",
+        "sections": [
+          "the-shape-of-the-system",
+          "collectors-in-depth",
+          "the-timeline",
+          "the-feedback-loop",
+          "the-outbound-relay",
+          "recording-record-once-entitle-many",
+          "scheduling-how-often-a-player-is-fetched-and-why",
+          "access-entitlements-not-permissions",
+          "honesty-machinery",
+          "operations",
+          "the-code-and-the-family"
+        ]
+      },
+      {
+        "slug": "operators",
+        "group": "The record",
+        "title": "Running a collector",
+        "lede": "Volunteer a machine that fetches for the corpus, and what it earns you.",
+        "url": "https://elixir.poapkings.com/docs/operators",
+        "sections": [
+          "what-you-need",
+          "setup",
+          "what-your-collector-can-and-cannot-do",
+          "the-door-precisely",
+          "fair-use-expectations"
+        ]
+      },
+      {
+        "slug": "integrations",
+        "group": "The record",
+        "title": "Integrations",
+        "lede": "First-party services reading the hub with a service key.",
+        "url": "https://elixir.poapkings.com/docs/integrations",
+        "sections": [
+          "provisioning-and-administration",
+          "resources-and-permissions",
+          "the-game-clock-is-policy",
+          "profiles-and-asynchronous-refreshes",
+          "automatic-collection-membership",
+          "limits-and-errors"
+        ]
+      },
+      {
+        "slug": "roles",
+        "group": "Policy",
+        "title": "Roles and quotas",
+        "lede": "What each tier records for you — never what you may read.",
+        "url": "https://elixir.poapkings.com/docs/roles",
+        "sections": [
+          "the-ladder",
+          "three-kinds-of-principal",
+          "tracked-means-recorded",
+          "why-fifty-players-at-every-tier",
+          "why-comprehensive-is-the-scarce-thing",
+          "earn-more-by-running-a-collector",
+          "upgrades",
+          "the-fine-print"
+        ]
+      },
+      {
+        "slug": "privacy",
+        "group": "Policy",
+        "title": "Privacy",
+        "lede": "What is public-postured, what is private, and what is never stored.",
+        "url": "https://elixir.poapkings.com/docs/privacy",
+        "sections": []
+      },
+      {
+        "slug": "terms",
+        "group": "Policy",
+        "title": "Terms",
+        "lede": "The short version: unofficial, best effort, be decent.",
+        "url": "https://elixir.poapkings.com/docs/terms",
+        "sections": []
+      }
+    ],
+    "notes": [
+      "Read one with page, one section with page + section, or search with query. The tool reference is tools/list itself (also at https://elixir.poapkings.com/docs/tools); elixir_changelog says what changed in it."
+    ],
+    "corpus_built_at": "2026-09-23T21:49:08.183Z",
+    "meta": {
+      "contract_version": "6.33.1"
+    }
+  },
+  "timings": {
+    "db_ms": 0,
+    "db_queries": 0,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

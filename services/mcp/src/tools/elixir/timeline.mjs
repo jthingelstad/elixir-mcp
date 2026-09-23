@@ -206,27 +206,31 @@ export const elixir_timeline = {
     const shown = (it) =>
       (!sections || sections.includes(it.section)) &&
       (!kinds || kinds.includes(it.kind));
-    // A cap cut the window (Gym #120): the page stops just before the
-    // first item this call's filters would have shown but the cap left
-    // out, so next_cursor continues exactly there and the pointer moves
-    // only that far. Items at or after the cut are the next page's.
+    // A cap cut the window (Gym #120, #162). A window SELECTS by when the
+    // record observed an item (observed_at, in (from, to]), so the cut is
+    // on that instant too: the page keeps what was observed before the
+    // first item the cap left out, and next_cursor sits 1 ms before it,
+    // so the next page (from exclusive) starts with that very item. Cut
+    // on `at` instead, the item at the cut was lost and back-dated items
+    // were served on both pages.
     const droppedShown = (built.timeline_dropped ?? []).filter(shown);
-    // An item's `at` is its own instant and can fall before from (a
-    // moment observed in this window that happened earlier, Gym #118); a
-    // cut there would hand a cursor reader the same window forever, so
-    // the cut is never at or before from.
+    const observedMs = (it) => Date.parse(it.observed_at ?? it.at);
+    // Never at or before from: a cursor there would hand a reader the
+    // same window forever.
     const cutMs = droppedShown.length
-      ? Math.max(
-          fromMs + 1,
-          Math.min(...droppedShown.map((it) => Date.parse(it.at))),
-        )
+      ? Math.max(fromMs + 2, Math.min(...droppedShown.map(observedMs)))
       : null;
     const all = built.timeline.filter(shown);
     const timeline =
-      cutMs === null ? all : all.filter((it) => Date.parse(it.at) < cutMs);
+      cutMs === null ? all : all.filter((it) => observedMs(it) < cutMs);
     const remaining =
       cutMs === null ? 0 : all.length - timeline.length + droppedShown.length;
-    const endMs = cutMs === null ? toMs : cutMs;
+    const endMs = cutMs === null ? toMs : cutMs - 1;
+    // How late the record learned this page's items, for the widen advice.
+    const lagHours = Math.ceil(
+      Math.max(0, ...timeline.map((it) => observedMs(it) - Date.parse(it.at))) /
+        3_600_000,
+    );
 
     const marking = args.mark_read !== false;
     if (marking && reader) {
@@ -292,10 +296,10 @@ export const elixir_timeline = {
           ? "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step."
           : null,
         timeline.some((it) => Date.parse(it.at) < fromMs)
-          ? `A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): ${timeline.filter((it) => Date.parse(it.at) < fromMs).length} item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For "what happened on a day", widen to by a poll cycle (a few hours) and filter on at.`
+          ? `A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): ${timeline.filter((it) => Date.parse(it.at) < fromMs).length} item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For "what happened on a day", widen to by the record's lag (the longest here is ${lagHours} h, observed_at minus at) and filter on at.`
           : null,
         cutMs !== null
-          ? `The item cap cut this window at ${iso(cutMs)}: timeline holds everything before that instant, timeline_more (${remaining}) items from it on are not here, and has_more is true. Pass next_cursor as from for the rest${marking ? "; the read pointer moved only to the cut" : ""}.`
+          ? `The item cap cut this window at ${iso(cutMs)}, on when the record observed each item (observed_at): timeline holds what was observed before that instant, timeline_more (${remaining}) items observed from it on are not here, and has_more is true. Pass next_cursor (1 ms before the cut) as from for the rest; nothing is lost at the cut${marking ? ", and the read pointer moved only to it" : ""}.`
           : "Pass next_cursor as from to continue from here without moving the pointer.",
       ),
       docs: FEED_DOCS,

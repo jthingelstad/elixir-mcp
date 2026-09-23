@@ -1,6 +1,6 @@
 import { responseMeta } from "@elixir-mcp/contracts";
 import { CORPUS_BUILT_AT, EXAMPLES } from "@elixir-mcp/docs";
-import { ToolFailure, appliedBlock, notes } from "../shared.mjs";
+import { ToolFailure, appliedBlock, docsRef, notes } from "../shared.mjs";
 
 export const elixir_examples = {
   description:
@@ -30,6 +30,7 @@ export const elixir_examples = {
       return {
         ...ex,
         applied: appliedBlock({ example: slug }),
+        docs: docsRef("choosing-a-tool"),
         corpus_built_at: CORPUS_BUILT_AT,
         meta,
       };
@@ -44,6 +45,7 @@ export const elixir_examples = {
         url: e.url,
       })),
       notes: notes("Read one with example: <slug>."),
+      docs: docsRef("choosing-a-tool"),
       corpus_built_at: CORPUS_BUILT_AT,
       meta,
     };
