@@ -1584,3 +1584,84 @@ export async function duelOutcomeRepair(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/** {donation_reset_census: {weeks?: 4}} - when the weekly donation
+ *  counters actually reset, read from the record (2026-09-23, Gym #158).
+ *  Ingest writes a donation_reset player_event whenever a roster read
+ *  shows a member's `donations` lower than the last one, bracketed by
+ *  the two reads (window_start, window_end). One global reset gives
+ *  brackets that share an instant across every clan; a reset at each
+ *  player's local midnight gives brackets that move with the clan's
+ *  location. Read-only; answers counts and minutes, no tags.
+ *
+ *  - by_hour: every drop by UTC weekday and hour of window_end (a clan
+ *    change also drops the counter, which is why the spread is shown).
+ *  - by_location: drops whose bracket ends within Sunday 12:00Z to Monday
+ *    14:00Z, per clan location and week, in minutes from Monday 00:00Z:
+ *    the latest bracket start, the earliest bracket end (a common instant
+ *    exists when max_start <= min_end), and the midpoints of the brackets
+ *    no wider than 90 minutes. */
+export async function donationResetCensus(databaseUrl, spec = {}) {
+  const weeks = Math.min(Math.max(Number(spec.weeks ?? 4), 1), 12);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("set statement_timeout = '60s'");
+    const since = `now() - interval '${weeks} weeks'`;
+    const { rows: byHour } = await db.query(
+      `select extract(isodow from window_end at time zone 'UTC')::int as isodow,
+              extract(hour from window_end at time zone 'UTC')::int as hour_utc,
+              count(*)::int as n
+         from player_event
+        where event_type = 'donation_reset' and window_end > ${since}
+        group by 1, 2 order by 1, 2`,
+    );
+    const { rows: byLocation } = await db.query(
+      `with e as (
+         select pe.player_tag, pe.window_start, pe.window_end,
+                -- the Monday 00:00Z this bracket is about: the Monday on
+                -- or after the bracket end's date, within 14 hours
+                date_trunc('week', (pe.window_end at time zone 'UTC') + interval '12 hours') as monday
+           from player_event pe
+          where pe.event_type = 'donation_reset' and pe.window_end > ${since}),
+       w as (
+         select e.*,
+                extract(epoch from (e.window_start at time zone 'UTC') - e.monday) / 60 as start_min,
+                extract(epoch from (e.window_end at time zone 'UTC') - e.monday) / 60 as end_min
+           from e),
+       placed as (
+         select w.*, p.last_known_clan_tag as clan_tag,
+                (select s.location_id from clan_snapshot_daily s
+                  where s.clan_tag = p.last_known_clan_tag and s.location_id is not null
+                  order by s.day desc limit 1) as location_id
+           from w join player p on p.player_tag = w.player_tag
+          where w.end_min between -720 and 840)
+       select pl.monday::date as monday, pl.location_id,
+              (select b.label from ranking_board b
+                where b.location_key = pl.location_id::text order by b.board limit 1) as location,
+              count(*)::int as drops,
+              count(distinct pl.clan_tag)::int as clans,
+              round(max(pl.start_min))::int as max_start_min,
+              round(min(pl.end_min))::int as min_end_min,
+              round(percentile_cont(0.5) within group (order by pl.end_min))::int as median_end_min,
+              count(*) filter (where pl.end_min - pl.start_min <= 90)::int as tight,
+              round(percentile_cont(0.1) within group (order by (pl.start_min + pl.end_min) / 2)
+                    filter (where pl.end_min - pl.start_min <= 90))::int as tight_mid_p10,
+              round(percentile_cont(0.5) within group (order by (pl.start_min + pl.end_min) / 2)
+                    filter (where pl.end_min - pl.start_min <= 90))::int as tight_mid_p50,
+              round(percentile_cont(0.9) within group (order by (pl.start_min + pl.end_min) / 2)
+                    filter (where pl.end_min - pl.start_min <= 90))::int as tight_mid_p90
+         from placed pl
+        group by 1, 2
+        order by 1 desc, drops desc`,
+    );
+    return {
+      weeks,
+      minutes_are: "from Monday 00:00Z (negative = Sunday UTC)",
+      by_hour: byHour,
+      by_location: byLocation,
+    };
+  } finally {
+    await db.end();
+  }
+}

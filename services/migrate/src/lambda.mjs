@@ -57,6 +57,7 @@ import {
   outcomePairRepair,
   duelOutcomeRepair,
   enumCensus,
+  donationResetCensus,
   captureAudit,
   probe,
   explainParticipation,
@@ -468,6 +469,14 @@ export async function handler(event) {
       event.rollup_mode_group_repair === true
         ? {}
         : event.rollup_mode_group_repair,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.donation_reset_census) {
+    const result = await donationResetCensus(
+      process.env.DATABASE_URL,
+      event.donation_reset_census,
     );
     console.log(JSON.stringify(result));
     return result;
