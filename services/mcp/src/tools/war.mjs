@@ -429,7 +429,7 @@ export const warTools = {
         rivals: rows.map((r) => ({ ...r, ...warTrophyAlias(r) })),
         notes: notes(
           "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
-          "Fame statistics (mean_fame, median_fame, max_fame, zero_fame_races) cover the finished races only, and finished_races is their count: races_observed includes the week in progress, so it is not their denominator. current_race_fame is the week in progress; a rival with no finished race has null fame statistics, not zero.",
+          "Fame statistics (mean_fame, median_fame, max_fame, zero_fame_races) cover the finished races only, and finished_races is their count: races_observed includes the week in progress, so it is not their denominator. current_race_fame is the week in progress; a rival with no finished race has null fame statistics, not zero. mean_fame and median_fame are ROUNDED to whole fame, so recomputing them from the standings can differ by half a point (0 and 4059 give 2030, not 2029.5).",
           rows.some((r) => r.colosseum_races > 0)
             ? "colosseum_races counts the Colosseum weeks among races_observed: a Colosseum week is a period-point contest with no finish line, so its fame pools badly with a regular week's; read the fame statistics beside that count."
             : null,
@@ -1120,7 +1120,15 @@ export const warTools = {
           // A regular week whose boat reached the finish line stopped
           // earning member points; decks_used keeps counting. Null on a
           // Colosseum week (no line) or without a standings capture.
-          finished_early: finished.get(weekKey(w)),
+          // Null while the week is still being fought: it has not
+          // failed to reach the line, it has not had the chance, and a
+          // consumer filtering finished_early === false to find weeks
+          // the clan did not close out would otherwise catch the live
+          // one (the Gym's open question 2, 2026-09-22).
+          finished_early:
+            w.is_latest_recorded && w.finished_observed_at === null
+              ? null
+              : finished.get(weekKey(w)),
           finish_war_day: finishDays.get(weekKey(w)) ?? null,
           trophy_change: w.trophy_change,
         })),
@@ -1159,7 +1167,7 @@ export const warTools = {
                 : focus
                   ? "member_weeks: null war_days_battled means per-day attendance is unknown for that week (unknown, not zero); war_days lists the day indices battled."
                   : "Pass player_tag for one member's week-by-week participation (member_weeks).",
-              "finished_early is true on a regular week whose boat reached the 10,000-fame line, false when it did not, null on a Colosseum week (no finish line) or a week without a standings capture; finish_war_day is the war day whose close carried it over (null when the day-by-day log does not hold the week). Decks used after the finish earn zero points, so decks_used is not the denominator of a points-per-deck rate on a finished week.",
+              "finished_early is true on a regular week whose boat reached the 10,000-fame line, false when it did not, null on a Colosseum week (no finish line), a week without a standings capture, or a week still IN PROGRESS - which has not failed to reach the line, it has not had the chance; finish_war_day is the war day whose close carried it over (null when the day-by-day log does not hold the week). Decks used after the finish earn zero points, so decks_used is not the denominator of a points-per-deck rate on a finished week.",
               focus || hasSeason
                 ? "member_weeks[].decks_used is the week's cumulative count; a duel consumes one deck per round played (two or three), a 1v1 one and a boat battle one, so decks are not battles. scoring_decks is decks_used less the decks played on the war days after the finish (the denominator for a points-per-deck rate; equal to decks_used on an unfinished week; null when the record cannot separate them); it can overstate by a deck where a poll missed a day's last battle."
                 : null,

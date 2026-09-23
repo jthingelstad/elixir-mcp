@@ -589,7 +589,8 @@ export const battlesTools = {
           minimum: 1,
           maximum: 50,
           default: 25,
-          description: "Battles per page; above 25 needs verbosity: 'compact'.",
+          description:
+            "Battles per page; above 25 needs verbosity: 'compact'. A FULL page is large - both sides' decks, tower hitpoints, elixir, the comparison block and a duel's rounds - and around ten battles can reach the 48,000-character result cap on a rich page. The refusal when it does names a limit that fits; compact keeps deck_hash, crowns and the outcome.",
         },
         include_total: {
           type: "boolean",
