@@ -119,7 +119,7 @@ export const war_rivals = {
         rows.some((r) => r.colosseum_races > 0)
           ? "colosseum_races counts the Colosseum weeks among races_observed: a Colosseum week is a period-point contest with no finish line, so its fame pools badly with a regular week's; read the fame statistics beside that count."
           : null,
-        "clan_war_trophies is the clan's WAR trophies from the latest recorded race it was in, going into that race (that race's trophy_change is not included); null only when no recorded race carried it.",
+        "clan_war_trophies is the clan's WAR trophies from the latest recorded race it was in, going into that race (what that race itself won or lost is not included); null only when no recorded race carried it.",
         CLAN_SCORE_DEPRECATION,
         "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) asks for a fresh read (queued if none is in hand).",
       ),

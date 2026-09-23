@@ -13,7 +13,7 @@ import {
 } from "../shared.mjs";
 import {
   CLAN_SCORE_DEPRECATION,
-  WAR_TROPHY_TIMING,
+  warTrophyTiming,
   CLAN_TAG_SCHEMA,
   WAR_DOCS,
   boatDecksNote,
@@ -362,7 +362,9 @@ export const war_history = {
             "points are per-member contributions; fame belongs to the boat (the clan).",
             "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is when the recorder saw it closed.",
             hasSeason ? CLAN_SCORE_DEPRECATION : null,
-            WAR_TROPHY_TIMING,
+            warTrophyTiming(
+              hasSeason ? "clan_war_trophies" : "our_clan_war_trophies",
+            ),
             hasSeason
               ? "standings carries every clan in the week's bracket with clan_war_trophies (its WAR trophies going into the week) and repair_points; finish_time is null for a clan that did not finish (the API marks it with epoch zero, never a time). days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it; each day's standings carry rank (1-based, like every rank here; null while unranked) beside end_of_day_rank (the API's 0-based value, -1 unranked)."
               : null,

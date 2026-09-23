@@ -1971,4 +1971,5 @@ All 5 regressions were confirmed (#38 rankings half, #71-#73, #76). #139 is prai
 - **#140:** WAR_TROPHY_TIMING on war_history, and matching wording on war_current and war_rivals. The race payload's clanScore is the figure going into the race: the Gym found it chained W+change = W+1 on 26 of 26 closed weeks, and clans_timeline agrees. Only the note changes.
 - **#141:** the outputSchemas declare clan_war_trophies (war_current, war_rivals) and our_clan_war_trophies (war_history), and clan_score is a DEPRECATED alias. The false "null before 2026-09-17" clause is gone. 141.2 stays needs_fixture in gym.json, and a unit test in war-tools.test pins the schemas.
 - **#142:** `sectionsInSeason(seasonId)` in war-clock. A missing exact week at or past the season's own count never existed.
+- **6.29.1:** the 6.29.0 gate failed contracts/war_history-seasons and contracts/war_rivals. The timing note named clan_war_trophies where only our_clan_war_trophies is served, and trophy_change on rivals rows. It is now `warTrophyTiming(field)`, scoped to what each response serves.
 

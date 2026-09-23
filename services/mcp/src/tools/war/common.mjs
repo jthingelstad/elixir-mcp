@@ -35,8 +35,8 @@ export const CLAN_SCORE_DEPRECATION =
  *  clan's war trophies as they stood going into the race, and the week's
  *  trophy_change lands only in the next race's figure - 26 of 26 chained
  *  closed weeks in the Gym's check, and clans_timeline agrees. */
-export const WAR_TROPHY_TIMING =
-  "clan_war_trophies is the figure the race payload carried during the week, going into it: the week's own trophy_change is not included, so after a closed week the clan stood at clan_war_trophies + trophy_change, the next week's figure.";
+export const warTrophyTiming = (field = "clan_war_trophies") =>
+  `${field} is the figure the race payload carried during the week, going into it: the week's own trophy_change is not included, so after a closed week the clan stood at ${field} + trophy_change, the next week's figure.`;
 export const WAR_DOCS = docsRef("battles", "war-weeks-points-and-fame");
 
 export const CLAN_TAG_SCHEMA = {
