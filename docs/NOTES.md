@@ -8271,3 +8271,50 @@ current claim about the singular 10:00Z global receipt, the 262-location
 freshness count, global `truncated`, or active ranking-origin recording count;
 those remain the first checks after the credential is renewed. The October 5
 season boundary guard is not yet in scope.
+
+## 2026-09-23 — 6.18.1 and 6.19.0: the Gym's second-pass findings, both shipped
+
+**#89 (6.18.1), mine.** 6.15.0's boat note names `points / scoring_decks`
+as the rate boat decks contaminate and then quoted each member's share
+against `decks_used`. On a week that finished those differ: ryguy67 read
+"1 of 8" where the rate's own denominator makes it 1 of 4, exactly
+double - the same class as #85, one level in. The share is of
+`scoring_decks` now and reads "up to", because `boat_attacks` is the
+WEEK's counter and a boat attack played after the finish is outside
+`scoring_decks` entirely, so the figure is a ceiling on the
+contamination and not a measurement of it. Live: "ryguy67 up to 1 of 4
+scoring decks". The fixture reproduces that exact shape - 8 used, 4 after
+a day-3 finish, one boat attack - so the test fails on the old text.
+
+**#88 (6.19.0), Jamie chose option B.** The war family's `clan_score` is
+WAR TROPHIES. A clan carries two numbers the API both spells as a score:
+`clanScore` (129,512 for #J2RGCRVG) and `clanWarTrophies` (1,200), and a
+race payload reports the second under the first's key. We relayed it
+faithfully and then told readers it was "the same figure a clan's profile
+shows" - that sentence is what invited a cross-family join wrong by two
+orders of magnitude.
+
+Confirmed twice, the second time without the API at all: our own
+`our_clan_score` series runs 980, 1000, 1020, 1040, 1060, 1160 across
+135/0-136/0, rising by exactly each week's `trophy_change`. A clan score
+does not move in trophy steps.
+
+`clan_war_trophies` now rides `war_current.standings[]`,
+`war_history.standings[]` and `war_rivals`, and
+`weeks[].our_clan_war_trophies` rides beside `our_clan_score`. The old
+names are DEPRECATED aliases of the same number, kept so nothing breaks
+today and removed at 7.0.0 - **one break, not two**, bundled with the
+mode and window refusals already queued for that version.
+
+The COLUMN keeps the payload's spelling on purpose: renaming it would
+hide which key it came from. 0154 comments the truth onto it and the
+payload manifest names it the way the war BOARD's entry already did -
+which is the detail worth keeping, because the manifest had already
+disambiguated this exact overload in one place and nobody carried it to
+the other. `cr-agent-api-docs` now records it for any caller.
+
+Test note: the trophy-ladder property is real but NOT run-order stable
+here, because earlier tests in the file rewrite individual weeks. The
+test asserts magnitude instead (a clan score is five or six figures, war
+trophies four), which catches the same regression and does not depend on
+what ran before it.
