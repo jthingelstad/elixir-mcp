@@ -408,9 +408,10 @@ reduce work.
 ## The response cap
 
 A result over **48,000 characters** of compact JSON is not delivered sliced.
-The body is replaced by a `result_too_large` error, "Result exceeds 48000
-characters.", with a hint naming the tool's narrowing arguments and, where
-the tool has it, `verbosity: "compact"` (or, for a tool without any, asking
+The body is replaced by a `result_too_large` error, "Result is N
+characters; the cap is 48000.", with a hint naming the tool's narrowing
+arguments and, where the tool has it and the call was not already compact,
+`verbosity: "compact"` (or, for a tool without any, asking
 you to report the `request_id`). The original `request_id` is preserved and
 `isError` is set. The size of a page depends on what its rows hold (a full
 `battles_query` page carries both sides' decks), so it cannot be predicted

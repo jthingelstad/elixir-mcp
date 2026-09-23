@@ -271,3 +271,11 @@ test("4.0.0: no retired name survives in a declaration, a note, a docs pointer o
       );
   }
 });
+
+test("every tool publishes an outputSchema (6.14.0 said so; Gym #115 found nine without)", () => {
+  const missing = makeRegistry()
+    .declarations()
+    .filter((d) => !d.outputSchema)
+    .map((d) => d.name);
+  assert.deepEqual(missing, []);
+});

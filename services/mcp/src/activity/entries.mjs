@@ -359,7 +359,11 @@ async function presenceOf(db, tag, played, fromMs, toMs) {
     }
   }
   const { rows: pollRows } = await db.query(
-    `select floor(extract(epoch from (${ts(toMs)} - last_admitted_at)) / 86400)::int
+    // Null when the only poll we know of came after the window's end: a
+    // past window cannot say how long before its end the member was last
+    // read, and a negative day count read as nonsense (Gym #119).
+    `select case when last_admitted_at > ${ts(toMs)} then null
+                 else floor(extract(epoch from (${ts(toMs)} - last_admitted_at)) / 86400)::int end
               as days_since_poll
        from poll_state where subject_tag = $1 and endpoint = 'player_battlelog'`,
     [tag],
@@ -429,6 +433,11 @@ function decorate(kind, payload, arenaNames) {
     const { name, ...rest } = payload;
     return { card: name, ...rest };
   }
+  // A step recorded before the step rule (2026-09-18) carries no step:
+  // said as null, so the key is always there and the note explains it
+  // (Gym #121).
+  if (kind === "collection_level_step")
+    return { ...payload, step: payload?.step ?? null };
   if (kind === "arena_changed")
     return {
       ...payload,
@@ -700,6 +709,9 @@ export async function buildPlayerEntry(
     items.push({
       ...subject,
       at: iso(r.occurred_at ?? r.window_end),
+      // When a poll saw it, which is what selects it into a window (Gym
+      // #118); `at` is when it happened.
+      observed_at: iso(r.window_end),
       kind: r.event_type,
       section: sectionOfKind(r.event_type),
       facts: decorate(r.event_type, r.payload, arenaNames),
@@ -727,9 +739,11 @@ export async function buildPlayerEntry(
       at: presence.rungCrossed.at,
       kind: "quiet_crossed",
       section: "presence",
+      // As of the crossing, not the window's end (Gym #119): quiet for
+      // exactly the rung's days at `at`.
       facts: {
         rung: presence.rungCrossed.rung,
-        days_quiet: presence.days_quiet,
+        days_quiet: presence.rungCrossed.rung,
         days_since_poll: presence.days_since_poll,
       },
     });
@@ -1014,7 +1028,8 @@ export async function buildClanEntry(
       `select cm.player_tag, p.name, cm.role,
             (select max(bp.battle_time) from battle_participant bp
               where bp.player_tag = cm.player_tag and bp.battle_time <= ${ts(toMs)}) as last_battle,
-            (select floor(extract(epoch from (${ts(toMs)} - ps.last_admitted_at)) / 86400)::int
+            (select case when ps.last_admitted_at > ${ts(toMs)} then null
+                         else floor(extract(epoch from (${ts(toMs)} - ps.last_admitted_at)) / 86400)::int end
                from poll_state ps
               where ps.subject_tag = cm.player_tag and ps.endpoint = 'player_battlelog')
               as days_since_poll
@@ -1314,6 +1329,7 @@ export async function buildClanEntry(
     .map((m) => ({
       ...subject,
       at: iso(m.occurred_at ?? m.window_end),
+      observed_at: iso(m.window_end),
       kind: m.event_type,
       section: "standouts",
       facts: {
@@ -1322,6 +1338,9 @@ export async function buildClanEntry(
         ...decorate(m.event_type, m.payload, arenaNames),
       },
     }));
+  // Oldest first before the cap, so what is dropped is the newest and a
+  // reader can continue from the first dropped instant (Gym #120).
+  memberItems.sort((a, b) => a.at.localeCompare(b.at));
   items.push(...memberItems.slice(0, MEMBER_MOMENTS_CAP));
   // A standout session is an item at the instant of the first rung this
   // window learned; the cap keeps a busy clan to its five strongest.
@@ -1351,7 +1370,8 @@ export async function buildClanEntry(
           name: q.name,
           role: q.role,
           rung: q.rung,
-          days_quiet: q.days_quiet,
+          // At the crossing, as the player item (Gym #119).
+          days_quiet: q.rung,
           days_since_poll: q.days_since_poll,
         },
       });
@@ -1372,6 +1392,7 @@ export async function buildClanEntry(
     entry,
     items,
     more: Math.max(0, memberItems.length - MEMBER_MOMENTS_CAP),
+    dropped: memberItems.slice(MEMBER_MOMENTS_CAP),
   };
 }
 
@@ -1412,6 +1433,9 @@ export async function buildTimeline(
   const quiet = [];
   let items = [];
   let more = 0;
+  // Every item a cap left out, so the caller can say where a reader must
+  // continue from (Gym #120) and count only what its filters would show.
+  const dropped = [];
   for (const s of subjects) {
     if (s.kind === "clan") {
       const built = await buildClanEntry(db, {
@@ -1425,6 +1449,7 @@ export async function buildTimeline(
       entries.push(built.entry);
       items.push(...built.items);
       more += built.more;
+      dropped.push(...(built.dropped ?? []));
       continue;
     }
     const built = await buildPlayerEntry(db, {
@@ -1457,8 +1482,23 @@ export async function buildTimeline(
   }
   items.push(...(await accountItems(db, accountId, fromMs, toMs)));
   items.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
+  // The same moment written twice (feedback #48, still in the 09-14
+  // ledger rows, Gym #121): identical subject, kind and facts is one
+  // moment, kept at its first instant. Nothing is deleted; the read
+  // serves it once.
+  // Every item says when the record observed it; an item that is not a
+  // polled moment (a battle session, a join) was observed at its instant.
+  for (const it of items) it.observed_at ??= it.at;
+  const seen = new Set();
+  items = items.filter((it) => {
+    const key = `${it.subject_tag}|${it.kind}|${JSON.stringify(it.facts ?? null)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   if (items.length > TIMELINE_CAP) {
     more += items.length - TIMELINE_CAP;
+    dropped.push(...items.slice(TIMELINE_CAP));
     items = items.slice(0, TIMELINE_CAP);
   }
   for (const it of items) it.text = itemText(it, timezone);
@@ -1466,6 +1506,7 @@ export async function buildTimeline(
     window: { from: iso(fromMs), to: iso(toMs) },
     timeline: items,
     timeline_more: more,
+    timeline_dropped: dropped,
     entries,
     quiet,
   };

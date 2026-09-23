@@ -1928,3 +1928,13 @@ The #102 band repair is also done: the 2026-09 rebuild took 230 s and unbanded 2
 - **Load:** the 6.23.0 gate also ran while the #102 band rebuilds were running (16:33-16:40Z). Its timeouts and budget overruns were that load; 6.24.1's run, on a quiet database, had none.
 - **Interpreter:** `count_eq` now resolves a path on its right-hand side, as eq does (117.4).
 - **Collections:** synced_from and the new descriptions are set on the four board collections through `{collection: upsert}`. Gym 110-117 pass live.
+
+## 2026-09-23 — Gym sweep, elixir round 1 (6.25.0, feedback #118-#124)
+
+Regressions: #4, #5, #18, #31 and #47 were confirmed. #48 was NOT fixed for history (duplicate rows in the 09-14 ledger) and is reopened inside #121. #10 was partially fixed (#119). #8 and #16 are retired with elixir_events.
+- **#120, blocks correct answers for pointer readers:** the builders' caps now return the items they drop. The tool filters them by kinds and sections and cuts the page at the first dropped instant, never at or before from (#118 means an item's at can precede from). The read pointer moves to the cut. MEMBER_MOMENTS_CAP now sorts oldest first before slicing.
+- **#118:** observed_at is on every item: the poll window's end for moments, `at` for the rest.
+- **#119:** days_since_poll is null when the latest poll is after the window's end. The item's days_quiet is its rung.
+- **#121:** a dedupe at read time (subject, kind, facts) serves #48's rows once and deletes nothing. `step: null` goes on steps from before the rule, with the ledger-start note.
+- **#122, #123, #115:** the refusal gives its size; notes and docs are served. All 55 tools now have an outputSchema, and a test pins it.
+- **Interpreter:** new verb `unique_by` (121.3).

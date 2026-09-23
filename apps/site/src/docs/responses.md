@@ -213,7 +213,7 @@ construction; use the source observation for what the recorder knows about
 the race and `game_clock` for the policy clock.
 
 An MCP result over 48,000 characters of compact JSON is a structured
-`result_too_large` error ("Result exceeds 48000 characters."), not a cut-off
+`result_too_large` error ("Result is N characters; the cap is 48000."), not a cut-off
 success: the request was fine and the result was not deliverable. It retains
 its request ID, sets `isError`, and names the arguments that narrow the call
 (`verbosity: "compact"` is usually enough). No partial result should be

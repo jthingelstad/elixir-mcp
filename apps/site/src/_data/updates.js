@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "The timeline stops losing items when it is full",
+    body: "The timeline caps a single read so it stays readable, and until now a full read quietly dropped its newest items while telling the reader to carry on from the end of the window. An agent reading on its pointer lost them for good. A capped read now stops just before the first item it left out and says so: has_more is true, next_cursor picks up exactly there, and the read pointer only moves that far. Each item also says when Elixir saw it as well as when it happened, since a poll can notice a promotion hours after the battle. A quiet streak is described as it was at the moment it crossed, not days later. And a week before the moment record began is no longer described as a quiet week. Contract 6.25.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "Board collections say they follow the board",
     body: "The Path of Legends top-100 collections and the top 10 clans are rebuilt from the live leaderboard every day, so their membership changes. More than a third of the global 100 can turn over overnight. They used to call themselves a snapshot. They now say which board they follow, and a meta read over one says it is using today's members. A collection's list is also ordered by Trophy Road trophies, which is not the leaderboard's order, and it now says so. Contract 6.24.0.",
   },

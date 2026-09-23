@@ -216,6 +216,9 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
         "ids",
         "query",
         "min_battles",
+        // elixir_timeline narrows by what it lists (Gym #122).
+        "kinds",
+        "sections",
       ].includes(p),
     );
     // The cap depends on what the rows hold, so a caller cannot size a
@@ -238,8 +241,11 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
               : ""
           }; a limit of ${fits} should fit the same arguments.`
         : "";
+    // Compact is advice only to a call that was not already compact
+    // (Gym #122: a compact call was told compact is usually enough).
+    const wasCompact = invoked?.applied?.verbosity === "compact";
     const hint = narrowing.length
-      ? `Narrow the arguments (${narrowing.join(", ")})${params.includes("verbosity") ? "; verbosity: 'compact' is usually enough" : ""}.${sizing}`
+      ? `Narrow the arguments (${narrowing.join(", ")})${params.includes("verbosity") && !wasCompact ? "; verbosity: 'compact' is usually enough" : ""}.${sizing}`
       : params.length
         ? `Narrow the arguments (${params.join(", ")}).${sizing}`
         : "This tool has no narrowing arguments. Report this request_id with elixir_send_feedback.";
@@ -249,7 +255,7 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
       error: {
         code: "result_too_large",
         class: "input",
-        message: `Result exceeds ${MCP_RESULT_MAX_CHARS} characters.`,
+        message: `Result is ${text.length} characters; the cap is ${MCP_RESULT_MAX_CHARS}.`,
         hint,
       },
       meta: responseMeta({

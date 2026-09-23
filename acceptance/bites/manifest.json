@@ -393,5 +393,77 @@
     "case": "gym/116.3",
     "captures": ["116-battles_meta_decks-collection.json"],
     "expect": "notes_match"
+  },
+  {
+    "feedback": 118,
+    "contract": "6.23.0",
+    "why": "the Gym's block 118.1: moments selected by poll time and dated at the battle, with no observed_at",
+    "case": "gym/118.1",
+    "captures": ["118-elixir_timeline-observed.json"],
+    "expect": "observed_at"
+  },
+  {
+    "feedback": 119,
+    "contract": "6.23.0",
+    "why": "the Gym's block 119.1: quiet_crossed facts measured at the window's end; days_since_poll negative",
+    "case": "gym/119.1",
+    "captures": ["119-elixir_timeline-quiet.json"],
+    "expect": "days_since_poll"
+  },
+  {
+    "feedback": 120,
+    "contract": "6.23.0",
+    "why": "the Gym's block 120.1: the cap dropped the newest items and next_cursor pointed past them",
+    "case": "gym/120.1",
+    "captures": ["120-elixir_timeline-cap.json"],
+    "expect": "has_more"
+  },
+  {
+    "feedback": 121,
+    "contract": "6.23.0",
+    "why": "the Gym's block 121.1: a window before the moment ledger began read as a quiet week",
+    "case": "gym/121.1",
+    "captures": ["121-elixir_timeline-ledger-start.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 121,
+    "contract": "6.23.0",
+    "why": "the Gym's block 121.2: collection_level_step rows from before the step rule served without step",
+    "case": "gym/121.2",
+    "captures": ["121-elixir_timeline-steps.json"],
+    "expect": "facts\\.step"
+  },
+  {
+    "feedback": 121,
+    "contract": "6.23.0",
+    "why": "the Gym's block 121.3: the #48 duplicate moments still served",
+    "case": "gym/121.3",
+    "captures": ["121-elixir_timeline-duplicates.json"],
+    "expect": "unique_by"
+  },
+  {
+    "feedback": 122,
+    "contract": "6.23.0",
+    "why": "the Gym's block 122.1: a compact call told compact is usually enough, with no size",
+    "case": "gym/122.1",
+    "captures": ["122-elixir_timeline-too-large.json"],
+    "expect": "notes_match"
+  },
+  {
+    "feedback": 123,
+    "contract": "6.23.0",
+    "why": "the Gym's block 123.1: no notes, so the one-size sentence never rode",
+    "case": "gym/123.1",
+    "captures": ["123-elixir_my_identities.json"],
+    "expect": "has notes"
+  },
+  {
+    "feedback": 123,
+    "contract": "6.23.0",
+    "why": "the Gym's block 123.2: a docs section read with no notes",
+    "case": "gym/123.2",
+    "captures": ["123-elixir_docs-section.json"],
+    "expect": "has notes"
   }
 ]

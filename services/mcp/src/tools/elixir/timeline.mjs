@@ -17,6 +17,9 @@ import {
 } from "../shared.mjs";
 import { FEED_DOCS } from "./common.mjs";
 
+/** When the profile-derived moment ledger begins (Gym #121). */
+const PROFILE_MOMENTS_FROM_MS = Date.parse("2026-09-14T04:27:51Z");
+
 export const elixir_timeline = {
   description:
     "Your timeline: what happened to the players and clans you track since your read pointer, as ITEMS in order plus one summary ENTRY per subject (a person's: the players and clans they track; an agent's: its clan). Items are named moments with an instant: battle sessions, badges, arena and ranked moves, new bests, cards unlocked, joins, departures, role changes, war milestones, quiet rungs, returns. Facts, never advice; nothing announces the time (game_clock does). Omit from to read from your pointer (none: 24 hours; cap 30 days); mark_read moves it to the window end, false is a dry run.",
@@ -200,11 +203,30 @@ export const elixir_timeline = {
       );
     };
     const entries = built.entries.map(keep);
-    const timeline = built.timeline.filter(
-      (it) =>
-        (!sections || sections.includes(it.section)) &&
-        (!kinds || kinds.includes(it.kind)),
-    );
+    const shown = (it) =>
+      (!sections || sections.includes(it.section)) &&
+      (!kinds || kinds.includes(it.kind));
+    // A cap cut the window (Gym #120): the page stops just before the
+    // first item this call's filters would have shown but the cap left
+    // out, so next_cursor continues exactly there and the pointer moves
+    // only that far. Items at or after the cut are the next page's.
+    const droppedShown = (built.timeline_dropped ?? []).filter(shown);
+    // An item's `at` is its own instant and can fall before from (a
+    // moment observed in this window that happened earlier, Gym #118); a
+    // cut there would hand a cursor reader the same window forever, so
+    // the cut is never at or before from.
+    const cutMs = droppedShown.length
+      ? Math.max(
+          fromMs + 1,
+          Math.min(...droppedShown.map((it) => Date.parse(it.at))),
+        )
+      : null;
+    const all = built.timeline.filter(shown);
+    const timeline =
+      cutMs === null ? all : all.filter((it) => Date.parse(it.at) < cutMs);
+    const remaining =
+      cutMs === null ? 0 : all.length - timeline.length + droppedShown.length;
+    const endMs = cutMs === null ? toMs : cutMs;
 
     const marking = args.mark_read !== false;
     if (marking && reader) {
@@ -214,7 +236,7 @@ export const elixir_timeline = {
            on conflict (account_id, reader) do update set
              read_to = greatest(timeline_reader.read_to, excluded.read_to),
              updated_at = now()`,
-        [ctx.account.accountId, reader, toMs],
+        [ctx.account.accountId, reader, endMs],
       );
     } else if (marking) {
       await ctx.db.query(
@@ -222,7 +244,7 @@ export const elixir_timeline = {
               set activity_seen_at = greatest(coalesce(activity_seen_at, 'epoch'::timestamptz),
                                               to_timestamp($2 / 1000.0))
             where account_id = $1`,
-        [ctx.account.accountId, toMs],
+        [ctx.account.accountId, endMs],
       );
     }
     const iso = (ms) => (ms === null ? null : new Date(ms).toISOString());
@@ -244,14 +266,14 @@ export const elixir_timeline = {
         verbosity: compact ? "compact" : "full",
       }),
       window: built.window,
-      read_to: marking ? iso(toMs) : iso(pointerMs),
+      read_to: marking ? iso(endMs) : iso(pointerMs),
       timeline,
-      timeline_more: built.timeline_more,
+      timeline_more: remaining,
       entries,
       quiet: built.quiet,
       subjects: subjects.length,
-      next_cursor: iso(toMs),
-      has_more: false,
+      next_cursor: iso(endMs),
+      has_more: cutMs !== null,
       notes: notes(
         seasonFields.seasonNotes,
         entries.length === 0 && built.quiet.length === 0
@@ -263,10 +285,18 @@ export const elixir_timeline = {
         capped
           ? "The window was capped at 30 days before to; pass from and to for older history, or use the data tools."
           : null,
-        built.timeline_more > 0
-          ? `timeline_more: ${built.timeline_more} items beyond the cap were left out; narrow the window or the sections.`
+        // The moment ledger's own history (Gym #121): profile-derived
+        // moments begin 2026-09-14T04:27Z, and collection_level_step
+        // follows its step rule from 2026-09-18.
+        fromMs < PROFILE_MOMENTS_FROM_MS
+          ? "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step."
           : null,
-        "Pass next_cursor as from to continue from here without moving the pointer.",
+        timeline.some((it) => Date.parse(it.at) < fromMs)
+          ? `A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): ${timeline.filter((it) => Date.parse(it.at) < fromMs).length} item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For "what happened on a day", widen to by a poll cycle (a few hours) and filter on at.`
+          : null,
+        cutMs !== null
+          ? `The item cap cut this window at ${iso(cutMs)}: timeline holds everything before that instant, timeline_more (${remaining}) items from it on are not here, and has_more is true. Pass next_cursor as from for the rest${marking ? "; the read pointer moved only to the cut" : ""}.`
+          : "Pass next_cursor as from to continue from here without moving the pointer.",
       ),
       docs: FEED_DOCS,
       meta: responseMeta({

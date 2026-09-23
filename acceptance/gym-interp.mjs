@@ -15,7 +15,7 @@
  * and literals; a fanned total `list[].field` is summed, 87.1; a decimal
  * compares to 0.005, 96.1), contains
  * (a scalar list holds a value, 85.6), sorted_desc, sorted_asc,
- * notes_match, notes_not_match, every_row_has. An `eq` right-hand side that is a
+ * notes_match, notes_not_match, every_row_has, unique_by (121.3). An `eq` right-hand side that is a
  * string with a dot or a bracket is read as a path (82.4 compares two
  * calls); a bare identifier that names a field on the row is the row's
  * field (87.3: `eq scoring_decks decks_used` under for_each), and a
@@ -242,6 +242,23 @@ export function assertOne(spec, scope, root) {
       if (v === null) return;
       ok(Array.isArray(v), `contains ${p}: not a list`);
       ok(v.includes(want), `contains ${p}: ${show(v)} lacks ${show(want)}`);
+      return;
+    }
+    case "unique_by": {
+      // No two elements share the tuple of these paths' values (121.3:
+      // the #48 duplicate moments). Absent and null are values too.
+      const [list, keys] = arg;
+      const rows = at(list);
+      ok(Array.isArray(rows), `unique_by ${list}: not a list`);
+      const seen = new Map();
+      for (const [i, r] of rows.entries()) {
+        const k = JSON.stringify(keys.map((p) => resolve(r, p) ?? null));
+        ok(
+          !seen.has(k),
+          `unique_by ${list}: rows ${seen.get(k)} and ${i} share ${k}`,
+        );
+        seen.set(k, i);
+      }
       return;
     }
     case "every_row_has": {

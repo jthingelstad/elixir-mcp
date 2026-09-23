@@ -57,7 +57,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | REST collection capacity | grant | per grant, default 10,000 | over the limit | HTTP 409 problem `enrollment_limit` |
 | Query budget | the analytical reads (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_card`, `cards_synergy`, `clans_standings`, `war_history`) | per call | 18 seconds of database time, shortened when the function has less time left | tool error `query_timeout` with a retry hint and `meta.request_id`; no partial aggregation (see [Protocol](/docs/protocol#errors)) |
 | Read deadline | every other read-only tool (3.14.0) | per call | the function's remaining time less 1.5 seconds (about 23 seconds) | the same `query_timeout`; a write is never raced, so a retry cannot double-apply it |
-| Response size | every tool result | per call | 48,000 characters | `result_too_large` "Result exceeds 48000 characters.", with a hint naming the arguments that narrow it (see [Protocol](/docs/protocol#the-response-cap)); `live_fetch` refuses a battle-log path with the same code before spending the lane |
+| Response size | every tool result | per call | 48,000 characters | `result_too_large` "Result is N characters; the cap is 48000.", with a hint naming the arguments that narrow it (see [Protocol](/docs/protocol#the-response-cap)); `live_fetch` refuses a battle-log path with the same code before spending the lane |
 | Audit argument size | the call log | per call | 4,000 bytes | arguments are trimmed in the log only; the call is unaffected |
 
 ## Reading your balance

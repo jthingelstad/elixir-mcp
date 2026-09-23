@@ -1,0 +1,37 @@
+{
+  "feedback": 123,
+  "contract_version": "6.23.0",
+  "captured_at": "2026-09-23T16:43:21.214Z",
+  "request": {
+    "tool": "elixir_docs",
+    "arguments": {
+      "page": "timeline",
+      "section": "entries",
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "slug": "timeline",
+    "title": "The timeline",
+    "section": "Entries",
+    "section_slug": "entries",
+    "url": "https://elixir.poapkings.com/docs/timeline#entries",
+    "applied": {
+      "page": "timeline",
+      "section": "entries",
+      "verbosity": "full"
+    },
+    "markdown": "One per subject, summarizing the same window. Every entry opens with\n`summary` and carries `window`. A player entry carries `notables`; a clan\nentry carries its named standouts under `standouts`. Its sections are\n**always present** and `null` when nothing happened; compact verbosity\nkeeps player `notables` and drops clan `standouts` with the other sections.\n\nA player's entry: `battles` (played, record, sessions, by mode, ladder\ntrophy net, late captures), `trophies`, `arena`, `ranked`, `collection`,\n`badges`, `clan` (current clan and moves), `war`, `presence`\n(`last_battle_at`, `days_quiet`, `days_since_poll`, `returned_after_days`).\n\nA clan's entry: `activity` (battles, sessions, members active, by mode;\n`basis` says `recorded`, or that an activity-scope clan records roster and\nwar only), `roster` (joined, left with tenure, role changes, size at each\nend), `war` (season and week, the day at the window end, fame and place,\n`race_finished_at`, `decks` on a war day with `as_of`, weeks `resolved`),\n`presence` (quiet rung crossings, returns, never recorded), `standouts`\n(most battles, new bests, arena and ranked promotions, collection levels,\nbadges, standout sessions with their rungs, each bounded and named),\n`donations`.\n\nTracked players with nothing in the window get no entry; they are listed\nunder `quiet` with `days_quiet` and `days_since_poll`. A clan always gets an\nentry: a clan's silence is the clan's activity.",
+    "corpus_built_at": "2026-09-23T16:34:09.229Z",
+    "meta": {
+      "contract_version": "6.23.0"
+    }
+  },
+  "timings": {
+    "db_ms": 0,
+    "db_queries": 0,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

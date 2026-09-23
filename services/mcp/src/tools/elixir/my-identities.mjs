@@ -1,5 +1,5 @@
 import { responseMeta } from "@elixir-mcp/contracts";
-import { docsRef } from "../shared.mjs";
+import { docsRef, notes } from "../shared.mjs";
 
 export const elixir_my_identities = {
   description:
@@ -25,6 +25,13 @@ export const elixir_my_identities = {
         name: r.name,
         created_at: r.created_at?.toISOString() ?? null,
       })),
+      // notes on every read (Gym #123): the one-size sentence for a
+      // compact call rides on them, and an empty list says what to do.
+      notes: notes(
+        rows.length === 0
+          ? "No humans are mapped on this connection yet; elixir_identify maps one, and on_behalf_of then resolves them."
+          : "external_id is the id you passed to elixir_identify; pass it as on_behalf_of and 'how am I doing' resolves to that player.",
+      ),
       docs: docsRef("agents", "knowing-which-human-is-asking"),
       meta: responseMeta({ as_of: new Date().toISOString() }),
     };

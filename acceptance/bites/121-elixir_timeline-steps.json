@@ -1,0 +1,813 @@
+{
+  "feedback": 121,
+  "contract_version": "6.23.0",
+  "captured_at": "2026-09-23T16:44:57.837Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-17T00:00:00Z",
+      "mark_read": false,
+      "kinds": ["collection_level_step"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-14T00:00:00.000Z",
+        "to": "2026-09-17T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 9
+      },
+      "mark_read": false,
+      "kinds": ["collection_level_step"],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-14T00:00:00.000Z",
+      "to": "2026-09-17T00:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T06:52:52.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JRVV9VC0C",
+          "name": "NOBITA",
+          "level": 1365
+        },
+        "text": "Mon 06:52 NOBITA reached collection level 1365."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T07:22:48.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2G2RPVPP",
+          "name": "Aaqib Javed",
+          "level": 2140
+        },
+        "text": "Mon 07:22 Aaqib Javed reached collection level 2140."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T09:17:43.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2LRYLQPL",
+          "name": "Andy",
+          "level": 1451
+        },
+        "text": "Mon 09:17 Andy reached collection level 1451."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T15:42:59.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#229QY8UL9U",
+          "name": "Mega Goblin",
+          "level": 1365
+        },
+        "text": "Mon 15:42 Mega Goblin reached collection level 1365."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T16:22:48.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2G2RPVPP",
+          "name": "Aaqib Javed",
+          "level": 2140
+        },
+        "text": "Mon 16:22 Aaqib Javed reached collection level 2140."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T16:42:56.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2LRYLQPL",
+          "name": "Andy",
+          "level": 1451
+        },
+        "text": "Mon 16:42 Andy reached collection level 1451."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T20:27:52.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#VGC22YGP",
+          "name": "MONICA",
+          "level": 1740
+        },
+        "text": "Mon 20:27 MONICA reached collection level 1740."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T20:57:41.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#VQUQJP8Q9",
+          "name": "1spaceO2",
+          "level": 1208
+        },
+        "text": "Mon 20:57 1spaceO2 reached collection level 1208."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T21:02:48.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#UL2V9QRG0",
+          "name": "raquaza",
+          "level": 1722
+        },
+        "text": "Mon 21:02 raquaza reached collection level 1722."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T21:17:42.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JRVV9VC0C",
+          "name": "NOBITA",
+          "level": 1368
+        },
+        "text": "Mon 21:17 NOBITA reached collection level 1368."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T22:17:39.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#CV20JCY0V",
+          "name": "BigNorton",
+          "level": 1666
+        },
+        "text": "Mon 22:17 BigNorton reached collection level 1666."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T22:47:53.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#229QY8UL9U",
+          "name": "Mega Goblin",
+          "level": 1365
+        },
+        "text": "Mon 22:47 Mega Goblin reached collection level 1365."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T08:02:51.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2209PJPVGG",
+          "name": "shimmeringhost",
+          "level": 1566
+        },
+        "text": "Tue 08:02 shimmeringhost reached collection level 1566."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T11:42:59.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#VC8VY8R29",
+          "name": "nyje47",
+          "level": 1475
+        },
+        "text": "Tue 11:42 nyje47 reached collection level 1475."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T14:52:56.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#20GPQPC9RV",
+          "name": "bonus",
+          "level": 1515
+        },
+        "text": "Tue 14:52 bonus reached collection level 1515."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T15:27:49.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#20R8QRLYLP",
+          "name": "Chanco",
+          "level": 1825
+        },
+        "text": "Tue 15:27 Chanco reached collection level 1825."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T15:57:37.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2G09Q20QC",
+          "name": "Kurd Paraw",
+          "level": 2119
+        },
+        "text": "Tue 15:57 Kurd Paraw reached collection level 2119."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T19:37:54.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2CY2RJL9G",
+          "name": "L-Drxgo⚡",
+          "level": 1900
+        },
+        "text": "Tue 19:37 L-Drxgo⚡ reached collection level 1900."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T20:37:49.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2YG98VVQ",
+          "name": "Alfablack",
+          "level": 1569
+        },
+        "text": "Tue 20:37 Alfablack reached collection level 1569."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T22:47:49.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#URPCLR8UQ",
+          "name": "x.x.hari.x.x",
+          "level": 1044
+        },
+        "text": "Tue 22:47 x.x.hari.x.x reached collection level 1044."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T00:57:50.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2G09Q20QC",
+          "name": "Kurd Paraw",
+          "level": 2120
+        },
+        "text": "Wed 00:57 Kurd Paraw reached collection level 2120."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T01:32:52.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#V8Q8PUL0U",
+          "name": "ryguy67",
+          "level": 1697
+        },
+        "text": "Wed 01:32 ryguy67 reached collection level 1697."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T07:07:47.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#URPCLR8UQ",
+          "name": "x.x.hari.x.x",
+          "level": 1056
+        },
+        "text": "Wed 07:07 x.x.hari.x.x reached collection level 1056."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T08:12:49.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JYRQ8U92C",
+          "name": "sikander sidhu",
+          "level": 1855
+        },
+        "text": "Wed 08:12 sikander sidhu reached collection level 1855."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T12:57:42.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#V8Q8PUL0U",
+          "name": "ryguy67",
+          "level": 1702
+        },
+        "text": "Wed 12:57 ryguy67 reached collection level 1702."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T23:07:56.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#229QY8UL9U",
+          "name": "Mega Goblin",
+          "level": 1370
+        },
+        "text": "Wed 23:07 Mega Goblin reached collection level 1370."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T23:47:51.000Z",
+        "kind": "collection_level_step",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#URPCLR8UQ",
+          "name": "x.x.hari.x.x",
+          "level": 1065
+        },
+        "text": "Wed 23:47 x.x.hari.x.x reached collection level 1065."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-14T00:00:00.000Z",
+          "to": "2026-09-17T00:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 1235 battles in 323 sessions by 36 of 47 members since Sep 14; roles: L-Drxgo⚡ member→elder, Mega Goblin member→elder; week 1 finished in place 1 with 10,000 fame; training day; quiet past 5d: Brotherinpants (5d), Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ (5d), kiruba⚜️ (5d); back: sniperhendo after 7d; most battles: Vijay 154, Aaqib Javed 147, sikander sidhu 118; new bests: x.x.hari.x.x 6,087; 1 arena promotion (x.x.hari.x.x → Royal Crypt); ranked: Aaqib Javed → Master 2, Aaqib Javed → Master 2, TDuck → Master 2; standout sessions: MONICA 13W-6L (11 in a row), x.x.hari.x.x 5W-1L +146 (5 in a row), sikander sidhu 12W-9L +98; badges: bonus 8 (Miner Mastery, Dark Prince Mastery, Sparky Mastery), BigNorton 6 (Musketeer Mastery, Rage Mastery, Heal Spirit Mastery), nyje47 4 (Goblin Gang Mastery, Minion Horde Mastery, Banner Collection); donations this week 3,179, led by Vijay (344).",
+        "activity": {
+          "battles": 1235,
+          "members_active": 36,
+          "members_total": 47,
+          "sessions": 323,
+          "by_mode": {
+            "casual": 11,
+            "ladder": 339,
+            "event": 532,
+            "war": 62,
+            "ranked": 291
+          },
+          "late_captures": 39911,
+          "basis": "recorded"
+        },
+        "roster": {
+          "joined": {
+            "items": [],
+            "more": 0
+          },
+          "left": {
+            "items": [],
+            "more": 0
+          },
+          "role_changes": {
+            "items": [
+              {
+                "tag": "#2CY2RJL9G",
+                "name": "L-Drxgo⚡",
+                "from": "member",
+                "to": "elder",
+                "direction": "promoted",
+                "at": "2026-09-15T02:32:59.000Z"
+              },
+              {
+                "tag": "#229QY8UL9U",
+                "name": "Mega Goblin",
+                "from": "member",
+                "to": "elder",
+                "direction": "promoted",
+                "at": "2026-09-15T02:32:59.000Z"
+              }
+            ],
+            "more": 0
+          },
+          "bounced": 0,
+          "size": {
+            "from": 47,
+            "to": 47
+          }
+        },
+        "war": {
+          "season_id": 136,
+          "week": 3,
+          "is_colosseum": false,
+          "day_kind": "training",
+          "war_day": null,
+          "fame": 0,
+          "place_of_five": 1,
+          "race_finished_at": null,
+          "decks": null,
+          "resolved": [
+            {
+              "season_id": 136,
+              "week": 1,
+              "is_colosseum": false,
+              "finished_at": "2026-09-14T09:38:05.000Z",
+              "fame": 10000,
+              "rank": 1,
+              "trophy_change": 20
+            }
+          ]
+        },
+        "presence": {
+          "quiet_crossed": {
+            "items": [
+              {
+                "tag": "#RRU9PGJQ9",
+                "name": "Brotherinpants",
+                "role": "member",
+                "days_quiet": 5,
+                "days_since_poll": -7,
+                "rung": 5
+              },
+              {
+                "tag": "#2P9GRU2Q0",
+                "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+                "role": "elder",
+                "days_quiet": 5,
+                "days_since_poll": -7,
+                "rung": 5
+              },
+              {
+                "tag": "#G2CUUJQ8V",
+                "name": "kiruba⚜️",
+                "role": "member",
+                "days_quiet": 5,
+                "days_since_poll": -7,
+                "rung": 5
+              }
+            ],
+            "more": 0
+          },
+          "returned": {
+            "items": [
+              {
+                "tag": "#YC8LLR8Q2",
+                "name": "sniperhendo",
+                "after_days": 7
+              }
+            ],
+            "more": 0
+          },
+          "never_recorded": 1,
+          "rungs_days": [5, 10, 20]
+        },
+        "standouts": {
+          "most_battles": [
+            {
+              "tag": "#C920YGLC2",
+              "name": "Vijay",
+              "battles": 154
+            },
+            {
+              "tag": "#2G2RPVPP",
+              "name": "Aaqib Javed",
+              "battles": 147
+            },
+            {
+              "tag": "#JYRQ8U92C",
+              "name": "sikander sidhu",
+              "battles": 118
+            },
+            {
+              "tag": "#2CY2RJL9G",
+              "name": "L-Drxgo⚡",
+              "battles": 97
+            },
+            {
+              "tag": "#20GPQPC9RV",
+              "name": "bonus",
+              "battles": 92
+            }
+          ],
+          "new_bests": {
+            "items": [
+              {
+                "tag": "#URPCLR8UQ",
+                "name": "x.x.hari.x.x",
+                "best": 6087
+              }
+            ],
+            "more": 0
+          },
+          "arena_promotions": {
+            "items": [
+              {
+                "tag": "#URPCLR8UQ",
+                "name": "x.x.hari.x.x",
+                "arena": "Royal Crypt"
+              }
+            ],
+            "more": 0
+          },
+          "ranked_promotions": {
+            "items": [
+              {
+                "tag": "#2G2RPVPP",
+                "name": "Aaqib Javed",
+                "league": "Master 2"
+              },
+              {
+                "tag": "#2G2RPVPP",
+                "name": "Aaqib Javed",
+                "league": "Master 2"
+              },
+              {
+                "tag": "#PLCCYUQL",
+                "name": "TDuck",
+                "league": "Master 2"
+              },
+              {
+                "tag": "#PLCCYUQL",
+                "name": "TDuck",
+                "league": "Master 2"
+              },
+              {
+                "tag": "#VGC22YGP",
+                "name": "MONICA",
+                "league": "Master 3",
+                "over": "jawad",
+                "score": "2-1"
+              }
+            ],
+            "more": 2
+          },
+          "collection_levels": {
+            "items": [
+              {
+                "tag": "#JRVV9VC0C",
+                "name": "NOBITA",
+                "level": 1365
+              },
+              {
+                "tag": "#2G2RPVPP",
+                "name": "Aaqib Javed",
+                "level": 2140
+              },
+              {
+                "tag": "#2LRYLQPL",
+                "name": "Andy",
+                "level": 1451
+              },
+              {
+                "tag": "#229QY8UL9U",
+                "name": "Mega Goblin",
+                "level": 1365
+              },
+              {
+                "tag": "#2G2RPVPP",
+                "name": "Aaqib Javed",
+                "level": 2140
+              }
+            ],
+            "more": 22
+          },
+          "badges": [
+            {
+              "tag": "#20GPQPC9RV",
+              "name": "bonus",
+              "count": 8,
+              "names": [
+                "MasteryMiner",
+                "MasteryDarkPrince",
+                "MasteryZapMachine"
+              ]
+            },
+            {
+              "tag": "#CV20JCY0V",
+              "name": "BigNorton",
+              "count": 6,
+              "names": ["MasteryMusketeer", "MasteryRage", "MasteryHeal"]
+            },
+            {
+              "tag": "#VC8VY8R29",
+              "name": "nyje47",
+              "count": 4,
+              "names": [
+                "MasteryGoblinGang",
+                "MasteryMinionHorde",
+                "BannerCollection"
+              ]
+            },
+            {
+              "tag": "#URPCLR8UQ",
+              "name": "x.x.hari.x.x",
+              "count": 4,
+              "names": [
+                "MasteryGiant",
+                "MasteryAngryBarbarians",
+                "BannerCollection"
+              ]
+            },
+            {
+              "tag": "#UQ2R9RGVP",
+              "name": "Sandeep",
+              "count": 3,
+              "names": [
+                "MasteryFirespiritHut",
+                "MasteryGoblinGang",
+                "MasteryFirespiritHut"
+              ]
+            }
+          ],
+          "sessions": {
+            "items": [
+              {
+                "tag": "#VGC22YGP",
+                "name": "MONICA",
+                "player_tag": "#VGC22YGP",
+                "started_at": "2026-09-15T15:44:19.000Z",
+                "ended_at": "2026-09-15T16:58:43.000Z",
+                "battles": 19,
+                "won": 13,
+                "lost": 6,
+                "drawn": 0,
+                "by_mode": {
+                  "ranked": 19
+                },
+                "trophy_net": 0,
+                "won_in_a_row": 11,
+                "open": false,
+                "crossed": ["won_in_a_row>=5", "won_in_a_row>=10"]
+              },
+              {
+                "tag": "#URPCLR8UQ",
+                "name": "x.x.hari.x.x",
+                "player_tag": "#URPCLR8UQ",
+                "started_at": "2026-09-15T06:24:35.000Z",
+                "ended_at": "2026-09-15T06:52:20.000Z",
+                "battles": 6,
+                "won": 5,
+                "lost": 1,
+                "drawn": 0,
+                "by_mode": {
+                  "ladder": 6
+                },
+                "trophy_net": 146,
+                "won_in_a_row": 5,
+                "open": false,
+                "crossed": ["won_in_a_row>=5"]
+              },
+              {
+                "tag": "#JYRQ8U92C",
+                "name": "sikander sidhu",
+                "player_tag": "#JYRQ8U92C",
+                "started_at": "2026-09-14T03:36:35.000Z",
+                "ended_at": "2026-09-14T05:01:00.000Z",
+                "battles": 21,
+                "won": 12,
+                "lost": 9,
+                "drawn": 0,
+                "by_mode": {
+                  "ladder": 21
+                },
+                "trophy_net": 98,
+                "won_in_a_row": 4,
+                "open": false,
+                "crossed": ["trophy_net>=150", "battles>=20"]
+              },
+              {
+                "tag": "#JYRQ8U92C",
+                "name": "sikander sidhu",
+                "player_tag": "#JYRQ8U92C",
+                "started_at": "2026-09-14T09:46:47.000Z",
+                "ended_at": "2026-09-14T11:56:44.000Z",
+                "battles": 23,
+                "won": 13,
+                "lost": 10,
+                "drawn": 0,
+                "by_mode": {
+                  "ladder": 20,
+                  "war": 3
+                },
+                "trophy_net": 66,
+                "won_in_a_row": 4,
+                "open": false,
+                "crossed": ["battles>=20"]
+              },
+              {
+                "tag": "#L9CUUJPLJ",
+                "name": null,
+                "player_tag": "#L9CUUJPLJ",
+                "started_at": "2026-09-16T05:00:03.000Z",
+                "ended_at": "2026-09-16T07:25:32.000Z",
+                "battles": 31,
+                "won": 17,
+                "lost": 14,
+                "drawn": 0,
+                "by_mode": {
+                  "event": 20,
+                  "ladder": 9,
+                  "war": 2
+                },
+                "trophy_net": 66,
+                "won_in_a_row": 3,
+                "open": false,
+                "crossed": ["battles>=20"]
+              }
+            ],
+            "more": 12
+          },
+          "session_rungs": {
+            "won_in_a_row": [5, 10, 20],
+            "trophy_net": [150, 300, 500],
+            "battles": [20, 40]
+          }
+        },
+        "donations": {
+          "week_total": 3179,
+          "members_counted": 45,
+          "leader": {
+            "tag": "#C920YGLC2",
+            "name": "Vijay",
+            "given": 344
+          },
+          "as_of": "2026-09-17T00:00:00.000Z"
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-17T00:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "6.23.0"
+    }
+  },
+  "timings": {
+    "db_ms": 1574,
+    "db_queries": 26,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -1,6 +1,6 @@
 import { responseMeta } from "@elixir-mcp/contracts";
 import { CORPUS_BUILT_AT, DOCS, searchDocs } from "@elixir-mcp/docs";
-import { ToolFailure, appliedBlock, notes } from "../shared.mjs";
+import { ToolFailure, appliedBlock, notes, docsRef } from "../shared.mjs";
 
 export const elixir_docs = {
   description:
@@ -61,6 +61,10 @@ export const elixir_docs = {
           applied: appliedBlock({ page: slug, section: sec.slug }),
           markdown: sec.markdown,
           corpus_built_at: CORPUS_BUILT_AT,
+          notes: notes(
+            "One section of the page; page alone reads all of it, and url is the same section on the site.",
+          ),
+          docs: docsRef(doc.slug, sec.slug),
           meta,
         };
       }
@@ -73,6 +77,10 @@ export const elixir_docs = {
         sections: doc.sections.map((x) => ({ slug: x.slug, title: x.title })),
         markdown: doc.markdown,
         corpus_built_at: CORPUS_BUILT_AT,
+        notes: notes(
+          "The whole page; page + section reads one of the sections listed, and url is the same page on the site.",
+        ),
+        docs: docsRef(doc.slug),
         meta,
       };
     }

@@ -512,6 +512,164 @@ export const OUTPUT_SCHEMAS = {
   // acceptance suite (acceptance/shapes/). Drafted from live answers on
   // 2026-09-21 and reviewed against the handlers for what is conditional;
   // permissive below the top level, as above. Each one retired a baseline.
+  cards_archetype: {
+    type: "object",
+    description:
+      "Three shapes by argument: name -> resolved {family, win_conditions (form when the name said one), label, aliases} and this_season; cards -> archetype and in_the_record; neither -> the vocabulary (families, win conditions, aliases, version).",
+    properties: {
+      applied: { type: "object" },
+      resolved: { type: "object" },
+      this_season: { type: "object" },
+      archetype: { type: "object" },
+      in_the_record: { type: ["object", "null"] },
+      version: { type: "object" },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["meta"],
+  },
+  live_fetch: {
+    type: "object",
+    description:
+      "The Clash Royale API's own payload for the path asked, fetched now through a collector, plus live_status; the shape is the API's, not the record's.",
+    properties: {
+      applied: { type: "object" },
+      live_status: { type: "object" },
+      payload: {},
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["meta"],
+  },
+  elixir_my_players: {
+    type: "object",
+    properties: {
+      players: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            player_tag: TAG,
+            name: { type: ["string", "null"] },
+            relationship: { type: ["string", "null"] },
+            is_primary: { type: "boolean" },
+            claim_status: { type: ["string", "null"] },
+            clan_tag: { type: ["string", "null"] },
+            clan_role: { type: ["string", "null"] },
+            recording: { type: "string" },
+            notify: { type: ["boolean", "null"] },
+          },
+        },
+      },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["players", "meta"],
+  },
+  elixir_track_player: {
+    type: "object",
+    description:
+      "One shape per action: add (added, relationship, recording, notify, recording_started), remove (recording_stopped, primary_player_tag), notify_on / notify_off (notify).",
+    properties: {
+      applied: { type: "object" },
+      player_tag: TAG,
+      added: { type: "boolean" },
+      relationship: { type: "string" },
+      recording: { type: "string" },
+      notify: { type: "boolean" },
+      recording_started: { type: "boolean" },
+      recording_stopped: { type: "boolean" },
+      primary_player_tag: { type: ["string", "null"] },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["applied", "player_tag", "meta"],
+  },
+  elixir_track_clan: {
+    type: "object",
+    description:
+      "One shape per action: add (added, recording, notify), remove (removed, recording_stopped), notify_on / notify_off (notify).",
+    properties: {
+      applied: { type: "object" },
+      clan_tag: TAG,
+      added: { type: "boolean" },
+      removed: { type: "boolean" },
+      recording: { type: "string" },
+      notify: { type: "boolean" },
+      recording_stopped: { type: "boolean" },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["applied", "clan_tag", "meta"],
+  },
+  elixir_identify: {
+    type: "object",
+    properties: {
+      applied: { type: "object" },
+      external_id: { type: "string" },
+      player_tag: TAG,
+      name: { type: ["string", "null"] },
+      clan_tag: { type: ["string", "null"] },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["applied", "external_id", "player_tag", "docs", "meta", "notes"],
+  },
+  elixir_my_identities: {
+    type: "object",
+    properties: {
+      identities: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            external_id: { type: "string" },
+            player_tag: TAG,
+            name: { type: ["string", "null"] },
+            created_at: { type: ["string", "null"] },
+          },
+        },
+      },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["identities", "docs", "meta", "notes"],
+  },
+  elixir_nickname: {
+    type: "object",
+    properties: {
+      applied: { type: "object" },
+      player_tag: TAG,
+      nickname: { type: ["string", "null"] },
+      cleared: { type: "boolean" },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["applied", "player_tag", "docs", "meta"],
+  },
+  elixir_send_feedback: {
+    type: "object",
+    properties: {
+      ok: { type: "boolean" },
+      feedback_id: { type: ["number", "string"] },
+      category: { type: "string" },
+      applied: { type: "object" },
+      request_id: { type: "string" },
+      request_ids: { type: "array", items: { type: "string" } },
+      docs: DOCS,
+      meta: META,
+      notes: NOTES,
+    },
+    required: ["ok", "feedback_id", "meta"],
+  },
   collections_browse: {
     type: "object",
     properties: {
@@ -2902,6 +3060,11 @@ export const OUTPUT_SCHEMAS = {
           type: "object",
           properties: {
             at: ISO,
+            observed_at: {
+              ...ISO,
+              description:
+                "6.25.0: when the record observed the moment, which is what selects it into a window; at is when it happened.",
+            },
             subject_tag: { type: ["string", "null"] },
             subject_name: { type: ["string", "null"] },
             kind: { type: "string" },

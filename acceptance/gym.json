@@ -2823,5 +2823,385 @@
         ]
       }
     ]
+  },
+  {
+    "id": "118.1",
+    "feedback": 118,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-21T16:37:10.458Z",
+      "to": "2026-09-22T16:37:10.458Z",
+      "mark_read": false
+    },
+    "request_id": "e8d9967a-038d-49cd-934e-de6bdf14b552",
+    "assert": [
+      {
+        "has": "timeline[].observed_at"
+      },
+      {
+        "notes_match": "(?i)observed"
+      }
+    ]
+  },
+  {
+    "id": "118.2",
+    "feedback": 118,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-21T16:37:10.458Z",
+      "to": "2026-09-22T16:37:10.458Z",
+      "mark_read": false
+    },
+    "request_id": "e8d9967a-038d-49cd-934e-de6bdf14b552",
+    "assert": [
+      {
+        "eq": [
+          "timeline[?kind=ranked_promotion].at",
+          "timeline[?kind=ranked_promotion].facts.promoted_by.battle_time"
+        ]
+      },
+      {
+        "eq": ["applied.window.source", "argument"]
+      }
+    ]
+  },
+  {
+    "id": "119.1",
+    "feedback": 119,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "mark_read": false,
+      "kinds": ["quiet_crossed"]
+    },
+    "request_id": "179e5c6f-234d-49b0-8d24-c5740a8e1978",
+    "for_each": "timeline[]",
+    "assert": [
+      {
+        "gte": ["facts.days_since_poll", 0]
+      },
+      {
+        "eq": ["facts.days_quiet", "facts.rung"]
+      }
+    ]
+  },
+  {
+    "id": "119.2",
+    "feedback": 119,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-21T16:37:10.458Z",
+      "to": "2026-09-22T16:37:10.458Z",
+      "mark_read": false
+    },
+    "request_id": "e8d9967a-038d-49cd-934e-de6bdf14b552",
+    "for_each": "timeline[]",
+    "when": {
+      "eq": ["kind", "quiet_crossed"]
+    },
+    "assert": [
+      {
+        "gte": ["facts.days_quiet", "facts.rung"]
+      }
+    ]
+  },
+  {
+    "id": "120.1",
+    "feedback": 120,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-08-24T16:40:30.377Z",
+      "to": "2026-09-23T16:40:30.377Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+    },
+    "request_id": "839e38ea-601a-4f8d-a931-b7fbd30bd775",
+    "when": {
+      "gt": ["timeline_more", 0]
+    },
+    "assert": [
+      {
+        "eq": ["has_more", true]
+      },
+      {
+        "neq": ["next_cursor", "applied.window.to"]
+      }
+    ]
+  },
+  {
+    "id": "120.2",
+    "feedback": 120,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-18T00:00:00Z",
+      "to": "2026-09-23T16:40:30.377Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+    },
+    "request_id": "a7abba56-3041-40cc-88dc-471a10af52d1",
+    "assert": [
+      {
+        "eq": ["timeline_more", 0]
+      },
+      {
+        "eq": ["has_more", false]
+      },
+      {
+        "eq": ["next_cursor", "applied.window.to"]
+      }
+    ]
+  },
+  {
+    "id": "121.1",
+    "feedback": 121,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-07T00:00:00Z",
+      "to": "2026-09-14T00:00:00Z",
+      "mark_read": false,
+      "kinds": [
+        "collection_level_step",
+        "best_trophies_band",
+        "badge_earned",
+        "card_unlocked"
+      ]
+    },
+    "request_id": "fd15d0de-b992-4eeb-bbe2-75bdff45674e",
+    "assert": [
+      {
+        "notes_match": "2026-09-14"
+      }
+    ]
+  },
+  {
+    "id": "121.2",
+    "feedback": 121,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-17T00:00:00Z",
+      "mark_read": false,
+      "kinds": ["collection_level_step"]
+    },
+    "request_id": "dab6f00d-4a6c-44ca-bb21-1af675377c0f",
+    "for_each": "timeline[]",
+    "assert": [
+      {
+        "has": "facts.step"
+      }
+    ]
+  },
+  {
+    "id": "121.3",
+    "feedback": 121,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-15T00:00:00Z",
+      "mark_read": false,
+      "kinds": ["collection_level_step", "ranked_promotion"]
+    },
+    "request_id": "18073d4b-e8b8-40af-8d7b-00e3b4f0681f",
+    "assert": [
+      {
+        "unique_by": [
+          "timeline[]",
+          ["kind", "facts.player_tag", "facts.level", "facts.to"]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "121.4",
+    "feedback": 121,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-18T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "mark_read": false,
+      "kinds": ["collection_level_step"]
+    },
+    "request_id": "d37770b2-4cd4-4dff-b2d8-8ca5a88b12ed",
+    "for_each": "timeline[]",
+    "assert": [
+      {
+        "has": "facts.step"
+      }
+    ]
+  },
+  {
+    "id": "122.1",
+    "feedback": 122,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-08-25",
+      "to": "2026-09-21",
+      "mark_read": false,
+      "verbosity": "compact"
+    },
+    "request_id": "f8986744-bafb-46c7-98a1-905b916a5e10",
+    "assert": [
+      {
+        "notes_not_match": "compact' is usually enough"
+      },
+      {
+        "notes_match": "(?i)kinds|sections"
+      }
+    ]
+  },
+  {
+    "id": "122.2",
+    "feedback": 122,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-18T00:00:00Z",
+      "to": "2026-09-23T16:40:30.377Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+    },
+    "request_id": "a7abba56-3041-40cc-88dc-471a10af52d1",
+    "assert": [
+      {
+        "has": "timeline"
+      },
+      {
+        "absent": "error"
+      }
+    ]
+  },
+  {
+    "id": "123.1",
+    "feedback": 123,
+    "stability": "live",
+    "tool": "elixir_my_identities",
+    "args": {
+      "verbosity": "compact"
+    },
+    "request_id": "68495d8e-a850-487f-8f55-fa3dd15e1ee0",
+    "assert": [
+      {
+        "has": "notes"
+      },
+      {
+        "notes_match": "one size"
+      }
+    ]
+  },
+  {
+    "id": "123.2",
+    "feedback": 123,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "timeline",
+      "section": "entries",
+      "verbosity": "compact"
+    },
+    "request_id": "2adf7bda-d242-46e4-8438-7bca65c7dee1",
+    "assert": [
+      {
+        "has": "notes"
+      },
+      {
+        "notes_match": "one size"
+      }
+    ]
+  },
+  {
+    "id": "123.3",
+    "feedback": 123,
+    "control": true,
+    "stability": "live",
+    "tool": "elixir_updates",
+    "args": {
+      "verbosity": "compact",
+      "limit": 1
+    },
+    "request_id": "6820e394-a322-453d-995c-85ad10d2c79e",
+    "assert": [
+      {
+        "notes_match": "one size"
+      }
+    ]
+  },
+  {
+    "id": "124.1",
+    "feedback": 124,
+    "control": true,
+    "stability": "live",
+    "tool": "elixir_coverage",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "0cb3b489-bfd9-4a3d-8dbb-4c2c896d134c",
+    "assert": [
+      {
+        "notes_match": "measured_hours against 168"
+      },
+      {
+        "has": "completeness_last_7_days.unmeasured_tail_hours"
+      },
+      {
+        "has": "completeness_last_7_days.measured_hours"
+      }
+    ]
+  },
+  {
+    "id": "124.2",
+    "feedback": 124,
+    "control": true,
+    "stability": "live",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-08-24",
+      "to": "2026-09-23",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+    },
+    "request_id": "9a28d868-e508-416f-8749-e766e5bd2f2a",
+    "assert": [
+      {
+        "notes_match": "capped at 30 days"
+      }
+    ]
+  },
+  {
+    "id": "124.3",
+    "feedback": 124,
+    "control": true,
+    "stability": "live",
+    "tool": "elixir_collectors",
+    "args": {},
+    "request_id": "9853064c-b984-4cac-b7cd-4b97a10a3d71",
+    "assert": [
+      {
+        "notes_match": "draining \\(stopped on purpose\\)"
+      },
+      {
+        "every_row_has": ["collectors", "lifecycle"]
+      }
+    ]
   }
 ]
