@@ -58,6 +58,7 @@ test("section slugs are GitHub-style, the shape the code's docs pointers use", (
       "mode-groups",
       "events-are-their-own-group-and-they-do-not-inform-the-meta",
       "duels-and-boat-battles",
+      "comparisons-and-what-a-battle-proves-about-its-own-length",
       "the-control-next-to-the-number",
       "decided-battles-and-denominators",
       "deck-identity-and-forms",

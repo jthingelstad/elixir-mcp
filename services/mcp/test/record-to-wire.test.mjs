@@ -353,3 +353,83 @@ test("global_rank rides every participant and is null when unranked", async () =
   assert.ok(full.battles.every((b) => b.me.global_rank === null));
   assert.match(full.notes.join(" "), /global_rank is the player's global/);
 });
+
+// 6.18.0: the comparisons the row always held both halves of, and what
+// the signature proves about the battle's length. Jamie 2026-09-22:
+// "elixir leaked for example is most meaningful in a comparison between".
+test("me.vs carries the differences, as me minus the one opponent", async () => {
+  const full = await call("battles_query", {
+    player_tag: BOATS,
+    limit: 25,
+  });
+  const h2h = full.battles.find(
+    (b) =>
+      b.opponents.length === 1 && !String(b.type).startsWith("riverRaceDuel"),
+  );
+  assert.ok(h2h, "a head-to-head row");
+  assert.ok(h2h.me.vs, "vs rides the row");
+  // Every field is me MINUS them, and reproduces from the two sides.
+  const opp = h2h.opponents[0];
+  assert.equal(h2h.me.vs.crowns, h2h.me.crowns - opp.crowns, "crown margin");
+  const towers = (r) =>
+    r.tower_hp
+      ? (r.tower_hp.king ?? 0) +
+        (r.tower_hp.princess ?? []).reduce((a, b) => a + b, 0)
+      : null;
+  if (towers(h2h.me) !== null && towers(opp) !== null)
+    assert.equal(
+      h2h.me.vs.tower_hp,
+      towers(h2h.me) - towers(opp),
+      "tower hitpoints remaining, as a margin",
+    );
+  // A duel has no single pairing to compare.
+  const duel = full.battles.find((b) =>
+    String(b.type).startsWith("riverRaceDuel"),
+  );
+  if (duel) assert.equal(duel.me.vs, null, "a duel has no single differential");
+  assert.match(full.notes.join(" "), /me\.vs is every comparison/);
+});
+
+test("inferred.duration bounds the battle from its crown pair, and says which rule fired", async () => {
+  const full = await call("battles_query", {
+    player_tag: BOATS,
+    limit: 25,
+  });
+  const h2h = full.battles.filter(
+    (b) =>
+      ["PvP", "pathOfLegend", "riverRacePvP"].includes(b.type) &&
+      b.opponents.length === 1,
+  );
+  assert.ok(h2h.length > 0, "head-to-head rows to reason about");
+  for (const b of h2h) {
+    const d = b.inferred.duration;
+    assert.ok(d && d.basis, `${b.battle_id} carries a basis`);
+    const mine = b.me.crowns;
+    const theirs = b.opponents[0].crowns;
+    if (mine === 3 || theirs === 3) {
+      // A King Tower fell: it ended then, and nothing bounds it below.
+      assert.equal(d.at_least_s, null);
+      assert.equal(d.at_most_s, 300);
+      assert.match(d.basis, /King Tower/);
+    } else if (mine === theirs) {
+      assert.equal(d.exact_s, 300, "level crowns is exactly five minutes");
+      assert.match(d.basis, /overtime expired/);
+    } else {
+      assert.equal(d.at_least_s, 180, "no King Tower means regulation ran");
+      assert.equal(d.at_most_s, 300);
+      assert.equal(d.exact_s, null);
+    }
+  }
+  // Not claimed where the rules do not hold.
+  const duel = full.battles.find((b) =>
+    String(b.type).startsWith("riverRaceDuel"),
+  );
+  if (duel) assert.equal(duel.inferred.duration, null, "a duel sums crowns");
+  const boat = full.battles.find((b) => b.type === "boatBattle");
+  if (boat)
+    assert.equal(boat.inferred.duration, null, "a boat battle has no overtime");
+  assert.match(
+    full.notes.join(" "),
+    /inferred\.duration is what the battle's signature PROVES/,
+  );
+});

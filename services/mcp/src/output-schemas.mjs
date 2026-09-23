@@ -2163,6 +2163,22 @@ export const OUTPUT_SCHEMAS = {
                 remaining: { type: ["integer", "null"] },
               },
             },
+            inferred: {
+              type: "object",
+              description:
+                "What the signature PROVES, never a measurement. duration bounds the battle's length from the crown pair; null outside head-to-head 1v1.",
+              properties: {
+                duration: {
+                  type: ["object", "null"],
+                  properties: {
+                    at_least_s: { type: ["integer", "null"] },
+                    at_most_s: { type: ["integer", "null"] },
+                    exact_s: { type: ["integer", "null"] },
+                    basis: { type: "string" },
+                  },
+                },
+              },
+            },
             me: {
               type: "object",
               properties: {
@@ -2182,6 +2198,17 @@ export const OUTPUT_SCHEMAS = {
                 deck: { type: ["object", "null"] },
                 elixir: ELIXIR,
                 tower_hp: { type: ["object", "null"] },
+                vs: {
+                  type: ["object", "null"],
+                  description:
+                    "Me MINUS the one opponent: crowns, deck_level, starting_trophies, tower_hp (remaining hitpoints, a margin of victory). Null on 2v2 and duels; a field is null where a side's value is missing.",
+                  properties: {
+                    crowns: { type: ["number", "null"] },
+                    deck_level: { type: ["number", "null"] },
+                    starting_trophies: { type: ["number", "null"] },
+                    tower_hp: { type: ["number", "null"] },
+                  },
+                },
                 rounds: {
                   type: "array",
                   description:

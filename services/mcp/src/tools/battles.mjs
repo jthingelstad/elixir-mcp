@@ -304,6 +304,84 @@ function roundResultsOf(own, opponent) {
   });
 }
 
+/** The comparisons a battle row already held both halves of and never
+ *  made (6.18.0). Every one is me MINUS the single opponent, positive
+ *  meaning my side: the number is only meaningful as a difference -
+ *  Jamie, 2026-09-22, on elixir leaked - and a caller was reaching into
+ *  two nested objects to compute each one.
+ *
+ *  Null on anything that is not a single head-to-head pair (2v2, a duel
+ *  whose sides played different decks per round), and per-field null
+ *  where the record lacks a side's value. */
+function versusOf(me, opponent, type) {
+  if (!opponent || isDuel(type)) return null;
+  const diff = (a, b) =>
+    typeof a === "number" && typeof b === "number"
+      ? Number((a - b).toFixed(2))
+      : null;
+  const towers = (r) => {
+    const parts = [
+      r.king_tower_hp,
+      r.princess_tower_hp_1,
+      r.princess_tower_hp_2,
+    ];
+    return parts.every((v) => v === null || v === undefined)
+      ? null
+      : parts.reduce((n, v) => n + (v ?? 0), 0);
+  };
+  return {
+    crowns: diff(me.crowns, opponent.crowns),
+    // deck_avg_level is stamped at ingest from the cards as played, so
+    // this is the level edge in THIS battle, not a career average.
+    deck_level: diff(
+      me.deck_avg_level === null ? null : Number(me.deck_avg_level),
+      opponent.deck_avg_level === null ? null : Number(opponent.deck_avg_level),
+    ),
+    starting_trophies: diff(me.starting_trophies, opponent.starting_trophies),
+    // Hitpoints REMAINING, so a margin of victory: won with both towers
+    // near full, or scraped it. Never a tower level.
+    tower_hp: diff(towers(me), towers(opponent)),
+  };
+}
+
+/** What the battle's signature proves about how long it ran (6.18.0).
+ *  The log carries no duration, but the game's clock makes the crown
+ *  pair a bound: a King Tower is the ONLY way to end before 3:00, and
+ *  overtime ends on the next tower, so level crowns means overtime
+ *  expired and the tower-hitpoints tiebreaker resolved it - exactly
+ *  5:00. Head-to-head 1v1 only: a duel sums crowns over up to three
+ *  games and a boat battle has no overtime. */
+const H2H_TYPES = new Set(["PvP", "pathOfLegend", "riverRacePvP"]);
+function durationOf(me, opponent, type) {
+  if (!H2H_TYPES.has(type) || !opponent) return null;
+  const a = me.crowns;
+  const b = opponent.crowns;
+  if (!Number.isInteger(a) || !Number.isInteger(b)) return null;
+  if (a === 3 || b === 3)
+    return {
+      at_least_s: null,
+      at_most_s: 300,
+      exact_s: null,
+      basis:
+        "a King Tower fell, which is the only way a battle ends before regulation runs out",
+    };
+  if (a === b)
+    return {
+      at_least_s: 300,
+      at_most_s: 300,
+      exact_s: 300,
+      basis:
+        "the sides finished level on crowns, so overtime expired without a tower falling and the tower-hitpoints tiebreaker resolved it",
+    };
+  return {
+    at_least_s: 180,
+    at_most_s: 300,
+    exact_s: null,
+    basis:
+      "no King Tower fell, so the battle ran at least regulation; whether it ended at 3:00 or in overtime is not recorded",
+  };
+}
+
 const FORM_ROWS_NOTE =
   "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records.";
 
@@ -703,7 +781,8 @@ export const battlesTools = {
                 b.prev_towers_destroyed, b.remaining_towers,
                 bp.player_tag, bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck_hash,
                 bp.elixir_leaked, bp.king_tower_hp, bp.princess_tower_hp_1,
-                bp.princess_tower_hp_2, bp.global_rank, bp.outcome, p.name as player_name
+                bp.princess_tower_hp_2, bp.global_rank, bp.deck_avg_level,
+                bp.outcome, p.name as player_name
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
          left join player p on p.player_tag = bp.player_tag
@@ -721,12 +800,14 @@ export const battlesTools = {
           tag
             ? `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
                   o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2,
-                  o.elixir_leaked, o.global_rank, p.name
+                  o.elixir_leaked, o.global_rank, o.deck_avg_level,
+                  o.starting_trophies, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            where o.battle_id = any($1) and o.player_tag <> $2`
             : `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
                   o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2,
-                  o.elixir_leaked, o.global_rank, p.name
+                  o.elixir_leaked, o.global_rank, o.deck_avg_level,
+                  o.starting_trophies, p.name
            from battle_participant o join player p on p.player_tag = o.player_tag
            join unnest($1::text[], $2::int[]) me(battle_id, side)
              on me.battle_id = o.battle_id
@@ -856,6 +937,18 @@ export const battlesTools = {
                 },
               }
             : {}),
+          // What the signature proves about the battle itself. The log
+          // carries no duration; the crown pair bounds it.
+          ...(compact
+            ? {}
+            : {
+                inferred: {
+                  duration:
+                    opponents.length === 1
+                      ? durationOf(r, opponents[0], r.type)
+                      : null,
+                },
+              }),
           me: {
             // Who this row is, when the call did not name one subject
             // (a battle by id, a deck across the corpus).
@@ -883,6 +976,11 @@ export const battlesTools = {
                         ),
                       }
                     : {}),
+                  // The differences the row always held both halves of.
+                  vs:
+                    opponents.length === 1
+                      ? versusOf(r, opponents[0], r.type)
+                      : null,
                 }),
           },
           teammates: rest.filter((o) => o.side === r.side).map(shape),
@@ -998,6 +1096,8 @@ export const battlesTools = {
           caveats,
           deckStats &&
             "deck_stats carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
+          "me.vs is every comparison the row already held both halves of, as me MINUS the one opponent: crowns, deck_level (the level edge in THIS battle, from the cards as played), starting_trophies (what matchmaking paired) and tower_hp (hitpoints REMAINING on both sides, so a margin of victory, never a tower level). Null on 2v2 and on duels, and a field is null where the record lacks a side's value. Read these before the absolute numbers - a leak, a level or a tower total means little except against the other side's.",
+          "inferred.duration is what the battle's signature PROVES about its length, never a measurement: the log carries no duration. A King Tower is the only way to end before regulation, so a three-crown finish is at_most_s 300 with no floor; any other finish ran at least 180 s; and level crowns means overtime expired and the tiebreaker resolved it, which is exactly 300 s. Head-to-head 1v1 only - a duel sums crowns over up to three games and a boat battle has no overtime - and basis says which rule fired.",
           "global_rank is the player's global leaderboard position as the API reported it ON that battle - null unless they were ranked at the time, and not a rank in this record: it says you met a ranked opponent, never how they rank now.",
           "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept).",
           compact

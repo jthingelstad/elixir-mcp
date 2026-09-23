@@ -191,6 +191,40 @@ a boat battle spends one of the member's four war decks, so
 and `scoring_decks` include them, and `boat_attacks` on the same row says
 how many (see [War weeks, points and fame](#war-weeks-points-and-fame)).
 
+## Comparisons, and what a battle proves about its own length
+
+A battle row holds both sides, and most of its numbers only mean something
+as a difference. `me.vs` makes them (6.18.0), each as **me minus the one
+opponent**:
+
+| field | what it says |
+| --- | --- |
+| `crowns` | the crown margin |
+| `deck_level` | the level edge in THIS battle, from the cards as played - not a career average |
+| `starting_trophies` | what matchmaking paired you with |
+| `tower_hp` | hitpoints REMAINING on both sides: a margin of victory, never a tower level |
+
+`vs` is `null` on 2v2 and on duels (whose sides played different decks per
+round), and a field is `null` where the record lacks one side's value. Read
+these before the absolute numbers - a leak, a level or a tower total says
+little except against the other side's.
+
+**`inferred.duration`** is what the signature PROVES about how long the
+battle ran. The log carries no duration; the game's clock supplies the
+bound. A King Tower is the only way to end before regulation, and overtime
+ends on the next tower, so:
+
+| crown pair | duration | why |
+| --- | --- | --- |
+| either side has 3 | `at_most_s` 300, no floor | a King Tower fell, so it ended then |
+| unequal, neither 3 | `at_least_s` 180, `at_most_s` 300 | no King Tower, so regulation ran; 3:00 or overtime is not recorded |
+| level | `exact_s` **300** | overtime expired without a tower falling, and the tower-hitpoints tiebreaker resolved it |
+
+`basis` names the rule that fired. It is absent on duels (crowns sum over
+up to three games) and boat battles (no overtime), and present only on
+head-to-head 1v1 types. It is a bound, never a measurement: nothing here
+times a battle.
+
 ## The control next to the number
 
 A win rate is not interpretable without knowing who it was earned against,
