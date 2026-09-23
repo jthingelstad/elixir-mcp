@@ -443,14 +443,6 @@
     "expect": "unique_by"
   },
   {
-    "feedback": 122,
-    "contract": "6.23.0",
-    "why": "the Gym's block 122.1: a compact call told compact is usually enough, with no size",
-    "case": "gym/122.1",
-    "captures": ["122-elixir_timeline-too-large.json"],
-    "expect": "notes_match"
-  },
-  {
     "feedback": 123,
     "contract": "6.23.0",
     "why": "the Gym's block 123.1: no notes, so the one-size sentence never rode",

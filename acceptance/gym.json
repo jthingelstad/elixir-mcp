@@ -3065,7 +3065,8 @@
       {
         "notes_match": "(?i)kinds|sections"
       }
-    ]
+    ],
+    "refuted": "Superseded by 6.34.2: elixir_timeline no longer refuses an oversized window. It pages by size (a page stops at 40,000 characters, cut on observed_at, with has_more and next_cursor), so the too-large refusal this case pinned cannot occur for this tool. The guarantee it stood for (a reader is told how to get the rest) is the cut note and next_cursor."
   },
   {
     "id": "122.2",
@@ -7102,7 +7103,8 @@
       {
         "notes_match": "kinds"
       }
-    ]
+    ],
+    "refuted": "Superseded by 6.34.2: elixir_timeline no longer refuses an oversized window. It pages by size (a page stops at 40,000 characters, cut on observed_at, with has_more and next_cursor), so the too-large refusal this case pinned cannot occur for this tool. The guarantee it stood for (a reader is told how to get the rest) is the cut note and next_cursor."
   },
   {
     "id": "168.5",
