@@ -123,12 +123,17 @@ export async function profileTool(databaseUrl, spec = {}) {
   const args = spec.args && typeof spec.args === "object" ? spec.args : {};
   const principal = String(spec.principal ?? "acceptance");
   const explain = spec.explain === true;
-  const [{ makeRegistry }, { TOOL_GROUPS }, { serviceTokenAccountByName }] =
-    await Promise.all([
-      import("../../mcp/src/tools.mjs"),
-      import("@elixir-mcp/contracts"),
-      import("@elixir-mcp/auth"),
-    ]);
+  const [
+    { makeRegistry },
+    { analyticalWorkMem },
+    { TOOL_GROUPS },
+    { serviceTokenAccountByName },
+  ] = await Promise.all([
+    import("../../mcp/src/tools.mjs"),
+    import("../../mcp/src/invoker.mjs"),
+    import("@elixir-mcp/contracts"),
+    import("@elixir-mcp/auth"),
+  ]);
   const registry = makeRegistry();
   if (!registry.has(tool)) return { error: "unknown_tool", tool };
   const cls = TOOL_GROUPS[tool];
@@ -143,6 +148,10 @@ export async function profileTool(databaseUrl, spec = {}) {
   try {
     await db.query(`set statement_timeout = ${STATEMENT_TIMEOUT_MS}`);
     await db.query("set default_transaction_read_only = on");
+    // The invoker's analytical work_mem, where the tool earns it.
+    const workMem = analyticalWorkMem(tool);
+    if (workMem)
+      await db.query("select set_config('work_mem', $1, false)", [workMem]);
     const account = await serviceTokenAccountByName(db, principal);
     if (!account) return { error: "principal_not_found", principal };
     if (!registry.availableTo(tool, account.kind))
@@ -173,6 +182,7 @@ export async function profileTool(databaseUrl, spec = {}) {
       principal,
       kind: account.kind,
       explain,
+      work_mem: workMem,
       total_ms: totalMs,
       db_ms: dbMs,
       queries: log.length,

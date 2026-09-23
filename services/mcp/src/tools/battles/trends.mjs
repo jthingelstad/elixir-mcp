@@ -65,7 +65,7 @@ export const battles_trends = {
     requireEnum(args.mode, MODE_GROUPS, "mode");
     if (args.mode) {
       params.push(typesForModeGroup(args.mode));
-      where.push(`b.type = any($${params.length})`);
+      where.push(`bp.type = any($${params.length})`);
     }
     const { rows } = await ctx.db.query(
       `select w.*,
@@ -73,19 +73,19 @@ export const battles_trends = {
                   where s.starts_at <= w.week_start + interval '1 day'
                     and s.ends_at > w.week_start + interval '1 day') as season_month
          from (
-           select date_trunc('week', b.battle_time) as week_start,
-                  to_char(date_trunc('week', b.battle_time), 'IYYY-"W"IW') as iso_week,
-                  date_trunc('week', b.battle_time)::date::text as week_of,
+           select date_trunc('week', bp.battle_time) as week_start,
+                  to_char(date_trunc('week', bp.battle_time), 'IYYY-"W"IW') as iso_week,
+                  date_trunc('week', bp.battle_time)::date::text as week_of,
                   count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
                   count(distinct bp.player_tag)::int as players,
-                  count(*) filter (where b.type = any($${params.length + 1}))::int as trophy_mode_battles,
+                  count(*) filter (where bp.type = any($${params.length + 1}))::int as trophy_mode_battles,
                   count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
                   coalesce(sum(bp.trophy_change), 0)::int as net_trophies
-           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           from battle_participant bp
            where ${where.join(" and ")}
-           group by date_trunc('week', b.battle_time)) w
+           group by date_trunc('week', bp.battle_time)) w
          order by w.week_start`,
       [...params, TROPHY_MODE_TYPES],
     );
@@ -93,14 +93,14 @@ export const battles_trends = {
     // (one more group-by over the same rows), and the buckets the
     // window clips marked with the span they hold.
     const { rows: byType } = await ctx.db.query(
-      `select date_trunc('week', b.battle_time)::date::text as week_of, b.type,
+      `select date_trunc('week', bp.battle_time)::date::text as week_of, bp.type,
                 count(*)::int as battles,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses,
                 (select count(distinct bp2.player_tag)::int
-                   from battle_participant bp2 join battle b2 on b2.battle_id = bp2.battle_id
-                  where ${where.join(" and ").replaceAll("bp.", "bp2.").replaceAll("b.type", "b2.type").replaceAll("b.battle_time", "b2.battle_time")}) as window_players
-           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+                   from battle_participant bp2
+                  where ${where.join(" and ").replaceAll("bp.", "bp2.")}) as window_players
+           from battle_participant bp
           where ${where.join(" and ")}
           group by 1, 2`,
       params,
