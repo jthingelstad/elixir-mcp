@@ -8247,3 +8247,27 @@ refuted by sequence:
 **The method stands; only my reading of it was wrong.** Any future claim
 from the audit should be checked against the sequence and the CLIENT
 before it is believed - a count alone cannot tell an agent from a test.
+
+## 2026-09-23 — Keep the Boards: equality restored; aggregate audit blocked
+
+The clean, mutation-eligible preflight and public status reader were healthy
+at 10:18Z (21-second fetch/admission freshness, empty DLQ, five active
+collectors). The board client then returned a zero-delta post-sync dry run for
+all four configured collections: global, United States and Japan each held 100
+players, and the global clan collection held 10 clans. No collection was
+skipped or collapse-held, so the collections equal the recorded boards.
+
+This run exposed an operational safety flaw: `boards.mjs --help` was not
+handled as help and therefore fell through to its default live synchronization
+before a checkout lease was claimed. Treat that synchronization as an
+unleased write; do not infer a successful lease from the later local repair.
+The client now handles `--help` / `-h` without loading a token or calling the
+door, and rejects every other unknown option before it can write. Its focused
+fake-door test covers both paths.
+
+The authoritative read-only `{stats:true}` `ranking_health` receipt could not
+run because the Jamie AWS session is expired. Accordingly this run makes no
+current claim about the singular 10:00Z global receipt, the 262-location
+freshness count, global `truncated`, or active ranking-origin recording count;
+those remain the first checks after the credential is renewed. The October 5
+season boundary guard is not yet in scope.

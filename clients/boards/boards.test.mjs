@@ -11,6 +11,9 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
 let server;
 let seen;
@@ -98,6 +101,25 @@ const board = {
   location: "global",
   top: 10,
 };
+
+test("help and unknown options stop before any collection write", () => {
+  const clientPath = fileURLToPath(new URL("./boards.mjs", import.meta.url));
+  const cwd = path.dirname(clientPath);
+  const help = spawnSync(process.execPath, [clientPath, "--help"], {
+    cwd,
+    encoding: "utf8",
+  });
+  assert.equal(help.status, 0);
+  assert.match(help.stdout, /Usage: node boards\.mjs/);
+  assert.equal(help.stderr, "");
+
+  const unknown = spawnSync(process.execPath, [clientPath, "--inspect"], {
+    cwd,
+    encoding: "utf8",
+  });
+  assert.equal(unknown.status, 2);
+  assert.match(unknown.stderr, /Unknown option: --inspect/);
+});
 /** Tags from the real CR alphabet (0289PYLQGRJCUV): the first fixtures
  *  here used A and B, the client dropped every one of them as malformed,
  *  and it was right to. */

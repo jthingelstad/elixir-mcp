@@ -37,6 +37,7 @@ cp .env.example .env && chmod 600 .env   # then paste the token in (see below)
 node boards.mjs --dry-run                # say what would change, write nothing
 node boards.mjs                          # do it
 node boards.mjs --board=pol-global-top-100
+node boards.mjs --help                   # show usage, write nothing
 ```
 
 The script loads `clients/boards/.env` itself if it exists; an exported

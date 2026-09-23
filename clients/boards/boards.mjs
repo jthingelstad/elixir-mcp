@@ -36,6 +36,7 @@
  *   node boards.mjs               do it, and say who moved
  *   node boards.mjs --board=pol-global-top-100
  *   node boards.mjs --json        one machine-readable line per board, for a log
+ *   node boards.mjs --help        show this usage, write nothing
  *
  * ELIXIR_MCP_TOKEN is a service token (svt_...) for an account that OWNS
  * the collections below; collections_edit refuses somebody else's. Put it
@@ -371,6 +372,22 @@ function report(out) {
 
 export async function main() {
   const args = process.argv.slice(2);
+  if (args.includes("--help") || args.includes("-h")) {
+    console.log(`Usage: node boards.mjs [--dry-run] [--json] [--board=<slug>]
+
+Synchronize the configured collections from the recorded Path of Legends boards.
+Use --dry-run to inspect membership changes without writing.`);
+    return;
+  }
+  const unknown = args.find(
+    (arg) =>
+      arg !== "--dry-run" && arg !== "--json" && !arg.startsWith("--board="),
+  );
+  if (unknown) {
+    console.error(`Unknown option: ${unknown}. Use --help for usage.`);
+    process.exitCode = 2;
+    return;
+  }
   const dryRun = args.includes("--dry-run");
   const only = args.find((a) => a.startsWith("--board="))?.split("=")[1];
   if (!TOKEN) {
