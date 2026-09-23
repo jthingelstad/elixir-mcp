@@ -23,11 +23,15 @@
  * spellings of one mode filter (typesForModeGroup).
  */
 
-import { MODE_GROUP_BY_TYPE } from "@elixir-mcp/contracts";
+import { modeGroupSql } from "@elixir-mcp/contracts";
 
-const MODE_GROUP_CASE = `case bp.type ${Object.entries(MODE_GROUP_BY_TYPE)
-  .map(([t, g]) => `when '${t}' then '${g}'`)
-  .join(" ")} else 'casual' end`;
+// The edge-day half of the union must bucket a battle exactly as the
+// rollup half did, or a day straddling the window reads `casual` for
+// what the rollup called `event`. 6.17.0 moved the rule to contracts
+// and updated the two WRITERS; this reader kept its own copy keyed on
+// bp.type alone, which cannot see the event tag. The battle join below
+// supplies it.
+const MODE_GROUP_CASE = modeGroupSql("bp.type", "b.event_tag");
 
 export function dailySql({
   players,
@@ -65,6 +69,7 @@ export function dailySql({
            count(*) filter (where bp.outcome = 'draw')::int,
            coalesce(sum(bp.trophy_change), 0)::int
     from battle_participant bp
+    join battle b on b.battle_id = bp.battle_id
     where bp.player_tag = any(${players})
       and (
         -- The day the window starts in: a range the (player, time)

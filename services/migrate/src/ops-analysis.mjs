@@ -693,3 +693,105 @@ export async function pollReplay(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/** {call_sequence_census}: what an agent calls AROUND a call, not just
+ *  how often it calls it. The counts say which tools are used; only the
+ *  sequence says which ones are used TOGETHER to answer one question,
+ *  and a question that takes three tools or forty pages is a tool we do
+ *  not have.
+ *
+ *  A TURN is consecutive calls by one account with no gap longer than
+ *  `gap_s` (default 120). Within a turn the tool list collapses runs -
+ *  twelve battles_query in a row become `battles_query x12` - because
+ *  the run length IS the finding.
+ *
+ *  Reads mcp_call_audit only; args are already bounded at write. */
+export async function callSequenceCensus(databaseUrl, spec = {}) {
+  const days = Math.min(Number(spec?.days ?? 30), 90);
+  const gap = Math.min(Number(spec?.gap_s ?? 120), 3600);
+  const minRun = Number(spec?.min_run ?? 5);
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows } = await db.query(
+      `select account_id, client_name, surface, tool, error_code,
+              args ? 'cursor' as paged, created_at
+         from mcp_call_audit
+        where created_at >= now() - ($1 || ' days')::interval
+        order by account_id, created_at`,
+      [String(days)],
+    );
+    const turns = [];
+    let cur = null;
+    for (const r of rows) {
+      const t = r.created_at.getTime();
+      if (
+        !cur ||
+        cur.account_id !== r.account_id ||
+        t - cur.last > gap * 1000
+      ) {
+        cur = {
+          account_id: r.account_id,
+          client: r.client_name ?? r.surface,
+          started: r.created_at,
+          last: t,
+          calls: [],
+        };
+        turns.push(cur);
+      }
+      cur.last = t;
+      cur.calls.push(r);
+    }
+    // The turn's shape: consecutive runs of one tool collapsed.
+    const shapeOf = (turn) => {
+      const out = [];
+      for (const c of turn.calls) {
+        const prev = out[out.length - 1];
+        if (prev && prev.tool === c.tool) prev.n += 1;
+        else out.push({ tool: c.tool, n: 1 });
+      }
+      return out;
+    };
+    const shapes = new Map();
+    const walks = new Map(); // what a paged battles_query run sits beside
+    for (const turn of turns) {
+      const shape = shapeOf(turn);
+      const key = shape
+        .map((s) => (s.n > 1 ? `${s.tool} x${s.n}` : s.tool))
+        .join(" -> ");
+      const e = shapes.get(key) ?? { turns: 0, client: turn.client, calls: 0 };
+      e.turns += 1;
+      e.calls += turn.calls.length;
+      shapes.set(key, e);
+      // A walk: a run of >= min_run calls of one tool where some call paged.
+      for (const run of shape) {
+        if (run.n < minRun) continue;
+        const paged = turn.calls.some((c) => c.tool === run.tool && c.paged);
+        if (!paged) continue;
+        const others = [...new Set(shape.map((s) => s.tool))].filter(
+          (t) => t !== run.tool,
+        );
+        const k = `${run.tool} | with: ${others.join(", ") || "(nothing else)"}`;
+        const w = walks.get(k) ?? { turns: 0, pages: 0, client: turn.client };
+        w.turns += 1;
+        w.pages += run.n;
+        walks.set(k, w);
+      }
+    }
+    const top = (m, n) =>
+      [...m.entries()]
+        .sort((a, z) => z[1].turns - a[1].turns)
+        .slice(0, n)
+        .map(([k, v]) => ({ shape: k, ...v }));
+    return {
+      days,
+      gap_s: gap,
+      calls: rows.length,
+      turns: turns.length,
+      top_shapes: top(shapes, 25),
+      paged_runs: top(walks, 15),
+    };
+  } finally {
+    await db.end();
+  }
+}

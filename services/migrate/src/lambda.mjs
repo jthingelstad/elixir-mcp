@@ -66,6 +66,7 @@ import {
 import {
   auditCensus,
   argsCensus,
+  callSequenceCensus,
   pollReplay,
   acceptanceCatalogue,
 } from "./ops-analysis.mjs";
@@ -466,6 +467,14 @@ export async function handler(event) {
     const result = await acceptanceCatalogue(
       process.env.DATABASE_URL,
       event.acceptance_catalogue,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.call_sequence_census) {
+    const result = await callSequenceCensus(
+      process.env.DATABASE_URL,
+      event.call_sequence_census === true ? {} : event.call_sequence_census,
     );
     console.log(JSON.stringify(result));
     return result;
