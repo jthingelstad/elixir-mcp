@@ -975,7 +975,7 @@ export async function buildClanEntry(
   let war = null;
   const p = await periodAt(db, toMs);
   const { rows: wk } = await db.query(
-    `select season_id, section_index, is_colosseum, finished_observed_at
+    `select season_id, section_index, is_colosseum, finished_observed_at, closed_at
        from war_week where clan_tag = $1
         and ($2::int is null or (season_id, section_index) <= ($2::int, $3::int))
       order by season_id desc, section_index desc limit 1`,
@@ -1005,11 +1005,21 @@ export async function buildClanEntry(
     // 3,435): the banked fame and place at the last war day closed by
     // then, and no finish.
     const finishedAt = finishInstant(ours[0]?.finish_time);
+    // The finish instant decides when the record has one; otherwise the
+    // API's own close stamp (war_week.closed_at, exact), and only then
+    // when the log was seen closing, which can lag the close by a day
+    // (the gate's 213.3: finished 09:38, seen the next day).
+    const closedMs = finishedAt
+      ? Date.parse(finishedAt)
+      : (wk[0].closed_at?.getTime() ?? null);
     const closedAfterTo =
-      (finishedAt && Date.parse(finishedAt) > toMs) ||
-      (wk[0].finished_observed_at &&
-        wk[0].finished_observed_at.getTime() > toMs &&
-        toMs < Date.now() - 3_600_000);
+      closedMs !== null
+        ? closedMs > toMs
+        : Boolean(
+            wk[0].finished_observed_at &&
+            wk[0].finished_observed_at.getTime() > toMs &&
+            toMs < Date.now() - 3_600_000,
+          );
     let asOf = null;
     if (closedAfterTo) {
       const { rows: day } = await db.query(
