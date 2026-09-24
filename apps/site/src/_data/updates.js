@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Badge rarity pages say when they are cut",
+    body: "The Elixir Gym's fourth run over the badge tools. A shortened list of the rarest badges now says how many badges it left out, and a badge that has an old and a new identifier still gives its true number of holders when only one of the two is on the page. Contract 6.36.8.",
+  },
+  {
+    date: "2026-09-23",
     title: "Counting the players Elixir records",
     body: "Elixir sees hundreds of thousands of players, most of them only as someone's opponent. The home and data pages now lead with the players and clans Elixir actually records, with the ones only observed as a secondary line, and badge counts for a clan leave out anyone not recorded. A clan's daily member averages now count a member who was not polled that day with their latest profile, instead of dropping them. Contract 6.36.7.",
   },

@@ -1,0 +1,166 @@
+{
+  "feedback": 193,
+  "contract_version": "6.36.7",
+  "captured_at": "2026-09-24T01:00:29.900Z",
+  "request": {
+    "tool": "badges_rarity",
+    "arguments": {
+      "segment": "corpus",
+      "kind": "tiered",
+      "limit": 10
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "corpus"
+      },
+      "kind": "tiered",
+      "limit": 10
+    },
+    "population": {
+      "recorded_clans": 18,
+      "recorded_players": 1080,
+      "players_in_window": 1080
+    },
+    "players_considered": 1080,
+    "observations": {
+      "oldest": "2026-09-12T03:02:47.000Z",
+      "newest": "2026-09-24T00:57:42.000Z"
+    },
+    "badges": [
+      {
+        "name": "ClassicRoyaleTournamentRank",
+        "label": "Classic Royale Tournament Rank",
+        "kind": "tiered",
+        "holders": 1,
+        "holder_share": 0.001,
+        "max_level": 10,
+        "by_level": {
+          "1": 1
+        }
+      },
+      {
+        "name": "RoyalTournamentRank",
+        "label": "Royal Tournament Rank",
+        "kind": "tiered",
+        "holders": 1,
+        "holder_share": 0.001,
+        "max_level": 10,
+        "by_level": {
+          "1": 1
+        }
+      },
+      {
+        "name": "ChaosDraftLeagueRank",
+        "label": "Chaos Draft League Rank",
+        "kind": "tiered",
+        "holders": 57,
+        "holder_share": 0.053,
+        "max_level": 10,
+        "by_level": {
+          "1": 57
+        }
+      },
+      {
+        "name": "AnarchyLeagueRank",
+        "label": "Anarchy League Rank",
+        "kind": "tiered",
+        "holders": 89,
+        "holder_share": 0.082,
+        "max_level": 10,
+        "by_level": {
+          "1": 89
+        }
+      },
+      {
+        "name": "CrazyArenaRank",
+        "label": "Crazy Arena Rank",
+        "kind": "tiered",
+        "holders": 121,
+        "holder_share": 0.112,
+        "max_level": 10,
+        "by_level": {
+          "1": 121
+        }
+      },
+      {
+        "name": "TripleDraftLeagueRank",
+        "label": "Triple Draft League Rank",
+        "kind": "tiered",
+        "holders": 154,
+        "holder_share": 0.143,
+        "max_level": 10,
+        "by_level": {
+          "1": 154
+        }
+      },
+      {
+        "name": "2026YearBadge",
+        "label": "2026 Year Badge",
+        "kind": "tiered",
+        "holders": 238,
+        "holder_share": 0.22,
+        "max_level": 6,
+        "by_level": {
+          "1": 91,
+          "2": 131,
+          "3": 16
+        }
+      },
+      {
+        "name": "SuddenDeathTrailRank",
+        "label": "Sudden Death Trail Rank",
+        "kind": "tiered",
+        "holders": 255,
+        "holder_share": 0.236,
+        "max_level": 10,
+        "by_level": {
+          "1": 255
+        }
+      },
+      {
+        "name": "AnarchyLeagueCompletion",
+        "label": "Anarchy League Completion",
+        "kind": "tiered",
+        "holders": 268,
+        "holder_share": 0.248,
+        "max_level": 10,
+        "by_level": {
+          "1": 268
+        }
+      },
+      {
+        "name": "ClassicRoyaleTournamentRank_v2",
+        "label": "Classic Royale Tournament Rank (v2)",
+        "kind": "tiered",
+        "holders": 277,
+        "holder_share": 0.256,
+        "max_level": 10,
+        "by_level": {
+          "1": 277
+        }
+      }
+    ],
+    "notes": [
+      "Rarity is within the RECORDED population, not the game: a badge nobody here holds does not appear at all.",
+      "one_off badges have no level (awarded once for an event or feat, the genuinely rare class); tiered badges carry level/max_level.",
+      "by_level counts holders per level on a tiered badge; holder_share = holders / players_considered.",
+      "Badge names are the API's own identifiers and label is the badge as a player says it (MasterySkeletonWarriors is Guards Mastery). A versioned identifier says its version (RoyalTournamentRank_v2 is 'Royal Tournament Rank (v2)'): the original and the _v2 are two badges, often held by the same player.",
+      "Versioned pairs listed separately, one badge a player would name the same way: ClassicRoyaleTournamentRank / ClassicRoyaleTournamentRank_v2 is held by 278 distinct players (0 hold both); quote the distinct count, not a sum of the two rows, when saying how rare it is.",
+      "observations.oldest/newest are the oldest and newest profile poll among players_considered: how fresh the reads behind these counts are.",
+      "players_considered counts the players recorded now whose profile the record has read (1080 of the 1080 recorded now): a player no longer recorded is left out, since the record stopped reading their badges. population.players_in_window is the same count."
+    ],
+    "docs": "glossary",
+    "meta": {
+      "contract_version": "6.36.7"
+    }
+  },
+  "timings": {
+    "db_ms": 747,
+    "db_queries": 4,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

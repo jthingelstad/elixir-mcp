@@ -1511,6 +1511,17 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
   });
   assert.ok(oneOff.body.badges.every((b) => b.kind === "one_off"));
   assert.ok(oneOff.body.badges.length < rarity.body.badges.length);
+  // A limited page says it was cut, and drops "does not appear" (#193).
+  assert.ok(rarity.body.notes.some((l) => /does not appear at all/.test(l)));
+  const page = await call("badges_rarity", { segment: "corpus", limit: 5 });
+  assert.equal(page.body.badges.length, 5);
+  assert.ok(
+    page.body.notes.some((l) =>
+      new RegExp(`5 of ${rarity.body.badges.length} badges`).test(l),
+    ),
+    page.body.notes.join(" | "),
+  );
+  assert.ok(!page.body.notes.some((l) => /does not appear at all/.test(l)));
 
   const holders = await call("badges_holders", {
     segment: "corpus",

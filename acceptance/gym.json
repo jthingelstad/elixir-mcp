@@ -9189,5 +9189,127 @@
         "lte": ["partners[0].co_occurrence_rate", 1]
       }
     ]
+  },
+  {
+    "id": "193.1",
+    "feedback": 193,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "corpus",
+      "limit": 10
+    },
+    "request_id": "c451338e-3352-405b-b962-dbd059574583",
+    "note": "RoyalTournamentRank (1 holder) is on the rarest-10 page; its pair note (603 distinct) must still be served",
+    "assert": [
+      {
+        "notes_match": "RoyalTournamentRank / RoyalTournamentRank_v2 is held by \\d+ distinct players"
+      }
+    ]
+  },
+  {
+    "id": "193.2",
+    "feedback": 193,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "corpus",
+      "limit": 10
+    },
+    "request_id": "c451338e-3352-405b-b962-dbd059574583",
+    "note": "a page cut by limit says it is a page (10 of 196 on 2026-09-24)",
+    "assert": [
+      {
+        "notes_match": "\\d+ of \\d+ badges"
+      }
+    ]
+  },
+  {
+    "id": "193.3",
+    "feedback": 193,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "corpus",
+      "kind": "tiered",
+      "limit": 10
+    },
+    "request_id": "13af3fa4-4f75-45f0-ad82-1bf70795b733",
+    "note": "both originals on the page; only the Classic pair note was served because RoyalTournamentRank_v2 was off the page",
+    "assert": [
+      {
+        "notes_match": "RoyalTournamentRank / RoyalTournamentRank_v2 is held by \\d+ distinct players"
+      },
+      {
+        "notes_match": "ClassicRoyaleTournamentRank / ClassicRoyaleTournamentRank_v2 is held by \\d+ distinct players"
+      }
+    ]
+  },
+  {
+    "id": "193.4",
+    "feedback": 193,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "corpus"
+    },
+    "request_id": "ff1e542d-06a6-47b8-931b-d1174976a388",
+    "note": "the complete default read (196 of 196 badges on 2026-09-24) carries both pair notes and no page-cut note",
+    "assert": [
+      {
+        "notes_match": "RoyalTournamentRank / RoyalTournamentRank_v2 is held by \\d+ distinct players"
+      },
+      {
+        "notes_match": "ClassicRoyaleTournamentRank / ClassicRoyaleTournamentRank_v2 is held by \\d+ distinct players"
+      },
+      {
+        "notes_not_match": "\\d+ of \\d+ badges"
+      }
+    ]
+  },
+  {
+    "id": "194.1",
+    "feedback": 194,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": {
+        "clan_tag": "#P9GPQ2Y0"
+      }
+    },
+    "request_id": "592df15a-5e62-4ed1-81cb-5daca78a8b45",
+    "note": "6.36.7: activity-scope clan counts members recorded now (16 of 50 on 2026-09-24) and says the rest are unknown",
+    "assert": [
+      {
+        "notes_match": "players_considered \\(\\d+\\) is \\d+ of this clan's \\d+ current members"
+      },
+      {
+        "notes_match": "unknown, not absent"
+      }
+    ]
+  },
+  {
+    "id": "194.2",
+    "feedback": 194,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "BeatingDeathBadge",
+      "segment": "mine",
+      "min_level": 1
+    },
+    "request_id": "7d8dfe1a-ee81-49f3-84de-144b4d80a749",
+    "note": "6.36.3: min_level on a one-off is refused with the reason",
+    "assert": [
+      {
+        "notes_match": "min_level applies to tiered badges only"
+      },
+      {
+        "absent": "holders_total"
+      }
+    ]
   }
 ]

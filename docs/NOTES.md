@@ -2104,3 +2104,9 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - **Cloud Gym routine:** stays paused (Jamie).
 - **#191 bands repaired:** `meta_rollup_season` `repair_bands` on 2026-09 (3,207 rows, 59 s) and 2026-08 (34 rows); gym/191.x and 192.x pass live.
 
+## 2026-09-23 — Gym sweep, badges round 4 (6.36.8, feedback #193-#194)
+
+- 10/10 regressions confirmed, #183 as decided. **#193:** the pair note now reads the population's badge names when the page is cut (limit), a cut page says "N of M badges", and "does not appear" is served only on a complete list. #194 praise.
+- The 111.1 bite is removed with its case superseded (a refuted case cannot bite).
+- Open (not filed): Valkyrie level-ups on the timeline but not Ak or Mega Goblin (timeline family); a clan collection as a badge segment answers not_found.
+

@@ -1,0 +1,129 @@
+{
+  "feedback": 193,
+  "contract_version": "6.36.7",
+  "captured_at": "2026-09-24T00:59:51.317Z",
+  "request": {
+    "tool": "badges_rarity",
+    "arguments": {
+      "segment": "corpus",
+      "limit": 10
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "corpus"
+      },
+      "limit": 10
+    },
+    "population": {
+      "recorded_clans": 18,
+      "recorded_players": 1080,
+      "players_in_window": 1080
+    },
+    "players_considered": 1080,
+    "observations": {
+      "oldest": "2026-09-12T03:02:47.000Z",
+      "newest": "2026-09-24T00:57:42.000Z"
+    },
+    "badges": [
+      {
+        "name": "ClassicRoyaleTournamentRank",
+        "label": "Classic Royale Tournament Rank",
+        "kind": "tiered",
+        "holders": 1,
+        "holder_share": 0.001,
+        "max_level": 10,
+        "by_level": {
+          "1": 1
+        }
+      },
+      {
+        "name": "CrlChampion2024",
+        "label": "CRL Champion 2024",
+        "kind": "one_off",
+        "holders": 1,
+        "holder_share": 0.001
+      },
+      {
+        "name": "CrlChampion2025",
+        "label": "CRL Champion 2025",
+        "kind": "one_off",
+        "holders": 1,
+        "holder_share": 0.001
+      },
+      {
+        "name": "RoyalTournamentRank",
+        "label": "Royal Tournament Rank",
+        "kind": "tiered",
+        "holders": 1,
+        "holder_share": 0.001,
+        "max_level": 10,
+        "by_level": {
+          "1": 1
+        }
+      },
+      {
+        "name": "SupercellEmployee",
+        "label": "Supercell Employee",
+        "kind": "one_off",
+        "holders": 1,
+        "holder_share": 0.001
+      },
+      {
+        "name": "CrlFinalist2024",
+        "label": "CRL Finalist 2024",
+        "kind": "one_off",
+        "holders": 6,
+        "holder_share": 0.006
+      },
+      {
+        "name": "CrlFinalist2025",
+        "label": "CRL Finalist 2025",
+        "kind": "one_off",
+        "holders": 11,
+        "holder_share": 0.01
+      },
+      {
+        "name": "SupercellPancake",
+        "label": "Supercell Pancake",
+        "kind": "one_off",
+        "holders": 11,
+        "holder_share": 0.01
+      },
+      {
+        "name": "RouletteAllModes",
+        "label": "Roulette All Modes",
+        "kind": "one_off",
+        "holders": 21,
+        "holder_share": 0.019
+      },
+      {
+        "name": "CrlCompetitor2022",
+        "label": "CRL Competitor 2022",
+        "kind": "one_off",
+        "holders": 30,
+        "holder_share": 0.028
+      }
+    ],
+    "notes": [
+      "Rarity is within the RECORDED population, not the game: a badge nobody here holds does not appear at all.",
+      "one_off badges have no level (awarded once for an event or feat, the genuinely rare class); tiered badges carry level/max_level.",
+      "by_level counts holders per level on a tiered badge; holder_share = holders / players_considered.",
+      "Badge names are the API's own identifiers and label is the badge as a player says it (MasterySkeletonWarriors is Guards Mastery). A versioned identifier says its version (RoyalTournamentRank_v2 is 'Royal Tournament Rank (v2)'): the original and the _v2 are two badges, often held by the same player.",
+      "observations.oldest/newest are the oldest and newest profile poll among players_considered: how fresh the reads behind these counts are.",
+      "players_considered counts the players recorded now whose profile the record has read (1080 of the 1080 recorded now): a player no longer recorded is left out, since the record stopped reading their badges. population.players_in_window is the same count."
+    ],
+    "docs": "glossary",
+    "meta": {
+      "contract_version": "6.36.7"
+    }
+  },
+  "timings": {
+    "db_ms": 753,
+    "db_queries": 3,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

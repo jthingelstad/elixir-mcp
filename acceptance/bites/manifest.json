@@ -309,14 +309,6 @@
   {
     "feedback": 111,
     "contract": "6.21.1",
-    "why": "the Gym's block 111.1: members_collection_1000_plus counted only members profiled that day, unsaid",
-    "case": "gym/111.1",
-    "captures": ["111-clans_timeline-week.json"],
-    "expect": "notes_match"
-  },
-  {
-    "feedback": 111,
-    "contract": "6.21.1",
     "why": "the Gym's block 111.2: today's in-progress point unmarked",
     "case": "gym/111.2",
     "captures": ["111-clans_timeline-today.json"],
@@ -1288,6 +1280,22 @@
     "why": "the Gym block 191.4 on the answer it read",
     "case": "gym/191.4",
     "captures": ["191-4-cards_synergy.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 193,
+    "contract": "6.36.7",
+    "why": "the Gym block 193.1 on the answer it read",
+    "case": "gym/193.1",
+    "captures": ["193-1-badges_rarity.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 193,
+    "contract": "6.36.7",
+    "why": "the Gym block 193.3 on the answer it read",
+    "case": "gym/193.3",
+    "captures": ["193-3-badges_rarity.json"],
     "expect": "."
   }
 ]

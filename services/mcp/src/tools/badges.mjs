@@ -276,7 +276,8 @@ export const badgesTools = {
                 bool_and(pb.level is null) as one_off,
                 max(pb.max_level) as max_level,
                 jsonb_object_agg(coalesce(pb.level::text, 'none'), n) filter (where pb.level is not null) as by_level_raw,
-                min(pb.observed_at) as oldest, max(pb.observed_at) as newest
+                min(pb.observed_at) as oldest, max(pb.observed_at) as newest,
+                count(*) over ()::int as badges_total
          from (select pb.name, pb.level, pb.max_level, pb.observed_at,
                       count(*) over (partition by pb.name, pb.level)::int as n
                from player_badge pb ${where.length ? `where ${where.join(" and ")}` : ""}) pb
@@ -290,6 +291,24 @@ export const badgesTools = {
         : await populationBlock(ctx.db, {
             playersInWindow: pop.players_considered,
           });
+      // A limited page is cut from the rarest end (Gym #193): the pair
+      // note reads every badge in the population, not just the page's, so
+      // a legacy row listed alone still carries its versioned twin's
+      // distinct count, and the page says it was cut.
+      const badgesTotal = rows[0]?.badges_total ?? 0;
+      const cut = badgesTotal > rows.length;
+      const onPage = new Set(rows.map((r) => r.name));
+      const pairs = !cut
+        ? versionPairs(rows.map((r) => r.name))
+        : versionPairs(
+            (
+              await ctx.db.query(
+                `select distinct pb.name from player_badge pb
+                  ${where.length ? `where ${where.join(" and ")}` : ""}`,
+                params,
+              )
+            ).rows.map((r) => r.name),
+          ).filter(([a, b]) => onPage.has(a) || onPage.has(b));
       return {
         applied: appliedBlock({ segment: scope.echo, kind: args.kind, limit }),
         ...(corpus ? { population: corpus } : {}),
@@ -315,17 +334,14 @@ export const badgesTools = {
               }),
         })),
         notes: notes(
-          "Rarity is within the RECORDED population, not the game: a badge nobody here holds does not appear at all.",
+          cut
+            ? `This page lists ${rows.length} of ${badgesTotal} badges held here, the rarest first (limit ${limit}); the other ${badgesTotal - rows.length} are more common and not listed. Rarity is within the RECORDED population, not the game.`
+            : "Rarity is within the RECORDED population, not the game: a badge nobody here holds does not appear at all.",
           KIND_NOTE,
           "by_level counts holders per level on a tiered badge; holder_share = holders / players_considered.",
           LABEL_NOTE,
           versionPairNote(
-            await pairCounts(
-              ctx.db,
-              versionPairs(rows.map((r) => r.name)),
-              scope.where,
-              scopeParams,
-            ),
+            await pairCounts(ctx.db, pairs, scope.where, scopeParams),
           ),
           OBSERVATIONS_NOTE,
           corpus ? corpusNote(pop, corpus) : null,
