@@ -20,6 +20,7 @@ import {
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Activity } from "../src/views/Activity.jsx";
+import { Timeline } from "../src/views/account/Timeline.jsx";
 import { Admin } from "../src/views/Admin.jsx";
 
 const ME = { is_admin: true, is_owner: true };
@@ -53,8 +54,8 @@ afterEach(() => {
  *  rows. If a page is added here it must go through LogTable too. */
 const PAGES = [
   [
-    "Activity ▸ Timeline",
-    () => <Activity sub="timeline" navigate={() => {}} />,
+    "Timeline",
+    () => <Timeline />,
     {
       "me/timeline": {
         window: { from: "2026-09-08T06:00:00Z", to: "2026-09-09T06:02:00Z" },

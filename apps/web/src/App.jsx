@@ -92,6 +92,7 @@ export const SECTIONS = {
     authed: true,
     pages: [
       { slug: "overview", label: "Overview" },
+      { slug: "timeline", label: "Timeline" },
       { slug: "tracking", label: "Tracking" },
       { slug: "verify", label: "Verify" },
       { slug: "collections", label: "Collections" },
@@ -189,6 +190,15 @@ export const RAIL = [
     icon: "layout-dashboard",
     to: "/account/overview",
   },
+  // What happened to what you track, the same items your connections
+  // read with elixir_timeline. Its own item beside Overview since
+  // 2026-09-23 (Jamie); it was Activity's first view until then.
+  {
+    key: "timeline",
+    label: "Timeline",
+    icon: "bell",
+    to: "/account/timeline",
+  },
   {
     key: "explore",
     label: "Explore",
@@ -225,9 +235,8 @@ export const RAIL = [
     key: "activity",
     label: "Activity",
     icon: "activity",
-    to: "/account/activity",
+    to: "/account/activity/requests",
     subs: [
-      ["timeline", "Timeline", "/account/activity"],
       ["requests", "MCP requests", "/account/activity/requests"],
       ["emails", "Emails", "/account/activity/emails"],
       ["events", "Account events", "/account/activity/events"],
@@ -327,7 +336,7 @@ export function railPosition(path) {
             ? "requests"
             : rest === "e"
               ? "emails"
-              : (rest ?? "timeline"),
+              : (rest ?? "requests"),
         ...(rest === "c" ? { doc: "activity:call" } : {}),
         ...(rest === "e" ? { doc: "activity:email" } : {}),
       };
@@ -423,7 +432,7 @@ export const DOC_LINKS = {
       ["Timeline", "/docs/timeline"],
     ],
   ],
-  "activity:timeline": [
+  timeline: [
     "Timeline",
     [
       ["The timeline", "/docs/timeline"],
@@ -665,6 +674,9 @@ const REDIRECTS = {
   "/account/collector": "/status/collectors",
   "/admin/gateways": "/admin/collectors",
   "/admin/tokens": "/admin/service-tokens",
+  // The bare Activity path WAS the timeline until the timeline became
+  // its own rail item (2026-09-23), so a bookmark to it still means that.
+  "/account/activity": "/account/timeline",
 };
 
 /** Guard restored/bookmarked routes: a stale path to a removed section
@@ -1145,13 +1157,13 @@ function Shell() {
     counts.connections = String(me.signals.connections ?? 0);
     if (me.signals.feedback > 0) counts.feedback = String(me.signals.feedback);
   }
-  /** The two dots the design puts on the rail: unread on Activity while
+  /** The two dots the design puts on the rail: unread on Timeline while
    *  the feed holds events no connection has read, and an alert on
    *  Connections while a credential that no longer works is still being
    *  presented — the one thing on this rail that wants you before you
    *  go looking. */
   const dots = {
-    activity:
+    timeline:
       me?.signals?.timeline_pending > 0
         ? { tone: "unread", title: "Unread notifications" }
         : null,

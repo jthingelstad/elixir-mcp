@@ -406,6 +406,25 @@ test("a legacy path is redirected and the ADDRESS BAR follows it", async () => {
   expect(window.location.search).toBe("?x=1");
 });
 
+test("the bare Activity path was the timeline's address, and still opens it", async () => {
+  // The timeline left Activity for its own rail item (2026-09-23); a
+  // bookmark or a docs link to /account/activity meant the timeline.
+  window.history.pushState({}, "", "/account/activity");
+  global.fetch = mockFetch({
+    "GET /api/me": [200, { authenticated: false }],
+  });
+  render(<App />);
+  await waitFor(() =>
+    expect(window.location.pathname).toBe("/account/timeline"),
+  );
+  // Activity's own pages keep their addresses.
+  cleanup();
+  window.history.pushState({}, "", "/account/activity/requests");
+  render(<App />);
+  await waitFor(() => expect(document.querySelector(".page")).toBeTruthy());
+  expect(window.location.pathname).toBe("/account/activity/requests");
+});
+
 test("every app section in the route table has a route, and nothing else does", async () => {
   const { routeTree, SECTIONS } = await import("../src/App.jsx");
   const routed = new Set(

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Your timeline has its own place in the console",
+    body: "The console's Timeline, what happened to the players and clans you track over the last seven days, is now its own item at the top of the menu, between Overview and Explore, instead of the first view inside Activity. It shows the same items your connections read with elixir_timeline, and the dot beside it still means some of them are unread by your connections. Activity keeps your MCP requests, emails and account events, and an old link to Activity's timeline opens the new page.",
+  },
+  {
+    date: "2026-09-23",
     title: "Leaderboards know when they really moved",
     body: "The Elixir Gym's third run over the ranking tools. A leaderboard now counts as moving only when someone's rating changed or a newcomer climbed in, not when a player dropped off the bottom, so a finished event no longer reads as live. Asking about a season that has not started yet now says so plainly. Contract 6.36.12.",
   },

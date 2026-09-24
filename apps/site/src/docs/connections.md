@@ -133,9 +133,10 @@ you, who can call on your behalf, and how the service is running.
 | Page | What it does |
 |---|---|
 | Overview | whether your agent can answer about you yet, and what each unfinished line is waiting for; your players and clans in brief; your tier's slot usage |
+| Timeline | what happened to the players and clans you track over the last seven days, the same items your connections read with `elixir_timeline`; reading it here marks nothing read |
 | Explore | the same read tools in a browser; the one write is nicknames |
 | Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and the only place these change |
-| Your record → Activity | your timeline, your calls with `request_id`, and account events |
+| Your record → Activity | your calls with `request_id`, the emails Elixir sent you, and account events |
 | Your record → Usage | seven days of calls and errors, top tools, today's balance with agents broken out |
 | Access → Connections → Clients | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect |
 | Access → Connections → Agents | create, connect URL, rotate, revoke, suspend, rename; per-agent spend, refusals and unread timeline subjects. An agent connected with a service key rather than OAuth carries its capabilities here, not on Clients |

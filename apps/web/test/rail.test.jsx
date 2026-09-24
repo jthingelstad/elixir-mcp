@@ -119,6 +119,19 @@ test("no two items at the same level share a label", () => {
   }
 });
 
+test("Timeline sits between Overview and Explore, in the ungrouped top", () => {
+  // Jamie, 2026-09-23: the timeline is a place of its own, not
+  // Activity's first view, and the unread dot moved with it.
+  const top = RAIL.slice(
+    0,
+    RAIL.findIndex((r) => r.group),
+  );
+  expect(top.map((r) => r.key)).toEqual(["overview", "timeline", "explore"]);
+  expect(railPosition("/account/timeline")).toEqual({ key: "timeline" });
+  const activity = RAIL.find((r) => r.key === "activity");
+  expect(activity.subs.map(([slug]) => slug)).not.toContain("timeline");
+});
+
 test("wide: the rail is a list, with no disclosure to open", async () => {
   window.history.pushState({}, "", "/account/overview");
   render(<App />);

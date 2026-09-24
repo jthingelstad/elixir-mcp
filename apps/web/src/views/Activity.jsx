@@ -2,25 +2,22 @@ import { LogTable } from "@elixir-mcp/ui";
 import {
   useActivityEvents,
   useMyEmailSends,
-  useMyTimeline,
   useMyRequests,
 } from "../lib/queries.js";
 
 /**
- * Activity's four views: the timeline, MCP requests, emails, account
- * events.
+ * Activity's three views: MCP requests, emails, account events.
  *
- * They are rail sub-pages, and all four are the SAME table with
- * different columns — see components/LogTable.jsx. Activity lands on the
- * Timeline, which is what your connections read (elixir_timeline) and the
- * thing a reader opening Activity is usually asking about: what happened.
+ * They are rail sub-pages, and all three are the SAME table with
+ * different columns — see components/LogTable.jsx. Activity lands on MCP
+ * requests. The timeline was its first view until 2026-09-23, when it
+ * became a rail item of its own (views/account/Timeline.jsx).
  *
  * Naming here follows the product, not the schema: mcp_call_audit is
  * "MCP requests", email_send is "Emails", account_event is "account
  * events".
  */
 const BY_SUB = {
-  timeline: "timeline",
   requests: "requests",
   emails: "emails",
   events: "events",
@@ -39,13 +36,12 @@ const when = (ts) =>
   ts ? new Date(ts).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—";
 
 export function Activity({ sub, navigate }) {
-  const view = BY_SUB[sub] ?? "timeline";
+  const view = BY_SUB[sub] ?? "requests";
   // Each tab loads only its own read, and a tab already read is served
   // from the cache when you come back to it.
   const requests = useMyRequests(view === "requests").data?.requests ?? null;
   const sends = useMyEmailSends(view === "emails").data?.sends ?? null;
   const events = useActivityEvents(view === "events").data?.events ?? null;
-  const timeline = useMyTimeline(view === "timeline").data ?? null;
 
   if (view === "requests") {
     const rows = (requests ?? []).map((r) => [
@@ -140,69 +136,33 @@ export function Activity({ sub, navigate }) {
     );
   }
 
-  if (view === "events") {
-    const rows = (events ?? []).map((e) => {
-      const tag = e.detail?.player_tag ?? e.detail?.clan_tag ?? null;
-      return [
-        when(e.created_at),
-        (e.kind ?? "").replaceAll("_", " "),
-        tag
-          ? e.detail?.subject_name
-            ? `${e.detail.subject_name} ${tag}`
-            : tag
-          : (e.detail?.role ?? e.detail?.name ?? ""),
-      ];
-    });
-    return (
-      <LogTable
-        crumb="Activity"
-        title="Account events"
-        note="Changes to your account, your access and what we record for you."
-        cols={[
-          ["WHEN", "left"],
-          ["EVENT", "left"],
-          ["DETAIL", "left"],
-        ]}
-        rows={rows}
-        monoCols={[0]}
-        filters={[{ key: "event", label: "Event", col: 1 }]}
-        empty="Nothing yet."
-        footnote="account_event — sign-ins, players and clans added, recording changes and tier changes."
-      />
-    );
-  }
-
-  const rows = (timeline?.timeline ?? []).map((it) => {
-    // Unread is a state of the row: past the account's read pointer, or
-    // everything when no connection has ever marked it.
-    const unread =
-      !timeline?.read_to || String(it.at) > String(timeline.read_to);
+  const rows = (events ?? []).map((e) => {
+    const tag = e.detail?.player_tag ?? e.detail?.clan_tag ?? null;
     return [
-      when(it.at),
-      it.subject_name ?? it.subject_tag ?? "your account",
-      it.text,
-      unread ? { text: "unread", tone: "accent-bright" } : "read",
+      when(e.created_at),
+      (e.kind ?? "").replaceAll("_", " "),
+      tag
+        ? e.detail?.subject_name
+          ? `${e.detail.subject_name} ${tag}`
+          : tag
+        : (e.detail?.role ?? e.detail?.name ?? ""),
     ];
   });
   return (
     <LogTable
       crumb="Activity"
-      title="Timeline"
-      note="What happened to the players and clans you track, last seven days, oldest first. The same items a connection reads with elixir_timeline."
+      title="Account events"
+      note="Changes to your account, your access and what we record for you."
       cols={[
         ["WHEN", "left"],
-        ["WHO", "left"],
-        ["WHAT", "left"],
-        ["STATE", "left"],
+        ["EVENT", "left"],
+        ["DETAIL", "left"],
       ]}
       rows={rows}
       monoCols={[0]}
-      filters={[
-        { key: "who", label: "Who", col: 1 },
-        { key: "state", label: "State", col: 3 },
-      ]}
-      empty="Nothing in the last seven days — everything you track appears here while its notify switch is on."
-      footnote="Reading this page never moves a connection's read pointer: unread here means unread by your connections, not by you."
+      filters={[{ key: "event", label: "Event", col: 1 }]}
+      empty="Nothing yet."
+      footnote="account_event — sign-ins, players and clans added, recording changes and tier changes."
     />
   );
 }

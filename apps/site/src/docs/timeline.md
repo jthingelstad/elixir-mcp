@@ -7,7 +7,7 @@ order: 16
 navTitle: "Timeline"
 icon: bell
 lede: "What happened to the players and clans you track, in order, written so a person can read it and an agent can act on it."
-console: ["Your timeline", "/account/activity", "Console ▸ Activity"]
+console: ["Your timeline", "/account/timeline", "Console ▸ Timeline"]
 ---
 
 # The timeline

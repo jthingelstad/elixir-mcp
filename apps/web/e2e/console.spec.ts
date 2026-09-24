@@ -111,8 +111,9 @@ test.describe("signed in", () => {
 
     // Every section is its own lazy chunk: each must arrive and render.
     const sections: [string, RegExp, string][] = [
+      ["Timeline", /\/account\/timeline$/, "Timeline"],
       ["Usage", /\/account\/usage$/, "Usage"],
-      ["Activity", /\/account\/activity$/, "Timeline"],
+      ["Activity", /\/account\/activity\/requests$/, "MCP requests"],
       ["Connections", /\/account\/connections$/, "Connections"],
       ["Profile", /\/account\/profile$/, "Profile"],
       ["Status", /\/status\/service$/, "Status"],
@@ -128,7 +129,7 @@ test.describe("signed in", () => {
         heading,
       );
       await rendered(page);
-      if (label === "Activity") {
+      if (label === "Timeline") {
         const session = page.getByRole("row").filter({
           hasText: "Played a battle session.",
         });
@@ -137,7 +138,8 @@ test.describe("signed in", () => {
       }
     }
     // Subs render only under the current item: Activity's three, and the
-    // current one marked.
+    // current one marked. Activity lands on MCP requests since the
+    // timeline became its own item.
     await rail.getByRole("link", { name: /^Activity/ }).click();
     await expect(
       rail.getByRole("link", { name: "MCP requests" }),
