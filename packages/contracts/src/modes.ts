@@ -65,3 +65,14 @@ export function modeGroupSql(typeCol: string, tagCol: string): string {
   return `case when ${tagCol} is not null then '${EVENT_MODE_GROUP}'
                else (case ${typeCol} ${cases} else 'casual' end) end`;
 }
+
+/**
+ * Battle types whose starting trophies are not Trophy Road trophies, so
+ * they sit in no trophy band. Path of Legends carries its rating (Gym
+ * #102); a tournament row carries the player's running score in that
+ * tournament, counting 1, 2, 3 on consecutive battles, which filed 3,313
+ * tournament battles as 89.6% of under_5000 (Gym #191).
+ */
+export function unbandedTypes(): string[] {
+  return [...typesForModeGroup("ranked"), ...typesForModeGroup("tournament")];
+}

@@ -2087,3 +2087,9 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - A `controls.test.mjs` fixture had decayed (war deck overtook the ladder deck as the fixed September battles aged out); two fresh ladder battles pin it.
 - Battles parked after three rounds: every finding shipped.
 
+## 2026-09-23 — Gym sweep, cards round 3 (6.36.6, feedback #191-#192): cards PARKED
+
+- 13/13 regressions confirmed fixed. **#191:** tournament starting_trophies is the running tournament score, so tournament rows filled 89.6% of under_5000. `unbandedTypes()` (contracts: ranked + tournament) drives both the raw `trophyBandClause` and the rollup's TROPHY_BAND_CASE; `{meta_rollup_season: {season_month, repair_bands: true}}` nulls stored bands for 2026-09 and 2026-08 and rebuilds the band tables. #192 praise.
+- Open (not filed): season-read partner counts run to now while the anchor stops at the rollup cursor (~0.3%); raw season-to-date corpus reads near 18 s; Mirror out of average_elixir unnoted; members.played.level_played is an undocumented mean.
+- Cards parked after three rounds: every finding shipped.
+

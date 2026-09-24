@@ -1,0 +1,197 @@
+{
+  "feedback": 191,
+  "contract_version": "6.36.5",
+  "captured_at": "2026-09-24T00:33:40.825Z",
+  "request": {
+    "tool": "battles_meta_cards",
+    "arguments": {
+      "segment": "corpus",
+      "trophy_band": "under_5000",
+      "mode": "tournament",
+      "limit": 5
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "corpus"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mode": "tournament",
+      "trophy_band": "under_5000",
+      "min_battles": 10,
+      "sort": "usage",
+      "limit": 5,
+      "verbosity": "full"
+    },
+    "population": {
+      "recorded_clans": 18,
+      "recorded_players": 1079,
+      "players_in_window": 1225
+    },
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "decided_battles": 3313,
+    "segment_win_rate": 0.501,
+    "prior_win_rate": 0.501,
+    "prior_basis": "corpus_window",
+    "excluded": {
+      "considered": 3760,
+      "duels": 0,
+      "boat": 0,
+      "draws": 2,
+      "unresolved": 0,
+      "no_deck": 0
+    },
+    "players_as_of": "2026-09-23T16:33:19.038Z",
+    "comparable": true,
+    "cards": [
+      {
+        "card_id": 28000001,
+        "name": "Arrows",
+        "form": "base",
+        "battles": 903,
+        "wins": 457,
+        "losses": 446,
+        "players": 345,
+        "usage_share": 0.273,
+        "win_rate": 0.506,
+        "shrunk_win_rate": 0.506,
+        "mean_level_gap": 0,
+        "modes": {
+          "tournament": {
+            "battles": 903,
+            "wins": 457,
+            "losses": 446
+          }
+        }
+      },
+      {
+        "card_id": 28000015,
+        "name": "Barbarian Barrel",
+        "form": "base",
+        "battles": 816,
+        "wins": 418,
+        "losses": 398,
+        "players": 359,
+        "usage_share": 0.246,
+        "win_rate": 0.512,
+        "shrunk_win_rate": 0.512,
+        "mean_level_gap": 0,
+        "modes": {
+          "tournament": {
+            "battles": 816,
+            "wins": 418,
+            "losses": 398
+          }
+        }
+      },
+      {
+        "card_id": 28000000,
+        "name": "Fireball",
+        "form": "base",
+        "battles": 704,
+        "wins": 383,
+        "losses": 321,
+        "players": 286,
+        "usage_share": 0.212,
+        "win_rate": 0.544,
+        "shrunk_win_rate": 0.543,
+        "mean_level_gap": 0,
+        "modes": {
+          "tournament": {
+            "battles": 704,
+            "wins": 383,
+            "losses": 321
+          }
+        }
+      },
+      {
+        "card_id": 28000011,
+        "name": "The Log",
+        "form": "base",
+        "battles": 579,
+        "wins": 293,
+        "losses": 286,
+        "players": 242,
+        "usage_share": 0.175,
+        "win_rate": 0.506,
+        "shrunk_win_rate": 0.506,
+        "mean_level_gap": 0,
+        "modes": {
+          "tournament": {
+            "battles": 579,
+            "wins": 293,
+            "losses": 286
+          }
+        }
+      },
+      {
+        "card_id": 28000012,
+        "name": "Tornado",
+        "form": "base",
+        "battles": 552,
+        "wins": 263,
+        "losses": 289,
+        "players": 230,
+        "usage_share": 0.167,
+        "win_rate": 0.476,
+        "shrunk_win_rate": 0.477,
+        "mean_level_gap": 0,
+        "modes": {
+          "tournament": {
+            "battles": 552,
+            "wins": 263,
+            "losses": 289
+          }
+        }
+      }
+    ],
+    "notes": [
+      "These are the population's decks and levels; nothing here checks what any one player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.",
+      "excluded counts the season and mode, not the band (a duel or a boat battle has no band); decided_battles and every row are the band's.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld below 30 decided observations (insufficient_sample: true).",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "Read from the season rollup: counters through 2026-09-23T23:40:16.103Z, distinct players as of 2026-09-23T16:33:19.038Z (a deck or card first seen since then carries players: null until tonight's rebuild).",
+      "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records.",
+      "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments."
+    ],
+    "docs": "methodology#deck-and-card-meta-exactly-what-is-counted",
+    "meta": {
+      "contract_version": "6.36.5"
+    }
+  },
+  "timings": {
+    "db_ms": 40,
+    "db_queries": 8,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

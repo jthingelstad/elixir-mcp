@@ -53,10 +53,11 @@
  */
 
 import pg from "pg";
-import { modeGroupSql, typesForModeGroup } from "@elixir-mcp/contracts";
+import { modeGroupSql, unbandedTypes } from "@elixir-mcp/contracts";
 
-/** The ranked battle types: a rating, not trophies, so no trophy band. */
-const RANKED_TYPES = typesForModeGroup("ranked");
+/** The battle types whose starting trophies are not trophies (ranked's
+ *  rating, a tournament's running score): no trophy band (#102, #191). */
+const UNBANDED_TYPES = unbandedTypes();
 
 const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
 const MODE_GROUP_CASE = modeGroupSql("bp.type", "b.event_tag");
@@ -90,8 +91,9 @@ const TROPHY_BAND_CASE = `case
   when bp.starting_trophies is null then null
   -- A Path of Legends row's starting_trophies is its RATING (about
   -- 2,300-3,000), which read as trophies filed the top-1,000 ladder
-  -- under under_5000 (Gym #102). Ranked has no trophy band.
-  when bp.type = any('{${RANKED_TYPES.join(",")}}'::text[]) then null
+  -- under under_5000 (Gym #102). A tournament row's is the running
+  -- score in that tournament (Gym #191). Neither has a trophy band.
+  when bp.type = any('{${UNBANDED_TYPES.join(",")}}'::text[]) then null
   when bp.starting_trophies < 5000 then 'under_5000'
   when bp.starting_trophies < 8000 then '5000_8000'
   when bp.starting_trophies < 11000 then '8000_11000'
@@ -592,8 +594,9 @@ export async function metaRollupSeason(databaseUrl, spec = {}) {
       [month],
     );
     if (!season) throw new Error(`no season ${month}`);
-    // {repair_bands: true} (6.22.0, Gym #102): a ranked row banded by its
-    // rating before the population builder learned better. One UPDATE on
+    // {repair_bands: true} (6.22.0, Gym #102; 6.36.6, #191): a ranked or
+    // tournament row banded by a number that is not trophies, before the
+    // population builder learned better. One UPDATE on
     // the cache table; the rebuild below re-derives every band aggregate
     // from the population, so nothing else needs touching.
     let bandsRepaired = null;
@@ -602,7 +605,7 @@ export async function metaRollupSeason(databaseUrl, spec = {}) {
         `update meta_season_pop set trophy_band = null
           where season_month = $1 and trophy_band is not null
             and type = any($2::text[])`,
-        [month, RANKED_TYPES],
+        [month, UNBANDED_TYPES],
       );
       bandsRepaired = rowCount;
     }

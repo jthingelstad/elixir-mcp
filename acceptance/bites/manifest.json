@@ -1257,5 +1257,37 @@
     "case": "gym/189.1",
     "captures": ["189-1-players_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 191,
+    "contract": "6.36.5",
+    "why": "the Gym block 191.1 on the answer it read",
+    "case": "gym/191.1",
+    "captures": ["191-1-cards_synergy.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 191,
+    "contract": "6.36.5",
+    "why": "the Gym block 191.2 on the answer it read",
+    "case": "gym/191.2",
+    "captures": ["191-2-cards_card.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 191,
+    "contract": "6.36.5",
+    "why": "the Gym block 191.3 on the answer it read",
+    "case": "gym/191.3",
+    "captures": ["191-3-battles_meta_cards.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 191,
+    "contract": "6.36.5",
+    "why": "the Gym block 191.4 on the answer it read",
+    "case": "gym/191.4",
+    "captures": ["191-4-cards_synergy.json"],
+    "expect": "."
   }
 ]

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Low-trophy card stats are Trophy Road again",
+    body: "The Elixir Gym's third run over the card tools. A tournament battle records the player's score in that tournament where a Trophy Road battle records trophies, and those scores had been filed as the lowest trophy band, so \"how does this card do at low trophies\" mostly described tournaments. Tournament battles now sit in no trophy band, as Path of Legends battles already did. Contract 6.36.6.",
+  },
+  {
+    date: "2026-09-23",
     title: "Battle trends start where you asked",
     body: "The Elixir Gym's third run over the battles tools. Weekly battle trends now start at the time you give them instead of the Monday before it, so a last-7-days read counts only those seven days. Event battles are labelled as events, not casual play. A meta read that leaves a player's event battles out now says how many it left out. And the player timeline answers for a named progress counter again. Contract 6.36.5.",
   },

@@ -9,6 +9,7 @@ import {
   ERROR_CLASS,
   ERROR_CLASSES,
   toolError,
+  unbandedTypes,
 } from "../dist/index.js";
 
 test("every response meta carries disclaimer and contract version", () => {
@@ -152,4 +153,11 @@ test("metadata distinguishes absent history and unknown sources from zero age", 
     assert.throws(() => assertResponseMeta(incomplete), TypeError);
   }
   assert.throws(() => responseMeta({ as_of: "yesterday" }), TypeError);
+});
+
+test("unbandedTypes: ranked's rating and a tournament's running score are not trophies (#102, #191)", () => {
+  const t = unbandedTypes();
+  assert.ok(t.includes("pathOfLegend"));
+  assert.ok(t.includes("tournament"));
+  assert.ok(!t.includes("PvP"));
 });

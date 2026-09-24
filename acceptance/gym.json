@@ -8934,5 +8934,257 @@
         "notes_match": "Event battles are not in the meta population"
       }
     ]
+  },
+  {
+    "id": "191.1",
+    "feedback": 191,
+    "stability": "live",
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "trophy_band": "under_5000",
+      "limit": 5
+    },
+    "request_id": "68b70eea-debd-4dec-8b0a-693af2f5e34c",
+    "assert": [
+      {
+        "absent": "anchor.modes.tournament"
+      }
+    ]
+  },
+  {
+    "id": "191.2",
+    "feedback": 191,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "mode": "tournament"
+    },
+    "request_id": "ffd4f506-055c-491d-80ea-35fbced56c7b",
+    "assert": [
+      {
+        "absent": "by_band[0]"
+      }
+    ]
+  },
+  {
+    "id": "191.3",
+    "feedback": 191,
+    "stability": "live",
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": "corpus",
+      "trophy_band": "under_5000",
+      "mode": "tournament",
+      "limit": 5
+    },
+    "request_id": "036dca16-617d-4974-9e84-7868803c27b7",
+    "assert": [
+      {
+        "lte": ["decided_battles", 0]
+      }
+    ]
+  },
+  {
+    "id": "191.4",
+    "feedback": 191,
+    "stability": "live",
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Hog Rider",
+      "segment": "corpus",
+      "trophy_band": "under_5000",
+      "limit": 5
+    },
+    "request_id": "bf4c2f1c-48c1-40ed-84d3-69a2806ef3a6",
+    "assert": [
+      {
+        "absent": "anchor.modes.tournament"
+      }
+    ]
+  },
+  {
+    "id": "191.5",
+    "feedback": 191,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "mode": "ladder"
+    },
+    "request_id": "2f6b5891-68e6-4c5e-b17a-097e5dccacac",
+    "assert": [
+      {
+        "has": "by_band[].trophy_band"
+      },
+      {
+        "gt": ["by_band[?trophy_band=under_5000].battles", 0]
+      }
+    ]
+  },
+  {
+    "id": "191.6",
+    "feedback": 191,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "trophy_band": "13000_plus",
+      "limit": 5
+    },
+    "request_id": "f0b87223-446f-44af-8acc-d491cce302ac",
+    "assert": [
+      {
+        "absent": "anchor.modes.tournament"
+      },
+      {
+        "has": "anchor.modes.ladder"
+      },
+      {
+        "lte": ["partners[0].co_occurrence_rate", 1]
+      }
+    ]
+  },
+  {
+    "id": "192.1",
+    "feedback": 192,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "w": {
+        "tool": "cards_synergy",
+        "args": {
+          "card": "Witch",
+          "segment": "corpus",
+          "from": "2026-09-07T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "limit": 5,
+          "min_pair_battles": 1
+        }
+      },
+      "a": {
+        "tool": "cards_synergy",
+        "args": {
+          "card": "Witch",
+          "segment": "corpus",
+          "from": "2026-09-07T10:00:00Z",
+          "to": "2026-09-20T10:00:00Z",
+          "limit": 5,
+          "min_pair_battles": 1
+        }
+      },
+      "b": {
+        "tool": "cards_synergy",
+        "args": {
+          "card": "Witch",
+          "segment": "corpus",
+          "from": "2026-09-20T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "limit": 5,
+          "min_pair_battles": 1
+        }
+      }
+    },
+    "request_id": "d6ee8676-69ba-435b-b02e-e3ebf011029f",
+    "assert": [
+      {
+        "sum_eq": [["a.anchor.decks", "b.anchor.decks"], "w.anchor.decks"]
+      },
+      {
+        "sum_eq": [
+          ["a.decided_battles", "b.decided_battles"],
+          "w.decided_battles"
+        ]
+      },
+      {
+        "sum_eq": [
+          [
+            "a.partners[?name=Arrows].co_battles",
+            "b.partners[?name=Arrows].co_battles"
+          ],
+          "w.partners[?name=Arrows].co_battles"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "192.2",
+    "feedback": 192,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "mode": "ranked"
+    },
+    "request_id": "66c6133a-2564-42b9-9eca-f3e764247792",
+    "assert": [
+      {
+        "notes_match": "(?i)by_band is empty on ranked.{0,120}no trophy band"
+      },
+      {
+        "absent": "by_band[0]"
+      }
+    ]
+  },
+  {
+    "id": "192.3",
+    "feedback": 192,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      }
+    },
+    "request_id": "d144c8bf-4436-48f7-b35a-b94735665f43",
+    "when": {
+      "eq": ["prior_basis", "segment_window"]
+    },
+    "assert": [
+      {
+        "notes_match": "this population's own decided mean"
+      },
+      {
+        "neq": [
+          "methodology.prior_source",
+          "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "192.4",
+    "feedback": 192,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Witch",
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "min_pair_battles": 1,
+      "limit": 30
+    },
+    "request_id": "2e21bf24-8fda-4edc-9a32-0170c426fe4c",
+    "assert": [
+      {
+        "lte": ["partners[0].co_battles", "anchor.decks"]
+      },
+      {
+        "lte": ["partners[0].co_occurrence_rate", 1]
+      }
+    ]
   }
 ]
