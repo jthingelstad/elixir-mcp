@@ -37,7 +37,9 @@
     "modal_arena": "on trophy_floor only for a player with a floor in the window",
     "last_battle_at": "on a `returned` timeline item, a rare kind",
     "returned_after_days": "same",
-    "player_activity": "a timeline entry kind for a player subject; the acceptance principal is a clan agent and follows no player"
+    "player_activity": "a timeline entry kind for a player subject; the acceptance principal is a clan agent and follows no player",
+    "training_today": "deprecated at 7.2.x (decks_today covers every race-week day); war_current serves it only on a training day, so a war-day run never sees it",
+    "roster_and_war_only": "an activity basis served only for an activity-scope clan (members' logs not recorded); a run over recorded clans never sees it"
   },
   "battles_query": {
     "king_tower_fell": "a VALUE of inferred.duration.basis, not a field; the note explains the three rules",

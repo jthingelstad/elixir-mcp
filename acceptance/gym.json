@@ -20880,11 +20880,12 @@
     "assert": [
       {
         "eq": [
-          "snapshot.progress[?key=AutoChess_2026_Season_10].in_latest_read",
+          "snapshot.progress[?key=AutoChess_2026_Season_10].current",
           false
         ]
       }
-    ]
+    ],
+    "amended": "The fix shipped the flag as current (true for a bucket the newest profile read carried), not the proposed in_latest_read (7.2.5)."
   },
   {
     "id": "329.2",
@@ -20901,11 +20902,12 @@
     "assert": [
       {
         "eq": [
-          "snapshot.progress[?key=seasonal-trophy-road-202608].in_latest_read",
+          "snapshot.progress[?key=seasonal-trophy-road-202608].current",
           false
         ]
       }
-    ]
+    ],
+    "amended": "The fix shipped the flag as current (true for a bucket the newest profile read carried), not the proposed in_latest_read (7.2.5)."
   },
   {
     "id": "329.3",
@@ -20921,9 +20923,10 @@
     },
     "assert": [
       {
-        "notes_match": "not in the latest"
+        "notes_match": "have ended \\(current false\\)"
       }
-    ]
+    ],
+    "amended": "The ended-bucket note shipped as \"... have ended (current false)\", not the proposed \"not in the latest\" wording (7.2.5)."
   },
   {
     "id": "329.4",
@@ -20941,7 +20944,7 @@
     "assert": [
       {
         "eq": [
-          "snapshot.progress[?key=seasonal-trophy-road-202609].in_latest_read",
+          "snapshot.progress[?key=seasonal-trophy-road-202609].current",
           true
         ]
       },
@@ -20951,7 +20954,8 @@
           "snapshot.date"
         ]
       }
-    ]
+    ],
+    "amended": "The fix shipped the flag as current (true for a bucket the newest profile read carried), not the proposed in_latest_read (7.2.5)."
   },
   {
     "id": "330.1",
