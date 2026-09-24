@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Side modes on the player profile",
+    body: "The Elixir Gym's fourth run over the player tools. A player's profile now includes their latest Merge Tactics, 2v2 League and seasonal Trophy Road standings. The legacy \"season trophies\" fields are labelled as what they are, a mirror of Trophy Road rather than the seasonal road. Contract 7.1.8.",
+  },
+  {
+    date: "2026-09-24",
     title: "War days no longer count boat defenses",
     body: "The Elixir Gym played a clan leader's first week. When an enemy attacks your clan's boat, the member whose defense deck answered did not play a battle, and those defenses no longer count as war days battled. A member who left and came back keeps their original join date on the roster. A timeline read for one member names them on their sessions, keeps each sitting whole and leaves your read pointer where it was. Contract 7.1.7.",
   },

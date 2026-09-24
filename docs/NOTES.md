@@ -2200,3 +2200,7 @@ Left for Jamie (in the morning report): M1's other not-found-on-error pages (Cal
 - **#265/#269/#270/#271** member sessions named, whole, 2+ battles; member reads never move the pointer. **#266** training-day war null. **#267** quiet summary per member. **#272** presence items from gaps (time-keyed dedupe; returns from gaps, with each member's last battle before the fetch bound). **#273** timeline schema/page bounds. #268/#274 praise. 245.1 retired (274.1 replaces it).
 - Console walked signed in as Jamie (magic code via Fastmail, Jamie-authorized): 28 pages, no console errors or failed calls; fixed the seven-emails copy.
 
+## 2026-09-24 — Gym players round 4 (7.1.8, feedback #275-#278)
+
+- 9 regressions: #228-#230, #232-#234 hold (#229 on all 48 members, #233 profile = roster for all). **#275** season_* are the API's legacy leagueStatistics (Trophy Road mirror, frozen best): relabelled + note. **#276** players_profile snapshot.progress (latest per bucket, 35 days). **#277** "lower bound" everywhere pre_reset is described. gym-interp: text_match / text_not_match. #278 praise. #134 (collection window season) unchanged, not refiled.
+

@@ -2418,6 +2418,8 @@ export const OUTPUT_SCHEMAS = {
           },
           league_statistics: {
             type: ["object", "null"],
+            description:
+              "The API's legacy leagueStatistics, verbatim (Gym #275): currentSeason.trophies mirrors Trophy Road and bestTrophies is frozen; previousSeason and bestSeason are not the seasonal Trophy Road either. The seasonal Trophy Road is players_timeline with progress_key 'seasonal-trophy-road-YYYYMM'.",
             properties: {
               currentSeason: {
                 type: ["object", "null"],
@@ -2447,6 +2449,11 @@ export const OUTPUT_SCHEMAS = {
           },
           donations_this_week: { type: ["integer", "null"] },
           donations_received_this_week: { type: ["integer", "null"] },
+          progress: {
+            type: "array",
+            description:
+              "Each side-mode bucket's latest reading in the last 35 days (7.1.8): key, mode, season_month, trophies, best_trophies, arena_id, day. The seasonal Trophy Road is here, not in league_statistics.",
+          },
           lifetime: {
             type: ["object", "null"],
             description:

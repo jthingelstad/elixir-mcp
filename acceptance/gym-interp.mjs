@@ -288,6 +288,22 @@ export function assertOne(spec, scope, root) {
       );
       return;
     }
+    case "text_match":
+    case "text_not_match": {
+      // A regex over a string field that is not notes[] (277.1: a docs
+      // section's markdown). Absent fails; the regex is case-sensitive.
+      const [p, re] = arg;
+      const v = at(p);
+      ok(typeof v === "string", `${verb} ${p}: not a string`);
+      const hit = new RegExp(re).test(v);
+      ok(
+        verb === "text_match" ? hit : !hit,
+        verb === "text_match"
+          ? `text_match ${p} /${re}/: not found`
+          : `text_not_match ${p} /${re}/: found`,
+      );
+      return;
+    }
     case "not_contains": {
       // The list or string does not hold the value (187.3: a mode's
       // types listed under the wrong group). Absent passes.

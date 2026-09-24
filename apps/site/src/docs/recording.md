@@ -109,9 +109,11 @@ whether or not their profile is recorded. The two writers share the row: a
 member with a recorded profile has the profile's lifetime counters on it too,
 and each half is dated by its own observation. The profile's progress buckets
 (the seasonal Trophy Road, 2v2 League, Merge Tactics) are kept as a series of
-their own; a bucket the player has not touched this season writes nothing. The
-readers over these series arrive with the next contract bump; today
-`players_timeline` already returns the roster-written days.
+their own; a bucket the player has not touched this season writes nothing, and
+the seasonal Trophy Road's entry value (14,000 with best 0) is not a row
+(7.1.3). `players_timeline` reads them with `progress_key` (`all`, or one
+key such as `seasonal-trophy-road-202609`; an unknown key names the ones the
+record holds).
 
 ## Relationships, primary, nicknames
 
@@ -299,7 +301,7 @@ Three tables hold the record's day-grained history, one row per subject per
 
 | Series | Written by | From | Read by |
 |---|---|---|---|
-| a player's day (trophies, donations, arena, clan and rank, the game's own last-seen, and for a recorded profile the lifetime block: battles, wins, losses, three-crown wins, star points, collection level, king tower level, total donations, challenge and tournament counters, Path of Legends standings, seasonal trophies) | the roster poll of every clan the recorder follows (every member, whether or not their profile is recorded) and the profile poll of every recorded player, sharing one row | 2026-03-07 for the first recorded players; 2026-03-11 for POAP KINGS' members; the day a clan or player is first polled otherwise | `players_timeline`, `clans_members_timeline` |
+| a player's day (trophies, donations, arena, clan and rank, the game's own last-seen, and for a recorded profile the lifetime block: battles, wins, losses, three-crown wins, star points, collection level, king tower level, total donations, challenge and tournament counters, Path of Legends standings, and the API's legacy `leagueStatistics` as `season_trophies` / `season_best_trophies`, which mirror Trophy Road and a frozen best, not the seasonal Trophy Road: read that with `progress_key`) | the roster poll of every clan the recorder follows (every member, whether or not their profile is recorded) and the profile poll of every recorded player, sharing one row | 2026-03-07 for the first recorded players; 2026-03-11 for POAP KINGS' members; the day a clan or player is first polled otherwise | `players_timeline`, `clans_members_timeline` |
 | a clan's day (clan score, war trophies, member count, required trophies, weekly donations, and on request `type` and `location_id`) | the roster poll | 2026-03-11 for POAP KINGS; the first poll otherwise | `clans_timeline` |
 | a player's progress buckets (the seasonal Trophy Road, 2v2 League, Merge Tactics: trophies, best trophies, arena per bucket) | the profile poll | 2026-03-07 | `players_timeline` with `progress_key` |
 
@@ -367,7 +369,8 @@ absence of play.
 
 `kind` selects the daily row (the default), the `pre_reset` row (the highest
 weekly donation counter the record saw before the counters dropped to 0 at the
-start of Monday UTC: the week's donation total)
+start of Monday UTC: a lower bound on the week's donations, since any made after
+the last read before the reset are not in it)
 or the `season_roll` row (the hour before the season rolls). A bucket of the
 progress series that reads zero trophies and zero best trophies is not a row:
 no record for no activity.

@@ -841,7 +841,7 @@ export const clansTools = {
           compact
             ? null
             : "war_points per war week is the member's period points (the war_history and war_current `points` figure, the API's periodPoints), never fame.",
-          "donations is the highest value the game's weekly counter reached in that week's game days (it only climbs until the weekly reset around the start of Monday UTC, so the highest is the week's total); null means no snapshot fell in the week.",
+          "donations is the highest value the game's weekly counter reached in that week's game days (it only climbs until the weekly reset around the start of Monday UTC, so the highest read is a lower bound on the week's total: donations after the last read before the reset are not in it); null means no snapshot fell in the week.",
           "Per-member columns align to the top-level weeks and war_weeks, one entry each in order; war_decks_by_day holds war days 1-4 from roster polls during each day, null where that day was not polled, and war_battles_by_day the member's recorded war battles per day.",
           "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
           coverageBasisNote(coverage.basis),

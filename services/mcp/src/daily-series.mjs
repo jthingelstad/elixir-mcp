@@ -72,7 +72,7 @@ export const KIND_SCHEMA = {
   enum: KINDS,
   default: "daily",
   description:
-    "Which row of the day: daily (the day's last observation), pre_reset (the highest weekly donation counter seen before the Monday reset: the week's donation total) or season_roll (the hour before the season rolls).",
+    "Which row of the day: daily (the day's last observation), pre_reset (the highest weekly donation counter seen before the Monday reset: a lower bound on the week's donations, since donations after the last read before the reset are not in it) or season_roll (the hour before the season rolls).",
 };
 
 export const GRANULARITY_SCHEMA = {

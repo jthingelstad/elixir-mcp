@@ -15891,5 +15891,236 @@
         "notes_match": "A member read"
       }
     ]
+  },
+  {
+    "id": "275.1",
+    "feedback": 275,
+    "stability": "frozen",
+    "tool": "players_timeline",
+    "args": {
+      "player_tag": "#YC8LLR8Q2",
+      "from": "2026-09-05",
+      "to": "2026-09-09",
+      "metrics": ["trophies", "season_trophies", "season_best_trophies"]
+    },
+    "request_id": "c24498f8-aa9f-4cfe-b7d6-524b6d71789e",
+    "assert": [
+      {
+        "notes_match": "season_best_trophies"
+      }
+    ]
+  },
+  {
+    "id": "275.2",
+    "feedback": 275,
+    "stability": "frozen",
+    "control": true,
+    "tool": "players_timeline",
+    "args": {
+      "player_tag": "#YC8LLR8Q2",
+      "from": "2026-09-05",
+      "to": "2026-09-09",
+      "metrics": ["trophies"]
+    },
+    "request_id": "4bd699e3-21d2-4eb9-9eeb-19905d97fe09",
+    "assert": [
+      {
+        "notes_not_match": "season_best_trophies"
+      },
+      {
+        "has": "series[0].trophies"
+      }
+    ]
+  },
+  {
+    "id": "275.3",
+    "feedback": 275,
+    "stability": "live",
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#YC8LLR8Q2"
+    },
+    "request_id": "d4b49012-619b-4926-956a-8527e77c9c76",
+    "when": {
+      "has": "snapshot.league_statistics.previousSeason"
+    },
+    "assert": [
+      {
+        "notes_match": "league_statistics"
+      }
+    ]
+  },
+  {
+    "id": "275.4",
+    "feedback": 275,
+    "stability": "live",
+    "control": true,
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "6d19ad1f-ca72-4275-8f4c-fc5095e475aa",
+    "when": {
+      "eq": ["snapshot.league_statistics", null]
+    },
+    "assert": [
+      {
+        "notes_not_match": "league_statistics"
+      }
+    ]
+  },
+  {
+    "id": "276.1",
+    "feedback": 276,
+    "stability": "live",
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#YC8LLR8Q2"
+    },
+    "request_id": "d4b49012-619b-4926-956a-8527e77c9c76",
+    "assert": [
+      {
+        "has": "snapshot.progress"
+      }
+    ]
+  },
+  {
+    "id": "276.2",
+    "feedback": 276,
+    "stability": "live",
+    "control": true,
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#VJQV8G8RL"
+    },
+    "request_id": "e3922ca4-8c10-48ef-a5a5-30357c4d268a",
+    "when": {
+      "has": "snapshot.progress"
+    },
+    "assert": [
+      {
+        "count_eq": ["snapshot.progress[]", 0]
+      },
+      {
+        "has": "snapshot.lifetime.battle_count"
+      }
+    ]
+  },
+  {
+    "id": "277.1",
+    "feedback": 277,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "recording",
+      "section": "daily-series"
+    },
+    "request_id": "a5918c70-34f8-4b18-8578-2ca62b7e41f5",
+    "assert": [
+      {
+        "text_not_match": ["markdown", "the week's donation total"]
+      }
+    ]
+  },
+  {
+    "id": "277.2",
+    "feedback": 277,
+    "stability": "live",
+    "control": true,
+    "tool": "elixir_docs",
+    "args": {
+      "page": "recording",
+      "section": "daily-series"
+    },
+    "request_id": "a5918c70-34f8-4b18-8578-2ca62b7e41f5",
+    "assert": [
+      {
+        "text_match": ["markdown", "pre_reset"]
+      }
+    ]
+  },
+  {
+    "id": "278.1",
+    "feedback": 278,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#20JJJ2CCRU"
+        }
+      },
+      "r": {
+        "tool": "clans_roster",
+        "args": {}
+      }
+    },
+    "request_id": "61d4baa1-1544-42df-b6fd-679890c66974",
+    "assert": [
+      {
+        "eq": [
+          "p.snapshot.lifetime.king_tower_level",
+          "r.members[?player_tag=#20JJJ2CCRU].lifetime.king_tower_level"
+        ]
+      },
+      {
+        "eq": [
+          "p.snapshot.lifetime.total_donations",
+          "r.members[?player_tag=#20JJJ2CCRU].lifetime.total_donations"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "278.2",
+    "feedback": 278,
+    "stability": "frozen",
+    "control": true,
+    "tool": "players_timeline",
+    "args": {
+      "player_tag": "#VJQV8G8RL",
+      "from": "2026-09-10",
+      "to": "2026-09-22",
+      "metrics": ["trophies", "battle_count", "wins", "losses"]
+    },
+    "request_id": "0536731b-cd1d-418f-a55c-7c1c4ba05357",
+    "assert": [
+      {
+        "eq": ["series[?day=2026-09-10].battle_count", 12]
+      },
+      {
+        "eq": ["series[?day=2026-09-22].battle_count", 56]
+      },
+      {
+        "eq": ["series[?day=2026-09-22].wins", 53]
+      },
+      {
+        "eq": ["series[?day=2026-09-22].losses", 3]
+      }
+    ]
+  },
+  {
+    "id": "278.3",
+    "feedback": 278,
+    "stability": "live",
+    "control": true,
+    "tool": "players_timeline",
+    "args": {
+      "player_tag": "#20JJJ2CCRU",
+      "season": 137
+    },
+    "request_id": "667d1de6-10de-429a-a07f-12b2604eb27e",
+    "when": {
+      "count_eq": ["series[]", 0]
+    },
+    "assert": [
+      {
+        "notes_match": "has not begun"
+      },
+      {
+        "eq": ["applied.window.from", "applied.window.to"]
+      }
+    ]
   }
 ]

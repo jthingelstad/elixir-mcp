@@ -1753,5 +1753,13 @@
     "case": "gym/272.4",
     "captures": ["272-4-elixir_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 275,
+    "contract": "7.1.7",
+    "why": "the Gym block 275.1 on the answer it read",
+    "case": "gym/275.1",
+    "captures": ["275-1-players_timeline.json"],
+    "expect": "."
   }
 ]

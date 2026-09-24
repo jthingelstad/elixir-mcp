@@ -393,6 +393,16 @@ export const playersTools = {
           "Recording may have just started; try elixir_coverage, or live: true.",
         );
       }
+      const { rows: progressRows } = await ctx.db.query(
+        `select distinct on (p.progress_key) p.progress_key, m.mode, m.season_month,
+                p.trophies, p.best_trophies, p.arena_id, p.day
+           from player_progress_daily p
+           join mode_season m on m.progress_key = p.progress_key
+          where p.player_tag = $1 and p.snapshot_kind = 'daily'
+            and p.day > current_date - 35
+          order by p.progress_key, p.day desc`,
+        [row.player_tag],
+      );
       return {
         player_tag: row.player_tag,
         name: row.name,
@@ -437,9 +447,22 @@ export const playersTools = {
           donations_this_week: row.donations,
           donations_received_this_week: row.donations_received,
           lifetime: row.lifetime,
+          // Each side-mode bucket's latest reading (Gym #276: Merge
+          // Tactics, 2v2 League and the seasonal Trophy Road were only in
+          // players_timeline's progress series).
+          progress: progressRows.map((r) => ({
+            key: r.progress_key,
+            mode: r.mode,
+            season_month: r.season_month,
+            trophies: r.trophies,
+            best_trophies: r.best_trophies,
+            arena_id: r.arena_id,
+            day: r.day.toISOString().slice(0, 10),
+          })),
         },
         notes: notes(
           livePendingNote(live),
+          "snapshot.progress is each side-mode bucket's latest reading (Merge Tactics, 2v2 League, the seasonal Trophy Road; buckets read in the last 35 days); players_timeline with progress_key has the day-by-day series.",
           "last_seen_in_game is the game's own lastSeen from clan roster polls (when the player was last active); null until a polled roster carried them.",
           "attributes.war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations. For war results use battles_performance mode war; lifetime donations are snapshot.lifetime.total_donations (its series is players_timeline.total_donations).",
           row.years_played === null || row.years_played === undefined
@@ -470,7 +493,7 @@ export const playersTools = {
           items: { type: "string", enum: PLAYER_METRICS },
           default: ["trophies"],
           description:
-            "Which series to return; default trophies. Roster columns (written every roster poll of the member's clan): trophies, donations, donations_received, arena_id, clan_tag, clan_rank, previous_clan_rank, game_last_seen_at. Lifetime (the profile poll of a recorded player): best_trophies, battle_count, wins, losses, three_crown_wins, star_points, exp_points, collection_level, king_tower_level, total_donations, challenge_cards_won, challenge_max_wins, tournament_cards_won, tournament_battle_count. Path of Legends: league_number (the league, 1 = unranked; the name the battle row uses), pol_trophies, pol_rank. Seasonal Trophy Road: season_trophies, season_best_trophies.",
+            "Which series to return; default trophies. Roster columns (written every roster poll of the member's clan): trophies, donations, donations_received, arena_id, clan_tag, clan_rank, previous_clan_rank, game_last_seen_at. Lifetime (the profile poll of a recorded player): best_trophies, battle_count, wins, losses, three_crown_wins, star_points, exp_points, collection_level, king_tower_level, total_donations, challenge_cards_won, challenge_max_wins, tournament_cards_won, tournament_battle_count. Path of Legends: league_number (the league, 1 = unranked; the name the battle row uses), pol_trophies, pol_rank. League statistics: season_trophies, season_best_trophies (the API's legacy leagueStatistics: Trophy Road trophies and a frozen best, NOT the seasonal Trophy Road, which progress_key reads).",
         },
         ...DAY_WINDOW_ARGS,
         timezone: TIMEZONE_SCHEMA,
@@ -633,6 +656,12 @@ export const playersTools = {
         notes: notes(
           win.notBegunNote ?? null,
           progressKeyNote,
+          // Gym #275: these read like the seasonal Trophy Road and are not.
+          metrics.some(
+            (m) => m === "season_trophies" || m === "season_best_trophies",
+          )
+            ? "season_trophies and season_best_trophies are the API's legacy leagueStatistics.currentSeason: season_trophies mirrors Trophy Road trophies and does not reset at the season roll, and season_best_trophies is a frozen value. The seasonal Trophy Road is its own progress bucket: pass progress_key 'seasonal-trophy-road-YYYYMM' (or 'all')."
+            : null,
           win.floorNote,
           snapshotsFrom && win.from && win.from < snapshotsFrom
             ? `Requested from ${win.from}, but daily snapshots begin ${snapshotsFrom}; earlier dates have battles (see elixir_coverage) but no snapshots.`
