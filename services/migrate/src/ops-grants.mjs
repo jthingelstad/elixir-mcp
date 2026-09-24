@@ -48,6 +48,8 @@ export async function oauthGrants(databaseUrl, spec = {}) {
     if (!host) throw new Error("oauth_grants needs redirect_host or revoke");
     const { rows } = await db.query(
       `select f.family_id, c.client_name, f.resource, f.scope, a.kind as account_kind,
+              (select cl.player_tag from claim cl
+                where cl.account_id = f.account_id and cl.is_primary) as owner_primary_player,
               f.created_at, f.absolute_expires_at,
               (select max(m.created_at) from mcp_call_audit m
                 where m.oauth_family_id = f.family_id) as last_mcp_call
