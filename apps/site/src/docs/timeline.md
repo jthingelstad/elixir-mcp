@@ -1,12 +1,12 @@
 ---
 slug: timeline
 title: "The timeline"
-description: "elixir_timeline: what happened to the players and clans you track since your read pointer, as items in order (battle sessions, named moments, roster and war moments, presence) plus one summary entry per subject; who is a subject for a person and for an agent; the window and read-pointer semantics; what the timeline never does."
+description: "elixir_timeline: what happened to the players and clans you track since your read pointer, as items newest first (battle sessions, named moments, roster and war moments, presence) plus one summary entry per subject; who is a subject for a person and for an agent; the window and read-pointer semantics; what the timeline never does."
 section: using
 order: 16
 navTitle: "Timeline"
 icon: bell
-lede: "What happened to the players and clans you track, in order, written so a person can read it and an agent can act on it."
+lede: "What happened to the players and clans you track, newest first, written so a person can read it and an agent can act on it."
 console: ["Your timeline", "/account/timeline", "Console ▸ Timeline"]
 ---
 
@@ -14,12 +14,14 @@ console: ["Your timeline", "/account/timeline", "Console ▸ Timeline"]
 
 Most tools answer a question you asked. The timeline is the other
 direction: it tells you what happened to the subjects you track since you
-last looked, in order, so a scheduled agent can read one thing and decide
-what to consider, and so a person can read the same thing and simply know.
+last looked, newest first like a newsfeed, so a scheduled agent can read
+one thing and decide what to consider, and so a person can read the same
+thing and simply know.
 
 It is **synthesized when you read it**, from the record and the per-subject
 ledger. Nothing is queued, fanned out or pruned. A reader that comes back
-after a month gets a month's timeline (capped at 30 days and 150 items a page).
+after a month gets a month's timeline (capped at 30 days, and at the newest
+150 items).
 
 ## `elixir_timeline`
 
@@ -38,18 +40,25 @@ Response: `{ window: { from, to }, read_to, timeline: [...], timeline_more,
 entries: [...], quiet: [...], subjects, next_cursor, has_more, notes,
 docs, meta }`.
 
-- `timeline` is oldest first by `at` (when a moment happened). A window
-  selects items by `observed_at`, when the record learned them, in
-  `(from, to]`. So an item can happen before `from` (it was observed late),
-  and a moment in the window that was observed after `to` is in the next one.
-- `next_cursor` is `window.to`, or, when the 150-item cap cut the window,
-  1 ms before the first left-out item's `observed_at`. Pass it back as `from`
-  to continue: nothing is lost at the cut and nothing repeats (6.34.0).
+- `timeline` is **newest first** by `at` (when a moment happened), like a
+  newsfeed (7.0.0). A window selects items by `observed_at`, when the record
+  learned them, in `(from, to]`. So an item can happen before `from` (it was
+  observed late), and a moment in the window that was observed after `to`
+  is in the next one.
+- `next_cursor` is always `window.to`. Pass it back as `from` to continue
+  from the present.
+- **A busy window keeps its newest.** Past the 150-item cap (or the
+  response's size budget), `timeline` holds the items observed after the
+  newest one left out, and the older ones are counted, not served: a
+  reader catching up after days away lands on what is happening now, and
+  the entries still summarize the whole window. To read the older items
+  on purpose, pass the same `from` with `to` at the instant the note names,
+  and `mark_read: false`.
 - `read_to` is your pointer after this call. With `mark_read: false` it is
   unchanged: that is the dry run. It is `null` until something has been
   marked read on the account; the default window is then the last day.
 - `has_more` is `true` when the cap cut the window. `timeline_more` says how
-  many items this call's filters would have shown from the cut on.
+  many older items this call's filters would have shown that it left out.
 - `meta.timeline_pending` on any response counts subjects of yours the
   recorder has admitted something for since the oldest named reader's
   pointer when any reader has marked in the last 30 days (a reader silent
@@ -113,7 +122,7 @@ Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 | `account_*` | your account | feedback answered, recordings started or stopped, tier changes, connections |
 
 Every member moment and every `session_standout` is an item; the response's
-150-item cap and `next_cursor` bound them (6.34.0). The clan entry's `war` is
+150-item cap bounds them, keeping the newest (7.0.0). The clan entry's `war` is
 the calendar's week at the window's end: its fame, place and decks are that
 week's recorded race, and null when the record holds no race for it.
 

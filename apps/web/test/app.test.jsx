@@ -477,3 +477,43 @@ test("the console prints times on the account's clock, and UTC when none is set"
   render(<App />);
   expect(await screen.findByText("09-13 02:30Z")).toBeTruthy();
 });
+
+test("the timeline lists newest first, and says when a busy week was cut", async () => {
+  // Jamie, 2026-09-23: the timeline is a newsfeed, newest first
+  // everywhere (contract 7.0.0); the page keeps the API's order.
+  const item = (at, text) => ({
+    at,
+    subject_tag: "#20JJJ2CCRU",
+    subject_name: "Jamie",
+    kind: "battle_session",
+    section: "battles",
+    text,
+    facts: {},
+  });
+  window.history.pushState({}, "", "/account/timeline");
+  global.fetch = mockFetch({
+    "GET /api/me": [200, { authenticated: true, claims: [], recordings: [] }],
+    "GET /api/me/timeline": [
+      200,
+      {
+        read_to: null,
+        timeline: [
+          item("2026-09-12T10:00:00Z", "The newer session."),
+          item("2026-09-10T10:00:00Z", "The older session."),
+        ],
+        timeline_more: 7,
+        entries: [],
+        quiet: [],
+      },
+    ],
+  });
+  render(<App />);
+  await screen.findByText("The newer session.");
+  const texts = [...document.querySelectorAll("tbody tr")].map(
+    (tr) => tr.children[2].textContent,
+  );
+  expect(texts).toEqual(["The newer session.", "The older session."]);
+  expect(
+    screen.getByText(/the 2 newest are shown, and 7 more this week are not/),
+  ).toBeTruthy();
+});

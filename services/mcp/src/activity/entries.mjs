@@ -1289,10 +1289,13 @@ export async function buildClanEntry(
           basis:
             "activity scope records roster and war only; member battles are not recorded for this clan",
         },
+    // Newest first, like the timeline they sit beside (Jamie,
+    // 2026-09-23): the ledger reads oldest first, and a busy week keeps
+    // its latest twenty.
     roster: {
-      joined: capList(joined),
-      left: capList(left),
-      role_changes: capList(roleChanges),
+      joined: capList([...joined].reverse()),
+      left: capList([...left].reverse()),
+      role_changes: capList([...roleChanges].reverse()),
       bounced,
       size: { from: sizeFrom, to: sizeTo },
     },
@@ -1378,9 +1381,10 @@ export async function buildClanEntry(
         ...decorate(m.event_type, m.payload, arenaNames),
       },
     }));
-  // Oldest first before the cap, so what is dropped is the newest and a
-  // reader can continue from the first dropped instant (Gym #120).
-  memberItems.sort((a, b) => a.at.localeCompare(b.at));
+  // Newest first before the cap (Jamie, 2026-09-23: the timeline is a
+  // stream of what is new), so what a busy window drops is the oldest,
+  // counted in `more`.
+  memberItems.sort((a, b) => b.at.localeCompare(a.at));
   items.push(...memberItems.slice(0, MEMBER_MOMENTS_CAP));
   // A standout session is an item at the instant of the first rung this
   // window learned, observed when the record learned that battle. Every
@@ -1465,8 +1469,21 @@ async function accountItems(db, accountId, fromMs, toMs) {
  * The timeline and its entries for a list of subjects over one window.
  * Player subjects with nothing to say are listed under `quiet` rather than
  * given an entry (§13.4); clan subjects always get one, because a clan's
- * silence is itself the clan's activity. Items are oldest first, capped.
+ * silence is itself the clan's activity. Items are newest first, and
+ * the cap keeps the newest.
  */
+/** The timeline's cap. The timeline is a stream of what is new, read
+ *  newest first by everyone (Jamie, 2026-09-23; contract 7.0.0), so a
+ *  window past the cap keeps its newest items and the rest are counted,
+ *  not paged: a reader catching up lands on the present. `items` is
+ *  newest first. */
+export function capTimeline(items) {
+  return {
+    kept: items.slice(0, TIMELINE_CAP),
+    cut: items.slice(TIMELINE_CAP),
+  };
+}
+
 export async function buildTimeline(
   db,
   subjects,
@@ -1539,11 +1556,13 @@ export async function buildTimeline(
     seen.add(key);
     return true;
   });
-  if (items.length > TIMELINE_CAP) {
-    more += items.length - TIMELINE_CAP;
-    dropped.push(...items.slice(TIMELINE_CAP));
-    items = items.slice(0, TIMELINE_CAP);
-  }
+  // Deduplicated oldest first (a moment is kept at its first instant),
+  // then served newest first.
+  items.reverse();
+  const { kept, cut } = capTimeline(items);
+  more += cut.length;
+  dropped.push(...cut);
+  items = kept;
   for (const it of items) it.text = itemText(it, timezone);
   return {
     window: { from: iso(fromMs), to: iso(toMs) },

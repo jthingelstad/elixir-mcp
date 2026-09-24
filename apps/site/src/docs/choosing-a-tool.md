@@ -39,7 +39,7 @@ conventions that hold everywhere.
 | Which of those decks could THIS player actually play, and what would a few upgrades open? | the same, with `fit_for: "#TAG"`: rows they cannot field move to `unfieldable[]`, every row carries `fit` (their mean level, the gap to what they field, the upgrade path) |
 | Rarest badge, who holds one | `badges_rarity`, `badges_holders` |
 | A name to a tag, or tags to names | `players_search`, `players_names` |
-| What happened since I last looked? | `elixir_timeline` (items in order and an entry per subject, then drill with the data tools) |
+| What happened since I last looked? | `elixir_timeline` (items newest first and an entry per subject, then drill with the data tools) |
 | How have I moved: trophies, rank, a lifetime counter, day by day? | `players_timeline` (one point per game day; `metrics` picks the series) |
 | Which of my cards carry, which enemy cards beat me? | `battles_cards` (`perspective: "mine"` or `"opponent"`) |
 | Who do I keep meeting, and how does it go? | `battles_opponents` |

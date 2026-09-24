@@ -113,7 +113,7 @@ to how few observations back it. Formula and floors on
 [Methodology](/docs/methodology#deck-and-card-meta-exactly-what-is-counted).
 
 **timeline** — `elixir_timeline`: what happened to the players and clans you
-track since your read pointer, as items in order (battle sessions, named
+track since your read pointer, as items newest first (battle sessions, named
 moments, roster and war moments, presence) plus one summary entry per
 subject. A **session** is a run of one player's battles with no gap of 30
 minutes or more.

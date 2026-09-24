@@ -180,7 +180,7 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
     (m) => !seenSet.has(`${m.subject.tag}|${m.kind}|${m.key}`),
   );
   if (news.length === 0) return null;
-  // The biggest moment leads: arena and league first, then bests, then the rest, oldest first inside a rank.
+  // The biggest moment leads: arena and league first, then bests, then the rest, newest first inside a rank.
   const rank = {
     arena_changed: 0,
     ranked_promotion: 0,
@@ -191,7 +191,7 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
     badge_earned: 3,
     card_unlocked: 3,
   };
-  news.sort((a, b) => rank[a.kind] - rank[b.kind] || a.at.localeCompare(b.at));
+  news.sort((a, b) => rank[a.kind] - rank[b.kind] || b.at.localeCompare(a.at));
   const lead = news.filter((m) => rank[m.kind] <= 1).slice(0, 4);
   const milestones = (lead.length ? lead : news.slice(0, 3)).map((m) => ({
     kind: m.kind,

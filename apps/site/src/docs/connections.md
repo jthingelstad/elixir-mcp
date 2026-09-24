@@ -133,7 +133,7 @@ you, who can call on your behalf, and how the service is running.
 | Page | What it does |
 |---|---|
 | Overview | whether your agent can answer about you yet, and what each unfinished line is waiting for; your players and clans in brief; your tier's slot usage |
-| Timeline | what happened to the players and clans you track over the last seven days, the same items your connections read with `elixir_timeline`; reading it here marks nothing read |
+| Timeline | what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`; reading it here marks nothing read |
 | Explore | the same read tools in a browser; the one write is nicknames |
 | Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and the only place these change |
 | Your record → Activity | your calls with `request_id`, the emails Elixir sent you, and account events |

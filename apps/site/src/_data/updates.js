@@ -10,13 +10,18 @@
 export default [
   {
     date: "2026-09-23",
+    title: "The timeline reads newest first, like a newsfeed",
+    body: "The timeline is a stream of what is new, so it now leads with what happened most recently everywhere you read it: elixir_timeline, the console's Timeline and each agent's, the moments in the Wednesday Tracking report, the joins, departures and role changes in the Monday clan report, and milestones of equal weight in a milestone note. When a window holds more than the timeline can show at once, it keeps the newest and counts the rest, so an agent catching up after days away lands on what is happening now; the per-player and per-clan summaries still cover the whole window, and the older items can still be read by asking for that window. Contract 7.0.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "The console tells time in your timezone",
     body: "The console now shows times in the timezone set on your Profile, the zone your tools already answer in: the timeline, your MCP requests, emails and account events, a call's or an email's record, feedback, Verify, the Status page and its charts, Explore's battles and decks, and when your daily quota resets. Each time names its zone (\"09-12 21:30 CDT\"), and with no timezone set everything stays in UTC as before. Charts that count by day still count UTC days and say so, because that is how the record keeps them.",
   },
   {
     date: "2026-09-23",
     title: "Your timeline has its own place in the console",
-    body: "The console's Timeline, what happened to the players and clans you track over the last seven days, is now its own item at the top of the menu, between Overview and Explore, instead of the first view inside Activity. It shows the same items your connections read with elixir_timeline, and the dot beside it still means some of them are unread by your connections. Activity keeps your MCP requests, emails and account events, and an old link to Activity's timeline opens the new page.",
+    body: "The console's Timeline, what happened to the players and clans you track over the last seven days, is now its own item at the top of the menu, between Overview and Explore, instead of the first view inside Activity. It lists the newest first and shows the same items your connections read with elixir_timeline; on a week too busy to show whole, it keeps the newest and says how many it left out. The dot beside it still means some of them are unread by your connections. Activity keeps your MCP requests, emails and account events, and an old link to Activity's timeline opens the new page.",
   },
   {
     date: "2026-09-23",

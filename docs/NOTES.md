@@ -2135,7 +2135,10 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - **Case 209.2** (`season: "2026-10"`) is only valid until 2026-10-05, when 2026-10 becomes current: re-point it at the next season then.
 - Open (not filed, clans family): clans_timeline refuses `season`.
 
-## 2026-09-23 — Console Timeline, and the console's clock
+## 2026-09-23 — Console Timeline; the console's clock; the timeline is a newsfeed (7.0.0)
 
 - **Timeline is a rail item** (Jamie): Overview, Timeline, Explore. `/account/timeline` (views/account/Timeline.jsx); the unread dot moved with it; Activity keeps requests/emails/events and opens on requests; bare `/account/activity` redirects to `/account/timeline`. Kit gained the Lucide bell. Shipped 3980bb3, deployed.
 - **The console's clock** (Jamie: "the Console does know my timezone"): kit `stamp`/`stampDay`/`stampTime` (time.ts) and `ZoneProvider`/`useClock` (Zone.tsx); the Shell provides `me.timezone`. Every hand-built `toISOString()+"Z"` in the views is gone, Verify's browser-local clock too, Fresh's title, the Status charts' UTC "HH:MM" buckets (anchored at `as_of`), the quota reset line. Left on purpose: day-bucketed charts (Usage, Data, ActivityGraph, Efficiency) are UTC days and say so; the sign-in page has no account.
+- **The timeline is a newsfeed** (Jamie: "we had the whole concept of Timeline backwards"): contract 7.0.0. `buildTimeline` dedupes oldest first, serves newest first, caps to the newest 150 (`capTimeline`); member moments keep the newest 100; clan roster lists newest first. The tool's cut mirrors the old observed_at cut: keep what was observed after the newest item left out, count the rest; `next_cursor`/pointer to `to`; the note names the instant for an explicit older read. Tracking mail takes each subject's newest 8 in that order; milestone ties newest first. Jamie chose "newest 150, count the rest" over paging back or reversed pages.
+- Not changed: the series tools (`players_timeline`, `clans_timeline`, `rankings_timeline`, `clans_members_timeline`) are time series, not the feed. The Discord preview sorts by `at` itself and is unaffected.
+

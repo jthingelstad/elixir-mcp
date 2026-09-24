@@ -386,7 +386,7 @@ test("a window longer than 30 days is capped and says so; from after to is refus
   assert.equal(bad.body.error.code, "bad_request");
 });
 
-test("the timeline: battle sessions break on a 30-minute gap, items are oldest first with text, sections filter items", async () => {
+test("the timeline: battle sessions break on a 30-minute gap, items are newest first with text, sections filter items", async () => {
   const { body, isError } = await call("elixir_timeline", {
     from: "2026-09-01",
     mark_read: false,
@@ -402,11 +402,12 @@ test("the timeline: battle sessions break on a 30-minute gap, items are oldest f
   assert.ok(
     sessions.every((s) => /played a session of \d+ battles?/.test(s.text)),
   );
-  const first = sessions[0];
+  // Newest first, a newsfeed (7.0.0): the 09-01 pair is last.
+  const first = sessions.at(-1);
   assert.equal(first.facts.battles, 2);
   assert.equal(first.section, "battles");
   const ats = body.timeline.map((it) => it.at);
-  assert.deepEqual(ats, [...ats].sort(), "oldest first");
+  assert.deepEqual(ats, [...ats].sort().reverse(), "newest first");
   assert.ok(
     body.timeline.every(
       (it) => typeof it.text === "string" && it.text.length > 0,
@@ -614,9 +615,10 @@ test("ranked, best-band and career-wins moments name their battle the same way",
   assert.deepEqual(text("best_trophies_band"), [
     "Tue 23:40 AHMOメŞΛDØW set a new best of 6,087 trophies, crossing 6,000, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
   ]);
+  // Newest first (7.0.0).
   assert.deepEqual(text("career_wins_step"), [
-    "Tue 23:45 AHMOメŞΛDØW passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #2VVVV.",
     "Wed 04:00 AHMOメŞΛDØW passed 12,003 career wins.",
+    "Tue 23:45 AHMOメŞΛDØW passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #2VVVV.",
   ]);
 });
 
@@ -771,18 +773,20 @@ test("3.9.0: a badge or card moment keeps the member's name; the badge's is unde
   const badges = body.timeline.filter((it) => it.kind === "badge_earned");
   assert.deepEqual(
     badges.map((b) => [b.facts.badge, b.facts.level]),
+    // Newest first (7.0.0).
     [
-      ["MasteryHog", 5],
       ["Played2Years", 2],
+      ["MasteryHog", 5],
     ],
     "level 4 is texture; level 5 and a final level are moments",
   );
   assert.ok(badges.every((b) => b.facts.name === member.name));
   // badge stays the identifier; badge_label and the text are the badge
   // as a player says it (badge-names.mjs).
-  assert.equal(badges[0].facts.badge_label, "Hog Mastery");
+  const hog = badges.find((b) => b.facts.badge === "MasteryHog");
+  assert.equal(hog.facts.badge_label, "Hog Mastery");
   assert.equal(
-    badges[0].text,
+    hog.text,
     `Tue 05:02 ${member.name} took Hog Mastery to level 5.`,
   );
   const card = body.timeline.find((it) => it.kind === "card_unlocked");

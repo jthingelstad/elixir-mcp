@@ -516,7 +516,7 @@ export function AgentDetail({ id, navigate }) {
             Its timeline
           </span>
           <span className="footnote">
-            last seven days, oldest first · reading here never moves its pointer
+            last seven days, newest first · reading here never moves its pointer
           </span>
         </div>
         {timeline?.length === 0 && (

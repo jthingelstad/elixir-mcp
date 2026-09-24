@@ -14,6 +14,7 @@ import {
   buildPlayerEntry,
   buildClanEntry,
   buildEntries,
+  capTimeline,
   subjectsFor,
 } from "../src/activity/entries.mjs";
 
@@ -312,4 +313,23 @@ test("the clan entry's war day is the calendar's at the window's end, whatever t
     toMs: at("2026-09-11T12:00:00Z"),
   });
   assert.equal(again.entry.war.war_day, 2);
+});
+
+test("the cap keeps the newest: the timeline is a newsfeed", () => {
+  // Jamie, 2026-09-23 (contract 7.0.0): a window past the cap keeps its
+  // newest items and counts the rest, so a reader catching up lands on
+  // the present. Items arrive newest first.
+  const items = Array.from({ length: 160 }, (_, i) => ({
+    at: String(159 - i),
+  }));
+  const { kept, cut } = capTimeline(items);
+  assert.equal(kept.length, 150);
+  assert.equal(kept[0].at, "159");
+  assert.equal(kept.at(-1).at, "10");
+  assert.deepEqual(
+    cut.map((it) => it.at),
+    Array.from({ length: 10 }, (_, i) => String(9 - i)),
+  );
+  // Under the cap nothing is cut.
+  assert.deepEqual(capTimeline(items.slice(0, 5)).cut, []);
 });

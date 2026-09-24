@@ -39,6 +39,8 @@ export async function buildTracking({ db, account, week, season }) {
     timezone: tz,
     accountId: account.accountId,
   });
+  // Each subject's newest moments, newest first: the timeline's own
+  // order, a newsfeed (Jamie, 2026-09-23).
   const momentsFor = (tag) =>
     items
       .filter((it) => it.subject_tag === tag && MOMENT_KINDS.has(it.kind))

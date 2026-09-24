@@ -26,7 +26,7 @@ const PAGE_CHAR_BUDGET = 40_000;
 
 export const elixir_timeline = {
   description:
-    "Your timeline: what happened to the players and clans you track since your read pointer, as ITEMS in order plus one summary ENTRY per subject (a person's: the players and clans they track; an agent's: its clan). Items are named moments with an instant: battle sessions, badges, arena and ranked moves, new bests, cards unlocked, joins, departures, role changes, war milestones, quiet rungs, returns. Facts, never advice; nothing announces the time (game_clock does). Omit from to read from your pointer (none: 24 hours; cap 30 days); mark_read moves it to the window end, false is a dry run.",
+    "Your timeline: what happened to the players and clans you track since your read pointer, as ITEMS newest first plus one summary ENTRY per subject (a person's: the players and clans they track; an agent's: its clan). Items are named moments with an instant: battle sessions, badges, arena and ranked moves, new bests, cards unlocked, joins, departures, role changes, war milestones, quiet rungs, returns. Facts, never advice; nothing announces the time (game_clock does). Omit from to read from your pointer (none: 24 hours; cap 30 days); mark_read moves it to the window end, false is a dry run.",
   inputSchema: {
     type: "object",
     properties: {
@@ -210,53 +210,50 @@ export const elixir_timeline = {
     const shown = (it) =>
       (!sections || sections.includes(it.section)) &&
       (!kinds || kinds.includes(it.kind));
-    // A cap cut the window (Gym #120, #162). A window SELECTS by when the
-    // record observed an item (observed_at, in (from, to]), so the cut is
-    // on that instant too: the page keeps what was observed before the
-    // first item the cap left out, and next_cursor sits 1 ms before it,
-    // so the next page (from exclusive) starts with that very item. Cut
-    // on `at` instead, the item at the cut was lost and back-dated items
-    // were served on both pages.
+    // The timeline is a newsfeed (Jamie, 2026-09-23; contract 7.0.0):
+    // newest first, and a window past the cap keeps its NEWEST items and
+    // counts the rest rather than paging them, so a reader catching up
+    // lands on the present. A window SELECTS by when the record observed
+    // an item (observed_at, in (from, to]), so the cut is on that instant
+    // too (Gym #120, #162): the response holds what was observed after
+    // the newest item left out, and every older item is counted in
+    // timeline_more. A reader that wants them asks for them by window:
+    // the same from, with to at that instant.
     const droppedShown = (built.timeline_dropped ?? []).filter(shown);
     const observedMs = (it) => Date.parse(it.observed_at ?? it.at);
-    // Never at or before from: a cursor there would hand a reader the
-    // same window forever.
     const all = built.timeline.filter(shown);
-    // A page also fits the result cap (6.34.2): items are taken in the
-    // order they were observed until the page's characters reach the
-    // budget, and the cut falls on the first item that would not fit -
-    // the same observed_at cut as the item cap, so next_cursor pages on
-    // exactly. A count alone could not promise it: a standout carries the
-    // whole session shape, and 7 days of them ran past 48,000.
+    // A response also fits the result cap (6.34.2): items are taken from
+    // the most recently observed back until the characters reach the
+    // budget, and the cut falls on the first item that would not fit.
+    // A count alone could not promise it: a standout carries the whole
+    // session shape, and 7 days of them ran past 48,000.
     const entriesChars = JSON.stringify(entries).length;
     let used = entriesChars;
     let sizeCutMs = null;
-    const byObserved = [...all].sort((a, b) => observedMs(a) - observedMs(b));
+    const byObserved = [...all].sort((a, b) => observedMs(b) - observedMs(a));
     for (const [i, it] of byObserved.entries()) {
       used += JSON.stringify(it).length + 1;
       if (used > PAGE_CHAR_BUDGET) {
-        // Every page takes at least one item, or a page whose entries
-        // alone fill the budget would hand back the same cursor forever.
+        // Every response keeps at least its newest item, or one whose
+        // entries alone fill the budget would serve nothing.
         const at =
-          i === 0 ? byObserved.find((x) => observedMs(x) > observedMs(it)) : it;
+          i === 0 ? byObserved.find((x) => observedMs(x) < observedMs(it)) : it;
         sizeCutMs = at ? observedMs(at) : null;
         break;
       }
     }
-    const firstLeftOut = Math.min(
+    const newestLeftOut = Math.max(
       ...droppedShown.map(observedMs),
-      sizeCutMs ?? Infinity,
+      sizeCutMs ?? -Infinity,
     );
-    const cutMs = Number.isFinite(firstLeftOut)
-      ? Math.max(fromMs + 2, firstLeftOut)
-      : null;
+    const cutMs = Number.isFinite(newestLeftOut) ? newestLeftOut : null;
     const timeline =
-      cutMs === null ? all : all.filter((it) => observedMs(it) < cutMs);
+      cutMs === null ? all : all.filter((it) => observedMs(it) > cutMs);
     const remaining =
       cutMs === null ? 0 : all.length - timeline.length + droppedShown.length;
-    // If the first items alone exceed the budget, the cut cannot move
-    // below from + 2 ms; the page then holds what fits and says so.
-    const endMs = cutMs === null ? toMs : cutMs - 1;
+    // The read always reaches the window's end: what the cap left out is
+    // counted, not queued.
+    const endMs = toMs;
     // How late the record learned this page's items, for the widen advice.
     const lagHours = Math.ceil(
       Math.max(0, ...timeline.map((it) => observedMs(it) - Date.parse(it.at))) /
@@ -313,7 +310,7 @@ export const elixir_timeline = {
         seasonFields.seasonNotes,
         entries.length === 0 && built.quiet.length === 0
           ? "No subjects: track a player or clan (notify defaults on) and it appears here."
-          : "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+          : "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
         built.quiet.length > 0
           ? "quiet lists tracked players with nothing in the window; read days_since_poll beside days_quiet before calling the silence theirs."
           : null,
@@ -330,7 +327,7 @@ export const elixir_timeline = {
           ? `A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): ${timeline.filter((it) => Date.parse(it.at) < fromMs).length} item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For "what happened on a day", widen to by the record's lag (the longest here is ${lagHours} h, observed_at minus at) and filter on at.`
           : null,
         cutMs !== null
-          ? `The item cap cut this window at ${iso(cutMs)}, on when the record observed each item (observed_at): timeline holds what was observed before that instant, timeline_more (${remaining}) items observed from it on are not here, and has_more is true. Pass next_cursor (1 ms before the cut) as from for the rest; nothing is lost at the cut${marking ? ", and the read pointer moved only to it" : ""}.`
+          ? `A busy window: timeline holds the newest items, those the record observed after ${iso(cutMs)}, and timeline_more (${remaining}) older ones are counted, not served; has_more is true. The entries still summarize the whole window. next_cursor is the window's end${marking ? " and the read pointer moved to it" : ""}, so the next read continues from the present; to read the older items, pass the same from with to ${iso(cutMs)}${marking ? " and mark_read false" : ""}.`
           : "Pass next_cursor as from to continue from here without moving the pointer.",
       ),
       docs: FEED_DOCS,

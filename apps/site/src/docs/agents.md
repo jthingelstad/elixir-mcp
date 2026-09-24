@@ -137,7 +137,7 @@ question is fresher than the first.
 ## Consuming the timeline
 
 `elixir_timeline` returns the items that happened since your read pointer,
-in order, plus one entry per subject. For an agent the subject is the clan
+newest first, plus one entry per subject. For an agent the subject is the clan
 it represents: its members' sessions and moments, joins and departures, the
 war moments and the presence crossings arrive as items, and the entry
 summarizes the window. A consumer names its own pointer with `reader`
