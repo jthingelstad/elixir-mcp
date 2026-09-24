@@ -429,16 +429,18 @@ consumes one, so four decks is anywhere from two to four battles, and a
 member at `decks_used: 4` on war day 1 with one duel and one 1v1 in their
 log has finished the day.
 
-**Training days are recorded too** (since 2026-09-24). The game counts a
-member's practice decks on the three training days of a week, up to four a
-day, but they earn no points and never reach `decks_used`. On a training day
-`war_current.training_today` lists who has practiced and how many decks,
-and `war_history.member_weeks[].training_decks` totals a week's practice
+**Training days are recorded too** (since 2026-09-24). A member battles
+with the same four war decks all week. On a war day each deck can be played
+once and it scores; the three training days before are where members get
+reps in with those decks, up to four a day, for no points. Elixir keeps
+every day of the race week the same way. On a training day
+`war_current.training_today` lists who has played and how many decks, and
+`war_history.member_weeks[].training_decks` totals a week's training decks
 per member: read from the race poll since 2026-09-24, and rebuilt for
 earlier weeks from the members' recorded river-race battles on training
 days (a 1v1 is one deck, a duel one per round, four a day at most), which
-is a floor wherever a member's log was not fully captured. Training never counts
-as war attendance: `decks_today` and `war_days` are war days only.
+is a floor wherever a member's log was not fully captured. Training never
+counts as war attendance: `decks_today` and `war_days` are war days only.
 
 `boat_attacks` is counted **inside** `decks_used` and `scoring_decks`, and a
 boat battle scores on a different scale from a 1v1 or a duel: in one

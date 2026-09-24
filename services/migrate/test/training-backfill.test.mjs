@@ -77,8 +77,8 @@ before(async () => {
     [MATE, 0, CLAN, 0],
   ]);
   await db.query(
-    `insert into war_training_day (clan_tag, season_id, section_index, training_day, player_tag, decks_used_today)
-     values ($1, 136, 1, 2, $2, 3)`,
+    `insert into war_attendance_day (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+     values ($1, 136, 1, 1, $2, 3)`,
     [CLAN, MATE],
   );
   // A war day battle is not practice.
@@ -125,16 +125,21 @@ test("apply writes battlelog rows, only for race participants, never over a poll
   });
   assert.equal(r.inserted, 1);
   const { rows } = await db.query(
-    `select player_tag, training_day, decks_used_today, source from war_training_day order by player_tag`,
+    `select player_tag, day_in_section, decks_used_today, source from war_attendance_day order by player_tag`,
   );
   assert.deepEqual(rows, [
     {
       player_tag: ME,
-      training_day: 1,
+      day_in_section: 0,
       decks_used_today: 4,
       source: "battlelog",
     },
-    { player_tag: MATE, training_day: 2, decks_used_today: 3, source: "poll" },
+    {
+      player_tag: MATE,
+      day_in_section: 1,
+      decks_used_today: 3,
+      source: "poll",
+    },
   ]);
   const again = await trainingBackfill(SCRATCH_URL, {
     season_id: 136,

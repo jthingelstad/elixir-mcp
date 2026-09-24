@@ -370,7 +370,7 @@ export const PAYLOAD_KEYS = {
     "clan.participants[].boatAttacks": to("war_participation.boat_attacks"),
     "clan.participants[].decksUsed": to("war_participation.decks_used"),
     "clan.participants[].decksUsedToday": to(
-      "war_attendance_day.decks_used_today (war days); war_training_day.decks_used_today (training days)",
+      "war_attendance_day.decks_used_today (every day of the race week, day_in_section 0-6)",
     ),
     "clans[].tag": to("war_week_clan.participant_clan_tag"),
     "clans[].name": to("war_week_clan.participant_name"),
@@ -461,7 +461,7 @@ export const PAYLOAD_KEYS = {
       "war_participation.decks_used",
     ),
     "items[].standings[].clan.participants[].decksUsedToday": to(
-      "war_attendance_day.decks_used_today (war day 4)",
+      "war_attendance_day.decks_used_today (war day 4, day_in_section 6)",
     ),
     "paging.cursors.after": derived(
       "the log poll takes the API's default page; truncation is not a fact of the race",

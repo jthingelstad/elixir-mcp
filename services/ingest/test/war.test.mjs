@@ -117,7 +117,7 @@ test("re-ingest of the same race WRITES nothing: no tuple version moves", async 
         `
         select 'wp' as t, player_tag as k, xmin::text as v from war_participation where clan_tag = $1
         union all
-        select 'wa', war_day || '|' || player_tag, xmin::text from war_attendance_day where clan_tag = $1
+        select 'wa', day_in_section || '|' || player_tag, xmin::text from war_attendance_day where clan_tag = $1
         union all
         select 'wc', participant_clan_tag, xmin::text from war_week_clan where clan_tag = $1
         union all
@@ -728,9 +728,9 @@ test("decks the counter rolled past land on the previous war day (the Gym's open
   );
 });
 
-test("training days record practice decks apart from war attendance (0167)", async () => {
-  // Jamie 2026-09-24: decksUsedToday on a training day is kept too, in
-  // its own table, so no war-day count changes meaning.
+test("a training day is a race-week day like any other, with no war_day (0169)", async () => {
+  // Jamie 2026-09-24: the same four war decks all week; a training day
+  // is reps with them. One table, keyed by the day of the race week.
   const TRAIN_CLAN = "#2PYLQ8U9";
   await ctx.db.query(`insert into clan (clan_tag) values ($1)`, [TRAIN_CLAN]);
   const payload = await fixture("currentriverrace/training.json"); // p30 s4
@@ -744,17 +744,15 @@ test("training days record practice decks apart from war attendance (0167)", asy
     (p) => p.decksUsedToday > 0,
   );
   const { rows } = await ctx.db.query(
-    `select training_day, player_tag, decks_used_today from war_training_day
-      where clan_tag = $1 order by player_tag`,
+    `select day_in_section, war_day, player_tag, decks_used_today from war_attendance_day
+      where clan_tag = $1 and decks_used_today > 0 order by player_tag`,
     [TRAIN_CLAN],
   );
-  assert.equal(
-    rows.length,
-    practiced.length,
-    "one row per member who practiced",
-  );
+  assert.equal(rows.length, practiced.length, "one row per member who played");
   assert.ok(
-    rows.every((r) => r.training_day === (payload.periodIndex % 7) + 1),
+    rows.every(
+      (r) => r.day_in_section === payload.periodIndex % 7 && r.war_day === null,
+    ),
   );
   const first = practiced[0];
   assert.equal(
@@ -762,10 +760,10 @@ test("training days record practice decks apart from war attendance (0167)", asy
     first.decksUsedToday,
   );
   const { rows: att } = await ctx.db.query(
-    `select count(*)::int n from war_attendance_day where clan_tag = $1`,
+    `select count(*)::int n from war_attendance_day where clan_tag = $1 and war_day is not null`,
     [TRAIN_CLAN],
   );
-  assert.equal(att[0].n, 0, "a training day writes no war attendance");
+  assert.equal(att[0].n, 0, "a training day is no war day");
 
   // A lagging poll never lowers a count.
   const lagging = structuredClone(payload);
@@ -776,7 +774,7 @@ test("training days record practice decks apart from war attendance (0167)", asy
     fetchedAt: "2026-09-02T12:30:00Z",
   });
   const { rows: after } = await ctx.db.query(
-    `select sum(decks_used_today)::int n from war_training_day where clan_tag = $1`,
+    `select sum(decks_used_today)::int n from war_attendance_day where clan_tag = $1`,
     [TRAIN_CLAN],
   );
   assert.equal(

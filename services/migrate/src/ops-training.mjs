@@ -6,7 +6,7 @@
  * A river-race battle (the war types, not a boat defense) whose
  * battle_time falls on a TRAINING day of the policy grid (war_period,
  * 10:00Z days) is practice for the clan the player was in when it was
- * played. A 1v1 is one deck; a duel one per round played
+ * played: the same four war decks, played for reps (Jamie). A 1v1 is one deck; a duel one per round played
  * (battle_participant_round), or two when no round rows were recorded
  * (counted as duels_without_rounds). A day is capped at four decks, as
  * the game caps decksUsedToday. Only clan-weeks whose race the record
@@ -35,7 +35,7 @@ const PRACTICE_SQL = `
      group by battle_id, player_tag),
   played as (
     select p.war_season_id as season_id, p.section_index,
-           p.day_in_section + 1 as training_day,
+           p.day_in_section,
            bp.clan_tag, bp.player_tag,
            case when bp.type = any($2::text[])
                 then coalesce(r.n, 2) else 1 end as decks,
@@ -55,11 +55,11 @@ const PRACTICE_SQL = `
          select 1 from war_participation wp
           where wp.clan_tag = bp.clan_tag and wp.season_id = p.war_season_id
             and wp.section_index = p.section_index and wp.player_tag = bp.player_tag))
-  select season_id, section_index, training_day, clan_tag, player_tag,
+  select season_id, section_index, day_in_section, clan_tag, player_tag,
          least(4, sum(decks))::int as decks_used_today,
          count(*) filter (where duel_no_rounds)::int as duels_without_rounds
     from played
-   group by season_id, section_index, training_day, clan_tag, player_tag`;
+   group by season_id, section_index, day_in_section, clan_tag, player_tag`;
 
 export async function trainingBackfill(databaseUrl, spec = {}) {
   const seasonId = Number(spec.season_id);
@@ -90,23 +90,23 @@ export async function trainingBackfill(databaseUrl, spec = {}) {
               count(*) filter (where x.decks_used_today < t.decks_used_today)::int as rebuilt_lower,
               count(*) filter (where x.decks_used_today > t.decks_used_today)::int as rebuilt_higher
          from (${PRACTICE_SQL}) x
-         join war_training_day t
+         join war_attendance_day t
            on t.clan_tag = x.clan_tag and t.season_id = x.season_id
-          and t.section_index = x.section_index and t.training_day = x.training_day
+          and t.section_index = x.section_index and t.day_in_section = x.day_in_section
           and t.player_tag = x.player_tag and t.source = 'poll'`,
       params,
     );
     let inserted = 0;
     if (apply) {
       const { rowCount } = await db.query(
-        `insert into war_training_day
-           (clan_tag, season_id, section_index, training_day, player_tag,
+        `insert into war_attendance_day
+           (clan_tag, season_id, section_index, day_in_section, player_tag,
             decks_used_today, source)
-         select clan_tag, season_id, section_index, training_day, player_tag,
+         select clan_tag, season_id, section_index, day_in_section, player_tag,
                 decks_used_today, 'battlelog'
            from (${PRACTICE_SQL}) x
           where decks_used_today > 0
-         on conflict (clan_tag, season_id, section_index, training_day, player_tag)
+         on conflict (clan_tag, season_id, section_index, day_in_section, player_tag)
          do nothing`,
         params,
       );

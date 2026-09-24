@@ -183,7 +183,8 @@ export const war_current = {
       `with att as (
              select war_day, player_tag, decks_used_today > 0 as battled
              from war_attendance_day
-             where clan_tag = $1 and season_id = $2 and section_index = $3),
+             where clan_tag = $1 and season_id = $2 and section_index = $3
+               and war_day is not null),
            fought as (
              select distinct wb.war_day, wb.player_tag
              from (${warBattlesSql({ clan: "$1", season: "$2", section: "$3", types: "$4" })}) wb),
@@ -238,9 +239,9 @@ export const war_current = {
       raceFinished === true
         ? `This clan's boat finished the race${raceFinishedAt ? ` at ${raceFinishedAt}` : ""}${finishWarDay ? ` (the close of war day ${finishWarDay})` : ""}: decks used after that earn zero points${decksAfter !== null ? ` - ${decksAfter} ${decksAfter === 1 ? "deck was" : "decks were"} played on the war days since, for 0 clan points` : ""} - so participants[].decks_used is not the denominator of a points-per-deck rate; scoring_decks is${finishWarDay && afterFinish ? "" : " (null here: the record cannot separate the two for this week)"}.`
         : null;
-    // A training day's practice decks (Jamie 2026-09-24: recorded from
-    // then on; training battles do not score, so they never enter
-    // decks_today or attendance).
+    // A training day's war decks (Jamie 2026-09-24): the same four decks,
+    // played for reps; they do not score, so they never enter decks_today
+    // or attendance. Same table as the war days (0169).
     let trainingToday = null;
     if (
       period &&
@@ -252,9 +253,9 @@ export const war_current = {
         `select wp.player_tag, p.name, coalesce(t.decks_used_today, 0)::int as decks_used
            from war_participation wp
            join player p on p.player_tag = wp.player_tag
-           left join war_training_day t
+           left join war_attendance_day t
              on t.clan_tag = wp.clan_tag and t.season_id = wp.season_id
-            and t.section_index = wp.section_index and t.training_day = $4
+            and t.section_index = wp.section_index and t.day_in_section = $4 - 1
             and t.player_tag = wp.player_tag
           where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
             and exists (select 1 from clan_membership cm
@@ -405,7 +406,7 @@ export const war_current = {
         livePendingNote(live),
         "points are per-member contributions; fame belongs to the boat (the clan).",
         trainingToday
-          ? `training_today is training day ${trainingToday.training_day}: the practice decks each member has played so far today, from the race poll (recorded since 2026-09-24). Training battles earn no points and do not count as war attendance; decks_today opens with the first war day.`
+          ? `training_today is training day ${trainingToday.training_day}: the war decks each member has played so far today. They are the same four decks the war days use, and on a war day each can be played once, so training days are where members get reps in with them; training battles earn no points and do not count as war attendance, and decks_today opens with the first war day.`
           : null,
         "standings.clan_war_trophies is each bracket clan's WAR trophies going into this race (the race's own trophy_change lands in the next one's figure) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
         CLAN_SCORE_DEPRECATION,

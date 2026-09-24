@@ -119,6 +119,7 @@ export function participationQueries({
                     ad.decks_used_today
              from war_attendance_day ad
              where ad.clan_tag = $1 and ad.player_tag = any($2)
+               and ad.war_day is not null
                and (ad.season_id, ad.section_index) in (
                  select w.season_id, w.section_index from war_week w
                  where w.clan_tag = $1

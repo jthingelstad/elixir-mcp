@@ -281,51 +281,31 @@ export async function projectRiverRace(
       ],
     );
     facts += partMoved;
-    // Training days too (Jamie 2026-09-24): the poll's decksUsedToday on
-    // a training day is practice, kept apart from war-day attendance.
-    if (clock.warDay === null) {
-      const { rowCount: trainMoved } = await db.query(
-        `insert into war_training_day
-           (clan_tag, season_id, section_index, training_day, player_tag, decks_used_today)
-         select $1, $2, $3, $4, t.tag, t.today
-         from unnest($5::text[], $6::int[]) as t(tag, today)
-         where t.today > 0
-         on conflict (clan_tag, season_id, section_index, training_day, player_tag) do update set
-           decks_used_today = greatest(war_training_day.decks_used_today, excluded.decks_used_today),
-           observed_at = now(),
-           source = 'poll'
-         where war_training_day.decks_used_today < excluded.decks_used_today
-            or war_training_day.source <> 'poll'`,
-        [
-          tag,
-          clock.seasonId,
-          clock.sectionIndex,
-          (clock.periodIndex % 7) + 1,
-          tags,
-          participants.map((p) => p.decksUsedToday),
-        ],
-      );
-      facts += trainMoved;
-    }
+    // Every day of the race week, training days included (Jamie
+    // 2026-09-24: the same four war decks all week; a war day's decks
+    // score, a training day's are reps). One row per member per
+    // day_in_section (0-6); war_day is derived from it.
+    const { rowCount: dayMoved } = await db.query(
+      `insert into war_attendance_day
+         (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+       select $1, $2, $3, $4, t.tag, t.today
+       from unnest($5::text[], $6::int[]) as t(tag, today)
+       on conflict (clan_tag, season_id, section_index, day_in_section, player_tag) do update set
+         decks_used_today = greatest(war_attendance_day.decks_used_today, excluded.decks_used_today),
+         source = 'poll'
+       where war_attendance_day.decks_used_today < excluded.decks_used_today
+          or war_attendance_day.source <> 'poll'`,
+      [
+        tag,
+        clock.seasonId,
+        clock.sectionIndex,
+        clock.periodIndex % 7,
+        tags,
+        participants.map((p) => p.decksUsedToday),
+      ],
+    );
+    facts += dayMoved;
     if (clock.warDay !== null) {
-      const { rowCount: dayMoved } = await db.query(
-        `insert into war_attendance_day
-           (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-         select $1, $2, $3, $4, t.tag, t.today
-         from unnest($5::text[], $6::int[]) as t(tag, today)
-         on conflict (clan_tag, season_id, section_index, war_day, player_tag) do update set
-           decks_used_today = greatest(war_attendance_day.decks_used_today, excluded.decks_used_today)
-         where war_attendance_day.decks_used_today < excluded.decks_used_today`,
-        [
-          tag,
-          clock.seasonId,
-          clock.sectionIndex,
-          clock.warDay,
-          tags,
-          participants.map((p) => p.decksUsedToday),
-        ],
-      );
-      facts += dayMoved;
       // The decks the counter rolled past (the Gym's open question 2,
       // 2026-09-21: war_decks_by_day summed one short of war_decks for
       // two of 46 members). Between the last poll of a day and the first
@@ -346,10 +326,10 @@ export async function projectRiverRace(
         if (carries.length > 0) {
           const { rowCount: carried } = await db.query(
             `insert into war_attendance_day
-               (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-             select $1, $2, $3, $4, t.tag, least(4, t.carry)
+               (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+             select $1, $2, $3, $4 + 2, t.tag, least(4, t.carry)
              from unnest($5::text[], $6::int[]) as t(tag, carry)
-             on conflict (clan_tag, season_id, section_index, war_day, player_tag) do update set
+             on conflict (clan_tag, season_id, section_index, day_in_section, player_tag) do update set
                decks_used_today = least(4, war_attendance_day.decks_used_today + excluded.decks_used_today)
              where war_attendance_day.decks_used_today < 4`,
             [
@@ -910,9 +890,9 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
           if (Number.isInteger(p.decksUsedToday) && p.decksUsedToday > 0) {
             const { rowCount: dayMoved } = await db.query(
               `insert into war_attendance_day
-                 (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-               values ($1, $2, $3, 4, $4, $5)
-               on conflict (clan_tag, season_id, section_index, war_day, player_tag) do update set
+                 (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+               values ($1, $2, $3, 6, $4, $5)
+               on conflict (clan_tag, season_id, section_index, day_in_section, player_tag) do update set
                  decks_used_today = greatest(war_attendance_day.decks_used_today, excluded.decks_used_today)
                where war_attendance_day.decks_used_today < excluded.decks_used_today`,
               [

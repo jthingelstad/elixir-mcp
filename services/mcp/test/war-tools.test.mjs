@@ -219,8 +219,8 @@ test("war_history: ranks per week and one member focus with attendance", async (
   const wk = focused.body.member_weeks[0];
   await db.query(
     `insert into war_attendance_day
-       (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-     values ($1, $2, $3, 0, $4, 4)`,
+       (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+     values ($1, $2, $3, 3, $4, 4)`,
     [CLAN, wk.season_id, wk.section_index, focusTag],
   );
   const covered = await call(invoke, "war_history", {
@@ -282,8 +282,8 @@ test("war_history exact week: a 50-participant roster answers in one pass, atten
   }
   for (const tag of tags.slice(0, 10))
     await db.query(
-      `insert into war_attendance_day (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-       values ($1, $2, $3, 2, $4, 4)`,
+      `insert into war_attendance_day (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+       values ($1, $2, $3, 4, $4, 4)`,
       [CLAN, season, section, tag],
     );
   const {
@@ -449,8 +449,8 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
   const [partialTag, finishedTag] = members;
   await db.query(
     `insert into war_attendance_day
-       (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-     values ($1, $2, $3, $6, $4, 2), ($1, $2, $3, $6, $5, 4)
+       (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+     values ($1, $2, $3, $6::int + 2, $4, 2), ($1, $2, $3, $6::int + 2, $5, 4)
      on conflict do nothing`,
     [
       CLAN,
@@ -1687,9 +1687,9 @@ test("6.11.0: finished_early on every week, finish_war_day, scoring_decks (feedb
   // Polls past the finish: one member played four decks on day 4, the
   // other none (a poll writes every participant's row).
   await db.query(
-    `insert into war_attendance_day (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-     values ($1, 133, 3, 3, $2, 4), ($1, 133, 3, 4, $2, 4), ($1, 133, 3, 4, $3, 0)
-     on conflict (clan_tag, season_id, section_index, war_day, player_tag)
+    `insert into war_attendance_day (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+     values ($1, 133, 3, 5, $2, 4), ($1, 133, 3, 6, $2, 4), ($1, 133, 3, 6, $3, 0)
+     on conflict (clan_tag, season_id, section_index, day_in_section, player_tag)
        do update set decks_used_today = excluded.decks_used_today`,
     [CLAN, members[0].player_tag, members[1].player_tag],
   );
@@ -1818,8 +1818,8 @@ test("6.11.0: war_current says the boat finished, names the day, and serves the 
     [CLAN, tags[0], tags[1]],
   );
   await db.query(
-    `insert into war_attendance_day (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-     values ($1, 135, 3, 4, $2, 4), ($1, 135, 3, 4, $3, 0)`,
+    `insert into war_attendance_day (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+     values ($1, 135, 3, 6, $2, 4), ($1, 135, 3, 6, $3, 0)`,
     [CLAN, tags[0], tags[1]],
   );
   try {
@@ -1978,9 +1978,9 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
     [CLAN, tags[0], tags[1]],
   );
   await db.query(
-    `insert into war_attendance_day (clan_tag, season_id, section_index, war_day, player_tag, decks_used_today)
-     values ($1, 135, 3, 4, $2, 4), ($1, 135, 3, 4, $3, 0)
-     on conflict (clan_tag, season_id, section_index, war_day, player_tag)
+    `insert into war_attendance_day (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+     values ($1, 135, 3, 6, $2, 4), ($1, 135, 3, 6, $3, 0)
+     on conflict (clan_tag, season_id, section_index, day_in_section, player_tag)
        do update set decks_used_today = excluded.decks_used_today`,
     [CLAN, tags[0], tags[1]],
   );

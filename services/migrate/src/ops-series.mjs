@@ -1111,7 +1111,10 @@ export async function warWeekRekeyRepair(databaseUrl, spec = {}) {
               "war_week_clan",
               "participant_clan_tag, participant_name, fame, finish_time, rank, trophy_change, period_points, period_points_observed_at, clan_score, repair_points",
             ],
-            ["war_attendance_day", "war_day, player_tag, decks_used_today"],
+            [
+              "war_attendance_day",
+              "day_in_section, player_tag, decks_used_today, source",
+            ],
             [
               "war_period_log",
               "period_index, participant_clan_tag, points_earned, progress_start, progress_end, progress_earned, end_of_day_rank, defenses_remaining, progress_from_defenses, observed_at",

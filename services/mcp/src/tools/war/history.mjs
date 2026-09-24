@@ -197,7 +197,7 @@ export const war_history = {
                     ad.decks_used_today > 0 as battled
              from war_attendance_day ad
              join k on k.season_id = ad.season_id and k.section_index = ad.section_index
-             where ad.clan_tag = $1),
+             where ad.clan_tag = $1 and ad.war_day is not null),
            fought as (
              select k.season_id, k.section_index, wb.player_tag, wb.war_day::int as war_day
              from k cross join lateral (${weekBattles}) wb),
@@ -209,14 +209,14 @@ export const war_history = {
              select season_id, section_index, player_tag, war_day from att where battled
              union
              select season_id, section_index, player_tag, war_day from fought),
-           -- Practice decks on the week's training days (0167, recorded
-           -- from 2026-09-24): a week with no training row is unknown.
+           -- The war decks played on the week's training days (0169: one
+           -- row per race-week day; war_day null on a training day).
            trn as (
              select t.season_id, t.section_index, t.player_tag,
                     sum(t.decks_used_today)::int as training_decks
-             from war_training_day t
+             from war_attendance_day t
              join k on k.season_id = t.season_id and k.section_index = t.section_index
-             where t.clan_tag = $1
+             where t.clan_tag = $1 and t.war_day is null
              group by t.season_id, t.section_index, t.player_tag),
            trn_cov as (select distinct season_id, section_index from trn),
            per_player as (
@@ -406,7 +406,7 @@ export const war_history = {
               ? null
               : "history_starts_at is the recording horizon: fewer seasons than requested is coverage, not absence.",
             memberWeeks?.length
-              ? "member_weeks[].training_decks is the practice decks played on the week's training days (training battles earn no points and are not in decks_used or war_days); from the race poll since 2026-09-24 and rebuilt from recorded river-race battles before that (a floor where a member's log was not fully captured); null for a week with no practice recorded at all."
+              ? "member_weeks[].training_decks is the war decks played on the week's training days: the same four decks a member battles with on war days, where each can be played once, so training days are reps with them. They earn no points and are not in decks_used or war_days; from the race poll since 2026-09-24 and rebuilt from recorded river-race battles before that (a floor where a member's log was not fully captured); null for a week with no practice recorded at all."
               : null,
           ),
       docs: WAR_DOCS,
