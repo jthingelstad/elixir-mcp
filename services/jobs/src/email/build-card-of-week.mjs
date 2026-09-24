@@ -33,16 +33,14 @@ const TREND_SEASON_FLOOR = 50_000;
 const TREND_MIN_SEASONS = 4;
 // The two ends of the trophy range, compared only when both are real.
 const BAND_FLOOR = 2000;
-// A band's own boundaries, as NUMBERS. The band is named `under_5000`
-// and a writer naturally says "under 5,000 trophies" - which the lint
-// refused, correctly, because 5000 existed only inside a string. The
+// A band's own boundaries, as NUMBERS. The band is named `under_10000`
+// and a writer naturally says "under 10,000 trophies" - which the lint
+// refused, correctly, because 10000 existed only inside a string. The
 // boundary is a fact about the band; it belongs in the brief.
 const BAND_BOUNDS = {
-  under_5000: { trophies_from: 0, trophies_to: 5000 },
-  "5000_8000": { trophies_from: 5000, trophies_to: 8000 },
-  "8000_11000": { trophies_from: 8000, trophies_to: 11000 },
-  "11000_13000": { trophies_from: 11000, trophies_to: 13000 },
-  "13000_plus": { trophies_from: 13000, trophies_to: null },
+  under_10000: { trophies_from: 0, trophies_to: 10000 },
+  "10000_13999": { trophies_from: 10000, trophies_to: 14000 },
+  trophy_road_complete: { trophies_from: 14000, trophies_to: null },
 };
 const MONTHS = [
   "January",
@@ -279,13 +277,13 @@ export async function buildCardOfWeekBrief({
   // Played more low and won more high, or the reverse - stated only when
   // BOTH ends are real, and only with the level gap beside it, because
   // that is the one thing that would otherwise explain it.
-  const low = byBand.find((b) => b.trophy_band === "under_5000");
-  const high = byBand.find((b) => b.trophy_band === "13000_plus");
+  const low = byBand.find((b) => b.trophy_band === "under_10000");
+  const high = byBand.find((b) => b.trophy_band === "trophy_road_complete");
   const bandContrast =
     low && high && low.battles >= BAND_FLOOR && high.battles >= BAND_FLOOR
       ? {
-          low: { band: "under 5,000 trophies", ...low },
-          high: { band: "13,000 trophies and up", ...high },
+          low: { band: "under 10,000 trophies", ...low },
+          high: { band: "Trophy Road complete (14,000)", ...high },
           usage_falls: low.usage_share > high.usage_share,
           win_rises: high.win_rate > low.win_rate,
         }

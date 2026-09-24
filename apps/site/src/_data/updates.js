@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Three trophy bands, and Trophy Road complete gets its own",
+    body: "The meta tools now split Trophy Road into three: under 10,000, 10,000 to 13,999, and Trophy Road complete (14,000, the cap). The old five bands were finer than the recorded games could fill, and they mixed players still climbing with players who have finished, who play a narrower, settled meta of their own. Contract 8.1.0.",
+  },
+  {
+    date: "2026-09-24",
     title: "Elixir 8.0: repeat players, and season numbers everywhere",
     body: "The version before open beta carries two changes that could break a strict client. Asking for decks played by at least two players now counts only players who played the deck more than once, so one player's long run can't be passed off as a popular deck. And the leaderboard tools give the season as a number, like every other tool. Contract 8.0.0.",
   },

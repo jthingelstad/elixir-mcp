@@ -91,14 +91,13 @@ const TROPHY_BAND_CASE = `case
   when bp.starting_trophies is null then null
   -- A Path of Legends row's starting_trophies is its RATING (about
   -- 2,300-3,000), which read as trophies filed the top-1,000 ladder
-  -- under under_5000 (Gym #102). A tournament row's is the running
+  -- under the lowest band (Gym #102). A tournament row's is the running
   -- score in that tournament (Gym #191). Neither has a trophy band.
   when bp.type = any('{${UNBANDED_TYPES.join(",")}}'::text[]) then null
-  when bp.starting_trophies < 5000 then 'under_5000'
-  when bp.starting_trophies < 8000 then '5000_8000'
-  when bp.starting_trophies < 11000 then '8000_11000'
-  when bp.starting_trophies < 13000 then '11000_13000'
-  else '13000_plus' end`;
+  -- Three bands (0175, Jamie 2026-09-24); 14,000 is Trophy Road's cap.
+  when bp.starting_trophies < 10000 then 'under_10000'
+  when bp.starting_trophies < 14000 then '10000_13999'
+  else 'trophy_road_complete' end`;
 
 /** The population's SELECT: one row per participant in `fromWhere`'s
  *  slice (the hourly's increment, or one game day of the season), with

@@ -2258,3 +2258,10 @@ Jamie took the seven follow-ups one at a time; decisions are in DECISIONS.md.
 - Deployed 8.0.0 without the gate, rebuilt 2026-09 (74 s; deck_repeat 5.6 s) and 2026-08 (27 s) with `meta_rollup_season`, then ran the full suite: 1,236 cases, 5 failed. 348.5 (a thin band now answers empty: amended, 348.6 pins repeat_players on ranked), 329.1/329.3 (a real bug: `current` compared against the newest bucket, not the newest profile read; 8.0.1 with a unit test), 304.1 (a race between two live reads; passes alone), live_fetch#0 (live_pending flake). 8.0.1 players gate: 116/0.
 - The 11000_13000 ladder band returns no decks at min_players 2 this season: 2,292 decided battles, every deck one player's. Honest; the note counts what was left out.
 - Feedback #329, #342, #345, #348 answered done.
+
+## 2026-09-24 — Trophy bands, three (8.1.0)
+
+- Census (`trophy_band_census`, a new read-only migrate op, 60 days): 54,140 banded meta battles, 22,994 players; decks with two repeat players per 1,000-trophy bin were 0 everywhere from 1,000 to 10,000 (1 under 1,000), 9/20/39 at 10-13k, 242 at 13k+. No battle started above 14,000 (the cap). 22,118 of ~38k recorded players sit at 14,000.
+- Jamie chose under_10000 / 10000_13999 / trophy_road_complete (7,893 / 29,793 / 16,450 battles; 3 / 105 / 186 listable decks) and kept it in v8 (8.1.0).
+- 0175 swaps the band checks NOT VALID and nulls every season's bands_rebuilt_at, so band reads use the raw rows (numbers) until `meta_rollup_season {reset: true}` rebuilds 2026-09 and 2026-08; older seasons stay on the raw path. No big-table rewrite.
+- Gym: live cases moved to the band holding their old one (amended); frozen 256.1/.2/.4 and 348.1/.3/.4 retired (refuted with the reason); nine bites whose args changed were dropped with their captures.

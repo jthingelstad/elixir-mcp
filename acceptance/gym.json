@@ -327,7 +327,7 @@
     "args": {
       "segment": "corpus",
       "mode": "ladder",
-      "trophy_band": "11000_13000",
+      "trophy_band": "10000_13999",
       "sort": "shrunk_win_rate",
       "fit_for": "#20JJJ2CCRU",
       "limit": 17
@@ -339,7 +339,8 @@
           ["decks[].shrunk_win_rate", "unfieldable[].shrunk_win_rate"]
         ]
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "nc.meta.reconcile",
@@ -1698,7 +1699,7 @@
     "args": {
       "card": "Witch",
       "segment": "corpus",
-      "trophy_band": "under_5000",
+      "trophy_band": "under_10000",
       "limit": 5
     },
     "request_id": "61839476-4729-4a46-b40f-2c83c3e29b12",
@@ -1706,7 +1707,8 @@
       {
         "notes_match": "(?i)(path of legends|ranked).{0,80}(rating|not trophies)"
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "102.3",
@@ -5619,7 +5621,7 @@
     "args": {
       "card": "Witch",
       "segment": "corpus",
-      "trophy_band": "under_5000",
+      "trophy_band": "under_10000",
       "limit": 5
     },
     "request_id": "385920d0-4177-4443-ac83-bb7a2c0ca5f6",
@@ -5630,7 +5632,8 @@
       {
         "lte": ["partners[0].co_occurrence_rate", 1]
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "153.2",
@@ -5640,7 +5643,7 @@
     "args": {
       "card": "Hog Rider",
       "segment": "corpus",
-      "trophy_band": "under_5000",
+      "trophy_band": "under_10000",
       "limit": 5
     },
     "request_id": "b3f44da8-e0e9-423a-a901-2c7ad54053c9",
@@ -5651,7 +5654,8 @@
       {
         "lte": ["partners[0].co_occurrence_rate", 1]
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "153.3",
@@ -5661,7 +5665,7 @@
     "args": {
       "card": "Witch",
       "segment": "corpus",
-      "trophy_band": "13000_plus",
+      "trophy_band": "trophy_road_complete",
       "limit": 5
     },
     "request_id": "f4a66d42-0640-4c7c-a022-431db020337e",
@@ -5672,7 +5676,8 @@
       {
         "lte": ["partners[0].players", "anchor.players"]
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "153.4",
@@ -8975,7 +8980,7 @@
     "args": {
       "card": "Witch",
       "segment": "corpus",
-      "trophy_band": "under_5000",
+      "trophy_band": "under_10000",
       "limit": 5
     },
     "request_id": "68b70eea-debd-4dec-8b0a-693af2f5e34c",
@@ -8983,7 +8988,8 @@
       {
         "absent": "anchor.modes.tournament"
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "191.2",
@@ -9009,7 +9015,7 @@
     "tool": "battles_meta_cards",
     "args": {
       "segment": "corpus",
-      "trophy_band": "under_5000",
+      "trophy_band": "under_10000",
       "mode": "tournament",
       "limit": 5
     },
@@ -9018,7 +9024,8 @@
       {
         "lte": ["decided_battles", 0]
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "191.4",
@@ -9028,7 +9035,7 @@
     "args": {
       "card": "Hog Rider",
       "segment": "corpus",
-      "trophy_band": "under_5000",
+      "trophy_band": "under_10000",
       "limit": 5
     },
     "request_id": "bf4c2f1c-48c1-40ed-84d3-69a2806ef3a6",
@@ -9036,7 +9043,8 @@
       {
         "absent": "anchor.modes.tournament"
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "191.5",
@@ -9055,9 +9063,10 @@
         "has": "by_band[].trophy_band"
       },
       {
-        "gt": ["by_band[?trophy_band=under_5000].battles", 0]
+        "gt": ["by_band[?trophy_band=under_10000].battles", 0]
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "191.6",
@@ -9068,7 +9077,7 @@
     "args": {
       "card": "Witch",
       "segment": "corpus",
-      "trophy_band": "13000_plus",
+      "trophy_band": "trophy_road_complete",
       "limit": 5
     },
     "request_id": "f0b87223-446f-44af-8acc-d491cce302ac",
@@ -9082,7 +9091,8 @@
       {
         "lte": ["partners[0].co_occurrence_rate", 1]
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "192.1",
@@ -10231,7 +10241,7 @@
     "tool": "battles_meta_cards",
     "args": {
       "segment": "corpus",
-      "trophy_band": "under_5000",
+      "trophy_band": "under_10000",
       "mode": "tournament",
       "limit": 5
     },
@@ -10240,7 +10250,8 @@
       {
         "notes_match": "(?i)tournament.{0,160}(no|not|neither).{0,40}band"
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "204.4",
@@ -10249,7 +10260,7 @@
     "tool": "battles_meta_cards",
     "args": {
       "segment": "corpus",
-      "trophy_band": "under_5000",
+      "trophy_band": "under_10000",
       "mode": "ranked",
       "limit": 5
     },
@@ -10258,7 +10269,8 @@
       {
         "notes_match": "(?i)ranked.{0,160}(no|not|neither).{0,40}band"
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "204.5",
@@ -10295,12 +10307,13 @@
     "request_id": "a895888e-17fa-40e6-a831-8295925603d8",
     "assert": [
       {
-        "gt": ["by_band[?trophy_band=under_5000].battles", 0]
+        "gt": ["by_band[?trophy_band=under_10000].battles", 0]
       },
       {
         "notes_not_match": "(?i)rollup has not been filled"
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "205.1",
@@ -10455,7 +10468,7 @@
     "args": {
       "card": "Witch",
       "segment": "corpus",
-      "trophy_band": "under_5000",
+      "trophy_band": "under_10000",
       "limit": 5
     },
     "request_id": "a2c212f3-8a2e-4751-80a4-3f30bd71dd43",
@@ -10469,7 +10482,8 @@
       {
         "notes_match": "(?i)tournament.{0,160}(no|not|neither).{0,40}band"
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "208.1",
@@ -14437,7 +14451,8 @@
       {
         "notes_match": "one player|one pilot|single player"
       }
-    ]
+    ],
+    "refuted": "The band this case pinned was retired at 8.1.0 (0175, Jamie 2026-09-24: under_10000, 10000_13999, trophy_road_complete). The rule holds in the live cases on the new bands (256.3, 348.5)."
   },
   {
     "id": "256.2",
@@ -14457,7 +14472,8 @@
       {
         "notes_not_match": "withheld below 30 decided observations \\(insufficient_sample"
       }
-    ]
+    ],
+    "refuted": "The band this case pinned was retired at 8.1.0 (0175, Jamie 2026-09-24: under_10000, 10000_13999, trophy_road_complete). The rule holds in the live cases on the new bands (256.3, 348.5)."
   },
   {
     "id": "256.3",
@@ -14466,7 +14482,7 @@
     "tool": "battles_meta_decks",
     "args": {
       "segment": "corpus",
-      "trophy_band": "11000_13000"
+      "trophy_band": "10000_13999"
     },
     "request_id": "307f858c-579c-4aef-b3ef-50e1c53fc32b",
     "assert": [
@@ -14476,7 +14492,8 @@
     ],
     "when": {
       "has": "decks[?players=1].deck_hash"
-    }
+    },
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "256.4",
@@ -14500,7 +14517,8 @@
       {
         "notes_not_match": "one player|one pilot|single player"
       }
-    ]
+    ],
+    "refuted": "The band this case pinned was retired at 8.1.0 (0175, Jamie 2026-09-24: under_10000, 10000_13999, trophy_road_complete). The rule holds in the live cases on the new bands (256.3, 348.5)."
   },
   {
     "id": "257.1",
@@ -16587,7 +16605,7 @@
     "tool": "battles_meta_decks",
     "args": {
       "segment": "corpus",
-      "trophy_band": "under_5000",
+      "trophy_band": "under_10000",
       "limit": 10
     },
     "request_id": "64aa55fd-5851-49b5-91e1-063f38a531b9",
@@ -16595,7 +16613,8 @@
       {
         "notes_not_match": "(?i)null on a row under 30"
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "284.2",
@@ -22315,7 +22334,8 @@
       {
         "notes_match": "72c6c8fb.*(one player|a single player|one pilot)"
       }
-    ]
+    ],
+    "refuted": "The band this case pinned was retired at 8.1.0 (0175, Jamie 2026-09-24: under_10000, 10000_13999, trophy_road_complete). The rule holds in the live cases on the new bands (256.3, 348.5)."
   },
   {
     "id": "348.2",
@@ -22325,7 +22345,7 @@
     "args": {
       "segment": "corpus",
       "mode": "ladder",
-      "trophy_band": "11000_13000",
+      "trophy_band": "10000_13999",
       "min_players": 2,
       "fit_for": "#20JJJ2CCRU",
       "sort": "shrunk_win_rate"
@@ -22338,7 +22358,8 @@
       {
         "notes_match": "72c6c8fb.*(one player|a single player|one pilot)"
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "348.3",
@@ -22365,7 +22386,8 @@
           2
         ]
       }
-    ]
+    ],
+    "refuted": "The band this case pinned was retired at 8.1.0 (0175, Jamie 2026-09-24: under_10000, 10000_13999, trophy_road_complete). The rule holds in the live cases on the new bands (256.3, 348.5)."
   },
   {
     "id": "348.4",
@@ -22388,7 +22410,8 @@
       {
         "notes_not_match": "90f6e5b4.*(one player|a single player|one pilot)"
       }
-    ]
+    ],
+    "refuted": "The band this case pinned was retired at 8.1.0 (0175, Jamie 2026-09-24: under_10000, 10000_13999, trophy_road_complete). The rule holds in the live cases on the new bands (256.3, 348.5)."
   },
   {
     "id": "349.1",
@@ -22600,7 +22623,7 @@
     "args": {
       "segment": "corpus",
       "mode": "ladder",
-      "trophy_band": "11000_13000",
+      "trophy_band": "10000_13999",
       "min_players": 2,
       "sort": "shrunk_win_rate",
       "verbosity": "compact"
@@ -22609,7 +22632,8 @@
       {
         "absent": "decks[?deck_hash=72c6c8fba5a9990675a74eb682fa2bf5168629809de09e434403b910ed60f50c].deck_hash"
       }
-    ]
+    ],
+    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
   },
   {
     "id": "348.6",

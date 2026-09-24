@@ -376,7 +376,7 @@ export const identities = [
     {
       segment: "corpus",
       mode: "ladder",
-      trophy_band: "11000_13000",
+      trophy_band: "10000_13999",
       sort: "shrunk_win_rate",
       fit_for: JAMIE,
       limit: 17,

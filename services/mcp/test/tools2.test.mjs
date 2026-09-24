@@ -1897,7 +1897,7 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
       (r) => `${r.card_id}|${r.form}`,
     ],
   ]) {
-    const band = { trophy_band: "13000_plus" };
+    const band = { trophy_band: "10000_13999" };
     const rawBand = await call(tool, { ...args, ...bounds, ...band });
     const rolledBand = await call(tool, {
       ...args,
@@ -1906,7 +1906,7 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
     });
     assert.equal(rawBand.isError, false, JSON.stringify(rawBand.body));
     assert.equal(rolledBand.isError, false, JSON.stringify(rolledBand.body));
-    assert.equal(rolledBand.body.applied.trophy_band, "13000_plus");
+    assert.equal(rolledBand.body.applied.trophy_band, "10000_13999");
     if (tool !== "cards_synergy")
       assert.ok(
         rawBand.body[listKey].length > 0,
@@ -1941,7 +1941,7 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
     segment: "corpus",
     season: "2026-08",
     min_battles: 1,
-    trophy_band: "13000_plus",
+    trophy_band: "10000_13999",
   });
   assert.equal(pending.body.players_as_of, undefined, "raw path");
   assert.ok(
@@ -2537,7 +2537,7 @@ test("6.12.0: a sub-season corpus window reads the population table and answers 
     const banded = await call("battles_meta_decks", {
       segment: "corpus",
       ...inside,
-      trophy_band: "under_5000",
+      trophy_band: "under_10000",
       mode: "ladder",
       min_battles: 1,
     });

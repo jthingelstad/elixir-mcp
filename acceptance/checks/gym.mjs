@@ -28,7 +28,7 @@ export const gym = [
       const body = await read(ctx, "battles_meta_decks", {
         segment: "corpus",
         mode: "ladder",
-        trophy_band: "11000_13000",
+        trophy_band: "10000_13999",
         sort: "shrunk_win_rate",
         fit_for: "#20JJJ2CCRU",
         limit: 17,

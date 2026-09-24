@@ -131,12 +131,17 @@ path it is computed in the same scan.
 **The trophy band (3.16.0).** `trophy_band` on `battles_meta_decks`,
 `battles_meta_cards` and `cards_synergy` keeps only the observations whose
 own player entered the battle with starting trophies in the band
-(`under_5000`, `5000_8000`, `8000_11000`, `11000_13000`, `13000_plus`, the
-bands the meta tools speak): the meta at a level, since a deck that
-dominates at 13,000 may not exist at 6,000. Bands are Trophy Road
-trophies, so a ranked (Path of Legends) observation, which carries a
-rating of about 2,300-3,000 and not trophies, sits in no band (6.22.0:
-before it, the top-1,000 board filled `under_5000`). A corpus season read answers
+(`under_10000`, `10000_13999` and `trophy_road_complete`, the bands the
+meta tools speak since 8.1.0): the meta at a level, since a deck that
+dominates at 13,000 may not exist at 6,000. 14,000 is Trophy Road's cap,
+so `trophy_road_complete` is the players who have finished it, not a
+range; they play a narrower, settled meta (60 days to 2026-09-24: 5,599
+players and 186 decks with two or more repeat players, against 3 decks
+under 10,000). The bands follow where the record has data: finer bands
+below 10,000 would answer empty. Bands are Trophy Road trophies, so a
+ranked (Path of Legends) observation, which carries a rating of about
+2,300-3,000 and not trophies, sits in no band (6.22.0: before it, the
+top-1,000 board filled the lowest band). A corpus season read answers
 from the banded rollup, which the nightly rebuild keeps beside the
 unbanded one, once it has been filled for the season; before that (the
 first night after the band arrived, or a season the job has not reached)

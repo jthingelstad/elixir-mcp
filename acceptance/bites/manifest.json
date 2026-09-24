@@ -227,14 +227,6 @@
     "expect": "notes_match"
   },
   {
-    "feedback": 102,
-    "contract": "6.21.1",
-    "why": "the Gym's block 102.2: the under_5000 band 98.8% ranked observations, unsaid",
-    "case": "gym/102.2",
-    "captures": ["102-cards_synergy-witch-under5000.json"],
-    "expect": "notes_match"
-  },
-  {
     "feedback": 103,
     "contract": "6.21.1",
     "why": "the Gym's block 103.1: members.played counted war duels that season excludes",
@@ -811,30 +803,6 @@
     "expect": "."
   },
   {
-    "feedback": 153,
-    "contract": "6.31.1",
-    "why": "the Gym block 153.1 on the answer it read",
-    "case": "gym/153.1",
-    "captures": ["153-1-cards_synergy.json"],
-    "expect": "."
-  },
-  {
-    "feedback": 153,
-    "contract": "6.31.1",
-    "why": "the Gym block 153.2 on the answer it read",
-    "case": "gym/153.2",
-    "captures": ["153-2-cards_synergy.json"],
-    "expect": "."
-  },
-  {
-    "feedback": 153,
-    "contract": "6.31.1",
-    "why": "the Gym block 153.3 on the answer it read",
-    "case": "gym/153.3",
-    "captures": ["153-3-cards_synergy.json"],
-    "expect": "."
-  },
-  {
     "feedback": 154,
     "contract": "6.31.1",
     "why": "the Gym block 154.1 on the answer it read",
@@ -1253,33 +1221,9 @@
   {
     "feedback": 191,
     "contract": "6.36.5",
-    "why": "the Gym block 191.1 on the answer it read",
-    "case": "gym/191.1",
-    "captures": ["191-1-cards_synergy.json"],
-    "expect": "."
-  },
-  {
-    "feedback": 191,
-    "contract": "6.36.5",
     "why": "the Gym block 191.2 on the answer it read",
     "case": "gym/191.2",
     "captures": ["191-2-cards_card.json"],
-    "expect": "."
-  },
-  {
-    "feedback": 191,
-    "contract": "6.36.5",
-    "why": "the Gym block 191.3 on the answer it read",
-    "case": "gym/191.3",
-    "captures": ["191-3-battles_meta_cards.json"],
-    "expect": "."
-  },
-  {
-    "feedback": 191,
-    "contract": "6.36.5",
-    "why": "the Gym block 191.4 on the answer it read",
-    "case": "gym/191.4",
-    "captures": ["191-4-cards_synergy.json"],
     "expect": "."
   },
   {
@@ -1376,14 +1320,6 @@
     "why": "the Gym block 204.2 on the answer it read",
     "case": "gym/204.2",
     "captures": ["204-2-cards_card.json"],
-    "expect": "."
-  },
-  {
-    "feedback": 204,
-    "contract": "6.36.9",
-    "why": "the Gym block 204.3 on the answer it read",
-    "case": "gym/204.3",
-    "captures": ["204-3-battles_meta_cards.json"],
     "expect": "."
   },
   {
@@ -2304,14 +2240,6 @@
     "why": "the Gym block 344.1 on the answer it read",
     "case": "gym/344.1",
     "captures": ["344-1-rankings_clan_ladder.json"],
-    "expect": "."
-  },
-  {
-    "feedback": 348,
-    "contract": "7.2.6",
-    "why": "the Gym block 348.1 on the answer it read",
-    "case": "gym/348.1",
-    "captures": ["348-1-battles_meta_decks.json"],
     "expect": "."
   }
 ]

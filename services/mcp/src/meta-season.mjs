@@ -23,14 +23,14 @@ export async function rawScanMemory(db) {
   await db.query("set work_mem = '32MB'");
 }
 
-/** The five trophy bands the meta tools speak (0135):
- *  the participant's own starting trophies at battle time. */
+/** The three trophy bands the meta tools speak (0175, Jamie 2026-09-24):
+ *  the participant's own starting trophies at battle time. 14,000 is
+ *  Trophy Road's cap, so the top band is the players who have finished
+ *  it, not a range. */
 const TROPHY_BANDS = {
-  under_5000: [0, 5000],
-  "5000_8000": [5000, 8000],
-  "8000_11000": [8000, 11000],
-  "11000_13000": [11000, 13000],
-  "13000_plus": [13000, null],
+  under_10000: [0, 10000],
+  "10000_13999": [10000, 14000],
+  trophy_road_complete: [14000, null],
 };
 export const TROPHY_BAND_NAMES = Object.keys(TROPHY_BANDS);
 
