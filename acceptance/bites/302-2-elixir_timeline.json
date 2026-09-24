@@ -1,12 +1,12 @@
 {
-  "feedback": 270,
-  "contract_version": "7.1.6",
-  "captured_at": "2026-09-24T06:07:12.110Z",
+  "feedback": 302,
+  "contract_version": "7.1.12",
+  "captured_at": "2026-09-24T07:53:02.630Z",
   "request": {
     "tool": "elixir_timeline",
     "arguments": {
-      "from": "2026-09-23T07:00:00Z",
-      "to": "2026-09-23T08:00:00Z",
+      "from": "2026-09-23T21:00:00Z",
+      "to": "2026-09-23T22:00:00Z",
       "mark_read": false,
       "player_tag": "#C920YGLC2",
       "verbosity": "compact"
@@ -15,8 +15,8 @@
   "response": {
     "applied": {
       "window": {
-        "from": "2026-09-23T07:00:00.000Z",
-        "to": "2026-09-23T08:00:00.000Z",
+        "from": "2026-09-23T21:00:00.000Z",
+        "to": "2026-09-23T22:00:00.000Z",
         "source": "argument",
         "season": {
           "month": "2026-09",
@@ -25,42 +25,42 @@
           "ends_at": "2026-10-05T10:00:00.000Z"
         },
         "crosses": [],
-        "season_age_days": 15
+        "season_age_days": 16
       },
       "mark_read": false,
       "player_tag": "#C920YGLC2",
       "verbosity": "compact"
     },
     "window": {
-      "from": "2026-09-23T07:00:00.000Z",
-      "to": "2026-09-23T08:00:00.000Z"
+      "from": "2026-09-23T21:00:00.000Z",
+      "to": "2026-09-23T22:00:00.000Z"
     },
     "read_to": null,
     "timeline": [
       {
         "subject_tag": "#J2RGCRVG",
-        "subject_name": "POAP KINGS",
-        "at": "2026-09-23T07:10:58.000Z",
-        "observed_at": "2026-09-23T07:27:58.320Z",
+        "subject_name": "Vijay",
+        "at": "2026-09-23T19:57:19.000Z",
+        "observed_at": "2026-09-23T21:42:54.776Z",
         "kind": "battle_session",
         "section": "battles",
         "facts": {
           "player_tag": "#C920YGLC2",
           "name": "Vijay",
-          "started_at": "2026-09-23T07:10:58.000Z",
-          "ended_at": "2026-09-23T07:10:58.000Z",
-          "battles": 1,
-          "won": 1,
-          "lost": 0,
+          "started_at": "2026-09-23T19:57:19.000Z",
+          "ended_at": "2026-09-23T21:30:42.000Z",
+          "battles": 17,
+          "won": 11,
+          "lost": 6,
           "drawn": 0,
           "by_mode": {
-            "ranked": 1
+            "event": 17
           },
           "trophy_net": 0,
-          "won_in_a_row": 1,
-          "open": false
+          "won_in_a_row": 4,
+          "open": true
         },
-        "text": "Wed 07:10 POAP KINGS played a session of 1 battle (1W-0L; 1 ranked)."
+        "text": "Wed 19:57 Vijay played a session of 17 battles (11W-6L; 17 event), still going."
       }
     ],
     "timeline_more": 0,
@@ -71,29 +71,30 @@
         "name": "POAP KINGS",
         "scope": "comprehensive",
         "window": {
-          "from": "2026-09-23T07:00:00.000Z",
-          "to": "2026-09-23T08:00:00.000Z"
+          "from": "2026-09-23T21:00:00.000Z",
+          "to": "2026-09-23T22:00:00.000Z"
         },
-        "summary": "POAP KINGS: 12 battles in 5 sessions by 4 of 46 members since Wed 07:00; training day; most battles: NOBITA 5, nyje47 4, Mega Goblin 2; donations this week 2,176, led by Chanco (288)."
+        "summary": "POAP KINGS: 22 battles in 7 sessions by 7 of 47 members since Wed 21:00; training day; most battles: Vijay 8, x.x.hari.x.x 5, 1spaceO2 4; badges: TDuck 1 (Dark Prince Mastery); donations this week 2,499, led by Vijay (300)."
       }
     ],
     "quiet": [],
     "subjects": 1,
-    "next_cursor": "2026-09-23T08:00:00.000Z",
+    "next_cursor": "2026-09-23T22:00:00.000Z",
     "has_more": false,
     "notes": [
       "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): 1 item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For \"what happened on a day\", widen to by the record's lag (the longest here is 2 h, observed_at minus at) and filter on at.",
       "A member read: the items are #C920YGLC2's sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full.",
       "Pass next_cursor as from to continue from here without moving the pointer."
     ],
     "docs": "timeline",
     "meta": {
-      "contract_version": "7.1.6"
+      "contract_version": "7.1.12"
     }
   },
   "timings": {
-    "db_ms": 286,
-    "db_queries": 25,
+    "db_ms": 433,
+    "db_queries": 24,
     "live_wait_ms": null,
     "serialize_ms": 0,
     "cold_start": false

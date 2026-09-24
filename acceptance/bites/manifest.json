@@ -1739,14 +1739,6 @@
     "expect": "."
   },
   {
-    "feedback": 270,
-    "contract": "7.1.6",
-    "why": "the Gym block 270.2 on the answer it read",
-    "case": "gym/270.2",
-    "captures": ["270-2-elixir_timeline.json"],
-    "expect": "."
-  },
-  {
     "feedback": 272,
     "contract": "7.1.6",
     "why": "the Gym block 272.4 on the answer it read",
@@ -1920,6 +1912,38 @@
     "why": "the Gym block 300.2 on the answer it read",
     "case": "gym/300.2",
     "captures": ["300-2-battles_meta_decks.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 302,
+    "contract": "7.1.12",
+    "why": "the Gym block 302.1 on the answer it read",
+    "case": "gym/302.1",
+    "captures": ["302-1-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 302,
+    "contract": "7.1.12",
+    "why": "the Gym block 302.2 on the answer it read",
+    "case": "gym/302.2",
+    "captures": ["302-2-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 303,
+    "contract": "7.1.12",
+    "why": "the Gym block 303.1 on the answer it read",
+    "case": "gym/303.1",
+    "captures": ["303-1-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 303,
+    "contract": "7.1.12",
+    "why": "the Gym block 303.2 on the answer it read",
+    "case": "gym/303.2",
+    "captures": ["303-2-elixir_timeline.json"],
     "expect": "."
   }
 ]

@@ -197,6 +197,14 @@ export function summarizeClan(e, timeZone = "UTC") {
     }
   }
   const p = e.presence;
+  // What a capped list left out, said (Gym #303: "back:" named 3 of 12
+  // returns with no +N and read as complete): the items past the cut
+  // plus the ones the list itself already counted as more.
+  const rest = (list, shown) => {
+    const n =
+      Math.max(0, (list?.items?.length ?? 0) - shown) + (list?.more ?? 0);
+    return n ? ` +${n}` : "";
+  };
   // Grouped by the rung each member crossed (Gym #267: "quiet past 10d"
   // headed a list where four had crossed only 5 days).
   if (p.quiet_crossed?.items.length) {
@@ -209,7 +217,7 @@ export function summarizeClan(e, timeZone = "UTC") {
       [...byRung.entries()]
         .sort((a, b) => b[0] - a[0])
         .map(([rung, names]) => `quiet past ${rung}d: ${names.join(", ")}`)
-        .join("; ") + (p.quiet_crossed.more ? ` +${p.quiet_crossed.more}` : ""),
+        .join("; ") + rest(p.quiet_crossed, 5),
     );
   }
   if (p.returned?.items.length)
@@ -217,7 +225,7 @@ export function summarizeClan(e, timeZone = "UTC") {
       `back: ${p.returned.items
         .slice(0, 3)
         .map((m) => `${m.name ?? m.tag} after ${m.after_days}d`)
-        .join(", ")}`,
+        .join(", ")}${rest(p.returned, 3)}`,
     );
   const s = e.standouts;
   if (s) {
@@ -233,7 +241,7 @@ export function summarizeClan(e, timeZone = "UTC") {
         `new bests: ${s.new_bests.items
           .slice(0, 3)
           .map((m) => `${m.name ?? m.tag} ${num(m.best)}`)
-          .join(", ")}${s.new_bests.more ? ` +${s.new_bests.more}` : ""}`,
+          .join(", ")}${rest(s.new_bests, 3)}`,
       );
     if (s.arena_promotions.items.length)
       parts.push(
@@ -249,7 +257,7 @@ export function summarizeClan(e, timeZone = "UTC") {
         `ranked: ${s.ranked_promotions.items
           .slice(0, 3)
           .map((m) => `${m.name ?? m.tag} → ${m.league}`)
-          .join(", ")}`,
+          .join(", ")}${rest(s.ranked_promotions, 3)}`,
       );
     if (s.sessions?.items.length)
       parts.push(
@@ -259,7 +267,7 @@ export function summarizeClan(e, timeZone = "UTC") {
             (m) =>
               `${m.name ?? m.tag} ${m.won}W-${m.lost}L${m.trophy_net ? ` ${m.trophy_net > 0 ? "+" : ""}${m.trophy_net}` : ""}${m.won_in_a_row >= 5 ? ` (${m.won_in_a_row} in a row)` : ""}`,
           )
-          .join(", ")}`,
+          .join(", ")}${rest(s.sessions, 3)}`,
       );
     if (s.badges.length)
       parts.push(

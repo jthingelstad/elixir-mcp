@@ -1,0 +1,130 @@
+{
+  "feedback": 302,
+  "contract_version": "7.1.12",
+  "captured_at": "2026-09-24T07:52:59.038Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-23T17:00:00Z",
+      "to": "2026-09-23T18:00:00Z",
+      "mark_read": false,
+      "player_tag": "#C920YGLC2",
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-23T17:00:00.000Z",
+        "to": "2026-09-23T18:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mark_read": false,
+      "player_tag": "#C920YGLC2",
+      "verbosity": "compact"
+    },
+    "window": {
+      "from": "2026-09-23T17:00:00.000Z",
+      "to": "2026-09-23T18:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "Vijay",
+        "at": "2026-09-23T17:37:51.000Z",
+        "observed_at": "2026-09-23T17:47:53.419Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T17:37:51.000Z",
+          "ended_at": "2026-09-23T17:47:26.000Z",
+          "battles": 4,
+          "won": 4,
+          "lost": 0,
+          "drawn": 0,
+          "by_mode": {
+            "casual": 3,
+            "ranked": 1
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 4,
+          "open": true
+        },
+        "text": "Wed 17:37 Vijay played a session of 4 battles (4W-0L; 3 casual, 1 ranked), still going."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "Vijay",
+        "at": "2026-09-23T15:13:42.000Z",
+        "observed_at": "2026-09-23T17:12:52.379Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T15:13:42.000Z",
+          "ended_at": "2026-09-23T16:39:23.000Z",
+          "battles": 12,
+          "won": 5,
+          "lost": 7,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 4,
+            "event": 2,
+            "casual": 6
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 2,
+          "open": false
+        },
+        "text": "Wed 15:13 Vijay played a session of 12 battles (5W-7L; 6 casual, 4 ranked, 2 event)."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-23T17:00:00.000Z",
+          "to": "2026-09-23T18:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 21 battles in 10 sessions by 8 of 47 members since Wed 17:00; joined: Gem; roster 46→47; training day; back: Gem after 13d; most battles: I Hate Witch 7, Vijay 5, Chanco 3; new bests: Gem 6,003; 1 arena promotion (Gem → Royal Crypt); badges: Gem 1 (Banner Collection); donations this week 2,499, led by Vijay (300)."
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-23T18:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): 1 item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For \"what happened on a day\", widen to by the record's lag (the longest here is 2 h, observed_at minus at) and filter on at.",
+      "A member read: the items are #C920YGLC2's sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.1.12"
+    }
+  },
+  "timings": {
+    "db_ms": 321,
+    "db_queries": 27,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

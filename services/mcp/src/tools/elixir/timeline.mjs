@@ -433,7 +433,7 @@ export const elixir_timeline = {
           : null,
         memberNote,
         memberTag && !memberNote
-          ? `A member read: the items are ${memberTag}'s sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full.`
+          ? `A member read: the items are ${memberTag}'s sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full. A member read keeps no pointer, so a sitting still being learned when one read ends comes back in the next read that learns more of it: the same started_at with a running total. Keep the newest item per started_at (Gym #302).`
           : null,
         pointerKept
           ? `The read pointer stays at ${iso(storedMs)}: it only moves forward, and this window ends before it (read_to reports it). Pass mark_read false to read a past window without asking to move it.`
