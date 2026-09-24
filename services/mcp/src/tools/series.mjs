@@ -140,6 +140,23 @@ function parseTags(list, argName, max) {
 /** Roster counters the game zeroes every week (Monday, around 00:00Z). */
 const WEEKLY_COUNTERS = new Set(["donations", "donations_received"]);
 
+/** Whether any member's weekly counter dropped inside the window (a
+ *  reset the compact delta had to count across). */
+function crossedReset(byTag, metrics) {
+  for (const points of byTag.values())
+    for (const k of metrics) {
+      if (!WEEKLY_COUNTERS.has(k)) continue;
+      for (let i = 1; i < points.length; i += 1)
+        if (
+          typeof points[i][k] === "number" &&
+          typeof points[i - 1][k] === "number" &&
+          points[i][k] < points[i - 1][k]
+        )
+          return true;
+    }
+  return false;
+}
+
 /** What a weekly counter added across a series: each rise between reads,
  *  and after a drop (the reset) the new reading from zero. Last minus
  *  first read a reset as a loss (Gym #305: Vijay -169 in a week he gave
@@ -546,6 +563,9 @@ export const seriesTools = {
         notes: notes(
           win.notBegunNote ?? null,
           win.floorNote,
+          compact && crossedReset(byTag, metrics)
+            ? "In compact, the delta of a weekly counter (donations, donations_received) counts each reset from zero: it is what the counter added across the window, never last minus first, and a floor, since what was given after the last read before a reset is not in it."
+            : null,
           truncated
             ? `More than ${limit} members had points in the window; the first ${limit} by tag are here - pass player_tags to choose, or raise limit (max 50).`
             : null,
@@ -553,7 +573,7 @@ export const seriesTools = {
             ? `${rosterOnly} of ${allPoints.length} points are roster-only (profile_observed_at null): the roster's metrics are the day's, the profile metrics null there.`
             : null,
           metrics.includes("donations")
-            ? "donations is the weekly counter as of each point; it climbs all week and drops to 0 around the start of Monday UTC. In compact, the delta of a weekly counter (donations, donations_received) counts each reset from zero: it is what the counter added across the window, never last minus first, and a floor, since what was given after the last read before a reset is not in it. kind: pre_reset is the week's highest value the record read, a lower bound on the week's total: donations made after the last read before the reset are not in it, so it can sit below that week's rise in the members' lifetime total_donations."
+            ? "donations is the weekly counter as of each point; it climbs all week and drops to 0 around the start of Monday UTC. kind: pre_reset is the week's highest value the record read, a lower bound on the week's total: donations made after the last read before the reset are not in it, so it can sit below that week's rise in the members' lifetime total_donations."
             : null,
           "A member's point carries clan_tag: the clan the day's last roster placed them in, so a member who moved clans that day is under the later clan's tag.",
           botSourceNote(allPoints),
