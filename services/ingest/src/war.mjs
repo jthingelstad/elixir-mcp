@@ -281,6 +281,30 @@ export async function projectRiverRace(
       ],
     );
     facts += partMoved;
+    // Training days too (Jamie 2026-09-24): the poll's decksUsedToday on
+    // a training day is practice, kept apart from war-day attendance.
+    if (clock.warDay === null) {
+      const { rowCount: trainMoved } = await db.query(
+        `insert into war_training_day
+           (clan_tag, season_id, section_index, training_day, player_tag, decks_used_today)
+         select $1, $2, $3, $4, t.tag, t.today
+         from unnest($5::text[], $6::int[]) as t(tag, today)
+         where t.today > 0
+         on conflict (clan_tag, season_id, section_index, training_day, player_tag) do update set
+           decks_used_today = greatest(war_training_day.decks_used_today, excluded.decks_used_today),
+           observed_at = now()
+         where war_training_day.decks_used_today < excluded.decks_used_today`,
+        [
+          tag,
+          clock.seasonId,
+          clock.sectionIndex,
+          (clock.periodIndex % 7) + 1,
+          tags,
+          participants.map((p) => p.decksUsedToday),
+        ],
+      );
+      facts += trainMoved;
+    }
     if (clock.warDay !== null) {
       const { rowCount: dayMoved } = await db.query(
         `insert into war_attendance_day

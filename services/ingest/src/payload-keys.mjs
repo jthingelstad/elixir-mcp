@@ -370,7 +370,7 @@ export const PAYLOAD_KEYS = {
     "clan.participants[].boatAttacks": to("war_participation.boat_attacks"),
     "clan.participants[].decksUsed": to("war_participation.decks_used"),
     "clan.participants[].decksUsedToday": to(
-      "war_attendance_day.decks_used_today",
+      "war_attendance_day.decks_used_today (war days); war_training_day.decks_used_today (training days)",
     ),
     "clans[].tag": to("war_week_clan.participant_clan_tag"),
     "clans[].name": to("war_week_clan.participant_name"),

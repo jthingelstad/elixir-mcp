@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Training days are recorded",
+    body: "Elixir now records the practice decks members play on a war week's training days. On a training day, the current race shows who has practiced and how many decks; war history totals each member's practice for the week. Practice earns no points and never counts as war attendance. Recording began today, so earlier weeks show no training figure. Contract 7.1.14.",
+  },
+  {
+    date: "2026-09-24",
     title: "Clan reads say whose battles they count",
     body: "The Elixir Gym's fifth run over the battle tools. A meta, card or trends read for your clan now says that it counts the clan's members as of today across the whole window: a member who left is not counted for the weeks they played, and a new member's battles from before they joined are. Contract 7.1.13.",
   },

@@ -238,6 +238,43 @@ export const war_current = {
       raceFinished === true
         ? `This clan's boat finished the race${raceFinishedAt ? ` at ${raceFinishedAt}` : ""}${finishWarDay ? ` (the close of war day ${finishWarDay})` : ""}: decks used after that earn zero points${decksAfter !== null ? ` - ${decksAfter} ${decksAfter === 1 ? "deck was" : "decks were"} played on the war days since, for 0 clan points` : ""} - so participants[].decks_used is not the denominator of a points-per-deck rate; scoring_decks is${finishWarDay && afterFinish ? "" : " (null here: the record cannot separate the two for this week)"}.`
         : null;
+    // A training day's practice decks (Jamie 2026-09-24: recorded from
+    // then on; training battles do not score, so they never enter
+    // decks_today or attendance).
+    let trainingToday = null;
+    if (
+      period &&
+      !period.war_day &&
+      Date.now() < Date.parse(period.period_end_nominal)
+    ) {
+      const trainingDay = (period.period_index % 7) + 1;
+      const { rows: trainRows } = await ctx.db.query(
+        `select wp.player_tag, p.name, coalesce(t.decks_used_today, 0)::int as decks_used
+           from war_participation wp
+           join player p on p.player_tag = wp.player_tag
+           left join war_training_day t
+             on t.clan_tag = wp.clan_tag and t.season_id = wp.season_id
+            and t.section_index = wp.section_index and t.training_day = $4
+            and t.player_tag = wp.player_tag
+          where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
+            and exists (select 1 from clan_membership cm
+                         where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
+                           and cm.left_observed_at is null)
+          order by decks_used desc, p.name nulls last`,
+        [clanTag, wk.season_id, wk.section_index, trainingDay],
+      );
+      trainingToday = {
+        training_day: trainingDay,
+        trained: trainRows
+          .filter((r) => r.decks_used > 0)
+          .map(({ player_tag, name, decks_used }) => ({
+            player_tag,
+            name,
+            decks_used,
+          })),
+        not_trained_count: trainRows.filter((r) => r.decks_used === 0).length,
+      };
+    }
     // Today's remaining-decks picture (CLAN-PULSE.md): only while the
     // anchored war-day period is nominally still open.
     let decksToday = null;
@@ -361,11 +398,15 @@ export const war_current = {
         : {
             decks_today_reason: !period ? "period_unknown" : "training_day",
           }),
+      ...(trainingToday ? { training_today: trainingToday } : {}),
       ...(compact ? {} : { attendance_by_war_day: attendance.rows }),
       ...(daysClosed ? { days_closed: daysClosed } : {}),
       notes: notes(
         livePendingNote(live),
         "points are per-member contributions; fame belongs to the boat (the clan).",
+        trainingToday
+          ? `training_today is training day ${trainingToday.training_day}: the practice decks each member has played so far today, from the race poll (recorded since 2026-09-24). Training battles earn no points and do not count as war attendance; decks_today opens with the first war day.`
+          : null,
         "standings.clan_war_trophies is each bracket clan's WAR trophies going into this race (the race's own trophy_change lands in the next one's figure) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
         CLAN_SCORE_DEPRECATION,
         daysClosed

@@ -209,6 +209,16 @@ export const war_history = {
              select season_id, section_index, player_tag, war_day from att where battled
              union
              select season_id, section_index, player_tag, war_day from fought),
+           -- Practice decks on the week's training days (0167, recorded
+           -- from 2026-09-24): a week with no training row is unknown.
+           trn as (
+             select t.season_id, t.section_index, t.player_tag,
+                    sum(t.decks_used_today)::int as training_decks
+             from war_training_day t
+             join k on k.season_id = t.season_id and k.section_index = t.section_index
+             where t.clan_tag = $1
+             group by t.season_id, t.section_index, t.player_tag),
+           trn_cov as (select distinct season_id, section_index from trn),
            per_player as (
              select season_id, section_index, player_tag,
                     count(distinct war_day)::int as war_days_battled,
@@ -220,13 +230,19 @@ export const war_history = {
                   case when cov.season_id is not null
                        then coalesce(pp.war_days_battled, 0) end as war_days_battled,
                   case when cov.season_id is not null
-                       then coalesce(pp.war_days, '{}'::int[]) end as war_days
+                       then coalesce(pp.war_days, '{}'::int[]) end as war_days,
+                  case when tc.season_id is not null
+                       then coalesce(trn.training_decks, 0) end as training_decks
            from wp
            left join player p on p.player_tag = wp.player_tag
            left join per_player pp on pp.season_id = wp.season_id
              and pp.section_index = wp.section_index and pp.player_tag = wp.player_tag
            left join covered cov on cov.season_id = wp.season_id
              and cov.section_index = wp.section_index
+           left join trn on trn.season_id = wp.season_id
+             and trn.section_index = wp.section_index and trn.player_tag = wp.player_tag
+           left join trn_cov tc on tc.season_id = wp.season_id
+             and tc.section_index = wp.section_index
            order by wp.season_id desc, wp.section_index desc, wp.points desc,
                     p.name nulls last
            limit ${hasSeason ? 60 : 40}`,
@@ -389,6 +405,9 @@ export const war_history = {
             hasSeason
               ? null
               : "history_starts_at is the recording horizon: fewer seasons than requested is coverage, not absence.",
+            memberWeeks?.length
+              ? "member_weeks[].training_decks is the practice decks played on the week's training days (training battles earn no points and are not in decks_used or war_days); null for a week before training days were recorded (2026-09-24) or with no practice recorded at all."
+              : null,
           ),
       docs: WAR_DOCS,
       meta: responseMeta({ as_of: new Date().toISOString() }),

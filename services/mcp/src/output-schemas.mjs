@@ -2926,6 +2926,7 @@ export const OUTPUT_SCHEMAS = {
         type: "string",
         enum: ["period_unknown", "war_day_over", "training_day"],
       },
+      training_today: { type: "object" },
       attendance_by_war_day: { type: "array" },
       notes: NOTES,
       docs: DOCS,

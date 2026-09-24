@@ -727,3 +727,60 @@ test("decks the counter rolled past land on the previous war day (the Gym's open
     "a poll inside a day never carries",
   );
 });
+
+test("training days record practice decks apart from war attendance (0167)", async () => {
+  // Jamie 2026-09-24: decksUsedToday on a training day is kept too, in
+  // its own table, so no war-day count changes meaning.
+  const TRAIN_CLAN = "#2PYLQ8U9";
+  await ctx.db.query(`insert into clan (clan_tag) values ($1)`, [TRAIN_CLAN]);
+  const payload = await fixture("currentriverrace/training.json"); // p30 s4
+  payload.clan.tag = TRAIN_CLAN;
+  await projectRiverRace(ctx.db, {
+    clanTag: TRAIN_CLAN,
+    payload,
+    fetchedAt: "2026-09-02T12:00:00Z",
+  });
+  const practiced = payload.clan.participants.filter(
+    (p) => p.decksUsedToday > 0,
+  );
+  const { rows } = await ctx.db.query(
+    `select training_day, player_tag, decks_used_today from war_training_day
+      where clan_tag = $1 order by player_tag`,
+    [TRAIN_CLAN],
+  );
+  assert.equal(
+    rows.length,
+    practiced.length,
+    "one row per member who practiced",
+  );
+  assert.ok(
+    rows.every((r) => r.training_day === (payload.periodIndex % 7) + 1),
+  );
+  const first = practiced[0];
+  assert.equal(
+    rows.find((r) => r.player_tag === first.tag).decks_used_today,
+    first.decksUsedToday,
+  );
+  const { rows: att } = await ctx.db.query(
+    `select count(*)::int n from war_attendance_day where clan_tag = $1`,
+    [TRAIN_CLAN],
+  );
+  assert.equal(att[0].n, 0, "a training day writes no war attendance");
+
+  // A lagging poll never lowers a count.
+  const lagging = structuredClone(payload);
+  for (const p of lagging.clan.participants) p.decksUsedToday = 0;
+  await projectRiverRace(ctx.db, {
+    clanTag: TRAIN_CLAN,
+    payload: lagging,
+    fetchedAt: "2026-09-02T12:30:00Z",
+  });
+  const { rows: after } = await ctx.db.query(
+    `select sum(decks_used_today)::int n from war_training_day where clan_tag = $1`,
+    [TRAIN_CLAN],
+  );
+  assert.equal(
+    after[0].n,
+    practiced.reduce((a, p) => a + p.decksUsedToday, 0),
+  );
+});

@@ -429,6 +429,14 @@ consumes one, so four decks is anywhere from two to four battles, and a
 member at `decks_used: 4` on war day 1 with one duel and one 1v1 in their
 log has finished the day.
 
+**Training days are recorded too** (since 2026-09-24). The game counts a
+member's practice decks on the three training days of a week, up to four a
+day, but they earn no points and never reach `decks_used`. On a training day
+`war_current.training_today` lists who has practiced and how many decks,
+and `war_history.member_weeks[].training_decks` totals a week's practice
+per member (null for a week before recording began). Training never counts
+as war attendance: `decks_today` and `war_days` are war days only.
+
 `boat_attacks` is counted **inside** `decks_used` and `scoring_decks`, and a
 boat battle scores on a different scale from a 1v1 or a duel: in one
 recorded week the member who spent all four decks on the boat earned 350
