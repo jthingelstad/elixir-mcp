@@ -57,7 +57,7 @@ date; `season`, `from`/`to` and `mode` as everywhere.
 
 | block | what it holds | served for |
 | --- | --- | --- |
-| `card` | the catalog row with `type`, `forms_available`, `first_seen_in_catalog`, and `first_played {base, evolution, hero}` (the earliest recorded deck carrying each form) | every read |
+| `card` | the catalog row with `type`, `forms_available`, `first_seen_in_catalog` (when Elixir first stored the card; every card already in the game on 2026-09-10, when storage began, carries that date), and `first_played {base, evolution, hero}` (the earliest recorded deck carrying each form) | every read |
 | `season` | this window: `all` (forms merged) and `forms` (one row per form played), each with battles, W/L, players, `usage_share` over the population's `decided_battles`, raw and shrunk win rate; with `mode` omitted, `by_mode` splits it by mode group | every read |
 | `history` | one point per recorded season, same shape, from the rollups | corpus reads |
 | `by_band` | the season's usage by trophy band, with `mean_level_gap` | corpus season reads, once the band rollup is filled |

@@ -29,6 +29,7 @@ import {
   notes,
   META_METHODOLOGY,
   populationBlock,
+  buildMeta,
 } from "./shared.mjs";
 import {
   seasonRollup,
@@ -365,10 +366,21 @@ export const synergyTools = {
           roll?.note,
         ),
         docs: SEGMENT_DOCS,
-        meta: responseMeta({
-          as_of: new Date().toISOString(),
-          ...(win.timezone ? { timezone_applied: win.timezone } : {}),
-        }),
+        // One player's read carries the player's freshness, as cards_card
+        // does (Gym #206, the #107 remainder).
+        meta:
+          seg.echo && typeof seg.echo === "object" && seg.echo.player_tag
+            ? await buildMeta(
+                ctx.db,
+                ctx.account,
+                seg.echo.player_tag,
+                ["player_battlelog"],
+                { timezone: win.timezone, windowTo: win.to },
+              )
+            : responseMeta({
+                as_of: new Date().toISOString(),
+                ...(win.timezone ? { timezone_applied: win.timezone } : {}),
+              }),
       };
     },
   },

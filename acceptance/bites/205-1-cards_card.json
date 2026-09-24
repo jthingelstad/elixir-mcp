@@ -1,0 +1,509 @@
+{
+  "feedback": 205,
+  "contract_version": "6.36.10",
+  "captured_at": "2026-09-24T01:25:13.857Z",
+  "request": {
+    "tool": "cards_card",
+    "arguments": {
+      "card_id": 26000000,
+      "segment": "corpus",
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "corpus"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "verbosity": "compact"
+    },
+    "card": {
+      "id": 26000000,
+      "name": "Knight",
+      "type": "troop",
+      "rarity": "common",
+      "elixir_cost": 3,
+      "forms_available": ["evolution", "hero"],
+      "icon_urls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/jAj1Q5rclXxU9kVImGqSJxa4wEMfEhvwNQ_4jiGUuqg.png",
+        "evolutionMedium": "https://api-assets.clashroyale.com/cardevolutions/300/jAj1Q5rclXxU9kVImGqSJxa4wEMfEhvwNQ_4jiGUuqg.png",
+        "heroMedium": "https://api-assets.clashroyale.com/cardheroes/300/jAj1Q5rclXxU9kVImGqSJxa4wEMfEhvwNQ_4jiGUuqg.png"
+      },
+      "first_seen_in_catalog": "2026-09-10T23:57:37.591Z",
+      "first_played": {
+        "base": "2026-02-20T22:52:14.000Z",
+        "evolution": "2026-01-04T08:02:48.000Z",
+        "hero": "2026-01-03T07:34:30.000Z"
+      }
+    },
+    "season": {
+      "mode_group": "all",
+      "decided_battles": 411950,
+      "all": {
+        "battles": 47467,
+        "wins": 23561,
+        "losses": 23906,
+        "players": 8137,
+        "usage_share": 0.115,
+        "win_rate": 0.496,
+        "shrunk_win_rate": 0.496
+      },
+      "forms": [
+        {
+          "form": "base",
+          "battles": 10607,
+          "wins": 5143,
+          "losses": 5464,
+          "players": 2159,
+          "usage_share": 0.026,
+          "win_rate": 0.485,
+          "shrunk_win_rate": 0.485
+        },
+        {
+          "form": "evolution",
+          "battles": 16549,
+          "wins": 8443,
+          "losses": 8106,
+          "players": 1997,
+          "usage_share": 0.04,
+          "win_rate": 0.51,
+          "shrunk_win_rate": 0.51
+        },
+        {
+          "form": "hero",
+          "battles": 20311,
+          "wins": 9975,
+          "losses": 10336,
+          "players": 4558,
+          "usage_share": 0.049,
+          "win_rate": 0.491,
+          "shrunk_win_rate": 0.491
+        }
+      ],
+      "by_mode": [
+        {
+          "mode_group": "ranked",
+          "decided_battles": 380120,
+          "all": {
+            "battles": 43142,
+            "wins": 21538,
+            "losses": 21604,
+            "players": 5979,
+            "usage_share": 0.113,
+            "win_rate": 0.499,
+            "shrunk_win_rate": 0.499
+          },
+          "forms": [
+            {
+              "form": "base",
+              "battles": 9416,
+              "wins": 4595,
+              "losses": 4821,
+              "players": 1472,
+              "usage_share": 0.025,
+              "win_rate": 0.488,
+              "shrunk_win_rate": 0.488
+            },
+            {
+              "form": "evolution",
+              "battles": 15725,
+              "wins": 8023,
+              "losses": 7702,
+              "players": 1602,
+              "usage_share": 0.041,
+              "win_rate": 0.51,
+              "shrunk_win_rate": 0.51
+            },
+            {
+              "form": "hero",
+              "battles": 18001,
+              "wins": 8920,
+              "losses": 9081,
+              "players": 3344,
+              "usage_share": 0.047,
+              "win_rate": 0.496,
+              "shrunk_win_rate": 0.496
+            }
+          ]
+        },
+        {
+          "mode_group": "ladder",
+          "decided_battles": 8574,
+          "all": {
+            "battles": 1500,
+            "wins": 706,
+            "losses": 794,
+            "players": 876,
+            "usage_share": 0.175,
+            "win_rate": 0.471,
+            "shrunk_win_rate": 0.471
+          },
+          "forms": [
+            {
+              "form": "base",
+              "battles": 523,
+              "wins": 244,
+              "losses": 279,
+              "players": 308,
+              "usage_share": 0.061,
+              "win_rate": 0.467,
+              "shrunk_win_rate": 0.468
+            },
+            {
+              "form": "evolution",
+              "battles": 200,
+              "wins": 121,
+              "losses": 79,
+              "players": 95,
+              "usage_share": 0.023,
+              "win_rate": 0.605,
+              "shrunk_win_rate": 0.595
+            },
+            {
+              "form": "hero",
+              "battles": 777,
+              "wins": 341,
+              "losses": 436,
+              "players": 479,
+              "usage_share": 0.091,
+              "win_rate": 0.439,
+              "shrunk_win_rate": 0.44
+            }
+          ]
+        },
+        {
+          "mode_group": "casual",
+          "decided_battles": 10472,
+          "all": {
+            "battles": 1272,
+            "wins": 572,
+            "losses": 700,
+            "players": 555,
+            "usage_share": 0.121,
+            "win_rate": 0.45,
+            "shrunk_win_rate": 0.45
+          },
+          "forms": [
+            {
+              "form": "base",
+              "battles": 264,
+              "wins": 117,
+              "losses": 147,
+              "players": 147,
+              "usage_share": 0.025,
+              "win_rate": 0.443,
+              "shrunk_win_rate": 0.447
+            },
+            {
+              "form": "evolution",
+              "battles": 339,
+              "wins": 167,
+              "losses": 172,
+              "players": 183,
+              "usage_share": 0.032,
+              "win_rate": 0.493,
+              "shrunk_win_rate": 0.493
+            },
+            {
+              "form": "hero",
+              "battles": 669,
+              "wins": 288,
+              "losses": 381,
+              "players": 328,
+              "usage_share": 0.064,
+              "win_rate": 0.43,
+              "shrunk_win_rate": 0.433
+            }
+          ]
+        },
+        {
+          "mode_group": "war",
+          "decided_battles": 9026,
+          "all": {
+            "battles": 1169,
+            "wins": 583,
+            "losses": 586,
+            "players": 821,
+            "usage_share": 0.13,
+            "win_rate": 0.499,
+            "shrunk_win_rate": 0.499
+          },
+          "forms": [
+            {
+              "form": "base",
+              "battles": 321,
+              "wins": 155,
+              "losses": 166,
+              "players": 236,
+              "usage_share": 0.036,
+              "win_rate": 0.483,
+              "shrunk_win_rate": 0.484
+            },
+            {
+              "form": "evolution",
+              "battles": 201,
+              "wins": 94,
+              "losses": 107,
+              "players": 144,
+              "usage_share": 0.022,
+              "win_rate": 0.468,
+              "shrunk_win_rate": 0.471
+            },
+            {
+              "form": "hero",
+              "battles": 647,
+              "wins": 334,
+              "losses": 313,
+              "players": 445,
+              "usage_share": 0.072,
+              "win_rate": 0.516,
+              "shrunk_win_rate": 0.516
+            }
+          ]
+        },
+        {
+          "mode_group": "tournament",
+          "decided_battles": 3758,
+          "all": {
+            "battles": 384,
+            "wins": 162,
+            "losses": 222,
+            "players": 202,
+            "usage_share": 0.102,
+            "win_rate": 0.422,
+            "shrunk_win_rate": 0.426
+          },
+          "forms": [
+            {
+              "form": "base",
+              "battles": 83,
+              "wins": 32,
+              "losses": 51,
+              "players": 46,
+              "usage_share": 0.022,
+              "win_rate": 0.386,
+              "shrunk_win_rate": 0.408
+            },
+            {
+              "form": "evolution",
+              "battles": 84,
+              "wins": 38,
+              "losses": 46,
+              "players": 48,
+              "usage_share": 0.022,
+              "win_rate": 0.452,
+              "shrunk_win_rate": 0.462
+            },
+            {
+              "form": "hero",
+              "battles": 217,
+              "wins": 92,
+              "losses": 125,
+              "players": 112,
+              "usage_share": 0.058,
+              "win_rate": 0.424,
+              "shrunk_win_rate": 0.43
+            }
+          ]
+        }
+      ]
+    },
+    "excluded": {
+      "considered": 416770,
+      "duels": 3768,
+      "boat": 810,
+      "draws": 242,
+      "unresolved": 0,
+      "no_deck": 0
+    },
+    "prior_win_rate": 0.5,
+    "prior_basis": "corpus_season",
+    "population": {
+      "recorded_clans": 18,
+      "recorded_players": 1080,
+      "players_in_window": 45565
+    },
+    "history": [
+      {
+        "season": {
+          "month": "2025-12",
+          "war": 127
+        },
+        "decided_battles": 12,
+        "battles": 7,
+        "wins": 4,
+        "losses": 3,
+        "players": 3,
+        "usage_share": 0.583,
+        "win_rate": 0.571,
+        "insufficient_sample": true
+      },
+      {
+        "season": {
+          "month": "2026-01",
+          "war": 128
+        },
+        "decided_battles": 194,
+        "battles": 67,
+        "wins": 38,
+        "losses": 29,
+        "players": 26,
+        "usage_share": 0.345,
+        "win_rate": 0.567
+      },
+      {
+        "season": {
+          "month": "2026-02",
+          "war": 129
+        },
+        "decided_battles": 808,
+        "battles": 148,
+        "wins": 71,
+        "losses": 77,
+        "players": 78,
+        "usage_share": 0.183,
+        "win_rate": 0.48
+      },
+      {
+        "season": {
+          "month": "2026-03",
+          "war": 130
+        },
+        "decided_battles": 17644,
+        "battles": 4302,
+        "wins": 2255,
+        "losses": 2047,
+        "players": 2274,
+        "usage_share": 0.244,
+        "win_rate": 0.524
+      },
+      {
+        "season": {
+          "month": "2026-04",
+          "war": 131
+        },
+        "decided_battles": 19910,
+        "battles": 3510,
+        "wins": 1784,
+        "losses": 1726,
+        "players": 2113,
+        "usage_share": 0.176,
+        "win_rate": 0.508
+      },
+      {
+        "season": {
+          "month": "2026-05",
+          "war": 132
+        },
+        "decided_battles": 21238,
+        "battles": 3725,
+        "wins": 1814,
+        "losses": 1911,
+        "players": 2141,
+        "usage_share": 0.175,
+        "win_rate": 0.487
+      },
+      {
+        "season": {
+          "month": "2026-06",
+          "war": 133
+        },
+        "decided_battles": 23934,
+        "battles": 4490,
+        "wins": 2288,
+        "losses": 2202,
+        "players": 2406,
+        "usage_share": 0.188,
+        "win_rate": 0.51
+      },
+      {
+        "season": {
+          "month": "2026-07",
+          "war": 134
+        },
+        "decided_battles": 28630,
+        "battles": 6001,
+        "wins": 3164,
+        "losses": 2837,
+        "players": 2878,
+        "usage_share": 0.21,
+        "win_rate": 0.527
+      },
+      {
+        "season": {
+          "month": "2026-08",
+          "war": 135
+        },
+        "decided_battles": 44956,
+        "battles": 5970,
+        "wins": 2862,
+        "losses": 3108,
+        "players": 3454,
+        "usage_share": 0.133,
+        "win_rate": 0.479
+      },
+      {
+        "season": {
+          "month": "2026-09",
+          "war": 136
+        },
+        "decided_battles": 411950,
+        "battles": 47467,
+        "wins": 23561,
+        "losses": 23906,
+        "players": 8137,
+        "usage_share": 0.115,
+        "win_rate": 0.496
+      }
+    ],
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "notes": [
+      "Forms: season.all merges the card's forms; season.forms carries one row per form played (base, evolution, hero); usage_share is the row's decided observations over the population's decided_battles.",
+      "A card's win rate describes who played it as much as the card: compare within one mode and similar mean_level_gap, never across segments.",
+      "history pools every mode, and the mode mix moved: ranked (Path of Legends) was 0% of decided observations in 2025-12 and 92% in 2026-09. A pooled usage_share or win_rate moves with that mix, not only with the card; pass mode to compare seasons within one mode.",
+      "Trophy bands are Trophy Road trophies. A ranked (Path of Legends) observation carries a rating and a tournament one the player's running score in that tournament, not trophies, so neither sits in a band; pass mode 'ladder' for a trophy view of the ladder.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "shrunk_win_rate shrinks toward prior_win_rate: the corpus season's decided mean (prior_basis), and is withheld below 30 decided observations, where the row says insufficient_sample: true.",
+      "Read from the season rollup: counters through 2026-09-24T00:47:43.687Z, distinct players as of 2026-09-24T00:47:43.687Z (a deck or card first seen since then carries players: null until tonight's rebuild)."
+    ],
+    "docs": "cards#one-card-in-one-call",
+    "meta": {
+      "contract_version": "6.36.10"
+    }
+  },
+  "timings": {
+    "db_ms": 543,
+    "db_queries": 11,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": true
+  }
+}

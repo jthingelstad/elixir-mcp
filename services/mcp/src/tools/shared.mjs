@@ -327,6 +327,23 @@ export async function resolveSegment(ctx, args) {
       [slug, ctx.account.accountId],
     );
     if (!rows[0]) {
+      // A clan collection is a real subject passed where players are
+      // read (Gym #202): an argument error with the working route, not
+      // the not_found an unknown slug gets.
+      const {
+        rows: [clanColl],
+      } = await ctx.db.query(
+        `select 1 from collection c
+          where c.slug = $1 and c.kind = 'clan'
+            and (c.visibility = 'public' or c.owner_account = $2)`,
+        [slug, ctx.account.accountId],
+      );
+      if (clanColl)
+        throw new ToolFailure(
+          "bad_request",
+          `No player collection '${slug}': it is a clan collection, and a segment collection reads players.`,
+          `Pass segment { clan_tag } once per clan (collections_get({ collection: '${slug}' }) lists them); collections_browse lists the player collections.`,
+        );
       throw new ToolFailure(
         "not_found",
         `No player collection '${slug}'.`,

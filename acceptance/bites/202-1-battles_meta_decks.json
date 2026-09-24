@@ -1,0 +1,32 @@
+{
+  "feedback": 202,
+  "contract_version": "6.36.10",
+  "captured_at": "2026-09-24T01:25:10.636Z",
+  "request": {
+    "tool": "battles_meta_decks",
+    "arguments": {
+      "segment": {
+        "collection": "global-top-10-clans"
+      },
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "error": {
+      "code": "not_found",
+      "class": "subject",
+      "message": "No player collection 'global-top-10-clans'.",
+      "hint": "collections_browse lists what exists."
+    },
+    "meta": {
+      "contract_version": "6.36.10"
+    }
+  },
+  "timings": {
+    "db_ms": 5,
+    "db_queries": 1,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

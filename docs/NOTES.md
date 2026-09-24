@@ -2123,3 +2123,9 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - 50 regressions confirmed (3 retired with battles_levels), all 52 earlier cases pass live but the refuted 148.1/148.4.
 - **#199:** trophy_mode_battles counts trophy-mode types OR any reported trophy change (the seasonal Trophy Road past 14,000 is event-tagged trail, game mode Ladder, and moves trophies); the note and schema description say so. The event grouping is unchanged (decided). The shared `mode` description now lists event. #200 praise.
 
+## 2026-09-23 — Gym sweep, collections round 3 + cards round 4 (6.36.11, feedback #201-#207)
+
+- Collections r3: 5/6 regressions hold, #160 partial -> **#201** (years_played null = no YearsPlayed badge, usually an account under a year old; 201.4 records the inference as an open question), **#202** (clan collection as segment: bad_request with the clan_tag route; unknown slug stays not_found), #203 praise. #116 selection effect measured (+2.7 points on today's Global 100), note already served.
+- Cards r4: 12/14 regressions confirmed; #191 partial -> **#204** (tournament empty-band note; band note on the meta tools when trophy_band meets a non-ladder mode); **#205** (first_seen_in_catalog = catalog storage start, noted); #107 partial -> **#206** (synergy player freshness via buildMeta); #207 praise.
+- Open (not filed): a closed-window raw season corpus read times out at 18.3 s twice (narrowing works); Mirror out of average_elixir; level_played an undocumented mean; season partner counts run to now (~0.1%).
+

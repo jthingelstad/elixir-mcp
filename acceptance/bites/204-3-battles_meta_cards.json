@@ -1,0 +1,98 @@
+{
+  "feedback": 204,
+  "contract_version": "6.36.9",
+  "captured_at": "2026-09-24T01:23:20.261Z",
+  "request": {
+    "tool": "battles_meta_cards",
+    "arguments": {
+      "segment": "corpus",
+      "trophy_band": "under_5000",
+      "mode": "tournament",
+      "limit": 5
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "corpus"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mode": "tournament",
+      "trophy_band": "under_5000",
+      "min_battles": 10,
+      "sort": "usage",
+      "limit": 5,
+      "verbosity": "full"
+    },
+    "population": {
+      "recorded_clans": 18,
+      "recorded_players": 1080,
+      "players_in_window": null
+    },
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "decided_battles": 0,
+    "segment_win_rate": null,
+    "prior_win_rate": 0.5,
+    "prior_basis": "neutral_0.5",
+    "insufficient_sample": true,
+    "insufficient_sample_floor": 30,
+    "excluded": {
+      "considered": 3760,
+      "duels": 0,
+      "boat": 0,
+      "draws": 2,
+      "unresolved": 0,
+      "no_deck": 0
+    },
+    "players_as_of": "2026-09-24T00:47:43.687Z",
+    "comparable": true,
+    "cards": [],
+    "notes": [
+      "These are the population's decks and levels; nothing here checks what any one player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.",
+      "excluded counts the season and mode, not the band (a duel or a boat battle has no band); decided_battles and every row are the band's.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld below 30 decided observations (insufficient_sample: true).",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "Read from the season rollup: counters through 2026-09-24T00:47:43.687Z, distinct players as of 2026-09-24T00:47:43.687Z (a deck or card first seen since then carries players: null until tonight's rebuild).",
+      "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records.",
+      "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments."
+    ],
+    "docs": "methodology#deck-and-card-meta-exactly-what-is-counted",
+    "meta": {
+      "contract_version": "6.36.9"
+    }
+  },
+  "timings": {
+    "db_ms": 55,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

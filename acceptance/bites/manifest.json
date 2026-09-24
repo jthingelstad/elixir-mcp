@@ -1345,5 +1345,61 @@
     "case": "gym/199.3",
     "captures": ["199-3-battles_performance.json"],
     "expect": "."
+  },
+  {
+    "feedback": 201,
+    "contract": "6.36.9",
+    "why": "the Gym block 201.1 on the answer it read",
+    "case": "gym/201.1",
+    "captures": ["201-1-collections_get.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 202,
+    "contract": "6.36.10",
+    "why": "the Gym block 202.1 on the answer it read",
+    "case": "gym/202.1",
+    "captures": ["202-1-battles_meta_decks.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 204,
+    "contract": "6.36.9",
+    "why": "the Gym block 204.1 on the answer it read",
+    "case": "gym/204.1",
+    "captures": ["204-1-cards_card.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 204,
+    "contract": "6.36.9",
+    "why": "the Gym block 204.2 on the answer it read",
+    "case": "gym/204.2",
+    "captures": ["204-2-cards_card.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 204,
+    "contract": "6.36.9",
+    "why": "the Gym block 204.3 on the answer it read",
+    "case": "gym/204.3",
+    "captures": ["204-3-battles_meta_cards.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 205,
+    "contract": "6.36.10",
+    "why": "the Gym block 205.1 on the answer it read",
+    "case": "gym/205.1",
+    "captures": ["205-1-cards_card.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 206,
+    "contract": "6.36.10",
+    "why": "the Gym block 206.1 on the answer it read",
+    "case": "gym/206.1",
+    "captures": ["206-1-cards_synergy.json"],
+    "expect": "."
   }
 ]

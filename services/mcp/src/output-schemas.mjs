@@ -729,7 +729,7 @@ export const OUTPUT_SCHEMAS = {
       members: {
         type: "array",
         description:
-          "Player collections: player_tag, name, trophies (Trophy Road, as last polled; rows are ordered by it, not by any board rank), years_played (the account's age in whole years, the game's YearsPlayed badge level; not time in this collection; null until a profile poll has read the badge), recording, curator_note. Clan collections: clan_tag, name, open_members (the clan's current member count, not open places), recording, curator_note.",
+          "Player collections: player_tag, name, trophies (Trophy Road, as last polled; rows are ordered by it, not by any board rank), years_played (the account's age in whole years, the game's YearsPlayed badge level; not time in this collection; null means no YearsPlayed badge, usually an account under a year old), recording, curator_note. Clan collections: clan_tag, name, open_members (the clan's current member count, not open places), recording, curator_note.",
         items: {
           type: "object",
           properties: {
@@ -740,7 +740,7 @@ export const OUTPUT_SCHEMAS = {
             years_played: {
               type: ["integer", "null"],
               description:
-                "The account's age in whole years (the game's YearsPlayed badge level), not time in this collection; null until a profile poll has read the badge.",
+                "The account's age in whole years (the game's YearsPlayed badge level), not time in this collection; null when the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so almost always an account under a year old (players_profile.account_age_days has the days); an unread profile is null too.",
             },
             open_members: NULLABLE_INT,
             recording: { type: "boolean" },
@@ -2317,7 +2317,11 @@ export const OUTPUT_SCHEMAS = {
           arena_id: { type: ["integer", "null"] },
           best_trophies: { type: ["integer", "null"] },
           favorite_card_id: { type: ["integer", "null"] },
-          years_played: { type: ["integer", "null"] },
+          years_played: {
+            type: ["integer", "null"],
+            description:
+              "The account's age in whole years (the game's YearsPlayed badge level); null when the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so almost always an account under a year old (players_profile.account_age_days has the days); an unread profile is null too. account_age_days is exact.",
+          },
           account_age_days: { type: ["integer", "null"] },
           war_day_wins: NULLABLE_INT,
           clan_cards_collected: NULLABLE_INT,

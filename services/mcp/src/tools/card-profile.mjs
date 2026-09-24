@@ -168,7 +168,9 @@ export const cardProfileTools = {
       const {
         rows: [cat],
       } = await ctx.db.query(
-        `select first_seen_at, observed_at from card where card_id = $1`,
+        `select first_seen_at, observed_at,
+                first_seen_at <= (select min(first_seen_at) from card) + interval '1 hour' as since_storage
+           from card where card_id = $1`,
         [anchor.id],
       );
       // First played per form: the earliest deck carrying that form
@@ -192,6 +194,11 @@ export const cardProfileTools = {
         first_seen_in_catalog: cat?.first_seen_at?.toISOString() ?? null,
         first_played: first,
       };
+      // The catalog was first stored 2026-09-10, so every card present then
+      // carries that instant (Gym #205: Knight and Minion Giant alike).
+      const catalogNote = !cat?.since_storage
+        ? null
+        : `card.first_seen_in_catalog (${card.first_seen_in_catalog}) is when Elixir began storing the card catalog, not when this card entered the game: every card in the catalog then carries it. card.first_played is the earliest recorded deck with each form.`;
 
       // --- the population: rollup or raw ------------------------------
       const roll = await seasonRollup(ctx.db, {
@@ -325,7 +332,9 @@ export const cardProfileTools = {
               // rollup is filled; there is nothing to band.
               modeGroup === "ranked"
                 ? "by_band is empty on ranked: a Path of Legends row carries a rating, not trophies, so it has no trophy band."
-                : "by_band is empty: the banded rollup has not been filled for this season yet.",
+                : modeGroup === "tournament"
+                  ? "by_band is empty on tournament: a tournament row's starting trophies are the player's running score in that tournament, not trophies, so it has no trophy band (6.36.6)."
+                  : "by_band is empty: the banded rollup has not been filled for this season yet.",
             );
         } else
           extraNotes.push(
@@ -411,6 +420,7 @@ export const cardProfileTools = {
         "A card's win rate describes who played it as much as the card: compare within one mode and similar mean_level_gap, never across segments.",
         out.decks ? ARCHETYPE_NOTE : null,
         ...extraNotes,
+        catalogNote,
         args.mode === "ladder" ? null : RANKED_NO_BAND_NOTE,
         SEGMENT_NOTES.filter((n) => !n.includes("CORPUS mean")),
         collectionSegmentNote(seg),

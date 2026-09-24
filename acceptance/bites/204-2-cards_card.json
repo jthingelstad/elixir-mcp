@@ -1,0 +1,519 @@
+{
+  "feedback": 204,
+  "contract_version": "6.36.9",
+  "captured_at": "2026-09-24T01:23:49.110Z",
+  "request": {
+    "tool": "cards_card",
+    "arguments": {
+      "card": "Witch",
+      "segment": "corpus",
+      "mode": "tournament",
+      "season": "2026-08"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "corpus"
+      },
+      "window": {
+        "from": "2026-08-03T10:00:00.000Z",
+        "to": "2026-09-07T10:00:00.000Z",
+        "source": "season",
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 35
+      },
+      "mode": "tournament",
+      "verbosity": "full"
+    },
+    "card": {
+      "id": 26000007,
+      "name": "Witch",
+      "type": "troop",
+      "rarity": "epic",
+      "elixir_cost": 5,
+      "forms_available": ["evolution"],
+      "icon_urls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/cfwk1vzehVyHC-uloEIH6NOI0hOdofCutR5PyhIgO6w.png",
+        "evolutionMedium": "https://api-assets.clashroyale.com/cardevolutions/300/cfwk1vzehVyHC-uloEIH6NOI0hOdofCutR5PyhIgO6w.png"
+      },
+      "first_seen_in_catalog": "2026-09-10T23:57:37.591Z",
+      "first_played": {
+        "base": "2026-01-05T12:42:26.000Z",
+        "evolution": "2026-01-03T07:34:30.000Z",
+        "hero": null
+      }
+    },
+    "season": {
+      "mode_group": "tournament",
+      "decided_battles": 52,
+      "all": {
+        "battles": 15,
+        "wins": 6,
+        "losses": 9,
+        "players": 3,
+        "usage_share": 0.288,
+        "win_rate": 0.4,
+        "shrunk_win_rate": 0.457
+      },
+      "forms": [
+        {
+          "form": "base",
+          "battles": 1,
+          "wins": 0,
+          "losses": 1,
+          "players": 1,
+          "usage_share": 0.019,
+          "win_rate": 0,
+          "shrunk_win_rate": 0.476
+        },
+        {
+          "form": "evolution",
+          "battles": 14,
+          "wins": 6,
+          "losses": 8,
+          "players": 2,
+          "usage_share": 0.269,
+          "win_rate": 0.429,
+          "shrunk_win_rate": 0.471
+        }
+      ]
+    },
+    "excluded": {
+      "considered": 52,
+      "duels": 0,
+      "boat": 0,
+      "draws": 0,
+      "unresolved": 0,
+      "no_deck": 0
+    },
+    "prior_win_rate": 0.5,
+    "prior_basis": "corpus_season",
+    "population": {
+      "recorded_clans": 18,
+      "recorded_players": 1080,
+      "players_in_window": 27
+    },
+    "history": [
+      {
+        "season": {
+          "month": "2026-03",
+          "war": 130
+        },
+        "decided_battles": 40,
+        "battles": 19,
+        "wins": 8,
+        "losses": 11,
+        "players": 3,
+        "usage_share": 0.475,
+        "win_rate": 0.421
+      },
+      {
+        "season": {
+          "month": "2026-04",
+          "war": 131
+        },
+        "decided_battles": 14,
+        "battles": 2,
+        "wins": 1,
+        "losses": 1,
+        "players": 2,
+        "usage_share": 0.143,
+        "win_rate": 0.5,
+        "insufficient_sample": true
+      },
+      {
+        "season": {
+          "month": "2026-05",
+          "war": 132
+        },
+        "decided_battles": 12,
+        "battles": 4,
+        "wins": 3,
+        "losses": 1,
+        "players": 3,
+        "usage_share": 0.333,
+        "win_rate": 0.75,
+        "insufficient_sample": true
+      },
+      {
+        "season": {
+          "month": "2026-07",
+          "war": 134
+        },
+        "decided_battles": 12,
+        "battles": 1,
+        "wins": 1,
+        "losses": 0,
+        "players": 1,
+        "usage_share": 0.083,
+        "win_rate": 1,
+        "insufficient_sample": true
+      },
+      {
+        "season": {
+          "month": "2026-08",
+          "war": 135
+        },
+        "decided_battles": 52,
+        "battles": 15,
+        "wins": 6,
+        "losses": 9,
+        "players": 3,
+        "usage_share": 0.288,
+        "win_rate": 0.4
+      },
+      {
+        "season": {
+          "month": "2026-09",
+          "war": 136
+        },
+        "decided_battles": 3758,
+        "battles": 343,
+        "wins": 145,
+        "losses": 198,
+        "players": 172,
+        "usage_share": 0.091,
+        "win_rate": 0.423
+      }
+    ],
+    "by_band": [],
+    "partners": [
+      {
+        "card_id": 26000018,
+        "name": "Mini P.E.K.K.A",
+        "form": "hero",
+        "co_battles": 14,
+        "players": 2,
+        "co_occurrence_rate": 0.933,
+        "lift": 3.24
+      },
+      {
+        "card_id": 26000006,
+        "name": "Balloon",
+        "form": "base",
+        "co_battles": 13,
+        "players": 1,
+        "co_occurrence_rate": 0.867,
+        "lift": 3
+      },
+      {
+        "card_id": 26000005,
+        "name": "Minions",
+        "form": "base",
+        "co_battles": 13,
+        "players": 1,
+        "co_occurrence_rate": 0.867,
+        "lift": 3
+      },
+      {
+        "card_id": 28000001,
+        "name": "Arrows",
+        "form": "base",
+        "co_battles": 13,
+        "players": 1,
+        "co_occurrence_rate": 0.867,
+        "lift": 2.25
+      },
+      {
+        "card_id": 28000005,
+        "name": "Freeze",
+        "form": "base",
+        "co_battles": 13,
+        "players": 1,
+        "co_occurrence_rate": 0.867,
+        "lift": 1.88
+      },
+      {
+        "card_id": 28000015,
+        "name": "Barbarian Barrel",
+        "form": "base",
+        "co_battles": 13,
+        "players": 1,
+        "co_occurrence_rate": 0.867,
+        "lift": 2.15
+      },
+      {
+        "card_id": 26000035,
+        "name": "Lumberjack",
+        "form": "evolution",
+        "co_battles": 13,
+        "players": 1,
+        "co_occurrence_rate": 0.867,
+        "lift": 2.37
+      }
+    ],
+    "decks": [
+      {
+        "deck_hash": "da1abb6f51a65a5c1046b3a167a01cfb15578ed5632625ac0166ed9cd241112f",
+        "battles": 13,
+        "wins": 6,
+        "losses": 7,
+        "players": 1,
+        "usage_share": 0.25,
+        "win_rate": 0.462,
+        "cards": [
+          {
+            "id": 26000005,
+            "name": "Minions",
+            "form": "base"
+          },
+          {
+            "id": 26000006,
+            "name": "Balloon",
+            "form": "base"
+          },
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "hero"
+          },
+          {
+            "id": 26000035,
+            "name": "Lumberjack",
+            "form": "evolution"
+          },
+          {
+            "id": 28000001,
+            "name": "Arrows",
+            "form": "base"
+          },
+          {
+            "id": 28000005,
+            "name": "Freeze",
+            "form": "base"
+          },
+          {
+            "id": 28000015,
+            "name": "Barbarian Barrel",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000006,
+              "name": "Balloon",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Balloon beatdown",
+          "average_elixir": 3.75,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "558c5c29e587704c438742bb16cf088f4ad54a0d8dab7e780568d487507577e8",
+        "battles": 1,
+        "wins": 0,
+        "losses": 1,
+        "players": 1,
+        "usage_share": 0.019,
+        "win_rate": 0,
+        "cards": [
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "base"
+          },
+          {
+            "id": 26000009,
+            "name": "Golem",
+            "form": "base"
+          },
+          {
+            "id": 26000018,
+            "name": "Mini P.E.K.K.A",
+            "form": "hero"
+          },
+          {
+            "id": 26000037,
+            "name": "Inferno Dragon",
+            "form": "base"
+          },
+          {
+            "id": 26000043,
+            "name": "Elite Barbarians",
+            "form": "evolution"
+          },
+          {
+            "id": 26000067,
+            "name": "Elixir Golem",
+            "form": "base"
+          },
+          {
+            "id": 28000000,
+            "name": "Fireball",
+            "form": "base"
+          },
+          {
+            "id": 28000011,
+            "name": "The Log",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "beatdown",
+          "win_conditions": [
+            {
+              "id": 26000009,
+              "name": "Golem",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [
+            {
+              "id": 26000067,
+              "name": "Elixir Golem",
+              "form": "base"
+            },
+            {
+              "id": 26000043,
+              "name": "Elite Barbarians",
+              "form": "evolution"
+            }
+          ],
+          "named_by": null,
+          "label": "Golem beatdown",
+          "average_elixir": 4.5,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      },
+      {
+        "deck_hash": "c04d4cae0610bb2fab7e2d47b59bdce154e3946c9f5590d16c84556e5dd4558a",
+        "battles": 1,
+        "wins": 0,
+        "losses": 1,
+        "players": 1,
+        "usage_share": 0.019,
+        "win_rate": 0,
+        "cards": [
+          {
+            "id": 26000007,
+            "name": "Witch",
+            "form": "evolution"
+          },
+          {
+            "id": 26000010,
+            "name": "Skeletons",
+            "form": "base"
+          },
+          {
+            "id": 26000012,
+            "name": "Skeleton Army",
+            "form": "base"
+          },
+          {
+            "id": 26000045,
+            "name": "Executioner",
+            "form": "base"
+          },
+          {
+            "id": 26000056,
+            "name": "Skeleton Barrel",
+            "form": "base"
+          },
+          {
+            "id": 26000069,
+            "name": "Skeleton King",
+            "form": "base"
+          },
+          {
+            "id": 26000074,
+            "name": "Golden Knight",
+            "form": "base"
+          },
+          {
+            "id": 28000013,
+            "name": "Clone",
+            "form": "base"
+          }
+        ],
+        "tower_troop": {
+          "id": 159000000,
+          "name": "Tower Princess"
+        },
+        "archetype": {
+          "family": "bait",
+          "win_conditions": [
+            {
+              "id": 26000056,
+              "name": "Skeleton Barrel",
+              "form": "base"
+            }
+          ],
+          "secondary_win_conditions": [],
+          "named_by": null,
+          "label": "Skeleton Barrel bait",
+          "average_elixir": 3.5,
+          "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+          "grammar_version": "2026-09",
+          "roles_version": "2026-09-20T20:16:47.000Z"
+        }
+      }
+    ],
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "notes": [
+      "Forms: season.all merges the card's forms; season.forms carries one row per form played (base, evolution, hero); usage_share is the row's decided observations over the population's decided_battles.",
+      "A card's win rate describes who played it as much as the card: compare within one mode and similar mean_level_gap, never across segments.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "by_band is empty: the banded rollup has not been filled for this season yet.",
+      "Trophy bands are Trophy Road trophies. A ranked (Path of Legends) observation carries a rating and a tournament one the player's running score in that tournament, not trophies, so neither sits in a band; pass mode 'ladder' for a trophy view of the ladder.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "shrunk_win_rate shrinks toward prior_win_rate: the corpus season's decided mean (prior_basis), and is withheld below 30 decided observations, where the row says insufficient_sample: true.",
+      "Read from the season's final rollup (players_as_of 2026-09-24T00:50:46.458Z)."
+    ],
+    "docs": "cards#one-card-in-one-call",
+    "meta": {
+      "contract_version": "6.36.9"
+    }
+  },
+  "timings": {
+    "db_ms": 1306,
+    "db_queries": 20,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

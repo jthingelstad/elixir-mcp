@@ -36,6 +36,7 @@ import {
   stampMatches,
 } from "../shared.mjs";
 import {
+  RANKED_NO_BAND_NOTE,
   TROPHY_BAND_NAMES,
   popBandClause,
   popWindow,
@@ -567,6 +568,8 @@ export const battles_meta_decks = {
         modeGroups ? pooledModesNote(modeGroups) : null,
         seg.where ? singlePlayerNote(shaped) : null,
         bandPending ? BAND_FALLBACK_NOTE : null,
+        // A band on ranked or tournament answers 0 by rule; say why (#204).
+        args.trophy_band && args.mode !== "ladder" ? RANKED_NO_BAND_NOTE : null,
         args.trophy_band && roll
           ? "excluded counts the season and mode, not the band (a duel or a boat battle has no band); decided_battles and every row are the band's."
           : null,

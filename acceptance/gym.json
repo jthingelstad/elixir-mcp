@@ -9906,5 +9906,540 @@
         "eq": ["t.weeks[0].covers.from", "t.applied.window.from"]
       }
     ]
+  },
+  {
+    "id": "201.1",
+    "feedback": 201,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "pol-global-top-100"
+    },
+    "request_id": "c94a3799-f5cd-47a3-981b-2c10dcc01389",
+    "assert": [
+      {
+        "notes_not_match": "null until a profile poll has read"
+      },
+      {
+        "notes_match": "no YearsPlayed badge"
+      }
+    ]
+  },
+  {
+    "id": "201.2",
+    "feedback": 201,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "elixir-drop"
+    },
+    "request_id": "5a700bdb-c715-44fe-a702-6a23afa63131",
+    "assert": [
+      {
+        "notes_not_match": "null until a profile poll has read"
+      },
+      {
+        "notes_match": "no YearsPlayed badge"
+      }
+    ]
+  },
+  {
+    "id": "201.3",
+    "feedback": 201,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "collections_get",
+        "args": {
+          "collection": "pros"
+        }
+      },
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#UJJ2YVLQR"
+        }
+      }
+    },
+    "request_id": "acdf9d6c-9cad-4e3b-a999-e29d1b0df12d",
+    "assert": [
+      {
+        "eq": [
+          "c.members[?player_tag=#UJJ2YVLQR].years_played",
+          "p.attributes.years_played"
+        ]
+      },
+      {
+        "gte": ["p.attributes.years_played", 1]
+      }
+    ]
+  },
+  {
+    "id": "201.4",
+    "feedback": 201,
+    "open_question": "The null rule itself (no YearsPlayed badge on a read profile means an account under 365 days) is inferred from 33 holders whose badge progress equals account_age_days (level 1 = 414-729 days, level 2 from 761). If the maintainer can confirm from the API that the badge is absent below one year, the note can drop its hedge."
+  },
+  {
+    "id": "202.1",
+    "feedback": 202,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "collection": "global-top-10-clans"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "69b389f1-6a4f-4543-9a1f-b3fb757938c7",
+    "assert": [
+      {
+        "notes_match": "No player collection"
+      },
+      {
+        "notes_match": "clan collection"
+      },
+      {
+        "notes_match": "clan_tag"
+      }
+    ]
+  },
+  {
+    "id": "202.2",
+    "feedback": 202,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": {
+        "collection": "global-top-10-clans"
+      },
+      "limit": 5
+    },
+    "request_id": "e96c9328-3487-4f91-92b2-1bfff7632292",
+    "assert": [
+      {
+        "notes_match": "clan collection"
+      }
+    ]
+  },
+  {
+    "id": "202.3",
+    "feedback": 202,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "collection": "no-such-slug"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "15d6fa64-57be-4970-a015-3f19bd890640",
+    "assert": [
+      {
+        "notes_match": "No player collection 'no-such-slug'"
+      },
+      {
+        "notes_not_match": "clan collection"
+      }
+    ]
+  },
+  {
+    "id": "202.4",
+    "feedback": 202,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "pros"
+    },
+    "request_id": "acdf9d6c-9cad-4e3b-a999-e29d1b0df12d",
+    "assert": [
+      {
+        "notes_not_match": "clan collection is not a segment"
+      }
+    ]
+  },
+  {
+    "id": "203.1",
+    "feedback": 203,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "collections_get",
+        "args": {
+          "collection": "clans-to-watch"
+        }
+      },
+      "r": {
+        "tool": "clans_roster",
+        "args": {
+          "clan_tag": "#LG0",
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "fd679702-c78f-40d4-9353-564fd2963be7",
+    "assert": [
+      {
+        "eq": ["c.members[?clan_tag=#LG0].open_members", "r.member_count"]
+      }
+    ]
+  },
+  {
+    "id": "203.2",
+    "feedback": 203,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "collections_get",
+        "args": {
+          "collection": "pros"
+        }
+      },
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#UJJ2YVLQR"
+        }
+      }
+    },
+    "request_id": "acdf9d6c-9cad-4e3b-a999-e29d1b0df12d",
+    "assert": [
+      {
+        "eq": [
+          "c.members[?player_tag=#UJJ2YVLQR].trophies",
+          "p.snapshot.trophies"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "203.3",
+    "feedback": 203,
+    "stability": "live",
+    "control": true,
+    "tool": "badges_holders",
+    "args": {
+      "badge": "YearsPlayed",
+      "segment": {
+        "collection": "pol-global-top-100"
+      }
+    },
+    "request_id": "c81ee858-b983-4776-bd13-7810a177201b",
+    "assert": [
+      {
+        "eq": ["players_considered", 100]
+      },
+      {
+        "lte": ["holders_total", "players_considered"]
+      }
+    ]
+  },
+  {
+    "id": "203.4",
+    "feedback": 203,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "7d1c30c4-0935-42e7-a90e-277fc68206ed",
+    "assert": [
+      {
+        "notes_match": "describe today's members"
+      }
+    ]
+  },
+  {
+    "id": "204.1",
+    "feedback": 204,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "mode": "tournament"
+    },
+    "request_id": "5a489ce4-46ac-4671-b4b0-96ccb8514ebc",
+    "assert": [
+      {
+        "notes_not_match": "(?i)rollup has not been filled"
+      },
+      {
+        "absent": "by_band[0]"
+      }
+    ]
+  },
+  {
+    "id": "204.2",
+    "feedback": 204,
+    "stability": "frozen",
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "mode": "tournament",
+      "season": "2026-08"
+    },
+    "request_id": "7b93cc1a-4f25-47ac-9732-be4010248f48",
+    "assert": [
+      {
+        "notes_not_match": "(?i)rollup has not been filled"
+      }
+    ]
+  },
+  {
+    "id": "204.3",
+    "feedback": 204,
+    "stability": "live",
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": "corpus",
+      "trophy_band": "under_5000",
+      "mode": "tournament",
+      "limit": 5
+    },
+    "request_id": "63f0b6e9-6050-4ffb-af8f-727576918931",
+    "assert": [
+      {
+        "notes_match": "(?i)tournament.{0,160}(no|not|neither).{0,40}band"
+      }
+    ]
+  },
+  {
+    "id": "204.4",
+    "feedback": 204,
+    "stability": "live",
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": "corpus",
+      "trophy_band": "under_5000",
+      "mode": "ranked",
+      "limit": 5
+    },
+    "request_id": "ba250d73-0bab-4461-8f5a-1971ce89bcb6",
+    "assert": [
+      {
+        "notes_match": "(?i)ranked.{0,160}(no|not|neither).{0,40}band"
+      }
+    ]
+  },
+  {
+    "id": "204.5",
+    "feedback": 204,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "mode": "ranked"
+    },
+    "request_id": "815e5557-427d-4c83-8623-4404019ece48",
+    "assert": [
+      {
+        "notes_match": "(?i)by_band is empty on ranked"
+      },
+      {
+        "notes_not_match": "(?i)rollup has not been filled"
+      }
+    ]
+  },
+  {
+    "id": "204.6",
+    "feedback": 204,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "mode": "ladder"
+    },
+    "request_id": "a895888e-17fa-40e6-a831-8295925603d8",
+    "assert": [
+      {
+        "gt": ["by_band[?trophy_band=under_5000].battles", 0]
+      },
+      {
+        "notes_not_match": "(?i)rollup has not been filled"
+      }
+    ]
+  },
+  {
+    "id": "205.1",
+    "feedback": 205,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26000000,
+      "segment": "corpus",
+      "verbosity": "compact"
+    },
+    "request_id": "34b5cecc-82ac-4d3f-a3ab-3a9aa5560d6f",
+    "assert": [
+      {
+        "notes_match": "(?i)first_seen_in_catalog"
+      }
+    ]
+  },
+  {
+    "id": "205.2",
+    "feedback": 205,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26000107,
+      "segment": "corpus",
+      "verbosity": "compact"
+    },
+    "request_id": "fcac2d56-7e61-4088-b59f-3cd867be9be8",
+    "assert": [
+      {
+        "notes_match": "(?i)first_seen_in_catalog"
+      }
+    ]
+  },
+  {
+    "id": "205.3",
+    "feedback": 205,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26000107,
+      "segment": "corpus",
+      "verbosity": "compact"
+    },
+    "request_id": "fcac2d56-7e61-4088-b59f-3cd867be9be8",
+    "assert": [
+      {
+        "has": "card.first_played.base"
+      },
+      {
+        "eq": ["card.id", 26000107]
+      }
+    ]
+  },
+  {
+    "id": "206.1",
+    "feedback": 206,
+    "stability": "live",
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Witch",
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "from": "2026-09-14",
+      "to": "2026-09-20"
+    },
+    "request_id": "3f7ca25a-f5d1-4e28-a6c2-f72c9fc29415",
+    "assert": [
+      {
+        "has": "meta.freshness_seconds"
+      },
+      {
+        "has": "meta.recorded_since"
+      }
+    ]
+  },
+  {
+    "id": "206.2",
+    "feedback": 206,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "from": "2026-09-14",
+      "to": "2026-09-20"
+    },
+    "request_id": "f2e4ba1d-1e93-49e4-bb02-5540788b2fd1",
+    "assert": [
+      {
+        "has": "meta.freshness_seconds"
+      },
+      {
+        "has": "meta.recorded_since"
+      }
+    ]
+  },
+  {
+    "id": "207.1",
+    "feedback": 207,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "r": {
+        "tool": "cards_synergy",
+        "args": {
+          "card": "Witch",
+          "segment": "corpus",
+          "from": "2026-08-03T10:00:00Z",
+          "to": "2026-09-07T10:00:00Z",
+          "limit": 3
+        }
+      },
+      "s": {
+        "tool": "cards_synergy",
+        "args": {
+          "card": "Witch",
+          "segment": "corpus",
+          "season": "2026-08",
+          "limit": 3
+        }
+      }
+    },
+    "request_id": "7307cde5-f0e8-46ae-a19b-1823a491894b",
+    "assert": [
+      {
+        "eq": ["r.decided_battles", "s.decided_battles"]
+      },
+      {
+        "eq": ["r.anchor.decks", "s.anchor.decks"]
+      },
+      {
+        "eq": [
+          "r.partners[?name=Arrows].co_battles",
+          "s.partners[?name=Arrows].co_battles"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "207.2",
+    "feedback": 207,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "trophy_band": "under_5000",
+      "limit": 5
+    },
+    "request_id": "a2c212f3-8a2e-4751-80a4-3f30bd71dd43",
+    "assert": [
+      {
+        "absent": "anchor.modes.tournament"
+      },
+      {
+        "absent": "anchor.modes.ranked"
+      },
+      {
+        "notes_match": "(?i)tournament.{0,160}(no|not|neither).{0,40}band"
+      }
+    ]
   }
 ]

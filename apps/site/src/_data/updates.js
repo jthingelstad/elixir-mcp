@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Clearer answers from collections and cards",
+    body: "The Elixir Gym's runs over the collection and card tools. A missing years-played figure now says it usually means an account under a year old, not a profile Elixir has not read. Passing a clan collection where players are expected now explains how to ask about those clans. And the card tools say why tournament play has no trophy band, and that a card's first-seen date is when Elixir began keeping the catalog, not the card's release. Contract 6.36.11.",
+  },
+  {
+    date: "2026-09-23",
     title: "Trophy counts above 14,000 add up",
     body: "The Elixir Gym's fourth run over the battles tools. Past 14,000 trophies the game files the seasonal Trophy Road as an event, but those battles still win and lose trophies. Weekly battle counts now include them among the trophy battles played, so the trophies a capped player gained match the battles that earned them. Contract 6.36.10.",
   },
