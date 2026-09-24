@@ -648,6 +648,12 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.war_gap_census) {
+    const { warGapCensus } = await import("./ops-war-gap.mjs");
+    const result = await warGapCensus(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.rollup_boat_defenses) {
     const { rollupBoatDefenses } = await import("./ops-rollup-defenses.mjs");
     const result = await rollupBoatDefenses(
