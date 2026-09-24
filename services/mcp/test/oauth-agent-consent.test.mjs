@@ -147,7 +147,13 @@ async function consent(email, resource, ip, { submitTwice = false } = {}) {
     handler(
       event({
         path: "/oauth/authorize",
-        form: { ...q, step: "code", email, code: mail?.code ?? "000000" },
+        form: {
+          ...q,
+          step: "code",
+          confirm: "1",
+          email,
+          code: mail?.code ?? "000000",
+        },
         ip,
       }),
     );
@@ -325,6 +331,7 @@ test("a duplicate submit is still refused once the window is past", async () => 
           .digest("base64url"),
         code_challenge_method: "S256",
         step: "code",
+        confirm: "1",
         email: OWNER,
         code: sentEmails.at(-1)?.code ?? "000000",
       },
@@ -380,6 +387,7 @@ test("the agent door offers the same capability checkboxes, and ticking one gran
   const body = new URLSearchParams({
     ...q,
     step: "code",
+    confirm: "1",
     email: OWNER,
     code,
   });
@@ -398,4 +406,84 @@ test("the agent door offers the same capability checkboxes, and ticking one gran
   assert.equal(rows[0].kind, "agent");
   assert.equal(rows[0].public_id, agentPublicId);
   assert.equal(rows[0].scope, "cr:read feedback:write");
+});
+
+/**
+ * Jamie 2026-09-24: on an agent every write but tracking starts ticked,
+ * and unticking one asks for confirmation, naming what the agent will not
+ * be able to do. The confirmation comes BEFORE the code is spent, so going
+ * back costs nothing.
+ */
+test("an agent's writes start ticked but tracking; unticking one asks first, and back spends nothing", async () => {
+  const resource = `${ISSUER}/a/${agentPublicId}/mcp`;
+  const verifier = crypto.randomBytes(48).toString("base64url");
+  const challenge = crypto
+    .createHash("sha256")
+    .update(verifier)
+    .digest("base64url");
+  const q = {
+    client_id: clientId,
+    redirect_uri: REDIRECT,
+    scope: "",
+    resource,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    state: "confirm",
+  };
+  const emailStep = await handler(
+    event({
+      path: "/oauth/authorize",
+      form: { ...q, step: "email", email: OWNER },
+      ip: "9.9.9.9",
+    }),
+  );
+  assert.equal(emailStep.statusCode, 200);
+  for (const s of ["feedback:write", "account:write", "collections:write"])
+    assert.match(
+      emailStep.body,
+      new RegExp(`name="grant" value="${s}" checked`),
+      `${s} starts ticked on an agent`,
+    );
+  assert.match(
+    emailStep.body,
+    /name="grant" value="recordings:write">/,
+    "tracking spends the owner's slots: unticked",
+  );
+  const code = sentEmails.at(-1).code;
+  const post = (extra = {}, grants = []) => {
+    const body = new URLSearchParams({
+      ...q,
+      step: "code",
+      email: OWNER,
+      code,
+      ...extra,
+    });
+    for (const g of grants) body.append("grant", g);
+    return handler(
+      event({ path: "/oauth/authorize", body: body.toString(), ip: "9.9.9.9" }),
+    );
+  };
+  // Feedback unticked: the confirmation names it, and holds the code.
+  const ask = await post({}, ["account:write", "collections:write"]);
+  assert.equal(ask.statusCode, 200);
+  assert.match(ask.body, /send feedback to the Elixir maintainer/);
+  assert.match(ask.body, new RegExp(`name="code" value="${code}"`));
+  // Back: the code page again, with the person's choices kept.
+  const back = await post({ confirm: "back" }, [
+    "account:write",
+    "collections:write",
+  ]);
+  assert.equal(back.statusCode, 200);
+  assert.match(back.body, /name="grant" value="feedback:write">/);
+  assert.match(back.body, /name="grant" value="account:write" checked/);
+  // Confirmed: the code was never spent by the steps above.
+  const done = await post({ confirm: "1" }, [
+    "account:write",
+    "collections:write",
+  ]);
+  assert.equal(done.statusCode, 303, done.body?.slice(0, 200));
+  const { rows } = await db.query(
+    `select scope from oauth_code order by created_at desc limit 1`,
+  );
+  assert.equal(rows[0].scope, "cr:read collections:write account:write");
 });

@@ -59,6 +59,7 @@ import {
   OAUTH_SCOPE,
   OAUTH_SCOPE_DETAILS,
   STANDARD_OAUTH_SCOPES,
+  DEFAULT_OAUTH_SCOPE,
 } from "@elixir-mcp/contracts";
 
 const DCR_GLOBAL_DAILY_CAP = 200;
@@ -219,25 +220,53 @@ function codeFailure(reason) {
   return `<h1>${esc(title)}</h1><p>${esc(body)}</p>`;
 }
 
+/** What a connection cannot do without each capability, for the page
+ *  and the confirmation (Jamie 2026-09-24: say what an unticked box
+ *  will stop). */
+const WITHOUT = {
+  "recordings:write": "track or stop tracking players and clans for you",
+  "collections:write": "change the members of your collections",
+  "account:write":
+    "remember who is talking to it or set your private nicknames",
+  "feedback:write": "send feedback to the Elixir maintainer for you",
+};
+
+/** The capabilities offered ticked before anyone touches the page
+ *  (Jamie 2026-09-24): on a person's own connection none, every write is
+ *  theirs to choose; on an agent or integration every write but tracking,
+ *  which spends the owner's tracking slots and is ticked on purpose. */
+function defaultTicked(kind) {
+  return kind === "person" || kind === "api"
+    ? []
+    : STANDARD_OAUTH_SCOPES.filter(
+        (s) => s !== OAUTH_SCOPE.READ && s !== OAUTH_SCOPE.RECORDINGS_WRITE,
+      );
+}
+
+/** The standard capabilities a request did not ask for: the checkboxes. */
+function optionalScopes(scope) {
+  const granted = new Set(scope.split(" "));
+  return STANDARD_OAUTH_SCOPES.filter((s) => !granted.has(s));
+}
+
 /**
  * What this connection will be able to do, and what else it MAY be allowed
  * to do.
  *
  * The requested capabilities are fixed: a client that asked for them needs
- * them. The rest are offered as checkboxes, because this page is the only
- * place a human can widen a grant. Scope arrives in the client's ?scope=
- * parameter. Since 1.0.0 a client that names no scope is offered every
- * capability, and the ones a narrower client left out are offered TICKED
- * (Jamie, 2026-09-10: "unless the user removes feedback:write it should
- * work"), so the behaviour every agent is told to perform unprompted -
- * file feedback - is granted unless a person says otherwise.
+ * them. The rest are checkboxes, because this page is the only place a
+ * human can widen a grant: ticked or not by the connection's kind
+ * (defaultTicked), or as the person left them when they come back from
+ * the confirmation. Each box says what the connection cannot do without
+ * it.
  *
  * RFC 6749 section 3.3 permits issuing a scope different from the one
  * requested provided the token response says so, which it does: the
  * granted scope is stored on the auth code and echoed back at redemption.
  */
-function consentCapabilities(scope) {
+function consentCapabilities(scope, { kind, ticked = null } = {}) {
   const granted = new Set(scope.split(" "));
+  const on = new Set(ticked ?? defaultTicked(kind));
   const line = ({ title, description }) =>
     `<strong>${esc(title)}</strong> — ${esc(description)}`;
   const asked = OAUTH_SCOPE_DETAILS.filter((d) => granted.has(d.scope));
@@ -250,14 +279,23 @@ function consentCapabilities(scope) {
     `<ul>${asked.map((d) => `<li>${line(d)}</li>`).join("")}</ul>` +
     (rest.length === 0
       ? ""
-      : `<p><strong>Also allowed unless you untick it:</strong></p>
+      : `<p><strong>You choose whether it may also:</strong></p>
          <ul>${rest
            .map(
              (d) =>
-               `<li><label><input type="checkbox" name="grant" value="${esc(d.scope)}" checked> ${line(d)}</label></li>`,
+               `<li><label><input type="checkbox" name="grant" value="${esc(d.scope)}"${on.has(d.scope) ? " checked" : ""}> ${line(d)}</label>${WITHOUT[d.scope] ? `<br><small>Unticked, it will not be able to ${esc(WITHOUT[d.scope])}.</small>` : ""}</li>`,
            )
            .join("")}</ul>
-         <p>The client asked for ${esc(String(asked.length))} capabilit${asked.length === 1 ? "y" : "ies"}; the rest are offered ticked, and untick any you would rather not grant.</p>`)
+         <p>You can change these later on the Connections page of your console.</p>`)
+  );
+}
+
+/** A box that started ticked and was unticked: what the confirmation
+ *  names before the grant is made. */
+function uncheckedDefaults(v, ticked) {
+  const offered = new Set(optionalScopes(v.scope));
+  return defaultTicked(v.target.kind).filter(
+    (s) => offered.has(s) && !ticked.includes(s),
   );
 }
 
@@ -302,7 +340,11 @@ async function validatedAuthRequest(db, q, targetFor) {
     return { error: "code_challenge_method must be S256" };
   const codeChallenge = validCodeChallenge(q.code_challenge);
   if (!codeChallenge) return { error: "invalid code_challenge" };
-  const scope = normalizeScope(q.scope);
+  // A client that names no scope asks for read only (Jamie 2026-09-24):
+  // every other capability is the person's to tick on the consent page,
+  // where it was once granted outright with no box to untick.
+  const explicitScope = String(q.scope ?? "").trim() !== "";
+  const scope = explicitScope ? normalizeScope(q.scope) : DEFAULT_OAUTH_SCOPE;
   if (!scope) return { error: "invalid_scope" };
   const target = targetFor(q.resource);
   if (!target) return { error: "invalid_target" };
@@ -376,12 +418,91 @@ export function makeOauthRoutes({
     );
 
   /** What the client will be able to do, worded for the target's kind. */
-  const capabilitiesBlock = (v, verb) =>
-    v.target.kind === "person" || v.target.kind === "api"
-      ? `<p><strong>${verb} authorizes ${esc(v.client.clientName)} to:</strong></p>${consentCapabilities(v.scope)}`
+  const capabilitiesBlock = (v, verb, ticked = null) => {
+    const caps = consentCapabilities(v.scope, {
+      kind: v.target.kind,
+      ticked,
+    });
+    return v.target.kind === "person" || v.target.kind === "api"
+      ? `<p><strong>${verb} authorizes ${esc(v.client.clientName)} to:</strong></p>${caps}`
       : `<p><strong>This connects ${esc(v.client.clientName)} as one of your ${esc(v.target.kind === "agent" ? "agents" : "integrations")}, not as you.</strong></p>
          <p>It will act with that principal&rsquo;s own identity and see its data, not your players or your feed. You can only do this for a principal you own.</p>
-         ${consentCapabilities(v.scope)}`;
+         ${caps}`;
+  };
+
+  /** The signed-in consent page (a GET, or back from the confirmation). */
+  const sessionConsentPage = (v, q, me, ticked = null) => {
+    const { step, confirm, grant, ...rest } = q;
+    void step;
+    void confirm;
+    void grant;
+    const switchUrl = `/oauth/authorize?${new URLSearchParams({ ...rest, switch: "1" })}`;
+    return page(
+      "Connect to Elixir MCP",
+      `<h1>Connect ${esc(v.client.clientName)}</h1>
+       <p>You are signed in to Elixir${me.email ? ` as <strong>${esc(me.email)}</strong>` : ""}.</p>
+       <form method="post" action="/oauth/authorize">
+         ${capabilitiesBlock(v, "Authorizing", ticked)}
+         <input type="hidden" name="step" value="session">${hiddenAuthFields(q)}
+         <button>Authorize</button>
+       </form>
+       <p><a href="${esc(switchUrl)}">Not you? Sign in with a code instead.</a></p>`,
+    );
+  };
+
+  /** The code-entry page (after the email step, or back from the
+   *  confirmation with the code still in hand). */
+  const codeEntryPage = (v, form, ticked = null, lead = "") =>
+    page(
+      "Enter your code",
+      `<h1>Check your email</h1>
+       ${lead || `<p>If your account is approved, a 6-digit code is on its way to ${esc(form.email)}.</p>`}
+       <form method="post" action="/oauth/authorize">
+         ${capabilitiesBlock(v, "Entering it", ticked)}
+         <input type="hidden" name="step" value="code">${hiddenAuthFields(form)}
+         <input type="hidden" name="email" value="${esc(form.email)}">
+         <input inputmode="numeric" autocomplete="one-time-code" name="code" placeholder="123456" value="${esc(form.code ?? "")}" required autofocus>
+         <button>Authorize</button>
+       </form>`,
+    );
+
+  /**
+   * Before the grant: a box that started ticked and was unticked is named,
+   * with what the connection will not be able to do, and the person
+   * confirms or goes back (Jamie 2026-09-24). It runs BEFORE a code is
+   * verified, so going back spends nothing.
+   */
+  const confirmPage = (v, form, ticked, missing) =>
+    page(
+      "Confirm what it can do",
+      `<h1>Before you connect ${esc(v.client.clientName)}</h1>
+       <p>You unticked ${missing.length === 1 ? "a capability" : "capabilities"} it would normally have. Without ${missing.length === 1 ? "it" : "them"}, this connection will not be able to:</p>
+       <ul>${missing.map((s) => `<li>${esc(WITHOUT[s] ?? s)}</li>`).join("")}</ul>
+       <p>When it tries, Elixir will refuse and name the capability; you can grant it later on the Connections page of your console.</p>
+       <form method="post" action="/oauth/authorize">
+         <input type="hidden" name="step" value="${esc(form.step)}">${hiddenAuthFields(form)}
+         ${form.email !== undefined ? `<input type="hidden" name="email" value="${esc(form.email)}">` : ""}
+         ${form.code !== undefined ? `<input type="hidden" name="code" value="${esc(form.code)}">` : ""}
+         ${ticked.map((s) => `<input type="hidden" name="grant" value="${esc(s)}">`).join("")}
+         <button name="confirm" value="1">Connect without ${missing.length === 1 ? "it" : "them"}</button>
+         <button name="confirm" value="back">Go back and change</button>
+       </form>`,
+    );
+
+  /** The confirmation gate for a consent POST: null to proceed. */
+  const confirmGate = (event, v, form, backPage) => {
+    const ticked = formValues(event, "grant").filter((s) =>
+      STANDARD_OAUTH_SCOPES.includes(s),
+    );
+    const missing = uncheckedDefaults(v, ticked);
+    if (missing.length === 0 || form.confirm === "1") return null;
+    return html(
+      200,
+      form.confirm === "back"
+        ? backPage(ticked)
+        : confirmPage(v, form, ticked, missing),
+    );
+  };
 
   /**
    * The consent act itself, once the person is known: the principal
@@ -530,21 +651,7 @@ export function makeOauthRoutes({
           resource: v.resource,
           kind: v.target.kind,
         });
-        const switchUrl = `/oauth/authorize?${new URLSearchParams({ ...q, switch: "1" })}`;
-        return html(
-          200,
-          page(
-            "Connect to Elixir MCP",
-            `<h1>Connect ${esc(v.client.clientName)}</h1>
-             <p>You are signed in to Elixir${me.email ? ` as <strong>${esc(me.email)}</strong>` : ""}.</p>
-             ${capabilitiesBlock(v, "Authorizing")}
-             <form method="post" action="/oauth/authorize">
-               <input type="hidden" name="step" value="session">${hiddenAuthFields(q)}
-               <button>Authorize</button>
-             </form>
-             <p><a href="${esc(switchUrl)}">Not you? Sign in with a code instead.</a></p>`,
-          ),
-        );
+        return html(200, sessionConsentPage(v, q, me));
       }
       return html(200, emailStepPage(q, v.client.clientName));
     },
@@ -575,6 +682,10 @@ export function makeOauthRoutes({
               "<p>Your Elixir sign-in has ended; sign in with a code to continue.</p>",
             ),
           );
+        const gated = confirmGate(event, v, form, (ticked) =>
+          sessionConsentPage(v, form, me, ticked),
+        );
+        if (gated) return gated;
         authLog("oauth_session_accepted", {
           email: emailRef(me.email_hash),
           request: requestRef(v.codeChallenge),
@@ -628,24 +739,19 @@ export function makeOauthRoutes({
           });
         }
         // Identical page whether or not anything was sent — never an oracle.
-        return html(
-          200,
-          page(
-            "Enter your code",
-            `<h1>Check your email</h1>
-             <p>If your account is approved, a 6-digit code is on its way to ${esc(form.email)}.</p>
-             ${capabilitiesBlock(v, "Entering it")}
-             <form method="post" action="/oauth/authorize">
-               <input type="hidden" name="step" value="code">${hiddenAuthFields(form)}
-               <input type="hidden" name="email" value="${esc(form.email)}">
-               <input inputmode="numeric" autocomplete="one-time-code" name="code" placeholder="123456" required autofocus>
-               <button>Authorize</button>
-             </form>`,
-          ),
-        );
+        return html(200, codeEntryPage(v, { ...form, code: "" }));
       }
 
       if (form.step === "code") {
+        const gated = confirmGate(event, v, form, (ticked) =>
+          codeEntryPage(
+            v,
+            form,
+            ticked,
+            "<p>Enter the code from your email.</p>",
+          ),
+        );
+        if (gated) return gated;
         const verified = await verifyMagicCode(db, {
           emailHash: hash,
           code: form.code,

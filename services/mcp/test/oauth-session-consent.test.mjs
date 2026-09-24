@@ -159,10 +159,11 @@ test("a signed-in browser consents in one POST, with no email step and no mail",
   assert.match(page.body, /name="step" value="session"/);
   assert.doesNotMatch(page.body, /type="email"/, "no address to type");
   assert.match(page.body, /switch=1/, "a way out for a shared browser");
-  // The widening checkboxes are the same ones the code page offers.
+  // The widening checkboxes are the same ones the code page offers,
+  // unticked on a person's own connection (Jamie 2026-09-24).
   assert.match(
     page.body,
-    /<input type="checkbox" name="grant" value="recordings:write" checked>/,
+    /<input type="checkbox" name="grant" value="recordings:write">/,
   );
 
   const mailBefore = sentEmails.length;
@@ -170,7 +171,7 @@ test("a signed-in browser consents in one POST, with no email step and no mail",
     event({
       path: "/oauth/authorize",
       cookie,
-      form: { step: "session", ...q, grant: "feedback:write" },
+      form: { step: "session", confirm: "1", ...q, grant: "feedback:write" },
     }),
   );
   assert.equal(consent.statusCode, 303, consent.body);
@@ -222,7 +223,7 @@ test("a session POST without a live session falls back to the email step, never 
     event({
       path: "/oauth/authorize",
       cookie: "not-a-session-token",
-      form: { step: "session", ...q },
+      form: { step: "session", confirm: "1", ...q },
     }),
   );
   assert.equal(res.statusCode, 200);
@@ -265,7 +266,7 @@ test("consent by code signs the browser in to the site", async () => {
   const done = await handler(
     event({
       path: "/oauth/authorize",
-      form: { step: "code", email: EMAIL, code, ...q },
+      form: { step: "code", confirm: "1", email: EMAIL, code, ...q },
     }),
   );
   assert.equal(done.statusCode, 303, done.body);
@@ -301,7 +302,7 @@ test("consent by session cannot reach an agent the person does not own", async (
     event({
       path: "/oauth/authorize",
       cookie,
-      form: { step: "session", ...q },
+      form: { step: "session", confirm: "1", ...q },
     }),
   );
   assert.equal(res.statusCode, 403);

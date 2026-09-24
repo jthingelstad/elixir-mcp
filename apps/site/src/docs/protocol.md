@@ -100,14 +100,16 @@ the call log.
 Both documents list every capability the server defines. The five
 **standard** ones are what the 401 challenge's `scope` advertises and what a
 client gets without asking; `account:email` is the exception, described
-under [Signing a person in](#signing-a-person-in-with-elixir). **A client
-that names no scope in particular is offered every standard capability,
-ticked, on the consent page**, where the person can untick
-any of them (since 1.0.0; before it the default was `cr:read` alone, which
-refused the feedback every agent is told to file on its own judgment). A
-client that asks for less is offered the rest as unticked checkboxes, and what
-you tick is added to the grant, so a person can allow `feedback:write` to a
-client that only ever requests `cr:read`. The token response reports the scope
+under [Signing a person in](#signing-a-person-in-with-elixir). **What a
+client asks for is granted; every other standard capability is a checkbox the
+person decides on the consent page**, and a client that names no scope asks
+for `cr:read` alone. On a person's own connection the checkboxes start
+unticked; on an agent or integration every write starts ticked except
+`recordings:write`, which spends the owner's tracking slots (7.2.1). Each box
+says what the connection cannot do without it, and unticking one that started
+ticked asks for confirmation, naming what will not work, before the grant is
+made. What you tick is added to the grant, so a person can allow
+`feedback:write` to a client that only ever requests `cr:read`. The token response reports the scope
 actually granted (RFC 6749 §3.3), which is how the client learns it holds more
 than it asked for. Both documents are cacheable for 300 seconds. There is no revocation or introspection endpoint; a person
 revokes a connection on Account → Connections.
@@ -140,7 +142,7 @@ GET and POST:
 | `redirect_uri` | one of the registered URIs | `redirect_uri not registered` |
 | `code_challenge` | required, 43 to 128 chars of `[A-Za-z0-9_-]` | `invalid code_challenge` |
 | `code_challenge_method` | `S256` (default); nothing else | `code_challenge_method must be S256` |
-| `scope` | space-separated; must include `cr:read`; unknown scopes refused; empty or absent means every capability, offered ticked at consent | `invalid_scope` |
+| `scope` | space-separated; must include `cr:read`; unknown scopes refused; empty or absent means `cr:read`, with every other capability offered at consent | `invalid_scope` |
 | `resource` | **required**: the exact door URL the token is for (`https://elixir.poapkings.com/mcp` for a person) | `invalid_target` |
 | `state` | optional; over 512 chars is silently replaced by empty | – |
 
@@ -212,7 +214,7 @@ scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
   "error": { "code": -32003,
     "message": "The access token lacks the capability required by this tool: recordings:write.",
     "data": { "required_scope": "recordings:write", "granted_scope": "cr:read",
-              "hint": "Reconnect this client and keep 'recordings:write' ticked on the consent page (every capability is offered, ticked, unless the client asked for less), or edit the connection's capabilities under Account -> Connections, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read." } } }
+              "hint": "Reconnect this client and tick 'recordings:write' on the consent page (every capability the client did not ask for is offered there), or edit the connection's capabilities under Account -> Connections, which takes effect on the next call. Owner-issued service tokens carry every capability. Read tools, including elixir_timeline, need only cr:read." } } }
 ```
 
 The challenge's `scope` is the granted set plus the missing one, so a client
@@ -222,8 +224,8 @@ If your client does not implement that step-up - several do not, and some
 render the 403 as an expired credential - you have two ways in, neither of
 which needs the client to cooperate:
 
-- **At consent:** reconnect and keep the capability ticked on the consent
-  page, which offers every scope, ticked unless the client asked for less.
+- **At consent:** reconnect and tick the capability on the consent page,
+  which offers every standard scope the client did not ask for.
 - **After the fact:** Account -> Connections lists every live OAuth
   connection with its capabilities and lets you change them. This covers the
   personal door and every agent or integration door you own, each of which

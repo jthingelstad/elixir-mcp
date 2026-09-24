@@ -152,13 +152,19 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   assert.equal(emailStep.statusCode, 200);
   assert.match(emailStep.body, /authorizes Claude/);
   assert.match(emailStep.body, /Read recorded game data/);
-  // Capabilities the client did NOT ask for are still shown - as ticked
-  // checkboxes the person can untick (1.0.0), never as already granted:
-  // this form posts without them, and the token below carries cr:read only.
+  // Capabilities the client did NOT ask for are offered as checkboxes. On
+  // a person's own connection they start UNticked, each saying what the
+  // connection cannot do without it (Jamie 2026-09-24).
   assert.match(
     emailStep.body,
-    /<input type="checkbox" name="grant" value="recordings:write" checked>/,
-    "unrequested capabilities are offered ticked, not granted",
+    /<input type="checkbox" name="grant" value="recordings:write">/,
+    "on a person's connection a write starts unticked",
+  );
+  assert.match(emailStep.body, /Unticked, it will not be able to track/);
+  assert.match(
+    emailStep.body,
+    /<form[^]*name="grant"[^]*<\/form>/,
+    "the boxes are inside the form, so a tick is posted",
   );
   assert.doesNotMatch(
     emailStep.body,
@@ -171,7 +177,13 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   const codeStep = await handler(
     event({
       path: "/oauth/authorize",
-      form: { step: "code", email: EMAIL, code: loginCode, ...authQuery },
+      form: {
+        step: "code",
+        confirm: "1",
+        email: EMAIL,
+        code: loginCode,
+        ...authQuery,
+      },
     }),
   );
   assert.equal(codeStep.statusCode, 303);
@@ -837,6 +849,7 @@ async function consentFlow({ grants = [], scope = "cr:read" } = {}) {
   // carry the same key twice, which is exactly how checkboxes post.
   const body = new URLSearchParams({
     step: "code",
+    confirm: "1",
     email: EMAIL,
     code,
     ...q,

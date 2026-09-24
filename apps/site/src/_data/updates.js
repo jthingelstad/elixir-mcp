@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Connecting an app asks what it may do",
+    body: "When you connect an app or agent to Elixir, the sign-in page now asks which extra things it may do, in plain words: track players for you, edit your collections, remember who is talking to it, send feedback. Your own connections start with only reading allowed; your agents start with everything but tracking, which uses your tracking slots. If you untick something an agent would normally have, Elixir checks with you first and tells you what will not work. Contract 7.2.1.",
+  },
+  {
+    date: "2026-09-24",
     title: "Tower troops, the ninth card",
     body: "A deck is eight cards and a tower troop, and Elixir now reads the tower troop like a card. The meta card list can show tower troops (how often each is used and how it wins, over the same players and window as the cards), and a card's page answers a tower troop too, including who in your clan holds it and at what level. Also today: clan standings no longer count boat defenses the member did not play, and a member who comes back after time away counts their time in the clan from their return. Contract 7.2.0.",
   },

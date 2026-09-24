@@ -43,31 +43,34 @@ export const OAUTH_SCOPE_DETAILS: ReadonlyArray<{
     scope: OAUTH_SCOPE.READ,
     title: "Read recorded game data",
     description:
-      "Profiles, battles, clans, war, collections, and the live-fetch allowance.",
+      "Read what Elixir records: player profiles, battles, clans, war, collections and your timeline, plus your live-fetch allowance.",
     standard: true,
   },
   {
     scope: OAUTH_SCOPE.RECORDINGS_WRITE,
     title: "Change what you track",
-    description: "Track or stop tracking players and clans on your account.",
+    description:
+      "Start or stop tracking players and clans for you. Each player or clan tracked uses one of your tracking slots.",
     standard: true,
   },
   {
     scope: OAUTH_SCOPE.COLLECTIONS_WRITE,
     title: "Edit collections",
-    description: "Change membership in collections you own.",
+    description: "Add and remove members in collections you own.",
     standard: true,
   },
   {
     scope: OAUTH_SCOPE.ACCOUNT_WRITE,
     title: "Update account preferences",
-    description: "Change private nicknames and end-user identity mappings.",
+    description:
+      'Remember who is talking to it (link a chat user to their player, so "my deck" means theirs) and set your private nicknames.',
     standard: true,
   },
   {
     scope: OAUTH_SCOPE.FEEDBACK_WRITE,
     title: "Send feedback",
-    description: "File attributed feedback with the maintainer.",
+    description:
+      "Send feedback to the Elixir maintainer for you, when something is wrong or missing.",
     standard: true,
   },
   {
