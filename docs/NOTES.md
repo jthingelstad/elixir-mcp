@@ -2158,3 +2158,9 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - Acceptance after 7.0.0/7.1.0 (read-only run, 2026-09-23 23:10 CDT): 720 cases, 1 failed. gym/120.1 (next_cursor before a cut) is refuted as superseded by the newsfeed rule; 120.3 pins it and inherits 120.1's bite (the cap dropping items with has_more false still bites). catalogue/elixir_timeline#3 failed "compact is not larger than full" on a size-cut week: compact drops the entries full spends its budget on, so the same budget holds more items; the check now skips a window either answer cut (has_more).
 - **Open, Gym (rankings):** gym/175.3 (a control: rankings_players notes never say "recording began") fails live against the 6.36.12 stale note, which says a closed mode board's ranks "have not moved since recording began on 2026-09-11". One of the two is wrong; not changed here.
 
+## 2026-09-24 — Gym sweep, game round 3 (7.1.1, feedback #219-#222); overnight run begins
+
+- Jamie (04:15Z): run overnight until 06:00 CT; after the MCP families, the Console and code cleanup; new tools and additive changes are mine to decide. 7.0.0/7.1.0 (timeline newsfeed; agents track) landed from another session during the pause.
+- 8 regressions checked, #169 partial -> **#219** (date-only at keeps the standing notes). **#220** game_events computes crosses on the whole window (`clampToNow: false`) and notes a future window. **#221** inverted window refused (`requireOrderedWindow`). #222 praise. 126.5 still needs the first grid-pinned read.
+- Rankings round 3 closed: 175.3 superseded by #208.
+

@@ -40,10 +40,13 @@ export const game_clock = {
     return {
       ...clock,
       applied: appliedBlock({ at: new Date(atMs).toISOString() }),
+      // The date-only note joins the clock's standing notes; it had
+      // replaced them, dropping the race-close caveat (Gym #219).
       ...(dateOnly
         ? {
             notes: [
               `'${String(args.at).trim()}' is read as that game day's start, ${new Date(atMs).toISOString()}: a game day runs 10:00Z to 10:00Z, and a daily series keys it by the date it starts on.`,
+              ...(clock.notes ?? []),
             ],
           }
         : {}),

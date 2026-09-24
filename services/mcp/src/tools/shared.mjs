@@ -686,10 +686,16 @@ export async function seasonFieldsForInstants(
   db,
   from,
   to,
-  { flavor = "series" } = {},
+  { flavor = "series", clampToNow = true } = {},
 ) {
   const fromMs = from ? new Date(from).getTime() : null;
-  const endMs = to ? Math.min(new Date(to).getTime(), Date.now()) : Date.now();
+  // A reader of the calendar (game_events) keeps the window it echoes:
+  // cut at now, a window into next season named no roll (Gym #220).
+  const endMs = to
+    ? clampToNow
+      ? Math.min(new Date(to).getTime(), Date.now())
+      : new Date(to).getTime()
+    : Date.now();
   const { echo, seasonNotes } = await seasonFieldsForSpan(db, fromMs, endMs, {
     flavor,
   });

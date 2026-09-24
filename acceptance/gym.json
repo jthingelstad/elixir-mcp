@@ -10702,5 +10702,1143 @@
         "notes_match": "a limit of \\d+ should fit"
       }
     ]
+  },
+  {
+    "id": "219.1",
+    "feedback": 219,
+    "stability": "frozen",
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-18"
+    },
+    "request_id": "a30560bc-099c-4f93-8564-0fa693526566",
+    "assert": [
+      {
+        "notes_match": "(?i)race[^.]*clos[^.]*(before|earlier)"
+      }
+    ]
+  },
+  {
+    "id": "219.2",
+    "feedback": 219,
+    "stability": "frozen",
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-10-01"
+    },
+    "request_id": "1892cfec-1d06-4c11-bcef-2a96a2edfb6b",
+    "assert": [
+      {
+        "notes_match": "(?i)race[^.]*clos[^.]*(before|earlier)"
+      },
+      {
+        "notes_match": "(?i)schedule from these"
+      }
+    ]
+  },
+  {
+    "id": "219.3",
+    "feedback": 219,
+    "stability": "frozen",
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-08-31"
+    },
+    "request_id": "7c6b4475-18bb-42da-a837-ba8b32a3cee0",
+    "assert": [
+      {
+        "notes_match": "(?i)final week of a season is Colosseum"
+      }
+    ]
+  },
+  {
+    "id": "219.4",
+    "feedback": 219,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-10-01T10:00:00Z"
+    },
+    "request_id": "bd2e105d-0bb7-4c57-96df-57c2a4b96575",
+    "assert": [
+      {
+        "eq": ["war_day", 1]
+      },
+      {
+        "eq": ["period_index", 24]
+      },
+      {
+        "notes_match": "(?i)race[^.]*clos[^.]*(before|earlier)"
+      }
+    ]
+  },
+  {
+    "id": "219.5",
+    "feedback": 219,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "d": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-10-01"
+        }
+      },
+      "i": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-10-01T10:00:00Z"
+        }
+      }
+    },
+    "request_id": "1892cfec-1d06-4c11-bcef-2a96a2edfb6b",
+    "assert": [
+      {
+        "eq": ["d.war_day_closes_at", "i.war_day_closes_at"]
+      },
+      {
+        "eq": ["d.period_index", "i.period_index"]
+      },
+      {
+        "eq": ["d.war_day", "i.war_day"]
+      }
+    ]
+  },
+  {
+    "id": "219.6",
+    "feedback": 219,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-10-01"
+    },
+    "request_id": "1892cfec-1d06-4c11-bcef-2a96a2edfb6b",
+    "assert": [
+      {
+        "notes_match": "read as that game day's start"
+      },
+      {
+        "eq": ["applied.at", "2026-10-01T10:00:00.000Z"]
+      }
+    ]
+  },
+  {
+    "id": "220.1",
+    "feedback": 220,
+    "stability": "live",
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-20T10:00:00Z",
+      "to": "2026-10-10T10:00:00Z"
+    },
+    "request_id": "cc601f72-72dc-4ccd-82aa-a4e27b43d4c0",
+    "assert": [
+      {
+        "count_eq": ["applied.window.crosses[]", 1]
+      }
+    ]
+  },
+  {
+    "id": "220.2",
+    "feedback": 220,
+    "stability": "live",
+    "calls": {
+      "g": {
+        "tool": "game_events",
+        "args": {
+          "from": "2026-09-20T10:00:00Z",
+          "to": "2026-10-10T10:00:00Z"
+        }
+      },
+      "b": {
+        "tool": "battles_performance",
+        "args": {
+          "player_tag": "#20JJJ2CCRU",
+          "from": "2026-09-20T10:00:00Z",
+          "to": "2026-10-10T10:00:00Z"
+        }
+      }
+    },
+    "request_id": "cc601f72-72dc-4ccd-82aa-a4e27b43d4c0",
+    "assert": [
+      {
+        "eq": [
+          "g.applied.window.crosses[0].at",
+          "b.applied.window.crosses[0].at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "220.3",
+    "feedback": 220,
+    "stability": "live",
+    "tool": "game_events",
+    "args": {
+      "from": "2026-10-06T10:00:00Z",
+      "to": "2026-10-10T10:00:00Z"
+    },
+    "request_id": "872a184e-d7c4-4688-a826-0d97e75d25a1",
+    "assert": [
+      {
+        "notes_match": "(?i)(not (yet )?(begun|started|read)|future|after (now|the latest))"
+      }
+    ]
+  },
+  {
+    "id": "220.4",
+    "feedback": 220,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-01T10:00:00Z",
+      "to": "2026-09-10T10:00:00Z"
+    },
+    "request_id": "2f21d8dc-c46b-47aa-8187-58ba5390137b",
+    "assert": [
+      {
+        "count_eq": ["applied.window.crosses[]", 1]
+      },
+      {
+        "eq": ["applied.window.crosses[0].at", "2026-09-07T10:00:00.000Z"]
+      },
+      {
+        "notes_match": "Window spans S135"
+      }
+    ]
+  },
+  {
+    "id": "220.5",
+    "feedback": 220,
+    "stability": "live",
+    "control": true,
+    "tool": "game_events",
+    "args": {},
+    "request_id": "3b580c0e-1ce5-48a1-8743-e5ff12a6dd49",
+    "assert": [
+      {
+        "gte": ["applied.window.season_age_days", 0]
+      },
+      {
+        "notes_not_match": "(?i)(not (yet )?(begun|started|read)|future|after (now|the latest))"
+      }
+    ]
+  },
+  {
+    "id": "221.1",
+    "feedback": 221,
+    "stability": "frozen",
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-20T10:00:00Z",
+      "to": "2026-09-10T10:00:00Z"
+    },
+    "request_id": "30e476ba-811e-4c44-9203-08924be1e822",
+    "assert": [
+      {
+        "notes_match": "(?i)(invert|from is after to|swap)"
+      }
+    ]
+  },
+  {
+    "id": "221.2",
+    "feedback": 221,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-10T10:00:00Z",
+      "to": "2026-09-20T10:00:00Z"
+    },
+    "request_id": "488320bd-00cb-420e-955a-c9a76089ea34",
+    "assert": [
+      {
+        "count_eq": ["game_days_read[]", 9]
+      },
+      {
+        "count_eq": ["events[]", 8]
+      },
+      {
+        "notes_not_match": "(?i)invert"
+      }
+    ]
+  },
+  {
+    "id": "222.1",
+    "feedback": 222,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-21T07:00:00Z",
+      "to": "2026-09-21T09:00:00Z"
+    },
+    "request_id": "c1501cc0-1797-4477-9204-e0e1429864c2",
+    "assert": [
+      {
+        "count_eq": ["events[]", 0]
+      },
+      {
+        "count_eq": ["game_days_read[]", 0]
+      }
+    ]
+  },
+  {
+    "id": "222.2",
+    "feedback": 222,
+    "stability": "live",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2027-06-08T10:00:00Z",
+      "to": "2027-06-12T10:00:00Z"
+    },
+    "request_id": "0213a2a7-63e9-4e77-bdb7-c47fb5d32e96",
+    "assert": [
+      {
+        "eq": ["applied.window.season", null]
+      },
+      {
+        "count_eq": ["events[]", 0]
+      },
+      {
+        "notes_not_match": "No events read covered"
+      }
+    ]
+  },
+  {
+    "id": "222.3",
+    "feedback": 222,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-13-45"
+    },
+    "request_id": "6a7062bf-15de-4893-beab-ebe44b0160b8",
+    "assert": [
+      {
+        "eq": ["error.code", "bad_request"]
+      },
+      {
+        "notes_match": "Could not read '2026-13-45'"
+      }
+    ]
+  },
+  {
+    "id": "222.4",
+    "feedback": 222,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-21T09:40:00Z"
+    },
+    "request_id": "c6f30c34-5b5e-4fa2-9409-3d95612c9fbf",
+    "assert": [
+      {
+        "eq": ["war_day", 4]
+      },
+      {
+        "eq": ["war_day_closes_at", "2026-09-21T10:00:00.000Z"]
+      },
+      {
+        "notes_match": "(?i)race[^.]*clos[^.]*(before|earlier)"
+      }
+    ]
+  },
+  {
+    "id": "211.1",
+    "feedback": 211,
+    "stability": "frozen",
+    "calls": {
+      "a": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-04T05:25:00Z",
+          "to": "2026-09-04T05:26:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["session_standout"]
+        }
+      },
+      "b": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-08-19T00:00:00Z",
+          "to": "2026-09-04T05:26:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["session_standout"]
+        }
+      }
+    },
+    "request_id": "79e32978-1297-434a-bf0b-3d3296e97a35",
+    "when": {
+      "has": "b.timeline[?observed_at=2026-09-04T05:25:14.610Z]"
+    },
+    "assert": [
+      {
+        "has": "a.timeline[?observed_at=2026-09-04T05:25:14.610Z]"
+      }
+    ]
+  },
+  {
+    "id": "211.2",
+    "feedback": 211,
+    "stability": "frozen",
+    "calls": {
+      "p0": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-08-08T00:00:00Z",
+          "to": "2026-09-07T00:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["session_standout"]
+        }
+      },
+      "p1": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-03T18:25:48.830Z",
+          "to": "2026-09-07T00:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["session_standout"]
+        }
+      }
+    },
+    "request_id": "b991c6b0-a8a1-41ac-933f-306e647cb07b",
+    "when": {
+      "eq": ["p0.next_cursor", "p1.window.from"]
+    },
+    "assert": [
+      {
+        "count_eq": ["p1.timeline[]", "p0.timeline_more"]
+      }
+    ]
+  },
+  {
+    "id": "211.3",
+    "feedback": 211,
+    "stability": "frozen",
+    "calls": {
+      "p1": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-03T18:25:48.830Z",
+          "to": "2026-09-07T00:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["session_standout"]
+        }
+      },
+      "w": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-03T00:00:00Z",
+          "to": "2026-09-05T00:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["session_standout"]
+        }
+      }
+    },
+    "request_id": "b94271cc-a801-4d83-b26c-4a5b590aae53",
+    "when": {
+      "has": "w.timeline[?observed_at=2026-09-03T18:25:48.831Z]"
+    },
+    "assert": [
+      {
+        "has": "p1.timeline[?observed_at=2026-09-03T18:25:48.831Z]"
+      }
+    ]
+  },
+  {
+    "id": "211.4",
+    "feedback": 211,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-18T04:00:00Z",
+      "to": "2026-09-18T08:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    },
+    "request_id": "444edc7b-1960-4d83-8f9f-a82eacb5edd0",
+    "assert": [
+      {
+        "has": "timeline[?observed_at=2026-09-18T06:07:49.647Z]"
+      }
+    ]
+  },
+  {
+    "id": "211.5",
+    "feedback": 211,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T18:13:07.933Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    },
+    "request_id": "f5f87617-d7ec-4cc5-aa09-9ceb2f8313c4",
+    "assert": [
+      {
+        "has": "timeline[?observed_at=2026-09-23T18:13:07.933Z]"
+      }
+    ]
+  },
+  {
+    "id": "211.6",
+    "feedback": 211,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T12:00:00Z",
+      "to": "2026-09-23T18:13:07.933Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    },
+    "request_id": "8093d416-984c-48ea-a799-3726be10df88",
+    "assert": [
+      {
+        "absent": "timeline[?observed_at=2026-09-23T18:13:07.933Z]"
+      }
+    ]
+  },
+  {
+    "id": "212.1",
+    "feedback": 212,
+    "stability": "frozen",
+    "calls": {
+      "p0": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-14T00:00:00Z",
+          "to": "2026-09-23T21:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["session_standout"]
+        }
+      },
+      "p1": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-22T12:07:51.158Z",
+          "to": "2026-09-23T21:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["session_standout"]
+        }
+      }
+    },
+    "request_id": "a959fdc7-1fc3-42fa-a425-2c759fcabde7",
+    "when": {
+      "eq": ["p0.next_cursor", "p1.window.from"]
+    },
+    "assert": [
+      {
+        "count_eq": ["p1.timeline[]", "p0.timeline_more"]
+      }
+    ]
+  },
+  {
+    "id": "212.2",
+    "feedback": 212,
+    "stability": "frozen",
+    "calls": {
+      "p0": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-08-24T16:40:30.377Z",
+          "to": "2026-09-23T16:40:30.377Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+        }
+      },
+      "p1": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-14T20:27:51.999Z",
+          "to": "2026-09-23T16:40:30.377Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+        }
+      }
+    },
+    "request_id": "00b99773-435e-40de-8408-bc25cdb4b348",
+    "when": {
+      "eq": ["p0.next_cursor", "p1.window.from"]
+    },
+    "assert": [
+      {
+        "count_eq": ["p1.timeline[]", "p0.timeline_more"]
+      }
+    ]
+  },
+  {
+    "id": "212.3",
+    "feedback": 212,
+    "stability": "frozen",
+    "calls": {
+      "p0": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-14T00:00:00Z",
+          "to": "2026-09-23T21:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["session_standout"]
+        }
+      },
+      "p1": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-22T12:07:51.158Z",
+          "to": "2026-09-23T21:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["session_standout"]
+        }
+      }
+    },
+    "request_id": "4f695a9f-da94-431a-8f45-d8fc7a7111c5",
+    "when": {
+      "has": "p1.timeline[?at=2026-09-22T11:58:30.000Z]"
+    },
+    "assert": [
+      {
+        "not_contains": [
+          "p0.timeline[?at=2026-09-22T10:20:26.000Z].facts.newly",
+          "battles>=40"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "212.4",
+    "feedback": 212,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-22T00:00:00Z",
+      "to": "2026-09-23T00:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["session_standout"]
+    },
+    "request_id": "ce467ce2-d2e7-4658-9e1e-1cf07676fb29",
+    "assert": [
+      {
+        "has": "timeline[?at=2026-09-22T10:20:26.000Z]"
+      },
+      {
+        "absent": "timeline[?at=2026-09-22T11:58:30.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "212.5",
+    "feedback": 212,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "p0": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-14T12:32:52.913Z",
+          "to": "2026-09-22T00:00:00.000Z",
+          "mark_read": false,
+          "verbosity": "compact"
+        }
+      },
+      "p1": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-19T12:17:58.999Z",
+          "to": "2026-09-22T00:00:00.000Z",
+          "mark_read": false,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "ce3e735a-4922-4476-93a1-912f2e434465",
+    "when": {
+      "eq": ["p0.next_cursor", "p1.window.from"]
+    },
+    "assert": [
+      {
+        "count_eq": ["p1.timeline[]", "p0.timeline_more"]
+      }
+    ]
+  },
+  {
+    "id": "213.1",
+    "feedback": 213,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-17T12:00:00Z",
+      "to": "2026-09-18T12:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "7a8644aa-c109-4774-b376-ec59d09fb2fe",
+    "assert": [
+      {
+        "eq": ["entries[?kind=clan_activity].war.race_finished_at", null]
+      },
+      {
+        "neq": ["entries[?kind=clan_activity].war.fame", 10146]
+      }
+    ]
+  },
+  {
+    "id": "213.2",
+    "feedback": 213,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-12T00:00:00Z",
+      "to": "2026-09-15T00:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "ba75f8b3-e6c3-483f-bfb3-732ca0152fa1",
+    "assert": [
+      {
+        "eq": ["entries[?kind=clan_activity].war.race_finished_at", null]
+      },
+      {
+        "neq": ["entries[?kind=clan_activity].war.fame", 10146]
+      }
+    ]
+  },
+  {
+    "id": "213.3",
+    "feedback": 213,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-19T12:00:00Z",
+      "to": "2026-09-20T12:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "1f869311-4bae-4986-9e5c-2045f2637276",
+    "assert": [
+      {
+        "neq": ["entries[?kind=clan_activity].war.race_finished_at", null]
+      },
+      {
+        "eq": ["entries[?kind=clan_activity].war.fame", 10146]
+      },
+      {
+        "eq": ["entries[?kind=clan_activity].war.week", 2]
+      }
+    ]
+  },
+  {
+    "id": "214.1",
+    "feedback": 214,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-19T00:00:00Z",
+          "to": "2026-09-22T00:00:00Z",
+          "mark_read": false,
+          "sections": ["war"]
+        }
+      },
+      "h": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 1
+        }
+      }
+    },
+    "request_id": "21281a61-3cb8-48f8-8e0b-4d101f60fa37",
+    "assert": [
+      {
+        "eq": [
+          "t.timeline[?kind=week_resolved].facts.fame",
+          "h.weeks[0].our_fame"
+        ]
+      },
+      {
+        "eq": [
+          "t.timeline[?kind=week_resolved].facts.fame",
+          "t.timeline[?kind=race_finished].facts.fame"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "214.2",
+    "feedback": 214,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-12T00:00:00Z",
+          "to": "2026-09-15T00:00:00Z",
+          "mark_read": false,
+          "sections": ["war"]
+        }
+      },
+      "h": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 0
+        }
+      }
+    },
+    "request_id": "ba75f8b3-e6c3-483f-bfb3-732ca0152fa1",
+    "assert": [
+      {
+        "eq": [
+          "t.timeline[?kind=week_resolved].facts.fame",
+          "h.weeks[0].our_fame"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "214.3",
+    "feedback": 214,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-19T00:00:00Z",
+          "to": "2026-09-22T00:00:00Z",
+          "mark_read": false,
+          "sections": ["war"]
+        }
+      },
+      "h": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 1
+        }
+      }
+    },
+    "request_id": "21281a61-3cb8-48f8-8e0b-4d101f60fa37",
+    "assert": [
+      {
+        "eq": [
+          "t.timeline[?kind=race_finished].facts.fame",
+          "h.weeks[0].our_fame"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "215.1",
+    "feedback": 215,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-03T00:00:00Z",
+      "to": "2026-09-14T00:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "c7e18f15-3dd8-49ec-9a5f-4f85af6da7e8",
+    "assert": [
+      {
+        "notes_match": "(?i)(war moments|week_resolved|race_finished).*(recorded from|begin)"
+      }
+    ]
+  },
+  {
+    "id": "215.2",
+    "feedback": 215,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-08-08T00:00:00Z",
+      "to": "2026-09-07T00:00:00Z",
+      "mark_read": false
+    },
+    "request_id": "8f2a4a8a-ca4f-46d2-82ae-a93184048035",
+    "when": {
+      "count_eq": ["entries[?kind=clan_activity].war.resolved[]", 0]
+    },
+    "assert": [
+      {
+        "notes_match": "(?i)(war moments|week_resolved|race_finished).*(recorded from|begin)"
+      }
+    ]
+  },
+  {
+    "id": "215.3",
+    "feedback": 215,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-19T00:00:00Z",
+      "to": "2026-09-22T00:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "21281a61-3cb8-48f8-8e0b-4d101f60fa37",
+    "assert": [
+      {
+        "notes_not_match": "(?i)(war moments|week_resolved|race_finished).*(recorded from|begin)"
+      },
+      {
+        "has": "timeline[?kind=week_resolved]"
+      }
+    ]
+  },
+  {
+    "id": "216.1",
+    "feedback": 216,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-07T10:00:00Z",
+          "to": "2026-09-14T10:00:00Z",
+          "mark_read": false,
+          "sections": ["donations"]
+        }
+      },
+      "m": {
+        "tool": "clans_members_timeline",
+        "args": {
+          "from": "2026-09-13",
+          "to": "2026-09-13",
+          "kind": "pre_reset",
+          "metrics": ["donations"],
+          "limit": 50
+        }
+      }
+    },
+    "request_id": "feb36904-2138-4cfb-b008-2eec8ea488ac",
+    "assert": [
+      {
+        "sum_eq": [
+          ["m.members[].series[0].donations"],
+          "t.entries[?kind=clan_activity].donations.week_total"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "216.2",
+    "feedback": 216,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z",
+      "mark_read": false,
+      "sections": ["donations"]
+    },
+    "request_id": "feb36904-2138-4cfb-b008-2eec8ea488ac",
+    "assert": [
+      {
+        "eq": ["entries[?kind=clan_activity].donations.week_total", 9094]
+      }
+    ]
+  },
+  {
+    "id": "216.3",
+    "feedback": 216,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "mark_read": false,
+          "sections": ["donations"]
+        }
+      },
+      "m": {
+        "tool": "clans_members_timeline",
+        "args": {
+          "from": "2026-09-20",
+          "to": "2026-09-20",
+          "kind": "pre_reset",
+          "metrics": ["donations"],
+          "limit": 50
+        }
+      }
+    },
+    "request_id": "0eb41921-02df-48e9-aa39-457b2299882c",
+    "assert": [
+      {
+        "sum_eq": [
+          ["m.members[].series[0].donations"],
+          "t.entries[?kind=clan_activity].donations.week_total"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "217.1",
+    "feedback": 217,
+    "stability": "live",
+    "tool": "elixir_data_insights",
+    "args": {},
+    "request_id": "ab4fd32a-120d-49a7-a1a5-7a30606f1642",
+    "when": {
+      "gt": ["profiles.players_with_badges", "recorded_players.total"]
+    },
+    "assert": [
+      {
+        "notes_match": "(?i)(no longer recorded|ever read|not recorded now)"
+      }
+    ]
+  },
+  {
+    "id": "217.2",
+    "feedback": 217,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "i": {
+        "tool": "elixir_data_insights",
+        "args": {}
+      },
+      "b": {
+        "tool": "badges_rarity",
+        "args": {
+          "segment": "corpus",
+          "limit": 3
+        }
+      }
+    },
+    "request_id": "6f36bf90-7400-4c93-862c-fc78007d33ec",
+    "assert": [
+      {
+        "eq": ["b.players_considered", "i.recorded_players.total"]
+      }
+    ]
+  },
+  {
+    "id": "218.1",
+    "feedback": 218,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-16T00:00:00Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "kinds": ["quiet_crossed", "returned"]
+    },
+    "request_id": "54f633b9-dfa6-44cb-8be4-e150ff0e1970",
+    "for_each": "timeline[]",
+    "when": {
+      "eq": ["kind", "quiet_crossed"]
+    },
+    "assert": [
+      {
+        "neq": ["facts.days_since_poll", null]
+      },
+      {
+        "eq": ["facts.days_quiet", "facts.rung"]
+      }
+    ]
+  },
+  {
+    "id": "218.2",
+    "feedback": 218,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-23T21:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": [
+        "ranked_promotion",
+        "arena_changed",
+        "best_trophies_band",
+        "career_wins_step",
+        "session_standout"
+      ]
+    },
+    "request_id": "79340334-2161-47af-b8f3-ccab3045b979",
+    "assert": [
+      {
+        "notes_match": "longest here is \\d+ h"
+      }
+    ]
+  },
+  {
+    "id": "218.3",
+    "feedback": 218,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T20:27:51.999Z",
+      "to": "2026-09-23T16:40:30.377Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+    },
+    "request_id": "b6293f8f-3032-4a89-87dc-efde9e07563f",
+    "assert": [
+      {
+        "has": "timeline[?observed_at=2026-09-14T20:27:52.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "218.4",
+    "feedback": 218,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "mark_read": false,
+      "sections": ["donations"]
+    },
+    "request_id": "0eb41921-02df-48e9-aa39-457b2299882c",
+    "assert": [
+      {
+        "eq": ["entries[?kind=clan_activity].donations.week_total", 10121]
+      },
+      {
+        "eq": ["entries[?kind=clan_activity].donations.leader.given", 1256]
+      }
+    ]
   }
 ]

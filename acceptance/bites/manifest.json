@@ -1433,5 +1433,53 @@
     "case": "gym/209.2",
     "captures": ["209-2-rankings_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 219,
+    "contract": "6.36.11",
+    "why": "the Gym block 219.1 on the answer it read",
+    "case": "gym/219.1",
+    "captures": ["219-1-game_clock.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 219,
+    "contract": "6.36.11",
+    "why": "the Gym block 219.2 on the answer it read",
+    "case": "gym/219.2",
+    "captures": ["219-2-game_clock.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 219,
+    "contract": "6.36.11",
+    "why": "the Gym block 219.3 on the answer it read",
+    "case": "gym/219.3",
+    "captures": ["219-3-game_clock.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 220,
+    "contract": "6.36.11",
+    "why": "the Gym block 220.1 on the answer it read",
+    "case": "gym/220.1",
+    "captures": ["220-1-game_events.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 220,
+    "contract": "6.36.11",
+    "why": "the Gym block 220.3 on the answer it read",
+    "case": "gym/220.3",
+    "captures": ["220-3-game_events.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 221,
+    "contract": "6.36.11",
+    "why": "the Gym block 221.1 on the answer it read",
+    "case": "gym/221.1",
+    "captures": ["221-1-game_events.json"],
+    "expect": "."
   }
 ]

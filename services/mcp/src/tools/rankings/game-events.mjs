@@ -6,6 +6,7 @@ import {
   buildMeta,
   docsRef,
   notes,
+  requireOrderedWindow,
   seasonFieldsForInstants,
   withWindowSugar,
   zoneFor,
@@ -40,6 +41,9 @@ export const game_events = {
         "Could not read from/to as dates.",
         AS_OF_SCHEMA.description,
       );
+    // An inverted window is refused, as the battle tools refuse it (Gym
+    // #221): it had answered 0 events with no word.
+    requireOrderedWindow(from, to);
     const limit = Math.min(200, Math.max(1, Number(args.limit ?? 50)));
     // game_days_seen (3.17.0, call 6): a sighting is one /events read,
     // and game_event_day keeps only its UTC day; the read's instant is
@@ -107,7 +111,12 @@ export const game_events = {
     );
     const seasonFields = await seasonFieldsForInstants(ctx.db, from, to, {
       flavor: "plain",
+      clampToNow: false,
     });
+    const futureNote =
+      from.getTime() > Date.now()
+        ? `The window starts ${from.toISOString()}, after now: no events read can fall in it yet, so the list is empty by construction, not a quiet stretch.`
+        : null;
     // The horizon is a fact of the table, not a date in the code: the
     // daily sightings began 2026-09-11, and the elixir-bot backfill
     // (2026-09-15) placed earlier, sparser reads before them.
@@ -142,6 +151,7 @@ export const game_events = {
         running_on_latest_day: r.running_on_latest,
       })),
       notes: notes(
+        futureNote,
         seasonFields.seasonNotes,
         "game_days_seen is the game days (the 10:00Z grid the series tools use; a read before 10:00Z belongs to the day before) on which /events listed the event; the API gives no start or end, so an event's span is its first and last sighting, at daily resolution.",
         `Sightings began ${running[0]?.first_day ?? "when recording did"}; nothing before that date is known, and days without a read are unknown, not empty.`,

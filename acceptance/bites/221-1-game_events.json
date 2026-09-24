@@ -1,0 +1,57 @@
+{
+  "feedback": 221,
+  "contract_version": "6.36.11",
+  "captured_at": "2026-09-24T01:50:39.945Z",
+  "request": {
+    "tool": "game_events",
+    "arguments": {
+      "from": "2026-09-20T10:00:00Z",
+      "to": "2026-09-10T10:00:00Z"
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-20T10:00:00.000Z",
+        "to": "2026-09-10T10:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 3
+      },
+      "limit": 50
+    },
+    "game_days_read": [],
+    "first_sighting_day": "2026-06-13",
+    "latest_sighting_day": "2026-09-23",
+    "events": [],
+    "notes": [
+      "game_days_seen is the game days (the 10:00Z grid the series tools use; a read before 10:00Z belongs to the day before) on which /events listed the event; the API gives no start or end, so an event's span is its first and last sighting, at daily resolution.",
+      "Sightings began 2026-06-13; nothing before that date is known, and days without a read are unknown, not empty.",
+      "The game-mode leaderboards (rankings_players with board: mode) are the same modes' standings; a title here and a board name there usually match.",
+      "The window selects the events reads made inside it (its instants, not the dates around them), and running_on_latest_day says the event was in the most recent read the record holds - as close to 'on now' as the record gets."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.36.11",
+      "source_polls": {
+        "events": {
+          "observed_at": "2026-09-23T11:52:50.000Z",
+          "freshness_seconds": 50270
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 23,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-09-24",
+    title: "The game calendar keeps its caveats",
+    body: "The Elixir Gym's third run over the game tools. Asking the game clock about a date keeps every caveat it gives for an exact time, including when river races close. The events calendar names a season change inside any window you ask about, even one ahead of today, and refuses a window whose start is after its end. Contract 7.1.1.",
+  },
+  {
     date: "2026-09-23",
     title: "Your agents can track clans and players",
     body: "An agent can now track more than the clan it was made for: a rival clan it is asked to watch, the other clans of a family, or a player worth following. Its console has a Tracking page for it, and an agent can also do it itself with elixir_track_clan and elixir_track_player. Its players are watched, never treated as the agent itself. The clan it acts for can be changed to another of its clans, and it keeps at least one. Everything your agents track shares your recording slots: a player or clan counts once however many of you track it, so making agents never adds slots. Contract 7.1.0.",

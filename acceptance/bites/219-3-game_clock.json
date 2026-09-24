@@ -1,0 +1,46 @@
+{
+  "feedback": 219,
+  "contract_version": "6.36.11",
+  "captured_at": "2026-09-24T01:50:00.618Z",
+  "request": {
+    "tool": "game_clock",
+    "arguments": {
+      "at": "2026-08-31"
+    }
+  },
+  "response": {
+    "as_of": "2026-08-31T10:00:00.000Z",
+    "season_id": 135,
+    "season_month": "2026-08",
+    "season_started_at": "2026-08-03T10:00:00.000Z",
+    "season_ends_at": "2026-09-07T10:00:00.000Z",
+    "week": 5,
+    "section_index": 4,
+    "period_index": 28,
+    "day_kind": "training",
+    "war_day": null,
+    "day_started_at": "2026-08-31T10:00:00.000Z",
+    "day_ends_at": "2026-09-01T10:00:00.000Z",
+    "war_day_closes_at": null,
+    "next_war_day_opens_at": "2026-09-03T10:00:00.000Z",
+    "next_training_starts_at": "2026-09-07T10:00:00.000Z",
+    "week_ends_at": "2026-09-07T10:00:00.000Z",
+    "notes": [
+      "'2026-08-31' is read as that game day's start, 2026-08-31T10:00:00.000Z: a game day runs 10:00Z to 10:00Z, and a daily series keys it by the date it starts on."
+    ],
+    "applied": {
+      "at": "2026-08-31T10:00:00.000Z"
+    },
+    "docs": "clocks#the-policy-day",
+    "meta": {
+      "contract_version": "6.36.11"
+    }
+  },
+  "timings": {
+    "db_ms": 0,
+    "db_queries": 0,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}
