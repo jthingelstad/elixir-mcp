@@ -78,6 +78,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 
 - **Players and clans known only from a battle stub are ghost entries, never metrics** — they exist to name an opponent and to seed history if recorded later; every metric counts recorded players (direct, or a member of a comprehensively recorded clan), clan segments included, and every headline count is recorded, with observed as the secondary line. (2026-09-23; Jamie)
 - **A clan's profile aggregates carry each member's latest profile forward** — a member not polled that day counts with their last read, and `members_profile_carried` says how many. (2026-09-23; Jamie)
+- **Participation is judged on weekly decks, not days** — the API tags no war battle with a day and each race rolls at its own slot (09:30-10:00Z), so war-day attribution stays the informational 10:00Z grid and every judgment (Elixir Clan's war rate, floor, Perfect attendance) reads the race's own weekly `decksUsed` against four decks a war day up to the finish; days after an early finish are optional; training days are race-week days in `war_attendance_day` (`day_in_section`), never attendance. (2026-09-24; Jamie)
 
 ## Recording, collectors and rate budget
 
