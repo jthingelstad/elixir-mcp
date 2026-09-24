@@ -4,6 +4,7 @@ import {
   useMyEmailSends,
   useMyRequests,
 } from "../lib/queries.js";
+import { useConsolePath, useScope } from "../lib/scope.js";
 
 /**
  * Activity's three views: MCP requests, emails, account events.
@@ -34,7 +35,12 @@ function initialToolFilter() {
 
 export function Activity({ sub, navigate }) {
   const { stamp } = useClock();
-  const view = BY_SUB[sub] ?? "requests";
+  const path = useConsolePath();
+  // An agent's console has no Emails: an agent has no address, and the
+  // person's mail is never shown under an agent's header.
+  const scoped = Boolean(useScope());
+  const view =
+    scoped && sub === "emails" ? "requests" : (BY_SUB[sub] ?? "requests");
   // Each tab loads only its own read, and a tab already read is served
   // from the cache when you come back to it.
   const requests = useMyRequests(view === "requests").data?.requests ?? null;
@@ -63,7 +69,8 @@ export function Activity({ sub, navigate }) {
         ? {
             text: r.request_id.slice(0, 8),
             title: r.request_id,
-            onClick: () => navigate?.(`/account/activity/c/${r.request_id}`),
+            onClick: () =>
+              navigate?.(path(`/account/activity/c/${r.request_id}`)),
           }
         : "—",
     ]);

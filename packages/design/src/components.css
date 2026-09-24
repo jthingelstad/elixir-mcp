@@ -385,6 +385,72 @@ table {
   box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.22);
 }
 
+/* The head as an account selector (2026-09-23). Tinted while the console
+   is an agent's, so whose console this is reads at a glance. */
+.rail__switch {
+  position: relative;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.rail__switch[data-scoped="true"] {
+  background: var(--panel);
+  border-radius: var(--r-rail) var(--r-rail) 0 0;
+  box-shadow: inset 3px 0 0 var(--accent-bright);
+}
+.rail__switch-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  height: 40px;
+  padding: 0 11px;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.rail__switch-head:hover {
+  background: var(--hover-rail);
+}
+.rail__switch-list {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--panel-float);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+}
+.rail__switch-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 9px;
+  border-radius: var(--r-rail);
+  font-size: var(--t-body-sm);
+  color: var(--ink-dim);
+}
+.rail__switch-item:hover {
+  background: var(--hover-rail);
+  color: var(--ink);
+}
+.rail__switch-item[aria-current="true"] {
+  color: var(--ink);
+  box-shadow: var(--mark-current);
+}
+.rail__switch-manage {
+  margin-top: 4px;
+  border-top: 1px solid var(--line-soft);
+  border-radius: 0;
+  color: var(--ink-link);
+}
+
 .rail__identity {
   display: flex;
   align-items: center;

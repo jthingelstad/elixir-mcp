@@ -341,6 +341,14 @@ const q = (p, params, cookie) => ({
   queryStringParameters: params,
 });
 
+async function publicIdOf(accountId) {
+  const { rows } = await db.query(
+    `select public_id from account where account_id = $1`,
+    [accountId],
+  );
+  return rows[0].public_id;
+}
+
 async function bossAgentId() {
   const listed = parse(
     await handler(
@@ -489,7 +497,9 @@ test("suspending refuses a status that is not a status", async () => {
 });
 
 test("an agent's timeline is readable by its owner and nobody else", async () => {
+  // Its console's Timeline (2026-09-23): the scoped route, as the agent.
   const id = await bossAgentId();
+  const pid = await publicIdOf(id);
   const { rows: subj } = await db.query(
     `select clan_tag from account_clan where account_id = $1 limit 1`,
     [id],
@@ -511,9 +521,7 @@ test("an agent's timeline is readable by its owner and nobody else", async () =>
   );
 
   const mine = parse(
-    await handler(
-      q("/api/me/principals/timeline", { account_id: id }, bossCookie),
-    ),
+    await handler(q(`/api/agent/${pid}/timeline`, undefined, bossCookie)),
   );
   assert.ok(Array.isArray(mine.timeline));
   assert.ok(
@@ -524,7 +532,7 @@ test("an agent's timeline is readable by its owner and nobody else", async () =>
   );
 
   const theirs = await handler(
-    q("/api/me/principals/timeline", { account_id: id }, leaderCookie),
+    q(`/api/agent/${pid}/timeline`, undefined, leaderCookie),
   );
   assert.equal(theirs.statusCode, 404);
 });
@@ -533,13 +541,12 @@ test("reading an agent's timeline never moves its read pointer", async () => {
   // That pointer belongs to the agent's own elixir_timeline polling. Moving
   // it from the console would silently mark what it has not read.
   const id = await bossAgentId();
+  const pid = await publicIdOf(id);
   const before = await db.query(
     `select activity_seen_at from account where account_id = $1`,
     [id],
   );
-  await handler(
-    q("/api/me/principals/timeline", { account_id: id }, bossCookie),
-  );
+  await handler(q(`/api/agent/${pid}/timeline`, undefined, bossCookie));
   const after = await db.query(
     `select activity_seen_at from account where account_id = $1`,
     [id],

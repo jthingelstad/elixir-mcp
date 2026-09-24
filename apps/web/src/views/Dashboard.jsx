@@ -10,7 +10,7 @@ import { Tracking } from "./account/Tracking.jsx";
 import { TrackedRecord } from "./account/TrackedRecord.jsx";
 import { Profile } from "./account/Profile.jsx";
 import { Collections } from "./account/Collections.jsx";
-import { AgentDetail, Agents } from "./account/Agents.jsx";
+import { AgentMoved, Agents } from "./account/Agents.jsx";
 import { FeedbackItem, Feedback } from "./account/Feedback.jsx";
 import { Connections } from "./account/Connections.jsx";
 import { Usage } from "./account/Usage.jsx";
@@ -57,7 +57,7 @@ export function Dashboard({
     return <Collections me={me} navigate={navigate} />;
   if (page === "agents")
     return itemId ? (
-      <AgentDetail id={itemId} navigate={navigate} />
+      <AgentMoved id={itemId} navigate={navigate} />
     ) : (
       <Agents navigate={navigate} />
     );

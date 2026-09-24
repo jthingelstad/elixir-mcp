@@ -176,17 +176,24 @@ test(
     });
     fireEvent.click(screen.getByRole("button", { name: "Create agent" }));
     await screen.findByText("Copy this key now.");
+    // Open is the agent's own console, at its public id (2026-09-23).
     fireEvent.click(await screen.findByText("Open ›"));
     await screen.findByText("Subjects with news");
-    const agentId = window.location.pathname.split("/").at(-1);
-    expect(
-      (
-        await scratch.db.query(
-          "select kind,owned_by_account_id from account where account_id=$1",
-          [agentId],
-        )
-      ).rows[0],
-    ).toEqual({ kind: "agent", owned_by_account_id: accountId });
+    const publicId = window.location.pathname.split("/")[2];
+    expect(window.location.pathname).toBe(`/agent/${publicId}/overview`);
+    const {
+      rows: [agent],
+    } = await scratch.db.query(
+      "select account_id,kind,owned_by_account_id from account where public_id=$1",
+      [publicId],
+    );
+    expect({
+      kind: agent.kind,
+      owned_by_account_id: agent.owned_by_account_id,
+    }).toEqual({ kind: "agent", owned_by_account_id: accountId });
+    const agentId = agent.account_id;
+    // What you change is its Settings, one rail item away.
+    fireEvent.click(screen.getByRole("link", { name: /^Settings/ }));
     await clickReady("Issue a new key");
     await waitFor(async () => {
       const {

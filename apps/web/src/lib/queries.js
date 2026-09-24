@@ -17,6 +17,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { answered, unwrap } from "@elixir-mcp/client";
 import { api } from "../api.js";
+import { useScope } from "./scope.js";
 
 export const keys = {
   me: ["me"],
@@ -37,7 +38,6 @@ export const keys = {
   feedback: ["me", "feedback"],
   verifyList: ["me", "verify"],
   callRecord: (id) => ["me", "requests", id],
-  principalEvents: (id) => ["me", "principals", id, "events"],
   principalIdentities: (id) => ["me", "principals", id, "identities"],
   gatewayCards: ["gateway-cards"],
   gatewayDetail: (id) => ["me", "gateways", id],
@@ -62,8 +62,33 @@ export const keys = {
 
 const payload = (call) => () => call().then(unwrap);
 
-export const useUsage = () =>
-  useQuery({ queryKey: keys.usage, queryFn: payload(api.usage) });
+/**
+ * The root of a console's own keys: `["me"]` for yours, `["agent", id]`
+ * for an agent's (2026-09-23). Every read that an agent's console shares
+ * with yours keys under its console's root, so switching can never paint
+ * one account's data under the other's header, and invalidating a root
+ * refetches everything that console shows. The hooks below read the
+ * scope themselves; yours keep exactly the keys they always had.
+ */
+export const rootFor = (agent) => (agent ? ["agent", agent] : keys.me);
+export const scopedKey = (agent, ...rest) => [...rootFor(agent), ...rest];
+
+/** An agent's own `me`, for its console and for the rail's counts. It
+ *  keeps the envelope: a 404 is "not your agent", an answer, not an error. */
+export const useAgentMe = (agent) =>
+  useQuery({
+    queryKey: rootFor(agent),
+    queryFn: answered(() => api.me(agent)),
+    enabled: Boolean(agent),
+  });
+
+export const useUsage = () => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: scopedKey(agent, "usage"),
+    queryFn: payload(() => api.usage(agent)),
+  });
+};
 
 export const useEmailPrefs = () =>
   useQuery({ queryKey: keys.email, queryFn: payload(api.emailPrefs) });
@@ -94,35 +119,43 @@ export const useBattleActivity = (tag) =>
     enabled: Boolean(tag),
   });
 
-export const useMyRequests = (enabled = true) =>
-  useQuery({
-    queryKey: keys.requests,
-    queryFn: payload(api.myRequests),
+export const useMyRequests = (enabled = true) => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: scopedKey(agent, "requests"),
+    queryFn: payload(() => api.myRequests(agent)),
     enabled,
   });
+};
 
-export const useActivityEvents = (enabled = true) =>
-  useQuery({
-    queryKey: keys.events,
-    queryFn: payload(api.activity),
+export const useActivityEvents = (enabled = true) => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: scopedKey(agent, "events"),
+    queryFn: payload(() => api.activity(agent)),
     enabled,
   });
+};
 
-export const useMyTimeline = (enabled = true) =>
-  useQuery({
-    queryKey: keys.feed,
-    queryFn: payload(api.myTimeline),
+export const useMyTimeline = (enabled = true) => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: scopedKey(agent, "feed"),
+    queryFn: payload(() => api.myTimeline(agent)),
     enabled,
   });
+};
 
 export const useSessions = () =>
   useQuery({ queryKey: keys.sessions, queryFn: payload(api.sessions) });
 
-export const useConnections = () =>
-  useQuery({
-    queryKey: keys.connections,
-    queryFn: payload(api.connections),
+export const useConnections = () => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: scopedKey(agent, "connections"),
+    queryFn: payload(() => api.connections(agent)),
   });
+};
 
 export const useMyPrincipals = () =>
   useQuery({
@@ -133,13 +166,6 @@ export const useMyPrincipals = () =>
 /** An agent's own log and identities, keyed under its principal so
  *  invalidating ["me", "principals"] takes the agent list and every
  *  agent's detail with it. */
-export const usePrincipalTimeline = (id) =>
-  useQuery({
-    queryKey: keys.principalEvents(id),
-    queryFn: payload(() => api.principalTimeline(id)),
-    enabled: Boolean(id),
-  });
-
 export const usePrincipalIdentities = (id) =>
   useQuery({
     queryKey: keys.principalIdentities(id),
@@ -240,20 +266,27 @@ export const useMyCollections = () =>
     queryFn: payload(api.myCollections),
   });
 
-export const useMyFeedback = () =>
-  useQuery({ queryKey: keys.feedback, queryFn: payload(api.myFeedback) });
+export const useMyFeedback = () => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: scopedKey(agent, "feedback"),
+    queryFn: payload(() => api.myFeedback(agent)),
+  });
+};
 
 export const useVerifyList = () =>
   useQuery({ queryKey: keys.verifyList, queryFn: payload(api.verifyList) });
 
 /** A call record branches on the status (404 is "no such request",
  *  403 "not yours"), so it keeps the envelope. */
-export const useCallRecord = (id) =>
-  useQuery({
-    queryKey: keys.callRecord(id),
-    queryFn: answered(() => api.callRecord(id)),
+export const useCallRecord = (id) => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: scopedKey(agent, "requests", id),
+    queryFn: answered(() => api.callRecord(id, agent)),
     enabled: Boolean(id),
   });
+};
 
 export const useMyGateways = () =>
   useQuery({ queryKey: keys.gateways, queryFn: payload(api.myGateways) });
@@ -290,8 +323,11 @@ export const usePublicStats = () =>
 
 /** `invalidate(keys.sessions)` after a mutation: the read refetches and
  *  every screen showing it follows. `invalidate()` with no key is the
- *  session and everything that is the reader's own. */
+ *  console's root: the session and everything that is the reader's own,
+ *  or, on an agent's console, everything that is the agent's. */
 export function useInvalidate() {
   const queryClient = useQueryClient();
-  return (queryKey = keys.me) => queryClient.invalidateQueries({ queryKey });
+  const agent = useScope();
+  return (queryKey = rootFor(agent)) =>
+    queryClient.invalidateQueries({ queryKey });
 }

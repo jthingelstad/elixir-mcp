@@ -1,4 +1,4 @@
-import { test, expect, vi, beforeEach } from "vitest";
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import {
   render,
   screen,
@@ -516,4 +516,112 @@ test("the timeline lists newest first, and says when a busy week was cut", async
   expect(
     screen.getByText(/the 2 newest are shown, and 7 more this week are not/),
   ).toBeTruthy();
+});
+
+describe("an agent's console (2026-09-23)", () => {
+  const PERSON = {
+    authenticated: true,
+    kind: "person",
+    role: "owner",
+    is_owner: true,
+    email: "jamie@example.com",
+    claims: [
+      {
+        player_tag: "#20JJJ2CCRU",
+        is_primary: true,
+        name: "King Thing",
+        nickname: "Jamie",
+      },
+    ],
+    recordings: [],
+    signals: { tracking: 3, connections: 2, feedback: 0 },
+    agents: [
+      {
+        public_id: "abcd1234",
+        name: "poap-bot",
+        role: "leader",
+        status: "approved",
+        clan: { clan_tag: "#J2RGCRVG", name: "POAP KINGS" },
+      },
+    ],
+  };
+  const AGENT = {
+    authenticated: true,
+    kind: "agent",
+    public_id: "abcd1234",
+    name: "poap-bot",
+    role: "leader",
+    clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS", is_primary: true }],
+    claims: [],
+    recordings: [],
+    signals: { tracking: 1, connections: 0, feedback: 2, timeline_pending: 1 },
+  };
+  const timeline = (text) => ({
+    read_to: null,
+    timeline: [
+      {
+        at: "2026-09-12T10:00:00Z",
+        subject_tag: "#J2RGCRVG",
+        subject_name: "POAP KINGS",
+        kind: "member_joined",
+        section: "roster",
+        text,
+        facts: {},
+      },
+    ],
+    timeline_more: 0,
+    entries: [],
+    quiet: [],
+  });
+
+  test("the rail head switches consoles, and each reads only its own account", async () => {
+    const fetch = mockFetch({
+      "GET /api/me": [200, PERSON],
+      "GET /api/me/timeline": [200, timeline("Yours.")],
+      "GET /api/agent/abcd1234": [200, AGENT],
+      "GET /api/agent/abcd1234/timeline": [200, timeline("The agent's.")],
+    });
+    global.fetch = fetch;
+    window.history.pushState({}, "", "/account/timeline");
+    render(<App />);
+    await screen.findByText("Yours.");
+    // Your console: the head names you, and offers the agent.
+    const head = await screen.findByRole("button", { name: /Jamie/ });
+    fireEvent.click(head);
+    fireEvent.click(await screen.findByRole("link", { name: /poap-bot/ }));
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/agent/abcd1234/overview"),
+    );
+    // On the agent's console the head names the agent, tinted, and its
+    // rail has no person's pages.
+    const agentHead = await screen.findByRole("button", { name: /poap-bot/ });
+    expect(agentHead.closest(".rail__switch").getAttribute("data-scoped")).toBe(
+      "true",
+    );
+    const rail = document.querySelector(".rail");
+    expect(rail.textContent).toContain("Settings");
+    expect(rail.textContent).not.toContain("Verify");
+    expect(rail.textContent).not.toContain("Collections");
+    // Its Timeline reads the agent's route and never yours.
+    fireEvent.click(screen.getByRole("link", { name: /^Timeline/ }));
+    await screen.findByText("The agent's.");
+    const paths = fetch.mock.calls.map(([p]) => p);
+    expect(paths).toContain("/api/agent/abcd1234/timeline");
+    expect(
+      paths.filter((p) => p === "/api/me/timeline").length,
+      "yours was read once, on your console",
+    ).toBe(1);
+  });
+
+  test("an agent that is not yours says so, and shows nothing of anyone's", async () => {
+    global.fetch = mockFetch({
+      "GET /api/me": [200, PERSON],
+      "GET /api/agent/zzzz9999": [404, { error: "not_found" }],
+    });
+    window.history.pushState({}, "", "/agent/zzzz9999/timeline");
+    render(<App />);
+    expect(
+      await screen.findByText(/No agent here on your account/),
+    ).toBeTruthy();
+  });
 });

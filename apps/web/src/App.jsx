@@ -31,6 +31,7 @@ import {
 } from "@tanstack/react-router";
 import { answered, createQueryClient } from "@elixir-mcp/client";
 import { api } from "./api.js";
+import { useAgentMe } from "./lib/queries.js";
 import { SignIn } from "./views/SignIn.jsx";
 
 /**
@@ -131,6 +132,26 @@ export const SECTIONS = {
       { slug: "cards", label: "Cards" },
       { slug: "collectors", label: "Collectors", ownerOnly: true },
       { slug: "service-tokens", label: "Service tokens", ownerOnly: true },
+    ],
+  },
+  // An agent's console (2026-09-23, docs/reviews/2026-09-23-CONSOLE-
+  // ACCOUNT-SWITCHER.md): the pages that make sense for an agent, scoped
+  // to one you own, at /agent/<public_id>/<page>. Verify, Collections,
+  // Profile and Admin are a person's; Explore and Status are the same for
+  // everyone and stay in your console. `scoped` marks the id segment
+  // before the page.
+  agent: {
+    label: "Agent",
+    authed: true,
+    scoped: true,
+    pages: [
+      { slug: "overview", label: "Overview" },
+      { slug: "timeline", label: "Timeline" },
+      { slug: "activity", label: "Activity" },
+      { slug: "usage", label: "Usage" },
+      { slug: "connections", label: "Connections" },
+      { slug: "settings", label: "Settings" },
+      { slug: "feedback", label: "Feedback" },
     ],
   },
   data: {
@@ -294,11 +315,80 @@ export const RAIL = [
   },
 ];
 
+const AGENT_ID = /^[a-z0-9]{8,16}$/;
+
+/** The rail of an agent's console: yours, reshaped to what an agent is.
+ *  Same keys as yours where the page is the same page, so the docs strip
+ *  and the rail tests read both consoles one way. */
+export function agentRail(id) {
+  const at = (page) => `/agent/${id}/${page}`;
+  return [
+    {
+      key: "overview",
+      label: "Overview",
+      icon: "layout-dashboard",
+      to: at("overview"),
+    },
+    { key: "timeline", label: "Timeline", icon: "bell", to: at("timeline") },
+    {
+      group: "Its record",
+      key: "activity",
+      label: "Activity",
+      icon: "activity",
+      to: at("activity/requests"),
+      subs: [
+        ["requests", "MCP requests", at("activity/requests")],
+        ["events", "Account events", at("activity/events")],
+      ],
+    },
+    { key: "usage", label: "Usage", icon: "chart-column", to: at("usage") },
+    {
+      group: "Access",
+      key: "connections",
+      label: "Connections",
+      icon: "plug",
+      to: at("connections"),
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      icon: "settings",
+      to: at("settings"),
+    },
+    {
+      key: "feedback",
+      label: "Feedback",
+      icon: "message-square",
+      to: at("feedback"),
+    },
+  ];
+}
+
 /** Which rail item and sub-item a path belongs to. One function, so the
  *  mark in the rail and the docs strip's key can never disagree about
  *  where the reader is. */
 export function railPosition(path) {
   const [, section, page, rest] = path.split("/");
+  if (section === "agent") {
+    // /agent/<public_id>/<page>/<rest>: the same positions as yours, one
+    // segment along, with the agent's own strip where the page is its.
+    const [, , id, agentPage, agentRest] = path.split("/");
+    const scope = { scope: id };
+    if (agentPage === "activity")
+      return {
+        ...scope,
+        key: "activity",
+        sub: agentRest === "c" ? "requests" : (agentRest ?? "requests"),
+        ...(agentRest === "c" ? { doc: "activity:call" } : {}),
+      };
+    if (agentPage === "connections")
+      return { ...scope, key: "connections", doc: "agent:connections" };
+    if (agentPage === "overview" || agentPage === undefined)
+      return { ...scope, key: "overview", doc: "agent:overview" };
+    if (agentPage === "settings")
+      return { ...scope, key: "settings", doc: "agent:settings" };
+    return { ...scope, key: agentPage };
+  }
   // `doc` names the docs-strip entry when a RECORD page sits under a rail
   // item: the rail still marks the item (and sub-item) the record belongs
   // to, but the strip at its foot is the record's own, because "how do I
@@ -487,6 +577,29 @@ export const DOC_LINKS = {
       ["Limits", "/docs/limits"],
       ["Live fetch", "/docs/tools/live"],
       ["Run a collector", "/docs/operators"],
+    ],
+  ],
+  "agent:overview": [
+    "Your agent",
+    [
+      ["Agents", "/docs/agents"],
+      ["Tiers & roles", "/docs/roles"],
+      ["The timeline", "/docs/timeline"],
+    ],
+  ],
+  "agent:settings": [
+    "Running an agent",
+    [
+      ["Agents", "/docs/agents"],
+      ["Connections", "/docs/connections"],
+      ["Limits", "/docs/limits"],
+    ],
+  ],
+  "agent:connections": [
+    "Connecting as an agent",
+    [
+      ["Agents", "/docs/agents"],
+      ["Connections", "/docs/connections"],
     ],
   ],
   "connections:clients": [
@@ -691,6 +804,15 @@ export function legalRoute(path) {
   if (!sec) return null;
   // Explore's records are addressable, so it resolves its own paths.
   if (section === "explore") return path;
+  // An agent's console: a public id, then one of its pages. Whether the
+  // agent is yours is the server's answer (a 404 the page says), not a
+  // routing question.
+  if (sec.scoped) {
+    const [, , id, agentPage] = path.split("/");
+    if (!AGENT_ID.test(id ?? "")) return null;
+    if (sec.pages.some((p) => p.slug === agentPage)) return path;
+    return `/${section}/${id}/${sec.pages[0].slug}`;
+  }
   // A static page can sit inside an app section (Data > Changelog). It
   // belongs to the other half, so hand it back rather than quietly
   // substituting the section's default page.
@@ -718,6 +840,10 @@ export function titleFor(section, sec, path) {
   const parts = path.split("/").filter(Boolean);
   if (parts.length === 0) return SITE;
   if (!sec) return SITE;
+  if (sec.scoped) {
+    const known = sec.pages.find((p) => p.slug === parts[2])?.label;
+    return `${known ?? sec.label} - ${sec.label} - ${SITE}`;
+  }
   const pageSlug = parts[1];
   const known = sec.pages?.find((p) => p.slug === pageSlug)?.label;
   // A record deeper than the page slug is the most specific thing on
@@ -798,8 +924,11 @@ function Chrome({ navigate }) {
  *  owner pages for the owner), with the reader's counts and the two
  *  dots attached by key; the identity block is the way to the profile
  *  and the way out. */
-function Rail({ me, here, navigate, narrow, counts, dots = {} }) {
-  const items = RAIL.filter((r) => !r.adminOnly || me?.is_admin).map((row) => ({
+function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
+  const rail = here.scope
+    ? agentRail(here.scope)
+    : RAIL.filter((r) => !r.adminOnly || me?.is_admin);
+  const items = rail.map((row) => ({
     key: row.key,
     label: row.label,
     icon: row.icon,
@@ -811,16 +940,39 @@ function Rail({ me, here, navigate, narrow, counts, dots = {} }) {
       .filter(([, , , ownerOnly]) => !ownerOnly || me?.is_owner)
       .map(([slug, label, to]) => ({ slug, label, to })),
   }));
+  // The head is the account selector (2026-09-23): you, then each agent
+  // you own, each a console at its own address. With no agents it is the
+  // plain "Console" head it always was.
+  const primary = (me?.claims ?? []).find((c) => c.is_primary);
+  const accounts = [
+    {
+      key: "me",
+      label: primary?.nickname ?? primary?.name ?? "Console",
+      detail: me?.email ?? undefined,
+      aside: me?.role ?? "",
+      to: "/account/overview",
+    },
+    ...(me?.agents ?? []).map((a) => ({
+      key: a.public_id,
+      label: a.name,
+      detail: a.clan?.name ?? a.clan?.clan_tag ?? undefined,
+      aside: `agent · ${a.role}`,
+      to: `/agent/${a.public_id}/overview`,
+    })),
+  ];
   return (
     <RailList
-      label="Console sections"
+      label={here.scope ? "Agent console sections" : "Console sections"}
       items={items}
       current={here.key}
       sub={here.sub}
       navigate={navigate}
       narrow={narrow}
       title="Console"
-      aside={me?.role ?? ""}
+      aside={here.scope ? `agent · ${agent?.role ?? ""}` : (me?.role ?? "")}
+      accounts={accounts}
+      account={here.scope ?? "me"}
+      manage={{ label: "Manage agents…", to: "/account/agents" }}
       identity={
         <RailIdentity
           href="/account/profile"
@@ -894,7 +1046,7 @@ function DocsStrip({ here }) {
 const AFTER_SIGN_IN = "elixir.after_sign_in";
 export function rememberAfterSignIn(path) {
   try {
-    if (/^\/(account|admin)\//.test(path))
+    if (/^\/(account|admin|agent)\//.test(path))
       window.localStorage.setItem(AFTER_SIGN_IN, path);
   } catch {
     // Storage denied: the sign-in lands on Overview, as before.
@@ -904,7 +1056,7 @@ export function takeAfterSignIn() {
   try {
     const path = window.localStorage.getItem(AFTER_SIGN_IN);
     window.localStorage.removeItem(AFTER_SIGN_IN);
-    return path && /^\/(account|admin)\//.test(path) ? path : null;
+    return path && /^\/(account|admin|agent)\//.test(path) ? path : null;
   } catch {
     return null;
   }
@@ -1007,6 +1159,15 @@ const accountRoute = createRoute({
   ),
 });
 
+const agentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/agent/$agent/{-$page}/{-$itemId}/{-$recordId}",
+  component: lazyRouteComponent(
+    () => import("./pages/AgentPage.jsx"),
+    "AgentPage",
+  ),
+});
+
 const exploreRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/explore/$",
@@ -1043,6 +1204,7 @@ const dataRoute = createRoute({
 export const routeTree = rootRoute.addChildren([
   signInRoute,
   accountRoute,
+  agentRoute,
   exploreRoute,
   statusRoute,
   adminRoute,
@@ -1057,6 +1219,20 @@ export function useHere() {
   const { pathname } = useLocation();
   const [, section, page, itemId, recordId] = pathname.split("/");
   const sec = SECTIONS[section];
+  if (sec?.scoped) {
+    // /agent/<public_id>/<page>/<itemId>/<recordId>: one segment along.
+    const [, , scope, agentPage, agentItem, agentRecord] = pathname.split("/");
+    return {
+      path: pathname,
+      section,
+      sec,
+      scope,
+      activePage: sec.pages.find((p) => p.slug === agentPage)?.slug,
+      here: railPosition(pathname),
+      itemId: agentItem,
+      recordId: agentRecord,
+    };
+  }
   const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
   const here = railPosition(pathname);
   return {
@@ -1139,24 +1315,29 @@ function Shell() {
     document.title = titleFor(section, sec, effectivePath);
   }, [section, sec, effectivePath]);
 
+  // On an agent's console the rail's counts and dots are the agent's:
+  // its own `me`, from the same query its pages read.
+  const agentEnvelope = useAgentMe(authed ? here.scope : null).data;
+  const agent = here.scope && agentEnvelope?.ok ? agentEnvelope.data : null;
+  const subject = here.scope ? agent : me;
+
   /** Counts on rail items are the reader's own things, derived once here
    *  so two screens cannot disagree about them (house rule: derive
    *  shared numbers once). Omitted rather than guessed while /api/me has
-   *  not answered. */
+   *  not answered. The Tracking count is what this console's account
+   *  tracks (signals.tracking); the slot figures are pooled across you and
+   *  your agents, so they are not it. */
   const counts = {};
-  if (Array.isArray(me?.claims))
-    counts.tracking = String(
-      me.claims.length +
-        (me.entitlements?.activity_clans?.used ?? 0) +
-        (me.entitlements?.comprehensive_clans?.used ?? 0),
-    );
+  if (subject?.signals?.tracking !== undefined)
+    counts.tracking = String(subject.signals.tracking);
   // A tier with no collections shows no count: "0" would invite a click
   // the page then refuses.
   if (me?.entitlements?.collections && me.entitlements.collections.limit !== 0)
     counts.collections = String(me.entitlements.collections.used ?? 0);
-  if (me?.signals) {
-    counts.connections = String(me.signals.connections ?? 0);
-    if (me.signals.feedback > 0) counts.feedback = String(me.signals.feedback);
+  if (subject?.signals) {
+    counts.connections = String(subject.signals.connections ?? 0);
+    if (subject.signals.feedback > 0)
+      counts.feedback = String(subject.signals.feedback);
   }
   /** The two dots the design puts on the rail: unread on Timeline while
    *  the feed holds events no connection has read, and an alert on
@@ -1165,11 +1346,11 @@ function Shell() {
    *  go looking. */
   const dots = {
     timeline:
-      me?.signals?.timeline_pending > 0
+      subject?.signals?.timeline_pending > 0
         ? { tone: "unread", title: "Unread notifications" }
         : null,
     connections:
-      me?.signals?.refusals_7d > 0
+      subject?.signals?.refusals_7d > 0
         ? {
             tone: "alert",
             title: "A credential that no longer works is still being presented",
@@ -1195,6 +1376,7 @@ function Shell() {
           {showRail && (
             <Rail
               me={me}
+              agent={agent}
               here={here}
               navigate={navigate}
               narrow={narrow}

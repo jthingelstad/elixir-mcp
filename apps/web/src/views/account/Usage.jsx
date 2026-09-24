@@ -1,5 +1,6 @@
 import { useClock } from "@elixir-mcp/ui";
 import { useUsage } from "../../lib/queries.js";
+import { useScope } from "../../lib/scope.js";
 import { quotaReading } from "../../lib/quota.js";
 
 /**
@@ -73,10 +74,17 @@ function fourteenDays(days) {
 export function Usage({ navigate }) {
   const { data: usage, error } = useUsage();
   const { zone } = useClock();
+  // An agent's console reads the agent's calls against YOUR budget: the
+  // cards show the budget's day (everything it paid for today), and the
+  // lede says how much of that was this agent.
+  const scoped = Boolean(useScope());
   if (error) return <p className="field-error">Could not load usage.</p>;
   if (!usage) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 
-  const quota = quotaReading(usage, zone);
+  const quota = quotaReading(
+    scoped ? { ...usage, today_calls: usage.budget_today_calls } : usage,
+    zone,
+  );
   const days = fourteenDays(usage.days);
   const max = Math.max(...days.map((d) => d.calls), 1);
   const callers = usage.by_caller ?? [];
@@ -88,9 +96,20 @@ export function Usage({ navigate }) {
       <div style={{ marginBottom: "18px" }}>
         <h1 className="page__title">Usage</h1>
         <p className="page__lede">
-          Your daily budget and where it went. {quota.resets}.
-          {usage.agent_calls_today > 0 &&
-            ` Your agents spent ${usage.agent_calls_today.toLocaleString()} of today's calls; they draw on the same budget you do.`}
+          {scoped ? (
+            <>
+              This agent spends your daily budget: it made{" "}
+              {(usage.today_calls ?? 0).toLocaleString()} of the{" "}
+              {(usage.budget_today_calls ?? 0).toLocaleString()} calls it paid
+              for today. {quota.resets}.
+            </>
+          ) : (
+            <>
+              Your daily budget and where it went. {quota.resets}.
+              {usage.agent_calls_today > 0 &&
+                ` Your agents spent ${usage.agent_calls_today.toLocaleString()} of today's calls; they draw on the same budget you do.`}
+            </>
+          )}
         </p>
       </div>
 
@@ -102,8 +121,14 @@ export function Usage({ navigate }) {
           marginBottom: "14px",
         }}
       >
-        <QuotaCard title="Calls today" line={quota.calls} />
-        <QuotaCard title="Live fetches today" line={quota.fetches} />
+        <QuotaCard
+          title={scoped ? "Your budget today" : "Calls today"}
+          line={quota.calls}
+        />
+        <QuotaCard
+          title={scoped ? "Your live fetches today" : "Live fetches today"}
+          line={quota.fetches}
+        />
       </div>
 
       <section className="panel" style={{ marginBottom: "14px" }}>

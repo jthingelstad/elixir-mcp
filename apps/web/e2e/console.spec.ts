@@ -173,7 +173,10 @@ test.describe("signed in", () => {
     let claims: Record<string, unknown>[] = ME.claims;
     await mockApi(page, {
       ...signedIn(),
-      "GET /api/me": () => [200, { ...ME, claims }],
+      "GET /api/me": () => [
+        200,
+        { ...ME, claims, signals: { ...ME.signals, tracking: claims.length } },
+      ],
       "POST /api/claims": () => {
         claims = [
           ...claims,

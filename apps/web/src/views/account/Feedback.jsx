@@ -2,6 +2,7 @@ import { Icon, LogTable, Markdown, ago, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useMyFeedback } from "../../lib/queries.js";
+import { useConsolePath, useScope } from "../../lib/scope.js";
 
 /**
  * Feedback — what you have told us, and what we did about it.
@@ -58,6 +59,7 @@ function Shipped({ version, navigate }) {
 
 export function FeedbackItem({ id, navigate }) {
   const { day } = useClock();
+  const path = useConsolePath();
   const { data, isSuccess, isError } = useMyFeedback();
   const item =
     (data?.feedback ?? []).find((f) => String(f.feedback_id) === String(id)) ??
@@ -69,7 +71,9 @@ export function FeedbackItem({ id, navigate }) {
         <div className="empty__title">No feedback item #{id}</div>
         <p className="empty__body" style={{ marginBottom: 0 }}>
           Nothing by that number on your account.{" "}
-          <a onClick={() => navigate("/account/feedback")}>All feedback ›</a>
+          <a onClick={() => navigate(path("/account/feedback"))}>
+            All feedback ›
+          </a>
         </p>
       </div>
     );
@@ -77,7 +81,7 @@ export function FeedbackItem({ id, navigate }) {
   return (
     <>
       <p className="page__crumb" style={{ marginBottom: "14px" }}>
-        <a onClick={() => navigate("/account/feedback")}>‹ Feedback</a>
+        <a onClick={() => navigate(path("/account/feedback"))}>‹ Feedback</a>
       </p>
       <div
         style={{
@@ -127,7 +131,9 @@ export function FeedbackItem({ id, navigate }) {
           About one call ·{" "}
           <a
             className="mono"
-            onClick={() => navigate(`/account/activity/c/${item.request_id}`)}
+            onClick={() =>
+              navigate(path(`/account/activity/c/${item.request_id}`))
+            }
           >
             {item.request_id.slice(0, 8)}
           </a>
@@ -287,6 +293,11 @@ function Compose({
 
 export function Feedback({ navigate }) {
   const { day, stamp } = useClock();
+  const path = useConsolePath();
+  // An agent's console lists what the AGENT filed (it files with
+  // elixir_send_feedback). New feedback is always filed as you, from your
+  // own console, so this page has no compose (2026-09-23).
+  const scoped = Boolean(useScope());
   const feedback = useMyFeedback().data;
   const items = feedback ? (feedback.feedback ?? feedback.items ?? []) : null;
   const [prefill] = useState(prefillFromUrl);
@@ -307,7 +318,7 @@ export function Feedback({ navigate }) {
   const rows = (items ?? []).map((f) => [
     {
       text: `fb_${f.feedback_id}`,
-      onClick: () => navigate(`/account/feedback/${f.feedback_id}`),
+      onClick: () => navigate(path(`/account/feedback/${f.feedback_id}`)),
     },
     {
       text: ago(f.created_at, now),
@@ -329,18 +340,24 @@ export function Feedback({ navigate }) {
   return (
     <LogTable
       title="Feedback"
-      note="What you have told us, and what we did about it. Every item gets a response; nothing is actioned invisibly."
+      note={
+        scoped
+          ? "What this agent has told us, and what we did about it. New feedback is filed as you, from your own console."
+          : "What you have told us, and what we did about it. Every item gets a response; nothing is actioned invisibly."
+      }
       actions={
-        <button
-          className="btn btn--primary"
-          onClick={() => setComposing((v) => !v)}
-        >
-          <Icon name="plus" size={16} />
-          Send feedback
-        </button>
+        scoped ? null : (
+          <button
+            className="btn btn--primary"
+            onClick={() => setComposing((v) => !v)}
+          >
+            <Icon name="plus" size={16} />
+            Send feedback
+          </button>
+        )
       }
       above={
-        composing ? (
+        composing && !scoped ? (
           <Compose
             onSent={load}
             onClose={() => setComposing(false)}
@@ -364,7 +381,11 @@ export function Feedback({ navigate }) {
         { key: "category", label: "Category", col: 2 },
         { key: "state", label: "State", col: 4 },
       ]}
-      empty="Nothing filed yet — your agent can file too, with elixir_send_feedback."
+      empty={
+        scoped
+          ? "Nothing filed by this agent yet. It files with elixir_send_feedback."
+          : "Nothing filed yet — your agent can file too, with elixir_send_feedback."
+      }
       footnote="Open an item to read the whole note and the maintainer's reply. A filed note cannot be edited; send another if something changed."
     />
   );

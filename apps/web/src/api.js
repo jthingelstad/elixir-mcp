@@ -17,8 +17,15 @@ const client = createClient({
 
 const request = (method, path, body) => client.request(method, path, body);
 
+/** Whose `/api/me` a call reads: yours, or, on an agent's console, the
+ *  agent's (`/api/agent/<public_id>`, the same routes run as the agent
+ *  for its owner). The scoped calls below take the agent's public id as
+ *  their last argument; omitted, they are yours, as they always were. */
+const home = (agent) =>
+  agent ? `/api/agent/${encodeURIComponent(agent)}` : "/api/me";
+
 export const api = {
-  me: () => request("GET", "/api/me"),
+  me: (agent) => request("GET", home(agent)),
   requestAccess: (body) => request("POST", "/api/request-access", body),
   sendLoginEmail: (email) => request("POST", "/api/auth", { email }),
   redeemToken: (token) => request("POST", "/api/auth/redeem", { token }),
@@ -34,8 +41,8 @@ export const api = {
     request("POST", "/api/me/sessions/revoke", { session_id }),
   revokeSessionsEverywhere: () =>
     request("POST", "/api/me/sessions/revoke", { everywhere: true }),
-  dismissRefusal: (body) =>
-    request("POST", "/api/me/connections/refusals/dismiss", body),
+  dismissRefusal: (body, agent) =>
+    request("POST", `${home(agent)}/connections/refusals/dismiss`, body),
   signOut: () => request("POST", "/api/session/signout", {}),
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
   emailPrefs: () => request("GET", "/api/me/email"),
@@ -47,12 +54,12 @@ export const api = {
   addClaim: (player_tag) => request("POST", "/api/claims", { player_tag }),
   claimAction: (body) => request("POST", "/api/claims", body),
   clan: () => request("GET", "/api/clan"),
-  usage: () => request("GET", "/api/me/usage"),
+  usage: (agent) => request("GET", `${home(agent)}/usage`),
   explore: (tool, args) => request("POST", "/api/explore", { tool, args }),
   adminCollections: () => request("GET", "/api/admin/collections"),
   adminCollectionAction: (body) =>
     request("POST", "/api/admin/collections", body),
-  myFeedback: () => request("GET", "/api/me/feedback"),
+  myFeedback: (agent) => request("GET", `${home(agent)}/feedback`),
   sendFeedback: (message, category, context, request_id, send_id) =>
     request("POST", "/api/feedback", {
       message,
@@ -80,13 +87,13 @@ export const api = {
       status,
       ...(response ? { response } : {}),
     }),
-  activity: () => request("GET", "/api/me/activity"),
-  connections: () => request("GET", "/api/me/connections"),
+  activity: (agent) => request("GET", `${home(agent)}/activity`),
+  connections: (agent) => request("GET", `${home(agent)}/connections`),
   firstAnswer: () => request("GET", "/api/me/first-answer"),
-  revokeConnection: (family_id) =>
-    request("POST", "/api/me/connections/revoke", { family_id }),
-  setConnectionScope: (family_id, scope) =>
-    request("POST", "/api/me/connections/scope", { family_id, scope }),
+  revokeConnection: (family_id, agent) =>
+    request("POST", `${home(agent)}/connections/revoke`, { family_id }),
+  setConnectionScope: (family_id, scope, agent) =>
+    request("POST", `${home(agent)}/connections/scope`, { family_id, scope }),
   setPrincipalScope: (account_id, scope) =>
     request("POST", "/api/me/principals/scope", { account_id, scope }),
   adminUsage: () => request("GET", "/api/admin/usage"),
@@ -124,10 +131,13 @@ export const api = {
   publicStats: () => request("GET", "/api/public/stats"),
   publicStatus: () => request("GET", "/api/public/status"),
   publicEfficiency: () => request("GET", "/api/public/efficiency"),
-  myRequests: () => request("GET", "/api/me/requests"),
-  callRecord: (request_id) =>
-    request("GET", `/api/me/activity/calls/${encodeURIComponent(request_id)}`),
-  myTimeline: () => request("GET", "/api/me/timeline"),
+  myRequests: (agent) => request("GET", `${home(agent)}/requests`),
+  callRecord: (request_id, agent) =>
+    request(
+      "GET",
+      `${home(agent)}/activity/calls/${encodeURIComponent(request_id)}`,
+    ),
+  myTimeline: (agent) => request("GET", `${home(agent)}/timeline`),
   // A POST: claiming spends a one-time credential, so it must not be
   // reachable by a link scanner, a prefetch, or a cross-site top-level
   // navigation (#31).
@@ -143,11 +153,6 @@ export const api = {
     request("POST", "/api/me/principals/status", { account_id, status }),
   renamePrincipal: (account_id, name) =>
     request("POST", "/api/me/principals/rename", { account_id, name }),
-  principalTimeline: (account_id) =>
-    request(
-      "GET",
-      `/api/me/principals/timeline?account_id=${encodeURIComponent(account_id)}`,
-    ),
   principalIdentities: (account_id) =>
     request(
       "GET",

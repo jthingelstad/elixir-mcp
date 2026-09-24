@@ -2707,16 +2707,6 @@ test("malformed ids are 400s, never uuid or bigint syntax errors", async () => {
     assert.equal(res.statusCode, 400, p);
     assert.equal(parse(res).error, "invalid_account_id", p);
   }
-  const events = await handler({
-    ...event({
-      method: "GET",
-      path: "/api/me/principals/timeline",
-      cookie,
-      body: undefined,
-    }),
-    queryStringParameters: { account_id: "nope" },
-  });
-  assert.equal(events.statusCode, 400);
   const revoke = await handler(
     event({
       path: "/api/admin/service-tokens",
@@ -2966,7 +2956,8 @@ test("connection capabilities can be edited afterwards, including on an owned ag
     [agent[0].account_id],
   );
 
-  // BOTH doors are listed, and the agent's says whose it is.
+  // Your Connections lists your door; the agent's is on the agent's own
+  // console (2026-09-23), which runs the same route as the agent.
   const list = parse(
     await handler(
       event({
@@ -2979,16 +2970,24 @@ test("connection capabilities can be edited afterwards, including on an owned ag
   );
   const ids = list.connections.map((c) => c.family_id);
   assert.ok(ids.includes(mine[0].family_id), "the personal door");
-  assert.ok(ids.includes(agentFam[0].family_id), "and the agent's door");
-  const agentRow = list.connections.find(
-    (c) => c.family_id === agentFam[0].family_id,
+  assert.ok(
+    !ids.includes(agentFam[0].family_id),
+    "the agent's door is not on yours",
   );
-  assert.equal(agentRow.principal.kind, "agent");
-  assert.equal(agentRow.principal.public_id, "scopeagent1");
-  assert.equal(
-    list.connections.find((c) => c.family_id === mine[0].family_id).principal,
-    null,
-    "the person's own door has no principal label",
+  const agentList = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/agent/scopeagent1/connections",
+        cookie,
+        body: undefined,
+      }),
+    ),
+  );
+  assert.deepEqual(
+    agentList.connections.map((c) => c.family_id),
+    [agentFam[0].family_id],
+    "the agent's console lists its door",
   );
 
   // Widen the personal door.

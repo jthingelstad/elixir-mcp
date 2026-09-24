@@ -1,5 +1,6 @@
 import { LogTable, useClock } from "@elixir-mcp/ui";
 import { useMyTimeline } from "../../lib/queries.js";
+import { useScope } from "../../lib/scope.js";
 
 /**
  * The timeline: what happened to the players and clans you track, the
@@ -13,6 +14,7 @@ import { useMyTimeline } from "../../lib/queries.js";
  */
 export function Timeline() {
   const { stamp } = useClock();
+  const scoped = Boolean(useScope());
   const timeline = useMyTimeline().data ?? null;
   const more = timeline?.timeline_more ?? 0;
   const rows = (timeline?.timeline ?? []).map((it) => {
@@ -30,7 +32,11 @@ export function Timeline() {
   return (
     <LogTable
       title="Timeline"
-      note="What happened to the players and clans you track, last seven days, newest first. The same items a connection reads with elixir_timeline."
+      note={
+        scoped
+          ? "What happened to the clans and players this agent tracks, last seven days, newest first. The same items it reads with elixir_timeline."
+          : "What happened to the players and clans you track, last seven days, newest first. The same items a connection reads with elixir_timeline."
+      }
       cols={[
         ["WHEN", "left"],
         ["WHO", "left"],

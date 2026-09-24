@@ -1,4 +1,10 @@
-import { useState, type MouseEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { Icon } from "./Icon.tsx";
 
 export interface RailDot {
@@ -27,6 +33,19 @@ export interface RailItem {
   subs?: RailSub[];
 }
 
+/** One account the rail can be the console of: the person, or an agent
+ *  they own. `to` is where choosing it goes, because an account's console
+ *  is a PLACE with its own address, never a mode the app remembers. */
+export interface RailAccount {
+  key: string;
+  label: string;
+  /** A second line in the menu: the clan an agent acts for. */
+  detail?: string;
+  /** The mono aside: the role, or "agent · leader". */
+  aside?: string;
+  to: string;
+}
+
 /**
  * The rail. THE RAIL CARRIES STRUCTURE, NEVER USER CONTENT: sections
  * and sub-pages, never the name of a player or a clan, so it cannot
@@ -51,6 +70,15 @@ export interface RailItem {
  * narrow toggle shows beside the current section, defaulting to the
  * current sub-page's label. `identity` is the block at the foot: who
  * you are and the way out (RailIdentity).
+ *
+ * `accounts` turns the head into the ACCOUNT SELECTOR (2026-09-23): the
+ * console belongs to one of them (`account` names which), and the head
+ * shows that one with the others a click away. The first is the person;
+ * any other is an agent, and the head is tinted while it is current, so
+ * whose console this is never has to be read off a label. It stays in
+ * the narrow layout's closed row, where a phone could otherwise be acting
+ * as an agent without showing it. With one account or none the head is
+ * the plain title, as it always was.
  */
 export function Rail({
   items,
@@ -63,6 +91,9 @@ export function Rail({
   subtitle,
   identity,
   label = "Sections",
+  accounts,
+  account,
+  manage,
 }: {
   items: RailItem[];
   current: string | null | undefined;
@@ -74,6 +105,11 @@ export function Rail({
   subtitle?: ReactNode;
   identity?: ReactNode;
   label?: string;
+  accounts?: RailAccount[];
+  /** The key of the account this console belongs to. */
+  account?: string;
+  /** The last line of the selector: where accounts are managed. */
+  manage?: { label: string; to: string };
 }) {
   const [open, setOpen] = useState(false);
   const active = items.find((r) => r.key === current);
@@ -139,9 +175,22 @@ export function Rail({
 
   const subLabel = (active?.subs ?? []).find((s) => s.slug === sub)?.label;
   const shown = !narrow || open;
+  const switcher =
+    accounts && accounts.length > 1 ? (
+      <AccountSwitcher
+        accounts={accounts}
+        current={account}
+        manage={manage}
+        navigate={(to) => {
+          setOpen(false);
+          navigate(to);
+        }}
+      />
+    ) : null;
 
   return (
     <aside className="rail">
+      {narrow && switcher}
       {narrow ? (
         <button
           type="button"
@@ -159,6 +208,8 @@ export function Rail({
             <Icon name={open ? "chevron-up" : "chevron-down"} size={17} />
           </span>
         </button>
+      ) : switcher ? (
+        switcher
       ) : (
         <div className="mb-[6px] flex h-10 items-center gap-[9px] border-0 border-b border-solid border-line-soft px-[11px]">
           <span className="truncate text-[13.5px] font-semibold" title={title}>
@@ -174,6 +225,109 @@ export function Rail({
 
       {shown && identity && <div className="mt-auto pt-4">{identity}</div>}
     </aside>
+  );
+}
+
+/**
+ * The rail head as a selector: the current account, and a disclosure
+ * listing the others. A list of links, not an ARIA menu: choosing one is
+ * navigation to another console's address. Escape and a click outside
+ * close it, the way the top bar's sheet closes on Escape.
+ */
+function AccountSwitcher({
+  accounts,
+  current,
+  manage,
+  navigate,
+}: {
+  accounts: RailAccount[];
+  current?: string | undefined;
+  manage?: { label: string; to: string } | undefined;
+  navigate: (to: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  // Rendered only with two or more accounts; the first is the person.
+  const person = accounts[0] as RailAccount;
+  const here = accounts.find((a) => a.key === current) ?? person;
+  const scoped = here.key !== person.key;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onDown = (e: Event) => {
+      if (box.current && !box.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open]);
+
+  const go = (to: string) => (e: MouseEvent) => {
+    e.preventDefault();
+    setOpen(false);
+    navigate(to);
+  };
+
+  return (
+    <div className="rail__switch" ref={box} data-scoped={scoped}>
+      <button
+        type="button"
+        className="rail__switch-head"
+        aria-expanded={open}
+        aria-controls="rail-accounts"
+        title={`Console: ${here.label}. Switch account`}
+        onClick={() => setOpen(!open)}
+      >
+        <span className="truncate text-[13.5px] font-semibold">
+          {here.label}
+        </span>
+        <Icon name={open ? "chevron-up" : "chevron-down"} size={15} />
+        {here.aside && (
+          <span className="mono ml-auto text-ink-faint">{here.aside}</span>
+        )}
+      </button>
+      {open && (
+        <div id="rail-accounts" className="rail__switch-list">
+          {accounts.map((a) => (
+            <a
+              key={a.key}
+              href={a.to}
+              className="rail__switch-item"
+              aria-current={a.key === here.key ? "true" : undefined}
+              onClick={go(a.to)}
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate font-semibold">{a.label}</span>
+                {a.detail && (
+                  <span className="truncate text-[12px] text-ink-faint">
+                    {a.detail}
+                  </span>
+                )}
+              </span>
+              {a.aside && (
+                <span className="mono ml-auto shrink-0 text-[12px] text-ink-faint">
+                  {a.aside}
+                </span>
+              )}
+            </a>
+          ))}
+          {manage && (
+            <a
+              href={manage.to}
+              className="rail__switch-item rail__switch-manage"
+              onClick={go(manage.to)}
+            >
+              {manage.label}
+            </a>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

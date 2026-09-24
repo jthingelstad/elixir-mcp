@@ -17,7 +17,14 @@ import {
   cleanup,
   within,
 } from "@testing-library/react";
-import { App, RAIL, DOC_LINKS, legalRoute, railPosition } from "../src/App.jsx";
+import {
+  App,
+  RAIL,
+  DOC_LINKS,
+  agentRail,
+  legalRoute,
+  railPosition,
+} from "../src/App.jsx";
 
 const ME = {
   authenticated: true,
@@ -51,8 +58,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** Every destination the rail offers, as [railKey, sub, path]. */
-const destinations = RAIL.flatMap((row) => [
+/** Every destination the rail offers, as [railKey, sub, path]: yours,
+ *  and an agent's console (2026-09-23), which obeys the same rules. */
+const AGENT_RAIL = agentRail("abcd1234");
+const destinations = [...RAIL, ...AGENT_RAIL].flatMap((row) => [
   [row.key, undefined, row.to],
   ...(row.subs ?? []).map(([slug, , to]) => [row.key, slug, to]),
 ]);
@@ -87,7 +96,9 @@ test("every rail destination has its own docs strip entry", () => {
     // on that sub, not on the bare section.
     const at = railPosition(to);
     const entry =
-      DOC_LINKS[at.sub ? `${at.key}:${at.sub}` : at.key] ?? DOC_LINKS[at.key];
+      (at.doc && DOC_LINKS[at.doc]) ??
+      DOC_LINKS[at.sub ? `${at.key}:${at.sub}` : at.key] ??
+      DOC_LINKS[at.key];
     expect(entry, `${to} has no docs strip entry`).toBeTruthy();
     const [topic, links] = entry;
     expect(typeof topic).toBe("string");
@@ -108,9 +119,11 @@ test("no two items at the same level share a label", () => {
   // Connections and Account > Connections are two readable places.
   // What stays banned is a collision at ONE level, where nothing on
   // screen tells them apart.
-  const tops = RAIL.map((r) => r.label);
-  expect(new Set(tops).size, "two sections share a label").toBe(tops.length);
-  for (const row of RAIL) {
+  for (const rail of [RAIL, AGENT_RAIL]) {
+    const tops = rail.map((r) => r.label);
+    expect(new Set(tops).size, "two sections share a label").toBe(tops.length);
+  }
+  for (const row of [...RAIL, ...AGENT_RAIL]) {
     const subs = (row.subs ?? []).map(([, label]) => label);
     expect(
       new Set(subs).size,
@@ -185,4 +198,30 @@ test("the docs strip is on the page, and it is the page's own entry", async () =
   // Usage is about budgets; the strip must say so rather than "docs".
   expect(await screen.findByText(/Docs · Budgets/)).toBeTruthy();
   expect(screen.getByRole("link", { name: "Limits" })).toBeTruthy();
+});
+
+test("an agent's console: its pages and nothing of a person's, one segment along", () => {
+  expect(AGENT_RAIL.map((r) => r.key)).toEqual([
+    "overview",
+    "timeline",
+    "activity",
+    "usage",
+    "connections",
+    "settings",
+    "feedback",
+  ]);
+  expect(railPosition("/agent/abcd1234/timeline")).toEqual({
+    scope: "abcd1234",
+    key: "timeline",
+  });
+  expect(railPosition("/agent/abcd1234/activity/c/x")).toMatchObject({
+    key: "activity",
+    sub: "requests",
+    doc: "activity:call",
+  });
+  // A page an agent does not have lands on its Overview; an id that is not
+  // a public id's shape is not an app route at all.
+  expect(legalRoute("/agent/abcd1234/verify")).toBe("/agent/abcd1234/overview");
+  expect(legalRoute("/agent/abcd1234")).toBe("/agent/abcd1234/overview");
+  expect(legalRoute("/agent/NOPE/timeline")).toBe(null);
 });

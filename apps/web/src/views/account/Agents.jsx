@@ -1,5 +1,5 @@
 import { Fresh } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
@@ -9,21 +9,30 @@ import {
   keys,
   useInvalidate,
   useMyPrincipals,
-  usePrincipalTimeline,
   usePrincipalIdentities,
 } from "../../lib/queries.js";
+import { useConsolePath } from "../../lib/scope.js";
 
-export function AgentDetail({ id, navigate }) {
+/**
+ * An agent, on its own console (2026-09-23): `part` is the page. Overview
+ * is how it is doing (its clan, its key, its last call, what is refusing
+ * it, the address to connect it at); Settings is what you change (its
+ * name, what its key may do, the key itself, who it answers for). Its
+ * timeline, calls, usage and connections are the console's own pages,
+ * the same views yours are, so none of them is repeated here.
+ */
+export function AgentRecord({ publicId, part = "overview", navigate }) {
   const principals = useMyPrincipals();
+  const path = useConsolePath();
   const agent =
-    (principals.data?.agents ?? []).find((a) => a.account_id === id) ?? null;
+    (principals.data?.agents ?? []).find((a) => a.public_id === publicId) ??
+    null;
+  const id = agent?.account_id ?? null;
   const missed = principals.isFetched && !agent;
-  // Only once the agent is known to be yours: the log and identities
-  // of an id that is not never load.
-  const timeline =
-    usePrincipalTimeline(agent ? id : null).data?.timeline ?? null;
+  // Only once the agent is known to be yours, and only where it is shown.
   const identities =
-    usePrincipalIdentities(agent ? id : null).data?.identities ?? null;
+    usePrincipalIdentities(part === "settings" ? id : null).data?.identities ??
+    null;
   const [minted, setMinted] = useState(null);
   const [busy, setBusy] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -64,9 +73,6 @@ export function AgentDetail({ id, navigate }) {
 
   return (
     <>
-      <div className="page__crumb">
-        <a onClick={() => navigate("/account/connections")}>‹ Connections</a>
-      </div>
       <div
         style={{
           display: "flex",
@@ -104,155 +110,172 @@ export function AgentDetail({ id, navigate }) {
 
       <section className="panel" style={{ marginBottom: "16px" }}>
         <dl className="fields">
-          <dt>Name</dt>
-          <dd>
-            {renaming ? (
-              <form
-                style={{ display: "flex", gap: "6px", alignItems: "center" }}
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setRenameError(null);
-                  setBusy(true);
-                  const r = await api.renamePrincipal(id, draftName);
-                  setBusy(false);
-                  if (r.ok) {
-                    setRenaming(false);
-                    load();
-                    return;
-                  }
-                  // Say which refusal this actually is. Every non-duplicate
-                  // failure used to render as a validation complaint, so a
-                  // perfectly valid name came back "lower-case letters,
-                  // numbers and hyphens" and no input could ever fix it.
-                  setRenameError(
-                    {
-                      name_taken: "You already have an agent with that name.",
-                      invalid_name:
-                        "Lower-case letters, numbers and hyphens, 2 to 41 characters.",
-                      no_live_key:
-                        "This agent has no live key, and an agent's name is its key's name. Issue a new key first, then rename it.",
-                      not_found: "This agent is no longer available.",
-                    }[r.data?.error] ?? "Could not rename this agent.",
-                  );
-                }}
-              >
-                <input
-                  value={draftName}
-                  autoFocus
-                  onChange={(e) => setDraftName(e.target.value)}
-                  required
-                />
-                <button className="btn btn--quiet" disabled={busy}>
-                  Save
-                </button>
-                <button
-                  type="button"
-                  className="btn--text"
-                  onClick={() => {
-                    setRenaming(false);
-                    setRenameError(null);
-                  }}
-                >
-                  cancel
-                </button>
-              </form>
-            ) : (
-              <>
-                {name}{" "}
-                <button
-                  className="btn--text"
-                  onClick={() => {
-                    setDraftName(live[0]?.name ?? "");
-                    setRenaming(true);
-                  }}
-                >
-                  rename
-                </button>
-              </>
-            )}
-            {renameError && (
-              <div style={{ fontSize: "12px", color: "var(--warn)" }}>
-                {renameError}
-              </div>
-            )}
-          </dd>
-          <dt>Clan</dt>
-          <dd>
-            <ClanRefs clans={agent.clans} navigate={navigate} />
-          </dd>
-          <dt>Slug</dt>
-          <dd className="mono">{agent.public_id ?? "—"}</dd>
-          <dt>Key issued</dt>
-          <dd>
-            {key ? (
-              <>
-                {key.created_at ? <Fresh ts={key.created_at} /> : "—"}
-                {" · "}
-                {key.last_used_at ? (
+          {part === "settings" && (
+            <>
+              <dt>Name</dt>
+              <dd>
+                {renaming ? (
+                  <form
+                    style={{
+                      display: "flex",
+                      gap: "6px",
+                      alignItems: "center",
+                    }}
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      setRenameError(null);
+                      setBusy(true);
+                      const r = await api.renamePrincipal(id, draftName);
+                      setBusy(false);
+                      if (r.ok) {
+                        setRenaming(false);
+                        load();
+                        return;
+                      }
+                      // Say which refusal this actually is. Every non-duplicate
+                      // failure used to render as a validation complaint, so a
+                      // perfectly valid name came back "lower-case letters,
+                      // numbers and hyphens" and no input could ever fix it.
+                      setRenameError(
+                        {
+                          name_taken:
+                            "You already have an agent with that name.",
+                          invalid_name:
+                            "Lower-case letters, numbers and hyphens, 2 to 41 characters.",
+                          no_live_key:
+                            "This agent has no live key, and an agent's name is its key's name. Issue a new key first, then rename it.",
+                          not_found: "This agent is no longer available.",
+                        }[r.data?.error] ?? "Could not rename this agent.",
+                      );
+                    }}
+                  >
+                    <input
+                      value={draftName}
+                      autoFocus
+                      onChange={(e) => setDraftName(e.target.value)}
+                      required
+                    />
+                    <button className="btn btn--quiet" disabled={busy}>
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="btn--text"
+                      onClick={() => {
+                        setRenaming(false);
+                        setRenameError(null);
+                      }}
+                    >
+                      cancel
+                    </button>
+                  </form>
+                ) : (
                   <>
-                    first used{" "}
-                    <Fresh ts={key.first_used_at ?? key.last_used_at} />
+                    {name}{" "}
+                    <button
+                      className="btn--text"
+                      onClick={() => {
+                        setDraftName(live[0]?.name ?? "");
+                        setRenaming(true);
+                      }}
+                    >
+                      rename
+                    </button>
+                  </>
+                )}
+                {renameError && (
+                  <div style={{ fontSize: "12px", color: "var(--warn)" }}>
+                    {renameError}
+                  </div>
+                )}
+              </dd>
+            </>
+          )}
+          {part === "overview" && (
+            <>
+              <dt>Clan</dt>
+              <dd>
+                <ClanRefs clans={agent.clans} navigate={navigate} />
+              </dd>
+              <dt>Slug</dt>
+              <dd className="mono">{agent.public_id ?? "—"}</dd>
+              <dt>Key issued</dt>
+              <dd>
+                {key ? (
+                  <>
+                    {key.created_at ? <Fresh ts={key.created_at} /> : "—"}
+                    {" · "}
+                    {key.last_used_at ? (
+                      <>
+                        first used{" "}
+                        <Fresh ts={key.first_used_at ?? key.last_used_at} />
+                      </>
+                    ) : (
+                      "never used"
+                    )}
                   </>
                 ) : (
-                  "never used"
+                  <span style={{ color: "var(--ink-faint)" }}>no live key</span>
                 )}
-              </>
-            ) : (
-              <span style={{ color: "var(--ink-faint)" }}>no live key</span>
-            )}
-          </dd>
-          <dt>Last successful call</dt>
-          <dd>
-            {agent.last_call_at ? (
-              <Fresh ts={agent.last_call_at} />
-            ) : (
-              <span style={{ color: "var(--ink-faint)" }}>never</span>
-            )}
-            {keyNeverUsed && (
-              <div
-                className="callout callout--warn"
-                style={{ marginTop: "8px", whiteSpace: "normal" }}
-              >
-                <span>
-                  The current key has never been used
-                  {key.created_at ? " since it was issued " : " "}
-                  {key.created_at ? <Fresh ts={key.created_at} /> : null}. If
-                  something was running before, it is still presenting the old
-                  key and being refused — a refused call never reaches this
-                  page, so it looks quiet rather than broken. A quiet agent and
-                  a broken one look the same here.
+              </dd>
+              <dt>Last successful call</dt>
+              <dd>
+                {agent.last_call_at ? (
+                  <Fresh ts={agent.last_call_at} />
+                ) : (
+                  <span style={{ color: "var(--ink-faint)" }}>never</span>
+                )}
+                {keyNeverUsed && (
+                  <div
+                    className="callout callout--warn"
+                    style={{ marginTop: "8px", whiteSpace: "normal" }}
+                  >
+                    <span>
+                      The current key has never been used
+                      {key.created_at ? " since it was issued " : " "}
+                      {key.created_at ? <Fresh ts={key.created_at} /> : null}.
+                      If something was running before, it is still presenting
+                      the old key and being refused — a refused call never
+                      reaches this page, so it looks quiet rather than broken. A
+                      quiet agent and a broken one look the same here.
+                    </span>
+                  </div>
+                )}
+              </dd>
+              <dt>Connects from</dt>
+              <dd>
+                {agent.last_seen?.ip ? (
+                  <>
+                    <span className="mono">{agent.last_seen.ip}</span>
+                    {agent.last_seen.country
+                      ? ` · ${agent.last_seen.country}`
+                      : ""}
+                    {agent.last_seen.client
+                      ? ` · ${agent.last_seen.client}`
+                      : ""}
+                  </>
+                ) : (
+                  <span style={{ color: "var(--ink-faint)" }}>
+                    not seen since addresses were recorded
+                  </span>
+                )}
+              </dd>
+              <dt>Calls (7 days)</dt>
+              <dd>
+                {agent.calls_7d ?? 0}{" "}
+                <span className="hint">
+                  charged to your daily budget, not the agent&rsquo;s
                 </span>
-              </div>
-            )}
-          </dd>
-          <dt>Connects from</dt>
-          <dd>
-            {agent.last_seen?.ip ? (
-              <>
-                <span className="mono">{agent.last_seen.ip}</span>
-                {agent.last_seen.country ? ` · ${agent.last_seen.country}` : ""}
-                {agent.last_seen.client ? ` · ${agent.last_seen.client}` : ""}
-              </>
-            ) : (
-              <span style={{ color: "var(--ink-faint)" }}>
-                not seen since addresses were recorded
-              </span>
-            )}
-          </dd>
-          <dt>Calls (7 days)</dt>
-          <dd>
-            {agent.calls_7d ?? 0}{" "}
-            <span className="hint">
-              charged to your daily budget, not the agent&rsquo;s
-            </span>
-          </dd>
-          <dt>Subjects with news</dt>
-          <dd>
-            {agent.timeline_pending ?? 0}{" "}
-            <span className="hint">since its read pointer</span>
-          </dd>
+              </dd>
+              <dt>Subjects with news</dt>
+              <dd>
+                {agent.timeline_pending ?? 0}{" "}
+                <span className="hint">since its read pointer</span>
+              </dd>
+            </>
+          )}
         </dl>
-        {agent.refusals_7d?.length > 0 && (
+        {part === "overview" && agent.refusals_7d?.length > 0 && (
           <div
             className="panel__body"
             style={{ color: "var(--warn)", fontSize: "12.5px" }}
@@ -286,7 +309,7 @@ export function AgentDetail({ id, navigate }) {
             </div>
           </div>
         )}
-        {!key && (
+        {part === "overview" && !key && (
           <div
             className="panel__body"
             style={{ color: "var(--warn)", fontSize: "12.5px" }}
@@ -296,7 +319,7 @@ export function AgentDetail({ id, navigate }) {
             are untouched — a new key picks up where the old one left off.
           </div>
         )}
-        {connectUrl && (
+        {part === "overview" && connectUrl && (
           <div className="panel__body">
             <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
               <strong>Connect this agent</strong> — add this as a remote MCP
@@ -330,13 +353,13 @@ export function AgentDetail({ id, navigate }) {
             </div>
           </div>
         )}
-        {key && (
+        {part === "settings" && key && (
           <div className="panel__body">
             <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
               <strong>What this key may do</strong> — capabilities of the
               agent&rsquo;s service key. An agent connected over OAuth instead
               carries its own grant, editable on{" "}
-              <a onClick={() => navigate("/account/connections")}>
+              <a onClick={() => navigate(path("/account/connections"))}>
                 Connections
               </a>
               .
@@ -355,61 +378,63 @@ export function AgentDetail({ id, navigate }) {
             />
           </div>
         )}
-        <div className="panel__actions">
-          <button
-            className="btn btn--quiet"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              const r = await api.rotatePrincipalToken(id);
-              setBusy(false);
-              if (r.ok) setMinted(r.data.token);
-              load();
-            }}
-          >
-            Issue a new key
-          </button>
-          <button
-            className="btn btn--danger"
-            disabled={busy || !key}
-            onClick={async () => {
-              // The emergency path — a key that leaked. Confirmed because it
-              // is the one action here with no way back: unlike suspending,
-              // resuming does not restore it, and unlike rotating, nothing is
-              // handed to you to put in its place.
-              if (
-                !window.confirm(
-                  "Revoke this key? The agent stops working immediately, and there is no replacement until you issue a new one.",
+        {part === "settings" && (
+          <div className="panel__actions">
+            <button
+              className="btn btn--quiet"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const r = await api.rotatePrincipalToken(id);
+                setBusy(false);
+                if (r.ok) setMinted(r.data.token);
+                load();
+              }}
+            >
+              Issue a new key
+            </button>
+            <button
+              className="btn btn--danger"
+              disabled={busy || !key}
+              onClick={async () => {
+                // The emergency path — a key that leaked. Confirmed because it
+                // is the one action here with no way back: unlike suspending,
+                // resuming does not restore it, and unlike rotating, nothing is
+                // handed to you to put in its place.
+                if (
+                  !window.confirm(
+                    "Revoke this key? The agent stops working immediately, and there is no replacement until you issue a new one.",
+                  )
                 )
-              )
-                return;
-              setBusy(true);
-              await api.revokePrincipalToken(key.token_id);
-              setBusy(false);
-              load();
-            }}
-          >
-            Revoke key
-          </button>
-          <button
-            className="btn btn--quiet"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              await api.setPrincipalStatus(
-                id,
-                suspended ? "approved" : "disabled",
-              );
-              setBusy(false);
-              load();
-            }}
-          >
-            {suspended ? "Resume" : "Suspend"}
-          </button>
-          <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
-            Suspend is reversible — the same key comes back. Revoke is not.
-          </span>
-        </div>
+                  return;
+                setBusy(true);
+                await api.revokePrincipalToken(key.token_id);
+                setBusy(false);
+                load();
+              }}
+            >
+              Revoke key
+            </button>
+            <button
+              className="btn btn--quiet"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                await api.setPrincipalStatus(
+                  id,
+                  suspended ? "approved" : "disabled",
+                );
+                setBusy(false);
+                load();
+              }}
+            >
+              {suspended ? "Resume" : "Suspend"}
+            </button>
+            <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
+              Suspend is reversible — the same key comes back. Revoke is not.
+            </span>
+          </div>
+        )}
         {minted && (
           <div className="panel__body">
             <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
@@ -440,116 +465,73 @@ export function AgentDetail({ id, navigate }) {
 
       {/* Rows of data are not a panel: the head is a row above the
           table, and the explanation sits under it as a footnote. */}
-      <section style={{ marginBottom: "16px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: "10px",
-            flexWrap: "wrap",
-            padding: "0 0 13px",
-          }}
-        >
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>
-            Who it answers for
-          </span>
-          <span className="footnote">
-            an id on its own surface, mapped to a player
-          </span>
-        </div>
-        {identities?.length === 0 && (
-          <div className="empty">
-            <p className="empty__body" style={{ marginBottom: 0 }}>
-              Nobody mapped yet. An agent builds this itself with
-              elixir_identify, the first time somebody asks it about themselves.
-            </p>
+      {part === "settings" && (
+        <section style={{ marginBottom: "16px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: "10px",
+              flexWrap: "wrap",
+              padding: "0 0 13px",
+            }}
+          >
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>
+              Who it answers for
+            </span>
+            <span className="footnote">
+              an id on its own surface, mapped to a player
+            </span>
           </div>
-        )}
-        {identities?.length > 0 && (
-          <div className="table__scroll" tabIndex={0}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>THEIR ID</th>
-                  <th>PLAYER</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {identities.map((m) => (
-                  <tr key={m.external_id}>
-                    <td className="mono">{m.external_id}</td>
-                    <td>
-                      {m.name ? `${m.name} ` : ""}
-                      <span className="mono">{m.player_tag}</span>
-                    </td>
-                    <td>
-                      <button
-                        className="btn--text"
-                        onClick={async () => {
-                          await api.removePrincipalIdentity(id, m.external_id);
-                          load();
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </td>
+          {identities?.length === 0 && (
+            <div className="empty">
+              <p className="empty__body" style={{ marginBottom: 0 }}>
+                Nobody mapped yet. An agent builds this itself with
+                elixir_identify, the first time somebody asks it about
+                themselves.
+              </p>
+            </div>
+          )}
+          {identities?.length > 0 && (
+            <div className="table__scroll" tabIndex={0}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>THEIR ID</th>
+                    <th>PLAYER</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: "10px",
-            flexWrap: "wrap",
-            padding: "0 0 13px",
-          }}
-        >
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>
-            Its timeline
-          </span>
-          <span className="footnote">
-            last seven days, newest first · reading here never moves its pointer
-          </span>
-        </div>
-        {timeline?.length === 0 && (
-          <div className="empty">
-            <p className="empty__body" style={{ marginBottom: 0 }}>
-              Nothing in the last seven days. This fills while the clan it
-              answers for has its notify switch on.
-            </p>
-          </div>
-        )}
-        {timeline?.length > 0 && (
-          <div className="table__scroll" tabIndex={0}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>WHEN</th>
-                  <th>WHAT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {timeline.map((it, i) => (
-                  <tr key={`${it.at}-${i}`}>
-                    <td>
-                      <Fresh ts={it.at} />
-                    </td>
-                    <td>{it.text}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                </thead>
+                <tbody>
+                  {identities.map((m) => (
+                    <tr key={m.external_id}>
+                      <td className="mono">{m.external_id}</td>
+                      <td>
+                        {m.name ? `${m.name} ` : ""}
+                        <span className="mono">{m.player_tag}</span>
+                      </td>
+                      <td>
+                        <button
+                          className="btn--text"
+                          onClick={async () => {
+                            await api.removePrincipalIdentity(
+                              id,
+                              m.external_id,
+                            );
+                            load();
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
     </>
   );
 }
@@ -706,7 +688,7 @@ export function Agents({ navigate }) {
                           <td>
                             <a
                               onClick={() =>
-                                navigate(`/account/agents/${a.account_id}`)
+                                navigate(`/agent/${a.public_id}/overview`)
                               }
                             >
                               Open ›
@@ -786,4 +768,28 @@ export function Agents({ navigate }) {
       </div>
     </>
   );
+}
+
+/**
+ * `/account/agents/<account_id>`, the agent page before each agent had a
+ * console of its own (2026-09-23): a bookmark to it opens the agent's
+ * console, whose address is its public id.
+ */
+export function AgentMoved({ id, navigate }) {
+  const principals = useMyPrincipals();
+  const agent =
+    (principals.data?.agents ?? []).find((a) => a.account_id === id) ?? null;
+  useEffect(() => {
+    if (agent) navigate(`/agent/${agent.public_id}/overview`);
+  }, [agent, navigate]);
+  if (principals.isFetched && !agent)
+    return (
+      <div className="panel">
+        <div className="panel__body">
+          No agent here on your account.{" "}
+          <a onClick={() => navigate("/account/agents")}>All agents ›</a>
+        </div>
+      </div>
+    );
+  return <p className="text-ink-faint">Opening its console…</p>;
 }

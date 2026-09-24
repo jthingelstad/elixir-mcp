@@ -1,4 +1,5 @@
 export { createPrincipal, normalizePrincipalName } from "./principals.mjs";
+export { poolLimits, poolOwner, pooledUsage } from "./pool.mjs";
 
 /**
  * Who is subscribed to what, and therefore what gets recorded.

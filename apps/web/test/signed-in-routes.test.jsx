@@ -49,9 +49,11 @@ afterEach(() => vi.restoreAllMocks());
 
 const routes = [];
 for (const [section, def] of Object.entries(SECTIONS)) {
-  if (def.pages.length === 0) routes.push(`/${section}`);
+  // An agent's console carries the agent's public id before its page.
+  const base = def.scoped ? `/${section}/abcd1234` : `/${section}`;
+  if (def.pages.length === 0) routes.push(base);
   for (const page of def.pages)
-    if (!page.static) routes.push(`/${section}/${page.slug}`);
+    if (!page.static) routes.push(`${base}/${page.slug}`);
 }
 
 /**
@@ -168,6 +170,7 @@ test("the agent detail page offers its connect URL and a rename", async () => {
     };
   });
 
+  // The old address of the agent page opens the agent's own console.
   window.history.pushState({}, "", `/account/agents/${AGENT.account_id}`);
   render(<App />);
 
@@ -177,11 +180,17 @@ test("the agent detail page offers its connect URL and a rename", async () => {
     `${window.location.origin}/a/272bd891a21d/mcp`,
   );
   expect(url).toBeTruthy();
-  expect(screen.getByText("rename")).toBeTruthy();
+  expect(window.location.pathname).toBe("/agent/272bd891a21d/overview");
   // The clan it acts for is named, with the tag beside the name - never
   // the tag alone (the lede and the Clan row both render it).
   expect(screen.getAllByText("POAP KINGS").length).toBeGreaterThanOrEqual(2);
   expect(screen.getAllByText("#J2RGCRVG").length).toBeGreaterThanOrEqual(2);
+
+  // What you change is its Settings.
+  cleanup();
+  window.history.pushState({}, "", "/agent/272bd891a21d/settings");
+  render(<App />);
+  expect(await screen.findByText("rename")).toBeTruthy();
   // The documented emergency path. /docs/agents has promised "Account →
   // Agents → Revoke key" since agents shipped, while the route, the client
   // method and no button at all existed.

@@ -1,4 +1,10 @@
-import { addPlayer, removePlayer } from "@elixir-mcp/claims";
+import {
+  addPlayer,
+  poolLimits,
+  poolOwner,
+  pooledUsage,
+  removePlayer,
+} from "@elixir-mcp/claims";
 import {
   normalizeTag,
   InvalidTagError,
@@ -69,23 +75,28 @@ export function accountRoutes({
         [account.accountId],
       );
       const { rows: ent } = await db.query(
-        `select a.role, a.max_player_recordings, a.mcp_daily_quota, a.live_daily_quota,
+        `select a.role, a.mcp_daily_quota, a.live_daily_quota,
                 a.newsletter_opt_in, a.email,
-                exists (select 1 from gateway g
-                        where g.owner_account_id = $1 and g.status = 'active') as operator,
-                (select count(*)::int from claim c
-                 where c.account_id = $1) as players_used,
-                (select count(*)::int from account_clan ac
-                 where ac.account_id = $1 and ac.scope = 'activity') as activity_used,
-                (select count(*)::int from account_clan ac
-                 where ac.account_id = $1 and ac.scope = 'comprehensive') as comprehensive_used,
                 (select count(*)::int from collection c
                  where c.owner_account = $1) as collections_used
          from account a where a.account_id = $1`,
         [account.accountId],
       );
       const e = ent[0];
-      const q = roleQuotas(e.role, { operator: e.operator });
+      // Recording slots are the PERSON's, pooled across them and their
+      // agents (Jamie, 2026-09-23): the same numbers on your console and
+      // on each agent's, because they are the same slots.
+      const owner = await poolOwner(db, account.accountId);
+      const limits = poolLimits(owner);
+      const used = await pooledUsage(db, owner.account_id);
+      const q = roleQuotas(owner.role, { operator: owner.operator });
+      // So are the daily budgets: an agent spends its owner's calls.
+      const budget = account.owner
+        ? {
+            mcp: account.owner.mcpDailyQuota,
+            live: account.owner.liveDailyQuota,
+          }
+        : { mcp: e.mcp_daily_quota, live: e.live_daily_quota };
       const lim = (v) => (v === Infinity ? null : v); // null = unlimited on the wire
       // The rail's signals (design 2026-09-09): a count of the reader's
       // own things on Connections and Feedback, an unread dot on
@@ -96,8 +107,7 @@ export function accountRoutes({
       const { rows: sig } = await db.query(
         `select
            (select count(*)::int from oauth_family f
-             join account a on a.account_id = f.account_id
-            where (f.account_id = $1 or a.owned_by_account_id = $1)
+            where f.account_id = $1
               and f.revoked_at is null and f.absolute_expires_at > now())
            + (select count(*)::int from account a
               where a.owned_by_account_id = $1 and a.kind = 'agent'
@@ -116,11 +126,79 @@ export function accountRoutes({
                     (select activity_seen_at from account where account_id = $1),
                     'epoch'::timestamptz))) as timeline_pending,
            (select count(*)::int from credential_refusal
-             where account_id = $1 and day > current_date - 7) as refusals_7d`,
+             where account_id = $1 and day > current_date - 7) as refusals_7d,
+           -- What THIS account tracks, for the rail's Tracking count: the
+           -- pooled slot figures below cover the owner and every agent.
+           (select count(*)::int from claim where account_id = $1)
+           + (select count(*)::int from account_clan where account_id = $1)
+             as tracking`,
+        [account.accountId],
+      );
+      const entitlements = {
+        operator_bonus_applied:
+          owner.operator && !["partner", "admin"].includes(owner.role),
+        player_slots: {
+          used: used.players_used,
+          limit: lim(limits.player_slots),
+        },
+        activity_clans: {
+          used: used.activity_used,
+          limit: lim(limits.activity),
+        },
+        comprehensive_clans: {
+          used: used.comprehensive_used,
+          limit: lim(limits.comprehensive),
+        },
+        mcp_calls_per_day: lim(budget.mcp ?? q.mcp_calls_per_day),
+        live_fetches_per_day: lim(budget.live ?? q.live_fetches_per_day),
+      };
+      if (account.kind === "agent") {
+        // An agent's own console (/api/agent/<id>): who it is, the clans it
+        // acts for, and the person's clock and slots.
+        const { rows: clans } = await db.query(
+          `select ac.clan_tag, cl.name, ac.scope, ac.notify, ac.is_primary
+             from account_clan ac left join clan cl on cl.clan_tag = ac.clan_tag
+            where ac.account_id = $1
+            order by ac.is_primary desc, ac.clan_tag`,
+          [account.accountId],
+        );
+        return json(200, {
+          authenticated: true,
+          kind: "agent",
+          public_id: account.publicId,
+          name: account.name,
+          status: account.status,
+          role: e.role,
+          is_owner: false,
+          is_admin: false,
+          timezone: account.timezone,
+          signals: sig[0],
+          entitlements,
+          clans,
+          claims: claims.rows,
+          recordings: recordings.rows,
+        });
+      }
+      // The agents this person can switch the console into, for the rail
+      // header's selector: a few rows, so every page can offer it.
+      const { rows: agents } = await db.query(
+        `select a.public_id, a.role, a.status,
+                (select t.name from service_token t
+                  where t.account_id = a.account_id
+                  order by (t.revoked_at is null) desc, t.created_at desc
+                  limit 1) as name,
+                (select json_build_object('clan_tag', ac.clan_tag, 'name', cl.name)
+                   from account_clan ac left join clan cl on cl.clan_tag = ac.clan_tag
+                  where ac.account_id = a.account_id
+                  order by ac.is_primary desc, ac.clan_tag limit 1) as clan
+           from account a
+          where a.owned_by_account_id = $1 and a.kind = 'agent'
+          order by a.created_at`,
         [account.accountId],
       );
       return json(200, {
         authenticated: true,
+        kind: "person",
         signals: sig[0],
         is_owner: account.isOwner,
         is_admin: account.isAdmin,
@@ -131,24 +209,7 @@ export function accountRoutes({
         newsletter_opt_in: e.newsletter_opt_in === true,
         role: e.role,
         entitlements: {
-          operator_bonus_applied:
-            e.operator && !["partner", "admin"].includes(e.role),
-          player_slots: {
-            used: e.players_used,
-            limit: lim(e.max_player_recordings ?? q.player_slots),
-          },
-          activity_clans: {
-            used: e.activity_used,
-            limit: lim(q.activity_clans),
-          },
-          comprehensive_clans: {
-            used: e.comprehensive_used,
-            limit: lim(q.comprehensive_clans),
-          },
-          mcp_calls_per_day: lim(e.mcp_daily_quota ?? q.mcp_calls_per_day),
-          live_fetches_per_day: lim(
-            e.live_daily_quota ?? q.live_fetches_per_day,
-          ),
+          ...entitlements,
           collections: {
             used: e.collections_used,
             limit: lim(q.collections_max),
@@ -159,6 +220,7 @@ export function accountRoutes({
           integrations: { limit: lim(q.integrations) },
           agents: { limit: lim(q.agents) },
         },
+        agents: agents.map((a) => ({ ...a, name: a.name ?? a.public_id })),
         claims: claims.rows,
         recordings: recordings.rows,
       });
@@ -313,7 +375,10 @@ export function accountRoutes({
          from oauth_family f
          join oauth_client c on c.client_id = f.client_id
          join account a on a.account_id = f.account_id
-         where (f.account_id = $1 or a.owned_by_account_id = $1)
+         -- Yours only: a client connected AS one of your agents is listed
+         -- on that agent's console (/api/agent/<id>/connections), which
+         -- runs this same query as the agent (2026-09-23).
+         where f.account_id = $1
            and f.revoked_at is null
            and f.absolute_expires_at > now()
          order by f.created_at desc`,
@@ -534,17 +599,32 @@ export function accountRoutes({
         [account.accountId],
       );
       const today = new Date().toISOString().slice(0, 10);
+      // On an agent's console the budget is still its owner's: the calls
+      // and live fetches it spends are counted against the person
+      // (auth/oauth.mjs budgetFor), so the ceilings, the live counter and
+      // the day's total are theirs, and the agent's calls are its share.
+      const holder = account.owner ?? account;
       const { rows: live } = await db.query(
         `select count from rate_limit where bucket = $1 and window_start = $2::date`,
-        [`liveday#${account.accountId}`, today],
+        [`liveday#${holder.accountId}`, today],
       );
+      const pool = account.owner
+        ? await db.query(
+            `select count(*)::int as calls from mcp_call_audit
+              where (account_id = $1 or account_id in (
+                       select account_id from account where owned_by_account_id = $1))
+                and created_at >= $2::date`,
+            [holder.accountId, today],
+          )
+        : null;
       // The tier's real ceilings (contracts roles.ts), beaten by the
       // per-account overrides; null = unlimited on the wire. This used to
       // hardcode member's numbers for every tier.
-      const q = roleQuotas(account.role);
-      const unlimited = account.isOwner || account.role === "admin";
+      const q = roleQuotas(holder.role);
+      const unlimited = holder.isOwner || holder.role === "admin";
       const lim = (v) => (unlimited || v === Infinity ? null : v);
       return json(200, {
+        ...(pool ? { budget_today_calls: pool.rows[0].calls } : {}),
         days,
         by_caller: callers,
         top_tools: tools,
@@ -554,8 +634,8 @@ export function accountRoutes({
         // their own usage.
         agent_calls_today: days.find((d) => d.day === today)?.agent_calls ?? 0,
         live_today: live[0]?.count ?? 0,
-        live_max: lim(account.liveDailyQuota ?? q.live_fetches_per_day),
-        quota_max: lim(account.mcpDailyQuota ?? q.mcp_calls_per_day),
+        live_max: lim(holder.liveDailyQuota ?? q.live_fetches_per_day),
+        quota_max: lim(holder.mcpDailyQuota ?? q.mcp_calls_per_day),
       });
     },
 
@@ -666,7 +746,8 @@ export function accountRoutes({
       const built = await buildTimeline(db, subjects, {
         fromMs,
         toMs,
-        timezone: rows[0]?.timezone ?? "UTC",
+        // The reader's clock: on an agent's console, its owner's.
+        timezone: account.timezone ?? rows[0]?.timezone ?? "UTC",
         accountId: account.accountId,
       });
       return json(200, {

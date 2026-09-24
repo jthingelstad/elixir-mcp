@@ -1,8 +1,4 @@
 import {
-  buildTimeline,
-  subjectsFor,
-} from "../../../mcp/src/activity/entries.mjs";
-import {
   listPrincipals,
   renamePrincipal,
   rotateToken,
@@ -175,34 +171,6 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
         body.status,
       );
       return result.ok ? json(200, result) : json(404, result);
-    },
-
-    "GET /api/me/principals/timeline": async (db, event) => {
-      const account = await resolveAccount(db, event);
-      if (!account) return json(401, { error: "unauthenticated" });
-      const principalId = event.queryStringParameters?.account_id;
-      if (!principalId) return json(400, { error: "account_id_required" });
-      if (!UUID_RE.test(String(principalId)))
-        return json(400, { error: "invalid_account_id" });
-      const { rows: owned } = await db.query(
-        `select activity_seen_at, timezone from account
-          where account_id = $1 and owned_by_account_id = $2`,
-        [principalId, account.accountId],
-      );
-      if (owned.length === 0) return json(404, { error: "not_found" });
-      const toMs = Date.now();
-      const fromMs = toMs - 7 * 86_400_000;
-      const subjects = await subjectsFor(db, principalId);
-      const built = await buildTimeline(db, subjects, {
-        fromMs,
-        toMs,
-        timezone: owned[0].timezone ?? "UTC",
-        accountId: principalId,
-      });
-      return json(200, {
-        ...built,
-        read_to: owned[0].activity_seen_at?.toISOString() ?? null,
-      });
     },
 
     "GET /api/me/principals/identities": async (db, event) => {

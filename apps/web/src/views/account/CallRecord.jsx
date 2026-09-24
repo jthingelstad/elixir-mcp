@@ -1,6 +1,7 @@
 import { Icon, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useCallRecord } from "../../lib/queries.js";
+import { useConsolePath } from "../../lib/scope.js";
 
 /**
  * One tool call: the request as sent, the response as received, and
@@ -165,6 +166,8 @@ function outcomeOf(call) {
 }
 
 export function CallRecord({ id, navigate }) {
+  // The record's own links stay in the console it was opened from.
+  const path = useConsolePath();
   const { stamp } = useClock();
   const when = (ts) => stamp(ts, { year: true, seconds: true });
   // The envelope, because 403 and 404 are answers this page reads.
@@ -174,7 +177,7 @@ export function CallRecord({ id, navigate }) {
 
   const back = (
     <div className="page__crumb">
-      <a onClick={() => navigate("/account/activity/requests")}>
+      <a onClick={() => navigate(path("/account/activity/requests"))}>
         ‹ MCP requests
       </a>
     </div>
@@ -303,7 +306,8 @@ export function CallRecord({ id, navigate }) {
             rec.prev ? `${rec.prev.tool} · ${when(rec.prev.created_at)}` : ""
           }
           onClick={() =>
-            rec.prev && navigate(`/account/activity/c/${rec.prev.request_id}`)
+            rec.prev &&
+            navigate(path(`/account/activity/c/${rec.prev.request_id}`))
           }
         >
           ‹ Previous call
@@ -315,7 +319,8 @@ export function CallRecord({ id, navigate }) {
             rec.next ? `${rec.next.tool} · ${when(rec.next.created_at)}` : ""
           }
           onClick={() =>
-            rec.next && navigate(`/account/activity/c/${rec.next.request_id}`)
+            rec.next &&
+            navigate(path(`/account/activity/c/${rec.next.request_id}`))
           }
         >
           Next call ›

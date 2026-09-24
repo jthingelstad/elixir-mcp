@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Each of your agents has its own console",
+    body: "The top of the console's menu is now an account selector: you, and each agent you own. Choosing an agent opens its own console, the same pages scoped to it: its overview (its key, its last call, anything refusing it, and the address to connect it at), its timeline, the calls it made, its share of your daily budget, the clients connected as it, its settings, and the feedback it has filed. Until now an agent's calls and feedback could not be read anywhere in the console. Pages that belong to a person, like Verify and Profile, are not in an agent's console, and Explore and Status stay in yours. Clients connected as an agent now appear on that agent's console rather than on yours, and new feedback is always filed as you.",
+  },
+  {
+    date: "2026-09-23",
     title: "The timeline reads newest first, like a newsfeed",
     body: "The timeline is a stream of what is new, so it now leads with what happened most recently everywhere you read it: elixir_timeline, the console's Timeline and each agent's, the moments in the Wednesday Tracking report, the joins, departures and role changes in the Monday clan report, and milestones of equal weight in a milestone note. When a window holds more than the timeline can show at once, it keeps the newest and counts the rest, so an agent catching up after days away lands on what is happening now; the per-player and per-clan summaries still cover the whole window, and the older items can still be read by asking for that window. Contract 7.0.0.",
   },

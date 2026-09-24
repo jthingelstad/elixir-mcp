@@ -3,11 +3,13 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api.js";
 import {
-  keys,
+  rootFor,
+  scopedKey,
   useConnections,
   useInvalidate,
   useMyPrincipals,
 } from "../../lib/queries.js";
+import { useScope } from "../../lib/scope.js";
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
 import { ClanRefs } from "../../components/ClanRefs.jsx";
 import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
@@ -32,27 +34,33 @@ import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
  */
 export function Connections({ me, navigate }) {
   const { day } = useClock();
+  // On an agent's console (2026-09-23) this page is the agent's: the
+  // clients connected AS it, the refusals of its key, and its own door.
+  // Yours lists your clients and one row per agent you own, each opening
+  // its console.
+  const scope = useScope();
   const conns = useConnections().data;
   const connections = conns?.connections ?? null;
   const refusals = conns?.refusals ?? [];
-  const agents = useMyPrincipals().data?.agents ?? null;
+  const principals = useMyPrincipals().data?.agents ?? null;
+  const agents = scope ? [] : principals;
   const [copied, setCopied] = useState(false);
 
   const invalidate = useInvalidate();
   // A dismissed refusal also clears the rail's alert dot, which reads
-  // the session: invalidate both.
+  // the console's `me`: invalidate both.
   const load = () => {
-    invalidate(keys.connections);
-    invalidate(keys.me);
+    invalidate(scopedKey(scope, "connections"));
+    invalidate(rootFor(scope));
   };
   // Dismissing is optimistic - the row goes as you click - and the
   // read is refetched afterwards either way, so a failed dismissal
   // brings the row back rather than leaving a lie on screen.
   const queryClient = useQueryClient();
   const dismiss = useMutation({
-    mutationFn: (body) => api.dismissRefusal(body),
+    mutationFn: (body) => api.dismissRefusal(body, scope),
     onMutate: (body) => {
-      queryClient.setQueryData(keys.connections, (prev) =>
+      queryClient.setQueryData(scopedKey(scope, "connections"), (prev) =>
         prev
           ? {
               ...prev,
@@ -68,13 +76,13 @@ export function Connections({ me, navigate }) {
     onSettled: load,
   });
 
-  const url = `${window.location.origin}/mcp`;
+  // The door this console's account connects at.
+  const door = scope ? `/a/${scope}/mcp` : "/mcp";
+  const url = `${window.location.origin}${door}`;
   const clients = connections ?? [];
-  const keyed = (agents ?? []).filter(
-    // An agent that connected over OAuth already has a row as a client;
-    // this is the other kind, holding a service key of its own.
-    (a) => !clients.some((c) => c.principal?.public_id === a.public_id),
-  );
+  // Each agent you own is one row: a client connected as it is listed on
+  // its console, not here.
+  const keyed = agents ?? [];
   const total = clients.length + keyed.length;
 
   return (
@@ -82,8 +90,9 @@ export function Connections({ me, navigate }) {
       <div style={{ marginBottom: "18px" }}>
         <h1 className="page__title">Connections</h1>
         <p className="page__lede">
-          Everything that can call Elixir with your authority. All of it spends
-          your daily budget.
+          {scope
+            ? "Every client connected as this agent. All of it spends your daily budget."
+            : "Everything that can call Elixir with your authority. All of it spends your daily budget."}
         </p>
       </div>
 
@@ -148,23 +157,25 @@ export function Connections({ me, navigate }) {
         <span style={{ fontSize: "14px", fontWeight: 600 }}>
           {total} with access
         </span>
+        {!scope && (
+          <button
+            className="btn"
+            style={{ marginLeft: "auto" }}
+            onClick={() => navigate("/account/agents")}
+          >
+            <Icon name="plus" size={16} />
+            New agent
+          </button>
+        )}
         <button
-          className="btn"
-          style={{ marginLeft: "auto" }}
-          onClick={() => navigate("/account/agents")}
-        >
-          <Icon name="plus" size={16} />
-          New agent
-        </button>
-        <button
-          className="btn btn--primary"
+          className={"btn btn--primary" + (scope ? " ml-auto" : "")}
           onClick={() => {
             navigator.clipboard?.writeText(url);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           }}
         >
-          {copied ? "Copied" : "Copy /mcp URL"}
+          {copied ? "Copied" : `Copy ${scope ? "its" : "/mcp"} URL`}
         </button>
       </div>
 
@@ -195,7 +206,10 @@ export function Connections({ me, navigate }) {
             </thead>
             <tbody>
               {clients.map((c) => {
-                const agent = c.principal;
+                // On an agent's console every client acts as the agent.
+                const agent = scope
+                  ? { kind: "agent", public_id: scope }
+                  : c.principal;
                 return (
                   <tr key={c.family_id}>
                     <td>
@@ -254,9 +268,10 @@ export function Connections({ me, navigate }) {
                     <td style={{ whiteSpace: "normal" }}>
                       <CapabilityEditor
                         scope={c.scope ?? "cr:read"}
-                        onSave={async (scope) => {
+                        onSave={async (next) => {
                           const r = await api.setConnectionScope(
                             c.family_id,
+                            next,
                             scope,
                           );
                           if (r.ok) load();
@@ -292,7 +307,7 @@ export function Connections({ me, navigate }) {
                       <button
                         className="btn btn--sm"
                         onClick={async () => {
-                          await api.revokeConnection(c.family_id);
+                          await api.revokeConnection(c.family_id, scope);
                           load();
                         }}
                       >
@@ -326,7 +341,7 @@ export function Connections({ me, navigate }) {
                       <a
                         style={{ fontWeight: 600, fontSize: "14px" }}
                         onClick={() =>
-                          navigate(`/account/agents/${a.account_id}`)
+                          navigate(`/agent/${a.public_id}/overview`)
                         }
                       >
                         {a.name ?? a.public_id}
@@ -393,9 +408,7 @@ export function Connections({ me, navigate }) {
                   <td style={{ textAlign: "right" }}>
                     <button
                       className="btn btn--sm"
-                      onClick={() =>
-                        navigate(`/account/agents/${a.account_id}`)
-                      }
+                      onClick={() => navigate(`/agent/${a.public_id}/overview`)}
                     >
                       Open
                     </button>
@@ -416,14 +429,18 @@ export function Connections({ me, navigate }) {
         agent, that clan — which is what makes the two different.
       </p>
 
-      <div style={{ marginTop: "24px" }}>
-        <ConnectionQuestions
-          claimsKey={(me?.claims ?? [])
-            .map((c) => `${c.player_tag}:${c.is_primary}`)
-            .join(",")}
-          navigate={navigate}
-        />
-      </div>
+      {/* The first-answer questions are about YOU; an agent's console
+          has no person to ask them about. */}
+      {!scope && (
+        <div style={{ marginTop: "24px" }}>
+          <ConnectionQuestions
+            claimsKey={(me?.claims ?? [])
+              .map((c) => `${c.player_tag}:${c.is_primary}`)
+              .join(",")}
+            navigate={navigate}
+          />
+        </div>
+      )}
     </>
   );
 }

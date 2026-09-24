@@ -22,6 +22,7 @@ export { Markdown, renderMarkdown } from "./Markdown.tsx";
 export {
   Rail,
   RailIdentity,
+  type RailAccount,
   type RailDot,
   type RailItem,
   type RailSub,

@@ -1,6 +1,11 @@
 import { test, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { Rail, RailIdentity, type RailItem } from "../src/index.ts";
+import {
+  Rail,
+  RailIdentity,
+  type RailAccount,
+  type RailItem,
+} from "../src/index.ts";
 
 afterEach(cleanup);
 
@@ -124,4 +129,85 @@ test("the identity block: who you are, the way to the profile, and the way out a
   expect(out).toHaveBeenCalled();
   fireEvent.click(link);
   expect(onClick).toHaveBeenCalled();
+});
+
+const ACCOUNTS: [RailAccount, RailAccount] = [
+  { key: "me", label: "Jamie", aside: "owner", to: "/account/overview" },
+  {
+    key: "abc12345",
+    label: "poap-bot",
+    detail: "POAP KINGS",
+    aside: "agent · leader",
+    to: "/agent/abc12345/overview",
+  },
+];
+
+test("accounts: the head is the selector, and choosing one goes to its console", () => {
+  const navigate = vi.fn();
+  render(
+    <Rail
+      items={ITEMS}
+      current="overview"
+      navigate={navigate}
+      narrow={false}
+      title="Console"
+      accounts={ACCOUNTS}
+      account="me"
+      manage={{ label: "Manage agents…", to: "/account/agents" }}
+    />,
+  );
+  const head = screen.getByRole("button", { name: /Jamie/ });
+  expect(head.getAttribute("aria-expanded")).toBe("false");
+  expect(head.textContent).toContain("owner");
+  expect(head.closest(".rail__switch")?.getAttribute("data-scoped")).toBe(
+    "false",
+  );
+  fireEvent.click(head);
+  expect(screen.getByRole("link", { name: /poap-bot/ })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Manage agents/ })).toBeTruthy();
+  fireEvent.click(screen.getByRole("link", { name: /poap-bot/ }));
+  expect(navigate).toHaveBeenCalledWith("/agent/abc12345/overview");
+  expect(screen.queryByRole("link", { name: /Manage agents/ })).toBeNull();
+  // Escape closes it too.
+  fireEvent.click(head);
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(screen.queryByRole("link", { name: /Manage agents/ })).toBeNull();
+});
+
+test("accounts: an agent's console is tinted, and the selector stays in the narrow closed row", () => {
+  render(
+    <Rail
+      items={ITEMS}
+      current="overview"
+      navigate={vi.fn()}
+      narrow
+      title="Console"
+      accounts={ACCOUNTS}
+      account="abc12345"
+    />,
+  );
+  const head = screen.getByRole("button", { name: /poap-bot/ });
+  expect(head.textContent).toContain("agent · leader");
+  expect(head.closest(".rail__switch")?.getAttribute("data-scoped")).toBe(
+    "true",
+  );
+  // The section disclosure is closed, and the selector is still there.
+  expect(screen.queryByRole("navigation")).toBeNull();
+});
+
+test("one account or none: the head is the plain title, as before", () => {
+  render(
+    <Rail
+      items={ITEMS}
+      current="overview"
+      navigate={vi.fn()}
+      narrow={false}
+      title="Console"
+      aside="member"
+      accounts={[ACCOUNTS[0]]}
+    />,
+  );
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(screen.getByText("Console")).toBeTruthy();
+  expect(screen.getByText("member")).toBeTruthy();
 });

@@ -128,7 +128,9 @@ refused rather than quietly answering about the wrong subject.
 ## Where things are in the console
 
 The rail groups the console into what you are reading, what we record for
-you, who can call on your behalf, and how the service is running.
+you, who can call on your behalf, and how the service is running. Its top
+line is the account selector: you, and each agent you own, whose console is
+the same pages scoped to it (below).
 
 | Page | What it does |
 |---|---|
@@ -138,12 +140,25 @@ you, who can call on your behalf, and how the service is running.
 | Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and the only place these change |
 | Your record → Activity | your calls with `request_id`, the emails Elixir sent you, and account events |
 | Your record → Usage | seven days of calls and errors, top tools, today's balance with agents broken out |
-| Access → Connections → Clients | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect |
-| Access → Connections → Agents | create, connect URL, rotate, revoke, suspend, rename; per-agent spend, refusals and unread timeline subjects. An agent connected with a service key rather than OAuth carries its capabilities here, not on Clients |
+| Access → Connections → Clients | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; and one row per agent you own, opening its console |
+| Access → Connections → Agents | create an agent; per-agent spend, refusals and unread timeline subjects; each opens its console |
 | Access → Profile | your address, the timezone your date windows use and the console prints every time in (UTC until you set one), slot meters, the tier-upgrade request and today's quota |
 | Access → Feedback | what you filed and what the maintainer answered |
 | Service → Status | recording health, budget gauge, capture gaps |
 | Service → Status → Collectors | the fleet, your own collectors, the one-time token reveal, the ladder |
+
+An **agent's console** (the account selector, or Open on its row) has its own
+rail:
+
+| Page | What it does |
+|---|---|
+| Overview | its clan, its key and when it was first used, its last successful call, where it connects from, anything refusing it, and the address to connect it at |
+| Timeline | its timeline, newest first, the items it reads with `elixir_timeline`; reading it here never moves its pointer |
+| Its record → Activity | its calls with `request_id`, and its account events |
+| Its record → Usage | its calls as a share of your budget, which it spends |
+| Access → Connections | the clients connected as it, what each may do, and refusals of its key |
+| Access → Settings | its name, what its key may do, the key itself (issue, revoke, suspend), and who it answers for |
+| Access → Feedback | what it has filed and what the maintainer answered; new feedback is filed as you |
 
 ## Making one
 

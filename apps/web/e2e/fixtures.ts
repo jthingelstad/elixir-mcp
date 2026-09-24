@@ -34,7 +34,14 @@ export const ME = {
     live_fetch: { used: 3, limit: 40 },
     calls: { used: 120, limit: 2000 },
   },
-  signals: { connections: 2, timeline_pending: 1, refusals_7d: 0, feedback: 0 },
+  signals: {
+    connections: 2,
+    timeline_pending: 1,
+    refusals_7d: 0,
+    feedback: 0,
+    // What this account tracks: the rail's Tracking count (2026-09-23).
+    tracking: 1,
+  },
 };
 
 export const SIGNED_OUT = { authenticated: false };

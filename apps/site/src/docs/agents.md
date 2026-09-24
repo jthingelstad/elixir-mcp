@@ -22,6 +22,18 @@ do never shows up as its. If you have not read
 
 **Connections → Agents → Create agent**, or `POST /api/me/agents` with a session.
 
+Every agent you own has **its own console**: the account selector at the top
+of the console's menu switches between you and each of your agents, and an
+agent's console is the same pages scoped to it, at
+`/agent/<public_id>/…`: its Overview (key, last call, what is refusing it,
+the address to connect it at), its Timeline, its MCP requests and account
+events, its share of your budget, the clients connected as it, its Settings
+and the feedback it has filed. Pages that belong to a person (Verify,
+Collections, Profile) are not there; Explore and Status are the same for
+everyone and stay in yours. An agent spends your budget and your recording
+slots, so your own Usage still counts it. New feedback is always filed as
+you.
+
 | Field | Rule |
 |---|---|
 | `name` | `^[a-z0-9][a-z0-9-]{1,40}$`; unique among your live agents; renamable later |
@@ -201,10 +213,10 @@ Facts in, judgment in your code.
 
 | Action | Where | Effect |
 |---|---|---|
-| Rotate | agent page → Rotate, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and the event cursor survive. |
-| Revoke | agent page → Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready. |
-| Suspend / Resume | agent page | `status: disabled`; the same key reads as invalid until resumed. Reversible. |
-| Rename | agent page | changes the name; must stay unique among your live agents |
+| Rotate | its console → Settings → Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and the event cursor survive. |
+| Revoke | its console → Settings → Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready. |
+| Suspend / Resume | its console → Settings | `status: disabled`; the same key reads as invalid until resumed. Reversible. |
+| Rename | its console → Settings | changes the name; must stay unique among your live agents |
 | Delete | – | there is no delete. Suspend is the reversible stop; revoke is the irreversible one. |
 
 ## Knowing whether it is working
