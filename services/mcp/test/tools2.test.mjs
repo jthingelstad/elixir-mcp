@@ -2696,3 +2696,50 @@ test("6.12.0: compact on the meta tools keeps the comparison and drops the detai
     assert.ok(!("modes" in row) && !("mean_level_gap" in row));
   }
 });
+
+test("tower troops are a deck's ninth card: meta rows and a cards_card profile (Jamie 2026-09-24)", async () => {
+  const towers = await call("battles_meta_cards", {
+    segment: "corpus",
+    min_battles: 1,
+    from: "2020-01-01",
+    tower_troops: true,
+  });
+  assert.equal(towers.isError, false, JSON.stringify(towers.body));
+  assert.ok(
+    towers.body.cards.length > 0,
+    "the fixture decks carry tower troops",
+  );
+  assert.equal(towers.body.applied.tower_troops, true);
+  const eight = await call("battles_meta_cards", {
+    segment: "corpus",
+    min_battles: 1,
+    from: "2020-01-01",
+  });
+  assert.equal(
+    towers.body.decided_battles,
+    eight.body.decided_battles,
+    "the same population, read for its ninth card",
+  );
+  const towerIds = new Set(towers.body.cards.map((c) => c.card_id));
+  assert.ok(!eight.body.cards.some((c) => towerIds.has(c.card_id)));
+  const share = towers.body.cards.reduce((s, c) => s + c.usage_share, 0);
+  assert.ok(share <= 1.001, `shares ${share}`);
+
+  const top = towers.body.cards[0];
+  const profile = await call("cards_card", {
+    card_id: top.card_id,
+    segment: "corpus",
+    from: "2020-01-01",
+  });
+  assert.equal(profile.isError, false, JSON.stringify(profile.body));
+  assert.equal(profile.body.card.type, "tower_troop");
+  assert.equal(profile.body.season.all.battles, top.battles);
+  assert.ok(profile.body.card.first_played.base);
+  assert.ok(profile.body.notes.some((n) => /ninth card/.test(n)));
+
+  const synergy = await call("cards_synergy", {
+    card_id: top.card_id,
+    segment: "corpus",
+  });
+  assert.equal(synergy.isError, true, "pairings stay on the eight deck cards");
+});

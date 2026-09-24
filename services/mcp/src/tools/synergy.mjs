@@ -47,7 +47,11 @@ import { catalogItems } from "./cards.mjs";
 /** Resolve a card by id or by EXACT name (case-insensitive) against the
  *  recorded catalog. A name that only matches as a substring is refused
  *  with the candidates: Witch and Mother Witch are one fuzzy match apart. */
-export async function resolveCard(db, { card_id, card }) {
+export async function resolveCard(
+  db,
+  { card_id, card },
+  { allowTower = false } = {},
+) {
   const all = await catalogItems(db);
   const items = all.filter((r) => r.kind === "card").map((r) => r.item);
   // A tower troop is in the catalog but not a deck card: say so, rather
@@ -62,11 +66,14 @@ export async function resolveCard(db, { card_id, card }) {
           String(c.name ?? "").toLowerCase() ===
             String(card).trim().toLowerCase()),
     );
+  // cards_card reads a tower troop as the deck's ninth card (Jamie
+  // 2026-09-24); the pairing tools stay on the eight.
+  if (tower && allowTower) return { ...tower, tower_troop: true };
   if (tower)
     throw new ToolFailure(
       "bad_request",
-      `${tower.name} (${tower.id}) is a tower troop, not one of the eight deck cards; the card tools read deck cards.`,
-      "A deck's tower troop is on full-verbosity deck rows (battles_decks, battles_meta_decks: tower_troop); cards_catalog lists the tower troops.",
+      `${tower.name} (${tower.id}) is a tower troop, not one of the eight deck cards this tool pairs.`,
+      "cards_card reads a tower troop (usage, win rate, holders), and battles_meta_cards with tower_troops: true lists them all; deck rows carry tower_troop.",
     );
   if (card_id !== undefined) {
     const id = Number(card_id);

@@ -97,6 +97,12 @@ export const battles_meta_cards = {
           "Only these card ids (every form of each). Applied after aggregation: usage_share and decided_battles stay the population's; min_battles still applies.",
       },
       fit_for: FIT_FOR_SCHEMA,
+      tower_troops: {
+        type: "boolean",
+        default: false,
+        description:
+          "Rows are the tower troops (the ninth card of a deck) instead of the eight deck cards: usage and win rate of each over the same population, window and mode. cards then takes tower troop ids.",
+      },
       verbosity: VERBOSITY(COMPACT_CARDS_DESC),
     },
     required: ["segment"],
@@ -151,12 +157,19 @@ export const battles_meta_cards = {
       "bp.type_class = 'pvp'",
     ];
     const minBattles = args.min_battles ?? 10;
-    const rolled = await seasonRollup(ctx.db, {
-      win,
-      seg,
-      mode: args.mode,
-      trophyBand: args.trophy_band ?? null,
-    });
+    // The tower troop is the deck's ninth card (Jamie 2026-09-24): its
+    // rows come from each deck's tower_troop_id over the same population.
+    // The season rollup holds only the eight deck cards, so a tower troop
+    // read always takes the population or raw path.
+    const towers = args.tower_troops === true;
+    const rolled = towers
+      ? null
+      : await seasonRollup(ctx.db, {
+          win,
+          seg,
+          mode: args.mode,
+          trophyBand: args.trophy_band ?? null,
+        });
     const bandPending = rolled?.pending === true;
     const roll = bandPending ? null : rolled;
     let rows;
@@ -241,8 +254,14 @@ export const battles_meta_cards = {
          -- index probe per deck is worse (65k decks in such a window, 47 s
          -- of heap fetches). Measured live 2026-09-21 with {explain_meta}.
          joined as materialized (
-           select dc.card_id, dc.form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n
-           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash),
+           ${
+             towers
+               ? `select d.tower_troop_id as card_id, 0 as form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n
+           from pairs p join deck d on d.deck_hash = p.deck_hash
+           where d.tower_troop_id is not null`
+               : `select dc.card_id, dc.form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n
+           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash`
+           }),
          per_type as (
            select card_id, form, type,
                   sum(battles)::int as battles, sum(wins)::int as wins,
@@ -377,6 +396,7 @@ export const battles_meta_cards = {
         mode: args.mode,
         trophy_band: args.trophy_band,
         cards: args.cards,
+        ...(towers ? { tower_troops: true } : {}),
         fit_for: fit?.tag,
         min_battles: minBattles,
         sort,
@@ -404,8 +424,14 @@ export const battles_meta_cards = {
       notes: notes(
         // A tower troop is not a deck card (Gym #282): an empty answer
         // for one says why.
-        (args.cards ?? []).some((id) => cardType(Number(id)) === "tower_troop")
-          ? "A tower troop is not one of the eight deck cards, so battles_meta_cards has no row for it; full-verbosity deck rows (battles_meta_decks, battles_decks) carry tower_troop."
+        !towers &&
+          (args.cards ?? []).some(
+            (id) => cardType(Number(id)) === "tower_troop",
+          )
+          ? "A tower troop is not one of the eight deck cards: pass tower_troops: true for tower troop rows."
+          : null,
+        towers
+          ? "Rows are tower troops, each deck's ninth card: usage_share is the share of decided observations whose deck carried it; a deck recorded without a tower troop counts in decided_battles and in no row, so the shares can sum below 1."
           : null,
         outsideMetaNote(excluded?.outside_meta ?? 0),
         args.mode === EVENT_MODE_GROUP ? META_EVENT_NOTE : null,

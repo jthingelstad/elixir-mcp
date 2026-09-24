@@ -83,6 +83,8 @@ card's win rate describes who played it as much as the card.
 | Which decks carry it? | `cards_card` (`decks`; `archetype` narrows them to one shape), or `battles_meta_decks` with `containing: [ids]` for the full ranked list |
 | What is this deck called, or what does "LavaLoon" mean? | `cards_archetype` (`cards`, or `name`; every deck object already carries `archetype`) — see [Deck archetypes](/docs/archetypes) |
 | Who in my clan plays it, and at what level? Who holds it? | `cards_card` with `segment: "mine"` (`members`) |
+| Which tower troops does the meta use, and do they win? | `battles_meta_cards` with `tower_troops: true` (one row per tower troop over the same population) |
+| Tell me about one tower troop, and who in my clan holds it | `cards_card` with the tower troop's id or name (`season.all`, `members`) |
 | Which of MY cards carry, which enemy cards beat me? | `battles_cards` (`perspective`) |
 | My battles with or against a card | `battles_query` (`with_card`, `with_cards`, `against_card`) |
 | My collection: levels, forms, counts, and the level I actually field | `players_collection` (`fielded`) |
@@ -90,6 +92,20 @@ card's win rate describes who played it as much as the card.
 
 What beats a card across the corpus - the matchup question - is not yet
 answered; it needs a rollup the record does not keep, and is queued.
+
+## Tower troops
+
+A deck is eight cards and a tower troop, the ninth card, and Elixir
+records it on every battle side (slot 0) and in each `deck_hash`, so two
+decks with the same eight cards and different tower troops are different
+decks. `battles_meta_cards` with `tower_troops: true` reads the ninth card
+over the same population, window and mode as the eight: `decided_battles`
+is the same number, and a deck recorded without a tower troop counts there
+and in no row. `cards_card` answers a tower troop's usage, win rate and a
+clan's holders; its season history, top decks and partners are read for
+the eight deck cards, and `cards_synergy` pairs deck cards only.
+`players_collection` lists a player's tower troops and levels
+(`support_cards`).
 
 ## A card's own page
 

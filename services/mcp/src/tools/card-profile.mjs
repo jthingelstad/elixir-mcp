@@ -154,7 +154,7 @@ export const cardProfileTools = {
         args.archetype === undefined
           ? null
           : await resolveArchetypeArg(ctx.db, args.archetype);
-      const anchor = await resolveCard(ctx.db, args);
+      const anchor = await resolveCard(ctx.db, args, { allowTower: true });
       const compact = args.verbosity === "compact";
       requireEnum(args.mode, MODE_GROUPS, "mode");
       const segment = await resolveSegment(ctx, args);
@@ -163,6 +163,8 @@ export const cardProfileTools = {
       const segParamCount = params.length;
       const win = await resolveSeasonWindow(ctx, args);
       const modeGroup = args.mode ?? "all";
+      if (anchor.tower_troop)
+        return towerTroopProfile(ctx, { args, anchor, segment, win, compact });
 
       // --- card: the catalog row, the type, the record's own dates -----
       const {
@@ -749,4 +751,95 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
     members_with_collection: withCollection.length,
     members: held.length,
   };
+}
+
+/** A tower troop, the deck's ninth card (Jamie 2026-09-24): its usage
+ *  and win rate over the population (battles_meta_cards' tower_troops
+ *  read), when it was first recorded in a deck, and a clan's holders. The
+ *  season history, top decks and partners are the eight deck cards'. */
+async function towerTroopProfile(ctx, { args, anchor, segment, win, compact }) {
+  const { battles_meta_cards } = await import("./battles/meta-cards.mjs");
+  const { card, card_id, archetype, verbosity, ...rest } = args;
+  void card;
+  void card_id;
+  void verbosity;
+  const meta = await battles_meta_cards.handler(ctx, {
+    ...rest,
+    tower_troops: true,
+    cards: [anchor.id],
+    min_battles: 1,
+  });
+  const row = meta.cards[0] ?? null;
+  const {
+    rows: [firstDeck],
+  } = await ctx.db.query(
+    `select min(first_seen_at) as at from deck where tower_troop_id = $1`,
+    [anchor.id],
+  );
+  const {
+    rows: [cat],
+  } = await ctx.db.query(`select first_seen_at from card where card_id = $1`, [
+    anchor.id,
+  ]);
+  const out = {
+    applied: appliedBlock({
+      segment: meta.applied.segment,
+      window: meta.applied.window,
+      mode: args.mode,
+      verbosity: compact ? "compact" : "full",
+    }),
+    card: {
+      id: anchor.id,
+      name: anchor.name,
+      type: "tower_troop",
+      rarity: anchor.rarity ?? null,
+      forms_available: cardForms(anchor.maxEvolutionLevel),
+      icon_urls: anchor.iconUrls ?? null,
+      first_seen_in_catalog: cat?.first_seen_at?.toISOString() ?? null,
+      first_played: { base: firstDeck?.at?.toISOString() ?? null },
+    },
+    season: {
+      decided_battles: meta.decided_battles,
+      all: row
+        ? {
+            battles: row.battles,
+            wins: row.wins,
+            losses: row.losses,
+            players: row.players,
+            usage_share: row.usage_share,
+            win_rate: row.win_rate,
+            ...(row.shrunk_win_rate !== undefined
+              ? { shrunk_win_rate: row.shrunk_win_rate }
+              : {}),
+          }
+        : null,
+    },
+    excluded: meta.excluded,
+    prior_win_rate: meta.prior_win_rate,
+    ...(meta.population ? { population: meta.population } : {}),
+  };
+  if (segment.kind === "clan")
+    out.members = await clanMembers(ctx, {
+      anchor,
+      clanTag: segment.clanTag,
+      win,
+      args,
+    });
+  out.methodology = META_METHODOLOGY;
+  out.notes = notes(
+    `${anchor.name} is a tower troop, a deck's ninth card: season.all is its usage and win rate over this population, as battles_meta_cards with tower_troops: true lists every tower troop. Season history, top decks and partners are read for the eight deck cards only.`,
+    archetype !== undefined
+      ? "archetype narrows the eight deck cards and is not applied to a tower troop."
+      : null,
+    row === null
+      ? "No decided observation in this population carried it in the window."
+      : null,
+    out.members?.held?.length
+      ? "members.held[] is each member's tower troop level from their collection; observed_at is the newest read of it."
+      : null,
+    meta.notes.filter((n) => !/Rows are tower troops/.test(n)),
+  );
+  out.docs = CARD_DOCS;
+  out.meta = meta.meta;
+  return out;
 }
