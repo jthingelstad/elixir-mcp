@@ -67,6 +67,12 @@ docs, meta }`.
 
 ### One pointer per reader
 
+**Every agent has its own pointer.** An agent is its own account, so an
+agent's connection reads and marks the agent's pointer, never yours or
+another agent's. Give each app its own agent: two apps sharing one agent
+connection share its pointer and move each other's window, which is the
+case `reader` below exists for, and a second agent is the better answer.
+
 Without `reader`, `mark_read` moves a single instant on the account, and
 two consumers that both mark move each other's window. With `reader`
 (3.18.0) each consumer names its own pointer and marks it alone; the
