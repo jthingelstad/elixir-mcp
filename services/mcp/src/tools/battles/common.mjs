@@ -50,7 +50,7 @@ export const META_TROPHY_BAND_SCHEMA = {
 /** The band fallback sentence when the rollup is not yet built. */
 /** The meta tools and the caller's collection (6.4.0, feedback #70). */
 export const NO_FIT_NOTE =
-  "These are the population's decks and levels; nothing here checks what any one player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.";
+  "These are the population's decks and levels; nothing here checks what a given player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.";
 
 export function fitNotes(fitBlock, decks, unfieldable) {
   const fielded =

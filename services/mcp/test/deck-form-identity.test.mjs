@@ -523,7 +523,7 @@ test("6.4.0 fit_for: a row the player cannot field leaves decks[]; a fieldable r
     from: "2026-09-01",
     min_battles: 1,
   });
-  assert.match(plain.notes[0], /nothing here checks what any one player holds/);
+  assert.match(plain.notes[0], /nothing here checks what a given player holds/);
   assert.ok(!("unfieldable" in plain));
   assert.ok(!("fit" in plain.decks[0]));
 
