@@ -465,7 +465,7 @@ export const playersTools = {
           row.league_stats
             ? "snapshot.league_statistics is the API's legacy leagueStatistics block: currentSeason.trophies mirrors Trophy Road and bestTrophies is frozen, so it is not the seasonal Trophy Road; that is in snapshot.progress (key seasonal-trophy-road-YYYYMM)."
             : null,
-          "snapshot.progress is each side-mode bucket's latest reading (Merge Tactics, 2v2 League, the seasonal Trophy Road; buckets read in the last 35 days); players_timeline with progress_key has the day-by-day series.",
+          "snapshot.progress is each side-mode bucket's latest reading (Merge Tactics, 2v2 League, the seasonal Trophy Road; buckets read in the last 35 days); players_timeline.progress_key reads the day-by-day series.",
           "last_seen_in_game is the game's own lastSeen from clan roster polls (when the player was last active); null until a polled roster carried them.",
           "attributes.war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations. For war results use battles_performance mode war; lifetime donations are snapshot.lifetime.total_donations (its series is players_timeline.total_donations).",
           row.years_played === null || row.years_played === undefined
