@@ -2214,3 +2214,12 @@ Left for Jamie (in the morning report): M1's other not-found-on-error pages (Cal
 
 - 18 regressions, 17 hold; #256 residue -> **#284** (population cutoff wording). **#281** first_played earliest per form. **#282** tower troop refusal (a tower-troop tool is a missing interface, for Jamie). **#283** held observed_at = newest profile read, since = first seen. #285 praise. Explore's deck list limit 20 (it was still 62k at 50).
 
+
+## 2026-09-24 — Gym collections r4, rankings r4, game r4 (7.1.11-7.1.12, feedback #286-#299)
+
+- **#286** a clan segment pools only recorded members (`RECORDED_PLAYERS_SQL` in `segmentFilter`), with a `coverage` object and note when fewer than the roster count (Jamie's ghost-entry rule). **#287/#288** collection notes. `elixir_my_players` rows carry `clan_name` (JSON API 1.3.0).
+- **#290-#293** rankings_timeline floor note names departures, clan-zero note, inverted window refused, unrecorded location lists the recorded ones. **#294** (feature, decided under the overnight mandate) `rankings_clan_ladder` `snapshot.floor_score` + `our_clan`; `clans_roster` `clan_score`/`clan_war_trophies`/`scores_observed_at`. POAP KINGS 130,694, 6,027 under the US floor.
+- **#296** game_events names touched game days whose read fell outside the window; **#297** season; **#298** game_clock `is_colosseum`, `weeks_in_season`, `colosseum_starts_at` (additive in ingest's gameClock).
+- Harness: `[?k=n]` filters match numeric strings (295.4); 286.4 regex amended (it caught the outside-meta note); `--acceptance=a,b` gates several families in one pass.
+- Rankings' out-of-family changelog lead refuted: request 041cd18b ran 2026-09-23T23:05Z while 6.35.0 was live.
+- Clan repo cb3a11c: departure cards skip members who rejoined; open ones withdraw ("The member rejoined the clan.").
