@@ -10441,5 +10441,239 @@
         "notes_match": "(?i)tournament.{0,160}(no|not|neither).{0,40}band"
       }
     ]
+  },
+  {
+    "id": "208.1",
+    "feedback": 208,
+    "stability": "frozen",
+    "tool": "rankings_players",
+    "args": {
+      "board": "mode",
+      "location": "270787",
+      "as_of": "2026-09-23T12:00:00Z",
+      "limit": 3
+    },
+    "request_id": "08f0c1b6-2514-4eb7-8070-68a79394eaee",
+    "assert": [
+      {
+        "notes_match": "(?i)not moved since|closed event"
+      }
+    ]
+  },
+  {
+    "id": "208.2",
+    "feedback": 208,
+    "stability": "frozen",
+    "tool": "rankings_players",
+    "args": {
+      "board": "mode",
+      "location": "170000004",
+      "as_of": "2026-09-23T12:00:00Z",
+      "limit": 3
+    },
+    "request_id": "4c64380a-2416-451d-80e4-bd6f933dd3a7",
+    "assert": [
+      {
+        "notes_match": "(?i)recording began|departure|left the board"
+      }
+    ]
+  },
+  {
+    "id": "208.3",
+    "feedback": 208,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "board": "mode",
+      "location": "743146",
+      "as_of": "2026-09-23T12:00:00Z",
+      "limit": 3
+    },
+    "request_id": "39df14fe-9db4-4911-b223-0d14ae5c1dee",
+    "assert": [
+      {
+        "has": "snapshot.standings_changed_at"
+      },
+      {
+        "notes_not_match": "(?i)not moved since|closed event|recording began"
+      }
+    ]
+  },
+  {
+    "id": "208.4",
+    "feedback": 208,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "board": "mode",
+      "location": "743144",
+      "as_of": "2026-09-23T12:00:00Z",
+      "limit": 3
+    },
+    "request_id": "3d0c812a-6a06-4743-828f-cc9443f7fd06",
+    "assert": [
+      {
+        "notes_match": "not moved since 2026-09-21"
+      },
+      {
+        "notes_not_match": "(?i)recording began"
+      }
+    ]
+  },
+  {
+    "id": "209.1",
+    "feedback": 209,
+    "stability": "frozen",
+    "tool": "rankings_timeline",
+    "args": {
+      "season": 136,
+      "from": "2026-09-20",
+      "to": "2026-09-22"
+    },
+    "request_id": "f6416bf1-93d5-4563-8c96-5603116343df",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "argument"]
+      }
+    ]
+  },
+  {
+    "id": "209.2",
+    "feedback": 209,
+    "stability": "live",
+    "tool": "rankings_timeline",
+    "args": {
+      "season": "2026-10"
+    },
+    "request_id": "94e09fdf-d1bc-40b3-9589-e83aa1806bea",
+    "assert": [
+      {
+        "notes_match": "(?i)not (yet )?(started|begun)|starts 2026-10-05|has not begun"
+      }
+    ]
+  },
+  {
+    "id": "209.3",
+    "feedback": 209,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_timeline",
+    "args": {
+      "from": "2026-09-20",
+      "to": "2026-09-22"
+    },
+    "request_id": "5214cd8f-200e-4b75-b6a0-10585827685c",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "argument"]
+      },
+      {
+        "count_eq": ["points[]", 3]
+      }
+    ]
+  },
+  {
+    "id": "209.4",
+    "feedback": 209,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_timeline",
+    "args": {
+      "season": "previous"
+    },
+    "request_id": "18963997-a9a2-4ed0-9ece-abacda0eee75",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "season"]
+      },
+      {
+        "notes_match": "unrecorded for the window"
+      }
+    ]
+  },
+  {
+    "id": "210.1",
+    "feedback": 210,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_clans",
+    "args": {
+      "board": "mode",
+      "location": "170000008",
+      "limit": 5
+    },
+    "request_id": "5851ed3e-5be9-403d-808f-b7185feff218",
+    "assert": [
+      {
+        "notes_match": "(?i)event's own"
+      },
+      {
+        "notes_not_match": "Path of Legends lists players"
+      },
+      {
+        "has": "meta.recorded_since"
+      }
+    ]
+  },
+  {
+    "id": "210.2",
+    "feedback": 210,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "rankings_clans",
+        "args": {
+          "as_of": "2026-09-20T12:00:00Z",
+          "limit": 5
+        }
+      },
+      "t": {
+        "tool": "rankings_timeline",
+        "args": {
+          "clan_tag": "#G89QUY2P",
+          "from": "2026-09-18",
+          "to": "2026-09-21"
+        }
+      }
+    },
+    "request_id": "14850a0f-a7ed-4a6f-a284-7b44e19a0c48",
+    "assert": [
+      {
+        "eq": [
+          "c.clans[?clan_tag=#G89QUY2P].rated_players",
+          "t.points[?day=2026-09-20].rated_players"
+        ]
+      },
+      {
+        "eq": [
+          "c.clans[?clan_tag=#G89QUY2P].best_rank",
+          "t.points[?day=2026-09-20].best_rank"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "210.3",
+    "feedback": 210,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "board": "mode",
+      "location": "270787",
+      "limit": 500
+    },
+    "request_id": "9e6f93d2-9686-44ea-931b-e991e5a4d372",
+    "assert": [
+      {
+        "eq": ["error.code", "result_too_large"]
+      },
+      {
+        "notes_match": "a limit of \\d+ should fit"
+      }
+    ]
   }
 ]

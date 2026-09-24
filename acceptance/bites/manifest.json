@@ -1401,5 +1401,37 @@
     "case": "gym/206.1",
     "captures": ["206-1-cards_synergy.json"],
     "expect": "."
+  },
+  {
+    "feedback": 208,
+    "contract": "6.36.11",
+    "why": "the Gym block 208.1 on the answer it read",
+    "case": "gym/208.1",
+    "captures": ["208-1-rankings_players.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 208,
+    "contract": "6.36.11",
+    "why": "the Gym block 208.2 on the answer it read",
+    "case": "gym/208.2",
+    "captures": ["208-2-rankings_players.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 209,
+    "contract": "6.36.11",
+    "why": "the Gym block 209.1 on the answer it read",
+    "case": "gym/209.1",
+    "captures": ["209-1-rankings_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 209,
+    "contract": "6.36.11",
+    "why": "the Gym block 209.2 on the answer it read",
+    "case": "gym/209.2",
+    "captures": ["209-2-rankings_timeline.json"],
+    "expect": "."
   }
 ]

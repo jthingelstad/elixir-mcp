@@ -1,0 +1,112 @@
+{
+  "feedback": 209,
+  "contract_version": "6.36.11",
+  "captured_at": "2026-09-24T01:36:51.925Z",
+  "request": {
+    "tool": "rankings_timeline",
+    "arguments": {
+      "season": 136,
+      "from": "2026-09-20",
+      "to": "2026-09-22"
+    }
+  },
+  "response": {
+    "board": "pol",
+    "location": {
+      "key": "global",
+      "label": "Global"
+    },
+    "applied": {
+      "board": "pol",
+      "location": "global",
+      "subject": "board",
+      "window": {
+        "from": "2026-09-20T00:00:00.000Z",
+        "to": "2026-09-23T00:00:00.000Z",
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 15
+      },
+      "limit": 800
+    },
+    "points": [
+      {
+        "observed_at": "2026-09-20T10:07:53.000Z",
+        "day": "2026-09-20",
+        "unchanged_until": "2026-09-20T10:07:53.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 2148,
+        "floor_delta": null,
+        "first": {
+          "player_tag": "#2LQ2YP98",
+          "name": "SK xopxsam",
+          "rating": 2800
+        },
+        "truncated": false
+      },
+      {
+        "observed_at": "2026-09-21T10:07:52.000Z",
+        "day": "2026-09-21",
+        "unchanged_until": "2026-09-21T10:07:52.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 2193,
+        "floor_delta": 45,
+        "first": {
+          "player_tag": "#VJ2VJYRYL",
+          "name": "K✨維尼✨愛Ｈ",
+          "rating": 2858
+        },
+        "truncated": false
+      },
+      {
+        "observed_at": "2026-09-22T10:07:52.000Z",
+        "day": "2026-09-22",
+        "unchanged_until": "2026-09-22T10:07:52.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 2233,
+        "floor_delta": 40,
+        "first": {
+          "player_tag": "#9YUC9LQ0L",
+          "name": "Miku",
+          "rating": 2887
+        },
+        "truncated": false
+      }
+    ],
+    "notes": [
+      "One point per recorded snapshot; a snapshot is written when the board's content changed (ranks, ratings, names or clans), so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
+      "floor_rating is the last place's rating: the rating floor while rated_players is below depth, and once the board is full (full: true) the cutoff for the last of its 1,000 places, which rises as the field plays (floor_delta is its move since the previous point) while rated_players stays pinned at depth.",
+      "3 of 3 points are at the board's full 1,000 places: a player or clan can leave the board without losing rating there, so compare rated_players across dates only against the cutoff.",
+      "Path of Legends lists players above a rating floor, at most 1,000 places: a board is small in a season's first days and grows as players cross the floor, and once it holds 1,000 it is full - from then on floor_rating is the 1,000th place's rating, a cutoff that rises with play, not a qualification threshold."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.36.11",
+      "source_polls": {
+        "rankings_pol": {
+          "observed_at": "2026-09-23T10:07:57.000Z",
+          "freshness_seconds": 55735
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 78,
+    "db_queries": 8,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": true
+  }
+}

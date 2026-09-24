@@ -792,6 +792,42 @@ test("a Path of Legends board is recorded as a snapshot, and its top-N become re
     stamps[1].standings_changed_at.toISOString(),
     stamps[1].observed_at.toISOString(),
   );
+
+  // A departure is not a move (Gym #208): Top One leaves, everyone below
+  // shifts up a rank with the same rating, and a newcomer fills the
+  // bottom below the old floor. The stamp stays; a newcomer at or above
+  // the floor, or any rating change, would move it.
+  const departed = board([
+    { tag: "#8LR0P09LR", name: "Third", rank: 1, eloRating: 2060 },
+    {
+      tag: "#2PPLQQ",
+      name: "Top Two",
+      rank: 2,
+      eloRating: 2040,
+      clan: { tag: "#GRGYQ0JU", name: "PTL Germany" },
+    },
+    { tag: "#QQ8P0Y2", name: "Newcomer", rank: 3, eloRating: 2001 },
+  ]);
+  const later = new Date(Date.now() + 60000).toISOString();
+  await processResult(
+    ctx.db,
+    message({
+      endpoint: "rankings_pol",
+      entityKey: "57009999",
+      payload: departed,
+      fetchedAt: later,
+    }),
+  );
+  const { rows: after } = await ctx.db.query(
+    `select standings_changed_at from ranking_snapshot
+      where board = 'pol' and location_key = '57009999'
+      order by observed_at desc limit 1`,
+  );
+  assert.equal(
+    after[0].standings_changed_at.toISOString(),
+    stamps[1].observed_at.toISOString(),
+    "a departure filled from below is not a move",
+  );
 });
 
 test("a board admission stamps poll_state under the board's own key, so the planner sees it fetched", async () => {

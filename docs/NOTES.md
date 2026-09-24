@@ -2129,3 +2129,9 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - Cards r4: 12/14 regressions confirmed; #191 partial -> **#204** (tournament empty-band note; band note on the meta tools when trophy_band meets a non-ladder mode); **#205** (first_seen_in_catalog = catalog storage start, noted); #107 partial -> **#206** (synergy player freshness via buildMeta); #207 praise.
 - Open (not filed): a closed-window raw season corpus read times out at 18.3 s twice (narrowing works); Mirror out of average_elixir; level_played an undocumented mean; season partner counts run to now (~0.1%).
 
+## 2026-09-23 — Gym sweep, rankings round 3 (6.36.12, feedback #208-#210)
+
+- 13 regressions confirmed. **#208:** `standingsMoved` (ingest/rankings.mjs): a common player's rating changed, or a newcomer at or above the previous floor; 0162 recomputes mode boards. **#209:** rankings_timeline echoes seasonWin.source; resolveSeasonWindow answers a future season with an empty window at its start plus a note (no refusal: callers keep working). #210 praise.
+- **Case 209.2** (`season: "2026-10"`) is only valid until 2026-10-05, when 2026-10 becomes current: re-point it at the next season then.
+- Open (not filed, clans family): clans_timeline refuses `season`.
+

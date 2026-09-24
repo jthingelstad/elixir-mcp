@@ -104,6 +104,28 @@ function standingsHash(entries) {
     .digest("hex");
 }
 
+/** Whether a board's standings MOVED since the previous snapshot (Gym
+ *  #208): a player on both reads changed rating, or a newcomer entered at
+ *  or above the previous board's floor. A player leaving shifts every
+ *  rank below them and pulls the next player in at the bottom, and that
+ *  is not a move: on closed mode boards it had stamped "moved today"
+ *  with no rating changed anywhere. */
+async function standingsMoved(db, prevSnapshotId, entries) {
+  const { rows: prev } = await db.query(
+    `select player_tag, rating from ranking_entry where snapshot_id = $1`,
+    [prevSnapshotId],
+  );
+  if (prev.length === 0) return true;
+  const before = new Map(prev.map((r) => [r.player_tag, r.rating]));
+  const ratings = prev.map((r) => r.rating).filter((r) => r !== null);
+  const floor = ratings.length ? Math.min(...ratings) : null;
+  return entries.some((e) =>
+    before.has(e.tag)
+      ? (before.get(e.tag) ?? null) !== (e.rating ?? null)
+      : floor === null || (e.rating ?? -Infinity) >= floor,
+  );
+}
+
 /**
  * Project one ranking payload. `board` is 'pol' or 'trophy'; `entityKey`
  * is the location key the job carried ('global' or a numeric id).
@@ -179,7 +201,9 @@ export async function projectRankingBoard(
   } else if (entries.length > 0) {
     const standings = standingsHash(entries);
     const standingsChangedAt =
-      last[0]?.standings_hash === standings
+      last[0] &&
+      (last[0].standings_hash === standings ||
+        !(await standingsMoved(db, last[0].snapshot_id, entries)))
         ? (last[0].standings_changed_at ?? observedAt)
         : observedAt;
     const { rows } = await db.query(

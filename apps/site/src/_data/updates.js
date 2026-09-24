@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Leaderboards know when they really moved",
+    body: "The Elixir Gym's third run over the ranking tools. A leaderboard now counts as moving only when someone's rating changed or a newcomer climbed in, not when a player dropped off the bottom, so a finished event no longer reads as live. Asking about a season that has not started yet now says so plainly. Contract 6.36.12.",
+  },
+  {
+    date: "2026-09-23",
     title: "Clearer answers from collections and cards",
     body: "The Elixir Gym's runs over the collection and card tools. A missing years-played figure now says it usually means an account under a year old, not a profile Elixir has not read. Passing a clan collection where players are expected now explains how to ask about those clans. And the card tools say why tournament play has no trophy band, and that a card's first-seen date is when Elixir began keeping the catalog, not the card's release. Contract 6.36.11.",
   },

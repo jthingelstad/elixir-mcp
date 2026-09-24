@@ -613,6 +613,7 @@ export async function resolveSeasonWindow(
   const nowMs = Date.now();
   let win;
   let row = null;
+  let futureNote = null;
   if (
     !explicit &&
     (args.season !== undefined || (seasonDefault && defaultDays === null))
@@ -626,7 +627,17 @@ export async function resolveSeasonWindow(
       );
     const tz = zoneFor(ctx, args);
     const from = row.starts_at;
-    const to = row.ends_at.getTime() > nowMs ? null : row.ends_at;
+    // A season that has not begun is an empty window at its start, said,
+    // not an inverted one (Gym #209: "2026-10" read to < from, and a
+    // battles read called it "-12 days old").
+    const future = row.starts_at.getTime() > nowMs;
+    const to = future
+      ? row.starts_at
+      : row.ends_at.getTime() > nowMs
+        ? null
+        : row.ends_at;
+    if (future)
+      futureNote = `Season ${row.season_month} has not begun: it starts ${row.starts_at.toISOString()}, so nothing is recorded in it yet and this window is empty.`;
     win = {
       from,
       to,
@@ -650,6 +661,7 @@ export async function resolveSeasonWindow(
   });
   const seasonAgeDays = fields.seasonAgeDays;
   const seasonNotes = notes(
+    futureNote,
     fields.seasonNotes,
     win.source === "season" && win.to === null && seasonAgeDays < 7
       ? `The current season is ${seasonAgeDays} day${seasonAgeDays === 1 ? "" : "s"} old, so this window is thin; season:'previous' is the settled comparison.`

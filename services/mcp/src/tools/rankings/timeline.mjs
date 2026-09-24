@@ -32,7 +32,7 @@ import {
 
 export const rankings_timeline = {
   description:
-    "How a leaderboard moved: for one player (player_tag) or one clan (clan_tag), their rank and rating at every snapshot of the global Path of Legends board across a window (one a day since 2026-09-11, only when the board moved); or, with neither, the board's own curve: the last place's rating (the floor while the board is below its 1,000 places, the cutoff once full), the summit (#1) and the size of the field per snapshot. Windows are from/to; omitted means the current season so far. A flat stretch is confirmed, not repeated; a window before the first snapshot says so (applied.window.covers).",
+    "How a leaderboard moved: for one player (player_tag) or one clan (clan_tag), their rank and rating at every snapshot of the global Path of Legends board across a window (one per content change since 2026-09-11); or, with neither, the board's own curve: the last place's rating (the floor while the board is below its 1,000 places, the cutoff once full), the summit (#1) and the size of the field per snapshot. Windows are from/to; omitted means the current season so far. A flat stretch is confirmed, not repeated; a window before the first snapshot says so (applied.window.covers).",
   inputSchema: {
     type: "object",
     properties: {
@@ -144,8 +144,9 @@ export const rankings_timeline = {
       window: {
         from: from.toISOString(),
         to: to.toISOString(),
+        // from/to beside season win, and the echo says so (Gym #209).
         source: seasonWin
-          ? "season"
+          ? seasonWin.source
           : args.from !== undefined || args.to !== undefined
             ? "argument"
             : "default",
@@ -264,6 +265,7 @@ export const rankings_timeline = {
       notes: notes(
         horizonNote,
         subject === "player" ? null : zeroSeriesNote(points, "rated_players"),
+        seasonWin?.seasonNotes,
         seasonFields.seasonNotes,
         "One point per recorded snapshot; a snapshot is written when the board's content changed (ranks, ratings, names or clans), so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
         // A closed event keeps writing points (Gym #174).

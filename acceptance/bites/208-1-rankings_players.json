@@ -1,0 +1,93 @@
+{
+  "feedback": 208,
+  "contract_version": "6.36.11",
+  "captured_at": "2026-09-24T01:35:57.964Z",
+  "request": {
+    "tool": "rankings_players",
+    "arguments": {
+      "board": "mode",
+      "location": "270787",
+      "as_of": "2026-09-23T12:00:00Z",
+      "limit": 3
+    }
+  },
+  "response": {
+    "board": "mode",
+    "location": {
+      "key": "270787",
+      "label": "270787",
+      "kind": "mode",
+      "country_code": null
+    },
+    "applied": {
+      "board": "mode",
+      "location": "270787",
+      "as_of": "2026-09-23T12:00:00.000Z",
+      "limit": 3,
+      "offset": 0,
+      "verbosity": "full"
+    },
+    "snapshot": {
+      "observed_at": "2026-09-23T10:02:59.000Z",
+      "unchanged_until": "2026-09-23T10:02:59.000Z",
+      "season_id": "136",
+      "season_month": "2026-09",
+      "entries": 1000,
+      "depth": 1000,
+      "full": true,
+      "floor_rating": 23,
+      "truncated": true,
+      "cadence_minutes": 1440,
+      "standings_changed_at": "2026-09-23T10:02:59.000Z"
+    },
+    "players": [
+      {
+        "rank": 1,
+        "player_tag": "#UJGCC9ULR",
+        "name": "raad ❄️",
+        "rating": 41,
+        "clan_tag": "#GJC2YVYV",
+        "clan_name": "مقهى الحظ ☕️"
+      },
+      {
+        "rank": 2,
+        "player_tag": "#JG0R9U90U",
+        "name": "GoodGuyShaggy",
+        "rating": 40,
+        "clan_tag": null,
+        "clan_name": null
+      },
+      {
+        "rank": 3,
+        "player_tag": "#VL2QUL202",
+        "name": "Koh❤️Rémyy",
+        "rating": 40,
+        "clan_tag": null,
+        "clan_name": null
+      }
+    ],
+    "notes": [
+      "This board holds 1,000 places and is full (the API offered more than the 1,000 the recorder keeps (truncated: true)): floor_rating (23) is the last place's rating, a cutoff that moves, not a qualification threshold - a player can leave the board without losing rating.",
+      "rating on a mode board is that event's own leaderboard rating, not a Path of Legends rating: it is not comparable to one, or to another board's rating.",
+      "The API offered more places than this snapshot holds (truncated: true); the tail of the board is missing.",
+      "Page 1: pass offset 3 for the next 3 places."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "6.36.11",
+      "source_polls": {
+        "leaderboard": {
+          "observed_at": "2026-09-23T10:02:59.000Z",
+          "freshness_seconds": 55979
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 21,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}
