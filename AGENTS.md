@@ -8,7 +8,8 @@ CloudFront behavior (consolidated from two hostnames 2026-09-03).
 
 **The site is two builds in one bucket** (split 2026-09-07). `apps/site`
 is an Eleventy build that emits real documents for everything that is
-CONTENT - home, `/docs/*`, `/updates`, `/data/changelog` - plus the
+CONTENT - home, `/docs/*`, `/updates` (which holds the changelog since
+2026-09-10) - plus the
 machine-readable surfaces (`llms.txt`, `llms-full.txt`, `tools.json`,
 `sitemap.xml`, `feed.xml`). `apps/web` is the React application for
 everything behind a session or drawn live at read time, served from
