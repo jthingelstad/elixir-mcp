@@ -2223,3 +2223,9 @@ Left for Jamie (in the morning report): M1's other not-found-on-error pages (Cal
 - Harness: `[?k=n]` filters match numeric strings (295.4); 286.4 regex amended (it caught the outside-meta note); `--acceptance=a,b` gates several families in one pass.
 - Rankings' out-of-family changelog lead refuted: request 041cd18b ran 2026-09-23T23:05Z while 6.35.0 was live.
 - Clan repo cb3a11c: departure cards skip members who rejoined; open ones withdraw ("The member rejoined the clan.").
+
+## 2026-09-24 — RoyaleAPI cross-check, training days, battles r5, elixir r6 (7.1.13-7.1.16)
+
+- **RoyaleAPI export (Jamie):** roster 48/48 (diffs only newer Elixir reads); war 531 member-weeks x fame/decks/boat attacks over 10 weeks: 0 differences; clan finish/trophy change match; banked fame by design (0164); 10,305 = 3 x (3,000 + 435) per the API's periodLogs.
+- **Training days (Jamie):** war-day-only was an elixir-bot holdover. 0167 `war_training_day` (own table; never attendance), 0168 `source` poll|battlelog; `war_current.training_today`, `war_history.member_weeks[].training_decks` (7.1.14). Migrate op `{training_backfill:{season_id, apply}}` (7.1.15) rebuilt S130-S136 (726 member-days); the rebuild matched the poll 7/7. cr-agent-api-docs: decksUsedToday counts practice on training days.
+- **#300** clan segment note (7.1.13). **#302** conditional recurring-sitting note on member reads; **#303** +N on every capped summary list (7.1.16). 285.2 flaked once (battles arriving between its two live calls).
