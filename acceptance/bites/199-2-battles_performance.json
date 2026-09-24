@@ -1,0 +1,108 @@
+{
+  "feedback": 199,
+  "contract_version": "6.36.8",
+  "captured_at": "2026-09-24T01:15:47.617Z",
+  "request": {
+    "tool": "battles_performance",
+    "arguments": {
+      "player_tag": "#P8URQGR2U",
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "group_by": "week"
+    }
+  },
+  "response": {
+    "player_tag": "#P8URQGR2U",
+    "applied": {
+      "window": {
+        "from": "2026-09-14T10:00:00.000Z",
+        "to": "2026-09-21T10:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 14
+      },
+      "group_by": "week"
+    },
+    "weekly": [
+      {
+        "iso_week": "2026-W38",
+        "week_of": "2026-09-14",
+        "battles": 19,
+        "wins": 11,
+        "losses": 8,
+        "draws": 0,
+        "trophy_mode_battles": 1,
+        "trophy_battles": 19,
+        "net_trophies": 87,
+        "win_rate": 0.579,
+        "partial": true,
+        "covers": {
+          "from": "2026-09-14T10:00:00.000Z",
+          "to": "2026-09-21T00:00:00.000Z"
+        }
+      },
+      {
+        "iso_week": "2026-W39",
+        "week_of": "2026-09-21",
+        "battles": 5,
+        "wins": 4,
+        "losses": 1,
+        "draws": 0,
+        "trophy_mode_battles": 0,
+        "trophy_battles": 5,
+        "net_trophies": 89,
+        "win_rate": 0.8,
+        "partial": true,
+        "covers": {
+          "from": "2026-09-21T00:00:00.000Z",
+          "to": "2026-09-21T10:00:00.000Z"
+        }
+      }
+    ],
+    "trophy_floor": {
+      "floor": 13500,
+      "arena": {
+        "id": 54000144,
+        "name": "Spirit Square"
+      },
+      "source": "arena_snapshots",
+      "floored": false,
+      "on_floor_losses": 0,
+      "losses_landing_on_floor": 0,
+      "ladder_battles": 1,
+      "floors": [],
+      "trophy_range": {
+        "lowest": 14000,
+        "highest": 14000
+      }
+    },
+    "notes": [
+      "Buckets 2026-W38, 2026-W39 are partial: the window clips them (covers says the span each row holds), so compare them by win_rate, never by battles, or snap from/to to Mondays.",
+      "week_of is the ISO week's Monday (UTC); win_rate = wins/(wins+losses), draws excluded.",
+      "net_trophies sums trophy_battles, the trophy-mode battles (ladder and Path of Legends) that reported a delta; war and event modes carry no trophies, so a rising win_rate with flat trophies usually means war-heavy weeks, and trophy_mode_battles is the count of those battles played."
+    ],
+    "docs": "battles#decided-battles-and-denominators",
+    "meta": {
+      "contract_version": "6.36.8",
+      "source_polls": {
+        "player_battlelog": {
+          "observed_at": "2026-09-24T00:42:47.000Z",
+          "freshness_seconds": 1981
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 40,
+    "db_queries": 12,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

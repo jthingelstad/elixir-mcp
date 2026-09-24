@@ -206,7 +206,7 @@ export const MODE_SCHEMA = {
   type: "string",
   enum: MODE_GROUPS,
   description:
-    "Mode group: ladder (Trophy Road), ranked (Path of Legends), war, casual, challenge, tournament. Omit for every mode.",
+    "Mode group: ladder (Trophy Road to 14,000), ranked (Path of Legends), war, casual, challenge, event (any battle with an event tag, including the seasonal Trophy Road past 14,000), tournament. Omit for every mode.",
 };
 
 /** The one size control (review 2.2.4). `compactDesc` says what compact

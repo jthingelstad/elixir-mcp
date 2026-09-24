@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Trophy counts above 14,000 add up",
+    body: "The Elixir Gym's fourth run over the battles tools. Past 14,000 trophies the game files the seasonal Trophy Road as an event, but those battles still win and lose trophies. Weekly battle counts now include them among the trophy battles played, so the trophies a capped player gained match the battles that earned them. Contract 6.36.10.",
+  },
+  {
+    date: "2026-09-23",
     title: "Clan donations keep the week, and missing battles are named",
     body: "The Elixir Gym's third run over the clan tools. A clan's weekly donation total now keeps the highest number seen that week, as each member's already did, which repairs two weeks that read 10. Clan standings and participation now name any member whose battles Elixir mostly missed that week, so a quiet-looking member is not mistaken for an inactive one. And a clan's daily member averages leave out anyone who left that day. Contract 6.36.9.",
   },

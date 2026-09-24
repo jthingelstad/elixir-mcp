@@ -74,7 +74,7 @@ export const battles_trends = {
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
                   count(distinct bp.player_tag)::int as players,
-                  count(*) filter (where bp.type = any($${params.length + 1}))::int as trophy_mode_battles,
+                  count(*) filter (where bp.type = any($${params.length + 1}) or bp.trophy_change is not null)::int as trophy_mode_battles,
                   count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
                   coalesce(sum(bp.trophy_change), 0)::int as net_trophies
            from battle_participant bp

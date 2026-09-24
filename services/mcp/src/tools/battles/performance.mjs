@@ -239,7 +239,10 @@ export const battles_performance = {
       if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
       // trophy_battles counts the rows that REPORTED a delta and a loss
       // on an arena floor reports none (feedback #61), so the trophy-mode
-      // count rides beside it as the denominator for "games played".
+      // count rides beside it as the denominator for "games played". It
+      // also counts any battle that reported one: past 14,000 the
+      // seasonal Trophy Road is event content (trail, game mode Ladder)
+      // and moves trophies, which broke the subset (Gym #199).
       params.push(TROPHY_MODE_TYPES);
       const trophyModes = `$${params.length}`;
       const { rows } = await ctx.db.query(
@@ -249,7 +252,7 @@ export const battles_performance = {
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses,
                   count(*) filter (where bp.outcome = 'draw')::int as draws,
-                  count(*) filter (where b.type = any(${trophyModes}))::int as trophy_mode_battles,
+                  count(*) filter (where b.type = any(${trophyModes}) or bp.trophy_change is not null)::int as trophy_mode_battles,
                   count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
                   coalesce(sum(bp.trophy_change), 0)::int as net_trophies
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
@@ -284,7 +287,7 @@ export const battles_performance = {
         partialWeeksNote(weekly.partial),
         trophyBattlesNote(weekly.rows),
         "week_of is the ISO week's Monday (UTC); win_rate = wins/(wins+losses), draws excluded.",
-        "net_trophies sums trophy_battles, the trophy-mode battles (ladder and Path of Legends) that reported a delta; war and event modes carry no trophies, so a rising win_rate with flat trophies usually means war-heavy weeks, and trophy_mode_battles is the count of those battles played.",
+        "net_trophies sums trophy_battles, the trophy-mode battles that reported a delta: Trophy Road, Path of Legends, and the seasonal Trophy Road past 14,000, which the API files as event content (type trail, game mode Ladder) but which moves trophies. War battles and other events carry none, so a rising win_rate with flat trophies usually means war-heavy weeks; trophy_mode_battles counts the trophy-mode battles played, trophy_battles those that reported a delta.",
       );
       if (args.before_after || args.compare_from || args.compare_to)
         caveats.push(

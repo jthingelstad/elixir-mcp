@@ -2458,7 +2458,7 @@ export const OUTPUT_SCHEMAS = {
             trophy_mode_battles: {
               ...COUNT,
               description:
-                "Trophy Road and Path of Legends battles played this week (4.1.0): the denominator for ladder games; trophy_battles is the subset that reported a trophy delta.",
+                "Trophy Road and Path of Legends battles played this week (4.1.0), plus any other battle that reported a trophy delta (the seasonal Trophy Road past 14,000 is event content that moves trophies, 6.36.10): the denominator for ladder games; trophy_battles is the subset that reported a delta.",
             },
             trophy_battles: {
               ...COUNT,

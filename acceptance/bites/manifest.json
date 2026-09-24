@@ -1321,5 +1321,29 @@
     "case": "gym/197.2",
     "captures": ["197-2-clans_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 199,
+    "contract": "6.36.8",
+    "why": "the Gym block 199.1 on the answer it read",
+    "case": "gym/199.1",
+    "captures": ["199-1-battles_trends.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 199,
+    "contract": "6.36.8",
+    "why": "the Gym block 199.2 on the answer it read",
+    "case": "gym/199.2",
+    "captures": ["199-2-battles_performance.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 199,
+    "contract": "6.36.8",
+    "why": "the Gym block 199.3 on the answer it read",
+    "case": "gym/199.3",
+    "captures": ["199-3-battles_performance.json"],
+    "expect": "."
   }
 ]

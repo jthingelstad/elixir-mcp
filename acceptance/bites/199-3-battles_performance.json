@@ -1,0 +1,74 @@
+{
+  "feedback": 199,
+  "contract_version": "6.36.8",
+  "captured_at": "2026-09-24T01:15:29.983Z",
+  "request": {
+    "tool": "battles_performance",
+    "arguments": {
+      "player_tag": "#C920YGLC2",
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z",
+      "group_by": "week"
+    }
+  },
+  "response": {
+    "player_tag": "#C920YGLC2",
+    "applied": {
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": "2026-09-14T10:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 7
+      },
+      "group_by": "week"
+    },
+    "weekly": [
+      {
+        "iso_week": "2026-W37",
+        "week_of": "2026-09-07",
+        "battles": 297,
+        "wins": 142,
+        "losses": 155,
+        "draws": 0,
+        "trophy_mode_battles": 6,
+        "trophy_battles": 12,
+        "net_trophies": 180,
+        "win_rate": 0.478,
+        "partial": true,
+        "covers": {
+          "from": "2026-09-07T10:00:00.000Z",
+          "to": "2026-09-14T00:00:00.000Z"
+        }
+      }
+    ],
+    "notes": [
+      "Bucket 2026-W37 is partial: the window clips it (covers says the span each row holds), so compare it by win_rate, never by battles, or snap from/to to Mondays.",
+      "week_of is the ISO week's Monday (UTC); win_rate = wins/(wins+losses), draws excluded.",
+      "net_trophies sums trophy_battles, the trophy-mode battles (ladder and Path of Legends) that reported a delta; war and event modes carry no trophies, so a rising win_rate with flat trophies usually means war-heavy weeks, and trophy_mode_battles is the count of those battles played."
+    ],
+    "docs": "battles#decided-battles-and-denominators",
+    "meta": {
+      "contract_version": "6.36.8",
+      "source_polls": {
+        "player_battlelog": {
+          "observed_at": "2026-09-24T00:27:50.000Z",
+          "freshness_seconds": 2860
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 47,
+    "db_queries": 8,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

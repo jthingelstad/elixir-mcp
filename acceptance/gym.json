@@ -9657,5 +9657,254 @@
         "absent": "modes.ladder"
       }
     ]
+  },
+  {
+    "id": "199.1",
+    "feedback": 199,
+    "stability": "frozen",
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "player_tag": "#P8URQGR2U"
+      },
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z"
+    },
+    "request_id": "aca50f0c-79e5-430a-b5ba-eadfdd3255fd",
+    "for_each": "weeks[]",
+    "assert": [
+      {
+        "lte": ["trophy_battles", "trophy_mode_battles"]
+      }
+    ]
+  },
+  {
+    "id": "199.2",
+    "feedback": 199,
+    "stability": "frozen",
+    "tool": "battles_performance",
+    "args": {
+      "player_tag": "#P8URQGR2U",
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "group_by": "week"
+    },
+    "request_id": "cdca9b43-4f5c-4b2c-a7f5-6d8a60fb3f5b",
+    "for_each": "weekly[]",
+    "assert": [
+      {
+        "lte": ["trophy_battles", "trophy_mode_battles"]
+      }
+    ]
+  },
+  {
+    "id": "199.3",
+    "feedback": 199,
+    "stability": "frozen",
+    "tool": "battles_performance",
+    "args": {
+      "player_tag": "#C920YGLC2",
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z",
+      "group_by": "week"
+    },
+    "request_id": "cbc48c00-3175-43fc-91e7-2bd89794c8a7",
+    "for_each": "weekly[]",
+    "assert": [
+      {
+        "lte": ["trophy_battles", "trophy_mode_battles"]
+      }
+    ]
+  },
+  {
+    "id": "199.4",
+    "feedback": 199,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "from": "2026-08-31T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z"
+    },
+    "request_id": "320e321a-dfa2-4d48-8522-a98c77b82aff",
+    "for_each": "weeks[]",
+    "assert": [
+      {
+        "lte": ["trophy_battles", "trophy_mode_battles"]
+      }
+    ]
+  },
+  {
+    "id": "199.5",
+    "feedback": 199,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_performance",
+    "args": {
+      "player_tag": "#20JJJ2CCRU",
+      "from": "2026-08-31T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "group_by": "week"
+    },
+    "request_id": "317fd4bd-ca27-4abc-a3f8-5c5884a755ce",
+    "for_each": "weekly[]",
+    "assert": [
+      {
+        "lte": ["trophy_battles", "trophy_mode_battles"]
+      }
+    ]
+  },
+  {
+    "id": "200.1",
+    "feedback": 200,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "m": {
+        "tool": "battles_meta_decks",
+        "args": {
+          "segment": {
+            "player_tag": "#C920YGLC2"
+          },
+          "from": "2026-09-07T10:00:00Z",
+          "to": "2026-09-14T10:00:00Z",
+          "verbosity": "compact",
+          "limit": 5
+        }
+      },
+      "t": {
+        "tool": "battles_trends",
+        "args": {
+          "segment": {
+            "player_tag": "#C920YGLC2"
+          },
+          "from": "2026-09-07T10:00:00Z",
+          "to": "2026-09-14T10:00:00Z"
+        }
+      }
+    },
+    "request_id": "70c9452b-05c8-4ad2-a84a-1c6c11f8c091",
+    "assert": [
+      {
+        "sum_eq": [
+          ["m.excluded.considered", "m.excluded.outside_meta"],
+          "t.weeks[0].battles"
+        ]
+      },
+      {
+        "lte": ["t.weeks[0].modes.event.battles", "m.excluded.outside_meta"]
+      }
+    ]
+  },
+  {
+    "id": "200.2",
+    "feedback": 200,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "m": {
+        "tool": "battles_meta_decks",
+        "args": {
+          "segment": "mine",
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T00:00:00Z",
+          "verbosity": "compact",
+          "limit": 5
+        }
+      },
+      "t": {
+        "tool": "battles_trends",
+        "args": {
+          "segment": "mine",
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T00:00:00Z"
+        }
+      }
+    },
+    "request_id": "7c15ec76-a5f6-4b82-91fd-71a4f8bea224",
+    "assert": [
+      {
+        "sum_eq": [
+          ["m.excluded.considered", "m.excluded.outside_meta"],
+          "t.weeks[0].battles"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "200.3",
+    "feedback": 200,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "player_tag": "#C920YGLC2"
+      },
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z",
+      "verbosity": "compact",
+      "limit": 5,
+      "mode": "ranked"
+    },
+    "request_id": "8d20d9a2-afac-4e4c-8b0b-d2849dbcdddb",
+    "assert": [
+      {
+        "eq": ["excluded.outside_meta", 0]
+      },
+      {
+        "notes_not_match": "outside the meta population"
+      }
+    ]
+  },
+  {
+    "id": "200.4",
+    "feedback": 200,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "battles_trends",
+        "args": {
+          "segment": {
+            "player_tag": "#20JJJ2CCRU"
+          },
+          "from": "2026-09-16",
+          "to": "2026-09-19",
+          "timezone": "Asia/Kolkata"
+        }
+      },
+      "p": {
+        "tool": "battles_performance",
+        "args": {
+          "player_tag": "#20JJJ2CCRU",
+          "from": "2026-09-16",
+          "to": "2026-09-19",
+          "timezone": "Asia/Kolkata",
+          "group_by": "week"
+        }
+      }
+    },
+    "request_id": "28b212c6-9f27-492e-a3d7-1fb2bb39da52",
+    "assert": [
+      {
+        "eq": ["t.applied.window.from", "p.applied.window.from"]
+      },
+      {
+        "eq": ["t.applied.window.to", "p.applied.window.to"]
+      },
+      {
+        "eq": ["t.weeks[0].battles", "p.weekly[0].battles"]
+      },
+      {
+        "eq": ["t.weeks[0].net_trophies", "p.weekly[0].net_trophies"]
+      },
+      {
+        "eq": ["t.weeks[0].covers.from", "t.applied.window.from"]
+      }
+    ]
   }
 ]

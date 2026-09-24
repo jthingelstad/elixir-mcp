@@ -2118,3 +2118,8 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - gym-interp: notes_match / notes_not_match take [binding, regex]. 111.5/111.6 replace the superseded 111.1. 159.1 stays known (participation weeks 8 over the cap). #198 praise.
 - Open (not filed, elixir family): elixir_timeline's clan week sums today's members (8,977 vs 9,094); elixir_changelog without `since` reports current 6.21.1.
 
+## 2026-09-23 — Gym sweep, battles round 4 (6.36.10, feedback #199-#200)
+
+- 50 regressions confirmed (3 retired with battles_levels), all 52 earlier cases pass live but the refuted 148.1/148.4.
+- **#199:** trophy_mode_battles counts trophy-mode types OR any reported trophy change (the seasonal Trophy Road past 14,000 is event-tagged trail, game mode Ladder, and moves trophies); the note and schema description say so. The event grouping is unchanged (decided). The shared `mode` description now lists event. #200 praise.
+
