@@ -293,7 +293,7 @@ test("a tool failure is captured as the error body the caller saw", async () => 
   assert.match(stored.response.error.hint, /Retry the same war_current call/);
 });
 
-test("one EMF line per call, with and without the Tool dimension", async () => {
+test("one EMF line per call: three undimensioned metrics, the tool as a property", async () => {
   const lines = [];
   const invoke = makeInvoker({
     db: recordingDb(),
@@ -307,12 +307,13 @@ test("one EMF line per call, with and without the Tool dimension", async () => {
   const emf = JSON.parse(lines[0]);
   const [def] = emf._aws.CloudWatchMetrics;
   assert.equal(def.Namespace, "ElixirMCP/Tools");
-  assert.deepEqual(def.Dimensions, [["Tool"], []]);
+  assert.deepEqual(def.Dimensions, [[]], "no per-tool metrics");
   assert.deepEqual(
     def.Metrics.map((m) => m.Name),
-    ["DurationMs", "DbMs", "ResultBytes", "Errors"],
+    ["DurationMs", "DbMs", "Errors"],
   );
   assert.equal(emf.Tool, "clans_roster");
+  assert.equal(typeof emf.ResultBytes, "number", "still in the log line");
   assert.equal(emf.Errors, 0);
   assert.equal(typeof emf.DurationMs, "number");
   assert.equal(

@@ -27,7 +27,6 @@ export function seriesEmf(stats, now = Date.now()) {
             { Name: "ClanRowsToday", Unit: "Count" },
             { Name: "ProgressRowsToday", Unit: "Count" },
             { Name: "SnapshotTableMB", Unit: "Megabytes" },
-            { Name: "ClanTableMB", Unit: "Megabytes" },
             { Name: "ProgressTableMB", Unit: "Megabytes" },
           ],
         },
@@ -39,6 +38,7 @@ export function seriesEmf(stats, now = Date.now()) {
     ClanRowsToday: stats.clan_rows_today ?? 0,
     ProgressRowsToday: stats.progress_rows_today ?? 0,
     SnapshotTableMB: stats.snapshot_table_mb ?? 0,
+    // A log property only: no panel draws it (2026-09-24).
     ClanTableMB: stats.clan_table_mb ?? 0,
     ProgressTableMB: stats.progress_table_mb ?? 0,
     game_day: stats.game_day ?? null,

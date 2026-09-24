@@ -285,9 +285,12 @@ const METRICS_NAMESPACE = "ElixirMCP/Tools";
  * One CloudWatch EMF line per call (services/scheduler/src/metrics.mjs is
  * the pattern: the function runs in a NAT-free VPC with no CloudWatch
  * endpoint, so the metric rides the log-delivery path and can never
- * block a call). Emitted BOTH with the Tool dimension and without, so
- * the per-tool series exist for a dashboard and the alarm
- * (ToolLatencyP95Alarm) watches the one undimensioned p95.
+ * block a call). Three undimensioned metrics, the ones the dashboard
+ * draws and ToolLatencyP95Alarm watches. The tool and the result size
+ * ride the same line as plain properties: a Tool dimension made one
+ * metric per tool and measure (224 of them, $15.50 a month) that nothing
+ * read, and per-tool numbers live in mcp_call_audit and in these log
+ * lines for Logs Insights (2026-09-24).
  */
 export function toolEmf(
   { tool, durationMs, dbMs, resultBytes, error },
@@ -299,11 +302,10 @@ export function toolEmf(
       CloudWatchMetrics: [
         {
           Namespace: METRICS_NAMESPACE,
-          Dimensions: [["Tool"], []],
+          Dimensions: [[]],
           Metrics: [
             { Name: "DurationMs", Unit: "Milliseconds" },
             { Name: "DbMs", Unit: "Milliseconds" },
-            { Name: "ResultBytes", Unit: "Bytes" },
             { Name: "Errors", Unit: "Count" },
           ],
         },
