@@ -40,8 +40,9 @@ on changes since the last successful review; Sunday is the full weekly sweep.
 - **ToS posture.** Fetch volume vs one key's budget (the fleet is
   redundancy, never multiplication); live-lane caps enforced; the
   unofficiality disclaimer on every surface including tool meta.
-- **Third-party data discipline.** Tinylytics event values carry tool
-  names and categories only — never user text, tags, or emails; the
+- **Third-party data discipline.** Tinylytics event values carry
+  categories only — never user text, tags, or emails, and no tool
+  calls (removed 2026-09-24; the call audit holds them); the
   public status page still shows card names only (no IPs, no machine
   labels); Buttondown holds addresses of people who signed in, nothing
   more; unsubscribes were never overridden.

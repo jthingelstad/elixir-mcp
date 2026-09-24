@@ -343,7 +343,6 @@ export function makeInvoker({
   viewerCountry = null,
   clientName = null,
   oauthFamilyId = null,
-  track = null,
   notifyOwner = null,
   /** { s3, bucket } from capture.mjs makeCaptureStore(); null = no capture. */
   capture = null,
@@ -371,20 +370,6 @@ export function makeInvoker({
       db_queries: 0,
       live_wait_ms: null,
       serialize_ms: null,
-    };
-    // Ambient product signal (Tinylytics): tool name only, never args.
-    // Fired AFTER the tool runs (finally) so the ping's SQS round-trip
-    // never sits in front of the answer (review item 1).
-    const ping = async () => {
-      if (!track) return;
-      try {
-        await track(
-          surface === "web" ? "explore.tool_call" : "mcp.tool_call",
-          name,
-        );
-      } catch {
-        // Analytics must never break serving (house rule).
-      }
     };
     // What the caller gets, and what the row says about it. Composed in
     // the try/catch; everything that records it runs in the finally, so
@@ -644,7 +629,6 @@ export function makeInvoker({
           // A metric must never break serving.
         }
       }
-      await ping();
     }
     return { body: outcome.body, isError: outcome.isError };
   };

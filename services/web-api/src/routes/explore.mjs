@@ -24,7 +24,7 @@ function explorable(tool) {
   return cls.readOnly || CONSOLE_WRITES.has(tool);
 }
 
-export function exploreRoutes({ resolveAccount, exploreRegistry, track }) {
+export function exploreRoutes({ resolveAccount, exploreRegistry }) {
   return {
     "POST /api/explore": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
@@ -58,7 +58,6 @@ export function exploreRoutes({ resolveAccount, exploreRegistry, track }) {
         account,
         registry,
         surface: "web",
-        track,
       });
       const args = body.args && typeof body.args === "object" ? body.args : {};
       const result = await invoke(tool, args);

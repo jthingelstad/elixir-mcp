@@ -2268,3 +2268,9 @@ Jamie took the seven follow-ups one at a time; decisions are in DECISIONS.md.
 - Found after the rebuild: `trophy_road_complete` has NO ladder battles. At 14,000 the ladder is Path of Legends (ranked, unbanded), so the cap band is the finished players' river race and friendly battles (Witch: 569 war, 236 casual). CAP_BAND_NOTE says so on the four band readers; methodology documents it.
 - `top_player_battles` now rides rows with at most five repeat players (was 2-5 players): deck 72c6c8fb in the wider band has 16 players, 2 repeat, 98 battles. 348.5 amended to pin it; 256.3 moved to under_10000 (18 of 20 top rows solo there); 191.6 pins war, not ladder.
 - Gate: battles + cards 301 cases, 0 failed. Rebuilt 2026-09 (126 s) and 2026-08 (43 s) with reset. Seasons before 2026-08 answer bands from the raw rows.
+
+## 2026-09-24 — Tool calls leave Tinylytics
+
+- Jamie removed the server-side `mcp.tool_call` / `explore.tool_call` events (the hosting review found them): 43,290 of the email queue's messages in the week to 09-24 were analytics against ~103 real mails, and 10,408 of those events (24%) were refused by Tinylytics with 429 and dropped by the relay. `mcp_call_audit` and the per-tool EMF metrics already hold every call.
+- The invoker lost its `track` dependency (MCP door and Explore); the REST door never passed one. The site's own events (`site.signin`, `signup.*`, `site.feedback`) still ride the relay, and browser analytics are untouched.
+- The SQS interface endpoint ($14.60/mo) stays: sign-in and product mail and the editor still cross the VPC through it. Replacing it (an S3 outbox through the free gateway endpoint) is a separate decision.

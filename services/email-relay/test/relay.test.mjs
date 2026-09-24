@@ -138,7 +138,7 @@ test("analytics pings: batched to track, best-effort, never dead-lettered", asyn
       rec("a", {
         v: 1,
         kind: "tinylytics_event",
-        event: "mcp.tool_call",
+        event: "site.feedback",
         value: "war_current",
       }),
       rec("b", { v: 1, kind: "tinylytics_event", event: "site.signin" }),
@@ -156,7 +156,7 @@ test("analytics pings: batched to track, best-effort, never dead-lettered", asyn
   assert.equal(tracked.length, 1, "one batched track call");
   assert.deepEqual(
     tracked[0].map((e) => e.event),
-    ["mcp.tool_call", "site.signin"],
+    ["site.feedback", "site.signin"],
     "invalid ping dropped, valid ones forwarded",
   );
 
@@ -169,7 +169,7 @@ test("analytics pings: batched to track, best-effort, never dead-lettered", asyn
   });
   const out2 = await boom({
     Records: [
-      rec("e", { v: 1, kind: "tinylytics_event", event: "mcp.tool_call" }),
+      rec("e", { v: 1, kind: "tinylytics_event", event: "site.feedback" }),
     ],
   });
   assert.deepEqual(out2.batchItemFailures, [], "outage never dead-letters");

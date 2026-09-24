@@ -35,6 +35,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **CR tags are not PII** — email is PII. (2026-09-08; Jamie)
 - **Nicknames and machine labels are private** — the card name is a collector's only public name; public operator credit shows the primary player only. (2026-09-06, 2026-09-07; Jamie)
 - **Analytics stays client-side Tinylytics** — never proxied through our API (#25 was reverted: "should have asked"); `/signin` loads no analytics. (2026-09-08, 2026-09-19; Jamie)
+- **Tool calls are not sent to Tinylytics** — `mcp_call_audit` and the `ElixirMCP/Tools` metrics already count every call; the server keeps only the handful of site events (sign-in, signup, feedback). (2026-09-24; Jamie)
 - **Name-pattern studies go through `{name_census}`** — counts and means only; nothing per player leaves the database. (2026-09-20; engineering)
 
 ## Tool contract and versioning

@@ -276,7 +276,7 @@ export function makeHandler({
     ...collectionsRoutes({ resolveAccount, logEvent }),
     ...publicRoutes({ queueStats }),
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),
-    ...exploreRoutes({ resolveAccount, exploreRegistry, track }),
+    ...exploreRoutes({ resolveAccount, exploreRegistry }),
     ...feedbackRoutes({ resolveAccount, ping, notifyOwner }),
     ...adminRoutes({
       resolveAccount,

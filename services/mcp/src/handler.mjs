@@ -44,7 +44,6 @@ export function makeHandler({
   issuer = "https://elixir.poapkings.com",
   sendLoginEmail,
   enqueueLiveJob = null,
-  track = null,
   originSecret = null,
   notifyOwner = null,
   /** { s3, bucket } from capture.mjs makeCaptureStore(); null = no capture. */
@@ -479,7 +478,6 @@ export function makeHandler({
           viewerCountry,
           clientName,
           oauthFamilyId: account.oauthFamilyId ?? null,
-          track,
           notifyOwner,
           capture,
           emitMetrics,

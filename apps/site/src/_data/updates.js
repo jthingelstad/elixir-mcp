@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Tool calls are no longer sent to analytics",
+    body: "Elixir used to count every tool call in Tinylytics, the site's analytics, by tool name. It no longer does: your call record already holds every call, with more detail, and nothing leaves Elixir for it. Page views and mail opens are counted as before.",
+  },
+  {
+    date: "2026-09-24",
     title: "Three trophy bands, and Trophy Road complete gets its own",
     body: "The meta tools now split Trophy Road into three: under 10,000, 10,000 to 13,999, and Trophy Road complete (14,000, the cap). The old five bands were finer than the recorded games could fill, and they mixed players still climbing with players who have finished, who play a narrower, settled meta of their own. Contract 8.1.0.",
   },

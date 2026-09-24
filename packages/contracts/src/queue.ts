@@ -256,7 +256,7 @@ export function validateEmailMessage(
 export interface AnalyticsEventMessage {
   v: 1;
   kind: "tinylytics_event";
-  /** Dotted category.action, e.g. "mcp.tool_call". */
+  /** Dotted category.action, e.g. "site.feedback". */
   event: string;
   value?: string;
 }

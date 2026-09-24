@@ -88,10 +88,10 @@ page and not which record, so the report reads as pages rather than a
 thousand one-hit rows; that is report hygiene, and the promise above is
 what it rests on.
 
-Product events such as "a tool call happened" or "feedback was filed"
-are counted server-side, again with **no account attached** — the values
-carry tool names and categories only, never your data, and never who
-made the call.
+A few product events — a sign-in, a signup, "feedback was filed" —
+are counted server-side, again with **no account attached**: the values
+carry categories only, never your data, and never who it was. Tool
+calls are not sent to Tinylytics; they stay in your own call record.
 
 **4. Money.** Elixir is free and stays free. It is supported by
 voluntary [GitHub sponsorship](/support) that buys nothing — no quota,
