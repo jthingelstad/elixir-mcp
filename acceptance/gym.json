@@ -11120,7 +11120,8 @@
       {
         "count_eq": ["p1.timeline[]", "p0.timeline_more"]
       }
-    ]
+    ],
+    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
   },
   {
     "id": "211.3",
@@ -11252,7 +11253,8 @@
       {
         "count_eq": ["p1.timeline[]", "p0.timeline_more"]
       }
-    ]
+    ],
+    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
   },
   {
     "id": "212.2",
@@ -11288,7 +11290,8 @@
       {
         "count_eq": ["p1.timeline[]", "p0.timeline_more"]
       }
-    ]
+    ],
+    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
   },
   {
     "id": "212.3",
@@ -11327,7 +11330,8 @@
           "battles>=40"
         ]
       }
-    ]
+    ],
+    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
   },
   {
     "id": "212.4",
@@ -11385,7 +11389,8 @@
       {
         "count_eq": ["p1.timeline[]", "p0.timeline_more"]
       }
-    ]
+    ],
+    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
   },
   {
     "id": "213.1",
@@ -11797,7 +11802,8 @@
       {
         "notes_match": "longest here is \\d+ h"
       }
-    ]
+    ],
+    "refuted": "Superseded by 7.0.0: the lag note fires when a served item happened before from, and newest-first keeps the recent items, so on this window no served item predates from."
   },
   {
     "id": "218.3",
@@ -11817,7 +11823,8 @@
       {
         "has": "timeline[?observed_at=2026-09-14T20:27:52.000Z]"
       }
-    ]
+    ],
+    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
   },
   {
     "id": "218.4",

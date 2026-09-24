@@ -109,7 +109,9 @@ export const elixir_data_insights = {
       api_observations: receipts.n,
       notes: notes(
         "players_observed counts every tag ever seen in a recorded battle or roster, far more than the recorded set.",
-        "recorded_players.direct are players tracked on their own; via_clans are current members of comprehensively recorded clans; total is the population profile and badge questions can draw on.",
+        "recorded_players.direct are players tracked on their own; via_clans are current members of comprehensively recorded clans; total is the population profile and badge questions draw on (the badge and profile tools count players recorded now).",
+        // profiles counts every player the record ever read (Gym #217).
+        `profiles counts every player whose profile the record has ever read (${profiles.with_snapshot}), including players it no longer records; the badge and profile tools draw only on the ${recs.total} recorded now.`,
         "Raw payload history is archived durably to S3 beyond these counts.",
       ),
       docs: docsRef("recording", "one-recording-many-reasons"),

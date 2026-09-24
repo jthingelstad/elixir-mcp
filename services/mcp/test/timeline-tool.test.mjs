@@ -112,6 +112,11 @@ before(async () => {
     receiptId,
     payload: await fixture("player_battlelog/with_path_of_legend.json"),
   });
+  // Captured minutes after play, as the collectors capture (Gym #211: a
+  // battle learned more than a day after it was played is a late capture).
+  await db.query(
+    `update battle set created_at = battle_time + interval '5 minutes'`,
+  );
   const profile = await fixture("player/profile.json");
   await projectPlayerSnapshot(db, {
     playerTag: PROFILE,

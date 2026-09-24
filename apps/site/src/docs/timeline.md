@@ -124,7 +124,14 @@ Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 Every member moment and every `session_standout` is an item; the response's
 150-item cap bounds them, keeping the newest (7.0.0). The clan entry's `war` is
 the calendar's week at the window's end: its fame, place and decks are that
-week's recorded race, and null when the record holds no race for it.
+week's recorded race, and null when the record holds no race for it. A window
+that ends before that week's race closed reads the race as it stood then: fame
+and place at the last war day closed by `to`, no `race_finished_at`, and
+`as_of_window_end: true` (7.1.2).
+
+A battle the record learned more than a day after it was played (a history
+backfill, a log polled late) is a late capture: counted in the entry's
+`battles.late_captures` and never narrated, whatever the window (7.1.2).
 
 ### The `facts` keys, by kind
 

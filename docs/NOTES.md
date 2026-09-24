@@ -2164,3 +2164,10 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - 8 regressions checked, #169 partial -> **#219** (date-only at keeps the standing notes). **#220** game_events computes crosses on the whole window (`clampToNow: false`) and notes a future window. **#221** inverted window refused (`requireOrderedWindow`). #222 praise. 126.5 still needs the first grid-pinned read.
 - Rankings round 3 closed: 175.3 superseded by #208.
 
+## 2026-09-24 — Gym sweep, elixir round 3 (7.1.2, feedback #211-#218) + war #223
+
+- 26 regressions checked (none NOT FIXED). Run against 6.36.10; 7.0.0's newsfeed landed after, so the continuation-page cases (211.2, 212.1-212.3, 212.5, 218.2, 218.3) are `refuted` as superseded.
+- **#211:** late = captured more than a day after play (`b.battle_time >= b.created_at - interval '1 day'`), in every query that narrates (player battles, clan probe split, member fetch `learned`, returned, most). Fixtures now stamp capture minutes after play.
+- **#213:** war as of `to` (last war_period_log day closed by `to`, banked), `as_of_window_end: true`. **#214/#223:** `raiseCappedWeekFame` after period logs, banked fame in the week_resolved emit, 0164 repairs war_week_clan and clan_event.fame (regular weeks only). **#215:** war-ledger start note (scoped to the reader's clans). **#216:** donations over members at `to`. **#217:** insights profiles note. #218 praise.
+- War round 3 (#223-#227) is in: #223 shipped here; #224-#227 next.
+

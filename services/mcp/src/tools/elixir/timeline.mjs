@@ -280,6 +280,23 @@ export const elixir_timeline = {
       );
     }
     const iso = (ms) => (ms === null ? null : new Date(ms).toISOString());
+    // The war ledger's own start (Gym #215): war moments and the clan
+    // entry's war.resolved begin with the first war event on record, so
+    // an earlier window read "no week resolved" over five closed weeks.
+    const clanTags = subjects
+      .filter((sub) => sub.kind === "clan")
+      .map((sub) => sub.tag);
+    const {
+      rows: [warLedger],
+    } = clanTags.length
+      ? await ctx.db.query(
+          `select min(window_end) as first from clan_event
+            where clan_tag = any($1::text[])
+              and event_type in ('bracket_observed', 'race_finished', 'week_resolved')`,
+          [clanTags],
+        )
+      : { rows: [null] };
+    const warLedgerFromMs = warLedger?.first ? warLedger.first.getTime() : null;
     const seasonFields = await seasonFieldsForInstants(ctx.db, fromMs, toMs, {
       flavor: "plain",
     });
@@ -320,6 +337,9 @@ export const elixir_timeline = {
         // The moment ledger's own history (Gym #121): profile-derived
         // moments begin 2026-09-14T04:27Z, and collection_level_step
         // follows its step rule from 2026-09-18.
+        warLedgerFromMs !== null && fromMs < warLedgerFromMs
+          ? `War moments (bracket_observed, race_finished, week_resolved) and a clan entry's war.resolved are recorded from ${iso(warLedgerFromMs)}: a window before that has none of them, which is the ledger's start, not weeks without a result. war_history has every recorded week.`
+          : null,
         fromMs < PROFILE_MOMENTS_FROM_MS
           ? "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step."
           : null,

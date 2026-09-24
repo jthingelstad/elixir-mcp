@@ -1,0 +1,465 @@
+{
+  "feedback": 215,
+  "contract_version": "6.36.11",
+  "captured_at": "2026-09-24T01:38:00.650Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-08-08T00:00:00Z",
+      "to": "2026-09-07T00:00:00Z",
+      "mark_read": false
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-08-08T00:00:00.000Z",
+        "to": "2026-09-07T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 34
+      },
+      "mark_read": false,
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-08-08T00:00:00.000Z",
+      "to": "2026-09-07T00:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-08-13T16:16:26.000Z",
+        "kind": "returned",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#2LRYLQPL",
+          "name": "Andy",
+          "after_days": 7
+        },
+        "observed_at": "2026-08-13T16:16:26.000Z",
+        "text": "Thu 16:16 Andy played again after 7 quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-08-16T18:03:48.000Z",
+        "kind": "returned",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#YRC0J298J",
+          "name": "Prince Aravind",
+          "after_days": 11
+        },
+        "observed_at": "2026-08-16T18:03:48.000Z",
+        "text": "Sun 18:03 Prince Aravind played again after 11 quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-08-23T21:02:06.000Z",
+        "observed_at": "2026-09-03T18:25:41.293Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#2P9GRU2Q0",
+          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "started_at": "2026-08-23T20:47:27.000Z",
+          "ended_at": "2026-08-23T21:13:54.000Z",
+          "battles": 9,
+          "won": 7,
+          "lost": 2,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 9
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 6,
+          "open": false,
+          "crossed": ["won_in_a_row>=5"],
+          "newly": ["won_in_a_row>=5"]
+        },
+        "text": "Sun 21:02 Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ played 9 battles in one sitting (7W-2L; 9 ranked, 6 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-08-29T05:13:53.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#RRU9PGJQ9",
+          "name": "Brotherinpants",
+          "role": "member",
+          "rung": 10,
+          "days_quiet": 10,
+          "days_since_poll": null
+        },
+        "observed_at": "2026-08-29T05:13:53.000Z",
+        "text": "Sat 05:13 Brotherinpants passed 10 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-08-30T14:16:29.000Z",
+        "observed_at": "2026-09-03T18:25:30.832Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#9Q9QRCPPU",
+          "name": "dez42",
+          "started_at": "2026-08-30T13:44:53.000Z",
+          "ended_at": "2026-08-30T14:23:47.000Z",
+          "battles": 9,
+          "won": 7,
+          "lost": 2,
+          "drawn": 0,
+          "by_mode": {
+            "war": 2,
+            "ranked": 7
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 7,
+          "open": false,
+          "crossed": ["won_in_a_row>=5"],
+          "newly": ["won_in_a_row>=5"]
+        },
+        "text": "Sun 14:16 dez42 played 9 battles in one sitting (7W-2L; 7 ranked, 2 war, 7 wins in a row)."
+      }
+    ],
+    "timeline_more": 177,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-08-08T00:00:00.000Z",
+          "to": "2026-09-07T00:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 15314 battles in 3979 sessions by 55 players who were members during the window (roster now 48) since Aug 8; joined: NOBITA; left: Prince Aravind, Ram; roster 47→48; war day 4 (38,700 fame, place 1 of 5): 27 untouched, 6 partial, 11 finished of 44; quiet past 10d: Brotherinpants (18d), VVSBUDGET (11d), pokemon (7d); back: Prince Aravind after 11d, Andy after 7d; most battles: Vijay 1341, sikander sidhu 1075, Aaqib Javed 943; standout sessions: #L9CUUJPLJ 24W-15L +275 (7 in a row), bonus 24W-23L +66 (7 in a row), bonus 26W-25L +55; donations this week 9,186, led by Vijay (845).",
+        "activity": {
+          "battles": 15314,
+          "members_active": 55,
+          "members_total": 48,
+          "sessions": 3979,
+          "by_mode": {
+            "event": 5567,
+            "war": 1194,
+            "casual": 427,
+            "ladder": 4875,
+            "other": 17,
+            "tournament": 48,
+            "ranked": 3186
+          },
+          "late_captures": 13726,
+          "basis": "recorded"
+        },
+        "roster": {
+          "joined": {
+            "items": [
+              {
+                "tag": "#JRVV9VC0C",
+                "name": "NOBITA",
+                "role": "member",
+                "at": "2026-09-04T19:05:47.660Z"
+              }
+            ],
+            "more": 0
+          },
+          "left": {
+            "items": [
+              {
+                "tag": "#YRC0J298J",
+                "name": "Prince Aravind",
+                "role": "member",
+                "at": "2026-09-05T22:25:49.451Z",
+                "tenure_days": 2
+              },
+              {
+                "tag": "#RCCY80VG2",
+                "name": "Ram",
+                "role": "member",
+                "at": "2026-09-06T13:25:43.000Z",
+                "tenure_days": 2
+              }
+            ],
+            "more": 0
+          },
+          "role_changes": {
+            "items": [],
+            "more": 0
+          },
+          "bounced": 0,
+          "size": {
+            "from": 47,
+            "to": 48
+          }
+        },
+        "war": {
+          "season_id": 135,
+          "week": 5,
+          "is_colosseum": true,
+          "day_kind": "war",
+          "war_day": 4,
+          "fame": 38700,
+          "place_of_five": 1,
+          "race_finished_at": null,
+          "decks": {
+            "as_of": "2026-09-07T00:00:00.000Z",
+            "untouched": 27,
+            "partial": 6,
+            "finished": 11,
+            "participants": 44
+          },
+          "resolved": []
+        },
+        "presence": {
+          "quiet_crossed": {
+            "items": [
+              {
+                "tag": "#RRU9PGJQ9",
+                "name": "Brotherinpants",
+                "role": "member",
+                "days_quiet": 18,
+                "days_since_poll": null,
+                "rung": 10
+              },
+              {
+                "tag": "#20CLVPLG8R",
+                "name": "VVSBUDGET",
+                "role": "member",
+                "days_quiet": 11,
+                "days_since_poll": null,
+                "rung": 10
+              },
+              {
+                "tag": "#V0CRYP2GG",
+                "name": "pokemon",
+                "role": "member",
+                "days_quiet": 7,
+                "days_since_poll": 0,
+                "rung": 5
+              }
+            ],
+            "more": 0
+          },
+          "returned": {
+            "items": [
+              {
+                "tag": "#YRC0J298J",
+                "name": "Prince Aravind",
+                "after_days": 11
+              },
+              {
+                "tag": "#2LRYLQPL",
+                "name": "Andy",
+                "after_days": 7
+              }
+            ],
+            "more": 0
+          },
+          "never_recorded": 2,
+          "rungs_days": [5, 10, 20]
+        },
+        "standouts": {
+          "most_battles": [
+            {
+              "tag": "#C920YGLC2",
+              "name": "Vijay",
+              "battles": 1341
+            },
+            {
+              "tag": "#JYRQ8U92C",
+              "name": "sikander sidhu",
+              "battles": 1075
+            },
+            {
+              "tag": "#2G2RPVPP",
+              "name": "Aaqib Javed",
+              "battles": 943
+            },
+            {
+              "tag": "#20GPQPC9RV",
+              "name": "bonus",
+              "battles": 928
+            },
+            {
+              "tag": "#UVQ8RJYG9",
+              "name": "AHMOメŞΛDØW",
+              "battles": 743
+            }
+          ],
+          "new_bests": {
+            "items": [],
+            "more": 0
+          },
+          "arena_promotions": {
+            "items": [],
+            "more": 0
+          },
+          "ranked_promotions": {
+            "items": [],
+            "more": 0
+          },
+          "collection_levels": {
+            "items": [],
+            "more": 0
+          },
+          "badges": [],
+          "sessions": {
+            "items": [
+              {
+                "tag": "#L9CUUJPLJ",
+                "name": null,
+                "player_tag": "#L9CUUJPLJ",
+                "started_at": "2026-08-07T06:00:11.000Z",
+                "ended_at": "2026-08-07T08:55:20.000Z",
+                "battles": 39,
+                "won": 24,
+                "lost": 15,
+                "drawn": 0,
+                "by_mode": {
+                  "ladder": 39
+                },
+                "trophy_net": 275,
+                "won_in_a_row": 7,
+                "open": false,
+                "crossed": [
+                  "trophy_net>=150",
+                  "won_in_a_row>=5",
+                  "battles>=20",
+                  "trophy_net>=300"
+                ]
+              },
+              {
+                "tag": "#20GPQPC9RV",
+                "name": "bonus",
+                "player_tag": "#20GPQPC9RV",
+                "started_at": "2026-08-09T20:34:49.000Z",
+                "ended_at": "2026-08-10T00:34:41.000Z",
+                "battles": 47,
+                "won": 24,
+                "lost": 23,
+                "drawn": 0,
+                "by_mode": {
+                  "event": 5,
+                  "ladder": 42
+                },
+                "trophy_net": 66,
+                "won_in_a_row": 7,
+                "open": false,
+                "crossed": [
+                  "trophy_net>=150",
+                  "battles>=20",
+                  "won_in_a_row>=5",
+                  "battles>=40"
+                ]
+              },
+              {
+                "tag": "#20GPQPC9RV",
+                "name": "bonus",
+                "player_tag": "#20GPQPC9RV",
+                "started_at": "2026-08-16T20:57:00.000Z",
+                "ended_at": "2026-08-17T00:49:34.000Z",
+                "battles": 51,
+                "won": 26,
+                "lost": 25,
+                "drawn": 0,
+                "by_mode": {
+                  "ladder": 51
+                },
+                "trophy_net": 55,
+                "won_in_a_row": 4,
+                "open": false,
+                "crossed": ["battles>=20", "trophy_net>=150", "battles>=40"]
+              },
+              {
+                "tag": "#20GPQPC9RV",
+                "name": "bonus",
+                "player_tag": "#20GPQPC9RV",
+                "started_at": "2026-08-17T17:41:02.000Z",
+                "ended_at": "2026-08-17T21:41:23.000Z",
+                "battles": 44,
+                "won": 21,
+                "lost": 23,
+                "drawn": 0,
+                "by_mode": {
+                  "event": 2,
+                  "ladder": 42
+                },
+                "trophy_net": -44,
+                "won_in_a_row": 4,
+                "open": false,
+                "crossed": ["battles>=20", "battles>=40"]
+              },
+              {
+                "tag": "#2092PV0CV8",
+                "name": null,
+                "player_tag": "#2092PV0CV8",
+                "started_at": "2026-08-23T17:19:01.000Z",
+                "ended_at": "2026-08-23T18:08:21.000Z",
+                "battles": 14,
+                "won": 14,
+                "lost": 0,
+                "drawn": 0,
+                "by_mode": {
+                  "casual": 14
+                },
+                "trophy_net": 0,
+                "won_in_a_row": 14,
+                "open": false,
+                "crossed": ["won_in_a_row>=5", "won_in_a_row>=10"]
+              }
+            ],
+            "more": 169
+          },
+          "session_rungs": {
+            "won_in_a_row": [5, 10, 20],
+            "trophy_net": [150, 300, 500],
+            "battles": [20, 40]
+          }
+        },
+        "donations": {
+          "week_total": 9186,
+          "members_counted": 44,
+          "leader": {
+            "tag": "#C920YGLC2",
+            "name": "Vijay",
+            "given": 845
+          },
+          "as_of": "2026-09-07T00:00:00.000Z"
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-03T18:25:48.830Z",
+    "has_more": true,
+    "notes": [
+      "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step.",
+      "The item cap cut this window at 2026-09-03T18:25:48.831Z, on when the record observed each item (observed_at): timeline holds what was observed before that instant, timeline_more (177) items observed from it on are not here, and has_more is true. Pass next_cursor (1 ms before the cut) as from for the rest; nothing is lost at the cut."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "6.36.11"
+    }
+  },
+  "timings": {
+    "db_ms": 1167,
+    "db_queries": 23,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

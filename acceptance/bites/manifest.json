@@ -1481,5 +1481,53 @@
     "case": "gym/221.1",
     "captures": ["221-1-game_events.json"],
     "expect": "."
+  },
+  {
+    "feedback": 213,
+    "contract": "6.36.11",
+    "why": "the Gym block 213.1 on the answer it read",
+    "case": "gym/213.1",
+    "captures": ["213-1-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 213,
+    "contract": "6.36.11",
+    "why": "the Gym block 213.2 on the answer it read",
+    "case": "gym/213.2",
+    "captures": ["213-2-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 215,
+    "contract": "6.36.11",
+    "why": "the Gym block 215.1 on the answer it read",
+    "case": "gym/215.1",
+    "captures": ["215-1-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 215,
+    "contract": "6.36.11",
+    "why": "the Gym block 215.2 on the answer it read",
+    "case": "gym/215.2",
+    "captures": ["215-2-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 216,
+    "contract": "6.36.10",
+    "why": "the Gym block 216.2 on the answer it read",
+    "case": "gym/216.2",
+    "captures": ["216-2-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 217,
+    "contract": "6.36.10",
+    "why": "the Gym block 217.1 on the answer it read",
+    "case": "gym/217.1",
+    "captures": ["217-1-elixir_data_insights.json"],
+    "expect": "."
   }
 ]

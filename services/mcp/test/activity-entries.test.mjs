@@ -54,6 +54,14 @@ before(async () => {
     receiptId,
     payload: await fixture("player_battlelog/with_path_of_legend.json"),
   });
+  // Captured as the collectors capture: minutes after play, and never
+  // before the window opens (Gym #211: a battle learned more than a day
+  // after it was played is a late capture). The 09-01 pair lands on
+  // 09-03, over a day late.
+  await db.query(
+    `update battle set created_at = greatest(battle_time + interval '5 minutes', $1::timestamptz + interval '1 second')`,
+    [new Date(FROM).toISOString()],
+  );
   const profile = await fixture("player/profile.json");
   await projectPlayerSnapshot(db, {
     playerTag: PROFILE,
@@ -147,7 +155,11 @@ test("battles the record learned in the window are counted; late captures set as
   assert.ok(recorded >= 25, "the fixture log lands as distinct battles");
   // Every recorded battle is counted exactly once: narrated when played
   // within a day of the window, otherwise as a late capture.
-  assert.equal(e.battles.played + e.battles.late_captures, recorded);
+  assert.equal(
+    e.battles.played + e.battles.late_captures,
+    recorded,
+    JSON.stringify(e.battles),
+  );
   assert.ok(e.battles.played >= 25);
   assert.ok(
     e.battles.by_mode.ranked > 0,
@@ -163,16 +175,25 @@ test("battles the record learned in the window are counted; late captures set as
     new RegExp(`${e.battles.played} battles in \\d+ sessions since`),
   );
 
-  // A window that opens after the battles were PLAYED but before the record
-  // LEARNED them: they count once, as late captures, and are not narrated.
-  const { entry: late } = await buildPlayerEntry(ctx.db, {
+  // Late is the battle's own capture delay, not its distance from the
+  // window (Gym #211): the 09-01 pair was learned on 09-03, over a day
+  // after play, so it is a late capture in this window and in a narrow
+  // one around its capture alike, never narrated.
+  assert.equal(e.battles.late_captures, 2);
+  const { entry: narrow } = await buildPlayerEntry(ctx.db, {
+    tag: OBSERVER,
+    fromMs: FROM,
+    toMs: FROM + 2_000,
+  });
+  assert.equal(narrow.battles.late_captures, 2);
+  const { entry: none } = await buildPlayerEntry(ctx.db, {
     tag: OBSERVER,
     fromMs: toMs - 60_000,
     toMs,
   });
-  assert.equal(late.battles.played, 0);
-  assert.equal(late.battles.late_captures, recorded);
-  assert.match(late.summary, /no recorded battles since/);
+  assert.equal(none.battles.played, 0);
+  assert.equal(none.battles.late_captures, 0);
+  assert.match(none.summary, /no recorded battles since/);
 });
 
 test("a clan entry names roster moves from the ledger, war state, presence and standouts", async () => {

@@ -1,0 +1,183 @@
+{
+  "feedback": 217,
+  "contract_version": "6.36.10",
+  "captured_at": "2026-09-24T01:33:23.118Z",
+  "request": {
+    "tool": "elixir_data_insights",
+    "arguments": {}
+  },
+  "response": {
+    "players_observed": 358211,
+    "battles": {
+      "recorded": 410124,
+      "first": "2026-01-03T07:34:30.000Z",
+      "last": "2026-09-24T01:32:51.000Z"
+    },
+    "daily_snapshots": 263770,
+    "war_weeks": 396,
+    "recorded_players": {
+      "direct": 859,
+      "via_clans": 221,
+      "total": 1080
+    },
+    "profiles": {
+      "players_with_snapshot": 2091,
+      "players_with_badges": 2090,
+      "players_with_snapshot_last_7_days": 1362,
+      "newest_snapshot": "2026-09-23"
+    },
+    "active_recordings": {
+      "clans": 18,
+      "clans_by_scope": {
+        "activity": 10,
+        "comprehensive": 8
+      },
+      "players": 859
+    },
+    "recorded_clans": [
+      {
+        "clan_tag": "#LG0",
+        "name": "Canadian",
+        "scope": "comprehensive",
+        "members": 50,
+        "recorded_since": "2026-09-07T02:45:23.250Z"
+      },
+      {
+        "clan_tag": "#P2P2Y880",
+        "name": "! ShocK-13 !",
+        "scope": "comprehensive",
+        "members": 49,
+        "recorded_since": "2026-09-07T02:45:23.250Z"
+      },
+      {
+        "clan_tag": "#8UJ2UUJ8",
+        "name": "#MuUuKaNs!!",
+        "scope": "comprehensive",
+        "members": 48,
+        "recorded_since": "2026-09-07T02:45:23.250Z"
+      },
+      {
+        "clan_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "members": 48,
+        "recorded_since": "2026-09-03T17:58:41.623Z"
+      },
+      {
+        "clan_tag": "#L9VRJ",
+        "name": "Calalas España",
+        "scope": "comprehensive",
+        "members": 35,
+        "recorded_since": "2026-09-07T02:45:23.250Z"
+      },
+      {
+        "clan_tag": "#PPLCV9G2",
+        "name": "Elite Forcers",
+        "scope": "comprehensive",
+        "members": 5,
+        "recorded_since": "2026-09-07T02:45:23.250Z"
+      },
+      {
+        "clan_tag": "#GCYQR9VY",
+        "name": "Ship It!",
+        "scope": "comprehensive",
+        "members": 3,
+        "recorded_since": "2026-09-13T12:17:24.336Z"
+      },
+      {
+        "clan_tag": "#GJ09RJP8",
+        "name": "Elixir Kings",
+        "scope": "comprehensive",
+        "members": 1,
+        "recorded_since": "2026-09-10T03:56:29.449Z"
+      },
+      {
+        "clan_tag": "#P9GPQ2Y0",
+        "name": "BalkanUnion",
+        "scope": "activity",
+        "members": 50,
+        "recorded_since": "2026-09-13T10:22:36.642Z"
+      },
+      {
+        "clan_tag": "#JYJ980J8",
+        "name": "Fantasy",
+        "scope": "activity",
+        "members": 49,
+        "recorded_since": "2026-09-13T10:22:36.642Z"
+      },
+      {
+        "clan_tag": "#L28V902R",
+        "name": "Iran Hplow",
+        "scope": "activity",
+        "members": 49,
+        "recorded_since": "2026-09-23T10:17:41.877Z"
+      },
+      {
+        "clan_tag": "#Q9QPPGGG",
+        "name": "NoA",
+        "scope": "activity",
+        "members": 49,
+        "recorded_since": "2026-09-19T10:18:05.729Z"
+      },
+      {
+        "clan_tag": "#QPY22Q0L",
+        "name": "Top Flame",
+        "scope": "activity",
+        "members": 49,
+        "recorded_since": "2026-09-15T10:23:13.136Z"
+      },
+      {
+        "clan_tag": "#QYGL80RR",
+        "name": "Sunlight",
+        "scope": "activity",
+        "members": 49,
+        "recorded_since": "2026-09-23T10:17:41.877Z"
+      },
+      {
+        "clan_tag": "#9V9GGVCQ",
+        "name": "Lifetime",
+        "scope": "activity",
+        "members": 48,
+        "recorded_since": "2026-09-19T10:18:05.729Z"
+      },
+      {
+        "clan_tag": "#G89QUY2P",
+        "name": "GUERREIROS PT",
+        "scope": "activity",
+        "members": 46,
+        "recorded_since": "2026-09-13T10:22:36.642Z"
+      },
+      {
+        "clan_tag": "#RL0ULLGV",
+        "name": "Sandstorm",
+        "scope": "activity",
+        "members": 46,
+        "recorded_since": "2026-09-23T10:17:41.877Z"
+      },
+      {
+        "clan_tag": "#RYUYJRGJ",
+        "name": "NOLITO BANEADO",
+        "scope": "activity",
+        "members": 42,
+        "recorded_since": "2026-09-19T10:18:05.729Z"
+      }
+    ],
+    "api_observations": 299162,
+    "notes": [
+      "players_observed counts every tag ever seen in a recorded battle or roster, far more than the recorded set.",
+      "recorded_players.direct are players tracked on their own; via_clans are current members of comprehensively recorded clans; total is the population profile and badge questions can draw on.",
+      "Raw payload history is archived durably to S3 beyond these counts."
+    ],
+    "docs": "recording#one-recording-many-reasons",
+    "meta": {
+      "contract_version": "6.36.10"
+    }
+  },
+  "timings": {
+    "db_ms": 3099,
+    "db_queries": 8,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

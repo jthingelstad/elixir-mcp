@@ -321,9 +321,13 @@ async function playerLedger(db, tag, fromMs, toMs) {
 
 /**
  * Battles the record learned in the window: the ones played within a day
- * of it come off the player-time index; anything admitted in the window
- * but played earlier is a late capture, counted by the created_at index
- * and never narrated.
+ * of it come off the player-time index. A battle the record learned more
+ * than a day after it was played is a late capture (a history backfill,
+ * a log polled late), counted by the created_at index and never
+ * narrated. "Late" is the battle's own capture delay, not its distance
+ * from the window's start (Gym #211): measured against `from`, the same
+ * backfilled session was a standout in a wide window and absent in a
+ * narrow one.
  */
 async function playerBattles(db, tag, fromMs, toMs) {
   const { rows } = await db.query(
@@ -334,6 +338,7 @@ async function playerBattles(db, tag, fromMs, toMs) {
       where bp.player_tag = $1
         and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time <= ${ts(toMs)}
         and b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
+        and b.battle_time >= b.created_at - interval '1 day'
       order by b.battle_time`,
     [tag],
   );
@@ -342,7 +347,7 @@ async function playerBattles(db, tag, fromMs, toMs) {
        from battle b
        join battle_participant bp on bp.battle_id = b.battle_id
       where b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
-        and b.battle_time < ${ts(fromMs - DAY_MS)}
+        and b.battle_time < b.created_at - interval '1 day'
         and bp.player_tag = $1`,
     [tag],
   );
@@ -780,8 +785,8 @@ export async function buildPlayerEntry(
  *  EXPLAIN the same statement the tool runs. */
 export function clanLearnedQuery({ tag, fromMs, toMs }) {
   return {
-    text: `select count(distinct b.battle_id) filter (where b.battle_time >= ${ts(fromMs - DAY_MS)})::int as recent,
-                  count(distinct b.battle_id) filter (where b.battle_time < ${ts(fromMs - DAY_MS)})::int as late
+    text: `select count(distinct b.battle_id) filter (where b.battle_time >= b.created_at - interval '1 day')::int as recent,
+                  count(distinct b.battle_id) filter (where b.battle_time < b.created_at - interval '1 day')::int as late
              from battle b
              join battle_participant bp on bp.battle_id = b.battle_id
             where b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
@@ -795,7 +800,8 @@ export function clanLearnedQuery({ tag, fromMs, toMs }) {
 export function clanMemberBattlesQuery({ tag, fromMs, toMs }) {
   return {
     text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.trophy_change,
-                  (b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}) as learned
+                  (b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
+                   and b.battle_time >= b.created_at - interval '1 day') as learned
              from battle_participant bp
              join battle b on b.battle_id = bp.battle_id
             where bp.clan_tag = $1
@@ -993,6 +999,48 @@ export async function buildClanEntry(
           and participant_clan_tag <> $1 and fame > $4`,
       [tag, wk[0].season_id, wk[0].section_index, ours[0]?.fame ?? 0],
     );
+    // A window that ends before the week's race closed reads the race as
+    // it stood at `to` (Gym #213: 09-12..09-15 served the week's final
+    // 10,146 and a finish 5 days after `to`, where the clan stood at
+    // 3,435): the banked fame and place at the last war day closed by
+    // then, and no finish.
+    const finishedAt = finishInstant(ours[0]?.finish_time);
+    const closedAfterTo =
+      (finishedAt && Date.parse(finishedAt) > toMs) ||
+      (wk[0].finished_observed_at &&
+        wk[0].finished_observed_at.getTime() > toMs &&
+        toMs < Date.now() - 3_600_000);
+    let asOf = null;
+    if (closedAfterTo) {
+      const { rows: day } = await db.query(
+        `select l.progress_start, l.progress_earned, l.progress_from_defenses,
+                l.progress_end, l.end_of_day_rank
+           from war_period_log l
+           join war_period wp on wp.war_season_id = l.season_id and wp.period_index = l.period_index
+          where l.clan_tag = $1 and l.participant_clan_tag = $1
+            and l.season_id = $2 and l.section_index = $3
+            and wp.ends_at <= ${ts(toMs)}
+          order by l.period_index desc limit 1`,
+        [tag, wk[0].season_id, wk[0].section_index],
+      );
+      const r = day[0];
+      const parts = r
+        ? [r.progress_start, r.progress_earned, r.progress_from_defenses]
+        : [];
+      asOf = {
+        fame: !r
+          ? 0
+          : parts.every(Number.isInteger) &&
+              r.progress_end === 10000 &&
+              parts.reduce((a, b) => a + b, 0) > 10000
+            ? parts.reduce((a, b) => a + b, 0)
+            : r.progress_end,
+        place:
+          r && Number.isInteger(r.end_of_day_rank) && r.end_of_day_rank >= 0
+            ? r.end_of_day_rank + 1
+            : null,
+      };
+    }
     // The day is the calendar's at the window's end, always; the race's
     // facts are that week's record, and null when the record holds no
     // race for it - never another week's under this day's label (#166).
@@ -1002,10 +1050,18 @@ export async function buildClanEntry(
       is_colosseum: sameWeek || !p ? wk[0].is_colosseum : null,
       day_kind: null,
       war_day: null,
-      fame: sameWeek || !p ? (ours[0]?.fame ?? null) : null,
-      place_of_five: sameWeek || !p ? (standing[0]?.place ?? null) : null,
-      race_finished_at:
-        sameWeek || !p ? finishInstant(ours[0]?.finish_time) : null,
+      fame: !(sameWeek || !p)
+        ? null
+        : asOf
+          ? asOf.fame
+          : (ours[0]?.fame ?? null),
+      place_of_five: !(sameWeek || !p)
+        ? null
+        : asOf
+          ? asOf.place
+          : (standing[0]?.place ?? null),
+      race_finished_at: sameWeek || !p ? (asOf ? null : finishedAt) : null,
+      ...(asOf ? { as_of_window_end: true } : {}),
       decks: null,
       resolved,
     };
@@ -1129,6 +1185,7 @@ export async function buildClanEntry(
         where bp.clan_tag = $1
           and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time <= ${ts(toMs)}
           and b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
+          and b.battle_time >= b.created_at - interval '1 day'
         group by bp.player_tag)
      select i.player_tag, p.name, i.first_in,
             floor(extract(epoch from (i.first_in - prior.t)) / 86400)::int as after_days
@@ -1156,6 +1213,7 @@ export async function buildClanEntry(
       where bp.clan_tag = $1
         and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time <= ${ts(toMs)}
         and b.created_at > ${ts(fromMs)} and b.created_at <= ${ts(toMs)}
+        and b.battle_time >= b.created_at - interval '1 day'
       group by bp.player_tag, p.name
       order by battles desc, p.name nulls last limit $2`,
           [tag, STANDOUT_CAP],
@@ -1238,8 +1296,12 @@ export async function buildClanEntry(
 
   const { rows: don } = await timed(perf, "clan.donations", () =>
     db.query(
-      `with m as (select player_tag from clan_membership
-                 where clan_tag = $1 and left_observed_at is null),
+      // The members AT the window's end (Gym #216: a past week summed
+      // today's roster, 8,977 where the week's 47 members gave 9,094; the
+      // 117 was a member who left three days after the week closed).
+      `with m as (select distinct player_tag from clan_membership
+                 where clan_tag = $1 and joined_observed_at <= ${ts(toMs)}
+                   and (left_observed_at is null or left_observed_at > ${ts(toMs)})),
      -- The week's donations are the highest counter value seen in its
      -- game days (Monday 10:00Z on; Jamie, 2026-09-23), not the latest
      -- read, which after the weekly reset is the new week's.

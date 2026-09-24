@@ -576,7 +576,40 @@ async function projectPeriodLogs(
       rows.map((r) => r.fromDefenses),
     ],
   );
+  if (rowCount > 0) await raiseCappedWeekFame(db, tag, seasonId);
   return rowCount;
+}
+
+/** The SQL for a boat's banked progress at a day's close: the race log
+ *  caps progressEndOfDay at the 10,000 line on the finishing day, and
+ *  the row's own parts carry the real figure (feedback #84). */
+const BANKED_PROGRESS_SQL = `case when l.progress_end = 10000
+       and l.progress_start + l.progress_earned + l.progress_from_defenses > 10000
+      then l.progress_start + l.progress_earned + l.progress_from_defenses
+      else l.progress_end end`;
+
+/** A regular week whose standing holds the race log's capped 10,000 takes
+ *  the banked progress its day logs show (Gym #214, #223: 130/0 read
+ *  10,000 against 13,244 banked; 136/0 10,000 against 10,134). Colosseum
+ *  fame is not boat progress and is never touched. */
+async function raiseCappedWeekFame(db, tag, seasonId) {
+  await db.query(
+    `update war_week_clan w
+        set fame = b.banked
+       from (select l.section_index, l.participant_clan_tag,
+                    max(${BANKED_PROGRESS_SQL}) as banked
+               from war_period_log l
+              where l.clan_tag = $1 and l.season_id = $2
+              group by 1, 2) b,
+            war_week ww
+      where w.clan_tag = $1 and w.season_id = $2
+        and w.section_index = b.section_index
+        and w.participant_clan_tag = b.participant_clan_tag
+        and ww.clan_tag = w.clan_tag and ww.season_id = w.season_id
+        and ww.section_index = w.section_index and not ww.is_colosseum
+        and w.fame = 10000 and b.banked > 10000`,
+    [tag, seasonId],
+  );
 }
 
 /**
@@ -725,6 +758,16 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
       const ours = (item.standings ?? []).find(
         (st) => st?.clan?.tag && normalizeTag(st.clan.tag) === tag,
       );
+      // The banked fame, not the log's capped 10,000 (Gym #214).
+      const { rows: banked } =
+        !isColosseum && ours?.clan?.fame === 10000
+          ? await db.query(
+              `select max(${BANKED_PROGRESS_SQL}) as fame from war_period_log l
+                where l.clan_tag = $1 and l.season_id = $2 and l.section_index = $3
+                  and l.participant_clan_tag = $1`,
+              [tag, item.seasonId, item.sectionIndex],
+            )
+          : { rows: [] };
       await emitEvent(db, "week_resolved", {
         tag,
         windowEnd: finished,
@@ -732,7 +775,10 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
           season_id: item.seasonId,
           section_index: item.sectionIndex,
           is_colosseum: isColosseum,
-          fame: ours?.clan?.fame ?? null,
+          fame:
+            ours?.clan?.fame == null
+              ? null
+              : Math.max(ours.clan.fame, banked[0]?.fame ?? 0),
           rank: ours?.rank ?? null,
           trophy_change: ours?.trophyChange ?? null,
         },

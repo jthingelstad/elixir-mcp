@@ -1,0 +1,114 @@
+{
+  "feedback": 213,
+  "contract_version": "6.36.11",
+  "captured_at": "2026-09-24T01:42:07.589Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-12T00:00:00Z",
+      "to": "2026-09-15T00:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-12T00:00:00.000Z",
+        "to": "2026-09-15T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 7
+      },
+      "mark_read": false,
+      "sections": ["war"],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-12T00:00:00.000Z",
+      "to": "2026-09-15T00:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-14T09:38:05.000Z",
+        "kind": "week_resolved",
+        "section": "war",
+        "facts": {
+          "season_id": 136,
+          "section_index": 0,
+          "is_colosseum": false,
+          "fame": 10000,
+          "rank": 1,
+          "trophy_change": 20
+        },
+        "observed_at": "2026-09-14T09:38:05.000Z",
+        "text": "Mon 09:38 POAP KINGS finished week 1 in place 1 with 10,000 fame (+20 war trophies)."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-12T00:00:00.000Z",
+          "to": "2026-09-15T00:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 1296 battles in 322 sessions by 41 of 47 members since Sep 12; joined: ㅤᴀɴᴅᴇʀㅤ:), VVSBUDGET; left: ㅤᴀɴᴅᴇʀㅤ:); roster 46→47; week 1 finished in place 1 with 10,000 fame; training day; quiet past 5d: sniperhendo (7d); back: round hamster after 7d; most battles: Aaqib Javed 191, sikander sidhu 137, L-Drxgo⚡ 107; ranked: Aaqib Javed → Master 2, Aaqib Javed → Master 2; standout sessions: L-Drxgo⚡ 24W-24L, Aaqib Javed 28W-9L (12 in a row), sikander sidhu 9W-14L -102; badges: Sandeep 3 (Furnace Mastery, Goblin Gang Mastery, Furnace Mastery), MONICA 2 (Barbarian Barrel Mastery, Royal Recruits Mastery), Mega Goblin 2 (Barbarian Barrel Mastery, Golden Knight Mastery); donations this week 151, led by Ak (45).",
+        "war": {
+          "season_id": 136,
+          "week": 2,
+          "is_colosseum": false,
+          "day_kind": "training",
+          "war_day": null,
+          "fame": 10146,
+          "place_of_five": 1,
+          "race_finished_at": "2026-09-20T09:38:05.000Z",
+          "decks": null,
+          "resolved": [
+            {
+              "season_id": 136,
+              "week": 1,
+              "is_colosseum": false,
+              "finished_at": "2026-09-14T09:38:05.000Z",
+              "fame": 10000,
+              "rank": 1,
+              "trophy_change": 20
+            }
+          ]
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-15T00:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is oldest first: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "6.36.11"
+    }
+  },
+  "timings": {
+    "db_ms": 402,
+    "db_queries": 24,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}
