@@ -118,6 +118,7 @@ export async function trainingBackfill(databaseUrl, spec = {}) {
       params,
     );
     let inserted = 0;
+    let stale = 0;
     if (apply) {
       const { rowCount } = await db.query(
         `insert into war_attendance_day
@@ -134,8 +135,29 @@ export async function trainingBackfill(databaseUrl, spec = {}) {
         params,
       );
       inserted = rowCount;
+      // A rebuilt day the rebuild no longer produces (the roll moved its
+      // battles to the next day) goes; a poll row is never touched.
+      const { rowCount: removed } = await db.query(
+        `delete from war_attendance_day t
+          where t.season_id = $1 and t.source = 'battlelog' and t.war_day is null
+            and not exists (
+              select 1 from (${PRACTICE_SQL}) x
+               where x.clan_tag = t.clan_tag and x.season_id = t.season_id
+                 and x.section_index = t.section_index
+                 and x.day_in_section = t.day_in_section
+                 and x.player_tag = t.player_tag and x.decks_used_today > 0)`,
+        params,
+      );
+      stale = removed;
     }
-    return { season_id: seasonId, apply, weeks, vs_poll: vsPoll, inserted };
+    return {
+      season_id: seasonId,
+      apply,
+      weeks,
+      vs_poll: vsPoll,
+      inserted,
+      removed: stale,
+    };
   } finally {
     await db.end();
   }
