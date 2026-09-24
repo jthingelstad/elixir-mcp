@@ -197,15 +197,21 @@ export function summarizeClan(e, timeZone = "UTC") {
     }
   }
   const p = e.presence;
-  if (p.quiet_crossed?.items.length)
+  // Grouped by the rung each member crossed (Gym #267: "quiet past 10d"
+  // headed a list where four had crossed only 5 days).
+  if (p.quiet_crossed?.items.length) {
+    const byRung = new Map();
+    for (const m of p.quiet_crossed.items.slice(0, 5)) {
+      if (!byRung.has(m.rung)) byRung.set(m.rung, []);
+      byRung.get(m.rung).push(`${m.name ?? m.tag} (${m.days_quiet}d)`);
+    }
     parts.push(
-      // Each member at their own rung, not the first's on the whole list
-      // (Gym #267: "quiet past 10d" over four who crossed only 5 days).
-      `quiet: ${p.quiet_crossed.items
-        .slice(0, 5)
-        .map((m) => `${m.name ?? m.tag} (${m.days_quiet}d)`)
-        .join(", ")}${p.quiet_crossed.more ? ` +${p.quiet_crossed.more}` : ""}`,
+      [...byRung.entries()]
+        .sort((a, b) => b[0] - a[0])
+        .map(([rung, names]) => `quiet past ${rung}d: ${names.join(", ")}`)
+        .join("; ") + (p.quiet_crossed.more ? ` +${p.quiet_crossed.more}` : ""),
     );
+  }
   if (p.returned?.items.length)
     parts.push(
       `back: ${p.returned.items

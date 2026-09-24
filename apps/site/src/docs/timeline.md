@@ -27,12 +27,13 @@ after a month gets a month's timeline (capped at 30 days, and at the newest
 
 | Argument | Type | Default | Notes |
 |---|---|---|---|
-| `from` | string | your read pointer, else 24 hours ago | an ISO instant, or `YYYY-MM-DD` at local midnight in your timezone; capped at 30 days before `to` |
-| `to` | string | now | an ISO instant, or a date covering that whole local day |
+| `from` | string | your read pointer, else 24 hours ago | EXCLUSIVE: items observed after it; an ISO instant, or `YYYY-MM-DD` at local midnight in your timezone; capped at 30 days before `to` |
+| `to` | string | now | INCLUSIVE, compared at the millisecond served; an ISO instant, or a date covering that whole local day |
 | `mark_read` | boolean | `true` | move the read pointer (the reader's, or the account's) to this window's end |
 | `reader` | string | none | this consumer's own pointer, by a short name (`^[a-z0-9][a-z0-9-]{0,31}$`; 3.18.0): an omitted `from` reads since it, `mark_read` moves it, `read_to` reports it; the account's unnamed pointer and every other reader's are untouched |
 | `sections` | string[] | all | keep only items and entry sections in these sections |
 | `kinds` | string[] | all | keep only items of these kinds (the table below, or `account_*`); entries are untouched. A consumer that wakes on a few kinds reads only those |
+| `player_tag` | string | none | keep only items about this player: their moments and sessions, and on a clan's timeline their member moments and sessions; applied before the cap; never moves the read pointer (7.1.5-7.1.7) |
 | `verbosity` | `full` \| `compact` | `full` | compact keeps items, entry summaries and player notables, and drops entry sections including clan standouts |
 | `timezone` | IANA zone | the account's | for date-only bounds and the text's times |
 
@@ -97,7 +98,7 @@ belongs to, so `sections` filters items and entries together.
 
 | kind | subject | what it is |
 |---|---|---|
-| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `won_in_a_row`, `open` while it may still be going. Single battles never appear. |
+| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `won_in_a_row`, `open` while it may still be going. A session is two or more battles; a single battle is not an item. |
 | `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500, `battles` 20 / 40 in one sitting. The session shape plus `crossed` (every rung so far) and `newly` (the rungs this window learned); `at` is the battle that crossed the first new rung. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
 | `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge's API identifier (`MasterySkeletonWarriors`), `facts.badge_label` the badge as a player says it (`Guards Mastery`, 4.2.0), `facts.name` the member on a clan's timeline. A level-up is an item only at the badge's final level or a multiple of five (`max_level` rides on rows written since 3.9.0); the entry's `badges` counts every level-up |
 | `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor and `at` is that battle's instant rather than the poll's; absent means a capture gap, never a guess |

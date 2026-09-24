@@ -1273,7 +1273,15 @@ export async function buildClanEntry(
           if (atMs <= fromMs || atMs > toMs || atMs >= end) continue;
           // Never while the silence is ours (the gap still open and the
           // record not polling the member).
-          if (open && m.days_since_poll !== null && m.days_since_poll >= rung)
+          // days_since_poll is today's, so it speaks only for a window
+          // ending near now (a past window's crossings are the record's:
+          // the older-items read lost two, Gym #274).
+          if (
+            open &&
+            toMs >= Date.now() - DAY_MS &&
+            m.days_since_poll !== null &&
+            m.days_since_poll >= rung
+          )
             continue;
           crossings.push({
             tag: m.player_tag,
@@ -1308,34 +1316,8 @@ export async function buildClanEntry(
     ...sessionFacts(sess),
     crossed: sess.crossed,
   }));
-  const { rows: returned } = !learnedRecent
-    ? { rows: [] }
-    : await timed(perf, "clan.returned", () =>
-        db.query(
-          `with inwin as (
-       select bp.player_tag, min(bp.battle_time) as first_in,
-              (array_agg(b.created_at order by bp.battle_time))[1] as first_in_learned
-         from battle_participant bp
-         join battle b on b.battle_id = bp.battle_id
-        where bp.clan_tag = $1
-          and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
-          and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
-          and b.battle_time >= b.created_at - interval '1 day'
-        group by bp.player_tag)
-     select i.player_tag, p.name, i.first_in, i.first_in_learned,
-            floor(extract(epoch from (i.first_in - prior.t)) / 86400)::int as after_days
-       from inwin i
-       join player p on p.player_tag = i.player_tag
-       join lateral (
-         select max(bp2.battle_time) as t from battle_participant bp2
-          where bp2.player_tag = i.player_tag and bp2.battle_time < i.first_in) prior on true
-      where prior.t is not null
-        and i.first_in - prior.t >= make_interval(days => $2)
-      order by after_days desc`,
-          [tag, RETURN_AFTER_DAYS],
-        ),
-      );
-
+  // Returns come from the battle gaps below (Gym #272), which also see
+  // a return whose absence began inside the window.
   // Standouts, bounded and named.
   const { rows: most } = !learnedRecent
     ? { rows: [] }
@@ -1534,12 +1516,17 @@ export async function buildClanEntry(
     presence: comprehensive
       ? {
           quiet_crossed: capList(quietCrossed.map(({ at: _at, ...r }) => r)),
+          // Every return the window's battle gaps hold, as the items say
+          // (Gym #272: a return whose absence began inside the window was
+          // missing from the entry). Newest first.
           returned: capList(
-            returned.map((r) => ({
-              tag: r.player_tag,
-              name: r.name,
-              after_days: r.after_days,
-            })),
+            [...returns]
+              .sort((a, b) => b.at.localeCompare(a.at))
+              .map((r) => ({
+                tag: r.tag,
+                name: r.name,
+                after_days: r.after_days,
+              })),
           ),
           never_recorded: neverRecorded,
           rungs_days: QUIET_RUNGS_DAYS,

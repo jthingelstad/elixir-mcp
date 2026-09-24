@@ -494,6 +494,9 @@ in its hint.
   and answered now from the record with `live_status: { state:
   "pending", retry_after_s }`; call again after that. The tools are
   annotated `openWorldHint`.
+  `elixir_timeline` is the one exception: it selects by when the record
+  observed an item, over (from, to] at the millisecond it serves, so a cut
+  instant passed as `to` reaches the item at the cut (7.1.5).
 
 ## Identifiers the record uses
 
