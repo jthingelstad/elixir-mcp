@@ -186,7 +186,15 @@ export const cardProfileTools = {
         [anchor.id],
       );
       const first = { base: null, evolution: null, hero: null };
-      for (const r of firstPlayed) first[formName(r.form)] = r.at.toISOString();
+      // The earliest per form: formName folds every code it does not name
+      // into base, so a later row had overwritten base's date on the four
+      // cards with both an Evolution and a Hero (Gym #281: Valkyrie base
+      // read 2026-08-09 over 9,543 earlier base battles).
+      for (const r of firstPlayed) {
+        const k = formName(r.form);
+        const at = r.at.toISOString();
+        if (!first[k] || at < first[k]) first[k] = at;
+      }
       const card = {
         id: anchor.id,
         name: anchor.name,
@@ -425,10 +433,13 @@ export const cardProfileTools = {
         out.decks ? ARCHETYPE_NOTE : null,
         ...extraNotes,
         catalogNote,
+        out.members?.held?.length
+          ? "members.held[].observed_at is the newest read of each member's collection (it arrives with the profile); since is when that level and form were first seen."
+          : null,
         args.mode === "ladder" ? null : RANKED_NO_BAND_NOTE,
         SEGMENT_NOTES.filter((n) => !n.includes("CORPUS mean")),
         collectionSegmentNote(seg),
-        `shrunk_win_rate shrinks toward prior_win_rate: ${usage.prior.basis === "corpus_season" ? "the corpus season's decided mean" : "this population's own decided mean over the window"} (prior_basis), and is withheld below ${META_METHODOLOGY.segment_min_decided} decided observations, where the row says insufficient_sample: true.`,
+        `shrunk_win_rate shrinks toward prior_win_rate: ${usage.prior.basis === "corpus_season" ? "the corpus season's decided mean" : "this population's own decided mean over the window"} (prior_basis), and is withheld (null, insufficient_sample: true) when the POPULATION is under ${META_METHODOLOGY.segment_min_decided} decided observations, not per row: a row with few battles still carries one, shrunk hard toward the prior.`,
         win.seasonNotes,
         roll?.note,
       );
@@ -694,7 +705,16 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
     params,
   );
   const { rows: held } = await ctx.db.query(
-    `select cm.player_tag, p.name, pc.level, pc.evolution_level, pc.star_level, pc.observed_at,
+    `select cm.player_tag, p.name, pc.level, pc.evolution_level, pc.star_level,
+            pc.observed_at as since,
+            -- The newest read of the collection (it arrives with the
+            -- profile), not when this level was first seen (Gym #283).
+            greatest(
+              (select s.profile_observed_at from player_snapshot_daily s
+                where s.player_tag = cm.player_tag and s.profile_observed_at is not null
+                order by s.snapshot_date desc, s.snapshot_kind desc limit 1),
+              (select ps.last_admitted_at from poll_state ps
+                where ps.subject_tag = cm.player_tag and ps.endpoint = 'player')) as observed_at,
             exists (select 1 from player_card any_pc where any_pc.player_tag = cm.player_tag) as has_collection
      from clan_membership cm
      join player p on p.player_tag = cm.player_tag
@@ -716,14 +736,15 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
       forms: (r.forms ?? []).map(formName).sort(),
     })),
     held: withCollection
-      .filter((h) => h.observed_at !== null)
+      .filter((h) => h.since !== null)
       .map((h) => ({
         player_tag: h.player_tag,
         name: h.name,
         level: h.level,
         forms_unlocked: cardForms(h.evolution_level),
         star_level: h.star_level ?? null,
-        observed_at: h.observed_at.toISOString(),
+        observed_at: (h.observed_at ?? h.since).toISOString(),
+        since: h.since.toISOString(),
       })),
     members_with_collection: withCollection.length,
     members: held.length,

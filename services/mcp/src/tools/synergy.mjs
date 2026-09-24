@@ -47,9 +47,26 @@ import { catalogItems } from "./cards.mjs";
  *  recorded catalog. A name that only matches as a substring is refused
  *  with the candidates: Witch and Mother Witch are one fuzzy match apart. */
 export async function resolveCard(db, { card_id, card }) {
-  const items = (await catalogItems(db))
-    .filter((r) => r.kind === "card")
-    .map((r) => r.item);
+  const all = await catalogItems(db);
+  const items = all.filter((r) => r.kind === "card").map((r) => r.item);
+  // A tower troop is in the catalog but not a deck card: say so, rather
+  // than "not in the catalog" beside cards_catalog listing it (Gym #282).
+  const tower = all
+    .filter((r) => r.kind !== "card")
+    .map((r) => r.item)
+    .find(
+      (c) =>
+        (card_id !== undefined && c.id === Number(card_id)) ||
+        (card !== undefined &&
+          String(c.name ?? "").toLowerCase() ===
+            String(card).trim().toLowerCase()),
+    );
+  if (tower)
+    throw new ToolFailure(
+      "bad_request",
+      `${tower.name} (${tower.id}) is a tower troop, not one of the eight deck cards; the card tools read deck cards.`,
+      "A deck's tower troop is on full-verbosity deck rows (battles_decks, battles_meta_decks: tower_troop); cards_catalog lists the tower troops.",
+    );
   if (card_id !== undefined) {
     const id = Number(card_id);
     const hit = items.find((c) => c.id === id);

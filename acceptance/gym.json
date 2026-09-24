@@ -16331,5 +16331,480 @@
         "sum_eq": [["r.badges[].holders"], "c.members[].badge_count"]
       }
     ]
+  },
+  {
+    "id": "281.1",
+    "feedback": 281,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26000011,
+      "segment": "corpus",
+      "verbosity": "compact"
+    },
+    "request_id": "dcaf9130-cf5a-468a-b8ba-84ed7b845488",
+    "assert": [
+      {
+        "neq": ["card.first_played.base", "2026-08-09T15:43:19.000Z"]
+      }
+    ]
+  },
+  {
+    "id": "281.2",
+    "feedback": 281,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26000000,
+      "segment": "corpus",
+      "verbosity": "compact"
+    },
+    "request_id": "8cf8adde-178d-40c1-bf14-21b565210be7",
+    "assert": [
+      {
+        "neq": ["card.first_played.base", "2026-02-20T22:52:14.000Z"]
+      }
+    ]
+  },
+  {
+    "id": "281.3",
+    "feedback": 281,
+    "stability": "frozen",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26000011,
+      "segment": "corpus",
+      "from": "2025-11-01T00:00:00Z",
+      "to": "2026-08-09T15:43:19.000Z",
+      "verbosity": "compact"
+    },
+    "request_id": "c15877cc-9b3c-4775-a451-44ae669d211d",
+    "assert": [
+      {
+        "gt": ["season.forms[?form=base].battles", 0]
+      }
+    ]
+  },
+  {
+    "id": "281.4",
+    "feedback": 281,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26000021,
+      "segment": "corpus",
+      "verbosity": "compact"
+    },
+    "request_id": "d0da16d6-d5fd-41c2-b120-7ce3d1372583",
+    "assert": [
+      {
+        "eq": ["card.first_played.base", "2026-01-03T07:34:30.000Z"]
+      }
+    ]
+  },
+  {
+    "id": "281.5",
+    "feedback": 281,
+    "stability": "frozen",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26000021,
+      "segment": "corpus",
+      "from": "2025-11-01T00:00:00Z",
+      "to": "2026-01-03T07:34:30.000Z",
+      "verbosity": "compact"
+    },
+    "request_id": "ec754668-926f-462c-bbe5-de1bac9d6fe2",
+    "assert": [
+      {
+        "count_eq": ["season.forms[]", 0]
+      }
+    ]
+  },
+  {
+    "id": "281.6",
+    "feedback": 281,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26000000,
+      "segment": "corpus",
+      "verbosity": "compact"
+    },
+    "request_id": "8cf8adde-178d-40c1-bf14-21b565210be7",
+    "assert": [
+      {
+        "before": ["card.first_played.base", "2026-02-02T10:00:00.000Z"]
+      }
+    ]
+  },
+  {
+    "id": "282.1",
+    "feedback": 282,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card_id": 159000004,
+      "segment": "corpus"
+    },
+    "request_id": "321c8a36-df38-4bf7-ab8b-a876872f0699",
+    "assert": [
+      {
+        "notes_not_match": "(?i)no card with id 159000004 in the catalog"
+      }
+    ]
+  },
+  {
+    "id": "282.2",
+    "feedback": 282,
+    "stability": "live",
+    "tool": "cards_synergy",
+    "args": {
+      "card_id": 159000001,
+      "segment": "corpus",
+      "limit": 5
+    },
+    "request_id": "f7337149-734a-46ce-9f7c-c8921f3204e2",
+    "assert": [
+      {
+        "notes_not_match": "(?i)no card with id 159000001 in the catalog"
+      }
+    ]
+  },
+  {
+    "id": "282.3",
+    "feedback": 282,
+    "stability": "live",
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": "corpus",
+      "cards": [159000004]
+    },
+    "request_id": "1c239d32-60ef-458a-b115-6b128037900e",
+    "assert": [
+      {
+        "notes_match": "(?i)tower troop"
+      }
+    ]
+  },
+  {
+    "id": "282.4",
+    "feedback": 282,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_catalog",
+    "args": {
+      "ids": [159000004]
+    },
+    "request_id": "b9eef56a-b053-4267-9eab-a6813bf3abe8",
+    "assert": [
+      {
+        "eq": ["tower_troops[0].id", 159000004]
+      },
+      {
+        "eq": ["tower_troops[0].type", "tower_troop"]
+      }
+    ]
+  },
+  {
+    "id": "282.5",
+    "feedback": 282,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26999999,
+      "segment": "corpus"
+    },
+    "request_id": "78465223-2a90-4368-ab38-8c49dc9827d9",
+    "assert": [
+      {
+        "notes_match": "(?i)no card with id 26999999"
+      }
+    ]
+  },
+  {
+    "id": "283.1",
+    "feedback": 283,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": "mine"
+    },
+    "request_id": "7fa0d0eb-0d5a-4aac-8b9c-f17de120082f",
+    "assert": [
+      {
+        "notes_match": "(?i)observed_at"
+      }
+    ]
+  },
+  {
+    "id": "283.2",
+    "feedback": 283,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "cards_card",
+        "args": {
+          "card": "Witch",
+          "segment": "mine"
+        }
+      },
+      "p": {
+        "tool": "players_collection",
+        "args": {
+          "player_tag": "#20JJJ2CCRU"
+        }
+      }
+    },
+    "request_id": "7fa0d0eb-0d5a-4aac-8b9c-f17de120082f",
+    "assert": [
+      {
+        "eq": [
+          "c.members.held[?player_tag=#20JJJ2CCRU].level",
+          "p.cards[?id=26000007].level"
+        ]
+      },
+      {
+        "has": "p.as_of_payload"
+      }
+    ]
+  },
+  {
+    "id": "284.1",
+    "feedback": 284,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "trophy_band": "under_5000",
+      "limit": 10
+    },
+    "request_id": "64aa55fd-5851-49b5-91e1-063f38a531b9",
+    "assert": [
+      {
+        "notes_not_match": "(?i)null on a row under 30"
+      }
+    ]
+  },
+  {
+    "id": "284.2",
+    "feedback": 284,
+    "stability": "live",
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "cards": [26000007],
+      "min_battles": 1
+    },
+    "request_id": "6ab6a84f-b828-47a2-be70-329b81584873",
+    "assert": [
+      {
+        "notes_not_match": "(?i)null on a row under 30"
+      }
+    ]
+  },
+  {
+    "id": "284.3",
+    "feedback": 284,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      }
+    },
+    "request_id": "a1a1004b-dc44-46b9-b545-f2b041b1f42e",
+    "assert": [
+      {
+        "notes_match": "(?i)(segment_min_decided|population.{0,40}(below|under) 30|not per row)"
+      }
+    ]
+  },
+  {
+    "id": "284.4",
+    "feedback": 284,
+    "stability": "frozen",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "from": "2026-09-14",
+      "to": "2026-09-20"
+    },
+    "request_id": "902c8f20-5a9c-4918-9fd2-e1df0ff612bd",
+    "assert": [
+      {
+        "eq": ["season.all.insufficient_sample", true]
+      },
+      {
+        "absent": "season.all.shrunk_win_rate"
+      }
+    ]
+  },
+  {
+    "id": "284.5",
+    "feedback": 284,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "mine",
+      "limit": 10,
+      "min_players": 2
+    },
+    "request_id": "045b84d5-6797-49a7-8fe3-2f1097fe04a7",
+    "assert": [
+      {
+        "gte": ["players", 2]
+      }
+    ],
+    "for_each": "decks[]"
+  },
+  {
+    "id": "284.6",
+    "feedback": 284,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "mine",
+      "limit": 10
+    },
+    "request_id": "c4ba93c0-2bb9-42b9-9ec9-716b77b13a17",
+    "assert": [
+      {
+        "notes_match": "(?i)one player's own deck"
+      }
+    ]
+  },
+  {
+    "id": "285.1",
+    "feedback": 285,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "m": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": "corpus",
+          "cards": [26000007]
+        }
+      },
+      "c": {
+        "tool": "cards_card",
+        "args": {
+          "card": "Witch",
+          "segment": "corpus"
+        }
+      }
+    },
+    "request_id": "f1c4bbb7-4c2a-49fd-9c24-a787b35d22b7",
+    "assert": [
+      {
+        "eq": ["m.decided_battles", "c.season.decided_battles"]
+      },
+      {
+        "eq": [
+          "m.cards[?form=base].battles",
+          "c.season.forms[?form=base].battles"
+        ]
+      },
+      {
+        "eq": [
+          "m.cards[?form=evolution].wins",
+          "c.season.forms[?form=evolution].wins"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "285.2",
+    "feedback": 285,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "m": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": "mine",
+          "cards": [26000007]
+        }
+      },
+      "c": {
+        "tool": "cards_card",
+        "args": {
+          "card": "Witch",
+          "segment": "mine"
+        }
+      }
+    },
+    "request_id": "1affe0eb-51a5-441d-8256-053b65b2042e",
+    "assert": [
+      {
+        "eq": ["m.decided_battles", "c.season.decided_battles"]
+      },
+      {
+        "eq": [
+          "m.cards[?form=base].battles",
+          "c.season.forms[?form=base].battles"
+        ]
+      },
+      {
+        "sum_eq": [["c.members.played[].battles"], "c.season.all.battles"]
+      }
+    ]
+  },
+  {
+    "id": "285.3",
+    "feedback": 285,
+    "stability": "frozen",
+    "control": true,
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Witch",
+      "segment": "corpus",
+      "from": "2026-09-20",
+      "to": "2026-09-10"
+    },
+    "request_id": "a1d40e85-2ee2-4579-9364-26b2802b52ef",
+    "assert": [
+      {
+        "notes_match": "(?i)swap the bounds"
+      }
+    ]
+  },
+  {
+    "id": "285.4",
+    "feedback": 285,
+    "stability": "frozen",
+    "control": true,
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Witch",
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "from": "2026-08-25",
+      "to": "2026-09-14",
+      "limit": 3
+    },
+    "request_id": "9a63dffb-5141-4634-92c8-dc6334a5cd61",
+    "assert": [
+      {
+        "notes_match": "(?i)balance changes land on the season roll"
+      }
+    ]
   }
 ]

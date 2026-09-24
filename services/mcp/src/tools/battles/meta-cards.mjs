@@ -4,6 +4,7 @@ import {
   responseMeta,
   typesForModeGroup,
   EVENT_MODE_GROUP,
+  cardType,
 } from "@elixir-mcp/contracts";
 import {
   META_METHODOLOGY,
@@ -401,6 +402,11 @@ export const battles_meta_cards = {
       ...(fitBlock ? { fit_for: fitBlock } : {}),
       cards: shaped,
       notes: notes(
+        // A tower troop is not a deck card (Gym #282): an empty answer
+        // for one says why.
+        (args.cards ?? []).some((id) => cardType(Number(id)) === "tower_troop")
+          ? "A tower troop is not one of the eight deck cards, so battles_meta_cards has no row for it; full-verbosity deck rows (battles_meta_decks, battles_decks) carry tower_troop."
+          : null,
         outsideMetaNote(excluded?.outside_meta ?? 0),
         args.mode === EVENT_MODE_GROUP ? META_EVENT_NOTE : null,
         fitBlock ? cardFitNote(fitBlock, shaped) : NO_FIT_NOTE,

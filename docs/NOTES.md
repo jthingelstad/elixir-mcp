@@ -2210,3 +2210,7 @@ Left for Jamie (in the morning report): M1's other not-found-on-error pages (Cal
 - Badges r5: 12 regressions hold. **#279** players_considered 0 note. Holder observed_at = greatest(snapshot, poll_state) (91.1/91.4 caught by the players gate).
 - A Gym wrote fb.json into the repo root; moved to /tmp/gym-stray/ (untracked scratch).
 
+## 2026-09-24 — Gym cards round 5 (7.1.10, feedback #281-#285)
+
+- 18 regressions, 17 hold; #256 residue -> **#284** (population cutoff wording). **#281** first_played earliest per form. **#282** tower troop refusal (a tower-troop tool is a missing interface, for Jamie). **#283** held observed_at = newest profile read, since = first seen. #285 praise. Explore's deck list limit 20 (it was still 62k at 50).
+

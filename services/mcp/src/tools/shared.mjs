@@ -1105,7 +1105,7 @@ export function collectionSegmentNote(seg) {
 export const SEGMENT_NOTES = [
   "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
   "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
-  `shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is null on a row under ${META_METHODOLOGY.segment_min_decided} decided observations, which says insufficient_sample: true; win_rate is the raw rate at any sample size, so read it beside battles.`,
+  `shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld (null, insufficient_sample: true) when the population is under ${META_METHODOLOGY.segment_min_decided} decided observations, not per row: a row with few battles still carries one, shrunk hard toward the mean. win_rate is the raw rate at any sample size, so read it beside battles.`,
   "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
 ];
 export const SEGMENT_DOCS =

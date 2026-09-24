@@ -102,7 +102,7 @@ async function fetchRecord(kind, id) {
         return call("battles_decks", {
           player_tag: decTag(key),
           verbosity: "compact",
-          limit: 50,
+          limit: 20,
         });
       if (what === "members")
         return call("clans_roster", { clan_tag: decTag(key) });
