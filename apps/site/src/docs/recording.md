@@ -166,6 +166,14 @@ differs from the last becomes a snapshot with a row per placed player (rank,
 rating, name, clan); an identical later fetch confirms the existing snapshot
 rather than duplicating it, so the record also says how long a board held.
 
+The API can serve an **incomplete board** just after the reset: on
+2026-09-24 the global board arrived minutes after 10:00Z without 392 of its
+players, a #36 among them. A full board whose cutoff falls 40 or more below
+the previous snapshot's is flagged at ingest and read once more about 30
+minutes later; the re-read **replaces** it for every reader (the flagged
+snapshot is kept, marked superseded, and no read or timeline serves it).
+`rankings_players` still says so when a board it serves looks incomplete.
+
 `rankings_players` reads a board — the latest, or as it was at any earlier
 instant with `as_of` — paged, because a whole board can run to a thousand
 places. `rankings_clans` aggregates it: which clans have the most rated

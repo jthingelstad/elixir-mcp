@@ -98,6 +98,8 @@ export const elixir_docs = {
               ? "No page holds every word, so these hold some of them; read one with page, or just the section with page + section."
               : "Read a match with page, or just its section with page + section: in_section.",
         ),
+        // The best match's page, or the index (journey r3: none served).
+        docs: docsRef(matches[0]?.slug ?? "about"),
         corpus_built_at: CORPUS_BUILT_AT,
         meta,
       };

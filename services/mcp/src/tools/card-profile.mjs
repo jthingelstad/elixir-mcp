@@ -544,8 +544,8 @@ async function seasonUsage(
     params,
   );
   params.push(anchor.id);
-  const { rows } = await ctx.db.query(
-    `select dc.form, bp.type,
+  let { rows } = await ctx.db.query(
+    `select dc.form, bp.type, grouping(bp.type) = 1 as form_total,
             count(*)::int as battles,
             count(*) filter (where bp.outcome = 'win')::int as wins,
             count(*) filter (where bp.outcome = 'loss')::int as losses,
@@ -553,9 +553,15 @@ async function seasonUsage(
      from battle_participant bp
      join deck_card dc on dc.deck_hash = bp.deck_hash and dc.card_id = $${params.length}
      where ${where.join(" and ")}
-     group by dc.form, bp.type`,
+     group by grouping sets ((dc.form, bp.type), (dc.form))`,
     params,
   );
+  // The (form) set carries each form's distinct players, which the
+  // (form, type) rows cannot sum to (journey r3: forms[].players was null).
+  const formPlayers = new Map(
+    rows.filter((r) => r.form_total).map((r) => [Number(r.form), r.players]),
+  );
+  rows = rows.filter((r) => !r.form_total);
   const decided = pop?.decided ?? 0;
   const prior =
     decided >= META_METHODOLOGY.segment_min_decided ? pop.wins / decided : null;
@@ -568,14 +574,18 @@ async function seasonUsage(
     }
     return acc;
   };
-  // Distinct players over (form, type) rows cannot be summed; the merged
-  // row is re-counted once below and the per-form rows carry null.
+  // Distinct players per form come from the (form) grouping set; the
+  // merged row is re-counted once below.
   const forms = FORM_ROWS.slice(1)
     .map((f) => ({ f, list: rows.filter((r) => Number(r.form) === f.form) }))
     .filter(({ list }) => list.length)
     .map(({ f, list }) => ({
       form: f.name,
-      ...usageRow({ ...fold(list), players: null }, decided, prior),
+      ...usageRow(
+        { ...fold(list), players: formPlayers.get(f.form) ?? null },
+        decided,
+        prior,
+      ),
     }));
   const {
     rows: [allPlayers],

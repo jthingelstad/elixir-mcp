@@ -1115,3 +1115,39 @@ test("a subject the API answers 404 for is due once a day and never starved (202
     ["currentriverrace:#GJ09RJP8"],
   );
 });
+
+test("Gym #342: an incomplete board owes one re-read at reread_at, then is done for the day", async () => {
+  const at = (iso) => new Date(iso);
+  await db.query(
+    `update ranking_board set enabled = true, every_minutes = 1440, reread_at = '2026-09-05T10:32:00Z'
+     where board = 'pol' and location_key = '57000249'`,
+  );
+  await setState("57000249", "rankings_pol", {
+    admitted: at("2026-09-05T10:02:00Z"),
+    planned: at("2026-09-05T10:02:00Z"),
+  });
+  const planned = async (iso) => {
+    await setTokens(100);
+    return (await planTick(db, at(iso))).jobs.some(
+      (j) => j.endpoint === "rankings_pol" && j.entity_key === "57000249",
+    );
+  };
+  assert.equal(
+    await planned("2026-09-05T10:20:00Z"),
+    false,
+    "not before reread_at",
+  );
+  assert.equal(
+    await planned("2026-09-05T10:33:00Z"),
+    true,
+    "owed at reread_at",
+  );
+  await setState("57000249", "rankings_pol", {
+    admitted: at("2026-09-05T10:34:00Z"),
+    planned: at("2026-09-05T10:33:00Z"),
+  });
+  assert.equal(await planned("2026-09-05T11:00:00Z"), false, "once only");
+  await db.query(
+    `update ranking_board set reread_at = null where board = 'pol' and location_key = '57000249'`,
+  );
+});

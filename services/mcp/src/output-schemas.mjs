@@ -544,7 +544,7 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
       notes: NOTES,
     },
-    required: ["meta"],
+    required: ["meta", "notes", "docs"],
   },
   live_fetch: {
     type: "object",
@@ -558,7 +558,7 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
       notes: NOTES,
     },
-    required: ["meta"],
+    required: ["meta", "notes", "docs"],
   },
   elixir_my_players: {
     type: "object",
@@ -588,7 +588,7 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
       notes: NOTES,
     },
-    required: ["players", "meta"],
+    required: ["players", "meta", "notes", "docs"],
   },
   elixir_track_player: {
     type: "object",
@@ -608,7 +608,7 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
       notes: NOTES,
     },
-    required: ["applied", "player_tag", "meta"],
+    required: ["applied", "player_tag", "meta", "notes", "docs"],
   },
   elixir_track_clan: {
     type: "object",
@@ -626,7 +626,7 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
       notes: NOTES,
     },
-    required: ["applied", "clan_tag", "meta"],
+    required: ["applied", "clan_tag", "meta", "notes", "docs"],
   },
   elixir_identify: {
     type: "object",
@@ -674,7 +674,7 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
       notes: NOTES,
     },
-    required: ["applied", "player_tag", "docs", "meta"],
+    required: ["applied", "player_tag", "docs", "meta", "notes"],
   },
   elixir_send_feedback: {
     type: "object",
@@ -689,7 +689,7 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
       notes: NOTES,
     },
-    required: ["ok", "feedback_id", "meta"],
+    required: ["ok", "feedback_id", "meta", "notes", "docs"],
   },
   collections_browse: {
     type: "object",
@@ -777,7 +777,15 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
       notes: NOTES,
     },
-    required: ["slug", "applied", "added", "removed", "members", "notes"],
+    required: [
+      "slug",
+      "applied",
+      "added",
+      "removed",
+      "members",
+      "notes",
+      "docs",
+    ],
   },
   badges_holders: {
     type: "object",
@@ -1331,7 +1339,7 @@ export const OUTPUT_SCHEMAS = {
       title: { type: ["string", "null"] },
       url: { type: ["string", "null"] },
     },
-    required: ["meta"],
+    required: ["meta", "notes", "docs"],
   },
 
   elixir_examples: {
@@ -1356,7 +1364,7 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
       notes: NOTES,
     },
-    required: ["corpus_built_at", "examples", "meta", "notes"],
+    required: ["corpus_built_at", "examples", "meta", "notes", "docs"],
   },
 
   elixir_updates: {
@@ -1387,6 +1395,7 @@ export const OUTPUT_SCHEMAS = {
       "meta",
       "notes",
       "total",
+      "docs",
     ],
   },
 
@@ -3037,7 +3046,15 @@ export const OUTPUT_SCHEMAS = {
       docs: DOCS,
       meta: META,
     },
-    required: ["clan_tag", "applied", "name", "member_count", "meta"],
+    required: [
+      "clan_tag",
+      "applied",
+      "name",
+      "member_count",
+      "meta",
+      "notes",
+      "docs",
+    ],
   },
 
   players_timeline: {

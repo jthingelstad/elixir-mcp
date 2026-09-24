@@ -127,6 +127,80 @@ async function standingsMoved(db, prevSnapshotId, entries) {
   );
 }
 
+/** A full Path of Legends board (the API's top 1,000). */
+const POL_DEPTH = 1000;
+/** A cutoff on a full board rarely falls this far in a day (Gym #342). */
+const SUSPECT_FLOOR_FALL = 40;
+const REREAD_AFTER_MS = 30 * 60_000;
+
+/** The 10:00Z board-day a read falls in (the planner's anchor). */
+function boardDayStart(at) {
+  const d = new Date(at);
+  const today = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+    10,
+  );
+  return new Date(at.getTime() >= today ? today : today - 86_400_000);
+}
+
+/** Gym #342 (Jamie, 2026-09-24): the API can serve an incomplete board
+ *  minutes after the 10:00Z reset. A new snapshot supersedes a suspect
+ *  one from the same board-day; a new snapshot that is itself suspect
+ *  (full, cutoff 40+ below the last good snapshot's) is flagged and owes
+ *  one re-read 30 minutes on, once per board-day. */
+async function settleIncompleteBoard(
+  db,
+  { board, locationKey, month, snapshotId, observedAt, entries },
+) {
+  const dayStart = boardDayStart(observedAt);
+  await db.query(
+    `update ranking_snapshot set superseded_at = $4
+      where board = $1 and location_key = $2 and suspect
+        and superseded_at is null and snapshot_id <> $3
+        and observed_at >= $5 and observed_at < $4`,
+    [board, locationKey, snapshotId, observedAt, dayStart],
+  );
+  if (entries.length < POL_DEPTH) return;
+  const {
+    rows: [prev],
+  } = await db.query(
+    `select s.entries,
+            (select min(e.rating) from ranking_entry e where e.snapshot_id = s.snapshot_id) as floor
+       from ranking_snapshot s
+      where s.board = $1 and s.location_key = $2 and s.season_month = $3
+        and s.observed_at < $4 and not s.suspect
+      order by s.observed_at desc limit 1`,
+    [board, locationKey, month, observedAt],
+  );
+  const ratings = entries.map((e) => e.rating).filter((r) => r !== null);
+  const floor = ratings.length ? Math.min(...ratings) : null;
+  if (
+    !prev ||
+    prev.floor === null ||
+    floor === null ||
+    prev.entries < POL_DEPTH ||
+    Number(prev.floor) - floor < SUSPECT_FLOOR_FALL
+  )
+    return;
+  await db.query(
+    "update ranking_snapshot set suspect = true where snapshot_id = $1",
+    [snapshotId],
+  );
+  await db.query(
+    `update ranking_board set reread_at = $3
+      where board = $1 and location_key = $2
+        and (reread_at is null or reread_at < $4)`,
+    [
+      board,
+      locationKey,
+      new Date(observedAt.getTime() + REREAD_AFTER_MS),
+      dayStart,
+    ],
+  );
+}
+
 /**
  * Project one ranking payload. `board` is 'pol' or 'trophy'; `entityKey`
  * is the location key the job carried ('global' or a numeric id).
@@ -241,6 +315,15 @@ export async function projectRankingBoard(
       ],
     );
     wrote = true;
+    if (board === "pol")
+      await settleIncompleteBoard(db, {
+        board,
+        locationKey,
+        month,
+        snapshotId,
+        observedAt,
+        entries,
+      });
   }
 
   // Presence: the recording reason. Upserted for the top-N whether or not

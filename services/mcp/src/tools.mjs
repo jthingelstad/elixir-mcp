@@ -176,6 +176,13 @@ export function makeRegistry() {
       }
       const body = await TOOLS[name].handler(ctx, args);
       assertResponseMeta(body?.meta);
+      // Every response carries notes and docs, which the instructions
+      // promise (journey r3: two help-tool branches served neither): a
+      // tool with nothing to say serves [] and its own reference page.
+      if (body && typeof body === "object") {
+        if (!Array.isArray(body.notes)) body.notes = [];
+        if (typeof body.docs !== "string") body.docs = "choosing-a-tool";
+      }
       if (oneSize !== null && body && typeof body === "object") {
         body.applied = { ...(body.applied ?? {}), verbosity: "full" };
         if (oneSize === "compact" && Array.isArray(body.notes))

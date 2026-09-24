@@ -69,10 +69,12 @@ name = "Keep the Boards"
 objective = "boards"
 objective_file = "AGENT-TEAM/keep-the-boards.md"
 status = "ACTIVE"
-# Daily, after the global board's 09:00Z hour has landed and before the US
-# morning; the season-boundary checks are part of the same run in the three
-# days after a first-Monday roll.
-rrule = "RRULE:FREQ=DAILY;BYHOUR=5;BYMINUTE=20"
+# 06:00 America/Chicago (11:00Z): after the 10:00Z board read and its
+# one re-read at about 10:30Z when the reset board looked incomplete (Gym
+# #342), so the sync never copies a board that is about to be superseded.
+# The season-boundary checks are part of the same run in the three days
+# after a first-Monday roll.
+rrule = "RRULE:FREQ=DAILY;BYHOUR=6;BYMINUTE=0"
 model = "gpt-5.6-terra"
 reasoning_effort = "high"
 execution_environment = "local"

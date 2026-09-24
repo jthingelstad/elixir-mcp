@@ -143,6 +143,15 @@ A clan entry's `activity` counts the battles the record learned in the window.
 record learned afterwards (a history backfill); for what was played in a past
 window, `clans_standings` counts by play time.
 
+The two totals differ by design, and neither is wrong. The timeline counts
+each battle **once**, learned in the window, played while in the clan.
+`clans_standings` counts each member's battles by **play time**, so a friendly
+between two members is one battle on the timeline and one on each member's
+row, and a member who joined mid-window brings the battles they played for
+another clan (its note names them). On 2026-09-23's game day that was 292
+learned (293 played) against 312: 13 of one member's friendlies were against
+clanmates.
+
 A battle the record learned more than a day after it was played (a history
 backfill, a log polled late) is a late capture: counted in the entry's
 `battles.late_captures` and never narrated, whatever the window (7.1.2).

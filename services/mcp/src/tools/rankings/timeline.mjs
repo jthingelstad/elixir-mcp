@@ -179,7 +179,7 @@ export const rankings_timeline = {
         `select s.observed_at, s.last_confirmed_at, e.rank, e.rating, e.clan_tag, e.clan_name
            from ranking_snapshot s
            left join ranking_entry e on e.snapshot_id = s.snapshot_id and e.player_tag = $3
-           where s.board = $1 and s.location_key = $2 and s.observed_at between $4 and $5
+           where s.board = $1 and s.location_key = $2 and s.superseded_at is null and s.observed_at between $4 and $5
            order by s.observed_at desc limit $6`,
         [board, row.location_key, tagArg, from, to, limit],
       );
@@ -201,7 +201,7 @@ export const rankings_timeline = {
                   (select min(rating) from ranking_entry f where f.snapshot_id = s.snapshot_id) as floor_rating
            from ranking_snapshot s
            left join ranking_entry e on e.snapshot_id = s.snapshot_id and e.clan_tag = $3
-           where s.board = $1 and s.location_key = $2 and s.observed_at between $4 and $5
+           where s.board = $1 and s.location_key = $2 and s.superseded_at is null and s.observed_at between $4 and $5
            group by s.snapshot_id, s.observed_at, s.last_confirmed_at, s.entries
            order by s.observed_at desc limit $6`,
         [board, row.location_key, tagArg, from, to, limit],
@@ -226,7 +226,7 @@ export const rankings_timeline = {
                   (select name from ranking_entry e where e.snapshot_id = s.snapshot_id and e.rank = 1) as first_name,
                   (select rating from ranking_entry e where e.snapshot_id = s.snapshot_id and e.rank = 1) as first_rating
            from ranking_snapshot s
-           where s.board = $1 and s.location_key = $2 and s.observed_at between $3 and $4
+           where s.board = $1 and s.location_key = $2 and s.superseded_at is null and s.observed_at between $3 and $4
            order by s.observed_at desc limit $5`,
         [board, row.location_key, from, to, limit],
       );

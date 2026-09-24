@@ -205,7 +205,7 @@ export async function snapshotFor(ctx, args, row) {
     `select snapshot_id, board, season_month, observed_at, last_confirmed_at, entries, truncated,
             standings_changed_at
      from ranking_snapshot
-     where board = $1 and location_key = $2
+     where board = $1 and location_key = $2 and superseded_at is null
        and ($3::timestamptz is null or observed_at <= $3)
        and ($4::text is null or season_month = $4)
      order by season_month desc, observed_at desc limit 1`,
@@ -320,7 +320,7 @@ export async function suspectBoardNote(db, snapshot, row, floor) {
             (select min(e.rating) from ranking_entry e where e.snapshot_id = s.snapshot_id) as floor
        from ranking_snapshot s
       where s.board = $1 and s.location_key = $2 and s.season_month = $3
-        and s.observed_at < $4
+        and s.observed_at < $4 and s.superseded_at is null
       order by s.observed_at desc limit 1`,
     [row.board, row.location_key, snapshot.season_month, snapshot.observed_at],
   );
@@ -328,5 +328,5 @@ export async function suspectBoardNote(db, snapshot, row, floor) {
     return null;
   const fell = Number(prev.floor) - Number(floor);
   if (fell < 40) return null;
-  return `This snapshot's cutoff (${floor}) is ${fell} below the previous snapshot's (${prev.floor}, ${prev.observed_at.toISOString()}) on a full board, which play rarely moves by in a day: the API may have served an incomplete board, and a player absent here is not necessarily below the cutoff. live: true records the board as it stands now.`;
+  return `This snapshot's cutoff (${floor}) is ${fell} below the previous snapshot's (${prev.floor}, ${prev.observed_at.toISOString()}) on a full board, which play rarely moves by in a day: the API may have served an incomplete board, and a player absent here is not necessarily below the cutoff. Elixir re-reads a board like this once about 30 minutes later, and the re-read replaces it; live: true records the board as it stands now.`;
 }

@@ -458,7 +458,7 @@ export const elixir_timeline = {
               )
               .join(
                 "; ",
-              )}), and late_captures counts battles learned here more than a day after play. For what was played in a window, read clans_standings, which counts by play time.`
+              )}), and late_captures counts battles learned here more than a day after play. For what was played in a window, read clans_standings, which counts by play time and per member: a friendly between two members is one battle here and one on each member's row there, and a member who joined mid-window brings battles played for another clan, so its total runs higher (2026-09-23: 292 here, 293 played, 312 there).`
           : null,
         memberNote,
         memberTag && !memberNote

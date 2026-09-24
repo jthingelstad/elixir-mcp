@@ -273,11 +273,12 @@ test("5.0.0 cards_card: one card in one call on a player segment (raw path) and 
   assert.equal(mine.season.all.usage_share, 1);
   assert.equal(mine.season.all.players, 1);
   assert.deepEqual(
-    mine.season.forms.map((f) => [f.form, f.battles]),
+    mine.season.forms.map((f) => [f.form, f.battles, f.players]),
     [
-      ["base", 3],
-      ["evolution", 3],
+      ["base", 3, 1],
+      ["evolution", 3, 1],
     ],
+    "each form counts its distinct players (journey r3: was null)",
   );
   assert.equal(mine.history, undefined, "history is a corpus series");
   assert.equal(mine.by_band, undefined);

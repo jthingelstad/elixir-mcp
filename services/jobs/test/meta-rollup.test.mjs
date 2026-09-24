@@ -469,3 +469,35 @@ test("the population table (0140): days build and seal, a late battle lands in i
     [month],
   );
 });
+
+test("nightly: a season finalised in the last three days is rolled again for its late battles (Jamie 2026-09-24)", async () => {
+  const current = await seasonAt(db, NOW);
+  const prev = await seasonAt(db, current.starts_at.getTime() - 1);
+  const prevEnd = prev.ends_at.getTime();
+  // Finalise the previous season, then a battle from its last hours
+  // arrives late.
+  await battle("reroll-0", B, KNIGHT, "win", prevEnd - 86400_000);
+  await metaRollupNightly(URL, { nowMs: prevEnd + 86400_000 * 1.5 });
+  const decided = async () =>
+    (
+      await db.query(
+        `select decided from meta_season_totals where season_month = $1 and mode_group = 'all'`,
+        [prev.season_month],
+      )
+    ).rows[0].decided;
+  const before = await decided();
+  await battle("reroll-1", A, KNIGHT, "win", prevEnd - 3600_000);
+
+  // Two days after the close: rolled again, the late battle counted.
+  const night = await metaRollupNightly(URL, {
+    nowMs: prevEnd + 86400_000 * 2,
+  });
+  assert.deepEqual(night.late_rolled, [prev.season_month]);
+  assert.equal(await decided(), before + 1);
+
+  // Five days after: the season is final and left alone.
+  const later = await metaRollupNightly(URL, {
+    nowMs: prevEnd + 86400_000 * 5,
+  });
+  assert.deepEqual(later.late_rolled, []);
+});

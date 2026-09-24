@@ -30,6 +30,10 @@ export const elixir_examples = {
       return {
         ...ex,
         applied: appliedBlock({ example: slug }),
+        // Every response carries notes (journey r3: one example had none).
+        notes: notes(
+          `A worked example, not a live answer: the transcript was recorded when the page was built (corpus_built_at). Run the same calls (${ex.tools.join(", ")}) for today's data; the full page is ${ex.url}.`,
+        ),
         docs: docsRef("choosing-a-tool"),
         corpus_built_at: CORPUS_BUILT_AT,
         meta,

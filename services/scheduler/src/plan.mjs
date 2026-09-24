@@ -432,6 +432,10 @@ async function selectEligible(db, now) {
              (select b.every_minutes from ranking_board b
                where b.location_key = ps.subject_tag
                  and b.board = ${BOARD_OF_SQL}) as board_every,
+             -- A one-time re-read of an incomplete board (0173, Gym #342).
+             (select b.reread_at from ranking_board b
+               where b.location_key = ps.subject_tag
+                 and b.board = ${BOARD_OF_SQL}) as reread_at,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference,
              -- The API's last 404 for this subject inside the error
              -- table's seven-day retention (0143 indexes the lookup).
@@ -475,7 +479,7 @@ async function selectEligible(db, now) {
     )
     select subject_tag, endpoint, last_planned_at, last_admitted_at, reference,
            yield_bph, hint, period_type, last_read_at, refresh_requested_at, empty_streak,
-           directly_tracked, clan_tracked, board_every, last_not_found_at
+           directly_tracked, clan_tracked, board_every, reread_at, last_not_found_at
     from state`,
   );
 
@@ -512,8 +516,10 @@ async function selectEligible(db, now) {
       (BOARD_ENDPOINTS.has(r.endpoint) &&
         r.board_every != null &&
         Number(r.board_every) >= 1440);
+    const rereadMs = r.reread_at ? r.reread_at.getTime() : null;
     const due = dailyBoard
-      ? referenceMs < boardDayStartMs(nowMs)
+      ? referenceMs < boardDayStartMs(nowMs) ||
+        (rereadMs !== null && rereadMs <= nowMs && referenceMs < rereadMs)
       : nowMs - referenceMs >= yieldCadenceMinutes(row, now) * jitter;
     // Would the rule without the reader cap have made it due? Only the
     // difference is attributable to the cap (the metric that proves it).

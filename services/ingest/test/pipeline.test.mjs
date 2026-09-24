@@ -1276,3 +1276,77 @@ test("the session clock: empty reads count up, a delivering read resets and prim
   assert.equal(await streak(), 1);
   assert.equal((await asked()).toISOString(), at(60));
 });
+
+test("Gym #342: an incomplete board is flagged, owes one re-read, and the re-read supersedes it", async () => {
+  await ctx.db.query(
+    `insert into ranking_board (board, location_key, label, location_kind, every_minutes, record_top, enabled)
+     values ('pol', '57009997', 'Rereadland', 'country', 1440, 0, true)
+     on conflict (board, location_key) do nothing`,
+  );
+  const alphabet = "0289PYLQGRJCUV";
+  const tagOf = (i) =>
+    "#" +
+    [0, 1, 2, 3, 4]
+      .map(
+        (k) => alphabet[Math.floor(i / alphabet.length ** k) % alphabet.length],
+      )
+      .join("") +
+    "P";
+  // A full board (1,000) with ratings from `top` down one a place.
+  const full = (top) => ({
+    items: Array.from({ length: 1000 }, (_, i) => ({
+      tag: tagOf(i),
+      name: `P${i}`,
+      rank: i + 1,
+      eloRating: top - Math.floor(i / 10),
+    })),
+    paging: {},
+  });
+  const read = (payload, fetchedAt) =>
+    processResult(
+      ctx.db,
+      message({
+        endpoint: "rankings_pol",
+        entityKey: "57009997",
+        payload,
+        fetchedAt,
+      }),
+    );
+  const snaps = async () =>
+    (
+      await ctx.db.query(
+        `select observed_at, suspect, superseded_at from ranking_snapshot
+          where board = 'pol' and location_key = '57009997' order by observed_at`,
+      )
+    ).rows;
+  const rereadAt = async () =>
+    (
+      await ctx.db.query(
+        `select reread_at from ranking_board where board = 'pol' and location_key = '57009997'`,
+      )
+    ).rows[0].reread_at;
+
+  // Yesterday's board: cutoff 2200. Today's first read: cutoff 2150 (-50).
+  assert.equal(
+    (await read(full(2299), "2026-09-15T10:05:00Z")).outcome,
+    "admitted",
+  );
+  assert.equal(
+    (await read(full(2249), "2026-09-16T10:05:00Z")).outcome,
+    "admitted",
+  );
+  let s = await snaps();
+  assert.deepEqual(
+    s.map((x) => x.suspect),
+    [false, true],
+  );
+  assert.equal((await rereadAt()).toISOString(), "2026-09-16T10:35:00.000Z");
+
+  // The re-read (complete again) supersedes it; the owed read is not re-armed.
+  await read(full(2301), "2026-09-16T10:36:00Z");
+  s = await snaps();
+  assert.equal(s[2].suspect, false);
+  assert.equal(s[1].superseded_at.toISOString(), "2026-09-16T10:36:00.000Z");
+  assert.equal(s[0].superseded_at, null);
+  assert.equal((await rereadAt()).toISOString(), "2026-09-16T10:35:00.000Z");
+});

@@ -39,6 +39,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 
 ## Tool contract and versioning
 
+- **8.0.0 is the major before open beta** — rankings `season_id` becomes a number like every other `season_id` (Gym #345) and `min_players` counts repeat players; breaking changes are cheapest while every caller is first-party. (2026-09-24; Jamie)
 - **`packages/contracts` is the single source** — additive changes are a minor, a patch is a behaviour correction only, and an output-schema change is a patch that moves the fingerprint. (2026-09-10, 2026-09-17; engineering)
 - **No deprecation window** — every client is first-party and updated in the same pass; breaking renames are batched into one major. Supersedes Phase 5's 30-day window. (2026-09-19 Phase 6; Jamie)
 - **The 7.0.0 refusals are dropped** — no blanket mode refusal and no unbounded-window refusal or season default; supersedes the 09-22 intent. (2026-09-23 Closing out; Jamie)
@@ -79,6 +80,9 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **Players and clans known only from a battle stub are ghost entries, never metrics** — they exist to name an opponent and to seed history if recorded later; every metric counts recorded players (direct, or a member of a comprehensively recorded clan), clan segments included, and every headline count is recorded, with observed as the secondary line. (2026-09-23; Jamie)
 - **A clan's profile aggregates carry each member's latest profile forward** — a member not polled that day counts with their last read, and `members_profile_carried` says how many. (2026-09-23; Jamie)
 - **Participation is judged on weekly decks, not days** — the API tags no war battle with a day and each race rolls at its own slot (09:30-10:00Z), so war-day attribution stays the informational 10:00Z grid and every judgment (Elixir Clan's war rate, floor, Perfect attendance) reads the race's own weekly `decksUsed` against four decks a war day up to the finish; days after an early finish are optional; training days are race-week days in `war_attendance_day` (`day_in_section`), never attendance. (2026-09-24; Jamie)
+- **`min_players` counts repeat players** — a player counts toward it after two or more battles on the deck (`repeat_players`); `players` stays the distinct count, and the carried-row note backstops a deck one player still dominates (Gym #348; 8.0.0). (2026-09-24; Jamie)
+- **An incomplete reset board is re-read, not the read moved** — the daily Path of Legends read stays at 10:00Z; a full board whose cutoff fell 40+ from the day before is re-read once about 30 minutes later and replaces that game day's board (Gym #342). (2026-09-24; Jamie)
+- **A closed season's meta rollup is rebuilt for three days after the close** — late battles arrive while they are still in battle logs; after that the season is final. (2026-09-24; Jamie)
 
 ## Recording, collectors and rate budget
 

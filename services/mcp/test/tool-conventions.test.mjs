@@ -279,3 +279,15 @@ test("every tool publishes an outputSchema (6.14.0 said so; Gym #115 found nine 
     .map((d) => d.name);
   assert.deepEqual(missing, []);
 });
+
+test("every output schema requires notes and docs (journey r3: two help-tool branches served neither)", () => {
+  const missing = makeRegistry()
+    .declarations()
+    .filter(
+      (d) =>
+        !d.outputSchema?.required?.includes("notes") ||
+        !d.outputSchema?.required?.includes("docs"),
+    )
+    .map((d) => d.name);
+  assert.deepEqual(missing, []);
+});

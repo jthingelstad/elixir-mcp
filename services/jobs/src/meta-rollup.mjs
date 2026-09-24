@@ -703,11 +703,43 @@ export async function metaRollupNightly(
         break;
       }
     }
-    return { rebuilt: done, pending_after: skipped, ms: Date.now() - started };
+    // A season finalised in the last three days is rolled again each
+    // night (Jamie, 2026-09-24): battles from its last hours keep
+    // arriving while they are still in players' logs (2026-08 missed 74
+    // after its final). The late append picks them up; its population
+    // is kept until the next season finalises.
+    const rolled = new Set(done.map((r) => r.season_month));
+    const { rows: recent } = await db.query(
+      `select s.season_month, s.starts_at, s.ends_at
+       from season s
+       join meta_season_state st on st.season_month = s.season_month
+       where st.final
+         and s.ends_at <= $1::timestamptz - interval '1 day'
+         and s.ends_at > $1::timestamptz - interval '${1 + LATE_ROLL_DAYS} days'
+       order by s.starts_at`,
+      [new Date(nowMs)],
+    );
+    const reRolled = [];
+    for (const season of recent) {
+      if (rolled.has(season.season_month)) continue;
+      if (Date.now() - started > budgetMs) break;
+      const r = await rebuildSeason(db, season, { final: true, deadlineMs });
+      done.push(r);
+      reRolled.push(season.season_month);
+    }
+    return {
+      rebuilt: done,
+      pending_after: skipped,
+      late_rolled: reRolled,
+      ms: Date.now() - started,
+    };
   } finally {
     await db.end();
   }
 }
+
+/** Nights a finalised season is rolled again for its late battles. */
+const LATE_ROLL_DAYS = 3;
 
 const ROLLUP_TABLES = [
   ["meta_season_totals", "season_month, mode_group"],
