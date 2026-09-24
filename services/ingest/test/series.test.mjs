@@ -32,7 +32,7 @@ before(async () => {
 after(async () => ctx.drop());
 
 const CLAN = "#2PP0V9YY";
-function roster({ at, members }) {
+function roster({ at, members, donationsPerWeek = 1200 }) {
   return {
     tag: CLAN,
     name: "Series Clan",
@@ -43,7 +43,7 @@ function roster({ at, members }) {
     clanWarTrophies: 900,
     location: { id: 57000006, name: "International", isCountry: false },
     requiredTrophies: 5000,
-    donationsPerWeek: 1200,
+    donationsPerWeek,
     members: members.length,
     memberList: members.map((m, i) => ({
       tag: m.tag,
@@ -314,10 +314,19 @@ test("the kinds: pre_reset and season_roll rows from the roster inside their win
   // had zeroed two weeks).
   const late = "2026-09-07T00:05:00Z";
   await projectClanSeries(ctx.db, {
-    payload: roster({ at: late, members: [{ tag: A, donations: 0 }] }),
+    payload: roster({
+      at: late,
+      members: [{ tag: A, donations: 0 }],
+      donationsPerWeek: 10,
+    }),
     observedAt: late,
   });
   assert.equal((await memberRow(A, "2026-09-06", "pre_reset")).donations, 400);
+  // The clan's own row keeps it too (Gym #195: 10 where 9,270 was read).
+  assert.equal(
+    (await clanRow("2026-09-06", "pre_reset")).donations_per_week,
+    1200,
+  );
   assert.equal((await memberRow(A, "2026-09-06", "daily")).donations, 0);
   // Monday 09:30Z: the hour before S135 rolls at 10:00Z, game day 09-06.
   const roll = "2026-09-07T09:30:00Z";

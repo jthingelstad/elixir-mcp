@@ -87,14 +87,15 @@ const AGGREGATE_SQL = `
   select sum(s.trophies)::int as total_member_trophies,
          round(avg(s.trophies))::int as avg_member_trophies,
          count(*) filter (where s.roster_observed_at is not null)::int as members_seen,
-         count(*) filter (where s.profile_observed_at is not null or lp.player_tag is not null)::int as members_with_profile,
-         count(*) filter (where s.profile_observed_at is null and lp.player_tag is not null)::int as members_profile_carried,
-         round(avg(case when s.profile_observed_at is not null then s.wins else lp.wins end))::int as avg_member_wins,
-         round(avg(case when s.profile_observed_at is not null then s.collection_level else lp.collection_level end))::int as avg_member_collection_level,
-         count(*) filter (where s.trophies >= 12000)::int as members_12000_plus,
-         count(*) filter (where s.trophies >= 14000)::int as members_14000_plus,
-         count(*) filter (where p.years_played >= 6)::int as members_6_years_plus,
-         count(*) filter (where (case when s.profile_observed_at is not null then s.collection_level else lp.collection_level end) >= 1000)::int as members_collection_1000_plus
+         count(*) filter (where not st.stayed)::int as members_left_excluded,
+         count(*) filter (where st.stayed and (s.profile_observed_at is not null or lp.player_tag is not null))::int as members_with_profile,
+         count(*) filter (where st.stayed and s.profile_observed_at is null and lp.player_tag is not null)::int as members_profile_carried,
+         round(avg(case when s.profile_observed_at is not null then s.wins else lp.wins end) filter (where st.stayed))::int as avg_member_wins,
+         round(avg(case when s.profile_observed_at is not null then s.collection_level else lp.collection_level end) filter (where st.stayed))::int as avg_member_collection_level,
+         count(*) filter (where st.stayed and s.trophies >= 12000)::int as members_12000_plus,
+         count(*) filter (where st.stayed and s.trophies >= 14000)::int as members_14000_plus,
+         count(*) filter (where st.stayed and p.years_played >= 6)::int as members_6_years_plus,
+         count(*) filter (where st.stayed and (case when s.profile_observed_at is not null then s.collection_level else lp.collection_level end) >= 1000)::int as members_collection_1000_plus
     from player_snapshot_daily s
     join player p on p.player_tag = s.player_tag
     left join lateral (
@@ -105,6 +106,21 @@ const AGGREGATE_SQL = `
          and l.profile_observed_at is not null
        order by l.snapshot_date desc
        limit 1) lp on s.profile_observed_at is null
+    -- A member who left by the clan row's read keeps the clan's tag on
+    -- their day row until a roster places them elsewhere; members_seen
+    -- counts them, the profile aggregates do not (Gym #197: after the
+    -- #111 carry, a leaver's carried profile had put 49 over 46 members).
+    cross join lateral (
+      select not exists (
+               select 1 from clan_membership cm
+                where cm.clan_tag = s.clan_tag and cm.player_tag = s.player_tag
+                  and cm.left_observed_at <= c.observed_at
+                  and cm.left_observed_at > c.observed_at - interval '2 days')
+          or exists (
+               select 1 from clan_membership cm
+                where cm.clan_tag = s.clan_tag and cm.player_tag = s.player_tag
+                  and cm.joined_observed_at <= c.observed_at
+                  and (cm.left_observed_at is null or cm.left_observed_at > c.observed_at)) as stayed) st
    where s.clan_tag = c.clan_tag and s.snapshot_date = c.day and s.snapshot_kind = c.snapshot_kind`;
 
 function parseTags(list, argName, max) {
@@ -208,6 +224,12 @@ export const seriesTools = {
           ...Object.fromEntries(metrics.map((m) => [m, r[m] ?? null])),
         }),
       );
+      const leaverDays = rows
+        .filter((r) => r.members_left_excluded > 0)
+        .map(
+          (r) =>
+            `${r.day.toISOString().slice(0, 10)} (${r.members_left_excluded})`,
+        );
       const thinDays = rows
         .filter(
           (r) =>
@@ -251,11 +273,19 @@ export const seriesTools = {
             ? "members_seen counts the member rows the roster wrote that day, including members who left during the day (their row keeps the clan's tag until the next roster places them elsewhere), so it can read above members; a day it reads below members is a partial day (the roster was polled, but not every member's row is on the game day's grid yet)."
             : null,
           metrics.some((m) => CLAN_PROFILE_AGGREGATES.includes(m))
-            ? "The profile-derived aggregates average over members with a recorded profile as of that day; members_with_profile is that denominator. A member whose profile was not read that day counts with their latest earlier read (members_profile_carried says how many); wins and collection level only climb, so a carried value may be slightly behind. members_6_years_plus reads the player's current players_profile.years_played, not the day's."
+            ? "The profile-derived aggregates average over members with a recorded profile as of that day; members_with_profile is that denominator. A member whose profile was not read that day counts with their latest earlier read (members_profile_carried says how many); wins and collection level only climb, so a carried value may be slightly behind. A member who left by the clan's read that day is in members_seen but not in these. members_6_years_plus reads the player's current players_profile.years_played, not the day's."
             : null,
           metrics.some((m) => CLAN_PROFILE_AGGREGATES.includes(m)) &&
             thinDays.length
             ? `On ${thinDays.slice(0, 8).join(", ")}${thinDays.length > 8 ? ` and ${thinDays.length - 8} more days` : ""} some members had no profile read on or before that day, so the profile-derived values there (the members_*_plus counts too) cover only members_with_profile of them: a count below members may be members never read, not members below the line.`
+            : null,
+          metrics.some(
+            (m) =>
+              m === "members_with_profile" ||
+              m === "members_profile_carried" ||
+              CLAN_PROFILE_AGGREGATES.includes(m),
+          ) && leaverDays.length
+            ? `Members who left by the clan's read on ${leaverDays.slice(0, 8).join(", ")}${leaverDays.length > 8 ? ` and ${leaverDays.length - 8} more days` : ""} are not in members_with_profile, the avg_member_* averages or the members_*_plus counts that day (members_seen still counts their row, which keeps the clan's tag until a roster places them elsewhere).`
             : null,
           points.some((p) => p.partial)
             ? `The point for ${today} is the game day still in progress (partial: true): its profile-derived values cover the members polled so far.`

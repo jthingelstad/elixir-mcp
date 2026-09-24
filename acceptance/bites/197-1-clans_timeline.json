@@ -1,0 +1,93 @@
+{
+  "feedback": 197,
+  "contract_version": "6.36.7",
+  "captured_at": "2026-09-24T01:04:09.969Z",
+  "request": {
+    "tool": "clans_timeline",
+    "arguments": {
+      "from": "2026-09-10",
+      "to": "2026-09-11",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_12000_plus",
+        "members_14000_plus",
+        "avg_member_wins"
+      ]
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "applied": {
+      "window": {
+        "from": "2026-09-10",
+        "to": "2026-09-11",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 5
+      },
+      "granularity": "day",
+      "kind": "daily",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_12000_plus",
+        "members_14000_plus",
+        "avg_member_wins"
+      ],
+      "verbosity": "full"
+    },
+    "series_available_from": "2026-03-11",
+    "series": [
+      {
+        "day": "2026-09-10",
+        "kind": "daily",
+        "observed_at": "2026-09-11T09:59:59.000Z",
+        "source": "api",
+        "members": 46,
+        "members_with_profile": 49,
+        "members_12000_plus": 28,
+        "members_14000_plus": 15,
+        "avg_member_wins": 3986
+      },
+      {
+        "day": "2026-09-11",
+        "kind": "daily",
+        "observed_at": "2026-09-12T09:57:47.000Z",
+        "source": "api",
+        "members": 46,
+        "members_with_profile": 46,
+        "members_12000_plus": 26,
+        "members_14000_plus": 15,
+        "avg_member_wins": 4068
+      }
+    ],
+    "notes": [
+      "The profile-derived aggregates average over members with a recorded profile as of that day; members_with_profile is that denominator. A member whose profile was not read that day counts with their latest earlier read (members_profile_carried says how many); wins and collection level only climb, so a carried value may be slightly behind. members_6_years_plus reads the player's current players_profile.years_played, not the day's.",
+      "Days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; a point is the day's last observation."
+    ],
+    "docs": "recording#daily-series",
+    "meta": {
+      "contract_version": "6.36.7",
+      "source_polls": {
+        "clan": {
+          "observed_at": "2026-09-24T01:03:05.000Z",
+          "freshness_seconds": 65
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 54,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

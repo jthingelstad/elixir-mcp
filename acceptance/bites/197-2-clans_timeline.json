@@ -1,0 +1,148 @@
+{
+  "feedback": 197,
+  "contract_version": "6.36.7",
+  "captured_at": "2026-09-24T00:59:05.479Z",
+  "request": {
+    "tool": "clans_timeline",
+    "arguments": {
+      "from": "2026-09-16",
+      "to": "2026-09-22",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_profile_carried",
+        "members_collection_1000_plus",
+        "avg_member_wins"
+      ]
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "applied": {
+      "window": {
+        "from": "2026-09-16",
+        "to": "2026-09-22",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "granularity": "day",
+      "kind": "daily",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_profile_carried",
+        "members_collection_1000_plus",
+        "avg_member_wins"
+      ],
+      "verbosity": "full"
+    },
+    "series_available_from": "2026-03-11",
+    "series": [
+      {
+        "day": "2026-09-16",
+        "kind": "daily",
+        "observed_at": "2026-09-17T09:53:03.000Z",
+        "source": "api",
+        "members": 46,
+        "members_with_profile": 47,
+        "members_profile_carried": 13,
+        "members_collection_1000_plus": 47,
+        "avg_member_wins": 4024
+      },
+      {
+        "day": "2026-09-17",
+        "kind": "daily",
+        "observed_at": "2026-09-18T09:27:58.000Z",
+        "source": "api",
+        "members": 46,
+        "members_with_profile": 47,
+        "members_profile_carried": 11,
+        "members_collection_1000_plus": 47,
+        "avg_member_wins": 4029
+      },
+      {
+        "day": "2026-09-18",
+        "kind": "daily",
+        "observed_at": "2026-09-19T09:58:00.000Z",
+        "source": "api",
+        "members": 46,
+        "members_with_profile": 46,
+        "members_profile_carried": 8,
+        "members_collection_1000_plus": 46,
+        "avg_member_wins": 4021
+      },
+      {
+        "day": "2026-09-19",
+        "kind": "daily",
+        "observed_at": "2026-09-20T09:43:02.000Z",
+        "source": "api",
+        "members": 46,
+        "members_with_profile": 47,
+        "members_profile_carried": 1,
+        "members_collection_1000_plus": 47,
+        "avg_member_wins": 4079
+      },
+      {
+        "day": "2026-09-20",
+        "kind": "daily",
+        "observed_at": "2026-09-21T09:48:13.000Z",
+        "source": "api",
+        "members": 46,
+        "members_with_profile": 46,
+        "members_profile_carried": 0,
+        "members_collection_1000_plus": 46,
+        "avg_member_wins": 4157
+      },
+      {
+        "day": "2026-09-21",
+        "kind": "daily",
+        "observed_at": "2026-09-22T09:48:04.000Z",
+        "source": "api",
+        "members": 46,
+        "members_with_profile": 46,
+        "members_profile_carried": 2,
+        "members_collection_1000_plus": 46,
+        "avg_member_wins": 4161
+      },
+      {
+        "day": "2026-09-22",
+        "kind": "daily",
+        "observed_at": "2026-09-23T09:48:04.000Z",
+        "source": "api",
+        "members": 46,
+        "members_with_profile": 46,
+        "members_profile_carried": 1,
+        "members_collection_1000_plus": 46,
+        "avg_member_wins": 4165
+      }
+    ],
+    "notes": [
+      "The profile-derived aggregates average over members with a recorded profile as of that day; members_with_profile is that denominator. A member whose profile was not read that day counts with their latest earlier read (members_profile_carried says how many); wins and collection level only climb, so a carried value may be slightly behind. members_6_years_plus reads the player's current players_profile.years_played, not the day's.",
+      "Days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; a point is the day's last observation."
+    ],
+    "docs": "recording#daily-series",
+    "meta": {
+      "contract_version": "6.36.7",
+      "source_polls": {
+        "clan": {
+          "observed_at": "2026-09-24T00:43:09.000Z",
+          "freshness_seconds": 956
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 99,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

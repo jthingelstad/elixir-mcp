@@ -1,0 +1,98 @@
+{
+  "feedback": 195,
+  "contract_version": "6.36.7",
+  "captured_at": "2026-09-24T01:05:52.586Z",
+  "request": {
+    "tool": "clans_timeline",
+    "arguments": {
+      "from": "2026-09-06",
+      "to": "2026-09-22",
+      "kind": "pre_reset",
+      "metrics": ["donations_per_week"],
+      "granularity": "week"
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "applied": {
+      "window": {
+        "from": "2026-09-06",
+        "to": "2026-09-22",
+        "source": "argument",
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ],
+        "season_age_days": 35
+      },
+      "granularity": "week",
+      "kind": "pre_reset",
+      "metrics": ["donations_per_week"],
+      "verbosity": "full"
+    },
+    "series_available_from": "2026-03-11",
+    "series": [
+      {
+        "day": "2026-09-06",
+        "iso_week": "2026-W36",
+        "kind": "pre_reset",
+        "observed_at": "2026-09-07T00:07:41.000Z",
+        "source": "api",
+        "donations_per_week": 10
+      },
+      {
+        "day": "2026-09-13",
+        "iso_week": "2026-W37",
+        "kind": "pre_reset",
+        "observed_at": "2026-09-14T00:03:00.000Z",
+        "source": "api",
+        "donations_per_week": 10
+      },
+      {
+        "day": "2026-09-20",
+        "iso_week": "2026-W38",
+        "kind": "pre_reset",
+        "observed_at": "2026-09-20T23:38:21.000Z",
+        "source": "api",
+        "donations_per_week": 10240
+      }
+    ],
+    "notes": [
+      "Window spans S135 (2026-08) and S136 (2026-09); the seasonal trophies and the Path of Legends standing reset on the roll, so points on either side of it are not one series.",
+      "Days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; a point is the day's last observation."
+    ],
+    "docs": "recording#daily-series",
+    "meta": {
+      "contract_version": "6.36.7",
+      "source_polls": {
+        "clan": {
+          "observed_at": "2026-09-24T01:03:05.000Z",
+          "freshness_seconds": 168
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 23,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

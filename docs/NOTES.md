@@ -2110,3 +2110,11 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - The 111.1 bite is removed with its case superseded (a refuted case cannot bite).
 - Open (not filed): Valkyrie level-ups on the timeline but not Ak or Mega Goblin (timeline family); a clan collection as a badge segment answers not_found.
 
+## 2026-09-23 — Gym sweep, clans round 3 (6.36.9, feedback #195-#198)
+
+- 16 regressions checked; #158 PARTIAL -> **#195**: the clan-level pre_reset row (clan_snapshot_daily.donations_per_week) takes the week's daily high-water at write (the insert path too, since a single post-reset read has nothing to compare against) and 0161 repairs stored rows.
+- **#196:** `captureByPlayer` / `underCaptureNote` (coverage.mjs), elixir_coverage's seven-day estimate batched: members below 80% of >= 5 counted battles are named on standings and participation.
+- **#197:** profile aggregates exclude a member whose stint in the clan closed by the clan row's read (within two days) with no stint covering it; `members_left_excluded` drives a conditional note.
+- gym-interp: notes_match / notes_not_match take [binding, regex]. 111.5/111.6 replace the superseded 111.1. 159.1 stays known (participation weeks 8 over the cap). #198 praise.
+- Open (not filed, elixir family): elixir_timeline's clan week sums today's members (8,977 vs 9,094); elixir_changelog without `since` reports current 6.21.1.
+

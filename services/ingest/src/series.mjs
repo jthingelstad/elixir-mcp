@@ -119,13 +119,27 @@ export async function projectClanSeries(
        (clan_tag, day, snapshot_kind, observed_at, receipt_id, source,
         clan_score, clan_war_trophies, members, required_trophies, donations_per_week,
         type, location_id)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+             -- The week's donations are the highest the record saw
+             -- (Jamie, 2026-09-23; Gym #195): a pre_reset read that lands
+             -- after the weekly reset shows the new week's ~10, so the
+             -- row takes the week's daily high-water when that is higher.
+             case when $3 = 'pre_reset'
+                  then greatest($11::int, (select max(d.donations_per_week)
+                                             from clan_snapshot_daily d
+                                            where d.clan_tag = $1
+                                              and d.snapshot_kind = 'daily'
+                                              and d.day between date_trunc('week', $2::date)::date and $2::date))
+                  else $11::int end,
+             $12, $13)
      on conflict (clan_tag, day, snapshot_kind) do update set
        observed_at = excluded.observed_at, receipt_id = excluded.receipt_id,
        source = excluded.source,
        clan_score = excluded.clan_score, clan_war_trophies = excluded.clan_war_trophies,
        members = excluded.members, required_trophies = excluded.required_trophies,
-       donations_per_week = excluded.donations_per_week,
+       donations_per_week = case when excluded.snapshot_kind = 'pre_reset'
+                                 then greatest(excluded.donations_per_week, clan_snapshot_daily.donations_per_week)
+                                 else excluded.donations_per_week end,
        type = excluded.type, location_id = excluded.location_id
      where excluded.observed_at >= clan_snapshot_daily.observed_at
        and (clan_snapshot_daily.clan_score, clan_snapshot_daily.clan_war_trophies,

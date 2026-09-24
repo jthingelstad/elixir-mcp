@@ -250,17 +250,24 @@ export function assertOne(spec, scope, root) {
       }
       return;
     }
-    case "notes_match": {
-      ok(
-        notesRegExp(arg).test(noteText(scope.notes ? scope : root)),
-        `notes_match /${arg}/: no note says it`,
-      );
-      return;
-    }
+    case "notes_match":
     case "notes_not_match": {
+      // A string reads the scope's notes; [binding, regex] reads one
+      // call's notes in a multi-call case (196.1: the participation
+      // read's, not the coverage read's).
+      const [from, re] = Array.isArray(arg)
+        ? [at(arg[0]), arg[1]]
+        : [scope.notes ? scope : root, arg];
       ok(
-        !notesRegExp(arg).test(noteText(scope.notes ? scope : root)),
-        `notes_not_match /${arg}/: a note says it`,
+        from && typeof from === "object",
+        `${verb} ${Array.isArray(arg) ? arg[0] : ""}: absent`,
+      );
+      const said = notesRegExp(re).test(noteText(from));
+      ok(
+        verb === "notes_match" ? said : !said,
+        verb === "notes_match"
+          ? `notes_match /${re}/: no note says it`
+          : `notes_not_match /${re}/: a note says it`,
       );
       return;
     }

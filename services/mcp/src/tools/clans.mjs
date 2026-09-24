@@ -13,6 +13,7 @@ import { MEMBERS_SQL, participationQueries } from "../participation-sql.mjs";
 import { standingsQuery } from "../standings-sql.mjs";
 import { hydrateClanEvents, CLAN_EVENT_COLUMNS } from "../event-payloads.mjs";
 import { formatLocal } from "../time.mjs";
+import { captureByPlayer, underCaptureNote } from "../coverage.mjs";
 import {
   ToolFailure,
   TAG_RULE_HINT,
@@ -54,6 +55,13 @@ const CLAN_TAG_SCHEMA = {
 /** The war weeks war_scoring_decks rides on (full verbosity): the
  *  default window; past it the response outgrows the result cap. */
 const SCORING_DECKS_WEEKS = 6;
+
+/** Members whose battles are mostly not captured, said (Gym #196). */
+async function memberCaptureNote(db, members) {
+  const names = new Map(members.map((m) => [m.player_tag, m.name ?? null]));
+  const capture = await captureByPlayer(db, [...names.keys()]);
+  return underCaptureNote(capture, (tag) => names.get(tag));
+}
 
 export const clansTools = {
   clans_standings: {
@@ -182,6 +190,7 @@ export const clansTools = {
         members: ranked,
         below_floor: unranked,
         notes: notes(
+          await memberCaptureNote(ctx.db, [...ranked, ...unranked]),
           clash,
           win.seasonNotes,
           coverageBasisNote(coverage.basis),
@@ -729,6 +738,7 @@ export const clansTools = {
         member_count: out.length,
         members: out,
         notes: notes(
+          await memberCaptureNote(ctx.db, out),
           seasonFields.seasonNotes,
           (() => {
             // ONE sentence for every finished week: a note per week pushed

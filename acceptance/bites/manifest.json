@@ -1297,5 +1297,29 @@
     "case": "gym/193.3",
     "captures": ["193-3-badges_rarity.json"],
     "expect": "."
+  },
+  {
+    "feedback": 195,
+    "contract": "6.36.7",
+    "why": "the Gym block 195.2 on the answer it read",
+    "case": "gym/195.2",
+    "captures": ["195-2-clans_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 197,
+    "contract": "6.36.7",
+    "why": "the Gym block 197.1 on the answer it read",
+    "case": "gym/197.1",
+    "captures": ["197-1-clans_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 197,
+    "contract": "6.36.7",
+    "why": "the Gym block 197.2 on the answer it read",
+    "case": "gym/197.2",
+    "captures": ["197-2-clans_timeline.json"],
+    "expect": "."
   }
 ]

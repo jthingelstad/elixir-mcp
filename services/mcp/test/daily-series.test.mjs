@@ -482,3 +482,37 @@ test("clans_timeline: a member not read that day counts with their latest earlie
   assert.equal(d.avg_member_wins, prior.avg_member_wins, "09-02's read");
   assert.ok(body.notes.some((n) => /latest earlier read/.test(n)));
 });
+
+test("clans_timeline: a member who left by the clan's read is out of the profile aggregates, and a note says so (#197)", async () => {
+  const args = {
+    clan_tag: CLAN,
+    from: "2026-09-06",
+    to: "2026-09-06",
+    metrics: ["members_with_profile", "members_seen", "avg_member_wins"],
+  };
+  const before = (await call("clans_timeline", args)).body;
+  assert.ok(!before.notes.some((n) => /Members who left/.test(n)));
+  // The scratch database only: ME's stint closes an hour before the read.
+  await db.query(
+    `update clan_membership cm
+        set left_observed_at = c.observed_at - interval '1 hour'
+       from clan_snapshot_daily c
+      where c.clan_tag = $1 and c.day = '2026-09-06' and c.snapshot_kind = 'daily'
+        and cm.clan_tag = $1 and cm.player_tag = $2 and cm.left_observed_at is null`,
+    [CLAN, ME],
+  );
+  const { body } = await call("clans_timeline", args);
+  assert.ok(body.series, JSON.stringify(body));
+  const [d] = body.series;
+  assert.equal(d.members_seen, before.series[0].members_seen, "still seen");
+  assert.equal(
+    d.members_with_profile,
+    before.series[0].members_with_profile - 1,
+  );
+  assert.ok(
+    body.notes.some((n) =>
+      /Members who left by the clan's read on 2026-09-06 \(1\)/.test(n),
+    ),
+    body.notes.join(" | "),
+  );
+});

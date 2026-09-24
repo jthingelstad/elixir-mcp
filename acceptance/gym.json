@@ -9311,5 +9311,351 @@
         "absent": "holders_total"
       }
     ]
+  },
+  {
+    "id": "111.5",
+    "feedback": 111,
+    "stability": "frozen",
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-16",
+      "to": "2026-09-22",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_collection_1000_plus",
+        "avg_member_wins"
+      ]
+    },
+    "request_id": "e9453c73-1045-4180-9630-cbf0e5a638d9",
+    "for_each": "series[]",
+    "assert": [
+      {
+        "gte": ["members_with_profile", "members"]
+      }
+    ]
+  },
+  {
+    "id": "111.6",
+    "feedback": 111,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-16",
+      "to": "2026-09-22",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_collection_1000_plus",
+        "avg_member_wins"
+      ]
+    },
+    "request_id": "e9453c73-1045-4180-9630-cbf0e5a638d9",
+    "for_each": "series[]",
+    "assert": [
+      {
+        "lte": ["members_collection_1000_plus", "members_with_profile"]
+      }
+    ]
+  },
+  {
+    "id": "195.1",
+    "feedback": 195,
+    "stability": "frozen",
+    "calls": {
+      "p": {
+        "tool": "clans_timeline",
+        "args": {
+          "from": "2026-09-06",
+          "to": "2026-09-22",
+          "kind": "pre_reset",
+          "metrics": ["donations_per_week", "members", "members_seen"]
+        }
+      },
+      "d": {
+        "tool": "clans_timeline",
+        "args": {
+          "from": "2026-09-04",
+          "to": "2026-09-22",
+          "metrics": ["donations_per_week", "members"]
+        }
+      }
+    },
+    "request_id": "869acd6e-5836-498f-80d4-6072cd998377",
+    "assert": [
+      {
+        "gte": [
+          "p.series[?day=2026-09-13].donations_per_week",
+          "d.series[?day=2026-09-12].donations_per_week"
+        ]
+      },
+      {
+        "gte": [
+          "p.series[?day=2026-09-06].donations_per_week",
+          "d.series[?day=2026-09-05].donations_per_week"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "195.2",
+    "feedback": 195,
+    "stability": "frozen",
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-06",
+      "to": "2026-09-22",
+      "kind": "pre_reset",
+      "metrics": ["donations_per_week"],
+      "granularity": "week"
+    },
+    "request_id": "ecf1e54f-8b52-4702-9cb0-af1be9d5aa7c",
+    "assert": [
+      {
+        "gte": ["series[?day=2026-09-13].donations_per_week", 9094]
+      },
+      {
+        "gte": ["series[?day=2026-09-06].donations_per_week", 9270]
+      }
+    ]
+  },
+  {
+    "id": "195.3",
+    "feedback": 195,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "p": {
+        "tool": "clans_timeline",
+        "args": {
+          "from": "2026-09-06",
+          "to": "2026-09-22",
+          "kind": "pre_reset",
+          "metrics": ["donations_per_week", "members", "members_seen"]
+        }
+      },
+      "d": {
+        "tool": "clans_timeline",
+        "args": {
+          "from": "2026-09-04",
+          "to": "2026-09-22",
+          "metrics": ["donations_per_week", "members"]
+        }
+      }
+    },
+    "request_id": "869acd6e-5836-498f-80d4-6072cd998377",
+    "assert": [
+      {
+        "gte": [
+          "p.series[?day=2026-09-20].donations_per_week",
+          "d.series[?day=2026-09-19].donations_per_week"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "196.1",
+    "feedback": 196,
+    "stability": "live",
+    "calls": {
+      "p": {
+        "tool": "clans_participation",
+        "args": {}
+      },
+      "c": {
+        "tool": "elixir_coverage",
+        "args": {
+          "player_tag": "#G2CUUJQ8V"
+        }
+      }
+    },
+    "request_id": "8a6a743b-feb0-48fd-9f28-4faf1fd813da",
+    "when": {
+      "lt": ["c.completeness_last_7_days.average_ratio", 0.5]
+    },
+    "assert": [
+      {
+        "notes_match": ["p", "kiruba|#G2CUUJQ8V"]
+      }
+    ]
+  },
+  {
+    "id": "196.2",
+    "feedback": 196,
+    "stability": "live",
+    "calls": {
+      "s": {
+        "tool": "clans_standings",
+        "args": {
+          "days": 7
+        }
+      },
+      "c": {
+        "tool": "elixir_coverage",
+        "args": {
+          "player_tag": "#G2CUUJQ8V"
+        }
+      }
+    },
+    "request_id": "3b9de083-b261-44ef-84e6-3de2da67e0b9",
+    "when": {
+      "lt": ["c.completeness_last_7_days.average_ratio", 0.5]
+    },
+    "assert": [
+      {
+        "notes_match": ["s", "kiruba|#G2CUUJQ8V"]
+      }
+    ]
+  },
+  {
+    "id": "196.3",
+    "feedback": 196,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "p": {
+        "tool": "clans_participation",
+        "args": {}
+      },
+      "c": {
+        "tool": "elixir_coverage",
+        "args": {
+          "player_tag": "#20JJJ2CCRU"
+        }
+      }
+    },
+    "request_id": "8a6a743b-feb0-48fd-9f28-4faf1fd813da",
+    "when": {
+      "gte": ["c.completeness_last_7_days.average_ratio", 0.95]
+    },
+    "assert": [
+      {
+        "notes_not_match": ["p", "King Thing|#20JJJ2CCRU"]
+      }
+    ]
+  },
+  {
+    "id": "197.1",
+    "feedback": 197,
+    "stability": "frozen",
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-10",
+      "to": "2026-09-11",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_12000_plus",
+        "members_14000_plus",
+        "avg_member_wins"
+      ]
+    },
+    "request_id": "c25f0f84-b4d2-4dd9-9239-e7d505d0d8fa",
+    "assert": [
+      {
+        "notes_match": "(left|leav)[^.]*(members_with_profile|_plus|avg_member)|(members_with_profile|_plus|avg_member)[^.]*(left|leav)"
+      }
+    ]
+  },
+  {
+    "id": "197.2",
+    "feedback": 197,
+    "stability": "frozen",
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-16",
+      "to": "2026-09-22",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_profile_carried",
+        "members_collection_1000_plus",
+        "avg_member_wins"
+      ]
+    },
+    "request_id": "aa4f4b14-aa85-4571-8645-c36592ccdad6",
+    "assert": [
+      {
+        "notes_match": "(left|leav)[^.]*(members_with_profile|_plus|avg_member)|(members_with_profile|_plus|avg_member)[^.]*(left|leav)"
+      }
+    ]
+  },
+  {
+    "id": "197.3",
+    "feedback": 197,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-20",
+      "to": "2026-09-22",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_12000_plus",
+        "members_14000_plus",
+        "avg_member_wins"
+      ]
+    },
+    "request_id": "fd419b16-5c39-44ba-95d9-2e47469e0204",
+    "assert": [
+      {
+        "notes_not_match": "(left|leav)[^.]*(members_with_profile|_plus|avg_member)|(members_with_profile|_plus|avg_member)[^.]*(left|leav)"
+      }
+    ]
+  },
+  {
+    "id": "198.1",
+    "feedback": 198,
+    "stability": "frozen",
+    "calls": {
+      "c": {
+        "tool": "clans_standings",
+        "args": {
+          "from": "2026-09-07T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "mode": "casual"
+        }
+      },
+      "b": {
+        "tool": "clans_standings",
+        "args": {
+          "from": "2026-09-07T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z"
+        }
+      }
+    },
+    "request_id": "b913251a-7af6-41fb-bbc4-d7d5ff92c3eb",
+    "assert": [
+      {
+        "eq": [
+          "c.members[?player_tag=#VGC22YGP].battles",
+          "b.members[?player_tag=#VGC22YGP].modes.casual.battles"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "198.2",
+    "feedback": 198,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "mode": "event"
+    },
+    "request_id": "be31d5ac-e0fa-4acd-a3b6-1ae51db9cd8f",
+    "for_each": "members[]",
+    "assert": [
+      {
+        "absent": "modes.casual"
+      },
+      {
+        "absent": "modes.ladder"
+      }
+    ]
   }
 ]

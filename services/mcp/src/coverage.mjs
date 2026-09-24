@@ -188,3 +188,69 @@ export function completenessNote(playerTag, recent) {
     return `Completeness is unknown for ${playerTag}: no comparable profile interval, and ${recent.tail_hours} hours have passed since the last profile poll (${recent.observed_to}); battle-derived numbers since then may undercount. elixir_coverage({ player_tag: "${playerTag}" }) has the intervals.`;
   return null;
 }
+
+/** captureCoverage's seven-day estimate for many players in one query
+ *  (Gym #196): per player, the profile battle counter's rise over the
+ *  profile intervals ending in the last seven days against the battles
+ *  recorded inside them, comparable intervals only. A member at "0
+ *  battles this week" whose counter rose by 38 is a capture gap, not
+ *  inactivity, and the clan reads must say which members that is. */
+export async function captureByPlayer(db, playerTags) {
+  if (!playerTags.length) return new Map();
+  const { rows } = await db.query(
+    `with snapshots as (
+       select player_tag, profile_observed_at as observed_to,
+              lag(profile_observed_at) over w as observed_from,
+              battle_count - lag(battle_count) over w as expected_battles
+         from player_snapshot_daily
+        where player_tag = any($1::text[]) and snapshot_kind = 'daily'
+          and profile_observed_at is not null
+          and snapshot_date > (now() - interval '9 days')::date
+       window w as (partition by player_tag order by snapshot_date)
+     ), intervals as (
+       select s.player_tag, s.expected_battles,
+              (select count(*)::int from battle_participant bp
+                where bp.player_tag = s.player_tag
+                  and bp.battle_time > s.observed_from
+                  and bp.battle_time <= s.observed_to) as captured_battles
+         from snapshots s
+        where s.observed_from is not null and s.observed_to > s.observed_from
+          and s.observed_to > now() - interval '7 days'
+          and s.expected_battles is not null and s.expected_battles >= 0
+     )
+     select player_tag, sum(expected_battles)::int as expected,
+            sum(captured_battles)::int as captured
+       from intervals
+      where captured_battles <= expected_battles
+      group by player_tag`,
+    [playerTags],
+  );
+  return new Map(
+    rows.map((r) => [
+      r.player_tag,
+      {
+        expected: r.expected,
+        captured: r.captured,
+        ratio: r.expected > 0 ? r.captured / r.expected : 1,
+      },
+    ]),
+  );
+}
+
+/** The note a clan read carries when members' battles are mostly not
+ *  captured (#196): below 80% of at least 5 battles the counter says
+ *  were played in the last seven days. null when every member is fine. */
+export function underCaptureNote(capture, nameOf) {
+  const low = [...capture.entries()]
+    .filter(([, c]) => c.expected >= 5 && c.ratio < 0.8)
+    .sort((a, b) => a[1].ratio - b[1].ratio);
+  if (!low.length) return null;
+  const list = low
+    .slice(0, 8)
+    .map(
+      ([tag, c]) =>
+        `${nameOf(tag) ?? tag} ${tag} (${c.captured} of ${c.expected}, ${Math.round(c.ratio * 100)}%)`,
+    )
+    .join(", ");
+  return `Battle capture is incomplete for ${low.length} member${low.length === 1 ? "" : "s"} over the last seven days, so their recorded battles and last-battle times undercount real play: ${list}${low.length > 8 ? ` and ${low.length - 8} more` : ""}. The profile's battle counter rose by the second number while the record captured the first; a low count here is a capture gap, not inactivity (elixir_coverage per tag).`;
+}
