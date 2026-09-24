@@ -335,9 +335,9 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             <dd style={{ margin: 0, color: "var(--ink-body)" }}>
               {isClan
                 ? clan.scope === "comprehensive"
-                  ? "comprehensive — clan every 15 min, river race, and every member's battles and profile"
-                  : "activity — clan every 15 min, river race"
-                : "battle log every 5–30 min while active · daily snapshot"}
+                  ? "comprehensive — clan roster every 15 min while members are online, backing off when idle; the river race; every member's battles and profile"
+                  : "activity — clan roster every 15 min while members are online, backing off when idle; the river race"
+                : "battle log every 30 min while playing, backing off to 2 h · profile daily and after a session"}
             </dd>
             <dt style={{ color: "var(--ink-faint)" }}>Freshest poll</dt>
             <dd style={{ margin: 0, color: "var(--ink-body)" }}>

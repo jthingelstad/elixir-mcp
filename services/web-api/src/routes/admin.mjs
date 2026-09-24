@@ -171,9 +171,13 @@ export function adminRoutes({
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows: accounts } = await db.query(
         `select a.account_id, a.email_hash, a.kind, a.public_id,
-                (select st.name from service_token st
-                  where st.account_id = a.account_id and st.revoked_at is null
-                  order by st.created_at limit 1) as principal_name,
+                -- A principal name is an agent's or an integration's; a
+                -- person's own legacy key is not their name (console walk
+                -- 2: the owner read "Principal name: elixir-bot").
+                case when coalesce(a.kind, 'person') <> 'person' then
+                  (select st.name from service_token st
+                    where st.account_id = a.account_id and st.revoked_at is null
+                    order by st.created_at limit 1) end as principal_name,
                 a.mcp_daily_quota,
                 (select c.player_tag from claim c
                  where c.account_id = a.account_id and c.is_primary) as primary_tag,
@@ -380,9 +384,13 @@ export function adminRoutes({
                 -- names them.
                 (select count(*)::int from account c
                   where c.owned_by_account_id = a.account_id) as children,
-                (select st.name from service_token st
-                  where st.account_id = a.account_id and st.revoked_at is null
-                  order by st.created_at limit 1) as principal_name,
+                -- A principal name is an agent's or an integration's; a
+                -- person's own legacy key is not their name (console walk
+                -- 2: the owner read "Principal name: elixir-bot").
+                case when coalesce(a.kind, 'person') <> 'person' then
+                  (select st.name from service_token st
+                    where st.account_id = a.account_id and st.revoked_at is null
+                    order by st.created_at limit 1) end as principal_name,
                 a.created_at, a.max_player_recordings, a.mcp_daily_quota,
                 a.live_daily_quota,
                 -- What the account TRACKS: its claims and its clans. Not

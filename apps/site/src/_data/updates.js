@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Explore fixes from a signed-in walk",
+    body: "A signed-in walk of the console found, and this fixes: battle pages in Explore that failed to open, a player's deck list too large to load, war weeks that showed no rank or fame, a clan's members all reading \"never\" for their last battle, and the activity chart's newest weeks hidden on a phone. Explore accepts a war week typed as 136-2, a connection's last call is its last real call, the tracking pages describe the polling schedule as it runs, and a badge question about a player Elixir has never read says the answer is unknown. Contract 7.1.9.",
+  },
+  {
+    date: "2026-09-24",
     title: "Side modes on the player profile",
     body: "The Elixir Gym's fourth run over the player tools. A player's profile now includes their latest Merge Tactics, 2v2 League and seasonal Trophy Road standings. The legacy \"season trophies\" fields are labelled as what they are, a mirror of Trophy Road rather than the seasonal road. Contract 7.1.8.",
   },

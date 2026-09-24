@@ -293,7 +293,9 @@ export function Connections({ me, navigate }) {
                           token: a client that refreshes on a timer looks
                           busy by the second measure and may have done
                           nothing for weeks. */}
-                      <Fresh ts={c.usage?.at ?? c.last_token_at} />
+                      {/* Only a real call: the token-refresh fallback showed
+                          "7m ago" beside 0 calls (console walk 2). */}
+                      {c.usage?.at ? <Fresh ts={c.usage.at} /> : "no calls"}
                     </td>
                     <td
                       style={{

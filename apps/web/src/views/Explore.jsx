@@ -22,7 +22,8 @@ const HASH_RE = /^(deck:)?[0-9a-f]{16,64}$/i;
 // an ISO calendar week (2026-W36), which nothing else here uses and the
 // page's own hint contradicted, so the advertised form fell through to a
 // name search and a miss.
-const WEEK_RE = /^s?\s*(\d{1,4})\s*[-·]?\s*w\s*(\d{1,2})$/i;
+// "136-2", "S136 W2", "136w2" (console walk 2: "136-2" was refused).
+const WEEK_RE = /^s?\s*(\d{1,4})\s*(?:[-·]\s*w?|\s*w)\s*(\d{1,2})$/i;
 
 function normTag(q) {
   return "#" + q.trim().toUpperCase().replace(/^#/, "").replaceAll("O", "0");
@@ -96,7 +97,13 @@ async function fetchRecord(kind, id) {
           include_total: true,
         });
       if (what === "decks")
-        return call("battles_decks", { player_tag: decTag(key) });
+        // Compact and bounded, or a busy player's list ran past the
+        // 48,000-character cap (console walk 2).
+        return call("battles_decks", {
+          player_tag: decTag(key),
+          verbosity: "compact",
+          limit: 50,
+        });
       if (what === "members")
         return call("clans_roster", { clan_tag: decTag(key) });
       if (what === "weeks")
@@ -527,8 +534,14 @@ function Lookup({ me, navigate, browse }) {
               Nothing in the corpus matches that tag or name. Elixir only
               records players and clans someone added — it does not crawl the
               game. Add it from{" "}
-              <a onClick={() => navigate("/account/overview")}>
-                Account ▸ Overview
+              <a
+                href="/account/tracking"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate("/account/tracking");
+                }}
+              >
+                Account ▸ Tracking
               </a>{" "}
               and recording starts on the next poll.
             </div>
@@ -1104,7 +1117,19 @@ function buildView(kind, rawId, res, me, zone) {
       { label: "battle_time", value: fmt(bt.battle_time) },
       { label: "type", value: bt.type },
       { label: "game_mode", value: bt.game_mode?.name ?? "—" },
-      ...(bt.arena ? [{ label: "arena", value: bt.arena }] : []),
+      // arena is {id, name} since the contract named arenas; rendering
+      // the object crashed every battle record (console walk 2).
+      ...(bt.arena
+        ? [
+            {
+              label: "arena",
+              value:
+                typeof bt.arena === "object"
+                  ? (bt.arena.name ?? String(bt.arena.id))
+                  : String(bt.arena),
+            },
+          ]
+        : []),
       {
         label: "player",
         value: myTag,
@@ -1264,9 +1289,11 @@ function buildView(kind, rawId, res, me, zone) {
       fields: [
         { label: "season", value: String(wk.season_id) },
         { label: "week", value: String(Number(wk.section_index) + 1) },
-        ...(wk.rank ? [{ label: "final rank", value: String(wk.rank) }] : []),
-        ...(wk.fame !== undefined
-          ? [{ label: "boat fame", value: String(wk.fame) }]
+        ...((wk.our_rank ?? wk.rank)
+          ? [{ label: "final rank", value: String(wk.our_rank ?? wk.rank) }]
+          : []),
+        ...((wk.our_fame ?? wk.fame) !== undefined
+          ? [{ label: "boat fame", value: String(wk.our_fame ?? wk.fame) }]
           : []),
         {
           label: "clan_tag",
@@ -1426,8 +1453,8 @@ function buildListView(rawId, res, zone) {
           m.trophies != null
             ? { text: String(m.trophies) }
             : { text: "—", nil: true },
-          m.last_battle
-            ? { text: fmt(m.last_battle), mono: true }
+          (m.last_recorded_battle ?? m.last_battle)
+            ? { text: fmt(m.last_recorded_battle ?? m.last_battle), mono: true }
             : { text: "never", nil: true },
         ]),
       },
@@ -1455,8 +1482,14 @@ function buildListView(rawId, res, zone) {
             mono: true,
             href: `/explore/week/${encTag(decTag(key))}~${w.season_id}~${w.section_index}`,
           },
-          w.rank != null ? { text: String(w.rank) } : { text: "—", nil: true },
-          w.fame != null ? { text: String(w.fame) } : { text: "—", nil: true },
+          // our_rank / our_fame since the contract named the clan's own
+          // (console walk 2: every week read "—").
+          (w.our_rank ?? w.rank) != null
+            ? { text: String(w.our_rank ?? w.rank) }
+            : { text: "—", nil: true },
+          (w.our_fame ?? w.fame) != null
+            ? { text: String(w.our_fame ?? w.fame) }
+            : { text: "—", nil: true },
           { text: "" },
         ]),
       },

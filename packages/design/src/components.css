@@ -3225,6 +3225,10 @@ input[aria-invalid="true"] {
    focus (keyboard) both land the day's value in the caption. */
 .activity {
   display: grid;
+  /* The track never grows past the panel: the scroller inside owns the
+     overflow (console walk 2: at 390 px the newest weeks sat past the
+     panel edge). */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s-3);
   padding: var(--s-4);
 }
@@ -3242,6 +3246,10 @@ input[aria-invalid="true"] {
 .activity__chip {
   cursor: pointer;
   border: 1px solid var(--line);
+  /* A button's default grey is not the surface (console walk 2: the
+     selected chip read near-white on light grey). */
+  background: transparent;
+  color: var(--ink-body);
 }
 .activity__chip--on {
   border-color: var(--gold);
@@ -3393,6 +3401,7 @@ input[aria-invalid="true"] {
 }
 .activity__legend {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
   font-size: 10px;

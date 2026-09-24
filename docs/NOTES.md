@@ -2204,3 +2204,9 @@ Left for Jamie (in the morning report): M1's other not-found-on-error pages (Cal
 
 - 9 regressions: #228-#230, #232-#234 hold (#229 on all 48 members, #233 profile = roster for all). **#275** season_* are the API's legacy leagueStatistics (Trophy Road mirror, frozen best): relabelled + note. **#276** players_profile snapshot.progress (latest per bucket, 35 days). **#277** "lower bound" everywhere pre_reset is described. gym-interp: text_match / text_not_match. #278 praise. #134 (collection window season) unchanged, not refiled.
 
+## 2026-09-24 — Signed-in console walk 2 + badges round 5 (7.1.9, feedback #279-#280)
+
+- Console (read-only walk, 36 findings): fixed **battle record crash** (arena {id,name}), **Explore decks list over the cap** (compact, limit 50), **activity graph at 390 px** (grid minmax, legend wraps), **war weeks rank/fame** (our_rank/our_fame), **members last battle** (last_recorded_battle), selected chip contrast, **WEEK_RE** accepts "136-2", no-records link to Tracking, tracking cadence text, Connections LAST CALL only a real call, admin principal name only for agents. Left for Jamie: timeline read_to vs named readers, duplicate clan/player timeline rows, feedback badge 65 vs 50, admin feedback filer, repeated Card of the Week sends, agent console connections for service keys, polish list.
+- Badges r5: 12 regressions hold. **#279** players_considered 0 note. Holder observed_at = greatest(snapshot, poll_state) (91.1/91.4 caught by the players gate).
+- A Gym wrote fb.json into the repo root; moved to /tmp/gym-stray/ (untracked scratch).
+

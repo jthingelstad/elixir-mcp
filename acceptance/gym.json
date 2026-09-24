@@ -16122,5 +16122,214 @@
         "eq": ["applied.window.from", "applied.window.to"]
       }
     ]
+  },
+  {
+    "id": "279.1",
+    "feedback": 279,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryWitch",
+      "segment": {
+        "player_tag": "#2PP2PP2PP"
+      }
+    },
+    "request_id": "9aa7cf74-5d87-4c67-b2b0-27f8fc6131b6",
+    "note": "a tag the record never read answered holders_total 0, holder_share null, no note; the fix may refuse (not_recorded) or add a note, and notes_match reads either",
+    "assert": [
+      {
+        "notes_match": "never been read|never read|not recorded|unknown, not absent|has no profile"
+      }
+    ]
+  },
+  {
+    "id": "279.2",
+    "feedback": 279,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": {
+        "player_tag": "#2PP2PP2PP"
+      }
+    },
+    "request_id": "238ec0c3-00dd-4de6-a7fe-d085da569ae9",
+    "note": "players_considered 0, badges [] under 'every badge listed is one they hold' and 'a badge nobody here holds does not appear at all'",
+    "assert": [
+      {
+        "notes_match": "never been read|never read|not recorded|unknown, not absent|has no profile"
+      }
+    ]
+  },
+  {
+    "id": "279.3",
+    "feedback": 279,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryWitch",
+      "segment": {
+        "player_tag": "#20UGUV82U2"
+      }
+    },
+    "request_id": "586b87d1-6bd6-4f15-8028-a30cbeca5b04",
+    "note": "a battle-stub opponent (1 recorded battle, polls 0) fielding Witch; skipped once his profile is read or the call is refused",
+    "when": {
+      "eq": ["players_considered", 0]
+    },
+    "assert": [
+      {
+        "notes_match": "never been read|never read|not recorded|unknown, not absent|has no profile"
+      }
+    ]
+  },
+  {
+    "id": "279.4",
+    "feedback": 279,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryPekka",
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      }
+    },
+    "request_id": "713482c3-390e-45c0-b897-7f8ce66f1187",
+    "note": "a READ player's real non-holding (1 considered, 0 holders, share 0 on 2026-09-24) must not carry the unknown note",
+    "assert": [
+      {
+        "eq": ["players_considered", 1]
+      },
+      {
+        "has": "holders_total"
+      },
+      {
+        "notes_not_match": "never been read|never read|not recorded|unknown, not absent|has no profile"
+      }
+    ]
+  },
+  {
+    "id": "279.5",
+    "feedback": 279,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      }
+    },
+    "request_id": "2cdacfcb-4ea4-4662-a2ec-d69afa185fae",
+    "note": "a read player's own badge list (79 on 2026-09-24) carries no unknown note",
+    "assert": [
+      {
+        "eq": ["players_considered", 1]
+      },
+      {
+        "notes_not_match": "never been read|never read|not recorded|unknown, not absent|has no profile"
+      }
+    ]
+  },
+  {
+    "id": "280.1",
+    "feedback": 280,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      }
+    },
+    "request_id": "2cdacfcb-4ea4-4662-a2ec-d69afa185fae",
+    "note": "#257 (7.1.6): a one-player segment says its order is not rarity and points at a population",
+    "assert": [
+      {
+        "notes_match": "order says nothing about rarity"
+      },
+      {
+        "notes_match": "segment 'corpus'"
+      }
+    ]
+  },
+  {
+    "id": "280.2",
+    "feedback": 280,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "mine"
+    },
+    "request_id": "4d4a104a-43b0-470b-a27b-b8e34067c7d7",
+    "note": "the one-player note does not leak onto a clan read",
+    "assert": [
+      {
+        "notes_not_match": "This segment is one player"
+      },
+      {
+        "gt": ["players_considered", 1]
+      }
+    ]
+  },
+  {
+    "id": "280.3",
+    "feedback": 280,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "r": {
+        "tool": "badges_rarity",
+        "args": {
+          "segment": {
+            "player_tag": "#20JJJ2CCRU"
+          }
+        }
+      },
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#20JJJ2CCRU"
+        }
+      }
+    },
+    "request_id": "2cdacfcb-4ea4-4662-a2ec-d69afa185fae",
+    "note": "two roads to one player's badges agree: 79 = 79 names on 2026-09-24 (players_profile 1fc4c3bc-bba6-404b-b791-bd353491df05)",
+    "assert": [
+      {
+        "eq": ["r.players_considered", 1]
+      },
+      {
+        "count_eq": ["r.badges[]", "p.badges[]"]
+      }
+    ]
+  },
+  {
+    "id": "280.4",
+    "feedback": 280,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "r": {
+        "tool": "badges_rarity",
+        "args": {
+          "segment": "mine"
+        }
+      },
+      "c": {
+        "tool": "clans_roster",
+        "args": {}
+      }
+    },
+    "request_id": "4d4a104a-43b0-470b-a27b-b8e34067c7d7",
+    "note": "I1: summed holders = the roster's summed badge_count when every member is read (5194 = 5194 over 48 of 48 on 2026-09-24; roster 57a92077-bf70-4961-aa11-2ad59b97b8cd)",
+    "when": {
+      "eq": ["r.players_considered", "c.member_count"]
+    },
+    "assert": [
+      {
+        "sum_eq": [["r.badges[].holders"], "c.members[].badge_count"]
+      }
+    ]
   }
 ]
