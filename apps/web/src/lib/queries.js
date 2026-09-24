@@ -109,8 +109,13 @@ export const useEmailRecord = (id) =>
     enabled: Boolean(id),
   });
 
-export const useMyClans = () =>
-  useQuery({ queryKey: keys.clans, queryFn: payload(api.myClans) });
+export const useMyClans = () => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: scopedKey(agent, "clans"),
+    queryFn: payload(() => api.myClans(agent)),
+  });
+};
 
 export const useBattleActivity = (tag) =>
   useQuery({

@@ -73,9 +73,12 @@ for months stays signed in as you.
 its own key and its own event feed, so what it does never lands in your history
 and what you do never shows up as its. Agents are **not a tier feature**: you
 can create one for any clan you already record, at any role, up to the
-per-account count in the table above. It spends your daily call budget **and
-your live-fetch budget** — every agent you run shares your one daily live
-allowance — and it carries its own tier: an admin's agent is not an admin.
+per-account count in the table above. It spends your daily call budget, **your
+live-fetch budget** — every agent you run shares your one daily live
+allowance — **and your recording slots**: what your agents track is counted
+with what you track, once per player or clan, however many of you track it.
+It carries its own tier: an admin's agent is not an admin. Each agent has
+its own console, chosen at the top of the console's menu.
 
 That separation is the point. An agent that borrowed your identity would answer
 "who am I" with *your* player tag, which is not what a clan's Discord bot should

@@ -45,11 +45,13 @@ test("a person still sees everything — the default surface does not move", () 
   );
 });
 
-test("an agent has no personal identity tools", () => {
+test("an agent has no personal identity tools, and tracks for its clan", () => {
   const agent = names("agent");
   assert.ok(!agent.includes("elixir_my_players"));
-  assert.ok(!agent.includes("elixir_track_player"));
-  assert.ok(!agent.includes("elixir_track_clan"));
+  // 7.1.0 (Jamie, 2026-09-23): a clan agent may be asked to track a rival;
+  // it tracks with an agent's meaning (watched players, its owner's slots).
+  assert.ok(agent.includes("elixir_track_player"));
+  assert.ok(agent.includes("elixir_track_clan"));
   // But it keeps the things a clan agent actually needs.
   assert.ok(agent.includes("elixir_timeline"), "its own feed");
   assert.ok(agent.includes("elixir_send_feedback"), "and its own voice");
@@ -65,6 +67,8 @@ test("an integration has no 'me' at all", () => {
     !integration.includes("elixir_timeline"),
     "no subjects, so an empty pipe forever",
   );
+  assert.ok(!integration.includes("elixir_track_player"), "adds none");
+  assert.ok(!integration.includes("elixir_track_clan"));
   // It is a corpus consumer, and the corpus is all still there.
   assert.ok(integration.includes("players_profile"));
   assert.ok(integration.includes("battles_meta_decks"));

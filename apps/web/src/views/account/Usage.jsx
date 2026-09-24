@@ -229,7 +229,20 @@ export function Usage({ navigate }) {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {c.name}
+                    {c.public_id ? (
+                      // Your agent: its row opens its console's Usage.
+                      <a
+                        href={`/agent/${c.public_id}/usage`}
+                        onClick={(ev) => {
+                          ev.preventDefault();
+                          navigate?.(`/agent/${c.public_id}/usage`);
+                        }}
+                      >
+                        {c.name}
+                      </a>
+                    ) : (
+                      c.name
+                    )}
                   </span>
                   <span
                     style={{

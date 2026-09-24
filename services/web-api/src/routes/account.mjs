@@ -30,6 +30,98 @@ export function accountRoutes({
   notifyOwner = async () => {},
   capture = null,
 }) {
+  /** Track, untrack, or set notify or relationship on a player; yours,
+   *  or on an agent's console the agent's (which watches, only). */
+  async function trackPlayer(db, event, body) {
+    const account = await resolveAccount(db, event, {
+      requireContractHeader: true,
+    });
+    if (!account) return json(401, { error: "unauthenticated" });
+    let tag;
+    try {
+      tag = normalizeTag(String(body.player_tag ?? ""));
+    } catch (err) {
+      if (err instanceof InvalidTagError)
+        return json(400, { error: "invalid_tag" });
+      throw err;
+    }
+    const action = body.action ?? "add";
+    if (action === "notify_on" || action === "notify_off") {
+      const { rowCount } = await db.query(
+        `update claim set notify = $3 where account_id = $1 and player_tag = $2`,
+        [account.accountId, tag, action === "notify_on"],
+      );
+      if (rowCount === 0) return json(404, { error: "not_found" });
+      return json(200, { ok: true, notify: action === "notify_on" });
+    }
+    /**
+     * The writer this column never had.
+     *
+     * 0055 added claim.relationship (primary | alt | friend | watching) and
+     * describeIdentity groups the MCP identity block by it -- but NOTHING
+     * could ever set it. No console control, no API action, no MCP tool. So
+     * every non-primary player has been announced to every connected agent
+     * as "watching" since the day it shipped, and the alt/friend vocabulary
+     * in the docs described something unreachable.
+     *
+     * 'primary' is deliberately NOT settable here: exactly one claim is
+     * primary and promoting one must demote the other, which is what
+     * make_primary on add already does atomically.
+     */
+    if (action === "relationship") {
+      // An agent's players are watched, never "me" or a friend of it.
+      if (account.kind === "agent") return json(403, { error: "not_entitled" });
+      const REL = ["alt", "friend", "watching"];
+      if (!REL.includes(body.relationship))
+        return json(400, { error: "bad_relationship", allowed: REL });
+      const { rowCount } = await db.query(
+        `update claim set relationship = $3
+          where account_id = $1 and player_tag = $2 and not is_primary`,
+        [account.accountId, tag, body.relationship],
+      );
+      // No row means either you never added this tag, or it is your primary
+      // -- and demoting a primary by renaming it would leave you with none.
+      if (rowCount === 0) return json(404, { error: "not_found_or_primary" });
+      return json(200, { ok: true, relationship: body.relationship });
+    }
+    if (action === "remove") {
+      const r = await removePlayer(db, account, { tag, via: "web" });
+      return json(200, {
+        ok: true,
+        removed: r.removed,
+        recording_stopped: r.recordingStopped,
+        primary_player_tag: r.promotedPrimary,
+      });
+    }
+    // 'add': added = recorded (Jamie, 2026-09-05). Slots count what
+    // you've ADDED (your claims); the MCP door runs the same function.
+    const r = await addPlayer(db, account, {
+      tag,
+      makePrimary: body.make_primary === true,
+      via: "web",
+    });
+    if (!r.ok && r.error === "quota_exceeded") {
+      return json(429, {
+        error: "quota_exceeded",
+        message: `Added players are capped at ${r.limit} for the ${r.role} tier. Remove one, request an upgrade below, or run a collector for bonus slots.`,
+      });
+    }
+    if (!r.ok && r.error === "not_entitled")
+      return json(403, { error: "not_entitled" });
+    if (!r.ok) return json(404, { error: "not_found" });
+    if (r.recordingStarted) {
+      await logEvent(db, account.accountId, "recording_started", {
+        player_tag: tag,
+      });
+    }
+    return json(200, {
+      ok: true,
+      player_tag: tag,
+      recording: "active",
+      recording_started: r.recordingStarted,
+    });
+  }
+
   return {
     "GET /api/me": async (db, event) => {
       const account = await resolveAccount(db, event);
@@ -247,91 +339,10 @@ export function accountRoutes({
       return json(200, { ok: true, timezone: tz });
     },
 
-    "POST /api/claims": async (db, event, body) => {
-      const account = await resolveAccount(db, event, {
-        requireContractHeader: true,
-      });
-      if (!account) return json(401, { error: "unauthenticated" });
-      let tag;
-      try {
-        tag = normalizeTag(String(body.player_tag ?? ""));
-      } catch (err) {
-        if (err instanceof InvalidTagError)
-          return json(400, { error: "invalid_tag" });
-        throw err;
-      }
-      const action = body.action ?? "add";
-      if (action === "notify_on" || action === "notify_off") {
-        const { rowCount } = await db.query(
-          `update claim set notify = $3 where account_id = $1 and player_tag = $2`,
-          [account.accountId, tag, action === "notify_on"],
-        );
-        if (rowCount === 0) return json(404, { error: "not_found" });
-        return json(200, { ok: true, notify: action === "notify_on" });
-      }
-      /**
-       * The writer this column never had.
-       *
-       * 0055 added claim.relationship (primary | alt | friend | watching) and
-       * describeIdentity groups the MCP identity block by it -- but NOTHING
-       * could ever set it. No console control, no API action, no MCP tool. So
-       * every non-primary player has been announced to every connected agent
-       * as "watching" since the day it shipped, and the alt/friend vocabulary
-       * in the docs described something unreachable.
-       *
-       * 'primary' is deliberately NOT settable here: exactly one claim is
-       * primary and promoting one must demote the other, which is what
-       * make_primary on add already does atomically.
-       */
-      if (action === "relationship") {
-        const REL = ["alt", "friend", "watching"];
-        if (!REL.includes(body.relationship))
-          return json(400, { error: "bad_relationship", allowed: REL });
-        const { rowCount } = await db.query(
-          `update claim set relationship = $3
-            where account_id = $1 and player_tag = $2 and not is_primary`,
-          [account.accountId, tag, body.relationship],
-        );
-        // No row means either you never added this tag, or it is your primary
-        // -- and demoting a primary by renaming it would leave you with none.
-        if (rowCount === 0) return json(404, { error: "not_found_or_primary" });
-        return json(200, { ok: true, relationship: body.relationship });
-      }
-      if (action === "remove") {
-        const r = await removePlayer(db, account, { tag, via: "web" });
-        return json(200, {
-          ok: true,
-          removed: r.removed,
-          recording_stopped: r.recordingStopped,
-          primary_player_tag: r.promotedPrimary,
-        });
-      }
-      // 'add': added = recorded (Jamie, 2026-09-05). Slots count what
-      // you've ADDED (your claims); the MCP door runs the same function.
-      const r = await addPlayer(db, account, {
-        tag,
-        makePrimary: body.make_primary === true,
-        via: "web",
-      });
-      if (!r.ok && r.error === "quota_exceeded") {
-        return json(429, {
-          error: "quota_exceeded",
-          message: `Added players are capped at ${r.limit} for the ${r.role} tier. Remove one, request an upgrade below, or run a collector for bonus slots.`,
-        });
-      }
-      if (!r.ok) return json(404, { error: "not_found" });
-      if (r.recordingStarted) {
-        await logEvent(db, account.accountId, "recording_started", {
-          player_tag: tag,
-        });
-      }
-      return json(200, {
-        ok: true,
-        player_tag: tag,
-        recording: "active",
-        recording_started: r.recordingStarted,
-      });
-    },
+    "POST /api/claims": trackPlayer,
+    // The same writer at a /api/me address, so an agent's console can run it
+    // as the agent (/api/agent/<id>/players; 2026-09-23).
+    "POST /api/me/players": trackPlayer,
 
     "GET /api/me/first-answer": async (db, event) => {
       const account = await resolveAccount(db, event);
@@ -580,6 +591,10 @@ export function accountRoutes({
                      when m.token_id is not null then 'service token'
                      when m.surface = 'web' then 'console'
                      else 'client' end as kind,
+                -- An agent's row opens its console (2026-09-23).
+                max((select a.public_id from account a
+                      where a.account_id = m.account_id
+                        and m.account_id <> $1)) as public_id,
                 count(*)::int as calls
          from mcp_call_audit m
          where (m.account_id = $1 or m.account_id = any(coalesce(

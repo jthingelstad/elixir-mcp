@@ -88,6 +88,11 @@ export const AGENT_SCOPED_ROUTES = new Set([
   "POST /api/me/connections/revoke",
   "POST /api/me/connections/scope",
   "POST /api/me/connections/refusals/dismiss",
+  // Configuring the agent (phase 2): what it tracks, and the clan it acts
+  // for, in the person's pooled slots (@elixir-mcp/claims).
+  "GET /api/me/clans",
+  "POST /api/me/clans",
+  "POST /api/me/players",
 ]);
 
 const AGENT_PATH = /^\/api\/agent\/([a-z0-9]{8,16})(\/.*)?$/;

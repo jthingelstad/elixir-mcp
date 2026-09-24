@@ -214,11 +214,12 @@ test("two owners may use the same token name — uniqueness is per account", asy
   assert.equal(res.statusCode, 201, res.body);
 });
 
-test("an agent cannot claim a player: it has no self to be", async () => {
+test("an agent never claims a player as itself, but can watch one", async () => {
   const { rows } = await db.query(
     `select account_id, role, kind from account where kind = 'agent' limit 1`,
   );
   const agent = rows[0];
+  // It has no self to be: primary (and alt, friend) say "me".
   const result = await addPlayer(
     db,
     { accountId: agent.account_id },
@@ -227,6 +228,21 @@ test("an agent cannot claim a player: it has no self to be", async () => {
   assert.equal(result.ok, false);
   assert.equal(result.error, "not_entitled");
   assert.equal(result.kind, "agent");
+  // Watching is what an agent's players are (7.1.0): never its primary.
+  const watched = await addPlayer(
+    db,
+    { accountId: agent.account_id },
+    { tag: "#20JJJ2CCRU", via: "test" },
+  );
+  assert.equal(watched.ok, true, JSON.stringify(watched));
+  assert.equal(watched.isPrimary, false);
+  const { rows: claim } = await db.query(
+    `select relationship, is_primary from claim
+      where account_id = $1 and player_tag = '#20JJJ2CCRU'`,
+    [agent.account_id],
+  );
+  assert.deepEqual(claim[0], { relationship: "watching", is_primary: false });
+  await db.query(`delete from claim where account_id = $1`, [agent.account_id]);
 });
 
 test("integrations require the admin platform API", async () => {

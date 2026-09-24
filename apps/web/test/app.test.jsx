@@ -613,6 +613,71 @@ describe("an agent's console (2026-09-23)", () => {
     ).toBe(1);
   });
 
+  test("its Tracking: the clan it acts for, a rival it watches, and re-pointing it", async () => {
+    const posts = [];
+    global.fetch = mockFetch({
+      "GET /api/me": [200, PERSON],
+      "GET /api/agent/abcd1234": [
+        200,
+        {
+          ...AGENT,
+          claims: [
+            {
+              player_tag: "#PQLGR2C9",
+              name: "Rival Star",
+              relationship: "watching",
+              notify: true,
+            },
+          ],
+          entitlements: {
+            player_slots: { used: 4, limit: 50 },
+            activity_clans: { used: 2, limit: 3 },
+            comprehensive_clans: { used: 1, limit: 3 },
+          },
+        },
+      ],
+      "GET /api/agent/abcd1234/clans": [
+        200,
+        {
+          clans: [
+            {
+              clan_tag: "#J2RGCRVG",
+              name: "POAP KINGS",
+              scope: "comprehensive",
+              notify: true,
+              is_primary: true,
+            },
+            {
+              clan_tag: "#PGLQYRJ2",
+              name: "Rivals",
+              scope: "activity",
+              notify: true,
+              is_primary: false,
+            },
+          ],
+        },
+      ],
+      "POST /api/agent/abcd1234/clans": (init) => {
+        posts.push(JSON.parse(init.body));
+        return [200, { ok: true }];
+      },
+    });
+    window.history.pushState({}, "", "/agent/abcd1234/tracking");
+    render(<App />);
+    await screen.findByText("Rivals");
+    expect(screen.getByText("acts for")).toBeTruthy();
+    expect(screen.getByText("Rival Star")).toBeTruthy();
+    expect(screen.getByText(/activity 2 of 3/)).toBeTruthy();
+    // The clan it acts for offers no removal; the rival can take its place.
+    expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(2);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Make it the clan it acts for" }),
+    );
+    await waitFor(() =>
+      expect(posts).toEqual([{ clan_tag: "#PGLQYRJ2", action: "primary" }]),
+    );
+  });
+
   test("an agent that is not yours says so, and shows nothing of anyone's", async () => {
     global.fetch = mockFetch({
       "GET /api/me": [200, PERSON],

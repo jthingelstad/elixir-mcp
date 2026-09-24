@@ -407,3 +407,37 @@ test("3.18.0: when the primary player's clan is not recorded, an omitted clan_ta
   );
   assert.equal(await resolveEntitledClan(db, account, undefined), PRIMARY_CLAN);
 });
+
+test("7.1.0: an agent tracks a rival in its owner's slots, and keeps the clan it acts for", async () => {
+  // Jamie, 2026-09-23: "a clan agent may be asked to track a competitive
+  // clan". Its owner is a leader: one activity slot, one comprehensive,
+  // and the clan they share fills the comprehensive one.
+  const { elixir_track_clan } =
+    await import("../src/tools/elixir/track-clan.mjs");
+  const ctx = { db, account: agent };
+  const RIVAL = "#PYLQGRJC";
+  const RIVAL2 = "#9VUP08YL";
+  const added = await elixir_track_clan.handler(ctx, {
+    clan_tag: RIVAL,
+    scope: "activity",
+  });
+  assert.equal(added.added, true);
+  await assert.rejects(
+    () =>
+      elixir_track_clan.handler(ctx, { clan_tag: RIVAL2, scope: "activity" }),
+    (err) =>
+      err.code === "quota_exceeded" &&
+      /shared with its owner/.test(err.message),
+  );
+  // The clan it acts for stays, and so the default is unchanged.
+  await assert.rejects(
+    () => elixir_track_clan.handler(ctx, { clan_tag: CLAN, action: "remove" }),
+    (err) => err.code === "not_entitled",
+  );
+  assert.equal(await resolveEntitledClan(db, agent, undefined), CLAN);
+  const removed = await elixir_track_clan.handler(ctx, {
+    clan_tag: RIVAL,
+    action: "remove",
+  });
+  assert.equal(removed.removed, true);
+});

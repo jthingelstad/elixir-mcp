@@ -269,3 +269,133 @@ test("the log line names the scoped route, never the agent", async () => {
   assert.deepEqual(http, ["GET /api/agent/*/timeline"]);
   assert.ok(!lines.join("").includes(agentPid));
 });
+
+test("configuring the agent: a rival in the owner's slots, a watched player, a new primary", async () => {
+  await db.query(
+    `insert into clan (clan_tag, name) values ('#PGLQYRJ2', 'Rivals') on conflict do nothing`,
+  );
+  const post = (tail, body) =>
+    handler(
+      event({
+        method: "POST",
+        path: `/api/agent/${agentPid}${tail}`,
+        body,
+        cookie: ownerCookie,
+      }),
+    );
+  // The owner (member tier) has one activity clan slot, and the clan they
+  // and the agent share already fills it: a rival does not fit.
+  const full = await post("/clans", {
+    clan_tag: "#PGLQYRJ2",
+    scope: "activity",
+  });
+  assert.equal(full.statusCode, 429, full.body);
+  assert.match(parse(full).message, /shared with your agents/);
+  // Freeing the owner's copy does not free the slot: the agent still
+  // tracks the clan, and the pool counts the clan once, not the copies.
+  await db.query(
+    `delete from account_clan where account_id = $1 and clan_tag = '#J2RGCRVG'`,
+    [ownerId],
+  );
+  assert.equal(
+    (await post("/clans", { clan_tag: "#PGLQYRJ2", scope: "activity" }))
+      .statusCode,
+    429,
+  );
+  // One more slot for the owner (an override): now the rival fits, in
+  // the agent's own copy.
+  await db.query(`update account set role = 'family' where account_id = $1`, [
+    ownerId,
+  ]);
+  const added = await post("/clans", {
+    clan_tag: "#PGLQYRJ2",
+    scope: "activity",
+  });
+  assert.equal(added.statusCode, 200, added.body);
+  const clans = parse(
+    await handler(
+      event({ path: `/api/agent/${agentPid}/clans`, cookie: ownerCookie }),
+    ),
+  );
+  assert.deepEqual(
+    clans.clans.map((c) => [c.clan_tag, c.is_primary]),
+    [
+      ["#J2RGCRVG", true],
+      ["#PGLQYRJ2", false],
+    ],
+  );
+  assert.equal(clans.slots.activity.used, 2, "the pool, not the copy");
+
+  // The clan it acts for stays: not removable while primary.
+  const keep = await post("/clans", {
+    clan_tag: "#J2RGCRVG",
+    action: "remove",
+  });
+  assert.equal(keep.statusCode, 409);
+  assert.equal(parse(keep).error, "primary_clan");
+  // Re-point it, and then the old one can go.
+  assert.equal(
+    (await post("/clans", { clan_tag: "#PGLQYRJ2", action: "primary" }))
+      .statusCode,
+    200,
+  );
+  const me = parse(
+    await handler(
+      event({ path: `/api/agent/${agentPid}`, cookie: ownerCookie }),
+    ),
+  );
+  assert.equal(me.clans[0].clan_tag, "#PGLQYRJ2");
+  assert.equal(me.clans[0].is_primary, true);
+  assert.equal(
+    (await post("/clans", { clan_tag: "#J2RGCRVG", action: "remove" }))
+      .statusCode,
+    200,
+  );
+  // Its last clan is its "me": never removable.
+  const last = await post("/clans", {
+    clan_tag: "#PGLQYRJ2",
+    action: "remove",
+  });
+  assert.equal(last.statusCode, 409);
+
+  // A player it watches, never one it is.
+  await db.query(
+    `insert into player (player_tag, name) values ('#PQLGR2C9', 'Rival Star') on conflict do nothing`,
+  );
+  const watch = await post("/players", { player_tag: "#PQLGR2C9" });
+  assert.equal(watch.statusCode, 200, watch.body);
+  const rel = await post("/players", {
+    player_tag: "#PQLGR2C9",
+    action: "relationship",
+    relationship: "friend",
+  });
+  assert.equal(rel.statusCode, 403);
+  const primary = await post("/players", {
+    player_tag: "#PYVJ8UL2",
+    make_primary: true,
+  });
+  assert.equal(primary.statusCode, 403);
+  const agentMe = parse(
+    await handler(
+      event({ path: `/api/agent/${agentPid}`, cookie: ownerCookie }),
+    ),
+  );
+  assert.deepEqual(
+    agentMe.claims.map((c) => [c.player_tag, c.relationship, c.is_primary]),
+    [["#PQLGR2C9", "watching", false]],
+  );
+  // The events say what happened on the agent's account, and how.
+  const events = parse(
+    await handler(
+      event({ path: `/api/agent/${agentPid}/activity`, cookie: ownerCookie }),
+    ),
+  );
+  const kinds = events.events.map((e) => e.kind);
+  for (const k of [
+    "clan_added",
+    "primary_clan_changed",
+    "clan_removed",
+    "claim_added",
+  ])
+    assert.ok(kinds.includes(k), `${k} in ${kinds}`);
+});

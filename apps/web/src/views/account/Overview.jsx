@@ -282,6 +282,13 @@ export function Overview({ me, navigate }) {
             </a>
           </div>
           <SlotMeters entitlements={e} />
+          {(me.agents ?? []).length > 0 && (
+            // Pooled since 2026-09-23: what your agents track counts here.
+            <p className="footnote mt-3">
+              Your agents track in these slots too; a player or clan counts once
+              however many of you track it.
+            </p>
+          )}
         </section>
       )}
     </>

@@ -72,3 +72,24 @@ export async function pooledUsage(
   );
   return rows[0];
 }
+
+const WIDTH = { activity: 1, comprehensive: 2 };
+export const scopeWidth = (scope) => WIDTH[scope] ?? WIDTH.comprehensive;
+export const widthScope = (width) =>
+  width >= WIDTH.comprehensive ? "comprehensive" : "activity";
+
+/** The widest scope the REST of the pool gives a clan (null when nobody
+ *  else tracks it): what an account's own copy is added on top of, so a
+ *  change to your own copy is never refused for a slot it already had. */
+export async function pooledClanWidth(db, ownerId, clanTag, exceptAccount) {
+  const { rows } = await db.query(
+    `select max(case when scope = 'comprehensive' then 2 else 1 end) as width
+       from account_clan
+      where clan_tag = $2 and account_id is distinct from $3
+        and account_id in (select account_id from account
+                            where account_id = $1
+                               or (owned_by_account_id = $1 and kind = 'agent'))`,
+    [ownerId, clanTag, exceptAccount],
+  );
+  return rows[0]?.width ?? null;
+}

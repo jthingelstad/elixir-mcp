@@ -2148,3 +2148,11 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - Found on the way: person pages disagree about agents (Usage and Connections merge them; requests, feedback, timeline do not); an agent's call log and feedback are unreadable by a non-admin owner; an agent cannot be configured past creation (track tools are `PERSON_ONLY_TOOLS`, no clan-add route), so a family agent cannot be set up.
 - Decided by Jamie: configure in scope, Explore global, integrations out (the public API rethink), agent clients move to the agent. Open: pooled slots counting distinct subjects (recommended), the agent adding over MCP (recommended), re-pointing an agent's primary clan.
 
+## 2026-09-23 — Console account switcher: built (phases 1-3; contract 7.1.0)
+
+- Jamie: "build this change... all three phases"; slots pooled at the person, agents track over MCP, an agent's clan can be re-pointed.
+- Phase 1 (4d29c57, deployed): `/api/agent/<public_id>/<tail>` runs the `/api/me/<tail>` route as the agent for its owner (handler.mjs `AGENT_SCOPED_ROUTES`, `agent-scope.mjs`; 404 for anyone else's; log key `GET /api/agent/*/...`); agent `me`; pooled slot counts; Usage's budget holder; your Connections lists your clients only. Kit `Rail` gained `accounts` (the selector); console `ScopeProvider`, scoped query keys `["agent", id]`, `agentRail`, `AgentPage`; the agent page split into Overview and Settings; `GET /api/me/principals/timeline` retired.
+- Phases 2-3: `@elixir-mcp/claims` `addClan` / `removeClan` / `setPrimaryClan` (the console and `elixir_track_clan` had each carried an unlocked copy of the slot check), `addPlayer` pooled and open to agents (watching only), pool lock = the owner's row, taken after the account's and before the subject's. `POST /api/me/players` aliases `/api/claims` so it can be scoped. Track tools opened to agents and withheld from integrations. Agent Tracking page; your Usage's agent rows open their consoles.
+- As built, Explore and Status are not in an agent's console (the design table listed them): Explore's records and trail are absolute `/explore` paths and a nickname saved there is the person's, so they stay in yours.
+- Watch: `elixir_identify` accepts a member of any clan an agent tracks, so a rival clan widens who it can map; harmless (its own mapping) but noted.
+

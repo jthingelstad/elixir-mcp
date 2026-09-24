@@ -23,15 +23,12 @@ export type PrincipalKind = "person" | "agent" | "integration";
  * how a clan Discord bot came to be able to recite Jamie's own tags into a
  * public channel.
  *
- * The two add tools go with it because an agent holds no claims at all (a claim
- * asserts "this player is me"), and an agent's clan must be one its owner
- * already added — so adding is the owner's act, performed as themselves.
+ * The two track tools left this list at 7.1.0 (Jamie, 2026-09-23: a clan
+ * agent "may be asked to track a competitive clan"). An agent tracks with
+ * an agent's meaning: its players are watched, never "me", its clans spend
+ * its owner's pooled slots, and it keeps the clan it acts for.
  */
-export const PERSON_ONLY_TOOLS: readonly string[] = [
-  "elixir_my_players",
-  "elixir_track_player",
-  "elixir_track_clan",
-];
+export const PERSON_ONLY_TOOLS: readonly string[] = ["elixir_my_players"];
 
 /**
  * Additionally withheld from integrations, which have no "me" at all.
@@ -44,6 +41,9 @@ export const PERSON_ONLY_TOOLS: readonly string[] = [
 export const AGENT_ONLY_TOOLS: readonly string[] = [
   "elixir_nickname",
   "elixir_timeline",
+  // An integration tracks nothing (it adds no subjects; claims refuses it).
+  "elixir_track_player",
+  "elixir_track_clan",
 ];
 
 export function toolsHiddenFrom(kind: string | null | undefined): Set<string> {

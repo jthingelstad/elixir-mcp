@@ -293,6 +293,45 @@ test("concurrent adds cannot exceed the slot limit", async () => {
   assert.equal(rows[0].n, 3, "never more claims than slots");
 });
 
+test("an owner and their agent share one pool of player slots, under one lock", async () => {
+  // Jamie, 2026-09-23: agents use the person's recording slots. A player
+  // both track is one slot; and the owner and the agent adding at once on
+  // separate connections cannot both take the last one.
+  const owner = await account(`pool-${Math.random()}`, { slots: 2 });
+  const {
+    rows: [row],
+  } = await db.query(
+    `insert into account (status, role, kind, owned_by_account_id, public_id)
+     values ('approved', 'member', 'agent', $1, $2) returning account_id`,
+    [owner.accountId, `pool${String(Math.random()).slice(2, 10)}`],
+  );
+  const agent = { accountId: row.account_id };
+  assert.equal((await addPlayer(db, owner, { tag: A, via: "test" })).ok, true);
+  // The same player on the agent costs nothing.
+  assert.equal((await addPlayer(db, agent, { tag: A, via: "test" })).ok, true);
+  const conns = await Promise.all(
+    [0, 1].map(async () => {
+      const c = new pg.Client({ connectionString: URL });
+      await c.connect();
+      return c;
+    }),
+  );
+  try {
+    const results = await Promise.all([
+      addPlayer(conns[0], owner, { tag: C, via: "test" }),
+      addPlayer(conns[1], agent, { tag: D, via: "test" }),
+    ]);
+    assert.equal(
+      results.filter((r) => r.ok).length,
+      1,
+      "one of the two takes the last slot",
+    );
+    assert.equal(results.filter((r) => r.error === "quota_exceeded").length, 1);
+  } finally {
+    await Promise.all(conns.map((c) => c.end()));
+  }
+});
+
 test("owner and admin stay exempt from slots", async () => {
   const owner = await account(`owner-${Math.random()}`);
   await db.query(

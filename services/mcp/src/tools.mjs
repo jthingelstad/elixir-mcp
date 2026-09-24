@@ -30,11 +30,7 @@ import { validateArgs } from "./validate.mjs";
 import { OUTPUT_SCHEMAS } from "./output-schemas.mjs";
 import { ToolFailure } from "./tools/shared.mjs";
 
-export {
-  ToolFailure,
-  ensureClanRecording,
-  settleClanRecording,
-} from "./tools/shared.mjs";
+export { ToolFailure, ensureClanRecording } from "./tools/shared.mjs";
 
 const TOOLS = {
   ...elixirTools,

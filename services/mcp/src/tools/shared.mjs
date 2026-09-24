@@ -1487,14 +1487,6 @@ export async function ensureClanRecording(db, tag, requestedBy) {
   return started;
 }
 
-/** After a removal: stop the recording when nothing wants the clan any
- *  more, else settle scope to the widest remaining reason. Returns true
- *  when the recording stopped. */
-export async function settleClanRecording(db, tag) {
-  const { stopped } = await reconcileRecording(db, "clan", tag, null);
-  return stopped;
-}
-
 /** The fit of the population's decks against one player's collection
  *  (6.4.0, feedback #70: a corpus deck sorted by win rate reads as
  *  advice, and the payload carried nothing about what the caller holds,

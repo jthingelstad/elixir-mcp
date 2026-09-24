@@ -1,17 +1,19 @@
 import {
-  setCollectionMembers,
-  reconcileCollection,
+  addClan,
   deleteCollection,
+  poolLimits,
+  poolOwner,
+  pooledUsage,
+  reconcileCollection,
+  removeClan,
+  setCollectionMembers,
+  setPrimaryClan,
 } from "@elixir-mcp/claims";
 import { normalizeTag, roleQuotas } from "@elixir-mcp/contracts";
-import {
-  ensureClanRecording,
-  settleClanRecording,
-} from "../../../mcp/src/tools.mjs";
 
 import { json } from "../http.mjs";
 
-export function collectionsRoutes({ resolveAccount, logEvent }) {
+export function collectionsRoutes({ resolveAccount }) {
   return {
     "GET /api/clan": async (db, event) => {
       const account = await resolveAccount(db, event);
@@ -74,6 +76,7 @@ export function collectionsRoutes({ resolveAccount, logEvent }) {
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
         `select ac.clan_tag, ac.scope, ac.notify, ac.created_at, c.name,
+                ac.is_primary,
                 r.status as recording_status, r.scope as effective_scope,
                 (select count(*)::int from clan_membership cm
                   where cm.clan_tag = ac.clan_tag and cm.left_observed_at is null) as member_count
@@ -84,14 +87,10 @@ export function collectionsRoutes({ resolveAccount, logEvent }) {
          where ac.account_id = $1 order by ac.created_at`,
         [account.accountId],
       );
-      const { rows: slots } = await db.query(
-        `select exists (select 1 from gateway g
-                        where g.owner_account_id = $1 and g.status = 'active') as operator,
-                count(*) filter (where ac.scope = 'activity')::int as activity_used,
-                count(*) filter (where ac.scope = 'comprehensive')::int as comprehensive_used
-         from account_clan ac where ac.account_id = $1`,
-        [account.accountId],
-      );
+      // The person's clan slots, pooled across them and their agents.
+      const owner = await poolOwner(db, account.accountId);
+      const limits = poolLimits(owner);
+      const used = await pooledUsage(db, owner.account_id);
       // The starred suggestion (Jamie, 2026-09-05): your primary
       // player's current clan - "we know your clan from your account".
       const { rows: home } = await db.query(
@@ -106,7 +105,6 @@ export function collectionsRoutes({ resolveAccount, logEvent }) {
          limit 1`,
         [account.accountId],
       );
-      const q = roleQuotas(account.role, { operator: slots[0]?.operator });
       const lim = (v) => (v === Infinity ? null : v);
       return json(200, {
         clans: rows,
@@ -115,12 +113,12 @@ export function collectionsRoutes({ resolveAccount, logEvent }) {
           : null,
         slots: {
           activity: {
-            used: slots[0]?.activity_used ?? 0,
-            limit: lim(q.activity_clans),
+            used: used.activity_used,
+            limit: lim(limits.activity),
           },
           comprehensive: {
-            used: slots[0]?.comprehensive_used ?? 0,
-            limit: lim(q.comprehensive_clans),
+            used: used.comprehensive_used,
+            limit: lim(limits.comprehensive),
           },
         },
       });
@@ -147,66 +145,43 @@ export function collectionsRoutes({ resolveAccount, logEvent }) {
         return json(200, { ok: true, notify: action === "notify_on" });
       }
       if (action === "remove") {
-        const { rowCount } = await db.query(
-          `delete from account_clan where account_id = $1 and clan_tag = $2`,
-          [account.accountId, tag],
-        );
-        let recordingStopped = false;
-        if (rowCount > 0) {
-          recordingStopped = await settleClanRecording(db, tag);
-          if (recordingStopped)
-            await logEvent(db, account.accountId, "recording_stopped", {
-              clan_tag: tag,
-            });
-        }
+        const r = await removeClan(db, account, { tag, via: "web" });
+        // An agent keeps the clan it acts for (claims removeClan).
+        if (!r.ok) return json(409, { error: r.error });
         return json(200, {
           ok: true,
-          removed: rowCount > 0,
-          recording_stopped: recordingStopped,
+          removed: r.removed,
+          recording_stopped: r.recordingStopped,
         });
+      }
+      if (action === "primary") {
+        // Re-pointing an agent at another of its clans (2026-09-23).
+        const r = await setPrimaryClan(db, account, { tag, via: "web" });
+        if (!r.ok)
+          return json(r.error === "not_entitled" ? 403 : 404, {
+            error: r.error,
+          });
+        return json(200, { ok: true, primary: tag });
       }
       if (action !== "add") return json(400, { error: "bad_request" });
-      // Added = recorded: slots count clans you've ADDED, per scope -
-      // the MCP door (elixir_track_clan) applies the same rule.
-      const scope = body.scope === "activity" ? "activity" : "comprehensive";
-      if (!account.isOwner && account.role !== "admin") {
-        const { rows: slots } = await db.query(
-          `select exists (select 1 from gateway g
-                          where g.owner_account_id = $1 and g.status = 'active') as operator,
-                  (select count(*)::int from account_clan ac
-                   where ac.account_id = $1 and ac.scope = $2
-                     and ac.clan_tag <> $3) as used`,
-          [account.accountId, scope, tag],
-        );
-        const q = roleQuotas(account.role, { operator: slots[0].operator });
-        const limit =
-          scope === "activity" ? q.activity_clans : q.comprehensive_clans;
-        if (slots[0].used >= limit)
-          return json(429, {
-            error: "quota_exceeded",
-            message:
-              limit === 0
-                ? `The ${account.role ?? "member"} tier has no ${scope}-scope clan slots - request an upgrade from Account > Overview.`
-                : `Your ${scope}-scope clan slots are full (${limit} for the ${account.role ?? "member"} tier).`,
-          });
-      }
-      await db.query(
-        `insert into clan (clan_tag) values ($1) on conflict do nothing`,
-        [tag],
-      );
-      await db.query(
-        `insert into account_clan (account_id, clan_tag, scope) values ($1, $2, $3)
-         on conflict (account_id, clan_tag) do update set scope = excluded.scope`,
-        [account.accountId, tag, scope],
-      );
-      const started = await ensureClanRecording(db, tag, account.accountId);
-      if (started) {
-        await logEvent(db, account.accountId, "recording_started", {
-          clan_tag: tag,
-          scope,
+      // Added = recorded, within the pool's clan slots (the person's,
+      // shared with their agents); elixir_track_clan runs the same
+      // function.
+      const r = await addClan(db, account, {
+        tag,
+        scope: body.scope,
+        via: "web",
+      });
+      if (!r.ok && r.error === "quota_exceeded")
+        return json(429, {
+          error: "quota_exceeded",
+          message:
+            r.limit === 0
+              ? `The ${r.role} tier has no ${r.scope}-scope clan slots - request an upgrade from Account > Overview.`
+              : `Your ${r.scope}-scope clan slots are full (${r.limit} for the ${r.role} tier${account.owner ? ", shared with your agents" : ""}).`,
         });
-      }
-      return json(200, { ok: true, clan_tag: tag, scope });
+      if (!r.ok) return json(403, { error: r.error });
+      return json(200, { ok: true, clan_tag: tag, scope: r.scope });
     },
 
     "GET /api/admin/collections": async (db, event) => {

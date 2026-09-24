@@ -204,6 +204,7 @@ test("an agent's console: its pages and nothing of a person's, one segment along
   expect(AGENT_RAIL.map((r) => r.key)).toEqual([
     "overview",
     "timeline",
+    "tracking",
     "activity",
     "usage",
     "connections",

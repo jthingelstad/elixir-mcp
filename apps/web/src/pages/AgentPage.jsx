@@ -1,5 +1,6 @@
 import { Activity } from "../views/Activity.jsx";
 import { AgentRecord } from "../views/account/Agents.jsx";
+import { AgentTracking } from "../views/account/AgentTracking.jsx";
 import { CallRecord } from "../views/account/CallRecord.jsx";
 import { Connections } from "../views/account/Connections.jsx";
 import { Feedback, FeedbackItem } from "../views/account/Feedback.jsx";
@@ -53,6 +54,7 @@ function AgentConsole({ agentId, page, sub, itemId, recordId, navigate }) {
     );
   const agent = res.data.data;
   if (page === "timeline") return <Timeline />;
+  if (page === "tracking") return <AgentTracking agent={agent} />;
   if (page === "activity")
     return itemId === "c" ? (
       <CallRecord id={recordId} navigate={navigate} />

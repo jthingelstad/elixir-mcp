@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Your agents can track clans and players",
+    body: "An agent can now track more than the clan it was made for: a rival clan it is asked to watch, the other clans of a family, or a player worth following. Its console has a Tracking page for it, and an agent can also do it itself with elixir_track_clan and elixir_track_player. Its players are watched, never treated as the agent itself. The clan it acts for can be changed to another of its clans, and it keeps at least one. Everything your agents track shares your recording slots: a player or clan counts once however many of you track it, so making agents never adds slots. Contract 7.1.0.",
+  },
+  {
+    date: "2026-09-23",
     title: "Each of your agents has its own console",
     body: "The top of the console's menu is now an account selector: you, and each agent you own. Choosing an agent opens its own console, the same pages scoped to it: its overview (its key, its last call, anything refusing it, and the address to connect it at), its timeline, the calls it made, its share of your daily budget, the clients connected as it, its settings, and the feedback it has filed. Until now an agent's calls and feedback could not be read anywhere in the console. Pages that belong to a person, like Verify and Profile, are not in an agent's console, and Explore and Status stay in yours. Clients connected as an agent now appear on that agent's console rather than on yours, and new feedback is always filed as you.",
   },

@@ -86,8 +86,26 @@ The roster is deliberately absent because the instructions are held until
 reconnect; call `clans_roster` once per run.
 
 An agent's `tools/list` has {{ tools.agentCount }} tools: everything except `elixir_my_players`,
-`elixir_track_player` and `elixir_track_clan`, which need a self. Omit
-`clan_tag` anywhere and it means the agent's clan.
+which needs a self. Omit `clan_tag` anywhere and it means the agent's clan.
+
+## What an agent tracks
+
+An agent can track clans and players as well (7.1.0): a rival clan it is
+asked to watch, the other clans of a family, a player worth following.
+`elixir_track_clan` and `elixir_track_player` work for it the way they work
+for you, with an agent's meaning. Its players are `watching`, never
+`primary`, `alt` or `friend`, because those say "me". Every clan and player
+it tracks spends **your** recording slots: they are one pool across you and
+all your agents, a subject counts once however many of you track it, and a
+clan counts once at the widest scope any of you gives it. So making agents
+never adds slots.
+
+One of its clans is the clan it **acts for**, its default wherever
+`clan_tag` is omitted. It cannot remove that clan, or its last one; you can
+make another of its clans the one it acts for from its console
+(**Tracking**), and then remove the old one. What it tracks, and every
+change to it, is on its console: **Tracking** and **Activity → Account
+events**.
 
 ## Knowing which human is asking
 

@@ -116,7 +116,7 @@ export const api = {
   adminSetRole: (account_id, role) =>
     request("POST", "/api/admin/accounts", { account_id, role }),
   myCollections: () => request("GET", "/api/me/collections"),
-  myClans: () => request("GET", "/api/me/clans"),
+  myClans: (agent) => request("GET", `${home(agent)}/clans`),
   verifyList: () => request("GET", "/api/me/verify"),
   verifyStart: (player_tag) =>
     request("POST", "/api/me/verify", { player_tag }),
@@ -144,7 +144,11 @@ export const api = {
   gatewayEnv: (id) => request("POST", "/api/me/gateway-env", { id }),
   gatewayDetail: (id) =>
     request("GET", `/api/me/gateway-detail?id=${encodeURIComponent(id)}`),
-  myClanAction: (body) => request("POST", "/api/me/clans", body),
+  myClanAction: (body, agent) => request("POST", `${home(agent)}/clans`, body),
+  // An agent's players (2026-09-23): the same writer as /api/claims, at an
+  // address its console can scope. It watches, only.
+  agentPlayerAction: (body, agent) =>
+    request("POST", `${home(agent)}/players`, body),
   // Fire-and-forget: a failed view must never surface to a user, and must
   // never delay a render.
   rotatePrincipalToken: (account_id) =>

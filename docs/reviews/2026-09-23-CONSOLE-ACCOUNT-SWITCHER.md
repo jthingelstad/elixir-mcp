@@ -14,6 +14,15 @@ the 43 `/api/me` routes and what each one scopes to, the agent page
 (`apps/web/src/views/account/Agents.jsx`), the rail, and the public model in
 `apps/site/src/docs/roles.md`. Design only; nothing applied.
 
+**As built (2026-09-23, same day; Jamie: "build this change... all three
+phases").** Built as designed, with the three open decisions taken as
+recommended (§7: pooled slots, the agent tracking over MCP at 7.1.0, and
+re-pointing an agent's primary clan). One change from §3: Explore and Status
+are NOT in an agent's console. Explore's records and trail are absolute
+`/explore` paths and a nickname saved there is the person's, and Status is
+the same for everyone, so both stay in yours. See docs/NOTES.md for the
+record.
+
 ---
 
 ## 0. Summary

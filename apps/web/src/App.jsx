@@ -147,6 +147,7 @@ export const SECTIONS = {
     pages: [
       { slug: "overview", label: "Overview" },
       { slug: "timeline", label: "Timeline" },
+      { slug: "tracking", label: "Tracking" },
       { slug: "activity", label: "Activity" },
       { slug: "usage", label: "Usage" },
       { slug: "connections", label: "Connections" },
@@ -332,6 +333,12 @@ export function agentRail(id) {
     { key: "timeline", label: "Timeline", icon: "bell", to: at("timeline") },
     {
       group: "Its record",
+      key: "tracking",
+      label: "Tracking",
+      icon: "radar",
+      to: at("tracking"),
+    },
+    {
       key: "activity",
       label: "Activity",
       icon: "activity",
@@ -387,6 +394,8 @@ export function railPosition(path) {
       return { ...scope, key: "overview", doc: "agent:overview" };
     if (agentPage === "settings")
       return { ...scope, key: "settings", doc: "agent:settings" };
+    if (agentPage === "tracking")
+      return { ...scope, key: "tracking", doc: "agent:tracking" };
     return { ...scope, key: agentPage };
   }
   // `doc` names the docs-strip entry when a RECORD page sits under a rail
@@ -585,6 +594,14 @@ export const DOC_LINKS = {
       ["Agents", "/docs/agents"],
       ["Tiers & roles", "/docs/roles"],
       ["The timeline", "/docs/timeline"],
+    ],
+  ],
+  "agent:tracking": [
+    "What an agent tracks",
+    [
+      ["What an agent tracks", "/docs/agents#what-an-agent-tracks"],
+      ["How recording works", "/docs/recording"],
+      ["Tiers & slots", "/docs/roles"],
     ],
   ],
   "agent:settings": [

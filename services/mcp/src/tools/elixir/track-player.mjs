@@ -5,7 +5,7 @@ import { RECORDING_DOCS } from "./common.mjs";
 
 export const elixir_track_player = {
   description:
-    "Track a player on your account: claims the tag AND starts recording in one act (tracked means recorded), within your tier's player slots. Say who they are to you with relationship (primary = you, alt = also you, friend, watching); your first player becomes your primary. action remove releases the claim (recording stops if you were its only reason); notify_on / notify_off control whether the player feeds your elixir_timeline.",
+    "Track a player on your account: claims the tag AND starts recording in one act (tracked means recorded), within your player slots (an agent spends its owner's). Say who they are to you with relationship (primary = you, alt = also you, friend, watching); your first player becomes your primary. An agent tracks as watching only. action remove releases the claim (recording stops if you were its only reason); notify_on / notify_off control whether the player feeds your elixir_timeline.",
   inputSchema: {
     type: "object",
     properties: {
@@ -91,6 +91,12 @@ export const elixir_track_player = {
         "Remove one, request a tier upgrade on the website, or run a collector for bonus slots.",
       );
     }
+    if (!r.ok && r.error === "not_entitled")
+      throw new ToolFailure(
+        "not_entitled",
+        "An agent tracks players as watching only.",
+        "A player an agent tracks is never it: omit relationship, or pass watching.",
+      );
     if (!r.ok) {
       throw new ToolFailure("not_found", "Account not found.");
     }
