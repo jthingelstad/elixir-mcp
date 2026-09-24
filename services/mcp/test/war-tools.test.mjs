@@ -451,7 +451,8 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
     `insert into war_attendance_day
        (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
      values ($1, $2, $3, $6::int + 2, $4, 2), ($1, $2, $3, $6::int + 2, $5, 4)
-     on conflict do nothing`,
+     on conflict (clan_tag, season_id, section_index, day_in_section, player_tag)
+       do update set decks_used_today = excluded.decks_used_today`,
     [
       CLAN,
       wk.season_id,

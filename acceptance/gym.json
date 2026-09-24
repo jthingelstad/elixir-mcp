@@ -18702,5 +18702,278 @@
         "notes_not_match": "of this clan's \\d+ current members"
       }
     ]
+  },
+  {
+    "id": "310.1",
+    "feedback": 310,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "season": 135
+    },
+    "request_id": "43fb1a73-1a60-48c9-ae38-f521a55975c6",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "season"]
+      },
+      {
+        "eq": ["applied.window.from", "2026-08-03T10:00:00.000Z"]
+      },
+      {
+        "eq": ["applied.window.to", "2026-09-07T10:00:00.000Z"]
+      },
+      {
+        "count_eq": ["game_days_read[]", 6]
+      }
+    ]
+  },
+  {
+    "id": "310.2",
+    "feedback": 310,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "s": {
+        "tool": "game_events",
+        "args": {
+          "season": "2026-08"
+        }
+      },
+      "w": {
+        "tool": "game_events",
+        "args": {
+          "from": "2026-08-03T10:00:00Z",
+          "to": "2026-09-07T10:00:00Z"
+        }
+      }
+    },
+    "request_id": "f93e75eb-f48d-4d2b-81a2-0c1b76751a33",
+    "assert": [
+      {
+        "eq": ["s.applied.window.from", "w.applied.window.from"]
+      },
+      {
+        "eq": ["s.applied.window.to", "w.applied.window.to"]
+      },
+      {
+        "count_eq": ["s.events[]", 15]
+      },
+      {
+        "count_eq": ["w.events[]", 15]
+      }
+    ]
+  },
+  {
+    "id": "310.3",
+    "feedback": 310,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "season": 132
+    },
+    "request_id": "3409ece4-362a-4830-8a7f-cb02a3f6a2ed",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "season"]
+      },
+      {
+        "count_eq": ["events[]", 0]
+      },
+      {
+        "notes_match": "Sightings began 2026-06-13"
+      }
+    ]
+  },
+  {
+    "id": "310.4",
+    "feedback": 310,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-28T09:59:59Z"
+    },
+    "request_id": "5cb6771a-c44c-47c0-9da3-b9680aff2f4b",
+    "assert": [
+      {
+        "eq": ["is_colosseum", false]
+      },
+      {
+        "eq": ["week", 3]
+      },
+      {
+        "eq": ["weeks_in_season", 4]
+      }
+    ]
+  },
+  {
+    "id": "310.5",
+    "feedback": 310,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-28T10:00:00Z"
+    },
+    "request_id": "4877bfcc-7a35-45c7-9638-8113b7f1f00b",
+    "assert": [
+      {
+        "eq": ["is_colosseum", true]
+      },
+      {
+        "eq": ["colosseum_starts_at", "applied.at"]
+      },
+      {
+        "eq": ["week", "weeks_in_season"]
+      }
+    ]
+  },
+  {
+    "id": "310.6",
+    "feedback": 310,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "g": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-07-27T12:00:00Z"
+        }
+      },
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 134,
+          "section_index": 3,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "fa79a5f1-79e4-43d6-890e-6104f6ab06bf",
+    "assert": [
+      {
+        "eq": ["g.is_colosseum", "w.weeks[0].is_colosseum"]
+      },
+      {
+        "eq": ["g.section_index", 3]
+      },
+      {
+        "eq": ["g.weeks_in_season", 4]
+      }
+    ]
+  },
+  {
+    "id": "310.7",
+    "feedback": 310,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "g": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-06-29T12:00:00Z"
+        }
+      },
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 133,
+          "section_index": 4,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "e151db24-ec2f-4a4d-8420-7c813fc49a57",
+    "assert": [
+      {
+        "eq": ["g.is_colosseum", "w.weeks[0].is_colosseum"]
+      },
+      {
+        "eq": ["g.section_index", 4]
+      },
+      {
+        "eq": ["g.weeks_in_season", 5]
+      }
+    ]
+  },
+  {
+    "id": "310.8",
+    "feedback": 310,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "a": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-11-23T12:00:00Z"
+        }
+      },
+      "b": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-11-30T12:00:00Z"
+        }
+      }
+    },
+    "request_id": "1c28f3e6-7e8b-4a01-85c3-98fd8f922dab",
+    "assert": [
+      {
+        "eq": ["a.is_colosseum", false]
+      },
+      {
+        "eq": ["b.is_colosseum", true]
+      },
+      {
+        "eq": ["b.weeks_in_season", 5]
+      },
+      {
+        "eq": ["a.colosseum_starts_at", "b.colosseum_starts_at"]
+      }
+    ]
+  },
+  {
+    "id": "310.9",
+    "feedback": 310,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22T12:00:00Z",
+      "to": "2026-09-23T08:00:00Z"
+    },
+    "request_id": "9c15082a-b957-491a-aae4-01df7212c5d1",
+    "assert": [
+      {
+        "notes_match": "No events read covered the game day 2026-09-22"
+      },
+      {
+        "notes_not_match": "(?i)fell outside"
+      }
+    ]
+  },
+  {
+    "id": "310.10",
+    "feedback": 310,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-24T10:00:00Z",
+      "to": "2026-09-25T10:00:00Z"
+    },
+    "request_id": "93f21ddf-c4e1-416c-add3-cc0444488692",
+    "assert": [
+      {
+        "count_eq": ["game_days_read[]", 1]
+      },
+      {
+        "eq": ["game_days_read[0]", "2026-09-24"]
+      },
+      {
+        "has": "events[].event_tag"
+      }
+    ]
   }
 ]
