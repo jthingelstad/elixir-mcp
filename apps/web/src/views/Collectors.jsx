@@ -42,9 +42,17 @@ export function Fleet({ navigate }) {
   // Stamped once per load rather than read during render:
   // a clock read while rendering makes every re-render a new answer.
   const [now] = useState(() => Date.now());
-  const status = usePublicStatus().data ?? null;
+  const statusQuery = usePublicStatus();
+  const status = statusQuery.data ?? null;
   const mine = useMyGateways().data?.gateways ?? null;
 
+  // A failed read is said, not left loading (console audit M2).
+  if (!status && statusQuery.isError)
+    return (
+      <p style={{ color: "var(--ink-faint)" }}>
+        This could not be read just now; try again in a moment.
+      </p>
+    );
   if (!status) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 
   const fleet = status.collectors ?? [];

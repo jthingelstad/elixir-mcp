@@ -246,6 +246,7 @@ export function Explore({ me, navigate, path }) {
 function Lookup({ me, navigate, browse }) {
   const [q, setQ] = useState("");
   const [miss, setMiss] = useState(null);
+  const [failure, setFailure] = useState(null);
   const [matches, setMatches] = useState(null);
   const [busy, setBusy] = useState(false);
   const collections = useExploreCollections().data ?? [];
@@ -260,9 +261,35 @@ function Lookup({ me, navigate, browse }) {
     [navigate],
   );
 
+  // A failed read is not "no records" (console audit M1): a quota or rate
+  // refusal, or no answer at all, is said as what it is, with the
+  // server's own message.
+  const FAILURE_CODES = [
+    "quota_exceeded",
+    "rate_limited",
+    "internal",
+    "timeout",
+    "upstream_unavailable",
+  ];
+  const failureOf = (r) => {
+    if (!r.ok)
+      return (
+        r.data?.message ??
+        "Elixir did not answer just now; try again in a moment."
+      );
+    const err = r.data?.is_error ? r.data.body?.error : null;
+    return err && FAILURE_CODES.includes(err.code)
+      ? (err.message ?? err.code)
+      : null;
+  };
   const searchNames = async (query) => {
     const r = await api.explore("players_search", { query, limit: 8 });
-    if (!r.ok || r.data.is_error) return false;
+    const failed = failureOf(r);
+    if (failed) {
+      setFailure(failed);
+      return true;
+    }
+    if (r.data.is_error) return false;
     const found = r.data.body?.matches ?? [];
     if (found.length === 0) return false;
     if (found.length === 1) {
@@ -278,6 +305,7 @@ function Lookup({ me, navigate, browse }) {
     if (!query) return;
     setBusy(true);
     setMiss(null);
+    setFailure(null);
     setMatches(null);
     try {
       const slug = query.toLowerCase();
@@ -307,6 +335,11 @@ function Lookup({ me, navigate, browse }) {
       if (TAG_RE.test(query)) {
         const tag = normTag(query);
         const p = await api.explore("players_summary", { player_tag: tag });
+        const failed = failureOf(p);
+        if (failed) {
+          setFailure(failed);
+          return;
+        }
         if (p.ok && !p.data.is_error) {
           go("player", encTag(tag));
           return;
@@ -458,7 +491,15 @@ function Lookup({ me, navigate, browse }) {
             ))}
           </div>
         )}
-        {miss && (
+        {failure && (
+          <div className="empty" style={{ textAlign: "left" }}>
+            <div className="empty__title">That lookup could not run</div>
+            <div className="empty__body" style={{ textAlign: "left" }}>
+              {failure}
+            </div>
+          </div>
+        )}
+        {miss && !failure && (
           <div
             className="empty"
             style={{

@@ -43,12 +43,24 @@ function AgentConsole({ agentId, page, sub, itemId, recordId, navigate }) {
     );
   if (!res.data) return <p className="text-ink-faint">Loading…</p>;
   // Not yours, or not an agent: the server says 404 and never which.
+  // Anything else (401, 429, 5xx) is a failed read, not an absence
+  // (console audit M1).
   if (!res.data.ok)
     return (
       <div className="panel">
         <div className="panel__body">
-          No agent here on your account.{" "}
-          <a onClick={() => navigate("/account/agents")}>All agents ›</a>
+          {res.data.status === 404 || res.data.status === 403
+            ? "No agent here on your account. "
+            : "Elixir could not read this agent just now; try again in a moment. "}
+          <a
+            href="/account/agents"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/account/agents");
+            }}
+          >
+            All agents ›
+          </a>
         </div>
       </div>
     );

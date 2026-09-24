@@ -44,6 +44,19 @@ export function EmailRecord({ id, navigate }) {
 
   if (status === null && rec === null)
     return <p className="text-ink-faint">Loading…</p>;
+  // A failed read is not an absence (console audit M1).
+  if (!rec && status !== 403 && status !== 404)
+    return (
+      <>
+        {back}
+        <div className="empty">
+          <div className="empty__title">This email could not be read</div>
+          <p className="empty__body mb-0">
+            Elixir did not answer just now; try again in a moment.
+          </p>
+        </div>
+      </>
+    );
   if (!rec?.send)
     return (
       <>

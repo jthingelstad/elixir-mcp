@@ -42,7 +42,15 @@ function Row({ d, today = false }) {
 }
 
 export function Efficiency({ navigate }) {
-  const data = usePublicEfficiency().data ?? null;
+  const query = usePublicEfficiency();
+  const data = query.data ?? null;
+  // A failed read is said, not left loading (console audit M2).
+  if (!data && query.isError)
+    return (
+      <p className="text-ink-faint">
+        This could not be read just now; try again in a moment.
+      </p>
+    );
   if (!data) return <p className="text-ink-faint">Loading…</p>;
 
   const days = [...(data.days ?? [])].reverse();
