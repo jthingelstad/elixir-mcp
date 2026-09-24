@@ -1,0 +1,192 @@
+{
+  "feedback": 317,
+  "contract_version": "7.2.2",
+  "captured_at": "2026-09-24T14:30:47.913Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-23T14:26:46.819Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "to": "2026-09-24T14:26:46.819Z",
+      "kinds": ["account_feedback_responded", "ranked_promotion"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-23T14:26:46.819Z",
+        "to": "2026-09-24T14:26:46.819Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 17
+      },
+      "mark_read": false,
+      "kinds": ["account_feedback_responded", "ranked_promotion"],
+      "verbosity": "compact"
+    },
+    "window": {
+      "from": "2026-09-23T14:26:46.819Z",
+      "to": "2026-09-24T14:26:46.819Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": null,
+        "subject_name": "your account",
+        "at": "2026-09-24T10:49:57.477Z",
+        "kind": "account_feedback_responded",
+        "section": "account",
+        "facts": {
+          "status": "seen",
+          "feedback_id": 313
+        },
+        "observed_at": "2026-09-24T10:49:57.477Z",
+        "text": "Thu 10:49 your account: feedback responded."
+      },
+      {
+        "subject_tag": null,
+        "subject_name": "your account",
+        "at": "2026-09-24T10:49:57.187Z",
+        "kind": "account_feedback_responded",
+        "section": "account",
+        "facts": {
+          "status": "done",
+          "feedback_id": 312
+        },
+        "observed_at": "2026-09-24T10:49:57.187Z",
+        "text": "Thu 10:49 your account: feedback responded."
+      },
+      {
+        "subject_tag": null,
+        "subject_name": "your account",
+        "at": "2026-09-24T10:49:56.905Z",
+        "kind": "account_feedback_responded",
+        "section": "account",
+        "facts": {
+          "status": "done",
+          "feedback_id": 311
+        },
+        "observed_at": "2026-09-24T10:49:56.905Z",
+        "text": "Thu 10:49 your account: feedback responded."
+      },
+      {
+        "subject_tag": null,
+        "subject_name": "your account",
+        "at": "2026-09-24T10:19:07.034Z",
+        "kind": "account_feedback_responded",
+        "section": "account",
+        "facts": {
+          "status": "seen",
+          "feedback_id": 310
+        },
+        "observed_at": "2026-09-24T10:19:07.034Z",
+        "text": "Thu 10:19 your account: feedback responded."
+      },
+      {
+        "subject_tag": null,
+        "subject_name": "your account",
+        "at": "2026-09-24T09:17:12.349Z",
+        "kind": "account_feedback_responded",
+        "section": "account",
+        "facts": {
+          "status": "seen",
+          "feedback_id": 309
+        },
+        "observed_at": "2026-09-24T09:17:12.349Z",
+        "text": "Thu 09:17 your account: feedback responded."
+      },
+      {
+        "subject_tag": null,
+        "subject_name": "your account",
+        "at": "2026-09-24T09:17:12.020Z",
+        "kind": "account_feedback_responded",
+        "section": "account",
+        "facts": {
+          "status": "done",
+          "feedback_id": 308
+        },
+        "observed_at": "2026-09-24T09:17:12.020Z",
+        "text": "Thu 09:17 your account: feedback responded."
+      },
+      {
+        "subject_tag": null,
+        "subject_name": "your account",
+        "at": "2026-09-24T09:02:46.266Z",
+        "kind": "account_feedback_responded",
+        "section": "account",
+        "facts": {
+          "status": "seen",
+          "feedback_id": 307
+        },
+        "observed_at": "2026-09-24T09:02:46.266Z",
+        "text": "Thu 09:02 your account: feedback responded."
+      },
+      {
+        "subject_tag": null,
+        "subject_name": "your account",
+        "at": "2026-09-24T09:02:45.967Z",
+        "kind": "account_feedback_responded",
+        "section": "account",
+        "facts": {
+          "status": "done",
+          "feedback_id": 306
+        },
+        "observed_at": "2026-09-24T09:02:45.967Z",
+        "text": "Thu 09:02 your account: feedback responded."
+      },
+      {
+        "subject_tag": null,
+        "subject_name": "your account",
+        "at": "2026-09-24T09:02:45.482Z",
+        "kind": "account_feedback_responded",
+        "section": "account",
+        "facts": {
+          "status": "done",
+          "feedback_id": 305
+        },
+        "observed_at": "2026-09-24T09:02:45.482Z",
+        "text": "Thu 09:02 your account: feedback responded."
+      }
+    ],
+    "timeline_more": 217,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-23T14:26:46.819Z",
+          "to": "2026-09-24T14:26:46.819Z"
+        },
+        "summary": "POAP KINGS: 341 battles in 100 sessions by 36 of 48 members since Wed 14:26; joined: alex, alex, Gem; left: alex; roster 46→48; war day 1 (0 fame, place 1 of 5): 44 untouched, 1 partial, 3 finished of 48; quiet past 5d: Brotherinpants (5d); back: Gem after 13d; most battles: Vijay 60, sikander sidhu 41, MONICA 32; new bests: Gem 6,003; 1 arena promotion (Gem → Royal Crypt); ranked: sniperhendo → Master 2, duki suzuki → Master 3, Sandeep → Master 2; standout sessions: Vijay 7W-0L (7 in a row), sniperhendo 5W-2L (5 in a row); badges: Mega Goblin 4 (Wizard Mastery, The Log Mastery, Royal Ghost Mastery), God Bless You 2 (Spear Goblins Mastery, Ronin Mastery), Gem 1 (Banner Collection); donations this week 4,154, led by Vijay (499)."
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-24T14:26:46.819Z",
+    "has_more": true,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "A busy window: timeline holds the newest items, those the record observed after 2026-09-24T08:42:41.000Z, and timeline_more (217) older ones are counted, not served; has_more is true. The entries still summarize the whole window. next_cursor is the window's end, so the next read continues from the present; to read the older items, pass the same from with to 2026-09-24T08:42:41.000Z."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.2.2"
+    }
+  },
+  "timings": {
+    "db_ms": 2155,
+    "db_queries": 27,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": true
+  }
+}

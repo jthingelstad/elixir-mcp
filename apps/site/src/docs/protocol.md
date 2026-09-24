@@ -98,8 +98,8 @@ the call log.
 ```
 
 Both documents list every capability the server defines. The five
-**standard** ones are what the 401 challenge's `scope` advertises and what a
-client gets without asking; `account:email` is the exception, described
+**standard** ones are what the 401 challenge's `scope` advertises and what the
+consent page offers; `account:email` is the exception, described
 under [Signing a person in](#signing-a-person-in-with-elixir). **What a
 client asks for is granted; every other standard capability is a checkbox the
 person decides on the consent page**, and a client that names no scope asks

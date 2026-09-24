@@ -1,0 +1,191 @@
+{
+  "feedback": 318,
+  "contract_version": "7.2.2",
+  "captured_at": "2026-09-24T14:33:04.581Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-20T03:00:00Z",
+      "to": "2026-09-20T03:37:44.000Z",
+      "mark_read": false,
+      "kinds": ["quiet_crossed"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-20T03:00:00.000Z",
+        "to": "2026-09-20T03:37:44.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 12
+      },
+      "mark_read": false,
+      "kinds": ["quiet_crossed"],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-20T03:00:00.000Z",
+      "to": "2026-09-20T03:37:44.000Z"
+    },
+    "read_to": null,
+    "timeline": [],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-20T03:00:00.000Z",
+          "to": "2026-09-20T03:37:44.000Z"
+        },
+        "summary": "POAP KINGS: 1 battle in 1 session by 1 of 46 members since Sun 03:00; war day 3 (6,870 fame, place 1 of 5): 30 untouched, 3 partial, 14 finished of 47; quiet past 10d: Gem (10d); most battles: round hamster 1; donations this week 7,657, led by Vijay (875).",
+        "activity": {
+          "battles": 1,
+          "members_active": 1,
+          "members_total": 46,
+          "sessions": 1,
+          "by_mode": {
+            "ladder": 1
+          },
+          "late_captures": 0,
+          "played_here_learned_later": 4,
+          "learned_here_played_before": 1,
+          "basis": "recorded"
+        },
+        "roster": {
+          "joined": {
+            "items": [],
+            "more": 0
+          },
+          "left": {
+            "items": [],
+            "more": 0
+          },
+          "role_changes": {
+            "items": [],
+            "more": 0
+          },
+          "bounced": 0,
+          "size": {
+            "from": 46,
+            "to": 46
+          }
+        },
+        "war": {
+          "season_id": 136,
+          "week": 2,
+          "is_colosseum": false,
+          "day_kind": "war",
+          "war_day": 3,
+          "fame": 6870,
+          "place_of_five": 1,
+          "race_finished_at": null,
+          "as_of_window_end": true,
+          "decks": {
+            "as_of": "2026-09-20T03:37:44.000Z",
+            "untouched": 30,
+            "partial": 3,
+            "finished": 14,
+            "participants": 47
+          },
+          "resolved": []
+        },
+        "presence": {
+          "quiet_crossed": {
+            "items": [
+              {
+                "tag": "#20GQUGPRC2",
+                "name": "Gem",
+                "role": "member",
+                "days_quiet": 10,
+                "days_since_poll": 1,
+                "rung": 10
+              }
+            ],
+            "more": 0
+          },
+          "returned": {
+            "items": [],
+            "more": 0
+          },
+          "never_recorded": 0,
+          "rungs_days": [5, 10, 20]
+        },
+        "standouts": {
+          "most_battles": [
+            {
+              "tag": "#VR0QRP2PG",
+              "name": "round hamster",
+              "battles": 1
+            }
+          ],
+          "new_bests": {
+            "items": [],
+            "more": 0
+          },
+          "arena_promotions": {
+            "items": [],
+            "more": 0
+          },
+          "ranked_promotions": {
+            "items": [],
+            "more": 0
+          },
+          "collection_levels": {
+            "items": [],
+            "more": 0
+          },
+          "badges": [],
+          "sessions": {
+            "items": [],
+            "more": 0
+          },
+          "session_rungs": {
+            "won_in_a_row": [5, 10, 20],
+            "trophy_net": [150, 300, 500],
+            "battles": [20, 40]
+          }
+        },
+        "donations": {
+          "week_total": 7657,
+          "members_counted": 45,
+          "leader": {
+            "tag": "#C920YGLC2",
+            "name": "Vijay",
+            "given": 875
+          },
+          "as_of": "2026-09-20T03:37:44.000Z"
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-20T03:37:44.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "A clan entry's activity counts the battles the record LEARNED in this window, which is not the same as the battles PLAYED in it: activity.learned_here_played_before counts ones played in the day before from and recorded here (counted), activity.played_here_learned_later ones played here and recorded after to (not counted) (POAP KINGS: 1 and 4), and late_captures counts battles learned here more than a day after play. For what was played in a window, read clans_standings, which counts by play time.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.2.2"
+    }
+  },
+  "timings": {
+    "db_ms": 1235,
+    "db_queries": 25,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

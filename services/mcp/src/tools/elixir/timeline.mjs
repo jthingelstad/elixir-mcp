@@ -293,11 +293,30 @@ export const elixir_timeline = {
       ...droppedShown.map(observedMs),
       sizeCutMs ?? -Infinity,
     );
-    const cutMs = Number.isFinite(newestLeftOut) ? newestLeftOut : null;
-    const timeline =
+    let cutMs = Number.isFinite(newestLeftOut) ? newestLeftOut : null;
+    let timeline =
       cutMs === null ? all : all.filter((it) => observedMs(it) > cutMs);
+    // More items than a page holds share the window's last observed
+    // instant (one poll learning a burst): no `to` can split them, so the
+    // page serves what fits of them rather than nothing with has_more
+    // (Gym #317: a continuation that cannot move must not loop).
+    let stuckAt = null;
+    if (timeline.length === 0 && all.length > 0 && cutMs !== null) {
+      let size = entriesChars;
+      timeline = [];
+      for (const it of byObserved) {
+        size += JSON.stringify(it).length + 1;
+        if (timeline.length > 0 && size > PAGE_CHAR_BUDGET) break;
+        timeline.push(it);
+      }
+      timeline.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+      stuckAt = cutMs;
+      cutMs = null;
+    }
     const remaining =
-      cutMs === null ? 0 : all.length - timeline.length + droppedShown.length;
+      cutMs === null && stuckAt === null
+        ? 0
+        : all.length - timeline.length + droppedShown.length;
     // The read always reaches the window's end: what the cap left out is
     // counted, not queued.
     const endMs = toMs;
@@ -443,10 +462,13 @@ export const elixir_timeline = {
           : null,
         memberNote,
         memberTag && !memberNote
-          ? `A member read: the items are ${memberTag}'s sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full.${sittingCut ? " A member read keeps no pointer, and a sitting here is cut by the window (still open at its end, or begun before its start): the next read that learns more of it serves it again under the same started_at with a running total. Keep the newest item per started_at (Gym #302)." : ""}`
+          ? `A member read: the items are ${memberTag}'s sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full.${sittingCut ? " A member read keeps no pointer, and a sitting here is cut by the window (still open at its end, or begun before its start): the next read that learns more of it serves it again under the same started_at with a running total. Keep the newest item per kind and started_at (Gym #302, #321)." : ""}`
           : null,
         pointerKept
           ? `The read pointer stays at ${iso(storedMs)}: it only moves forward, and this window ends before it (read_to reports it). Pass mark_read false to read a past window without asking to move it.`
+          : null,
+        stuckAt !== null
+          ? `More items than a page holds were observed at one instant (${iso(stuckAt)}), so no window can split them: this page serves those that fit and timeline_more (${remaining}) counts the rest. A kinds or sections filter narrows them onto a page.`
           : null,
         cutMs !== null
           ? `A busy window: timeline holds the newest items, those the record observed after ${iso(cutMs)}, and timeline_more (${remaining}) older ones are counted, not served; has_more is true. The entries still summarize the whole window. next_cursor is the window's end${marking ? " and the read pointer moved to it" : ""}, so the next read continues from the present; to read the older items, pass the same from with to ${iso(cutMs)}${marking ? " and mark_read false" : ""}.`

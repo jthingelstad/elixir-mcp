@@ -19984,5 +19984,380 @@
         "notes_match": "collection is required"
       }
     ]
+  },
+  {
+    "id": "317.1",
+    "feedback": 317,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T14:26:46.819Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "to": "2026-09-24T08:42:41.000Z",
+      "kinds": ["account_feedback_responded", "ranked_promotion"]
+    },
+    "request_id": "314cfd5f-e221-4ace-8c3b-86c5c91917c4",
+    "when": {
+      "eq": ["has_more", true]
+    },
+    "assert": [
+      {
+        "has": "timeline[0]"
+      }
+    ]
+  },
+  {
+    "id": "317.2",
+    "feedback": 317,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T14:26:46.819Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "to": "2026-09-24T14:26:46.819Z",
+      "kinds": ["account_feedback_responded", "ranked_promotion"]
+    },
+    "request_id": "1896e74b-bcfd-4269-bc99-8aa6f16f0f2c",
+    "assert": [
+      {
+        "has": "timeline[?kind=ranked_promotion]"
+      }
+    ]
+  },
+  {
+    "id": "317.3",
+    "feedback": 317,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T14:26:46.819Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "to": "2026-09-24T14:26:46.819Z",
+      "kinds": ["account_feedback_responded"]
+    },
+    "request_id": "f55d7e93-08a1-4350-a302-a6f11c14226a",
+    "when": {
+      "eq": ["has_more", true]
+    },
+    "assert": [
+      {
+        "has": "timeline[0]"
+      }
+    ]
+  },
+  {
+    "id": "317.4",
+    "feedback": 317,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-19T19:18:02.000Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "sections": [
+        "activity",
+        "roster",
+        "war",
+        "presence",
+        "standouts",
+        "donations"
+      ]
+    },
+    "request_id": "f2028be2-d799-4cff-9ae5-521e582bd8f3",
+    "assert": [
+      {
+        "has": "timeline[0]"
+      }
+    ]
+  },
+  {
+    "id": "318.1",
+    "feedback": 318,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-20T03:00:00Z",
+      "to": "2026-09-20T03:37:44.000Z",
+      "mark_read": false,
+      "kinds": ["quiet_crossed"]
+    },
+    "request_id": "8d9e2a71-8a55-4602-87ec-7cf37b95eb5c",
+    "assert": [
+      {
+        "has": "timeline[?observed_at=2026-09-20T03:37:44.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "318.2",
+    "feedback": 318,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-16T02:00:00Z",
+      "to": "2026-09-16T02:33:43.000Z",
+      "mark_read": false,
+      "sections": ["presence"]
+    },
+    "request_id": "01a9976d-8a46-40f9-ab67-be84f25c28a5",
+    "assert": [
+      {
+        "has": "timeline[?observed_at=2026-09-16T02:33:43.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "318.3",
+    "feedback": 318,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-16T02:33:43.000Z",
+      "mark_read": false,
+      "verbosity": "full",
+      "sections": [
+        "activity",
+        "roster",
+        "war",
+        "presence",
+        "standouts",
+        "donations"
+      ]
+    },
+    "request_id": "5795b1c0-2817-4286-85e0-00744d82f660",
+    "assert": [
+      {
+        "has": "timeline[?observed_at=2026-09-16T02:33:43.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "318.4",
+    "feedback": 318,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-15T22:00:00Z",
+      "to": "2026-09-15T22:57:43.644Z",
+      "mark_read": false,
+      "sections": ["presence"]
+    },
+    "request_id": "ce069746-f442-4481-b01e-dd3802b14db8",
+    "assert": [
+      {
+        "has": "timeline[?observed_at=2026-09-15T22:57:43.644Z]"
+      }
+    ]
+  },
+  {
+    "id": "318.5",
+    "feedback": 318,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-20T03:37:44.000Z",
+      "to": "2026-09-20T04:00:00Z",
+      "mark_read": false,
+      "kinds": ["quiet_crossed"]
+    },
+    "request_id": "8881b8e8-efa6-4258-9697-1d3842a12349",
+    "assert": [
+      {
+        "absent": "timeline[?observed_at=2026-09-20T03:37:44.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "318.6",
+    "feedback": 318,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-20T03:00:00Z",
+      "to": "2026-09-20T03:37:44.001Z",
+      "mark_read": false,
+      "kinds": ["quiet_crossed"]
+    },
+    "request_id": "41a8087d-436c-4c17-85e7-7da0e61158c6",
+    "assert": [
+      {
+        "has": "timeline[?observed_at=2026-09-20T03:37:44.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "319.1",
+    "feedback": 319,
+    "stability": "live",
+    "tool": "elixir_timeline",
+    "args": {
+      "days": 1,
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "03c7d63a-7d27-4ecd-a349-c40a66bc930b",
+    "when": {
+      "eq": ["entries[0].war.war_day", 1]
+    },
+    "assert": [
+      {
+        "eq": ["entries[0].war.fame", null]
+      },
+      {
+        "eq": ["entries[0].war.place_of_five", null]
+      }
+    ]
+  },
+  {
+    "id": "319.2",
+    "feedback": 319,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-16T14:00:00Z",
+      "to": "2026-09-17T14:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "e9fbdd5f-1da8-424b-a253-4dc18718797c",
+    "assert": [
+      {
+        "eq": ["entries[0].war.war_day", 1]
+      },
+      {
+        "eq": ["entries[0].war.fame", null]
+      },
+      {
+        "eq": ["entries[0].war.place_of_five", null]
+      },
+      {
+        "eq": ["entries[0].war.as_of_window_end", true]
+      }
+    ]
+  },
+  {
+    "id": "319.3",
+    "feedback": 319,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-10T14:00:00Z",
+      "to": "2026-09-11T14:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "2e90445f-e2e8-429c-863b-333f17a91e67",
+    "assert": [
+      {
+        "eq": ["entries[0].war.war_day", 2]
+      },
+      {
+        "eq": ["entries[0].war.fame", 3435]
+      },
+      {
+        "eq": ["entries[0].war.place_of_five", 1]
+      }
+    ]
+  },
+  {
+    "id": "320.1",
+    "feedback": 320,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "protocol",
+      "section": "oauth-2-1"
+    },
+    "request_id": "639408eb-bb90-4759-a8ec-079055404620",
+    "assert": [
+      {
+        "not_contains": ["markdown", "client gets without asking"]
+      }
+    ]
+  },
+  {
+    "id": "320.2",
+    "feedback": 320,
+    "control": true,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "protocol",
+      "section": "oauth-2-1"
+    },
+    "request_id": "639408eb-bb90-4759-a8ec-079055404620",
+    "assert": [
+      {
+        "contains": ["markdown", "a client that names no scope asks"]
+      }
+    ]
+  },
+  {
+    "id": "321.1",
+    "feedback": 321,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-14T22:12:52.326Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "sections": [
+        "activity",
+        "roster",
+        "war",
+        "presence",
+        "standouts",
+        "donations"
+      ]
+    },
+    "request_id": "6678ae52-498f-41aa-872c-573d583b9dcb",
+    "assert": [
+      {
+        "eq": ["has_more", false]
+      },
+      {
+        "has": "timeline[0]"
+      }
+    ]
+  },
+  {
+    "id": "321.2",
+    "feedback": 321,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T18:00:00Z",
+      "to": "2026-09-23T19:00:00Z",
+      "mark_read": false,
+      "player_tag": "#C920YGLC2",
+      "verbosity": "compact"
+    },
+    "request_id": "f563afe9-1433-4741-9077-3905839047e1",
+    "assert": [
+      {
+        "notes_match": "same started_at"
+      },
+      {
+        "has": "timeline[?kind=session_standout]"
+      },
+      {
+        "has": "timeline[?kind=battle_session]"
+      }
+    ]
   }
 ]

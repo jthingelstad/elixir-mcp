@@ -1,0 +1,74 @@
+{
+  "feedback": 317,
+  "contract_version": "7.2.2",
+  "captured_at": "2026-09-24T14:30:50.733Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-23T14:26:46.819Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "to": "2026-09-24T08:42:41.000Z",
+      "kinds": ["account_feedback_responded", "ranked_promotion"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-23T14:26:46.819Z",
+        "to": "2026-09-24T08:42:41.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mark_read": false,
+      "kinds": ["account_feedback_responded", "ranked_promotion"],
+      "verbosity": "compact"
+    },
+    "window": {
+      "from": "2026-09-23T14:26:46.819Z",
+      "to": "2026-09-24T08:42:41.000Z"
+    },
+    "read_to": null,
+    "timeline": [],
+    "timeline_more": 217,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-23T14:26:46.819Z",
+          "to": "2026-09-24T08:42:41.000Z"
+        },
+        "summary": "POAP KINGS: 220 battles in 65 sessions by 33 of 48 members since Wed 14:26; joined: alex, alex, Gem; left: alex; roster 46→48; training day; quiet past 5d: Brotherinpants (5d); back: Gem after 13d; most battles: Vijay 44, sikander sidhu 19, MONICA 16; new bests: Gem 6,003; 1 arena promotion (Gem → Royal Crypt); ranked: sniperhendo → Master 2, duki suzuki → Master 3, Sandeep → Master 2; standout sessions: Vijay 7W-0L (7 in a row), sniperhendo 5W-2L (5 in a row); badges: Mega Goblin 4 (Wizard Mastery, The Log Mastery, Royal Ghost Mastery), God Bless You 2 (Spear Goblins Mastery, Ronin Mastery), Gem 1 (Banner Collection); donations this week 2,890, led by Chanco (364)."
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-24T08:42:41.000Z",
+    "has_more": true,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "A busy window: timeline holds the newest items, those the record observed after 2026-09-24T08:42:41.000Z, and timeline_more (217) older ones are counted, not served; has_more is true. The entries still summarize the whole window. next_cursor is the window's end, so the next read continues from the present; to read the older items, pass the same from with to 2026-09-24T08:42:41.000Z."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.2.2"
+    }
+  },
+  "timings": {
+    "db_ms": 776,
+    "db_queries": 26,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

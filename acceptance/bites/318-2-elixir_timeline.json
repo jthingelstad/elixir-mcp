@@ -1,0 +1,94 @@
+{
+  "feedback": 318,
+  "contract_version": "7.2.2",
+  "captured_at": "2026-09-24T14:32:42.740Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-16T02:00:00Z",
+      "to": "2026-09-16T02:33:43.000Z",
+      "mark_read": false,
+      "sections": ["presence"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-16T02:00:00.000Z",
+        "to": "2026-09-16T02:33:43.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 8
+      },
+      "mark_read": false,
+      "sections": ["presence"],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-16T02:00:00.000Z",
+      "to": "2026-09-16T02:33:43.000Z"
+    },
+    "read_to": null,
+    "timeline": [],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-16T02:00:00.000Z",
+          "to": "2026-09-16T02:33:43.000Z"
+        },
+        "summary": "POAP KINGS: 8 battles in 2 sessions by 2 of 47 members since Wed 02:00; training day; quiet past 5d: kiruba⚜️ (5d); most battles: bonus 4, King Thing 4; standout sessions: bonus 4W-17L; donations this week 2,069, led by Chanco (188).",
+        "presence": {
+          "quiet_crossed": {
+            "items": [
+              {
+                "tag": "#G2CUUJQ8V",
+                "name": "kiruba⚜️",
+                "role": "member",
+                "days_quiet": 5,
+                "days_since_poll": 0,
+                "rung": 5
+              }
+            ],
+            "more": 0
+          },
+          "returned": {
+            "items": [],
+            "more": 0
+          },
+          "never_recorded": 1,
+          "rungs_days": [5, 10, 20]
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-16T02:33:43.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.2.2"
+    }
+  },
+  "timings": {
+    "db_ms": 2554,
+    "db_queries": 24,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

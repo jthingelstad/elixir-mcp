@@ -1,0 +1,90 @@
+{
+  "feedback": 319,
+  "contract_version": "7.2.2",
+  "captured_at": "2026-09-24T14:34:49.387Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "days": 1,
+      "mark_read": false,
+      "sections": ["war"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-23T14:34:48.700Z",
+        "to": "2026-09-24T14:34:48.704Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 17
+      },
+      "mark_read": false,
+      "sections": ["war"],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-23T14:34:48.700Z",
+      "to": "2026-09-24T14:34:48.704Z"
+    },
+    "read_to": null,
+    "timeline": [],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-23T14:34:48.700Z",
+          "to": "2026-09-24T14:34:48.704Z"
+        },
+        "summary": "POAP KINGS: 339 battles in 99 sessions by 36 of 48 members since Wed 14:34; joined: alex, alex, Gem; left: alex; roster 46→48; war day 1 (0 fame, place 1 of 5): 44 untouched, 1 partial, 3 finished of 48; quiet past 5d: Brotherinpants (5d); back: Gem after 13d; most battles: Vijay 60, sikander sidhu 41, MONICA 32; new bests: Gem 6,003; 1 arena promotion (Gem → Royal Crypt); ranked: sniperhendo → Master 2, duki suzuki → Master 3, Sandeep → Master 2; standout sessions: Vijay 7W-0L (7 in a row), sniperhendo 5W-2L (5 in a row); badges: Mega Goblin 4 (Wizard Mastery, The Log Mastery, Royal Ghost Mastery), God Bless You 2 (Spear Goblins Mastery, Ronin Mastery), Gem 1 (Banner Collection); donations this week 4,232, led by Vijay (577).",
+        "war": {
+          "season_id": 136,
+          "week": 3,
+          "is_colosseum": false,
+          "day_kind": "war",
+          "war_day": 1,
+          "fame": 0,
+          "place_of_five": 1,
+          "race_finished_at": null,
+          "decks": {
+            "as_of": "2026-09-24T14:34:48.704Z",
+            "untouched": 44,
+            "partial": 1,
+            "finished": 3,
+            "participants": 48
+          },
+          "resolved": []
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-24T14:34:48.704Z",
+    "has_more": false,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.2.2"
+    }
+  },
+  "timings": {
+    "db_ms": 634,
+    "db_queries": 27,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

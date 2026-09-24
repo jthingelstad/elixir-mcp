@@ -1112,7 +1112,10 @@ export async function buildClanEntry(
       // A training day of the week in progress: no race day has run, so
       // there is no fame or place yet (Gym #266: it read fame 0, place 1
       // of 5, where war_current ranks every clan null).
-      if (sameWeek && !p.warDay && !finishedAt && !asOf) {
+      // The same until the week's first war day closes (Gym #319: an open
+      // war day 1 read "0 fame, place 1 of 5" where every clan is 0 and
+      // unranked; a past window in that state already served null).
+      if (sameWeek && (!p.warDay || p.warDay === 1) && !finishedAt && !asOf) {
         war.fame = null;
         war.place_of_five = null;
       }
@@ -1270,7 +1273,15 @@ export async function buildClanEntry(
           });
         for (const rung of QUIET_RUNGS_DAYS) {
           const atMs = start + rung * DAY_MS;
-          if (atMs <= fromMs || atMs > toMs || atMs >= end) continue;
+          // (from, to]: an open gap ends AT `to`, so a crossing there is
+          // in this window (Gym #318: it was in neither window and paging
+          // lost it); a closed gap ends at the battle that ended it.
+          if (
+            atMs <= fromMs ||
+            atMs > toMs ||
+            (open ? atMs > end : atMs >= end)
+          )
+            continue;
           // Never while the silence is ours (the gap still open and the
           // record not polling the member).
           // days_since_poll is today's, so it speaks only for a window
@@ -1821,10 +1832,19 @@ export async function buildTimeline(
   // Deduplicated oldest first (a moment is kept at its first instant),
   // then served newest first.
   items.reverse();
-  const { kept, cut } = capTimeline(items);
+  // The cap cuts in OBSERVED order, the order a window pages by (Gym
+  // #317): cut by `at`, an item learned 17 h late was the oldest left
+  // out, its observed_at became the boundary, and a continuation to that
+  // instant held the same item and served nothing, forever. Display order
+  // stays newest `at` first.
+  const observed = (it) => Date.parse(it.observed_at ?? it.at);
+  const { kept, cut } = capTimeline(
+    [...items].sort((a, b) => observed(b) - observed(a)),
+  );
+  const keptSet = new Set(kept);
   more += cut.length;
   dropped.push(...cut);
-  items = kept;
+  items = items.filter((it) => keptSet.has(it));
   for (const it of items) it.text = itemText(it, timezone);
   return {
     window: { from: iso(fromMs), to: iso(toMs) },
