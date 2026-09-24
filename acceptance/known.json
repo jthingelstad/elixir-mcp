@@ -22,5 +22,11 @@
     "reason": "clans_participation at weeks 8 for POAP KINGS (48 members) is over the 48,000-character agent cap and answers result_too_large with the narrowing hint. That is the designed agent behaviour. Elixir Clan, which needed the full read, moved to the JSON API (/api/v1) on 2026-09-23 (Jamie). Reshaping the tool for agents is the 7.0.0 batch (elixir-family/plans/clan-app-api.md, phase 5).",
     "until": "2026-10-21",
     "filed": "2026-09-23"
+  },
+  {
+    "case": "gym/192.1",
+    "reason": "The two-week raw corpus cards_synergy read (Witch, 09-07 to 09-21) answers in 4-10 s alone but hits the 18 s budget when the full gate runs its 470 calls beside it, so w.anchor.decks is absent (budget error). This is the open raw-season-corpus-read performance item from the cards Gym rounds 2-4, not a correctness regression; the family gate passes it.",
+    "until": "2026-10-07",
+    "filed": "2026-09-24"
   }
 ]

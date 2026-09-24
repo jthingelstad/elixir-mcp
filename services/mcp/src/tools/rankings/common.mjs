@@ -273,7 +273,7 @@ export function standingsStaleNote(snapshot, row, horizon = null) {
   const day = (d) => d.toISOString().slice(0, 10);
   if (horizon && changed.getTime() <= horizon.getTime())
     return `This board's ranks and ratings have not moved since recording began on ${day(horizon)} (recorded_since): when they last moved before that is unknown, and the record has confirmed them unchanged through ${day(snapshot.last_confirmed_at)}, so it reads as a closed event, not today's leaderboard.`;
-  return `This board's ranks and ratings have not moved since ${day(changed)} (standings_changed_at); only names and clans have refreshed since (observed_at ${day(snapshot.observed_at)}), so it reads as a closed event, not today's leaderboard.`;
+  return `This board's ratings have not moved since ${day(changed)} (standings_changed_at): since then only names and clans refreshed, or players left the board and the next ones filled in at the bottom, which shifts ranks without anyone playing (observed_at ${day(snapshot.observed_at)}). It reads as a closed event, not today's leaderboard.`;
 }
 
 /** The last place's rating on a player board: the floor while the board

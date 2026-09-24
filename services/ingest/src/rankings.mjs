@@ -105,8 +105,9 @@ function standingsHash(entries) {
 }
 
 /** Whether a board's standings MOVED since the previous snapshot (Gym
- *  #208): a player on both reads changed rating, or a newcomer entered at
- *  or above the previous board's floor. A player leaving shifts every
+ *  #208): a player on both reads changed rating, or a newcomer entered above
+ *  the previous board's floor (a tie at the floor is a fill: board
+ *  270787's floor is 23 for dozens of players). A player leaving shifts every
  *  rank below them and pulls the next player in at the bottom, and that
  *  is not a move: on closed mode boards it had stamped "moved today"
  *  with no rating changed anywhere. */
@@ -122,7 +123,7 @@ async function standingsMoved(db, prevSnapshotId, entries) {
   return entries.some((e) =>
     before.has(e.tag)
       ? (before.get(e.tag) ?? null) !== (e.rating ?? null)
-      : floor === null || (e.rating ?? -Infinity) >= floor,
+      : floor === null || (e.rating ?? -Infinity) > floor,
   );
 }
 
