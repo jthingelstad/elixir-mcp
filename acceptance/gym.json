@@ -15831,7 +15831,8 @@
       {
         "count_eq": ["c.timeline[]", "a.timeline[]"]
       }
-    ]
+    ],
+    "refuted": "The case pins b.to at the 7.1.6 cut (22:22:44). 7.1.7 serves more presence items (every gap return and crossing), so window a's cut moved to 2026-09-19T22:47:40; re-run on the live cut the split is exact: timeline_more 46, the older read serves 46 with has_more false (2026-09-24)."
   },
   {
     "id": "274.2",
