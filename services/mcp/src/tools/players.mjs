@@ -54,6 +54,7 @@ import {
   SEASON_ARG_SCHEMA,
 } from "./shared.mjs";
 import { dailySql } from "../daily-sql.mjs";
+import { captureByPlayer } from "../coverage.mjs";
 import {
   modeSplit,
   dominantMode,
@@ -284,6 +285,36 @@ export const playersTools = {
         asOf,
         { flavor: "plain" },
       );
+      // How much of the 30 days the record captured (Gym #328): the
+      // profile's battle counter against the battles recorded between the
+      // same reads. A headline over a gappy record undercounts play by
+      // 3-5x with nothing to say so; clans_standings already warned.
+      const cap = (
+        await captureByPlayer(ctx.db, [tag], {
+          fromMs: since.getTime(),
+          toMs: asOf.getTime(),
+        })
+      ).get(tag);
+      const captureNote =
+        cap && cap.expected >= 5 && cap.ratio < 0.8
+          ? `The record captured ${cap.captured} of the ${cap.expected} battles this player's profile counter says were played between its reads in these 30 days (${Math.round(cap.ratio * 100)}%): battles, the record and the decks describe the captured battles only, not everything played. elixir_coverage says which stretches are missing.`
+          : null;
+      // Boat defenses are in these counts (decided scope) and not in
+      // clans_standings' (7.1.22): said when there are any (Gym #330).
+      const {
+        rows: [defs],
+      } = await ctx.db.query(
+        `select count(*)::int as n from battle_participant bp
+           join battle b on b.battle_id = bp.battle_id
+          where bp.player_tag = $1 and bp.battle_time >= $2
+            and b.boat_battle_side is not null
+            and (b.boat_battle_side = 'defender') = (bp.side = 0)`,
+        [tag, since],
+      );
+      const defenseNote =
+        defs?.n > 0
+          ? `The counts include ${defs.n} boat defense${defs.n === 1 ? "" : "s"} (an enemy attacking the clan's boat, answered by this player's defense deck), which clans_standings leaves out as battles the member did not play; battles_query lists them with boat.side.`
+          : null;
       return {
         player_tag: tag,
         name: p0.name,
@@ -305,6 +336,15 @@ export const playersTools = {
           },
         }),
         last_30_days: {
+          // What the record captured of the play the profile counter saw
+          // (Gym #328), and the boat defenses in these counts (#330).
+          capture: cap
+            ? {
+                captured_battles: cap.captured,
+                expected_battles: cap.expected,
+              }
+            : null,
+          boat_defenses: defs?.n ?? 0,
           battles: r.battles,
           wins: r.wins,
           losses: r.losses,
@@ -322,6 +362,8 @@ export const playersTools = {
         // most-played is often NOT the best-performing deck.
         best_deck: bestDeck,
         notes: notes(
+          captureNote,
+          defenseNote,
           seasonFields.seasonNotes,
           rangeClash,
           "Counts include every recorded battle (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded; net_trophies is Trophy Road's only.",
@@ -403,6 +445,13 @@ export const playersTools = {
           order by p.progress_key, p.day desc`,
         [row.player_tag],
       );
+      const newestProgressMs = Math.max(
+        -Infinity,
+        ...progressRows.map((r) => r.day.getTime()),
+      );
+      const endedProgress = progressRows.filter(
+        (r) => r.day.getTime() !== newestProgressMs,
+      ).length;
       return {
         player_tag: row.player_tag,
         name: row.name,
@@ -450,6 +499,9 @@ export const playersTools = {
           // Each side-mode bucket's latest reading (Gym #276: Merge
           // Tactics, 2v2 League and the seasonal Trophy Road were only in
           // players_timeline's progress series).
+          // A bucket the newest profile read no longer carried has ENDED
+          // (Gym #329: 54 of 91 rows across a clan were ended buckets read
+          // as the player's current standing); current says which is live.
           progress: progressRows.map((r) => ({
             key: r.progress_key,
             mode: r.mode,
@@ -458,6 +510,7 @@ export const playersTools = {
             best_trophies: r.best_trophies,
             arena_id: r.arena_id,
             day: r.day.toISOString().slice(0, 10),
+            current: r.day.getTime() === newestProgressMs,
           })),
         },
         notes: notes(
@@ -466,6 +519,9 @@ export const playersTools = {
             ? "snapshot.league_statistics is the API's legacy leagueStatistics block: currentSeason.trophies mirrors Trophy Road and bestTrophies is frozen, so it is not the seasonal Trophy Road; that is in snapshot.progress (key seasonal-trophy-road-YYYYMM)."
             : null,
           "snapshot.progress is each side-mode bucket's latest reading (Merge Tactics, 2v2 League, the seasonal Trophy Road; buckets read in the last 35 days); players_timeline.progress_key reads the day-by-day series.",
+          endedProgress > 0
+            ? `${endedProgress} of snapshot.progress's ${progressRows.length} buckets have ended (current false): the newest profile read no longer carried them, so trophies there are the bucket's final reading, not the player's standing now.`
+            : null,
           "last_seen_in_game is the game's own lastSeen from clan roster polls (when the player was last active); null until a polled roster carried them.",
           "attributes.war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations. For war results use battles_performance mode war; lifetime donations are snapshot.lifetime.total_donations (its series is players_timeline.total_donations).",
           row.years_played === null || row.years_played === undefined
@@ -482,7 +538,7 @@ export const playersTools = {
 
   players_timeline: {
     description:
-      "Time series from daily snapshots, one point per game day, for the caller by default: trophies, or any of the day row's metrics (the roster's trophies, donations, arena, clan and rank; the profile's lifetime block and Path of Legends standing; the seasonal trophies; the full list is on recording#daily-series). Every point carries observed_at, profile_observed_at (null on a roster-only day) and roster_observed_at. progress_key adds the side-mode progress series; kind selects the pre_reset or season_roll row; granularity week keeps the last row of each ISO week.",
+      "Time series from daily snapshots, one point per game day, for the caller by default: trophies, or any of the day row's metrics (the roster's trophies, donations, arena, clan and rank; the profile's lifetime block and Path of Legends standing; the legacy season_trophies mirror of Trophy Road; the full list is on recording#daily-series). Every point carries observed_at, profile_observed_at (null on a roster-only day) and roster_observed_at. progress_key adds the side-mode progress series; kind selects the pre_reset or season_roll row; granularity week keeps the last row of each ISO week.",
     inputSchema: {
       type: "object",
       properties: {

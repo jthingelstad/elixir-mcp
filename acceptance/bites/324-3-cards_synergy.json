@@ -1,0 +1,31 @@
+{
+  "feedback": 324,
+  "contract_version": "7.2.2",
+  "captured_at": "2026-09-24T14:46:42.925Z",
+  "request": {
+    "tool": "cards_synergy",
+    "arguments": {
+      "card": "Archer Queen",
+      "segment": "corpus",
+      "limit": 3
+    }
+  },
+  "response": {
+    "error": {
+      "code": "bad_request",
+      "class": "input",
+      "message": "Archer Queen (29000000) is a tower troop, not one of the eight deck cards this tool pairs.",
+      "hint": "cards_card reads a tower troop (usage, win rate, holders), and battles_meta_cards with tower_troops: true lists them all; deck rows carry tower_troop."
+    },
+    "meta": {
+      "contract_version": "7.2.2"
+    }
+  },
+  "timings": {
+    "db_ms": 7,
+    "db_queries": 1,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

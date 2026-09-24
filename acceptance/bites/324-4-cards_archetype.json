@@ -1,0 +1,114 @@
+{
+  "feedback": 324,
+  "contract_version": "7.2.2",
+  "captured_at": "2026-09-24T14:46:46.470Z",
+  "request": {
+    "tool": "cards_archetype",
+    "arguments": {
+      "cards": [
+        "Archer Queen",
+        "Hog Rider",
+        "Fireball",
+        "The Log",
+        "Ice Spirit",
+        "Skeletons",
+        "Cannon",
+        "Musketeer"
+      ]
+    }
+  },
+  "response": {
+    "applied": {
+      "cards": [
+        {
+          "id": 26000021,
+          "name": "Hog Rider",
+          "form": 0
+        },
+        {
+          "id": 28000000,
+          "name": "Fireball",
+          "form": 0
+        },
+        {
+          "id": 28000011,
+          "name": "The Log",
+          "form": 0
+        },
+        {
+          "id": 26000030,
+          "name": "Ice Spirit",
+          "form": 0
+        },
+        {
+          "id": 26000010,
+          "name": "Skeletons",
+          "form": 0
+        },
+        {
+          "id": 27000000,
+          "name": "Cannon",
+          "form": 0
+        },
+        {
+          "id": 26000014,
+          "name": "Musketeer",
+          "form": 0
+        }
+      ]
+    },
+    "archetype": {
+      "family": "cycle",
+      "family_definition": "cheap cards, fast rotation back to a chip win condition",
+      "win_conditions": [
+        {
+          "id": 26000021,
+          "name": "Hog Rider",
+          "form": "base"
+        }
+      ],
+      "secondary_win_conditions": [],
+      "named_by": null,
+      "label": "Hog Rider cycle",
+      "average_elixir": 2.71,
+      "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+      "grammar_version": "2026-09",
+      "roles_version": "2026-09-20T20:16:47.000Z"
+    },
+    "in_the_record": {
+      "identities": 0,
+      "season": "2026-09",
+      "battles": 0,
+      "players": 0
+    },
+    "version": {
+      "grammar_version": "2026-09",
+      "roles_version": "2026-09-20T20:16:47.000Z",
+      "source_commit": "b12af4c2260af468c64b9703ce4025493a843b8e",
+      "cycle_max": 3.4,
+      "beatdown_min": 4
+    },
+    "notes": [
+      "7 cards named, not eight: the archetype is of the cards given, and the average elixir is over them.",
+      "in_the_record counts the deck identities with exactly these 7 cards in any forms and with any tower troop, and their battles and players in season 2026-09; 0 identities means nobody recorded has played this card set, and the name stands anyway - it needs no record.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone."
+    ],
+    "docs": "archetypes",
+    "meta": {
+      "contract_version": "7.2.2",
+      "source_polls": {
+        "cards": {
+          "observed_at": "2026-09-24T14:22:44.000Z",
+          "freshness_seconds": 1439
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 3243,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

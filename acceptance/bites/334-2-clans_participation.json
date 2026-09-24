@@ -1,0 +1,1634 @@
+{
+  "feedback": 334,
+  "contract_version": "7.2.3",
+  "captured_at": "2026-09-24T14:48:25.773Z",
+  "request": {
+    "tool": "clans_participation",
+    "arguments": {
+      "clan_tag": "#8UJ2UUJ8",
+      "weeks": 2
+    }
+  },
+  "response": {
+    "clan_tag": "#8UJ2UUJ8",
+    "name": "#MuUuKaNs!!",
+    "applied": {
+      "clan_tag": "#8UJ2UUJ8",
+      "weeks": 2,
+      "verbosity": "full",
+      "window": {
+        "from": "2026-09-14T00:00:00.000Z",
+        "to": null,
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 17
+      }
+    },
+    "recording_active_since": "2026-09-07T02:45:23.250Z",
+    "first_roster_observed_at": "2026-09-06T14:37:37.000Z",
+    "basis": "recorded",
+    "weeks": [
+      {
+        "iso_week": "2026-W38",
+        "from": "2026-09-14T00:00:00.000Z",
+        "to": "2026-09-21T00:00:00.000Z"
+      },
+      {
+        "iso_week": "2026-W39",
+        "from": "2026-09-21T00:00:00.000Z",
+        "to": "2026-09-28T00:00:00.000Z",
+        "partial": true,
+        "covers": {
+          "from": "2026-09-21T00:00:00.000Z",
+          "to": "2026-09-24T14:48:24.936Z"
+        }
+      }
+    ],
+    "war_weeks": [
+      {
+        "season_id": 136,
+        "section_index": 0,
+        "is_colosseum": false,
+        "started_observed_at": "2026-09-07T10:27:43.000Z",
+        "finished_observed_at": "2026-09-14T09:46:37.000Z",
+        "finished_early": true,
+        "finish_war_day": 3
+      },
+      {
+        "season_id": 136,
+        "section_index": 1,
+        "is_colosseum": false,
+        "started_observed_at": "2026-09-14T10:08:01.000Z",
+        "finished_observed_at": "2026-09-21T09:46:06.000Z",
+        "finished_early": true,
+        "finish_war_day": 4
+      },
+      {
+        "season_id": 136,
+        "section_index": 2,
+        "is_colosseum": false,
+        "started_observed_at": "2026-09-21T10:08:26.000Z",
+        "finished_observed_at": null,
+        "finished_early": null,
+        "finish_war_day": null
+      }
+    ],
+    "member_count": 49,
+    "members": [
+      {
+        "player_tag": "#20V8VUPU2",
+        "name": "MuK｜⚡Brembi⚡",
+        "role": "coLeader",
+        "joined_observed_at": "2026-09-09T20:12:42.000Z",
+        "first_joined_at": "2026-09-09T20:12:42.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 14,
+        "log_recorded": true,
+        "recorded_since": "2026-09-04T13:58:43.000Z",
+        "last_battle_time": "2026-09-23T18:57:04.000Z",
+        "last_battle_time_in_clan": "2026-09-23T18:57:04.000Z",
+        "days_since_battle": 0.83,
+        "battles": [32, 15],
+        "ranked_battles": [20, 15],
+        "donations": [176, 438],
+        "war_decks": [0, 8, 0],
+        "war_points": [0, 1700, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 0, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 0, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 2, 0]
+      },
+      {
+        "player_tag": "#22GVLRLV2",
+        "name": "MuK｜⚡Lacki⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-30T17:36:34.000Z",
+        "last_battle_time": "2026-09-23T15:57:13.000Z",
+        "last_battle_time_in_clan": "2026-09-23T15:57:13.000Z",
+        "days_since_battle": 0.95,
+        "battles": [20, 42],
+        "ranked_battles": [8, 42],
+        "donations": [0, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2200, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#282PUVRLC",
+        "name": "MuK ｜ ⚡️Zine⚡️",
+        "role": "member",
+        "joined_observed_at": "2026-09-17T11:17:57.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 7,
+        "log_recorded": true,
+        "recorded_since": "2026-08-27T17:11:01.000Z",
+        "last_battle_time": "2026-09-20T21:45:48.000Z",
+        "last_battle_time_in_clan": "2026-09-19T12:57:15.000Z",
+        "days_since_battle": 3.71,
+        "battles": [13, 0],
+        "ranked_battles": [1, 0],
+        "donations": [0, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2700, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#292JLG2V0",
+        "name": "MuK｜⚡DIEGO⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-21T04:16:54.000Z",
+        "last_battle_time": "2026-09-20T15:45:40.000Z",
+        "last_battle_time_in_clan": "2026-09-19T22:22:33.000Z",
+        "days_since_battle": 3.96,
+        "battles": [24, 0],
+        "ranked_battles": [0, 0],
+        "donations": [10, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2300, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#2C0VQLRCV",
+        "name": "MuK｜⚡WhiteSide⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-23T16:48:04.000Z",
+        "first_joined_at": "2026-09-23T16:48:04.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-09-13T07:55:09.000Z",
+        "last_battle_time": "2026-09-22T16:47:32.000Z",
+        "last_battle_time_in_clan": null,
+        "days_since_battle": 1.92,
+        "battles": [12, 13],
+        "ranked_battles": [0, 0],
+        "donations": [null, 10],
+        "war_decks": [null, null, 0],
+        "war_points": [null, null, 0],
+        "war_scoring_decks": [null, null, 0],
+        "war_decks_by_day": [
+          [null, null, null, null],
+          [null, null, null, null],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [null, null, 0]
+      },
+      {
+        "player_tag": "#2G8LR0CQL",
+        "name": "MuK｜⚡Dani ❤ 스팸⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-28T21:56:29.000Z",
+        "last_battle_time": "2026-09-20T16:20:46.000Z",
+        "last_battle_time_in_clan": "2026-09-20T08:04:10.000Z",
+        "days_since_battle": 3.94,
+        "battles": [61, 0],
+        "ranked_battles": [18, 0],
+        "donations": [58, 0],
+        "war_decks": [0, 8, 0],
+        "war_points": [0, 800, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 0, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 0, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 2, 0]
+      },
+      {
+        "player_tag": "#2GL99Y8U",
+        "name": "MuK｜⚡☠WARRIOR☠⚡",
+        "role": "coLeader",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-03T17:57:23.000Z",
+        "last_battle_time": "2026-09-24T12:55:39.000Z",
+        "last_battle_time_in_clan": "2026-09-24T12:55:39.000Z",
+        "days_since_battle": 0.08,
+        "battles": [349, 128],
+        "ranked_battles": [30, 24],
+        "donations": [974, 810],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2000, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 2, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#2PVYVPQGQ",
+        "name": "MuK｜⚡安之✨Beto⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-02T17:51:51.000Z",
+        "last_battle_time": "2026-09-24T10:21:37.000Z",
+        "last_battle_time_in_clan": "2026-09-24T10:21:37.000Z",
+        "days_since_battle": 0.19,
+        "battles": [120, 31],
+        "ranked_battles": [13, 2],
+        "donations": [148, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2600, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 2, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#2UU9VULR",
+        "name": "MuK｜⚡Mozz0™⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-03T01:47:41.000Z",
+        "last_battle_time": "2026-09-21T00:30:50.000Z",
+        "last_battle_time_in_clan": "2026-09-20T02:34:57.000Z",
+        "days_since_battle": 3.6,
+        "battles": [107, 1],
+        "ranked_battles": [41, 0],
+        "donations": [48, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2700, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#80CL0LLYQ",
+        "name": "MuK｜⚡MiniALE⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-20T17:08:54.000Z",
+        "last_battle_time": "2026-09-20T17:53:44.000Z",
+        "last_battle_time_in_clan": "2026-09-06T19:47:04.000Z",
+        "days_since_battle": 3.87,
+        "battles": [12, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, 0],
+        "war_decks": [0, 0, 0],
+        "war_points": [0, 0, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0, 0]
+      },
+      {
+        "player_tag": "#88LRLU9V",
+        "name": "MuK｜⚡Mazzpower⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-22T18:40:24.000Z",
+        "last_battle_time": "2026-09-20T18:58:56.000Z",
+        "last_battle_time_in_clan": "2026-09-14T19:57:15.000Z",
+        "days_since_battle": 3.83,
+        "battles": [24, 0],
+        "ranked_battles": [12, 0],
+        "donations": [8, 0],
+        "war_decks": [0, 0, 0],
+        "war_points": [0, 0, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0, 0]
+      },
+      {
+        "player_tag": "#88V02GL8",
+        "name": "MuK｜⚡Hopeless⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-23T20:40:45.000Z",
+        "last_battle_time": "2026-09-20T16:00:08.000Z",
+        "last_battle_time_in_clan": "2026-09-20T08:31:23.000Z",
+        "days_since_battle": 3.95,
+        "battles": [12, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, 0],
+        "war_decks": [0, 8, 0],
+        "war_points": [0, 800, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 0, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 0, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 2, 0]
+      },
+      {
+        "player_tag": "#8GYJQ9VQ",
+        "name": "MuK｜⚡Gioespo⚡️",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-05T08:59:16.000Z",
+        "last_battle_time": "2026-09-24T12:07:10.000Z",
+        "last_battle_time_in_clan": "2026-09-24T12:07:10.000Z",
+        "days_since_battle": 0.11,
+        "battles": [191, 93],
+        "ranked_battles": [139, 77],
+        "donations": [10, 0],
+        "war_decks": [0, 12, 4],
+        "war_points": [0, 1500, 800],
+        "war_scoring_decks": [0, null, 4],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [4, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [3, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 1]
+      },
+      {
+        "player_tag": "#8LQRUGY29",
+        "name": "MuK｜⚡DJANGO⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-30T14:33:05.000Z",
+        "last_battle_time": "2026-09-23T17:32:34.000Z",
+        "last_battle_time_in_clan": "2026-09-23T17:32:34.000Z",
+        "days_since_battle": 0.89,
+        "battles": [69, 30],
+        "ranked_battles": [58, 18],
+        "donations": [28, 112],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1900, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [2, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#8QG29CYVV",
+        "name": "MuK｜⚡Mela⚡",
+        "role": "coLeader",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-02T11:31:38.000Z",
+        "last_battle_time": "2026-09-24T11:53:59.000Z",
+        "last_battle_time_in_clan": "2026-09-24T11:53:59.000Z",
+        "days_since_battle": 0.12,
+        "battles": [60, 27],
+        "ranked_battles": [49, 27],
+        "donations": [828, 377],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2350, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 2, 2, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#9CQ8J82",
+        "name": "MuK｜⚡Matthias⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-10T07:32:40.000Z",
+        "first_joined_at": "2026-09-10T07:32:40.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 14,
+        "log_recorded": true,
+        "recorded_since": "2026-09-05T13:42:27.000Z",
+        "last_battle_time": "2026-09-23T19:01:32.000Z",
+        "last_battle_time_in_clan": "2026-09-23T19:01:32.000Z",
+        "days_since_battle": 0.82,
+        "battles": [46, 33],
+        "ranked_battles": [22, 17],
+        "donations": [110, 92],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2600, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 2, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#9JJ2PU8L0",
+        "name": "MuK｜⚡爱Ƭσ๓๓վ ⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-28T23:15:11.000Z",
+        "last_battle_time": "2026-09-20T20:47:59.000Z",
+        "last_battle_time_in_clan": "2026-09-19T13:14:21.000Z",
+        "days_since_battle": 3.75,
+        "battles": [12, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2700, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#9L8P0CCQ",
+        "name": "MuK｜⚡A’Mammt⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-02T05:48:24.000Z",
+        "last_battle_time": "2026-09-24T05:53:30.000Z",
+        "last_battle_time_in_clan": "2026-09-14T00:54:24.000Z",
+        "days_since_battle": 0.37,
+        "battles": [13, 30],
+        "ranked_battles": [0, 0],
+        "donations": [16, 0],
+        "war_decks": [0, 0, 0],
+        "war_points": [0, 0, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0, 0]
+      },
+      {
+        "player_tag": "#9V9GJGUYP",
+        "name": "MuK｜⚡Vachry⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-27T11:38:29.000Z",
+        "last_battle_time": "2026-09-23T06:01:42.000Z",
+        "last_battle_time_in_clan": "2026-09-23T06:01:42.000Z",
+        "days_since_battle": 1.37,
+        "battles": [51, 29],
+        "ranked_battles": [40, 12],
+        "donations": [204, 76],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2600, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 2, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#CCU9089PU",
+        "name": "MuK｜⚡Alex™⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-05T17:04:18.000Z",
+        "last_battle_time": "2026-09-24T14:07:00.000Z",
+        "last_battle_time_in_clan": "2026-09-24T14:07:00.000Z",
+        "days_since_battle": 0.03,
+        "battles": [79, 44],
+        "ranked_battles": [59, 36],
+        "donations": [258, 146],
+        "war_decks": [0, 13, 4],
+        "war_points": [0, 2600, 900],
+        "war_scoring_decks": [0, null, 4],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 1],
+          [4, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [1, 3, 3, 1],
+          [3, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 4, 1]
+      },
+      {
+        "player_tag": "#CJ9G8PPPY",
+        "name": "MuK｜⚡MiniAlex™⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-02T11:54:42.000Z",
+        "last_battle_time": "2026-09-24T12:05:37.000Z",
+        "last_battle_time_in_clan": "2026-09-24T12:05:37.000Z",
+        "days_since_battle": 0.11,
+        "battles": [42, 35],
+        "ranked_battles": [26, 25],
+        "donations": [274, 270],
+        "war_decks": [0, 0, 4],
+        "war_points": [0, 0, 900],
+        "war_scoring_decks": [0, null, 4],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [4, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [3, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0, 1]
+      },
+      {
+        "player_tag": "#CURYC29V9",
+        "name": "MuK｜Black Magic",
+        "role": "leader",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-07-17T07:44:36.000Z",
+        "last_battle_time": "2026-09-20T09:45:54.000Z",
+        "last_battle_time_in_clan": "2026-09-20T09:45:54.000Z",
+        "days_since_battle": 4.21,
+        "battles": [6, 0],
+        "ranked_battles": [0, 0],
+        "donations": [240, 144],
+        "war_decks": [4, 8, 0],
+        "war_points": [400, 1100, 0],
+        "war_scoring_decks": [4, null, 0],
+        "war_decks_by_day": [
+          [0, 4, 0, 0],
+          [0, 4, 0, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [1, 2, 0]
+      },
+      {
+        "player_tag": "#CV92R0U9Y",
+        "name": "MuK｜⚡Apache⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-09T20:32:43.000Z",
+        "first_joined_at": "2026-09-09T20:32:43.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 14,
+        "log_recorded": true,
+        "recorded_since": "2026-08-29T13:22:50.000Z",
+        "last_battle_time": "2026-09-21T21:04:17.000Z",
+        "last_battle_time_in_clan": "2026-09-21T21:04:17.000Z",
+        "days_since_battle": 2.74,
+        "battles": [26, 3],
+        "ranked_battles": [0, 0],
+        "donations": [56, 30],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2100, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [2, 2, 2, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#GCLQPCLP",
+        "name": "MuK｜⚡GRP⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-17T10:57:56.000Z",
+        "first_joined_at": "2026-09-07T09:07:40.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 7,
+        "log_recorded": true,
+        "recorded_since": "2026-08-22T08:29:07.000Z",
+        "last_battle_time": "2026-09-20T20:17:04.000Z",
+        "last_battle_time_in_clan": "2026-09-19T13:00:52.000Z",
+        "days_since_battle": 3.77,
+        "battles": [12, 0],
+        "ranked_battles": [0, 0],
+        "donations": [18, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2600, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#J0PPLJ",
+        "name": "MuK｜⚡Brembi 2⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-29T12:28:26.000Z",
+        "last_battle_time": "2026-09-23T19:19:01.000Z",
+        "last_battle_time_in_clan": "2026-09-23T19:19:01.000Z",
+        "days_since_battle": 0.81,
+        "battles": [43, 10],
+        "ranked_battles": [27, 10],
+        "donations": [312, 330],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1200, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#J8LJU2PPJ",
+        "name": "MuK｜Zlatan 2 ⚡️",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-23T17:57:30.000Z",
+        "last_battle_time": "2026-09-22T06:16:30.000Z",
+        "last_battle_time_in_clan": "2026-09-22T06:16:30.000Z",
+        "days_since_battle": 2.36,
+        "battles": [25, 9],
+        "ranked_battles": [13, 9],
+        "donations": [46, 26],
+        "war_decks": [0, 8, 0],
+        "war_points": [0, 1800, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 0, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 0, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 2, 0]
+      },
+      {
+        "player_tag": "#JQ02Q0PY",
+        "name": "<c0>⚜️Ａｃｅ",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-29T07:14:58.000Z",
+        "last_battle_time": "2026-09-24T10:25:44.000Z",
+        "last_battle_time_in_clan": "2026-09-24T10:25:44.000Z",
+        "days_since_battle": 0.18,
+        "battles": [132, 56],
+        "ranked_battles": [119, 56],
+        "donations": [850, 570],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2000, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#L2Y0VPL2L",
+        "name": "MuK｜⚡Lukiz⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-27T16:23:20.000Z",
+        "last_battle_time": "2026-09-20T19:22:51.000Z",
+        "last_battle_time_in_clan": "2026-09-19T22:41:48.000Z",
+        "days_since_battle": 3.81,
+        "battles": [22, 0],
+        "ranked_battles": [8, 0],
+        "donations": [40, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1200, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#P0UJC8LJJ",
+        "name": "MuK｜⚡Lucaさん⚡",
+        "role": "coLeader",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-07T14:34:23.000Z",
+        "last_battle_time": "2026-09-24T12:31:54.000Z",
+        "last_battle_time_in_clan": "2026-09-24T12:31:54.000Z",
+        "days_since_battle": 0.09,
+        "battles": [114, 35],
+        "ranked_battles": [1, 22],
+        "donations": [0, 0],
+        "war_decks": [0, 12, 4],
+        "war_points": [0, 1200, 900],
+        "war_scoring_decks": [0, null, 4],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [4, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [3, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 1]
+      },
+      {
+        "player_tag": "#P8GCJL82R",
+        "name": "MuK｜⚡ALE⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-03T21:14:27.000Z",
+        "last_battle_time": "2026-09-23T19:24:18.000Z",
+        "last_battle_time_in_clan": "2026-09-23T19:24:18.000Z",
+        "days_since_battle": 0.81,
+        "battles": [94, 14],
+        "ranked_battles": [71, 14],
+        "donations": [0, 0],
+        "war_decks": [0, 12, 4],
+        "war_points": [0, 1200, 800],
+        "war_scoring_decks": [0, null, 4],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [4, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 1]
+      },
+      {
+        "player_tag": "#P8L8P2R9",
+        "name": "MuK｜⚡D Mets⚡",
+        "role": "coLeader",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-03T09:49:01.000Z",
+        "last_battle_time": "2026-09-23T22:28:08.000Z",
+        "last_battle_time_in_clan": "2026-09-23T22:28:08.000Z",
+        "days_since_battle": 0.68,
+        "battles": [182, 25],
+        "ranked_battles": [43, 0],
+        "donations": [38, 20],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1200, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#PCVRV009",
+        "name": "MuK｜⚡Kakarot⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-05T17:45:53.000Z",
+        "last_battle_time": "2026-09-24T13:26:28.000Z",
+        "last_battle_time_in_clan": "2026-09-24T13:26:28.000Z",
+        "days_since_battle": 0.06,
+        "battles": [367, 92],
+        "ranked_battles": [192, 68],
+        "donations": [998, 392],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2400, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 2, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#PL0P2J0U",
+        "name": "MuK｜⚡️Nymeria⚡️",
+        "role": "coLeader",
+        "joined_observed_at": "2026-09-18T07:58:00.000Z",
+        "first_joined_at": "2026-09-18T07:58:00.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 6,
+        "log_recorded": true,
+        "recorded_since": "2026-08-01T17:49:15.000Z",
+        "last_battle_time": "2026-09-19T16:33:05.000Z",
+        "last_battle_time_in_clan": "2026-09-19T08:30:49.000Z",
+        "days_since_battle": 4.93,
+        "battles": [7, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, 0],
+        "war_decks": [null, 4, 0],
+        "war_points": [null, 400, 0],
+        "war_scoring_decks": [null, null, 0],
+        "war_decks_by_day": [
+          [null, null, null, null],
+          [0, 4, 0, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 3, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [null, 1, 0]
+      },
+      {
+        "player_tag": "#PVLU2GQQ0",
+        "name": "MuK｜⚡闇Sinapsi闇⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-01T14:52:22.000Z",
+        "last_battle_time": "2026-09-24T11:04:34.000Z",
+        "last_battle_time_in_clan": "2026-09-24T11:04:34.000Z",
+        "days_since_battle": 0.16,
+        "battles": [52, 56],
+        "ranked_battles": [17, 4],
+        "donations": [164, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2700, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#PVP0LR2P",
+        "name": "MuK｜Zlatan ⚡️",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-28T22:05:18.000Z",
+        "last_battle_time": "2026-09-20T22:06:13.000Z",
+        "last_battle_time_in_clan": "2026-09-20T08:18:25.000Z",
+        "days_since_battle": 3.7,
+        "battles": [44, 0],
+        "ranked_battles": [30, 0],
+        "donations": [72, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1900, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#PVQY2UUU8",
+        "name": "MuK｜⚡Gladiator⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-02T14:03:03.000Z",
+        "last_battle_time": "2026-09-23T18:26:43.000Z",
+        "last_battle_time_in_clan": "2026-09-23T18:26:43.000Z",
+        "days_since_battle": 0.85,
+        "battles": [71, 33],
+        "ranked_battles": [59, 10],
+        "donations": [208, 58],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1200, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#PYJ9GJQLP",
+        "name": "MuK｜⚡Lucasさん⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-22T08:30:50.000Z",
+        "last_battle_time": "2026-09-20T20:12:12.000Z",
+        "last_battle_time_in_clan": "2026-09-20T09:50:51.000Z",
+        "days_since_battle": 3.78,
+        "battles": [11, 0],
+        "ranked_battles": [0, 0],
+        "donations": [0, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1300, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 0, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#Q2JUYYLL",
+        "name": "IcBs D0RAN",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-07-24T08:19:04.000Z",
+        "last_battle_time": "2026-09-23T21:39:06.000Z",
+        "last_battle_time_in_clan": "2026-09-23T21:39:06.000Z",
+        "days_since_battle": 0.71,
+        "battles": [88, 78],
+        "ranked_battles": [0, 32],
+        "donations": [414, 222],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1200, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#QLR0VRC",
+        "name": "DarK｜⚡Lil Fymo⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-16T22:07:58.000Z",
+        "first_joined_at": "2026-09-16T22:07:58.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 7,
+        "log_recorded": true,
+        "recorded_since": "2026-09-12T18:48:19.000Z",
+        "last_battle_time": "2026-09-24T11:45:16.000Z",
+        "last_battle_time_in_clan": "2026-09-24T11:45:16.000Z",
+        "days_since_battle": 0.13,
+        "battles": [54, 15],
+        "ranked_battles": [32, 3],
+        "donations": [10, 0],
+        "war_decks": [null, 12, 4],
+        "war_points": [null, 2600, 900],
+        "war_scoring_decks": [null, null, 4],
+        "war_decks_by_day": [
+          [null, null, null, null],
+          [4, 4, 4, 0],
+          [4, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [3, 0, 0, 0]
+        ],
+        "war_days_battled": [null, 3, 1]
+      },
+      {
+        "player_tag": "#R892U8Y0",
+        "name": "MuK｜⚡️Brun 老的⚡️",
+        "role": "coLeader",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-03T14:09:34.000Z",
+        "last_battle_time": "2026-09-24T11:31:21.000Z",
+        "last_battle_time_in_clan": "2026-09-24T11:31:21.000Z",
+        "days_since_battle": 0.14,
+        "battles": [114, 53],
+        "ranked_battles": [10, 21],
+        "donations": [196, 78],
+        "war_decks": [0, 12, 4],
+        "war_points": [0, 1200, 700],
+        "war_scoring_decks": [0, null, 4],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [4, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [3, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 1]
+      },
+      {
+        "player_tag": "#R89JRQ09",
+        "name": "MuK｜⚡ReaperⓇ⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-03T17:17:19.000Z",
+        "last_battle_time": "2026-09-24T13:38:09.000Z",
+        "last_battle_time_in_clan": "2026-09-24T13:38:09.000Z",
+        "days_since_battle": 0.05,
+        "battles": [109, 77],
+        "ranked_battles": [55, 36],
+        "donations": [386, 228],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1200, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#RPCRYPP9C",
+        "name": "MuK｜⚡️LoriAgos⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-14T12:37:51.000Z",
+        "first_joined_at": "2026-09-14T12:37:51.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 10,
+        "log_recorded": true,
+        "recorded_since": "2026-09-11T13:29:30.000Z",
+        "last_battle_time": "2026-09-24T08:30:51.000Z",
+        "last_battle_time_in_clan": "2026-09-24T08:30:51.000Z",
+        "days_since_battle": 0.26,
+        "battles": [42, 32],
+        "ranked_battles": [22, 10],
+        "donations": [334, 154],
+        "war_decks": [null, 12, 4],
+        "war_points": [null, 2300, 900],
+        "war_scoring_decks": [null, null, 4],
+        "war_decks_by_day": [
+          [null, null, null, null],
+          [4, 4, 4, 0],
+          [4, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [2, 2, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [null, 3, 1]
+      },
+      {
+        "player_tag": "#UGCQQPJPU",
+        "name": "MuK｜⚡BossReal™⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-06-17T12:03:01.000Z",
+        "last_battle_time": "2026-09-24T14:04:48.000Z",
+        "last_battle_time_in_clan": "2026-09-24T14:04:48.000Z",
+        "days_since_battle": 0.03,
+        "battles": [266, 156],
+        "ranked_battles": [94, 83],
+        "donations": [0, 10],
+        "war_decks": [0, 12, 4],
+        "war_points": [0, 1200, 800],
+        "war_scoring_decks": [0, null, 4],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [4, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [3, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 1]
+      },
+      {
+        "player_tag": "#UGUUQGV2",
+        "name": "MuK｜⚡JL ROYAL™⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-31T21:29:22.000Z",
+        "last_battle_time": "2026-09-23T21:57:50.000Z",
+        "last_battle_time_in_clan": "2026-09-23T21:57:50.000Z",
+        "days_since_battle": 0.7,
+        "battles": [205, 46],
+        "ranked_battles": [4, 7],
+        "donations": [360, 38],
+        "war_decks": [0, 12, 2],
+        "war_points": [0, 2700, 500],
+        "war_scoring_decks": [0, null, 2],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [2, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 1]
+      },
+      {
+        "player_tag": "#UJ298R9",
+        "name": "MuK｜⚡Sbirro⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-17T13:58:06.000Z",
+        "first_joined_at": "2026-09-09T19:52:39.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 7,
+        "log_recorded": true,
+        "recorded_since": "2026-08-23T19:13:31.000Z",
+        "last_battle_time": "2026-09-20T19:30:07.000Z",
+        "last_battle_time_in_clan": "2026-09-19T22:40:26.000Z",
+        "days_since_battle": 3.8,
+        "battles": [17, 0],
+        "ranked_battles": [8, 0],
+        "donations": [0, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1850, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [2, 2, 2, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#V0UV2L",
+        "name": "MuK | ⚡Flavio⚡",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-09-03T11:40:44.000Z",
+        "last_battle_time": "2026-09-23T13:07:37.000Z",
+        "last_battle_time_in_clan": "2026-09-23T13:07:37.000Z",
+        "days_since_battle": 1.07,
+        "battles": [39, 36],
+        "ranked_battles": [19, 36],
+        "donations": [152, 80],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 2100, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#V9VVR2Q",
+        "name": "MattiaOfficial",
+        "role": "member",
+        "joined_observed_at": "2026-09-06T14:37:37.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": false,
+        "days_in_clan_observed": 18,
+        "log_recorded": true,
+        "recorded_since": "2026-08-26T18:16:52.000Z",
+        "last_battle_time": "2026-09-20T22:22:08.000Z",
+        "last_battle_time_in_clan": "2026-09-19T23:59:03.000Z",
+        "days_since_battle": 3.68,
+        "battles": [13, 0],
+        "ranked_battles": [1, 0],
+        "donations": [68, 0],
+        "war_decks": [0, 12, 0],
+        "war_points": [0, 1200, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [3, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 3, 0]
+      },
+      {
+        "player_tag": "#Y2YJPYC",
+        "name": "MuK｜⚡alcohol⚡️",
+        "role": "coLeader",
+        "joined_observed_at": "2026-09-07T15:07:37.000Z",
+        "first_joined_at": "2026-09-07T15:07:37.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 16,
+        "log_recorded": true,
+        "recorded_since": "2026-09-04T21:07:46.000Z",
+        "last_battle_time": "2026-09-23T17:37:26.000Z",
+        "last_battle_time_in_clan": "2026-09-23T17:37:26.000Z",
+        "days_since_battle": 0.88,
+        "battles": [116, 43],
+        "ranked_battles": [102, 39],
+        "donations": [152, 106],
+        "war_decks": [12, 12, 0],
+        "war_points": [2200, 2350, 0],
+        "war_scoring_decks": [12, null, 0],
+        "war_decks_by_day": [
+          [4, 4, 4, 0],
+          [4, 4, 4, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [2, 3, 3, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [3, 3, 0]
+      },
+      {
+        "player_tag": "#Y9YLVPPQY",
+        "name": "Endo™",
+        "role": "member",
+        "joined_observed_at": "2026-09-23T22:07:53.000Z",
+        "first_joined_at": "2026-09-06T14:37:37.000Z",
+        "tenure_known": true,
+        "days_in_clan_observed": 0,
+        "log_recorded": true,
+        "recorded_since": "2026-09-03T18:52:05.000Z",
+        "last_battle_time": "2026-09-23T23:45:25.000Z",
+        "last_battle_time_in_clan": "2026-09-23T23:45:25.000Z",
+        "days_since_battle": 0.63,
+        "battles": [11, 24],
+        "ranked_battles": [8, 18],
+        "donations": [null, 0],
+        "war_decks": [0, 0, 0],
+        "war_points": [0, 0, 0],
+        "war_scoring_decks": [0, null, 0],
+        "war_decks_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, null, null, null]
+        ],
+        "war_battles_by_day": [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ],
+        "war_days_battled": [0, 0, 0]
+      }
+    ],
+    "notes": [
+      "Rows are today's members, and 43 of them joined after the window began, so their counts include battles from before they belonged to this clan: MuK｜⚡GRP⚡ #GCLQPCLP joined 2026-09-24 with 3 of 12 recorded battles in the window played before joining; MuK｜⚡Hopeless⚡ #88V02GL8 joined 2026-09-24 with 6 of 12 recorded battles in the window played before joining; MuK｜⚡A’Mammt⚡ #9L8P0CCQ joined 2026-09-24 with 30 of 43 recorded battles in the window played before joining; MuK｜⚡Lucasさん⚡ #PYJ9GJQLP joined 2026-09-24 with 2 of 11 recorded battles in the window played before joining; MuK｜⚡MiniAlex™⚡ #CJ9G8PPPY joined 2026-09-23 with 26 of 77 recorded battles in the window played before joining; Endo™ #Y9YLVPPQY joined 2026-09-23 with 30 of 35 recorded battles in the window played before joining; MuK｜⚡安之✨Beto⚡ #2PVYVPQGQ joined 2026-09-23 with 30 of 151 recorded battles in the window played before joining; MuK｜⚡Mazzpower⚡ #88LRLU9V joined 2026-09-23 with 21 of 24 recorded battles in the window played before joining; and 35 more. Members who left since the window began are not listed.",
+      "Battle capture is incomplete for 2 members over this window (profile reads between 2026-09-14 and 2026-09-24), so their recorded battles and last-battle times undercount real play: MuK｜⚡A’Mammt⚡ #9L8P0CCQ (30 of 60, 50%), MuK｜⚡JL ROYAL™⚡ #UGUUQGV2 (251 of 332, 76%). The profile's battle counter rose by the second number while the record captured the first; a low count here is a capture gap, not inactivity (elixir_coverage per tag).",
+      "The boat crossed the finish line early in 136/0 (war day 3), 136/1 (war day 4): decks played on the days after it earned 0 points, so war_points / war_decks is not a rate for those weeks - use war_scoring_decks (full verbosity, up to 6 war weeks) or war_history.scoring_decks.",
+      "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
+      "war_points per war week is the member's period points (the war_history and war_current `points` figure, the API's periodPoints), never fame.",
+      "donations is the highest value the game's weekly counter reached in that week's game days (it only climbs until the weekly reset around the start of Monday UTC, so the highest read is a lower bound on the week's total: donations after the last read before the reset are not in it); null means no snapshot fell in the week.",
+      "Per-member columns align to the top-level weeks and war_weeks, one entry each in order; war_decks_by_day holds war days 1-4 from roster polls during each day, null where that day was not polled, and war_battles_by_day the member's recorded war battles per day.",
+      "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
+      "joined_observed_at and days_in_clan_observed are the member's CURRENT stint: a member who left and came back counts from the rejoin, except that a rejoin within 7 days of leaving continues the stint before it. first_joined_at is the member's first recorded join here (clans_roster.first_observed_in_clan is the same instant).",
+      "Counts cover RECORDED battles only (log_recorded and recorded_since per member say whose log is recorded and since when; elixir_coverage per tag says how complete it is); war_days_battled per war week counts the days a member fought from polls and recorded battles, null when neither source covered the week; last_battle_time_in_clan is the last recorded battle played as a member of this clan."
+    ],
+    "docs": "recording#participation-by-week",
+    "meta": {
+      "contract_version": "7.2.3",
+      "source_polls": {
+        "clan": {
+          "observed_at": "2026-09-24T14:28:07.000Z",
+          "freshness_seconds": 1219
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 904,
+    "db_queries": 20,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

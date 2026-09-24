@@ -1,0 +1,30 @@
+{
+  "feedback": 325,
+  "contract_version": "7.2.3",
+  "captured_at": "2026-09-24T14:50:39.071Z",
+  "request": {
+    "tool": "cards_synergy",
+    "arguments": {
+      "card": "Evo Witch",
+      "segment": "mine"
+    }
+  },
+  "response": {
+    "error": {
+      "code": "not_found",
+      "class": "subject",
+      "message": "No card named 'Evo Witch'.",
+      "hint": "Names resolve only on an exact match so Witch is never read as Mother Witch; pass card_id to be unambiguous."
+    },
+    "meta": {
+      "contract_version": "7.2.3"
+    }
+  },
+  "timings": {
+    "db_ms": 10,
+    "db_queries": 1,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

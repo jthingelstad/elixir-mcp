@@ -1,0 +1,108 @@
+{
+  "feedback": 335,
+  "contract_version": "7.2.3",
+  "captured_at": "2026-09-24T14:51:24.056Z",
+  "request": {
+    "tool": "clans_timeline",
+    "arguments": {
+      "clan_tag": "#8UJ2UUJ8",
+      "from": "2026-09-07",
+      "to": "2026-09-12",
+      "metrics": ["donations_per_week", "members"]
+    }
+  },
+  "response": {
+    "clan_tag": "#8UJ2UUJ8",
+    "applied": {
+      "window": {
+        "from": "2026-09-07",
+        "to": "2026-09-12",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 6
+      },
+      "granularity": "day",
+      "kind": "daily",
+      "metrics": ["donations_per_week", "members"],
+      "verbosity": "full"
+    },
+    "series_available_from": "2026-09-06",
+    "series": [
+      {
+        "day": "2026-09-07",
+        "kind": "daily",
+        "observed_at": "2026-09-08T09:57:43.000Z",
+        "source": "api",
+        "donations_per_week": 1806,
+        "members": 46
+      },
+      {
+        "day": "2026-09-08",
+        "kind": "daily",
+        "observed_at": "2026-09-09T09:32:38.000Z",
+        "source": "api",
+        "donations_per_week": 2876,
+        "members": 45
+      },
+      {
+        "day": "2026-09-09",
+        "kind": "daily",
+        "observed_at": "2026-09-10T09:52:37.000Z",
+        "source": "api",
+        "donations_per_week": 4602,
+        "members": 49
+      },
+      {
+        "day": "2026-09-10",
+        "kind": "daily",
+        "observed_at": "2026-09-11T09:03:02.000Z",
+        "source": "api",
+        "donations_per_week": 5732,
+        "members": 50
+      },
+      {
+        "day": "2026-09-11",
+        "kind": "daily",
+        "observed_at": "2026-09-12T09:52:48.000Z",
+        "source": "api",
+        "donations_per_week": 7160,
+        "members": 50
+      },
+      {
+        "day": "2026-09-12",
+        "kind": "daily",
+        "observed_at": "2026-09-13T09:42:53.000Z",
+        "source": "api",
+        "donations_per_week": 8752,
+        "members": 48
+      }
+    ],
+    "notes": [
+      "donations_per_week is the game's clan counter, which keeps a departed member's donations for the week while the member rows do not: on 2026-09-09 it reads 4602 against 4232 over the member rows, and MuK｜⚡Lucasさん⚡, MuK｜⚡Griggioso⚡, Muk｜✞White✞, MuK｜⚡MiniALE⚡, the rock, MuK ｜ ⚡️Zine⚡️, guilherme, MOUEMEN AL ALI, MuK｜Zlatan 2 ⚡️, MuK｜⚡GRP⚡, MuK｜⚡A’Mammt⚡, igor, 〆RICHARLISON〆, Briceño, LE MOTARD FOU, elmani, ✨CMG│像Bymateo❤️, TM ALEX, ❄️Angel_Palma❄️, christian, Luis S.V, money nas, Endo™, mr.mirzaei, Ali khan, fanciu, ELIOS, GDK_beetlethug, <c5>J.Calguá_18, mastinolavico12, KOKE_YK07, woolies, sohan, hulk, le boss, MuK｜⚡Tom Storm⚡, OFFLINE FOR FF, ᴱᵀᴼ•ᴀ ᴋ ɪ ʟ ᴇ s, RyanDaBeast, scl, AMAN, GON FREECSS, bale, king squidi, iam_fortumar, Petunhina, MVP, kaled, El capitán¤, Caguaman31, Che Geovara, Esdras, janer, maldi makinista, REDOXX99, <c2>NoBattlePas, David, ❦︎ᴍᴀʏᴄᴏʟ ♕︎, <c5>L¥lmer$, francofino, LN JULIO ⭐️, XaviAlonzo66, ⸙ᴶᵒˢᵘᵉㅤ⁹⁹⁹ :), Ali, }KoZiMaraDona{, ßąşîl, MuK｜⚡Braco⚡, MuK｜⚡☠️Luffy☠️⚡, Luca, MuK｜⚡️Davidin⚡, George, OSIRIDE, Revan, beniju, YOUSIF MT, MuK｜⚡Re Fymo⚡, The_Goat, full tromba left that week; on 2026-09-07 it reads 1806 against 1770 over the member rows, and MuK｜⚡Griggioso⚡, MuK｜⚡Lucasさん⚡, Muk｜✞White✞, MuK｜⚡MiniALE⚡, the rock, MuK ｜ ⚡️Zine⚡️, guilherme, MOUEMEN AL ALI, MuK｜Zlatan 2 ⚡️, MuK｜⚡GRP⚡, MuK｜⚡A’Mammt⚡, igor, 〆RICHARLISON〆, Briceño, LE MOTARD FOU, elmani, ✨CMG│像Bymateo❤️, TM ALEX, ❄️Angel_Palma❄️, christian, money nas, Luis S.V, Endo™, ELIOS, fanciu, Ali khan, mr.mirzaei, GDK_beetlethug, <c5>J.Calguá_18, mastinolavico12, woolies, KOKE_YK07 left that week; on 2026-09-08 it reads 2876 against 2652 over the member rows, and MuK｜⚡Griggioso⚡, MuK｜⚡Lucasさん⚡, Muk｜✞White✞, MuK｜⚡MiniALE⚡, the rock, MuK ｜ ⚡️Zine⚡️, guilherme, MOUEMEN AL ALI, MuK｜⚡GRP⚡, MuK｜Zlatan 2 ⚡️, MuK｜⚡A’Mammt⚡, igor, 〆RICHARLISON〆, LE MOTARD FOU, Briceño, elmani, ✨CMG│像Bymateo❤️, TM ALEX, ❄️Angel_Palma❄️, christian, money nas, Luis S.V, Endo™, mr.mirzaei, ELIOS, fanciu, Ali khan, GDK_beetlethug, <c5>J.Calguá_18, mastinolavico12, KOKE_YK07, woolies, sohan, hulk, le boss, MuK｜⚡Tom Storm⚡, RyanDaBeast, ᴱᵀᴼ•ᴀ ᴋ ɪ ʟ ᴇ s, OFFLINE FOR FF, scl, AMAN, GON FREECSS, MVP, bale, Petunhina, iam_fortumar, king squidi, kaled, El capitán¤, Caguaman31, Che Geovara, maldi makinista, Esdras, janer, REDOXX99, <c2>NoBattlePas left that week; on 2026-09-10 it reads 5732 against 4162 over the member rows, and MuK｜⚡Griggioso⚡, MuK｜⚡Lucasさん⚡, Muk｜✞White✞, MuK｜⚡MiniALE⚡, the rock, MuK ｜ ⚡️Zine⚡️, guilherme, MOUEMEN AL ALI, MuK｜⚡A’Mammt⚡, MuK｜⚡GRP⚡, MuK｜Zlatan 2 ⚡️, igor, 〆RICHARLISON〆, LE MOTARD FOU, Briceño, elmani, ✨CMG│像Bymateo❤️, TM ALEX, ❄️Angel_Palma❄️, christian, Luis S.V, money nas, Endo™, Ali khan, mr.mirzaei, fanciu, ELIOS, GDK_beetlethug, <c5>J.Calguá_18, mastinolavico12, KOKE_YK07, woolies, sohan, hulk, le boss, MuK｜⚡Tom Storm⚡, OFFLINE FOR FF, ᴱᵀᴼ•ᴀ ᴋ ɪ ʟ ᴇ s, RyanDaBeast, scl, AMAN, GON FREECSS, Petunhina, bale, iam_fortumar, MVP, king squidi, kaled, El capitán¤, Caguaman31, Che Geovara, janer, maldi makinista, Esdras, REDOXX99, <c2>NoBattlePas, David, ❦︎ᴍᴀʏᴄᴏʟ ♕︎, <c5>L¥lmer$, francofino, LN JULIO ⭐️, XaviAlonzo66, ⸙ᴶᵒˢᵘᵉㅤ⁹⁹⁹ :), Ali, }KoZiMaraDona{, MuK｜⚡Braco⚡, ßąşîl, MuK｜⚡️Davidin⚡, MuK｜⚡☠️Luffy☠️⚡, Luca, OSIRIDE, George, Revan, beniju, YOUSIF MT, MuK｜⚡Re Fymo⚡, full tromba, The_Goat, MuK｜⚡Dani ❤ 스팸⚡, MuK｜⚡Apache⚡, MuK｜⚡Lucaさん⚡, MuK｜⚡安之✨Beto⚡, IcBs D0RAN, 星际｜zKaizen❦ᵍᵒᵈ, MuK｜⚡Sbirro⚡, Muk｜✞White✞, MuK｜⚡Matthias⚡, MuK｜⚡Brembi⚡, MuK｜⚡Simo308シ⚡, MuK｜⚡Lukiz⚡, MuK｜⚡LucaAgos⚡, MuK｜⚡Brembi 2⚡, MuK｜⚡Hopeless⚡, MuK｜⚡Mela⚡, MuK｜⚡Alex™⚡, MuK｜⚡Gladiator⚡, MuK｜⚡MiniAlex™⚡, MuK｜⚡Vachry⚡, MuK｜⚡ReaperⓇ⚡, MuK｜⚡MiniALE⚡, MuK｜⚡Griggioso⚡, MuK｜⚡A’Mammt⚡, MuK｜⚡MiniMazz⚡, MattiaOfficial, MuK｜⚡Lacki⚡, MuK｜⚡BossReal™⚡, MuK｜⚡Zeta⚡, MuK | ⚡Flavio⚡, MuK｜⚡☠WARRIOR☠⚡, MuK｜⚡爱Ƭσ๓๓վ ⚡, MuK｜⚡JL ROYAL™⚡, MuK｜⚡D Mets⚡, MuK｜⚡DIEGO⚡, MuK｜⚡Fabbro⚒️⚡, MuK｜Zlatan 2 ⚡️, MuK｜Zlatan ⚡️, <c0>⚜️Ａｃｅ, MuK｜⚡️Brun 老的⚡️, MuK｜⚡Mozz0™⚡, MuK｜⚡Gioespo⚡️, MuK｜⚡Kakarot⚡, MuK｜⚡闇Sinapsi闇⚡, MuK｜⚡ALE⚡, No Love, MuK｜⚡Mazzpower⚡, MuK｜⚡alcohol⚡️, MuK｜⚡DJANGO⚡, MuK｜⚡KOOP⚡ left that week; on 2026-09-11 it reads 7160 against 2418 over the member rows, and MuK｜⚡Griggioso⚡, MuK｜⚡Lucasさん⚡, Muk｜✞White✞, MuK｜⚡MiniALE⚡, the rock, MuK ｜ ⚡️Zine⚡️, guilherme, MOUEMEN AL ALI, MuK｜⚡A’Mammt⚡, MuK｜⚡GRP⚡, MuK｜Zlatan 2 ⚡️, igor, 〆RICHARLISON〆, LE MOTARD FOU, Briceño, elmani, ✨CMG│像Bymateo❤️, TM ALEX, ❄️Angel_Palma❄️, christian, Luis S.V, money nas, Endo™, Ali khan, mr.mirzaei, fanciu, ELIOS, GDK_beetlethug, <c5>J.Calguá_18, mastinolavico12, KOKE_YK07, woolies, sohan, hulk, le boss, MuK｜⚡Tom Storm⚡, OFFLINE FOR FF, ᴱᵀᴼ•ᴀ ᴋ ɪ ʟ ᴇ s, RyanDaBeast, scl, AMAN, GON FREECSS, Petunhina, bale, iam_fortumar, MVP, king squidi, kaled, El capitán¤, Caguaman31, Che Geovara, janer, maldi makinista, Esdras, REDOXX99, <c2>NoBattlePas, David, ❦︎ᴍᴀʏᴄᴏʟ ♕︎, <c5>L¥lmer$, francofino, LN JULIO ⭐️, XaviAlonzo66, ⸙ᴶᵒˢᵘᵉㅤ⁹⁹⁹ :), Ali, }KoZiMaraDona{, MuK｜⚡Braco⚡, ßąşîl, MuK｜⚡️Davidin⚡, MuK｜⚡☠️Luffy☠️⚡, Luca, OSIRIDE, George, Revan, beniju, YOUSIF MT, MuK｜⚡Re Fymo⚡, full tromba, The_Goat, MuK｜⚡Dani ❤ 스팸⚡, MuK｜⚡Apache⚡, MuK｜⚡Lucaさん⚡, MuK｜⚡安之✨Beto⚡, IcBs D0RAN, 星际｜zKaizen❦ᵍᵒᵈ, MuK｜⚡Sbirro⚡, Muk｜✞White✞, MuK｜⚡Matthias⚡, MuK｜⚡Brembi⚡, MuK｜⚡Simo308シ⚡, MuK｜⚡Lukiz⚡, MuK｜⚡LucaAgos⚡, MuK｜⚡Brembi 2⚡, MuK｜⚡Hopeless⚡, MuK｜⚡Mela⚡, MuK｜⚡Alex™⚡, MuK｜⚡Gladiator⚡, MuK｜⚡MiniAlex™⚡, MuK｜⚡Vachry⚡, MuK｜⚡ReaperⓇ⚡, MuK｜⚡MiniALE⚡, MuK｜⚡Griggioso⚡, MuK｜⚡A’Mammt⚡, MuK｜⚡MiniMazz⚡, MattiaOfficial, MuK｜⚡Lacki⚡, MuK｜⚡BossReal™⚡, MuK｜⚡Zeta⚡, MuK | ⚡Flavio⚡, MuK｜⚡☠WARRIOR☠⚡, MuK｜⚡爱Ƭσ๓๓վ ⚡, MuK｜⚡JL ROYAL™⚡, MuK｜⚡D Mets⚡, MuK｜⚡DIEGO⚡, MuK｜⚡Fabbro⚒️⚡, MuK｜Zlatan 2 ⚡️, MuK｜Zlatan ⚡️, <c0>⚜️Ａｃｅ, MuK｜⚡️Brun 老的⚡️, MuK｜⚡Mozz0™⚡, MuK｜⚡Gioespo⚡️, MuK｜⚡Kakarot⚡, MuK｜⚡闇Sinapsi闇⚡, MuK｜⚡ALE⚡, No Love, MuK｜⚡Mazzpower⚡, MuK｜⚡alcohol⚡️, MuK｜⚡DJANGO⚡, MuK｜⚡KOOP⚡ left that week; on 2026-09-12 it reads 8752 against 3902 over the member rows, and MuK｜⚡Griggioso⚡, MuK｜⚡Lucasさん⚡, Muk｜✞White✞, MuK｜⚡MiniALE⚡, the rock, MuK ｜ ⚡️Zine⚡️, guilherme, MOUEMEN AL ALI, MuK｜⚡A’Mammt⚡, MuK｜⚡GRP⚡, MuK｜Zlatan 2 ⚡️, igor, 〆RICHARLISON〆, LE MOTARD FOU, Briceño, elmani, ✨CMG│像Bymateo❤️, TM ALEX, ❄️Angel_Palma❄️, christian, Luis S.V, money nas, Endo™, Ali khan, mr.mirzaei, fanciu, ELIOS, GDK_beetlethug, <c5>J.Calguá_18, mastinolavico12, woolies, KOKE_YK07, sohan, hulk, le boss, MuK｜⚡Tom Storm⚡, OFFLINE FOR FF, RyanDaBeast, ᴱᵀᴼ•ᴀ ᴋ ɪ ʟ ᴇ s, scl, AMAN, GON FREECSS, iam_fortumar, Petunhina, MVP, king squidi, bale, kaled, El capitán¤, Caguaman31, Che Geovara, janer, maldi makinista, Esdras, REDOXX99, <c2>NoBattlePas, David, ❦︎ᴍᴀʏᴄᴏʟ ♕︎, <c5>L¥lmer$, francofino, LN JULIO ⭐️, XaviAlonzo66, ⸙ᴶᵒˢᵘᵉㅤ⁹⁹⁹ :), Ali, }KoZiMaraDona{, MuK｜⚡Braco⚡, ßąşîl, MuK｜⚡️Davidin⚡, MuK｜⚡☠️Luffy☠️⚡, Luca, OSIRIDE, George, Revan, beniju, YOUSIF MT, MuK｜⚡Re Fymo⚡, full tromba, The_Goat, MuK｜⚡Lucaさん⚡, MuK｜⚡安之✨Beto⚡, IcBs D0RAN, MuK｜⚡Dani ❤ 스팸⚡, MuK｜⚡Sbirro⚡, MuK｜⚡Apache⚡, 星际｜zKaizen❦ᵍᵒᵈ, Muk｜✞White✞, MuK｜⚡Matthias⚡, MuK｜⚡Brembi⚡, MuK｜⚡Simo308シ⚡, MuK｜⚡Lukiz⚡, MuK｜⚡LucaAgos⚡, MuK｜⚡Brembi 2⚡, MuK｜⚡Hopeless⚡, MuK｜⚡Mela⚡, MuK｜⚡Alex™⚡, MuK｜⚡Gladiator⚡, MuK｜⚡MiniAlex™⚡, MuK｜⚡BossReal™⚡, MuK｜⚡MiniALE⚡, MuK｜⚡Griggioso⚡, MuK｜⚡A’Mammt⚡, MuK｜⚡MiniMazz⚡, MattiaOfficial, MuK｜⚡Lacki⚡, MuK｜⚡Vachry⚡, MuK｜⚡Zeta⚡, MuK | ⚡Flavio⚡, MuK｜⚡☠WARRIOR☠⚡, MuK｜⚡ReaperⓇ⚡, MuK｜⚡DIEGO⚡, <c0>⚜️Ａｃｅ, MuK｜⚡JL ROYAL™⚡, MuK｜⚡D Mets⚡, MuK｜Zlatan 2 ⚡️, MuK｜Zlatan ⚡️, MuK｜⚡爱Ƭσ๓๓վ ⚡, MuK｜⚡Fabbro⚒️⚡, MuK｜⚡Gioespo⚡️, MuK｜⚡Mozz0™⚡, MuK｜⚡️Brun 老的⚡️, MuK｜⚡Kakarot⚡, MuK｜⚡闇Sinapsi闇⚡, MuK｜⚡ALE⚡, No Love, MuK｜⚡Mazzpower⚡, MuK｜⚡alcohol⚡️, MuK｜⚡DJANGO⚡, MuK｜⚡KOOP⚡, MuK｜⚡Lele さん ⚡, 18✨Marco left that week.",
+      "Days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; a point is the day's last observation."
+    ],
+    "docs": "recording#daily-series",
+    "meta": {
+      "contract_version": "7.2.3",
+      "source_polls": {
+        "clan": {
+          "observed_at": "2026-09-24T14:48:55.000Z",
+          "freshness_seconds": 149
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 38,
+    "db_queries": 9,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

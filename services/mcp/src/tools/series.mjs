@@ -282,27 +282,40 @@ export const seriesTools = {
                   (select coalesce(sum(s.donations), 0)::int from player_snapshot_daily s
                     where s.clan_tag = c.clan_tag and s.snapshot_date = c.day
                       and s.snapshot_kind = c.snapshot_kind) as rows_sum,
-                  (select string_agg(coalesce(p.name, cm.player_tag), ', ' order by cm.left_observed_at)
+                  -- Distinct leavers of the week, not back since (Gym #335:
+                  -- a rotating war clan's note ran to 7,559 characters,
+                  -- repeating names and naming members back in the clan).
+                  (select array_agg(distinct coalesce(p.name, cm.player_tag))
                      from clan_membership cm join player p on p.player_tag = cm.player_tag
                     where cm.clan_tag = c.clan_tag
                       and cm.left_observed_at >= date_trunc('week', c.day)::date + interval '10 hours'
-                      and cm.left_observed_at < c.day + interval '34 hours') as leavers
+                      and cm.left_observed_at < c.day + interval '34 hours'
+                      and not exists (
+                        select 1 from clan_membership o
+                         where o.clan_tag = cm.clan_tag and o.player_tag = cm.player_tag
+                           and o.left_observed_at is null)) as leavers
              from clan_snapshot_daily c
             where c.clan_tag = $1 and c.snapshot_kind = $2 and c.day = any($3::date[])`,
           [clanTag, kind, days],
         );
         const off = gaps.filter(
           (g) =>
-            Number.isInteger(g.counter) && g.counter > g.rows_sum && g.leavers,
+            Number.isInteger(g.counter) &&
+            g.counter > g.rows_sum &&
+            g.leavers?.length,
         );
+        const who = (names) =>
+          `${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""}`;
         if (off.length)
           counterNote = `donations_per_week is the game's clan counter, which keeps a departed member's donations for the week while the member rows do not: ${off
-            .slice(0, 6)
+            .slice(0, 3)
             .map(
               (g) =>
-                `on ${g.day} it reads ${g.counter} against ${g.rows_sum} over the member rows, and ${g.leavers} left that week`,
+                `on ${g.day} it reads ${g.counter} against ${g.rows_sum} over the member rows, with ${g.leavers.length} member${g.leavers.length === 1 ? "" : "s"} gone that week (${who(g.leavers)})`,
             )
-            .join("; ")}.`;
+            .join(
+              "; ",
+            )}${off.length > 3 ? `; and ${off.length - 3} more days like it` : ""}. clans_members_timeline has each member's own counter.`;
       }
       const leaverDays = rows
         .filter((r) => r.members_left_excluded > 0)
@@ -497,6 +510,45 @@ export const seriesTools = {
           ...Object.fromEntries(metrics.map((m) => [m, metricValue(r, m)])),
         });
       const allPoints = [...byTag.values()].flat();
+      // The week's pre_reset read (the high the counter reached before the
+      // Monday reset) is in the rise a compact delta sums (Gym #333: 19 of
+      // 46 members read low by the donations made between the day's last
+      // daily read and the reset). Merged by when each read was taken.
+      const riseSeries = new Map();
+      if (
+        compact &&
+        kind === "daily" &&
+        metrics.some((m) => WEEKLY_COUNTERS.has(m)) &&
+        chosen.length
+      ) {
+        const pre = await ctx.db.query(
+          `select s.player_tag, s.snapshot_date, ${STAMP_COLUMNS.split(", ")
+            .map((c) => `s.${c}`)
+            .join(", ")}, ${metricSelect("s.")}
+             from player_snapshot_daily s
+            where s.clan_tag = $1 and s.snapshot_kind = 'pre_reset'
+              and s.player_tag = any($2::text[])
+              and ($3::date is null or s.snapshot_date >= $3::date)
+              and ($4::date is null or s.snapshot_date <= $4::date)`,
+          [clanTag, chosen, win.from ?? null, win.to ?? null],
+        );
+        const when = (pt) =>
+          Date.parse(pt.roster_observed_at ?? pt.observed_at ?? pt.day);
+        for (const [tag, pts] of byTag) {
+          const extra = pre.rows
+            .filter((r) => r.player_tag === tag)
+            .map((r) => ({
+              day: r.snapshot_date.toISOString().slice(0, 10),
+              ...pointStamps(r),
+              ...Object.fromEntries(metrics.map((m) => [m, metricValue(r, m)])),
+            }));
+          if (extra.length)
+            riseSeries.set(
+              tag,
+              [...pts, ...extra].sort((a, b) => when(a) - when(b)),
+            );
+        }
+      }
       const numeric = (v) => typeof v === "number";
       const seasonFields = await seasonFieldsForDays(
         ctx.db,
@@ -551,7 +603,10 @@ export const seriesTools = {
                             .map((k) => [
                               k,
                               WEEKLY_COUNTERS.has(k)
-                                ? counterRise(points, k)
+                                ? counterRise(
+                                    riseSeries.get(m.player_tag) ?? points,
+                                    k,
+                                  )
                                 : last[k] - first[k],
                             ]),
                         )
@@ -563,7 +618,7 @@ export const seriesTools = {
         notes: notes(
           win.notBegunNote ?? null,
           win.floorNote,
-          compact && crossedReset(byTag, metrics)
+          compact && crossedReset(new Map([...byTag, ...riseSeries]), metrics)
             ? "In compact, the delta of a weekly counter (donations, donations_received) counts each reset from zero: it is what the counter added across the window, never last minus first, and a floor, since what was given after the last read before a reset is not in it."
             : null,
           truncated

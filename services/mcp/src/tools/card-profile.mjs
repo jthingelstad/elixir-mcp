@@ -841,7 +841,12 @@ async function towerTroopProfile(ctx, { args, anchor, segment, win, compact }) {
     meta.decided_battles > (meta.tower_troop_known_battles ?? 0)
       ? `The API reports no tower troop on river race (war) battles: ${meta.decided_battles - (meta.tower_troop_known_battles ?? 0)} of this population's ${meta.decided_battles} decided observations carried none, and season.all.usage_share is over the ${meta.tower_troop_known_battles ?? 0} whose tower troop is known.`
       : null,
-    meta.notes.filter((n) => !/Rows are tower troops/.test(n)),
+    // The meta read's notes, less those about its own rows or about
+    // inputs and fields cards_card does not have (Gym #326: fit_for,
+    // decks[]).
+    meta.notes.filter(
+      (n) => !/Rows are tower troops|fit_for|decks\[\]/.test(n),
+    ),
   );
   out.docs = CARD_DOCS;
   out.meta = meta.meta;

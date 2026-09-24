@@ -54,18 +54,24 @@ export async function resolveCard(
 ) {
   const all = await catalogItems(db);
   const items = all.filter((r) => r.kind === "card").map((r) => r.item);
-  // A tower troop is in the catalog but not a deck card: say so, rather
-  // than "not in the catalog" beside cards_catalog listing it (Gym #282).
-  const tower = all
-    .filter((r) => r.kind !== "card")
-    .map((r) => r.item)
-    .find(
-      (c) =>
-        (card_id !== undefined && c.id === Number(card_id)) ||
-        (card !== undefined &&
-          String(c.name ?? "").toLowerCase() ===
-            String(card).trim().toLowerCase()),
-    );
+  const towers = all.filter((r) => r.kind !== "card").map((r) => r.item);
+  // A deck card wins an exact name over a tower troop that shares it
+  // (Gym #324: the catalog lists an "Archer Queen" tower troop no deck has
+  // used, and the name found it before the champion 45 of 48 members hold).
+  const lower = (v) =>
+    String(v ?? "")
+      .trim()
+      .toLowerCase();
+  // "Evo Witch" / "Hero Knight" name the card in a form (Gym #325): the
+  // card tools read every form of a card, so the prefix resolves to it.
+  const unprefixed = (v) =>
+    lower(v).replace(/^(evo(lution|lved)?|hero)\s+/, "");
+  const tower =
+    card_id !== undefined
+      ? towers.find((c) => c.id === Number(card_id))
+      : items.some((c) => lower(c.name) === lower(card))
+        ? undefined
+        : towers.find((c) => lower(c.name) === lower(card));
   // cards_card reads a tower troop as the deck's ninth card (Jamie
   // 2026-09-24); the pairing tools stay on the eight.
   if (tower && allowTower) return { ...tower, tower_troop: true };
@@ -86,19 +92,22 @@ export async function resolveCard(
       );
     return hit;
   }
-  const name = String(card ?? "")
-    .trim()
-    .toLowerCase();
+  const name = lower(card);
   if (!name) throw new ToolFailure("bad_request", "Give card_id or card.");
-  const exact = items.filter((c) => c.name.toLowerCase() === name);
+  const exact = items.filter((c) => lower(c.name) === name);
   if (exact.length === 1) return exact[0];
-  const near = items.filter((c) => c.name.toLowerCase().includes(name));
+  const bare = unprefixed(card);
+  if (bare !== name) {
+    const formHit = items.filter((c) => lower(c.name) === bare);
+    if (formHit.length === 1) return formHit[0];
+  }
+  const near = items.filter((c) => lower(c.name).includes(bare));
   throw new ToolFailure(
     near.length ? "bad_request" : "not_found",
     near.length
       ? `'${card}' is not an exact card name. Candidates: ${near.map((c) => `${c.name} (${c.id})`).join(", ")}.`
       : `No card named '${card}'.`,
-    "Names resolve only on an exact match so Witch is never read as Mother Witch; pass card_id to be unambiguous.",
+    "Names resolve only on an exact match so Witch is never read as Mother Witch (an Evo or Hero prefix names the card itself); pass card_id to be unambiguous.",
   );
 }
 

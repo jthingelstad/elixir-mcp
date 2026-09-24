@@ -61,35 +61,96 @@ const SCORING_DECKS_WEEKS = 6;
  *  joined on 09-23 ranked 14th for the week before with 19 battles, all
  *  played for another clan). The rows are today's roster; the note says
  *  who is counted from before they belonged. */
+/**
+ * Each member's CURRENT stint in a clan (Jamie 2026-09-24, Gym #264): the
+ * open membership's join, except that a rejoin within 7 days of leaving
+ * continues the stint before it, chained. first is the first recorded
+ * join. One rule for the participation rows and the notes beside them
+ * (Gym #334: the note read the raw row and named 43 of 49 as new where
+ * the rows said 8).
+ */
+async function stintStarts(db, clanTag, tags) {
+  const out = new Map();
+  if (!tags.length) return out;
+  const { rows } = await db.query(
+    `select player_tag, joined_observed_at, left_observed_at
+       from clan_membership
+      where clan_tag = $1 and player_tag = any($2::text[])
+      order by player_tag, joined_observed_at`,
+    [clanTag, tags],
+  );
+  const byTag = new Map();
+  for (const r of rows) {
+    if (!byTag.has(r.player_tag)) byTag.set(r.player_tag, []);
+    byTag.get(r.player_tag).push(r);
+  }
+  const SAME_STINT_MS = 7 * 86400_000;
+  for (const [tag, list] of byTag) {
+    const open = list.find((r) => !r.left_observed_at);
+    let start = open ? new Date(open.joined_observed_at) : null;
+    for (let i = list.length - 1; i >= 0 && start; i -= 1) {
+      const r = list[i];
+      if (!r.left_observed_at) continue;
+      const gap = start.getTime() - new Date(r.left_observed_at).getTime();
+      if (gap >= 0 && gap <= SAME_STINT_MS)
+        start = new Date(r.joined_observed_at);
+      else if (new Date(r.left_observed_at) < start) break;
+    }
+    out.set(tag, { start, first: new Date(list[0].joined_observed_at) });
+  }
+  return out;
+}
+
 async function joinedMidWindowNote(db, clanTag, fromMs, toMs) {
   if (fromMs === null || fromMs === undefined) return null;
-  const { rows } = await db.query(
-    `select cm.player_tag, p.name, cm.joined_observed_at,
-            (select count(*)::int from battle_participant bp
-              where bp.player_tag = cm.player_tag
-                and bp.battle_time >= $2 and bp.battle_time < least(cm.joined_observed_at, $3)
-                -- Not a rejoiner's earlier battles in this clan (Gym #264).
-                and bp.clan_tag is distinct from cm.clan_tag) as before_join,
-            (select count(*)::int from battle_participant bp
-              where bp.player_tag = cm.player_tag
-                and bp.battle_time >= $2 and bp.battle_time < $3) as in_window
+  const { rows: open } = await db.query(
+    `select cm.player_tag, p.name
        from clan_membership cm
        join player p on p.player_tag = cm.player_tag
       where cm.clan_tag = $1 and cm.left_observed_at is null
-        and cm.joined_observed_at > $2
-      order by cm.joined_observed_at desc`,
-    [clanTag, new Date(fromMs), new Date(toMs)],
+        and cm.joined_observed_at > $2`,
+    [clanTag, new Date(fromMs)],
   );
+  const stints = await stintStarts(
+    db,
+    clanTag,
+    open.map((r) => r.player_tag),
+  );
+  const recent = open
+    .map((r) => ({ ...r, start: stints.get(r.player_tag)?.start ?? null }))
+    .filter((r) => r.start && r.start.getTime() > fromMs);
+  if (!recent.length) return null;
+  const { rows } = await db.query(
+    `select t.tag, t.start,
+            (select count(*)::int from battle_participant bp
+              where bp.player_tag = t.tag
+                and bp.battle_time >= $2 and bp.battle_time < least(t.start, $3)
+                -- Battles for ANOTHER clan, not a rejoiner's here (#264).
+                and bp.clan_tag is distinct from $1) as before_join,
+            (select count(*)::int from battle_participant bp
+              where bp.player_tag = t.tag
+                and bp.battle_time >= $2 and bp.battle_time < $3) as in_window
+       from unnest($4::text[], $5::timestamptz[]) as t(tag, start)
+      order by t.start desc`,
+    [
+      clanTag,
+      new Date(fromMs),
+      new Date(toMs),
+      recent.map((r) => r.player_tag),
+      recent.map((r) => r.start),
+    ],
+  );
+  const name = new Map(recent.map((r) => [r.player_tag, r.name]));
   const hit = rows.filter((r) => r.before_join > 0);
   if (!hit.length) return null;
   const list = hit
     .slice(0, 8)
     .map(
       (r) =>
-        `${r.name ?? r.player_tag} ${r.player_tag} joined ${r.joined_observed_at.toISOString().slice(0, 10)} with ${r.before_join} of ${r.in_window} recorded battles in the window played before joining`,
+        `${name.get(r.tag) ?? r.tag} ${r.tag} joined ${r.start.toISOString().slice(0, 10)} with ${r.before_join} of ${r.in_window} recorded battles in the window played for another clan before joining`,
     )
     .join("; ");
-  return `Rows are today's members, and ${hit.length} of them joined after the window began, so their counts include battles from before they belonged to this clan: ${list}${hit.length > 8 ? `; and ${hit.length - 8} more` : ""}. Members who left since the window began are not listed.`;
+  return `Rows are today's members, and ${hit.length} of them began their current stint (joined_observed_at) after the window began, so their counts include battles played for another clan: ${list}${hit.length > 8 ? `; and ${hit.length - 8} more` : ""}. Members who left since the window began are not listed.`;
 }
 
 /** Members whose battles are mostly not captured, said (Gym #196). */
@@ -703,37 +764,16 @@ export const clansTools = {
       // and rejoin within 7 days is the same stint, so leaving cannot
       // reset a member's new-member grace; first_joined_at keeps the
       // history beside it.
-      const { rows: stintRows } = await ctx.db.query(
-        `select player_tag, joined_observed_at, left_observed_at
-           from clan_membership
-          where clan_tag = $1 and player_tag = any($2::text[])
-          order by player_tag, joined_observed_at`,
-        [clanTag, members.rows.map((m) => m.player_tag)],
+      const stints = await stintStarts(
+        ctx.db,
+        clanTag,
+        members.rows.map((m) => m.player_tag),
       );
-      const stints = new Map();
-      for (const r of stintRows) {
-        if (!stints.has(r.player_tag)) stints.set(r.player_tag, []);
-        stints.get(r.player_tag).push(r);
-      }
-      const SAME_STINT_MS = 7 * 86400_000;
-      const stintOf = (tag, openJoined) => {
-        const rows = stints.get(tag) ?? [];
-        let start = openJoined ? new Date(openJoined) : null;
-        for (let i = rows.length - 1; i >= 0 && start; i -= 1) {
-          const r = rows[i];
-          if (!r.left_observed_at) continue;
-          const gap = start.getTime() - new Date(r.left_observed_at).getTime();
-          if (gap >= 0 && gap <= SAME_STINT_MS)
-            start = new Date(r.joined_observed_at);
-          else if (new Date(r.left_observed_at) < start) break;
-        }
-        return {
-          start,
-          first: rows.length ? new Date(rows[0].joined_observed_at) : start,
-        };
-      };
       const out = members.rows.map((m) => {
-        const stint = stintOf(m.player_tag, m.joined_observed_at);
+        const stint = stints.get(m.player_tag) ?? {
+          start: m.joined_observed_at ? new Date(m.joined_observed_at) : null,
+          first: m.joined_observed_at ? new Date(m.joined_observed_at) : null,
+        };
         const joined = stint.start;
         // A member already present at the first roster poll joined at or
         // before it; their tenure is a lower bound, not a fact.

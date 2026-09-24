@@ -1,0 +1,128 @@
+{
+  "feedback": 331,
+  "contract_version": "7.2.2",
+  "captured_at": "2026-09-24T14:43:09.484Z",
+  "request": {
+    "tool": "players_timeline",
+    "arguments": {
+      "player_tag": "#YC8LLR8Q2",
+      "from": "2026-09-05",
+      "to": "2026-09-09",
+      "metrics": ["trophies", "season_trophies", "season_best_trophies"]
+    }
+  },
+  "response": {
+    "player_tag": "#YC8LLR8Q2",
+    "applied": {
+      "window": {
+        "from": "2026-09-05",
+        "to": "2026-09-09",
+        "source": "argument",
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ],
+        "season_age_days": 35
+      },
+      "granularity": "day",
+      "kind": "daily",
+      "metrics": ["trophies", "season_trophies", "season_best_trophies"]
+    },
+    "snapshots_available_from": "2026-06-15",
+    "series": [
+      {
+        "day": "2026-09-05",
+        "kind": "daily",
+        "observed_at": "2026-09-06T04:47:36.915Z",
+        "profile_observed_at": "2026-09-05T17:00:48.259Z",
+        "roster_observed_at": "2026-09-06T04:47:36.915Z",
+        "source": "api",
+        "trophies": 14000,
+        "season_trophies": 14000,
+        "season_best_trophies": 5491
+      },
+      {
+        "day": "2026-09-06",
+        "kind": "daily",
+        "observed_at": "2026-09-07T07:27:43.000Z",
+        "profile_observed_at": "2026-09-07T07:18:00.000Z",
+        "roster_observed_at": "2026-09-07T07:27:43.000Z",
+        "source": "api",
+        "trophies": 14000,
+        "season_trophies": 14000,
+        "season_best_trophies": 5491
+      },
+      {
+        "day": "2026-09-07",
+        "kind": "daily",
+        "observed_at": "2026-09-08T07:47:41.000Z",
+        "profile_observed_at": "2026-09-07T23:28:01.000Z",
+        "roster_observed_at": "2026-09-08T07:47:41.000Z",
+        "source": "api",
+        "trophies": 14000,
+        "season_trophies": 14000,
+        "season_best_trophies": 5491
+      },
+      {
+        "day": "2026-09-08",
+        "kind": "daily",
+        "observed_at": "2026-09-09T07:47:42.000Z",
+        "profile_observed_at": "2026-09-08T22:47:43.000Z",
+        "roster_observed_at": "2026-09-09T07:47:42.000Z",
+        "source": "api",
+        "trophies": 14000,
+        "season_trophies": 14000,
+        "season_best_trophies": 5491
+      },
+      {
+        "day": "2026-09-09",
+        "kind": "daily",
+        "observed_at": "2026-09-10T07:17:44.000Z",
+        "profile_observed_at": "2026-09-09T13:07:41.000Z",
+        "roster_observed_at": "2026-09-10T07:17:44.000Z",
+        "source": "api",
+        "trophies": 14000,
+        "season_trophies": 14000,
+        "season_best_trophies": 5491
+      }
+    ],
+    "notes": [
+      "season_trophies and season_best_trophies are the API's legacy leagueStatistics.currentSeason: season_trophies mirrors Trophy Road trophies and does not reset at the season roll, and season_best_trophies is a frozen value. The seasonal Trophy Road is its own progress bucket: pass progress_key 'seasonal-trophy-road-YYYYMM' (or 'all').",
+      "Window spans S135 (2026-08) and S136 (2026-09); the seasonal trophies and the Path of Legends standing reset on the roll, so points on either side of it are not one series.",
+      "Days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; a point is the day's last observation."
+    ],
+    "docs": "recording#daily-series",
+    "meta": {
+      "contract_version": "7.2.2",
+      "source_polls": {
+        "player": {
+          "observed_at": "2026-09-24T03:32:42.000Z",
+          "freshness_seconds": 40227
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 30,
+    "db_queries": 8,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -17,6 +17,7 @@
  *  wrapper that makes them a question an agent can ask in one breath. */
 
 import {
+  cardType,
   classifyDeck,
   normalizeName,
   FAMILIES,
@@ -56,7 +57,15 @@ const FAMILY_DEFINITIONS = {
 function resolveCardInput(value, cards) {
   const byId = new Map(cards.map((c) => [c.id, c]));
   const byKey = new Map();
-  for (const c of cards) {
+  // Tower troops first, deck cards over them: a name both carry is the
+  // deck card's (Gym #324: the "Archer Queen" tower-troop entry had
+  // replaced the champion, and an eight-card deck read "7 cards named").
+  const towerFirst = [...cards].sort(
+    (a, b) =>
+      Number(cardType(b.id) === "tower_troop") -
+      Number(cardType(a.id) === "tower_troop"),
+  );
+  for (const c of towerFirst) {
     byKey.set(normalizeName(c.name), c);
     byKey.set(normalizeName(c.name.replace(/\./g, "")), c);
   }

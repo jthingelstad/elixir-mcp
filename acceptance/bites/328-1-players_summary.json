@@ -1,0 +1,211 @@
+{
+  "feedback": 328,
+  "contract_version": "7.2.2",
+  "captured_at": "2026-09-24T14:46:17.326Z",
+  "request": {
+    "tool": "players_summary",
+    "arguments": {
+      "player_tag": "#20G9RY299P"
+    }
+  },
+  "response": {
+    "player_tag": "#20G9RY299P",
+    "name": "Waltadr",
+    "clan": {
+      "clan_tag": "#J2RGCRVG",
+      "name": "POAP KINGS"
+    },
+    "trophies": 7405,
+    "trophies_as_of": "2026-09-24",
+    "applied": {
+      "window": {
+        "from": "2026-08-25T14:46:17.252Z",
+        "to": "2026-09-24T14:46:17.252Z",
+        "source": "fixed",
+        "days": 30,
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ],
+        "season_age_days": 35
+      }
+    },
+    "last_30_days": {
+      "battles": 19,
+      "wins": 6,
+      "losses": 13,
+      "draws": 0,
+      "net_trophies": 90,
+      "win_rate": 0.316,
+      "first_recorded": "2026-08-27T13:29:14.000Z",
+      "modes": {
+        "event": {
+          "battles": 12,
+          "wins": 2,
+          "losses": 10
+        },
+        "ladder": {
+          "battles": 3,
+          "wins": 3,
+          "losses": 0
+        },
+        "war": {
+          "battles": 4,
+          "wins": 1,
+          "losses": 3
+        }
+      }
+    },
+    "trophy_floor": {
+      "floor": 7000,
+      "arena": {
+        "id": 54000016,
+        "name": "Dragon Spa"
+      },
+      "source": "arena_snapshots",
+      "floored": false,
+      "on_floor_losses": 0,
+      "losses_landing_on_floor": 0,
+      "ladder_battles": 3,
+      "floors": [],
+      "trophy_range": {
+        "lowest": 7345,
+        "highest": 7405
+      }
+    },
+    "top_deck": {
+      "deck_hash": "cde96ac152fbd60993a0726531e379e737e9277579b16e4d154673d86bca4d26",
+      "cards": [
+        {
+          "id": 26000011,
+          "name": "Valkyrie",
+          "form": "base"
+        },
+        {
+          "id": 26000030,
+          "name": "Ice Spirit",
+          "form": "base"
+        },
+        {
+          "id": 26000032,
+          "name": "Miner",
+          "form": "base"
+        },
+        {
+          "id": 26000045,
+          "name": "Executioner",
+          "form": "base"
+        },
+        {
+          "id": 26000058,
+          "name": "Wall Breakers",
+          "form": "base"
+        },
+        {
+          "id": 26000099,
+          "name": "Goblinstein",
+          "form": "base"
+        },
+        {
+          "id": 27000006,
+          "name": "Tesla",
+          "form": "base"
+        },
+        {
+          "id": 28000011,
+          "name": "The Log",
+          "form": "base"
+        }
+      ],
+      "archetype": {
+        "family": "cycle",
+        "win_conditions": [
+          {
+            "id": 26000032,
+            "name": "Miner",
+            "form": "base"
+          },
+          {
+            "id": 26000058,
+            "name": "Wall Breakers",
+            "form": "base"
+          }
+        ],
+        "secondary_win_conditions": [
+          {
+            "id": 26000099,
+            "name": "Goblinstein",
+            "form": "base"
+          }
+        ],
+        "named_by": null,
+        "label": "Miner Wall Breakers cycle",
+        "average_elixir": 3.25,
+        "basis": "cards and the catalog's current elixir costs; the win condition's form is in the label, other cards' forms are not",
+        "grammar_version": "2026-09",
+        "roles_version": "2026-09-20T20:16:47.000Z"
+      },
+      "battles": 9,
+      "win_rate": 0.222,
+      "modes": {
+        "event": {
+          "battles": 9,
+          "wins": 2,
+          "losses": 7
+        }
+      },
+      "dominant_mode": {
+        "mode": "event",
+        "share": 1
+      },
+      "mean_level_gap": 0,
+      "trophy_range": null,
+      "last_played_at": "2026-09-18T00:40:28.000Z"
+    },
+    "best_deck": null,
+    "notes": [
+      "Window spans S135 (2026-08) and S136 (2026-09); the season rolls on the first Monday at 10:00Z and applied.window.crosses says where, so read either side as its own season.",
+      "Counts include every recorded battle (war modes carry no trophies); win_rate = wins/(wins+losses), draws excluded; net_trophies is Trophy Road's only.",
+      "best_deck needs 10+ battles in the window and is omitted when it IS the top deck.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "History may predate active recording; elixir_coverage has the capture story."
+    ],
+    "docs": "recording#completeness",
+    "meta": {
+      "contract_version": "7.2.2",
+      "source_polls": {
+        "player": {
+          "observed_at": "2026-09-24T10:02:43.000Z",
+          "freshness_seconds": 17014
+        },
+        "player_battlelog": {
+          "observed_at": "2026-09-24T14:03:05.000Z",
+          "freshness_seconds": 2592
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 82,
+    "db_queries": 21,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

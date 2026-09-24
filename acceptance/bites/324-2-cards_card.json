@@ -1,0 +1,108 @@
+{
+  "feedback": 324,
+  "contract_version": "7.2.2",
+  "captured_at": "2026-09-24T14:47:15.385Z",
+  "request": {
+    "tool": "cards_card",
+    "arguments": {
+      "card": "Archer Queen",
+      "segment": "mine"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "clan",
+        "clan_tag": "#J2RGCRVG",
+        "source": "mine"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 17
+      },
+      "verbosity": "full"
+    },
+    "card": {
+      "id": 29000000,
+      "name": "Archer Queen",
+      "type": "tower_troop",
+      "rarity": null,
+      "forms_available": [],
+      "icon_urls": null,
+      "first_seen_in_catalog": "2026-05-28T22:20:24.000Z",
+      "first_played": {
+        "base": null
+      }
+    },
+    "season": {
+      "decided_battles": 3700,
+      "tower_troop_known_battles": 3294,
+      "all": null
+    },
+    "excluded": {
+      "considered": 3828,
+      "duels": 80,
+      "boat": 48,
+      "draws": 0,
+      "unresolved": 0,
+      "no_deck": 0,
+      "outside_meta": 3582
+    },
+    "prior_win_rate": 0.5,
+    "members": {
+      "played": [],
+      "held": [],
+      "members_with_collection": 48,
+      "members": 48
+    },
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "notes": [
+      "Archer Queen is a tower troop, a deck's ninth card: season.all is its usage and win rate over this population, as battles_meta_cards with tower_troops: true lists every tower troop. Season history, top decks and partners are read for the eight deck cards only.",
+      "No decided observation in this population carried it in the window.",
+      "The API reports no tower troop on river race (war) battles: 406 of this population's 3700 decided observations carried none, and season.all.usage_share is over the 3294 whose tower troop is known.",
+      "3582 battles in this window are outside the meta population and not counted anywhere above (excluded.outside_meta): event battles and decks the player did not choose (6.17.0). battles_query and battles_decks read them.",
+      "These are the population's decks and levels; nothing here checks what a given player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.",
+      "Pooled across modes: ladder 1823 (mean level gap +0.15), ranked 1348 (mean level gap +0.05), war 405 (mean level gap +0.13), casual 124 (mean level gap +0.00); pass mode to isolate one.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld (null, insufficient_sample: true) when the population is under 30 decided observations, not per row: a row with few battles still carries one, shrunk hard toward the mean. win_rate is the raw rate at any sample size, so read it beside battles.",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "The clan segment applies the clan's membership as of this call: over a past window it counts today's members' battles, including ones played before they joined, and leaves out members who have left since (clans_members_timeline lists the joins and departures).",
+      "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records.",
+      "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments."
+    ],
+    "docs": "cards#one-card-in-one-call",
+    "meta": {
+      "contract_version": "7.2.2"
+    }
+  },
+  "timings": {
+    "db_ms": 7108,
+    "db_queries": 24,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

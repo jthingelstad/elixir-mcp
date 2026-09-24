@@ -2743,3 +2743,48 @@ test("tower troops are a deck's ninth card: meta rows and a cards_card profile (
   });
   assert.equal(synergy.isError, true, "pairings stay on the eight deck cards");
 });
+
+test("a card name shared with a tower-troop entry is the deck card; Evo and Hero prefixes name the card (Gym #324, #325)", async () => {
+  const eight = await call("battles_meta_cards", {
+    segment: "corpus",
+    min_battles: 1,
+    from: "2020-01-01",
+  });
+  const top = eight.body.cards[0];
+  // A tower-troop catalog entry that shares the top card's name, as the
+  // live catalog's "Archer Queen" tower entry shares the champion's.
+  await db.query(
+    `insert into card (card_id, name, kind) values (29000099, $1, 'support')
+     on conflict do nothing`,
+    [top.name],
+  );
+  try {
+    const byName = await call("cards_card", {
+      card: top.name,
+      segment: "corpus",
+      from: "2020-01-01",
+      verbosity: "compact",
+    });
+    assert.equal(byName.isError, false, JSON.stringify(byName.body));
+    assert.equal(
+      byName.body.card.id,
+      top.card_id,
+      "the deck card, not the tower entry",
+    );
+    const syn = await call("cards_synergy", {
+      card: top.name,
+      segment: "corpus",
+    });
+    assert.notEqual(syn.body?.error?.message?.includes("tower troop"), true);
+    const evo = await call("cards_card", {
+      card: `Evo ${top.name}`,
+      segment: "corpus",
+      from: "2020-01-01",
+      verbosity: "compact",
+    });
+    assert.equal(evo.isError, false, JSON.stringify(evo.body));
+    assert.equal(evo.body.card.id, top.card_id);
+  } finally {
+    await db.query(`delete from card where card_id = 29000099`);
+  }
+});

@@ -20359,5 +20359,1167 @@
         "has": "timeline[?kind=battle_session]"
       }
     ]
+  },
+  {
+    "id": "324.1",
+    "feedback": 324,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card": "Archer Queen",
+      "segment": "corpus"
+    },
+    "request_id": "ef0ca159-674a-44a6-af26-6347e5433b7f",
+    "assert": [
+      {
+        "neq": ["card.id", 29000000]
+      }
+    ]
+  },
+  {
+    "id": "324.2",
+    "feedback": 324,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card": "Archer Queen",
+      "segment": "mine"
+    },
+    "request_id": "2fcab7c7-48d3-42c5-a3e4-6de6a9be70c5",
+    "assert": [
+      {
+        "neq": ["card.id", 29000000]
+      }
+    ]
+  },
+  {
+    "id": "324.3",
+    "feedback": 324,
+    "stability": "live",
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Archer Queen",
+      "segment": "corpus",
+      "limit": 3
+    },
+    "request_id": "60028840-3904-46ba-ab63-77464ed1eb4c",
+    "assert": [
+      {
+        "notes_not_match": "is a tower troop"
+      }
+    ]
+  },
+  {
+    "id": "324.4",
+    "feedback": 324,
+    "stability": "frozen",
+    "tool": "cards_archetype",
+    "args": {
+      "cards": [
+        "Archer Queen",
+        "Hog Rider",
+        "Fireball",
+        "The Log",
+        "Ice Spirit",
+        "Skeletons",
+        "Cannon",
+        "Musketeer"
+      ]
+    },
+    "request_id": "17e1e9c3-ffa0-4c28-b640-edc9cea7cf62",
+    "assert": [
+      {
+        "count_eq": ["applied.cards[]", 8]
+      },
+      {
+        "notes_not_match": "7 cards named"
+      }
+    ]
+  },
+  {
+    "id": "324.5",
+    "feedback": 324,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card_id": 26000072,
+      "segment": "corpus",
+      "verbosity": "compact"
+    },
+    "request_id": "31f4c85e-9024-40bf-a121-939da0926af2",
+    "assert": [
+      {
+        "eq": ["card.type", "troop"]
+      },
+      {
+        "gt": ["season.all.battles", 0]
+      }
+    ]
+  },
+  {
+    "id": "324.6",
+    "feedback": 324,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_synergy",
+    "args": {
+      "card_id": 26000072,
+      "segment": "corpus",
+      "limit": 3
+    },
+    "request_id": "7fca7097-7aaf-4a40-bac9-e69ef6b52522",
+    "assert": [
+      {
+        "eq": ["anchor.card_id", 26000072]
+      },
+      {
+        "gt": ["anchor.decks", 0]
+      }
+    ]
+  },
+  {
+    "id": "324.7",
+    "feedback": 324,
+    "stability": "frozen",
+    "control": true,
+    "tool": "cards_archetype",
+    "args": {
+      "cards": [
+        26000072,
+        "Hog Rider",
+        "Fireball",
+        "The Log",
+        "Ice Spirit",
+        "Skeletons",
+        "Cannon",
+        "Musketeer"
+      ]
+    },
+    "request_id": "77735e33-bb51-49fe-a99c-002c7c2236a2",
+    "assert": [
+      {
+        "count_eq": ["applied.cards[]", 8]
+      }
+    ]
+  },
+  {
+    "id": "324.8",
+    "feedback": 324,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_catalog",
+    "args": {
+      "query": "archer queen"
+    },
+    "request_id": "24c7170b-d441-4365-a14e-e933ee3a89e6",
+    "assert": [
+      {
+        "eq": ["cards[?id=26000072].name", "Archer Queen"]
+      }
+    ]
+  },
+  {
+    "id": "325.1",
+    "feedback": 325,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card": "Evo Witch",
+      "segment": "mine",
+      "verbosity": "compact"
+    },
+    "request_id": "44bb4c06-bb15-44e7-9b77-375096958294",
+    "assert": [
+      {
+        "neq": ["error.code", "not_found"]
+      }
+    ]
+  },
+  {
+    "id": "325.2",
+    "feedback": 325,
+    "stability": "live",
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Evo Witch",
+      "segment": "mine"
+    },
+    "request_id": "77e13392-7e96-4219-baef-55d26048402e",
+    "assert": [
+      {
+        "neq": ["error.code", "not_found"]
+      }
+    ]
+  },
+  {
+    "id": "325.3",
+    "feedback": 325,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card": "Hero Knight",
+      "segment": "mine",
+      "verbosity": "compact"
+    },
+    "request_id": "54b60887-5e23-428e-9292-de714198d106",
+    "assert": [
+      {
+        "neq": ["error.code", "not_found"]
+      }
+    ]
+  },
+  {
+    "id": "325.4",
+    "feedback": 325,
+    "stability": "frozen",
+    "control": true,
+    "tool": "cards_archetype",
+    "args": {
+      "cards": ["Evo Witch", "pekka"]
+    },
+    "request_id": "19bbbe9d-e437-426d-890d-3aaba8e66593",
+    "assert": [
+      {
+        "eq": ["applied.cards[0].id", 26000007]
+      },
+      {
+        "eq": ["applied.cards[0].form", 1]
+      },
+      {
+        "eq": ["applied.cards[1].id", 26000004]
+      }
+    ]
+  },
+  {
+    "id": "325.5",
+    "feedback": 325,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card": "Log",
+      "segment": "mine",
+      "verbosity": "compact"
+    },
+    "request_id": "8d4bf1d7-24c1-4043-b0bc-d779d80af5c2",
+    "assert": [
+      {
+        "notes_match": "The Log \\(28000011\\)"
+      }
+    ]
+  },
+  {
+    "id": "325.6",
+    "feedback": 325,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card": "Witch",
+      "segment": "mine"
+    },
+    "request_id": "7b991c1d-1107-43f5-8f0a-c7daf26a5e0b",
+    "assert": [
+      {
+        "eq": ["card.id", 26000007]
+      }
+    ]
+  },
+  {
+    "id": "326.1",
+    "feedback": 326,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card_id": 159000002,
+      "segment": "mine"
+    },
+    "request_id": "56fb2f28-82d4-484e-b75b-8407869ee929",
+    "assert": [
+      {
+        "notes_not_match": "(?i)pass fit_for"
+      }
+    ],
+    "amended": "Case-insensitive: the note it targets says 'Pass fit_for'."
+  },
+  {
+    "id": "326.2",
+    "feedback": 326,
+    "stability": "live",
+    "tool": "cards_card",
+    "args": {
+      "card_id": 159000000,
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      }
+    },
+    "request_id": "f1bd1c2f-9008-4414-9046-710bb8c3bc0f",
+    "assert": [
+      {
+        "notes_not_match": "pass fit_for"
+      }
+    ]
+  },
+  {
+    "id": "326.3",
+    "feedback": 326,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": "mine",
+      "tower_troops": true,
+      "fit_for": "#20JJJ2CCRU"
+    },
+    "request_id": "6fbefa58-84c7-48e7-a32b-1d814ae43808",
+    "assert": [
+      {
+        "has": "cards[].held"
+      },
+      {
+        "notes_match": "held on each row"
+      }
+    ]
+  },
+  {
+    "id": "326.4",
+    "feedback": 326,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card_id": 159000002,
+      "segment": "mine"
+    },
+    "request_id": "56fb2f28-82d4-484e-b75b-8407869ee929",
+    "assert": [
+      {
+        "has": "season.tower_troop_known_battles"
+      },
+      {
+        "notes_match": "whose tower troop is known"
+      }
+    ]
+  },
+  {
+    "id": "327.1",
+    "feedback": 327,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "cards_card",
+        "args": {
+          "card_id": 159000002,
+          "segment": "mine"
+        }
+      },
+      "m": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": "mine",
+          "tower_troops": true
+        }
+      }
+    },
+    "request_id": "56fb2f28-82d4-484e-b75b-8407869ee929",
+    "assert": [
+      {
+        "eq": ["c.season.all.battles", "m.cards[?card_id=159000002].battles"]
+      },
+      {
+        "eq": [
+          "c.season.tower_troop_known_battles",
+          "m.tower_troop_known_battles"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "327.2",
+    "feedback": 327,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card_id": 159000000,
+      "segment": "mine"
+    },
+    "request_id": "9b401a1e-ef22-46f6-9f43-f0975bd9d40a",
+    "assert": [
+      {
+        "sum_eq": [["members.played[].battles"], "season.all.battles"]
+      },
+      {
+        "sum_eq": [["members.played[].wins"], "season.all.wins"]
+      }
+    ]
+  },
+  {
+    "id": "327.3",
+    "feedback": 327,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_synergy",
+    "args": {
+      "card_id": 159000001,
+      "segment": "corpus",
+      "limit": 5
+    },
+    "request_id": "c28124ab-35d9-4276-98f3-ec3eff8fdd76",
+    "assert": [
+      {
+        "notes_match": "is a tower troop"
+      },
+      {
+        "notes_match": "tower_troops: true"
+      }
+    ]
+  },
+  {
+    "id": "327.4",
+    "feedback": 327,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_card",
+    "args": {
+      "card_id": 159000000,
+      "segment": "mine",
+      "mode": "war"
+    },
+    "request_id": "76410f77-574f-4ebf-9d44-071eb5e4890c",
+    "assert": [
+      {
+        "eq": ["season.tower_troop_known_battles", 0]
+      },
+      {
+        "notes_match": "no tower troop on river race"
+      }
+    ]
+  },
+  {
+    "id": "328.1",
+    "feedback": 328,
+    "stability": "live",
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#20G9RY299P"
+    },
+    "request_id": "f6a7b3ca-5841-44fa-bb2a-fcef4b17d006",
+    "assert": [
+      {
+        "has": "last_30_days.capture.expected_battles"
+      },
+      {
+        "has": "last_30_days.capture.captured_battles"
+      }
+    ]
+  },
+  {
+    "id": "328.2",
+    "feedback": 328,
+    "stability": "live",
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#20G9RY299P"
+    },
+    "request_id": "f6a7b3ca-5841-44fa-bb2a-fcef4b17d006",
+    "when": {
+      "lt": [
+        "last_30_days.capture.captured_battles",
+        "last_30_days.capture.expected_battles"
+      ]
+    },
+    "assert": [
+      {
+        "notes_match": "[Cc]aptur"
+      }
+    ]
+  },
+  {
+    "id": "328.3",
+    "feedback": 328,
+    "stability": "live",
+    "control": true,
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "5da8728d-7404-4778-8669-53555bd9695e",
+    "when": {
+      "eq": [
+        "last_30_days.capture.captured_battles",
+        "last_30_days.capture.expected_battles"
+      ]
+    },
+    "assert": [
+      {
+        "notes_not_match": "partial sample|capture gap"
+      },
+      {
+        "has": "last_30_days.battles"
+      }
+    ]
+  },
+  {
+    "id": "329.1",
+    "feedback": 329,
+    "stability": "live",
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "5e480c4a-9916-4805-9c68-047aee03ed85",
+    "when": {
+      "has": "snapshot.progress[?key=AutoChess_2026_Season_10].day"
+    },
+    "assert": [
+      {
+        "eq": [
+          "snapshot.progress[?key=AutoChess_2026_Season_10].in_latest_read",
+          false
+        ]
+      }
+    ]
+  },
+  {
+    "id": "329.2",
+    "feedback": 329,
+    "stability": "live",
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#YC8LLR8Q2"
+    },
+    "request_id": "12fd7de9-78da-488f-9abb-71531a5d19c6",
+    "when": {
+      "has": "snapshot.progress[?key=seasonal-trophy-road-202608].day"
+    },
+    "assert": [
+      {
+        "eq": [
+          "snapshot.progress[?key=seasonal-trophy-road-202608].in_latest_read",
+          false
+        ]
+      }
+    ]
+  },
+  {
+    "id": "329.3",
+    "feedback": 329,
+    "stability": "live",
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "5e480c4a-9916-4805-9c68-047aee03ed85",
+    "when": {
+      "has": "snapshot.progress[?key=AutoChess_2026_Season_10].day"
+    },
+    "assert": [
+      {
+        "notes_match": "not in the latest"
+      }
+    ]
+  },
+  {
+    "id": "329.4",
+    "feedback": 329,
+    "stability": "live",
+    "control": true,
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#YC8LLR8Q2"
+    },
+    "request_id": "12fd7de9-78da-488f-9abb-71531a5d19c6",
+    "when": {
+      "has": "snapshot.progress[?key=seasonal-trophy-road-202609].day"
+    },
+    "assert": [
+      {
+        "eq": [
+          "snapshot.progress[?key=seasonal-trophy-road-202609].in_latest_read",
+          true
+        ]
+      },
+      {
+        "eq": [
+          "snapshot.progress[?key=seasonal-trophy-road-202609].day",
+          "snapshot.date"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "330.1",
+    "feedback": 330,
+    "stability": "live",
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#JYRQ8U92C"
+    },
+    "request_id": "8a4a1d90-0c1a-42aa-bbd2-f70f9fd77af2",
+    "assert": [
+      {
+        "has": "last_30_days.boat_defenses"
+      }
+    ]
+  },
+  {
+    "id": "330.2",
+    "feedback": 330,
+    "stability": "live",
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#JYRQ8U92C"
+    },
+    "request_id": "8a4a1d90-0c1a-42aa-bbd2-f70f9fd77af2",
+    "when": {
+      "gt": ["last_30_days.boat_defenses", 0]
+    },
+    "assert": [
+      {
+        "notes_match": "boat defen"
+      }
+    ]
+  },
+  {
+    "id": "330.3",
+    "feedback": 330,
+    "stability": "live",
+    "calls": {
+      "s": {
+        "tool": "players_summary",
+        "args": {
+          "player_tag": "#JYRQ8U92C"
+        }
+      },
+      "st": {
+        "tool": "clans_standings",
+        "args": {
+          "min_battles": 1
+        }
+      }
+    },
+    "request_id": "8a4a1d90-0c1a-42aa-bbd2-f70f9fd77af2",
+    "when": {
+      "has": "st.members[?player_tag=#JYRQ8U92C].battles"
+    },
+    "assert": [
+      {
+        "sum_eq": [
+          [
+            "st.members[?player_tag=#JYRQ8U92C].battles",
+            "s.last_30_days.boat_defenses"
+          ],
+          "s.last_30_days.battles"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "330.4",
+    "feedback": 330,
+    "stability": "live",
+    "control": true,
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "5da8728d-7404-4778-8669-53555bd9695e",
+    "when": {
+      "eq": ["last_30_days.boat_defenses", 0]
+    },
+    "assert": [
+      {
+        "notes_not_match": "boat defen"
+      },
+      {
+        "has": "last_30_days.win_rate"
+      }
+    ]
+  },
+  {
+    "id": "331.1",
+    "feedback": 331,
+    "stability": "frozen",
+    "tool": "players_timeline",
+    "args": {
+      "player_tag": "#YC8LLR8Q2",
+      "from": "2026-09-05",
+      "to": "2026-09-09",
+      "metrics": ["trophies", "season_trophies", "season_best_trophies"]
+    },
+    "request_id": "3209e0ba-f311-4318-96fd-1416a7c90fd4",
+    "assert": [
+      {
+        "notes_not_match": "seasonal trophies[^.]*reset on the roll"
+      }
+    ]
+  },
+  {
+    "id": "331.2",
+    "feedback": 331,
+    "stability": "frozen",
+    "tool": "players_timeline",
+    "args": {
+      "player_tag": "#YC8LLR8Q2",
+      "from": "2026-09-05",
+      "to": "2026-09-09",
+      "metrics": ["trophies"]
+    },
+    "request_id": "cec59f52-a82f-4282-9d39-c9a56b72e9bf",
+    "assert": [
+      {
+        "notes_not_match": "seasonal trophies[^.]*reset on the roll"
+      }
+    ]
+  },
+  {
+    "id": "331.3",
+    "feedback": 331,
+    "stability": "frozen",
+    "control": true,
+    "tool": "players_timeline",
+    "args": {
+      "player_tag": "#YC8LLR8Q2",
+      "from": "2026-09-05",
+      "to": "2026-09-09",
+      "metrics": ["trophies", "season_trophies", "season_best_trophies"]
+    },
+    "request_id": "3209e0ba-f311-4318-96fd-1416a7c90fd4",
+    "assert": [
+      {
+        "notes_match": "Path of Legends"
+      },
+      {
+        "notes_match": "does not reset at the season roll"
+      }
+    ]
+  },
+  {
+    "id": "332.1",
+    "feedback": 332,
+    "stability": "live",
+    "control": true,
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#YC8LLR8Q2"
+    },
+    "request_id": "ae1b1448-a097-4a55-a338-f0667f457619",
+    "when": {
+      "has": "snapshot.league_statistics.currentSeason"
+    },
+    "assert": [
+      {
+        "notes_match": "legacy leagueStatistics"
+      },
+      {
+        "has": "snapshot.progress"
+      }
+    ]
+  },
+  {
+    "id": "332.2",
+    "feedback": 332,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "k": {
+        "tool": "players_collection",
+        "args": {
+          "player_tag": "#20JJJ2CCRU"
+        }
+      },
+      "c": {
+        "tool": "cards_card",
+        "args": {
+          "card": "Cannoneer",
+          "segment": "mine",
+          "days": 7
+        }
+      }
+    },
+    "request_id": "4d1f2f2d-3cda-411f-9014-144dbcae7c52",
+    "when": {
+      "has": "c.members.held[?player_tag=#20JJJ2CCRU].level"
+    },
+    "assert": [
+      {
+        "eq": [
+          "k.support_cards[?name=Cannoneer].level",
+          "c.members.held[?player_tag=#20JJJ2CCRU].level"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "332.3",
+    "feedback": 332,
+    "stability": "live",
+    "control": true,
+    "tool": "players_search",
+    "args": {
+      "query": "King Thing"
+    },
+    "request_id": "ed0d4cfc-0d78-499f-962b-d1963cf46c76",
+    "assert": [
+      {
+        "eq": ["matches[0].player_tag", "#20JJJ2CCRU"]
+      },
+      {
+        "eq": ["matches[0].source", "clanmate"]
+      }
+    ]
+  },
+  {
+    "id": "332.4",
+    "feedback": 332,
+    "stability": "live",
+    "control": true,
+    "tool": "players_names",
+    "args": {
+      "player_tags": [
+        "#20JJJ2CCRU",
+        "#VJQV8G8RL",
+        "#VJG0J29QP",
+        "#2LRYLQPL",
+        "#Q0000000"
+      ]
+    },
+    "request_id": "94260f38-7106-4dea-8d54-7e932b711c17",
+    "assert": [
+      {
+        "eq": ["unknown[?player_tag=#Q0000000].in_corpus", false]
+      },
+      {
+        "count_eq": ["names[]", 4]
+      }
+    ]
+  },
+  {
+    "id": "332.5",
+    "feedback": 332,
+    "stability": "live",
+    "control": true,
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "345a6843-fc31-4dd4-891b-e9abdbf0c736",
+    "when": {
+      "neq": ["top_deck.dominant_mode.mode", "best_deck.dominant_mode.mode"]
+    },
+    "assert": [
+      {
+        "notes_match": "NOT comparable across rows"
+      }
+    ]
+  },
+  {
+    "id": "333.1",
+    "feedback": 333,
+    "stability": "frozen",
+    "calls": {
+      "c": {
+        "tool": "clans_members_timeline",
+        "args": {
+          "from": "2026-09-13",
+          "to": "2026-09-20",
+          "metrics": ["donations"],
+          "verbosity": "compact"
+        }
+      },
+      "p": {
+        "tool": "clans_members_timeline",
+        "args": {
+          "from": "2026-09-13",
+          "to": "2026-09-20",
+          "metrics": ["donations"],
+          "kind": "pre_reset"
+        }
+      }
+    },
+    "request_id": "a6418670-5f27-4212-a545-0b8b77a5e5f7",
+    "assert": [
+      {
+        "gte": [
+          "c.members[?player_tag=#C920YGLC2].delta.donations",
+          "p.members[?player_tag=#C920YGLC2].series[?day=2026-09-20].donations"
+        ]
+      },
+      {
+        "gte": [
+          "c.members[?player_tag=#P2U0PC2UU].delta.donations",
+          "p.members[?player_tag=#P2U0PC2UU].series[?day=2026-09-20].donations"
+        ]
+      },
+      {
+        "gte": [
+          "c.members[?player_tag=#UVQ8RJYG9].delta.donations",
+          "p.members[?player_tag=#UVQ8RJYG9].series[?day=2026-09-20].donations"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "333.2",
+    "feedback": 333,
+    "stability": "frozen",
+    "tool": "clans_members_timeline",
+    "args": {
+      "from": "2026-09-13",
+      "to": "2026-09-20",
+      "metrics": ["donations"],
+      "verbosity": "compact"
+    },
+    "request_id": "a6418670-5f27-4212-a545-0b8b77a5e5f7",
+    "assert": [
+      {
+        "notes_match": "delta[^.]*(daily point|pre_reset)|(daily point|pre_reset)[^.]*delta"
+      }
+    ]
+  },
+  {
+    "id": "333.3",
+    "feedback": 333,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_members_timeline",
+    "args": {
+      "from": "2026-09-13",
+      "to": "2026-09-19",
+      "metrics": ["donations"],
+      "verbosity": "compact"
+    },
+    "request_id": "2aa2ae44-56d8-453b-844e-b95f82c4258a",
+    "assert": [
+      {
+        "notes_not_match": "delta[^.]*reset|reset[^.]*delta"
+      },
+      {
+        "eq": [
+          "members[?player_tag=#C920YGLC2].delta.donations",
+          "members[?player_tag=#C920YGLC2].last.donations"
+        ]
+      },
+      {
+        "gte": ["members[?player_tag=#C920YGLC2].delta.donations", 1117]
+      }
+    ]
+  },
+  {
+    "id": "334.1",
+    "feedback": 334,
+    "stability": "live",
+    "calls": {
+      "s": {
+        "tool": "clans_standings",
+        "args": {
+          "clan_tag": "#8UJ2UUJ8",
+          "from": "2026-09-14T00:00:00Z",
+          "to": "2026-09-21T00:00:00Z"
+        }
+      },
+      "p": {
+        "tool": "clans_participation",
+        "args": {
+          "clan_tag": "#8UJ2UUJ8",
+          "weeks": 2
+        }
+      }
+    },
+    "request_id": "5f520349-317c-4336-bc4f-9caaf85d9c07",
+    "when": {
+      "eq": [
+        "p.members[?player_tag=#88V02GL8].joined_observed_at",
+        "2026-09-06T14:37:37.000Z"
+      ]
+    },
+    "assert": [
+      {
+        "notes_not_match": ["s", "#88V02GL8 joined 2026-09-2"]
+      }
+    ]
+  },
+  {
+    "id": "334.2",
+    "feedback": 334,
+    "stability": "live",
+    "tool": "clans_participation",
+    "args": {
+      "clan_tag": "#8UJ2UUJ8",
+      "weeks": 2
+    },
+    "request_id": "46d1ebe4-65e4-4124-810a-f4743954221e",
+    "when": {
+      "eq": [
+        "members[?player_tag=#88V02GL8].joined_observed_at",
+        "2026-09-06T14:37:37.000Z"
+      ]
+    },
+    "assert": [
+      {
+        "notes_not_match": "#88V02GL8 joined 2026-09-2"
+      }
+    ]
+  },
+  {
+    "id": "334.3",
+    "feedback": 334,
+    "stability": "live",
+    "tool": "clans_participation",
+    "args": {
+      "weeks": 2
+    },
+    "request_id": "d2eda02c-26ea-4103-b5e6-579a795e313a",
+    "when": {
+      "eq": [
+        "members[?player_tag=#20GQUGPRC2].joined_observed_at",
+        "2026-06-10T19:34:10.000Z"
+      ]
+    },
+    "assert": [
+      {
+        "notes_not_match": "Gem #20GQUGPRC2 joined 2026-09-23"
+      }
+    ]
+  },
+  {
+    "id": "334.4",
+    "feedback": 334,
+    "stability": "live",
+    "control": true,
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-21T00:00:00Z",
+      "to": "2026-09-24T12:00:00Z"
+    },
+    "request_id": "a30bf4bc-e9e0-4f6c-81a7-9ad3d2cc7743",
+    "when": {
+      "has": "members[?player_tag=#P8URQGR2U].player_tag"
+    },
+    "assert": [
+      {
+        "notes_match": "alex #P8URQGR2U joined 2026-09-23"
+      }
+    ]
+  },
+  {
+    "id": "335.1",
+    "feedback": 335,
+    "stability": "frozen",
+    "tool": "clans_timeline",
+    "args": {
+      "clan_tag": "#8UJ2UUJ8",
+      "from": "2026-09-07",
+      "to": "2026-09-12",
+      "metrics": ["donations_per_week", "members"]
+    },
+    "request_id": "3c6fb6e8-5405-48ec-ad3f-0221101d396a",
+    "assert": [
+      {
+        "notes_not_match": "(, [^,;]+){40}"
+      },
+      {
+        "notes_not_match": "Hopeless"
+      }
+    ]
+  },
+  {
+    "id": "335.2",
+    "feedback": 335,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_timeline",
+    "args": {
+      "clan_tag": "#8UJ2UUJ8",
+      "from": "2026-09-07",
+      "to": "2026-09-12",
+      "metrics": ["donations_per_week", "members"]
+    },
+    "request_id": "3c6fb6e8-5405-48ec-ad3f-0221101d396a",
+    "assert": [
+      {
+        "notes_match": "on 2026-09-11 it reads 7160 against 2418"
+      },
+      {
+        "eq": ["series[?day=2026-09-11].donations_per_week", 7160]
+      }
+    ]
+  },
+  {
+    "id": "336.1",
+    "feedback": 336,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-17T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "mode": "war",
+      "min_battles": 1
+    },
+    "request_id": "4ac40385-2e42-46fe-b17e-c7acbc954c63",
+    "assert": [
+      {
+        "eq": ["members[?player_tag=#JYRQ8U92C].battles", 11]
+      },
+      {
+        "eq": ["members[?player_tag=#JYRQ8U92C].losses", 0]
+      }
+    ]
+  },
+  {
+    "id": "336.2",
+    "feedback": 336,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "s": {
+        "tool": "clans_standings",
+        "args": {
+          "from": "2026-09-17T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "mode": "war",
+          "min_battles": 1
+        }
+      },
+      "b": {
+        "tool": "battles_query",
+        "args": {
+          "player_tag": "#JRVV9VC0C",
+          "from": "2026-09-17T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "mode": "war",
+          "verbosity": "compact",
+          "limit": 50
+        }
+      }
+    },
+    "request_id": "4ac40385-2e42-46fe-b17e-c7acbc954c63",
+    "assert": [
+      {
+        "count_eq": ["b.battles[]", "s.members[?player_tag=#JRVV9VC0C].battles"]
+      }
+    ]
+  },
+  {
+    "id": "336.3",
+    "feedback": 336,
+    "stability": "live",
+    "control": true,
+    "tool": "clans_members_timeline",
+    "args": {
+      "from": "2026-09-14",
+      "to": "2026-09-20",
+      "metrics": ["donations"]
+    },
+    "request_id": "08b904ff-a762-478d-b1e6-8c9c146c9ad7",
+    "assert": [
+      {
+        "notes_match": "a limit of \\d+ should fit"
+      }
+    ]
   }
 ]

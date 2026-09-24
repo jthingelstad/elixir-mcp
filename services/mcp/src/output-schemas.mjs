@@ -2216,6 +2216,8 @@ export const OUTPUT_SCHEMAS = {
         properties: {
           ...RECORD,
           net_trophies: COUNT,
+          capture: { type: ["object", "null"] },
+          boat_defenses: COUNT,
           first_recorded: { type: ["string", "null"] },
           modes: MODE_SPLIT,
         },

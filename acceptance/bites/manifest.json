@@ -2129,5 +2129,157 @@
     "case": "gym/320.1",
     "captures": ["320-1-elixir_docs.json"],
     "expect": "."
+  },
+  {
+    "feedback": 324,
+    "contract": "7.2.2",
+    "why": "the Gym block 324.1 on the answer it read",
+    "case": "gym/324.1",
+    "captures": ["324-1-cards_card.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 324,
+    "contract": "7.2.2",
+    "why": "the Gym block 324.2 on the answer it read",
+    "case": "gym/324.2",
+    "captures": ["324-2-cards_card.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 324,
+    "contract": "7.2.2",
+    "why": "the Gym block 324.3 on the answer it read",
+    "case": "gym/324.3",
+    "captures": ["324-3-cards_synergy.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 324,
+    "contract": "7.2.2",
+    "why": "the Gym block 324.4 on the answer it read",
+    "case": "gym/324.4",
+    "captures": ["324-4-cards_archetype.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 325,
+    "contract": "7.2.3",
+    "why": "the Gym block 325.1 on the answer it read",
+    "case": "gym/325.1",
+    "captures": ["325-1-cards_card.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 325,
+    "contract": "7.2.3",
+    "why": "the Gym block 325.2 on the answer it read",
+    "case": "gym/325.2",
+    "captures": ["325-2-cards_synergy.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 325,
+    "contract": "7.2.3",
+    "why": "the Gym block 325.3 on the answer it read",
+    "case": "gym/325.3",
+    "captures": ["325-3-cards_card.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 326,
+    "contract": "7.2.3",
+    "why": "the Gym block 326.2 on the answer it read",
+    "case": "gym/326.2",
+    "captures": ["326-2-cards_card.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 328,
+    "contract": "7.2.2",
+    "why": "the Gym block 328.1 on the answer it read",
+    "case": "gym/328.1",
+    "captures": ["328-1-players_summary.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 329,
+    "contract": "7.2.2",
+    "why": "the Gym block 329.1 on the answer it read",
+    "case": "gym/329.1",
+    "captures": ["329-1-players_profile.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 329,
+    "contract": "7.2.2",
+    "why": "the Gym block 329.2 on the answer it read",
+    "case": "gym/329.2",
+    "captures": ["329-2-players_profile.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 329,
+    "contract": "7.2.2",
+    "why": "the Gym block 329.3 on the answer it read",
+    "case": "gym/329.3",
+    "captures": ["329-3-players_profile.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 330,
+    "contract": "7.2.2",
+    "why": "the Gym block 330.1 on the answer it read",
+    "case": "gym/330.1",
+    "captures": ["330-1-players_summary.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 331,
+    "contract": "7.2.2",
+    "why": "the Gym block 331.1 on the answer it read",
+    "case": "gym/331.1",
+    "captures": ["331-1-players_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 331,
+    "contract": "7.2.2",
+    "why": "the Gym block 331.2 on the answer it read",
+    "case": "gym/331.2",
+    "captures": ["331-2-players_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 333,
+    "contract": "7.2.2",
+    "why": "the Gym block 333.2 on the answer it read",
+    "case": "gym/333.2",
+    "captures": ["333-2-clans_members_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 334,
+    "contract": "7.2.3",
+    "why": "the Gym block 334.2 on the answer it read",
+    "case": "gym/334.2",
+    "captures": ["334-2-clans_participation.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 334,
+    "contract": "7.2.3",
+    "why": "the Gym block 334.3 on the answer it read",
+    "case": "gym/334.3",
+    "captures": ["334-3-clans_participation.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 335,
+    "contract": "7.2.3",
+    "why": "the Gym block 335.1 on the answer it read",
+    "case": "gym/335.1",
+    "captures": ["335-1-clans_timeline.json"],
+    "expect": "."
   }
 ]

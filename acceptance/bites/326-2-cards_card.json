@@ -1,0 +1,112 @@
+{
+  "feedback": 326,
+  "contract_version": "7.2.3",
+  "captured_at": "2026-09-24T14:48:00.576Z",
+  "request": {
+    "tool": "cards_card",
+    "arguments": {
+      "card_id": 159000000,
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      }
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "player",
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 17
+      },
+      "verbosity": "full"
+    },
+    "card": {
+      "id": 159000000,
+      "name": "Tower Princess",
+      "type": "tower_troop",
+      "rarity": "common",
+      "forms_available": [],
+      "icon_urls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/Nzo5Gjbh7NG6O3Hyu7ev54Pu5zK7vDMR2fbpGdVsS64.png"
+      },
+      "first_seen_in_catalog": "2026-09-10T23:57:37.591Z",
+      "first_played": {
+        "base": "2026-01-03T07:34:30.000Z"
+      }
+    },
+    "season": {
+      "decided_battles": 42,
+      "tower_troop_known_battles": 30,
+      "all": {
+        "battles": 30,
+        "wins": 11,
+        "losses": 19,
+        "players": 1,
+        "usage_share": 1,
+        "win_rate": 0.367,
+        "shrunk_win_rate": 0.42
+      }
+    },
+    "excluded": {
+      "considered": 49,
+      "duels": 7,
+      "boat": 0,
+      "draws": 0,
+      "unresolved": 0,
+      "no_deck": 0,
+      "outside_meta": 1
+    },
+    "prior_win_rate": 0.5,
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "notes": [
+      "Tower Princess is a tower troop, a deck's ninth card: season.all is its usage and win rate over this population, as battles_meta_cards with tower_troops: true lists every tower troop. Season history, top decks and partners are read for the eight deck cards only.",
+      "The API reports no tower troop on river race (war) battles: 12 of this population's 42 decided observations carried none, and season.all.usage_share is over the 30 whose tower troop is known.",
+      "1 battle in this window is outside the meta population and not counted anywhere above (excluded.outside_meta): event battles and decks the player did not choose (6.17.0). battles_query and battles_decks read them.",
+      "These are the population's decks and levels; nothing here checks what a given player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.",
+      "Pooled across modes with different matchmaking: ladder 30 (mean level gap +0.63), war 12 (mean level gap +1.68); a card met mostly in the easier-gap mode inherits that mode's record for reasons unrelated to the card, so pass mode before reading a row as a strength or a nemesis.",
+      "Every card row here was played by ONE player (players: 1): this segment's numbers describe a few players' habits, not a meta; widen the segment or read the corpus for the field.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld (null, insufficient_sample: true) when the population is under 30 decided observations, not per row: a row with few battles still carries one, shrunk hard toward the mean. win_rate is the raw rate at any sample size, so read it beside battles.",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records.",
+      "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments."
+    ],
+    "docs": "cards#one-card-in-one-call",
+    "meta": {
+      "contract_version": "7.2.3"
+    }
+  },
+  "timings": {
+    "db_ms": 353,
+    "db_queries": 23,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}
