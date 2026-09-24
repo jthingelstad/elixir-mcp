@@ -646,7 +646,7 @@ test("players_summary: the window's mode split, the deck's modes and dominant mo
   // war wins on deck B, four ladder battles on deck A with two ON the
   // 12,500 floor.
   const recent = (i) =>
-    new Date(Date.now() - (3 * 24 - i * 6) * 3600_000).toISOString();
+    new Date(Date.now() - (3 * 24 - i * 4) * 3600_000).toISOString();
   for (let i = 0; i < 4; i++)
     await battle({
       at: recent(i),
@@ -662,11 +662,16 @@ test("players_summary: the window's mode split, the deck's modes and dominant mo
     ["loss", 12500, null],
     ["win", 12500, 30],
     ["loss", 12530, -30],
-    // Two more, so deck A stays the top deck as the fixed September
-    // ladder battles age out of the window (it lost to war 18-17 on
-    // 2026-09-24).
+    // Fresh battles enough that deck A is the top deck whatever the
+    // date: the fixed September ladder battles age out of the 30-day
+    // window a day at a time (war deck B led 18-17 on 2026-09-24).
     ["win", 12500, 30],
     ["win", 12530, 30],
+    ...Array.from({ length: 8 }, (_, k) => [
+      k % 2 ? "loss" : "win",
+      12600,
+      k % 2 ? -30 : 30,
+    ]),
   ].entries())
     await battle({
       at: recent(4 + i),

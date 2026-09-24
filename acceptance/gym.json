@@ -13055,5 +13055,495 @@
         "has": "fit_for.recent_mean_level"
       }
     ]
+  },
+  {
+    "id": "236.1",
+    "feedback": 236,
+    "stability": "frozen",
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-07T00:00:00Z",
+      "to": "2026-09-14T00:00:00Z"
+    },
+    "request_id": "a16d2934-8619-429b-8592-2f351f88ecf7",
+    "assert": [
+      {
+        "notes_match": "NOBITA|#JRVV9VC0C"
+      }
+    ]
+  },
+  {
+    "id": "236.2",
+    "feedback": 236,
+    "stability": "frozen",
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-07T00:00:00Z",
+      "to": "2026-09-14T00:00:00Z"
+    },
+    "request_id": "a16d2934-8619-429b-8592-2f351f88ecf7",
+    "assert": [
+      {
+        "notes_not_match": "Mega Goblin|#229QY8UL9U"
+      }
+    ]
+  },
+  {
+    "id": "236.3",
+    "feedback": 236,
+    "stability": "frozen",
+    "tool": "clans_standings",
+    "args": {
+      "season": 135
+    },
+    "request_id": "938cbb99-733a-42b4-87e7-6ab8b4a2b650",
+    "assert": [
+      {
+        "notes_not_match": "over the last seven days"
+      }
+    ]
+  },
+  {
+    "id": "236.4",
+    "feedback": 236,
+    "stability": "live",
+    "tool": "clans_standings",
+    "args": {
+      "season": "2026-10"
+    },
+    "request_id": "9404fcd2-0952-4030-8827-b60c8e92e8f4",
+    "when": {
+      "eq": ["applied.window.from", "applied.window.to"]
+    },
+    "assert": [
+      {
+        "notes_not_match": "Battle capture is incomplete|undercount real play"
+      }
+    ]
+  },
+  {
+    "id": "236.5",
+    "feedback": 236,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-07T00:00:00Z",
+      "to": "2026-09-14T00:00:00Z"
+    },
+    "request_id": "a16d2934-8619-429b-8592-2f351f88ecf7",
+    "assert": [
+      {
+        "notes_not_match": "King Thing|#20JJJ2CCRU"
+      }
+    ]
+  },
+  {
+    "id": "237.1",
+    "feedback": 237,
+    "stability": "live",
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "min_battles": 1
+    },
+    "request_id": "3e0cb124-a7c4-435d-afb8-984995d54501",
+    "assert": [
+      {
+        "notes_match": "(alex|#P8URQGR2U)[^.]*join|join[^.]*(alex|#P8URQGR2U)"
+      }
+    ]
+  },
+  {
+    "id": "237.2",
+    "feedback": 237,
+    "stability": "live",
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "min_battles": 1
+    },
+    "request_id": "3e0cb124-a7c4-435d-afb8-984995d54501",
+    "assert": [
+      {
+        "notes_match": "(duki suzuki|#9QQLPJRLV)[^.]*join|join[^.]*(duki suzuki|#9QQLPJRLV)"
+      }
+    ]
+  },
+  {
+    "id": "237.3",
+    "feedback": 237,
+    "stability": "live",
+    "tool": "clans_participation",
+    "args": {},
+    "request_id": "5286e870-8b38-49fe-89c6-92c6fdc6f1d2",
+    "assert": [
+      {
+        "notes_match": "(alex|#P8URQGR2U)[^.]*join|join[^.]*(alex|#P8URQGR2U)"
+      }
+    ]
+  },
+  {
+    "id": "237.4",
+    "feedback": 237,
+    "stability": "live",
+    "control": true,
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "min_battles": 1
+    },
+    "request_id": "3e0cb124-a7c4-435d-afb8-984995d54501",
+    "assert": [
+      {
+        "notes_not_match": "(King Thing|#20JJJ2CCRU)[^.]*join"
+      }
+    ]
+  },
+  {
+    "id": "238.1",
+    "feedback": 238,
+    "stability": "live",
+    "tool": "clans_timeline",
+    "args": {
+      "season": "current"
+    },
+    "request_id": "1d2ab6f0-61ca-4a25-b291-f984edc825ba",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "season"]
+      }
+    ]
+  },
+  {
+    "id": "238.2",
+    "feedback": 238,
+    "stability": "live",
+    "tool": "clans_members_timeline",
+    "args": {
+      "season": "current",
+      "verbosity": "compact"
+    },
+    "request_id": "cd85f8c0-35e4-4be7-8a33-bdadde65a1f3",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "season"]
+      }
+    ]
+  },
+  {
+    "id": "238.3",
+    "feedback": 238,
+    "stability": "live",
+    "tool": "clans_timeline",
+    "args": {
+      "season": "2026-10"
+    },
+    "request_id": "4c3bf942-ff9d-48ef-9ab9-07952312c216",
+    "assert": [
+      {
+        "has": "series"
+      }
+    ]
+  },
+  {
+    "id": "238.4",
+    "feedback": 238,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-04",
+      "to": "2026-09-22",
+      "metrics": ["donations_per_week", "members"]
+    },
+    "request_id": "b4c23e42-6ff8-4275-a7e8-20312f07cdf6",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "argument"]
+      }
+    ]
+  },
+  {
+    "id": "239.1",
+    "feedback": 239,
+    "stability": "live",
+    "tool": "clans_timeline",
+    "args": {},
+    "request_id": "0aa0193f-88f6-4d8a-ba7b-d5fd11fef260",
+    "assert": [
+      {
+        "has": "series"
+      }
+    ]
+  },
+  {
+    "id": "239.2",
+    "feedback": 239,
+    "stability": "live",
+    "tool": "clans_timeline",
+    "args": {},
+    "request_id": "0aa0193f-88f6-4d8a-ba7b-d5fd11fef260",
+    "assert": [
+      {
+        "neq": ["applied.window.source", "unbounded"]
+      }
+    ]
+  },
+  {
+    "id": "239.3",
+    "feedback": 239,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-04",
+      "to": "2026-09-22",
+      "metrics": ["donations_per_week", "members"]
+    },
+    "request_id": "b4c23e42-6ff8-4275-a7e8-20312f07cdf6",
+    "assert": [
+      {
+        "has": "series"
+      },
+      {
+        "count_eq": ["series[]", 19]
+      }
+    ]
+  },
+  {
+    "id": "240.1",
+    "feedback": 240,
+    "stability": "frozen",
+    "tool": "clans_members_timeline",
+    "args": {
+      "from": "2026-09-20",
+      "to": "2026-09-20",
+      "metrics": ["donations"],
+      "limit": 10
+    },
+    "request_id": "d3d0d8f5-7d42-4c71-a50e-d0943fa64e56",
+    "assert": [
+      {
+        "eq": ["truncated", true]
+      }
+    ]
+  },
+  {
+    "id": "240.2",
+    "feedback": 240,
+    "stability": "live",
+    "tool": "clans_members_timeline",
+    "args": {
+      "verbosity": "compact"
+    },
+    "request_id": "01b3bbb3-c53e-414c-9e8d-db06dd6a2e74",
+    "when": {
+      "notes_match": "More than \\d+ members had points"
+    },
+    "assert": [
+      {
+        "eq": ["truncated", true]
+      }
+    ]
+  },
+  {
+    "id": "240.3",
+    "feedback": 240,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_members_timeline",
+    "args": {
+      "from": "2026-09-20",
+      "to": "2026-09-20",
+      "kind": "pre_reset",
+      "metrics": ["donations"],
+      "limit": 50
+    },
+    "request_id": "ca51f7b9-a74f-4fd7-8ce3-feee24b0749f",
+    "assert": [
+      {
+        "notes_not_match": "More than \\d+ members had points"
+      },
+      {
+        "count_eq": ["members[]", 46]
+      }
+    ]
+  },
+  {
+    "id": "241.1",
+    "feedback": 241,
+    "stability": "live",
+    "tool": "clans_roster",
+    "args": {},
+    "request_id": "b3737159-af64-4e7e-b2f3-50aba6a24fb2",
+    "assert": [
+      {
+        "notes_match": "recent_events[^.]*(newest|latest|last|most recent) \\d+|(newest|latest|last|most recent) \\d+[^.]*recent_events"
+      }
+    ]
+  },
+  {
+    "id": "241.2",
+    "feedback": 241,
+    "stability": "live",
+    "tool": "clans_roster",
+    "args": {},
+    "request_id": "b3737159-af64-4e7e-b2f3-50aba6a24fb2",
+    "assert": [
+      {
+        "sorted_desc": ["recent_events[].at"]
+      }
+    ]
+  },
+  {
+    "id": "241.3",
+    "feedback": 241,
+    "stability": "live",
+    "control": true,
+    "tool": "clans_roster",
+    "args": {
+      "clan_tag": "#GCYQR9VY"
+    },
+    "request_id": "7528f45a-ea6a-4721-9e15-ceacd3fb8da6",
+    "assert": [
+      {
+        "notes_not_match": "recent_events[^.]*(newest|latest|last|most recent) \\d+|(newest|latest|last|most recent) \\d+[^.]*recent_events"
+      },
+      {
+        "sorted_desc": ["recent_events[].at"]
+      }
+    ]
+  },
+  {
+    "id": "242.1",
+    "feedback": 242,
+    "stability": "frozen",
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-20",
+      "to": "2026-09-20",
+      "kind": "pre_reset",
+      "metrics": ["donations_per_week", "members"]
+    },
+    "request_id": "368d6bc6-3c76-489e-a733-baedb8809d8e",
+    "assert": [
+      {
+        "notes_match": "(left|departed)[^.]*donat|donat[^.]*(left|departed)"
+      }
+    ]
+  },
+  {
+    "id": "242.2",
+    "feedback": 242,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-13",
+      "to": "2026-09-13",
+      "kind": "pre_reset",
+      "metrics": ["donations_per_week", "members"]
+    },
+    "request_id": "991cf994-9cba-41d4-bf5e-446a20f4ec1c",
+    "assert": [
+      {
+        "notes_not_match": "(left|departed)[^.]*donat|donat[^.]*(left|departed)"
+      },
+      {
+        "eq": ["series[0].donations_per_week", 9094]
+      }
+    ]
+  },
+  {
+    "id": "243.1",
+    "feedback": 243,
+    "stability": "frozen",
+    "calls": {
+      "e": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-07T10:00:00Z",
+          "to": "2026-09-14T10:00:00Z",
+          "mark_read": false,
+          "sections": ["donations"]
+        }
+      },
+      "p": {
+        "tool": "clans_timeline",
+        "args": {
+          "from": "2026-09-13",
+          "to": "2026-09-13",
+          "kind": "pre_reset",
+          "metrics": ["donations_per_week", "members"]
+        }
+      }
+    },
+    "request_id": "5a2995c1-535d-4817-981a-3d23cb66586c",
+    "assert": [
+      {
+        "eq": [
+          "e.entries[?kind=clan_activity].donations.week_total",
+          "p.series[0].donations_per_week"
+        ]
+      },
+      {
+        "eq": [
+          "e.entries[?kind=clan_activity].donations.members_counted",
+          "p.series[0].members"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "243.2",
+    "feedback": 243,
+    "stability": "frozen",
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-10",
+      "to": "2026-09-11",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_12000_plus",
+        "members_14000_plus",
+        "avg_member_wins"
+      ]
+    },
+    "request_id": "899d5327-4064-4046-ae76-ca200b0bb4b6",
+    "for_each": "series[]",
+    "assert": [
+      {
+        "lte": ["members_with_profile", "members"]
+      }
+    ]
+  },
+  {
+    "id": "243.3",
+    "feedback": 243,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_timeline",
+    "args": {
+      "from": "2026-09-20",
+      "to": "2026-09-22",
+      "metrics": [
+        "members",
+        "members_with_profile",
+        "members_12000_plus",
+        "members_14000_plus",
+        "avg_member_wins"
+      ]
+    },
+    "request_id": "673bb5ae-d467-43a1-b3f4-27910b478587",
+    "assert": [
+      {
+        "notes_not_match": "Members who left by the clan's read"
+      }
+    ]
   }
 ]

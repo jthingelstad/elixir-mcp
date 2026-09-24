@@ -1,0 +1,233 @@
+{
+  "feedback": 240,
+  "contract_version": "7.1.2",
+  "captured_at": "2026-09-24T04:47:29.444Z",
+  "request": {
+    "tool": "clans_members_timeline",
+    "arguments": {
+      "from": "2026-09-20",
+      "to": "2026-09-20",
+      "metrics": ["donations"],
+      "limit": 10
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "applied": {
+      "window": {
+        "from": "2026-09-20",
+        "to": "2026-09-20",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 14
+      },
+      "granularity": "day",
+      "kind": "daily",
+      "metrics": ["donations"],
+      "limit": 10,
+      "verbosity": "full"
+    },
+    "member_count": 10,
+    "members": [
+      {
+        "player_tag": "#20CGPVUL92",
+        "name": "pigsareus",
+        "points": 1,
+        "series": [
+          {
+            "day": "2026-09-20",
+            "kind": "daily",
+            "observed_at": "2026-09-21T00:18:03.000Z",
+            "profile_observed_at": "2026-09-20T21:12:42.000Z",
+            "roster_observed_at": "2026-09-21T00:18:03.000Z",
+            "source": "api",
+            "clan_tag": "#J2RGCRVG",
+            "donations": 0
+          }
+        ]
+      },
+      {
+        "player_tag": "#20CLVPLG8R",
+        "name": "VVSBUDGET",
+        "points": 1,
+        "series": [
+          {
+            "day": "2026-09-20",
+            "kind": "daily",
+            "observed_at": "2026-09-20T18:57:44.000Z",
+            "profile_observed_at": "2026-09-20T18:57:44.000Z",
+            "roster_observed_at": "2026-09-20T10:08:36.000Z",
+            "source": "api",
+            "clan_tag": "#J2RGCRVG",
+            "donations": 0
+          }
+        ]
+      },
+      {
+        "player_tag": "#20G0JGQLPL",
+        "name": "alex",
+        "points": 1,
+        "series": [
+          {
+            "day": "2026-09-20",
+            "kind": "daily",
+            "observed_at": "2026-09-20T22:37:45.000Z",
+            "profile_observed_at": "2026-09-20T22:37:45.000Z",
+            "roster_observed_at": "2026-09-20T10:08:36.000Z",
+            "source": "api",
+            "clan_tag": "#J2RGCRVG",
+            "donations": 0
+          }
+        ]
+      },
+      {
+        "player_tag": "#20G9RY299P",
+        "name": "Waltadr",
+        "points": 1,
+        "series": [
+          {
+            "day": "2026-09-20",
+            "kind": "daily",
+            "observed_at": "2026-09-21T00:18:03.000Z",
+            "profile_observed_at": "2026-09-20T23:13:26.000Z",
+            "roster_observed_at": "2026-09-21T00:18:03.000Z",
+            "source": "api",
+            "clan_tag": "#J2RGCRVG",
+            "donations": 0
+          }
+        ]
+      },
+      {
+        "player_tag": "#20GPQPC9RV",
+        "name": "bonus",
+        "points": 1,
+        "series": [
+          {
+            "day": "2026-09-20",
+            "kind": "daily",
+            "observed_at": "2026-09-21T09:48:13.000Z",
+            "profile_observed_at": "2026-09-20T22:02:42.000Z",
+            "roster_observed_at": "2026-09-21T09:48:13.000Z",
+            "source": "api",
+            "clan_tag": "#J2RGCRVG",
+            "donations": 0
+          }
+        ]
+      },
+      {
+        "player_tag": "#20JJJ2CCRU",
+        "name": "King Thing",
+        "points": 1,
+        "series": [
+          {
+            "day": "2026-09-20",
+            "kind": "daily",
+            "observed_at": "2026-09-21T06:27:50.000Z",
+            "profile_observed_at": "2026-09-21T06:27:50.000Z",
+            "roster_observed_at": "2026-09-21T04:38:06.000Z",
+            "source": "api",
+            "clan_tag": "#J2RGCRVG",
+            "donations": 54
+          }
+        ]
+      },
+      {
+        "player_tag": "#20LP8UPJ8R",
+        "name": "I Hate Witch",
+        "points": 1,
+        "series": [
+          {
+            "day": "2026-09-20",
+            "kind": "daily",
+            "observed_at": "2026-09-21T07:28:09.000Z",
+            "profile_observed_at": "2026-09-20T13:02:44.000Z",
+            "roster_observed_at": "2026-09-21T07:28:09.000Z",
+            "source": "api",
+            "clan_tag": "#J2RGCRVG",
+            "donations": 0
+          }
+        ]
+      },
+      {
+        "player_tag": "#20R8QRLYLP",
+        "name": "Chanco",
+        "points": 1,
+        "series": [
+          {
+            "day": "2026-09-20",
+            "kind": "daily",
+            "observed_at": "2026-09-21T09:48:13.000Z",
+            "profile_observed_at": "2026-09-21T06:42:48.000Z",
+            "roster_observed_at": "2026-09-21T09:48:13.000Z",
+            "source": "api",
+            "clan_tag": "#J2RGCRVG",
+            "donations": 46
+          }
+        ]
+      },
+      {
+        "player_tag": "#2209PJPVGG",
+        "name": "shimmeringhost",
+        "points": 1,
+        "series": [
+          {
+            "day": "2026-09-20",
+            "kind": "daily",
+            "observed_at": "2026-09-21T07:42:55.000Z",
+            "profile_observed_at": "2026-09-21T07:42:55.000Z",
+            "roster_observed_at": "2026-09-21T02:18:05.000Z",
+            "source": "api",
+            "clan_tag": "#J2RGCRVG",
+            "donations": 28
+          }
+        ]
+      },
+      {
+        "player_tag": "#229QY8UL9U",
+        "name": "Mega Goblin",
+        "points": 1,
+        "series": [
+          {
+            "day": "2026-09-20",
+            "kind": "daily",
+            "observed_at": "2026-09-21T00:18:03.000Z",
+            "profile_observed_at": "2026-09-20T17:47:40.000Z",
+            "roster_observed_at": "2026-09-21T00:18:03.000Z",
+            "source": "api",
+            "clan_tag": "#J2RGCRVG",
+            "donations": 0
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "More than 10 members had points in the window; the first 10 by tag are here - pass player_tags to choose, or raise limit (max 50).",
+      "donations is the weekly counter as of each point; it climbs all week and drops to 0 around the start of Monday UTC; kind: pre_reset is the week's highest value, the week's total.",
+      "A member's point carries clan_tag: the clan the day's last roster placed them in, so a member who moved clans that day is under the later clan's tag.",
+      "Days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; a point is the day's last observation."
+    ],
+    "docs": "recording#daily-series",
+    "meta": {
+      "contract_version": "7.1.2",
+      "source_polls": {
+        "clan": {
+          "observed_at": "2026-09-24T04:43:12.000Z",
+          "freshness_seconds": 257
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 54,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

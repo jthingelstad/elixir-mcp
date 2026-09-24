@@ -3095,7 +3095,16 @@ export const OUTPUT_SCHEMAS = {
         },
         required: ["window"],
       },
-      member_count: COUNT,
+      member_count: {
+        ...COUNT,
+        description:
+          "Members on this page (limit caps it), not the clan's size; truncated says whether more members had points.",
+      },
+      truncated: {
+        type: "boolean",
+        description:
+          "true when more members had points in the window than limit returned (7.1.4).",
+      },
       members: {
         type: "array",
         items: {

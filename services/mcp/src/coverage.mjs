@@ -195,8 +195,12 @@ export function completenessNote(playerTag, recent) {
  *  recorded inside them, comparable intervals only. A member at "0
  *  battles this week" whose counter rose by 38 is a capture gap, not
  *  inactivity, and the clan reads must say which members that is. */
-export async function captureByPlayer(db, playerTags) {
-  if (!playerTags.length) return new Map();
+export async function captureByPlayer(
+  db,
+  playerTags,
+  { fromMs = Date.now() - 7 * 86_400_000, toMs = Date.now() } = {},
+) {
+  if (!playerTags.length || toMs <= fromMs) return new Map();
   const { rows } = await db.query(
     `with snapshots as (
        select player_tag, profile_observed_at as observed_to,
@@ -205,7 +209,8 @@ export async function captureByPlayer(db, playerTags) {
          from player_snapshot_daily
         where player_tag = any($1::text[]) and snapshot_kind = 'daily'
           and profile_observed_at is not null
-          and snapshot_date > (now() - interval '9 days')::date
+          and snapshot_date > ($2::timestamptz - interval '2 days')::date
+          and snapshot_date <= ($3::timestamptz + interval '1 day')::date
        window w as (partition by player_tag order by snapshot_date)
      ), intervals as (
        select s.player_tag, s.expected_battles,
@@ -215,7 +220,7 @@ export async function captureByPlayer(db, playerTags) {
                   and bp.battle_time <= s.observed_to) as captured_battles
          from snapshots s
         where s.observed_from is not null and s.observed_to > s.observed_from
-          and s.observed_to > now() - interval '7 days'
+          and s.observed_to > $2::timestamptz and s.observed_to <= $3::timestamptz
           and s.expected_battles is not null and s.expected_battles >= 0
      )
      select player_tag, sum(expected_battles)::int as expected,
@@ -223,7 +228,7 @@ export async function captureByPlayer(db, playerTags) {
        from intervals
       where captured_battles <= expected_battles
       group by player_tag`,
-    [playerTags],
+    [playerTags, new Date(fromMs).toISOString(), new Date(toMs).toISOString()],
   );
   return new Map(
     rows.map((r) => [
@@ -240,7 +245,11 @@ export async function captureByPlayer(db, playerTags) {
 /** The note a clan read carries when members' battles are mostly not
  *  captured (#196): below 80% of at least 5 battles the counter says
  *  were played in the last seven days. null when every member is fine. */
-export function underCaptureNote(capture, nameOf) {
+export function underCaptureNote(
+  capture,
+  nameOf,
+  span = "the last seven days",
+) {
   const low = [...capture.entries()]
     .filter(([, c]) => c.expected >= 5 && c.ratio < 0.8)
     .sort((a, b) => a[1].ratio - b[1].ratio);
@@ -252,5 +261,5 @@ export function underCaptureNote(capture, nameOf) {
         `${nameOf(tag) ?? tag} ${tag} (${c.captured} of ${c.expected}, ${Math.round(c.ratio * 100)}%)`,
     )
     .join(", ");
-  return `Battle capture is incomplete for ${low.length} member${low.length === 1 ? "" : "s"} over the last seven days, so their recorded battles and last-battle times undercount real play: ${list}${low.length > 8 ? ` and ${low.length - 8} more` : ""}. The profile's battle counter rose by the second number while the record captured the first; a low count here is a capture gap, not inactivity (elixir_coverage per tag).`;
+  return `Battle capture is incomplete for ${low.length} member${low.length === 1 ? "" : "s"} over ${span}, so their recorded battles and last-battle times undercount real play: ${list}${low.length > 8 ? ` and ${low.length - 8} more` : ""}. The profile's battle counter rose by the second number while the record captured the first; a low count here is a capture gap, not inactivity (elixir_coverage per tag).`;
 }

@@ -1609,5 +1609,45 @@
     "case": "gym/226.1",
     "captures": ["226-1-war_rivals.json"],
     "expect": "."
+  },
+  {
+    "feedback": 236,
+    "contract": "7.1.2",
+    "why": "the Gym block 236.1 on the answer it read",
+    "case": "gym/236.1",
+    "captures": ["236-1-clans_standings.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 236,
+    "contract": "7.1.2",
+    "why": "the Gym block 236.2 on the answer it read",
+    "case": "gym/236.2",
+    "captures": ["236-1-clans_standings.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 236,
+    "contract": "7.1.2",
+    "why": "the Gym block 236.3 on the answer it read",
+    "case": "gym/236.3",
+    "captures": ["236-3-clans_standings.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 240,
+    "contract": "7.1.2",
+    "why": "the Gym block 240.1 on the answer it read",
+    "case": "gym/240.1",
+    "captures": ["240-1-clans_members_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 242,
+    "contract": "7.1.2",
+    "why": "the Gym block 242.1 on the answer it read",
+    "case": "gym/242.1",
+    "captures": ["242-1-clans_timeline.json"],
+    "expect": "."
   }
 ]

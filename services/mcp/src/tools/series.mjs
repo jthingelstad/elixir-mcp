@@ -164,6 +164,14 @@ export const seriesTools = {
       const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
       const tz = zoneFor(ctx, args);
       const win = await seriesWindow(ctx, args);
+      // A bare call is the last 30 game days, not the whole history (Gym
+      // #239: the default read ran 68,431 characters and was refused).
+      if (win.source === "unbounded") {
+        win.from = gameDay(Date.now() - 29 * 86_400_000);
+        win.source = "default";
+        win.defaultNote =
+          "No window was given, so this is the last 30 game days; pass from (series_available_from is the first day on record), days or season for more.";
+      }
       requireEnum(args.granularity, ["day", "week"], "granularity");
       requireEnum(args.kind, KINDS, "kind");
       requireEnum(args.verbosity, ["full", "compact"], "verbosity");
@@ -226,6 +234,40 @@ export const seriesTools = {
           ...Object.fromEntries(metrics.map((m) => [m, r[m] ?? null])),
         }),
       );
+      // The clan's weekly donation counter keeps a departed member's
+      // donations; its member rows do not (Gym #242: 10,240 against the
+      // rows' 10,121, the 119 a member who left mid-week). Said where the
+      // two differ in a week someone left.
+      let counterNote = null;
+      if (metrics.includes("donations_per_week") && rows.length) {
+        const days = rows.map((r) => r.day.toISOString().slice(0, 10));
+        const { rows: gaps } = await ctx.db.query(
+          `select c.day::text as day, c.donations_per_week as counter,
+                  (select coalesce(sum(s.donations), 0)::int from player_snapshot_daily s
+                    where s.clan_tag = c.clan_tag and s.snapshot_date = c.day
+                      and s.snapshot_kind = c.snapshot_kind) as rows_sum,
+                  (select string_agg(coalesce(p.name, cm.player_tag), ', ' order by cm.left_observed_at)
+                     from clan_membership cm join player p on p.player_tag = cm.player_tag
+                    where cm.clan_tag = c.clan_tag
+                      and cm.left_observed_at >= date_trunc('week', c.day)::date + interval '10 hours'
+                      and cm.left_observed_at < c.day + interval '34 hours') as leavers
+             from clan_snapshot_daily c
+            where c.clan_tag = $1 and c.snapshot_kind = $2 and c.day = any($3::date[])`,
+          [clanTag, kind, days],
+        );
+        const off = gaps.filter(
+          (g) =>
+            Number.isInteger(g.counter) && g.counter > g.rows_sum && g.leavers,
+        );
+        if (off.length)
+          counterNote = `donations_per_week is the game's clan counter, which keeps a departed member's donations for the week while the member rows do not: ${off
+            .slice(0, 6)
+            .map(
+              (g) =>
+                `on ${g.day} it reads ${g.counter} against ${g.rows_sum} over the member rows, and ${g.leavers} left that week`,
+            )
+            .join("; ")}.`;
+      }
       const leaverDays = rows
         .filter((r) => r.members_left_excluded > 0)
         .map(
@@ -268,6 +310,8 @@ export const seriesTools = {
         series: points,
         notes: notes(
           win.notBegunNote ?? null,
+          win.defaultNote ?? null,
+          counterNote,
           win.floorNote,
           availableFrom && win.from && win.from < availableFrom
             ? `Requested from ${win.from}, but the clan's series begins ${availableFrom}.`
@@ -445,7 +489,10 @@ export const seriesTools = {
           limit,
           verbosity: compact ? "compact" : "full",
         }),
+        // Rows on this page; truncated says whether more members had
+        // points (Gym #240: truncated was promised and never served).
         member_count: members.length,
+        truncated,
         members: members.map((m) => {
           const points = byTag.get(m.player_tag) ?? [];
           const first = points[0] ?? null;

@@ -2176,3 +2176,7 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - War r3: 21 regressions, #181 partial -> #225. **#224** clan_score going-in at the log source + 0165 (chain-proved rows only). **#225** deprecation re-dated to the next major, default war_history note, docs. **#226** war_rivals mean_points / points_weeks / points_vs_ours (day logs deduped across observers, finished weeks). #227 praise. War-day paths still untested (training day at run time).
 - Players r3: 21 regressions (16 fixed). **#228** `seriesWindow` (daily-series.mjs) gives season to players_timeline, clans_timeline, clans_members_timeline; seasonFieldsForDays clamps age at the window start. **#229** seasonal-trophy-road best 0 = no row (ingest + 0166). **#230** unmatched progress_key note. **#231** lower-bound note (231.1 value case refuted by choice). **#232** declarations + note. **#233** lifetime king_tower_level / total_donations, years_played null note. **#234** count described; cards-to-next-level NOT served (no sourced cost table; 234.1 refuted). #235 praise.
 
+## 2026-09-24 — Gym sweep, clans round 4 (7.1.4, feedback #236-#243)
+
+- 19 regressions; #196 partial -> **#236** (captureByPlayer takes the response's window). **#237** joinedMidWindowNote on standings and participation (note, not rescoped counts: the rows stay today's members). **#238** shipped in 7.1.3. **#239** clans_timeline bare call = last 30 game days. **#240** truncated served. **#241** recent_events by window_end, cut note. **#242** counter-vs-rows note. #243 praise.
+

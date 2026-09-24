@@ -56,11 +56,58 @@ const CLAN_TAG_SCHEMA = {
  *  default window; past it the response outgrows the result cap. */
 const SCORING_DECKS_WEEKS = 6;
 
+/** Members on today's roster who joined inside the window, with the
+ *  battles they played in it before joining (Gym #237: a member who
+ *  joined on 09-23 ranked 14th for the week before with 19 battles, all
+ *  played for another clan). The rows are today's roster; the note says
+ *  who is counted from before they belonged. */
+async function joinedMidWindowNote(db, clanTag, fromMs, toMs) {
+  if (fromMs === null || fromMs === undefined) return null;
+  const { rows } = await db.query(
+    `select cm.player_tag, p.name, cm.joined_observed_at,
+            (select count(*)::int from battle_participant bp
+              where bp.player_tag = cm.player_tag
+                and bp.battle_time >= $2 and bp.battle_time < least(cm.joined_observed_at, $3)) as before_join,
+            (select count(*)::int from battle_participant bp
+              where bp.player_tag = cm.player_tag
+                and bp.battle_time >= $2 and bp.battle_time < $3) as in_window
+       from clan_membership cm
+       join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = $1 and cm.left_observed_at is null
+        and cm.joined_observed_at > $2 and cm.joined_observed_at < $3
+      order by cm.joined_observed_at desc`,
+    [clanTag, new Date(fromMs), new Date(toMs)],
+  );
+  const hit = rows.filter((r) => r.before_join > 0);
+  if (!hit.length) return null;
+  const list = hit
+    .slice(0, 8)
+    .map(
+      (r) =>
+        `${r.name ?? r.player_tag} ${r.player_tag} joined ${r.joined_observed_at.toISOString().slice(0, 10)} with ${r.before_join} of ${r.in_window} recorded battles in the window played before joining`,
+    )
+    .join("; ");
+  return `Rows are today's members, and ${hit.length} of them joined during the window, so their counts include battles from before they belonged to this clan: ${list}${hit.length > 8 ? `; and ${hit.length - 8} more` : ""}. Members who left since the window began are not listed.`;
+}
+
 /** Members whose battles are mostly not captured, said (Gym #196). */
-async function memberCaptureNote(db, members) {
+async function memberCaptureNote(db, members, fromMs, toMs) {
+  // The response's own window (Gym #236: it measured the last seven days
+  // on every window, naming a member fully captured in the week asked
+  // about and missing one who was not).
+  const end = Math.min(toMs ?? Date.now(), Date.now());
+  if (fromMs === null || fromMs === undefined || end <= fromMs) return null;
   const names = new Map(members.map((m) => [m.player_tag, m.name ?? null]));
-  const capture = await captureByPlayer(db, [...names.keys()]);
-  return underCaptureNote(capture, (tag) => names.get(tag));
+  const capture = await captureByPlayer(db, [...names.keys()], {
+    fromMs,
+    toMs: end,
+  });
+  const day = (ms) => new Date(ms).toISOString().slice(0, 10);
+  return underCaptureNote(
+    capture,
+    (tag) => names.get(tag),
+    `this window (profile reads between ${day(fromMs)} and ${day(end)})`,
+  );
 }
 
 export const clansTools = {
@@ -190,7 +237,18 @@ export const clansTools = {
         members: ranked,
         below_floor: unranked,
         notes: notes(
-          await memberCaptureNote(ctx.db, [...ranked, ...unranked]),
+          await joinedMidWindowNote(
+            ctx.db,
+            clanTag,
+            win.from ? win.from.getTime() : null,
+            win.to ? win.to.getTime() : Date.now(),
+          ),
+          await memberCaptureNote(
+            ctx.db,
+            [...ranked, ...unranked],
+            win.from ? win.from.getTime() : null,
+            win.to ? win.to.getTime() : Date.now(),
+          ),
           clash,
           win.seasonNotes,
           coverageBasisNote(coverage.basis),
@@ -366,11 +424,17 @@ export const clansTools = {
            order by cm.role desc, s.trophies desc nulls last`,
         [clanTag, ctx.account.accountId],
       );
+      // The newest twenty by when they happened, said when cut (Gym #241:
+      // two departures, two demotions and a join this month were cut
+      // silently, and event_id order was not quite time order).
+      const RECENT_EVENTS = 20;
       const events = await ctx.db.query(
         `select ${CLAN_EVENT_COLUMNS} from clan_event
-         where clan_tag = $1 order by event_id desc limit 20`,
+         where clan_tag = $1 order by window_end desc, event_id desc limit ${RECENT_EVENTS + 1}`,
         [clanTag],
       );
+      const eventsCut = events.rows.length > RECENT_EVENTS;
+      events.rows = events.rows.slice(0, RECENT_EVENTS);
       await hydrateClanEvents(ctx.db, events.rows);
       const tz = ctx.account.timezone;
       return {
@@ -444,6 +508,9 @@ export const clansTools = {
           "last_seen_in_game is the game's own lastSeen (when the player was last ACTIVE), captured from roster polls; last_recorded_battle only moves when a battle was captured; null means no polled roster has carried them.",
           "A member whose last_seen_in_game predates a race start is left out of that race's roster by the game (see war_current.members_not_in_race).",
           "recent_events are events observed since roster recording began (events_recorded_since), never a complete history.",
+          eventsCut
+            ? `recent_events holds the newest ${RECENT_EVENTS}, back to ${events.rows.at(-1)?.window_end.toISOString()}; older ones are recorded but not listed here: elixir_timeline with kinds member_joined, member_left and member_role_changed reads a window's roster moves in full.`
+            : null,
           "war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations (Gym #131). War results: clans_participation or battles_performance mode war.",
         ),
         docs: docsRef("recording", "the-games-own-last-seen"),
@@ -738,7 +805,13 @@ export const clansTools = {
         member_count: out.length,
         members: out,
         notes: notes(
-          await memberCaptureNote(ctx.db, out),
+          await joinedMidWindowNote(
+            ctx.db,
+            clanTag,
+            from.getTime(),
+            Date.now(),
+          ),
+          await memberCaptureNote(ctx.db, out, from.getTime(), Date.now()),
           seasonFields.seasonNotes,
           (() => {
             // ONE sentence for every finished week: a note per week pushed

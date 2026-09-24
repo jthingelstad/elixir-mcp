@@ -1,0 +1,67 @@
+{
+  "feedback": 242,
+  "contract_version": "7.1.2",
+  "captured_at": "2026-09-24T04:52:27.343Z",
+  "request": {
+    "tool": "clans_timeline",
+    "arguments": {
+      "from": "2026-09-20",
+      "to": "2026-09-20",
+      "kind": "pre_reset",
+      "metrics": ["donations_per_week", "members"]
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "applied": {
+      "window": {
+        "from": "2026-09-20",
+        "to": "2026-09-20",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 14
+      },
+      "granularity": "day",
+      "kind": "pre_reset",
+      "metrics": ["donations_per_week", "members"],
+      "verbosity": "full"
+    },
+    "series_available_from": "2026-03-11",
+    "series": [
+      {
+        "day": "2026-09-20",
+        "kind": "pre_reset",
+        "observed_at": "2026-09-20T23:38:21.000Z",
+        "source": "api",
+        "donations_per_week": 10240,
+        "members": 46
+      }
+    ],
+    "notes": [
+      "Days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; a point is the day's last observation."
+    ],
+    "docs": "recording#daily-series",
+    "meta": {
+      "contract_version": "7.1.2",
+      "source_polls": {
+        "clan": {
+          "observed_at": "2026-09-24T04:43:12.000Z",
+          "freshness_seconds": 555
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 26,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}
