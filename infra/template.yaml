@@ -1993,7 +1993,9 @@ Resources:
         - MetricNamespace: ElixirMCP/Email
           MetricName: ComposeFailed
           MetricValue: "1"
-          DefaultValue: 0
+          # No DefaultValue: a default writes a zero on every jobs log
+          # event and bills the metric every hour; without one it exists
+          # only when a compose fails, and the alarm fires the same.
   EmailComposeFailedAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
