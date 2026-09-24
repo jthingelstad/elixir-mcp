@@ -35,3 +35,30 @@ export const metaPopulationClause = (alias = "bp") =>
 /** The note a meta tool serves for mode event: excluded by decision. */
 export const META_EVENT_NOTE =
   "Event battles are not in the meta population: a drafted, restricted or level-boosted event deck describes the event, not the meta (6.17.0). Read them with battles_decks or battles_query mode event.";
+
+/** How many battles a raw meta read left OUT as outside the meta
+ *  population (Gym #188): the same segment, window, mode and band, minus
+ *  the population clause, counted where the population rule fails. A
+ *  player whose week was nearly all event battles read "considered 10,
+ *  no decks" with nothing saying why. */
+export async function outsideMetaCount(db, scope, params) {
+  const clause = metaPopulationClause();
+  const rest = scope.filter((w) => w !== clause);
+  const { rows } = await db.query(
+    `select count(*)::int as n from battle_participant bp${
+      rest.some((w) => /\bb\./.test(w))
+        ? " join battle b on b.battle_id = bp.battle_id"
+        : ""
+    }
+      where ${[...rest, `not ${clause}`].join(" and ")}`,
+    params,
+  );
+  return rows[0]?.n ?? 0;
+}
+
+/** The disclosure beside a raw meta read that left battles out (#188). */
+export function outsideMetaNote(n) {
+  return n > 0
+    ? `${n} battle${n === 1 ? "" : "s"} in this window ${n === 1 ? "is" : "are"} outside the meta population and not counted anywhere above (excluded.outside_meta): event battles and decks the player did not choose (6.17.0). battles_query and battles_decks read them.`
+    : null;
+}

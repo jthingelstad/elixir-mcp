@@ -59,6 +59,8 @@ import {
 import {
   META_EVENT_NOTE,
   metaPopulationClause,
+  outsideMetaCount,
+  outsideMetaNote,
   participantModeClause,
 } from "../../mode-filter.mjs";
 import {
@@ -203,6 +205,10 @@ export const battles_meta_decks = {
         },
       );
       excluded = breakdown;
+      // What the population rule left out, said (Gym #188). A segment
+      // read only: a corpus window would pay a third corpus scan.
+      if (!pop && seg.where)
+        excluded.outside_meta = await outsideMetaCount(ctx.db, scope, params);
       prior =
         populationPrior ??
         (await seasonPrior(ctx.db, { win, mode: args.mode })) ??
@@ -549,6 +555,7 @@ export const battles_meta_decks = {
       decks: shaped,
       ...(fitBlock ? { unfieldable } : {}),
       notes: notes(
+        outsideMetaNote(excluded?.outside_meta ?? 0),
         args.mode === EVENT_MODE_GROUP ? META_EVENT_NOTE : null,
         grouped ? grouped.folded : null,
         fitNote,

@@ -300,7 +300,7 @@ const PARTICIPANT = {
 const MODE_SPLIT = {
   type: "object",
   description:
-    "The row's battles by mode group (ladder, ranked, war, casual, challenge, tournament, other), each with battles, wins and losses.",
+    "The row's battles by mode group (ladder, ranked, war, casual, challenge, event, tournament, other), each with battles, wins and losses.",
   additionalProperties: {
     type: "object",
     properties: { battles: COUNT, wins: COUNT, losses: COUNT },
@@ -415,6 +415,7 @@ const META_COMMON = {
       draws: COUNT,
       unresolved: COUNT,
       no_deck: COUNT,
+      outside_meta: COUNT,
     },
   },
   players_as_of: { type: ["string", "null"] },
@@ -2542,7 +2543,7 @@ export const OUTPUT_SCHEMAS = {
             mode_group: {
               type: "string",
               description:
-                "The contract's fold of type: ladder, ranked, war, casual, challenge, tournament, or other.",
+                "The contract's fold of type: ladder, ranked, war, casual, challenge, event, tournament, or other.",
             },
             deck_selection: {
               type: ["string", "null"],

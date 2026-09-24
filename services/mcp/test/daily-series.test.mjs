@@ -175,6 +175,18 @@ test("players_timeline: every metric, the stamps, kind, progress_key, the season
     "the zero bucket on 09-01 wrote no row; 09-02 and 09-06 did",
   );
   assert.equal(auto[0].trophies, 120);
+  // A named key reads the same bucket (Gym #189: every named key had
+  // failed on an ambiguous column; only "all" worked).
+  const named = await call("players_timeline", {
+    from: "2026-09-01",
+    to: "2026-09-06",
+    progress_key: "AutoChess_2026_Season_11",
+  });
+  assert.equal(named.isError, false, JSON.stringify(named.body));
+  assert.deepEqual(
+    named.body.progress.map((p) => p.trophies),
+    auto.map((p) => p.trophies),
+  );
   assert.ok(body.notes.some((n) => n.includes("game days")));
   assert.equal(body.docs, "recording#daily-series");
 

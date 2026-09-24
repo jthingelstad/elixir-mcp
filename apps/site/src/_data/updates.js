@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-23",
+    title: "Battle trends start where you asked",
+    body: "The Elixir Gym's third run over the battles tools. Weekly battle trends now start at the time you give them instead of the Monday before it, so a last-7-days read counts only those seven days. Event battles are labelled as events, not casual play. A meta read that leaves a player's event battles out now says how many it left out. And the player timeline answers for a named progress counter again. Contract 6.36.5.",
+  },
+  {
+    date: "2026-09-23",
     title: "The timeline pages cleanly and reads past weeks as they were",
     body: "The Elixir Gym's second run over the timeline. When a long window is split across pages, continuing from where the last one stopped no longer loses a moment at the split or repeats one. Every standout session is listed, not just the first five. And a look back at a past week now shows that week's war and donations, not today's. Contract 6.34.0.",
   },

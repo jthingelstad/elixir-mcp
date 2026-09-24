@@ -1,0 +1,79 @@
+{
+  "feedback": 188,
+  "contract_version": "6.36.4",
+  "captured_at": "2026-09-24T00:05:20.873Z",
+  "request": {
+    "tool": "battles_meta_cards",
+    "arguments": {
+      "segment": {
+        "player_tag": "#C920YGLC2"
+      },
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z",
+      "verbosity": "compact",
+      "limit": 5
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "player",
+        "player_tag": "#C920YGLC2"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": "2026-09-14T10:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 7
+      },
+      "min_battles": 10,
+      "sort": "usage",
+      "limit": 5,
+      "verbosity": "compact"
+    },
+    "decided_battles": 8,
+    "segment_win_rate": 0.375,
+    "prior_win_rate": 0.5,
+    "prior_basis": "corpus_window",
+    "insufficient_sample": true,
+    "insufficient_sample_floor": 30,
+    "excluded": {
+      "considered": 10,
+      "duels": 2,
+      "boat": 0,
+      "draws": 0,
+      "unresolved": 0,
+      "no_deck": 0
+    },
+    "comparable": true,
+    "cards": [],
+    "notes": [
+      "These are the population's decks and levels; nothing here checks what any one player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.",
+      "Pooled across modes: ranked 6 (mean level gap +0.07), casual 1 (mean level gap +0.00), war 1 (mean level gap +0.00); pass mode to isolate one.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld below 30 decided observations (insufficient_sample: true).",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records.",
+      "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments."
+    ],
+    "docs": "methodology#deck-and-card-meta-exactly-what-is-counted",
+    "meta": {
+      "contract_version": "6.36.4"
+    }
+  },
+  "timings": {
+    "db_ms": 281,
+    "db_queries": 9,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

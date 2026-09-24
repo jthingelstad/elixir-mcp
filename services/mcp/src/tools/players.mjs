@@ -561,19 +561,22 @@ export const playersTools = {
       let progress;
       if (rawArgs.progress_key !== undefined) {
         const key = String(rawArgs.progress_key);
-        const pWhere = [`player_tag = $1`, `snapshot_kind = $2`];
+        // Qualified: mode_season also has progress_key, and a named key
+        // failed as an ambiguous column (Gym #189: every named key
+        // answered internal; "all" skipped the filter and worked).
+        const pWhere = [`p.player_tag = $1`, `p.snapshot_kind = $2`];
         const pParams = [tag, kind === "pre_reset" ? "daily" : kind];
         if (key !== "all") {
           pParams.push(key);
-          pWhere.push(`progress_key = $${pParams.length}`);
+          pWhere.push(`p.progress_key = $${pParams.length}`);
         }
         if (win.from) {
           pParams.push(win.from);
-          pWhere.push(`day >= $${pParams.length}::date`);
+          pWhere.push(`p.day >= $${pParams.length}::date`);
         }
         if (win.to) {
           pParams.push(win.to);
-          pWhere.push(`day <= $${pParams.length}::date`);
+          pWhere.push(`p.day <= $${pParams.length}::date`);
         }
         const { rows: prog } = await ctx.db.query(
           `select p.progress_key, m.mode, m.season_month, p.day, p.observed_at,

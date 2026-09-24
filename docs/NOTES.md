@@ -2077,3 +2077,13 @@ All 7 regressions were confirmed. #126's recorder half (reads pinned to the 10:0
 All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings were fixed: #183 (the clan segment follows the recorded-now rule, with a coverage note) and #184 (min_level on one-off badges is refused, and kind comes from the record). #185 is praise. **Badges is parked** by the sweep rule: three rounds without a clean run. Every finding is shipped, and a round 4 is Jamie's call. Open, not filed: King Thing's badge reads are stamped 14:27Z while his profile poll says 21:27Z.
 - **6.36.4:** the 6.36.3 gate failed 145.3, 183.4 and 183.5. The recorded-now filter on clan segments dropped a current member of the covered control clan (49 of 50), so it is reverted and the coverage note is kept. 183.3 (the stale holder) is `refuted` and held. **Question for Jamie:** should a clan segment follow the corpus's recorded-now rule?
 
+## 2026-09-23 — Gym sweep, battles round 3 (6.36.5, feedback #186-#190): battles PARKED
+
+- **#186:** battles_trends no longer snaps `from` to the week's Monday; the first week is partial with `covers`.
+- **#187:** trends' per-week modes use the event-aware fold (`modeGroupSql` over `battle b`). The docs table is fixed in the template, not the contract fold: moving `trail` to `event` in `MODE_GROUP_BY_TYPE` trips meta_season_pop's mode_group CHECK for an untagged trail row, so the tag stays the rule.
+- **#188:** `excluded.outside_meta` and a note on raw segment meta reads. Corpus windows skip the count (a third corpus scan; query-budget test).
+- **#189:** players_timeline's progress query had unqualified columns (ambiguous under the join).
+- **#190:** controls, praise.
+- A `controls.test.mjs` fixture had decayed (war deck overtook the ladder deck as the fixed September battles aged out); two fresh ladder battles pin it.
+- Battles parked after three rounds: every finding shipped.
+

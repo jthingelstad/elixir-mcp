@@ -281,6 +281,19 @@ export function assertOne(spec, scope, root) {
       );
       return;
     }
+    case "not_contains": {
+      // The list or string does not hold the value (187.3: a mode's
+      // types listed under the wrong group). Absent passes.
+      const [p, unwanted] = arg;
+      const v = at(p);
+      if (v === undefined || v === null) return;
+      ok(
+        Array.isArray(v) || typeof v === "string",
+        `not_contains ${p}: not a list or a string`,
+      );
+      ok(!v.includes(unwanted), `not_contains ${p}: holds ${show(unwanted)}`);
+      return;
+    }
     case "unique_by": {
       // No two elements share the tuple of these paths' values (121.3:
       // the #48 duplicate moments). Absent and null are values too.

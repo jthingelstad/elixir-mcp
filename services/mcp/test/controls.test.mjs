@@ -662,6 +662,11 @@ test("players_summary: the window's mode split, the deck's modes and dominant mo
     ["loss", 12500, null],
     ["win", 12500, 30],
     ["loss", 12530, -30],
+    // Two more, so deck A stays the top deck as the fixed September
+    // ladder battles age out of the window (it lost to war 18-17 on
+    // 2026-09-24).
+    ["win", 12500, 30],
+    ["win", 12530, 30],
   ].entries())
     await battle({
       at: recent(4 + i),

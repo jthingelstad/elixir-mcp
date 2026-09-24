@@ -1,5 +1,5 @@
 import { participantModeClause } from "../../mode-filter.mjs";
-import { MODE_GROUPS, responseMeta } from "@elixir-mcp/contracts";
+import { MODE_GROUPS, modeGroupSql, responseMeta } from "@elixir-mcp/contracts";
 import {
   MODE_SCHEMA,
   SEASON_ARG_SCHEMA,
@@ -49,12 +49,12 @@ export const battles_trends = {
     const win = await resolveSeasonWindow(ctx, args, {
       defaultDays: 12 * 7,
     });
-    // Weeks are aligned: the window's start snaps to its ISO Monday so
-    // the first row is a whole week.
+    // The window starts where it was asked to (Gym #186): it used to
+    // snap back to the ISO Monday, pulling in days before `from` (and
+    // the end of the season before, on a season read) while echoing the
+    // `from` given. The first week is marked partial instead.
     params.push(win.from);
-    where.push(
-      `${seg.timeColumn} >= date_trunc('week', $${params.length}::timestamptz)`,
-    );
+    where.push(`${seg.timeColumn} >= $${params.length}::timestamptz`);
     if (win.to) {
       params.push(win.to);
       where.push(`${seg.timeColumn} < $${params.length}`);
@@ -87,7 +87,9 @@ export const battles_trends = {
     // (one more group-by over the same rows), and the buckets the
     // window clips marked with the span they hold.
     const { rows: byType } = await ctx.db.query(
-      `select date_trunc('week', bp.battle_time)::date::text as week_of, bp.type,
+      // Event-aware (Gym #187): the tag, not the type, marks event battles.
+      `select date_trunc('week', bp.battle_time)::date::text as week_of,
+                ${modeGroupSql("bp.type", "b.event_tag")} as mode_group,
                 count(*)::int as battles,
                 count(*) filter (where bp.outcome = 'win')::int as wins,
                 count(*) filter (where bp.outcome = 'loss')::int as losses,
@@ -95,6 +97,7 @@ export const battles_trends = {
                    from battle_participant bp2
                   where ${where.join(" and ").replaceAll("bp.", "bp2.")}) as window_players
            from battle_participant bp
+           join battle b on b.battle_id = bp.battle_id
           where ${where.join(" and ")}
           group by 1, 2`,
       params,
@@ -122,7 +125,7 @@ export const battles_trends = {
       modes: modeSplit(typesByWeek.get(r.week_of) ?? []),
     }));
     const { rows: weeks, partial } = markPartialWeeks(shaped, {
-      from: null,
+      from: new Date(win.from),
       to: win.to ? new Date(win.to) : null,
     });
     const population = seg.where

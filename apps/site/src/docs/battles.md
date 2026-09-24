@@ -35,7 +35,7 @@ answers from the perspective of the tag you asked about:
 | `game_mode` | `{ id, name }` of the game mode, in the game's own naming, event modes included |
 | `arena` | `{ id, name }`, the higher side's arena stamped at battle time (4.0.0: the one arena shape, as `trophy_floor.arena` and `modal_arena`); `id` is `null` on a row the id never reached |
 | `league_number` | the Path of Legends league when the battle was ranked; `null` otherwise |
-| `mode_group` | the contract's fold of `type` (`ladder`, `ranked`, `war`, `casual`, `challenge`, `tournament`, or `other` for a type the fold does not know), the same word `mode` takes as an argument, so no consumer keeps its own copy of the table |
+| `mode_group` | the contract's fold of `type` (`ladder`, `ranked`, `war`, `casual`, `challenge`, `event`, `tournament`, or `other` for a type the fold does not know), the same word `mode` takes as an argument, so no consumer keeps its own copy of the table |
 | `context` | full verbosity: the battle's own facts as the log carried them. `event_tag` names the event a challenge or event battle belongs to (joins `game_events` by tag; a battle can name an event the daily events read never sighted); `tournament_tag` the tournament; `ladder_tournament` and `hosted` the API's own flags; `deck_selection` how the deck was chosen. Compact carries `deck_selection` alone, at the top level |
 | `deck_selection` | `collection` for the player's own deck; `draft`, `draftCompetitive`, `pick`, `predefined`, `warDeckPick` and the like for a deck chosen on the spot, which has no identity a player will play again. Read it before treating a `deck_hash` as a deck the player owns |
 | `boat` | full verbosity, `boatBattle` rows only: `side` (`attacker` or `defender`), `towers_before` and `towers_after` (the clan's towers destroyed on this boat before and after the attack) and `remaining` (the boat's towers still standing) |
@@ -92,19 +92,19 @@ not report tower state for that side. `verbosity: "compact"` drops `deck`,
 
 ## Mode groups
 
-The `mode` argument on every battle tool takes one of six groups. Each folds
+The `mode` argument on every battle tool takes one of seven groups. Each folds
 one or more of the API's battle types; omitting `mode` pools every group.
 This table is generated from the contract, so it is what the tools accept.
 
 | Group | In the game | API battle types folded |
 |---|---|---|
 {%- for m in tools.modes %}
-| `{{ m.group }}` | {% if m.group == "ladder" %}Trophy Road{% elif m.group == "ranked" %}Path of Legends{% elif m.group == "war" %}river race battles, duels and boat battles{% elif m.group == "casual" %}2v2, friendly and trail battles{% elif m.group == "challenge" %}challenges and events{% elif m.group == "tournament" %}tournaments{% else %}{{ m.group }}{% endif %} | {% for t in m.types %}`{{ t }}`{% if not loop.last %}, {% endif %}{% endfor %} |
+| `{{ m.group }}` | {% if m.group == "ladder" %}Trophy Road{% elif m.group == "ranked" %}Path of Legends{% elif m.group == "war" %}river race battles, duels and boat battles{% elif m.group == "casual" %}2v2 and friendly battles{% elif m.group == "challenge" %}challenges{% elif m.group == "event" %}event content: every battle the API marks with an event tag{% elif m.group == "tournament" %}tournaments{% else %}{{ m.group }}{% endif %} | {% if m.group == "event" %}any type with an `eventTag`; in practice `trail`{% else %}{% for t in m.types | reject("equalto", "trail") %}`{{ t }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %} |
 {%- endfor %}
 
 `game_mode.name` is finer than the group: an event mode such as a Chaos or
 Crazy Mode battle is a `challenge`-group battle with its own mode name, which
-`battles_query({ mode_name })` can filter by substring and
+`battles_query({ game_mode })` can filter by substring and
 `battles_performance({ group_by: "game_mode" })` lists.
 
 ## Events are their own group, and they do not inform the meta

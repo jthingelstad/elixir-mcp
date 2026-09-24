@@ -1,0 +1,33 @@
+{
+  "feedback": 189,
+  "contract_version": "6.36.4",
+  "captured_at": "2026-09-24T00:00:55.361Z",
+  "request": {
+    "tool": "players_timeline",
+    "arguments": {
+      "player_tag": "#C920YGLC2",
+      "from": "2026-09-05",
+      "to": "2026-09-15",
+      "verbosity": "compact",
+      "progress_key": "seasonal-trophy-road-202609"
+    }
+  },
+  "response": {
+    "error": {
+      "code": "internal",
+      "class": "server",
+      "message": "Tool players_timeline failed unexpectedly; the arguments were accepted and the server failed.",
+      "hint": "Retry the same players_timeline call once; if it fails again, elixir_send_feedback({ category: \"bug\", request_id: \"98e93d64-0428-424e-be8f-b07bc2e4dd0f\" }) with the arguments."
+    },
+    "meta": {
+      "contract_version": "6.36.4"
+    }
+  },
+  "timings": {
+    "db_ms": 23,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

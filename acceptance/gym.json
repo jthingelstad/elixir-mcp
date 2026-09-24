@@ -8463,5 +8463,476 @@
         "notes_not_match": "count their holders together"
       }
     ]
+  },
+  {
+    "id": "186.1",
+    "feedback": 186,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "battles_trends",
+        "args": {
+          "segment": {
+            "player_tag": "#20JJJ2CCRU"
+          },
+          "from": "2026-09-17T10:00:00Z",
+          "to": "2026-09-20T00:00:00Z"
+        }
+      },
+      "p": {
+        "tool": "battles_performance",
+        "args": {
+          "player_tag": "#20JJJ2CCRU",
+          "from": "2026-09-17T10:00:00Z",
+          "to": "2026-09-20T00:00:00Z"
+        }
+      }
+    },
+    "request_id": "e6b5663e-2884-430d-8a2b-59e53634b6d8",
+    "assert": [
+      {
+        "eq": ["t.weeks[0].battles", "p.window.battles"]
+      },
+      {
+        "eq": ["t.weeks[0].net_trophies", "p.window.net_trophies"]
+      },
+      {
+        "eq": ["t.weeks[0].covers.from", "t.applied.window.from"]
+      }
+    ]
+  },
+  {
+    "id": "186.2",
+    "feedback": 186,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "battles_trends",
+        "args": {
+          "segment": {
+            "player_tag": "#20JJJ2CCRU"
+          },
+          "season": 135
+        }
+      },
+      "w": {
+        "tool": "battles_performance",
+        "args": {
+          "player_tag": "#20JJJ2CCRU",
+          "season": 135,
+          "group_by": "week"
+        }
+      }
+    },
+    "request_id": "51d257f5-205f-4640-8c24-707f94b0ecc2",
+    "assert": [
+      {
+        "eq": [
+          "t.weeks[?iso_week=2026-W32].battles",
+          "w.weekly[?iso_week=2026-W32].battles"
+        ]
+      },
+      {
+        "eq": ["t.weeks[?iso_week=2026-W32].partial", true]
+      }
+    ]
+  },
+  {
+    "id": "186.3",
+    "feedback": 186,
+    "stability": "live",
+    "calls": {
+      "t": {
+        "tool": "battles_trends",
+        "args": {
+          "segment": {
+            "player_tag": "#20JJJ2CCRU"
+          },
+          "days": 7
+        }
+      },
+      "p": {
+        "tool": "battles_performance",
+        "args": {
+          "player_tag": "#20JJJ2CCRU",
+          "days": 7
+        }
+      }
+    },
+    "request_id": "15721ed3-bd5e-4271-93f7-3809847d91d7",
+    "assert": [
+      {
+        "sum_eq": [["t.weeks[].battles"], "p.window.battles"]
+      },
+      {
+        "eq": ["t.weeks[0].partial", true]
+      }
+    ]
+  },
+  {
+    "id": "186.4",
+    "feedback": 186,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "battles_trends",
+        "args": {
+          "segment": {
+            "player_tag": "#20JJJ2CCRU"
+          },
+          "from": "2026-08-31T00:00:00Z",
+          "to": "2026-09-21T00:00:00Z"
+        }
+      },
+      "p": {
+        "tool": "battles_performance",
+        "args": {
+          "player_tag": "#20JJJ2CCRU",
+          "from": "2026-08-31T00:00:00Z",
+          "to": "2026-09-21T00:00:00Z"
+        }
+      }
+    },
+    "request_id": "1e9751a8-64fb-41e8-a7ee-17b00d240af2",
+    "assert": [
+      {
+        "sum_eq": [["t.weeks[].battles"], "p.window.battles"]
+      },
+      {
+        "sum_eq": [["t.weeks[].wins"], "p.window.wins"]
+      },
+      {
+        "sum_eq": [["t.weeks[].net_trophies"], "p.window.net_trophies"]
+      }
+    ]
+  },
+  {
+    "id": "187.1",
+    "feedback": 187,
+    "stability": "frozen",
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "player_tag": "#C920YGLC2"
+      },
+      "mode": "event",
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z"
+    },
+    "request_id": "aa64d6bb-9784-4db3-9a06-e45d3d1ce53a",
+    "assert": [
+      {
+        "has": "weeks[0].modes.event"
+      },
+      {
+        "absent": "weeks[0].modes.casual"
+      }
+    ]
+  },
+  {
+    "id": "187.2",
+    "feedback": 187,
+    "stability": "frozen",
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "player_tag": "#C920YGLC2"
+      },
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z"
+    },
+    "request_id": "af261f33-86b4-4d67-b180-6fa6cdc9a237",
+    "assert": [
+      {
+        "has": "weeks[0].modes.event"
+      }
+    ]
+  },
+  {
+    "id": "187.3",
+    "feedback": 187,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "battles"
+    },
+    "request_id": "783922e2-7f88-4842-bc8c-954b9ed42cae",
+    "assert": [
+      {
+        "not_contains": ["markdown", "battles_query({ mode_name })"]
+      },
+      {
+        "not_contains": ["markdown", "`trail`, `clanMate2v2`"]
+      }
+    ]
+  },
+  {
+    "id": "187.4",
+    "feedback": 187,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_cards",
+    "args": {
+      "player_tag": "#C920YGLC2",
+      "mode": "event",
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z"
+    },
+    "request_id": "4bd3c007-8211-4a32-92dc-985819394ca9",
+    "assert": [
+      {
+        "eq": ["modes_in_window.event.battles", 287]
+      },
+      {
+        "absent": "modes_in_window.casual"
+      }
+    ]
+  },
+  {
+    "id": "188.1",
+    "feedback": 188,
+    "stability": "frozen",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "player_tag": "#C920YGLC2"
+      },
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z",
+      "verbosity": "compact",
+      "limit": 5
+    },
+    "request_id": "44ae4b3b-5ecf-4c0e-9258-c23ce19cc36a",
+    "assert": [
+      {
+        "notes_match": "[Ee]vent battles"
+      }
+    ]
+  },
+  {
+    "id": "188.2",
+    "feedback": 188,
+    "stability": "frozen",
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": {
+        "player_tag": "#C920YGLC2"
+      },
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z",
+      "verbosity": "compact",
+      "limit": 5
+    },
+    "request_id": "57dfb084-5126-4278-86d9-3c6e87456106",
+    "assert": [
+      {
+        "notes_match": "[Ee]vent battles"
+      }
+    ]
+  },
+  {
+    "id": "188.3",
+    "feedback": 188,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "m": {
+        "tool": "battles_meta_decks",
+        "args": {
+          "segment": {
+            "player_tag": "#20JJJ2CCRU"
+          },
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "verbosity": "compact",
+          "limit": 5
+        }
+      },
+      "q": {
+        "tool": "battles_query",
+        "args": {
+          "player_tag": "#20JJJ2CCRU",
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "limit": 1,
+          "verbosity": "compact",
+          "include_total": true
+        }
+      }
+    },
+    "request_id": "2eda11e9-0b89-4b8b-8c2d-726821f64160",
+    "assert": [
+      {
+        "eq": ["m.excluded.considered", "q.total_count"]
+      },
+      {
+        "notes_not_match": "[Ee]vent battles"
+      }
+    ]
+  },
+  {
+    "id": "189.1",
+    "feedback": 189,
+    "stability": "frozen",
+    "tool": "players_timeline",
+    "args": {
+      "player_tag": "#C920YGLC2",
+      "from": "2026-09-05",
+      "to": "2026-09-15",
+      "verbosity": "compact",
+      "progress_key": "seasonal-trophy-road-202609"
+    },
+    "request_id": "98e93d64-0428-424e-be8f-b07bc2e4dd0f",
+    "assert": [
+      {
+        "absent": "error.code"
+      },
+      {
+        "has": "progress"
+      }
+    ]
+  },
+  {
+    "id": "189.2",
+    "feedback": 189,
+    "control": true,
+    "stability": "frozen",
+    "tool": "players_timeline",
+    "args": {
+      "player_tag": "#C920YGLC2",
+      "from": "2026-09-05",
+      "to": "2026-09-15",
+      "progress_key": "all"
+    },
+    "request_id": "1d1fa08f-af6a-4c25-98a2-37338fdb83ad",
+    "assert": [
+      {
+        "has": "progress"
+      },
+      {
+        "has": "progress[].key"
+      }
+    ]
+  },
+  {
+    "id": "190.1",
+    "feedback": 190,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "battle_id": "36ab97cf200f49897b744e4757bc56306189607894292583c3cea0f5e9739eed"
+    },
+    "request_id": "6738327a-66ca-4801-9064-0dcb1090a429",
+    "assert": [
+      {
+        "notes_match": "may have started unequal"
+      },
+      {
+        "notes_match": "not what matchmaking paired"
+      }
+    ]
+  },
+  {
+    "id": "190.2",
+    "feedback": 190,
+    "control": true,
+    "stability": "live",
+    "tool": "battles_decks",
+    "args": {
+      "player_tag": "#20JJJ2CCRU",
+      "verbosity": "compact"
+    },
+    "request_id": "6ea1aaa8-e017-4f36-934c-3de51df3d93d",
+    "when": {
+      "has": "error.code"
+    },
+    "assert": [
+      {
+        "notes_not_match": "verbosity"
+      }
+    ]
+  },
+  {
+    "id": "190.3",
+    "feedback": 190,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "player_tag": "#C920YGLC2"
+      },
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z",
+      "verbosity": "compact",
+      "limit": 5
+    },
+    "request_id": "44ae4b3b-5ecf-4c0e-9258-c23ce19cc36a",
+    "assert": [
+      {
+        "sum_eq": [
+          [
+            "decided_battles",
+            "excluded.duels",
+            "excluded.boat",
+            "excluded.draws",
+            "excluded.unresolved",
+            "excluded.no_deck"
+          ],
+          "excluded.considered"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "190.4",
+    "feedback": 190,
+    "control": true,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "mine",
+      "sort": "shrunk_win_rate",
+      "min_battles": 20,
+      "limit": 5,
+      "verbosity": "compact",
+      "fit_for": "#20JJJ2CCRU"
+    },
+    "request_id": "a042effb-5e95-4363-b8b1-af9fa6ee5c0d",
+    "assert": [
+      {
+        "has": "fit_for.recent_mean_level"
+      },
+      {
+        "has": "fit_for.fielded_mean_level"
+      }
+    ]
+  },
+  {
+    "id": "190.5",
+    "feedback": 190,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "player_tag": "#C920YGLC2"
+      },
+      "mode": "event",
+      "verbosity": "compact",
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-14T10:00:00Z"
+    },
+    "request_id": "2478552a-4c84-4ff7-ba54-4f6d68982c49",
+    "assert": [
+      {
+        "eq": ["decided_battles", 0]
+      },
+      {
+        "notes_match": "Event battles are not in the meta population"
+      }
+    ]
   }
 ]

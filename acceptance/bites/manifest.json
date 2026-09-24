@@ -1209,5 +1209,53 @@
     "case": "gym/184.2",
     "captures": ["184-2-badges_holders.json"],
     "expect": "."
+  },
+  {
+    "feedback": 187,
+    "contract": "6.36.4",
+    "why": "the Gym block 187.1 on the answer it read",
+    "case": "gym/187.1",
+    "captures": ["187-1-battles_trends.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 187,
+    "contract": "6.36.4",
+    "why": "the Gym block 187.2 on the answer it read",
+    "case": "gym/187.2",
+    "captures": ["187-2-battles_trends.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 187,
+    "contract": "6.36.4",
+    "why": "the Gym block 187.3 on the answer it read",
+    "case": "gym/187.3",
+    "captures": ["187-3-elixir_docs.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 188,
+    "contract": "6.36.4",
+    "why": "the Gym block 188.1 on the answer it read",
+    "case": "gym/188.1",
+    "captures": ["188-1-battles_meta_decks.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 188,
+    "contract": "6.36.4",
+    "why": "the Gym block 188.2 on the answer it read",
+    "case": "gym/188.2",
+    "captures": ["188-2-battles_meta_cards.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 189,
+    "contract": "6.36.4",
+    "why": "the Gym block 189.1 on the answer it read",
+    "case": "gym/189.1",
+    "captures": ["189-1-players_timeline.json"],
+    "expect": "."
   }
 ]
