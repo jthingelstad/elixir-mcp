@@ -131,6 +131,29 @@ export const collectionsTools = {
           curator_note: r.note,
         }));
       }
+      // The board a synced collection follows, and its newest snapshot
+      // (Gym #322): a sync that has not run yet leaves yesterday's board.
+      let boardObservedAt = null;
+      let syncedBoardAt = null;
+      if (c.synced_from) {
+        const loc = String(c.synced_from).split(":")[1] ?? "global";
+        const {
+          rows: [b],
+        } = await ctx.db.query(
+          `select max(s.observed_at) as at,
+                  max(s.observed_at) filter (where s.observed_at <= $2) as synced_board
+             from ranking_snapshot s
+             join ranking_board rb on rb.board = s.board and rb.location_key = s.location_key
+            where s.board = 'pol' and (rb.location_key = $1 or rb.country_code = $1)`,
+          [loc, c.synced_at ?? new Date(0)],
+        );
+        boardObservedAt = b?.at ?? null;
+        syncedBoardAt = c.synced_at ? (b?.synced_board ?? null) : null;
+      }
+      const syncBehind =
+        c.synced_from &&
+        boardObservedAt &&
+        (!c.synced_at || boardObservedAt > c.synced_at);
       return {
         slug: c.slug,
         applied: appliedBlock({ collection: c.slug }),
@@ -139,6 +162,15 @@ export const collectionsTools = {
         description: c.description,
         scope: c.scope,
         synced_from: c.synced_from ?? null,
+        ...(c.synced_from
+          ? {
+              synced_at: c.synced_at?.toISOString() ?? null,
+              // The board snapshot the last sync applied, and the board's
+              // newest: equal once the day's sync has run.
+              synced_snapshot_observed_at: syncedBoardAt?.toISOString() ?? null,
+              board_observed_at: boardObservedAt?.toISOString() ?? null,
+            }
+          : {}),
         members,
         notes: notes(
           // How the rows are ordered, and what they are not (Gym #114,
@@ -151,8 +183,11 @@ export const collectionsTools = {
           c.kind === "player"
             ? "years_played is the account's age in whole years (the game's YearsPlayed badge level), not time in this collection; null when the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so almost always an account under a year old (players_profile.account_age_days is read from the same badge, so it is null then too); an unread profile is null as well."
             : null,
+          syncBehind
+            ? `A newer board ${c.synced_from} (board observed ${boardObservedAt.toISOString()}) is not applied yet: these members are the board as of the last sync (synced_at ${c.synced_at ? c.synced_at.toISOString() : "unknown"}); rankings_players has today's.`
+            : null,
           c.synced_from
-            ? `Membership follows the live board ${c.synced_from}: it is re-synced every day after the 10:00Z board snapshot, so this is today's membership, not a fixed cohort${c.kind === "clan" ? ". A clan collection is not a segment: read a clan with segment {clan_tag}, one clan per call (Gym #288)." : ", and a segment read over a past window applies today's members."}`
+            ? `Membership follows the live board ${c.synced_from}, re-synced every day after the 10:00Z snapshot: this is the board observed ${syncedBoardAt ? syncedBoardAt.toISOString() : "at the last sync"} (synced_at ${c.synced_at ? c.synced_at.toISOString() : "unknown"}), not a fixed cohort${c.kind === "clan" ? ". A clan collection is not a segment: read a clan with segment {clan_tag}, one clan per call (Gym #288)." : ", and a segment read over a past window applies today's members."}`
             : null,
           "scope says how deeply members are recorded: comprehensive captures battles, activity only the surface.",
           "recording false members may have thin or no data yet; elixir_coverage tells the capture story per tag.",
@@ -252,6 +287,13 @@ export const collectionsTools = {
         tags,
         { mode: action },
       );
+      // A set replaces the membership: stamp it, so collections_get can
+      // say how old a board collection is (Gym #322).
+      if (action === "set")
+        await ctx.db.query(
+          `update collection set synced_at = now() where collection_id = $1`,
+          [col[0].collection_id],
+        );
       return {
         slug,
         applied: appliedBlock({ collection: slug, action, tags: tags.length }),

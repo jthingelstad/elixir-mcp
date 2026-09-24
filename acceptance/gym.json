@@ -19748,5 +19748,240 @@
         "notes_match": "limit of \\d+ should fit"
       }
     ]
+  },
+  {
+    "id": "322.1",
+    "feedback": 322,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "pol-global-top-100"
+    },
+    "request_id": "7ae324d2-f2da-447e-9dbb-81747b8f37a3",
+    "assert": [
+      {
+        "has": "synced_at"
+      },
+      {
+        "has": "synced_snapshot_observed_at"
+      }
+    ]
+  },
+  {
+    "id": "322.2",
+    "feedback": 322,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "pol-global-top-100"
+    },
+    "request_id": "7ae324d2-f2da-447e-9dbb-81747b8f37a3",
+    "assert": [
+      {
+        "notes_match": "board observed \\d{4}-\\d{2}-\\d{2}"
+      }
+    ]
+  },
+  {
+    "id": "322.3",
+    "feedback": 322,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "global-top-10-clans"
+    },
+    "request_id": "45237162-d5b2-4ed9-b517-7b031f318c8a",
+    "assert": [
+      {
+        "has": "synced_snapshot_observed_at"
+      },
+      {
+        "notes_match": "board observed \\d{4}-\\d{2}-\\d{2}"
+      }
+    ]
+  },
+  {
+    "id": "322.4",
+    "feedback": 322,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "2ad00784-4a8a-453f-8c4c-e4a78f3955f9",
+    "assert": [
+      {
+        "notes_match": "pol-global-top-100's membership[^.]*\\d{4}-\\d{2}-\\d{2}"
+      }
+    ]
+  },
+  {
+    "id": "322.5",
+    "feedback": 322,
+    "stability": "live",
+    "calls": {
+      "c": {
+        "tool": "collections_get",
+        "args": {
+          "collection": "pol-global-top-100"
+        }
+      },
+      "r": {
+        "tool": "rankings_players",
+        "args": {
+          "limit": 100
+        }
+      }
+    },
+    "request_id": "7ae324d2-f2da-447e-9dbb-81747b8f37a3",
+    "when": {
+      "lt": ["c.synced_snapshot_observed_at", "r.snapshot.observed_at"]
+    },
+    "assert": [
+      {
+        "notes_match": "not applied yet"
+      },
+      {
+        "notes_not_match": "so this is today's membership"
+      }
+    ]
+  },
+  {
+    "id": "322.6",
+    "feedback": 322,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "pros"
+    },
+    "request_id": "85978e39-0cea-4381-93ce-9c34a1d6ce01",
+    "assert": [
+      {
+        "notes_not_match": "re-synced|board observed|not applied yet"
+      }
+    ]
+  },
+  {
+    "id": "322.7",
+    "feedback": 322,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "collections_get",
+        "args": {
+          "collection": "pol-global-top-100"
+        }
+      },
+      "r": {
+        "tool": "rankings_players",
+        "args": {
+          "limit": 100
+        }
+      }
+    },
+    "request_id": "7ae324d2-f2da-447e-9dbb-81747b8f37a3",
+    "assert": [
+      {
+        "count_eq": ["c.members[]", "r.players"]
+      }
+    ]
+  },
+  {
+    "id": "323.1",
+    "feedback": 323,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "clan_tag": "#Q9QPPGGG"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "668db43d-20d7-4ef4-ad1c-2fefb0640578",
+    "assert": [
+      {
+        "notes_match": "not recorded now, so none of their battles count"
+      },
+      {
+        "notes_match": "elixir_coverage"
+      }
+    ]
+  },
+  {
+    "id": "323.2",
+    "feedback": 323,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "d": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": {
+            "collection": "pros"
+          },
+          "mode": "ranked",
+          "verbosity": "compact"
+        }
+      },
+      "t": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": {
+            "collection": "pros"
+          },
+          "tower_troops": true,
+          "mode": "ranked"
+        }
+      }
+    },
+    "request_id": "7a8b1331-ea24-4104-8b05-b3b100e16b19",
+    "assert": [
+      {
+        "eq": ["d.decided_battles", "t.decided_battles"]
+      },
+      {
+        "lte": ["t.cards[0].battles", "t.decided_battles"]
+      }
+    ]
+  },
+  {
+    "id": "323.3",
+    "feedback": 323,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "collection": "pros",
+        "clan_tag": "#J2RGCRVG"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "a712adbb-f2cf-438c-8d0c-4db7425e2c64",
+    "assert": [
+      {
+        "notes_match": "at most one of player_tag, clan_tag, collection"
+      }
+    ]
+  },
+  {
+    "id": "323.4",
+    "feedback": 323,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {},
+    "request_id": "96807bee-ae95-433d-8cc2-536dd0b5a2b1",
+    "assert": [
+      {
+        "notes_match": "collection is required"
+      }
+    ]
   }
 ]

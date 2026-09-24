@@ -2041,5 +2041,37 @@
     "case": "gym/315.3",
     "captures": ["315-3-battles_meta_cards.json"],
     "expect": "."
+  },
+  {
+    "feedback": 322,
+    "contract": "7.2.1",
+    "why": "the Gym block 322.1 on the answer it read",
+    "case": "gym/322.1",
+    "captures": ["322-1-collections_get.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 322,
+    "contract": "7.2.1",
+    "why": "the Gym block 322.2 on the answer it read",
+    "case": "gym/322.2",
+    "captures": ["322-2-collections_get.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 322,
+    "contract": "7.2.1",
+    "why": "the Gym block 322.3 on the answer it read",
+    "case": "gym/322.3",
+    "captures": ["322-3-collections_get.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 322,
+    "contract": "7.2.1",
+    "why": "the Gym block 322.4 on the answer it read",
+    "case": "gym/322.4",
+    "captures": ["322-4-battles_meta_decks.json"],
+    "expect": "."
   }
 ]

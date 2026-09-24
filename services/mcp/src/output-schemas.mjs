@@ -730,6 +730,9 @@ export const OUTPUT_SCHEMAS = {
       description: { type: ["string", "null"] },
       scope: { type: "string" },
       synced_from: { type: ["string", "null"] },
+      synced_at: { type: ["string", "null"] },
+      synced_snapshot_observed_at: { type: ["string", "null"] },
+      board_observed_at: { type: ["string", "null"] },
       members: {
         type: "array",
         description:

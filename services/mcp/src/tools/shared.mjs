@@ -329,7 +329,7 @@ export async function resolveSegment(ctx, args) {
   if (seg.collection !== undefined) {
     const slug = String(seg.collection).toLowerCase().trim();
     const { rows } = await ctx.db.query(
-      `select c.collection_id from collection c
+      `select c.collection_id, c.synced_from, c.synced_at from collection c
        where c.slug = $1 and c.kind = 'player'
          and (c.visibility = 'public' or c.owner_account = $2)`,
       [slug, ctx.account.accountId],
@@ -361,6 +361,10 @@ export async function resolveSegment(ctx, args) {
     return {
       kind: "collection",
       collectionId: rows[0].collection_id,
+      // A board collection's last sync (Gym #322), for the segment note.
+      ...(rows[0].synced_from
+        ? { syncedAt: rows[0].synced_at?.toISOString?.() ?? null }
+        : {}),
       slug,
       echo: { kind: "collection", collection: slug },
     };
@@ -1066,6 +1070,9 @@ export async function segmentFilter(ctx, args, params) {
       timeColumn: "bp.battle_time",
       label: seg.slug,
       echo: seg.echo,
+      // When a board collection was last synced (Gym #322): the segment
+      // is that sync's membership, which the note dates.
+      ...(seg.syncedAt !== undefined ? { syncedAt: seg.syncedAt } : {}),
     };
   }
   return {
@@ -1130,7 +1137,7 @@ export function collectionSegmentNote(seg) {
       .filter(Boolean)
       .join(" ");
   if (echo?.kind !== "collection") return null;
-  return `The collection segment applies ${echo.collection}'s membership as of this call (collections_get lists it); a collection that follows a live board (synced_from) turns over daily, so rates over a past window describe today's members, not the ones on the board then.`;
+  return `The collection segment applies ${echo.collection}'s membership as of this call${seg?.syncedAt !== undefined ? `, the board as synced ${seg.syncedAt ?? "before sync times were kept (2026-09-24)"}` : ""} (collections_get lists it); a collection that follows a live board (synced_from) turns over daily, so rates over a past window describe today's members, not the ones on the board then.`;
 }
 
 export const SEGMENT_NOTES = [
