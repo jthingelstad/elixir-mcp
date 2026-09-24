@@ -239,13 +239,13 @@ canonical: /support
         </div>
         <div class="stats__cell">
           <div class="label">players</div>
-          <div class="stats__value stats__value--brand">{% if t %}{{ t.players | number }}{% else %}{{ n }}{% endif %}</div>
-          <div class="stats__note">observed</div>
+          <div class="stats__value stats__value--brand">{% if t %}{{ t.players_recording | number }}{% else %}{{ n }}{% endif %}</div>
+          <div class="stats__note">recorded{% if t %} · {{ t.players | number }} observed{% endif %}</div>
         </div>
         <div class="stats__cell">
           <div class="label">clans</div>
-          <div class="stats__value stats__value--brand">{% if t %}{{ t.clans | number }}{% else %}{{ n }}{% endif %}</div>
-          <div class="stats__note">observed</div>
+          <div class="stats__value stats__value--brand">{% if t %}{{ t.clans_recording | number }}{% else %}{{ n }}{% endif %}</div>
+          <div class="stats__note">recorded{% if t %} · {{ t.clans | number }} observed{% endif %}</div>
         </div>
         <div class="stats__cell">
           <div class="label">war weeks</div>

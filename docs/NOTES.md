@@ -2093,3 +2093,14 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - Open (not filed): season-read partner counts run to now while the anchor stops at the rollup cursor (~0.3%); raw season-to-date corpus reads near 18 s; Mirror out of average_elixir unnoted; members.played.level_played is an undocumented mean.
 - Cards parked after three rounds: every finding shipped.
 
+## 2026-09-23 — Jamie's answers on the held questions (6.36.7)
+
+- **#172** trophy ranges: leave as is (two meanings, both described).
+- **#183** yes: clan segments follow the recorded-now rule. Players and clans known only from a battle stub are ghost entries, never metrics (DECISIONS). The 6.36.3 "dropped member" was not the filter: on 2026-09-24 the controls fail with the filter NOT deployed (47 of 48; a new member has no profile read until the next poll). 145.3/183.4/183.5 are `refuted` (players_considered = member_count is not an invariant); 183.3 is live again.
+- **Headline counts** (home, data, support, llms.txt, the console Data view): recorded players (1,080 = RECORDED_PLAYERS_SQL, the tools' number; the old `players_recording` was direct recordings only, 859) and recorded clans (18) lead; observed (358,062 / 7,604) is the secondary line.
+- **#111** yes: carry each member's latest profile forward (`members_profile_carried`).
+- **Round 4** for badges, battles and cards.
+- **Gym token:** `hourly_rate_limit` 1,000,000 (own bucket; no "unlimited" exists in the handler), set by `service_token_limits`. daily_quota stays the owner's.
+- **Cloud Gym routine:** stays paused (Jamie).
+- **#191 bands repaired:** `meta_rollup_season` `repair_bands` on 2026-09 (3,207 rows, 59 s) and 2026-08 (34 rows); gym/191.x and 192.x pass live.
+

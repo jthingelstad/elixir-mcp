@@ -60,6 +60,7 @@ const CLAN_AGGREGATES = [
   "avg_member_trophies",
   "members_seen",
   "members_with_profile",
+  "members_profile_carried",
 ];
 const CLAN_PROFILE_AGGREGATES = [
   "avg_member_wins",
@@ -77,19 +78,33 @@ const ALL_CLAN_METRICS = [
 ];
 const DEFAULT_CLAN_METRICS = [...CLAN_METRICS, ...CLAN_AGGREGATES];
 
+// A member whose profile was not read that day counts with their latest
+// earlier read (#111; Jamie 2026-09-23: "it's more accurate data"). A
+// profile's wins and collection level only climb, so the last read is
+// the best statement of the day, where leaving the member out moved the
+// average with the poll schedule. members_profile_carried says how many.
 const AGGREGATE_SQL = `
   select sum(s.trophies)::int as total_member_trophies,
          round(avg(s.trophies))::int as avg_member_trophies,
          count(*) filter (where s.roster_observed_at is not null)::int as members_seen,
-         count(*) filter (where s.profile_observed_at is not null)::int as members_with_profile,
-         round(avg(s.wins))::int as avg_member_wins,
-         round(avg(s.collection_level))::int as avg_member_collection_level,
+         count(*) filter (where s.profile_observed_at is not null or lp.player_tag is not null)::int as members_with_profile,
+         count(*) filter (where s.profile_observed_at is null and lp.player_tag is not null)::int as members_profile_carried,
+         round(avg(case when s.profile_observed_at is not null then s.wins else lp.wins end))::int as avg_member_wins,
+         round(avg(case when s.profile_observed_at is not null then s.collection_level else lp.collection_level end))::int as avg_member_collection_level,
          count(*) filter (where s.trophies >= 12000)::int as members_12000_plus,
          count(*) filter (where s.trophies >= 14000)::int as members_14000_plus,
          count(*) filter (where p.years_played >= 6)::int as members_6_years_plus,
-         count(*) filter (where s.collection_level >= 1000)::int as members_collection_1000_plus
+         count(*) filter (where (case when s.profile_observed_at is not null then s.collection_level else lp.collection_level end) >= 1000)::int as members_collection_1000_plus
     from player_snapshot_daily s
     join player p on p.player_tag = s.player_tag
+    left join lateral (
+      select l.player_tag, l.wins, l.collection_level
+        from player_snapshot_daily l
+       where l.player_tag = s.player_tag
+         and l.snapshot_date < s.snapshot_date
+         and l.profile_observed_at is not null
+       order by l.snapshot_date desc
+       limit 1) lp on s.profile_observed_at is null
    where s.clan_tag = c.clan_tag and s.snapshot_date = c.day and s.snapshot_kind = c.snapshot_kind`;
 
 function parseTags(list, argName, max) {
@@ -236,11 +251,11 @@ export const seriesTools = {
             ? "members_seen counts the member rows the roster wrote that day, including members who left during the day (their row keeps the clan's tag until the next roster places them elsewhere), so it can read above members; a day it reads below members is a partial day (the roster was polled, but not every member's row is on the game day's grid yet)."
             : null,
           metrics.some((m) => CLAN_PROFILE_AGGREGATES.includes(m))
-            ? "The profile-derived aggregates average over members with a recorded profile that day; members_with_profile is that denominator. members_6_years_plus reads the player's current players_profile.years_played, not the day's."
+            ? "The profile-derived aggregates average over members with a recorded profile as of that day; members_with_profile is that denominator. A member whose profile was not read that day counts with their latest earlier read (members_profile_carried says how many); wins and collection level only climb, so a carried value may be slightly behind. members_6_years_plus reads the player's current players_profile.years_played, not the day's."
             : null,
           metrics.some((m) => CLAN_PROFILE_AGGREGATES.includes(m)) &&
             thinDays.length
-            ? `On ${thinDays.slice(0, 8).join(", ")}${thinDays.length > 8 ? ` and ${thinDays.length - 8} more days` : ""} not every member's profile was polled, so the profile-derived values there (the members_*_plus counts too) cover only members_with_profile of them: a count below members may be members not read that day, not members below the line.`
+            ? `On ${thinDays.slice(0, 8).join(", ")}${thinDays.length > 8 ? ` and ${thinDays.length - 8} more days` : ""} some members had no profile read on or before that day, so the profile-derived values there (the members_*_plus counts too) cover only members_with_profile of them: a count below members may be members never read, not members below the line.`
             : null,
           points.some((p) => p.partial)
             ? `The point for ${today} is the game day still in progress (partial: true): its profile-derived values cover the members polled so far.`

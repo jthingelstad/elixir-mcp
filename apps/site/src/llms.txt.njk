@@ -8,7 +8,7 @@ eleventyExcludeFromCollections: true
 
 Access is approval-gated while the recorder grows; request it at {{ site.url }}/. All recorded GAME data is readable by every approved account, the same posture as the game's public API. ACCOUNT data is private to its owner. Roles never gate what you can read: they set how much the service records for you and how many calls per day your agent gets.
 {% if stats.ok %}
-Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | number }} battles recorded across {{ stats.totals.players | number }} players and {{ stats.totals.clans | number }} clans, captured by {{ stats.totals.collectors_active }} collectors, oldest battle {{ stats.totals.oldest_battle | day }}. These figures are baked at build time; {{ site.url }}/api/public/stats is live.
+Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | number }} battles, {{ stats.totals.players_recording | number }} recorded players and {{ stats.totals.clans_recording | number }} recorded clans (plus {{ stats.totals.players | number }} players seen only as opponents or teammates), captured by {{ stats.totals.collectors_active }} collectors, oldest battle {{ stats.totals.oldest_battle | day }}. These figures are baked at build time; {{ site.url }}/api/public/stats is live.
 {% endif %}
 ## Documentation
 - [All documentation]({{ site.url }}/docs): index of every page below

@@ -7,6 +7,7 @@ import {
 
 import { json } from "../http.mjs";
 import { DISCLAIMER, cardForms, cardType } from "@elixir-mcp/contracts";
+import { RECORDED_PLAYERS_SQL } from "../../../mcp/src/tools/shared.mjs";
 
 export function publicRoutes({ queueStats }) {
   return {
@@ -482,8 +483,12 @@ export function publicRoutes({ queueStats }) {
                 (select min(battle_time) from battle) as oldest_battle,
                 (select max(battle_time) from battle) as newest_battle,
                 (select count(*)::int from gateway where status = 'active') as collectors_active,
-                (select count(*) filter (where subject_type = 'player')::int
-                 from recording where status = 'active') as players_recording,
+                -- Recorded players as the tools count them: recorded
+                -- directly or as a member of a comprehensively recorded
+                -- clan. A player known only from a battle stub is a ghost
+                -- entry and never the headline (Jamie, 2026-09-23).
+                (select count(distinct player_tag)::int
+                 from (${RECORDED_PLAYERS_SQL}) rp) as players_recording,
                 (select count(*) filter (where subject_type = 'clan')::int
                  from recording where status = 'active') as clans_recording`,
       );

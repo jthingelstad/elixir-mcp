@@ -141,10 +141,10 @@ export function Data() {
             ],
             [
               "players",
-              t.players,
-              `observed · ${fmt(t.players_recording)} recorded`,
+              t.players_recording,
+              `recorded · ${fmt(t.players)} observed`,
             ],
-            ["clans", t.clans, `observed · ${fmt(t.clans_recording)} recorded`],
+            ["clans", t.clans_recording, `recorded · ${fmt(t.clans)} observed`],
             ["war weeks", t.war_weeks, "recorded river races"],
             ["snapshots", t.snapshots, "daily player snapshots"],
             ["collectors", t.collectors_active, "machines fetching now"],

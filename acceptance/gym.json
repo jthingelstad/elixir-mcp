@@ -4945,7 +4945,8 @@
       {
         "eq": ["r.players_considered", "k.member_count"]
       }
-    ]
+    ],
+    "refuted": "A control that assumed every current member has a profile read. A member who joined since the last poll has none until the next one (47 of 48 on 2026-09-24, with the recorded-now filter not deployed), so players_considered = member_count is not an invariant. The coverage note covers the gap; 183.3 checks the rule."
   },
   {
     "id": "145.4",
@@ -8214,8 +8215,7 @@
       {
         "absent": "holders[?player_tag=#PCR9Y9LU8]"
       }
-    ],
-    "refuted": "Held for Jamie: making a clan segment follow the corpus recorded-now rule (which would drop this stale read) also dropped a current, covered member of #8UJ2UUJ8 (49 of 50) and broke three controls. 6.36.4 ships the coverage note instead; whether clan segments follow the corpus rule is Jamie's call."
+    ]
   },
   {
     "id": "183.4",
@@ -8244,7 +8244,8 @@
       {
         "eq": ["r.players_considered", "k.member_count"]
       }
-    ]
+    ],
+    "refuted": "A control that assumed every current member has a profile read. A member who joined since the last poll has none until the next one (47 of 48 on 2026-09-24, with the recorded-now filter not deployed), so players_considered = member_count is not an invariant. The coverage note covers the gap; 183.3 checks the rule."
   },
   {
     "id": "183.5",
@@ -8263,7 +8264,8 @@
       {
         "notes_not_match": "of this clan's \\d+ current members"
       }
-    ]
+    ],
+    "refuted": "A control that assumed every current member has a profile read. A member who joined since the last poll has none until the next one (47 of 48 on 2026-09-24, with the recorded-now filter not deployed), so players_considered = member_count is not an invariant. The coverage note covers the gap; 183.3 checks the rule."
   },
   {
     "id": "184.1",

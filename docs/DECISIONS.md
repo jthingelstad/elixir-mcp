@@ -72,6 +72,9 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **The badge corpus is the players recorded now** — a profile the record no longer polls is left out of badge questions over the corpus; "there is no practical way we could do otherwise". (2026-09-23; Jamie)
 - **A week's donations are the highest counter value seen in its game days** — the counter only climbs until the weekly reset; never try to pin the reset minute. (2026-09-23; Jamie)
 
+- **Players and clans known only from a battle stub are ghost entries, never metrics** — they exist to name an opponent and to seed history if recorded later; every metric counts recorded players (direct, or a member of a comprehensively recorded clan), clan segments included, and every headline count is recorded, with observed as the secondary line. (2026-09-23; Jamie)
+- **A clan's profile aggregates carry each member's latest profile forward** — a member not polled that day counts with their last read, and `members_profile_carried` says how many. (2026-09-23; Jamie)
+
 ## Recording, collectors and rate budget
 
 - **One global rate budget** — the fleet is redundancy, never quota multiplication; this is ToS posture, and the ceiling does not move. (Decisions block, 2026-09-10; engineering)

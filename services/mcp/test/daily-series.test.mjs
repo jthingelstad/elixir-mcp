@@ -218,6 +218,7 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
       "avg_member_trophies",
       "members_seen",
       "members_with_profile",
+      "members_profile_carried",
       "avg_member_wins",
       "members_14000_plus",
     ],
@@ -453,4 +454,31 @@ test("one window grammar (3.17.0, call 3): an instant on a series tool is floore
   const bad = await call("players_timeline", { from: "yesterday" });
   assert.equal(bad.isError, true);
   assert.equal(bad.body.error.code, "bad_request");
+});
+
+test("clans_timeline: a member not read that day counts with their latest earlier profile (#111)", async () => {
+  const args = {
+    from: "2026-09-01",
+    to: "2026-09-06",
+    metrics: [
+      "members_with_profile",
+      "members_profile_carried",
+      "avg_member_wins",
+    ],
+  };
+  const before = (await call("clans_timeline", args)).body.series;
+  // The scratch database only: take 09-06's profile read away.
+  await db.query(
+    `update player_snapshot_daily
+        set profile_observed_at = null, wins = null, collection_level = null
+      where player_tag = $1 and snapshot_date = '2026-09-06'`,
+    [ME],
+  );
+  const { body } = await call("clans_timeline", args);
+  const d = body.series.find((p) => p.day === "2026-09-06");
+  const prior = before.find((p) => p.day === "2026-09-02");
+  assert.equal(d.members_with_profile, 1, "the carried member still counts");
+  assert.equal(d.members_profile_carried, 1);
+  assert.equal(d.avg_member_wins, prior.avg_member_wins, "09-02's read");
+  assert.ok(body.notes.some((n) => /latest earlier read/.test(n)));
 });
