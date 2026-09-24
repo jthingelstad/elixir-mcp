@@ -283,10 +283,12 @@ function AccountSwitcher({
         title={`Console: ${here.label}. Switch account`}
         onClick={() => setOpen(!open)}
       >
-        <span className="min-w-0 truncate text-[13.5px] font-semibold">
-          {here.label}
+        <span className="flex min-w-0 items-center gap-[7px]">
+          <span className="min-w-0 truncate text-[13.5px] font-semibold">
+            {here.label}
+          </span>
+          <Icon name={open ? "chevron-up" : "chevron-down"} size={15} />
         </span>
-        <Icon name={open ? "chevron-up" : "chevron-down"} size={15} />
         {here.aside && (
           <span className="mono ml-auto shrink-0 whitespace-nowrap text-ink-faint">
             {here.aside}

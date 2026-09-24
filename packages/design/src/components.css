@@ -302,10 +302,6 @@ table {
 
 .rail {
   flex: 0 0 var(--rail-w);
-  /* Its width is the rail's, never its content's: a long agent name in
-     the account selector truncates rather than widening the rail
-     (a flex item's min-width is otherwise its min-content). */
-  min-width: 0;
   align-self: stretch;
   display: flex;
   flex-direction: column;
@@ -401,13 +397,17 @@ table {
   border-radius: var(--r-rail) var(--r-rail) 0 0;
   box-shadow: inset 3px 0 0 var(--accent-bright);
 }
+/* The name and its chevron are one unit; the aside ("agent · leader")
+   sits beside them when it fits and drops to its own line when it does
+   not, so the head never sets the rail's width. */
 .rail__switch-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 7px;
+  column-gap: 7px;
   width: 100%;
-  height: 40px;
-  padding: 0 11px;
+  min-height: 40px;
+  padding: 6px 11px;
   background: transparent;
   border: 0;
   color: var(--ink);
