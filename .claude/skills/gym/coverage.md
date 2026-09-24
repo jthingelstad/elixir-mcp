@@ -12,7 +12,7 @@ shipped, and both need a regression pass.
 
 | Family | Status | Contract | Date | Rounds | Report | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| badges | r3 fixed (6.36.3-6.36.4); #183 decided by Jamie and shipped 6.36.7 (recorded-now); **round 4 due** (Jamie) | 6.36.2 | 2026-09-23 | 3 | reports/2026-09-23-badges-r3.md | r3: #183-#184 done, #185 praise. 145.3/183.4/183.5 refuted (a new joiner has no profile read until the next poll) |
+| badges | r4 fixed (6.36.8); not clean (1 finding). Round 5 only if Jamie asks | 6.36.7 | 2026-09-23 | 4 | reports/2026-09-23-badges-r4.md | r4: 10/10 regressions confirmed (#183 as decided); #193 done (cut pages), #194 praise. Open: timeline badge level-ups incomplete (Ak, Mega Goblin; elixir family); a clan collection as segment answers not_found |
 | battles | r3 fixed (6.36.5); **round 4 due** (Jamie) | 6.36.4 | 2026-09-23 | 3 | reports/2026-09-23-battles-r3.md | r3: #186-#189 done, #190 praise; trail stays casual in the type fold (the tag is the rule); outside_meta on segment reads only |
 | cards | r3 fixed (6.36.6); **round 4 due** (Jamie) | 6.36.5 | 2026-09-23 | 3 | reports/2026-09-23-cards-r3.md | r3: 13/13 regressions confirmed; #191 done (tournament unbanded, bands repaired 09 + 08), #192 praise. Open: season partner counts run to now vs the anchor at the cursor (~0.3%); raw season corpus reads near 18 s; Mirror out of average_elixir; level_played is an undocumented mean |
 | clans | r2 findings fixed (6.33.0), round 3 due | 6.32.0 | 2026-09-23 | 2 | reports/2026-09-23-clans-r2.md | #157-#158 done, #159 praise; 13/13 regressions confirmed; donations = week high-water (Jamie); participation cap moot for Clan (now on /api/v1) |
