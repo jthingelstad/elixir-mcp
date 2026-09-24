@@ -136,22 +136,12 @@ export function makeHandler({
   notifyOwner = async () => {},
   sendWelcomeEmail = async () => {},
   queueStats = async () => null,
-  track = null,
   collectorDoor = null,
   originSecret = null,
   /** { s3, bucket } for reading captured tool calls (capture.mjs
    *  makeCaptureStore); null = the call record carries the row only. */
   capture = null,
 }) {
-  // Tinylytics ping (best-effort by contract; never blocks a response).
-  const ping = async (eventName, value) => {
-    if (!track) return;
-    try {
-      await track(eventName, value);
-    } catch {
-      // Analytics must never break serving (house rule).
-    }
-  };
   async function resolveAccount(
     db,
     event,
@@ -239,19 +229,6 @@ export function makeHandler({
       seen: event ? sessionSeenFrom(event) : null,
     });
     await logEvent(db, account.account_id, "signed_in");
-    // The signup funnel's last step, and the only one that means the product
-    // was actually reached: request → approval → somebody actually arriving.
-    // Counted once per account, by asking whether this is their first session
-    // BEFORE the one just minted is the only one there is.
-    try {
-      const { rows } = await db.query(
-        `select count(*)::int as n from session where account_id = $1`,
-        [account.account_id],
-      );
-      if (rows[0]?.n === 1) await ping("signup.activated");
-    } catch {
-      // Never let a funnel count cost somebody their sign-in.
-    }
     // The second chance at approval-time tracking: at the decision we may
     // not have fetched the requested player yet, so their clan was not
     // knowable. It no-ops once account.onboarded_at is set (0065).
@@ -267,7 +244,6 @@ export function makeHandler({
     ...collectorRoutes({ collectorDoor }),
     ...authRoutes({
       resolveAccount,
-      ping,
       mintSessionResponse,
       sendLoginEmail,
       notifyOwner,
@@ -277,10 +253,9 @@ export function makeHandler({
     ...publicRoutes({ queueStats }),
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),
     ...exploreRoutes({ resolveAccount, exploreRegistry }),
-    ...feedbackRoutes({ resolveAccount, ping, notifyOwner }),
+    ...feedbackRoutes({ resolveAccount, notifyOwner }),
     ...adminRoutes({
       resolveAccount,
-      ping,
       logEvent,
       notifyOwner,
       sendWelcomeEmail,

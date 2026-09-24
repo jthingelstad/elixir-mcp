@@ -87,16 +87,6 @@ export const handler = makeHandler({
   sendWelcomeEmail: ({ email }) =>
     enqueueEmail({ v: 1, kind: "welcome", to: email }),
   queueStats,
-  // Tinylytics ping via the relay queue (best-effort by contract).
-  track: queueUrl
-    ? (eventName, value) =>
-        enqueueEmail({
-          v: 1,
-          kind: "tinylytics_event",
-          event: eventName,
-          ...(value ? { value } : {}),
-        })
-    : null,
   notifyOwner,
   // Captured tool calls are read back for the console's call record;
   // absent bucket = the record carries the row only.

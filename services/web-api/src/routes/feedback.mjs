@@ -3,7 +3,6 @@ import { senderRef } from "../notify.mjs";
 
 export function feedbackRoutes({
   resolveAccount,
-  ping,
   notifyOwner = async () => {},
 }) {
   return {
@@ -65,7 +64,6 @@ export function feedbackRoutes({
           sendId,
         ],
       );
-      await ping("site.feedback", category);
       // Jamie hears about it (2026-09-09): best-effort, never in the way
       // of the row that was just written. The owner's own feedback is not
       // news to the owner.

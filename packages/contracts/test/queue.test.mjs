@@ -9,6 +9,8 @@ import {
   validateResultMessage,
   crBattleTime,
   OWNER_NOTIFY_KINDS,
+  outboxKey,
+  outboxObjects,
 } from "../dist/index.js";
 
 test("owner_notify carries an optional, closed notify_kind", () => {
@@ -118,4 +120,34 @@ test("mail policy: every kind is classified; bulk needs one-click unsubscribe, t
   assert.ok(!unrendered.ok && unrendered.errors.includes("subject:missing"));
   assert.ok(unrendered.errors.includes("text:missing"));
   assert.ok(isProductEmailKind("milestone") && !isProductEmailKind("login"));
+});
+
+test("outbox: an S3 notification names its objects; a test event names none; a plain message is not one", () => {
+  assert.equal(outboxKey("email", "abc"), "email/abc.json");
+  const notification = JSON.stringify({
+    Records: [
+      {
+        eventSource: "aws:s3",
+        s3: {
+          bucket: { name: "elixir-mcp-outbox-1" },
+          object: { key: "email/a%2Bb+c.json" },
+        },
+      },
+    ],
+  });
+  assert.deepEqual(outboxObjects(notification), [
+    { bucket: "elixir-mcp-outbox-1", key: "email/a+b c.json" },
+  ]);
+  assert.deepEqual(
+    outboxObjects(
+      JSON.stringify({ Service: "Amazon S3", Event: "s3:TestEvent" }),
+    ),
+    [],
+  );
+  assert.equal(outboxObjects(JSON.stringify({ v: 1, kind: "login" })), null);
+  assert.equal(outboxObjects("not json"), null);
+  assert.equal(
+    outboxObjects(JSON.stringify({ Records: [{ eventSource: "aws:sns" }] })),
+    null,
+  );
 });

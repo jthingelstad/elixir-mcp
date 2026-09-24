@@ -247,33 +247,55 @@ export function validateEmailMessage(
   return errors.length === 0 ? { ok: true, msg: m } : { ok: false, errors };
 }
 
-/** Analytics event riding the SAME queue as email (the relay is the one
- *  non-VPC egress worker). Semantics differ deliberately: email retries
- *  hard and dead-letters; analytics is best-effort and DROPS on failure
- *  — a Tinylytics outage must never page anyone. Names are dotted
- *  category.action; values carry tool names and status classes, never
- *  user text (Thingy's rule). */
-export interface AnalyticsEventMessage {
-  v: 1;
-  kind: "tinylytics_event";
-  /** Dotted category.action, e.g. "site.feedback". */
-  event: string;
-  value?: string;
+/** The outbox (2026-09-24). The VPC Lambdas have no route to SQS or the
+ *  internet, only to S3 through the free gateway endpoint, so a message
+ *  for a non-VPC worker is written to the outbox bucket as one JSON
+ *  object and S3 notifies that lane's queue. The object body is the
+ *  message itself (an EmailMessage on the email lane, `{brief_key, kind}`
+ *  on the editor lane); the worker reads it, acts and deletes it, so an
+ *  object still there after the queue's retries is one that failed. */
+export const OUTBOX_LANES = ["email", "editor"] as const;
+export type OutboxLane = (typeof OUTBOX_LANES)[number];
+
+export function outboxKey(lane: OutboxLane, id: string): string {
+  return `${lane}/${id}.json`;
 }
 
-export function isAnalyticsEventMessage(
-  msg: unknown,
-): msg is AnalyticsEventMessage {
-  const m = msg as AnalyticsEventMessage;
-  return (
-    typeof m === "object" &&
-    m !== null &&
-    m.v === 1 &&
-    m.kind === "tinylytics_event" &&
-    typeof m.event === "string" &&
-    m.event.includes(".") &&
-    (m.value === undefined || typeof m.value === "string")
-  );
+export interface OutboxObject {
+  bucket: string;
+  key: string;
+}
+
+/** The outbox objects an SQS message body names. `null` when the body is
+ *  not from S3 (a message sent straight to the queue, which is how an
+ *  ops hand-send arrives); `[]` for S3's own `s3:TestEvent`, which it
+ *  sends when the notification is configured. */
+export function outboxObjects(body: string): OutboxObject[] | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return null;
+  }
+  const m = parsed as {
+    Event?: unknown;
+    Records?: Array<{
+      eventSource?: unknown;
+      s3?: { bucket?: { name?: unknown }; object?: { key?: unknown } };
+    }>;
+  };
+  if (m?.Event === "s3:TestEvent") return [];
+  if (!Array.isArray(m?.Records)) return null;
+  const out: OutboxObject[] = [];
+  for (const r of m.Records) {
+    if (r?.eventSource !== "aws:s3") return null;
+    const bucket = r.s3?.bucket?.name;
+    const key = r.s3?.object?.key;
+    if (typeof bucket !== "string" || typeof key !== "string") return null;
+    // S3 URL-encodes the key in notifications, spaces as '+'.
+    out.push({ bucket, key: decodeURIComponent(key.replace(/\+/g, " ")) });
+  }
+  return out;
 }
 
 const LANES = new Set(["live", "bulk"]);

@@ -1,42 +1,15 @@
-/** Lambda entrypoint: the non-VPC relay — JMAP email, Tinylytics
- *  pings, and Buttondown mailing-list enrollment. */
+/** Lambda entrypoint: the non-VPC relay — sends mail (SES, or JMAP)
+ *  from the outbox and enrolls opted-in sign-ins with Buttondown. */
 
 import { createHash } from "node:crypto";
+import {
+  S3Client,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { makeJmapSender } from "./jmap.mjs";
 import { makeSesSender } from "./ses.mjs";
 import { makeHandler } from "./handler.mjs";
-
-/** Server-side Tinylytics events (Jamie, 2026-09-05): the VPC Lambdas
- *  enqueue, this relay posts — one batch call per SQS batch. Values
- *  carry tool names and status classes only, never user text. */
-function makeTinylyticsTracker({ token, siteId }) {
-  if (!token || !siteId) return null;
-  return async (events) => {
-    const res = await fetch(
-      `https://tinylytics.app/api/v1/sites/${siteId}/events/batch`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          // Cloudflare rejects agent-less requests.
-          "User-Agent": "elixir-mcp-relay",
-        },
-        body: JSON.stringify(
-          events.map((e) => ({
-            event: e.event,
-            ...(e.value ? { value: e.value } : {}),
-          })),
-        ),
-        // A hung analytics endpoint must never delay the emails that
-        // share this batch (review item 1).
-        signal: AbortSignal.timeout(3_000),
-      },
-    );
-    if (!res.ok) throw new Error(`tinylytics ${res.status}`);
-  };
-}
 
 /** Buttondown answers 400 for both "you already have this address" and
  *  "this request is wrong". Treating the whole status as success (as we
@@ -115,12 +88,23 @@ export function chooseSender(env) {
     : makeJmapSender({ token: env.JMAP_TOKEN, fromEmail });
 }
 
+const s3 = new S3Client({});
+
 export const handler = makeHandler({
   send: chooseSender(process.env),
-  track: makeTinylyticsTracker({
-    token: process.env.TINYLYTICS_API_TOKEN,
-    siteId: process.env.TINYLYTICS_SITE_ID,
-  }),
+  readObject: async ({ bucket, key }) => {
+    try {
+      const out = await s3.send(
+        new GetObjectCommand({ Bucket: bucket, Key: key }),
+      );
+      return await out.Body.transformToString();
+    } catch (err) {
+      if (err?.name === "NoSuchKey") return null;
+      throw err;
+    }
+  },
+  deleteObject: ({ bucket, key }) =>
+    s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })),
   enroll: makeButtondownEnroller({
     token: process.env.BUTTONDOWN_API_TOKEN,
     newsletterId: process.env.BUTTONDOWN_NEWSLETTER_ID || null,

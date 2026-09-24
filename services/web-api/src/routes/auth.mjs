@@ -28,7 +28,6 @@ const SIGNIN_MAIL_PER_ADDRESS_HOUR = 5;
 
 export function authRoutes({
   resolveAccount,
-  ping,
   mintSessionResponse,
   sendLoginEmail,
   notifyOwner,
@@ -57,7 +56,6 @@ export function authRoutes({
       });
       if (result.created) {
         await notifyOwner({ kind: "access_request", playerTag });
-        await ping("signup.requested");
       }
       // Identical response for new, repeat, denied, and already-approved.
       return json(200, {
@@ -142,7 +140,6 @@ export function authRoutes({
       const row = await redeemMagicToken(db, body.token);
       if (!row || row.purpose !== "web")
         return json(400, { error: "invalid_or_expired" });
-      await ping("site.signin", "magic_link");
       // The screen that asked may be a different one (0083). From the
       // same address the session is handed over now; from a different
       // one this screen is asked first, and the answer rides back on
@@ -210,7 +207,6 @@ export function authRoutes({
       if (!okIp || !okId) return json(429, { error: "rate_limited" });
       const hash = await takeHandoff(db, body.poll_id);
       if (!hash) return json(200, { ready: false });
-      await ping("site.signin", "handoff");
       return mintSessionResponse(db, hash, { event, extra: { ready: true } });
     },
 
@@ -278,7 +274,6 @@ export function authRoutes({
         });
       }
       authLog("signin_code_accepted", { email: emailRef(hash) });
-      await ping("site.signin", "code");
       return mintSessionResponse(db, hash, { event });
     },
 

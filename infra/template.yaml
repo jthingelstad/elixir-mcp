@@ -340,6 +340,14 @@ Resources:
               - Effect: Allow
                 Action: [sqs:GetQueueAttributes, sqs:GetQueueUrl]
                 Resource: !GetAtt EmailDlq.Arn
+              # Mail leaves through the outbox; the status page counts
+              # what is stuck there.
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
               - Effect: Allow
                 Action: [s3:PutObject, s3:GetObject]
                 Resource: !Sub
@@ -388,6 +396,9 @@ Resources:
               - Effect: Allow
                 Action: [sqs:SendMessage, sqs:GetQueueUrl]
                 Resource: !GetAtt EmailQueue.Arn
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub
@@ -490,6 +501,11 @@ Resources:
               - Effect: Allow
                 Action: sqs:SendMessage
                 Resource: !GetAtt EditorQueue.Arn
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource:
+                  - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
+                  - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/editor/*
 
   # The Top 100 editor: the one function that calls a model, non-VPC
   # on the relay's pattern because the VPC has no internet. It reads
@@ -521,6 +537,9 @@ Resources:
                 Action: lambda:InvokeFunction
                 Resource: !GetAtt JobsFunction.Arn
               - Effect: Allow
+                Action: [s3:GetObject, s3:DeleteObject]
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/editor/*
+              - Effect: Allow
                 Action:
                   [
                     sqs:ReceiveMessage,
@@ -551,6 +570,64 @@ Resources:
       MessageRetentionPeriod: 1209600
       SqsManagedSseEnabled: true
 
+  # The outbox (2026-09-24): how a VPC Lambda hands work to a non-VPC
+  # worker. It writes one JSON object per message through the free S3
+  # gateway endpoint and S3 notifies the lane's queue; the worker reads
+  # the object, acts, and deletes it. Anything still here after the
+  # queue's retries is what dead-lettered, so objects live as long as the
+  # DLQs keep their messages (14 days). Replaced the SQS interface
+  # endpoint, which cost more than the database's disk and backups.
+  OutboxBucket:
+    Type: AWS::S3::Bucket
+    DependsOn: OutboxQueuePolicy
+    Properties:
+      BucketName: !Sub elixir-mcp-outbox-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+            BucketKeyEnabled: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-with-the-dlq
+            Status: Enabled
+            ExpirationInDays: 14
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt EmailQueue.Arn
+            Filter:
+              S3Key: { Rules: [{ Name: prefix, Value: email/ }] }
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt EditorQueue.Arn
+            Filter:
+              S3Key: { Rules: [{ Name: prefix, Value: editor/ }] }
+
+  # S3 may notify the two lanes' queues, and only from the outbox. The
+  # bucket ARN is spelled out rather than referenced so the bucket can
+  # depend on this policy (S3 checks it can deliver when the notification
+  # is configured).
+  OutboxQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref EmailQueue, !Ref EditorQueue]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: s3.amazonaws.com }
+            Action: sqs:SendMessage
+            Resource: [!GetAtt EmailQueue.Arn, !GetAtt EditorQueue.Arn]
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+
   EmailRelayRole:
     Type: AWS::IAM::Role
     Properties:
@@ -577,6 +654,10 @@ Resources:
                     sqs:GetQueueUrl,
                   ]
                 Resource: !GetAtt EmailQueue.Arn
+              # Its lane of the outbox: read the message, delete it once sent.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:DeleteObject]
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
               # Send as elixir@poapkings.com and nothing else: the identity
               # and the configuration set are the only resources, and the
               # From address is pinned by condition. SES authorizes a send
@@ -671,6 +752,7 @@ Resources:
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           EMAIL_QUEUE_URL: !Ref EmailQueue
+          OUTBOX_BUCKET: !Ref OutboxBucket
           COLLECTOR_MIN_ENFORCE: !Ref CollectorMinEnforce
           ORIGIN_SECRET: !Ref OriginSecret
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
@@ -704,6 +786,7 @@ Resources:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
           OAUTH_ISSUER: https://elixir.poapkings.com
           EMAIL_QUEUE_URL: !Ref EmailQueue
+          OUTBOX_BUCKET: !Ref OutboxBucket
           ORIGIN_SECRET: !Ref OriginSecret
           # Call capture is on when this is set (services/mcp/src/capture.mjs).
           ARCHIVE_BUCKET: !Ref ArchiveBucket
@@ -789,8 +872,6 @@ Resources:
           FROM_EMAIL: elixir@poapkings.com
           EMAIL_TRANSPORT: !Ref EmailTransport
           SES_CONFIGURATION_SET: !Ref SenderConfigurationSet
-          TINYLYTICS_API_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:tinylytics_api_token}}"
-          TINYLYTICS_SITE_ID: "3762"
           BUTTONDOWN_API_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:buttondown_api_token}}"
 
   EmailEventSource:
@@ -865,6 +946,7 @@ Resources:
           # one the web API verifies it with), the owner's address for a
           # failed Top 100 issue, and the editor to hand a brief to.
           EMAIL_QUEUE_URL: !Ref EmailQueue
+          OUTBOX_BUCKET: !Ref OutboxBucket
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
           EDITOR_QUEUE_URL: !Ref EditorQueue

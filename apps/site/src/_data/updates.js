@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Elixir's servers send nothing to analytics",
+    body: "Sign-ins, signups and feedback were the last events Elixir's servers sent to Tinylytics, the site's analytics. They are gone too: the servers send it nothing now. Page views and mail opens are still counted, anonymously, as the privacy page describes.",
+  },
+  {
+    date: "2026-09-24",
     title: "Tool calls are no longer sent to analytics",
     body: "Elixir used to count every tool call in Tinylytics, the site's analytics, by tool name. It no longer does: your call record already holds every call, with more detail, and nothing leaves Elixir for it. Page views and mail opens are counted as before.",
   },

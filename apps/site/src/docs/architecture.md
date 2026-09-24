@@ -159,14 +159,12 @@ tools trace directly to agent-filed feedback.
 
 The VPC has no NAT — cloud components cannot reach the internet at
 all, which is a security posture worth keeping. The one exception is a
-small non-VPC **relay** Lambda fed by a queue. It does three jobs with
+small non-VPC **relay** Lambda fed by a queue. It does two jobs with
 deliberately different guarantees: transactional email (sign-in codes,
 sent over Amazon SES since 2026-09-17 — retried hard, dead-lettered
-loudly), anonymous
-[Tinylytics](https://tinylytics.app) product events (best-effort,
-dropped on failure), and newsletter enrollment at sign-in (Buttondown;
-idempotent, and an unsubscribed address is never re-subscribed). An
-analytics outage can never page anyone or delay a login email.
+loudly) and newsletter enrollment at sign-in (Buttondown; best-effort
+and idempotent, and an unsubscribed address is never re-subscribed).
+Elixir's servers send nothing to analytics.
 
 ## Recording: record once, entitle many
 

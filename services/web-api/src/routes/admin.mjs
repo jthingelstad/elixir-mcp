@@ -19,7 +19,6 @@ const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
 
 export function adminRoutes({
   resolveAccount,
-  ping,
   logEvent,
   notifyOwner,
   sendWelcomeEmail,
@@ -347,10 +346,6 @@ export function adminRoutes({
       if (decided.refused) return json(403, { error: decided.refused });
       let notified = false;
       if (decided.status === "approved") {
-        // The funnel's middle step. With request and activation already
-        // counted, this is what turns two unrelated numbers into a rate:
-        // how many asked, how many were let in, how many turned up.
-        await ping("signup.approved");
         // The applicant is the one who was promised an email. Sending
         // this to the owner instead is why an approved account heard
         // nothing at all.

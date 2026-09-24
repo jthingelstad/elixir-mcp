@@ -6,7 +6,6 @@
  * overwritten unless --overwrite names them.
  *
  *   AWS_PROFILE=cloud-engineer node infra/scripts/secret-add-keys.mjs \
- *     tinylytics_api_token=TINYLYTICS_API_TOKEN \
  *     buttondown_api_token=BUTTONDOWN_API_TOKEN
  *
  * Each arg is <secret-json-key>=<.env var name>. Prints key NAMES and

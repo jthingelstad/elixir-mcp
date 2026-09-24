@@ -125,54 +125,73 @@ test("handler: sends valid messages, DLQs malformed, retries transport failures"
   assert.equal(sent.length, 1);
 });
 
-test("analytics pings: batched to track, best-effort, never dead-lettered", async () => {
+test("outbox: a notification is read, sent and deleted; a test event or a gone object is done; a failure keeps the object", async () => {
   const sent = [];
-  const tracked = [];
+  const deleted = [];
+  let failNext = false;
+  const objects = new Map([
+    ["email/1.json", { v: 1, kind: "welcome", to: "a@b.com" }],
+    ["email/2.json", { v: 1, kind: "welcome", to: "c@d.com" }],
+    ["email/bad.json", { v: 1, kind: "nope", to: "x" }],
+  ]);
   const handler = makeHandler({
-    send: async (m) => sent.push(m),
-    track: async (events) => tracked.push(events),
-  });
-  const rec = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
-  const out = await handler({
-    Records: [
-      rec("a", {
-        v: 1,
-        kind: "tinylytics_event",
-        event: "site.feedback",
-        value: "war_current",
-      }),
-      rec("b", { v: 1, kind: "tinylytics_event", event: "site.signin" }),
-      rec("c", { v: 1, kind: "tinylytics_event", event: "nodot" }), // invalid: drops
-      rec("d", {
-        v: 1,
-        kind: "owner_notify",
-        to: "elixir@poapkings.com",
-        note: "x",
-      }),
-    ],
-  });
-  assert.deepEqual(out.batchItemFailures, [], "pings never retry");
-  assert.equal(sent.length, 1, "the email in the batch still sends");
-  assert.equal(tracked.length, 1, "one batched track call");
-  assert.deepEqual(
-    tracked[0].map((e) => e.event),
-    ["site.feedback", "site.signin"],
-    "invalid ping dropped, valid ones forwarded",
-  );
-
-  // A Tinylytics outage drops pings and still never fails the batch.
-  const boom = makeHandler({
-    send: async (m) => sent.push(m),
-    track: async () => {
-      throw new Error("503");
+    send: async (m) => {
+      if (failNext) {
+        failNext = false;
+        throw new Error("ses down");
+      }
+      sent.push(m);
+    },
+    readObject: async ({ key }) =>
+      objects.has(key) ? JSON.stringify(objects.get(key)) : null,
+    deleteObject: async ({ key }) => {
+      deleted.push(key);
+      objects.delete(key);
     },
   });
-  const out2 = await boom({
+  const notify = (id, key) => ({
+    messageId: id,
+    body: JSON.stringify({
+      Records: [
+        {
+          eventSource: "aws:s3",
+          s3: { bucket: { name: "outbox" }, object: { key } },
+        },
+      ],
+    }),
+  });
+
+  const first = await handler({
     Records: [
-      rec("e", { v: 1, kind: "tinylytics_event", event: "site.feedback" }),
+      notify("n1", "email/1.json"),
+      { messageId: "t", body: JSON.stringify({ Event: "s3:TestEvent" }) },
+      notify("n2", "email/bad.json"),
     ],
   });
-  assert.deepEqual(out2.batchItemFailures, [], "outage never dead-letters");
+  assert.deepEqual(
+    first.batchItemFailures.map((f) => f.itemIdentifier),
+    ["n2"],
+    "the malformed message dead-letters; the test event is not a failure",
+  );
+  assert.deepEqual(
+    sent.map((m) => m.to),
+    ["a@b.com"],
+  );
+  assert.deepEqual(deleted, ["email/1.json"], "the bad object is kept");
+
+  // A duplicate notification for a sent object finds nothing and is done.
+  const dup = await handler({ Records: [notify("n3", "email/1.json")] });
+  assert.deepEqual(dup.batchItemFailures, []);
+  assert.equal(sent.length, 1, "never sent twice");
+
+  // A transport failure retries and keeps the object for the next try.
+  failNext = true;
+  const failed = await handler({ Records: [notify("n4", "email/2.json")] });
+  assert.deepEqual(failed.batchItemFailures, [{ itemIdentifier: "n4" }]);
+  assert.ok(objects.has("email/2.json"));
+  const retried = await handler({ Records: [notify("n4", "email/2.json")] });
+  assert.deepEqual(retried.batchItemFailures, []);
+  assert.ok(!objects.has("email/2.json"));
 });
 
 test("the login send carries the enrollment decision (#27/0051)", async () => {
