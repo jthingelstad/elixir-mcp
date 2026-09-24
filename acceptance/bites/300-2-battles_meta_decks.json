@@ -1,0 +1,161 @@
+{
+  "feedback": 300,
+  "contract_version": "7.1.12",
+  "captured_at": "2026-09-24T07:54:42.648Z",
+  "request": {
+    "tool": "battles_meta_decks",
+    "arguments": {
+      "segment": "mine",
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "verbosity": "compact",
+      "limit": 5
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "clan",
+        "clan_tag": "#J2RGCRVG",
+        "source": "mine"
+      },
+      "window": {
+        "from": "2026-09-14T00:00:00.000Z",
+        "to": "2026-09-21T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 13
+      },
+      "min_battles": 5,
+      "sort": "battles",
+      "limit": 5,
+      "verbosity": "compact"
+    },
+    "decided_battles": 1760,
+    "segment_win_rate": 0.533,
+    "prior_win_rate": 0.5,
+    "prior_basis": "corpus_window",
+    "excluded": {
+      "considered": 1825,
+      "duels": 35,
+      "boat": 30,
+      "draws": 0,
+      "unresolved": 0,
+      "no_deck": 0,
+      "outside_meta": 1152
+    },
+    "comparable": false,
+    "decks": [
+      {
+        "deck_hash": "8a7dc50eb0071f576e3bbe4a62c431310284bbac2dd684d28933dbf387056c0c",
+        "battles": 102,
+        "wins": 60,
+        "losses": 42,
+        "players": 1,
+        "usage_share": 0.058,
+        "win_rate": 0.588,
+        "shrunk_win_rate": 0.574,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Evo Mortar siege",
+        "card_names": "Minions, Skeletons, Evo Elite Barbarians, Cannon Cart, Goblinstein, Evo Mortar, Fireball, Barbarian Barrel"
+      },
+      {
+        "deck_hash": "7f857c21b1533e42e312f22bbc6ec01169ecda6c93158c1a2ac6fc5cff329f89",
+        "battles": 100,
+        "wins": 63,
+        "losses": 37,
+        "players": 1,
+        "usage_share": 0.057,
+        "win_rate": 0.63,
+        "shrunk_win_rate": 0.608,
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 0.96
+        },
+        "archetype_label": "Giant beatdown",
+        "card_names": "Giant, Witch, Evo Baby Dragon, Evo Elite Barbarians, Electro Spirit, Hero Berserker, Cannon, Arrows"
+      },
+      {
+        "deck_hash": "f1285db4d5bb94783c75cde69a23a933510d33b1b6fb4f12aff68b81e07047ef",
+        "battles": 73,
+        "wins": 42,
+        "losses": 31,
+        "players": 1,
+        "usage_share": 0.041,
+        "win_rate": 0.575,
+        "shrunk_win_rate": 0.559,
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 1
+        },
+        "archetype_label": "Hero Balloon beatdown",
+        "card_names": "P.E.K.K.A, Hero Balloon, Evo Skeleton Army, Minion Horde, Goblin Gang, Bandit, Skeleton King, Ronin"
+      },
+      {
+        "deck_hash": "0b2b5ee2191e4d604eefa76d378864fc44ceae5154ee8471f360418b0ecb5a46",
+        "battles": 67,
+        "wins": 41,
+        "losses": 26,
+        "players": 1,
+        "usage_share": 0.038,
+        "win_rate": 0.612,
+        "shrunk_win_rate": 0.586,
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 0.97
+        },
+        "archetype_label": "Balloon beatdown",
+        "card_names": "Balloon, Witch, Evo Barbarians, Valkyrie, Skeleton Army, Inferno Dragon, Executioner, Evo Mega Knight"
+      },
+      {
+        "deck_hash": "1bf504a62b23c6bf95f0db0a822bb3b2eef5f5d3e5e7ef867187d24ab0b2493d",
+        "battles": 57,
+        "wins": 27,
+        "losses": 30,
+        "players": 1,
+        "usage_share": 0.032,
+        "win_rate": 0.474,
+        "shrunk_win_rate": 0.481,
+        "dominant_mode": {
+          "mode": "ladder",
+          "share": 1
+        },
+        "archetype_label": "Cycle",
+        "card_names": "Minions, Evo Witch, Ice Wizard, Hero Mega Minion, Goblin Gang, Flying Machine, Evo Firecracker, Arrows"
+      }
+    ],
+    "notes": [
+      "5 of the first 5 rows are one player's own deck (players 1): they describe that player, not what this population plays. Pass min_players 2 (or sort players) for decks played across players.",
+      "1152 battles in this window are outside the meta population and not counted anywhere above (excluded.outside_meta): event battles and decks the player did not choose (6.17.0). battles_query and battles_decks read them.",
+      "These are the population's decks and levels; nothing here checks what a given player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "Win rates here are NOT comparable across rows: deck 8a7dc50e… was played 100% in ranked (mean level gap -0.04) and deck 7f857c21… 96% in ladder (gap +0.03); matchmaking differs by mode (war draws opponents from the racing clans, not from your trophies, so a strong player meets weaker ones there) and a level gap moves the expected win rate, so rank decks only within one mode and similar mean_level_gap (pass mode; the record describes the gap and does not adjust for it).",
+      "Pooled across modes: ladder 791 (mean level gap +0.17), ranked 712 (mean level gap +0.03), war 193 (mean level gap +0.12), casual 64 (mean level gap +0.00); pass mode to isolate one.",
+      "Every deck row here was played by ONE player (players: 1): this segment's numbers describe a few players' habits, not a meta; widen the segment or read the corpus for the field.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld (null, insufficient_sample: true) when the population is under 30 decided observations, not per row: a row with few battles still carries one, shrunk hard toward the mean. win_rate is the raw rate at any sample size, so read it beside battles.",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals."
+    ],
+    "docs": "methodology#deck-and-card-meta-exactly-what-is-counted",
+    "meta": {
+      "contract_version": "7.1.12"
+    }
+  },
+  "timings": {
+    "db_ms": 1408,
+    "db_queries": 15,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

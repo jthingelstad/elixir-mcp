@@ -149,6 +149,12 @@ call, so rates over a past window describe today's members. A board
 collection's rows are ordered by Trophy Road trophies, which is not the
 board's order: `rankings_players` and `rankings_clans` have that.
 
+A clan segment (`'mine'` or `{clan_tag}`) works the same way: it is the
+clan's recorded members as of the call, applied to the whole window. Over
+a past window it counts today's members' battles, including ones played
+before they joined, and leaves out members who have left since;
+`clans_members_timeline` has the joins and departures.
+
 ## Leaderboards
 
 The CR API shows a ranking as it is this minute and forgets it. The recorder

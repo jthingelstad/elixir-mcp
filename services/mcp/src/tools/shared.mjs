@@ -1117,8 +1117,18 @@ export function ebShrink(
  *  so a season's rates are over today's members, not the season's. */
 export function collectionSegmentNote(seg) {
   const echo = seg?.echo ?? seg;
-  if (seg?.coverage)
-    return `The clan segment counts the members Elixir records: ${seg.coverage.recorded} of this clan's ${seg.coverage.members} current members. The others appear only in recorded players' battles, so their play is not counted (elixir_track_clan with scope comprehensive records every member).`;
+  // A clan segment is today's roster over the whole window (Gym #300: a
+  // member who left dropped out of the weeks he played for the clan, and
+  // a joiner's battles from before joining counted).
+  if (echo?.kind === "clan")
+    return [
+      seg?.coverage
+        ? `The clan segment counts the members Elixir records: ${seg.coverage.recorded} of this clan's ${seg.coverage.members} current members. The others appear only in recorded players' battles, so their play is not counted (elixir_track_clan with scope comprehensive records every member).`
+        : null,
+      "The clan segment applies the clan's membership as of this call: over a past window it counts today's members' battles, including ones played before they joined, and leaves out members who have left since (clans_members_timeline lists the joins and departures).",
+    ]
+      .filter(Boolean)
+      .join(" ");
   if (echo?.kind !== "collection") return null;
   return `The collection segment applies ${echo.collection}'s membership as of this call (collections_get lists it); a collection that follows a live board (synced_from) turns over daily, so rates over a past window describe today's members, not the ones on the board then.`;
 }

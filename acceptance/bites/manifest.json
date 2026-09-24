@@ -1905,5 +1905,21 @@
     "case": "gym/298.3",
     "captures": ["298-3-game_clock.json"],
     "expect": "."
+  },
+  {
+    "feedback": 300,
+    "contract": "7.1.12",
+    "why": "the Gym block 300.1 on the answer it read",
+    "case": "gym/300.1",
+    "captures": ["300-1-battles_trends.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 300,
+    "contract": "7.1.12",
+    "why": "the Gym block 300.2 on the answer it read",
+    "case": "gym/300.2",
+    "captures": ["300-2-battles_meta_decks.json"],
+    "expect": "."
   }
 ]
