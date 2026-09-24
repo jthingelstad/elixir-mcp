@@ -648,6 +648,17 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.trophy_band_census) {
+    const { trophyBandCensus } = await import("./ops-trophy-census.mjs");
+    const result = await trophyBandCensus(
+      process.env.DATABASE_URL,
+      typeof event.trophy_band_census === "object"
+        ? event.trophy_band_census
+        : {},
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.war_gap_census) {
     const { warGapCensus } = await import("./ops-war-gap.mjs");
     const result = await warGapCensus(process.env.DATABASE_URL);
