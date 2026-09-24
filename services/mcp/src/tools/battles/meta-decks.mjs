@@ -34,6 +34,7 @@ import {
   resolveSeasonWindow,
   segmentFilter,
   stampMatches,
+  ToolFailure,
 } from "../shared.mjs";
 import {
   RANKED_NO_BAND_NOTE,
@@ -92,6 +93,14 @@ export const battles_meta_decks = {
         minimum: 1,
         default: 5,
         description: "Decided observations a deck needs to be listed.",
+      },
+      min_players: {
+        type: "integer",
+        minimum: 1,
+        maximum: 50,
+        default: 1,
+        description:
+          'Distinct players a deck needs to be listed (7.1.6). 2 or more keeps decks played across players, which is what "what deck should I play" asks; 1 lists every deck, one player\'s own included.',
       },
       sort: {
         type: "string",
@@ -374,6 +383,15 @@ export const battles_meta_decks = {
         (a.deck_hash < z.deck_hash ? -1 : a.deck_hash > z.deck_hash ? 1 : 0),
     );
     const limit = Math.min(args.limit ?? 20, 40);
+    // One player's own deck reads as meta at the top of a busy list (Gym
+    // #256: 13-15 of every 17-20 rows were one player's, one of them a
+    // 24-0 bridge spam). min_players filters, and the note says it.
+    const minPlayers = Number(args.min_players ?? 1);
+    if (!Number.isInteger(minPlayers) || minPlayers < 1 || minPlayers > 50)
+      throw new ToolFailure("bad_request", "min_players must be 1-50.");
+    const beforePlayers = shaped;
+    if (minPlayers > 1)
+      shaped = shaped.filter((r) => (r.players ?? 0) >= minPlayers);
     // The archetype filter (6.5.0) reads the label off each identity,
     // so with one asked the identities are fetched for every candidate
     // row and the filter runs before the limit; without one, for the
@@ -556,6 +574,18 @@ export const battles_meta_decks = {
       decks: shaped,
       ...(fitBlock ? { unfieldable } : {}),
       notes: notes(
+        (() => {
+          const solo = beforePlayers
+            .slice(0, limit)
+            .filter((r) => (r.players ?? 0) <= 1).length;
+          return minPlayers === 1 &&
+            !seg.echo?.player_tag &&
+            solo * 2 > Math.min(limit, beforePlayers.length)
+            ? `${solo} of the first ${Math.min(limit, beforePlayers.length)} rows are one player's own deck (players 1): they describe that player, not what this population plays. Pass min_players 2 (or sort players) for decks played across players.`
+            : minPlayers > 1
+              ? `Rows with fewer than ${minPlayers} distinct players are left out (min_players): ${beforePlayers.length - shaped.length} of the decks over min_battles.`
+              : null;
+        })(),
         outsideMetaNote(excluded?.outside_meta ?? 0),
         args.mode === EVENT_MODE_GROUP ? META_EVENT_NOTE : null,
         grouped ? grouped.folded : null,

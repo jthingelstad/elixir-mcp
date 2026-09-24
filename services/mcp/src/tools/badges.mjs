@@ -334,6 +334,11 @@ export const badgesTools = {
               }),
         })),
         notes: notes(
+          // One player is not a population (Gym #257): every badge they
+          // hold reads holders 1, share 1, sorted "rarest first".
+          scope.echo?.kind === "player" || scope.echo?.player_tag
+            ? "This segment is one player, so every badge listed is one they hold (holders 1, holder_share 1) and the order says nothing about rarity. For how rare a badge is, read badges_rarity over segment 'corpus' or a clan, and badges_holders for who holds it."
+            : null,
           cut
             ? `This page lists ${rows.length} of ${badgesTotal} badges held here, the rarest first (limit ${limit}); the other ${badgesTotal - rows.length} are more common and not listed. Rarity is within the RECORDED population, not the game.`
             : "Rarity is within the RECORDED population, not the game: a badge nobody here holds does not appear at all.",

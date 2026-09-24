@@ -819,7 +819,15 @@ export function clanMemberBattlesQuery({ tag, fromMs, toMs }) {
 
 export async function buildClanEntry(
   db,
-  { tag, scope = "comprehensive", fromMs, toMs, timezone = "UTC", perf = null },
+  {
+    tag,
+    scope = "comprehensive",
+    fromMs,
+    toMs,
+    timezone = "UTC",
+    perf = null,
+    memberTag = null,
+  },
 ) {
   const { rows: clanRows } = await db.query(
     `select name from clan where clan_tag = $1`,
@@ -879,6 +887,12 @@ export async function buildClanEntry(
   let sessionsTotal = 0;
   for (const rows of byPlayer.values())
     sessionsTotal += sessionsOf(rows, toMs).length;
+  // One member's sessions as items when the reader asked about that
+  // member (Gym #258): a clan feed carries only standout sessions, so a
+  // member who played two ordinary games read 0 items.
+  const memberSessions = memberTag
+    ? sessionsOf(byPlayer.get(memberTag) ?? [], toMs)
+    : [];
   // Session standouts: every member's sessions over the wider fetch, kept
   // when a rung was crossed by a battle this window learned. Named below,
   // once the roster query has the names.
@@ -1436,6 +1450,12 @@ export async function buildClanEntry(
           by_mode: byMode,
           late_captures: lateCount,
           played_here_learned_later: learnedLater,
+          // Counted above because the record learned them here, though
+          // they were played (within a day) before the window opened (Gym
+          // #259: 39 battles said, 33 played in the window).
+          learned_here_played_before: memberBattles.filter(
+            (r) => r.battle_time.getTime() <= fromMs,
+          ).length,
           basis: "recorded",
         }
       : {
@@ -1549,6 +1569,19 @@ export async function buildClanEntry(
   // window learned, observed when the record learned that battle. Every
   // standout is an item (Gym #164: five were served and the rest dropped
   // with has_more false); the timeline's own cap and cursor bound them.
+  for (const sess of memberSessions)
+    items.push({
+      ...subject,
+      at: sess.started_at,
+      observed_at: sess.learned_at ?? sess.started_at,
+      kind: "battle_session",
+      section: "battles",
+      facts: {
+        player_tag: memberTag,
+        name: memberName.get(memberTag) ?? null,
+        ...sessionFacts(sess),
+      },
+    });
   for (const sess of standoutSessions)
     items.push({
       ...subject,
@@ -1656,6 +1689,7 @@ export async function buildTimeline(
     accountId = null,
     perf = null,
     filter = null,
+    memberTag = null,
   },
 ) {
   const entries = [];
@@ -1674,6 +1708,7 @@ export async function buildTimeline(
         toMs,
         timezone,
         perf,
+        memberTag,
       });
       entries.push(built.entry);
       items.push(...built.items);

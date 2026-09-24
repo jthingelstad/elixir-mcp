@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "A better first conversation",
+    body: "The Elixir Gym played a new user's first session. Meta deck lists can now require a deck to be played by more than one player, and say when a list is mostly one player's personal deck. Badge rarity for a single player says it is not a rarity ranking. Asking the timeline about one clan member includes their sessions, and the guide now says which facts answer who to promote or remove. The worked examples name decks the way the service asks agents to. Contract 7.1.6.",
+  },
+  {
+    date: "2026-09-24",
     title: "The timeline for one member",
     body: "The Elixir Gym's first full run over the newsfeed timeline. A clan's timeline can now be read for one member: pass a player tag and get just their moments. Filtering by kind or section no longer shortens the feed, a member who left and rejoined on the same day shows both moves, quiet-day milestones stay put when the member later plays again, and a week of history loaded in bulk says why it shows no fresh battles. Contract 7.1.5.",
   },

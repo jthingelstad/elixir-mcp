@@ -1681,5 +1681,21 @@
     "case": "gym/253.1",
     "captures": ["253-1-elixir_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 258,
+    "contract": "7.1.5",
+    "why": "the Gym block 258.1 on the answer it read",
+    "case": "gym/258.1",
+    "captures": ["258-1-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 259,
+    "contract": "7.1.5",
+    "why": "the Gym block 259.1 on the answer it read",
+    "case": "gym/259.1",
+    "captures": ["258-1-elixir_timeline.json"],
+    "expect": "."
   }
 ]

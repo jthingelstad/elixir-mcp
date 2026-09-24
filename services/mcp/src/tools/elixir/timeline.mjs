@@ -223,6 +223,7 @@ export const elixir_timeline = {
       toMs,
       timezone: tz,
       accountId: ctx.account.accountId,
+      memberTag,
       filter: (it) =>
         (!sections || sections.includes(it.section)) &&
         (!kinds || kinds.includes(it.kind)) &&
@@ -324,6 +325,23 @@ export const elixir_timeline = {
     const clanTags = subjects
       .filter((sub) => sub.kind === "clan")
       .map((sub) => sub.tag);
+    // A player_tag the reader follows neither as a player nor as a member
+    // of its clans reads 0 items by construction; say so (Gym #258).
+    let memberNote = null;
+    if (memberTag && !subjects.some((sub) => sub.tag === memberTag)) {
+      const { rows: inClan } = clanTags.length
+        ? await ctx.db.query(
+            `select 1 from clan_membership
+              where player_tag = $1 and clan_tag = any($2::text[])
+                and joined_observed_at <= to_timestamp($3 / 1000.0)
+                and (left_observed_at is null or left_observed_at > to_timestamp($4 / 1000.0))
+              limit 1`,
+            [memberTag, clanTags, toMs, fromMs],
+          )
+        : { rows: [] };
+      if (!inClan.length)
+        memberNote = `player_tag ${memberTag} is not a member of this reader's clans in this window, nor one of its players, so no item is about it; elixir_track_player records a player, and players_timeline reads anyone's daily series.`;
+    }
     const {
       rows: [warLedger],
     } = clanTags.length
@@ -348,6 +366,7 @@ export const elixir_timeline = {
         },
         mark_read: marking,
         ...(reader ? { reader } : {}),
+        ...(memberTag ? { player_tag: memberTag } : {}),
         ...(sections ? { sections } : {}),
         ...(kinds ? { kinds } : {}),
         verbosity: compact ? "compact" : "full",
@@ -384,16 +403,28 @@ export const elixir_timeline = {
         timeline.some((it) => Date.parse(it.at) < fromMs)
           ? `A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): ${timeline.filter((it) => Date.parse(it.at) < fromMs).length} item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For "what happened on a day", widen to by the record's lag (the longest here is ${lagHours} h, observed_at minus at) and filter on at.`
           : null,
-        entries.some((e) => e.activity?.played_here_learned_later > 0)
-          ? `A clan entry's activity counts the battles the record LEARNED in this window: activity.played_here_learned_later counts battles played in it that were recorded later (${entries
-              .filter((e) => e.activity?.played_here_learned_later > 0)
+        entries.some(
+          (e) =>
+            e.activity?.played_here_learned_later > 0 ||
+            e.activity?.learned_here_played_before > 0,
+        )
+          ? `A clan entry's activity counts the battles the record LEARNED in this window, which is not the same as the battles PLAYED in it: activity.learned_here_played_before counts ones played in the day before from and recorded here (counted), activity.played_here_learned_later ones played here and recorded after to (not counted) (${entries
+              .filter(
+                (e) =>
+                  e.activity?.played_here_learned_later > 0 ||
+                  e.activity?.learned_here_played_before > 0,
+              )
               .map(
                 (e) =>
-                  `${e.name ?? e.subject_tag} ${e.activity.played_here_learned_later}`,
+                  `${e.name ?? e.subject_tag}: ${e.activity.learned_here_played_before} and ${e.activity.played_here_learned_later}`,
               )
               .join(
-                ", ",
-              )}), and late_captures counts battles learned here more than a day after they were played. For what was played in a past window, read clans_standings, which counts by play time.`
+                "; ",
+              )}), and late_captures counts battles learned here more than a day after play. For what was played in a window, read clans_standings, which counts by play time.`
+          : null,
+        memberNote,
+        memberTag && !memberNote
+          ? `A member read: the items are ${memberTag}'s sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full.`
           : null,
         pointerKept
           ? `The read pointer stays at ${iso(storedMs)}: it only moves forward, and this window ends before it (read_to reports it). Pass mark_read false to read a past window without asking to move it.`

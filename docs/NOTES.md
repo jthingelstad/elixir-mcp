@@ -2184,3 +2184,7 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 
 - 27 regressions. **#253** player_tag filter (new argument). **#244** buildTimeline takes `filter`, applied before the cap. **#245** ms-precision bounds: `>= ts(from + 1)` / `< ts(to + 1)` across the timeline queries (created_at keeps microseconds). **#246** roster kinds dedupe only at the same instant; **#250** entry moments deduped. **#247** crossings from battle gaps (items); **#252** returned observed_at = learned. **#248** activity.played_here_learned_later + note. **#249** Colosseum as-of fame null; the regular weeks' 3,435 is real (war_history days: 135/1 and 136/0 both banked 3,435 on day 1). **#251** read_to is the stored pointer. #254 praise.
 
+## 2026-09-24 — Gym journey run (7.1.6, feedback #256-#262)
+
+- A new agent's first ten questions: 5 right first time, 4 misleading, 1 unrouted. **#256** min_players + solo-deck note; shrinkage note says win_rate is raw at any size. **#257** one-player rarity note. **#258** member sessions on clan timelines under player_tag, applied echo, non-member note. **#259** learned_here_played_before. **#260** choosing-a-tool row for promote/demote/remove. **#261** examples use archetype labels + fit. #262 praise. Open: battles_meta_decks with fit_for at default limit 20 can exceed the cap (hint prices limit 17).
+

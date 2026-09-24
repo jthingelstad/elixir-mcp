@@ -14412,5 +14412,423 @@
         ]
       }
     ]
+  },
+  {
+    "id": "256.1",
+    "feedback": 256,
+    "stability": "frozen",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "mode": "ladder",
+      "trophy_band": "11000_13000",
+      "sort": "shrunk_win_rate",
+      "season": 135,
+      "verbosity": "compact"
+    },
+    "request_id": "2d5662df-ee98-4cd0-a21b-9d7b03e5653f",
+    "assert": [
+      {
+        "has": "decks[?players=1].deck_hash"
+      },
+      {
+        "notes_match": "one player|one pilot|single player"
+      }
+    ]
+  },
+  {
+    "id": "256.2",
+    "feedback": 256,
+    "stability": "frozen",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "mode": "ladder",
+      "trophy_band": "11000_13000",
+      "sort": "shrunk_win_rate",
+      "season": 135,
+      "verbosity": "compact"
+    },
+    "request_id": "2d5662df-ee98-4cd0-a21b-9d7b03e5653f",
+    "assert": [
+      {
+        "notes_not_match": "withheld below 30 decided observations \\(insufficient_sample"
+      }
+    ]
+  },
+  {
+    "id": "256.3",
+    "feedback": 256,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "trophy_band": "11000_13000"
+    },
+    "request_id": "307f858c-579c-4aef-b3ef-50e1c53fc32b",
+    "assert": [
+      {
+        "notes_match": "one player|one pilot|single player"
+      }
+    ],
+    "when": {
+      "has": "decks[?players=1].deck_hash"
+    }
+  },
+  {
+    "id": "256.4",
+    "feedback": 256,
+    "stability": "frozen",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "mode": "ladder",
+      "trophy_band": "11000_13000",
+      "season": 135,
+      "group_by": "archetype",
+      "verbosity": "compact"
+    },
+    "request_id": "3d7ba562-1d89-4f42-9d94-c35548bd1a0d",
+    "assert": [
+      {
+        "has": "archetypes[].players"
+      },
+      {
+        "notes_not_match": "one player|one pilot|single player"
+      }
+    ]
+  },
+  {
+    "id": "257.1",
+    "feedback": 257,
+    "stability": "live",
+    "tool": "badges_rarity",
+    "args": {
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      }
+    },
+    "request_id": "2a87ce58-e745-44d6-9ae2-70c010c370d3",
+    "assert": [
+      {
+        "eq": ["players_considered", 1]
+      },
+      {
+        "notes_match": "one-player|one player|population of one"
+      }
+    ]
+  },
+  {
+    "id": "257.2",
+    "feedback": 257,
+    "stability": "live",
+    "control": true,
+    "tool": "badges_rarity",
+    "args": {
+      "segment": "mine",
+      "limit": 300
+    },
+    "request_id": "c5bf367f-c972-41c4-bf75-537d3c419ca5",
+    "assert": [
+      {
+        "gt": ["players_considered", 1]
+      },
+      {
+        "notes_not_match": "one-player|one player segment|population of one"
+      }
+    ]
+  },
+  {
+    "id": "257.3",
+    "feedback": 257,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "r": {
+        "tool": "badges_rarity",
+        "args": {
+          "segment": "corpus",
+          "limit": 300
+        }
+      },
+      "h": {
+        "tool": "badges_holders",
+        "args": {
+          "badge": "Chaos_S2",
+          "segment": "corpus"
+        }
+      }
+    },
+    "request_id": "bce9724f-0592-42dd-bd5b-397a438c7e5c",
+    "assert": [
+      {
+        "eq": ["r.badges[?name=Chaos_S2].holders", "h.holders_total"]
+      }
+    ]
+  },
+  {
+    "id": "258.1",
+    "feedback": 258,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "586c4c0e-869c-4e7d-ab1c-8c60bccf9d3f",
+    "assert": [
+      {
+        "has": "applied.player_tag"
+      },
+      {
+        "notes_match": "battles_performance|battles_query|played \\d+ recorded battles"
+      }
+    ]
+  },
+  {
+    "id": "258.2",
+    "feedback": 258,
+    "stability": "live",
+    "tool": "elixir_timeline",
+    "args": {
+      "days": 7,
+      "mark_read": false,
+      "player_tag": "#VJG0J29QP",
+      "verbosity": "compact"
+    },
+    "request_id": "0990704b-be32-44e1-b535-f44cffa7f397",
+    "assert": [
+      {
+        "notes_match": "not a (member|subject)|not (one of )?(this|the) timeline's subjects"
+      }
+    ]
+  },
+  {
+    "id": "258.3",
+    "feedback": 258,
+    "stability": "frozen",
+    "control": true,
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#YC8LLR8Q2",
+      "verbosity": "compact"
+    },
+    "request_id": "58777005-b4d1-4869-82aa-6dabc27abe83",
+    "for_each": "timeline[]",
+    "assert": [
+      {
+        "eq": ["facts.player_tag", "#YC8LLR8Q2"]
+      }
+    ]
+  },
+  {
+    "id": "259.1",
+    "feedback": 259,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "586c4c0e-869c-4e7d-ab1c-8c60bccf9d3f",
+    "assert": [
+      {
+        "notes_match": "LEARNED"
+      }
+    ]
+  },
+  {
+    "id": "259.2",
+    "feedback": 259,
+    "stability": "frozen",
+    "control": true,
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-10T10:00:00Z",
+      "to": "2026-09-11T10:00:00Z",
+      "mark_read": false,
+      "sections": ["activity", "standouts"]
+    },
+    "request_id": "cacd92da-cf81-43b6-98f8-b0be35112a23",
+    "assert": [
+      {
+        "gt": ["entries[0].activity.played_here_learned_later", 0]
+      },
+      {
+        "notes_match": "LEARNED in this window"
+      }
+    ]
+  },
+  {
+    "id": "260.1",
+    "feedback": 260,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "choosing-a-tool"
+    },
+    "request_id": "69b0b909-2fef-4cbd-ae85-7f670c79072f",
+    "assert": [
+      {
+        "contains": ["markdown", "promot"]
+      }
+    ]
+  },
+  {
+    "id": "260.2",
+    "feedback": 260,
+    "stability": "live",
+    "control": true,
+    "tool": "elixir_docs",
+    "args": {
+      "page": "choosing-a-tool"
+    },
+    "request_id": "69b0b909-2fef-4cbd-ae85-7f670c79072f",
+    "assert": [
+      {
+        "contains": ["markdown", "Who has gone quiet?"]
+      },
+      {
+        "contains": ["markdown", "clans_participation"]
+      }
+    ]
+  },
+  {
+    "id": "261.1",
+    "feedback": 261,
+    "stability": "live",
+    "tool": "elixir_examples",
+    "args": {
+      "example": "deck"
+    },
+    "request_id": "1874964c-a87c-4c6a-a706-baac032116db",
+    "assert": [
+      {
+        "not_contains": ["transcript[1].text", "Witch / Skeleton King"]
+      }
+    ]
+  },
+  {
+    "id": "261.2",
+    "feedback": 261,
+    "stability": "live",
+    "tool": "elixir_examples",
+    "args": {
+      "example": "play"
+    },
+    "request_id": "c13e712c-653d-44f4-b8bd-8c4dbb878002",
+    "assert": [
+      {
+        "not_contains": [
+          "transcript[1].text",
+          "Witch / Royal Hogs / Inferno Dragon"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "261.3",
+    "feedback": 261,
+    "stability": "live",
+    "control": true,
+    "tool": "elixir_examples",
+    "args": {
+      "example": "deck"
+    },
+    "request_id": "1874964c-a87c-4c6a-a706-baac032116db",
+    "assert": [
+      {
+        "eq": ["slug", "deck"]
+      },
+      {
+        "has": "transcript[1].text"
+      }
+    ]
+  },
+  {
+    "id": "262.1",
+    "feedback": 262,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "s": {
+        "tool": "players_summary",
+        "args": {
+          "player_tag": "#20JJJ2CCRU"
+        }
+      },
+      "p": {
+        "tool": "battles_performance",
+        "args": {
+          "player_tag": "#20JJJ2CCRU",
+          "days": 30
+        }
+      }
+    },
+    "request_id": "7b43ad26-9b7d-4c0f-ba0b-6297d369b026",
+    "assert": [
+      {
+        "eq": ["s.last_30_days.battles", "p.window.battles"]
+      },
+      {
+        "eq": ["s.last_30_days.wins", "p.window.wins"]
+      }
+    ]
+  },
+  {
+    "id": "262.2",
+    "feedback": 262,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-24T05:13:28Z"
+    },
+    "request_id": "d9fe11e9-5196-4463-b665-25e5ebaaad98",
+    "assert": [
+      {
+        "eq": ["day_kind", "training"]
+      },
+      {
+        "eq": ["next_war_day_opens_at", "2026-09-24T10:00:00.000Z"]
+      },
+      {
+        "eq": ["week_ends_at", "2026-09-28T10:00:00.000Z"]
+      },
+      {
+        "eq": ["season_ends_at", "2026-10-05T10:00:00.000Z"]
+      }
+    ]
+  },
+  {
+    "id": "262.3",
+    "feedback": 262,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "30ea71b9-6013-49ba-8fe4-7aa5af9ead37",
+    "assert": [
+      {
+        "eq": ["weeks[0].our_fame", 10146]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#JYRQ8U92C].points", 2550]
+      },
+      {
+        "notes_match": "placement"
+      }
+    ]
   }
 ]

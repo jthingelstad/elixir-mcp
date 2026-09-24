@@ -45,12 +45,12 @@ export default [
             },
             {
               role: "agent",
-              text: "Mostly grinding, with one bright spot. I looked at your last 30 days — 79 recorded battles since August 11.\n\n**By week** your win rate has bounced rather than climbed: 61% → 63% → 48% → 80% → 45%. Your trophies have gone nowhere: 12,593 five weeks ago, 12,562 today.\n\n**By deck** is where the story is:\n\n- **Witch / Royal Hogs / Inferno Dragon** — your main deck, 54 battles, 68% of your games: 25–29, **46%**\n- **Mortar / Golden Knight / Electro Dragon** — 13 battles: 11–2, **85%**\n\nThe deck you play least is the one that wins. That is not grinding paying off; that is a deck choice.",
+              text: "Mostly grinding, with one bright spot. I looked at your last 30 days — 79 recorded battles since August 11.\n\n**By week** your win rate has bounced rather than climbed: 61% → 63% → 48% → 80% → 45%. Your trophies have gone nowhere: 12,593 five weeks ago, 12,562 today.\n\n**By deck** is where the story is:\n\n- **Royal Hogs bridge spam** — your main deck, 54 battles, 68% of your games: 25–29, **46%**\n- **Mortar siege** — 13 battles: 11–2, **85%**\n\nThe deck you play least is the one that wins. That is not grinding paying off; that is a deck choice.",
             },
             { role: "user", text: "So what do I drop?" },
             {
               role: "agent",
-              text: "Not a card — a mode. Your main deck's problem is **Ladder specifically**: 25–29 there, but 19–6 (76%) in 1v1 war battles and 9–3 in duels over the same window, on the same eight cards.\n\nTwo things I would try, in order:\n\n1. Take the Mortar deck to Ladder for a week and see whether 11–2 survives a bigger sample. Thirteen games is a hint, not a verdict.\n2. If it does, keep the Witch deck for war, where it is already winning.",
+              text: "Not a card — a mode. Your main deck's problem is **Ladder specifically**: 25–29 there, but 19–6 (76%) in 1v1 war battles and 9–3 in duels over the same window, on the same eight cards.\n\nTwo things I would try, in order:\n\n1. Take the Mortar siege deck to Ladder for a week and see whether 11–2 survives a bigger sample. Thirteen games is a hint, not a verdict.\n2. If it does, keep the bridge spam deck for war, where it is already winning.",
             },
           ],
         },
@@ -68,7 +68,7 @@ export default [
         ],
         setup: ["Track your player", "Read the methodology"],
         script: {
-          tool: "battles_meta_decks · battles_decks",
+          tool: "battles_meta_decks (fit_for, min_players) · battles_decks",
           lines: [
             {
               role: "user",
@@ -76,7 +76,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Honest answer first: the corpus can tell you what is *winning*, not what will win for you. Over the last 28 days — 9,938 decided Ladder battles on record — the decks with the best win rates are all played by **one pilot each**, 60–65% over 30–68 games, so they say more about that player than about the deck.\n\nThe widely played decks tell the opposite story: the most common Ladder deck in the corpus, **X-Bow / Tesla / Archers** (42 different players), wins only 42%. Popular is not the same as good.\n\nTwo decks are worth a look because they overlap what you already play:\n\n- **Witch / Skeleton King / Inferno Dragon / Mega Knight / Royal Hogs / Baby Dragon / Arrows / Ronin** — a POAP KINGS clanmate is 25–2 with it this month, and six of its eight cards are in your rotation already.\n- **Mortar / Golden Knight / Electro Dragon** — your own second deck, 11–2. You may not need a new deck; you may need to play the one you are winning with.\n\nSample sizes are small everywhere here. Treat this as where to look, not a ranking.",
+              text: "Honest answer first: the corpus can tell you what is *winning*, not what will win for you. Over the last 28 days — 9,938 decided Ladder battles on record — the decks with the best win rates are all played by **one pilot each**, 60–65% over 30–68 games, so they say more about that player than about the deck.\n\nThe widely played decks tell the opposite story: the most common Ladder deck in the corpus, **X-Bow / Tesla / Archers** (42 different players), wins only 42%. Popular is not the same as good.\n\nAsking again for decks played by at least two players (min_players 2) and checked against your collection (fit_for), two are worth a look:\n\n- **Royal Hogs bridge spam, with Skeleton King** — 9 players, 58% over 71 games, and you can field it now at your usual level: the one upgrade that matters is Skeleton King, two levels behind.\n- **Mortar siege** — your own second deck, 11–2. You may not need a new deck; you may need to play the one you are winning with.\n\nSample sizes are small everywhere here. Treat this as where to look, not a ranking.",
             },
           ],
         },
