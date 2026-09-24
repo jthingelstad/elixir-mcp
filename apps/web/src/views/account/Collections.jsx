@@ -117,7 +117,8 @@ function NewCollection({ onSaved, onClose }) {
 }
 
 export function Collections({ me, navigate }) {
-  const { data = null } = useMyCollections();
+  const collectionsQuery = useMyCollections();
+  const data = collectionsQuery.data ?? null;
   const [sent, setSent] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -264,6 +265,14 @@ export function Collections({ me, navigate }) {
             )}
           </div>
         </section>
+      ) : collectionsQuery.isError ? (
+        // A failed read is said as one, not as an empty list (console
+        // audit M1).
+        <p className="field-error">
+          Your collections could not be read just now; try again shortly.
+        </p>
+      ) : collectionsQuery.isPending ? (
+        <p className="text-ink-faint">Loading…</p>
       ) : items.length === 0 ? (
         <div className="empty">
           <div className="empty__title">No collections yet</div>

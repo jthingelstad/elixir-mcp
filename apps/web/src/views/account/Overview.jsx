@@ -145,7 +145,8 @@ function OverviewActivity({ players, navigate }) {
 }
 
 export function Overview({ me, navigate }) {
-  const { data: clans = null } = useMyClans();
+  const clansQuery = useMyClans();
+  const clans = clansQuery.data ?? null;
 
   const e = me.entitlements;
   const players = me.claims ?? [];
@@ -222,7 +223,13 @@ export function Overview({ me, navigate }) {
 
         <section style={{ flex: "1 1 300px" }}>
           <ListHead title="Clans" navigate={navigate} />
-          {clanRows.length === 0 ? (
+          {clansQuery.isError ? (
+            <p className="field-error">
+              Your clans could not be read just now; try again shortly.
+            </p>
+          ) : clansQuery.isPending ? (
+            <p className="text-ink-faint">Loading…</p>
+          ) : clanRows.length === 0 ? (
             <div className="empty">
               <p className="empty__body" style={{ marginBottom: 0 }}>
                 No clans yet. Add your player first — we offer their clan as
