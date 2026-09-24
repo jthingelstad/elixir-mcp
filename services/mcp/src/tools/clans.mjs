@@ -74,7 +74,7 @@ async function joinedMidWindowNote(db, clanTag, fromMs, toMs) {
        from clan_membership cm
        join player p on p.player_tag = cm.player_tag
       where cm.clan_tag = $1 and cm.left_observed_at is null
-        and cm.joined_observed_at > $2 and cm.joined_observed_at < $3
+        and cm.joined_observed_at > $2
       order by cm.joined_observed_at desc`,
     [clanTag, new Date(fromMs), new Date(toMs)],
   );
@@ -87,7 +87,7 @@ async function joinedMidWindowNote(db, clanTag, fromMs, toMs) {
         `${r.name ?? r.player_tag} ${r.player_tag} joined ${r.joined_observed_at.toISOString().slice(0, 10)} with ${r.before_join} of ${r.in_window} recorded battles in the window played before joining`,
     )
     .join("; ");
-  return `Rows are today's members, and ${hit.length} of them joined during the window, so their counts include battles from before they belonged to this clan: ${list}${hit.length > 8 ? `; and ${hit.length - 8} more` : ""}. Members who left since the window began are not listed.`;
+  return `Rows are today's members, and ${hit.length} of them joined after the window began, so their counts include battles from before they belonged to this clan: ${list}${hit.length > 8 ? `; and ${hit.length - 8} more` : ""}. Members who left since the window began are not listed.`;
 }
 
 /** Members whose battles are mostly not captured, said (Gym #196). */
@@ -509,7 +509,7 @@ export const clansTools = {
           "A member whose last_seen_in_game predates a race start is left out of that race's roster by the game (see war_current.members_not_in_race).",
           "recent_events are events observed since roster recording began (events_recorded_since), never a complete history.",
           eventsCut
-            ? `recent_events holds the newest ${RECENT_EVENTS}, back to ${events.rows.at(-1)?.window_end.toISOString()}; older ones are recorded but not listed here: elixir_timeline with kinds member_joined, member_left and member_role_changed reads a window's roster moves in full.`
+            ? `recent_events holds the newest ${RECENT_EVENTS}, back to ${events.rows.at(-1)?.window_end.toISOString()}; older ones are recorded but not listed here: elixir_timeline filtered to the roster section reads a window's joins, departures and role changes in full.`
             : null,
           "war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations (Gym #131). War results: clans_participation or battles_performance mode war.",
         ),

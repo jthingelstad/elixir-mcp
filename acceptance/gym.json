@@ -13247,7 +13247,8 @@
       {
         "has": "series"
       }
-    ]
+    ],
+    "refuted": "A season that has not begun has no points, so `has series` (every element present, at least one) cannot hold; 7.1.3 answers it with an empty series, source season and the 'has not begun' note, which 236.4 and the daily-series test pin."
   },
   {
     "id": "238.4",
