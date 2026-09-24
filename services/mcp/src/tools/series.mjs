@@ -553,7 +553,7 @@ export const seriesTools = {
             ? `${rosterOnly} of ${allPoints.length} points are roster-only (profile_observed_at null): the roster's metrics are the day's, the profile metrics null there.`
             : null,
           metrics.includes("donations")
-            ? "donations is the weekly counter as of each point; it climbs all week and drops to 0 around the start of Monday UTC. In compact, delta.donations (and delta.donations_received) is what the counter added across the window, a reset counted from zero, never last minus first; it is a floor, since what was given after the last read before a reset is not in it. kind: pre_reset is the week's highest value the record read, a lower bound on the week's total: donations made after the last read before the reset are not in it, so it can sit below that week's rise in the members' lifetime total_donations."
+            ? "donations is the weekly counter as of each point; it climbs all week and drops to 0 around the start of Monday UTC. In compact, the delta of a weekly counter (donations, donations_received) counts each reset from zero: it is what the counter added across the window, never last minus first, and a floor, since what was given after the last read before a reset is not in it. kind: pre_reset is the week's highest value the record read, a lower bound on the week's total: donations made after the last read before the reset are not in it, so it can sit below that week's rise in the members' lifetime total_donations."
             : null,
           "A member's point carries clan_tag: the clan the day's last roster placed them in, so a member who moved clans that day is under the later clan's tag.",
           botSourceNote(allPoints),
