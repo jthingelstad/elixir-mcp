@@ -7674,7 +7674,8 @@
       {
         "notes_not_match": "(?i)record(ing)? began|since (the )?record|first (recorded )?snapshot"
       }
-    ]
+    ],
+    "refuted": "Superseded by #208 (6.36.12, migrations 0162-0163): board 170000004's later standings stamps were departures filled from below, with no rating changed, so its standings have not moved since recording began and the note correctly says so (208.2 asserts it)."
   },
   {
     "id": "176.1",
