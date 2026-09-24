@@ -459,7 +459,9 @@ export const battles_meta_cards = {
           ? "A tower troop is not one of the eight deck cards: pass tower_troops: true for tower troop rows."
           : null,
         towers
-          ? `Rows are tower troops, each deck's ninth card. The API reports no tower troop on river race (war) battles, so war decks count in decided_battles and in no row: usage_share is over the ${towerKnown ?? 0} decided observations whose tower troop is known (tower_troop_known_battles)${totalDecided > (towerKnown ?? 0) ? `; ${totalDecided - (towerKnown ?? 0)} of ${totalDecided} carried none` : ""}.`
+          ? totalDecided > (towerKnown ?? 0)
+            ? `Rows are tower troops, each deck's ninth card. The API reports no tower troop on river race (war) battles, so those count in decided_battles and in no row: usage_share is over the ${towerKnown ?? 0} decided observations whose tower troop is known (tower_troop_known_battles); ${totalDecided - (towerKnown ?? 0)} of ${totalDecided} carried none.`
+            : "Rows are tower troops, each deck's ninth card: usage_share is over the decided observations whose tower troop is known (tower_troop_known_battles), here all of them."
           : null,
         outsideMetaNote(excluded?.outside_meta ?? 0),
         args.mode === EVENT_MODE_GROUP ? META_EVENT_NOTE : null,
