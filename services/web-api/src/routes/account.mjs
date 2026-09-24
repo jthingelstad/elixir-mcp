@@ -217,8 +217,11 @@ export function accountRoutes({
                   and ps.last_admitted_at > coalesce(
                     (select activity_seen_at from account where account_id = $1),
                     'epoch'::timestamptz))) as timeline_pending,
+           -- Undismissed only, as the list counts them (console audit M4:
+           -- the dot stayed lit for a week after "Dismiss all").
            (select count(*)::int from credential_refusal
-             where account_id = $1 and day > current_date - 7) as refusals_7d,
+             where account_id = $1 and day > current_date - 7
+               and dismissed_at is null) as refusals_7d,
            -- What THIS account tracks, for the rail's Tracking count: the
            -- pooled slot figures below cover the owner and every agent.
            (select count(*)::int from claim where account_id = $1)
@@ -323,7 +326,17 @@ export function accountRoutes({
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
-      const tz = String(body.timezone ?? "");
+      const tz = String(body.timezone ?? "").trim();
+      // Empty (the console's "UTC (default)") or "UTC" resets to the
+      // default; before, "" failed validation and a set zone could never
+      // be cleared (console audit B1, 2026-09-24).
+      if (tz === "" || tz.toUpperCase() === "UTC") {
+        await db.query(
+          `update account set timezone = null where account_id = $1`,
+          [account.accountId],
+        );
+        return json(200, { ok: true, timezone: null });
+      }
       try {
         Intl.DateTimeFormat("en-US", { timeZone: tz });
       } catch {

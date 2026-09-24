@@ -37,7 +37,7 @@ function firstLine(text, max = 72) {
 
 const CATEGORIES = ["general", "bug", "data_quality", "feature", "praise"];
 
-function Shipped({ version, navigate }) {
+function Shipped({ version }) {
   if (!version) return null;
   return (
     <a
@@ -49,7 +49,9 @@ function Shipped({ version, navigate }) {
         borderRadius: "6px",
         padding: "1px 7px",
       }}
-      onClick={() => navigate("/updates")}
+      // /updates is a page of the static site, not an app route: a real
+      // link, or the app's router sent it home (console audit M3).
+      href="/updates"
       title="The contract version this shipped in"
     >
       shipped {version}
@@ -298,7 +300,8 @@ export function Feedback({ navigate }) {
   // elixir_send_feedback). New feedback is always filed as you, from your
   // own console, so this page has no compose (2026-09-23).
   const scoped = Boolean(useScope());
-  const feedback = useMyFeedback().data;
+  const feedbackQuery = useMyFeedback();
+  const feedback = feedbackQuery.data;
   const items = feedback ? (feedback.feedback ?? feedback.items ?? []) : null;
   const [prefill] = useState(prefillFromUrl);
   const [composing, setComposing] = useState(
@@ -339,6 +342,12 @@ export function Feedback({ navigate }) {
 
   return (
     <LogTable
+      loading={feedbackQuery.isPending}
+      error={
+        feedbackQuery.isError
+          ? "Your feedback could not be read just now; try again shortly."
+          : null
+      }
       title="Feedback"
       note={
         scoped

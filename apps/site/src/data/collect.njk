@@ -33,26 +33,26 @@ dataNav: collect
       <tbody>
         <tr>
           <td>Player battle logs</td>
-          <td>every 5&ndash;30 min while active</td>
+          <td>every 30 min while playing, backing off to at most 2 h (<a href="/docs/recording">the session clock</a>)</td>
           <td>{% if t %}{{ t.oldest_battle | day }}{% else %}{{ n }}{% endif %}</td>
           <td>full history today</td>
         </tr>
         <tr>
           <td>Player profiles</td>
-          <td>daily snapshot</td>
-          <td>{% if t %}{{ t.oldest_battle | day }}{% else %}{{ n }}{% endif %}</td>
+          <td>daily, and after a session</td>
+          <td>&mdash;</td>
           <td>full history today</td>
         </tr>
         <tr>
           <td>Clans</td>
-          <td>every 15 min</td>
-          <td>{% if t %}{{ t.oldest_battle | day }}{% else %}{{ n }}{% endif %}</td>
+          <td>tracked clans every 15 min while members are online, backing off when idle</td>
+          <td>&mdash;</td>
           <td>full history today</td>
         </tr>
         <tr>
           <td>River races (clan wars)</td>
-          <td>weekly, corrected as the race runs</td>
-          <td>{% if t %}{{ t.oldest_battle | day }}{% else %}{{ n }}{% endif %}</td>
+          <td>every 30 min on war days, 2 h on training days; the race log daily</td>
+          <td>&mdash;</td>
           <td>full history today</td>
         </tr>
         <tr>

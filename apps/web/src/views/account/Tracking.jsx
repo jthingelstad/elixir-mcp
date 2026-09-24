@@ -41,7 +41,11 @@ export function Tracking({ me, refresh, navigate }) {
   const [tag, setTag] = useState("");
   const [tagErr, setTagErr] = useState("");
   const [clanTag, setClanTag] = useState("");
-  const [clanScope, setClanScope] = useState("comprehensive");
+  // Activity is the slot every tier has; comprehensive is an upgrade
+  // chosen knowing its cost. The comprehensive default failed a new
+  // member's first clan add (console audit F1), as the home-clan offer
+  // below once did.
+  const [clanScope, setClanScope] = useState("activity");
   const [clanErr, setClanErr] = useState("");
   const [now] = useState(() => Date.now());
 

@@ -80,6 +80,11 @@ export function LogTable({
    *  was making you ask. The selects still show it, so it can be
    *  cleared like any other filter rather than being a hidden state. */
   initialFilters = null,
+  /** The read is still in flight: say so instead of `empty` (console
+   *  audit M1: "No calls yet" showed while loading and on failure). */
+  loading = false,
+  /** The read failed: this text instead of `empty`. */
+  error = null,
 }: {
   title: ReactNode;
   note?: ReactNode;
@@ -95,6 +100,8 @@ export function LogTable({
   actions?: ReactNode;
   above?: ReactNode;
   initialFilters?: Record<string, string> | null;
+  loading?: boolean;
+  error?: ReactNode;
 }) {
   const [picked, setPicked] = useState<Record<string, string>>(
     () => initialFilters ?? {},
@@ -165,7 +172,9 @@ export function LogTable({
 
       {rows.length === 0 ? (
         <div className="empty">
-          <p className="empty__body mb-0">{empty}</p>
+          <p className="empty__body mb-0">
+            {error ? error : loading ? "Loading…" : empty}
+          </p>
         </div>
       ) : (
         <>

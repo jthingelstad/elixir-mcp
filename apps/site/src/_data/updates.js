@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Console fixes from a first-visit audit",
+    body: 'An overnight audit of the console for a first-time visitor. Choosing "UTC (default)" as your timezone now works after another zone was set. A console tab left open across an update reloads onto the new version instead of failing to open a section. The Timeline, Feedback and MCP request tables say when they are loading or could not be read, instead of "nothing yet". A dismissed sign-in refusal no longer keeps its warning dot lit. Adding a clan starts from the scope every account has. The data collection page describes the polling schedule as the recording docs do.',
+  },
+  {
+    date: "2026-09-24",
     title: "A better first conversation",
     body: "The Elixir Gym played a new user's first session. Meta deck lists can now require a deck to be played by more than one player, and say when a list is mostly one player's personal deck. Badge rarity for a single player says it is not a rarity ranking. Asking the timeline about one clan member includes their sessions, and the guide now says which facts answer who to promote or remove. The worked examples name decks the way the service asks agents to. Contract 7.1.6.",
   },

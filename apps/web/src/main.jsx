@@ -20,6 +20,19 @@ const reportError = (kind) => (ev) => {
   const name = err?.name && err.name !== "Error" ? err.name : kind;
   trackEvent("web.error", `${name} ${analyticsLocation()?.path ?? "-"}`);
 };
+// A tab left open across a deploy asks for a lazy chunk the deploy
+// removed (the site is synced with --delete). Vite says so with
+// vite:preloadError: reload once, onto the new build, rather than show a
+// section that can never load (console audit B2, 2026-09-24). The stamp
+// stops a loop if the reload does not help.
+window.addEventListener("vite:preloadError", (ev) => {
+  const key = "elixir.preload-reload";
+  const last = Number(sessionStorage.getItem(key) ?? 0);
+  if (Date.now() - last < 60_000) return;
+  sessionStorage.setItem(key, String(Date.now()));
+  ev.preventDefault();
+  window.location.reload();
+});
 window.addEventListener("error", reportError("error"));
 window.addEventListener("unhandledrejection", reportError("rejection"));
 createRoot(document.getElementById("root")).render(<App />);

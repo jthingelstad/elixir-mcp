@@ -207,8 +207,9 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
                     {" · "}
                     {key.last_used_at ? (
                       <>
-                        first used{" "}
-                        <Fresh ts={key.first_used_at ?? key.last_used_at} />
+                        {/* The API carries last_used_at only; this read
+                            "first used" over it (console audit M5). */}
+                        last used <Fresh ts={key.last_used_at} />
                       </>
                     ) : (
                       "never used"

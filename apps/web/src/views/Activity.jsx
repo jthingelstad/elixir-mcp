@@ -43,7 +43,8 @@ export function Activity({ sub, navigate }) {
     scoped && sub === "emails" ? "requests" : (BY_SUB[sub] ?? "requests");
   // Each tab loads only its own read, and a tab already read is served
   // from the cache when you come back to it.
-  const requests = useMyRequests(view === "requests").data?.requests ?? null;
+  const requestsQuery = useMyRequests(view === "requests");
+  const requests = requestsQuery.data?.requests ?? null;
   const sends = useMyEmailSends(view === "emails").data?.sends ?? null;
   const events = useActivityEvents(view === "events").data?.events ?? null;
 
@@ -76,6 +77,12 @@ export function Activity({ sub, navigate }) {
     ]);
     return (
       <LogTable
+        loading={requestsQuery.isPending}
+        error={
+          requestsQuery.isError
+            ? "Your requests could not be read just now; try again shortly."
+            : null
+        }
         crumb="Activity"
         title="MCP requests"
         note="Every call your connections made, newest first."

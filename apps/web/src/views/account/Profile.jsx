@@ -19,6 +19,7 @@ import { quotaReading } from "../../lib/quota.js";
 export function Profile({ me, refresh, navigate }) {
   const { data: usage = null } = useUsage();
   const { zone } = useClock();
+  const [tzError, setTzError] = useState(null);
   const e = me?.entitlements;
   const quota = usage ? quotaReading(usage, zone) : null;
   const timezones =
@@ -65,20 +66,35 @@ export function Profile({ me, refresh, navigate }) {
                 aria-label="Timezone"
                 value={me?.timezone ?? ""}
                 onChange={async (ev) => {
-                  await api.setTimezone(ev.target.value);
+                  setTzError(null);
+                  const r = await api.setTimezone(ev.target.value);
+                  if (!r?.ok)
+                    setTzError(
+                      r?.data?.message ?? "That timezone could not be saved.",
+                    );
                   refresh();
                 }}
                 style={{ width: "auto" }}
               >
                 <option value="">UTC (default)</option>
-                {timezones.map((tz) => (
+                {/* A zone saved from another browser stays listed even
+                    when this browser's list lacks it (Asia/Kolkata). */}
+                {[
+                  ...(me?.timezone && !timezones.includes(me.timezone)
+                    ? [me.timezone]
+                    : []),
+                  ...timezones,
+                ].map((tz) => (
                   <option key={tz} value={tz}>
                     {tz}
                   </option>
                 ))}
               </select>
             }
-            note="sets the times this console shows, day boundaries in your charts and local times in tool responses; storage stays UTC"
+            note={
+              tzError ??
+              "sets the times this console shows, day boundaries in your charts and local times in tool responses; storage stays UTC"
+            }
           />
         </div>
       </section>

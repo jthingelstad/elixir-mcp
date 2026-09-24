@@ -15,7 +15,8 @@ import { useScope } from "../../lib/scope.js";
 export function Timeline() {
   const { stamp } = useClock();
   const scoped = Boolean(useScope());
-  const timeline = useMyTimeline().data ?? null;
+  const timelineQuery = useMyTimeline();
+  const timeline = timelineQuery.data ?? null;
   const more = timeline?.timeline_more ?? 0;
   const rows = (timeline?.timeline ?? []).map((it) => {
     // Unread is a state of the row: past the account's read pointer, or
@@ -31,6 +32,12 @@ export function Timeline() {
   });
   return (
     <LogTable
+      loading={timelineQuery.isPending}
+      error={
+        timelineQuery.isError
+          ? "The timeline could not be read just now; try again shortly."
+          : null
+      }
       title="Timeline"
       note={
         scoped

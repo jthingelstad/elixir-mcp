@@ -72,7 +72,8 @@ export async function listPrincipals(db, ownerAccountId) {
                                                  'last_seen', cr.last_seen))
                from credential_refusal cr
                where cr.account_id = a.account_id
-                 and cr.day > current_date - 7), '[]'
+                 and cr.day > current_date - 7
+                 and cr.dismissed_at is null), '[]'
             ) as refusals_7d,
             coalesce(
               (select json_agg(json_build_object('token_id', t.token_id,
