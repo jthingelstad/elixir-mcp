@@ -120,9 +120,10 @@ decisions there as they happen and add the line to `DECISIONS.md`.
   worth recording rides the EMF line as a plain property (Logs Insights
   reads it) or lives in the database.
 - `deploy.mjs` tags the stack `awsApplication` (the myApplications
-  application "Elixir", shared with Drop and Clan), `Application=Elixir`
-  and `Component=elixir-mcp`; CloudFormation propagates them to every
-  taggable resource.
+  application "Elixir"), `Application=Elixir`, `Project=elixir-mcp`,
+  `Environment`, `ManagedBy` and `Repository`, the account standard in
+  `projects-sysadmin` docs/AWS-TAGS.md; CloudFormation propagates them to
+  every taggable resource.
 - Store UTC everywhere; timezone is a display concern.
 
 ## AGENT-TEAM
