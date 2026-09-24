@@ -19842,12 +19842,13 @@
     },
     "assert": [
       {
-        "notes_match": "not applied yet"
+        "notes_match": ["c", "not applied yet"]
       },
       {
-        "notes_not_match": "so this is today's membership"
+        "notes_not_match": ["c", "so this is today's membership"]
       }
-    ]
+    ],
+    "amended": "Two calls: the note is the collection read's (binding c); the filed form read the last call's notes."
   },
   {
     "id": "322.6",
