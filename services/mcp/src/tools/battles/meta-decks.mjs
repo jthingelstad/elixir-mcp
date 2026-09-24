@@ -579,6 +579,7 @@ export const battles_meta_decks = {
             .slice(0, limit)
             .filter((r) => (r.players ?? 0) <= 1).length;
           return minPlayers === 1 &&
+            !args.group_by &&
             !seg.echo?.player_tag &&
             solo * 2 > Math.min(limit, beforePlayers.length)
             ? `${solo} of the first ${Math.min(limit, beforePlayers.length)} rows are one player's own deck (players 1): they describe that player, not what this population plays. Pass min_players 2 (or sort players) for decks played across players.`
