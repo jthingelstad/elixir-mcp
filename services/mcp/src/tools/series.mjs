@@ -14,7 +14,7 @@ import {
   DAY_WINDOW_ARGS,
   STAMP_COLUMNS,
   GAME_DAY_NOTE,
-  dayWindow,
+  seriesWindow,
   pointStamps,
   metricValue,
   botSourceNote,
@@ -32,6 +32,7 @@ import {
   docsRef,
   zoneFor,
   seasonFieldsForDays,
+  SEASON_ARG_SCHEMA,
 } from "./shared.mjs";
 
 const CLAN_TAG_SCHEMA = {
@@ -151,6 +152,7 @@ export const seriesTools = {
             "Which series to return; default the five clan metrics and the three roster aggregates.",
         },
         ...DAY_WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         timezone: TIMEZONE_SCHEMA,
         granularity: GRANULARITY_SCHEMA,
         kind: KIND_SCHEMA,
@@ -161,7 +163,7 @@ export const seriesTools = {
     async handler(ctx, args) {
       const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
       const tz = zoneFor(ctx, args);
-      const win = dayWindow(args);
+      const win = await seriesWindow(ctx, args);
       requireEnum(args.granularity, ["day", "week"], "granularity");
       requireEnum(args.kind, KINDS, "kind");
       requireEnum(args.verbosity, ["full", "compact"], "verbosity");
@@ -265,6 +267,7 @@ export const seriesTools = {
         series_available_from: availableFrom,
         series: points,
         notes: notes(
+          win.notBegunNote ?? null,
           win.floorNote,
           availableFrom && win.from && win.from < availableFrom
             ? `Requested from ${win.from}, but the clan's series begins ${availableFrom}.`
@@ -323,6 +326,7 @@ export const seriesTools = {
             "Which series to return; default trophies and donations.",
         },
         ...DAY_WINDOW_ARGS,
+        season: SEASON_ARG_SCHEMA,
         timezone: TIMEZONE_SCHEMA,
         granularity: GRANULARITY_SCHEMA,
         kind: KIND_SCHEMA,
@@ -343,7 +347,7 @@ export const seriesTools = {
     async handler(ctx, args) {
       const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
       const tz = zoneFor(ctx, args);
-      const win = dayWindow(args);
+      const win = await seriesWindow(ctx, args);
       requireEnum(args.granularity, ["day", "week"], "granularity");
       requireEnum(args.kind, KINDS, "kind");
       requireEnum(args.verbosity, ["full", "compact"], "verbosity");
@@ -469,6 +473,7 @@ export const seriesTools = {
           };
         }),
         notes: notes(
+          win.notBegunNote ?? null,
           win.floorNote,
           truncated
             ? `More than ${limit} members had points in the window; the first ${limit} by tag are here - pass player_tags to choose, or raise limit (max 50).`
@@ -477,7 +482,7 @@ export const seriesTools = {
             ? `${rosterOnly} of ${allPoints.length} points are roster-only (profile_observed_at null): the roster's metrics are the day's, the profile metrics null there.`
             : null,
           metrics.includes("donations")
-            ? "donations is the weekly counter as of each point; it climbs all week and drops to 0 around the start of Monday UTC; kind: pre_reset is the week's highest value, the week's total."
+            ? "donations is the weekly counter as of each point; it climbs all week and drops to 0 around the start of Monday UTC. kind: pre_reset is the week's highest value the record read, a lower bound on the week's total: donations made after the last read before the reset are not in it, so it can sit below that week's rise in the members' lifetime total_donations."
             : null,
           "A member's point carries clan_tag: the clan the day's last roster placed them in, so a member who moved clans that day is under the later clan's tag.",
           botSourceNote(allPoints),

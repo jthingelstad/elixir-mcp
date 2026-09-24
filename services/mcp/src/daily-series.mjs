@@ -17,6 +17,7 @@ import { gameDay } from "@elixir-mcp/contracts";
 import {
   ToolFailure,
   WINDOW_DATE_ONLY_DESC,
+  resolveSeasonWindow,
   withWindowSugar,
 } from "./tools/shared.mjs";
 
@@ -104,7 +105,7 @@ export const DAY_WINDOW_ARGS = {
  *  floored to its game day (3.17.0, one window grammar, call 3): the
  *  echo carries the instant given under `floored` and a note says which
  *  day it became, never a refusal. */
-export function dayWindow(rawArgs) {
+function dayWindow(rawArgs) {
   const args = withWindowSugar(rawArgs);
   if (args.from !== rawArgs.from)
     args.from = gameDay(Date.parse(args.from) + 86_400_000);
@@ -144,6 +145,31 @@ export function dayWindow(rawArgs) {
           .map((d) => `${d} is game day ${args[d]}`)
           .join(" and ")}.`
       : null,
+  };
+}
+
+/** A daily series' window from `season` (every windowed tool takes it,
+ *  Gym #177): the season's game days, from the day it starts on through
+ *  the day before it ends, or today for the running one. A season that
+ *  has not begun is its start day alone, with the note saying so (Gym
+ *  #228: it had read from 10-05 to 10-04 with no word). Without
+ *  `season` the window is dayWindow's. */
+export async function seriesWindow(ctx, rawArgs) {
+  const win = dayWindow(rawArgs);
+  if (rawArgs.season === undefined) return win;
+  const sw = await resolveSeasonWindow(ctx, { season: rawArgs.season });
+  const notBegun = sw.to !== null && sw.to.getTime() <= sw.from.getTime();
+  return {
+    ...win,
+    from: gameDay(sw.from),
+    to: notBegun
+      ? gameDay(sw.from)
+      : sw.to
+        ? gameDay(sw.to.getTime() - 1)
+        : null,
+    source: "season",
+    echoExtra: {},
+    notBegunNote: notBegun ? sw.seasonNotes : null,
   };
 }
 

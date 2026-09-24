@@ -9,7 +9,6 @@ import {
   normalizeTag,
   responseMeta,
   modeGroupSql,
-  gameDay,
 } from "@elixir-mcp/contracts";
 
 /** A deck row's mode group, event-aware (Gym #130: by type alone filed
@@ -24,7 +23,7 @@ import {
   DAY_WINDOW_ARGS,
   STAMP_COLUMNS,
   GAME_DAY_NOTE,
-  dayWindow,
+  seriesWindow,
   pointStamps,
   metricValue,
   botSourceNote,
@@ -53,7 +52,6 @@ import {
   ARCHETYPE_NOTE,
   seasonFieldsForInstants,
   SEASON_ARG_SCHEMA,
-  resolveSeasonWindow,
 } from "./shared.mjs";
 import { dailySql } from "../daily-sql.mjs";
 import {
@@ -443,7 +441,10 @@ export const playersTools = {
         notes: notes(
           livePendingNote(live),
           "last_seen_in_game is the game's own lastSeen from clan roster polls (when the player was last active); null until a polled roster carried them.",
-          "attributes.war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations. For war results use battles_performance mode war; for lifetime donations, the players_timeline.total_donations series.",
+          "attributes.war_day_wins and clan_cards_collected are the game's counters from the retired Clan Wars format, frozen since it ended: 0 on newer accounts, never counting River Race battles or donations. For war results use battles_performance mode war; lifetime donations are snapshot.lifetime.total_donations (its series is players_timeline.total_donations).",
+          row.years_played === null || row.years_played === undefined
+            ? "attributes.years_played and account_age_days are null: the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so this is almost always an account under a year old, not a profile Elixir failed to read."
+            : null,
           "attributes and clan carry ids only; names and icons resolve through cards_catalog.",
           "path_of_legend.seasons lists the last twelve season finals the record kept (the API's lastPathOfLegendSeasonResult, read in the following month; rank null unless globally ranked), newest first; empty for a player recorded after their last final or never ranked.",
         ),
@@ -495,19 +496,7 @@ export const playersTools = {
         )
       ).tag;
       const tz = zoneFor(ctx, rawArgs);
-      let win = dayWindow(rawArgs);
-      if (rawArgs.season !== undefined) {
-        // A season is its game days: the day it starts on through the
-        // day before it ends (or today, for the running one).
-        const sw = await resolveSeasonWindow(ctx, { season: rawArgs.season });
-        win = {
-          ...win,
-          from: gameDay(sw.from),
-          to: sw.to ? gameDay(sw.to.getTime() - 1) : null,
-          source: "season",
-          echoExtra: {},
-        };
-      }
+      const win = await seriesWindow(ctx, rawArgs);
       requireEnum(rawArgs.granularity, ["day", "week"], "granularity");
       requireEnum(rawArgs.kind, KINDS, "kind");
       for (const metric of rawArgs.metrics ?? [])
@@ -559,6 +548,7 @@ export const playersTools = {
       // player has had, per day in the same window and kind (pre_reset
       // does not exist there: nothing in a bucket is weekly).
       let progress;
+      let progressKeyNote = null;
       if (rawArgs.progress_key !== undefined) {
         const key = String(rawArgs.progress_key);
         // Qualified: mode_season also has progress_key, and a named key
@@ -587,6 +577,19 @@ export const playersTools = {
             order by p.progress_key, p.day`,
           pParams,
         );
+        // A key that matches none of the player's buckets says so, with the
+        // keys the record holds (Gym #230: a wrong case read as "never
+        // played the mode").
+        if (key !== "all" && prog.length === 0) {
+          const { rows: held } = await ctx.db.query(
+            `select distinct progress_key from player_progress_daily
+              where player_tag = $1 order by 1`,
+            [tag],
+          );
+          const keys = held.map((r) => r.progress_key);
+          if (!keys.includes(key))
+            progressKeyNote = `progress_key '${key}' matches none of this player's recorded buckets${keys.length ? `: ${keys.map((k) => `'${k}'`).join(", ")}` : " (the record holds none)"}. Keys are exact and case-sensitive${keys.some((k) => k.toLowerCase() === key.toLowerCase()) ? `, and '${keys.find((k) => k.toLowerCase() === key.toLowerCase())}' is this one in the API's case` : ""}; progress_key 'all' lists every bucket.`;
+        }
         progress = prog.map((r) => ({
           key: r.progress_key,
           mode: r.mode,
@@ -628,12 +631,14 @@ export const playersTools = {
         series: points,
         ...(progress ? { progress } : {}),
         notes: notes(
+          win.notBegunNote ?? null,
+          progressKeyNote,
           win.floorNote,
           snapshotsFrom && win.from && win.from < snapshotsFrom
             ? `Requested from ${win.from}, but daily snapshots begin ${snapshotsFrom}; earlier dates have battles (see elixir_coverage) but no snapshots.`
             : null,
           metrics.includes("donations")
-            ? "donations is the weekly counter as of each snapshot; it climbs all week and drops to 0 around the start of Monday UTC; kind: pre_reset is the week's highest value, the week's total."
+            ? "donations is the weekly counter as of each snapshot; it climbs all week and drops to 0 around the start of Monday UTC. kind: pre_reset is the week's highest value the record read, a lower bound on the week's total: donations made after the last read before the reset are not in it, so it can sit below that week's rise in the lifetime total_donations."
             : null,
           rosterOnly > 0
             ? `${rosterOnly} of ${points.length} points are roster-only (profile_observed_at null): the roster's columns are the day's, the lifetime block is null there.`
@@ -775,7 +780,7 @@ export const playersTools = {
           "Levels are the in-game 1-16 scale (every card caps at 16); starLevel is cosmetic. The catalog's facts - rarity, elixirCost, maxLevelRarityScale, iconUrls - are not repeated per card here: cards_catalog carries them, once.",
           fielded.mean_level === null
             ? "fielded.mean_level is null: no decided pvp battle with a recorded deck in the last 30 days, so there is no benchmark for what this player fields."
-            : `fielded.mean_level (${fielded.mean_level} over ${fielded.battles} decided battles, 30 days) is the mean card level of the decks this player actually plays; a held level below it is an upgrade target, and battles_meta_decks with fit_for checks the population's decks against this collection.`,
+            : `fielded.mean_level (${fielded.mean_level} over ${fielded.battles} decided battles, 30 days) is the mean card level of the decks this player actually plays; a held level below ${fielded.recent_mean_level !== null && Math.abs(fielded.recent_mean_level - fielded.mean_level) >= 1 ? `the level fielded now (fielded.recent_mean_level, ${fielded.recent_mean_level})` : "it"} is an upgrade target, and battles_meta_decks with fit_for checks the population's decks against this collection.`,
         ),
         docs: FORMS_DOCS,
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player"]),

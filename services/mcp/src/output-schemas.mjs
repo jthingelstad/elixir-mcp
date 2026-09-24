@@ -740,7 +740,7 @@ export const OUTPUT_SCHEMAS = {
             years_played: {
               type: ["integer", "null"],
               description:
-                "The account's age in whole years (the game's YearsPlayed badge level), not time in this collection; null when the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so almost always an account under a year old (players_profile.account_age_days has the days); an unread profile is null too.",
+                "The account's age in whole years (the game's YearsPlayed badge level), not time in this collection; null when the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so almost always an account under a year old (players_profile.account_age_days is read from the same badge, so it is null then too); an unread profile is null as well.",
             },
             open_members: NULLABLE_INT,
             recording: { type: "boolean" },
@@ -1669,7 +1669,7 @@ export const OUTPUT_SCHEMAS = {
             clan_score: {
               type: ["number", "null"],
               description:
-                "DEPRECATED, removed in 7.0.0: the same number as clan_war_trophies under the old, wrong name.",
+                "DEPRECATED (6.19.0), removed in the next major version: the same number as clan_war_trophies under the old, wrong name.",
             },
             clan_tag: { type: ["string", "null"] },
             colosseum_races: { type: ["number", "null"] },
@@ -1684,6 +1684,21 @@ export const OUTPUT_SCHEMAS = {
             races_observed: { type: ["number", "null"] },
             races_shared_with_you: { type: ["number", "null"] },
             zero_fame_races: { type: ["number", "null"] },
+            points_weeks: {
+              type: "integer",
+              description:
+                "Finished weeks whose day logs the record holds for this rival (7.1.3): the count mean_points averages.",
+            },
+            mean_points: {
+              type: ["integer", "null"],
+              description:
+                "The rival's mean points per finished week over points_weeks (7.1.3): how much it played, where fame measures only where it placed. null with no day log.",
+            },
+            points_vs_ours: {
+              type: ["number", "null"],
+              description:
+                "The rival's points over yours, summed across the finished weeks where the record holds both clans' day logs (7.1.3): 0.047 means it played about 5% of what you did. null when no such week is recorded.",
+            },
           },
         },
       },
@@ -1882,7 +1897,7 @@ export const OUTPUT_SCHEMAS = {
             our_clan_score: {
               type: ["integer", "null"],
               description:
-                "DEPRECATED, removed in 7.0.0: the same number as our_clan_war_trophies under the old, wrong name.",
+                "DEPRECATED (6.19.0), removed in the next major version: the same number as our_clan_war_trophies under the old, wrong name.",
             },
             our_repair_points: NULLABLE_INT,
             finished_early: {
@@ -1955,7 +1970,7 @@ export const OUTPUT_SCHEMAS = {
             clan_score: {
               type: ["integer", "null"],
               description:
-                "DEPRECATED, removed in 7.0.0: the same number as clan_war_trophies under the old, wrong name.",
+                "DEPRECATED (6.19.0), removed in the next major version: the same number as clan_war_trophies under the old, wrong name.",
             },
             repair_points: NULLABLE_INT,
           },
@@ -2230,6 +2245,15 @@ export const OUTPUT_SCHEMAS = {
           battles: COUNT,
           win_rate: RATE,
           modes: MODE_SPLIT,
+          dominant_mode: {
+            type: ["object", "null"],
+            properties: { mode: { type: "string" }, share: RATE },
+          },
+          mean_level_gap: {
+            type: ["number", "null"],
+            description:
+              "Mean of the player's deck-average level minus the opposing side's over the deck's battles, as on top_deck.",
+          },
           trophy_range: DECK_TROPHY_RANGE,
           last_played_at: { type: ["string", "null"] },
         },
@@ -2262,6 +2286,13 @@ export const OUTPUT_SCHEMAS = {
           days: COUNT,
           mean_level: { type: ["number", "null"] },
           battles: COUNT,
+          recent_mean_level: {
+            type: ["number", "null"],
+            description:
+              "The mean card level over the player's last ten decided battles (6.35.0): the level fielded now, the upgrade benchmark when it differs from mean_level.",
+          },
+          from: { type: ["string", "null"] },
+          to: { type: ["string", "null"] },
         },
         required: ["days", "mean_level", "battles"],
       },
@@ -2273,7 +2304,11 @@ export const OUTPUT_SCHEMAS = {
             id: COUNT,
             name: { type: ["string", "null"] },
             level: COUNT,
-            count: COUNT,
+            count: {
+              ...COUNT,
+              description:
+                "Copies of the card held and not yet spent: the cards the player has toward its next level (the API's count). The copies a level needs are not served: Elixir holds no upgrade-cost table.",
+            },
             starLevel: COUNT,
             evolutionLevel: COUNT,
             maxEvolutionLevel: COUNT,
@@ -2320,9 +2355,13 @@ export const OUTPUT_SCHEMAS = {
           years_played: {
             type: ["integer", "null"],
             description:
-              "The account's age in whole years (the game's YearsPlayed badge level); null when the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so almost always an account under a year old (players_profile.account_age_days has the days); an unread profile is null too. account_age_days is exact.",
+              "The account's age in whole years (the game's YearsPlayed badge level); null when the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so almost always an account under a year old (players_profile.account_age_days is read from the same badge, so it is null then too); an unread profile is null as well. Where the badge is held, account_age_days is the exact age in days.",
           },
-          account_age_days: { type: ["integer", "null"] },
+          account_age_days: {
+            type: ["integer", "null"],
+            description:
+              "The account's age in days, the YearsPlayed badge's progress; null with years_played when the badge is not held (an account under about a year old).",
+          },
           war_day_wins: NULLABLE_INT,
           clan_cards_collected: NULLABLE_INT,
           legacy_trophy_road_high_score: NULLABLE_INT,
@@ -2420,6 +2459,16 @@ export const OUTPUT_SCHEMAS = {
               star_points: NULLABLE_INT,
               exp_points: NULLABLE_INT,
               collection_level: NULLABLE_INT,
+              king_tower_level: {
+                ...NULLABLE_INT,
+                description:
+                  "The King Tower level on the in-game scale, from the same profile read (7.1.3).",
+              },
+              total_donations: {
+                ...NULLABLE_INT,
+                description:
+                  "Cards donated over the account's life, from the same profile read (7.1.3); donations_this_week is the weekly counter.",
+              },
             },
           },
         },
@@ -2770,7 +2819,7 @@ export const OUTPUT_SCHEMAS = {
             clan_score: {
               type: ["integer", "null"],
               description:
-                "DEPRECATED, removed in 7.0.0: the same number as clan_war_trophies under the old, wrong name.",
+                "DEPRECATED (6.19.0), removed in the next major version: the same number as clan_war_trophies under the old, wrong name.",
             },
             repair_points: { type: ["integer", "null"] },
           },

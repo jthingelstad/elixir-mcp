@@ -149,7 +149,7 @@ export const collectionsTools = {
           // What years_played is (Gym #160): the account's age, never the
           // member's time here.
           c.kind === "player"
-            ? "years_played is the account's age in whole years (the game's YearsPlayed badge level), not time in this collection; null when the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so almost always an account under a year old (players_profile.account_age_days has the days); an unread profile is null too."
+            ? "years_played is the account's age in whole years (the game's YearsPlayed badge level), not time in this collection; null when the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so almost always an account under a year old (players_profile.account_age_days is read from the same badge, so it is null then too); an unread profile is null as well."
             : null,
           c.synced_from
             ? `Membership follows the live board ${c.synced_from}: it is re-synced every day after the 10:00Z board snapshot, so this is today's membership, not a fixed cohort, and a segment read over a past window applies today's members.`

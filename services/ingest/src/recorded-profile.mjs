@@ -12,7 +12,7 @@ export async function readRecordedProfile(db, tag) {
                 s.donations, s.donations_received, s.created_at as snapshot_at,
                 s.arena_id, s.best_trophies, s.favorite_card_id,
                 s.battle_count, s.wins, s.losses, s.three_crown_wins, s.star_points,
-                s.exp_points, s.collection_level,
+                s.exp_points, s.collection_level, s.king_tower_level, s.total_donations,
                 s.pol_league, s.pol_trophies, s.pol_rank,
                 s.pol_best_league, s.pol_best_trophies, s.pol_best_rank,
                 s.season_trophies, s.season_best_trophies,

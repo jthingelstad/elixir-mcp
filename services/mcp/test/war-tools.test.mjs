@@ -739,7 +739,12 @@ test("war_rivals: bracket default, observer-deduped fingerprints, honest basis",
     // 3.16.0: the Colosseum weeks among the races observed.
     assert.ok(Number.isInteger(r.colosseum_races));
     assert.ok(r.colosseum_races <= r.races_observed);
+    // 7.1.3 (Gym #226): effort beside fame, null without a day log.
+    assert.ok(Number.isInteger(r.points_weeks));
+    assert.equal(r.mean_points === null, r.points_weeks === 0);
+    assert.ok(r.points_vs_ours === null || r.points_vs_ours >= 0);
   }
+  assert.ok(body.notes.some((n) => /mean_points and points_vs_ours/.test(n)));
   assert.match(body.notes.join(" "), /counts once/);
   assert.equal(
     body.rivals.some((r) => r.colosseum_races > 0),

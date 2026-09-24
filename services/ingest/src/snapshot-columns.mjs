@@ -123,6 +123,15 @@ export function snapshotObjects(row) {
         star_points: row.star_points,
         exp_points: row.exp_points,
         collection_level: row.collection_level,
+        // The same profile read clans_roster serves them from (Gym #233):
+        // "my King Tower level" and "my lifetime donations" had no answer
+        // here. Absent when the reader did not select them.
+        ...(row.king_tower_level !== undefined
+          ? { king_tower_level: row.king_tower_level }
+          : {}),
+        ...(row.total_donations !== undefined
+          ? { total_donations: row.total_donations }
+          : {}),
       }
     : null;
   return {

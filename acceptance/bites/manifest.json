@@ -1529,5 +1529,85 @@
     "case": "gym/217.1",
     "captures": ["217-1-elixir_data_insights.json"],
     "expect": "."
+  },
+  {
+    "feedback": 223,
+    "contract": "7.1.0",
+    "why": "the Gym block 223.1 on the answer it read",
+    "case": "gym/223.1",
+    "captures": ["223-1-war_history.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 223,
+    "contract": "7.1.0",
+    "why": "the Gym block 223.2 on the answer it read",
+    "case": "gym/223.2",
+    "captures": ["223-2-war_history.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 228,
+    "contract": "7.1.1",
+    "why": "the Gym block 228.1 on the answer it read",
+    "case": "gym/228.1",
+    "captures": ["228-1-players_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 229,
+    "contract": "7.1.1",
+    "why": "the Gym block 229.1 on the answer it read",
+    "case": "gym/229.1",
+    "captures": ["229-1-players_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 230,
+    "contract": "7.1.1",
+    "why": "the Gym block 230.1 on the answer it read",
+    "case": "gym/230.1",
+    "captures": ["230-1-players_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 231,
+    "contract": "7.1.1",
+    "why": "the Gym block 231.2 on the answer it read",
+    "case": "gym/231.2",
+    "captures": ["231-2-players_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 232,
+    "contract": "7.1.0",
+    "why": "the Gym block 232.1 on the answer it read",
+    "case": "gym/232.1",
+    "captures": ["232-1-players_collection.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 233,
+    "contract": "7.1.0",
+    "why": "the Gym block 233.1 on the answer it read",
+    "case": "gym/233.1",
+    "captures": ["233-1-players_profile.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 225,
+    "contract": "7.1.0",
+    "why": "the Gym block 225.1 on the answer it read",
+    "case": "gym/225.1",
+    "captures": ["225-1-war_current.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 226,
+    "contract": "7.1.0",
+    "why": "the Gym block 226.1 on the answer it read",
+    "case": "gym/226.1",
+    "captures": ["226-1-war_rivals.json"],
+    "expect": "."
   }
 ]

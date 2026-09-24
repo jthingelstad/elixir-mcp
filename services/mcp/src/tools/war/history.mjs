@@ -318,7 +318,7 @@ export const war_history = {
         our_rank: w.our_rank,
         our_fame: w.our_fame,
         our_clan_war_trophies: w.our_clan_score,
-        // DEPRECATED, removed in 7.0.0: the name says clan score and
+        // DEPRECATED (6.19.0), removed in the next major version: the name says clan score and
         // the number is war trophies (feedback #88).
         our_clan_score: w.our_clan_score,
         our_repair_points: w.our_repair_points,
@@ -364,7 +364,10 @@ export const war_history = {
             "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is that same instant where the API gave it, else when the recorder first saw the week closed (Gym #179).",
             // Fame is paid for placement (Gym #180).
             WAR_FAME_BY_PLACEMENT,
-            hasSeason ? CLAN_SCORE_DEPRECATION : null,
+            // The default read serves our_clan_score too (Gym #225).
+            hasSeason
+              ? CLAN_SCORE_DEPRECATION
+              : "our_clan_score is our_clan_war_trophies under the old, wrong name (the race payload's clanScore is the clan's WAR trophies): DEPRECATED (6.19.0), kept so nothing breaks today, and removed in the next major version.",
             warTrophyTiming(
               hasSeason ? "clan_war_trophies" : "our_clan_war_trophies",
             ),

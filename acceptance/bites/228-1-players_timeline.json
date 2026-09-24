@@ -1,0 +1,55 @@
+{
+  "feedback": 228,
+  "contract_version": "7.1.1",
+  "captured_at": "2026-09-24T04:25:48.640Z",
+  "request": {
+    "tool": "players_timeline",
+    "arguments": {
+      "player_tag": "#20JJJ2CCRU",
+      "season": 137
+    }
+  },
+  "response": {
+    "player_tag": "#20JJJ2CCRU",
+    "applied": {
+      "window": {
+        "from": "2026-10-05",
+        "to": "2026-10-04",
+        "source": "season",
+        "season": {
+          "month": "2026-10",
+          "war": 137,
+          "starts_at": "2026-10-05T10:00:00.000Z",
+          "ends_at": "2026-11-02T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": -12
+      },
+      "granularity": "day",
+      "kind": "daily",
+      "metrics": ["trophies"]
+    },
+    "snapshots_available_from": "2026-03-07",
+    "series": [],
+    "notes": [
+      "Days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; a point is the day's last observation."
+    ],
+    "docs": "recording#daily-series",
+    "meta": {
+      "contract_version": "7.1.1",
+      "source_polls": {
+        "player": {
+          "observed_at": "2026-09-23T21:27:52.000Z",
+          "freshness_seconds": 25077
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 37,
+    "db_queries": 11,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -2171,3 +2171,8 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 - **#213:** war as of `to` (last war_period_log day closed by `to`, banked), `as_of_window_end: true`. **#214/#223:** `raiseCappedWeekFame` after period logs, banked fame in the week_resolved emit, 0164 repairs war_week_clan and clan_event.fame (regular weeks only). **#215:** war-ledger start note (scoped to the reader's clans). **#216:** donations over members at `to`. **#217:** insights profiles note. #218 praise.
 - War round 3 (#223-#227) is in: #223 shipped here; #224-#227 next.
 
+## 2026-09-24 — Gym sweep, war round 3 + players round 3 (7.1.3, feedback #223-#235)
+
+- War r3: 21 regressions, #181 partial -> #225. **#224** clan_score going-in at the log source + 0165 (chain-proved rows only). **#225** deprecation re-dated to the next major, default war_history note, docs. **#226** war_rivals mean_points / points_weeks / points_vs_ours (day logs deduped across observers, finished weeks). #227 praise. War-day paths still untested (training day at run time).
+- Players r3: 21 regressions (16 fixed). **#228** `seriesWindow` (daily-series.mjs) gives season to players_timeline, clans_timeline, clans_members_timeline; seasonFieldsForDays clamps age at the window start. **#229** seasonal-trophy-road best 0 = no row (ingest + 0166). **#230** unmatched progress_key note. **#231** lower-bound note (231.1 value case refuted by choice). **#232** declarations + note. **#233** lifetime king_tower_level / total_donations, years_played null note. **#234** count described; cards-to-next-level NOT served (no sourced cost table; 234.1 refuted). #235 praise.
+

@@ -261,7 +261,9 @@ test("player lane fills the profile columns on an existing live row from the day
     `select progress_key, day::text as day, snapshot_kind, trophies from player_progress_daily where player_tag = $1 order by 1, 2, 3`,
     [tag],
   );
-  assert.equal(progress.length, 2, JSON.stringify(progress));
+  // The fixture's two seasonal-road buckets are the road's entry value
+  // (14,000, best 0) for a player below it: no activity, no row (Gym #229).
+  assert.equal(progress.length, 0, JSON.stringify(progress));
 });
 
 test("race lane resolves the week from the calendar and writes the rivals and period logs, never events", async () => {

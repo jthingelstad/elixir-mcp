@@ -346,7 +346,7 @@ test("the kinds: pre_reset and season_roll rows from the roster inside their win
       "seasonal-trophy-road-202608": {
         arena: { id: 168000178 },
         trophies: 14000,
-        bestTrophies: 0,
+        bestTrophies: 14000,
       },
     },
   };
@@ -404,10 +404,10 @@ test("projectPlayerProgress: the zero-bucket rule, the empty key, the four-poll 
   });
   assert.equal(
     first.keys,
-    2,
-    "two buckets carry a value; two zero buckets write no row",
+    1,
+    "one bucket carries a value; two zero buckets and the seasonal road's entry value (14000/0, Gym #229) write no row",
   );
-  assert.equal(first.rows, 2);
+  assert.equal(first.rows, 1);
   const keys = async () =>
     (
       await ctx.db.query(
@@ -418,10 +418,7 @@ test("projectPlayerProgress: the zero-bucket rule, the empty key, the four-poll 
     ).rows;
   assert.deepEqual(
     (await keys()).map((r) => [r.progress_key, r.trophies, r.best_trophies]),
-    [
-      ["AutoChess_2026_Season_11", 120, 140],
-      ["seasonal-trophy-road-202609", 14000, 0],
-    ],
+    [["AutoChess_2026_Season_11", 120, 140]],
   );
   const repeat = await projectPlayerProgress(ctx.db, {
     playerTag: P,
@@ -448,7 +445,6 @@ test("projectPlayerProgress: the zero-bucket rule, the empty key, the four-poll 
     [
       ["", 30],
       ["AutoChess_2026_Season_11", 150],
-      ["seasonal-trophy-road-202609", 14000],
     ],
   );
   const {
@@ -544,8 +540,8 @@ test("through processResult: a roster fixture writes the clan row and every memb
   assert.equal(p.outcome, "admitted");
   assert.equal(
     p.projection.progress.rows,
-    2,
-    "the two seasonal-road buckets at 14,000; three zero buckets write nothing",
+    0,
+    "the two seasonal-road buckets carry the road's entry value (14,000, best 0) to a player below it, and three buckets are zero: none is activity (Gym #229)",
   );
   const row = await memberRow(tag, "2026-09-03");
   assert.equal(row.king_tower_level, profile.kingTowerLevel);
@@ -748,10 +744,12 @@ test("the race poll keeps the rivals' clanScore, repairPoints and badge, and the
      where clan_tag = $1 and season_id = $2 and section_index = $3 and participant_clan_tag = $1`,
     [clanTag, item.seasonId, item.sectionIndex],
   );
+  // The log's clanScore is AFTER the race; the column is going in, so
+  // the week's own trophy change comes off (Gym #224).
   assert.equal(
     std.clan_score,
-    ours.clan.clanScore,
-    "the log's closing clanScore fills a null",
+    ours.clan.clanScore - (ours.trophyChange ?? 0),
+    "the log's closing clanScore, less the week's change, fills a null",
   );
 });
 

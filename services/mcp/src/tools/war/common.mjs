@@ -30,7 +30,7 @@ export const warTrophyAlias = (row, key = "clan_score") => ({
   clan_war_trophies: row[key] ?? null,
 });
 export const CLAN_SCORE_DEPRECATION =
-  "clan_war_trophies is the clan's WAR trophies, which is what the race payload's clanScore actually carries - not the clan score a profile shows (that is ~100x larger; clans_timeline serves both as separate metrics). clan_score is the same number under the old, wrong name: it is DEPRECATED, kept so nothing breaks today, and is removed in 7.0.0.";
+  "clan_war_trophies is the clan's WAR trophies, which is what the race payload's clanScore actually carries - not the clan score a profile shows (that is ~100x larger; clans_timeline serves both as separate metrics). clan_score is the same number under the old, wrong name: it is DEPRECATED (6.19.0), kept so nothing breaks today, and is removed in the next major version.";
 /** When the figure is from (feedback #140): the race payload carries a
  *  clan's war trophies as they stood going into the race, and the week's
  *  trophy_change lands only in the next race's figure - 26 of 26 chained
@@ -42,7 +42,7 @@ export const warTrophyTiming = (field = "clan_war_trophies") =>
  *  points, so fame measures where a clan finished each day, not how much
  *  it played. Only the observed payouts are stated. */
 export const WAR_FAME_BY_PLACEMENT =
-  "A war day's fame (war_history.progress_earned) is paid by the clan's placement that day on points, not by the points: observed 3,000 for first, 1,800 for second and 1,000 for third. So fame, and war_rivals.mean_fame, measures where a clan placed each day, not how much it played: compare points for effort.";
+  "A war day's fame (war_history.progress_earned) is paid by the clan's placement that day on points, not by the points: observed 3,000 for first, 1,800 for second and 1,000 for third. So fame, and war_rivals.mean_fame, measures where a clan placed each day, not how much it played: compare points for effort (war_rivals.mean_points, war_rivals.points_vs_ours).";
 export const WAR_DOCS = docsRef("battles", "war-weeks-points-and-fame");
 
 export const CLAN_TAG_SCHEMA = {

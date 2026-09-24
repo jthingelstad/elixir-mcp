@@ -382,7 +382,9 @@ export async function projectClanSeries(
  * mode_season row (the "" key included since 2026-09-17: it is the
  * Merge Tactics pre-season arena, cr-agent-api-docs 8339a89) and every
  * bucket with any value becomes a day row; a bucket reading trophies 0
- * and bestTrophies 0 writes no row (Jamie: "no record for no activity").
+ * and bestTrophies 0 writes no row (Jamie: "no record for no activity"),
+ * and neither does a seasonal Trophy Road bucket at bestTrophies 0, which
+ * carries the road's entry value, not the player's (Gym #229).
  */
 export async function projectPlayerProgress(
   db,
@@ -399,6 +401,10 @@ export async function projectPlayerProgress(
     const trophies = int(bucket.trophies);
     const best = int(bucket.bestTrophies);
     if ((trophies ?? 0) === 0 && (best ?? 0) === 0) continue;
+    // The seasonal Trophy Road reports its ENTRY value (trophies 14000,
+    // bestTrophies 0) to every player who never climbed it: a 1,539-trophy
+    // account read as standing at 14,000 (Gym #229). Best 0 is no activity.
+    if (key.mode === "seasonal-trophy-road" && (best ?? 0) === 0) continue;
     buckets.push({
       tag: key.progress_key,
       trophies,

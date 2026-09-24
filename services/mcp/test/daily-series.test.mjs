@@ -516,3 +516,30 @@ test("clans_timeline: a member who left by the clan's read is out of the profile
     body.notes.join(" | "),
   );
 });
+
+test("the daily series take season; a season that has not begun is its start day, said (#177, #228)", async () => {
+  const {
+    rows: [next],
+  } = await db.query(
+    `select season_month from season where starts_at > now() order by starts_at limit 1`,
+  );
+  for (const tool of ["clans_timeline", "players_timeline"]) {
+    const { body, isError } = await call(tool, {
+      ...(tool === "clans_timeline" ? { clan_tag: CLAN } : { player_tag: ME }),
+      season: next.season_month,
+    });
+    assert.equal(isError, false, JSON.stringify(body));
+    assert.equal(body.applied.window.source, "season");
+    assert.ok(body.applied.window.from <= body.applied.window.to, tool);
+    assert.ok(
+      body.notes.some((n) => /has not begun/.test(n)),
+      `${tool}: ${body.notes.join(" | ")}`,
+    );
+  }
+  const prev = await call("clans_timeline", {
+    clan_tag: CLAN,
+    season: "previous",
+  });
+  assert.equal(prev.isError, false, JSON.stringify(prev.body));
+  assert.equal(prev.body.applied.window.source, "season");
+});

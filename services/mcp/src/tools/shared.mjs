@@ -712,9 +712,12 @@ export async function seasonFieldsForInstants(
 export async function seasonFieldsForDays(db, fromDay, toDay) {
   const nowMs = Date.now();
   const fromMs = Date.parse(`${fromDay}T10:00:00Z`);
-  const endMs = toDay
-    ? Math.min(Date.parse(`${toDay}T10:00:00Z`) + DAY_MS, nowMs)
-    : nowMs;
+  // A window wholly after now ends where it starts, so a season that has
+  // not begun reads age 0, not -12 (Gym #228).
+  const endMs = Math.max(
+    fromMs,
+    toDay ? Math.min(Date.parse(`${toDay}T10:00:00Z`) + DAY_MS, nowMs) : nowMs,
+  );
   const { echo, seasonNotes } = await seasonFieldsForSpan(db, fromMs, endMs, {
     flavor: "series",
   });

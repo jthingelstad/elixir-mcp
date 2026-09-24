@@ -110,6 +110,47 @@ export const war_rivals = {
          order by mean_fame desc nulls last`,
       [clanTag, rivals],
     );
+    // Effort (Gym #226): points per week from the day logs, deduplicated
+    // across observers on (week, day, clan), finished weeks only.
+    const { rows: pts } = await ctx.db.query(
+      `with d as (
+         select l.season_id, l.section_index, l.participant_clan_tag, l.period_index,
+                max(l.points_earned) as pts
+           from war_period_log l
+          where l.participant_clan_tag = any($1::text[])
+          group by 1, 2, 3, 4)
+       select d.participant_clan_tag as tag, d.season_id, d.section_index, sum(d.pts)::int as pts
+         from d
+        where exists (select 1 from war_week wk
+                       where wk.season_id = d.season_id and wk.section_index = d.section_index
+                         and wk.finished_observed_at is not null)
+        group by 1, 2, 3`,
+      [[...rivals, clanTag]],
+    );
+    const weekKey = (r) => `${r.season_id}/${r.section_index}`;
+    const oursByWeek = new Map(
+      pts.filter((r) => r.tag === clanTag).map((r) => [weekKey(r), r.pts]),
+    );
+    const effort = (tag) => {
+      const mine = pts.filter((r) => r.tag === tag);
+      const shared = mine.filter((r) => oursByWeek.has(weekKey(r)));
+      const oursSum = shared.reduce(
+        (n, r) => n + oursByWeek.get(weekKey(r)),
+        0,
+      );
+      return {
+        points_weeks: mine.length,
+        mean_points: mine.length
+          ? Math.round(mine.reduce((n, r) => n + r.pts, 0) / mine.length)
+          : null,
+        points_vs_ours:
+          tag !== clanTag && oursSum > 0
+            ? Number(
+                (shared.reduce((n, r) => n + r.pts, 0) / oursSum).toFixed(3),
+              )
+            : null,
+      };
+    };
     return {
       clan_tag: clanTag,
       applied: appliedBlock({
@@ -117,7 +158,11 @@ export const war_rivals = {
         rival_tags: rivals,
         source: args.rival_tags?.length ? "argument" : "current_bracket",
       }),
-      rivals: rows.map((r) => ({ ...r, ...warTrophyAlias(r) })),
+      rivals: rows.map((r) => ({
+        ...r,
+        ...warTrophyAlias(r),
+        ...effort(r.clan_tag),
+      })),
       notes: notes(
         // mean_fame measures placements (Gym #180).
         WAR_FAME_BY_PLACEMENT,
@@ -127,6 +172,7 @@ export const war_rivals = {
           ? "colosseum_races counts the Colosseum weeks among races_observed: a Colosseum week is a period-point contest with no finish line, so its fame pools badly with a regular week's; read the fame statistics beside that count."
           : null,
         "clan_war_trophies is the clan's WAR trophies from the latest recorded race it was in, going into that race (what that race itself won or lost is not included); null only when no recorded race carried it.",
+        "mean_points and points_vs_ours measure effort, which fame does not: points per finished week from the day logs, and the rival's points over yours across the weeks the record holds both (0.05 is about a twentieth of your play). A rival with points_weeks 0 has no day log recorded, not zero effort.",
         CLAN_SCORE_DEPRECATION,
         "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) asks for a fresh read (queued if none is in hand).",
       ),

@@ -788,8 +788,8 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
 
     for (const standing of item.standings ?? []) {
       const participantTag = normalizeTag(standing.clan.tag);
-      // The log's clanScore and repairPoints are the week's closing
-      // values: they fill a null and never overwrite the live poll's
+      // The log's clanScore (less the week's trophy change, so going in)
+      // and repairPoints fill a null and never overwrite the live poll's
       // (the log stamp is not an observation of the race).
       const { rowCount: standingMoved } = await db.query(
         `insert into war_week_clan
@@ -825,8 +825,15 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
             : null,
           standing.rank ?? null,
           standing.trophyChange ?? null,
+          // The log's clanScore is the clan's war trophies AFTER the race;
+          // the column is the figure going INTO it (what the live poll
+          // stores), so the week's own change comes off (Gym #224: two
+          // Colosseum weeks the live poll missed read 100 high).
           Number.isInteger(standing.clan.clanScore)
-            ? standing.clan.clanScore
+            ? standing.clan.clanScore -
+              (Number.isInteger(standing.trophyChange)
+                ? standing.trophyChange
+                : 0)
             : null,
           Number.isInteger(standing.clan.repairPoints)
             ? standing.clan.repairPoints

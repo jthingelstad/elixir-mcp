@@ -487,12 +487,14 @@ because that endpoint does not report the former current-day value.
   a poll missed a day's last battle.
 
 - `closed_at`, the API's own close instant for the week (its
-  `createdDate` on the race log), beside `finished`, which is when the
-  recorder saw the week closed and so carries polling latency. `closed_at`
+  `createdDate` on the race log), beside `finished`, the close instant the
+  record serves: the API's own stamp wherever the record holds one (equal to
+  `closed_at`), otherwise when the recorder saw the week closed. `closed_at`
   is `null` on weeks older than the log the API still served when the
   column arrived (2026-09-17).
-- `our_clan_score` and `our_repair_points`, the clan's own score and repair
-  cost that week (see below).
+- `our_clan_war_trophies` (the clan's war trophies going into the race; the
+  deprecated `our_clan_score` is the same number) and `our_repair_points`,
+  the boat's repair cost that week (see below).
 
 Supply `season_id` and `section_index` together to select one exact week.
 Without `player_tag`, `member_weeks` then contains every recorded participant
@@ -534,8 +536,9 @@ closes; the same `progress_end_banked` and note), `clan_score` and `repair_point
 `repair_points` per participant, and `period.api_period_type`, the API's
 own word for the day (`training`, `warDay`, `colosseum`) beside the policy
 grid's `period.kind`; the two differ only when the clan's reset has drifted
-across the boundary. `war_rivals` rows carry each rival's latest observed
-`clan_score`.
+across the boundary. `war_rivals` rows carry each rival's war trophies going
+into the latest race the record holds with them (`clan_war_trophies`), and
+their points across the weeks they met (`points`, 7.1.3).
 
 Once the clan's boat has finished, `war_current` says so: `race_finished_at`
 is the finish (a war-day close, as above), `finish_war_day` the day it
@@ -566,7 +569,7 @@ for first, 1,800 for second and 1,000 for third. Fame measures where a clan
 placed each day; points measure how much it played.
 
 `clan_score` on the war surfaces is the same number under the old, wrong
-name. It is **deprecated** (6.19.0) and is removed in 7.0.0. `repair_points`
+name. It is **deprecated** (6.19.0) and is removed in the next major version. `repair_points`
 is what repairing the boat cost: per clan on the standings, per member on
 participation, MAX-merged like every war counter.
 
