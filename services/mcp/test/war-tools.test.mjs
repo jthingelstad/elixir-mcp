@@ -417,14 +417,15 @@ test("war_current: the period is the calendar's; the anchor only says when this 
 
 test("war_current: decks_today names untouched/partial/finished on a live war day", async () => {
   // The day is the calendar's (war_period), not an anchor's: on a
-  // training day the tool answers decks_today null with its reason and
-  // this test asserts that; on a war day it asserts the bucket
-  // arithmetic. The clan timeline's test covers both at fixed instants.
+  // training day decks_today is the training picture (7.1.21: one field
+  // for every race-week day); on a war day this asserts the buckets.
   const today = await periodAt(db, Date.now());
   if (!today.warDay) {
     const { body } = await call(invoke, "war_current", {});
-    assert.equal(body.decks_today, null);
-    assert.equal(body.decks_today_reason, "training_day");
+    if (body.decks_today) {
+      assert.equal(body.decks_today.day_kind, "training");
+      assert.equal(body.decks_today.war_day, null);
+    } else assert.equal(body.decks_today_reason, "training_day");
     return;
   }
   const wk = (
@@ -468,6 +469,7 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
   assert.equal(body.period.war_day, today.warDay);
   const dt = body.decks_today;
   assert.ok(dt, "live war day carries decks_today");
+  assert.equal(dt.day_kind, "war");
   assert.equal(dt.war_day, today.warDay);
   const partial = dt.partial.find((m) => m.player_tag === partialTag);
   assert.ok(partial && partial.decks_used === 2, "2 decks -> partial");
@@ -1252,12 +1254,10 @@ test("war_current says what kind of day it is at the top level, from the calenda
     assert.equal(body.decks_today.war_day, today.warDay);
     assert.equal(body.decks_today_reason, undefined);
   } else {
-    assert.equal(
-      body.decks_today,
-      null,
-      "null is an answer; the key must be present",
-    );
-    assert.equal(body.decks_today_reason, "training_day");
+    // A training day is a race-week day too (7.1.21): the picture is
+    // there with day_kind training, or null with its reason.
+    if (body.decks_today) assert.equal(body.decks_today.day_kind, "training");
+    else assert.equal(body.decks_today_reason, "training_day");
     // And it says when the nagging actually becomes possible.
     assert.match(
       body.next_war_day_opens_at,

@@ -28,7 +28,7 @@ import {
 
 export const war_current = {
   description:
-    "The current (latest recorded) river race for a clan, yours by default: standings across the five clans with banked fame and current-day period_points, per-member points and decks used, the war day and attendance so far. On a war day decks_today names who is untouched, partial and finished (the nudge list); off one it is null with decks_today_reason. verbosity compact keeps standings, the period, the counts and the nudge lists and drops participants. live: true asks for a read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
+    "The current (latest recorded) river race for a clan, yours by default: standings across the five clans with banked fame and current-day period_points, per-member points and decks used, the war day and attendance so far. decks_today names who is untouched, partial and finished on every race-week day, day_kind training or war (only war decks score). verbosity compact keeps standings, the period, the counts and the nudge lists and drops participants. live: true asks for a read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
   inputSchema: {
     type: "object",
     properties: {
@@ -243,6 +243,7 @@ export const war_current = {
     // played for reps; they do not score, so they never enter decks_today
     // or attendance. Same table as the war days (0169).
     let trainingToday = null;
+    let trainingDecks = null;
     if (
       period &&
       !period.war_day &&
@@ -274,6 +275,32 @@ export const war_current = {
             decks_used,
           })),
         not_trained_count: trainRows.filter((r) => r.decks_used === 0).length,
+      };
+      // The same picture decks_today draws on a war day (Jamie 2026-09-24:
+      // one field for every day of the race week).
+      const tPick = (lo, hi) =>
+        trainRows
+          .filter((r) => r.decks_used >= lo && r.decks_used <= hi)
+          .map(({ player_tag, name, decks_used }) => ({
+            player_tag,
+            name,
+            decks_used,
+          }));
+      trainingDecks = {
+        day_kind: "training",
+        day_in_section: trainingDay - 1,
+        training_day: trainingDay,
+        war_day: null,
+        race_finished_at: null,
+        untouched: tPick(0, 0),
+        partial: tPick(1, 3),
+        finished: tPick(4, 4),
+        counts: {
+          untouched: tPick(0, 0).length,
+          partial: tPick(1, 3).length,
+          finished: tPick(4, 4).length,
+          participants: trainRows.length,
+        },
       };
     }
     // Today's remaining-decks picture (CLAN-PULSE.md): only while the
@@ -334,6 +361,9 @@ export const war_current = {
           decks_observed: r.decks_raw,
         }));
       decksToday = {
+        day_kind: "war",
+        day_in_section: period.war_day + 2,
+        training_day: null,
         war_day: period.war_day,
         // The boat may already have crossed the line (POAP KINGS did on
         // day 4 at 09:38Z, 2026-09-13, with 40 still "untouched"). The
@@ -358,6 +388,7 @@ export const war_current = {
         overCapNote =
           "over_cap lists members observed with more than four decks in this policy day: this clan's real reset drifts far enough from the policy hour to move battles across the boundary.";
     }
+    if (!decksToday && trainingDecks) decksToday = trainingDecks;
     return {
       clan_tag: clanTag,
       season_id: wk.season_id,
@@ -397,7 +428,11 @@ export const war_current = {
       ...(decksToday
         ? {}
         : {
-            decks_today_reason: !period ? "period_unknown" : "training_day",
+            decks_today_reason: !period
+              ? "period_unknown"
+              : period.war_day
+                ? "war_day_over"
+                : "training_day",
           }),
       ...(trainingToday ? { training_today: trainingToday } : {}),
       ...(compact ? {} : { attendance_by_war_day: attendance.rows }),
@@ -410,7 +445,7 @@ export const war_current = {
           ? `The participants count in attendance_by_war_day is the race roster, which keeps ${participation.rows.filter((r) => !r.in_clan).length} member(s) who have since left the clan; decks_today.counts.participants counts current members only. For an attendance rate among current members, use decks_today or participants[] with in_clan.`
           : null,
         trainingToday
-          ? `training_today is training day ${trainingToday.training_day}: the war decks each member has played so far today. They are the same four decks the war days use, and on a war day each can be played once, so training days are where members get reps in with them; training battles earn no points and do not count as war attendance, and decks_today opens with the first war day.`
+          ? `Training day ${trainingToday.training_day}: decks_today (day_kind training) lists the war decks each member has played so far today. They are the same four decks the war days use, and on a war day each can be played once, so training days are where members get reps in with them; training decks earn no points and never count as war attendance. training_today is the same picture in its 7.1.14 shape, deprecated and removed in the next major version.`
           : null,
         "standings.clan_war_trophies is each bracket clan's WAR trophies going into this race (the race's own trophy_change lands in the next one's figure) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
         CLAN_SCORE_DEPRECATION,

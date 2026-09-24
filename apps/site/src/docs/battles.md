@@ -434,13 +434,17 @@ with the same four war decks all week. On a war day each deck can be played
 once and it scores; the three training days before are where members get
 reps in with those decks, up to four a day, for no points. Elixir keeps
 every day of the race week the same way. On a training day
-`war_current.training_today` lists who has played and how many decks, and
+`war_current.decks_today` (with `day_kind: "training"`) lists who has played
+and how many decks, the same untouched, partial and finished lists a war day
+has, and
 `war_history.member_weeks[].training_decks` totals a week's training decks
 per member: read from the race poll since 2026-09-24, and rebuilt for
 earlier weeks from the members' recorded river-race battles on training
 days, split where the clan's own race rolls its days (a 1v1 is one deck, a duel one per round, four a day at most), which
 is a floor wherever a member's log was not fully captured. Training never
-counts as war attendance: `decks_today` and `war_days` are war days only.
+counts as war attendance: `war_days` and the attendance counts are war days
+only, and a nudge toward decks that score belongs to `day_kind: "war"`.
+(`training_today`, the 7.1.14 shape of the training picture, is deprecated.)
 
 `boat_attacks` is counted **inside** `decks_used` and `scoring_decks`, and a
 boat battle scores on a different scale from a 1v1 or a duel: in one

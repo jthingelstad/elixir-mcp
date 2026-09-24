@@ -2913,7 +2913,10 @@ export const OUTPUT_SCHEMAS = {
       decks_today: {
         type: ["object", "null"],
         properties: {
-          war_day: COUNT,
+          day_kind: { type: "string", enum: ["training", "war"] },
+          day_in_section: COUNT,
+          training_day: { type: ["number", "null"] },
+          war_day: { type: ["number", "null"] },
           race_finished_at: { type: ["string", "null"] },
           untouched: { type: "array" },
           partial: { type: "array" },
