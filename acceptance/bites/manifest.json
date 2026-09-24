@@ -2025,5 +2025,21 @@
     "case": "gym/312.1",
     "captures": ["312-1-war_current.json"],
     "expect": "."
+  },
+  {
+    "feedback": 315,
+    "contract": "7.2.1",
+    "why": "the Gym block 315.2 on the answer it read",
+    "case": "gym/315.2",
+    "captures": ["315-2-battles_meta_cards.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 315,
+    "contract": "7.2.1",
+    "why": "the Gym block 315.3 on the answer it read",
+    "case": "gym/315.3",
+    "captures": ["315-3-battles_meta_cards.json"],
+    "expect": "."
   }
 ]

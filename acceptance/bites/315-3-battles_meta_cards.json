@@ -1,0 +1,129 @@
+{
+  "feedback": 315,
+  "contract_version": "7.2.1",
+  "captured_at": "2026-09-24T14:23:45.908Z",
+  "request": {
+    "tool": "battles_meta_cards",
+    "arguments": {
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "tower_troops": true,
+      "min_battles": 1,
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "player",
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "window": {
+        "from": "2026-09-14T10:00:00.000Z",
+        "to": "2026-09-21T10:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 14
+      },
+      "tower_troops": true,
+      "min_battles": 1,
+      "sort": "usage",
+      "limit": 30,
+      "verbosity": "full"
+    },
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "decided_battles": 18,
+    "segment_win_rate": 0.444,
+    "prior_win_rate": 0.5,
+    "prior_basis": "corpus_window",
+    "insufficient_sample": true,
+    "insufficient_sample_floor": 30,
+    "excluded": {
+      "considered": 22,
+      "duels": 4,
+      "boat": 0,
+      "draws": 0,
+      "unresolved": 0,
+      "no_deck": 0,
+      "outside_meta": 0
+    },
+    "comparable": true,
+    "modes_in_window": [
+      {
+        "mode": "ladder",
+        "battles": 11,
+        "mean_level_gap": 0.67
+      },
+      {
+        "mode": "war",
+        "battles": 7,
+        "mean_level_gap": 1.61
+      }
+    ],
+    "cards": [
+      {
+        "card_id": 159000000,
+        "name": "Tower Princess",
+        "form": "base",
+        "battles": 11,
+        "wins": 4,
+        "losses": 7,
+        "players": 1,
+        "usage_share": 0.611,
+        "win_rate": 0.364,
+        "mean_level_gap": 0.67,
+        "modes": {
+          "ladder": {
+            "battles": 11,
+            "wins": 4,
+            "losses": 7
+          }
+        }
+      }
+    ],
+    "notes": [
+      "Rows are tower troops, each deck's ninth card: usage_share is the share of decided observations whose deck carried it; a deck recorded without a tower troop counts in decided_battles and in no row, so the shares can sum below 1.",
+      "These are the population's decks and levels; nothing here checks what a given player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.",
+      "Pooled across modes with different matchmaking: ladder 11 (mean level gap +0.67), war 7 (mean level gap +1.61); a card met mostly in the easier-gap mode inherits that mode's record for reasons unrelated to the card, so pass mode before reading a row as a strength or a nemesis.",
+      "Every card row here was played by ONE player (players: 1): this segment's numbers describe a few players' habits, not a meta; widen the segment or read the corpus for the field.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld (null, insufficient_sample: true) when the population is under 30 decided observations, not per row: a row with few battles still carries one, shrunk hard toward the mean. win_rate is the raw rate at any sample size, so read it beside battles.",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records.",
+      "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments."
+    ],
+    "docs": "methodology#deck-and-card-meta-exactly-what-is-counted",
+    "meta": {
+      "contract_version": "7.2.1"
+    }
+  },
+  "timings": {
+    "db_ms": 279,
+    "db_queries": 10,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -2052,6 +2052,7 @@ export const OUTPUT_SCHEMAS = {
     type: "object",
     properties: {
       ...META_COMMON,
+      tower_troop_known_battles: { type: ["number", "null"] },
       cards: {
         type: "array",
         items: {

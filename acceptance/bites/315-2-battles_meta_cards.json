@@ -1,0 +1,172 @@
+{
+  "feedback": 315,
+  "contract_version": "7.2.1",
+  "captured_at": "2026-09-24T14:23:43.041Z",
+  "request": {
+    "tool": "battles_meta_cards",
+    "arguments": {
+      "segment": "mine",
+      "tower_troops": true,
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "clan",
+        "clan_tag": "#J2RGCRVG",
+        "source": "mine"
+      },
+      "window": {
+        "from": "2026-09-14T10:00:00.000Z",
+        "to": "2026-09-21T10:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 14
+      },
+      "tower_troops": true,
+      "min_battles": 10,
+      "sort": "usage",
+      "limit": 30,
+      "verbosity": "full"
+    },
+    "methodology": {
+      "observation_unit": "player_battle",
+      "outcomes": ["win", "loss"],
+      "prior_strength": 20,
+      "prior_source": "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
+      "segment_min_decided": 30,
+      "excluded": [
+        "duels (no single deck)",
+        "boat battles",
+        "draws",
+        "unresolved"
+      ],
+      "confidence_intervals": false
+    },
+    "decided_battles": 1764,
+    "segment_win_rate": 0.535,
+    "prior_win_rate": 0.5,
+    "prior_basis": "corpus_window",
+    "excluded": {
+      "considered": 1829,
+      "duels": 35,
+      "boat": 30,
+      "draws": 0,
+      "unresolved": 0,
+      "no_deck": 0,
+      "outside_meta": 1127
+    },
+    "comparable": true,
+    "modes_in_window": [
+      {
+        "mode": "ranked",
+        "battles": 722,
+        "mean_level_gap": 0.03
+      },
+      {
+        "mode": "casual",
+        "battles": 64,
+        "mean_level_gap": 0
+      },
+      {
+        "mode": "war",
+        "battles": 195,
+        "mean_level_gap": 0.11
+      },
+      {
+        "mode": "ladder",
+        "battles": 783,
+        "mean_level_gap": 0.15
+      }
+    ],
+    "cards": [
+      {
+        "card_id": 159000000,
+        "name": "Tower Princess",
+        "form": "base",
+        "battles": 1546,
+        "wins": 814,
+        "losses": 732,
+        "players": 35,
+        "usage_share": 0.876,
+        "win_rate": 0.527,
+        "shrunk_win_rate": 0.526,
+        "mean_level_gap": 0.09,
+        "modes": {
+          "ladder": {
+            "battles": 781,
+            "wins": 430,
+            "losses": 351
+          },
+          "ranked": {
+            "battles": 704,
+            "wins": 352,
+            "losses": 352
+          },
+          "casual": {
+            "battles": 61,
+            "wins": 32,
+            "losses": 29
+          }
+        }
+      },
+      {
+        "card_id": 159000002,
+        "name": "Dagger Duchess",
+        "form": "base",
+        "battles": 20,
+        "wins": 11,
+        "losses": 9,
+        "players": 3,
+        "usage_share": 0.011,
+        "win_rate": 0.55,
+        "shrunk_win_rate": 0.525,
+        "mean_level_gap": 0.18,
+        "modes": {
+          "casual": {
+            "battles": 2,
+            "wins": 1,
+            "losses": 1
+          },
+          "ranked": {
+            "battles": 18,
+            "wins": 10,
+            "losses": 8
+          }
+        }
+      }
+    ],
+    "notes": [
+      "Rows are tower troops, each deck's ninth card: usage_share is the share of decided observations whose deck carried it; a deck recorded without a tower troop counts in decided_battles and in no row, so the shares can sum below 1.",
+      "1127 battles in this window are outside the meta population and not counted anywhere above (excluded.outside_meta): event battles and decks the player did not choose (6.17.0). battles_query and battles_decks read them.",
+      "These are the population's decks and levels; nothing here checks what a given player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.",
+      "Pooled across modes: ladder 783 (mean level gap +0.15), ranked 722 (mean level gap +0.03), war 195 (mean level gap +0.11), casual 64 (mean level gap +0.00); pass mode to isolate one.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld (null, insufficient_sample: true) when the population is under 30 decided observations, not per row: a row with few battles still carries one, shrunk hard toward the mean. win_rate is the raw rate at any sample size, so read it beside battles.",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "The clan segment applies the clan's membership as of this call: over a past window it counts today's members' battles, including ones played before they joined, and leaves out members who have left since (clans_members_timeline lists the joins and departures).",
+      "Forms are separate rows: form is the card FORM played (base, evolution or hero), never a level, so a card played in two forms carries two records.",
+      "Card win rates are heavily skill-confounded: compare shrunk rates within similar usage, never across segments."
+    ],
+    "docs": "methodology#deck-and-card-meta-exactly-what-is-counted",
+    "meta": {
+      "contract_version": "7.2.1"
+    }
+  },
+  "timings": {
+    "db_ms": 406,
+    "db_queries": 10,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

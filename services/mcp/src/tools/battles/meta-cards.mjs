@@ -294,6 +294,31 @@ export const battles_meta_cards = {
       playersInWindow = rows[0]?.total_players ?? 0;
       if (!args.mode) modeGroups = modeGaps(rows[0]?.window_types ?? []);
     }
+    // The tower read's population, counted apart from its rows (Gym #315):
+    // the API reports no tower troop on a river-race battle, so war decks
+    // are in the population and can be in no row. decided_battles stays
+    // the population's (the eight-card read's number, rows or none), and
+    // usage_share is over the observations whose tower troop is known.
+    let towerKnown = null;
+    if (towers) {
+      const {
+        rows: [t],
+      } = await ctx.db.query(
+        `select count(*)::int as decided,
+                count(*) filter (where bp.outcome = 'win')::int as wins,
+                count(distinct bp.player_tag)::int as players,
+                count(*) filter (where exists (
+                  select 1 from deck d
+                   where d.deck_hash = bp.deck_hash and d.tower_troop_id is not null))::int as known
+           from ${pop ? "meta_season_pop" : "battle_participant"} bp
+          where ${where.join(" and ")}`,
+        params,
+      );
+      totalDecided = t.decided;
+      totalWins = t.wins;
+      playersInWindow = t.players;
+      towerKnown = t.known;
+    }
     if (args.cards) {
       const keep = new Set(args.cards.map(Number));
       rows = rows.filter((r) => keep.has(Number(r.card_id)));
@@ -312,8 +337,10 @@ export const battles_meta_cards = {
         losses: r.losses,
         players: r.players,
         usage_share:
-          totalDecided > 0
-            ? Number((r.battles / totalDecided).toFixed(3))
+          (towers ? towerKnown : totalDecided) > 0
+            ? Number(
+                (r.battles / (towers ? towerKnown : totalDecided)).toFixed(3),
+              )
             : null,
         win_rate:
           r.wins + r.losses > 0
@@ -406,6 +433,7 @@ export const battles_meta_cards = {
       ...(population ? { population } : {}),
       ...(compact ? {} : { methodology: META_METHODOLOGY }),
       decided_battles: totalDecided,
+      ...(towers ? { tower_troop_known_battles: towerKnown } : {}),
       segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
       prior_win_rate: Number(priorMean.toFixed(3)),
       prior_basis: prior.mean === null ? "neutral_0.5" : "corpus_window",
@@ -431,7 +459,7 @@ export const battles_meta_cards = {
           ? "A tower troop is not one of the eight deck cards: pass tower_troops: true for tower troop rows."
           : null,
         towers
-          ? "Rows are tower troops, each deck's ninth card: usage_share is the share of decided observations whose deck carried it; a deck recorded without a tower troop counts in decided_battles and in no row, so the shares can sum below 1."
+          ? `Rows are tower troops, each deck's ninth card. The API reports no tower troop on river race (war) battles, so war decks count in decided_battles and in no row: usage_share is over the ${towerKnown ?? 0} decided observations whose tower troop is known (tower_troop_known_battles)${totalDecided > (towerKnown ?? 0) ? `; ${totalDecided - (towerKnown ?? 0)} of ${totalDecided} carried none` : ""}.`
           : null,
         outsideMetaNote(excluded?.outside_meta ?? 0),
         args.mode === EVENT_MODE_GROUP ? META_EVENT_NOTE : null,

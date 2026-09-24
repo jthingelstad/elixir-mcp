@@ -19513,5 +19513,240 @@
         "notes_match": "game day 2026-09-23[^.]*fell outside"
       }
     ]
+  },
+  {
+    "id": "315.1",
+    "feedback": 315,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": "mine",
+          "tower_troops": true,
+          "mode": "war",
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z"
+        }
+      },
+      "e": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": "mine",
+          "mode": "war",
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "verbosity": "compact",
+          "limit": 1
+        }
+      }
+    },
+    "request_id": "1c47be11-6e1a-460a-bf1a-d14e1c9ba38a",
+    "assert": [
+      {
+        "eq": ["t.decided_battles", "e.decided_battles"]
+      }
+    ]
+  },
+  {
+    "id": "315.2",
+    "feedback": 315,
+    "stability": "frozen",
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": "mine",
+      "tower_troops": true,
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z"
+    },
+    "request_id": "c0b0e325-2c2e-44a7-ba59-313b8e2ceb04",
+    "assert": [
+      {
+        "notes_match": "(?i)river race|war battles?\\b.*no tower troop|record(s)? no (tower troop|support card)"
+      }
+    ]
+  },
+  {
+    "id": "315.3",
+    "feedback": 315,
+    "stability": "frozen",
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "tower_troops": true,
+      "min_battles": 1,
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z"
+    },
+    "request_id": "5ffe56cd-a1f6-469a-a064-30d1bfaab616",
+    "assert": [
+      {
+        "notes_match": "(?i)river race|war battles?\\b.*no tower troop|record(s)? no (tower troop|support card)"
+      }
+    ]
+  },
+  {
+    "id": "315.4",
+    "feedback": 315,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": "mine",
+          "tower_troops": true,
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z"
+        }
+      },
+      "e": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": "mine",
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "verbosity": "compact",
+          "limit": 1
+        }
+      }
+    },
+    "request_id": "c0b0e325-2c2e-44a7-ba59-313b8e2ceb04",
+    "assert": [
+      {
+        "eq": ["t.decided_battles", "e.decided_battles"]
+      }
+    ]
+  },
+  {
+    "id": "315.5",
+    "feedback": 315,
+    "control": true,
+    "stability": "frozen",
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": "mine",
+      "tower_troops": true,
+      "mode": "ladder",
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z"
+    },
+    "request_id": "bed87628-74d3-4e18-a814-cc7e35885355",
+    "assert": [
+      {
+        "notes_not_match": "(?i)river race|war battles?\\b.*no tower troop|record(s)? no (tower troop|support card)"
+      }
+    ]
+  },
+  {
+    "id": "316.1",
+    "feedback": 316,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "s": {
+        "tool": "clans_standings",
+        "args": {
+          "from": "2026-09-11T10:00:00Z",
+          "to": "2026-09-12T10:00:00Z",
+          "min_battles": 1
+        }
+      },
+      "p": {
+        "tool": "battles_performance",
+        "args": {
+          "player_tag": "#JRVV9VC0C",
+          "from": "2026-09-11T10:00:00Z",
+          "to": "2026-09-12T10:00:00Z"
+        }
+      }
+    },
+    "request_id": "34667375-b7b0-480b-8f64-a190b28f4443",
+    "assert": [
+      {
+        "absent": "s.members[?player_tag=#JRVV9VC0C]"
+      },
+      {
+        "eq": ["p.window.boat_battles", "p.window.battles"]
+      },
+      {
+        "eq": ["p.window.decided_battles", 0]
+      }
+    ]
+  },
+  {
+    "id": "316.2",
+    "feedback": 316,
+    "control": true,
+    "stability": "live",
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": "mine",
+      "tower_troops": true
+    },
+    "request_id": "3470de80-8475-41c1-8a05-881444f9bae8",
+    "assert": [
+      {
+        "notes_match": "membership as of this call"
+      }
+    ]
+  },
+  {
+    "id": "316.3",
+    "feedback": 316,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": "mine",
+          "tower_troops": true,
+          "mode": "ladder",
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z"
+        }
+      },
+      "e": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": "mine",
+          "mode": "ladder",
+          "from": "2026-09-14T10:00:00Z",
+          "to": "2026-09-21T10:00:00Z",
+          "verbosity": "compact",
+          "limit": 1
+        }
+      }
+    },
+    "request_id": "bed87628-74d3-4e18-a814-cc7e35885355",
+    "assert": [
+      {
+        "eq": ["t.decided_battles", "e.decided_battles"]
+      },
+      {
+        "gt": ["t.decided_battles", 0]
+      }
+    ]
+  },
+  {
+    "id": "316.4",
+    "feedback": 316,
+    "control": true,
+    "stability": "live",
+    "tool": "battles_query",
+    "args": {
+      "player_tag": "#20JJJ2CCRU",
+      "season": "current",
+      "limit": 25
+    },
+    "request_id": "d6162bc9-0144-4fca-8a5b-a719de73fc77",
+    "assert": [
+      {
+        "notes_match": "limit of \\d+ should fit"
+      }
+    ]
   }
 ]

@@ -800,6 +800,7 @@ async function towerTroopProfile(ctx, { args, anchor, segment, win, compact }) {
     },
     season: {
       decided_battles: meta.decided_battles,
+      tower_troop_known_battles: meta.tower_troop_known_battles,
       all: row
         ? {
             battles: row.battles,
@@ -836,6 +837,9 @@ async function towerTroopProfile(ctx, { args, anchor, segment, win, compact }) {
       : null,
     out.members?.held?.length
       ? "members.held[] is each member's tower troop level from their collection; observed_at is the newest read of it."
+      : null,
+    meta.decided_battles > (meta.tower_troop_known_battles ?? 0)
+      ? `The API reports no tower troop on river race (war) battles: ${meta.decided_battles - (meta.tower_troop_known_battles ?? 0)} of this population's ${meta.decided_battles} decided observations carried none, and season.all.usage_share is over the ${meta.tower_troop_known_battles ?? 0} whose tower troop is known.`
       : null,
     meta.notes.filter((n) => !/Rows are tower troops/.test(n)),
   );
