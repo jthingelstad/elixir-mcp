@@ -513,7 +513,7 @@ const CROSSING_TAIL = {
   balance:
     "balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.",
   series:
-    "the seasonal Trophy Road (a new progress_key each season) and the Path of Legends standing reset on the roll, so their points on either side of it are not one series; Trophy Road trophies (and season_trophies, its legacy mirror) carry straight across.",
+    "the seasonal Trophy Road (a new players_timeline.progress_key each season) and the Path of Legends standing reset on the roll, so their points on either side of it are not one series; Trophy Road trophies (and players_timeline.season_trophies, their legacy mirror) carry straight across.",
   ladder:
     "the ladder's seasonal trophies reset on the roll, so trophy-bound numbers before and after are not one series.",
   plain:

@@ -21298,9 +21298,6 @@
     "request_id": "2aa2ae44-56d8-453b-844e-b95f82c4258a",
     "assert": [
       {
-        "notes_not_match": "delta[^.]*reset|reset[^.]*delta"
-      },
-      {
         "eq": [
           "members[?player_tag=#C920YGLC2].delta.donations",
           "members[?player_tag=#C920YGLC2].last.donations"
@@ -21309,7 +21306,8 @@
       {
         "gte": ["members[?player_tag=#C920YGLC2].delta.donations", 1117]
       }
-    ]
+    ],
+    "amended": "The window's first game day (09-13) holds the Monday 00:10Z reset and, since 7.2.5, its pre_reset read, so the reset note is correct there; the delta assertions stand."
   },
   {
     "id": "334.1",
@@ -21444,12 +21442,13 @@
     "request_id": "3c6fb6e8-5405-48ec-ad3f-0221101d396a",
     "assert": [
       {
-        "notes_match": "on 2026-09-11 it reads 7160 against 2418"
+        "notes_match": "it reads \\d+ against \\d+ over the member rows"
       },
       {
         "eq": ["series[?day=2026-09-11].donations_per_week", 7160]
       }
-    ]
+    ],
+    "amended": "7.2.5 caps the note at three days, so the pinned day can fall past the cap; the note's form and the served counter stand."
   },
   {
     "id": "336.1",
@@ -21606,9 +21605,10 @@
     },
     "assert": [
       {
-        "notes_match": "unknown, not absent"
+        "notes_match": ["r", "unknown, not absent"]
       }
-    ]
+    ],
+    "amended": "Binding form: the calls-form case reads its one call's notes by name."
   },
   {
     "id": "338.1",

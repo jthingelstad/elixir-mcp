@@ -619,7 +619,7 @@ export const seriesTools = {
           win.notBegunNote ?? null,
           win.floorNote,
           compact && crossedReset(new Map([...byTag, ...riseSeries]), metrics)
-            ? "In compact, the delta of a weekly counter (donations, donations_received) counts each reset from zero: it is what the counter added across the window, never last minus first, and a floor, since what was given after the last read before a reset is not in it."
+            ? "In compact, the delta of a weekly counter (donations, donations_received) counts each reset from zero and takes the week's pre_reset read in: it is what the counter added across the window, never last minus first, and a floor, since what was given after the last read before a reset is not in it."
             : null,
           truncated
             ? `More than ${limit} members had points in the window; the first ${limit} by tag are here - pass player_tags to choose, or raise limit (max 50).`

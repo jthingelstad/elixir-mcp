@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-21T16:53:40.428Z",
+  "generated_at": "2026-09-24T15:27:03.859Z",
   "days": 7,
   "per_tool": 3,
   "tools": {
@@ -35,13 +35,14 @@
       ]
     },
     "battles_cards": {
-      "calls": 13,
-      "p50_ms": 237,
-      "p95_ms": 801,
+      "calls": 15,
+      "p50_ms": 210,
+      "p95_ms": 669,
       "sets": [
         {
           "args": {
             "days": 30,
+            "mode": "ladder",
             "perspective": "opponent",
             "player_tag": "#20JJJ2CCRU"
           },
@@ -50,7 +51,6 @@
         {
           "args": {
             "days": 30,
-            "mode": "ladder",
             "perspective": "opponent",
             "player_tag": "#20JJJ2CCRU"
           },
@@ -82,31 +82,56 @@
       ]
     },
     "battles_decks": {
-      "calls": 50,
+      "calls": 36,
       "p50_ms": 183,
-      "p95_ms": 562,
+      "p95_ms": 560,
       "sets": [
-        {
-          "args": {
-            "days": 30,
-            "min_battles": 2,
-            "player_tag": "#20JJJ2CCRU"
-          },
-          "calls": 5
-        },
         {
           "args": {
             "days": 30,
             "player_tag": "#20JJJ2CCRU"
           },
           "calls": 2
+        },
+        {
+          "args": {
+            "days": 30,
+            "min_battles": 2,
+            "player_tag": "#20JJJ2CCRU"
+          },
+          "calls": 4
+        }
+      ]
+    },
+    "battles_meta_cards": {
+      "calls": 13,
+      "p50_ms": 315,
+      "p95_ms": 14173,
+      "sets": [
+        {
+          "args": {
+            "days": 7,
+            "limit": 2,
+            "segment": "corpus",
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "days": 7,
+            "limit": 3,
+            "segment": "corpus",
+            "verbosity": "compact"
+          },
+          "calls": 1
         }
       ]
     },
     "battles_meta_decks": {
-      "calls": 32,
-      "p50_ms": 962,
-      "p95_ms": 6191,
+      "calls": 29,
+      "p50_ms": 701,
+      "p95_ms": 6316,
       "sets": [
         {
           "args": {
@@ -115,6 +140,16 @@
             "segment": {
               "clan_tag": "#J2RGCRVG"
             }
+          },
+          "calls": 2
+        },
+        {
+          "args": {
+            "limit": 3,
+            "mode": "ladder",
+            "season": "current",
+            "segment": "corpus",
+            "trophy_band": "11000_13000"
           },
           "calls": 2
         },
@@ -131,7 +166,7 @@
     },
     "battles_opponents": {
       "calls": 11,
-      "p50_ms": 196,
+      "p50_ms": 160,
       "p95_ms": 1373,
       "sets": [
         {
@@ -163,9 +198,9 @@
       ]
     },
     "battles_performance": {
-      "calls": 50,
-      "p50_ms": 130,
-      "p95_ms": 514,
+      "calls": 44,
+      "p50_ms": 148,
+      "p95_ms": 470,
       "sets": [
         {
           "args": {
@@ -194,9 +229,9 @@
       ]
     },
     "battles_query": {
-      "calls": 105,
-      "p50_ms": 168,
-      "p95_ms": 2125,
+      "calls": 79,
+      "p50_ms": 172,
+      "p95_ms": 998,
       "sets": [
         {
           "args": {
@@ -215,13 +250,10 @@
         },
         {
           "args": {
-            "days": 30,
-            "deck_hash": "b2860741bee79ef1a9af7dd990055ad2aaeebdb6685a02d83f114c6a3d46ba9f",
-            "limit": 1,
-            "player_tag": "#20JJJ2CCRU",
-            "verbosity": "compact"
+            "battle_id": "e4324e8ae7fabf98d9684fe6c98fd96891836f9a0c42ccc35c1aedfecbbdbd9b",
+            "player_tag": "#20JJJ2CCRU"
           },
-          "calls": 2
+          "calls": 1
         },
         {
           "args": {
@@ -236,18 +268,9 @@
     },
     "battles_trends": {
       "calls": 9,
-      "p50_ms": 189,
+      "p50_ms": 181,
       "p95_ms": 12481,
       "sets": [
-        {
-          "args": {
-            "segment": {
-              "clan_tag": "#J2RGCRVG"
-            },
-            "weeks": 4
-          },
-          "calls": 2
-        },
         {
           "args": {
             "segment": {
@@ -259,19 +282,20 @@
         },
         {
           "args": {
+            "mode": "ladder",
             "segment": {
               "player_tag": "#20JJJ2CCRU"
             },
-            "weeks": 8
+            "weeks": 6
           },
-          "calls": 2
+          "calls": 1
         }
       ]
     },
     "cards_card": {
-      "calls": 2,
+      "calls": 10,
       "p50_ms": 9499,
-      "p95_ms": 9697,
+      "p95_ms": 17487,
       "sets": [
         {
           "args": {
@@ -280,6 +304,25 @@
             "segment": "corpus"
           },
           "calls": 2
+        },
+        {
+          "args": {
+            "card": "Barbarian Barrel",
+            "season": "current",
+            "segment": {
+              "collection": "pol-global-top-100"
+            },
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "card": "Barbarian Barrel",
+            "season": "current",
+            "segment": "corpus"
+          },
+          "calls": 1
         },
         {
           "args": {
@@ -292,19 +335,17 @@
       ]
     },
     "cards_catalog": {
-      "calls": 10,
-      "p50_ms": 84,
-      "p95_ms": 126,
+      "calls": 7,
+      "p50_ms": 104,
+      "p95_ms": 203,
       "sets": [
         {
-          "args": {
-            "verbosity": "compact"
-          },
-          "calls": 4
+          "args": {},
+          "calls": 1
         },
         {
           "args": {
-            "query": "Ice Wizard"
+            "query": "barrel"
           },
           "calls": 1
         },
@@ -317,9 +358,9 @@
       ]
     },
     "cards_synergy": {
-      "calls": 3,
-      "p50_ms": 3902,
-      "p95_ms": 4285,
+      "calls": 2,
+      "p50_ms": 3010,
+      "p95_ms": 4196,
       "sets": [
         {
           "args": {
@@ -371,61 +412,53 @@
       ]
     },
     "clans_participation": {
-      "calls": 36,
-      "p50_ms": 1824,
-      "p95_ms": 8536,
+      "calls": 16,
+      "p50_ms": 1594,
+      "p95_ms": 2288,
       "sets": [
         {
           "args": {
             "clan_tag": "#J2RGCRVG",
             "weeks": 8
           },
-          "calls": 21
+          "calls": 6
         },
         {
           "args": {
             "verbosity": "compact",
             "weeks": 8
           },
-          "calls": 3
-        },
-        {
-          "args": {
-            "clan_tag": "#G89QUY2P",
-            "verbosity": "compact",
-            "weeks": 1
-          },
           "calls": 2
         }
       ]
     },
     "clans_roster": {
-      "calls": 60,
-      "p50_ms": 114,
-      "p95_ms": 361,
+      "calls": 27,
+      "p50_ms": 133,
+      "p95_ms": 435,
       "sets": [
         {
           "args": {
             "clan_tag": "#J2RGCRVG"
           },
-          "calls": 35
+          "calls": 11
         },
         {
           "args": {
             "clan_tag": "#GJ09RJP8"
           },
-          "calls": 8
+          "calls": 5
         },
         {
           "args": {},
-          "calls": 5
+          "calls": 4
         }
       ]
     },
     "clans_standings": {
-      "calls": 14,
-      "p50_ms": 2304,
-      "p95_ms": 9201,
+      "calls": 11,
+      "p50_ms": 1245,
+      "p95_ms": 9983,
       "sets": [
         {
           "args": {
@@ -435,21 +468,22 @@
           "calls": 3
         },
         {
-          "args": {
-            "min_battles": 200
-          },
-          "calls": 2
+          "args": {},
+          "calls": 1
         },
         {
-          "args": {},
+          "args": {
+            "days": 3,
+            "min_battles": 5
+          },
           "calls": 1
         }
       ]
     },
     "clans_timeline": {
-      "calls": 4,
+      "calls": 5,
       "p50_ms": 117,
-      "p95_ms": 182,
+      "p95_ms": 178,
       "sets": [
         {
           "args": {
@@ -478,15 +512,15 @@
       ]
     },
     "elixir_changelog": {
-      "calls": 13,
-      "p50_ms": 84,
-      "p95_ms": 239,
+      "calls": 18,
+      "p50_ms": 89,
+      "p95_ms": 238,
       "sets": [
         {
           "args": {
             "limit": 2
           },
-          "calls": 2
+          "calls": 3
         },
         {
           "args": {
@@ -514,40 +548,47 @@
       ]
     },
     "elixir_coverage": {
-      "calls": 16,
-      "p50_ms": 625,
-      "p95_ms": 847,
+      "calls": 9,
+      "p50_ms": 799,
+      "p95_ms": 849,
       "sets": [
         {
           "args": {
             "player_tag": "#20JJJ2CCRU"
           },
-          "calls": 12
+          "calls": 7
         },
         {
           "args": {
-            "player_tag": "#URPCLR8UQ"
+            "player_tag": "#C920YGLC2"
           },
-          "calls": 2
+          "calls": 1
         }
       ]
     },
     "elixir_data_insights": {
-      "calls": 5,
-      "p50_ms": 3710,
-      "p95_ms": 4081,
+      "calls": 3,
+      "p50_ms": 3988,
+      "p95_ms": 4092,
       "sets": [
         {
           "args": {},
-          "calls": 5
+          "calls": 3
         }
       ]
     },
     "elixir_docs": {
-      "calls": 16,
-      "p50_ms": 90,
-      "p95_ms": 149,
+      "calls": 22,
+      "p50_ms": 92,
+      "p95_ms": 178,
       "sets": [
+        {
+          "args": {
+            "page": "battles",
+            "section": "war-weeks-points-and-fame"
+          },
+          "calls": 2
+        },
         {
           "args": {
             "query": "elixir leaked"
@@ -556,13 +597,6 @@
         },
         {
           "args": {},
-          "calls": 1
-        },
-        {
-          "args": {
-            "page": "battles",
-            "section": "decided-battles-and-denominators"
-          },
           "calls": 1
         }
       ]
@@ -579,15 +613,16 @@
       ]
     },
     "elixir_timeline": {
-      "calls": 12,
-      "p50_ms": 5099,
-      "p95_ms": 7467,
+      "calls": 7,
+      "p50_ms": 5151,
+      "p95_ms": 6698,
       "sets": [
         {
           "args": {
             "days": 1,
             "kinds": ["member_joined", "member_left", "week_resolved"],
             "mark_read": false,
+            "player_tag": "#20JJJ2CCRU",
             "verbosity": "compact"
           },
           "calls": 1
@@ -596,6 +631,7 @@
           "args": {
             "days": 1,
             "kinds": ["ranked_promotion"],
+            "player_tag": "#20JJJ2CCRU",
             "reader": "opus-phase5",
             "verbosity": "compact"
           },
@@ -605,6 +641,7 @@
           "args": {
             "days": 1,
             "mark_read": false,
+            "player_tag": "#20JJJ2CCRU",
             "verbosity": "compact"
           },
           "calls": 1
@@ -643,24 +680,32 @@
     },
     "game_clock": {
       "calls": 18,
-      "p50_ms": 103,
+      "p50_ms": 94,
       "p95_ms": 249,
       "sets": [
         {
           "args": {},
-          "calls": 18
+          "calls": 15
+        },
+        {
+          "args": {
+            "verbosity": "full"
+          },
+          "calls": 2
+        },
+        {
+          "args": {
+            "verbosity": "compact"
+          },
+          "calls": 1
         }
       ]
     },
     "game_events": {
-      "calls": 8,
-      "p50_ms": 111,
-      "p95_ms": 270,
+      "calls": 5,
+      "p50_ms": 126,
+      "p95_ms": 156,
       "sets": [
-        {
-          "args": {},
-          "calls": 1
-        },
         {
           "args": {
             "days": 1,
@@ -672,6 +717,27 @@
           "args": {
             "days": 3,
             "limit": 1
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "days": 4,
+            "limit": 3
+          },
+          "calls": 1
+        }
+      ]
+    },
+    "live_fetch": {
+      "calls": 1,
+      "p50_ms": 117,
+      "p95_ms": 117,
+      "sets": [
+        {
+          "args": {
+            "path": "/clans/#J2RGCRVG",
+            "verbosity": "compact"
           },
           "calls": 1
         }
@@ -699,41 +765,28 @@
       ]
     },
     "players_names": {
-      "calls": 2,
-      "p50_ms": 82,
-      "p95_ms": 102,
+      "calls": 1,
+      "p50_ms": 104,
+      "p95_ms": 104,
       "sets": [
         {
           "args": {
             "player_tags": ["#20299Y8PQQ", "#UL2V9QRG0"]
           },
           "calls": 1
-        },
-        {
-          "args": {
-            "player_tags": [
-              "#RCCY80VG2",
-              "#YRC0J298J",
-              "#QLGYYG0Q",
-              "#LCUVPUYCY",
-              "#UCP028JQ8",
-              "#VGJJLC9PR"
-            ]
-          },
-          "calls": 1
         }
       ]
     },
     "players_profile": {
-      "calls": 23,
-      "p50_ms": 114,
-      "p95_ms": 380,
+      "calls": 14,
+      "p50_ms": 133,
+      "p95_ms": 392,
       "sets": [
         {
           "args": {
             "player_tag": "#20JJJ2CCRU"
           },
-          "calls": 13
+          "calls": 6
         },
         {
           "args": {
@@ -757,9 +810,9 @@
       ]
     },
     "players_summary": {
-      "calls": 19,
+      "calls": 21,
       "p50_ms": 410,
-      "p95_ms": 1037,
+      "p95_ms": 911,
       "sets": [
         {
           "args": {
@@ -771,20 +824,20 @@
           "args": {
             "player_tag": "#VJG0J29QP"
           },
-          "calls": 3
+          "calls": 4
         },
         {
           "args": {
             "player_tag": "#VJQV8G8RL"
           },
-          "calls": 3
+          "calls": 4
         }
       ]
     },
     "players_timeline": {
-      "calls": 18,
-      "p50_ms": 96,
-      "p95_ms": 216,
+      "calls": 13,
+      "p50_ms": 111,
+      "p95_ms": 262,
       "sets": [
         {
           "args": {
@@ -820,15 +873,29 @@
       ]
     },
     "rankings_clan_ladder": {
-      "calls": 1,
+      "calls": 3,
       "p50_ms": 71,
-      "p95_ms": 71,
+      "p95_ms": 133,
       "sets": [
+        {
+          "args": {
+            "board": "clans",
+            "limit": 3
+          },
+          "calls": 1
+        },
         {
           "args": {
             "board": "clanwars",
             "limit": 10,
             "offset": 995
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "board": "clanwars",
+            "limit": 3
           },
           "calls": 1
         }
@@ -848,9 +915,9 @@
       ]
     },
     "rankings_players": {
-      "calls": 29,
-      "p50_ms": 116,
-      "p95_ms": 284,
+      "calls": 26,
+      "p50_ms": 109,
+      "p95_ms": 242,
       "sets": [
         {
           "args": {
@@ -889,9 +956,9 @@
       ]
     },
     "rankings_timeline": {
-      "calls": 21,
-      "p50_ms": 111,
-      "p95_ms": 244,
+      "calls": 11,
+      "p50_ms": 147,
+      "p95_ms": 407,
       "sets": [
         {
           "args": {
@@ -925,32 +992,32 @@
       ]
     },
     "war_current": {
-      "calls": 25,
-      "p50_ms": 852,
-      "p95_ms": 1364,
+      "calls": 22,
+      "p50_ms": 1074,
+      "p95_ms": 1372,
       "sets": [
         {
           "args": {
             "verbosity": "compact"
           },
-          "calls": 13
+          "calls": 12
+        },
+        {
+          "args": {},
+          "calls": 4
         },
         {
           "args": {
             "verbosity": "full"
           },
-          "calls": 5
-        },
-        {
-          "args": {},
           "calls": 2
         }
       ]
     },
     "war_history": {
-      "calls": 33,
-      "p50_ms": 239,
-      "p95_ms": 2842,
+      "calls": 38,
+      "p50_ms": 294,
+      "p95_ms": 1317,
       "sets": [
         {
           "args": {
@@ -958,7 +1025,7 @@
             "season_id": 136,
             "section_index": 0
           },
-          "calls": 9
+          "calls": 11
         },
         {
           "args": {
@@ -970,13 +1037,19 @@
       ]
     },
     "war_rivals": {
-      "calls": 6,
-      "p50_ms": 99,
-      "p95_ms": 218,
+      "calls": 9,
+      "p50_ms": 102,
+      "p95_ms": 200,
       "sets": [
         {
           "args": {},
-          "calls": 6
+          "calls": 8
+        },
+        {
+          "args": {
+            "rival_tags": ["#RJQQLLV9", "#G9JCJ89G", "#QUV9929R", "#RJ9UJ9L8"]
+          },
+          "calls": 1
         }
       ]
     }

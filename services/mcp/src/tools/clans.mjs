@@ -150,7 +150,7 @@ async function joinedMidWindowNote(db, clanTag, fromMs, toMs) {
         `${name.get(r.tag) ?? r.tag} ${r.tag} joined ${r.start.toISOString().slice(0, 10)} with ${r.before_join} of ${r.in_window} recorded battles in the window played for another clan before joining`,
     )
     .join("; ");
-  return `Rows are today's members, and ${hit.length} of them began their current stint (joined_observed_at) after the window began, so their counts include battles played for another clan: ${list}${hit.length > 8 ? `; and ${hit.length - 8} more` : ""}. Members who left since the window began are not listed.`;
+  return `Rows are today's members, and ${hit.length} of them began their current stint (clans_participation.joined_observed_at) after the window began, so their counts include battles played for another clan: ${list}${hit.length > 8 ? `; and ${hit.length - 8} more` : ""}. Members who left since the window began are not listed.`;
 }
 
 /** Members whose battles are mostly not captured, said (Gym #196). */
