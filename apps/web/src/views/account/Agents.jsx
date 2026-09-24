@@ -56,7 +56,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
 
   const live = (agent.tokens ?? []).filter((k) => !k.revoked_at);
   const suspended = agent.status !== "approved";
-  const name = live[0]?.name ?? agent.public_id;
+  const name = agent.name ?? agent.public_id;
   // The agent's own door. One hostname serves the site and the MCP endpoint,
   // so the origin this console is served from IS the origin to connect to —
   // deriving it beats a constant that would be wrong in local development.
@@ -646,7 +646,7 @@ export function Agents({ navigate }) {
                       );
                       return (
                         <tr key={a.account_id}>
-                          <td>{live[0]?.name ?? a.public_id}</td>
+                          <td>{a.name ?? a.public_id}</td>
                           <td>
                             <ClanRefs clans={a.clans} navigate={navigate} />
                           </td>

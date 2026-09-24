@@ -601,7 +601,7 @@ export function accountRoutes({
                  (select array_agg(account_id) from account where owned_by_account_id = $1),
                  '{}'::uuid[])))
            and m.created_at > now() - interval '7 days'
-         group by 1, 2 order by 3 desc limit 8`,
+         group by 1, 2 order by calls desc limit 8`,
         [account.accountId],
       );
       const { rows: tools } = await db.query(

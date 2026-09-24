@@ -100,8 +100,8 @@ export function Usage({ navigate }) {
             <>
               This agent spends your daily budget: it made{" "}
               {(usage.today_calls ?? 0).toLocaleString()} of the{" "}
-              {(usage.budget_today_calls ?? 0).toLocaleString()} calls it paid
-              for today. {quota.resets}.
+              {(usage.budget_today_calls ?? 0).toLocaleString()} calls your
+              budget paid for today. {quota.resets}.
             </>
           ) : (
             <>

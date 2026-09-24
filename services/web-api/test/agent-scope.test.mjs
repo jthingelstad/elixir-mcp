@@ -399,3 +399,53 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
   ])
     assert.ok(kinds.includes(k), `${k} in ${kinds}`);
 });
+
+test("your usage ranks callers by calls, agents included, each opening its console", async () => {
+  // Live 2026-09-23: a column added before `calls` turned `order by 3`
+  // into an order by the agent's public id, and the limit of 8 then cut
+  // every agent, however busy, behind eight of your own clients.
+  const clients = Array.from({ length: 9 }, (_, i) => `client-${i}`);
+  for (const name of clients)
+    await db.query(
+      `insert into mcp_call_audit (account_id, tool, client_name) values ($1, 'game_clock', $2)`,
+      [ownerId, name],
+    );
+  for (let i = 0; i < 12; i += 1)
+    await db.query(
+      `insert into mcp_call_audit (account_id, tool) values ($1, 'war_current')`,
+      [agentId],
+    );
+  const usage = parse(
+    await handler(event({ path: "/api/me/usage", cookie: ownerCookie })),
+  );
+  const top = usage.by_caller[0];
+  assert.equal(top.kind, "agent");
+  assert.equal(top.name, "poap-bot");
+  assert.equal(top.public_id, agentPid);
+  const calls = usage.by_caller.map((c) => c.calls);
+  assert.deepEqual(
+    calls,
+    [...calls].sort((a, b) => b - a),
+  );
+});
+
+test("an agent keeps its name when its key is revoked", async () => {
+  await db.query(
+    `update service_token set revoked_at = now() where account_id = $1`,
+    [agentId],
+  );
+  try {
+    const listed = parse(
+      await handler(event({ path: "/api/me/principals", cookie: ownerCookie })),
+    );
+    assert.equal(
+      listed.agents.find((a) => a.public_id === agentPid).name,
+      "poap-bot",
+    );
+  } finally {
+    await db.query(
+      `update service_token set revoked_at = null where account_id = $1`,
+      [agentId],
+    );
+  }
+});

@@ -15,6 +15,13 @@ import { createPrincipal, normalizePrincipalName } from "@elixir-mcp/claims";
 export async function listPrincipals(db, ownerAccountId) {
   const { rows } = await db.query(
     `select a.account_id, a.kind, a.public_id, a.role, a.created_at, a.status,
+            -- Its name is its key's: the newest, a live one first, so an
+            -- agent whose key was revoked keeps its name (the rail head's
+            -- selector and GET /api/me say it the same way).
+            (select t.name from service_token t
+              where t.account_id = a.account_id
+              order by (t.revoked_at is null) desc, t.created_at desc
+              limit 1) as name,
             -- Calls in the last 7 days. An agent spends the OWNER's quota, so
             -- "which of my agents is eating my budget" has to be answerable
             -- from here; the owner's own usage view cannot see these rows.

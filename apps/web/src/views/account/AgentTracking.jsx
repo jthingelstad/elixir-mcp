@@ -9,7 +9,7 @@ const TAG_OK = /^#?[0289PYLQGRJCUVOo]{3,12}$/;
 const of = (slot) =>
   slot
     ? slot.limit == null
-      ? `${slot.used}`
+      ? `${slot.used} used`
       : `${slot.used} of ${slot.limit}`
     : "";
 
@@ -175,7 +175,7 @@ export function AgentTracking({ agent }) {
             onChange={(ev) => setClanTag(ev.target.value)}
           />
           <select
-            className="select"
+            className="select w-auto"
             aria-label="Scope"
             value={clanScope}
             onChange={(ev) => setClanScope(ev.target.value)}
