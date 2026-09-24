@@ -3002,7 +3002,7 @@ export const OUTPUT_SCHEMAS = {
             last_seen_in_game: { type: ["string", "null"] },
             years_played: NULLABLE_INT,
             account_age_days: NULLABLE_INT,
-            badge_count: COUNT,
+            badge_count: NULLABLE_INT,
             lifetime: {
               type: ["object", "null"],
               description:

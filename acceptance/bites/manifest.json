@@ -2281,5 +2281,29 @@
     "case": "gym/335.1",
     "captures": ["335-1-clans_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 340,
+    "contract": "7.2.4",
+    "why": "the Gym block 340.2 on the answer it read",
+    "case": "gym/340.2",
+    "captures": ["340-2-war_rivals.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 342,
+    "contract": "7.2.5",
+    "why": "the Gym block 342.2 on the answer it read",
+    "case": "gym/342.2",
+    "captures": ["342-2-rankings_players.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 344,
+    "contract": "7.2.4",
+    "why": "the Gym block 344.1 on the answer it read",
+    "case": "gym/344.1",
+    "captures": ["344-1-rankings_clan_ladder.json"],
+    "expect": "."
   }
 ]

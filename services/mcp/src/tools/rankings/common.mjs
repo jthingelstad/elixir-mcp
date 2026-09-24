@@ -304,3 +304,29 @@ export async function floorOf(db, snapshot) {
 export function seasonStartOf(at) {
   return seasonFromDate(at.getTime()).seasonStartMs;
 }
+
+/** A full board whose cutoff fell far below the previous snapshot's (Gym
+ *  #342): the API served an incomplete board minutes after the 10:00Z
+ *  reset on 2026-09-24 (global lost 392 players and 61 points of cutoff,
+ *  and a #36 player was absent), and the daily read kept it. A cutoff on
+ *  a full board moves with play, rarely down by much in a day. Said, with
+ *  the way to a fresh board, rather than read as departures. */
+export async function suspectBoardNote(db, snapshot, row, floor) {
+  if (floor === null || floor === undefined || !isFull(snapshot)) return null;
+  const {
+    rows: [prev],
+  } = await db.query(
+    `select s.snapshot_id, s.observed_at, s.entries,
+            (select min(e.rating) from ranking_entry e where e.snapshot_id = s.snapshot_id) as floor
+       from ranking_snapshot s
+      where s.board = $1 and s.location_key = $2 and s.season_month = $3
+        and s.observed_at < $4
+      order by s.observed_at desc limit 1`,
+    [row.board, row.location_key, snapshot.season_month, snapshot.observed_at],
+  );
+  if (!prev || prev.floor === null || prev.entries < snapshot.entries)
+    return null;
+  const fell = Number(prev.floor) - Number(floor);
+  if (fell < 40) return null;
+  return `This snapshot's cutoff (${floor}) is ${fell} below the previous snapshot's (${prev.floor}, ${prev.observed_at.toISOString()}) on a full board, which play rarely moves by in a day: the API may have served an incomplete board, and a player absent here is not necessarily below the cutoff. live: true records the board as it stands now.`;
+}

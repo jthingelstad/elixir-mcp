@@ -1,0 +1,106 @@
+{
+  "feedback": 344,
+  "contract_version": "7.2.4",
+  "captured_at": "2026-09-24T15:00:29.530Z",
+  "request": {
+    "tool": "rankings_clan_ladder",
+    "arguments": {
+      "location": "US",
+      "as_of": "2026-09-16T12:00:00Z",
+      "limit": 3
+    }
+  },
+  "response": {
+    "board": "clans",
+    "location": {
+      "key": "57000249",
+      "label": "Clan score · United States",
+      "kind": "country",
+      "country_code": "US"
+    },
+    "applied": {
+      "board": "clans",
+      "location": "57000249",
+      "as_of": "2026-09-16T12:00:00.000Z",
+      "limit": 3,
+      "offset": 0
+    },
+    "snapshot": {
+      "observed_at": "2026-09-16T10:02:44.000Z",
+      "unchanged_until": "2026-09-16T10:02:44.000Z",
+      "season_id": "136",
+      "season_month": "2026-09",
+      "entries": 999,
+      "depth": 1000,
+      "full": false,
+      "truncated": false,
+      "cadence_minutes": 1440,
+      "floor_score": 136583
+    },
+    "our_clan": {
+      "clan_tag": "#J2RGCRVG",
+      "name": "POAP KINGS",
+      "on_board": false,
+      "rank": null,
+      "score": 130699,
+      "score_observed_at": "2026-09-24T14:49:00.000Z",
+      "below_floor_by": 5884
+    },
+    "clans": [
+      {
+        "rank": 1,
+        "previous_rank": 1,
+        "clan_tag": "#Q9QYCRJ9",
+        "name": "Dark Nation",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000249
+      },
+      {
+        "rank": 2,
+        "previous_rank": 2,
+        "clan_tag": "#2Y9LY200",
+        "name": "dcUNITED 2.0",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000156,
+        "location_id": 57000249
+      },
+      {
+        "rank": 3,
+        "previous_rank": 3,
+        "clan_tag": "#LLJULY0P",
+        "name": "Anarchy #1",
+        "score": 140000,
+        "members": 50,
+        "badge_id": 16000097,
+        "location_id": 57000249
+      }
+    ],
+    "notes": [
+      "score is the game's own clan score, which is not the sum of member trophies (its formula is the game's and weights the top members); clans_roster.clan_score serves a recorded clan's.",
+      "our_clan is POAP KINGS, not among this board's 999 places: its score 130699 (from its roster read at 2026-09-24T14:49:00.000Z) is 5884 below floor_score, the last place's; no page of this board will list it.",
+      "previous_rank is the game's own field: where the clan stood at its previous ranking, not at our previous snapshot.",
+      "18 clans share score 140,000 (ranks 1-18): the game lists a tie in its own order, so rank inside it - and rank against previous_rank - is not a standing; quote those clans as tied.",
+      "Page 1: pass offset 3 for the next places."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "7.2.4",
+      "source_polls": {
+        "rankings_clans_loc": {
+          "observed_at": "2026-09-24T10:02:46.000Z",
+          "freshness_seconds": 17863
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 53,
+    "db_queries": 10,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -62,8 +62,14 @@ function resolveCardInput(value, cards) {
   // replaced the champion, and an eight-card deck read "7 cards named").
   const towerFirst = [...cards].sort(
     (a, b) =>
-      Number(cardType(b.id) === "tower_troop") -
-      Number(cardType(a.id) === "tower_troop"),
+      Number(
+        a.kind === "card" ||
+          (a.kind === undefined && cardType(a.id) !== "tower_troop"),
+      ) -
+      Number(
+        b.kind === "card" ||
+          (b.kind === undefined && cardType(b.id) !== "tower_troop"),
+      ),
   );
   for (const c of towerFirst) {
     byKey.set(normalizeName(c.name), c);

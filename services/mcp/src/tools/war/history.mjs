@@ -391,6 +391,10 @@ export const war_history = {
               ? "standings carries every clan in the week's bracket with clan_war_trophies (its WAR trophies going into the week) and repair_points; finish_time is null for a clan that did not finish (the API marks it with epoch zero, never a time). days is the race's own day-by-day (the API's periodLogs), one entry per closed war day, empty for a week recorded before 2026-09-17 unless the archive backfill reached it; each day's standings carry rank (1-based, like every rank here; null while unranked) beside end_of_day_rank (the API's 0-based value, -1 unranked)."
               : null,
             "in_progress marks the week still being fought; on OLDER weeks a null our_rank/our_fame means the week was observed without a standings capture.",
+            // The live week's fame is the fame banked at the last war-day
+            // close (Gym #340: 0 through war day 1 while the clan was
+            // 3,100 points up); war_current carries the live standing.
+            "On the week in progress (in_progress), our_fame is the fame banked at the last war-day close, 0 until war day 1 closes: the day's points so far are war_current.standings[].period_points.",
             hasSeason && !focus
               ? "member_weeks contains every recorded participant for the exact week; null war_days_battled means per-day attendance is unknown, while war_days lists the observed day indices battled."
               : focus

@@ -147,26 +147,39 @@ export const rankings_clan_ladder = {
       const {
         rows: [ours],
       } = await ctx.db.query(
-        `select c.name,
+        `select c.name, c.location_id,
                 (select e.rank from clan_ranking_entry e
                   where e.snapshot_id = $2 and e.clan_tag = c.clan_tag) as rank,
                 (select e.score from clan_ranking_entry e
                   where e.snapshot_id = $2 and e.clan_tag = c.clan_tag) as board_score,
                 s.clan_score, s.clan_war_trophies, s.observed_at
            from clan c
+           -- The clan's score as of the snapshot on an as_of read (Gym
+           -- #344: today's score against a past floor read as a slip).
            left join lateral (
              select clan_score, clan_war_trophies, observed_at from clan_snapshot_daily
-              where clan_tag = c.clan_tag order by observed_at desc limit 1) s on true
+              where clan_tag = c.clan_tag and ($3::timestamptz is null or observed_at <= $3)
+              order by observed_at desc limit 1) s on true
           where c.clan_tag = $1`,
-        [ourTag, snapshot.snapshot_id],
+        [ourTag, snapshot.snapshot_id, asOf ? snapshot.observed_at : null],
       );
       if (ours) {
         const score =
           ours.board_score ??
           (board === "clanwars" ? ours.clan_war_trophies : ours.clan_score);
+        // A country board ranks only clans located there (Gym #343: a US
+        // clan read "3035 below" Japan's floor, a place it can never take).
+        const boardLocation = /^\d+$/.test(String(row.location_key))
+          ? Number(row.location_key)
+          : null;
+        const elsewhere =
+          boardLocation !== null &&
+          ours.location_id !== null &&
+          Number(ours.location_id) !== boardLocation;
         ourClan = {
           clan_tag: ourTag,
           name: ours.name,
+          ...(elsewhere ? { located_elsewhere: true } : {}),
           on_board: ours.rank !== null,
           rank: ours.rank,
           score: score ?? null,
@@ -175,7 +188,7 @@ export const rankings_clan_ladder = {
               ? snapshot.observed_at.toISOString()
               : (ours.observed_at?.toISOString() ?? null),
           below_floor_by:
-            ours.rank === null && score !== null && floorRow
+            !elsewhere && ours.rank === null && score !== null && floorRow
               ? Number(floorRow.score) - Number(score)
               : null,
         };
@@ -207,9 +220,11 @@ export const rankings_clan_ladder = {
           ? "score is clan war trophies on this board."
           : "score is the game's own clan score, which is not the sum of member trophies (its formula is the game's and weights the top members); clans_roster.clan_score serves a recorded clan's.",
         ourClan
-          ? ourClan.on_board
-            ? `our_clan is ${ourClan.name ?? ourClan.clan_tag}, at rank ${ourClan.rank} on this snapshot.`
-            : `our_clan is ${ourClan.name ?? ourClan.clan_tag}, not among this board's ${snapshot.entries} places${ourClan.below_floor_by !== null ? `: its score ${ourClan.score} (from its roster read at ${ourClan.score_observed_at}) is ${ourClan.below_floor_by} below floor_score, the last place's` : ""}; no page of this board will list it.`
+          ? ourClan.located_elsewhere
+            ? `our_clan is ${ourClan.name ?? ourClan.clan_tag}, located outside this board's location, so it can never be ranked here at any score; its home location's board has its place.`
+            : ourClan.on_board
+              ? `our_clan is ${ourClan.name ?? ourClan.clan_tag}, at rank ${ourClan.rank} on this snapshot.`
+              : `our_clan is ${ourClan.name ?? ourClan.clan_tag}, not among this board's ${snapshot.entries} places${ourClan.below_floor_by !== null ? `: its score ${ourClan.score} (from its roster read at ${ourClan.score_observed_at}) is ${ourClan.below_floor_by} below floor_score, the last place's` : ""}; no page of this board will list it.`
           : null,
         "previous_rank is the game's own field: where the clan stood at its previous ranking, not at our previous snapshot.",
         tieNote(ties),

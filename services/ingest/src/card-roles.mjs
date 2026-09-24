@@ -39,7 +39,10 @@ export async function loadVocabulary(db) {
     `select roles_version, source_commit, imported_at from card_role_version`,
   );
   const { rows: cards } = await db.query(
-    `select card_id as id, name from card where name is not null order by card_id`,
+    // Deck cards last, so a name a tower-troop ('support') entry shares
+    // resolves to the deck card (Gym #324: "Archer Queen" 29000000).
+    `select card_id as id, name, kind from card where name is not null
+      order by (kind = 'card'), card_id`,
   );
   return {
     roles: roles.map(rowToRole),

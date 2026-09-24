@@ -366,13 +366,21 @@ test("clans_roster carries the lifetime block, tenure and badge count per member
   assert.equal(me.lifetime.wins, profile.wins + 5);
   assert.equal(me.lifetime.king_tower_level, profile.kingTowerLevel);
   assert.equal(me.lifetime.total_donations, profile.totalDonations);
-  assert.equal(me.lifetime.profile_observed_at, "2026-09-06T23:35:00.000Z");
+  // The newest profile read, snapshot or poll ledger (Gym #338).
+  assert.ok(
+    Date.parse(me.lifetime.profile_observed_at) >=
+      Date.parse("2026-09-06T23:35:00.000Z"),
+  );
   assert.ok(!("as_of" in me.lifetime), "4.0.0: the stamp's one name");
   assert.ok(me.badge_count > 0);
   assert.equal(typeof me.years_played, "number");
   const other = body.members.find((m) => m.player_tag !== ME);
   assert.equal(other.lifetime, null, "no recorded profile: null, never zeros");
-  assert.equal(other.badge_count, 0);
+  assert.equal(
+    other.badge_count,
+    null,
+    "no profile read: badges unknown, not 0 (Gym #337)",
+  );
   assert.equal(
     typeof other.trophies,
     "number",

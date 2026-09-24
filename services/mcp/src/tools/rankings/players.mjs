@@ -22,6 +22,7 @@ import {
   boardHorizon,
   boardRow,
   floorOf,
+  suspectBoardNote,
   fullBoardNote,
   liveBoard,
   noSnapshotNote,
@@ -182,6 +183,7 @@ export const rankings_players = {
       };
     }
     const floor = await floorOf(ctx.db, snapshot);
+    const suspect = await suspectBoardNote(ctx.db, snapshot, row, floor);
     const { rows } = await ctx.db.query(
       `select rank, player_tag, name, rating, clan_tag, clan_name
          from ranking_entry where snapshot_id = $1
@@ -212,6 +214,7 @@ export const rankings_players = {
             },
       ),
       notes: notes(
+        suspect,
         livePendingNote(live),
         fullBoardNote(snapshot, floor),
         board === "pol_final"

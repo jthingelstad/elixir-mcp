@@ -34,5 +34,23 @@
     "reason": "The second half of Gym #263: a war battle played after the race's day closed (~09:38Z) but before the 10:00Z policy grid is filed on the previous grid day. 7.1.7 removed boat defenses from days battled; resolving battles by the race's own close stamp is queued.",
     "until": "2026-10-08",
     "filed": "2026-09-24"
+  },
+  {
+    "case": "gym/342.1",
+    "reason": "rankings_timeline carries no incomplete-board note: the fix is at recording (a plausibility re-read of the reset board), which touches Jamie's 2026-09-11 decision to read the daily board at the 10:00Z reset; held for his call. rankings_players says it (7.2.6).",
+    "until": "2026-10-08",
+    "filed": "2026-09-24"
+  },
+  {
+    "case": "gym/342.3",
+    "reason": "As 342.1: the cross-tool incomplete-board note waits on the recording-side fix Jamie decides.",
+    "until": "2026-10-08",
+    "filed": "2026-09-24"
+  },
+  {
+    "case": "gym/345.1",
+    "reason": "snapshot.season_id is a string on the three board tools and a number elsewhere; changing its type breaks strict clients, so it waits for Jamie (a 8.0.0 candidate).",
+    "until": "2026-10-08",
+    "filed": "2026-09-24"
   }
 ]

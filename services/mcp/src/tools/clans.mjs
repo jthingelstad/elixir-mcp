@@ -488,7 +488,14 @@ export const clansTools = {
                   s.trophies, s.donations,
                   l.best_trophies, l.battle_count, l.wins, l.losses, l.three_crown_wins,
                   l.collection_level, l.king_tower_level, l.total_donations,
-                  l.profile_observed_at,
+                  -- The newest profile read, from the snapshot or the poll
+                  -- ledger (Gym #338: the 7.1.9 rule badges_holders uses; a
+                  -- poll that changed nothing leaves the day row as it was).
+                  case when l.profile_observed_at is null then null
+                       else greatest(l.profile_observed_at,
+                         (select ps.last_admitted_at from poll_state ps
+                           where ps.subject_tag = cm.player_tag and ps.endpoint = 'player'))
+                  end as profile_observed_at,
                   (select count(*)::int from player_badge b where b.player_tag = cm.player_tag) as badge_count,
                   (select max(bp.battle_time) from battle_participant bp
                    where bp.player_tag = cm.player_tag) as last_battle
@@ -568,7 +575,9 @@ export const clansTools = {
           last_seen_in_game: m.game_last_seen_at?.toISOString() ?? null,
           years_played: m.years_played ?? null,
           account_age_days: m.account_age_days ?? null,
-          badge_count: m.badge_count ?? 0,
+          // Unknown for a member whose profile was never read, not 0 (Gym
+          // #337: 44 of 49 in a newly tracked clan read "0 badges").
+          badge_count: m.profile_observed_at ? (m.badge_count ?? 0) : null,
           // The lifetime block as of the latest profile poll; null for a
           // member whose profile is not recorded.
           lifetime: m.profile_observed_at
@@ -607,6 +616,7 @@ export const clansTools = {
           "last_seen_in_game is the game's own lastSeen (when the player was last ACTIVE), captured from roster polls; last_recorded_battle only moves when a battle was captured; null means no polled roster has carried them.",
           "A member whose last_seen_in_game predates a race start is left out of that race's roster by the game (see war_current.members_not_in_race).",
           "recent_events are events observed since roster recording began (events_recorded_since), never a complete history.",
+          "badge_count, years_played and lifetime are null for a member whose profile Elixir has not read yet: unknown, not none.",
           CLAN_SCORE_NOTE,
           eventsCut
             ? `recent_events holds the newest ${RECENT_EVENTS}, back to ${events.rows.at(-1)?.window_end.toISOString()}; older ones are recorded but not listed here: elixir_timeline filtered to the roster section reads a window's joins, departures and role changes in full.`

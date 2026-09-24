@@ -20532,9 +20532,10 @@
     "request_id": "44bb4c06-bb15-44e7-9b77-375096958294",
     "assert": [
       {
-        "neq": ["error.code", "not_found"]
+        "has": "card.id"
       }
-    ]
+    ],
+    "amended": "Asserts the card resolved; neq on an absent error.code fails in the interpreter."
   },
   {
     "id": "325.2",
@@ -20548,9 +20549,10 @@
     "request_id": "77e13392-7e96-4219-baef-55d26048402e",
     "assert": [
       {
-        "neq": ["error.code", "not_found"]
+        "has": "anchor"
       }
-    ]
+    ],
+    "amended": "Asserts the card resolved; neq on an absent error.code fails in the interpreter."
   },
   {
     "id": "325.3",
@@ -20565,9 +20567,10 @@
     "request_id": "54b60887-5e23-428e-9292-de714198d106",
     "assert": [
       {
-        "neq": ["error.code", "not_found"]
+        "has": "card.id"
       }
-    ]
+    ],
+    "amended": "Asserts the card resolved; neq on an absent error.code fails in the interpreter."
   },
   {
     "id": "325.4",
@@ -21519,6 +21522,769 @@
     "assert": [
       {
         "notes_match": "a limit of \\d+ should fit"
+      }
+    ]
+  },
+  {
+    "id": "337.1",
+    "feedback": 337,
+    "stability": "live",
+    "tool": "clans_roster",
+    "args": {
+      "clan_tag": "#GRJ20LQP"
+    },
+    "request_id": "cd1c9d56-0824-4ed7-ab66-0f5273ee764b",
+    "note": "a clan tracked at 14:42Z on 2026-09-24: 44 of 49 members lifetime null (profile never read) served badge_count 0; unknown must not read as zero",
+    "for_each": "members",
+    "when": {
+      "eq": ["lifetime", null]
+    },
+    "assert": [
+      {
+        "neq": ["badge_count", 0]
+      }
+    ]
+  },
+  {
+    "id": "337.2",
+    "feedback": 337,
+    "stability": "live",
+    "tool": "clans_roster",
+    "args": {
+      "clan_tag": "#P9GPQ2Y0"
+    },
+    "request_id": "cac71f24-761f-4d69-8bb4-df687c1736df",
+    "note": "BalkanUnion: 30 of 48 lifetime null with badge_count 0 (FLAMUR #208CRUYVY0: 14,000 trophies, players_profile not_recorded)",
+    "for_each": "members",
+    "when": {
+      "eq": ["lifetime", null]
+    },
+    "assert": [
+      {
+        "neq": ["badge_count", 0]
+      }
+    ]
+  },
+  {
+    "id": "337.3",
+    "feedback": 337,
+    "control": true,
+    "stability": "live",
+    "tool": "clans_roster",
+    "args": {},
+    "request_id": "1210a456-e449-4e16-a3e5-6a8c04c25f44",
+    "note": "a READ member keeps a real positive badge_count (48 of 48 read in POAP KINGS on 2026-09-24)",
+    "for_each": "members",
+    "when": {
+      "has": "lifetime.profile_observed_at"
+    },
+    "assert": [
+      {
+        "gt": ["badge_count", 0]
+      }
+    ]
+  },
+  {
+    "id": "337.4",
+    "feedback": 337,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "r": {
+        "tool": "badges_rarity",
+        "args": {
+          "segment": {
+            "clan_tag": "#GRJ20LQP"
+          }
+        }
+      }
+    },
+    "request_id": "bab7ced8-6569-4383-b908-d102549e77c2",
+    "note": "the badge tool on the same fresh clan already says unknown, not absent (5 of 49 on 2026-09-24)",
+    "when": {
+      "lt": ["r.players_considered", 49]
+    },
+    "assert": [
+      {
+        "notes_match": "unknown, not absent"
+      }
+    ]
+  },
+  {
+    "id": "338.1",
+    "feedback": 338,
+    "stability": "live",
+    "calls": {
+      "c": {
+        "tool": "clans_roster",
+        "args": {}
+      },
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#VR0QRP2PG"
+        }
+      }
+    },
+    "request_id": "1210a456-e449-4e16-a3e5-6a8c04c25f44",
+    "note": "roster profile_observed_at 2026-09-23T11:42:44Z vs profile poll 2026-09-24T09:52:42Z (c83ceb6f-6ef1-4ed9-bbf0-e2670be812c2): 22.2 h stale; the roster stamp must be the newest read",
+    "when": {
+      "has": "c.members[?player_tag=#VR0QRP2PG]"
+    },
+    "assert": [
+      {
+        "eq": [
+          "c.members[?player_tag=#VR0QRP2PG].lifetime.profile_observed_at",
+          "p.meta.source_polls.player.observed_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "338.2",
+    "feedback": 338,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "h": {
+        "tool": "badges_holders",
+        "args": {
+          "badge": "MasteryValkyrie",
+          "segment": "mine"
+        }
+      },
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#VR0QRP2PG"
+        }
+      }
+    },
+    "request_id": "6345d914-1dbb-4516-abee-e609f828082a",
+    "note": "7.1.9: the holder stamp is the newest profile read (09-24T09:52:42Z = 09-24T09:52:42Z on 2026-09-24)",
+    "when": {
+      "has": "h.holders[?player_tag=#VR0QRP2PG]"
+    },
+    "assert": [
+      {
+        "eq": [
+          "h.holders[?player_tag=#VR0QRP2PG].observed_at",
+          "p.meta.source_polls.player.observed_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "339.1",
+    "feedback": 339,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryWitch",
+      "segment": {
+        "player_tag": "#20UGUV82U2"
+      }
+    },
+    "request_id": "2b0588f6-1884-4db2-a1f9-a9d7188bc211",
+    "note": "#279 (7.1.9): a battle-only opponent reads as unknown, not as holding no Witch Mastery",
+    "when": {
+      "eq": ["players_considered", 0]
+    },
+    "assert": [
+      {
+        "notes_match": "unknown, not absent"
+      },
+      {
+        "eq": ["holders_total", 0]
+      }
+    ]
+  },
+  {
+    "id": "339.2",
+    "feedback": 339,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryPekka",
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      }
+    },
+    "request_id": "a619c94c-80da-4da5-90cc-b90661bb343a",
+    "note": "a read player's real zero keeps no unknown note (1 / 0 / share 0 on 2026-09-24)",
+    "assert": [
+      {
+        "eq": ["players_considered", 1]
+      },
+      {
+        "notes_not_match": "unknown, not absent"
+      }
+    ]
+  },
+  {
+    "id": "339.3",
+    "feedback": 339,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "r": {
+        "tool": "badges_rarity",
+        "args": {
+          "segment": {
+            "player_tag": "#20JJJ2CCRU"
+          }
+        }
+      },
+      "p": {
+        "tool": "players_profile",
+        "args": {
+          "player_tag": "#20JJJ2CCRU"
+        }
+      }
+    },
+    "request_id": "ca690049-bab4-4e3f-84ee-1f27df4f5281",
+    "note": "I2: one-player census = profile badges (79 = 79, levels equal on all 79, 2026-09-24)",
+    "assert": [
+      {
+        "count_eq": ["r.badges[]", "p.badges[]"]
+      }
+    ]
+  },
+  {
+    "id": "339.4",
+    "feedback": 339,
+    "control": true,
+    "stability": "live",
+    "tool": "badges_holders",
+    "args": {
+      "badge": "MasteryValkyrie",
+      "segment": "mine",
+      "days": 7
+    },
+    "request_id": "77e0b606-6ddb-4272-b5e2-d70f9bb0812b",
+    "note": "I9: a window argument on the unwindowed badge tools is refused naming the argument and the known ones",
+    "assert": [
+      {
+        "notes_match": "no property 'days'"
+      },
+      {
+        "notes_match": "Known: badge, segment"
+      }
+    ]
+  },
+  {
+    "id": "340.1",
+    "feedback": 340,
+    "stability": "live",
+    "tool": "war_history",
+    "args": {},
+    "request_id": "71ee8d70-ad20-4a5f-8413-74c1795c2d02",
+    "when": {
+      "eq": ["weeks[0].in_progress", true]
+    },
+    "assert": [
+      {
+        "notes_match": "our_fame[^.]*(banked|close)"
+      }
+    ]
+  },
+  {
+    "id": "340.2",
+    "feedback": 340,
+    "stability": "live",
+    "tool": "war_rivals",
+    "args": {},
+    "request_id": "c55d8fe2-5d24-4462-a8c2-b7a6bd40bada",
+    "assert": [
+      {
+        "every_row_has": ["rivals", "current_race_fame"]
+      },
+      {
+        "notes_match": "current_race_fame[^.]*(banked|close)"
+      }
+    ]
+  },
+  {
+    "id": "340.3",
+    "feedback": 340,
+    "stability": "live",
+    "control": true,
+    "tool": "war_current",
+    "args": {},
+    "request_id": "9c72a094-8f8d-4139-a22e-e246baafa816",
+    "when": {
+      "eq": ["day_kind", "war"]
+    },
+    "assert": [
+      {
+        "notes_match": "fame can be zero on war day 1 while members already have points"
+      }
+    ]
+  },
+  {
+    "id": "340.4",
+    "feedback": 340,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "32f34d04-3e57-497c-8275-9a93795bfaa7",
+    "assert": [
+      {
+        "eq": ["weeks[0].in_progress", false]
+      },
+      {
+        "eq": ["weeks[0].our_fame", 10146]
+      },
+      {
+        "eq": ["weeks[0].finish_war_day", 3]
+      }
+    ]
+  },
+  {
+    "id": "341.1",
+    "feedback": 341,
+    "stability": "live",
+    "control": true,
+    "tool": "war_current",
+    "args": {},
+    "request_id": "9c72a094-8f8d-4139-a22e-e246baafa816",
+    "assert": [
+      {
+        "has": "decks_today.day_kind"
+      },
+      {
+        "has": "decks_today.day_in_section"
+      },
+      {
+        "has": "decks_today.training_day"
+      },
+      {
+        "has": "decks_today.war_day"
+      },
+      {
+        "sum_eq": [
+          [
+            "decks_today.counts.untouched",
+            "decks_today.counts.partial",
+            "decks_today.counts.finished"
+          ],
+          "decks_today.counts.participants"
+        ]
+      },
+      {
+        "eq": ["decks_today.counts.participants", "member_count"]
+      }
+    ]
+  },
+  {
+    "id": "341.2",
+    "feedback": 341,
+    "stability": "live",
+    "control": true,
+    "tool": "war_current",
+    "args": {},
+    "request_id": "9c72a094-8f8d-4139-a22e-e246baafa816",
+    "when": {
+      "eq": ["day_kind", "war"]
+    },
+    "assert": [
+      {
+        "absent": "training_today"
+      },
+      {
+        "absent": "decks_today_reason"
+      },
+      {
+        "eq": ["decks_today.day_kind", "war"]
+      },
+      {
+        "eq": ["decks_today.war_day", "war_day"]
+      }
+    ]
+  },
+  {
+    "id": "341.3",
+    "feedback": 341,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "player_tag": "#20R8QRLYLP",
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "f02c78af-01b0-4088-a807-587d675419a0",
+    "assert": [
+      {
+        "eq": ["member_weeks[0].decks_used", 16]
+      },
+      {
+        "eq": ["member_weeks[0].scoring_decks", 12]
+      },
+      {
+        "eq": ["member_weeks[0].training_decks", 12]
+      },
+      {
+        "notes_match": "not in decks_used"
+      }
+    ]
+  },
+  {
+    "id": "342.1",
+    "feedback": 342,
+    "stability": "frozen",
+    "tool": "rankings_timeline",
+    "args": {
+      "player_tag": "#220JL80LUC",
+      "from": "2026-09-20",
+      "to": "2026-09-24"
+    },
+    "request_id": "810910d3-5ce8-4b11-9ccb-ca1d92cbf49c",
+    "assert": [
+      {
+        "notes_match": "(?i)incomplete|omitt?ed|missing|not (a )?complete"
+      }
+    ]
+  },
+  {
+    "id": "342.2",
+    "feedback": 342,
+    "stability": "frozen",
+    "tool": "rankings_players",
+    "args": {
+      "as_of": "2026-09-24T12:00:00Z",
+      "limit": 1,
+      "offset": 999
+    },
+    "request_id": "24e885d7-8876-4c26-b435-48e6ff6f2cd9",
+    "assert": [
+      {
+        "eq": ["snapshot.observed_at", "2026-09-24T10:07:54.000Z"]
+      },
+      {
+        "notes_match": "(?i)incomplete|omitt?ed|missing|not (a )?complete"
+      }
+    ]
+  },
+  {
+    "id": "342.3",
+    "feedback": 342,
+    "stability": "frozen",
+    "calls": {
+      "t": {
+        "tool": "rankings_timeline",
+        "args": {
+          "player_tag": "#220JL80LUC",
+          "from": "2026-09-24",
+          "to": "2026-09-24"
+        }
+      },
+      "b": {
+        "tool": "battles_query",
+        "args": {
+          "player_tag": "#220JL80LUC",
+          "from": "2026-09-24T11:06:00Z",
+          "to": "2026-09-24T11:07:00Z",
+          "limit": 1,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "eaad2ede-2d79-426d-ad03-41888085008d",
+    "when": {
+      "lte": ["b.battles[0].me.global_rank", 1000]
+    },
+    "assert": [
+      {
+        "notes_match": [
+          "t",
+          "(?i)incomplete|omitt?ed|missing|not (a )?complete"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "342.4",
+    "feedback": 342,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "as_of": "2026-09-23T12:00:00Z",
+      "limit": 1,
+      "offset": 999
+    },
+    "request_id": "63f229cb-bb27-494f-99be-b7d70ae71cc3",
+    "assert": [
+      {
+        "eq": ["snapshot.floor_rating", 2281]
+      },
+      {
+        "notes_not_match": "(?i)incomplete|omitt?ed|missing|not (a )?complete"
+      }
+    ]
+  },
+  {
+    "id": "342.5",
+    "feedback": 342,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_timeline",
+    "args": {
+      "player_tag": "#GGQ9G2P0",
+      "from": "2026-09-20",
+      "to": "2026-09-23"
+    },
+    "request_id": "f19f366b-0e91-4cae-a3c7-4b1a31ee207c",
+    "assert": [
+      {
+        "eq": ["points[?day=2026-09-23].on_board", false]
+      },
+      {
+        "notes_not_match": "(?i)incomplete|omitt?ed|missing|not (a )?complete"
+      }
+    ]
+  },
+  {
+    "id": "343.1",
+    "feedback": 343,
+    "stability": "live",
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "JP",
+      "limit": 3
+    },
+    "request_id": "7b55b412-af8b-4e88-b6f2-e1e60a258ea2",
+    "when": {
+      "eq": ["our_clan.on_board", false]
+    },
+    "assert": [
+      {
+        "notes_match": "(?i)\\blocation\\b"
+      }
+    ]
+  },
+  {
+    "id": "343.2",
+    "feedback": 343,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "US",
+      "limit": 3
+    },
+    "request_id": "4b5f96c9-7df0-4b5a-b9bb-a8fedc01e085",
+    "when": {
+      "eq": ["our_clan.on_board", false]
+    },
+    "assert": [
+      {
+        "gt": ["our_clan.below_floor_by", 0]
+      },
+      {
+        "notes_match": "no page of this board will list it"
+      },
+      {
+        "notes_not_match": "(?i)home location"
+      }
+    ]
+  },
+  {
+    "id": "344.1",
+    "feedback": 344,
+    "stability": "frozen",
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "US",
+      "as_of": "2026-09-16T12:00:00Z",
+      "limit": 3
+    },
+    "request_id": "19837c20-b5b9-4e2c-9ca9-db5b4013ea69",
+    "assert": [
+      {
+        "has": "our_clan.score_observed_at"
+      },
+      {
+        "lte": ["our_clan.score_observed_at", "snapshot.observed_at"]
+      }
+    ]
+  },
+  {
+    "id": "344.2",
+    "feedback": 344,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "r": {
+        "tool": "clans_roster",
+        "args": {
+          "verbosity": "compact"
+        }
+      },
+      "l": {
+        "tool": "rankings_clan_ladder",
+        "args": {
+          "location": "US",
+          "limit": 3
+        }
+      }
+    },
+    "request_id": "4b5f96c9-7df0-4b5a-b9bb-a8fedc01e085",
+    "when": {
+      "eq": ["r.scores_observed_at", "l.our_clan.score_observed_at"]
+    },
+    "assert": [
+      {
+        "eq": ["l.our_clan.score", "r.clan_score"]
+      }
+    ]
+  },
+  {
+    "id": "345.1",
+    "feedback": 345,
+    "stability": "frozen",
+    "tool": "rankings_players",
+    "args": {
+      "board": "pol_final",
+      "season": 135,
+      "limit": 2
+    },
+    "request_id": "a9958dc4-4cfb-4115-a4dd-5dae377b4c4c",
+    "assert": [
+      {
+        "eq": ["snapshot.season_id", "applied.season"]
+      }
+    ]
+  },
+  {
+    "id": "345.2",
+    "feedback": 345,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "board": "pol_final",
+      "season": 135,
+      "limit": 2
+    },
+    "request_id": "a9958dc4-4cfb-4115-a4dd-5dae377b4c4c",
+    "assert": [
+      {
+        "eq": ["applied.season", 135]
+      },
+      {
+        "eq": ["applied.season_requested", 135]
+      }
+    ]
+  },
+  {
+    "id": "346.1",
+    "feedback": 346,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_timeline",
+    "args": {
+      "board": "mode",
+      "location": "170000004",
+      "from": "2026-09-11",
+      "to": "2026-09-23"
+    },
+    "request_id": "a504966c-480e-4451-bc9d-0ceacd43818c",
+    "assert": [
+      {
+        "eq": ["points[?day=2026-09-20].floor_delta", -2]
+      },
+      {
+        "notes_match": "players left the board"
+      }
+    ]
+  },
+  {
+    "id": "346.2",
+    "feedback": 346,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "US",
+      "limit": 3
+    },
+    "request_id": "4b5f96c9-7df0-4b5a-b9bb-a8fedc01e085",
+    "when": {
+      "eq": ["our_clan.on_board", false]
+    },
+    "assert": [
+      {
+        "sum_eq": [
+          ["our_clan.score", "our_clan.below_floor_by"],
+          "snapshot.floor_score"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "346.3",
+    "feedback": 346,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "p": {
+        "tool": "rankings_players",
+        "args": {
+          "as_of": "2026-09-24T12:00:00Z",
+          "limit": 5,
+          "offset": 995,
+          "verbosity": "compact"
+        }
+      },
+      "b": {
+        "tool": "battles_query",
+        "args": {
+          "player_tag": "#PJQYPYP",
+          "from": "2026-09-24T09:55:00Z",
+          "to": "2026-09-24T10:07:54Z",
+          "limit": 1,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "2aa7fdba-4581-40b9-92e6-0e887ee78cbf",
+    "assert": [
+      {
+        "sum_eq": [
+          [
+            "b.battles[0].me.starting_trophies",
+            "b.battles[0].me.trophy_change"
+          ],
+          "p.players[?player_tag=#PJQYPYP].rating"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "346.4",
+    "feedback": 346,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "FI",
+      "limit": 3
+    },
+    "request_id": "2f2a0fc3-ec2d-455c-96cf-663d29bb320b",
+    "assert": [
+      {
+        "eq": ["error.code", "not_found"]
+      },
+      {
+        "notes_match": "recorded ones are .*US"
       }
     ]
   }
