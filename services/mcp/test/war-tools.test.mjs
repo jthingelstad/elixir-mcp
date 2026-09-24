@@ -1408,6 +1408,7 @@ test("clans_participation: every open member, per ISO week and per war week, fac
     "days_in_clan_observed",
     "days_since_battle",
     "donations",
+    "first_joined_at",
     "joined_observed_at",
     "last_battle_time",
     "last_battle_time_in_clan",
@@ -2282,4 +2283,46 @@ test("6.29.0: the war outputSchemas declare clan_war_trophies and call clan_scor
   assert.match(current.clan_score.description, /DEPRECATED/);
   assert.ok(row("war_rivals", "rivals").clan_war_trophies);
   assert.ok(row("war_history", "weeks").our_clan_war_trophies);
+});
+
+test("clans_participation tenure is the current stint; a rejoin within 7 days continues it (Jamie 2026-09-24)", async () => {
+  const [a, b] = (
+    await db.query(
+      `select player_tag from clan_membership
+        where clan_tag = $1 and left_observed_at is null order by player_tag limit 2`,
+      [CLAN],
+    )
+  ).rows.map((r) => r.player_tag);
+  // a: left 60 days ago after a 30-day stint, back 20 days ago.
+  // b: left 3 days after 40 days in, back 2 days later (same stint).
+  const day = (n) => `now() - interval '${n} days'`;
+  await db.query(
+    `update clan_membership set joined_observed_at = ${day(20)}
+      where clan_tag = $1 and player_tag = $2 and left_observed_at is null`,
+    [CLAN, a],
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, left_observed_at)
+     values ($1, $2, ${day(90)}, ${day(60)})`,
+    [CLAN, a],
+  );
+  await db.query(
+    `update clan_membership set joined_observed_at = ${day(3)}
+      where clan_tag = $1 and player_tag = $2 and left_observed_at is null`,
+    [CLAN, b],
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, left_observed_at)
+     values ($1, $2, ${day(45)}, ${day(5)})`,
+    [CLAN, b],
+  );
+  const { body } = await call(invoke, "clans_participation", { weeks: 2 });
+  const ma = body.members.find((m) => m.player_tag === a);
+  const mb = body.members.find((m) => m.player_tag === b);
+  assert.equal(ma.days_in_clan_observed, 20, "counts from the rejoin");
+  assert.equal(
+    Math.round((Date.now() - Date.parse(ma.first_joined_at)) / 86400_000),
+    90,
+  );
+  assert.equal(mb.days_in_clan_observed, 45, "back within 7 days: one stint");
 });

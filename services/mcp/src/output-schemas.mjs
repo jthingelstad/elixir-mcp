@@ -2148,6 +2148,7 @@ export const OUTPUT_SCHEMAS = {
             role: { type: ["string", "null"] },
             joined_observed_at: { type: ["string", "null"] },
             tenure_known: { type: "boolean" },
+            first_joined_at: { type: ["string", "null"] },
             days_in_clan_observed: NULLABLE_INT,
             log_recorded: { type: "boolean" },
             recorded_since: { type: ["string", "null"] },

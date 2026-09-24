@@ -14986,7 +14986,8 @@
       {
         "gt": ["members[?player_tag=#20GQUGPRC2].days_in_clan_observed", 90]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-24: participation tenure is the CURRENT stint (a rejoin within 7 days continues it), with first_joined_at beside it (7.1.23); the first-stint reading this case asserts is not the rule."
   },
   {
     "id": "264.2",

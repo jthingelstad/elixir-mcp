@@ -699,10 +699,42 @@ export const clansTools = {
       const firstRoster = clan.first_roster_observed_at
         ? new Date(clan.first_roster_observed_at)
         : null;
+      // Tenure is the CURRENT stint (Jamie 2026-09-24, Gym #264): a leave
+      // and rejoin within 7 days is the same stint, so leaving cannot
+      // reset a member's new-member grace; first_joined_at keeps the
+      // history beside it.
+      const { rows: stintRows } = await ctx.db.query(
+        `select player_tag, joined_observed_at, left_observed_at
+           from clan_membership
+          where clan_tag = $1 and player_tag = any($2::text[])
+          order by player_tag, joined_observed_at`,
+        [clanTag, members.rows.map((m) => m.player_tag)],
+      );
+      const stints = new Map();
+      for (const r of stintRows) {
+        if (!stints.has(r.player_tag)) stints.set(r.player_tag, []);
+        stints.get(r.player_tag).push(r);
+      }
+      const SAME_STINT_MS = 7 * 86400_000;
+      const stintOf = (tag, openJoined) => {
+        const rows = stints.get(tag) ?? [];
+        let start = openJoined ? new Date(openJoined) : null;
+        for (let i = rows.length - 1; i >= 0 && start; i -= 1) {
+          const r = rows[i];
+          if (!r.left_observed_at) continue;
+          const gap = start.getTime() - new Date(r.left_observed_at).getTime();
+          if (gap >= 0 && gap <= SAME_STINT_MS)
+            start = new Date(r.joined_observed_at);
+          else if (new Date(r.left_observed_at) < start) break;
+        }
+        return {
+          start,
+          first: rows.length ? new Date(rows[0].joined_observed_at) : start,
+        };
+      };
       const out = members.rows.map((m) => {
-        const joined = m.joined_observed_at
-          ? new Date(m.joined_observed_at)
-          : null;
+        const stint = stintOf(m.player_tag, m.joined_observed_at);
+        const joined = stint.start;
         // A member already present at the first roster poll joined at or
         // before it; their tenure is a lower bound, not a fact.
         const tenureKnown = Boolean(
@@ -718,6 +750,7 @@ export const clansTools = {
           name: m.name,
           role: m.role,
           joined_observed_at: joined?.toISOString() ?? null,
+          first_joined_at: stint.first?.toISOString() ?? null,
           tenure_known: tenureKnown,
           days_in_clan_observed: joined
             ? Math.floor((now - joined) / 86400_000)
@@ -868,6 +901,7 @@ export const clansTools = {
           "donations is the highest value the game's weekly counter reached in that week's game days (it only climbs until the weekly reset around the start of Monday UTC, so the highest read is a lower bound on the week's total: donations after the last read before the reset are not in it); null means no snapshot fell in the week.",
           "Per-member columns align to the top-level weeks and war_weeks, one entry each in order; war_decks_by_day holds war days 1-4 from roster polls during each day, null where that day was not polled, and war_battles_by_day the member's recorded war battles per day.",
           "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
+          "joined_observed_at and days_in_clan_observed are the member's CURRENT stint: a member who left and came back counts from the rejoin, except that a rejoin within 7 days of leaving continues the stint before it. first_joined_at is the member's first recorded join here (clans_roster.first_observed_in_clan is the same instant).",
           coverageBasisNote(coverage.basis),
           "Counts cover RECORDED battles only (log_recorded and recorded_since per member say whose log is recorded and since when; elixir_coverage per tag says how complete it is); war_days_battled per war week counts the days a member fought from polls and recorded battles, null when neither source covered the week; last_battle_time_in_clan is the last recorded battle played as a member of this clan.",
         ),
