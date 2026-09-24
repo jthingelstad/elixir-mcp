@@ -38,6 +38,7 @@ import {
 } from "../shared.mjs";
 import {
   RANKED_NO_BAND_NOTE,
+  CAP_BAND_NOTE,
   TROPHY_BAND_NAMES,
   popBandClause,
   popWindow,
@@ -457,11 +458,16 @@ export const battles_meta_decks = {
     const identities = await deckIdentities(ctx.db, hashes);
     // One player can carry a row that clears min_players (Gym #348: a
     // 57-0 run and two players 0-1 read as "3 players, 57-2"). For a
-    // returned row with 2-5 players, the busiest player's battles, over
+    // returned row with at most five repeat players, the busiest player's battles, over
     // the raw rows the row counts.
     const topByDeck = await topPlayerBattles(ctx, args, {
       hashes: shaped
-        .filter((r) => r.players >= 2 && r.players <= TOP_PLAYER_MAX)
+        // Few REPEAT players is the risk, however many tried it once
+        // (8.1.0: a 98-battle row with 16 players, 2 of them repeat).
+        .filter(
+          (r) =>
+            r.players >= 2 && (r.repeat_players ?? r.players) <= TOP_PLAYER_MAX,
+        )
         .map((r) => r.deck_hash),
       from,
       to,
@@ -643,6 +649,7 @@ export const battles_meta_decks = {
         bandPending ? BAND_FALLBACK_NOTE : null,
         // A band on ranked or tournament answers 0 by rule; say why (#204).
         args.trophy_band && args.mode !== "ladder" ? RANKED_NO_BAND_NOTE : null,
+        args.trophy_band === "trophy_road_complete" ? CAP_BAND_NOTE : null,
         args.trophy_band && roll
           ? "excluded counts the season and mode, not the band (a duel or a boat battle has no band); decided_battles and every row are the band's."
           : null,

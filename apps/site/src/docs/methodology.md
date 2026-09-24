@@ -37,7 +37,7 @@ distinct player, one battle included. `repeat_players` (8.0.0) is those with
 **two or more** battles on the deck, and it is what `min_players` counts, so
 "decks played across players" cannot be one player's run with two others
 who tried it once (Gym #348: a 57-0 run read as "3 players, 57-2").
-`top_player_battles`, on a row with 2 to 5 players, is the busiest player's
+`top_player_battles`, on a row with at most five repeat players, is the busiest player's
 share, and a note names a row one player still carries.
 
 Only decided **head-to-head** outcomes qualify. Duels (one row for up to three
@@ -138,7 +138,10 @@ so `trophy_road_complete` is the players who have finished it, not a
 range; they play a narrower, settled meta (60 days to 2026-09-24: 5,599
 players and 186 decks with two or more repeat players, against 3 decks
 under 10,000). The bands follow where the record has data: finer bands
-below 10,000 would answer empty. Bands are Trophy Road trophies, so a
+below 10,000 would answer empty. At the cap the ladder is Path of Legends, which
+carries no band, so `trophy_road_complete` holds the finished players' river
+race and friendly battles: their war meta, not a ladder meta (their ladder is
+mode `ranked`), and the tools say so. Bands are Trophy Road trophies, so a
 ranked (Path of Legends) observation, which carries a rating of about
 2,300-3,000 and not trophies, sits in no band (6.22.0: before it, the
 top-1,000 board filled the lowest band). A corpus season read answers

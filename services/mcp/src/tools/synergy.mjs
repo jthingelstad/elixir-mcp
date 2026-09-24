@@ -40,6 +40,7 @@ import {
   TROPHY_BAND_NAMES,
   trophyBandClause,
   RANKED_NO_BAND_NOTE,
+  CAP_BAND_NOTE,
 } from "../meta-season.mjs";
 import { modeSplit } from "../controls.mjs";
 import { catalogItems } from "./cards.mjs";
@@ -396,6 +397,7 @@ export const synergyTools = {
           args.trophy_band && args.mode !== "ladder"
             ? RANKED_NO_BAND_NOTE
             : null,
+          args.trophy_band === "trophy_road_complete" ? CAP_BAND_NOTE : null,
           "anchor.decks counts decided player-battle observations with the anchor, not distinct deck identities (cards_archetype and battles_meta_decks count identities as decks); it is the denominator co_occurrence_rate divides by.",
           win.seasonNotes,
           roll?.note,

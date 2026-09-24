@@ -38,6 +38,12 @@ export const TROPHY_BAND_NAMES = Object.keys(TROPHY_BANDS);
 export const RANKED_NO_BAND_NOTE =
   "Trophy bands are Trophy Road trophies. A ranked (Path of Legends) observation carries a rating and a tournament one the player's running score in that tournament, not trophies, so neither sits in a band; pass mode 'ladder' for a trophy view of the ladder.";
 
+/** trophy_road_complete is war and friendlies (8.1.0): at 14,000 the
+ *  ladder is Path of Legends, which carries a rating and sits in no band
+ *  (Witch there, 60 days: 569 war and 236 casual battles, no ladder). */
+export const CAP_BAND_NOTE =
+  "trophy_road_complete holds the battles of players at Trophy Road's 14,000 cap, and at the cap the ladder is Path of Legends (ranked, no band): this band is their river race and friendly battles, the finished players' war meta, not a ladder meta. Their ladder is mode 'ranked' without a band.";
+
 /** The raw-path predicate for a band, appended to a where list. */
 export function trophyBandClause(band, params) {
   const [lo, hi] = TROPHY_BANDS[band];

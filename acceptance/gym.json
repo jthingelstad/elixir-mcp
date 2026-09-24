@@ -9086,13 +9086,16 @@
         "absent": "anchor.modes.tournament"
       },
       {
-        "has": "anchor.modes.ladder"
+        "has": "anchor.modes.war"
       },
       {
         "lte": ["partners[0].co_occurrence_rate", 1]
+      },
+      {
+        "notes_match": "trophy_road_complete holds"
       }
     ],
-    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
+    "amended": "Trophy bands became three at 8.1.0 (0175). At 14,000 the ladder is Path of Legends (no band), so the cap band's Witch decks are war and casual, never ladder; the case pins that and the note that says it."
   },
   {
     "id": "192.1",
@@ -14482,7 +14485,7 @@
     "tool": "battles_meta_decks",
     "args": {
       "segment": "corpus",
-      "trophy_band": "10000_13999"
+      "trophy_band": "under_10000"
     },
     "request_id": "307f858c-579c-4aef-b3ef-50e1c53fc32b",
     "assert": [
@@ -14493,7 +14496,7 @@
     "when": {
       "has": "decks[?players=1].deck_hash"
     },
-    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
+    "amended": "Trophy bands became three at 8.1.0 (0175); the thin band where one player's decks dominate is now under_10000 (18 of the top 20 rows)."
   },
   {
     "id": "256.4",
@@ -22630,10 +22633,16 @@
     },
     "assert": [
       {
-        "absent": "decks[?deck_hash=72c6c8fba5a9990675a74eb682fa2bf5168629809de09e434403b910ed60f50c].deck_hash"
+        "gte": [
+          "decks[?deck_hash=72c6c8fba5a9990675a74eb682fa2bf5168629809de09e434403b910ed60f50c].top_player_battles",
+          1
+        ]
       }
     ],
-    "amended": "Trophy bands became under_10000, 10000_13999 and trophy_road_complete at 8.1.0 (0175, Jamie 2026-09-24); the case reads the band that holds its old one."
+    "amended": "In the wider 10000_13999 band (8.1.0) a second player played deck 72c6c8fb more than once, so it clears min_players 2 (16 players, 2 repeat, 98 battles); the case pins that its busiest player is still counted (top_player_battles now rides rows with at most five repeat players).",
+    "when": {
+      "has": "decks[?deck_hash=72c6c8fba5a9990675a74eb682fa2bf5168629809de09e434403b910ed60f50c].deck_hash"
+    }
   },
   {
     "id": "348.6",

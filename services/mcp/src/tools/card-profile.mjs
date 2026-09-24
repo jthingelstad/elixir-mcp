@@ -55,6 +55,7 @@ import {
   rollupSynergy,
   rawScanMemory,
   RANKED_NO_BAND_NOTE,
+  CAP_BAND_NOTE,
 } from "../meta-season.mjs";
 import { resolveCard } from "./synergy.mjs";
 
@@ -439,6 +440,9 @@ export const cardProfileTools = {
           ? "members.held[].observed_at is the newest read of each member's collection (it arrives with the profile); since is when that level and form were first seen."
           : null,
         args.mode === "ladder" ? null : RANKED_NO_BAND_NOTE,
+        out.by_band?.some((b) => b.trophy_band === "trophy_road_complete")
+          ? CAP_BAND_NOTE
+          : null,
         SEGMENT_NOTES.filter((n) => !n.includes("CORPUS mean")),
         collectionSegmentNote(seg),
         `shrunk_win_rate shrinks toward prior_win_rate: ${usage.prior.basis === "corpus_season" ? "the corpus season's decided mean" : "this population's own decided mean over the window"} (prior_basis), and is withheld (null, insufficient_sample: true) when the POPULATION is under ${META_METHODOLOGY.segment_min_decided} decided observations, not per row: a row with few battles still carries one, shrunk hard toward the prior.`,

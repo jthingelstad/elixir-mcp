@@ -2030,7 +2030,7 @@ export const OUTPUT_SCHEMAS = {
             top_player_battles: {
               type: ["number", "null"],
               description:
-                "7.2.7: the busiest player's battles on the row, set when players is 2-5 (null otherwise). Near battles means one player carries the row.",
+                "7.2.7: the busiest player's battles on the row, set when the row has two or more players and at most five repeat players (null otherwise). Near battles means one player carries the row.",
             },
             dominant_mode: { type: ["object", "null"] },
             cards: {
