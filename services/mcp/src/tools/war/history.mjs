@@ -406,7 +406,7 @@ export const war_history = {
               ? null
               : "history_starts_at is the recording horizon: fewer seasons than requested is coverage, not absence.",
             memberWeeks?.length
-              ? "member_weeks[].training_decks is the practice decks played on the week's training days (training battles earn no points and are not in decks_used or war_days); null for a week before training days were recorded (2026-09-24) or with no practice recorded at all."
+              ? "member_weeks[].training_decks is the practice decks played on the week's training days (training battles earn no points and are not in decks_used or war_days); from the race poll since 2026-09-24 and rebuilt from recorded river-race battles before that (a floor where a member's log was not fully captured); null for a week with no practice recorded at all."
               : null,
           ),
       docs: WAR_DOCS,

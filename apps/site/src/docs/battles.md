@@ -434,7 +434,10 @@ member's practice decks on the three training days of a week, up to four a
 day, but they earn no points and never reach `decks_used`. On a training day
 `war_current.training_today` lists who has practiced and how many decks,
 and `war_history.member_weeks[].training_decks` totals a week's practice
-per member (null for a week before recording began). Training never counts
+per member: read from the race poll since 2026-09-24, and rebuilt for
+earlier weeks from the members' recorded river-race battles on training
+days (a 1v1 is one deck, a duel one per round, four a day at most), which
+is a floor wherever a member's log was not fully captured. Training never counts
 as war attendance: `decks_today` and `war_days` are war days only.
 
 `boat_attacks` is counted **inside** `decks_used` and `scoring_decks`, and a

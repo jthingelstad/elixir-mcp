@@ -648,6 +648,15 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.training_backfill) {
+    const { trainingBackfill } = await import("./ops-training.mjs");
+    const result = await trainingBackfill(
+      process.env.DATABASE_URL,
+      event.training_backfill,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.series_status) {
     const result = await seriesStatus(
       process.env.DATABASE_URL,

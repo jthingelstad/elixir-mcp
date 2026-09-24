@@ -292,8 +292,10 @@ export async function projectRiverRace(
          where t.today > 0
          on conflict (clan_tag, season_id, section_index, training_day, player_tag) do update set
            decks_used_today = greatest(war_training_day.decks_used_today, excluded.decks_used_today),
-           observed_at = now()
-         where war_training_day.decks_used_today < excluded.decks_used_today`,
+           observed_at = now(),
+           source = 'poll'
+         where war_training_day.decks_used_today < excluded.decks_used_today
+            or war_training_day.source <> 'poll'`,
         [
           tag,
           clock.seasonId,
