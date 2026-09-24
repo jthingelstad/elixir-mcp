@@ -445,8 +445,13 @@ export const playersTools = {
           order by p.progress_key, p.day desc`,
         [row.player_tag],
       );
+      // The newest PROFILE read, not the newest bucket: a player whose
+      // only bucket ended read it as current (Gym #329, the case the
+      // journey could not test: one Merge Tactics row from 08-31 beside
+      // a 09-24 profile read).
       const newestProgressMs = Math.max(
         -Infinity,
+        row.snapshot_date ? row.snapshot_date.getTime() : -Infinity,
         ...progressRows.map((r) => r.day.getTime()),
       );
       const endedProgress = progressRows.filter(

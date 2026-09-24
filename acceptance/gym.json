@@ -22608,9 +22608,27 @@
     "assert": [
       {
         "absent": "decks[?deck_hash=72c6c8fba5a9990675a74eb682fa2bf5168629809de09e434403b910ed60f50c].deck_hash"
-      },
+      }
+    ]
+  },
+  {
+    "id": "348.6",
+    "feedback": 348,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "mode": "ranked",
+      "min_players": 2,
+      "verbosity": "compact",
+      "limit": 10
+    },
+    "assert": [
       {
         "every_row_has": ["decks", "repeat_players"]
+      },
+      {
+        "gte": ["decks[0].repeat_players", 2]
       }
     ]
   }

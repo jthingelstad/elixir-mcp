@@ -2855,3 +2855,33 @@ test("Gym #348: a row one player carries says so, and min_players counts repeat 
     );
   }
 });
+
+test("Gym #329: a bucket the newest profile read no longer carried is ended, even when it is the only one", async () => {
+  const {
+    rows: [snap],
+  } = await db.query(
+    `select max(snapshot_date) as d from player_snapshot_daily where player_tag = $1`,
+    [OBSERVER],
+  );
+  const ended = new Date(snap.d.getTime() - 10 * 86400_000);
+  await db.query(
+    `insert into mode_season (progress_key, mode, season_month, first_seen_at, last_seen_at)
+     values ('AutoChess_2026_Season_T', 'AutoChess', null, now(), now())
+     on conflict do nothing`,
+  );
+  await db.query(
+    `insert into player_progress_daily (player_tag, progress_key, day, observed_at, trophies, best_trophies)
+     values ($1, 'AutoChess_2026_Season_T', $2::date, $2::timestamptz, 15, 15)
+     on conflict do nothing`,
+    [OBSERVER, ended],
+  );
+  const { body, isError } = await call("players_profile", {
+    player_tag: OBSERVER,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const row = body.snapshot.progress.find(
+    (p) => p.key === "AutoChess_2026_Season_T",
+  );
+  assert.equal(row.current, false, "ended: the newest profile read lacked it");
+  assert.match(body.notes.join(" "), /have ended \(current false\)/);
+});
