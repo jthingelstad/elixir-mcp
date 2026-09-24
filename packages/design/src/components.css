@@ -302,6 +302,10 @@ table {
 
 .rail {
   flex: 0 0 var(--rail-w);
+  /* Its width is the rail's, never its content's: a long agent name in
+     the account selector truncates rather than widening the rail
+     (a flex item's min-width is otherwise its min-content). */
+  min-width: 0;
   align-self: stretch;
   display: flex;
   flex-direction: column;
