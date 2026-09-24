@@ -941,7 +941,7 @@ export const clansTools = {
             // result cap (6.23.0).
             const done = warWeeks.rows.filter((w) => finishedEarly(w) === true);
             return done.length
-              ? `The boat crossed the finish line early in ${done.map((w) => `${w.season_id}/${w.section_index} (war day ${finishDays.get(weekKey(w))})`).join(", ")}: decks played on the days after it earned 0 points, so war_points / war_decks is not a rate for those weeks - use war_scoring_decks (full verbosity, up to ${SCORING_DECKS_WEEKS} war weeks) or war_history.scoring_decks.`
+              ? `The boat crossed the finish line early in ${done.map((w) => `${w.season_id}/${w.section_index} (war day ${finishDays.get(weekKey(w))})`).join(", ")}: decks played on the days after it earned 0 points, so war_points / war_decks is not a rate for those weeks - use war_history.scoring_decks, or this tool's full verbosity (up to ${SCORING_DECKS_WEEKS} war weeks) for per-member scoring decks.`
               : null;
           })(),
           "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
@@ -949,7 +949,9 @@ export const clansTools = {
             ? null
             : "war_points per war week is the member's period points (the war_history and war_current `points` figure, the API's periodPoints), never fame.",
           "donations is the highest value the game's weekly counter reached in that week's game days (it only climbs until the weekly reset around the start of Monday UTC, so the highest read is a lower bound on the week's total: donations after the last read before the reset are not in it); null means no snapshot fell in the week.",
-          "Per-member columns align to the top-level weeks and war_weeks, one entry each in order; war_decks_by_day holds war days 1-4 from roster polls during each day, null where that day was not polled, and war_battles_by_day the member's recorded war battles per day.",
+          compact
+            ? "Per-member columns align to the top-level weeks and war_weeks, one entry each in order."
+            : "Per-member columns align to the top-level weeks and war_weeks, one entry each in order; war_decks_by_day holds war days 1-4 from roster polls during each day, null where that day was not polled, and war_battles_by_day the member's recorded war battles per day.",
           "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
           "joined_observed_at and days_in_clan_observed are the member's CURRENT stint: a member who left and came back counts from the rejoin, except that a rejoin within 7 days of leaving continues the stint before it. first_joined_at is the member's first recorded join here (clans_roster.first_observed_in_clan is the same instant).",
           coverageBasisNote(coverage.basis),

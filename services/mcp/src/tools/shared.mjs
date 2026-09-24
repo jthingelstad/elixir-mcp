@@ -1137,7 +1137,7 @@ export function collectionSegmentNote(seg) {
       .filter(Boolean)
       .join(" ");
   if (echo?.kind !== "collection") return null;
-  return `The collection segment applies ${echo.collection}'s membership as of this call${seg?.syncedAt !== undefined ? `, the board as synced ${seg.syncedAt ?? "before sync times were kept (2026-09-24)"}` : ""} (collections_get lists it); a collection that follows a live board (synced_from) turns over daily, so rates over a past window describe today's members, not the ones on the board then.`;
+  return `The collection segment applies ${echo.collection}'s membership as of this call${seg?.syncedAt !== undefined ? `, the board as synced ${seg.syncedAt ?? "before sync times were kept (2026-09-24)"}` : ""} (collections_get lists it); a collection that follows a live board (collections_get.synced_from) turns over daily, so rates over a past window describe today's members, not the ones on the board then.`;
 }
 
 export const SEGMENT_NOTES = [
