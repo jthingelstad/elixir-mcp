@@ -43,9 +43,9 @@ export function EmailPage({ navigate }) {
       <div className="mb-[18px]">
         <h1 className="page__title">Email</h1>
         <p className="page__lede">
-          The six emails Elixir sends from your record. All on by default; every
-          issue carries a one-click off for its kind, and turning one off here
-          is immediate and yours to reverse.
+          The seven emails Elixir sends from your record. All on by default;
+          every issue carries a one-click off for its kind, and turning one off
+          here is immediate and yours to reverse.
         </p>
       </div>
 

@@ -1,7 +1,7 @@
 ---
 slug: email
 title: "Email"
-description: "The seven emails Elixir sends: five weekly reports built from your record with no model in the loop, two written weekly pieces, and a milestone note when something you did is a first. Every one is a switch on your account page; every issue carries a one-click off; opens and clicks are counted per issue, never per reader."
+description: "The seven emails Elixir sends: four weekly reports built from your record with no model in the loop, two written weekly pieces, and a milestone note when something you did is a first. Every one is a switch on your account page; every issue carries a one-click off; opens and clicks are counted per issue, never per reader."
 section: using
 order: 17
 navTitle: "Email"

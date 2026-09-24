@@ -109,8 +109,8 @@ in adds your address to the mailing list. That is a deliberate choice
 rather than an oversight, and this paragraph exists so it is not a
 surprise.
 
-**The reports, and the milestone note.** Elixir also sends six kinds of
-its own mail from your record ([Email](/docs/email)): five weekly
+**The reports, and the milestone note.** Elixir also sends seven kinds of
+its own mail from your record ([Email](/docs/email)): six weekly
 reports and a congratulations when something you did is a first. They
 are on by default for the same reason the newsletter is, each is its
 own switch on your account page, and every issue carries a one-click
