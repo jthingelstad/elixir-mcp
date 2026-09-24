@@ -405,6 +405,10 @@ export const war_current = {
       notes: notes(
         livePendingNote(live),
         "points are per-member contributions; fame belongs to the boat (the clan).",
+        // Two groups both called participants (Gym #312).
+        !compact && participation.rows.some((r) => !r.in_clan)
+          ? `The participants count in attendance_by_war_day is the race roster, which keeps ${participation.rows.filter((r) => !r.in_clan).length} member(s) who have since left the clan; decks_today.counts.participants counts current members only. For an attendance rate among current members, use decks_today or participants[] with in_clan.`
+          : null,
         trainingToday
           ? `training_today is training day ${trainingToday.training_day}: the war decks each member has played so far today. They are the same four decks the war days use, and on a war day each can be played once, so training days are where members get reps in with them; training battles earn no points and do not count as war attendance, and decks_today opens with the first war day.`
           : null,

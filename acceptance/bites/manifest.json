@@ -2001,5 +2001,29 @@
     "case": "gym/308.2",
     "captures": ["308-2-battles_trends.json"],
     "expect": "."
+  },
+  {
+    "feedback": 311,
+    "contract": "7.1.19",
+    "why": "the Gym block 311.1 on the answer it read",
+    "case": "gym/311.1",
+    "captures": ["311-1-elixir_docs.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 311,
+    "contract": "7.1.19",
+    "why": "the Gym block 311.2 on the answer it read",
+    "case": "gym/311.2",
+    "captures": ["311-2-elixir_docs.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 312,
+    "contract": "7.1.19",
+    "why": "the Gym block 312.1 on the answer it read",
+    "case": "gym/312.1",
+    "captures": ["312-1-war_current.json"],
+    "expect": "."
   }
 ]

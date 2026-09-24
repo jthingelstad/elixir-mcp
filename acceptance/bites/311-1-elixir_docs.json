@@ -1,0 +1,39 @@
+{
+  "feedback": 311,
+  "contract_version": "7.1.19",
+  "captured_at": "2026-09-24T10:27:30.479Z",
+  "request": {
+    "tool": "elixir_docs",
+    "arguments": {
+      "page": "glossary",
+      "section": "war-and-the-clock"
+    }
+  },
+  "response": {
+    "slug": "glossary",
+    "title": "Glossary",
+    "section": "War and the clock",
+    "section_slug": "war-and-the-clock",
+    "url": "https://elixir.poapkings.com/docs/glossary#war-and-the-clock",
+    "applied": {
+      "page": "glossary",
+      "section": "war-and-the-clock"
+    },
+    "markdown": "**policy day** — the day the recorder keeps for every clan, rolling at\n10:00 UTC, instead of each clan's drifting race reset. See\n[The policy day](https://elixir.poapkings.com/docs/clocks#the-policy-day).\n\n**war day** — `war_day`, 1-based: battle days 1 to 4 of a war week; `null`\non a training day.\n\n**day_in_week** — 0-based position in the week: 0 to 2 training, 3 to 6\nbattle days.\n\n**period, section, week, season** — one policy day; the game's word for a\nweek (0-based `section_index`); the same week 1-based; first Monday of the\nmonth to first Monday of the next.\n\n**Colosseum** — the final section of every season, scored differently in the\ngame; its practice days still report as training.\n\n**points vs fame** — points are what each member contributes to the race;\nfame belongs to the boat, the clan's total. Fame is never divided among\nmembers here. See [War weeks, points and fame](https://elixir.poapkings.com/docs/battles#war-weeks-points-and-fame).\n\n**boat** — the clan's river-race vessel: the thing fame accrues to and the\nthing a boat battle attacks.\n\n**clan_score** — the game's own strength number for a clan, as the race poll\nreports it per bracket clan; on `war_current.standings[]`, the exact week's\n`war_history.standings[]` and `war_rivals` rows (latest observed).\n\n**repair_points** — what repairing the boat cost in a race: per clan on the\nstandings, per member on participation. Never fame, never points.\n\n**PoL, Trophy Road** — Path of Legends is the ranked ladder (`mode:\n\"ranked\"`, with `league_number`); Trophy Road is the trophy ladder\n(`mode: \"ladder\"`).\n\n**game day** — the day every daily series and the war grid are keyed by:\nthe date whose 10:00 UTC start an instant falls after, pure UTC arithmetic,\nso a season roll and a war day never straddle a row. `day` on a point is a\ngame day; the year graphic on a player's page is on UTC calendar days\ninstead. See [The game day](https://elixir.poapkings.com/docs/clocks#the-game-day).\n\n**series** — a day-grained history read as points: `players_timeline`,\n`clans_timeline` and `clans_members_timeline`, one point per game day, the\nlast observation of the day winning. A series takes `from`/`to` as game\ndays and floors an instant to its day, saying so under\n`applied.window.floored`.\n\n**stamp** — the instant that produced a value: `observed_at` (a point's\nnewest observation of either writer), `profile_observed_at` (the profile\npoll that wrote the lifetime block; `clans_roster.lifetime` carries it\ntoo), `roster_observed_at` (the roster poll that wrote\nthe clan columns), and on war and roster events `started_observed_at`,\n`finished_observed_at`, `joined_observed_at`. Null means that writer never\ntouched the row.\n\n**source** — where a value came from, said locally each time: on a series\npoint, `api` (a recorded payload) or `elixir-bot` (the import from POAP\nKINGS' earlier bot); on `applied.window`, `argument`, `default`,\n`unbounded`, `season`, `fixed` or, on `elixir_timeline`, `pointer`; on\n`trophy_floor`, how the floor was learned; on a `players_search` match, what\nmatched.\n\n**badge label** — a badge the way a player says it. The API names a\nbadge by the game's internal identifier and carries no display name, so\n`MasterySkeletonWarriors` is served as `label` `Guards Mastery` beside\nits `name` on `players_profile`, `badges_rarity` and `badges_holders`,\nand as `badge_label` on a timeline badge item (4.2.0). Mastery badges\nresolve the card's internal codename to its shown name; dated badges say\nthe month; a versioned identifier says its version (`RoyalTournamentRank_v2`\nis `Royal Tournament Rank (v2)`, a different badge from the original). Say\n`label`. `badges_holders` takes either the identifier or a label that is\nunique; one two badges share is refused with both identifiers (6.20.0).\nA near-miss or a misspelling is refused with the closest badges\n(6.30.0). The original and its `_v2` are held by overlapping sets of\nplayers, so `badges_rarity` quotes each pair as distinct players and how\nmany hold both, and `badges_holders` names the other half of a pair\n(6.30.0).\n\n**since** — on a `badges_holders` row, when the record first saw the badge\nat its current level and progress. The row's `observed_at` is the last\nprofile poll that read it, as everywhere else. A `since` at the start of\nrecording, or just after the player joined, is a first sighting, not when\nthe badge was earned (6.20.0).\n\n**kind** — a local enum, five of them: a series point's snapshot kind\n(`daily`, `pre_reset`, `season_roll`); a timeline item's kind\n(`battle_session`, `ranked_promotion` and the rest, on\n[Timeline](https://elixir.poapkings.com/docs/timeline)); a war period's kind (`war`, `training`,\n`colosseum`); a badge's kind (`one_off`, `tiered`); an entry's kind\n(`player_activity`, `clan_activity`). `crosses[].kind` is always `season`.\n\n**progress bucket** — one of the profile's side ladders (the seasonal\nTrophy Road, 2v2 League, Merge Tactics), each with its own trophies, best\ntrophies and arena, keyed by the game's own `progress` key and read with\n`players_timeline({ progress_key })`. A bucket at zero is not a row.\n\n**the four trophy kinds** — `trophies` is Trophy Road, the number on the\nprofile; `season_trophies` is the seasonal Trophy Road (resets on the roll;\n`best_trophies` and `season_best_trophies` are their peaks); `pol_trophies`\nis the Path of Legends standing, the number `rankings_players` and\n`rankings_timeline` call `rating` (the same figure, verified equal on the\nlive API), null — with `league_number`, `pol_rank` and the best-season peaks\n— for a player who has never played Path of Legends, which the API sends as a\nnull result rather than zeros; `progress[].trophies` is a side mode's. `trophy_change` is one\nbattle's swing; `net_trophies` is the recorded ladder sum over a window on\n`battles_performance` and `clans_standings` (one spelling since 4.0.0); a\ntimeline session's `trophy_net` is the same sum over that session.\n\n**league_number** — the Path of Legends league (1 is unranked): on a\nbattle row the league the battle started in, on a series point the\nplayer's standing that day (4.0.0; `pol_league` before). The profile's\n`path_of_legend` object keeps the API's own `leagueNumber`.\n\n**tenure, YearsPlayed** — how long an account has existed, read from the\n`YearsPlayed` badge; unknown when the badge is absent, which is usually an\naccount under a year old.",
+    "corpus_built_at": "2026-09-24T09:13:19.161Z",
+    "notes": [
+      "One section of the page; page alone reads all of it, and url is the same section on the site."
+    ],
+    "docs": "glossary#war-and-the-clock",
+    "meta": {
+      "contract_version": "7.1.19"
+    }
+  },
+  "timings": {
+    "db_ms": 0,
+    "db_queries": 0,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

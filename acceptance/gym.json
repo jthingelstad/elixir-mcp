@@ -18975,5 +18975,384 @@
         "has": "events[].event_tag"
       }
     ]
+  },
+  {
+    "id": "311.1",
+    "feedback": 311,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "glossary",
+      "section": "war-and-the-clock"
+    },
+    "request_id": "dfeb89cd-77cf-4abd-8f69-e47037f9344e",
+    "assert": [
+      {
+        "not_contains": [
+          "markdown",
+          "the game's own strength number for a clan"
+        ]
+      },
+      {
+        "not_contains": ["markdown", "`war_rivals` rows (latest observed)"]
+      },
+      {
+        "contains": ["markdown", "clan_war_trophies"]
+      }
+    ]
+  },
+  {
+    "id": "311.2",
+    "feedback": 311,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "battles",
+      "section": "war-weeks-points-and-fame"
+    },
+    "request_id": "3edad15a-1f1d-4554-8af6-9cf5606e6485",
+    "assert": [
+      {
+        "not_contains": ["markdown", "(`points`, 7.1.3)"]
+      },
+      {
+        "contains": ["markdown", "mean_points"]
+      },
+      {
+        "contains": ["markdown", "points_vs_ours"]
+      }
+    ]
+  },
+  {
+    "id": "311.3",
+    "feedback": 311,
+    "stability": "live",
+    "control": true,
+    "tool": "war_rivals",
+    "args": {},
+    "request_id": "e57d76c1-1832-46f3-a4c7-721ddcd57bfa",
+    "assert": [
+      {
+        "every_row_has": ["rivals", "mean_points"]
+      },
+      {
+        "every_row_has": ["rivals", "points_weeks"]
+      },
+      {
+        "every_row_has": ["rivals", "points_vs_ours"]
+      },
+      {
+        "notes_match": "not the clan score a profile shows"
+      }
+    ]
+  },
+  {
+    "id": "311.4",
+    "feedback": 311,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "w": {
+        "tool": "war_current",
+        "args": {}
+      },
+      "r": {
+        "tool": "clans_roster",
+        "args": {
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "f282ae67-e838-4f04-9575-505ed6e9f938",
+    "assert": [
+      {
+        "eq": [
+          "w.standings[?participant_clan_tag=#J2RGCRVG].clan_score",
+          "w.standings[?participant_clan_tag=#J2RGCRVG].clan_war_trophies"
+        ]
+      },
+      {
+        "eq": [
+          "w.standings[?participant_clan_tag=#J2RGCRVG].clan_war_trophies",
+          "r.clan_war_trophies"
+        ]
+      },
+      {
+        "gt": ["r.clan_score", "r.clan_war_trophies"]
+      }
+    ]
+  },
+  {
+    "id": "312.1",
+    "feedback": 312,
+    "stability": "live",
+    "tool": "war_current",
+    "args": {},
+    "request_id": "f282ae67-e838-4f04-9575-505ed6e9f938",
+    "when": {
+      "gt": ["participants_count", "member_count"]
+    },
+    "assert": [
+      {
+        "notes_match": "attendance_by_war_day[^.]*(left the clan|in_clan|member_count)"
+      }
+    ]
+  },
+  {
+    "id": "312.2",
+    "feedback": 312,
+    "stability": "live",
+    "control": true,
+    "tool": "war_current",
+    "args": {},
+    "request_id": "f282ae67-e838-4f04-9575-505ed6e9f938",
+    "when": {
+      "eq": ["day_kind", "war"]
+    },
+    "assert": [
+      {
+        "sum_eq": [
+          [
+            "decks_today.counts.untouched",
+            "decks_today.counts.partial",
+            "decks_today.counts.finished"
+          ],
+          "decks_today.counts.participants"
+        ]
+      },
+      {
+        "eq": ["decks_today.counts.participants", "member_count"]
+      }
+    ]
+  },
+  {
+    "id": "312.3",
+    "feedback": 312,
+    "stability": "live",
+    "control": true,
+    "tool": "war_current",
+    "args": {},
+    "request_id": "f282ae67-e838-4f04-9575-505ed6e9f938",
+    "when": {
+      "eq": ["war_day", 1]
+    },
+    "assert": [
+      {
+        "sum_eq": [
+          ["participants[].points"],
+          "standings[?participant_clan_tag=#J2RGCRVG].period_points"
+        ]
+      },
+      {
+        "lte": [
+          "attendance_by_war_day[?war_day=1].battled",
+          "attendance_by_war_day[?war_day=1].participants"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "313.1",
+    "feedback": 313,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "64ec85db-eee9-4710-8c67-ad56ab61a18c",
+    "assert": [
+      {
+        "eq": ["member_weeks[?player_tag=#20R8QRLYLP].training_decks", 12]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#U92P8PQG0].training_decks", 12]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#JYRQ8U92C].training_decks", 12]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#229QY8UL9U].training_decks", 7]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#UCRLVL29U].training_decks", 4]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#CV20JCY0V].training_decks", 1]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].training_decks", 0]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#20JJJ2CCRU].training_decks", 0]
+      }
+    ]
+  },
+  {
+    "id": "313.2",
+    "feedback": 313,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 0
+    },
+    "request_id": "2171cb6d-4fb2-471b-9267-b6050095ea76",
+    "assert": [
+      {
+        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].war_days_battled", 1]
+      },
+      {
+        "not_contains": ["member_weeks[?player_tag=#JRVV9VC0C].war_days", 2]
+      }
+    ]
+  },
+  {
+    "id": "313.3",
+    "feedback": 313,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "war_current",
+        "args": {}
+      },
+      "h": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 2
+        }
+      }
+    },
+    "request_id": "76616a22-d7a8-47ff-92d0-bd540348e8b3",
+    "when": {
+      "eq": ["c.section_index", 2]
+    },
+    "assert": [
+      {
+        "eq": [
+          "c.standings[?participant_clan_tag=#J2RGCRVG].clan_war_trophies",
+          "h.standings[?clan_tag=#J2RGCRVG].clan_war_trophies"
+        ]
+      },
+      {
+        "eq": [
+          "c.standings[?participant_clan_tag=#QUGRGLU2].clan_war_trophies",
+          "h.standings[?clan_tag=#QUGRGLU2].clan_war_trophies"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "313.4",
+    "feedback": 313,
+    "stability": "live",
+    "control": true,
+    "tool": "war_rivals",
+    "args": {
+      "rival_tags": ["#GYUVL0P8", "#R8GJR8R9", "#G0C92RCU"]
+    },
+    "request_id": "0b37a5f0-3645-4b25-a860-7de717eeb1ff",
+    "assert": [
+      {
+        "notes_match": "colosseum_races counts the Colosseum weeks"
+      },
+      {
+        "eq": ["rivals[?clan_tag=#GYUVL0P8].mean_points", 892]
+      },
+      {
+        "eq": ["rivals[?clan_tag=#GYUVL0P8].points_weeks", 3]
+      },
+      {
+        "eq": ["rivals[?clan_tag=#G0C92RCU].mean_points", 1908]
+      },
+      {
+        "eq": ["rivals[?clan_tag=#R8GJR8R9].mean_points", 2119]
+      },
+      {
+        "eq": ["rivals[?clan_tag=#R8GJR8R9].points_weeks", 4]
+      },
+      {
+        "eq": ["rivals[?clan_tag=#R8GJR8R9].points_vs_ours", 0.065]
+      }
+    ]
+  },
+  {
+    "id": "313.5",
+    "feedback": 313,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 1
+        }
+      },
+      "x": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 2
+        }
+      }
+    },
+    "request_id": "76616a22-d7a8-47ff-92d0-bd540348e8b3",
+    "assert": [
+      {
+        "sum_eq": [
+          [
+            "w.standings[?clan_tag=#J2RGCRVG].clan_war_trophies",
+            "w.standings[?clan_tag=#J2RGCRVG].trophy_change"
+          ],
+          "x.standings[?clan_tag=#J2RGCRVG].clan_war_trophies"
+        ]
+      },
+      {
+        "sum_eq": [
+          [
+            "w.standings[?clan_tag=#QUGRGLU2].clan_war_trophies",
+            "w.standings[?clan_tag=#QUGRGLU2].trophy_change"
+          ],
+          "x.standings[?clan_tag=#QUGRGLU2].clan_war_trophies"
+        ]
+      },
+      {
+        "sum_eq": [
+          [
+            "w.standings[?clan_tag=#YY20VJLU].clan_war_trophies",
+            "w.standings[?clan_tag=#YY20VJLU].trophy_change"
+          ],
+          "x.standings[?clan_tag=#YY20VJLU].clan_war_trophies"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "313.6",
+    "feedback": 313,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 132,
+      "section_index": 0
+    },
+    "request_id": "437340d6-ab70-4083-81f1-732359956583",
+    "assert": [
+      {
+        "eq": ["weeks[0].our_fame", 13124]
+      },
+      {
+        "eq": [
+          "weeks[0].our_fame",
+          "days[?war_day=4].standings[?clan_tag=#J2RGCRVG].progress_end_banked"
+        ]
+      }
+    ]
   }
 ]

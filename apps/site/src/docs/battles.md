@@ -551,7 +551,11 @@ own word for the day (`training`, `warDay`, `colosseum`) beside the policy
 grid's `period.kind`; the two differ only when the clan's reset has drifted
 across the boundary. `war_rivals` rows carry each rival's war trophies going
 into the latest race the record holds with them (`clan_war_trophies`), and
-their points across the weeks they met (`points`, 7.1.3).
+their effort from the day logs (7.1.3): `mean_points` is the rival's points
+per finished week, `points_weeks` how many weeks that averages, and
+`points_vs_ours` the rival's points over ours across the weeks the record
+holds both. A rival with `points_weeks` 0 has no day log recorded, not zero
+effort.
 
 Once the clan's boat has finished, `war_current` says so: `race_finished_at`
 is the finish (a war-day close, as above), `finish_war_day` the day it
