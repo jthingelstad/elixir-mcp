@@ -46,11 +46,5 @@
     "reason": "As 342.1: the cross-tool incomplete-board note waits on the recording-side fix Jamie decides.",
     "until": "2026-10-08",
     "filed": "2026-09-24"
-  },
-  {
-    "case": "gym/345.1",
-    "reason": "snapshot.season_id is a string on the three board tools and a number elsewhere; changing its type breaks strict clients, so it waits for Jamie (a 8.0.0 candidate).",
-    "until": "2026-10-08",
-    "filed": "2026-09-24"
   }
 ]

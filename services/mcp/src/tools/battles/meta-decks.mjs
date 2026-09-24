@@ -104,7 +104,7 @@ export const battles_meta_decks = {
         maximum: 50,
         default: 1,
         description:
-          'Distinct players a deck needs to be listed (7.1.6). 2 or more keeps decks played across players, which is what "what deck should I play" asks; 1 lists every deck, one player\'s own included. A row one player still carries says so (top_player_battles, a note).',
+          'Repeat players a deck needs to be listed: players with two or more battles on it (repeat_players; 8.0.0, one battle no longer counts). 2 or more keeps decks played across players, which is what "what deck should I play" asks; 1 lists every deck, one player\'s own included. A row one player still carries says so (top_player_battles, a note).',
       },
       sort: {
         type: "string",
@@ -273,18 +273,24 @@ export const battles_meta_decks = {
                                     sum(gap_sum) as gap_sum, sum(gap_n)::int as gap_n
                                from d group by type) g) as by_type
              from d),
+           -- Per (deck, player) over every type, then per deck: the
+           -- distinct players and those with two or more battles (0174,
+           -- Gym #348: what min_players counts from 8.0.0).
            dp as (
-             select deck_hash, count(distinct player_tag)::int as deck_players
-             from d group by deck_hash having sum(battles) >= $${params.length + 1}),
+             select deck_hash, count(*)::int as deck_players,
+                    count(*) filter (where n >= 2)::int as repeat_players
+             from (select deck_hash, player_tag, sum(battles) as n
+                     from d group by deck_hash, player_tag) pp
+             group by deck_hash having sum(n) >= $${params.length + 1}),
            decks as (
              select d.deck_hash, d.type,
                     sum(d.battles)::int as battles, sum(d.wins)::int as wins, sum(d.losses)::int as losses,
                     count(distinct d.player_tag)::int as players,
                     min(d.first_used) as first_used, max(d.last_used) as last_used,
                     sum(d.gap_sum) as gap_sum, sum(d.gap_n)::int as gap_n,
-                    dp.deck_players
+                    dp.deck_players, dp.repeat_players
              from d join dp on dp.deck_hash = d.deck_hash
-             group by d.deck_hash, d.type, dp.deck_players)
+             group by d.deck_hash, d.type, dp.deck_players, dp.repeat_players)
            -- The window row rides every deck row, and stands alone (a
            -- null deck_hash) when no deck is over min_battles.
            select w.players as window_players, w.decided as window_decided,
@@ -303,6 +309,7 @@ export const battles_meta_decks = {
           wins: 0,
           losses: 0,
           players: t.deck_players,
+          repeat_players: t.repeat_players,
           first_used: t.first_used,
           last_used: t.last_used,
           gap_sum: 0,
@@ -354,6 +361,10 @@ export const battles_meta_decks = {
         wins: r.wins,
         losses: r.losses,
         players: r.players,
+        repeat_players:
+          r.repeat_players === null || r.repeat_players === undefined
+            ? null
+            : Number(r.repeat_players),
         usage_share:
           totalDecided > 0
             ? Number((r.battles / totalDecided).toFixed(3))
@@ -394,8 +405,19 @@ export const battles_meta_decks = {
     if (!Number.isInteger(minPlayers) || minPlayers < 1 || minPlayers > 50)
       throw new ToolFailure("bad_request", "min_players must be 1-50.");
     const beforePlayers = shaped;
+    // Repeat players (8.0.0, Jamie 2026-09-24): a player counts after two
+    // or more battles on the deck, so two players who tried it once
+    // cannot carry one player's deck past the filter (Gym #348).
+    // A rollup row the nightly has not rebuilt since 0174 has no repeat
+    // count yet: it is judged on players, and the note says so.
+    const unrebuilt =
+      minPlayers > 1
+        ? shaped.filter((r) => r.repeat_players === null).length
+        : 0;
     if (minPlayers > 1)
-      shaped = shaped.filter((r) => (r.players ?? 0) >= minPlayers);
+      shaped = shaped.filter(
+        (r) => (r.repeat_players ?? r.players ?? 0) >= minPlayers,
+      );
     // The archetype filter (6.5.0) reads the label off each identity,
     // so with one asked the identities are fetched for every candidate
     // row and the filter runs before the limit; without one, for the
@@ -600,10 +622,13 @@ export const battles_meta_decks = {
             solo * 2 > Math.min(limit, beforePlayers.length)
             ? `${solo} of the first ${Math.min(limit, beforePlayers.length)} rows are one player's own deck (players 1): they describe that player, not what this population plays. Pass min_players 2 (or sort players) for decks played across players.`
             : minPlayers > 1
-              ? `Rows with fewer than ${minPlayers} distinct players are left out (min_players): ${beforePlayers.length - shaped.length} of the decks over min_battles.`
+              ? `Rows with fewer than ${minPlayers} repeat players (two or more battles on the deck; repeat_players) are left out (min_players): ${beforePlayers.length - shaped.length} of the decks over min_battles. players is every distinct player, one battle included.`
               : null;
         })(),
         carriedNote(shaped),
+        unrebuilt > 0
+          ? `${unrebuilt} candidate rows come from a season rollup not yet rebuilt with repeat_players; min_players judged them on players (every distinct player) until the nightly rebuild.`
+          : null,
         outsideMetaNote(excluded?.outside_meta ?? 0),
         args.mode === EVENT_MODE_GROUP ? META_EVENT_NOTE : null,
         grouped ? grouped.folded : null,

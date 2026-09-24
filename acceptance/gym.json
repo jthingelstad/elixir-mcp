@@ -22587,5 +22587,27 @@
         "eq": ["c.season.all.battles", "m.cards[?card_id=26000072].battles"]
       }
     ]
+  },
+  {
+    "id": "348.5",
+    "feedback": 348,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "mode": "ladder",
+      "trophy_band": "11000_13000",
+      "min_players": 2,
+      "sort": "shrunk_win_rate",
+      "verbosity": "compact"
+    },
+    "assert": [
+      {
+        "absent": "decks[?deck_hash=72c6c8fba5a9990675a74eb682fa2bf5168629809de09e434403b910ed60f50c].deck_hash"
+      },
+      {
+        "every_row_has": ["decks", "repeat_players"]
+      }
+    ]
   }
 ]

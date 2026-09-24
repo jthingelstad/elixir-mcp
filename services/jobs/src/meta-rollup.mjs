@@ -254,6 +254,15 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
             count(*) filter (where outcome = 'win')::int as wins,
             sum(level_gap) as gap_sum, count(level_gap)::int as gap_n
      from dec group by mode_group, deck_hash, player_tag`,
+    // Players with two or more battles on the deck (0174, Gym #348):
+    // what min_players counts from 8.0.0. Nightly only, with players.
+    deckRepeat: withPlayers
+      ? `update deck_meta_season d set repeat_players = r.n
+         from (select mode_group, deck_hash, count(*) filter (where battles >= 2)::int as n
+                 from dp group by mode_group, deck_hash) r
+         where d.season_month = '${month}' and d.mode_group = r.mode_group
+           and d.deck_hash = r.deck_hash`
+      : null,
     cards: `insert into card_meta_season
        (season_month, mode_group, card_id, form, battles, wins, losses, players,
         level_gap_sum, level_gap_battles)
@@ -315,6 +324,14 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
             sum(level_gap) as gap_sum, count(level_gap)::int as gap_n
      from dec where trophy_band is not null
      group by mode_group, trophy_band, deck_hash, player_tag`,
+    bandDeckRepeat: withPlayers
+      ? `update deck_meta_season_band d set repeat_players = r.n
+         from (select mode_group, trophy_band, deck_hash,
+                      count(*) filter (where battles >= 2)::int as n
+                 from dpb group by mode_group, trophy_band, deck_hash) r
+         where d.season_month = '${month}' and d.mode_group = r.mode_group
+           and d.trophy_band = r.trophy_band and d.deck_hash = r.deck_hash`
+      : null,
     bandCards: `insert into card_meta_season_band
        (season_month, mode_group, trophy_band, card_id, form, battles, wins, losses, players,
         level_gap_sum, level_gap_battles)
@@ -351,12 +368,14 @@ async function runAggregates(db, sql) {
   await timed("decided", sql.decided);
   await timed("decks", sql.decks);
   await timed("deck_players", sql.deckPlayers);
+  if (sql.deckRepeat) await timed("deck_repeat", sql.deckRepeat);
   await timed("cards", sql.cards);
   if (sql.totalPlayers) await timed("total_players", sql.totalPlayers);
   if (sql.withBands) {
     await timed("band_totals", sql.bandTotals);
     await timed("band_decks", sql.bandDecks);
     await timed("band_deck_players", sql.bandDeckPlayers);
+    if (sql.bandDeckRepeat) await timed("band_deck_repeat", sql.bandDeckRepeat);
     await timed("band_cards", sql.bandCards);
   }
   return phases;

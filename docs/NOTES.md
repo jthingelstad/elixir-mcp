@@ -2250,3 +2250,8 @@ Jamie took the seven follow-ups one at a time; decisions are in DECISIONS.md.
 - Timeline 292 vs standings 312 on the 09-23 game day: not a bug. Timeline = distinct battles, learned basis, played in the clan (292 learned, 293 played); standings = per member, play time, today's members. 13 of Vijay's friendlies were against clanmates (Gem 6, L-Drxgo 6, Sandeep 1) and count on both rows; alex brought 2 battles for another clan. Note and timeline docs say so.
 - Closed-season late roll lives in the nightly (not a separate job): the nightly is 60-340 s since the persisted population (last night 63 s), far from 900 s, so the 09-19 projection no longer holds.
 - `notes`/`docs` defaulted in the registry wrapper and required by every output schema (tool-conventions test).
+
+## 2026-09-24 — 8.0.0, the major before open beta
+
+- #345: the rankings snapshot block serves `season_id` as a number (rankings_players, rankings_clans, rankings_clan_ladder). No first-party client calls a rankings tool (Clan, Drop, the Discord preview, elixir-bot, poapkings.com checked); clients/boards does not read season_id. 345.1 left known.json.
+- #348: 0174 adds `repeat_players` to deck_meta_season(_band), written by the nightly from the dp/dpb temp tables; the raw path counts it from per-(deck, player) sums. `min_players` filters on it; a rollup row not yet rebuilt falls back to `players` with a note. After the deploy, 2026-09 and 2026-08 are rebuilt by hand (`meta_rollup_season`) so the fallback is brief. Gym 348.5 pins the carried deck's absence.

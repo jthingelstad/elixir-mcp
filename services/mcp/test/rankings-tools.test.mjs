@@ -395,7 +395,7 @@ test("a season's final board is read by season, not by date", async () => {
   });
   assert.equal(isError, false, JSON.stringify(body));
   assert.equal(body.applied.season, 135);
-  assert.equal(body.snapshot.season_id, "135");
+  assert.equal(body.snapshot.season_id, 135);
   assert.equal(
     body.snapshot.season_month,
     "2026-08",
@@ -413,7 +413,7 @@ test("a season's final board is read by season, not by date", async () => {
     limit: 1,
   });
   assert.equal(byMonth.applied.season, 135);
-  assert.equal(byMonth.snapshot.season_id, "135");
+  assert.equal(byMonth.snapshot.season_id, 135);
   const { body: bad, isError: badErr } = await invoke("rankings_players", {
     board: "pol_final",
     season: "Minion Academy",

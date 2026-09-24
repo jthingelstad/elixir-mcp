@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Elixir 8.0: repeat players, and season numbers everywhere",
+    body: "The version before open beta carries two changes that could break a strict client. Asking for decks played by at least two players now counts only players who played the deck more than once, so one player's long run can't be passed off as a popular deck. And the leaderboard tools give the season as a number, like every other tool. Contract 8.0.0.",
+  },
+  {
+    date: "2026-09-24",
     title: "Incomplete leaderboards re-read; every answer carries notes",
     body: "When the game serves an incomplete Path of Legends board just after the daily reset, Elixir now reads it again half an hour later and keeps the complete one. Every tool answer now carries its notes and a documentation pointer, a card's profile counts players per form (base, Evo, Hero), a closed season keeps picking up its last battles for three more days, and the timeline explains why clan standings count more battles over the same window. Contract 7.3.0.",
   },

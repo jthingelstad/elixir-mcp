@@ -501,3 +501,21 @@ test("nightly: a season finalised in the last three days is rolled again for its
   });
   assert.deepEqual(later.late_rolled, []);
 });
+
+test("nightly: repeat_players counts players with two or more battles on the deck (0174, Gym #348)", async () => {
+  const current = await seasonAt(db, NOW);
+  await metaRollupNightly(URL, { nowMs: NOW });
+  // The Knight deck this season: #2PPPP twice (cur-1, cur-2), #2QQQQ once.
+  const { rows } = await db.query(
+    `select d.players, d.repeat_players from deck_meta_season d
+      where d.season_month = $1 and d.mode_group = 'all' and d.battles = 3`,
+    [current.season_month],
+  );
+  assert.deepEqual(rows, [{ players: 2, repeat_players: 1 }]);
+  const { rows: band } = await db.query(
+    `select count(*)::int as n from deck_meta_season_band
+      where season_month = $1 and players is not null and repeat_players is null`,
+    [current.season_month],
+  );
+  assert.equal(band[0].n, 0, "band rows carry it too");
+});

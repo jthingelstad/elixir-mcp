@@ -161,7 +161,7 @@ export async function rollupDecks(db, roll, { minBattles }) {
   const params = [roll.month, roll.modeGroup, minBattles];
   if (banded) params.push(roll.trophyBand);
   const { rows } = await db.query(
-    `select deck_hash, battles, wins, losses, players, first_used, last_used,
+    `select deck_hash, battles, wins, losses, players, repeat_players, first_used, last_used,
             level_gap_battles, ${MEAN_GAP_SQL} as mean_level_gap
      from ${banded ? "deck_meta_season_band" : "deck_meta_season"}
      where season_month = $1 and mode_group = $2 and battles >= $3

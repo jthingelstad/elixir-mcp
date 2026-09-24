@@ -1824,7 +1824,7 @@ export const OUTPUT_SCHEMAS = {
         properties: {
           observed_at: ISO,
           unchanged_until: ISO,
-          season_id: { type: "string" },
+          season_id: COUNT,
           season_month: { type: "string" },
           entries: COUNT,
           depth: {
@@ -2022,6 +2022,11 @@ export const OUTPUT_SCHEMAS = {
             first_used: { type: ["string", "null"] },
             last_used: { type: ["string", "null"] },
             level_gap_battles: NULLABLE_INT,
+            repeat_players: {
+              type: ["number", "null"],
+              description:
+                "8.0.0: distinct players with two or more battles on the deck, what min_players counts; null on a season rollup row the nightly has not yet rebuilt.",
+            },
             top_player_battles: {
               type: ["number", "null"],
               description:

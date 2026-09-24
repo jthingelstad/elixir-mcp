@@ -244,7 +244,8 @@ export function snapshotBlock(snapshot, row, floor) {
     unchanged_until: snapshot.last_confirmed_at.toISOString(),
     // The season the board stood in, both spellings: the API's month is
     // the key (0109); the ordinal is the game clock's name for it.
-    season_id: String(seasonIdForMonth(snapshot.season_month)),
+    // A number like every other season_id (8.0.0, Gym #345).
+    season_id: seasonIdForMonth(snapshot.season_month),
     season_month: snapshot.season_month,
     entries: snapshot.entries,
     // The places the board holds and whether it holds them all (6.2.0):

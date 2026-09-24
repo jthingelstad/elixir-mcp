@@ -32,6 +32,14 @@ not unique matches. If both participants belong to the segment, both contribute.
 These observations are dependent: two sides of a match are not two independent
 trials, and repeated battles by one player are not independent players.
 
+A deck row carries three counts of who played it. `players` is every
+distinct player, one battle included. `repeat_players` (8.0.0) is those with
+**two or more** battles on the deck, and it is what `min_players` counts, so
+"decks played across players" cannot be one player's run with two others
+who tried it once (Gym #348: a 57-0 run read as "3 players, 57-2").
+`top_player_battles`, on a row with 2 to 5 players, is the busiest player's
+share, and a note names a row one player still carries.
+
 Only decided **head-to-head** outcomes qualify. Duels (one row for up to three
 games, with no single deck identity), boat battles (an attack on a static
 defense), draws and unresolved outcomes are excluded from `decided_battles`,

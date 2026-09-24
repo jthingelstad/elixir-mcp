@@ -35,7 +35,7 @@ conventions that hold everywhere.
 | How has the clan moved over the season: score, war trophies, members, the members' trophies? | `clans_timeline` (one point per game day, with the aggregates over the members' rows) |
 | How has each member's trophies or rank moved day by day? | `clans_members_timeline` (every member's day series in one call; compact for first, last and delta) |
 | Scout the bracket | `war_rivals`, then `war_current({ clan_tag, live: true })` or `clans_roster({ clan_tag, live: true })` for one rival |
-| What is the meta, for a clan or the corpus? | `battles_meta_decks` / `battles_meta_cards` with a `segment`; `min_players: 2` keeps decks played across players, not one player's own; a row one player still carries says so (`top_player_battles` and a note) |
+| What is the meta, for a clan or the corpus? | `battles_meta_decks` / `battles_meta_cards` with a `segment`; `min_players: 2` keeps decks at least two players have played more than once (`repeat_players`), not one player's own; a row one player still carries says so (`top_player_battles` and a note) |
 | Which of my cards should I upgrade first? | `battles_meta_decks` with `fit_for: "#TAG"` (each row's `fit.upgrades`: the upgrades that would bring that deck to your fielded level), beside `battles_cards` for which of your cards carry |
 | Which tower troops does the population use? | `battles_meta_cards({ tower_troops: true })` (shares over the battles whose tower troop is known; river race battles carry none), `cards_card` for one tower troop |
 | What does "LavaLoon" / "bridge spam" mean, or what is this deck called? | `cards_archetype` (`name`, or `cards`; nothing for the vocabulary) |

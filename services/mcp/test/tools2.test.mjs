@@ -2789,7 +2789,7 @@ test("a card name shared with a tower-troop entry is the deck card; Evo and Hero
   }
 });
 
-test("Gym #348: a row one player carries past min_players says so", async () => {
+test("Gym #348: a row one player carries says so, and min_players counts repeat players (8.0.0)", async () => {
   const tags = ["#2QQQ8", "#2QQQ9", "#2QQQ0"];
   await db.query(
     `insert into collection (slug, title, kind, owner_account)
@@ -2828,16 +2828,26 @@ test("Gym #348: a row one player carries past min_players says so", async () => 
     );
     await seedPlayedDeck(db, { battle_id: id, player_tag: tag, cards });
   }
+  // 8.0.0: min_players counts repeat players (two or more battles), so
+  // the two one-battle players no longer carry it past min_players 2.
+  const two = await call("battles_meta_decks", {
+    segment: { collection: "carried" },
+    min_battles: 1,
+    min_players: 2,
+  });
+  assert.equal(two.isError, false, JSON.stringify(two.body));
+  assert.ok(!two.body.decks.some((d) => d.deck_hash === hashFor(cards)));
+  assert.match(two.body.notes.join(" "), /repeat players/);
   for (const verbosity of ["full", "compact"]) {
     const { body, isError } = await call("battles_meta_decks", {
       segment: { collection: "carried" },
       min_battles: 1,
-      min_players: 2,
       verbosity,
     });
     assert.equal(isError, false, JSON.stringify(body));
     const row = body.decks.find((d) => d.deck_hash === hashFor(cards));
     assert.equal(row.players, 3);
+    assert.equal(row.repeat_players, 1);
     assert.equal(row.top_player_battles, 9);
     assert.match(
       body.notes.join(" "),
