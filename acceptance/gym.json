@@ -2936,7 +2936,8 @@
       {
         "neq": ["next_cursor", "applied.window.to"]
       }
-    ]
+    ],
+    "refuted": "Superseded by 7.0.0 (Jamie, 2026-09-23: the timeline is a newsfeed): a window past the cap keeps its NEWEST items and counts the rest, and next_cursor is always the window's end, so a cut no longer hands back a cursor before it. 120.3 pins the rule that replaced it."
   },
   {
     "id": "120.2",
@@ -2958,6 +2959,31 @@
       },
       {
         "eq": ["has_more", false]
+      },
+      {
+        "eq": ["next_cursor", "applied.window.to"]
+      }
+    ]
+  },
+  {
+    "id": "120.3",
+    "feedback": 120,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-08-24T16:40:30.377Z",
+      "to": "2026-09-23T16:40:30.377Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+    },
+    "request_id": "839e38ea-601a-4f8d-a931-b7fbd30bd775",
+    "when": {
+      "gt": ["timeline_more", 0]
+    },
+    "assert": [
+      {
+        "eq": ["has_more", true]
       },
       {
         "eq": ["next_cursor", "applied.window.to"]

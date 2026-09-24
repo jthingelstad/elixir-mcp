@@ -170,9 +170,15 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
             if (pricedRefusal(f)) return { ms: r.ms };
             const fb = answered(f, `${tool} full`);
             bodies.get(tool).push({ args: fullArgs, body: fb });
-            // An empty answer is the same both ways but for the echo.
+            // An empty answer is the same both ways but for the echo. A
+            // page cut by size is the exception: compact drops what full
+            // spends its budget on, so the same budget holds MORE of the
+            // window compact (elixir_timeline, 6.34.2), and the two are not
+            // the same window to compare.
+            const sizeCut = cb?.has_more === true || fb?.has_more === true;
             ok(
-              JSON.stringify(cb).length <= JSON.stringify(fb).length + 64,
+              sizeCut ||
+                JSON.stringify(cb).length <= JSON.stringify(fb).length + 64,
               "compact is not larger than full",
             );
             ok(

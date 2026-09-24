@@ -405,8 +405,8 @@
   {
     "feedback": 120,
     "contract": "6.23.0",
-    "why": "the Gym's block 120.1: the cap dropped the newest items and next_cursor pointed past them",
-    "case": "gym/120.1",
+    "why": "the Gym's block 120.1: the cap dropped items and said nothing (has_more false); 120.3, its 7.0.0 successor, still bites on it",
+    "case": "gym/120.3",
     "captures": ["120-elixir_timeline-cap.json"],
     "expect": "has_more"
   },
