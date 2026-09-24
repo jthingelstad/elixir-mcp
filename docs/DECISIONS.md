@@ -22,6 +22,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **Collections are owned editorial groupings** — never global tags; membership is a reason to record; adding something means recording it (ADDED = RECORDED). (2026-09-05, 2026-09-06; Jamie)
 - **Roles never gate visibility** — the tiers differ only in slots and call volume; 50 player slots at every tier; `contracts/roles.ts` is the one source. (2026-09-05, 2026-09-08; Jamie)
 - **Principals: users, agents, integrations** — an agent's tier is capped at its owner's; `on_behalf_of` grants nothing (explicit tag > on_behalf_of > primary); no `act_as` switching. (2026-09-08; Jamie)
+- **The console switches into an agent** — an agent's console is a place (`/agent/<public_id>/…`), chosen in the rail header; its rail drops the person-only pages; in its scope you configure it (tracked clans and players, notify, replies on its feedback), new feedback is always filed as you; Explore is not scoped; integrations stay out; clients connected as an agent move to its console. Designed, not built: `docs/reviews/2026-09-23-CONSOLE-ACCOUNT-SWITCHER.md`; open: pooled slots, the agent adding over MCP, re-pointing. (2026-09-23; Jamie)
 - **Refuse rather than choose** — with no `clan_tag`, the door uses the primary claim's clan or refuses `not_recorded`, never an alt's clan. (2026-09-19; engineering)
 
 ## Privacy and measurement
