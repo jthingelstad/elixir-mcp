@@ -1,0 +1,1409 @@
+{
+  "feedback": 305,
+  "contract_version": "7.1.17",
+  "captured_at": "2026-09-24T08:39:51.478Z",
+  "request": {
+    "tool": "clans_members_timeline",
+    "arguments": {
+      "from": "2026-09-14",
+      "to": "2026-09-20",
+      "metrics": ["donations"],
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "clan_tag": "#J2RGCRVG",
+    "applied": {
+      "window": {
+        "from": "2026-09-14",
+        "to": "2026-09-20",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 14
+      },
+      "granularity": "day",
+      "kind": "daily",
+      "metrics": ["donations"],
+      "limit": 50,
+      "verbosity": "compact"
+    },
+    "member_count": 48,
+    "truncated": false,
+    "members": [
+      {
+        "player_tag": "#20CGPVUL92",
+        "name": "pigsareus",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T10:13:21.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-14T10:13:21.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T00:18:03.000Z",
+          "profile_observed_at": "2026-09-20T21:12:42.000Z",
+          "roster_observed_at": "2026-09-21T00:18:03.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#20CLVPLG8R",
+        "name": "VVSBUDGET",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T10:13:21.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-14T10:13:21.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-20T18:57:44.000Z",
+          "profile_observed_at": "2026-09-20T18:57:44.000Z",
+          "roster_observed_at": "2026-09-20T10:08:36.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#20G0JGQLPL",
+        "name": "alex",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T10:13:21.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-14T10:13:21.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-20T22:37:45.000Z",
+          "profile_observed_at": "2026-09-20T22:37:45.000Z",
+          "roster_observed_at": "2026-09-20T10:08:36.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#20G9RY299P",
+        "name": "Waltadr",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T17:52:47.000Z",
+          "profile_observed_at": "2026-09-14T17:52:47.000Z",
+          "roster_observed_at": "2026-09-14T14:12:57.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 36
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T00:18:03.000Z",
+          "profile_observed_at": "2026-09-20T23:13:26.000Z",
+          "roster_observed_at": "2026-09-21T00:18:03.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -36
+        }
+      },
+      {
+        "player_tag": "#20GPQPC9RV",
+        "name": "bonus",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T09:53:02.000Z",
+          "profile_observed_at": "2026-09-15T07:57:42.000Z",
+          "roster_observed_at": "2026-09-15T09:53:02.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 28
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T09:48:13.000Z",
+          "profile_observed_at": "2026-09-20T22:02:42.000Z",
+          "roster_observed_at": "2026-09-21T09:48:13.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -28
+        }
+      },
+      {
+        "player_tag": "#20GQUGPRC2",
+        "name": "Gem",
+        "points": 6,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T06:52:56.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-15T06:52:56.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-19",
+          "kind": "daily",
+          "observed_at": "2026-09-19T10:18:05.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-19T10:18:05.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#20JJJ2CCRU",
+        "name": "King Thing",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T05:52:55.000Z",
+          "profile_observed_at": "2026-09-15T03:12:49.000Z",
+          "roster_observed_at": "2026-09-15T05:52:55.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 35
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T06:27:50.000Z",
+          "profile_observed_at": "2026-09-21T06:27:50.000Z",
+          "roster_observed_at": "2026-09-21T04:38:06.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 54
+        },
+        "delta": {
+          "donations": 19
+        }
+      },
+      {
+        "player_tag": "#20LP8UPJ8R",
+        "name": "I Hate Witch",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T10:13:21.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-14T10:13:21.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T07:28:09.000Z",
+          "profile_observed_at": "2026-09-20T13:02:44.000Z",
+          "roster_observed_at": "2026-09-21T07:28:09.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#20R8QRLYLP",
+        "name": "Chanco",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T08:12:57.000Z",
+          "profile_observed_at": "2026-09-15T08:07:49.000Z",
+          "roster_observed_at": "2026-09-15T08:12:57.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 188
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T09:48:13.000Z",
+          "profile_observed_at": "2026-09-21T06:42:48.000Z",
+          "roster_observed_at": "2026-09-21T09:48:13.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 46
+        },
+        "delta": {
+          "donations": -142
+        }
+      },
+      {
+        "player_tag": "#2209PJPVGG",
+        "name": "shimmeringhost",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T08:02:51.000Z",
+          "profile_observed_at": "2026-09-15T08:02:51.000Z",
+          "roster_observed_at": "2026-09-15T02:52:50.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 148
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T07:42:55.000Z",
+          "profile_observed_at": "2026-09-21T07:42:55.000Z",
+          "roster_observed_at": "2026-09-21T02:18:05.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 28
+        },
+        "delta": {
+          "donations": -120
+        }
+      },
+      {
+        "player_tag": "#229QY8UL9U",
+        "name": "Mega Goblin",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T09:32:59.000Z",
+          "profile_observed_at": "2026-09-15T08:17:46.000Z",
+          "roster_observed_at": "2026-09-15T09:32:59.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 56
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T00:18:03.000Z",
+          "profile_observed_at": "2026-09-20T17:47:40.000Z",
+          "roster_observed_at": "2026-09-21T00:18:03.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -56
+        }
+      },
+      {
+        "player_tag": "#2CY2RJL9G",
+        "name": "L-Drxgo⚡",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T09:12:50.000Z",
+          "profile_observed_at": "2026-09-15T04:37:49.000Z",
+          "roster_observed_at": "2026-09-15T09:12:50.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 130
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T09:48:13.000Z",
+          "profile_observed_at": "2026-09-21T06:47:47.000Z",
+          "roster_observed_at": "2026-09-21T09:48:13.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 18
+        },
+        "delta": {
+          "donations": -112
+        }
+      },
+      {
+        "player_tag": "#2G09Q20QC",
+        "name": "Kurd Paraw",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T05:52:55.000Z",
+          "profile_observed_at": "2026-09-14T23:17:46.000Z",
+          "roster_observed_at": "2026-09-15T05:52:55.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T07:28:09.000Z",
+          "profile_observed_at": "2026-09-20T23:13:39.000Z",
+          "roster_observed_at": "2026-09-21T07:28:09.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#2G2RPVPP",
+        "name": "Aaqib Javed",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T09:32:59.000Z",
+          "profile_observed_at": "2026-09-15T01:22:48.000Z",
+          "roster_observed_at": "2026-09-15T09:32:59.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 166
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:48:07.000Z",
+          "profile_observed_at": "2026-09-21T07:27:47.000Z",
+          "roster_observed_at": "2026-09-21T08:48:07.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -166
+        }
+      },
+      {
+        "player_tag": "#2LRYLQPL",
+        "name": "Andy",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T07:32:46.000Z",
+          "profile_observed_at": "2026-09-15T07:32:46.000Z",
+          "roster_observed_at": "2026-09-15T03:12:53.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 64
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T07:57:41.000Z",
+          "profile_observed_at": "2026-09-21T07:57:41.000Z",
+          "roster_observed_at": "2026-09-21T07:08:12.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 28
+        },
+        "delta": {
+          "donations": -36
+        }
+      },
+      {
+        "player_tag": "#2P9GRU2Q0",
+        "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T05:52:55.000Z",
+          "profile_observed_at": "2026-09-14T12:57:39.000Z",
+          "roster_observed_at": "2026-09-15T05:52:55.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 16
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T07:28:09.000Z",
+          "profile_observed_at": "2026-09-20T12:07:48.000Z",
+          "roster_observed_at": "2026-09-21T07:28:09.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -16
+        }
+      },
+      {
+        "player_tag": "#2YG98VVQ",
+        "name": "Alfablack",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T09:53:02.000Z",
+          "profile_observed_at": "2026-09-15T02:27:53.000Z",
+          "roster_observed_at": "2026-09-15T09:53:02.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 34
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T00:18:03.000Z",
+          "profile_observed_at": "2026-09-20T20:12:44.000Z",
+          "roster_observed_at": "2026-09-21T00:18:03.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -34
+        }
+      },
+      {
+        "player_tag": "#8G8UYG2PQ",
+        "name": "Gabriel",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T10:13:21.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-14T10:13:21.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-20T18:07:45.000Z",
+          "profile_observed_at": "2026-09-20T18:07:45.000Z",
+          "roster_observed_at": "2026-09-20T10:08:36.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#8U2P0JPR",
+        "name": "Fullboat",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T06:52:56.000Z",
+          "profile_observed_at": "2026-09-15T01:37:52.000Z",
+          "roster_observed_at": "2026-09-15T06:52:56.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 42
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:48:07.000Z",
+          "profile_observed_at": "2026-09-21T06:47:47.000Z",
+          "roster_observed_at": "2026-09-21T08:48:07.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 10
+        },
+        "delta": {
+          "donations": -32
+        }
+      },
+      {
+        "player_tag": "#9Q9QRCPPU",
+        "name": "dez42",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T08:12:57.000Z",
+          "profile_observed_at": "2026-09-15T04:17:47.000Z",
+          "roster_observed_at": "2026-09-15T08:12:57.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 43
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:48:07.000Z",
+          "profile_observed_at": "2026-09-20T22:52:40.000Z",
+          "roster_observed_at": "2026-09-21T08:48:07.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -43
+        }
+      },
+      {
+        "player_tag": "#9QQLPJRLV",
+        "name": "duki suzuki",
+        "points": 2,
+        "first": {
+          "day": "2026-09-19",
+          "kind": "daily",
+          "observed_at": "2026-09-20T07:43:00.000Z",
+          "profile_observed_at": "2026-09-19T16:42:41.000Z",
+          "roster_observed_at": "2026-09-20T07:43:00.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:48:07.000Z",
+          "profile_observed_at": "2026-09-21T08:02:46.000Z",
+          "roster_observed_at": "2026-09-21T08:48:07.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#C920YGLC2",
+        "name": "Vijay",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T08:47:49.000Z",
+          "profile_observed_at": "2026-09-15T08:47:49.000Z",
+          "roster_observed_at": "2026-09-15T08:12:57.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 179
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:48:07.000Z",
+          "profile_observed_at": "2026-09-21T07:32:56.000Z",
+          "roster_observed_at": "2026-09-21T08:48:07.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 10
+        },
+        "delta": {
+          "donations": -169
+        }
+      },
+      {
+        "player_tag": "#CV20JCY0V",
+        "name": "BigNorton",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T06:32:50.000Z",
+          "profile_observed_at": "2026-09-15T06:32:50.000Z",
+          "roster_observed_at": "2026-09-15T00:22:55.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T04:38:06.000Z",
+          "profile_observed_at": "2026-09-20T18:17:46.000Z",
+          "roster_observed_at": "2026-09-21T04:38:06.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#G2CUUJQ8V",
+        "name": "kiruba⚜️",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T16:32:53.000Z",
+          "profile_observed_at": "2026-09-14T16:32:53.000Z",
+          "roster_observed_at": "2026-09-14T10:53:01.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T09:48:13.000Z",
+          "profile_observed_at": "2026-09-21T09:47:42.000Z",
+          "roster_observed_at": "2026-09-21T09:48:13.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#JRVV9VC0C",
+        "name": "NOBITA",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T05:32:50.000Z",
+          "profile_observed_at": "2026-09-15T05:32:50.000Z",
+          "roster_observed_at": "2026-09-15T04:52:58.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 46
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T09:48:13.000Z",
+          "profile_observed_at": "2026-09-20T23:17:51.000Z",
+          "roster_observed_at": "2026-09-21T09:48:13.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 16
+        },
+        "delta": {
+          "donations": -30
+        }
+      },
+      {
+        "player_tag": "#JYRQ8U92C",
+        "name": "sikander sidhu",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T08:12:57.000Z",
+          "profile_observed_at": "2026-09-15T04:57:43.000Z",
+          "roster_observed_at": "2026-09-15T08:12:57.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 124
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T09:48:13.000Z",
+          "profile_observed_at": "2026-09-21T07:42:51.000Z",
+          "roster_observed_at": "2026-09-21T09:48:13.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 62
+        },
+        "delta": {
+          "donations": -62
+        }
+      },
+      {
+        "player_tag": "#L9CUUJPLJ",
+        "name": "blackberry",
+        "points": 4,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T07:52:58.000Z",
+          "profile_observed_at": "2026-09-15T07:17:45.000Z",
+          "roster_observed_at": "2026-09-15T07:52:58.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 39
+        },
+        "last": {
+          "day": "2026-09-17",
+          "kind": "daily",
+          "observed_at": "2026-09-18T01:37:54.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-18T01:37:54.000Z",
+          "source": "elixir-bot",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 119
+        },
+        "delta": {
+          "donations": 80
+        }
+      },
+      {
+        "player_tag": "#P2U0PC2UU",
+        "name": "canavar",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T05:52:55.000Z",
+          "profile_observed_at": "2026-09-14T16:37:51.000Z",
+          "roster_observed_at": "2026-09-15T05:52:55.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T07:28:09.000Z",
+          "profile_observed_at": "2026-09-20T23:13:24.000Z",
+          "roster_observed_at": "2026-09-21T07:28:09.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#PLCCYUQL",
+        "name": "TDuck",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T08:12:57.000Z",
+          "profile_observed_at": "2026-09-15T05:07:46.000Z",
+          "roster_observed_at": "2026-09-15T08:12:57.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 80
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:48:07.000Z",
+          "profile_observed_at": "2026-09-20T23:24:03.000Z",
+          "roster_observed_at": "2026-09-21T08:48:07.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 16
+        },
+        "delta": {
+          "donations": -64
+        }
+      },
+      {
+        "player_tag": "#PR8YLQ2CV",
+        "name": "The Joesma",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T05:52:55.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-15T05:52:55.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 46
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T07:28:09.000Z",
+          "profile_observed_at": "2026-09-20T23:12:41.000Z",
+          "roster_observed_at": "2026-09-21T07:28:09.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -46
+        }
+      },
+      {
+        "player_tag": "#RJ9RRQPVU",
+        "name": "OllieTurtle",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T07:07:50.000Z",
+          "profile_observed_at": "2026-09-15T07:07:50.000Z",
+          "roster_observed_at": "2026-09-15T06:52:56.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 39
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:48:07.000Z",
+          "profile_observed_at": "2026-09-21T07:12:48.000Z",
+          "roster_observed_at": "2026-09-21T08:48:07.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -39
+        }
+      },
+      {
+        "player_tag": "#RRU9PGJQ9",
+        "name": "Brotherinpants",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T10:13:21.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-14T10:13:21.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T00:18:03.000Z",
+          "profile_observed_at": "2026-09-20T21:47:44.000Z",
+          "roster_observed_at": "2026-09-21T00:18:03.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#U08P889Y0",
+        "name": "Tere",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T16:52:57.000Z",
+          "profile_observed_at": "2026-09-14T15:57:49.000Z",
+          "roster_observed_at": "2026-09-14T16:52:57.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 12
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T00:18:03.000Z",
+          "profile_observed_at": "2026-09-20T23:17:57.000Z",
+          "roster_observed_at": "2026-09-21T00:18:03.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -12
+        }
+      },
+      {
+        "player_tag": "#U8RYG9Y2U",
+        "name": "King Levy",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T07:27:52.000Z",
+          "profile_observed_at": "2026-09-15T07:27:52.000Z",
+          "roster_observed_at": "2026-09-15T06:52:56.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 10
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:48:07.000Z",
+          "profile_observed_at": "2026-09-21T06:17:48.000Z",
+          "roster_observed_at": "2026-09-21T08:48:07.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 44
+        },
+        "delta": {
+          "donations": 34
+        }
+      },
+      {
+        "player_tag": "#U92P8PQG0",
+        "name": "God Bless You",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T09:53:02.000Z",
+          "profile_observed_at": "2026-09-15T04:27:47.000Z",
+          "roster_observed_at": "2026-09-15T09:53:02.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T04:18:04.000Z",
+          "profile_observed_at": "2026-09-20T23:23:26.000Z",
+          "roster_observed_at": "2026-09-21T04:18:04.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#UCRLVL29U",
+        "name": "Ak",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T20:47:52.000Z",
+          "profile_observed_at": "2026-09-14T20:47:52.000Z",
+          "roster_observed_at": "2026-09-14T19:52:58.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 45
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T09:48:13.000Z",
+          "profile_observed_at": "2026-09-20T22:12:52.000Z",
+          "roster_observed_at": "2026-09-21T09:48:13.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 8
+        },
+        "delta": {
+          "donations": -37
+        }
+      },
+      {
+        "player_tag": "#UL2V9QRG0",
+        "name": "raquaza",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T21:02:48.000Z",
+          "profile_observed_at": "2026-09-14T21:02:48.000Z",
+          "roster_observed_at": "2026-09-14T16:52:57.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 30
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:17:51.000Z",
+          "profile_observed_at": "2026-09-21T08:17:51.000Z",
+          "roster_observed_at": "2026-09-21T07:28:09.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -30
+        }
+      },
+      {
+        "player_tag": "#UQ2R9RGVP",
+        "name": "Sandeep",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T06:52:56.000Z",
+          "profile_observed_at": "2026-09-14T16:42:52.000Z",
+          "roster_observed_at": "2026-09-15T06:52:56.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 48
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T09:52:39.000Z",
+          "profile_observed_at": "2026-09-21T09:52:39.000Z",
+          "roster_observed_at": "2026-09-21T09:48:13.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -48
+        }
+      },
+      {
+        "player_tag": "#URPCLR8UQ",
+        "name": "x.x.hari.x.x",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T09:53:02.000Z",
+          "profile_observed_at": "2026-09-15T06:07:49.000Z",
+          "roster_observed_at": "2026-09-15T09:53:02.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 16
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T09:47:41.000Z",
+          "profile_observed_at": "2026-09-21T09:47:41.000Z",
+          "roster_observed_at": "2026-09-21T09:28:08.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -16
+        }
+      },
+      {
+        "player_tag": "#UVQ8RJYG9",
+        "name": "AHMOメŞΛDØW",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T21:27:49.000Z",
+          "profile_observed_at": "2026-09-14T21:27:49.000Z",
+          "roster_observed_at": "2026-09-14T17:12:58.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 28
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T00:18:03.000Z",
+          "profile_observed_at": "2026-09-20T23:18:49.000Z",
+          "roster_observed_at": "2026-09-21T00:18:03.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -28
+        }
+      },
+      {
+        "player_tag": "#V0CRYP2GG",
+        "name": "pokemon",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T10:13:21.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-14T10:13:21.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-20T10:08:36.000Z",
+          "profile_observed_at": "2026-09-20T10:08:01.000Z",
+          "roster_observed_at": "2026-09-20T10:08:36.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#V8Q8PUL0U",
+        "name": "ryguy67",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T02:12:50.000Z",
+          "profile_observed_at": "2026-09-15T02:12:50.000Z",
+          "roster_observed_at": "2026-09-14T22:12:56.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 26
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T00:18:03.000Z",
+          "profile_observed_at": "2026-09-20T16:57:45.000Z",
+          "roster_observed_at": "2026-09-21T00:18:03.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -26
+        }
+      },
+      {
+        "player_tag": "#VC8VY8R29",
+        "name": "nyje47",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T09:53:02.000Z",
+          "profile_observed_at": "2026-09-15T03:37:48.000Z",
+          "roster_observed_at": "2026-09-15T09:53:02.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:28:11.000Z",
+          "profile_observed_at": "2026-09-21T08:07:44.000Z",
+          "roster_observed_at": "2026-09-21T08:28:11.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#VGC22YGP",
+        "name": "MONICA",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T05:52:55.000Z",
+          "profile_observed_at": "2026-09-14T20:27:52.000Z",
+          "roster_observed_at": "2026-09-15T05:52:55.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 62
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:48:07.000Z",
+          "profile_observed_at": "2026-09-21T07:07:51.000Z",
+          "roster_observed_at": "2026-09-21T08:48:07.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 36
+        },
+        "delta": {
+          "donations": -26
+        }
+      },
+      {
+        "player_tag": "#VJG09L9YY",
+        "name": "£eoππe§§;",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T07:12:54.000Z",
+          "profile_observed_at": "2026-09-15T05:17:41.000Z",
+          "roster_observed_at": "2026-09-15T07:12:54.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 28
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T00:18:03.000Z",
+          "profile_observed_at": "2026-09-20T23:12:47.000Z",
+          "roster_observed_at": "2026-09-21T00:18:03.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -28
+        }
+      },
+      {
+        "player_tag": "#VQUQJP8Q9",
+        "name": "1spaceO2",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T21:52:57.000Z",
+          "profile_observed_at": "2026-09-14T20:57:41.000Z",
+          "roster_observed_at": "2026-09-14T21:52:57.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T00:18:03.000Z",
+          "profile_observed_at": "2026-09-20T22:22:45.000Z",
+          "roster_observed_at": "2026-09-21T00:18:03.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#VR0QRP2PG",
+        "name": "round hamster",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-14T10:13:21.000Z",
+          "profile_observed_at": null,
+          "roster_observed_at": "2026-09-14T10:13:21.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-20T18:27:47.000Z",
+          "profile_observed_at": "2026-09-20T18:27:47.000Z",
+          "roster_observed_at": "2026-09-20T10:08:36.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": 0
+        }
+      },
+      {
+        "player_tag": "#YC8LLR8Q2",
+        "name": "sniperhendo",
+        "points": 7,
+        "first": {
+          "day": "2026-09-14",
+          "kind": "daily",
+          "observed_at": "2026-09-15T07:37:51.000Z",
+          "profile_observed_at": "2026-09-15T07:37:51.000Z",
+          "roster_observed_at": "2026-09-15T06:52:56.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 36
+        },
+        "last": {
+          "day": "2026-09-20",
+          "kind": "daily",
+          "observed_at": "2026-09-21T08:48:07.000Z",
+          "profile_observed_at": "2026-09-20T18:37:41.000Z",
+          "roster_observed_at": "2026-09-21T08:48:07.000Z",
+          "source": "api",
+          "clan_tag": "#J2RGCRVG",
+          "donations": 0
+        },
+        "delta": {
+          "donations": -36
+        }
+      }
+    ],
+    "notes": [
+      "54 of 327 points are roster-only (profile_observed_at null): the roster's metrics are the day's, the profile metrics null there.",
+      "donations is the weekly counter as of each point; it climbs all week and drops to 0 around the start of Monday UTC. kind: pre_reset is the week's highest value the record read, a lower bound on the week's total: donations made after the last read before the reset are not in it, so it can sit below that week's rise in the members' lifetime total_donations.",
+      "A member's point carries clan_tag: the clan the day's last roster placed them in, so a member who moved clans that day is under the later clan's tag.",
+      "Some points carry source: elixir-bot, imported from POAP KINGS' earlier bot for days the archive lacks; their instant is the bot's day, approximated on four days (2026-03-07 to 03-10).",
+      "Days are game days: each runs from 10:00 UTC to 10:00 UTC and is named for the date it starts on, the same grid as war days and season rolls; a point is the day's last observation."
+    ],
+    "docs": "recording#daily-series",
+    "meta": {
+      "contract_version": "7.1.17",
+      "source_polls": {
+        "clan": {
+          "observed_at": "2026-09-24T08:28:28.000Z",
+          "freshness_seconds": 683
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 228,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

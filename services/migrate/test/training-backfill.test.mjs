@@ -81,6 +81,15 @@ before(async () => {
      values ($1, 136, 1, 1, $2, 3)`,
     [CLAN, MATE],
   );
+  // The race closes at 09:38Z (Gym #306): a 09:50Z battle on the 15th is
+  // training day 2 in the game, though the 10:00Z grid says day 1.
+  await db.query(
+    `update war_week set closed_at = '2026-09-21T09:38:05Z' where clan_tag = $1 and season_id = 136 and section_index = 1`,
+    [CLAN],
+  );
+  await battle("t5", "riverRacePvP", "2026-09-15T09:50:00Z", [
+    [ME, 0, CLAN, 0],
+  ]);
   // A war day battle is not practice.
   await battle("w1", "riverRacePvP", "2026-09-17T12:00:00Z", [
     [ME, 0, CLAN, 0],
@@ -106,13 +115,13 @@ test("dry run counts practice decks without writing", async () => {
     rebuilt_lower: 1,
     rebuilt_higher: 0,
   });
-  // ME: 1 + 3 + 1 = 5, capped at 4; MATE: 1.
+  // ME: day 1 1 + 3 + 1 = 5, capped at 4; day 2 1 (t5); MATE: 1.
   assert.deepEqual(r.weeks, [
     {
       section_index: 1,
       clans: 1,
-      member_days: 2,
-      decks: 5,
+      member_days: 3,
+      decks: 6,
       duels_without_rounds: 0,
     },
   ]);
@@ -123,15 +132,21 @@ test("apply writes battlelog rows, only for race participants, never over a poll
     season_id: 136,
     apply: true,
   });
-  assert.equal(r.inserted, 1);
+  assert.equal(r.inserted, 2);
   const { rows } = await db.query(
-    `select player_tag, day_in_section, decks_used_today, source from war_attendance_day order by player_tag`,
+    `select player_tag, day_in_section, decks_used_today, source from war_attendance_day order by player_tag, day_in_section`,
   );
   assert.deepEqual(rows, [
     {
       player_tag: ME,
       day_in_section: 0,
       decks_used_today: 4,
+      source: "battlelog",
+    },
+    {
+      player_tag: ME,
+      day_in_section: 1,
+      decks_used_today: 1,
       source: "battlelog",
     },
     {

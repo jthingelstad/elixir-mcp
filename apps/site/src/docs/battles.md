@@ -438,7 +438,7 @@ every day of the race week the same way. On a training day
 `war_history.member_weeks[].training_decks` totals a week's training decks
 per member: read from the race poll since 2026-09-24, and rebuilt for
 earlier weeks from the members' recorded river-race battles on training
-days (a 1v1 is one deck, a duel one per round, four a day at most), which
+days, split where the clan's own race rolls its days (a 1v1 is one deck, a duel one per round, four a day at most), which
 is a floor wherever a member's log was not fully captured. Training never
 counts as war attendance: `decks_today` and `war_days` are war days only.
 

@@ -4,8 +4,8 @@
  * logs"). {training_backfill: {season_id, apply?}}
  *
  * A river-race battle (the war types, not a boat defense) whose
- * battle_time falls on a TRAINING day of the policy grid (war_period,
- * 10:00Z days) is practice for the clan the player was in when it was
+ * battle_time falls on a TRAINING day, as the clan's own race rolls its
+ * days (the policy grid shifted to the race's close slot, Gym #306), is practice for the clan the player was in when it was
  * played: the same four war decks, played for reps (Jamie). A 1v1 is one deck; a duel one per round played
  * (battle_participant_round), or two when no round rows were recorded
  * (counted as duels_without_rounds). A day is capped at four decks, as
@@ -14,7 +14,8 @@
  * else's battle is not a member row.
  *
  * Dry run by default (per-week counts); apply inserts with source
- * 'battlelog' and never touches a row the race poll wrote. One season
+ * 'battlelog', re-derives an earlier rebuilt row, and never touches a
+ * row the race poll wrote. One season
  * per call so a run stays inside the Lambda's time.
  */
 
@@ -29,7 +30,24 @@ const WAR_TYPES = [
 ];
 
 const PRACTICE_SQL = `
-  with rounds as (
+  with roll as (
+    -- The race's own day roll (Gym #306): a race closes each day in the
+    -- half hour before 10:00Z at its own slot, and decksUsedToday resets
+    -- there, not on the grid. The slot is the week's recorded close
+    -- (war_week.closed_at, the API's instant), else the clan's latest
+    -- earlier close; 10:00Z when none is known or it is implausible.
+    select w.clan_tag, w.season_id, w.section_index,
+           coalesce((
+             select case when abs(extract(epoch from sh)) <= 3600 then sh end
+               from (select c.closed_at - (date_trunc('day', c.closed_at) + interval '10 hours') as sh
+                       from war_week c
+                      where c.clan_tag = w.clan_tag and c.closed_at is not null
+                        and (c.season_id, c.section_index) <= (w.season_id, w.section_index)
+                      order by c.season_id desc, c.section_index desc
+                      limit 1) x), interval '0') as shift
+      from war_week w
+     where w.season_id = $1),
+  rounds as (
     select battle_id, player_tag, count(*)::int as n
       from battle_participant_round
      group by battle_id, player_tag),
@@ -41,8 +59,11 @@ const PRACTICE_SQL = `
                 then coalesce(r.n, 2) else 1 end as decks,
            (bp.type = any($2::text[]) and r.n is null) as duel_no_rounds
       from war_period p
+      join roll on roll.season_id = p.war_season_id and roll.section_index = p.section_index
       join battle_participant bp
-        on bp.battle_time >= p.starts_at and bp.battle_time < p.ends_at
+        on bp.battle_time >= p.starts_at + roll.shift
+       and bp.battle_time < p.ends_at + roll.shift
+       and bp.clan_tag = roll.clan_tag
       left join rounds r on r.battle_id = bp.battle_id and r.player_tag = bp.player_tag
      where p.war_season_id = $1 and p.kind = 'training'
        and bp.type = any($3::text[])
@@ -107,7 +128,9 @@ export async function trainingBackfill(databaseUrl, spec = {}) {
            from (${PRACTICE_SQL}) x
           where decks_used_today > 0
          on conflict (clan_tag, season_id, section_index, day_in_section, player_tag)
-         do nothing`,
+         do update set decks_used_today = excluded.decks_used_today
+         where war_attendance_day.source = 'battlelog'
+           and war_attendance_day.decks_used_today <> excluded.decks_used_today`,
         params,
       );
       inserted = rowCount;

@@ -18271,5 +18271,279 @@
         "eq": ["entries[0].war.day_kind", "training"]
       }
     ]
+  },
+  {
+    "id": "305.1",
+    "feedback": 305,
+    "stability": "frozen",
+    "tool": "clans_members_timeline",
+    "args": {
+      "from": "2026-09-14",
+      "to": "2026-09-20",
+      "metrics": ["donations"],
+      "verbosity": "compact"
+    },
+    "request_id": "36c9c24e-84dc-41fd-89b4-67c22fbfdeb0",
+    "assert": [
+      {
+        "notes_match": "delta[^.]*(reset|Monday)|(reset|Monday)[^.]*delta"
+      }
+    ]
+  },
+  {
+    "id": "305.2",
+    "feedback": 305,
+    "stability": "frozen",
+    "tool": "clans_members_timeline",
+    "args": {
+      "from": "2026-09-14",
+      "to": "2026-09-20",
+      "metrics": ["donations"],
+      "verbosity": "compact"
+    },
+    "request_id": "36c9c24e-84dc-41fd-89b4-67c22fbfdeb0",
+    "for_each": "members[]",
+    "when": {
+      "neq": ["delta.donations", null]
+    },
+    "assert": [
+      {
+        "gte": ["delta.donations", 0]
+      }
+    ]
+  },
+  {
+    "id": "305.3",
+    "feedback": 305,
+    "stability": "live",
+    "tool": "clans_members_timeline",
+    "args": {
+      "season": "current",
+      "metrics": ["donations"],
+      "verbosity": "compact"
+    },
+    "request_id": "fdb68eb9-862b-4a80-8ee6-e68b36f35667",
+    "assert": [
+      {
+        "notes_match": "delta[^.]*(reset|Monday)|(reset|Monday)[^.]*delta"
+      }
+    ]
+  },
+  {
+    "id": "305.4",
+    "feedback": 305,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_members_timeline",
+    "args": {
+      "from": "2026-09-14",
+      "to": "2026-09-19",
+      "metrics": ["donations"],
+      "verbosity": "compact"
+    },
+    "request_id": "7cdcb212-329e-41fb-9498-0534f6e85f7e",
+    "assert": [
+      {
+        "notes_not_match": "delta[^.]*(reset|Monday)|(reset|Monday)[^.]*delta"
+      },
+      {
+        "gte": ["members[?player_tag=#20R8QRLYLP].delta.donations", 0]
+      },
+      {
+        "gte": ["members[?player_tag=#C920YGLC2].delta.donations", 0]
+      }
+    ]
+  },
+  {
+    "id": "306.1",
+    "feedback": 306,
+    "stability": "frozen",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "d2d792a0-e371-4eb8-8d98-0d048dcfe727",
+    "assert": [
+      {
+        "gte": ["member_weeks[?player_tag=#JYRQ8U92C].training_decks", 12]
+      }
+    ]
+  },
+  {
+    "id": "306.2",
+    "feedback": 306,
+    "stability": "live",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 2
+    },
+    "request_id": "6b40b1fc-7da4-4756-9486-823d6a419f7b",
+    "assert": [
+      {
+        "gte": ["member_weeks[?player_tag=#20R8QRLYLP].training_decks", 12]
+      }
+    ]
+  },
+  {
+    "id": "306.3",
+    "feedback": 306,
+    "stability": "frozen",
+    "calls": {
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 136,
+          "section_index": 2
+        }
+      },
+      "b": {
+        "tool": "battles_query",
+        "args": {
+          "player_tag": "#20R8QRLYLP",
+          "from": "2026-09-21T09:38:05Z",
+          "to": "2026-09-24T09:30:00Z",
+          "mode": "war",
+          "include_total": true,
+          "limit": 1,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "6b40b1fc-7da4-4756-9486-823d6a419f7b",
+    "assert": [
+      {
+        "gte": [
+          "w.member_weeks[?player_tag=#20R8QRLYLP].training_decks",
+          "b.total_count"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "306.4",
+    "feedback": 306,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "d2d792a0-e371-4eb8-8d98-0d048dcfe727",
+    "assert": [
+      {
+        "eq": ["member_weeks[?player_tag=#U92P8PQG0].training_decks", 12]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#20R8QRLYLP].training_decks", 12]
+      }
+    ]
+  },
+  {
+    "id": "307.1",
+    "feedback": 307,
+    "stability": "live",
+    "calls": {
+      "p": {
+        "tool": "clans_participation",
+        "args": {}
+      },
+      "s": {
+        "tool": "clans_standings",
+        "args": {
+          "from": "2026-09-14T00:00:00Z",
+          "to": "2026-09-21T00:00:00Z",
+          "min_battles": 1
+        }
+      }
+    },
+    "request_id": "b29ca636-dff5-4467-8877-0e9246329866",
+    "when": {
+      "eq": ["p.weeks[3].iso_week", "2026-W38"]
+    },
+    "assert": [
+      {
+        "eq": [
+          "p.members[?player_tag=#20CGPVUL92].battles[3]",
+          "s.members[?player_tag=#20CGPVUL92].battles"
+        ]
+      },
+      {
+        "eq": [
+          "p.members[?player_tag=#20JJJ2CCRU].battles[3]",
+          "s.members[?player_tag=#20JJJ2CCRU].battles"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "307.2",
+    "feedback": 307,
+    "stability": "live",
+    "tool": "clans_standings",
+    "args": {
+      "from": "2026-09-07T00:00:00Z",
+      "to": "2026-09-14T00:00:00Z"
+    },
+    "request_id": "a6484cf2-4b0b-41ae-a327-bd76d21ae3a1",
+    "when": {
+      "has": "members[?player_tag=#20CLVPLG8R].player_tag"
+    },
+    "assert": [
+      {
+        "notes_match": "VVSBUDGET[^.]*10 of 38 recorded battles"
+      }
+    ]
+  },
+  {
+    "id": "307.3",
+    "feedback": 307,
+    "stability": "live",
+    "calls": {
+      "r": {
+        "tool": "clans_roster",
+        "args": {
+          "verbosity": "compact"
+        }
+      },
+      "l": {
+        "tool": "rankings_clan_ladder",
+        "args": {}
+      }
+    },
+    "request_id": "3d906ddd-ee81-4603-8a00-30ffc6ef59b8",
+    "when": {
+      "eq": ["r.scores_observed_at", "l.our_clan.score_observed_at"]
+    },
+    "assert": [
+      {
+        "eq": ["r.clan_score", "l.our_clan.score"]
+      }
+    ]
+  },
+  {
+    "id": "307.4",
+    "feedback": 307,
+    "stability": "frozen",
+    "control": true,
+    "tool": "clans_members_timeline",
+    "args": {
+      "from": "2026-09-20",
+      "to": "2026-09-20",
+      "kind": "pre_reset",
+      "metrics": ["donations"],
+      "limit": 50
+    },
+    "request_id": "847d831d-1072-4ddd-8d06-bd9d78a9ee21",
+    "assert": [
+      {
+        "eq": ["truncated", false]
+      },
+      {
+        "count_eq": ["members[]", 46]
+      }
+    ]
   }
 ]

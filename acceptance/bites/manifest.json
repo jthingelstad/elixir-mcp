@@ -1945,5 +1945,45 @@
     "case": "gym/303.2",
     "captures": ["303-2-elixir_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 305,
+    "contract": "7.1.17",
+    "why": "the Gym block 305.1 on the answer it read",
+    "case": "gym/305.1",
+    "captures": ["305-1-clans_members_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 305,
+    "contract": "7.1.17",
+    "why": "the Gym block 305.2 on the answer it read",
+    "case": "gym/305.2",
+    "captures": ["305-2-clans_members_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 305,
+    "contract": "7.1.17",
+    "why": "the Gym block 305.3 on the answer it read",
+    "case": "gym/305.3",
+    "captures": ["305-3-clans_members_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 306,
+    "contract": "7.1.16",
+    "why": "the Gym block 306.1 on the answer it read",
+    "case": "gym/306.1",
+    "captures": ["306-1-war_history.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 306,
+    "contract": "7.1.16",
+    "why": "the Gym block 306.2 on the answer it read",
+    "case": "gym/306.2",
+    "captures": ["306-2-war_history.json"],
+    "expect": "."
   }
 ]
