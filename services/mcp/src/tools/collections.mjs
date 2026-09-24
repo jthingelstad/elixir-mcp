@@ -61,7 +61,7 @@ export const collectionsTools = {
 
   collections_get: {
     description:
-      "One collection's members, enriched: players come with name, latest trophies, account age (years_played) and recording status; clans with name and current member count (open_members). Fan into the player and battle tools per tag from here, or pass the collection as a segment to the meta tools.",
+      "One collection's members, enriched: players come with name, latest trophies, account age (years_played) and recording status; clans with name and current member count (open_members). Fan into the player and battle tools per tag from here, or pass a player collection as a segment to the meta tools (a clan collection is not a segment: pass segment {clan_tag} per clan).",
     inputSchema: {
       type: "object",
       properties: { collection: COLLECTION_SCHEMA },
@@ -152,7 +152,7 @@ export const collectionsTools = {
             ? "years_played is the account's age in whole years (the game's YearsPlayed badge level), not time in this collection; null when the profile carries no YearsPlayed badge, which the game first awards after about a year of play, so almost always an account under a year old (players_profile.account_age_days is read from the same badge, so it is null then too); an unread profile is null as well."
             : null,
           c.synced_from
-            ? `Membership follows the live board ${c.synced_from}: it is re-synced every day after the 10:00Z board snapshot, so this is today's membership, not a fixed cohort, and a segment read over a past window applies today's members.`
+            ? `Membership follows the live board ${c.synced_from}: it is re-synced every day after the 10:00Z board snapshot, so this is today's membership, not a fixed cohort${c.kind === "clan" ? ". A clan collection is not a segment: read a clan with segment {clan_tag}, one clan per call (Gym #288)." : ", and a segment read over a past window applies today's members."}`
             : null,
           "scope says how deeply members are recorded: comprehensive captures battles, activity only the surface.",
           "recording false members may have thin or no data yet; elixir_coverage tells the capture story per tag.",

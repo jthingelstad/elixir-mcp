@@ -165,14 +165,27 @@ export async function boardRow(db, board, location) {
       `No trophy board is recorded for '${raw}': the API has served the Trophy Road leaderboard empty for recent seasons, so there is nothing to record at any location.`,
       'Path of Legends is the competitive ranking: rankings_players({ board: "pol", location }) with the same location.',
     );
-  if (!rows[0])
+  if (!rows[0]) {
+    // Name the boards the record holds (Gym #293: a real but unrecorded
+    // location got the same refusal as a typo, with a hint to pass the
+    // code already passed).
+    const { rows: held } =
+      board === "mode"
+        ? { rows: [] }
+        : await db.query(
+            `select coalesce(country_code, location_key) as code from ranking_board
+              where board = $1 and enabled order by location_key = 'global' desc, 1 limit 20`,
+            [board],
+          );
+    const list = held.map((r) => r.code).join(", ");
     throw new ToolFailure(
       "not_found",
-      `No ${board} board for location '${raw}'.`,
+      `No ${board} board is recorded for location '${raw}'${list ? `; the recorded ones are ${list}` : ""}. A real location the record does not follow reads the same as an unknown one.`,
       board === "mode"
         ? 'Call rankings_players({ board: "mode", location: "list" }) for the recorded leaderboard ids, then pass one as location.'
-        : 'Call rankings_players({ location: "global" }) or pass a numeric CR location id or a two-letter country code.',
+        : `Pass one of the recorded locations${list ? ` (${list})` : ""}.`,
     );
+  }
   return rows[0];
 }
 

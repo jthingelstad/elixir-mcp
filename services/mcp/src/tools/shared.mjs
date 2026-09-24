@@ -1031,9 +1031,28 @@ export async function segmentFilter(ctx, args, params) {
   }
   if (seg.kind === "clan") {
     params.push(seg.clanTag);
+    // The members Elixir RECORDS (Jamie, 2026-09-23: a player known only
+    // from a battle stub is a ghost entry, never in a metric). An
+    // activity-scope clan's other members appear only in recorded
+    // players' logs, and pooled 21% of NoA's battles (Gym #286). The note
+    // says how many members counted.
+    const {
+      rows: [cov],
+    } = await ctx.db.query(
+      `select count(*)::int as members,
+              count(*) filter (where cm.player_tag in (${RECORDED_PLAYERS_SQL}))::int as recorded
+         from clan_membership cm
+        where cm.clan_tag = $1 and cm.left_observed_at is null`,
+      [seg.clanTag],
+    );
     return {
       where: `bp.player_tag in (select cm.player_tag from clan_membership cm
-               where cm.clan_tag = $${params.length} and cm.left_observed_at is null)`,
+               where cm.clan_tag = $${params.length} and cm.left_observed_at is null)
+              and bp.player_tag in (${RECORDED_PLAYERS_SQL})`,
+      coverage:
+        cov && cov.recorded < cov.members
+          ? { members: cov.members, recorded: cov.recorded }
+          : null,
       timeColumn: "bp.battle_time",
       label: seg.clanTag,
       echo: seg.echo,
@@ -1098,6 +1117,8 @@ export function ebShrink(
  *  so a season's rates are over today's members, not the season's. */
 export function collectionSegmentNote(seg) {
   const echo = seg?.echo ?? seg;
+  if (seg?.coverage)
+    return `The clan segment counts the members Elixir records: ${seg.coverage.recorded} of this clan's ${seg.coverage.members} current members. The others appear only in recorded players' battles, so their play is not counted (elixir_track_clan with scope comprehensive records every member).`;
   if (echo?.kind !== "collection") return null;
   return `The collection segment applies ${echo.collection}'s membership as of this call (collections_get lists it); a collection that follows a live board (synced_from) turns over daily, so rates over a past window describe today's members, not the ones on the board then.`;
 }

@@ -575,6 +575,10 @@ export const OUTPUT_SCHEMAS = {
             claim_status: { type: ["string", "null"] },
             clan_tag: { type: ["string", "null"] },
             clan_role: { type: ["string", "null"] },
+            clan_name: {
+              type: ["string", "null"],
+              description: "The clan's name beside clan_tag (7.1.11).",
+            },
             recording: { type: "string" },
             notify: { type: ["boolean", "null"] },
           },

@@ -12,6 +12,7 @@ import {
   requireEnum,
   resolveSeasonWindow,
   segmentFilter,
+  collectionSegmentNote,
 } from "../shared.mjs";
 import {
   TROPHY_MODE_TYPES,
@@ -143,6 +144,7 @@ export const battles_trends = {
       ...(population ? { population } : {}),
       weeks,
       notes: notes(
+        collectionSegmentNote(seg),
         partialWeeksNote(partial),
         trophyBattlesNote(weeks),
         "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",

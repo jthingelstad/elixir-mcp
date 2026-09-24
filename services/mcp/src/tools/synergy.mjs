@@ -30,6 +30,7 @@ import {
   META_METHODOLOGY,
   populationBlock,
   buildMeta,
+  collectionSegmentNote,
 } from "./shared.mjs";
 import {
   seasonRollup,
@@ -365,6 +366,7 @@ export const synergyTools = {
           };
         }),
         notes: notes(
+          collectionSegmentNote(seg),
           args.mode === "event" ? META_EVENT_NOTE : null,
           bandPending
             ? "trophy_band answered from the raw rows (the season's banded rollup is not built yet; the nightly rebuild fills it)."

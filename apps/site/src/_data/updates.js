@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Clan reads count recorded members",
+    body: "The Elixir Gym's fourth run over collections and rankings. A clan read for meta decks, trends, synergy or badges now counts only the members Elixir records, and says how many that is; a member seen only as an opponent's teammate in someone else's battle no longer pools in. The rankings timeline explains a clan with none of its players on the board, refuses a window that ends before it starts, and lists the locations it records when asked for one it does not. Contract 7.1.11.",
+  },
+  {
+    date: "2026-09-24",
     title: "Explore fixes from a signed-in walk",
     body: "A signed-in walk of the console found, and this fixes: battle pages in Explore that failed to open, a player's deck list too large to load, war weeks that showed no rank or fame, a clan's members all reading \"never\" for their last battle, and the activity chart's newest weeks hidden on a phone. Explore accepts a war week typed as 136-2, a connection's last call is its last real call, the tracking pages describe the polling schedule as it runs, and a badge question about a player Elixir has never read says the answer is unknown. Contract 7.1.9.",
   },
