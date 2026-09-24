@@ -11197,7 +11197,8 @@
       {
         "has": "timeline[?observed_at=2026-09-23T18:13:07.933Z]"
       }
-    ]
+    ],
+    "refuted": "Superseded by #245 (7.1.5): every window bound is (from, to] at the millisecond the tool serves, so an item observed at a window's from belongs to the window before it. This case pinned the old [from, to) behaviour of standouts."
   },
   {
     "id": "211.6",
@@ -11217,7 +11218,8 @@
       {
         "absent": "timeline[?observed_at=2026-09-23T18:13:07.933Z]"
       }
-    ]
+    ],
+    "refuted": "Superseded by #245 (7.1.5): (from, to] for every kind, so an item observed exactly at `to` is in this window. This case pinned the old [from, to) behaviour."
   },
   {
     "id": "212.1",
@@ -13614,7 +13616,8 @@
       {
         "eq": ["has_more", false]
       }
-    ]
+    ],
+    "refuted": "Premise changed by #247 (7.1.5): quiet crossings are now served from every battle gap, so these six kinds over 30 days hold 87 items and the 40,000-character size budget (not the item cap) cuts at 58, where the cap had cut at 8. The filter-before-cap fix is pinned by 244.1."
   },
   {
     "id": "244.3",
@@ -13898,7 +13901,8 @@
       {
         "eq": ["has_more", false]
       }
-    ]
+    ],
+    "refuted": "Superseded in part by #252 (7.1.5): a returned item is now observed when the record learned the return, so round hamster's 09-13T02:04:33 return is served with observed_at 21:07:58; the crossing at 09-18T01:49:27 is served and has_more is false."
   },
   {
     "id": "248.1",
@@ -13916,7 +13920,8 @@
       {
         "gt": ["entries[?kind=clan_activity].activity.late_captures", 0]
       }
-    ]
+    ],
+    "refuted": "Not the fix shipped: late_captures keeps its meaning (battles learned in the window more than a day after play). 7.1.5 adds activity.played_here_learned_later and a note pointing at clans_standings for play time; 248.3 pins that."
   },
   {
     "id": "248.2",
@@ -13934,7 +13939,8 @@
       {
         "lte": ["entries[?kind=clan_activity].activity.late_captures", 5000]
       }
-    ]
+    ],
+    "refuted": "Not the fix shipped: late_captures keeps its meaning (battles learned in the window more than a day after play), so a backfill window counts its backfill. 7.1.5 adds activity.played_here_learned_later and a note; 248.3 pins it."
   },
   {
     "id": "248.3",
@@ -14029,7 +14035,8 @@
           "c.entries[?kind=clan_activity].war.fame"
         ]
       }
-    ]
+    ],
+    "refuted": "Refuted with evidence: the clan banked exactly 3,435 after war day 1 in several weeks (war_history 135/1 and 136/0 days[]: 3,435 then 6,870/6,811), so equal as-of fame across weeks is the record, not a derivation; a window whose first war day had not closed reads null (7.1.5)."
   },
   {
     "id": "249.3",

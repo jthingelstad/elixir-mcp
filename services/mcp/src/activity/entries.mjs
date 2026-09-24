@@ -1214,7 +1214,8 @@ export async function buildClanEntry(
             name: m.name,
             role: m.role,
             rung,
-            days_since_poll: open ? m.days_since_poll : null,
+            // The member's poll lag rides along, as on every crossing (#163).
+            days_since_poll: m.days_since_poll,
             at: iso(atMs),
           });
         }
