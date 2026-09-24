@@ -1,0 +1,268 @@
+{
+  "feedback": 246,
+  "contract_version": "7.1.2",
+  "captured_at": "2026-09-24T04:46:52.117Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-23T20:00:00Z",
+      "to": "2026-09-23T23:00:00Z",
+      "mark_read": false,
+      "kinds": ["member_joined", "member_left"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-23T20:00:00.000Z",
+        "to": "2026-09-23T23:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mark_read": false,
+      "kinds": ["member_joined", "member_left"],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-23T20:00:00.000Z",
+      "to": "2026-09-23T23:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T20:58:06.000Z",
+        "kind": "member_left",
+        "section": "roster",
+        "facts": {
+          "player_tag": "#P8URQGR2U",
+          "name": "alex",
+          "role_at_departure": "member",
+          "joined_observed_at": "2026-09-23T20:38:09.000Z",
+          "roster_size_before": 48,
+          "roster_size_after": 47
+        },
+        "observed_at": "2026-09-23T20:58:06.000Z",
+        "text": "Wed 20:58 alex left POAP KINGS (was member)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T20:38:09.000Z",
+        "kind": "member_joined",
+        "section": "roster",
+        "facts": {
+          "player_tag": "#P8URQGR2U",
+          "name": "alex",
+          "role": "member",
+          "roster_size_before": 47,
+          "roster_size_after": 48
+        },
+        "observed_at": "2026-09-23T20:38:09.000Z",
+        "text": "Wed 20:38 alex joined POAP KINGS."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-23T20:00:00.000Z",
+          "to": "2026-09-23T23:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 39 battles in 11 sessions by 11 of 48 members since Wed 20:00; joined: alex, alex; left: alex; roster 47→48; training day; most battles: Vijay 17, x.x.hari.x.x 5, 1spaceO2 4; badges: TDuck 1 (Dark Prince Mastery), raquaza 1 (Battle Wins), BigNorton 1 (Sparky Mastery); donations this week 2,697, led by Vijay (300).",
+        "activity": {
+          "battles": 39,
+          "members_active": 11,
+          "members_total": 48,
+          "sessions": 11,
+          "by_mode": {
+            "ladder": 4,
+            "ranked": 4,
+            "event": 31
+          },
+          "late_captures": 0,
+          "basis": "recorded"
+        },
+        "roster": {
+          "joined": {
+            "items": [
+              {
+                "tag": "#P8URQGR2U",
+                "name": "alex",
+                "role": "member",
+                "at": "2026-09-23T22:23:11.000Z"
+              },
+              {
+                "tag": "#P8URQGR2U",
+                "name": "alex",
+                "role": "member",
+                "at": "2026-09-23T20:38:09.000Z"
+              }
+            ],
+            "more": 0
+          },
+          "left": {
+            "items": [
+              {
+                "tag": "#P8URQGR2U",
+                "name": "alex",
+                "role": "member",
+                "at": "2026-09-23T20:58:06.000Z",
+                "tenure_days": 0
+              }
+            ],
+            "more": 0
+          },
+          "role_changes": {
+            "items": [],
+            "more": 0
+          },
+          "bounced": 2,
+          "size": {
+            "from": 47,
+            "to": 48
+          }
+        },
+        "war": {
+          "season_id": 136,
+          "week": 3,
+          "is_colosseum": false,
+          "day_kind": "training",
+          "war_day": null,
+          "fame": 0,
+          "place_of_five": 1,
+          "race_finished_at": null,
+          "decks": null,
+          "resolved": []
+        },
+        "presence": {
+          "quiet_crossed": {
+            "items": [],
+            "more": 0
+          },
+          "returned": {
+            "items": [],
+            "more": 0
+          },
+          "never_recorded": 0,
+          "rungs_days": [5, 10, 20]
+        },
+        "standouts": {
+          "most_battles": [
+            {
+              "tag": "#C920YGLC2",
+              "name": "Vijay",
+              "battles": 17
+            },
+            {
+              "tag": "#URPCLR8UQ",
+              "name": "x.x.hari.x.x",
+              "battles": 5
+            },
+            {
+              "tag": "#VQUQJP8Q9",
+              "name": "1spaceO2",
+              "battles": 4
+            },
+            {
+              "tag": "#2YG98VVQ",
+              "name": "Alfablack",
+              "battles": 3
+            },
+            {
+              "tag": "#RJ9RRQPVU",
+              "name": "OllieTurtle",
+              "battles": 3
+            }
+          ],
+          "new_bests": {
+            "items": [],
+            "more": 0
+          },
+          "arena_promotions": {
+            "items": [],
+            "more": 0
+          },
+          "ranked_promotions": {
+            "items": [],
+            "more": 0
+          },
+          "collection_levels": {
+            "items": [],
+            "more": 0
+          },
+          "badges": [
+            {
+              "tag": "#PLCCYUQL",
+              "name": "TDuck",
+              "count": 1,
+              "names": ["MasteryDarkPrince"]
+            },
+            {
+              "tag": "#UL2V9QRG0",
+              "name": "raquaza",
+              "count": 1,
+              "names": ["BattleWins"]
+            },
+            {
+              "tag": "#CV20JCY0V",
+              "name": "BigNorton",
+              "count": 1,
+              "names": ["MasteryZapMachine"]
+            }
+          ],
+          "sessions": {
+            "items": [],
+            "more": 0
+          },
+          "session_rungs": {
+            "won_in_a_row": [5, 10, 20],
+            "trophy_net": [150, 300, 500],
+            "battles": [20, 40]
+          }
+        },
+        "donations": {
+          "week_total": 2697,
+          "members_counted": 47,
+          "leader": {
+            "tag": "#C920YGLC2",
+            "name": "Vijay",
+            "given": 300
+          },
+          "as_of": "2026-09-23T23:00:00.000Z"
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-23T23:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.1.2"
+    }
+  },
+  "timings": {
+    "db_ms": 148,
+    "db_queries": 23,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

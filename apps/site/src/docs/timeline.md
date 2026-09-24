@@ -127,7 +127,14 @@ the calendar's week at the window's end: its fame, place and decks are that
 week's recorded race, and null when the record holds no race for it. A window
 that ends before that week's race closed reads the race as it stood then: fame
 and place at the last war day closed by `to`, no `race_finished_at`, and
-`as_of_window_end: true` (7.1.2).
+`as_of_window_end: true` (7.1.2). Where the record holds no closed day for
+that week by then (a Colosseum week, or war day 1 still open), fame and place
+are `null`, not 0: `war_history` has the week's days.
+
+A clan entry's `activity` counts the battles the record learned in the window.
+`activity.played_here_learned_later` counts battles played in it that the
+record learned afterwards (a history backfill); for what was played in a past
+window, `clans_standings` counts by play time.
 
 A battle the record learned more than a day after it was played (a history
 backfill, a log polled late) is a late capture: counted in the entry's

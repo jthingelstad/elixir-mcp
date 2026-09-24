@@ -1,0 +1,126 @@
+{
+  "feedback": 252,
+  "contract_version": "7.1.2",
+  "captured_at": "2026-09-24T04:47:20.110Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-10T00:00:00Z",
+      "to": "2026-09-11T00:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["quiet_crossed", "returned"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-10T00:00:00.000Z",
+        "to": "2026-09-11T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 3
+      },
+      "mark_read": false,
+      "kinds": ["quiet_crossed", "returned"],
+      "verbosity": "compact"
+    },
+    "window": {
+      "from": "2026-09-10T00:00:00.000Z",
+      "to": "2026-09-11T00:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-10T18:09:15.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#VR0QRP2PG",
+          "name": "round hamster",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-10T18:09:15.000Z",
+        "text": "Thu 18:09 round hamster passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-10T15:54:49.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#2P9GRU2Q0",
+          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "role": "elder",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-10T15:54:49.000Z",
+        "text": "Thu 15:54 Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-09T23:19:45.000Z",
+        "kind": "returned",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#V0CRYP2GG",
+          "name": "pokemon",
+          "after_days": 10
+        },
+        "observed_at": "2026-09-09T23:19:45.000Z",
+        "text": "Wed 23:19 pokemon played again after 10 quiet days."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-10T00:00:00.000Z",
+          "to": "2026-09-11T00:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 507 battles in 131 sessions by 39 of 49 members since Thu 00:00; war day 1 (0 fame, place null of 5): 32 untouched, 1 partial, 13 finished of 46; quiet past 5d: Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ (5d), round hamster (5d); back: pokemon after 10d; most battles: Vijay 74, Aaqib Javed 68, bonus 47; standout sessions: MONICA 10W-6L +205 (7 in a row), MONICA 6W-1L +148 (6 in a row), bonus 15W-13L +40; donations this week 4,734, led by Aaqib Javed (501)."
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-11T00:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "War moments (bracket_observed, race_finished, week_resolved) and a clan entry's war.resolved are recorded from 2026-09-14T09:38:05.000Z: a window before that has none of them, which is the ledger's start, not weeks without a result. war_history has every recorded week.",
+      "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step.",
+      "A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): 1 item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For \"what happened on a day\", widen to by the record's lag (the longest here is 0 h, observed_at minus at) and filter on at.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.1.2"
+    }
+  },
+  "timings": {
+    "db_ms": 982,
+    "db_queries": 24,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

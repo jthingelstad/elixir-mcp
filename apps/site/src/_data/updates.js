@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "The timeline for one member",
+    body: "The Elixir Gym's first full run over the newsfeed timeline. A clan's timeline can now be read for one member: pass a player tag and get just their moments. Filtering by kind or section no longer shortens the feed, a member who left and rejoined on the same day shows both moves, quiet-day milestones stay put when the member later plays again, and a week of history loaded in bulk says why it shows no fresh battles. Contract 7.1.5.",
+  },
+  {
+    date: "2026-09-24",
     title: "Clan tables that say who just arrived",
     body: "The Elixir Gym's fourth run over the clan tools. Standings and participation now point out members who joined partway through the period, whose counts include battles from before they arrived, and the missed-battles warning covers the period you asked about rather than always the last week. A clan's recent roster events say when older ones were left out, and its daily history defaults to the last 30 days. Contract 7.1.4.",
   },

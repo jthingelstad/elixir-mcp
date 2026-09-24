@@ -1,0 +1,498 @@
+{
+  "feedback": 244,
+  "contract_version": "7.1.3",
+  "captured_at": "2026-09-24T04:54:09.112Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-21T00:00:00Z",
+      "to": "2026-09-24T04:43:00.427Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": [
+        "battle_session",
+        "session_standout",
+        "badge_earned",
+        "legendary_badge_earned",
+        "arena_changed",
+        "ranked_promotion",
+        "best_trophies_band",
+        "collection_level_step",
+        "career_wins_step",
+        "card_unlocked",
+        "clan_joined",
+        "clan_left",
+        "member_joined",
+        "member_left",
+        "member_role_changed",
+        "bracket_observed",
+        "race_finished",
+        "week_resolved",
+        "quiet_crossed",
+        "returned"
+      ]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-21T00:00:00.000Z",
+        "to": "2026-09-24T04:43:00.427Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mark_read": false,
+      "kinds": [
+        "battle_session",
+        "session_standout",
+        "badge_earned",
+        "legendary_badge_earned",
+        "arena_changed",
+        "ranked_promotion",
+        "best_trophies_band",
+        "collection_level_step",
+        "career_wins_step",
+        "card_unlocked",
+        "clan_joined",
+        "clan_left",
+        "member_joined",
+        "member_left",
+        "member_role_changed",
+        "bracket_observed",
+        "race_finished",
+        "week_resolved",
+        "quiet_crossed",
+        "returned"
+      ],
+      "verbosity": "compact"
+    },
+    "window": {
+      "from": "2026-09-21T00:00:00.000Z",
+      "to": "2026-09-24T04:43:00.427Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-24T03:32:42.000Z",
+        "observed_at": "2026-09-24T03:32:42.000Z",
+        "kind": "badge_earned",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#YC8LLR8Q2",
+          "name": "sniperhendo",
+          "badge": "MasteryBabyDragon",
+          "badge_label": "Baby Dragon Mastery",
+          "level": 5,
+          "max_level": 10,
+          "prior_level": 4
+        },
+        "text": "Thu 03:32 sniperhendo took Baby Dragon Mastery to level 5."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-24T02:46:40.000Z",
+        "observed_at": "2026-09-24T03:28:06.623Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#YC8LLR8Q2",
+          "name": "sniperhendo",
+          "started_at": "2026-09-24T02:28:03.000Z",
+          "ended_at": "2026-09-24T02:54:33.000Z",
+          "battles": 7,
+          "won": 5,
+          "lost": 2,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 7
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 5,
+          "open": false,
+          "crossed": ["won_in_a_row>=5"],
+          "newly": ["won_in_a_row>=5"]
+        },
+        "text": "Thu 02:46 sniperhendo played 7 battles in one sitting (5W-2L; 7 ranked, 5 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-24T02:32:23.000Z",
+        "observed_at": "2026-09-24T03:32:42.000Z",
+        "kind": "ranked_promotion",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#YC8LLR8Q2",
+          "name": "sniperhendo",
+          "from": 1,
+          "to": 2,
+          "promoted_by": {
+            "battle_id": "0c9617e49d4f1dfd76010646c4e46bdf1a9fdfdb5c9303b6aaf27a8482f077c4",
+            "battle_time": "2026-09-24T02:32:23.000Z",
+            "type": "pathOfLegend",
+            "opponent": {
+              "player_tag": "#UQLJCGJPY",
+              "name": "todosan",
+              "starting_trophies": null
+            },
+            "crowns": 1,
+            "crowns_against": 0,
+            "trophy_change": 30
+          },
+          "from_name": "Master 1",
+          "to_name": "Master 2"
+        },
+        "text": "Thu 02:32 sniperhendo was promoted to Master 2, on a 1-0 win over todosan, +30."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T21:12:46.000Z",
+        "observed_at": "2026-09-23T21:12:46.000Z",
+        "kind": "badge_earned",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#PLCCYUQL",
+          "name": "TDuck",
+          "badge": "MasteryDarkPrince",
+          "badge_label": "Dark Prince Mastery",
+          "level": 5,
+          "max_level": 10,
+          "prior_level": 4
+        },
+        "text": "Wed 21:12 TDuck took Dark Prince Mastery to level 5."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T20:58:06.000Z",
+        "kind": "member_left",
+        "section": "roster",
+        "facts": {
+          "player_tag": "#P8URQGR2U",
+          "name": "alex",
+          "role_at_departure": "member",
+          "joined_observed_at": "2026-09-23T20:38:09.000Z",
+          "roster_size_before": 48,
+          "roster_size_after": 47
+        },
+        "observed_at": "2026-09-23T20:58:06.000Z",
+        "text": "Wed 20:58 alex left POAP KINGS (was member)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T20:38:09.000Z",
+        "kind": "member_joined",
+        "section": "roster",
+        "facts": {
+          "player_tag": "#P8URQGR2U",
+          "name": "alex",
+          "role": "member",
+          "roster_size_before": 47,
+          "roster_size_after": 48
+        },
+        "observed_at": "2026-09-23T20:38:09.000Z",
+        "text": "Wed 20:38 alex joined POAP KINGS."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T17:52:36.000Z",
+        "observed_at": "2026-09-23T18:13:07.933Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T17:37:51.000Z",
+          "ended_at": "2026-09-23T17:59:01.000Z",
+          "battles": 7,
+          "won": 7,
+          "lost": 0,
+          "drawn": 0,
+          "by_mode": {
+            "casual": 6,
+            "ranked": 1
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 7,
+          "open": false,
+          "crossed": ["won_in_a_row>=5"],
+          "newly": ["won_in_a_row>=5"]
+        },
+        "text": "Wed 17:52 Vijay played 7 battles in one sitting (7W-0L; 6 casual, 1 ranked, 7 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T17:38:17.000Z",
+        "observed_at": "2026-09-23T17:38:17.000Z",
+        "kind": "arena_changed",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#20GQUGPRC2",
+          "name": "Gem",
+          "from": 54000013,
+          "to": 54000014,
+          "to_name": "Royal Crypt",
+          "from_name": "Executioner's Kitchen"
+        },
+        "text": "Wed 17:38 Gem moved to Royal Crypt from Executioner's Kitchen."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T17:38:17.000Z",
+        "kind": "member_joined",
+        "section": "roster",
+        "facts": {
+          "player_tag": "#20GQUGPRC2",
+          "name": "Gem",
+          "role": "member",
+          "roster_size_before": 46,
+          "roster_size_after": 47
+        },
+        "observed_at": "2026-09-23T17:38:17.000Z",
+        "text": "Wed 17:38 Gem joined POAP KINGS."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T17:33:23.000Z",
+        "observed_at": "2026-09-23T17:42:47.000Z",
+        "kind": "best_trophies_band",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#20GQUGPRC2",
+          "name": "Gem",
+          "best": 6003,
+          "band": 6000,
+          "crossed_by": {
+            "battle_id": "717ae1615648a61529bb3a883c96fb38c6f367726e001c4420cfc2bed36695c2",
+            "battle_time": "2026-09-23T17:33:23.000Z",
+            "type": "PvP",
+            "opponent": {
+              "player_tag": "#VRL9LLURV",
+              "name": "MORiArty49|",
+              "starting_trophies": 6000
+            },
+            "crowns": 1,
+            "crowns_against": 0,
+            "trophy_change": 32,
+            "trophies_after": 6003
+          }
+        },
+        "text": "Wed 17:33 Gem set a new best of 6,003 trophies, crossing 6,000, on a 1-0 win over MORiArty49| (6,000), +32 to 6,003."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T15:44:53.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#RRU9PGJQ9",
+          "name": "Brotherinpants",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-23T15:44:53.000Z",
+        "text": "Wed 15:44 Brotherinpants passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T15:07:42.000Z",
+        "observed_at": "2026-09-23T15:07:42.000Z",
+        "kind": "badge_earned",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#U92P8PQG0",
+          "name": "God Bless You",
+          "badge": "MasterySpearGoblins",
+          "badge_label": "Spear Goblins Mastery",
+          "level": 5,
+          "max_level": 10,
+          "prior_level": 4
+        },
+        "text": "Wed 15:07 God Bless You took Spear Goblins Mastery to level 5."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T12:07:40.000Z",
+        "observed_at": "2026-09-23T12:07:40.000Z",
+        "kind": "badge_earned",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#V8Q8PUL0U",
+          "name": "ryguy67",
+          "badge": "MasteryTombstone",
+          "badge_label": "Tombstone Mastery",
+          "level": 5,
+          "max_level": 10,
+          "prior_level": 4
+        },
+        "text": "Wed 12:07 ryguy67 took Tombstone Mastery to level 5."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T11:28:02.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#20CLVPLG8R",
+          "name": "VVSBUDGET",
+          "role": "member",
+          "rung": 10,
+          "days_quiet": 10,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-23T11:28:02.000Z",
+        "text": "Wed 11:28 VVSBUDGET passed 10 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T02:56:31.000Z",
+        "observed_at": "2026-09-23T03:07:42.000Z",
+        "kind": "best_trophies_band",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JRVV9VC0C",
+          "name": "NOBITA",
+          "best": 9014,
+          "band": 9000,
+          "crossed_by": {
+            "battle_id": "e24a3424250d2554f4d362ea98aba80693af6a703daef73c3aa67826be46fc57",
+            "battle_time": "2026-09-23T02:56:31.000Z",
+            "type": "PvP",
+            "opponent": {
+              "player_tag": "#VRL2GRU0Y",
+              "name": "Arun",
+              "starting_trophies": 9000
+            },
+            "crowns": 1,
+            "crowns_against": 0,
+            "trophy_change": 31,
+            "trophies_after": 9014
+          }
+        },
+        "text": "Wed 02:56 NOBITA set a new best of 9,014 trophies, crossing 9,000, on a 1-0 win over Arun (9,000), +31 to 9,014."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T02:56:31.000Z",
+        "observed_at": "2026-09-23T03:07:42.000Z",
+        "kind": "arena_changed",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#JRVV9VC0C",
+          "name": "NOBITA",
+          "from": 54000019,
+          "to": 54000020,
+          "to_name": "Valkalla",
+          "promoted_by": {
+            "battle_id": "e24a3424250d2554f4d362ea98aba80693af6a703daef73c3aa67826be46fc57",
+            "battle_time": "2026-09-23T02:56:31.000Z",
+            "type": "PvP",
+            "opponent": {
+              "player_tag": "#VRL2GRU0Y",
+              "name": "Arun",
+              "starting_trophies": 9000
+            },
+            "crowns": 1,
+            "crowns_against": 0,
+            "trophy_change": 31,
+            "trophies_after": 9014,
+            "arena_floor": 9000
+          },
+          "from_name": "PANCAKES!"
+        },
+        "text": "Wed 02:56 NOBITA moved to Valkalla from PANCAKES!, on a 1-0 win over Arun (9,000), +31 to 9,014."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T01:49:27.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#20G0JGQLPL",
+          "name": "alex",
+          "role": "member",
+          "rung": 10,
+          "days_quiet": 10,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-23T01:49:27.000Z",
+        "text": "Wed 01:49 alex passed 10 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T00:40:28.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#20G9RY299P",
+          "name": "Waltadr",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-23T00:40:28.000Z",
+        "text": "Wed 00:40 Waltadr passed 5 recorded-quiet days."
+      }
+    ],
+    "timeline_more": 32,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-21T00:00:00.000Z",
+          "to": "2026-09-24T04:43:00.427Z"
+        },
+        "summary": "POAP KINGS: 1143 battles in 282 sessions by 41 of 48 members since Sep 21; joined: alex, alex, Gem; left: alex; roster 46→48; week 2 finished in place 1 with 10,146 fame; training day; quiet past 10d: Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ (12d), pokemon (11d), alex (11d), VVSBUDGET (10d), Waltadr (6d); back: kiruba⚜️ after 10d; most battles: sikander sidhu 177, Vijay 151, Chanco 62; new bests: sikander sidhu 14,000, NOBITA 9,014, Gem 6,003; 2 arena promotions (NOBITA → Valkalla, Gem → Royal Crypt); ranked: TDuck → Master 3, OllieTurtle → Grand Champion, dez42 → Master 3; standout sessions: sikander sidhu 17W-5L +318 (7 in a row), sikander sidhu 10W-45L, Aaqib Javed 7W-1L (7 in a row); badges: Mega Goblin 13 (2v2 League Completion, Mini P.E.K.K.A Mastery, Spear Goblins Mastery), sniperhendo 13 (Witch Mastery, Mini P.E.K.K.A Mastery, Zap Mastery), ryguy67 6 (2v2 League Completion, Spear Goblins Mastery, Lumberjack Mastery); donations this week 3,498, led by Vijay (463)."
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-24T04:43:00.427Z",
+    "has_more": true,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "A busy window: timeline holds the newest items, those the record observed after 2026-09-22T21:22:44.000Z, and timeline_more (32) older ones are counted, not served; has_more is true. The entries still summarize the whole window. next_cursor is the window's end, so the next read continues from the present; to read the older items, pass the same from with to 2026-09-22T21:22:44.000Z."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.1.3"
+    }
+  },
+  "timings": {
+    "db_ms": 470,
+    "db_queries": 27,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

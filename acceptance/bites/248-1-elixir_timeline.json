@@ -1,0 +1,84 @@
+{
+  "feedback": 248,
+  "contract_version": "7.1.2",
+  "captured_at": "2026-09-24T04:51:31.809Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-08-08T00:00:00Z",
+      "to": "2026-08-15T00:00:00Z",
+      "mark_read": false,
+      "sections": ["activity"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-08-08T00:00:00.000Z",
+        "to": "2026-08-15T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 11
+      },
+      "mark_read": false,
+      "sections": ["activity"],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-08-08T00:00:00.000Z",
+      "to": "2026-08-15T00:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-08-08T00:00:00.000Z",
+          "to": "2026-08-15T00:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 0 battles in 0 sessions by 0 of 48 members since Aug 8; roster 47→48; war day 2 (3,435 fame, place 1 of 5): 26 untouched, 12 partial, 3 finished of 41; donations this week 7,340, led by Chanco (732).",
+        "activity": {
+          "battles": 0,
+          "members_active": 0,
+          "members_total": 48,
+          "sessions": 0,
+          "by_mode": {},
+          "late_captures": 0,
+          "basis": "recorded"
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-08-15T00:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "War moments (bracket_observed, race_finished, week_resolved) and a clan entry's war.resolved are recorded from 2026-09-14T09:38:05.000Z: a window before that has none of them, which is the ledger's start, not weeks without a result. war_history has every recorded week.",
+      "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.1.2"
+    }
+  },
+  "timings": {
+    "db_ms": 114,
+    "db_queries": 21,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

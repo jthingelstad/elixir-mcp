@@ -805,3 +805,29 @@ test("3.9.0: a badge or card moment keeps the member's name; the badge's is unde
   );
   assert.equal(counted.count, 3);
 });
+
+test("player_tag keeps one member's items, before the cap; a bad tag is refused (7.1.5, Gym #253)", async () => {
+  const all = await call("elixir_timeline", {
+    from: "2026-09-01",
+    mark_read: false,
+  });
+  const mine = await call("elixir_timeline", {
+    from: "2026-09-01",
+    mark_read: false,
+    player_tag: OBSERVER,
+  });
+  assert.equal(mine.isError, false, JSON.stringify(mine.body));
+  assert.ok(mine.body.timeline.length > 0);
+  assert.ok(
+    mine.body.timeline.every(
+      (it) => it.subject_tag === OBSERVER || it.facts?.player_tag === OBSERVER,
+    ),
+  );
+  assert.ok(mine.body.timeline.length <= all.body.timeline.length);
+  const bad = await call("elixir_timeline", {
+    from: "2026-09-01",
+    mark_read: false,
+    player_tag: "#NOPE!!",
+  });
+  assert.equal(bad.isError, true);
+});

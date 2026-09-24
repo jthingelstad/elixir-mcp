@@ -1,4 +1,4 @@
-import { responseMeta } from "@elixir-mcp/contracts";
+import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import {
   ITEM_KINDS,
   buildTimeline,
@@ -6,6 +6,7 @@ import {
 } from "../../activity/entries.mjs";
 import { resolveInstant } from "../../time.mjs";
 import {
+  TAG_RULE_HINT,
   ToolFailure,
   VERBOSITY,
   WINDOW_ARGS,
@@ -56,6 +57,12 @@ export const elixir_timeline = {
         maxItems: 32,
         description:
           "Keep only timeline items of these kinds (entries are untouched): battle_session, session_standout, badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, clan_joined, clan_left, member_joined, member_left, member_role_changed, bracket_observed, race_finished, week_resolved, quiet_crossed, returned, or an account_* kind. A consumer that wakes on a few kinds reads only those.",
+      },
+      player_tag: {
+        type: "string",
+        maxLength: 16,
+        description:
+          "Keep only items about this player (7.1.5): their own moments and, on a clan's timeline, their member moments. Applied before the item cap; entries are untouched and a reader's pointer moves as on any read.",
       },
       verbosity: VERBOSITY(
         "the timeline items and each entry's summary, subject, window and player notables; every entry section, including clan standouts, is dropped.",
@@ -192,12 +199,34 @@ export const elixir_timeline = {
       );
     const compact = args.verbosity === "compact";
 
+    // One member's items (Gym #253: "anything new with me?" read the
+    // whole clan feed, where the cap left 18 of that member's items).
+    let memberTag = null;
+    if (args.player_tag !== undefined) {
+      try {
+        memberTag = normalizeTag(String(args.player_tag));
+      } catch {
+        throw new ToolFailure(
+          "invalid_tag",
+          `Invalid tag: ${args.player_tag}`,
+          TAG_RULE_HINT,
+        );
+      }
+    }
+    const aboutMember = (it) =>
+      !memberTag ||
+      it.subject_tag === memberTag ||
+      it.facts?.player_tag === memberTag;
     const subjects = await subjectsFor(ctx.db, ctx.account.accountId);
     const built = await buildTimeline(ctx.db, subjects, {
       fromMs,
       toMs,
       timezone: tz,
       accountId: ctx.account.accountId,
+      filter: (it) =>
+        (!sections || sections.includes(it.section)) &&
+        (!kinds || kinds.includes(it.kind)) &&
+        aboutMember(it),
     });
     const keep = (entry) => {
       if (!compact && !sections) return entry;
@@ -209,7 +238,8 @@ export const elixir_timeline = {
     const entries = built.entries.map(keep);
     const shown = (it) =>
       (!sections || sections.includes(it.section)) &&
-      (!kinds || kinds.includes(it.kind));
+      (!kinds || kinds.includes(it.kind)) &&
+      aboutMember(it);
     // The timeline is a newsfeed (Jamie, 2026-09-23; contract 7.0.0):
     // newest first, and a window past the cap keeps its NEWEST items and
     // counts the rest rather than paging them, so a reader catching up
@@ -261,24 +291,32 @@ export const elixir_timeline = {
     );
 
     const marking = args.mark_read !== false;
+    // The pointer only moves forward; read_to reports the one STORED (Gym
+    // #251: a past `to` echoed a move that never happened).
+    let storedMs = null;
     if (marking && reader) {
-      await ctx.db.query(
+      const { rows: stored } = await ctx.db.query(
         `insert into timeline_reader (account_id, reader, read_to)
            values ($1, $2, to_timestamp($3 / 1000.0))
            on conflict (account_id, reader) do update set
              read_to = greatest(timeline_reader.read_to, excluded.read_to),
-             updated_at = now()`,
+             updated_at = now()
+         returning read_to`,
         [ctx.account.accountId, reader, endMs],
       );
+      storedMs = stored[0]?.read_to?.getTime() ?? null;
     } else if (marking) {
-      await ctx.db.query(
+      const { rows: stored } = await ctx.db.query(
         `update account
               set activity_seen_at = greatest(coalesce(activity_seen_at, 'epoch'::timestamptz),
                                               to_timestamp($2 / 1000.0))
-            where account_id = $1`,
+            where account_id = $1
+          returning activity_seen_at`,
         [ctx.account.accountId, endMs],
       );
+      storedMs = stored[0]?.activity_seen_at?.getTime() ?? null;
     }
+    const pointerKept = marking && storedMs !== null && storedMs > endMs;
     const iso = (ms) => (ms === null ? null : new Date(ms).toISOString());
     // The war ledger's own start (Gym #215): war moments and the clan
     // entry's war.resolved begin with the first war event on record, so
@@ -315,7 +353,7 @@ export const elixir_timeline = {
         verbosity: compact ? "compact" : "full",
       }),
       window: built.window,
-      read_to: marking ? iso(endMs) : iso(pointerMs),
+      read_to: marking ? iso(storedMs ?? endMs) : iso(pointerMs),
       timeline,
       timeline_more: remaining,
       entries,
@@ -345,6 +383,20 @@ export const elixir_timeline = {
           : null,
         timeline.some((it) => Date.parse(it.at) < fromMs)
           ? `A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): ${timeline.filter((it) => Date.parse(it.at) < fromMs).length} item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For "what happened on a day", widen to by the record's lag (the longest here is ${lagHours} h, observed_at minus at) and filter on at.`
+          : null,
+        entries.some((e) => e.activity?.played_here_learned_later > 0)
+          ? `A clan entry's activity counts the battles the record LEARNED in this window: activity.played_here_learned_later counts battles played in it that were recorded later (${entries
+              .filter((e) => e.activity?.played_here_learned_later > 0)
+              .map(
+                (e) =>
+                  `${e.name ?? e.subject_tag} ${e.activity.played_here_learned_later}`,
+              )
+              .join(
+                ", ",
+              )}), and late_captures counts battles learned here more than a day after they were played. For what was played in a past window, read clans_standings, which counts by play time.`
+          : null,
+        pointerKept
+          ? `The read pointer stays at ${iso(storedMs)}: it only moves forward, and this window ends before it (read_to reports it). Pass mark_read false to read a past window without asking to move it.`
           : null,
         cutMs !== null
           ? `A busy window: timeline holds the newest items, those the record observed after ${iso(cutMs)}, and timeline_more (${remaining}) older ones are counted, not served; has_more is true. The entries still summarize the whole window. next_cursor is the window's end${marking ? " and the read pointer moved to it" : ""}, so the next read continues from the present; to read the older items, pass the same from with to ${iso(cutMs)}${marking ? " and mark_read false" : ""}.`

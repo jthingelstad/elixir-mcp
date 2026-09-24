@@ -2180,3 +2180,7 @@ All 8 badge findings from rounds 1 and 2 were confirmed fixed. Two new findings 
 
 - 19 regressions; #196 partial -> **#236** (captureByPlayer takes the response's window). **#237** joinedMidWindowNote on standings and participation (note, not rescoped counts: the rows stay today's members). **#238** shipped in 7.1.3. **#239** clans_timeline bare call = last 30 game days. **#240** truncated served. **#241** recent_events by window_end, cut note. **#242** counter-vs-rows note. #243 praise.
 
+## 2026-09-24 — Gym sweep, elixir round 4 on the 7.x newsfeed (7.1.5, feedback #244-#255)
+
+- 27 regressions. **#253** player_tag filter (new argument). **#244** buildTimeline takes `filter`, applied before the cap. **#245** ms-precision bounds: `>= ts(from + 1)` / `< ts(to + 1)` across the timeline queries (created_at keeps microseconds). **#246** roster kinds dedupe only at the same instant; **#250** entry moments deduped. **#247** crossings from battle gaps (items); **#252** returned observed_at = learned. **#248** activity.played_here_learned_later + note. **#249** Colosseum as-of fame null; the regular weeks' 3,435 is real (war_history days: 135/1 and 136/0 both banked 3,435 on day 1). **#251** read_to is the stored pointer. #254 praise.
+
