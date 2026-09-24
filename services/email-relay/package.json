@@ -1,7 +1,7 @@
 {
   "name": "@elixir-mcp/email-relay",
   "version": "0.1.0",
-  "description": "The non-VPC email sender: S3 invokes it for each message in the outbox, and it sends from elixir@poapkings.com over SES (or Fastmail JMAP).",
+  "description": "The non-VPC email sender: S3 notifies its queue for each message in the outbox, and it sends from elixir@poapkings.com over SES.",
   "type": "module",
   "main": "src/handler.mjs",
   "scripts": {

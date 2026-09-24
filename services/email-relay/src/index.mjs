@@ -1,5 +1,5 @@
-/** Lambda entrypoint: the non-VPC relay — sends mail (SES, or JMAP)
- *  from the outbox and enrolls opted-in sign-ins with Buttondown. */
+/** Lambda entrypoint: the non-VPC relay — sends mail over SES from the
+ *  outbox and enrolls opted-in sign-ins with Buttondown. */
 
 import { createHash } from "node:crypto";
 import {
@@ -7,7 +7,6 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
-import { makeJmapSender } from "./jmap.mjs";
 import { makeSesSender } from "./ses.mjs";
 import { makeHandler } from "./handler.mjs";
 
@@ -75,23 +74,13 @@ export function makeButtondownEnroller({
   };
 }
 
-/** The transport is the stack's EmailTransport parameter: jmap (the
- *  Fastmail account) until the poapkings.com SES identity has verified
- *  and the account is out of the sandbox, ses after. Same send() shape. */
-export function chooseSender(env) {
-  const fromEmail = env.FROM_EMAIL ?? "elixir@poapkings.com";
-  return env.EMAIL_TRANSPORT === "ses"
-    ? makeSesSender({
-        fromEmail,
-        configurationSet: env.SES_CONFIGURATION_SET ?? "elixir-mcp",
-      })
-    : makeJmapSender({ token: env.JMAP_TOKEN, fromEmail });
-}
-
 const s3 = new S3Client({});
 
 export const handler = makeHandler({
-  send: chooseSender(process.env),
+  send: makeSesSender({
+    fromEmail: process.env.FROM_EMAIL ?? "elixir@poapkings.com",
+    configurationSet: process.env.SES_CONFIGURATION_SET ?? "elixir-mcp",
+  }),
   readObject: async ({ bucket, key }) => {
     try {
       const out = await s3.send(

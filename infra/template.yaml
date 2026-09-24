@@ -38,7 +38,7 @@ Parameters:
   AppSecretName:
     Type: String
     Default: elixir-mcp/app
-    Description: Secrets Manager secret with db_password, session_secret, jmap_token (URL-safe values)
+    Description: Secrets Manager secret with db_password, session_secret, buttondown_api_token, anthropic_api_key (URL-safe values)
   SiteCertificateArn:
     Type: String
     Default: ""
@@ -57,16 +57,6 @@ Parameters:
     Default: "0"
     AllowedValues: ["0", "1"]
     Description: Refuse lease and submit to a collector below min_client_version. Config is never refused, since it is the channel a stale client updates through. Flip only when every collector reports a version at or above the minimum.
-  EmailTransport:
-    Type: String
-    Default: jmap
-    AllowedValues: [jmap, ses]
-    Description: >-
-      How the relay sends mail from elixir@poapkings.com. jmap is the
-      Fastmail account; ses is the poapkings.com identity below, usable
-      once its DKIM CNAMEs have verified at Namecheap and the account is
-      out of the SES sandbox (2026-09-16). PRESERVED: a deploy never
-      flips it back.
   DbSnapshotIdentifier:
     Type: String
     Default: ""
@@ -832,9 +822,7 @@ Resources:
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref EmailRelayCodeKey }
       Environment:
         Variables:
-          JMAP_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:jmap_token}}"
           FROM_EMAIL: elixir@poapkings.com
-          EMAIL_TRANSPORT: !Ref EmailTransport
           SES_CONFIGURATION_SET: !Ref SenderConfigurationSet
           BUTTONDOWN_API_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:buttondown_api_token}}"
 

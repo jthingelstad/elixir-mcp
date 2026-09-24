@@ -1,6 +1,6 @@
 /**
- * SES send from elixir@poapkings.com (2026-09-16): the same `send()` shape
- * as the JMAP sender, so the handler does not know which transport it has.
+ * SES send from elixir@poapkings.com (2026-09-16), the relay's only
+ * transport; receiving stays at Fastmail.
  * One SESv2 SendEmail per message through the stack's configuration set,
  * which is what routes bounces and complaints to the ops queue; open and
  * click are not in that set's event list, so nothing is added to the body

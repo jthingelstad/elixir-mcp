@@ -1,69 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { makeJmapSender } from "../src/jmap.mjs";
 import { renderEmail } from "../src/templates.mjs";
 import { makeHandler } from "../src/handler.mjs";
-import { makeButtondownEnroller, chooseSender } from "../src/index.mjs";
+import { makeButtondownEnroller } from "../src/index.mjs";
 import { makeSesSender } from "../src/ses.mjs";
-
-function fakeJmapServer() {
-  const calls = [];
-  const fetchImpl = async (url, init = {}) => {
-    calls.push({ url, init });
-    if (url.endsWith("/jmap/session")) {
-      return {
-        ok: true,
-        json: async () => ({
-          apiUrl: "https://api.fastmail.com/jmap/api/",
-          primaryAccounts: { "urn:ietf:params:jmap:mail": "acct1" },
-        }),
-      };
-    }
-    const body = JSON.parse(init.body);
-    const responses = body.methodCalls.map(([name, , tag]) => {
-      if (name === "Identity/get")
-        return [
-          name,
-          { list: [{ id: "id1", email: "elixir@poapkings.com" }] },
-          tag,
-        ];
-      if (name === "Mailbox/query") return [name, { ids: ["drafts1"] }, tag];
-      if (name === "Email/set")
-        return [name, { created: { draft: { id: "e1" } } }, tag];
-      if (name === "EmailSubmission/set")
-        return [name, { created: { send: { id: "s1" } } }, tag];
-      return [name, {}, tag];
-    });
-    return { ok: true, json: async () => ({ methodResponses: responses }) };
-  };
-  return { calls, fetchImpl };
-}
-
-test("JMAP sender: session -> identity/mailbox -> Email/set + EmailSubmission/set", async () => {
-  const { calls, fetchImpl } = fakeJmapServer();
-  const send = makeJmapSender({
-    token: "t",
-    fromEmail: "elixir@poapkings.com",
-    fetchImpl,
-  });
-  const result = await send({ to: "j@x.com", subject: "hi", text: "body" });
-  assert.deepEqual(result, { sent: true });
-
-  const sendCall = JSON.parse(calls.at(-1).init.body);
-  const emailSet = sendCall.methodCalls.find(([n]) => n === "Email/set")[1];
-  assert.equal(emailSet.create.draft.from[0].email, "elixir@poapkings.com");
-  assert.equal(emailSet.create.draft.to[0].email, "j@x.com");
-  const submission = sendCall.methodCalls.find(
-    ([n]) => n === "EmailSubmission/set",
-  )[1];
-  assert.equal(submission.create.send.identityId, "id1");
-
-  // Warm start: bootstrap cached, second send skips session discovery.
-  const before = calls.filter((c) => c.url.endsWith("/jmap/session")).length;
-  await send({ to: "k@x.com", subject: "s", text: "b" });
-  const after = calls.filter((c) => c.url.endsWith("/jmap/session")).length;
-  assert.equal(after, before);
-});
 
 test("login template leads with the code and carries link, consent, disclaimer", () => {
   const { subject, text } = renderEmail({
@@ -444,18 +384,6 @@ test("SES sender: one SendEmail through the configuration set, text always, html
   assert.deepEqual(sent[2].Content.Simple.Headers, [
     { Name: "List-Unsubscribe", Value: "<https://x/u>" },
   ]);
-});
-
-test("the transport follows EMAIL_TRANSPORT: jmap unless it says ses", () => {
-  const ses = chooseSender({
-    EMAIL_TRANSPORT: "ses",
-    SES_CONFIGURATION_SET: "x",
-  });
-  const jmap = chooseSender({ JMAP_TOKEN: "t" });
-  const unset = chooseSender({});
-  assert.equal(typeof ses, "function");
-  assert.equal(typeof jmap, "function");
-  assert.equal(typeof unset, "function");
 });
 
 test("a product kind rides the queue rendered: sent as given with the one-click headers, refused without them", async () => {
