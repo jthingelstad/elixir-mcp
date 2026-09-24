@@ -96,9 +96,15 @@ async function population(db, scopeWhere, params) {
      from (select distinct pb.player_tag from player_badge pb
            ${scopeWhere ? `where ${scopeWhere}` : ""}) pl
      left join lateral (
-       select s.profile_observed_at as at from player_snapshot_daily s
-        where s.player_tag = pl.player_tag and s.profile_observed_at is not null
-        order by s.snapshot_date desc, s.snapshot_kind desc limit 1) lp on true`,
+       -- The newest profile READ: the snapshot's stamp, or the poll ledger
+           -- when an unchanged poll left the snapshot row as it was (the
+           -- day row skips no-op writes; meta.source_polls reads the ledger).
+           select greatest(
+                    (select s.profile_observed_at from player_snapshot_daily s
+                      where s.player_tag = pl.player_tag and s.profile_observed_at is not null
+                      order by s.snapshot_date desc, s.snapshot_kind desc limit 1),
+                    (select ps.last_admitted_at from poll_state ps
+                      where ps.subject_tag = pl.player_tag and ps.endpoint = 'player')) as at) lp on true`,
     params,
   );
   return {
@@ -436,9 +442,15 @@ export const badgesTools = {
                order by pb.level desc nulls last, pb.progress desc nulls last, p.name nulls last
                limit ${limit}) h
          left join lateral (
-           select s.profile_observed_at as at from player_snapshot_daily s
-            where s.player_tag = h.player_tag and s.profile_observed_at is not null
-            order by s.snapshot_date desc, s.snapshot_kind desc limit 1) lp on true
+           -- The newest profile READ: the snapshot's stamp, or the poll ledger
+           -- when an unchanged poll left the snapshot row as it was (the
+           -- day row skips no-op writes; meta.source_polls reads the ledger).
+           select greatest(
+                    (select s.profile_observed_at from player_snapshot_daily s
+                      where s.player_tag = h.player_tag and s.profile_observed_at is not null
+                      order by s.snapshot_date desc, s.snapshot_kind desc limit 1),
+                    (select ps.last_admitted_at from poll_state ps
+                      where ps.subject_tag = h.player_tag and ps.endpoint = 'player')) as at) lp on true
          order by h.level desc nulls last, h.progress desc nulls last, h.name nulls last`,
         params,
       );
