@@ -182,6 +182,9 @@ export const game_events = {
         futureNote,
         seasonFields.seasonNotes,
         "game_days_seen is the game days (the 10:00Z grid the series tools use; a read before 10:00Z belongs to the day before) on which /events listed the event; the API gives no start or end, so an event's span is its first and last sighting, at daily resolution.",
+        // The record's span, not the window's (Gym r6 beta pass): an agent
+        // read first_seen_at as when an event started.
+        "first_seen_at and last_seen_at, and first_sighting_day and latest_sighting_day, are the record's whole span of sightings, not this window's, and a start falls somewhere in the gap before the first read that saw it: for when an event was on inside this window, read game_days_seen.",
         `Sightings began ${running[0]?.first_day ?? "when recording did"}; nothing before that date is known, and days without a read are unknown, not empty.`,
         "The game-mode leaderboards (rankings_players with board: mode) are the same modes' standings; a title here and a board name there usually match.",
         "The window selects the events reads made inside it (its instants, not the dates around them), and running_on_latest_day says the event was in the most recent read the record holds - as close to 'on now' as the record gets.",

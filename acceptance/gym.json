@@ -3527,12 +3527,13 @@
     },
     "assert": [
       {
-        "has": "decks_today_reason"
+        "eq": ["decks_today.day_kind", "training"]
       },
       {
         "eq": ["war_day", null]
       }
-    ]
+    ],
+    "amended": "Amended for 7.1.21 (Jamie 2026-09-24: training days are race-week days): on a training day decks_today is the training picture (day_kind training), and decks_today_reason is served only when no day can be read."
   },
   {
     "id": "128.5",
@@ -4782,10 +4783,10 @@
     },
     "assert": [
       {
-        "eq": ["decks_today", null]
+        "eq": ["decks_today.day_kind", "training"]
       },
       {
-        "eq": ["decks_today_reason", "training_day"]
+        "eq": ["decks_today.war_day", null]
       },
       {
         "count_eq": ["days_closed[]", 0]
@@ -4793,7 +4794,8 @@
       {
         "notes_match": "attendance_by_war_day is empty before the week's first war day"
       }
-    ]
+    ],
+    "amended": "Amended for 7.1.21 (Jamie 2026-09-24: training days are race-week days): on a training day decks_today is the training picture (day_kind training), and decks_today_reason is served only when no day can be read."
   },
   {
     "id": "143.4",
@@ -19353,6 +19355,162 @@
           "weeks[0].our_fame",
           "days[?war_day=4].standings[?clan_tag=#J2RGCRVG].progress_end_banked"
         ]
+      }
+    ]
+  },
+  {
+    "id": "314.1",
+    "feedback": 314,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-10-04T12:00:00Z"
+    },
+    "request_id": "3538938c-9912-48e0-b43c-b0830cd60623",
+    "assert": [
+      {
+        "eq": ["war_day", 4]
+      },
+      {
+        "eq": ["is_colosseum", true]
+      },
+      {
+        "eq": ["season_id", 136]
+      },
+      {
+        "eq": ["next_war_day_opens_at", "2026-10-08T10:00:00.000Z"]
+      },
+      {
+        "eq": ["next_training_starts_at", "2026-10-05T10:00:00.000Z"]
+      }
+    ]
+  },
+  {
+    "id": "314.2",
+    "feedback": 314,
+    "stability": "frozen",
+    "control": true,
+    "calls": {
+      "a": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-10-04T12:00:00Z"
+        }
+      },
+      "b": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-10-05T10:00:00Z"
+        }
+      }
+    },
+    "request_id": "3caa197e-554c-4e11-884d-f95b8421fdac",
+    "assert": [
+      {
+        "eq": ["a.next_war_day_opens_at", "b.next_war_day_opens_at"]
+      },
+      {
+        "eq": ["b.season_id", 137]
+      },
+      {
+        "eq": ["b.week", 1]
+      },
+      {
+        "eq": ["b.period_index", 0]
+      },
+      {
+        "eq": ["b.day_kind", "training"]
+      },
+      {
+        "eq": ["b.is_colosseum", false]
+      }
+    ]
+  },
+  {
+    "id": "314.3",
+    "feedback": 314,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "g": {
+        "tool": "game_clock",
+        "args": {}
+      },
+      "w": {
+        "tool": "war_current",
+        "args": {
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "270d7e3f-90b6-4652-b2be-ee2c15915274",
+    "assert": [
+      {
+        "eq": ["g.day_kind", "w.day_kind"]
+      },
+      {
+        "eq": ["g.section_index", "w.section_index"]
+      },
+      {
+        "eq": ["g.next_war_day_opens_at", "w.next_war_day_opens_at"]
+      },
+      {
+        "eq": ["g.week_ends_at", "w.period.week_end_nominal"]
+      },
+      {
+        "eq": ["g.period_index", "w.period.period_index"]
+      }
+    ]
+  },
+  {
+    "id": "314.4",
+    "feedback": 314,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-24T09:59:59Z"
+    },
+    "request_id": "191614fc-18e5-410a-a4a7-de5f9cfa454b",
+    "assert": [
+      {
+        "eq": ["day_kind", "training"]
+      },
+      {
+        "eq": ["war_day", null]
+      },
+      {
+        "eq": ["war_day_closes_at", null]
+      },
+      {
+        "eq": ["next_war_day_opens_at", "2026-09-24T10:00:00.000Z"]
+      }
+    ]
+  },
+  {
+    "id": "314.5",
+    "feedback": 314,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-23T14:20:00Z",
+      "to": "2026-09-24T14:20:00Z"
+    },
+    "request_id": "0a721c33-fd1f-470a-a8f6-10b5daf5b782",
+    "assert": [
+      {
+        "count_eq": ["game_days_read[]", 1]
+      },
+      {
+        "eq": ["game_days_read[0]", "2026-09-24"]
+      },
+      {
+        "count_eq": ["events[]", 9]
+      },
+      {
+        "notes_match": "game day 2026-09-23[^.]*fell outside"
       }
     ]
   }
