@@ -30,12 +30,6 @@
     "filed": "2026-09-24"
   },
   {
-    "case": "gym/263.3",
-    "reason": "clans_standings takes its totals from the daily rollups, which count a boat DEFENSE as the member battling, so a member with only defenses reads a win rate where battles_performance reads null. The war-day counts were fixed at the SQL level in 7.1.7; the rollup change is queued (Gym #263).",
-    "until": "2026-10-08",
-    "filed": "2026-09-24"
-  },
-  {
     "case": "gym/264.1",
     "reason": "clans_participation joined_observed_at and days_in_clan_observed are the current stint, which Elixir Clan reads for new-member grace; whether a rejoiner keeps their first stint there is a product decision held for Jamie (Gym #264). clans_roster serves the first stint since 7.1.7.",
     "until": "2026-10-08",
