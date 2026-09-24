@@ -169,7 +169,11 @@ export const cardProfileTools = {
         rows: [cat],
       } = await ctx.db.query(
         `select first_seen_at, observed_at,
-                first_seen_at <= (select min(first_seen_at) from card) + interval '1 hour' as since_storage
+                -- A bulk catalog load, not a release (Gym #205): twenty or
+                -- more cards first stored in the same hour as this one.
+                (select count(*) from card c2
+                  where c2.first_seen_at >= card.first_seen_at - interval '1 hour'
+                    and c2.first_seen_at <= card.first_seen_at + interval '1 hour') >= 20 as since_storage
            from card where card_id = $1`,
         [anchor.id],
       );
@@ -198,7 +202,7 @@ export const cardProfileTools = {
       // carries that instant (Gym #205: Knight and Minion Giant alike).
       const catalogNote = !cat?.since_storage
         ? null
-        : `card.first_seen_in_catalog (${card.first_seen_in_catalog}) is when Elixir began storing the card catalog, not when this card entered the game: every card in the catalog then carries it. card.first_played is the earliest recorded deck with each form.`;
+        : `card.first_seen_in_catalog (${card.first_seen_in_catalog}) is when Elixir stored a whole catalog at once, not when this card entered the game: every card in that load carries the same instant. card.first_played is the earliest recorded deck with each form.`;
 
       // --- the population: rollup or raw ------------------------------
       const roll = await seasonRollup(ctx.db, {
