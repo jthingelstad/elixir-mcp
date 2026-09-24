@@ -22,7 +22,7 @@ shipped, and both need a regression pass.
 | players | r5 fixed (7.2.5) — beta: needed #328 (done) | 7.2.2 | 2026-09-24 | 5 | reports/2026-09-24-players-r5.md | r5 pre-beta: #328 capture note+field, #329 ended buckets, #330 defenses, #331 roll note; #332 praise |
 | rankings | r5 fixed (7.2.6) — beta: gated on #342 recording fix (Jamie) | 7.2.4 | 2026-09-24 | 5 | reports/2026-09-24-rankings-r5.md | r5 pre-beta: 21/21 hold; #342 incomplete reset board (re-read; note; recording fix = Jamie's 10:00Z decision), #343/#344 our_clan; #345 season_id string (Jamie); #346/#347 praise |
 | war | r5 fixed (7.2.6) — beta: ready | 7.2.4 | 2026-09-24 | 5 | reports/2026-09-24-war-r5.md | r5 pre-beta on live war day: 24/24 hold; #340 in-progress fame notes; #341 praise |
-| journey | r1 (new user) and r2 (clan leader) fixed (7.1.6-7.1.7) | 7.1.4 / 7.1.6 | 2026-09-24 | 2 | reports/2026-09-24-journey-r1.md, -r2.md | r1: 5 of 10 first questions right first time; #256 min_players, #257 one-player rarity, #258-#259 member reads, #260 promote/kick route, #261 examples. r2: #263 boat defenses out of war days (standings rollup and after-close battles open, known), #264-#267 |
+| journey | r3 fixed (7.2.7) — beta: YES after #348 (done) | 7.2.6 | 2026-09-24 | 3 | reports/2026-09-24-journey-r3.md | r3 pre-beta new user: 11/12 right first call, 22 regressions hold; #348 one-player deck row (top_player_battles + note); #349 praise |
 
 **2026-09-23 incident:** the sweep's afternoon load drained the db.t4g.micro's EBS byte balance to 0. The database is now db.t4g.small (Jamie). Deploy gates run per family (`--acceptance=<family>`).
 
