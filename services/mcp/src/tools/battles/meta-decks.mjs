@@ -78,6 +78,10 @@ import {
   groupByArchetype,
 } from "./common.mjs";
 
+/** Under the protocol's 48,000-character result cap, with room for the
+ *  envelope (MCP_RESULT_MAX_CHARS in protocol.mjs). */
+const RESULT_BUDGET_CHARS = 45_000;
+
 export const battles_meta_decks = {
   description:
     "Observed deck meta for a named population: segment 'mine' (your clan), 'corpus' (the whole recorded corpus, on purpose) or {clan_tag | player_tag | collection}. Per exact deck identity: decided player-battle observations (not unique matches), record, distinct players, usage share, raw and shrunk win rates. Default window: the current season to date; season selects another. No tier lists: what the recorded data shows, with sample sizes.",
@@ -538,7 +542,7 @@ export const battles_meta_decks = {
       shaped = shaped.map(compactDeckRow);
       unfieldable = unfieldable.map(compactDeckRow);
     }
-    return {
+    const out = {
       applied: appliedBlock({
         segment: seg.echo,
         window: win.echo,
@@ -616,5 +620,24 @@ export const battles_meta_decks = {
         ...(win.timezone ? { timezone_applied: win.timezone } : {}),
       }),
     };
+    // A default-limit read that would not fit the result cap sheds rows
+    // from the tail and says so, rather than being refused (Gym journey:
+    // the call the server instructions recommend, fit_for at limit 20,
+    // ran 49,684 characters). An explicit limit is the caller's.
+    if (args.limit === undefined && out.decks.length > 1) {
+      let size = JSON.stringify(out).length;
+      const before = out.decks.length;
+      while (size > RESULT_BUDGET_CHARS && out.decks.length > 1) {
+        const dropped = out.decks.pop();
+        size -= JSON.stringify(dropped).length + 1;
+      }
+      if (out.decks.length < before) {
+        out.applied.limit = out.decks.length;
+        out.notes.push(
+          `The default limit was lowered to ${out.decks.length} so the response fits the result cap; pass limit (or verbosity 'compact') to choose.`,
+        );
+      }
+    }
+    return out;
   },
 };
