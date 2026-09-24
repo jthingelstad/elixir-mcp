@@ -1,4 +1,4 @@
-import { Icon } from "@elixir-mcp/ui";
+import { Icon, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useCallRecord } from "../../lib/queries.js";
 
@@ -19,9 +19,6 @@ import { useCallRecord } from "../../lib/queries.js";
  * evidence to scroll past, not to read.
  */
 const FOLD_ARRAYS_OVER = 20;
-
-const when = (ts) =>
-  ts ? new Date(ts).toISOString().slice(0, 19).replace("T", " ") + "Z" : "—";
 
 const ms = (v) => (v == null ? "—" : `${Number(v).toLocaleString()} ms`);
 const bytes = (v) =>
@@ -168,6 +165,8 @@ function outcomeOf(call) {
 }
 
 export function CallRecord({ id, navigate }) {
+  const { stamp } = useClock();
+  const when = (ts) => stamp(ts, { year: true, seconds: true });
   // The envelope, because 403 and 404 are answers this page reads.
   const record = useCallRecord(id);
   const status = record.data?.status ?? (record.isError ? 0 : null);

@@ -7,6 +7,7 @@ import {
   Icon,
   Rail as RailList,
   RailIdentity,
+  ZoneProvider,
   familyTabs,
 } from "@elixir-mcp/ui";
 import { useEffect, useState, useCallback } from "react";
@@ -1181,44 +1182,50 @@ function Shell() {
   const showRail =
     authed && !needsAuth && effectivePath !== "/signin" && Boolean(here.key);
 
+  // Every time the console prints is on the account's clock: the zone
+  // set on Profile, or UTC when none is (Jamie, 2026-09-23).
   return (
-    <div className="shell">
-      <Chrome navigate={navigate} />
+    <ZoneProvider zone={me?.timezone}>
+      <div className="shell">
+        <Chrome navigate={navigate} />
 
-      <div
-        className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
-      >
-        {showRail && (
-          <Rail
-            me={me}
-            here={here}
-            navigate={navigate}
-            narrow={narrow}
-            counts={counts}
-            dots={dots}
-          />
-        )}
+        <div
+          className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
+        >
+          {showRail && (
+            <Rail
+              me={me}
+              here={here}
+              navigate={navigate}
+              narrow={narrow}
+              counts={counts}
+              dots={dots}
+            />
+          )}
 
-        <main className="page">
-          <div className={`page__inner${showRail ? "" : " page__inner--solo"}`}>
-            {/* Keyed on the route: a boundary that has caught stays caught, so
+          <main className="page">
+            <div
+              className={`page__inner${showRail ? "" : " page__inner--solo"}`}
+            >
+              {/* Keyed on the route: a boundary that has caught stays caught, so
                 without this a single bad page would keep showing its error after
                 you navigated away from it. */}
-            <ErrorBoundary key={effectivePath}>
-              {showUnavailable ? (
-                <Unavailable busy={retrying} onRetry={refresh} />
-              ) : needsAuth ? (
-                <SignInWall navigate={navigate} />
-              ) : (
-                <Outlet />
-              )}
-            </ErrorBoundary>
-            {showRail && <DocsStrip here={here} />}
-          </div>
-        </main>
-      </div>
+              <ErrorBoundary key={effectivePath}>
+                {showUnavailable ? (
+                  <Unavailable busy={retrying} onRetry={refresh} />
+                ) : needsAuth ? (
+                  <SignInWall navigate={navigate} />
+                ) : (
+                  <Outlet />
+                )}
+              </ErrorBoundary>
+              {showRail && <DocsStrip here={here} />}
+            </div>
+          </main>
+        </div>
 
-      <Disclaimer />
-    </div>
+        <Disclaimer />
+      </div>
+    </ZoneProvider>
   );
 }

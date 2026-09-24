@@ -1,4 +1,4 @@
-import { Icon, secsSince } from "@elixir-mcp/ui";
+import { Icon, secsSince, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { usePublicStatus } from "../lib/queries.js";
 
@@ -39,8 +39,24 @@ function topCapPath(x, y, w, h, r) {
  *  not an img: each bucket is a focusable button, and an img role
  *  hides its children from assistive tech while the keyboard still
  *  lands on them (axe: nested-interactive). */
-function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
+/** A bucket's label is the server's "HH:MM" in UTC. Every bucket falls
+ *  in the day before `asOf`, so the instant it names is the latest one
+ *  with that UTC clock at or before `asOf`, which the reader's own clock
+ *  can then say. */
+function bucketInstant(hhmm, asOf) {
+  const [h, m] = String(hhmm).split(":").map(Number);
+  const anchor = asOf ? new Date(asOf) : new Date();
+  const d = new Date(anchor);
+  d.setUTCHours(h, m, 0, 0);
+  if (d > anchor) d.setUTCDate(d.getUTCDate() - 1);
+  return d;
+}
+
+function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit, asOf }) {
   const [at, setAt] = useState(null);
+  const { time } = useClock();
+  const axis = (b) => time(bucketInstant(b.bucket, asOf), { bare: true });
+  const when = (b) => time(bucketInstant(b.bucket, asOf));
   const n = buckets.length || 1;
   const W = 680;
   const BASE = 72;
@@ -117,7 +133,7 @@ function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
                 )}
                 {i % labelEvery === 0 && (
                   <text x={x} y={BASE + 12} fontSize="9">
-                    {b.bucket}
+                    {axis(b)}
                   </text>
                 )}
                 <rect
@@ -130,8 +146,8 @@ function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
                   role="button"
                   aria-label={
                     i === last
-                      ? `${b.bucket}, in progress, ${b.fetches} ${unit} so far`
-                      : `${b.bucket}, ${b.fetches} ${unit}`
+                      ? `${when(b)}, in progress, ${b.fetches} ${unit} so far`
+                      : `${when(b)}, ${b.fetches} ${unit}`
                   }
                   onMouseEnter={() => setAt(i)}
                   onFocus={() => setAt(i)}
@@ -149,7 +165,7 @@ function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit }) {
           style={{ left: `${((at + 0.5) / n) * (W / 720) * 100}%` }}
         >
           <div className="charttip__head">
-            {hovered.bucket}Z · {hovered.fetches} {unit}
+            {when(hovered)} · {hovered.fetches} {unit}
             {hoveredIsLast ? " so far" : ""}
           </div>
           {hoveredIsLast && (
@@ -351,6 +367,7 @@ function QueueGauge({ queue, now }) {
 }
 
 export function Status({ navigate }) {
+  const { time } = useClock();
   // Off by default and visible either way. It used to poll every 60s with
   // nothing on screen saying so, which is the worst of both: a tab left open
   // polled forever, and a reader had no way to know whether what they were
@@ -411,7 +428,7 @@ export function Status({ navigate }) {
           }}
         >
           <span className="mono" style={{ color: "var(--ink-faint)" }}>
-            as of {data.as_of.slice(11, 19)}Z
+            as of {time(data.as_of, { seconds: true })}
           </span>
           <button
             className="btn btn--sm"
@@ -535,6 +552,7 @@ export function Status({ navigate }) {
           series={series}
           labelEvery={3}
           unit="fetches"
+          asOf={data.as_of}
           ariaLabel="fetches per 5 minutes, stacked by collector"
         />
         <ChartLegend series={series} />
@@ -557,6 +575,7 @@ export function Status({ navigate }) {
           series={series}
           labelEvery={3}
           unit="fetches"
+          asOf={data.as_of}
           ariaLabel="fetches per hour over the last 24 hours, stacked by collector"
         />
         <ChartLegend series={series} />

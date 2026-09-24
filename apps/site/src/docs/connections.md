@@ -140,7 +140,7 @@ you, who can call on your behalf, and how the service is running.
 | Your record → Usage | seven days of calls and errors, top tools, today's balance with agents broken out |
 | Access → Connections → Clients | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect |
 | Access → Connections → Agents | create, connect URL, rotate, revoke, suspend, rename; per-agent spend, refusals and unread timeline subjects. An agent connected with a service key rather than OAuth carries its capabilities here, not on Clients |
-| Access → Profile | your address, the timezone your date windows use, slot meters, the tier-upgrade request and today's quota |
+| Access → Profile | your address, the timezone your date windows use and the console prints every time in (UTC until you set one), slot meters, the tier-upgrade request and today's quota |
 | Access → Feedback | what you filed and what the maintainer answered |
 | Service → Status | recording health, budget gauge, capture gaps |
 | Service → Status → Collectors | the fleet, your own collectors, the one-time token reveal, the ladder |

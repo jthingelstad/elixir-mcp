@@ -85,3 +85,83 @@ export function beatCls(s: number | null | undefined): string {
   if (s < 3600) return "freshness freshness--stale";
   return "freshness";
 }
+
+type Instant = string | number | Date | null | undefined;
+
+/** A wall clock for an instant: its date, hours and minutes, seconds,
+ *  and the suffix that names the zone. No zone (the account never set
+ *  one) is UTC written the way the console always wrote it, with a Z;
+ *  a zone is that zone's own short name ("CDT", or "GMT+2" where the
+ *  zone has no abbreviation). A zone this browser does not know reads
+ *  as UTC rather than failing the page. */
+function wallClock(ts: Instant, zone: string | null | undefined) {
+  if (ts == null || ts === "") return null;
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return null;
+  if (zone && zone !== "UTC" && zone !== "Etc/UTC") {
+    try {
+      const p: Record<string, string> = {};
+      for (const { type, value } of new Intl.DateTimeFormat("en-US", {
+        timeZone: zone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+        timeZoneName: "short",
+      }).formatToParts(d))
+        p[type] = value;
+      return {
+        date: `${p.year}-${p.month}-${p.day}`,
+        hm: `${p.hour}:${p.minute}`,
+        s: p.second,
+        suffix: ` ${p.timeZoneName}`,
+      };
+    } catch {
+      // Unknown to this browser: fall through to UTC.
+    }
+  }
+  const iso = d.toISOString();
+  return {
+    date: iso.slice(0, 10),
+    hm: iso.slice(11, 16),
+    s: iso.slice(17, 19),
+    suffix: "Z",
+  };
+}
+
+/** An instant as the reader's wall clock: "09-12 10:00 CDT", or with
+ *  `year` "2026-09-12 10:00 CDT", and `seconds` adds them. Every
+ *  absolute time the console shows goes through here, in the account's
+ *  timezone (Jamie, 2026-09-23: the console knew the zone and printed
+ *  UTC anyway, from a dozen hand-built toISOString() copies). "—" for
+ *  no instant. */
+export function stamp(
+  ts: Instant,
+  zone?: string | null,
+  { year = false, seconds = false }: { year?: boolean; seconds?: boolean } = {},
+): string {
+  const w = wallClock(ts, zone);
+  if (!w) return "—";
+  return `${year ? w.date : w.date.slice(5)} ${w.hm}${seconds ? `:${w.s}` : ""}${w.suffix}`;
+}
+
+/** The reader's calendar date for an instant, "2026-09-12": the day it
+ *  was where they are, which near midnight is not the UTC day. */
+export function stampDay(ts: Instant, zone?: string | null): string {
+  return wallClock(ts, zone)?.date ?? "—";
+}
+
+/** Just the time of day, "10:00 CDT" or with `seconds` "10:00:05 CDT".
+ *  `bare` drops the zone, for a chart axis whose tooltip names it. */
+export function stampTime(
+  ts: Instant,
+  zone?: string | null,
+  { seconds = false, bare = false }: { seconds?: boolean; bare?: boolean } = {},
+): string {
+  const w = wallClock(ts, zone);
+  if (!w) return "—";
+  return `${w.hm}${seconds ? `:${w.s}` : ""}${bare ? "" : w.suffix}`;
+}

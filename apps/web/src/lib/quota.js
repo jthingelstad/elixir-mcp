@@ -1,3 +1,5 @@
+import { stampTime } from "@elixir-mcp/ui";
+
 /**
  * ONE reading of the daily quota, for both pages that show it.
  *
@@ -9,8 +11,9 @@
  *
  * `usage` is the body of /api/me/usage. A null limit means unlimited on
  * the wire (owner and admin), and reads as "∞" rather than as full.
+ * `zone` is the account's, for the time the reset is printed at.
  */
-export function quotaReading(usage) {
+export function quotaReading(usage, zone) {
   const line = (used, limit) => {
     const u = Number(used ?? 0);
     const unlimited = limit == null;
@@ -26,13 +29,14 @@ export function quotaReading(usage) {
   return {
     calls: line(usage?.today_calls, usage?.quota_max),
     fetches: line(usage?.live_today, usage?.live_max),
-    resets: resetsLine(),
+    resets: resetsLine(zone),
   };
 }
 
 /** "resets 00:00Z · 5h 16m" — the day boundary the limiter uses is UTC
- *  midnight, whatever the account's display timezone. */
-function resetsLine(now = new Date()) {
+ *  midnight, whatever the account's display timezone; the account's zone
+ *  only says when that is on the reader's clock ("resets 19:00 CDT"). */
+function resetsLine(zone, now = new Date()) {
   const next = new Date(
     Date.UTC(
       now.getUTCFullYear(),
@@ -46,5 +50,5 @@ function resetsLine(now = new Date()) {
   const mins = Math.max(0, Math.round((next - now) / 60000));
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  return `resets 00:00Z · ${h}h ${String(m).padStart(2, "0")}m`;
+  return `resets ${stampTime(next, zone)} · ${h}h ${String(m).padStart(2, "0")}m`;
 }

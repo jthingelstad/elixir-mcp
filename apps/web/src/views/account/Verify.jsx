@@ -1,4 +1,4 @@
-import { Icon } from "@elixir-mcp/ui";
+import { Icon, stampTime, useClock } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useVerifyList } from "../../lib/queries.js";
@@ -25,16 +25,12 @@ function reducedMotion() {
   );
 }
 
-function clock(iso) {
-  if (!iso) return "not yet";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "not yet";
-  return d.toLocaleTimeString([], {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+/** A moment of the proof on the account's clock, to the second: the
+ *  read and the battle are seconds apart, and the zone is the one the
+ *  rest of the console prints (it was the browser's until 2026-09-23). */
+function clock(iso, zone) {
+  const t = stampTime(iso, zone, { seconds: true });
+  return t === "—" ? "not yet" : t;
 }
 
 function minutesLeft(iso, now) {
@@ -68,6 +64,7 @@ function messageFor(r) {
 }
 
 export function Verify({ refresh, navigate }) {
+  const { zone } = useClock();
   // The list is a read; the challenge below is a live protocol and
   // keeps its own state.
   const listQuery = useVerifyList();
@@ -258,17 +255,17 @@ export function Verify({ refresh, navigate }) {
                   {verified ? (
                     <>
                       <strong>Verified</strong> · the proof:{" "}
-                      {resultLine(challenge.last_battle)}
+                      {resultLine(challenge.last_battle, zone)}
                     </>
                   ) : challenge.last_battle ? (
                     <>
                       <strong>{challenge.matched}</strong> of {challenge.of} in
-                      that deck · {resultLine(challenge.last_battle)}
+                      that deck · {resultLine(challenge.last_battle, zone)}
                     </>
                   ) : (
                     <>No battle since you started</>
                   )}
-                  {" · "}log read {clock(challenge.read_at)}
+                  {" · "}log read {clock(challenge.read_at, zone)}
                 </span>
               </div>
               {!verified && (
@@ -304,7 +301,7 @@ export function Verify({ refresh, navigate }) {
                 {challenge.verified_at && (
                   <span className="verify__when">
                     {" "}
-                    Verified at {clock(challenge.verified_at)}.
+                    Verified at {clock(challenge.verified_at, zone)}.
                   </span>
                 )}
               </p>
@@ -430,7 +427,7 @@ function modeLabel(mode) {
 }
 
 /** "Win 3-1 vs Name · Path of Legends · 14:03" */
-function resultLine(b) {
+function resultLine(b, zone) {
   if (!b) return "";
   const who = b.opponent?.name ?? b.opponent?.player_tag ?? "an opponent";
   const score =
@@ -445,10 +442,11 @@ function resultLine(b) {
         : b.outcome === "draw"
           ? "Draw"
           : "Played";
-  return `${verb}${score} vs ${who}${b.mode ? ` · ${modeLabel(b.mode)}` : ""} · ${clock(b.battle_time)}`;
+  return `${verb}${score} vs ${who}${b.mode ? ` · ${modeLabel(b.mode)}` : ""} · ${clock(b.battle_time, zone)}`;
 }
 
 function VerifiedBurst({ name, battle, seenAfterS }) {
+  const { zone } = useClock();
   const still = reducedMotion();
   return (
     <div className="verify__burst" data-motion={still ? "reduced" : "full"}>
@@ -470,7 +468,7 @@ function VerifiedBurst({ name, battle, seenAfterS }) {
         now be told so.
       </p>
       {battle && (
-        <p className="verify__result">The proof: {resultLine(battle)}</p>
+        <p className="verify__result">The proof: {resultLine(battle, zone)}</p>
       )}
       {seenAfterS != null && (
         <p className="verify__seen">

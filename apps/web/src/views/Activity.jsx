@@ -1,4 +1,4 @@
-import { LogTable } from "@elixir-mcp/ui";
+import { LogTable, useClock } from "@elixir-mcp/ui";
 import {
   useActivityEvents,
   useMyEmailSends,
@@ -32,10 +32,8 @@ function initialToolFilter() {
   return tool ? { tool } : null;
 }
 
-const when = (ts) =>
-  ts ? new Date(ts).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—";
-
 export function Activity({ sub, navigate }) {
+  const { stamp } = useClock();
   const view = BY_SUB[sub] ?? "requests";
   // Each tab loads only its own read, and a tab already read is served
   // from the cache when you come back to it.
@@ -45,7 +43,7 @@ export function Activity({ sub, navigate }) {
 
   if (view === "requests") {
     const rows = (requests ?? []).map((r) => [
-      when(r.created_at),
+      stamp(r.created_at),
       r.token_name ?? r.surface ?? "",
       r.tool ?? "",
       r.error_code
@@ -101,7 +99,7 @@ export function Activity({ sub, navigate }) {
     // lists every call: the id opens the record (the mail as sent),
     // and the record is where "report a problem with this email" lives.
     const rows = (sends ?? []).map((m) => [
-      when(m.sent_at),
+      stamp(m.sent_at),
       m.label ?? m.kind,
       {
         text: m.subject ?? "—",
@@ -139,7 +137,7 @@ export function Activity({ sub, navigate }) {
   const rows = (events ?? []).map((e) => {
     const tag = e.detail?.player_tag ?? e.detail?.clan_tag ?? null;
     return [
-      when(e.created_at),
+      stamp(e.created_at),
       (e.kind ?? "").replaceAll("_", " "),
       tag
         ? e.detail?.subject_name

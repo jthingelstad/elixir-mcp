@@ -435,3 +435,45 @@ test("every app section in the route table has a route, and nothing else does", 
   expect(routed.has("signin")).toBe(true);
   expect(routed.size).toBe(Object.keys(SECTIONS).length + 1);
 });
+
+test("the console prints times on the account's clock, and UTC when none is set", async () => {
+  // Jamie, 2026-09-23: the console knew the zone and printed UTC anyway.
+  const timeline = {
+    window: { from: "2026-09-06T02:30:00Z", to: "2026-09-13T02:30:00Z" },
+    read_to: null,
+    timeline: [
+      {
+        at: "2026-09-13T02:30:00Z",
+        subject_tag: "#20JJJ2CCRU",
+        subject_name: "Jamie",
+        kind: "battle_session",
+        section: "battles",
+        text: "Played a battle session.",
+        facts: {},
+      },
+    ],
+    timeline_more: 0,
+    entries: [],
+    quiet: [],
+  };
+  const signedIn = (timezone) =>
+    mockFetch({
+      "GET /api/me": [
+        200,
+        { authenticated: true, timezone, claims: [], recordings: [] },
+      ],
+      "GET /api/me/timeline": [200, timeline],
+    });
+
+  window.history.pushState({}, "", "/account/timeline");
+  global.fetch = signedIn("America/Chicago");
+  render(<App />);
+  // The evening before, in Chicago, and named as Chicago's clock.
+  expect(await screen.findByText("09-12 21:30 CDT")).toBeTruthy();
+
+  cleanup();
+  window.history.pushState({}, "", "/account/timeline");
+  global.fetch = signedIn(null);
+  render(<App />);
+  expect(await screen.findByText("09-13 02:30Z")).toBeTruthy();
+});

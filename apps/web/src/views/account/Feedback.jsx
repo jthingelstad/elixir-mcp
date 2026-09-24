@@ -1,4 +1,4 @@
-import { Icon, LogTable, Markdown, ago } from "@elixir-mcp/ui";
+import { Icon, LogTable, Markdown, ago, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useMyFeedback } from "../../lib/queries.js";
@@ -57,6 +57,7 @@ function Shipped({ version, navigate }) {
 }
 
 export function FeedbackItem({ id, navigate }) {
+  const { day } = useClock();
   const { data, isSuccess, isError } = useMyFeedback();
   const item =
     (data?.feedback ?? []).find((f) => String(f.feedback_id) === String(id)) ??
@@ -103,8 +104,7 @@ export function FeedbackItem({ id, navigate }) {
         </h1>
         <span className={`chip ${statusChip(item.status)}`}>{item.status}</span>
         <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-          {item.category?.replaceAll("_", " ")} ·{" "}
-          {item.created_at?.slice(0, 10)}
+          {item.category?.replaceAll("_", " ")} · {day(item.created_at)}
           {item.surface && item.surface !== "web"
             ? ` · via ${item.surface}`
             : ""}
@@ -155,7 +155,7 @@ export function FeedbackItem({ id, navigate }) {
         >
           <div className="label" style={{ marginBottom: "8px" }}>
             Maintainer
-            {item.responded_at ? ` · ${item.responded_at.slice(0, 10)}` : ""}
+            {item.responded_at ? ` · ${day(item.responded_at)}` : ""}
           </div>
           <Markdown text={item.response} />
         </section>
@@ -286,6 +286,7 @@ function Compose({
 }
 
 export function Feedback({ navigate }) {
+  const { day, stamp } = useClock();
   const feedback = useMyFeedback().data;
   const items = feedback ? (feedback.feedback ?? feedback.items ?? []) : null;
   const [prefill] = useState(prefillFromUrl);
@@ -308,7 +309,10 @@ export function Feedback({ navigate }) {
       text: `fb_${f.feedback_id}`,
       onClick: () => navigate(`/account/feedback/${f.feedback_id}`),
     },
-    { text: ago(f.created_at, now), title: f.created_at },
+    {
+      text: ago(f.created_at, now),
+      title: stamp(f.created_at, { year: true }),
+    },
     (f.category ?? "general").replaceAll("_", " "),
     { text: firstLine(f.message), title: f.message },
     TONE[f.status]
@@ -317,7 +321,7 @@ export function Feedback({ navigate }) {
     f.response
       ? {
           text: "replied",
-          title: f.responded_at ? `replied ${f.responded_at.slice(0, 10)}` : "",
+          title: f.responded_at ? `replied ${day(f.responded_at)}` : "",
         }
       : "—",
   ]);

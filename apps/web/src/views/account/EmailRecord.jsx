@@ -1,4 +1,4 @@
-import { Icon } from "@elixir-mcp/ui";
+import { Icon, useClock } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { MailFrame } from "../../components/MailFrame.jsx";
 import { useEmailRecord } from "../../lib/queries.js";
@@ -15,8 +15,6 @@ import { useEmailRecord } from "../../lib/queries.js";
  * the id printed in the mail's footer and logged by the relay, so a
  * person quoting it and a maintainer reading the log mean the same send.
  */
-const when = (ts) =>
-  ts ? new Date(ts).toISOString().slice(0, 19).replace("T", " ") + "Z" : "—";
 
 /** The mail's footer links here with ?report=1 ("Something not right?
  *  Send feedback about this email"): one click from the inbox to the
@@ -26,6 +24,8 @@ function wantsReport() {
 }
 
 export function EmailRecord({ id, navigate }) {
+  const { stamp } = useClock();
+  const when = (ts) => stamp(ts, { year: true, seconds: true });
   const [report] = useState(wantsReport);
   useEffect(() => {
     if (report && id)

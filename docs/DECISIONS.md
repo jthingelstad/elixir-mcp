@@ -68,6 +68,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **Labels go beside identifiers** — never instead of them; card levels use the 1-16 display scale via `displayLevel`; evolution forms never merge (`form: base|evolution|hero`). (2026-09-19, 2026-09-03; Jamie)
 - **Verify is one battle** — a battle in the player's own log after the brief, with exactly the eight target cards; the target is their own deck with two cards swapped; `currentDeck` is useless as proof. (2026-09-12, 2026-09-13; Jamie)
 - **Store UTC** — timezone is display only; SQL date boundaries say `at time zone 'UTC'` explicitly. (2026-09-03, 2026-09-23 Closing out; Jamie)
+- **The console tells time in the account's zone** — every absolute time goes through the kit's `stamp`/`useClock`, named by its zone ("CDT"); no zone set is UTC with a Z; day-bucketed charts stay UTC days and say so. (2026-09-23; Jamie)
 - **Tags are the only game IDs** — no surrogate keys; `claim` is the only join between accounts and game data; a claim unlocks history, it never migrates it. (2026-09-03; Jamie)
 - **The badge corpus is the players recorded now** — a profile the record no longer polls is left out of badge questions over the corpus; "there is no practical way we could do otherwise". (2026-09-23; Jamie)
 - **A week's donations are the highest counter value seen in its game days** — the counter only climbs until the weekly reset; never try to pin the reset minute. (2026-09-23; Jamie)

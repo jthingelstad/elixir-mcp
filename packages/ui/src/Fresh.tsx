@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { agoSeconds, freshCls, secsSince } from "./time.ts";
+import { useClock } from "./Zone.tsx";
 
 /** How current a number is, the way Elixir says it: "4m ago" in a
  *  freshness pill whose colour is the age. `seconds` is a tool's own
@@ -17,6 +18,7 @@ export function Fresh({
   label?: string;
 }) {
   const [now] = useState(() => Date.now());
+  const { stamp } = useClock();
   const age = seconds ?? secsSince(ts, now);
   if (age == null)
     return (
@@ -25,7 +27,10 @@ export function Fresh({
       </span>
     );
   return (
-    <span className={freshCls(age)} title={ts ? String(ts) : undefined}>
+    <span
+      className={freshCls(age)}
+      title={ts ? stamp(ts, { year: true, seconds: true }) : undefined}
+    >
       {label ? `${label} ` : ""}
       {agoSeconds(age)}
     </span>

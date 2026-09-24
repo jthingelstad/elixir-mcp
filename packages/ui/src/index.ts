@@ -33,4 +33,8 @@ export {
   beatCls,
   freshCls,
   secsSince,
+  stamp,
+  stampDay,
+  stampTime,
 } from "./time.ts";
+export { useClock, ZoneProvider } from "./Zone.tsx";

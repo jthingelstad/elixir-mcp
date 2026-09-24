@@ -1,8 +1,5 @@
-import { LogTable } from "@elixir-mcp/ui";
+import { LogTable, useClock } from "@elixir-mcp/ui";
 import { useMyTimeline } from "../../lib/queries.js";
-
-const when = (ts) =>
-  ts ? new Date(ts).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—";
 
 /**
  * The timeline: what happened to the players and clans you track, the
@@ -14,6 +11,7 @@ const when = (ts) =>
  * Still a LogTable, because it is still a log.
  */
 export function Timeline() {
+  const { stamp } = useClock();
   const timeline = useMyTimeline().data ?? null;
   const rows = (timeline?.timeline ?? []).map((it) => {
     // Unread is a state of the row: past the account's read pointer, or
@@ -21,7 +19,7 @@ export function Timeline() {
     const unread =
       !timeline?.read_to || String(it.at) > String(timeline.read_to);
     return [
-      when(it.at),
+      stamp(it.at),
       it.subject_name ?? it.subject_tag ?? "your account",
       it.text,
       unread ? { text: "unread", tone: "accent-bright" } : "read",

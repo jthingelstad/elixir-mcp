@@ -1,4 +1,4 @@
-import { Fresh, Icon } from "@elixir-mcp/ui";
+import { Fresh, Icon, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api.js";
@@ -31,6 +31,7 @@ import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
  * account would ever mention it.
  */
 export function Connections({ me, navigate }) {
+  const { day } = useClock();
   const conns = useConnections().data;
   const connections = conns?.connections ?? null;
   const refusals = conns?.refusals ?? [];
@@ -225,8 +226,7 @@ export function Connections({ me, navigate }) {
                           marginTop: "3px",
                         }}
                       >
-                        connected{" "}
-                        {new Date(c.created_at).toISOString().slice(0, 10)}
+                        connected {day(c.created_at)}
                         {c.usage?.ip ? ` · ${c.usage.ip}` : ""}
                         {c.usage?.country ? ` (${c.usage.country})` : ""}
                       </span>

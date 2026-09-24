@@ -1,4 +1,4 @@
-import { Icon } from "@elixir-mcp/ui";
+import { Icon, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { useUsage } from "../../lib/queries.js";
@@ -18,8 +18,9 @@ import { quotaReading } from "../../lib/quota.js";
  */
 export function Profile({ me, refresh, navigate }) {
   const { data: usage = null } = useUsage();
+  const { zone } = useClock();
   const e = me?.entitlements;
-  const quota = usage ? quotaReading(usage) : null;
+  const quota = usage ? quotaReading(usage, zone) : null;
   const timezones =
     typeof Intl.supportedValuesOf === "function"
       ? Intl.supportedValuesOf("timeZone")
@@ -77,7 +78,7 @@ export function Profile({ me, refresh, navigate }) {
                 ))}
               </select>
             }
-            note="sets day boundaries in your charts and local times in tool responses; storage stays UTC"
+            note="sets the times this console shows, day boundaries in your charts and local times in tool responses; storage stays UTC"
           />
         </div>
       </section>

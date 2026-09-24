@@ -1,3 +1,4 @@
+import { useClock } from "@elixir-mcp/ui";
 import { useUsage } from "../../lib/queries.js";
 import { quotaReading } from "../../lib/quota.js";
 
@@ -71,10 +72,11 @@ function fourteenDays(days) {
 
 export function Usage({ navigate }) {
   const { data: usage, error } = useUsage();
+  const { zone } = useClock();
   if (error) return <p className="field-error">Could not load usage.</p>;
   if (!usage) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 
-  const quota = quotaReading(usage);
+  const quota = quotaReading(usage, zone);
   const days = fourteenDays(usage.days);
   const max = Math.max(...days.map((d) => d.calls), 1);
   const callers = usage.by_caller ?? [];
@@ -114,7 +116,7 @@ export function Usage({ navigate }) {
               color: "var(--ink-faint)",
             }}
           >
-            14 days · today still filling
+            14 UTC days · today still filling
           </span>
         </div>
         <div

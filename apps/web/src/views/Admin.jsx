@@ -1,4 +1,4 @@
-import { Icon, LogTable, Markdown, ago } from "@elixir-mcp/ui";
+import { Icon, LogTable, Markdown, ago, useClock } from "@elixir-mcp/ui";
 import { Integrations } from "./Integrations.jsx";
 import { useEffect, useState, Fragment } from "react";
 import { api } from "../api.js";
@@ -64,10 +64,6 @@ function principalLabel(a) {
   return a.account_id ? a.account_id.slice(0, 8) : "unknown";
 }
 
-const day = (ts) => (ts ? new Date(ts).toISOString().slice(0, 10) : "—");
-const when = (ts) =>
-  ts ? new Date(ts).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—";
-
 export function Admin({ me, page = "requests", navigate, itemId }) {
   if (!me?.is_admin)
     return <p className="callout callout--warn">Admins only.</p>;
@@ -112,6 +108,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
  *  vocabulary file. Nothing here edits: the file lives in
  *  cr-agent-api-docs and every entry there carries a public source. */
 function AdminCards() {
+  const { day } = useClock();
   const data = useAdminCards().data;
   const version = data?.version ?? null;
   const cards = data?.cards ?? [];
@@ -134,7 +131,7 @@ function AdminCards() {
     c.kind === "support" ? "tower" : (c.rarity ?? "—"),
     c.elixir_cost === null ? "—" : String(c.elixir_cost),
     roleText(c),
-    c.role?.attested_at ? String(c.role.attested_at).slice(0, 10) : "—",
+    c.role?.attested_at ? day(c.role.attested_at) : "—",
     c.role?.source
       ? {
           text: "source",
@@ -199,6 +196,7 @@ function AdminCards() {
  *  Activity → Emails is, with the recipient named by player and public
  *  id and the reports filed about each send counted. */
 function AdminEmails({ navigate }) {
+  const { stamp: when } = useClock();
   const sends = useAdminEmailSends().data?.sends ?? [];
   const rows = sends.map((m) => [
     when(m.sent_at),
@@ -246,6 +244,7 @@ function AdminEmails({ navigate }) {
 
 /** One sent email, the maintainer's read: the row and the body. */
 function AdminEmailRecord({ id, navigate }) {
+  const { stamp: when } = useClock();
   const record = useAdminEmail(id);
   const rec = record.data ?? null;
   const back = (
@@ -297,6 +296,7 @@ function AdminEmailRecord({ id, navigate }) {
 /** Access requests. Granted by hand, oldest first — the queue is short
  *  and the decision is a judgement, so there is no bulk action. */
 function AdminRequests() {
+  const { day } = useClock();
   const requests = useAdminRequests().data?.requests ?? [];
   const invalidate = useInvalidate();
   const load = () => invalidate(keys.adminRequests);
@@ -399,6 +399,7 @@ function AdminAccounts({ navigate }) {
 /** Usage across accounts. The shared FETCH budget is a service-wide
  *  number and lives on Status; this is the per-account call side. */
 function AdminUsage() {
+  const { day } = useClock();
   const { data: usage = null } = useAdminUsage();
 
   const rows = (usage?.accounts ?? []).map((a) => [
@@ -446,6 +447,7 @@ function AdminUsage() {
  *  to read. Facts first, then the change, on a page that shows what you
  *  are changing. */
 function AdminAccountDetail({ id, navigate }) {
+  const { day } = useClock();
   const query = useAdminAccounts();
   const accounts = query.data?.accounts ?? null;
   const settable = query.data?.settable_roles ?? [];
@@ -655,6 +657,7 @@ function AdminAccountDetail({ id, navigate }) {
  * holds them.
  */
 function AdminConnections() {
+  const { day } = useClock();
   const rows = useAdminConnections().data?.connections ?? [];
   const invalidate = useInvalidate();
   const load = () => invalidate(keys.adminConnections);
@@ -718,6 +721,7 @@ function AdminConnections() {
  *  control is on the item, because deciding what to do about a piece of
  *  feedback means reading it. */
 function AdminFeedback({ navigate }) {
+  const { day } = useClock();
   const feedback = useAdminFeedback().data?.feedback ?? [];
 
   const rows = feedback.map((f) => [
@@ -883,6 +887,7 @@ function AdminCollections({ navigate }) {
  * operations panel on it for whoever may act. One collector, one page.
  */
 function AdminCollectors({ navigate }) {
+  const { stamp } = useClock();
   const gateways = useAdminGateways().data?.gateways ?? [];
 
   const rows = gateways.map((g) => [
@@ -906,7 +911,12 @@ function AdminCollectors({ navigate }) {
             ? undefined
             : "warn",
     },
-    { text: ago(g.last_heartbeat_at), title: g.last_heartbeat_at ?? "never" },
+    {
+      text: ago(g.last_heartbeat_at),
+      title: g.last_heartbeat_at
+        ? stamp(g.last_heartbeat_at, { year: true, seconds: true })
+        : "never",
+    },
     String(g.fetches_last_hour ?? 0),
     // What the fetches were worth (review §9.3): the share that changed
     // the record, what the edge filter dropped before the wire, and door
@@ -951,6 +961,7 @@ function AdminCollectors({ navigate }) {
 /** Service keys for other products. The key is shown once at issue and
  *  never again — only its hash is stored, so there is nothing to show. */
 function AdminServiceTokens() {
+  const { day } = useClock();
   const svcTokens = useAdminServiceTokens().data?.tokens ?? [];
   const [newToken, setNewToken] = useState(null);
   const [svcName, setSvcName] = useState("");
@@ -1058,7 +1069,7 @@ function AdminServiceTokens() {
                       </span>
                     ) : null}
                   </td>
-                  <td className="mono">{String(t.created_at).slice(0, 10)}</td>
+                  <td className="mono">{day(t.created_at)}</td>
                   <td className="mono">{ago(t.last_used_at)}</td>
                   <td className="num">{t.calls_7d}</td>
                   <td>
@@ -1109,6 +1120,7 @@ function AdminServiceTokens() {
  *  description of them. Attached by the console's Report this call button
  *  and by elixir_send_feedback's request_id (contract 1.1.0). */
 function AttachedCall({ requestId }) {
+  const { stamp } = useClock();
   const call = useAdminCall(requestId);
   const record = call.data ?? null;
   const missing = call.isError;
@@ -1139,7 +1151,7 @@ function AttachedCall({ requestId }) {
           <p style={{ margin: "0 0 8px", fontSize: "13px" }}>
             <span className="mono">{record.call?.tool}</span> ·{" "}
             {record.call?.duration_ms ?? "—"} ms ·{" "}
-            {record.call?.created_at?.slice(0, 16).replace("T", " ")}Z
+            {stamp(record.call?.created_at, { year: true })}
             {record.call?.error_code ? ` · ${record.call.error_code}` : ""}
           </p>
           <pre
@@ -1164,6 +1176,7 @@ function AttachedCall({ requestId }) {
  *  description of it. Attached by the record's and the footer's
  *  "report a problem with this email". */
 function AttachedEmail({ sendId, navigate }) {
+  const { stamp: when } = useClock();
   const mail = useAdminEmail(sendId);
   const rec = mail.data ?? null;
   return (
@@ -1201,6 +1214,7 @@ function AttachedEmail({ sendId, navigate }) {
  *  filer's event feed). The response box finally exposes what the API
  *  supported all along. */
 function AdminFeedbackItem({ id, navigate }) {
+  const { day } = useClock();
   const query = useAdminFeedback();
   const item =
     (query.data?.feedback ?? []).find(
@@ -1269,7 +1283,7 @@ function AdminFeedbackItem({ id, navigate }) {
             }}
           >
             {item.from_player ?? "unknown filer"} · via {item.surface} ·{" "}
-            {item.created_at?.slice(0, 10)}
+            {day(item.created_at)}
           </span>
         </div>
         {/* Feedback is written in Markdown — the console's form says so

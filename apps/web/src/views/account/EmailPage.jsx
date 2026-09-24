@@ -1,3 +1,4 @@
+import { useClock } from "@elixir-mcp/ui";
 import { api } from "../../api.js";
 import { keys, useEmailPrefs, useInvalidate } from "../../lib/queries.js";
 
@@ -26,6 +27,7 @@ const BLURB = {
  * it made no sense; the operator's test path is the jobs op.
  */
 export function EmailPage({ navigate }) {
+  const { day } = useClock();
   const { data, isLoading } = useEmailPrefs();
   const invalidate = useInvalidate();
   const kinds = data?.kinds ?? [];
@@ -95,7 +97,7 @@ export function EmailPage({ navigate }) {
                 onClick={() => navigate(`/account/activity/e/${r.send_id}`)}
               >
                 <span className="mono text-[12px] text-ink-faint shrink-0">
-                  {new Date(r.sent_at).toISOString().slice(0, 10)}
+                  {day(r.sent_at)}
                 </span>
                 <span className="text-ink truncate">
                   {r.subject ?? r.label}

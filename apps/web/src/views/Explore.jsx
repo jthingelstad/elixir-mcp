@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { agoSeconds, freshCls } from "@elixir-mcp/ui";
+import { agoSeconds, freshCls, stamp, useClock } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useExploreCollections, usePublicStats } from "../lib/queries.js";
 import { tagPath, tagFromPath } from "../lib/tag-url.js";
@@ -641,9 +641,10 @@ function RecordPage({ me, navigate, kind, rawId }) {
     queryFn: () => fetchRecord(kind, rawId),
   });
   const res = record.data;
+  const { zone } = useClock();
   const view = useMemo(
-    () => (res ? buildView(kind, rawId, res, me) : null),
-    [kind, rawId, res, me],
+    () => (res ? buildView(kind, rawId, res, me, zone) : null),
+    [kind, rawId, res, me, zone],
   );
 
   // The trail and the recent list are written when a record ARRIVES,
@@ -943,11 +944,10 @@ function RecordPage({ me, navigate, kind, rawId }) {
 
 /* ── View builders: shape each record from the REAL payload ── */
 
-function buildView(kind, rawId, res, me) {
+function buildView(kind, rawId, res, me, zone) {
   const b = res.body;
   const meFirstTag = me?.claims?.find((c) => c.is_primary)?.player_tag;
-  const fmt = (t) =>
-    t ? new Date(t).toISOString().replace("T", " ").slice(0, 16) + "Z" : "—";
+  const fmt = (t) => stamp(t, zone, { year: true });
 
   if (kind === "player") {
     const tag = decTag(rawId);
@@ -1240,15 +1240,14 @@ function buildView(kind, rawId, res, me) {
     };
   }
 
-  if (kind === "list") return buildListView(rawId, res);
+  if (kind === "list") return buildListView(rawId, res, zone);
   throw new Error(`unknown kind ${kind}`);
 }
 
-function buildListView(rawId, res) {
+function buildListView(rawId, res, zone) {
   const [what, key] = rawId.split(":");
   const b = res.body;
-  const fmt = (t) =>
-    t ? new Date(t).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—";
+  const fmt = (t) => stamp(t, zone);
 
   if (what === "battles" || what === "deckbattles") {
     const rows = (b.battles ?? []).map((bt) => {
@@ -1425,7 +1424,7 @@ function buildListView(rawId, res) {
   }
 
   if (what === "colmembers") {
-    return buildView("collection", key, res);
+    return buildView("collection", key, res, undefined, zone);
   }
   throw new Error(`unknown list ${what}`);
 }
