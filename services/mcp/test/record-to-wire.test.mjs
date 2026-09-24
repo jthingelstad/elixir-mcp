@@ -126,7 +126,14 @@ test("battles_query rows carry mode_group, context and, on a boat battle, boat (
   assert.ok(boats.battles.length >= 5);
   assert.ok(boats.battles.every((b) => b.mode_group === "war"));
   assert.ok(boats.battles.every((b) => "deck_selection" in b));
-  assert.ok(boats.battles.every((b) => !("context" in b) && !("boat" in b)));
+  // Compact drops context and the boat's towers but keeps its side (Gym
+  // #263: a sweep could not tell an attack from a defense).
+  assert.ok(boats.battles.every((b) => !("context" in b)));
+  assert.ok(
+    boats.battles.every(
+      (b) => !b.boat || Object.keys(b.boat).join() === "side",
+    ),
+  );
   const duel = boats.battles.find((b) => b.type === "riverRaceDuel");
   assert.equal(duel.deck_selection, "warDeckPick");
 

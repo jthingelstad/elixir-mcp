@@ -2959,7 +2959,16 @@ export const OUTPUT_SCHEMAS = {
             role: { type: "string" },
             trophies: { type: ["integer", "null"] },
             donations_this_week: { type: ["integer", "null"] },
-            first_observed_in_clan: { type: ["string", "null"] },
+            first_observed_in_clan: {
+              type: ["string", "null"],
+              description:
+                "When the record first saw this member in the clan, across every stint (7.1.7): a member who left and came back keeps it.",
+            },
+            rejoined_observed_at: {
+              type: "string",
+              description:
+                "Present when the member left and came back: when the record saw the current stint begin (7.1.7).",
+            },
             last_recorded_battle: { type: ["string", "null"] },
             last_seen_in_game: { type: ["string", "null"] },
             years_played: NULLABLE_INT,

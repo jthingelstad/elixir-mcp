@@ -67,7 +67,9 @@ async function joinedMidWindowNote(db, clanTag, fromMs, toMs) {
     `select cm.player_tag, p.name, cm.joined_observed_at,
             (select count(*)::int from battle_participant bp
               where bp.player_tag = cm.player_tag
-                and bp.battle_time >= $2 and bp.battle_time < least(cm.joined_observed_at, $3)) as before_join,
+                and bp.battle_time >= $2 and bp.battle_time < least(cm.joined_observed_at, $3)
+                -- Not a rejoiner's earlier battles in this clan (Gym #264).
+                and bp.clan_tag is distinct from cm.clan_tag) as before_join,
             (select count(*)::int from battle_participant bp
               where bp.player_tag = cm.player_tag
                 and bp.battle_time >= $2 and bp.battle_time < $3) as in_window
@@ -395,6 +397,8 @@ export const clansTools = {
       // rendered these from 46 profile reads a day).
       const roster = await ctx.db.query(
         `select cm.player_tag, cm.role, cm.joined_observed_at, p.name,
+                (select min(x.joined_observed_at) from clan_membership x
+                  where x.clan_tag = cm.clan_tag and x.player_tag = cm.player_tag) as first_joined_observed_at,
                 p.game_last_seen_at, p.years_played, p.account_age_days,
                   p.war_day_wins, p.clan_cards_collected, p.legacy_trophy_road_high_score,
                   nn.nickname,
@@ -463,7 +467,18 @@ export const clansTools = {
           role: m.role,
           trophies: m.trophies,
           donations_this_week: m.donations,
-          first_observed_in_clan: m.joined_observed_at?.toISOString() ?? null,
+          // When the record FIRST saw them in the clan, across stints; a
+          // member who left and came back is not a new recruit (Gym #264).
+          first_observed_in_clan:
+            (
+              m.first_joined_observed_at ?? m.joined_observed_at
+            )?.toISOString() ?? null,
+          ...(m.first_joined_observed_at &&
+          m.joined_observed_at &&
+          m.first_joined_observed_at.getTime() !==
+            m.joined_observed_at.getTime()
+            ? { rejoined_observed_at: m.joined_observed_at.toISOString() }
+            : {}),
           last_recorded_battle: m.last_battle?.toISOString() ?? null,
           // The GAME's own activity stamp, not ours.
           last_seen_in_game: m.game_last_seen_at?.toISOString() ?? null,

@@ -10,6 +10,8 @@ import {
   ToolFailure,
   VERBOSITY,
   WINDOW_ARGS,
+  WINDOW_OBSERVED_FROM_DESC,
+  WINDOW_OBSERVED_TO_DESC,
   appliedBlock,
   notes,
   seasonFieldsForInstants,
@@ -32,6 +34,10 @@ export const elixir_timeline = {
     type: "object",
     properties: {
       ...WINDOW_ARGS,
+      // The timeline selects by when the record OBSERVED an item, over
+      // (from, to] at the millisecond it serves (7.1.5, Gym #273).
+      from: { type: "string", description: WINDOW_OBSERVED_FROM_DESC },
+      to: { type: "string", description: WINDOW_OBSERVED_TO_DESC },
       mark_read: {
         type: "boolean",
         default: true,
@@ -62,7 +68,7 @@ export const elixir_timeline = {
         type: "string",
         maxLength: 16,
         description:
-          "Keep only items about this player (7.1.5): their own moments and, on a clan's timeline, their member moments. Applied before the item cap; entries are untouched and a reader's pointer moves as on any read.",
+          "Keep only items about this player (7.1.5): their own moments and sessions and, on a clan's timeline, their member moments and sessions. Applied before the item cap; entries are untouched, and a member read never moves the read pointer.",
       },
       verbosity: VERBOSITY(
         "the timeline items and each entry's summary, subject, window and player notables; every entry section, including clan standouts, is dropped.",
@@ -291,7 +297,10 @@ export const elixir_timeline = {
         3_600_000,
     );
 
-    const marking = args.mark_read !== false;
+    // A member read never moves the pointer: it served one member's items
+    // and would carry the reader past everything it filtered out (Gym
+    // #271: 73 items skipped, three of them clan moments).
+    const marking = args.mark_read !== false && !memberTag;
     // The pointer only moves forward; read_to reports the one STORED (Gym
     // #251: a past `to` echoed a move that never happened).
     let storedMs = null;

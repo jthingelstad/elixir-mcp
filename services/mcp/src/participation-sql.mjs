@@ -45,7 +45,7 @@ export function participationQueries({
       // and nothing joins battle any more.
       name: "battles_by_week_and_war_day",
       text: `with bp as (
-               select bp.player_tag, bp.battle_time, bp.clan_tag, bp.type
+               select bp.player_tag, bp.battle_time, bp.clan_tag, bp.type, bp.battle_id
                from battle_participant bp
                where bp.player_tag = any($1) and bp.battle_time >= $2
              )
@@ -64,6 +64,15 @@ export function participationQueries({
              join war_period p
                on bp.battle_time >= p.starts_at and bp.battle_time < p.ends_at
              where bp.clan_tag = $4 and bp.type = any($5) and p.war_day is not null
+               -- A boat DEFENSE is not the member's battle (Gym #263). The
+               -- lookup runs for boat rows only, by primary key, so the
+               -- scan above stays index-only.
+               and not (bp.type = 'boatBattle' and exists (
+                 select 1 from battle bd
+                   join battle_participant x
+                     on x.battle_id = bd.battle_id and x.player_tag = bp.player_tag
+                  where bd.battle_id = bp.battle_id and bd.boat_battle_side is not null
+                    and (bd.boat_battle_side = 'defender') = (x.side = 0)))
              group by bp.player_tag, p.war_season_id, p.section_index, p.war_day`,
       values: [tags, from, rankedTypes, clanTag, warTypes],
     },

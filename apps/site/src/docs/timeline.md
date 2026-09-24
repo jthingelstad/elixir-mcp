@@ -254,3 +254,21 @@ entry: a clan's silence is the clan's activity.
 On first run the window is the last 24 hours; an agent that posts a month
 of backlog into a channel is the most common mistake with a feed like this,
 and the cap and the default exist to prevent it.
+
+## One member, and the window's bounds
+
+`player_tag` keeps one player's items: their own moments and sessions, and on
+a clan's timeline their member moments and sessions (7.1.5-7.1.7). It is
+applied before the item cap, `applied.player_tag` echoes it, a tag that is
+not one of your players or a member of your clans says so, and a member read
+never moves the read pointer. A session item is a sitting of two or more
+battles; a single battle is not an item.
+
+Every window is **(from, to]** by when the record observed an item, compared
+at the millisecond the tool serves: `from` is exclusive and `to` inclusive,
+so the busy-window note's `to` reaches the item at the cut. A clan entry's
+`activity` counts the battles the record learned in the window:
+`activity.learned_here_played_before` counts ones played in the day before
+`from` and recorded here (counted), `activity.played_here_learned_later` ones
+played in the window and recorded after `to` (not counted).
+

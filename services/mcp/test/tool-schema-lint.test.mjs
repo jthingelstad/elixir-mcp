@@ -18,6 +18,8 @@ import {
   WINDOW_FROM_DESC,
   WINDOW_TO_DESC,
   WINDOW_DATE_ONLY_DESC,
+  WINDOW_OBSERVED_FROM_DESC,
+  WINDOW_OBSERVED_TO_DESC,
 } from "../src/tools/shared.mjs";
 
 const WINDOW_ARGS = new Set(["from", "to", "compare_from", "compare_to"]);
@@ -47,9 +49,11 @@ test("both bounds are described the same way wherever they appear", () => {
   // called its `to` "inclusive" while the instant path treats it as
   // exclusive - the kind of drift free-text descriptions invite.
   for (const { tool, name, schema } of windowArgs) {
+    // Four shapes: the observed-window pair is elixir_timeline's (from,
+    // to], named once like the others (7.1.5).
     const allowed = name.endsWith("from")
-      ? [WINDOW_FROM_DESC, WINDOW_DATE_ONLY_DESC]
-      : [WINDOW_TO_DESC, WINDOW_DATE_ONLY_DESC];
+      ? [WINDOW_FROM_DESC, WINDOW_DATE_ONLY_DESC, WINDOW_OBSERVED_FROM_DESC]
+      : [WINDOW_TO_DESC, WINDOW_DATE_ONLY_DESC, WINDOW_OBSERVED_TO_DESC];
     assert.ok(
       allowed.some((a) => schema.description.includes(a)),
       `${tool}.${name} describes the bound in its own words: ${schema.description}`,

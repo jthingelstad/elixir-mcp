@@ -1,0 +1,382 @@
+{
+  "feedback": 272,
+  "contract_version": "7.1.6",
+  "captured_at": "2026-09-24T05:55:54.027Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-08T00:00:00Z",
+      "to": "2026-09-19T00:00:00Z",
+      "mark_read": false,
+      "sections": ["presence"]
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-08T00:00:00.000Z",
+        "to": "2026-09-19T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 11
+      },
+      "mark_read": false,
+      "sections": ["presence"],
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-08T00:00:00.000Z",
+      "to": "2026-09-19T00:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-18T11:28:02.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#20CLVPLG8R",
+          "name": "VVSBUDGET",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-18T11:28:02.000Z",
+        "text": "Fri 11:28 VVSBUDGET passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-17T23:45:07.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#U08P889Y0",
+          "name": "Tere",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-17T23:45:07.000Z",
+        "text": "Thu 23:45 Tere passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-17T16:34:46.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#V0CRYP2GG",
+          "name": "pokemon",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-17T16:34:46.000Z",
+        "text": "Thu 16:34 pokemon passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T02:42:11.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#RRU9PGJQ9",
+          "name": "Brotherinpants",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-16T02:42:11.000Z",
+        "text": "Wed 02:42 Brotherinpants passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-16T02:33:43.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#G2CUUJQ8V",
+          "name": "kiruba⚜️",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-16T02:33:43.000Z",
+        "text": "Wed 02:33 kiruba⚜️ passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T03:37:44.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#20GQUGPRC2",
+          "name": "Gem",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-15T03:37:44.000Z",
+        "text": "Tue 03:37 Gem passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-15T00:08:20.000Z",
+        "observed_at": "2026-09-15T22:57:43.644Z",
+        "kind": "returned",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#YC8LLR8Q2",
+          "name": "sniperhendo",
+          "after_days": 7
+        },
+        "text": "Tue 00:08 sniperhendo played again after 7 quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-13T02:04:33.000Z",
+        "observed_at": "2026-09-13T21:07:58.219Z",
+        "kind": "returned",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#VR0QRP2PG",
+          "name": "round hamster",
+          "after_days": 7
+        },
+        "text": "Sun 02:04 round hamster played again after 7 quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-12T02:19:49.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#YC8LLR8Q2",
+          "name": "sniperhendo",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-12T02:19:49.000Z",
+        "text": "Sat 02:19 sniperhendo passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-10T18:09:15.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#VR0QRP2PG",
+          "name": "round hamster",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-10T18:09:15.000Z",
+        "text": "Thu 18:09 round hamster passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-10T15:54:49.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#2P9GRU2Q0",
+          "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+          "role": "elder",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-10T15:54:49.000Z",
+        "text": "Thu 15:54 Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ passed 5 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-09T23:19:45.000Z",
+        "observed_at": "2026-09-10T13:47:48.708Z",
+        "kind": "returned",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#V0CRYP2GG",
+          "name": "pokemon",
+          "after_days": 10
+        },
+        "text": "Wed 23:19 pokemon played again after 10 quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-09T22:14:56.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#V0CRYP2GG",
+          "name": "pokemon",
+          "role": "member",
+          "rung": 10,
+          "days_quiet": 10,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-09T22:14:56.000Z",
+        "text": "Wed 22:14 pokemon passed 10 recorded-quiet days."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-08T20:41:37.000Z",
+        "kind": "quiet_crossed",
+        "section": "presence",
+        "facts": {
+          "player_tag": "#20G0JGQLPL",
+          "name": "alex",
+          "role": "member",
+          "rung": 5,
+          "days_quiet": 5,
+          "days_since_poll": 0
+        },
+        "observed_at": "2026-09-08T20:41:37.000Z",
+        "text": "Tue 20:41 alex passed 5 recorded-quiet days."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-08T00:00:00.000Z",
+          "to": "2026-09-19T00:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 4805 battles in 1208 sessions by 47 players who were members during the window (roster now 46) since Sep 8; joined: VVSBUDGET, ㅤᴀɴᴅᴇʀㅤ:), Brotherinpants; left: blackberry, ㅤᴀɴᴅᴇʀㅤ:), Th15_Guy, Ditaka, pax; roles: Mega Goblin member→elder, L-Drxgo⚡ member→elder; roster 48→46; week 1 finished in place 1 with 10,134 fame; war day 2 (3,435 fame, place 1 of 5): 27 untouched, 4 partial, 16 finished of 47; quiet past 5d: Gem (8d), Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️ (7d), kiruba⚜️ (7d), pokemon (6d), VVSBUDGET (5d); back: pokemon after 10d, round hamster after 7d, sniperhendo after 7d; most battles: Aaqib Javed 661, Vijay 535, sikander sidhu 311; new bests: x.x.hari.x.x 6,087; 1 arena promotion (x.x.hari.x.x → Royal Crypt); ranked: Aaqib Javed → Master 2, TDuck → Master 2, MONICA → Master 3; standout sessions: L-Drxgo⚡ 24W-24L, Aaqib Javed 23W-18L, Aaqib Javed 28W-9L (12 in a row); badges: bonus 12 (Miner Mastery, Dark Prince Mastery, Sparky Mastery), BigNorton 7 (Musketeer Mastery, Rage Mastery, Heal Spirit Mastery), Mega Goblin 6 (Barbarian Barrel Mastery, Golden Knight Mastery, Battle Ram Mastery); donations this week 6,139, led by Vijay (689).",
+        "presence": {
+          "quiet_crossed": {
+            "items": [
+              {
+                "tag": "#20GQUGPRC2",
+                "name": "Gem",
+                "role": "member",
+                "days_quiet": 8,
+                "days_since_poll": 0,
+                "rung": 5
+              },
+              {
+                "tag": "#2P9GRU2Q0",
+                "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+                "role": "elder",
+                "days_quiet": 7,
+                "days_since_poll": 0,
+                "rung": 5
+              },
+              {
+                "tag": "#G2CUUJQ8V",
+                "name": "kiruba⚜️",
+                "role": "member",
+                "days_quiet": 7,
+                "days_since_poll": 0,
+                "rung": 5
+              },
+              {
+                "tag": "#V0CRYP2GG",
+                "name": "pokemon",
+                "role": "member",
+                "days_quiet": 6,
+                "days_since_poll": 0,
+                "rung": 5
+              },
+              {
+                "tag": "#20CLVPLG8R",
+                "name": "VVSBUDGET",
+                "role": "member",
+                "days_quiet": 5,
+                "days_since_poll": 0,
+                "rung": 5
+              },
+              {
+                "tag": "#20G0JGQLPL",
+                "name": "alex",
+                "role": "member",
+                "days_quiet": 5,
+                "days_since_poll": 0,
+                "rung": 5
+              }
+            ],
+            "more": 0
+          },
+          "returned": {
+            "items": [
+              {
+                "tag": "#V0CRYP2GG",
+                "name": "pokemon",
+                "after_days": 10
+              },
+              {
+                "tag": "#VR0QRP2PG",
+                "name": "round hamster",
+                "after_days": 7
+              },
+              {
+                "tag": "#YC8LLR8Q2",
+                "name": "sniperhendo",
+                "after_days": 7
+              }
+            ],
+            "more": 0
+          },
+          "never_recorded": 0,
+          "rungs_days": [5, 10, 20]
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-19T00:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "War moments (bracket_observed, race_finished, week_resolved) and a clan entry's war.resolved are recorded from 2026-09-14T09:38:05.000Z: a window before that has none of them, which is the ledger's start, not weeks without a result. war_history has every recorded week.",
+      "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.1.6"
+    }
+  },
+  "timings": {
+    "db_ms": 1049,
+    "db_queries": 31,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

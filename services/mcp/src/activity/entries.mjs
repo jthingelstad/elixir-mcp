@@ -890,8 +890,17 @@ export async function buildClanEntry(
   // One member's sessions as items when the reader asked about that
   // member (Gym #258): a clan feed carries only standout sessions, so a
   // member who played two ordinary games read 0 items.
+  // Sessions of two or more battles, as a player's own timeline serves
+  // them (Gym #265: single battles were served).
+  // Whole sittings, from the day-wide fetch the standouts read, kept
+  // when this window learned one of their battles (Gym #270: hourly
+  // reads cut one sitting into per-window pieces).
   const memberSessions = memberTag
-    ? sessionsOf(byPlayer.get(memberTag) ?? [], toMs)
+    ? sessionsOf(
+        allBattles.filter((r) => r.player_tag === memberTag),
+        toMs,
+        { learned: (b) => b.learned },
+      ).filter((x) => x.battles >= 2 && x.learned_at !== null)
     : [];
   // Session standouts: every member's sessions over the wider fetch, kept
   // when a rung was crossed by a battle this window learned. Named below,
@@ -1100,6 +1109,13 @@ export async function buildClanEntry(
     if (p) {
       war.day_kind = p.kind;
       war.war_day = p.warDay ?? null;
+      // A training day of the week in progress: no race day has run, so
+      // there is no fame or place yet (Gym #266: it read fame 0, place 1
+      // of 5, where war_current ranks every clan null).
+      if (sameWeek && !p.warDay && !finishedAt && !asOf) {
+        war.fame = null;
+        war.place_of_five = null;
+      }
     }
     if (p && sameWeek) {
       if (p.warDay) {
@@ -1192,22 +1208,41 @@ export async function buildClanEntry(
   // the crossing the window saw. The entry's quiet_crossed stays the
   // window-end state.
   const crossings = [];
+  const returns = [];
   if (comprehensive && members.length) {
     const maxRung = QUIET_RUNGS_DAYS.at(-1);
     const { rows: times } = await timed(perf, "clan.quiet_gaps", () =>
       db.query(
-        `select bp.player_tag, bp.battle_time from battle_participant bp
-          where bp.player_tag = any($1::text[])
-            and bp.battle_time > ${ts(fromMs - maxRung * DAY_MS)}
-            and bp.battle_time < ${ts(toMs + 1)}
-          order by bp.player_tag, bp.battle_time`,
+        `select * from (
+           select bp.player_tag, bp.battle_time,
+                  (select b.created_at from battle b where b.battle_id = bp.battle_id) as learned_at
+             from battle_participant bp
+            where bp.player_tag = any($1::text[])
+              and bp.battle_time > ${ts(fromMs - maxRung * DAY_MS)}
+              and bp.battle_time < ${ts(toMs + 1)}
+           union all
+           -- Each member's last battle before that, so a return after a
+           -- longer absence has the gap's start.
+           select m.tag, lb.battle_time, null
+             from unnest($1::text[]) as m(tag)
+             join lateral (
+               select bp.battle_time from battle_participant bp
+                where bp.player_tag = m.tag
+                  and bp.battle_time <= ${ts(fromMs - maxRung * DAY_MS)}
+                order by bp.battle_time desc limit 1) lb on true
+         ) t order by player_tag, battle_time`,
         [members.map((m) => m.player_tag)],
       ),
     );
     const byTag = new Map();
+    const learnedAt = new Map();
     for (const r of times) {
       if (!byTag.has(r.player_tag)) byTag.set(r.player_tag, []);
       byTag.get(r.player_tag).push(r.battle_time.getTime());
+      learnedAt.set(
+        `${r.player_tag}|${r.battle_time.getTime()}`,
+        r.learned_at?.getTime() ?? null,
+      );
     }
     for (const m of members) {
       const t = byTag.get(m.player_tag) ?? [];
@@ -1216,6 +1251,23 @@ export async function buildClanEntry(
         const start = t[i];
         const end = i + 1 < t.length ? t[i + 1] : toMs;
         const open = i + 1 === t.length;
+        // A return is the battle that closes a long gap, observed when
+        // the record learned it (Gym #272: a return whose absence began
+        // inside the window was missed).
+        const learnedMs = open ? null : learnedAt.get(`${m.player_tag}|${end}`);
+        if (
+          !open &&
+          end - start >= RETURN_AFTER_DAYS * DAY_MS &&
+          (learnedMs ?? end) > fromMs &&
+          (learnedMs ?? end) <= toMs
+        )
+          returns.push({
+            tag: m.player_tag,
+            name: m.name,
+            after_days: Math.floor((end - start) / DAY_MS),
+            at: iso(end),
+            observed_at: iso(learnedMs ?? end),
+          });
         for (const rung of QUIET_RUNGS_DAYS) {
           const atMs = start + rung * DAY_MS;
           if (atMs <= fromMs || atMs > toMs || atMs >= end) continue;
@@ -1572,6 +1624,9 @@ export async function buildClanEntry(
   for (const sess of memberSessions)
     items.push({
       ...subject,
+      // The member is who played it; the item stays on the clan's
+      // timeline (Gym #265: the text named the clan as the player).
+      subject_name: memberName.get(memberTag) ?? memberTag,
       at: sess.started_at,
       observed_at: sess.learned_at ?? sess.started_at,
       kind: "battle_session",
@@ -1614,17 +1669,15 @@ export async function buildClanEntry(
           days_since_poll: q.days_since_poll,
         },
       });
-    for (const r of returned)
+    for (const r of returns)
       items.push({
         ...subject,
-        at: iso(r.first_in),
-        // When the record learned the return, not the battle's instant
-        // (Gym #252: it was served in windows its observation lay outside).
-        ...(r.first_in_learned ? { observed_at: iso(r.first_in_learned) } : {}),
+        at: r.at,
+        observed_at: r.observed_at,
         kind: "returned",
         section: "presence",
         facts: {
-          player_tag: r.player_tag,
+          player_tag: r.tag,
           name: r.name,
           after_days: r.after_days,
         },
@@ -1762,6 +1815,10 @@ export async function buildTimeline(
     "member_role_changed",
     "clan_joined",
     "clan_left",
+    // A second absence at the same rung, or a second return, is a new
+    // moment with the same facts (Gym #272).
+    "quiet_crossed",
+    "returned",
   ]);
   const seen = new Set();
   items = items.filter((it) => {

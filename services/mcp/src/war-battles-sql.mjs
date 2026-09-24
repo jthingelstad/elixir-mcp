@@ -26,5 +26,17 @@ export function warBattlesSql({ clan, season, section, types, warDay = null }) {
             on bp.battle_time >= p.starts_at and bp.battle_time < p.ends_at
           where p.war_season_id = ${season} and p.section_index = ${section}
             and p.war_day is not null${warDay ? ` and p.war_day = ${warDay}` : ""}
-            and bp.clan_tag = ${clan} and bp.type = any(${types})`;
+            and bp.clan_tag = ${clan} and bp.type = any(${types})
+            and not ${BOAT_DEFENSE_SQL}`;
 }
+
+/** A boat battle in which this participant DEFENDED: an enemy attacked
+ *  their clan's boat and the defense deck answered. The member did not
+ *  play it, so it is not their war battle (Gym #263: defenses marked
+ *  days battled that used no deck). The API's boatBattleSide is the log
+ *  owner's (team side 0), so the participant defended when side 0 says
+ *  defender or side 1 says attacker. */
+const BOAT_DEFENSE_SQL = `exists (
+              select 1 from battle bd
+               where bd.battle_id = bp.battle_id and bd.boat_battle_side is not null
+                 and (bd.boat_battle_side = 'defender') = (bp.side = 0))`;

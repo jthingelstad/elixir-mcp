@@ -199,7 +199,9 @@ export function summarizeClan(e, timeZone = "UTC") {
   const p = e.presence;
   if (p.quiet_crossed?.items.length)
     parts.push(
-      `quiet past ${p.quiet_crossed.items[0].rung}d: ${p.quiet_crossed.items
+      // Each member at their own rung, not the first's on the whole list
+      // (Gym #267: "quiet past 10d" over four who crossed only 5 days).
+      `quiet: ${p.quiet_crossed.items
         .slice(0, 5)
         .map((m) => `${m.name ?? m.tag} (${m.days_quiet}d)`)
         .join(", ")}${p.quiet_crossed.more ? ` +${p.quiet_crossed.more}` : ""}`,

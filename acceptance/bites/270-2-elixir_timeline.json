@@ -1,0 +1,101 @@
+{
+  "feedback": 270,
+  "contract_version": "7.1.6",
+  "captured_at": "2026-09-24T06:07:12.110Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-23T07:00:00Z",
+      "to": "2026-09-23T08:00:00Z",
+      "mark_read": false,
+      "player_tag": "#C920YGLC2",
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-23T07:00:00.000Z",
+        "to": "2026-09-23T08:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 15
+      },
+      "mark_read": false,
+      "player_tag": "#C920YGLC2",
+      "verbosity": "compact"
+    },
+    "window": {
+      "from": "2026-09-23T07:00:00.000Z",
+      "to": "2026-09-23T08:00:00.000Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T07:10:58.000Z",
+        "observed_at": "2026-09-23T07:27:58.320Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T07:10:58.000Z",
+          "ended_at": "2026-09-23T07:10:58.000Z",
+          "battles": 1,
+          "won": 1,
+          "lost": 0,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 1
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 1,
+          "open": false
+        },
+        "text": "Wed 07:10 POAP KINGS played a session of 1 battle (1W-0L; 1 ranked)."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-23T07:00:00.000Z",
+          "to": "2026-09-23T08:00:00.000Z"
+        },
+        "summary": "POAP KINGS: 12 battles in 5 sessions by 4 of 46 members since Wed 07:00; training day; most battles: NOBITA 5, nyje47 4, Mega Goblin 2; donations this week 2,176, led by Chanco (288)."
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-23T08:00:00.000Z",
+    "has_more": false,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "A member read: the items are #C920YGLC2's sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.1.6"
+    }
+  },
+  "timings": {
+    "db_ms": 286,
+    "db_queries": 25,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

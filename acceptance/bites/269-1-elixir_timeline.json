@@ -1,0 +1,570 @@
+{
+  "feedback": 269,
+  "contract_version": "7.1.6",
+  "captured_at": "2026-09-24T06:01:17.840Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#C920YGLC2"
+    }
+  },
+  "response": {
+    "applied": {
+      "window": {
+        "from": "2026-09-23T05:19:59.822Z",
+        "to": "2026-09-24T05:19:59.826Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "mark_read": false,
+      "player_tag": "#C920YGLC2",
+      "verbosity": "full"
+    },
+    "window": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z"
+    },
+    "read_to": null,
+    "timeline": [
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T19:57:19.000Z",
+        "observed_at": "2026-09-23T21:42:54.776Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T19:57:19.000Z",
+          "ended_at": "2026-09-23T21:30:42.000Z",
+          "battles": 17,
+          "won": 11,
+          "lost": 6,
+          "drawn": 0,
+          "by_mode": {
+            "event": 17
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 4,
+          "open": false
+        },
+        "text": "Wed 19:57 POAP KINGS played a session of 17 battles (11W-6L; 17 event)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T17:52:36.000Z",
+        "observed_at": "2026-09-23T18:13:07.933Z",
+        "kind": "session_standout",
+        "section": "standouts",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T17:37:51.000Z",
+          "ended_at": "2026-09-23T17:59:01.000Z",
+          "battles": 7,
+          "won": 7,
+          "lost": 0,
+          "drawn": 0,
+          "by_mode": {
+            "casual": 6,
+            "ranked": 1
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 7,
+          "open": false,
+          "crossed": ["won_in_a_row>=5"],
+          "newly": ["won_in_a_row>=5"]
+        },
+        "text": "Wed 17:52 Vijay played 7 battles in one sitting (7W-0L; 6 casual, 1 ranked, 7 wins in a row)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T17:37:51.000Z",
+        "observed_at": "2026-09-23T18:13:07.933Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T17:37:51.000Z",
+          "ended_at": "2026-09-23T17:59:01.000Z",
+          "battles": 7,
+          "won": 7,
+          "lost": 0,
+          "drawn": 0,
+          "by_mode": {
+            "casual": 6,
+            "ranked": 1
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 7,
+          "open": false
+        },
+        "text": "Wed 17:37 POAP KINGS played a session of 7 battles (7W-0L; 6 casual, 1 ranked)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T15:13:42.000Z",
+        "observed_at": "2026-09-23T17:12:52.379Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T15:13:42.000Z",
+          "ended_at": "2026-09-23T16:39:23.000Z",
+          "battles": 12,
+          "won": 5,
+          "lost": 7,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 4,
+            "event": 2,
+            "casual": 6
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 2,
+          "open": false
+        },
+        "text": "Wed 15:13 POAP KINGS played a session of 12 battles (5W-7L; 6 casual, 4 ranked, 2 event)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T11:53:34.000Z",
+        "observed_at": "2026-09-23T12:32:57.892Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T11:53:34.000Z",
+          "ended_at": "2026-09-23T12:10:59.000Z",
+          "battles": 5,
+          "won": 2,
+          "lost": 3,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 5
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 2,
+          "open": false
+        },
+        "text": "Wed 11:53 POAP KINGS played a session of 5 battles (2W-3L; 5 ranked)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T11:12:58.000Z",
+        "observed_at": "2026-09-23T11:38:01.751Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T11:12:58.000Z",
+          "ended_at": "2026-09-23T11:12:58.000Z",
+          "battles": 1,
+          "won": 1,
+          "lost": 0,
+          "drawn": 0,
+          "by_mode": {
+            "casual": 1
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 1,
+          "open": false
+        },
+        "text": "Wed 11:12 POAP KINGS played a session of 1 battle (1W-0L; 1 casual)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T09:24:15.000Z",
+        "observed_at": "2026-09-23T10:17:51.772Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T09:24:15.000Z",
+          "ended_at": "2026-09-23T09:52:25.000Z",
+          "battles": 7,
+          "won": 5,
+          "lost": 2,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 4,
+            "event": 3
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 2,
+          "open": false
+        },
+        "text": "Wed 09:24 POAP KINGS played a session of 7 battles (5W-2L; 4 ranked, 3 event)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T08:27:27.000Z",
+        "observed_at": "2026-09-23T08:37:53.645Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T08:27:27.000Z",
+          "ended_at": "2026-09-23T08:27:27.000Z",
+          "battles": 1,
+          "won": 1,
+          "lost": 0,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 1
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 1,
+          "open": false
+        },
+        "text": "Wed 08:27 POAP KINGS played a session of 1 battle (1W-0L; 1 ranked)."
+      },
+      {
+        "subject_tag": "#J2RGCRVG",
+        "subject_name": "POAP KINGS",
+        "at": "2026-09-23T07:10:58.000Z",
+        "observed_at": "2026-09-23T08:02:56.861Z",
+        "kind": "battle_session",
+        "section": "battles",
+        "facts": {
+          "player_tag": "#C920YGLC2",
+          "name": "Vijay",
+          "started_at": "2026-09-23T07:10:58.000Z",
+          "ended_at": "2026-09-23T07:54:08.000Z",
+          "battles": 7,
+          "won": 2,
+          "lost": 5,
+          "drawn": 0,
+          "by_mode": {
+            "ranked": 7
+          },
+          "trophy_net": 0,
+          "won_in_a_row": 1,
+          "open": false
+        },
+        "text": "Wed 07:10 POAP KINGS played a session of 7 battles (2W-5L; 7 ranked)."
+      }
+    ],
+    "timeline_more": 0,
+    "entries": [
+      {
+        "kind": "clan_activity",
+        "subject_tag": "#J2RGCRVG",
+        "name": "POAP KINGS",
+        "scope": "comprehensive",
+        "window": {
+          "from": "2026-09-23T05:19:59.822Z",
+          "to": "2026-09-24T05:19:59.826Z"
+        },
+        "summary": "POAP KINGS: 297 battles in 85 sessions by 36 of 48 members since Wed 05:19; joined: alex, alex, Gem; left: alex; roster 46→48; training day; quiet past 10d: VVSBUDGET (10d), Brotherinpants (5d); most battles: Vijay 57, sikander sidhu 39, MONICA 16; new bests: Gem 6,003; 1 arena promotion (Gem → Royal Crypt); ranked: sniperhendo → Master 2; standout sessions: Vijay 7W-0L (7 in a row), sniperhendo 5W-2L (5 in a row); badges: ryguy67 5 (Spear Goblins Mastery, Lumberjack Mastery, Tombstone Mastery), Mega Goblin 4 (Wizard Mastery, The Log Mastery, Royal Ghost Mastery), God Bless You 2 (Spear Goblins Mastery, Ronin Mastery); donations this week 3,672, led by Vijay (463).",
+        "activity": {
+          "battles": 297,
+          "members_active": 36,
+          "members_total": 48,
+          "sessions": 85,
+          "by_mode": {
+            "casual": 15,
+            "event": 131,
+            "ladder": 52,
+            "war": 15,
+            "ranked": 84
+          },
+          "late_captures": 0,
+          "played_here_learned_later": 0,
+          "learned_here_played_before": 7,
+          "basis": "recorded"
+        },
+        "roster": {
+          "joined": {
+            "items": [
+              {
+                "tag": "#P8URQGR2U",
+                "name": "alex",
+                "role": "member",
+                "at": "2026-09-23T22:23:11.000Z"
+              },
+              {
+                "tag": "#P8URQGR2U",
+                "name": "alex",
+                "role": "member",
+                "at": "2026-09-23T20:38:09.000Z"
+              },
+              {
+                "tag": "#20GQUGPRC2",
+                "name": "Gem",
+                "role": "member",
+                "at": "2026-09-23T17:38:17.000Z"
+              }
+            ],
+            "more": 0
+          },
+          "left": {
+            "items": [
+              {
+                "tag": "#P8URQGR2U",
+                "name": "alex",
+                "role": "member",
+                "at": "2026-09-23T20:58:06.000Z",
+                "tenure_days": 0
+              }
+            ],
+            "more": 0
+          },
+          "role_changes": {
+            "items": [],
+            "more": 0
+          },
+          "bounced": 2,
+          "size": {
+            "from": 46,
+            "to": 48
+          }
+        },
+        "war": {
+          "season_id": 136,
+          "week": 3,
+          "is_colosseum": false,
+          "day_kind": "training",
+          "war_day": null,
+          "fame": 0,
+          "place_of_five": 1,
+          "race_finished_at": null,
+          "decks": null,
+          "resolved": []
+        },
+        "presence": {
+          "quiet_crossed": {
+            "items": [
+              {
+                "tag": "#20CLVPLG8R",
+                "name": "VVSBUDGET",
+                "role": "member",
+                "days_quiet": 10,
+                "days_since_poll": 0,
+                "rung": 10
+              },
+              {
+                "tag": "#RRU9PGJQ9",
+                "name": "Brotherinpants",
+                "role": "member",
+                "days_quiet": 5,
+                "days_since_poll": 0,
+                "rung": 5
+              }
+            ],
+            "more": 0
+          },
+          "returned": {
+            "items": [],
+            "more": 0
+          },
+          "never_recorded": 0,
+          "rungs_days": [5, 10, 20]
+        },
+        "standouts": {
+          "most_battles": [
+            {
+              "tag": "#C920YGLC2",
+              "name": "Vijay",
+              "battles": 57
+            },
+            {
+              "tag": "#JYRQ8U92C",
+              "name": "sikander sidhu",
+              "battles": 39
+            },
+            {
+              "tag": "#VGC22YGP",
+              "name": "MONICA",
+              "battles": 16
+            },
+            {
+              "tag": "#JRVV9VC0C",
+              "name": "NOBITA",
+              "battles": 16
+            },
+            {
+              "tag": "#U92P8PQG0",
+              "name": "God Bless You",
+              "battles": 15
+            }
+          ],
+          "new_bests": {
+            "items": [
+              {
+                "tag": "#20GQUGPRC2",
+                "name": "Gem",
+                "best": 6003
+              }
+            ],
+            "more": 0
+          },
+          "arena_promotions": {
+            "items": [
+              {
+                "tag": "#20GQUGPRC2",
+                "name": "Gem",
+                "arena": "Royal Crypt"
+              }
+            ],
+            "more": 0
+          },
+          "ranked_promotions": {
+            "items": [
+              {
+                "tag": "#YC8LLR8Q2",
+                "name": "sniperhendo",
+                "league": "Master 2",
+                "over": "todosan",
+                "score": "1-0"
+              }
+            ],
+            "more": 0
+          },
+          "collection_levels": {
+            "items": [],
+            "more": 0
+          },
+          "badges": [
+            {
+              "tag": "#V8Q8PUL0U",
+              "name": "ryguy67",
+              "count": 5,
+              "names": [
+                "MasterySpearGoblins",
+                "MasteryRageBarbarian",
+                "MasteryTombstone"
+              ]
+            },
+            {
+              "tag": "#229QY8UL9U",
+              "name": "Mega Goblin",
+              "count": 4,
+              "names": ["MasteryWizard", "MasteryLog", "MasteryGhost"]
+            },
+            {
+              "tag": "#U92P8PQG0",
+              "name": "God Bless You",
+              "count": 2,
+              "names": ["MasterySpearGoblins", "MasteryRonin"]
+            },
+            {
+              "tag": "#20GQUGPRC2",
+              "name": "Gem",
+              "count": 1,
+              "names": ["BannerCollection"]
+            },
+            {
+              "tag": "#PLCCYUQL",
+              "name": "TDuck",
+              "count": 1,
+              "names": ["MasteryDarkPrince"]
+            }
+          ],
+          "sessions": {
+            "items": [
+              {
+                "tag": "#C920YGLC2",
+                "name": "Vijay",
+                "player_tag": "#C920YGLC2",
+                "started_at": "2026-09-23T17:37:51.000Z",
+                "ended_at": "2026-09-23T17:59:01.000Z",
+                "battles": 7,
+                "won": 7,
+                "lost": 0,
+                "drawn": 0,
+                "by_mode": {
+                  "casual": 6,
+                  "ranked": 1
+                },
+                "trophy_net": 0,
+                "won_in_a_row": 7,
+                "open": false,
+                "crossed": ["won_in_a_row>=5"]
+              },
+              {
+                "tag": "#YC8LLR8Q2",
+                "name": "sniperhendo",
+                "player_tag": "#YC8LLR8Q2",
+                "started_at": "2026-09-24T02:28:03.000Z",
+                "ended_at": "2026-09-24T02:54:33.000Z",
+                "battles": 7,
+                "won": 5,
+                "lost": 2,
+                "drawn": 0,
+                "by_mode": {
+                  "ranked": 7
+                },
+                "trophy_net": 0,
+                "won_in_a_row": 5,
+                "open": false,
+                "crossed": ["won_in_a_row>=5"]
+              }
+            ],
+            "more": 0
+          },
+          "session_rungs": {
+            "won_in_a_row": [5, 10, 20],
+            "trophy_net": [150, 300, 500],
+            "battles": [20, 40]
+          }
+        },
+        "donations": {
+          "week_total": 3672,
+          "members_counted": 48,
+          "leader": {
+            "tag": "#C920YGLC2",
+            "name": "Vijay",
+            "given": 463
+          },
+          "as_of": "2026-09-24T05:19:59.826Z"
+        }
+      }
+    ],
+    "quiet": [],
+    "subjects": 1,
+    "next_cursor": "2026-09-24T05:19:59.826Z",
+    "has_more": false,
+    "notes": [
+      "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+      "A clan entry's activity counts the battles the record LEARNED in this window, which is not the same as the battles PLAYED in it: activity.learned_here_played_before counts ones played in the day before from and recorded here (counted), activity.played_here_learned_later ones played here and recorded after to (not counted) (POAP KINGS: 7 and 0), and late_captures counts battles learned here more than a day after play. For what was played in a window, read clans_standings, which counts by play time.",
+      "A member read: the items are #C920YGLC2's sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full.",
+      "Pass next_cursor as from to continue from here without moving the pointer."
+    ],
+    "docs": "timeline",
+    "meta": {
+      "contract_version": "7.1.6"
+    }
+  },
+  "timings": {
+    "db_ms": 440,
+    "db_queries": 28,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

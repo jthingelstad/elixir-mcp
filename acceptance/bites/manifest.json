@@ -1697,5 +1697,61 @@
     "case": "gym/259.1",
     "captures": ["258-1-elixir_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 263,
+    "contract": "7.1.6",
+    "why": "the Gym block 263.1 on the answer it read",
+    "case": "gym/263.1",
+    "captures": ["263-1-war_history.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 263,
+    "contract": "7.1.6",
+    "why": "the Gym block 263.2 on the answer it read",
+    "case": "gym/263.2",
+    "captures": ["263-2-war_history.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 265,
+    "contract": "7.1.6",
+    "why": "the Gym block 265.1 on the answer it read",
+    "case": "gym/265.1",
+    "captures": ["265-1-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 269,
+    "contract": "7.1.6",
+    "why": "the Gym block 269.1 on the answer it read",
+    "case": "gym/269.1",
+    "captures": ["269-1-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 269,
+    "contract": "7.1.6",
+    "why": "the Gym block 269.2 on the answer it read",
+    "case": "gym/269.2",
+    "captures": ["269-2-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 270,
+    "contract": "7.1.6",
+    "why": "the Gym block 270.2 on the answer it read",
+    "case": "gym/270.2",
+    "captures": ["270-2-elixir_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 272,
+    "contract": "7.1.6",
+    "why": "the Gym block 272.4 on the answer it read",
+    "case": "gym/272.4",
+    "captures": ["272-4-elixir_timeline.json"],
+    "expect": "."
   }
 ]

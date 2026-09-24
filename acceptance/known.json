@@ -28,5 +28,17 @@
     "reason": "The two-week raw corpus cards_synergy read (Witch, 09-07 to 09-21) answers in 4-10 s alone but hits the 18 s budget when the full gate runs its 470 calls beside it, so w.anchor.decks is absent (budget error). This is the open raw-season-corpus-read performance item from the cards Gym rounds 2-4, not a correctness regression; the family gate passes it.",
     "until": "2026-10-07",
     "filed": "2026-09-24"
+  },
+  {
+    "case": "gym/263.3",
+    "reason": "clans_standings takes its totals from the daily rollups, which count a boat DEFENSE as the member battling, so a member with only defenses reads a win rate where battles_performance reads null. The war-day counts were fixed at the SQL level in 7.1.7; the rollup change is queued (Gym #263).",
+    "until": "2026-10-08",
+    "filed": "2026-09-24"
+  },
+  {
+    "case": "gym/264.1",
+    "reason": "clans_participation joined_observed_at and days_in_clan_observed are the current stint, which Elixir Clan reads for new-member grace; whether a rejoiner keeps their first stint there is a product decision held for Jamie (Gym #264). clans_roster serves the first stint since 7.1.7.",
+    "until": "2026-10-08",
+    "filed": "2026-09-24"
   }
 ]

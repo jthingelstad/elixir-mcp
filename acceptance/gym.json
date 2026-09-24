@@ -13692,7 +13692,8 @@
       {
         "count_eq": ["b.timeline[]", "a.timeline_more"]
       }
-    ]
+    ],
+    "refuted": "Retired per the elixir round 5 report: it depended on the Gym's own account items, which move every run; 274.1 pins the exact older-items split."
   },
   {
     "id": "245.3",
@@ -14828,6 +14829,1063 @@
       },
       {
         "notes_match": "placement"
+      }
+    ]
+  },
+  {
+    "id": "263.1",
+    "feedback": 263,
+    "stability": "frozen",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 0
+    },
+    "request_id": "e5176ba0-deb1-4f7a-b18f-f26c406c131e",
+    "assert": [
+      {
+        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].war_days_battled", 1]
+      }
+    ]
+  },
+  {
+    "id": "263.2",
+    "feedback": 263,
+    "stability": "frozen",
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "30e621e5-0ad2-4936-b135-94a25fe83c6d",
+    "assert": [
+      {
+        "eq": ["member_weeks[?player_tag=#U92P8PQG0].war_days_battled", 3]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#2LRYLQPL].war_days_battled", 3]
+      }
+    ]
+  },
+  {
+    "id": "263.3",
+    "feedback": 263,
+    "stability": "frozen",
+    "calls": {
+      "s": {
+        "tool": "clans_standings",
+        "args": {
+          "from": "2026-09-11T10:00:00Z",
+          "to": "2026-09-12T10:00:00Z",
+          "min_battles": 1
+        }
+      },
+      "p": {
+        "tool": "battles_performance",
+        "args": {
+          "player_tag": "#JRVV9VC0C",
+          "from": "2026-09-11T10:00:00Z",
+          "to": "2026-09-12T10:00:00Z"
+        }
+      }
+    },
+    "request_id": "47eba617-f482-4fc1-9aa8-f2c219b7c913",
+    "when": {
+      "has": "s.members[?player_tag=#JRVV9VC0C].player_tag"
+    },
+    "assert": [
+      {
+        "eq": [
+          "s.members[?player_tag=#JRVV9VC0C].win_rate",
+          "p.window.win_rate"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "263.4",
+    "feedback": 263,
+    "stability": "frozen",
+    "tool": "battles_query",
+    "args": {
+      "player_tag": "#JRVV9VC0C",
+      "mode": "war",
+      "from": "2026-09-10T09:00:00Z",
+      "to": "2026-09-21T10:30:00Z",
+      "verbosity": "compact",
+      "limit": 50
+    },
+    "request_id": "817f6bd3-fa26-4436-b485-a254b63f3b0f",
+    "for_each": "battles[]",
+    "when": {
+      "eq": ["type", "boatBattle"]
+    },
+    "assert": [
+      {
+        "has": "boat.side"
+      }
+    ]
+  },
+  {
+    "id": "263.5",
+    "feedback": 263,
+    "stability": "frozen",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 1
+    },
+    "request_id": "30e621e5-0ad2-4936-b135-94a25fe83c6d",
+    "assert": [
+      {
+        "eq": ["member_weeks[?player_tag=#UCRLVL29U].war_days_battled", 1]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#UCRLVL29U].boat_attacks", 4]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#JYRQ8U92C].war_days_battled", 4]
+      }
+    ]
+  },
+  {
+    "id": "263.6",
+    "feedback": 263,
+    "stability": "frozen",
+    "control": true,
+    "tool": "battles_performance",
+    "args": {
+      "player_tag": "#JRVV9VC0C",
+      "from": "2026-09-11T10:00:00Z",
+      "to": "2026-09-12T10:00:00Z"
+    },
+    "request_id": "b85abc36-6cff-46ca-8109-0dad023912c8",
+    "assert": [
+      {
+        "eq": ["window.decided_battles", 0]
+      },
+      {
+        "eq": ["window.win_rate", null]
+      }
+    ]
+  },
+  {
+    "id": "264.1",
+    "feedback": 264,
+    "stability": "live",
+    "tool": "clans_participation",
+    "args": {
+      "weeks": 3
+    },
+    "request_id": "9ea5302e-9a16-452d-9877-71595270437b",
+    "when": {
+      "has": "members[?player_tag=#20GQUGPRC2].player_tag"
+    },
+    "assert": [
+      {
+        "gt": ["members[?player_tag=#20GQUGPRC2].days_in_clan_observed", 90]
+      }
+    ]
+  },
+  {
+    "id": "264.2",
+    "feedback": 264,
+    "stability": "live",
+    "tool": "clans_roster",
+    "args": {},
+    "request_id": "f6ef61e4-2943-4113-8a2a-30e4deac247d",
+    "when": {
+      "has": "members[?player_tag=#20GQUGPRC2].player_tag"
+    },
+    "assert": [
+      {
+        "eq": [
+          "members[?player_tag=#20GQUGPRC2].first_observed_in_clan",
+          "2026-06-10T19:34:10.000Z"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "264.3",
+    "feedback": 264,
+    "stability": "live",
+    "tool": "clans_participation",
+    "args": {
+      "weeks": 3
+    },
+    "request_id": "9ea5302e-9a16-452d-9877-71595270437b",
+    "assert": [
+      {
+        "notes_not_match": "Gem #20GQUGPRC2 joined 2026-09-23 with \\d+ of \\d+ recorded battles in the window played before joining"
+      }
+    ]
+  },
+  {
+    "id": "264.4",
+    "feedback": 264,
+    "stability": "live",
+    "control": true,
+    "tool": "clans_participation",
+    "args": {
+      "weeks": 3
+    },
+    "request_id": "9ea5302e-9a16-452d-9877-71595270437b",
+    "when": {
+      "has": "members[?player_tag=#20CGPVUL92].player_tag"
+    },
+    "assert": [
+      {
+        "eq": [
+          "members[?player_tag=#20CGPVUL92].joined_observed_at",
+          "2026-04-01T04:28:31.000Z"
+        ]
+      },
+      {
+        "gte": ["members[?player_tag=#20CGPVUL92].days_in_clan_observed", 176]
+      }
+    ]
+  },
+  {
+    "id": "265.1",
+    "feedback": 265,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#JYRQ8U92C"
+    },
+    "request_id": "79423f25-e973-40c0-8a4f-cc43d96fb110",
+    "for_each": "timeline[]",
+    "when": {
+      "eq": ["kind", "battle_session"]
+    },
+    "assert": [
+      {
+        "contains": ["text", "sikander sidhu"]
+      }
+    ]
+  },
+  {
+    "id": "265.2",
+    "feedback": 265,
+    "open_question": "On the same frozen read, two battle_session items have facts.battles 1, but the timeline docs say of battle_session 'Single battles never appear'. Either apply the floor to member sessions (then every battle_session item has facts.battles >= 2) or scope the docs sentence to player subjects; the maintainer picks, and the case follows."
+  },
+  {
+    "id": "265.3",
+    "feedback": 265,
+    "stability": "frozen",
+    "control": true,
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#YC8LLR8Q2",
+      "kinds": ["badge_earned", "ranked_promotion", "session_standout"]
+    },
+    "request_id": "bb8fd1b8-44b3-4fcc-b864-3eaf9cb2deb4",
+    "for_each": "timeline[]",
+    "assert": [
+      {
+        "contains": ["text", "sniperhendo"]
+      }
+    ]
+  },
+  {
+    "id": "266.1",
+    "feedback": 266,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-21T12:00:00Z",
+      "to": "2026-09-22T12:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "6015f427-f4ee-40e1-8e23-bdf65b00a066",
+    "assert": [
+      {
+        "eq": ["entries[0].war.place_of_five", null]
+      }
+    ]
+  },
+  {
+    "id": "266.2",
+    "feedback": 266,
+    "stability": "frozen",
+    "control": true,
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-15T12:00:00Z",
+      "to": "2026-09-16T12:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "7d2a4440-6b0a-412e-9e5c-95eb55db13c5",
+    "assert": [
+      {
+        "eq": ["entries[0].war.place_of_five", null]
+      },
+      {
+        "eq": ["entries[0].war.fame", null]
+      }
+    ]
+  },
+  {
+    "id": "266.3",
+    "feedback": 266,
+    "stability": "frozen",
+    "control": true,
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-17T15:00:00Z",
+      "to": "2026-09-18T15:00:00Z",
+      "mark_read": false,
+      "sections": ["war"]
+    },
+    "request_id": "f256de56-e2f7-4775-bbc4-32c524495f47",
+    "assert": [
+      {
+        "eq": ["entries[0].war.place_of_five", 1]
+      },
+      {
+        "eq": ["entries[0].war.fame", 3435]
+      }
+    ]
+  },
+  {
+    "id": "267.1",
+    "feedback": 267,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-14T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "mark_read": false,
+      "sections": ["activity", "roster", "war", "donations", "presence"]
+    },
+    "request_id": "1c1fa61f-937c-4c9c-8cb7-50e8492677f0",
+    "assert": [
+      {
+        "not_contains": ["entries[0].summary", "quiet past 10d: Gem (11d), "]
+      }
+    ]
+  },
+  {
+    "id": "267.2",
+    "feedback": 267,
+    "stability": "frozen",
+    "control": true,
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T15:00:00Z",
+      "to": "2026-09-23T16:00:00Z",
+      "mark_read": false,
+      "sections": ["presence"]
+    },
+    "request_id": "782c8078-5472-445e-ba64-9ca1a556d7c6",
+    "assert": [
+      {
+        "contains": ["entries[0].summary", "quiet past 5d: Brotherinpants (5d)"]
+      }
+    ]
+  },
+  {
+    "id": "268.1",
+    "feedback": 268,
+    "stability": "live",
+    "control": true,
+    "tool": "war_rivals",
+    "args": {},
+    "request_id": "36ee2f7d-dbfd-49df-957b-a0698379151d",
+    "when": {
+      "eq": ["rivals[?clan_tag=#QUGRGLU2].points_weeks", 2]
+    },
+    "assert": [
+      {
+        "eq": ["rivals[?clan_tag=#QUGRGLU2].mean_points", 2250]
+      },
+      {
+        "notes_match": "compare points for effort"
+      }
+    ]
+  },
+  {
+    "id": "268.2",
+    "feedback": 268,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "r": {
+        "tool": "clans_roster",
+        "args": {}
+      },
+      "p": {
+        "tool": "clans_participation",
+        "args": {
+          "weeks": 3
+        }
+      }
+    },
+    "request_id": "f6ef61e4-2943-4113-8a2a-30e4deac247d",
+    "assert": [
+      {
+        "eq": [
+          "r.members[?player_tag=#20JJJ2CCRU].last_recorded_battle",
+          "p.members[?player_tag=#20JJJ2CCRU].last_battle_time"
+        ]
+      },
+      {
+        "eq": [
+          "r.members[?player_tag=#20JJJ2CCRU].first_observed_in_clan",
+          "p.members[?player_tag=#20JJJ2CCRU].joined_observed_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "268.3",
+    "feedback": 268,
+    "stability": "live",
+    "control": true,
+    "tool": "clans_participation",
+    "args": {
+      "weeks": 3
+    },
+    "request_id": "9ea5302e-9a16-452d-9877-71595270437b",
+    "assert": [
+      {
+        "notes_match": "a low count here is a capture gap, not inactivity"
+      }
+    ]
+  },
+  {
+    "id": "269.1",
+    "feedback": 269,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#C920YGLC2"
+    },
+    "request_id": "9830ed46-5add-47e3-9f08-272bd8085e4d",
+    "for_each": "timeline[]",
+    "when": {
+      "eq": ["kind", "battle_session"]
+    },
+    "assert": [
+      {
+        "contains": ["text", "Vijay"]
+      }
+    ]
+  },
+  {
+    "id": "269.2",
+    "feedback": 269,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "7515fdac-83ed-4545-9d4c-7862a75e3406",
+    "for_each": "timeline[]",
+    "when": {
+      "eq": ["kind", "battle_session"]
+    },
+    "assert": [
+      {
+        "contains": ["text", "King Thing"]
+      }
+    ]
+  },
+  {
+    "id": "269.3",
+    "feedback": 269,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#C920YGLC2"
+    },
+    "request_id": "9830ed46-5add-47e3-9f08-272bd8085e4d",
+    "assert": [
+      {
+        "has": "timeline[?kind=battle_session].facts.started_at"
+      },
+      {
+        "contains": ["timeline[?kind=session_standout].text", "Vijay"]
+      },
+      {
+        "eq": ["applied.player_tag", "#C920YGLC2"]
+      }
+    ]
+  },
+  {
+    "id": "270.1",
+    "feedback": 270,
+    "stability": "frozen",
+    "calls": {
+      "h": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-23T08:00:00Z",
+          "to": "2026-09-23T09:00:00Z",
+          "mark_read": false,
+          "player_tag": "#C920YGLC2",
+          "verbosity": "compact"
+        }
+      },
+      "d": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-23T05:19:59.822Z",
+          "to": "2026-09-24T05:19:59.826Z",
+          "mark_read": false,
+          "player_tag": "#C920YGLC2"
+        }
+      }
+    },
+    "request_id": "d66fe09f-755f-4c31-bfd1-e906797417ac",
+    "when": {
+      "has": "h.timeline[?observed_at=2026-09-23T08:02:56.861Z]"
+    },
+    "assert": [
+      {
+        "eq": [
+          "h.timeline[?observed_at=2026-09-23T08:02:56.861Z].facts.started_at",
+          "d.timeline[?observed_at=2026-09-23T08:02:56.861Z].facts.started_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "270.2",
+    "feedback": 270,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T07:00:00Z",
+      "to": "2026-09-23T08:00:00Z",
+      "mark_read": false,
+      "player_tag": "#C920YGLC2",
+      "verbosity": "compact"
+    },
+    "request_id": "193289a4-55e3-49ee-90be-bca7a979864e",
+    "when": {
+      "has": "timeline[?observed_at=2026-09-23T07:27:58.320Z]"
+    },
+    "assert": [
+      {
+        "neq": [
+          "timeline[?observed_at=2026-09-23T07:27:58.320Z].facts.open",
+          false
+        ]
+      }
+    ]
+  },
+  {
+    "id": "270.3",
+    "feedback": 270,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#C920YGLC2"
+    },
+    "request_id": "9830ed46-5add-47e3-9f08-272bd8085e4d",
+    "assert": [
+      {
+        "eq": [
+          "timeline[?observed_at=2026-09-23T08:02:56.861Z].facts.battles",
+          7
+        ]
+      },
+      {
+        "eq": [
+          "timeline[?observed_at=2026-09-23T21:42:54.776Z].facts.battles",
+          17
+        ]
+      },
+      {
+        "eq": ["has_more", false]
+      }
+    ]
+  },
+  {
+    "id": "271.1",
+    "feedback": 271,
+    "stability": "live",
+    "calls": {
+      "r1": {
+        "tool": "elixir_timeline",
+        "args": {
+          "reader": "gym-case-member",
+          "verbosity": "compact"
+        }
+      },
+      "r2": {
+        "tool": "elixir_timeline",
+        "args": {
+          "reader": "gym-case-member",
+          "player_tag": "#C920YGLC2",
+          "verbosity": "compact"
+        }
+      },
+      "r3": {
+        "tool": "elixir_timeline",
+        "args": {
+          "reader": "gym-case-member",
+          "mark_read": false,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "35231d0d-9e5d-4fa2-bb53-1a2bae57aa58",
+    "assert": [
+      {
+        "eq": ["r3.read_to", "r1.read_to"]
+      }
+    ]
+  },
+  {
+    "id": "271.2",
+    "feedback": 271,
+    "control": true,
+    "stability": "live",
+    "calls": {
+      "r1": {
+        "tool": "elixir_timeline",
+        "args": {
+          "reader": "gym-case-kinds",
+          "kinds": ["member_joined", "member_left"],
+          "verbosity": "compact"
+        }
+      },
+      "r3": {
+        "tool": "elixir_timeline",
+        "args": {
+          "reader": "gym-case-kinds",
+          "mark_read": false,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "7680bb23-7f8d-4f6d-92e3-1f045cef4d17",
+    "assert": [
+      {
+        "eq": ["r3.read_to", "r1.window.to"]
+      }
+    ]
+  },
+  {
+    "id": "272.1",
+    "feedback": 272,
+    "stability": "frozen",
+    "calls": {
+      "w": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-08T00:00:00Z",
+          "to": "2026-09-19T00:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["quiet_crossed", "returned"]
+        }
+      },
+      "n": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-18T00:00:00Z",
+          "to": "2026-09-19T00:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["quiet_crossed", "returned"]
+        }
+      }
+    },
+    "request_id": "199aa006-5e2e-408a-82e1-ac0e4be12c31",
+    "when": {
+      "has": "n.timeline[?observed_at=2026-09-18T01:49:27.000Z]"
+    },
+    "assert": [
+      {
+        "has": "w.timeline[?observed_at=2026-09-18T01:49:27.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "272.2",
+    "feedback": 272,
+    "stability": "frozen",
+    "calls": {
+      "w": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-08T00:00:00Z",
+          "to": "2026-09-19T00:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["quiet_crossed", "returned"]
+        }
+      },
+      "n": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-16T00:00:00Z",
+          "to": "2026-09-17T00:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["quiet_crossed", "returned"]
+        }
+      }
+    },
+    "request_id": "199aa006-5e2e-408a-82e1-ac0e4be12c31",
+    "when": {
+      "has": "n.timeline[?observed_at=2026-09-16T13:18:57.000Z]"
+    },
+    "assert": [
+      {
+        "has": "w.timeline[?observed_at=2026-09-16T13:18:57.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "272.3",
+    "feedback": 272,
+    "stability": "frozen",
+    "calls": {
+      "w": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-08T00:00:00Z",
+          "to": "2026-09-19T00:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["quiet_crossed", "returned"]
+        }
+      },
+      "n": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-18T00:00:00Z",
+          "to": "2026-09-19T00:00:00Z",
+          "mark_read": false,
+          "verbosity": "compact",
+          "kinds": ["quiet_crossed", "returned"]
+        }
+      }
+    },
+    "request_id": "199aa006-5e2e-408a-82e1-ac0e4be12c31",
+    "when": {
+      "has": "n.timeline[?observed_at=2026-09-18T15:47:47.914Z]"
+    },
+    "assert": [
+      {
+        "has": "w.timeline[?observed_at=2026-09-18T15:47:47.914Z]"
+      }
+    ]
+  },
+  {
+    "id": "272.4",
+    "feedback": 272,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-08T00:00:00Z",
+      "to": "2026-09-19T00:00:00Z",
+      "mark_read": false,
+      "sections": ["presence"]
+    },
+    "request_id": "35c9794c-eb61-4003-b0e7-834ab6a51a64",
+    "assert": [
+      {
+        "has": "entries[0].presence.returned.items[?tag=#RRU9PGJQ9]"
+      }
+    ]
+  },
+  {
+    "id": "272.5",
+    "feedback": 272,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-08T00:00:00Z",
+      "to": "2026-09-19T00:00:00Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": ["quiet_crossed", "returned"]
+    },
+    "request_id": "199aa006-5e2e-408a-82e1-ac0e4be12c31",
+    "assert": [
+      {
+        "has": "timeline[?observed_at=2026-09-08T20:41:37.000Z]"
+      },
+      {
+        "has": "timeline[?observed_at=2026-09-10T13:47:48.708Z]"
+      },
+      {
+        "has": "timeline[?observed_at=2026-09-13T21:07:58.219Z]"
+      },
+      {
+        "has": "timeline[?observed_at=2026-09-16T02:42:11.000Z]"
+      },
+      {
+        "eq": ["has_more", false]
+      }
+    ]
+  },
+  {
+    "id": "273.1",
+    "feedback": 273,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "timeline"
+    },
+    "request_id": "c86d55c2-90e0-44d9-9fca-75d2e200e912",
+    "assert": [
+      {
+        "contains": ["markdown", "player_tag` |"]
+      },
+      {
+        "contains": ["markdown", "learned_here_played_before"]
+      }
+    ]
+  },
+  {
+    "id": "273.2",
+    "feedback": 273,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "timeline"
+    },
+    "request_id": "c86d55c2-90e0-44d9-9fca-75d2e200e912",
+    "assert": [
+      {
+        "not_contains": ["markdown", "Single battles never appear"]
+      }
+    ]
+  },
+  {
+    "id": "273.3",
+    "feedback": 273,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "protocol",
+      "section": "argument-conventions"
+    },
+    "request_id": "85f263e0-abc2-472e-9082-dd7835758595",
+    "assert": [
+      {
+        "contains": ["markdown", "(from, to]"]
+      }
+    ]
+  },
+  {
+    "id": "273.4",
+    "feedback": 273,
+    "control": true,
+    "stability": "live",
+    "tool": "elixir_docs",
+    "args": {
+      "page": "timeline"
+    },
+    "request_id": "c86d55c2-90e0-44d9-9fca-75d2e200e912",
+    "assert": [
+      {
+        "contains": ["markdown", "in `(from, to]`"]
+      },
+      {
+        "contains": ["markdown", "played_here_learned_later"]
+      }
+    ]
+  },
+  {
+    "id": "274.1",
+    "feedback": 274,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "a": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-17T00:00:00Z",
+          "to": "2026-09-24T00:00:00Z",
+          "mark_read": false,
+          "kinds": [
+            "battle_session",
+            "session_standout",
+            "badge_earned",
+            "legendary_badge_earned",
+            "arena_changed",
+            "ranked_promotion",
+            "best_trophies_band",
+            "collection_level_step",
+            "career_wins_step",
+            "card_unlocked",
+            "clan_joined",
+            "clan_left",
+            "member_joined",
+            "member_left",
+            "member_role_changed",
+            "bracket_observed",
+            "race_finished",
+            "week_resolved",
+            "quiet_crossed",
+            "returned"
+          ]
+        }
+      },
+      "b": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-17T00:00:00Z",
+          "to": "2026-09-19T22:22:44.000Z",
+          "mark_read": false,
+          "kinds": [
+            "battle_session",
+            "session_standout",
+            "badge_earned",
+            "legendary_badge_earned",
+            "arena_changed",
+            "ranked_promotion",
+            "best_trophies_band",
+            "collection_level_step",
+            "career_wins_step",
+            "card_unlocked",
+            "clan_joined",
+            "clan_left",
+            "member_joined",
+            "member_left",
+            "member_role_changed",
+            "bracket_observed",
+            "race_finished",
+            "week_resolved",
+            "quiet_crossed",
+            "returned"
+          ]
+        }
+      },
+      "c": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-19T22:22:44.000Z",
+          "to": "2026-09-24T00:00:00Z",
+          "mark_read": false,
+          "kinds": [
+            "battle_session",
+            "session_standout",
+            "badge_earned",
+            "legendary_badge_earned",
+            "arena_changed",
+            "ranked_promotion",
+            "best_trophies_band",
+            "collection_level_step",
+            "career_wins_step",
+            "card_unlocked",
+            "clan_joined",
+            "clan_left",
+            "member_joined",
+            "member_left",
+            "member_role_changed",
+            "bracket_observed",
+            "race_finished",
+            "week_resolved",
+            "quiet_crossed",
+            "returned"
+          ]
+        }
+      }
+    },
+    "request_id": "6fdcaaff-73da-46e2-bc1a-47b053dc87f3",
+    "when": {
+      "eq": ["a.has_more", true]
+    },
+    "assert": [
+      {
+        "count_eq": ["b.timeline[]", "a.timeline_more"]
+      },
+      {
+        "eq": ["b.has_more", false]
+      },
+      {
+        "count_eq": ["c.timeline[]", "a.timeline[]"]
+      }
+    ]
+  },
+  {
+    "id": "274.2",
+    "feedback": 274,
+    "control": true,
+    "stability": "frozen",
+    "calls": {
+      "x": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-14T07:00:00Z",
+          "to": "2026-09-14T07:22:48.000Z",
+          "mark_read": false,
+          "kinds": ["ranked_promotion"]
+        }
+      },
+      "y": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-14T07:22:48.000Z",
+          "to": "2026-09-14T08:00:00Z",
+          "mark_read": false,
+          "kinds": ["ranked_promotion"]
+        }
+      }
+    },
+    "request_id": "96496341-76a8-4dc6-9943-20e85c308874",
+    "assert": [
+      {
+        "has": "x.timeline[?observed_at=2026-09-14T07:22:48.000Z]"
+      },
+      {
+        "absent": "y.timeline[?observed_at=2026-09-14T07:22:48.000Z]"
+      }
+    ]
+  },
+  {
+    "id": "274.3",
+    "feedback": 274,
+    "control": true,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-23T05:19:59.822Z",
+      "to": "2026-09-24T05:19:59.826Z",
+      "mark_read": false,
+      "player_tag": "#C920YGLC2",
+      "sections": ["activity"]
+    },
+    "request_id": "bbaf81c5-b3fc-4d3e-83a5-69457278dea5",
+    "assert": [
+      {
+        "eq": ["applied.player_tag", "#C920YGLC2"]
+      },
+      {
+        "notes_match": "A member read"
       }
     ]
   }

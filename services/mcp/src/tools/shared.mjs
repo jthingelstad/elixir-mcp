@@ -153,6 +153,14 @@ export const WINDOW_FROM_DESC =
   "Start of the window, inclusive: an ISO instant, or YYYY-MM-DD resolving to local midnight in your timezone.";
 export const WINDOW_TO_DESC =
   "End of the window, exclusive: an ISO instant as given; YYYY-MM-DD covers that WHOLE local day. Omit for up to now.";
+/** The observed-window pair (elixir_timeline, 7.1.5): a window that
+ *  selects by when the record OBSERVED an item is (from, to] at the
+ *  millisecond the tool serves, so a cut instant passed as `to` reaches
+ *  the item at the cut (Gym #245, #273). */
+export const WINDOW_OBSERVED_FROM_DESC =
+  "Window start, EXCLUSIVE: items the record observed after this instant (ISO, or YYYY-MM-DD in your timezone). Omit to read since the read pointer.";
+export const WINDOW_OBSERVED_TO_DESC =
+  "Window end, INCLUSIVE: items observed up to and including this instant, compared at the millisecond the tool serves; a date-only to covers that whole day. Omit for now.";
 /** Snapshot-series tools take whole days only, never instants. */
 export const WINDOW_DATE_ONLY_DESC =
   "YYYY-MM-DD (a game day, the 10:00Z grid), inclusive. Built from daily snapshots, so only whole days are meaningful; an instant is floored to its game day and the response says so.";

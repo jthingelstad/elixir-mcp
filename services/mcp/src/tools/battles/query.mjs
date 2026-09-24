@@ -461,15 +461,19 @@ export const battles_query = {
             }),
         // A boat battle's own story: which side attacked and the towers
         // before, after and left standing.
-        ...(r.type_class === "boat" && !compact
-          ? {
-              boat: {
-                side: r.boat_battle_side,
-                towers_before: r.prev_towers_destroyed,
-                towers_after: r.new_towers_destroyed,
-                remaining: r.remaining_towers,
-              },
-            }
+        // Compact keeps the side (Gym #263: a sweep could not tell an
+        // attack from a defense, which is not the member's battle).
+        ...(r.type_class === "boat"
+          ? compact
+            ? { boat: { side: r.boat_battle_side } }
+            : {
+                boat: {
+                  side: r.boat_battle_side,
+                  towers_before: r.prev_towers_destroyed,
+                  towers_after: r.new_towers_destroyed,
+                  remaining: r.remaining_towers,
+                },
+              }
           : {}),
         // What the signature proves about the battle itself. The log
         // carries no duration; the crown pair bounds it.

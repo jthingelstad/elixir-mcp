@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "War days no longer count boat defenses",
+    body: "The Elixir Gym played a clan leader's first week. When an enemy attacks your clan's boat, the member whose defense deck answered did not play a battle, and those defenses no longer count as war days battled. A member who left and came back keeps their original join date on the roster. A timeline read for one member names them on their sessions, keeps each sitting whole and leaves your read pointer where it was. Contract 7.1.7.",
+  },
+  {
+    date: "2026-09-24",
     title: "Console fixes from a first-visit audit",
     body: 'An overnight audit of the console for a first-time visitor. Choosing "UTC (default)" as your timezone now works after another zone was set. A console tab left open across an update reloads onto the new version instead of failing to open a section. The Timeline, Feedback and MCP request tables say when they are loading or could not be read, instead of "nothing yet". A dismissed sign-in refusal no longer keeps its warning dot lit. Adding a clan starts from the scope every account has. The data collection page describes the polling schedule as the recording docs do.',
   },
