@@ -2284,7 +2284,8 @@
       {
         "notes_match": "_plus[^.]*members_with_profile|members_with_profile[^.]*_plus"
       }
-    ]
+    ],
+    "refuted": "Superseded by Jamie's #111 decision (6.36.7): a member not polled that day counts with their latest earlier profile, so these days are no longer thin and the thin-day note correctly does not fire. The carry is disclosed by members_profile_carried and the denominator note."
   },
   {
     "id": "111.2",
