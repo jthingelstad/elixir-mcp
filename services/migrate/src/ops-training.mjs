@@ -80,6 +80,22 @@ export async function trainingBackfill(databaseUrl, spec = {}) {
         group by section_index order by section_index`,
       params,
     );
+    // Where the race poll saw the same member-day, how the rebuild
+    // compares: the evidence that battles reproduce decksUsedToday.
+    const {
+      rows: [vsPoll],
+    } = await db.query(
+      `select count(*)::int as rows,
+              count(*) filter (where x.decks_used_today = t.decks_used_today)::int as equal,
+              count(*) filter (where x.decks_used_today < t.decks_used_today)::int as rebuilt_lower,
+              count(*) filter (where x.decks_used_today > t.decks_used_today)::int as rebuilt_higher
+         from (${PRACTICE_SQL}) x
+         join war_training_day t
+           on t.clan_tag = x.clan_tag and t.season_id = x.season_id
+          and t.section_index = x.section_index and t.training_day = x.training_day
+          and t.player_tag = x.player_tag and t.source = 'poll'`,
+      params,
+    );
     let inserted = 0;
     if (apply) {
       const { rowCount } = await db.query(
@@ -96,7 +112,7 @@ export async function trainingBackfill(databaseUrl, spec = {}) {
       );
       inserted = rowCount;
     }
-    return { season_id: seasonId, apply, weeks, inserted };
+    return { season_id: seasonId, apply, weeks, vs_poll: vsPoll, inserted };
   } finally {
     await db.end();
   }

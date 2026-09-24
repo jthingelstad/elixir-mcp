@@ -99,6 +99,13 @@ test("dry run counts practice decks without writing", async () => {
   const r = await trainingBackfill(SCRATCH_URL, { season_id: 136 });
   assert.equal(r.apply, false);
   assert.equal(r.inserted, 0);
+  // MATE's poll row (3) against one rebuilt deck.
+  assert.deepEqual(r.vs_poll, {
+    rows: 1,
+    equal: 0,
+    rebuilt_lower: 1,
+    rebuilt_higher: 0,
+  });
   // ME: 1 + 3 + 1 = 5, capped at 4; MATE: 1.
   assert.deepEqual(r.weeks, [
     {
