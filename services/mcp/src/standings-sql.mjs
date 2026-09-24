@@ -32,11 +32,19 @@ export function standingsQuery({ clanTag, from, to = null, mode = null }) {
                      and ${modeGroupSql("bp.type", "b.event_tag")} = ${modeGroup})`,
     );
   }
+  // Boat defenses are not battles the member played (Jamie 2026-09-24,
+  // Gym #263.3): out of the counts, the rates, the streaks and the gap.
+  rawClauses.push(
+    `and not exists (select 1 from battle bd where bd.battle_id = bp.battle_id
+                       and bd.boat_battle_side is not null
+                       and (bd.boat_battle_side = 'defender') = (bp.side = 0))`,
+  );
   const daily = dailySql({
     players: `array(${members})`,
     from: "$2",
     to: "$3",
     modeGroup,
+    excludeBoatDefenses: true,
   });
   const text = `with d as ${daily},
      s as (

@@ -39,7 +39,19 @@ const MODE_GROUP_CASE = modeGroupSql("bp.type", "b.event_tag");
 // which would resolve at the SESSION zone and describe a different day
 // on any server not set to UTC.
 
-export function dailySql({ players, from, to, modeGroup = null }) {
+export function dailySql({
+  players,
+  from,
+  to,
+  modeGroup = null,
+  excludeBoatDefenses = false,
+}) {
+  // A boat defense is not a battle the member played (0171, Jamie
+  // 2026-09-24): subtracted from the rollup, filtered from the edge days.
+  const minus = (col, def) => (excludeBoatDefenses ? `${col} - r.${def}` : col);
+  const noDefense = excludeBoatDefenses
+    ? `and not (b.boat_battle_side is not null and (b.boat_battle_side = 'defender') = (bp.side = 0))`
+    : "";
   const modeRollup = modeGroup ? `and r.mode_group = ${modeGroup}` : "";
   // The edge days' raw rows by the SAME rule the rollup wrote (Gym #157:
   // a type filter pulled event battles into casual and left event ones
@@ -56,8 +68,9 @@ export function dailySql({ players, from, to, modeGroup = null }) {
   const t = `(${to})::timestamptz`;
   return `(
     select r.player_tag, r.day, r.mode_group,
-           sum(r.battles_captured)::int as battles,
-           sum(r.wins)::int as wins, sum(r.losses)::int as losses,
+           sum(${minus("r.battles_captured", "boat_defenses")})::int as battles,
+           sum(${minus("r.wins", "boat_defense_wins")})::int as wins,
+           sum(${minus("r.losses", "boat_defense_losses")})::int as losses,
            sum(r.draws)::int as draws, sum(r.trophy_delta)::int as trophy_delta
     from player_daily_battle_rollup r
     where r.player_tag = any(${players})
@@ -65,6 +78,8 @@ export function dailySql({ players, from, to, modeGroup = null }) {
       and (${t} is null or r.day < (${t} at time zone 'UTC')::date)
       ${modeRollup}
     group by r.player_tag, r.day, r.mode_group
+    -- A group of only defenses is no battle played: no row, not a zero.
+    having sum(${minus("r.battles_captured", "boat_defenses")}) > 0
     union all
     select bp.player_tag, (bp.battle_time at time zone 'UTC')::date as day, ${MODE_GROUP_CASE} as mode_group,
            count(*)::int, count(*) filter (where bp.outcome = 'win')::int,
@@ -89,6 +104,7 @@ export function dailySql({ players, from, to, modeGroup = null }) {
          and bp.battle_time < ${t})
       )
       ${modeRaw}
+      ${noDefense}
     group by bp.player_tag, (bp.battle_time at time zone 'UTC')::date, ${MODE_GROUP_CASE}
   )`;
 }

@@ -605,6 +605,52 @@ test("round-3: seasons range refused loudly; attendance unions recorded battles"
   );
 });
 
+test("clans_standings leaves out boat defenses the member did not play (0171, Gym #263.3)", async () => {
+  const [tag] = (
+    await db.query(
+      `select player_tag from clan_membership
+       where clan_tag = $1 and left_observed_at is null order by player_tag limit 1`,
+      [CLAN],
+    )
+  ).rows.map((r) => r.player_tag);
+  const before = (
+    await call(invoke, "clans_standings", { days: 7, min_battles: 1 })
+  ).body;
+  const row = (b) =>
+    [...b.members, ...b.below_floor].find((m) => m.player_tag === tag) ?? null;
+  const was = row(before);
+  assert.ok(was, "the member is listed, ranked or below the floor");
+  // An enemy attacked the boat; this member's defense deck answered.
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, boat_battle_side)
+     values ('bd-def-1', now() - interval '90 minutes', 'boatBattle', 'pvp', 'defender')
+     on conflict do nothing`,
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, type, type_class, clan_tag)
+     values ('bd-def-1', $1, now() - interval '90 minutes', 0, 'loss', 'boatBattle', 'pvp', $2)
+     on conflict do nothing`,
+    [tag, CLAN],
+  );
+  await refreshDailyRollups(db, await rollupPairs(db, "bd-%"));
+  const { rows: roll } = await db.query(
+    `select sum(boat_defenses)::int as d, sum(boat_defense_losses)::int as l
+       from player_daily_battle_rollup where player_tag = $1`,
+    [tag],
+  );
+  assert.equal(roll[0].d, 1, "the rollup counts the defense apart");
+  assert.equal(roll[0].l, 1);
+  const after = row(
+    (await call(invoke, "clans_standings", { days: 7, min_battles: 1 })).body,
+  );
+  assert.equal(
+    after?.battles ?? null,
+    was?.battles ?? null,
+    "not a battle played",
+  );
+  assert.equal(after?.win_rate ?? null, was?.win_rate ?? null);
+});
+
 test("clans_standings: ranked by win rate with floor, median, and honest basis", async () => {
   // Give two members decided battles inside the window; leave the rest below floor.
   const members = (

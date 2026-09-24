@@ -648,6 +648,15 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.rollup_boat_defenses) {
+    const { rollupBoatDefenses } = await import("./ops-rollup-defenses.mjs");
+    const result = await rollupBoatDefenses(
+      process.env.DATABASE_URL,
+      event.rollup_boat_defenses,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.oauth_grants) {
     const { oauthGrants } = await import("./ops-grants.mjs");
     const result = await oauthGrants(

@@ -14,6 +14,11 @@ import { modeGroupSql } from "@elixir-mcp/contracts";
 // which is what filed the Seasonal Trophy Road as casual play.
 const MODE_GROUP_CASE = modeGroupSql("b.type", "b.event_tag");
 
+// A boat battle this participant DEFENDED (0171, Gym #263): the API's
+// boatBattleSide is the log owner's (side 0). Counted apart so a reader
+// can leave out battles the member did not play.
+const DEFENSE = `(b.boat_battle_side is not null and (b.boat_battle_side = 'defender') = (bp.side = 0))`;
+
 /** Recompute rollups for a set of {playerTag, day} pairs. */
 export async function refreshDailyRollups(db, pairs) {
   for (const { playerTag, day } of pairs) {
@@ -24,7 +29,8 @@ export async function refreshDailyRollups(db, pairs) {
     await db.query(
       `insert into player_daily_battle_rollup
          (player_tag, day, mode_group, game_mode_id, wins, losses, draws,
-          crowns_for, crowns_against, trophy_delta, battles_captured)
+          crowns_for, crowns_against, trophy_delta, battles_captured,
+          boat_defenses, boat_defense_wins, boat_defense_losses)
        select bp.player_tag, $2::date, ${MODE_GROUP_CASE}, coalesce(b.game_mode_id, 0),
               count(*) filter (where bp.outcome = 'win'),
               count(*) filter (where bp.outcome = 'loss'),
@@ -32,7 +38,10 @@ export async function refreshDailyRollups(db, pairs) {
               coalesce(sum(bp.crowns), 0),
               coalesce(sum(opp.crowns), 0),
               coalesce(sum(bp.trophy_change), 0),
-              count(*)
+              count(*),
+              count(*) filter (where ${DEFENSE}),
+              count(*) filter (where ${DEFENSE} and bp.outcome = 'win'),
+              count(*) filter (where ${DEFENSE} and bp.outcome = 'loss')
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
        left join lateral (
