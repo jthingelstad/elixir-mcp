@@ -2305,5 +2305,13 @@
     "case": "gym/344.1",
     "captures": ["344-1-rankings_clan_ladder.json"],
     "expect": "."
+  },
+  {
+    "feedback": 348,
+    "contract": "7.2.6",
+    "why": "the Gym block 348.1 on the answer it read",
+    "case": "gym/348.1",
+    "captures": ["348-1-battles_meta_decks.json"],
+    "expect": "."
   }
 ]

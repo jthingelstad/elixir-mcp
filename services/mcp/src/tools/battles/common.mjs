@@ -52,6 +52,10 @@ export const META_TROPHY_BAND_SCHEMA = {
 export const NO_FIT_NOTE =
   "These are the population's decks and levels; nothing here checks what a given player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.";
 
+/** The same on battles_meta_cards, which has no decks[] (Gym journey r3). */
+export const NO_FIT_CARDS_NOTE =
+  "These are the population's cards and levels; nothing here checks what a given player holds. Before naming a card as a recommendation to a person, pass fit_for with their tag: every row then carries held (their level and forms, or null when they do not own it).";
+
 export function fitNotes(fitBlock, decks, unfieldable) {
   const fielded =
     fitBlock.fielded_mean_level === null

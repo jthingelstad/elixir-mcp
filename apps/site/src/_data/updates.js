@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Deck recommendations name a deck one player carries",
+    body: "Asking for decks played by at least two players could still lead with one player's long run and two others' single losses. Deck meta rows now say how many battles their busiest player accounts for, and a note names any row one player carries. Contract 7.2.7.",
+  },
+  {
+    date: "2026-09-24",
     title: "Pre-beta check: fixes across every tool family",
     body: 'A full test pass over every Elixir tool family before opening to beta users found and fixed: tower troop usage for players who play war, a busy timeline that could not page past a late item, the leaderboard collections showing yesterday\'s board, the card name Archer Queen finding the wrong entry, "Evo Witch" not being understood, the "how am I doing" headline now saying when your record is still thin, side-mode standings from ended events, clan rosters showing 0 badges for players not read yet, and war fame reading 0 on the first war day. Contract 7.2.2-7.2.6.',
   },

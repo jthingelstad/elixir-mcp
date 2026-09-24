@@ -2788,3 +2788,60 @@ test("a card name shared with a tower-troop entry is the deck card; Evo and Hero
     await db.query(`delete from card where card_id = 29000099`);
   }
 });
+
+test("Gym #348: a row one player carries past min_players says so", async () => {
+  const tags = ["#2QQQ8", "#2QQQ9", "#2QQQ0"];
+  await db.query(
+    `insert into collection (slug, title, kind, owner_account)
+     values ('carried', 'Carried', 'player', $1) on conflict (slug) do nothing`,
+    [account.accountId],
+  );
+  for (const tag of tags) {
+    await db.query(
+      "insert into player (player_tag) values ($1) on conflict do nothing",
+      [tag],
+    );
+    await db.query(
+      `insert into collection_member (collection_id, subject_tag)
+       select collection_id, $1 from collection where slug = 'carried'
+       on conflict do nothing`,
+      [tag],
+    );
+  }
+  const cards = [{ id: 26000348, name: "Carried Card", level: 14 }];
+  await seedDeck(db, { cards });
+  // One player 9-0, two players 0-1 each: "3 players, 9-2".
+  const plays = [
+    ...Array.from({ length: 9 }, () => [tags[0], "win"]),
+    [tags[1], "loss"],
+    [tags[2], "loss"],
+  ];
+  for (const [i, [tag, outcome]] of plays.entries()) {
+    const id = `carried-${i}`;
+    await db.query(
+      "insert into battle (battle_id,battle_time,type,type_class) values ($1,now(),'PvP','pvp')",
+      [id],
+    );
+    await db.query(
+      "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck_hash,type,type_class) values ($1,$2,now(),0,$3,$4,'PvP','pvp')",
+      [id, tag, outcome, hashFor(cards)],
+    );
+    await seedPlayedDeck(db, { battle_id: id, player_tag: tag, cards });
+  }
+  for (const verbosity of ["full", "compact"]) {
+    const { body, isError } = await call("battles_meta_decks", {
+      segment: { collection: "carried" },
+      min_battles: 1,
+      min_players: 2,
+      verbosity,
+    });
+    assert.equal(isError, false, JSON.stringify(body));
+    const row = body.decks.find((d) => d.deck_hash === hashFor(cards));
+    assert.equal(row.players, 3);
+    assert.equal(row.top_player_battles, 9);
+    assert.match(
+      body.notes.join(" "),
+      /Carried Card\): 9 of its 11 battles by one player/,
+    );
+  }
+});

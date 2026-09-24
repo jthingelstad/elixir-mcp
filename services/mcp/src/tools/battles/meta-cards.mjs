@@ -63,7 +63,7 @@ import {
   FIT_FOR_SCHEMA,
   FORM_ROWS_NOTE,
   META_TROPHY_BAND_SCHEMA,
-  NO_FIT_NOTE,
+  NO_FIT_CARDS_NOTE,
   cardFitNote,
   compactCardRow,
 } from "./common.mjs";
@@ -465,7 +465,7 @@ export const battles_meta_cards = {
           : null,
         outsideMetaNote(excluded?.outside_meta ?? 0),
         args.mode === EVENT_MODE_GROUP ? META_EVENT_NOTE : null,
-        fitBlock ? cardFitNote(fitBlock, shaped) : NO_FIT_NOTE,
+        fitBlock ? cardFitNote(fitBlock, shaped) : NO_FIT_CARDS_NOTE,
         clash,
         modeGroups ? pooledModesNote(modeGroups) : null,
         seg.where ? singlePlayerNote(shaped, { what: "card" }) : null,

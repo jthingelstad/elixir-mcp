@@ -2013,6 +2013,11 @@ export const OUTPUT_SCHEMAS = {
             first_used: { type: ["string", "null"] },
             last_used: { type: ["string", "null"] },
             level_gap_battles: NULLABLE_INT,
+            top_player_battles: {
+              type: ["number", "null"],
+              description:
+                "7.2.7: the busiest player's battles on the row, set when players is 2-5 (null otherwise). Near battles means one player carries the row.",
+            },
             dominant_mode: { type: ["object", "null"] },
             cards: {
               type: "array",

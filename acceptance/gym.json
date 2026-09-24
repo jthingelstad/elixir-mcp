@@ -22287,5 +22287,305 @@
         "notes_match": "recorded ones are .*US"
       }
     ]
+  },
+  {
+    "id": "348.1",
+    "feedback": 348,
+    "stability": "frozen",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "mode": "ladder",
+      "trophy_band": "11000_13000",
+      "min_players": 2,
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "sort": "shrunk_win_rate",
+      "verbosity": "compact"
+    },
+    "request_id": "5bb9ed14-14fb-4e9b-ac29-c4ef1f9d07b8",
+    "when": {
+      "has": "decks[?deck_hash=72c6c8fba5a9990675a74eb682fa2bf5168629809de09e434403b910ed60f50c].deck_hash"
+    },
+    "assert": [
+      {
+        "notes_match": "72c6c8fb.*(one player|a single player|one pilot)"
+      }
+    ]
+  },
+  {
+    "id": "348.2",
+    "feedback": 348,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "mode": "ladder",
+      "trophy_band": "11000_13000",
+      "min_players": 2,
+      "fit_for": "#20JJJ2CCRU",
+      "sort": "shrunk_win_rate"
+    },
+    "request_id": "8b9e69e6-3bc0-4a9f-b344-2bf00bb47834",
+    "when": {
+      "has": "decks[?deck_hash=72c6c8fba5a9990675a74eb682fa2bf5168629809de09e434403b910ed60f50c].deck_hash"
+    },
+    "assert": [
+      {
+        "notes_match": "72c6c8fb.*(one player|a single player|one pilot)"
+      }
+    ]
+  },
+  {
+    "id": "348.3",
+    "feedback": 348,
+    "stability": "frozen",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "mode": "ladder",
+      "trophy_band": "11000_13000",
+      "min_players": 2,
+      "season": 135,
+      "verbosity": "compact"
+    },
+    "request_id": "e94b5824-9ebb-4acc-b8ab-3ba02c977e45",
+    "assert": [
+      {
+        "notes_not_match": "7e559d77.*(one player|a single player|one pilot)"
+      },
+      {
+        "eq": [
+          "decks[?deck_hash=7e559d7711506a017359381f422f20b288145cc9d44768915b5d6ee0aeb96a79].players",
+          2
+        ]
+      }
+    ]
+  },
+  {
+    "id": "348.4",
+    "feedback": 348,
+    "stability": "frozen",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "corpus",
+      "mode": "ladder",
+      "trophy_band": "11000_13000",
+      "min_players": 2,
+      "from": "2026-09-07T10:00:00Z",
+      "to": "2026-09-21T10:00:00Z",
+      "sort": "shrunk_win_rate",
+      "verbosity": "compact"
+    },
+    "request_id": "5bb9ed14-14fb-4e9b-ac29-c4ef1f9d07b8",
+    "assert": [
+      {
+        "notes_not_match": "90f6e5b4.*(one player|a single player|one pilot)"
+      }
+    ]
+  },
+  {
+    "id": "349.1",
+    "feedback": 349,
+    "stability": "live",
+    "control": true,
+    "tool": "war_current",
+    "args": {},
+    "request_id": "697bc9e8-5a92-4054-ba13-eb3eb82031f4",
+    "when": {
+      "eq": ["war_day", 1]
+    },
+    "assert": [
+      {
+        "sum_eq": [
+          ["participants[].points"],
+          "standings[?participant_clan_tag=#J2RGCRVG].period_points"
+        ]
+      },
+      {
+        "notes_match": "fame can be zero on war day 1 while members already have points"
+      }
+    ]
+  },
+  {
+    "id": "349.2",
+    "feedback": 349,
+    "stability": "live",
+    "control": true,
+    "tool": "war_history",
+    "args": {
+      "season_id": 136,
+      "section_index": 2
+    },
+    "request_id": "63e36623-43a4-464e-89bc-8080f6e3cc53",
+    "assert": [
+      {
+        "eq": ["member_weeks[?player_tag=#20R8QRLYLP].training_decks", 12]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].training_decks", 2]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#2LRYLQPL].training_decks", 1]
+      },
+      {
+        "eq": ["member_weeks[?player_tag=#UQ2R9RGVP].training_decks", 0]
+      }
+    ]
+  },
+  {
+    "id": "349.3",
+    "feedback": 349,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "limit": 3
+    },
+    "request_id": "923bc501-d094-42d1-be68-946020e45a8d",
+    "when": {
+      "eq": ["our_clan.on_board", false]
+    },
+    "assert": [
+      {
+        "sum_eq": [
+          ["our_clan.score", "our_clan.below_floor_by"],
+          "snapshot.floor_score"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "349.4",
+    "feedback": 349,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "JP",
+      "limit": 3
+    },
+    "request_id": "a28476bb-fe90-40d6-8d0a-e87b078b5b27",
+    "assert": [
+      {
+        "eq": ["our_clan.located_elsewhere", true]
+      },
+      {
+        "eq": ["our_clan.below_floor_by", null]
+      }
+    ]
+  },
+  {
+    "id": "349.5",
+    "feedback": 349,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "limit": 1,
+      "as_of": "2026-09-24T12:00:00Z"
+    },
+    "request_id": "b676ba67-5428-496c-8146-092ea28f49cb",
+    "assert": [
+      {
+        "notes_match": "may have served an incomplete board"
+      }
+    ]
+  },
+  {
+    "id": "349.6",
+    "feedback": 349,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "limit": 1,
+      "as_of": "2026-09-24T09:00:00Z"
+    },
+    "request_id": "969cba12-9186-4527-84b2-7c2ba7c15fcc",
+    "assert": [
+      {
+        "notes_not_match": "may have served an incomplete board"
+      }
+    ]
+  },
+  {
+    "id": "349.7",
+    "feedback": 349,
+    "stability": "live",
+    "control": true,
+    "tool": "players_summary",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "af54c985-6c4e-4faa-820e-64e73e16bf9f",
+    "assert": [
+      {
+        "has": "last_30_days.capture.captured_battles"
+      },
+      {
+        "has": "last_30_days.boat_defenses"
+      },
+      {
+        "lte": [
+          "last_30_days.capture.captured_battles",
+          "last_30_days.capture.expected_battles"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "349.8",
+    "feedback": 349,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_cards",
+    "args": {
+      "segment": "mine",
+      "tower_troops": true
+    },
+    "request_id": "f77d6bcf-c12c-40c2-b21d-870bd1ec8e7b",
+    "assert": [
+      {
+        "lte": ["tower_troop_known_battles", "decided_battles"]
+      },
+      {
+        "notes_match": "tower_troop_known_battles"
+      }
+    ]
+  },
+  {
+    "id": "349.9",
+    "feedback": 349,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "c": {
+        "tool": "cards_card",
+        "args": {
+          "card": "Archer Queen",
+          "segment": "mine"
+        }
+      },
+      "m": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": "mine",
+          "cards": [26000072],
+          "min_battles": 1
+        }
+      }
+    },
+    "request_id": "8dc64df1-8231-4a0e-ae66-23a68ac98754",
+    "assert": [
+      {
+        "eq": ["c.card.id", 26000072]
+      },
+      {
+        "eq": ["c.season.all.battles", "m.cards[?card_id=26000072].battles"]
+      }
+    ]
   }
 ]

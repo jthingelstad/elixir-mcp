@@ -104,7 +104,7 @@ export const battles_meta_decks = {
         maximum: 50,
         default: 1,
         description:
-          'Distinct players a deck needs to be listed (7.1.6). 2 or more keeps decks played across players, which is what "what deck should I play" asks; 1 lists every deck, one player\'s own included.',
+          'Distinct players a deck needs to be listed (7.1.6). 2 or more keeps decks played across players, which is what "what deck should I play" asks; 1 lists every deck, one player\'s own included. A row one player still carries says so (top_player_battles, a note).',
       },
       sort: {
         type: "string",
@@ -433,6 +433,17 @@ export const battles_meta_decks = {
     // the returned decks' raw rows.
     const hashes = shaped.map((r) => r.deck_hash);
     const identities = await deckIdentities(ctx.db, hashes);
+    // One player can carry a row that clears min_players (Gym #348: a
+    // 57-0 run and two players 0-1 read as "3 players, 57-2"). For a
+    // returned row with 2-5 players, the busiest player's battles, over
+    // the raw rows the row counts.
+    const topByDeck = await topPlayerBattles(ctx, args, {
+      hashes: shaped
+        .filter((r) => r.players >= 2 && r.players <= TOP_PLAYER_MAX)
+        .map((r) => r.deck_hash),
+      from,
+      to,
+    });
     const modesByDeck = roll
       ? await rollupDeckModes(ctx.db, roll, hashes)
       : new Map(rows.map((r) => [r.deck_hash, r.types]));
@@ -440,6 +451,7 @@ export const battles_meta_decks = {
       const modes = modeSplit(modesByDeck.get(row.deck_hash) ?? []);
       return {
         ...row,
+        top_player_battles: topByDeck.get(row.deck_hash) ?? null,
         modes,
         dominant_mode: dominantMode(modes),
         ...(identities.get(row.deck_hash) ?? { cards: [] }),
@@ -591,6 +603,7 @@ export const battles_meta_decks = {
               ? `Rows with fewer than ${minPlayers} distinct players are left out (min_players): ${beforePlayers.length - shaped.length} of the decks over min_battles.`
               : null;
         })(),
+        carriedNote(shaped),
         outsideMetaNote(excluded?.outside_meta ?? 0),
         args.mode === EVENT_MODE_GROUP ? META_EVENT_NOTE : null,
         grouped ? grouped.folded : null,
@@ -641,3 +654,52 @@ export const battles_meta_decks = {
     return out;
   },
 };
+
+const TOP_PLAYER_MAX = 5;
+
+/** The busiest player's battles per deck (Gym #348), over the same
+ *  population the row counts: window, mode, band, segment, meta rule. */
+async function topPlayerBattles(ctx, args, { hashes, from, to }) {
+  if (hashes.length === 0) return new Map();
+  const params = [hashes, from];
+  const where = [
+    "bp.deck_hash = any($1)",
+    "bp.battle_time >= $2",
+    "bp.outcome in ('win','loss')",
+    "bp.type_class = 'pvp'",
+    metaPopulationClause(),
+  ];
+  if (to) where.push(`bp.battle_time < $${params.push(to)}`);
+  const seg = await segmentFilter(ctx, args, params);
+  if (seg.where) where.push(seg.where);
+  if (args.mode) where.push(participantModeClause(args.mode, params));
+  if (args.trophy_band) where.push(trophyBandClause(args.trophy_band, params));
+  const { rows } = await ctx.db.query(
+    `select deck_hash, max(n)::int as top
+       from (select bp.deck_hash, bp.player_tag, count(*) as n
+               from battle_participant bp
+              where ${where.join(" and ")}
+              group by bp.deck_hash, bp.player_tag) t
+      group by deck_hash`,
+    params,
+  );
+  return new Map(rows.map((r) => [r.deck_hash, r.top]));
+}
+
+function carriedNote(rows) {
+  const carried = rows.filter(
+    (r) =>
+      r.top_player_battles !== null &&
+      r.top_player_battles !== undefined &&
+      r.top_player_battles >= 0.8 * r.battles,
+  );
+  if (carried.length === 0) return null;
+  const shown = carried
+    .slice(0, 5)
+    .map(
+      (r) =>
+        `deck ${r.deck_hash.slice(0, 8)} (${r.card_names ?? (r.cards ?? []).map((c) => c.name).join(", ")}): ${r.top_player_battles} of its ${r.battles} battles by one player`,
+    )
+    .join("; ");
+  return `Mostly one player's, though over min_players (top_player_battles 80%+ of battles): ${shown}${carried.length > 5 ? `; +${carried.length - 5} more` : ""}. That record and win rate describe the player; count a row as a deck several players win with only when the others carry real battles.`;
+}
