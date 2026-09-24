@@ -648,6 +648,15 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.oauth_grants) {
+    const { oauthGrants } = await import("./ops-grants.mjs");
+    const result = await oauthGrants(
+      process.env.DATABASE_URL,
+      event.oauth_grants,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.training_backfill) {
     const { trainingBackfill } = await import("./ops-training.mjs");
     const result = await trainingBackfill(
