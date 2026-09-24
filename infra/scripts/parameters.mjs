@@ -40,7 +40,6 @@ export const PRESERVED_PARAMETERS = [
   ...SECRET_PARAMETERS,
   "AppSecretName",
   "SiteCertificateArn",
-  "MonthlyCostAlarmUsd",
   "SchedulerTickMinutes",
   // Replacement trigger: must never reset to default (see template).
   "DbSnapshotIdentifier",

@@ -43,9 +43,6 @@ Parameters:
     Type: String
     Default: ""
     Description: ACM cert for elixir.poapkings.com (us-east-1); empty deploys without the alias
-  MonthlyCostAlarmUsd:
-    Type: Number
-    Default: 40
   SchedulerTickMinutes:
     Type: Number
     Default: 5
@@ -2140,22 +2137,6 @@ Resources:
       Period: 300
       EvaluationPeriods: 2
       Threshold: 60
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  EstimatedChargesAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-estimated-charges
-      AlarmDescription: Account-wide estimated charges guard for the hobby account
-      Namespace: AWS/Billing
-      MetricName: EstimatedCharges
-      Dimensions: [{ Name: Currency, Value: USD }]
-      Statistic: Maximum
-      Period: 21600
-      EvaluationPeriods: 1
-      Threshold: !Ref MonthlyCostAlarmUsd
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]

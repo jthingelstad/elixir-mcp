@@ -88,7 +88,8 @@ Establish, with receipts:
   Do not restart merely for changed prompts, run a routine early, replay a
   backlog, or add local game data/fallback to hide an upstream limitation.
   Close the Loop owns the resulting tool-friction and answer-quality findings.
-- **Cost.** The monthly cost alarm state; RDS storage headroom
+- **Cost.** No billing alarm (the account-wide one was removed
+  2026-09-24; Jamie reads spend himself). RDS storage headroom
   (autoscaling floor 20GB, max 100GB); the web-api Lambda's billed
   seconds per day, attributed in Logs Insights by `http` route. Productive
   collector throughput legitimately scales both `POST /api/collector/lease`
