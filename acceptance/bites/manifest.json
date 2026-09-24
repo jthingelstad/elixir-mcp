@@ -1985,5 +1985,21 @@
     "case": "gym/306.2",
     "captures": ["306-2-war_history.json"],
     "expect": "."
+  },
+  {
+    "feedback": 308,
+    "contract": "7.1.18",
+    "why": "the Gym block 308.1 on the answer it read",
+    "case": "gym/308.1",
+    "captures": ["308-1-battles_meta_decks.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 308,
+    "contract": "7.1.18",
+    "why": "the Gym block 308.2 on the answer it read",
+    "case": "gym/308.2",
+    "captures": ["308-2-battles_trends.json"],
+    "expect": "."
   }
 ]

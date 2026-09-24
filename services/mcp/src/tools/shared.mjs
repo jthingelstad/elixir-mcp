@@ -1123,7 +1123,7 @@ export function collectionSegmentNote(seg) {
   if (echo?.kind === "clan")
     return [
       seg?.coverage
-        ? `The clan segment counts the members Elixir records: ${seg.coverage.recorded} of this clan's ${seg.coverage.members} current members. The others appear only in recorded players' battles, so their play is not counted (elixir_track_clan with scope comprehensive records every member).`
+        ? `The clan segment counts the members Elixir records: ${seg.coverage.recorded} of this clan's ${seg.coverage.members} current members. The others are not recorded now, so none of their battles count, not even ones captured while they were (elixir_coverage says who was polled when; elixir_track_clan with scope comprehensive records every member).`
         : null,
       "The clan segment applies the clan's membership as of this call: over a past window it counts today's members' battles, including ones played before they joined, and leaves out members who have left since (clans_members_timeline lists the joins and departures).",
     ]

@@ -18545,5 +18545,162 @@
         "count_eq": ["members[]", 46]
       }
     ]
+  },
+  {
+    "id": "308.1",
+    "feedback": 308,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "clan_tag": "#Q9QPPGGG"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "195980b5-ab57-4c2e-92be-fb33274a3e4f",
+    "assert": [
+      {
+        "notes_not_match": "The others appear only in recorded players' battles"
+      },
+      {
+        "notes_match": "not recorded now|recorded now"
+      }
+    ]
+  },
+  {
+    "id": "308.2",
+    "feedback": 308,
+    "stability": "live",
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "clan_tag": "#Q9QPPGGG"
+      },
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z"
+    },
+    "request_id": "9ba3c45f-53df-40e2-90f8-84ba0dee5755",
+    "assert": [
+      {
+        "notes_not_match": "The others appear only in recorded players' battles"
+      },
+      {
+        "notes_match": "not recorded now|recorded now"
+      }
+    ]
+  },
+  {
+    "id": "308.3",
+    "feedback": 308,
+    "stability": "live",
+    "control": true,
+    "tool": "badges_holders",
+    "args": {
+      "badge": "YearsPlayed",
+      "segment": {
+        "clan_tag": "#Q9QPPGGG"
+      }
+    },
+    "request_id": "692828cd-c05a-45aa-8d3f-88ddf6aa9e64",
+    "assert": [
+      {
+        "notes_match": "not recorded now"
+      }
+    ]
+  },
+  {
+    "id": "308.4",
+    "feedback": 308,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "mine",
+      "verbosity": "compact"
+    },
+    "request_id": "9ab0edf4-7f45-4972-9ad2-707274ebaa23",
+    "assert": [
+      {
+        "notes_not_match": "not recorded now|appear only in recorded players' battles"
+      }
+    ]
+  },
+  {
+    "id": "309.1",
+    "feedback": 309,
+    "stability": "live",
+    "control": true,
+    "calls": {
+      "d": {
+        "tool": "battles_meta_decks",
+        "args": {
+          "segment": {
+            "clan_tag": "#Q9QPPGGG"
+          },
+          "verbosity": "compact"
+        }
+      },
+      "c": {
+        "tool": "battles_meta_cards",
+        "args": {
+          "segment": {
+            "clan_tag": "#Q9QPPGGG"
+          },
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "195980b5-ab57-4c2e-92be-fb33274a3e4f",
+    "assert": [
+      {
+        "eq": ["d.decided_battles", "c.decided_battles"]
+      }
+    ]
+  },
+  {
+    "id": "309.2",
+    "feedback": 309,
+    "stability": "live",
+    "control": true,
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Hog Rider",
+      "segment": {
+        "clan_tag": "#Q9QPPGGG"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "c2163a62-39ab-49b7-91ce-f26d8284bef0",
+    "assert": [
+      {
+        "notes_match": "of this clan's \\d+ current members"
+      },
+      {
+        "notes_match": "membership as of this call"
+      }
+    ]
+  },
+  {
+    "id": "309.3",
+    "feedback": 309,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "days": 28,
+      "verbosity": "compact"
+    },
+    "request_id": "da415cb3-b85f-4af3-a30e-262f73c6153d",
+    "assert": [
+      {
+        "notes_match": "today's members"
+      },
+      {
+        "notes_not_match": "of this clan's \\d+ current members"
+      }
+    ]
   }
 ]

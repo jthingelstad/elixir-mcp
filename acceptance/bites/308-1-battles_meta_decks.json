@@ -1,0 +1,398 @@
+{
+  "feedback": 308,
+  "contract_version": "7.1.18",
+  "captured_at": "2026-09-24T09:04:48.284Z",
+  "request": {
+    "tool": "battles_meta_decks",
+    "arguments": {
+      "segment": {
+        "clan_tag": "#Q9QPPGGG"
+      },
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "clan",
+        "clan_tag": "#Q9QPPGGG"
+      },
+      "window": {
+        "from": "2026-09-07T10:00:00.000Z",
+        "to": null,
+        "source": "season",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "min_battles": 5,
+      "sort": "battles",
+      "limit": 20,
+      "verbosity": "compact"
+    },
+    "decided_battles": 2292,
+    "segment_win_rate": 0.547,
+    "prior_win_rate": 0.5,
+    "prior_basis": "corpus_window",
+    "excluded": {
+      "considered": 2292,
+      "duels": 0,
+      "boat": 0,
+      "draws": 0,
+      "unresolved": 0,
+      "no_deck": 0,
+      "outside_meta": 827
+    },
+    "comparable": true,
+    "decks": [
+      {
+        "deck_hash": "bd85c13cc7e6721a957e93fe085374298603bc46ea706aca8ed03e3e53d65837",
+        "battles": 351,
+        "wins": 186,
+        "losses": 165,
+        "players": 2,
+        "usage_share": 0.153,
+        "win_rate": 0.53,
+        "shrunk_win_rate": 0.528,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 0.963
+        },
+        "archetype_label": "Minion Giant cycle",
+        "card_names": "Skeletons, Hero Ice Wizard, Evo Bats, Goblinstein, Minion Giant, Goblin Hut, Fireball, Barbarian Barrel"
+      },
+      {
+        "deck_hash": "79ec36caf77972ddf0da3413c5fa5a62bf767e8867104a907c189b70e00af5d1",
+        "battles": 213,
+        "wins": 114,
+        "losses": 99,
+        "players": 2,
+        "usage_share": 0.093,
+        "win_rate": 0.535,
+        "shrunk_win_rate": 0.532,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 0.995
+        },
+        "archetype_label": "Lava Hound Hero Balloon beatdown",
+        "card_names": "Minions, Hero Balloon, Evo Skeleton Army, Bomber, Lava Hound, Evo Inferno Dragon, Fireball, Giant Snowball"
+      },
+      {
+        "deck_hash": "d3cdf80833ccfafe3f70bd2b3cd5b4b1c5b9a64ebdb116bc3e9ac2e3ec4391d0",
+        "battles": 210,
+        "wins": 112,
+        "losses": 98,
+        "players": 1,
+        "usage_share": 0.092,
+        "win_rate": 0.533,
+        "shrunk_win_rate": 0.53,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Minion Giant cycle",
+        "card_names": "Evo Knight, Evo Baby Dragon, Hero Ice Wizard, Minion Giant, Goblin Hut, Poison, Tornado, Barbarian Barrel"
+      },
+      {
+        "deck_hash": "0cbf07bfcfa548ad34302340e1c7418d53d7947241d458ce819b1bd6b1107b21",
+        "battles": 182,
+        "wins": 108,
+        "losses": 74,
+        "players": 3,
+        "usage_share": 0.079,
+        "win_rate": 0.593,
+        "shrunk_win_rate": 0.584,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 0.989
+        },
+        "archetype_label": "Evo Battle Ram bridge spam",
+        "card_names": "Evo Battle Ram, Electro Wizard, Bandit, Evo Royal Ghost, Golden Knight, Mother Witch, Ronin, Heal Spirit"
+      },
+      {
+        "deck_hash": "c919304840c0a6ebff8698d9400c7ff8feaa775f5c0b5c7f2ff86b0ae3a18b31",
+        "battles": 180,
+        "wins": 99,
+        "losses": 81,
+        "players": 1,
+        "usage_share": 0.079,
+        "win_rate": 0.55,
+        "shrunk_win_rate": 0.545,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Minion Giant cycle",
+        "card_names": "Evo Archers, Evo Skeletons, Electro Spirit, Goblinstein, Minion Giant, Bomb Tower, Lightning, Barbarian Barrel"
+      },
+      {
+        "deck_hash": "6e86d7af716e9bd71d5aee21cb9fa14de44e6486142a2dbb278c16c4bf7a5535",
+        "battles": 150,
+        "wins": 89,
+        "losses": 61,
+        "players": 1,
+        "usage_share": 0.065,
+        "win_rate": 0.593,
+        "shrunk_win_rate": 0.582,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 0.993
+        },
+        "archetype_label": "Evo Battle Ram bridge spam",
+        "card_names": "Giant Skeleton, Evo Battle Ram, Electro Wizard, Bandit, Evo Royal Ghost, Golden Knight, Mother Witch, Heal Spirit"
+      },
+      {
+        "deck_hash": "bf9f044746725bc4bdabfa220a41000f2b6905ae9ea93f7d4f115878f3aa6ecd",
+        "battles": 88,
+        "wins": 42,
+        "losses": 46,
+        "players": 1,
+        "usage_share": 0.038,
+        "win_rate": 0.477,
+        "shrunk_win_rate": 0.481,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Minion Giant cycle",
+        "card_names": "Skeletons, Evo Musketeer, Evo Royal Ghost, Goblinstein, Minion Giant, Goblin Hut, Fireball, Barbarian Barrel"
+      },
+      {
+        "deck_hash": "dff64e464c7ba6fcf43a77dad95f75a5e2edded2a315c98b42ea68e631233673",
+        "battles": 63,
+        "wins": 32,
+        "losses": 31,
+        "players": 1,
+        "usage_share": 0.027,
+        "win_rate": 0.508,
+        "shrunk_win_rate": 0.506,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Minion Giant cycle",
+        "card_names": "Hero Knight, Skeletons, Evo Musketeer, Electro Spirit, Minion Giant, Evo Tesla, Fireball, The Log"
+      },
+      {
+        "deck_hash": "4eec088a8094d5fcc6dabb63808972d2cea455d02cb46a48e256e5a8d9167c7a",
+        "battles": 54,
+        "wins": 34,
+        "losses": 20,
+        "players": 1,
+        "usage_share": 0.024,
+        "win_rate": 0.63,
+        "shrunk_win_rate": 0.595,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Minion Giant cycle",
+        "card_names": "Skeletons, Hero Valkyrie, Hero Ice Wizard, Evo Bats, Minion Giant, Cannon, Fireball, Barbarian Barrel"
+      },
+      {
+        "deck_hash": "ebf942964c4eb0df42a514f26876199a29e312164e6d23a4e2af5e5af069132e",
+        "battles": 38,
+        "wins": 24,
+        "losses": 14,
+        "players": 2,
+        "usage_share": 0.017,
+        "win_rate": 0.632,
+        "shrunk_win_rate": 0.586,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Evo Battle Ram bridge spam",
+        "card_names": "Evo Battle Ram, Electro Wizard, Bandit, Evo Royal Ghost, Golden Knight, Mother Witch, Ronin, Arrows"
+      },
+      {
+        "deck_hash": "aa42db760e330c6a8027a0a9a764e276d51adb4ecc96f8ef96fe12d035cfec0d",
+        "battles": 32,
+        "wins": 19,
+        "losses": 13,
+        "players": 1,
+        "usage_share": 0.014,
+        "win_rate": 0.594,
+        "shrunk_win_rate": 0.558,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Sparky beatdown",
+        "card_names": "Sparky, Evo Battle Ram, Electro Wizard, Bandit, Royal Ghost, Golden Knight, Mother Witch, Evo Zap"
+      },
+      {
+        "deck_hash": "86d5e6212d7a89829a4e8195ac052f3d7aa322364511e5b5ad86c7b9a3bcf6a9",
+        "battles": 31,
+        "wins": 18,
+        "losses": 13,
+        "players": 1,
+        "usage_share": 0.014,
+        "win_rate": 0.581,
+        "shrunk_win_rate": 0.549,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Evo P.E.K.K.A bridge spam",
+        "card_names": "Evo P.E.K.K.A, Evo Battle Ram, Electro Wizard, Bandit, Golden Knight, Mother Witch, Arrows, Zap"
+      },
+      {
+        "deck_hash": "bdb9e9f1efcffa80b49ab9510a269f46de1089bca9fafac7b8d19ecf9e6fa8ae",
+        "battles": 30,
+        "wins": 22,
+        "losses": 8,
+        "players": 1,
+        "usage_share": 0.013,
+        "win_rate": 0.733,
+        "shrunk_win_rate": 0.64,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Lava Hound Hero Balloon beatdown",
+        "card_names": "Minions, Hero Balloon, Evo Skeleton Army, Bomber, Lava Hound, Evo Inferno Dragon, Arrows, Giant Snowball"
+      },
+      {
+        "deck_hash": "9bc2637962cf4715bf2ef794ce37bf70cd0e8ee922a99f3c2455a9fef0e1b75a",
+        "battles": 29,
+        "wins": 16,
+        "losses": 13,
+        "players": 1,
+        "usage_share": 0.013,
+        "win_rate": 0.552,
+        "shrunk_win_rate": 0.531,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Hog Rider cycle",
+        "card_names": "Skeletons, Hero Valkyrie, Hog Rider, Hero Ice Wizard, Evo Bats, Cannon, Fireball, Barbarian Barrel"
+      },
+      {
+        "deck_hash": "5f298113f496d2080776f45120668063c7ab5025102c31256588de7480a9576b",
+        "battles": 28,
+        "wins": 13,
+        "losses": 15,
+        "players": 1,
+        "usage_share": 0.012,
+        "win_rate": 0.464,
+        "shrunk_win_rate": 0.479,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Evo Royal Hogs cycle",
+        "card_names": "Skeletons, Hero Ice Wizard, Evo Royal Ghost, Evo Royal Hogs, Electro Spirit, Goblin Hut, Lightning, Barbarian Barrel"
+      },
+      {
+        "deck_hash": "e6df4c14a26a205b891267158019aad74c5a831c657a99f1d071c10757f91d26",
+        "battles": 24,
+        "wins": 11,
+        "losses": 13,
+        "players": 3,
+        "usage_share": 0.01,
+        "win_rate": 0.458,
+        "shrunk_win_rate": 0.477,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Evo Battle Ram bridge spam",
+        "card_names": "Evo Battle Ram, Electro Wizard, Bandit, Evo Royal Ghost, Golden Knight, Ronin, Furnace, Arrows"
+      },
+      {
+        "deck_hash": "550f6d41e49641fab93c8770286ff1eac33945fded5ff31a627d44342bf00ecc",
+        "battles": 23,
+        "wins": 15,
+        "losses": 8,
+        "players": 2,
+        "usage_share": 0.01,
+        "win_rate": 0.652,
+        "shrunk_win_rate": 0.581,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Evo P.E.K.K.A bridge spam",
+        "card_names": "Evo P.E.K.K.A, Evo Battle Ram, Electro Wizard, Royal Ghost, Golden Knight, Mother Witch, Arrows, Zap"
+      },
+      {
+        "deck_hash": "7e3ec20a755f0a44bece416c1864712cf72e9e19ae1ae4bfc539c70865a68291",
+        "battles": 21,
+        "wins": 11,
+        "losses": 10,
+        "players": 1,
+        "usage_share": 0.009,
+        "win_rate": 0.524,
+        "shrunk_win_rate": 0.512,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Evo P.E.K.K.A bridge spam",
+        "card_names": "Evo P.E.K.K.A, Evo Battle Ram, Bandit, Golden Knight, Mother Witch, Phoenix, Arrows, Zap"
+      },
+      {
+        "deck_hash": "90ece9d267f082e5f3ac63e5c7c7340f0c48660e6adf3d627f01ceeb7d232721",
+        "battles": 21,
+        "wins": 14,
+        "losses": 7,
+        "players": 1,
+        "usage_share": 0.009,
+        "win_rate": 0.667,
+        "shrunk_win_rate": 0.585,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Minion Giant cycle",
+        "card_names": "Evo Skeletons, Evo Bats, Little Prince, Rune Giant, Minion Giant, Goblin Hut, Poison, The Log"
+      },
+      {
+        "deck_hash": "ef484e70c708c92369a63ec9f9645713e366bb87c7e263f67dfc8c8b8fa9b6ff",
+        "battles": 21,
+        "wins": 10,
+        "losses": 11,
+        "players": 1,
+        "usage_share": 0.009,
+        "win_rate": 0.476,
+        "shrunk_win_rate": 0.488,
+        "dominant_mode": {
+          "mode": "ranked",
+          "share": 1
+        },
+        "archetype_label": "Ram Rider bridge spam",
+        "card_names": "Electro Wizard, Evo Royal Ghost, Ram Rider, Golden Knight, Mother Witch, Ronin, Evo Tesla, Arrows"
+      }
+    ],
+    "notes": [
+      "14 of the first 20 rows are one player's own deck (players 1): they describe that player, not what this population plays. Pass min_players 2 (or sort players) for decks played across players.",
+      "827 battles in this window are outside the meta population and not counted anywhere above (excluded.outside_meta): event battles and decks the player did not choose (6.17.0). battles_query and battles_decks read them.",
+      "These are the population's decks and levels; nothing here checks what a given player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.",
+      "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.",
+      "Pooled across modes: ranked 2238 (mean level gap +0.00), casual 34 (mean level gap +0.00), tournament 12 (mean level gap +0.00), other 8 (mean level gap +0.00); pass mode to isolate one.",
+      "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
+      "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+      "shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld (null, insufficient_sample: true) when the population is under 30 decided observations, not per row: a row with few battles still carries one, shrunk hard toward the mean. win_rate is the raw rate at any sample size, so read it beside battles.",
+      "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
+      "The clan segment counts the members Elixir records: 5 of this clan's 50 current members. The others appear only in recorded players' battles, so their play is not counted (elixir_track_clan with scope comprehensive records every member). The clan segment applies the clan's membership as of this call: over a past window it counts today's members' battles, including ones played before they joined, and leaves out members who have left since (clans_members_timeline lists the joins and departures)."
+    ],
+    "docs": "methodology#deck-and-card-meta-exactly-what-is-counted",
+    "meta": {
+      "contract_version": "7.1.18"
+    }
+  },
+  "timings": {
+    "db_ms": 863,
+    "db_queries": 17,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}
