@@ -17,13 +17,13 @@ import {
   PutObjectCommand,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
-import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import { makeOutbox } from "../../../web-api/src/outbox.mjs";
 import { upsertIssue } from "./ledger.mjs";
 import { lintIssue, repairNames } from "@elixir-mcp/mail";
 
 const SITE = "https://elixir.poapkings.com";
 const s3 = new S3Client({});
-const sqs = new SQSClient({});
+const outbox = makeOutbox(process.env.OUTBOX_BUCKET, s3);
 
 /** Where an issue's brief, draft and answer live. One prefix per kind
  *  and period, so a week's whole paper trail is one listing. */
@@ -61,16 +61,11 @@ export async function putAsset(bucket, key, body, contentType) {
   return key;
 }
 
-/** The editor is reached through its queue: the VPC has no Lambda
- *  endpoint, the way mail reaches the relay. */
+/** The editor is reached through the outbox: the VPC reaches nothing
+ *  but S3, the way mail reaches the relay. */
 async function queueForEditor({ key, kind }) {
-  if (!process.env.EDITOR_QUEUE_URL) return false;
-  await sqs.send(
-    new SendMessageCommand({
-      QueueUrl: process.env.EDITOR_QUEUE_URL,
-      MessageBody: JSON.stringify({ brief_key: key, kind }),
-    }),
-  );
+  if (!outbox) return false;
+  await outbox("editor", { brief_key: key, kind });
   return true;
 }
 

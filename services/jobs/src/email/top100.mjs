@@ -18,7 +18,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
-import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import { makeOutbox } from "../../../web-api/src/outbox.mjs";
 import { loadRecipients, accountCtx, callTool } from "./ctx.mjs";
 import { tryTool } from "./shared.mjs";
 import { upsertIssue } from "./ledger.mjs";
@@ -30,7 +30,7 @@ const SITE = "https://elixir.poapkings.com";
 const DAY_MS = 86_400_000;
 
 const s3 = new S3Client({});
-const sqs = new SQSClient({});
+const outbox = makeOutbox(process.env.OUTBOX_BUCKET, s3);
 
 async function readBoard(ctx, asOf = null) {
   const pages = [];
@@ -388,16 +388,9 @@ export async function top100Generate({
       status: "composed",
       note: `brief ${key}`,
     });
-    // The VPC has no Lambda endpoint: the editor is reached through its
-    // queue, the way mail reaches the relay.
-    if (process.env.EDITOR_QUEUE_URL) {
-      await sqs.send(
-        new SendMessageCommand({
-          QueueUrl: process.env.EDITOR_QUEUE_URL,
-          MessageBody: JSON.stringify({ brief_key: key }),
-        }),
-      );
-    }
+    // The VPC reaches nothing but S3: the editor gets the brief through
+    // the outbox, the way mail reaches the relay.
+    if (outbox) await outbox("editor", { brief_key: key });
     return {
       brief_key: key,
       issue_date: brief.window.issue_date,

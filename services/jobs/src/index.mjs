@@ -19,7 +19,7 @@
 import pg from "pg";
 import { sweepSilentCollectors } from "./fleet.mjs";
 import { loadVocabulary, stampDecks } from "../../ingest/src/card-roles.mjs";
-import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import { makeOutbox } from "../../web-api/src/outbox.mjs";
 import { runEmail } from "./email/index.mjs";
 import { top100Generate, top100Accept } from "./email/top100.mjs";
 import { cardOfWeekGenerate, cardOfWeekAccept } from "./email/card-of-week.mjs";
@@ -246,14 +246,11 @@ export async function sweepOperational(databaseUrl) {
   }
 }
 
-const sqs = new SQSClient({});
+// Mail leaves through the outbox for the relay (web-api/src/outbox.mjs).
+const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 async function enqueueEmail(msg) {
-  await sqs.send(
-    new SendMessageCommand({
-      QueueUrl: process.env.EMAIL_QUEUE_URL,
-      MessageBody: JSON.stringify(msg),
-    }),
-  );
+  if (!outbox) throw new Error("OUTBOX_BUCKET is not set");
+  await outbox("email", msg);
 }
 
 /** The archive bucket store every send's body goes to (email/archive.mjs);

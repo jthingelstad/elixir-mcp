@@ -1,12 +1,14 @@
 /** Lambda entrypoint for the MCP door (elixir.poapkings.com). */
 
-import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { makeHandler } from "./handler.mjs";
 import { makeCaptureStore } from "./capture.mjs";
 import { enqueueJob } from "../../scheduler/src/ledger.mjs";
 import { ownerNotifyMessage } from "../../web-api/src/notify.mjs";
+import { makeOutbox } from "../../web-api/src/outbox.mjs";
 
-const sqs = new SQSClient({});
+// Mail leaves through the outbox (web-api/src/outbox.mjs), as it does
+// from the site API.
+const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 
 export const handler = makeHandler({
   databaseUrl: process.env.DATABASE_URL,
@@ -27,27 +29,16 @@ export const handler = makeHandler({
   // one log event; console.log would prefix it and break extraction.
   emitMetrics: (line) => process.stdout.write(line),
   // Same relay, same message shape as the site API (notify.mjs).
-  notifyOwner: process.env.EMAIL_QUEUE_URL
-    ? (spec) =>
-        sqs.send(
-          new SendMessageCommand({
-            QueueUrl: process.env.EMAIL_QUEUE_URL,
-            MessageBody: JSON.stringify(ownerNotifyMessage(spec)),
-          }),
-        )
+  notifyOwner: outbox
+    ? (spec) => outbox("email", ownerNotifyMessage(spec))
     : null,
   sendLoginEmail: ({ email, code, clientName, newsletter }) =>
-    sqs.send(
-      new SendMessageCommand({
-        QueueUrl: process.env.EMAIL_QUEUE_URL,
-        MessageBody: JSON.stringify({
-          v: 1,
-          kind: "login",
-          to: email,
-          code,
-          client_name: clientName,
-          newsletter,
-        }),
-      }),
-    ),
+    outbox("email", {
+      v: 1,
+      kind: "login",
+      to: email,
+      code,
+      client_name: clientName,
+      newsletter,
+    }),
 });

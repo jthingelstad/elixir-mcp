@@ -9,11 +9,11 @@ import { json } from "../http.mjs";
 import { DISCLAIMER, cardForms, cardType } from "@elixir-mcp/contracts";
 import { RECORDED_PLAYERS_SQL } from "../../../mcp/src/tools/shared.mjs";
 
-export function publicRoutes({ queueStats }) {
+export function publicRoutes({ deadLetters }) {
   return {
     "GET /api/public/status": async (db) => {
       // The operational dashboard (Jamie, 2026-09-06): current system
-      // health, PUBLIC by design - queues, collectors, an hour of
+      // health, PUBLIC by design - dead letters, collectors, an hour of
       // capture. Nothing confidential: no IPs, no machine labels, no
       // account data; collectors go by their card names.
       // One pg.Client per invocation: queries run sequentially by design.
@@ -185,7 +185,7 @@ export function publicRoutes({ queueStats }) {
         live_reserve: Number(budgetRow[0]?.live_reserve ?? 0),
       };
 
-      const queues = await queueStats();
+      const dead = await deadLetters();
       const jobs = await ledgerStats(db).catch(() => null);
       // Work waiting, as a pipeline: due for the next tick (the scheduler
       // only plans every SCHEDULER_TICK_MINUTES, so due-ness accumulates
@@ -229,11 +229,10 @@ export function publicRoutes({ queueStats }) {
         ),
       };
       // Health verdict derived from data, never vibes: pipeline is OK
-      // when something was admitted recently, no DLQ holds messages,
-      // and no ledger job has died (0040).
-      const dlqDepth = ["live_dlq", "bulk_dlq", "results_dlq", "email_dlq"]
-        .map((k) => queues?.[k]?.depth ?? 0)
-        .reduce((a, b) => a + b, 0);
+      // when something was admitted recently, no message has run out of
+      // retries (an outbox object past its lane's last retry), and no
+      // ledger job has died (0040).
+      const dlqDepth = dead ?? 0;
       const lastAdmit = latest[0]?.last_admit_s;
       const healthy =
         dlqDepth === 0 &&
@@ -257,7 +256,6 @@ export function publicRoutes({ queueStats }) {
           },
           budget,
           queue,
-          queues,
           jobs,
           collectors: collectors.map((c) => ({
             name: c.name,

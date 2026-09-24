@@ -135,7 +135,7 @@ export function makeHandler({
   sendLoginEmail,
   notifyOwner = async () => {},
   sendWelcomeEmail = async () => {},
-  queueStats = async () => null,
+  deadLetters = async () => null,
   collectorDoor = null,
   originSecret = null,
   /** { s3, bucket } for reading captured tool calls (capture.mjs
@@ -250,7 +250,7 @@ export function makeHandler({
     }),
     ...accountRoutes({ resolveAccount, logEvent, notifyOwner, capture }),
     ...collectionsRoutes({ resolveAccount, logEvent }),
-    ...publicRoutes({ queueStats }),
+    ...publicRoutes({ deadLetters }),
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),
     ...exploreRoutes({ resolveAccount, exploreRegistry }),
     ...feedbackRoutes({ resolveAccount, notifyOwner }),

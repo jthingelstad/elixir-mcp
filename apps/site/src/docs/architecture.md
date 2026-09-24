@@ -158,8 +158,11 @@ tools trace directly to agent-filed feedback.
 ## The outbound relay
 
 The VPC has no NAT — cloud components cannot reach the internet at
-all, which is a security posture worth keeping. The one exception is a
-small non-VPC **relay** Lambda fed by a queue. It does two jobs with
+all, which is a security posture worth keeping. They reach S3 and
+nothing else, so mail leaves as an object in an **outbox** bucket: S3
+notifies a queue, and a small non-VPC **relay** Lambda reads the object,
+sends it and deletes it. The model-written newsletters' briefs reach
+their editor the same way. The relay does two jobs with
 deliberately different guarantees: transactional email (sign-in codes,
 sent over Amazon SES since 2026-09-17 — retried hard, dead-lettered
 loudly) and newsletter enrollment at sign-in (Buttondown; best-effort

@@ -106,8 +106,8 @@ ever genuinely needs concurrent database work, it needs a second
 connection (a pool), which is a capacity decision about a db.t4g.micro —
 not something to reach for inside a request.
 
-Non-database work still parallelises fine: `queueStats` fans out SQS calls
-across separate clients, and that is untouched.
+Non-database work still parallelises fine: S3 calls, for one, need no
+connection of their own.
 
 ## The tool contract has clients that never update
 

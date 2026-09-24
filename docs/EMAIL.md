@@ -114,12 +114,15 @@ path). The Collector switch appears only for an account with a collector.
 clan tag for `clan_report` (one issue per clan per week, N sends), null
 otherwise (one issue per account, or one for all on `top_100`).
 
-A run enumerates recipients, composes, enqueues, and inserts the send row
-**after** a successful enqueue — elixir-bot's write-after-send rule
-(2026-08-03 double send), moved one hop earlier because SQS is our durable
-point. A re-run, a manual invoke, or a rule firing twice sends only what
-the ledger lacks. SQS standard can redeliver; the relay stays dumb and the
-rare duplicate is accepted rather than giving the relay a database.
+A run enumerates recipients, composes, writes each message to the outbox,
+and inserts the send row **after** a successful write — elixir-bot's
+write-after-send rule (2026-08-03 double send), moved one hop earlier
+because the outbox object is our durable point (2026-09-24; it was an SQS
+message before). A re-run, a manual invoke, or a rule firing twice sends
+only what the ledger lacks. S3 notifications and SQS can both redeliver;
+the relay deletes each object once sent, so a redelivery finds nothing,
+and the rare duplicate (a redelivery racing the delete) is accepted
+rather than giving the relay a database.
 
 ### 4. Composition and rendering
 
@@ -130,9 +133,9 @@ names the mail and `utm_` tags on links into the site** (Jamie,
 2026-09-18, revising the pixel-free stance for Elixir's own mail: counts
 per mail, never per reader; SES's own tracking stays off, no redirector). The jobs Lambda
 renders; the message carries the rendered body; the relay's
-`templates.mjs` keeps owning transactional mail. Mind the 256 KB SQS cap:
-a 50-row roster in text+HTML is ~40–60 KB. If a kind ever exceeds it, a
-pointer into the archive bucket is the escape hatch, not a bigger message.
+`templates.mjs` keeps owning transactional mail. The message is an
+object in the outbox, so SQS's 256 KB cap does not bound it: the queue
+carries only S3's notification (2026-09-24).
 
 Facts come from the readers the tools use, never re-derived
 (`elixir_timeline`, `battles_performance`, `battles_opponents`,
@@ -153,8 +156,8 @@ the ordinary `/login`; a bulk mail never carries a magic link.
 
 Five EventBridge cron rules → the jobs Lambda with `{"email": "<kind>"}`.
 Reserved concurrency 1 serializes them, harmless days apart. The jobs
-Lambda gains `EMAIL_QUEUE_URL` and `sqs:SendMessage` on the email queue
-(it has neither today). SES is production, 14/s and 50k/day; 20 or 500
+Lambda writes mail to the outbox (`OUTBOX_BUCKET`, `s3:PutObject` on
+`email/*`; the editor's brief goes to `editor/*`). SES is production, 14/s and 50k/day; 20 or 500
 mails at one instant is a non-event.
 
 ### 6. Public docs
@@ -258,7 +261,7 @@ head-to-head.
 ### `card_of_week` — Fri (2026-09-22)
 
 The second WRITTEN kind, on the Top 100's pipeline rather than beside
-it: `issue-pipeline.mjs` is the shared spine (archive key, editor queue,
+it: `issue-pipeline.mjs` is the shared spine (archive key, editor hand-off through the outbox,
 lint gate, owner notice, ledger row) and each kind supplies its brief
 builder, its names and its facts. Decided with Jamie in session,
 2026-09-22.

@@ -131,7 +131,8 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 
 - **Cost calls are Jamie's** — RDS stays db.t4g.micro (settled); account-wide spend never changes through an Elixir runtime change. (2026-09-13, 2026-09-21; Jamie)
 - **Alarms go to the ops queue, never email** — Elixir application tags on everything; the dashboard is a stack resource pinned by a test. (2026-09-04, 2026-09-17; Jamie)
-- **No Lambda-to-Lambda from the NAT-free VPC** — use a queue; metrics go out as EMF on stdout. (2026-09-18, 2026-09-06; engineering)
+- **No Lambda-to-Lambda from the NAT-free VPC** — use the outbox; metrics go out as EMF on stdout. (2026-09-18, 2026-09-06, 2026-09-24; engineering)
+- **The outbox, not an interface endpoint** — VPC Lambdas hand work to the non-VPC relay and editor by writing one object to the outbox bucket through the free S3 gateway endpoint; S3 notifies SQS, which keeps the retries and DLQs. Replaced the $14.60/mo SQS interface endpoint; the status page's dead letters are outbox objects past their lane's last retry. (2026-09-24; Jamie)
 - **DNS stays at Namecheap** — Jamie applies records by hand. (2026-09-03; Jamie)
 - **Collector-door cost is judged by route attribution** — no fixed baseline. Supersedes the check-in-era rule. (2026-09-22; engineering)
 - **The database is db.t4g.small** — the micro ran out of EBS byte balance and memory under ordinary pre-launch load; the micro reservation still applies (size-flexible). (2026-09-23; Jamie)

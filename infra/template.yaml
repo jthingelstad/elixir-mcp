@@ -2,8 +2,9 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: elixir-mcp - Clash Royale history recorder and MCP server (unofficial, not endorsed by Supercell)
 
 # One stack (docs/ENGINEERING.md). NAT-free VPC: DB-touching Lambdas reach
-# SQS through an interface endpoint; the email relay lives OUTSIDE the VPC
-# and is the only compute with internet egress. Secrets arrive via
+# S3 through the free gateway endpoint and nothing else; they hand mail
+# and editor work to the non-VPC workers through the outbox bucket, and
+# the email relay and editor are the only compute with internet egress. Secrets arrive via
 # CloudFormation dynamic references from the app secret (created by
 # bootstrap); CR API tokens exist only on gateway operator machines.
 
@@ -132,27 +133,6 @@ Resources:
           FromPort: 5432
           ToPort: 5432
           SourceSecurityGroupId: !Ref LambdaSecurityGroup
-
-  EndpointSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: elixir-mcp SQS interface endpoint; HTTPS from Lambdas
-      VpcId: !Ref Vpc
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          SourceSecurityGroupId: !Ref LambdaSecurityGroup
-
-  SqsEndpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcId: !Ref Vpc
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.sqs
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
-      SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
-      SecurityGroupIds: [!Ref EndpointSecurityGroup]
 
   # S3 reachability for the VPC Lambdas (payload archive). A Gateway
   # endpoint is free; it needs an explicit route table, so the private
@@ -307,7 +287,7 @@ Resources:
   # the union of everything any of them needed - including archive
   # Get/Put/List that only three of them use at all. Each role below
   # grants exactly what its function's code reaches for, verified
-  # against the ARCHIVE_BUCKET / EMAIL_QUEUE_URL environment each one
+  # against the ARCHIVE_BUCKET / OUTBOX_BUCKET environment each one
   # actually receives.
   #
   # The shared PostgreSQL credential is NOT split here. Doing that
@@ -315,8 +295,9 @@ Resources:
   # GRANT/REVOKE, which is a larger and riskier change than an IAM
   # rewrite and wants its own pass.
 
-  # Public web + collector door: mails, reads the email DLQ for the
-  # status page, and archives collector submissions at admission.
+  # Public web + collector door: mails through the outbox, counts what
+  # is stuck there for the status page, and archives collector
+  # submissions at admission.
   WebApiRole:
     Type: AWS::IAM::Role
     Properties:
@@ -334,12 +315,6 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              - Effect: Allow
-                Action: [sqs:SendMessage, sqs:GetQueueUrl]
-                Resource: !GetAtt EmailQueue.Arn
-              - Effect: Allow
-                Action: [sqs:GetQueueAttributes, sqs:GetQueueUrl]
-                Resource: !GetAtt EmailDlq.Arn
               # Mail leaves through the outbox; the status page counts
               # what is stuck there.
               - Effect: Allow
@@ -393,9 +368,6 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              - Effect: Allow
-                Action: [sqs:SendMessage, sqs:GetQueueUrl]
-                Resource: !GetAtt EmailQueue.Arn
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
@@ -485,22 +457,16 @@ Resources:
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn
               # Product email (docs/EMAIL.md): the jobs Lambda composes
-              # and enqueues; the relay sends. The Top 100 brief and
-              # issue pass through the archive bucket under mail/ and
-              # the editor Lambda is invoked by name.
-              - Effect: Allow
-                Action: sqs:SendMessage
-                Resource: !GetAtt EmailQueue.Arn
+              # and hands it to the outbox; the relay sends. The Top 100
+              # brief and issue pass through the archive bucket under
+              # mail/.
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject]
                 Resource: !Sub
                   - ${Arn}/mail/*
                   - Arn: !GetAtt ArchiveBucket.Arn
-              # The VPC has no Lambda endpoint (NAT-free), so the brief is
-              # handed to the editor through a queue, like mail.
-              - Effect: Allow
-                Action: sqs:SendMessage
-                Resource: !GetAtt EditorQueue.Arn
+              # The VPC reaches nothing but S3, so mail and the editor's
+              # brief both leave through the outbox.
               - Effect: Allow
                 Action: s3:PutObject
                 Resource:
@@ -751,7 +717,6 @@ Resources:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
-          EMAIL_QUEUE_URL: !Ref EmailQueue
           OUTBOX_BUCKET: !Ref OutboxBucket
           COLLECTOR_MIN_ENFORCE: !Ref CollectorMinEnforce
           ORIGIN_SECRET: !Ref OriginSecret
@@ -785,7 +750,6 @@ Resources:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
           OAUTH_ISSUER: https://elixir.poapkings.com
-          EMAIL_QUEUE_URL: !Ref EmailQueue
           OUTBOX_BUCKET: !Ref OutboxBucket
           ORIGIN_SECRET: !Ref OriginSecret
           # Call capture is on when this is set (services/mcp/src/capture.mjs).
@@ -945,11 +909,9 @@ Resources:
           # secret the one-click unsubscribe token is signed with (the same
           # one the web API verifies it with), the owner's address for a
           # failed Top 100 issue, and the editor to hand a brief to.
-          EMAIL_QUEUE_URL: !Ref EmailQueue
           OUTBOX_BUCKET: !Ref OutboxBucket
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
-          EDITOR_QUEUE_URL: !Ref EditorQueue
 
   EditorLogGroup:
     Type: AWS::Logs::LogGroup
