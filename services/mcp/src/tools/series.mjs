@@ -285,7 +285,7 @@ export const seriesTools = {
               m === "members_profile_carried" ||
               CLAN_PROFILE_AGGREGATES.includes(m),
           ) && leaverDays.length
-            ? `Members who left by the clan's read on ${leaverDays.slice(0, 8).join(", ")}${leaverDays.length > 8 ? ` and ${leaverDays.length - 8} more days` : ""} are not in members_with_profile, the avg_member_* averages or the members_*_plus counts that day (members_seen still counts their row, which keeps the clan's tag until a roster places them elsewhere).`
+            ? `Members who left by the clan's read on ${leaverDays.slice(0, 8).join(", ")}${leaverDays.length > 8 ? ` and ${leaverDays.length - 8} more days` : ""} are not in members_with_profile or the profile-derived values built over it that day; members_seen still counts their row, which keeps the clan's tag until a roster places them elsewhere.`
             : null,
           points.some((p) => p.partial)
             ? `The point for ${today} is the game day still in progress (partial: true): its profile-derived values cover the members polled so far.`
