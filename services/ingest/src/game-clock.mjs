@@ -48,6 +48,13 @@ export function gameClock(atMs = Date.now()) {
   }
   const weekEndsMs =
     season.seasonStartMs + (season.sectionIndex + 1) * 7 * DAY_MS;
+  // Seasons run 4 or 5 weeks (first Monday to first Monday), so the week
+  // number alone does not say Colosseum (Gym #298): the last week does.
+  const weeksInSeason = Math.round(
+    (nextSeason.seasonStartMs - season.seasonStartMs) / (7 * DAY_MS),
+  );
+  const colosseumStartsMs =
+    season.seasonStartMs + (weeksInSeason - 1) * 7 * DAY_MS;
 
   return {
     as_of: new Date(atMs).toISOString(),
@@ -57,6 +64,9 @@ export function gameClock(atMs = Date.now()) {
     season_started_at: new Date(season.seasonStartMs).toISOString(),
     season_ends_at: new Date(nextSeason.seasonStartMs).toISOString(),
     week: season.sectionIndex + 1,
+    weeks_in_season: weeksInSeason,
+    is_colosseum: season.sectionIndex === weeksInSeason - 1,
+    colosseum_starts_at: new Date(colosseumStartsMs).toISOString(),
     section_index: season.sectionIndex,
     period_index: periodIndex,
     day_kind: info.kind,
@@ -77,7 +87,7 @@ export function gameClock(atMs = Date.now()) {
       // closed at 09:34-09:38Z while this still said the day was open).
       "A clan's race closes each war day before this grid, somewhere in the half hour before 10:00 UTC and per race (observed 09:30 to 10:00Z): war_day_closes_at is the policy boundary, not the moment a race stops taking battles, so do not schedule a last attack for its final half hour. war_history.closed_at is each past week's real close (the API's own instant); nothing serves today's close before it happens (Gym #179).",
       "A season runs first Monday of the month to first Monday of the next; weeks are the Mondays between.",
-      "The final week of a season is Colosseum; its practice days still report as training.",
+      "The final week of a season is Colosseum (is_colosseum; colosseum_starts_at is this season's); a season holds 4 or 5 weeks (weeks_in_season), so the week number alone does not say it. Colosseum's practice days still report as training.",
       "season_id is the season number the API's war data carries (riverrace seasonId) and the record files everything under; season_month is the API's name for the same season on its Path of Legends finals. The in-game Pass shows a third number (a lower one) that the API does not use anywhere.",
     ],
   };

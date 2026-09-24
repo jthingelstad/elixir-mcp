@@ -133,7 +133,10 @@ export async function runSuite(
   const inFamily = (c) =>
     !family ||
     (!c.id.endsWith("#docs") &&
-      caseTools(c).some((t) => t.startsWith(`${family}_`)));
+      // A comma list gates several families in one pass (game,rankings).
+      caseTools(c).some((t) =>
+        family.split(",").some((f) => t.startsWith(`${f.trim()}_`)),
+      ));
   for (const [suite, cases] of Object.entries(SUITES)) {
     const picked = cases.filter(
       (c) => (!only || `${suite}/${c.id}`.includes(only)) && inFamily(c),

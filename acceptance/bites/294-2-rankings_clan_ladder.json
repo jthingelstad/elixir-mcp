@@ -1,0 +1,153 @@
+{
+  "feedback": 294,
+  "contract_version": "7.1.9",
+  "captured_at": "2026-09-24T07:13:59.708Z",
+  "request": {
+    "tool": "rankings_clan_ladder",
+    "arguments": {
+      "location": "US",
+      "offset": 990,
+      "limit": 10
+    }
+  },
+  "response": {
+    "board": "clans",
+    "location": {
+      "key": "57000249",
+      "label": "Clan score · United States",
+      "kind": "country",
+      "country_code": "US"
+    },
+    "applied": {
+      "board": "clans",
+      "location": "57000249",
+      "limit": 10,
+      "offset": 990
+    },
+    "snapshot": {
+      "observed_at": "2026-09-23T10:02:51.000Z",
+      "unchanged_until": "2026-09-23T10:02:51.000Z",
+      "season_id": "136",
+      "season_month": "2026-09",
+      "entries": 999,
+      "depth": 1000,
+      "full": false,
+      "truncated": false,
+      "cadence_minutes": 1440
+    },
+    "clans": [
+      {
+        "rank": 991,
+        "previous_rank": 982,
+        "clan_tag": "#LQLYPY",
+        "name": "Clash of Coc",
+        "score": 136745,
+        "members": 50,
+        "badge_id": 16000024,
+        "location_id": 57000249
+      },
+      {
+        "rank": 992,
+        "previous_rank": 989,
+        "clan_tag": "#2Y8Y0V8",
+        "name": "Cosmic Chaos",
+        "score": 136743,
+        "members": 50,
+        "badge_id": 16000162,
+        "location_id": 57000249
+      },
+      {
+        "rank": 993,
+        "previous_rank": 988,
+        "clan_tag": "#88CY99U",
+        "name": "Casual Adults",
+        "score": 136735,
+        "members": 50,
+        "badge_id": 16000146,
+        "location_id": 57000249
+      },
+      {
+        "rank": 994,
+        "previous_rank": 990,
+        "clan_tag": "#8V2UGQY",
+        "name": "USA USA USA USA",
+        "score": 136733,
+        "members": 50,
+        "badge_id": 16000005,
+        "location_id": 57000249
+      },
+      {
+        "rank": 995,
+        "previous_rank": -1,
+        "clan_tag": "#LJQ0J0L9",
+        "name": "Big Boys",
+        "score": 136732,
+        "members": 48,
+        "badge_id": 16000003,
+        "location_id": 57000249
+      },
+      {
+        "rank": 996,
+        "previous_rank": -1,
+        "clan_tag": "#GP0YP29R",
+        "name": "Bread Empire",
+        "score": 136728,
+        "members": 47,
+        "badge_id": 16000096,
+        "location_id": 57000249
+      },
+      {
+        "rank": 997,
+        "previous_rank": 985,
+        "clan_tag": "#QJ9RQQGG",
+        "name": "-7812-",
+        "score": 136728,
+        "members": 47,
+        "badge_id": 16000035,
+        "location_id": 57000249
+      },
+      {
+        "rank": 998,
+        "previous_rank": 986,
+        "clan_tag": "#U0JGP9",
+        "name": "Adult Swim",
+        "score": 136726,
+        "members": 49,
+        "badge_id": 16000024,
+        "location_id": 57000249
+      },
+      {
+        "rank": 999,
+        "previous_rank": -1,
+        "clan_tag": "#LGVGGVRC",
+        "name": "Clasher Fans",
+        "score": 136721,
+        "members": 50,
+        "badge_id": 16000167,
+        "location_id": 57000249
+      }
+    ],
+    "notes": [
+      "score is clan score - the sum the game ranks clans by - on this board.",
+      "previous_rank is the game's own field: where the clan stood at its previous ranking, not at our previous snapshot.",
+      "2 clans share score 136,728 (ranks 996-997): the game lists a tie in its own order, so rank inside it - and rank against previous_rank - is not a standing; quote those clans as tied."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "7.1.9",
+      "source_polls": {
+        "rankings_clans_loc": {
+          "observed_at": "2026-09-23T10:02:51.000Z",
+          "freshness_seconds": 76269
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 38,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

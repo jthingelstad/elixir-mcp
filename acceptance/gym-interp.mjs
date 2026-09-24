@@ -83,7 +83,15 @@ export function resolve(value, path) {
               ? Number(raw)
               : raw;
         current = current.map((v) =>
-          Array.isArray(v) ? v.find((x) => x?.[k] === want) : undefined,
+          // A numeric filter matches a numeric string too: mode board ids
+          // are served as strings (295.4: location "743144").
+          Array.isArray(v)
+            ? v.find(
+                (x) =>
+                  x?.[k] === want ||
+                  (typeof want === "number" && String(x?.[k]) === raw),
+              )
+            : undefined,
         );
       } else throw new Error(`bad bracket ${b}`);
     }

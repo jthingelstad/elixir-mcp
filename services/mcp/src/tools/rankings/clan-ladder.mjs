@@ -4,6 +4,7 @@ import {
   appliedBlock,
   buildMeta,
   docsRef,
+  entitledClan,
   livePendingNote,
   liveRead,
   liveStatus,
@@ -126,12 +127,70 @@ export const rankings_clan_ladder = {
           [snapshot.snapshot_id, pageScores],
         )
       : { rows: [] };
+    // The last place's score, and where the caller's clan stands (Gym
+    // #294: finding its own clan took four pages and still could not say
+    // how far below the cutoff it sat).
+    const {
+      rows: [floorRow],
+    } = await ctx.db.query(
+      `select score from clan_ranking_entry where snapshot_id = $1 order by rank desc limit 1`,
+      [snapshot.snapshot_id],
+    );
+    let ourTag = null;
+    try {
+      ourTag = await entitledClan(ctx.db, ctx.account, undefined);
+    } catch {
+      ourTag = null;
+    }
+    let ourClan = null;
+    if (ourTag) {
+      const {
+        rows: [ours],
+      } = await ctx.db.query(
+        `select c.name,
+                (select e.rank from clan_ranking_entry e
+                  where e.snapshot_id = $2 and e.clan_tag = c.clan_tag) as rank,
+                (select e.score from clan_ranking_entry e
+                  where e.snapshot_id = $2 and e.clan_tag = c.clan_tag) as board_score,
+                s.clan_score, s.clan_war_trophies, s.observed_at
+           from clan c
+           left join lateral (
+             select clan_score, clan_war_trophies, observed_at from clan_snapshot_daily
+              where clan_tag = c.clan_tag order by observed_at desc limit 1) s on true
+          where c.clan_tag = $1`,
+        [ourTag, snapshot.snapshot_id],
+      );
+      if (ours) {
+        const score =
+          ours.board_score ??
+          (board === "clanwars" ? ours.clan_war_trophies : ours.clan_score);
+        ourClan = {
+          clan_tag: ourTag,
+          name: ours.name,
+          on_board: ours.rank !== null,
+          rank: ours.rank,
+          score: score ?? null,
+          score_observed_at:
+            ours.board_score !== null
+              ? snapshot.observed_at.toISOString()
+              : (ours.observed_at?.toISOString() ?? null),
+          below_floor_by:
+            ours.rank === null && score !== null && floorRow
+              ? Number(floorRow.score) - Number(score)
+              : null,
+        };
+      }
+    }
     return {
       board,
       location,
       applied,
       ...(live ? { live_status: liveStatus(live) } : {}),
-      snapshot: snapshotBlock(snapshot, row),
+      snapshot: {
+        ...snapshotBlock(snapshot, row),
+        floor_score: floorRow ? Number(floorRow.score) : null,
+      },
+      our_clan: ourClan,
       clans: rows.map((r) => ({
         rank: r.rank,
         previous_rank: r.previous_rank,
@@ -146,7 +205,12 @@ export const rankings_clan_ladder = {
         livePendingNote(live),
         board === "clanwars"
           ? "score is clan war trophies on this board."
-          : "score is clan score - the sum the game ranks clans by - on this board.",
+          : "score is the game's own clan score, which is not the sum of member trophies (its formula is the game's and weights the top members); clans_roster.clan_score serves a recorded clan's.",
+        ourClan
+          ? ourClan.on_board
+            ? `our_clan is ${ourClan.name ?? ourClan.clan_tag}, at rank ${ourClan.rank} on this snapshot.`
+            : `our_clan is ${ourClan.name ?? ourClan.clan_tag}, not among this board's ${snapshot.entries} places${ourClan.below_floor_by !== null ? `: its score ${ourClan.score} (from its roster read at ${ourClan.score_observed_at}) is ${ourClan.below_floor_by} below floor_score, the last place's` : ""}; no page of this board will list it.`
+          : null,
         "previous_rank is the game's own field: where the clan stood at its previous ranking, not at our previous snapshot.",
         tieNote(ties),
         offset + rows.length < snapshot.entries

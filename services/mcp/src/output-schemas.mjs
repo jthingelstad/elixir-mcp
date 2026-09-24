@@ -1408,6 +1408,9 @@ export const OUTPUT_SCHEMAS = {
       section_index: { type: ["number", "null"] },
       war_day: {},
       war_day_closes_at: {},
+      weeks_in_season: { type: ["number", "null"] },
+      is_colosseum: { type: ["boolean", "null"] },
+      colosseum_starts_at: { type: ["string", "null"] },
       week: { type: ["number", "null"] },
       week_ends_at: { type: ["string", "null"] },
     },
@@ -1558,6 +1561,7 @@ export const OUTPUT_SCHEMAS = {
       location: { type: "object" },
       meta: META,
       notes: NOTES,
+      our_clan: { type: ["object", "null"] },
       snapshot: { type: ["object", "null"] },
     },
     required: [
@@ -2957,6 +2961,9 @@ export const OUTPUT_SCHEMAS = {
       },
       location_id: NULLABLE_INT,
       description: { type: ["string", "null"] },
+      clan_score: NULLABLE_INT,
+      clan_war_trophies: NULLABLE_INT,
+      scores_observed_at: { type: ["string", "null"] },
       member_count: COUNT,
       role_counts: { type: "object" },
       members: {

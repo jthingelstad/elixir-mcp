@@ -98,7 +98,7 @@ The vocabulary, from smallest to largest:
 | period | one policy day; `period_index` counts them from the season start |
 | section | the game's word for a week; `section_index` is 0-based and `week` is 1-based |
 | season | first Monday of the month to first Monday of the next, resetting at 10:00 UTC; the weeks are the Mondays between |
-| Colosseum | always the season's final section, scored differently in the game; its practice days still report as training |
+| Colosseum | always the season's final section, scored differently in the game; its practice days still report as training. A season holds 4 or 5 weeks, so the week number alone does not say Colosseum: `game_clock.is_colosseum`, `weeks_in_season` and `colosseum_starts_at` do |
 
 The record holds that grid as rows, one per policy day of every season,
 and **a war battle is filed by where its `battle_time` falls on it**, for

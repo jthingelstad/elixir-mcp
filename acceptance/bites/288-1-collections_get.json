@@ -1,0 +1,111 @@
+{
+  "feedback": 288,
+  "contract_version": "7.1.8",
+  "captured_at": "2026-09-24T07:06:40.314Z",
+  "request": {
+    "tool": "collections_get",
+    "arguments": {
+      "collection": "global-top-10-clans"
+    }
+  },
+  "response": {
+    "slug": "global-top-10-clans",
+    "applied": {
+      "collection": "global-top-10-clans"
+    },
+    "title": "Top 10 Global Clans",
+    "kind": "clan",
+    "description": "The ten clans with the most players currently rated in Path of Legends, globally, re-synced from the live board every day: membership follows the board and is not a fixed cohort.",
+    "scope": "activity",
+    "synced_from": "clans:global",
+    "members": [
+      {
+        "clan_tag": "#P9GPQ2Y0",
+        "name": "BalkanUnion",
+        "open_members": 50,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#G89QUY2P",
+        "name": "GUERREIROS PT",
+        "open_members": 50,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#JYJ980J8",
+        "name": "Fantasy",
+        "open_members": 50,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#9V9GGVCQ",
+        "name": "Lifetime",
+        "open_members": 49,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#QPY22Q0L",
+        "name": "Top Flame",
+        "open_members": 49,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#QYGL80RR",
+        "name": "Sunlight",
+        "open_members": 49,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#L28V902R",
+        "name": "Iran Hplow",
+        "open_members": 49,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#Q9QPPGGG",
+        "name": "NoA",
+        "open_members": 48,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#RL0ULLGV",
+        "name": "Sandstorm",
+        "open_members": 44,
+        "recording": true,
+        "curator_note": null
+      },
+      {
+        "clan_tag": "#RYUYJRGJ",
+        "name": "NOLITO BANEADO",
+        "open_members": 43,
+        "recording": true,
+        "curator_note": null
+      }
+    ],
+    "notes": [
+      "open_members is the clan's current member count (clans_roster.member_count), not open places; rows are ordered by it, not by any ranking. rankings_clans has a board's own order.",
+      "Membership follows the live board clans:global: it is re-synced every day after the 10:00Z board snapshot, so this is today's membership, not a fixed cohort, and a segment read over a past window applies today's members.",
+      "scope says how deeply members are recorded: comprehensive captures battles, activity only the surface.",
+      "recording false members may have thin or no data yet; elixir_coverage tells the capture story per tag."
+    ],
+    "docs": "recording#collections",
+    "meta": {
+      "contract_version": "7.1.8"
+    }
+  },
+  "timings": {
+    "db_ms": 24,
+    "db_queries": 2,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

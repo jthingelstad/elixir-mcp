@@ -1,0 +1,29 @@
+{
+  "feedback": 292,
+  "contract_version": "7.1.10",
+  "captured_at": "2026-09-24T07:16:16.596Z",
+  "request": {
+    "tool": "rankings_timeline",
+    "arguments": {
+      "from": "yesterday"
+    }
+  },
+  "response": {
+    "error": {
+      "code": "bad_request",
+      "class": "input",
+      "message": "Could not read from/to as dates.",
+      "hint": "Read the board as it was on or before this instant: an ISO timestamp, or YYYY-MM-DD meaning the end of that day in the account's timezone (or the call's `timezone`). Omitted means the latest snapshot."
+    },
+    "meta": {
+      "contract_version": "7.1.10"
+    }
+  },
+  "timings": {
+    "db_ms": 8,
+    "db_queries": 1,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

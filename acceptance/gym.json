@@ -16806,5 +16806,1024 @@
         "notes_match": "(?i)balance changes land on the season roll"
       }
     ]
+  },
+  {
+    "id": "286.1",
+    "feedback": 286,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "clan_tag": "#Q9QPPGGG"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "b506edf8-168a-46d3-8505-37800c9a1cd7",
+    "assert": [
+      {
+        "notes_match": "members.{0,60}recorded|recorded.{0,60}members"
+      }
+    ]
+  },
+  {
+    "id": "286.2",
+    "feedback": 286,
+    "stability": "live",
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "clan_tag": "#Q9QPPGGG"
+      },
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z"
+    },
+    "request_id": "713367bf-38ed-4f75-972e-9ea855516264",
+    "assert": [
+      {
+        "notes_match": "members.{0,60}recorded|recorded.{0,60}members"
+      }
+    ]
+  },
+  {
+    "id": "286.3",
+    "feedback": 286,
+    "stability": "live",
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "clan_tag": "#P9GPQ2Y0"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "5628bb2b-25c3-4adc-8dfa-0083eee2bc47",
+    "assert": [
+      {
+        "notes_match": "members.{0,60}recorded|recorded.{0,60}members"
+      }
+    ]
+  },
+  {
+    "id": "286.4",
+    "feedback": 286,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": "mine",
+      "verbosity": "compact"
+    },
+    "request_id": "b86ca615-9cd2-4fb6-a8f2-7085639660bb",
+    "assert": [
+      {
+        "notes_not_match": "known only from|members? [^.]*not counted"
+      }
+    ],
+    "amended": "The filed regex also matched the outside-meta note (\"not counted anywhere above\"), present on every segment read since 6.17.0; narrowed to the member-coverage wording it meant."
+  },
+  {
+    "id": "286.5",
+    "feedback": 286,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "days": 28,
+      "verbosity": "compact"
+    },
+    "request_id": "0a745c71-51ee-40e5-95bd-68cc551f3d92",
+    "assert": [
+      {
+        "notes_not_match": "members.{0,60}recorded|recorded.{0,60}members"
+      }
+    ]
+  },
+  {
+    "id": "287.1",
+    "feedback": 287,
+    "stability": "live",
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "days": 28,
+      "verbosity": "compact"
+    },
+    "request_id": "ed53c3aa-dd7f-4c2e-bfb9-aeac45c4ce53",
+    "assert": [
+      {
+        "notes_match": "today's members"
+      }
+    ]
+  },
+  {
+    "id": "287.2",
+    "feedback": 287,
+    "stability": "live",
+    "tool": "cards_synergy",
+    "args": {
+      "card": "Hog Rider",
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "5612fb56-e167-47b6-87ce-fbc2ff088524",
+    "assert": [
+      {
+        "notes_match": "today's members"
+      }
+    ]
+  },
+  {
+    "id": "287.3",
+    "feedback": 287,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "days": 28,
+      "verbosity": "compact"
+    },
+    "request_id": "0a745c71-51ee-40e5-95bd-68cc551f3d92",
+    "assert": [
+      {
+        "notes_not_match": "membership as of this call"
+      }
+    ]
+  },
+  {
+    "id": "287.4",
+    "feedback": 287,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_meta_decks",
+    "args": {
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "verbosity": "compact"
+    },
+    "request_id": "6bf72b33-7520-46cb-9228-b9494b1725e1",
+    "assert": [
+      {
+        "notes_match": "today's members"
+      }
+    ]
+  },
+  {
+    "id": "288.1",
+    "feedback": 288,
+    "stability": "live",
+    "tool": "collections_get",
+    "args": {
+      "collection": "global-top-10-clans"
+    },
+    "request_id": "371b842b-912b-4937-a9f1-5e4e2b0aede7",
+    "assert": [
+      {
+        "notes_not_match": "a segment read over a past window applies today's members"
+      },
+      {
+        "notes_match": "not a segment"
+      }
+    ]
+  },
+  {
+    "id": "288.2",
+    "feedback": 288,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "pol-global-top-100"
+    },
+    "request_id": "6230db8c-b47b-44d6-996c-55c6f399d4b6",
+    "assert": [
+      {
+        "notes_match": "a segment read over a past window applies today's members"
+      },
+      {
+        "notes_not_match": "not a segment"
+      }
+    ]
+  },
+  {
+    "id": "289.1",
+    "feedback": 289,
+    "stability": "live",
+    "control": true,
+    "tool": "badges_holders",
+    "args": {
+      "badge": "YearsPlayed",
+      "segment": {
+        "collection": "global-top-10-clans"
+      }
+    },
+    "request_id": "be7ae5e1-41dc-4f77-936b-4d5e45ce2188",
+    "assert": [
+      {
+        "notes_match": "clan collection"
+      },
+      {
+        "notes_match": "clan_tag"
+      }
+    ]
+  },
+  {
+    "id": "289.2",
+    "feedback": 289,
+    "stability": "live",
+    "control": true,
+    "tool": "collections_get",
+    "args": {
+      "collection": "Path of Legends Global 100"
+    },
+    "request_id": "12323da7-87f6-46e9-8bff-01642e6167f3",
+    "assert": [
+      {
+        "notes_match": "collections_browse"
+      }
+    ]
+  },
+  {
+    "id": "289.3",
+    "feedback": 289,
+    "stability": "live",
+    "control": true,
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "request_id": "6f16e39b-fe70-4397-bef9-d00c6d793b02",
+    "assert": [
+      {
+        "notes_match": "no YearsPlayed badge"
+      },
+      {
+        "notes_not_match": "until a profile poll"
+      }
+    ]
+  },
+  {
+    "id": "289.4",
+    "feedback": 289,
+    "stability": "live",
+    "control": true,
+    "tool": "battles_trends",
+    "args": {
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z",
+      "mode": "ranked"
+    },
+    "request_id": "5aebbba1-ca19-4ed7-8927-dffd62c7ea41",
+    "assert": [
+      {
+        "lte": ["weeks[0].players", 100]
+      }
+    ]
+  },
+  {
+    "id": "290.1",
+    "feedback": 290,
+    "stability": "frozen",
+    "tool": "rankings_timeline",
+    "args": {
+      "board": "mode",
+      "location": "170000004",
+      "from": "2026-09-11",
+      "to": "2026-09-23"
+    },
+    "request_id": "2bd21144-87a6-4400-ba90-483a92f79b98",
+    "assert": [
+      {
+        "notes_match": "(?i)depart|players left|left the board and"
+      }
+    ]
+  },
+  {
+    "id": "290.2",
+    "feedback": 290,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_timeline",
+    "args": {
+      "board": "mode",
+      "location": "743144",
+      "from": "2026-09-11",
+      "to": "2026-09-23"
+    },
+    "request_id": "149e656d-07b2-40ff-8721-db279d5532a3",
+    "assert": [
+      {
+        "gt": [
+          "points[?day=2026-09-21].floor_rating",
+          "points[?day=2026-09-11].floor_rating"
+        ]
+      },
+      {
+        "notes_not_match": "(?i)departure, not play|floor fell"
+      }
+    ]
+  },
+  {
+    "id": "291.1",
+    "feedback": 291,
+    "stability": "frozen",
+    "tool": "rankings_timeline",
+    "args": {
+      "clan_tag": "#J2RGCRVG",
+      "from": "2026-09-12",
+      "to": "2026-09-20"
+    },
+    "request_id": "c79973e6-a612-4213-8dfd-b8c68fdd5e5a",
+    "assert": [
+      {
+        "eq": ["points[0].board_full", true]
+      },
+      {
+        "notes_not_match": "(?i)nobody was rated on this board|empty field"
+      }
+    ]
+  },
+  {
+    "id": "291.2",
+    "feedback": 291,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_timeline",
+    "args": {
+      "clan_tag": "#G89QUY2P",
+      "from": "2026-09-12",
+      "to": "2026-09-20"
+    },
+    "request_id": "5ae729db-2036-48d6-82ff-be48a4dde910",
+    "assert": [
+      {
+        "eq": ["points[?day=2026-09-20].rated_players", 14]
+      },
+      {
+        "notes_not_match": "(?i)nobody was rated on this board|empty field"
+      }
+    ]
+  },
+  {
+    "id": "292.1",
+    "feedback": 292,
+    "stability": "frozen",
+    "tool": "rankings_timeline",
+    "args": {
+      "from": "2026-09-20",
+      "to": "2026-09-15"
+    },
+    "request_id": "415a4e44-24a0-4a1f-917b-0634345c154b",
+    "assert": [
+      {
+        "eq": ["error.code", "bad_request"]
+      },
+      {
+        "notes_match": "(?i)inverted"
+      }
+    ]
+  },
+  {
+    "id": "292.2",
+    "feedback": 292,
+    "stability": "frozen",
+    "tool": "rankings_timeline",
+    "args": {
+      "from": "yesterday"
+    },
+    "request_id": "3439b9c4-dd07-46c8-9156-6ecbb2c298c7",
+    "assert": [
+      {
+        "eq": ["error.code", "bad_request"]
+      },
+      {
+        "notes_not_match": "(?i)Read the board as it was|end of that day"
+      }
+    ]
+  },
+  {
+    "id": "292.3",
+    "feedback": 292,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_timeline",
+    "args": {
+      "from": "2026-09-15",
+      "to": "2026-09-20"
+    },
+    "request_id": "8bc5b586-9239-4afd-b219-8fb50e4c4ef6",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "argument"]
+      },
+      {
+        "has": "points[].floor_rating"
+      }
+    ]
+  },
+  {
+    "id": "292.4",
+    "feedback": 292,
+    "stability": "frozen",
+    "control": true,
+    "tool": "battles_performance",
+    "args": {
+      "player_tag": "#20JJJ2CCRU",
+      "from": "2026-09-20",
+      "to": "2026-09-15"
+    },
+    "request_id": "4b4f4184-2414-4bef-bedb-af312ae9415d",
+    "assert": [
+      {
+        "eq": ["error.code", "bad_request"]
+      },
+      {
+        "notes_match": "(?i)inverted"
+      }
+    ]
+  },
+  {
+    "id": "293.1",
+    "feedback": 293,
+    "stability": "live",
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "FI",
+      "limit": 3
+    },
+    "request_id": "890e57a5-ad94-4932-9ff8-0c83b829d53b",
+    "assert": [
+      {
+        "notes_match": "(?i)(recorded|enabled) (for|at|only)|global, (the )?(US|United States)"
+      },
+      {
+        "notes_not_match": "pass a numeric CR location id or a two-letter country code"
+      }
+    ]
+  },
+  {
+    "id": "293.2",
+    "feedback": 293,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "XX",
+      "limit": 3
+    },
+    "request_id": "b817512c-caa8-4eff-ada7-37ce199f1c97",
+    "assert": [
+      {
+        "eq": ["error.code", "not_found"]
+      }
+    ]
+  },
+  {
+    "id": "293.3",
+    "feedback": 293,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "JP",
+      "limit": 3
+    },
+    "request_id": "8f7d3dc1-bd56-4a7d-83af-3aff2e80c7f9",
+    "assert": [
+      {
+        "every_row_has": ["clans", "score"]
+      }
+    ]
+  },
+  {
+    "id": "294.1",
+    "feedback": 294,
+    "stability": "live",
+    "tool": "clans_roster",
+    "args": {},
+    "request_id": "822c6e72-2767-48ec-8487-1a8a6440b033",
+    "assert": [
+      {
+        "has": "clan_score"
+      }
+    ]
+  },
+  {
+    "id": "294.2",
+    "feedback": 294,
+    "stability": "live",
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "US",
+      "offset": 990,
+      "limit": 10
+    },
+    "request_id": "7b807600-6116-40a0-8685-3fd9f710084c",
+    "assert": [
+      {
+        "has": "snapshot.floor_score"
+      }
+    ]
+  },
+  {
+    "id": "294.3",
+    "feedback": 294,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_clan_ladder",
+    "args": {
+      "location": "US",
+      "limit": 3
+    },
+    "request_id": "90331309-9e8a-4231-82fe-483ea58e301a",
+    "assert": [
+      {
+        "every_row_has": ["clans", "score"]
+      },
+      {
+        "sorted_desc": ["clans[].score"]
+      }
+    ]
+  },
+  {
+    "id": "295.1",
+    "feedback": 295,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "as_of": "2026-09-15",
+      "timezone": "Pacific/Kiritimati",
+      "limit": 1,
+      "offset": 999
+    },
+    "request_id": "7bbc78cb-e871-40a7-85bc-6cf8e5a7ca61",
+    "assert": [
+      {
+        "eq": ["snapshot.observed_at", "2026-09-14T10:07:51.000Z"]
+      },
+      {
+        "eq": ["players[0].rating", 1870]
+      }
+    ]
+  },
+  {
+    "id": "295.2",
+    "feedback": 295,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "as_of": "2026-09-15",
+      "timezone": "Asia/Tokyo",
+      "limit": 1,
+      "offset": 999
+    },
+    "request_id": "ef20bb21-16ec-4fef-b036-b19a7392d1fb",
+    "assert": [
+      {
+        "eq": ["snapshot.observed_at", "2026-09-15T10:07:50.000Z"]
+      },
+      {
+        "eq": ["players[0].rating", 1916]
+      }
+    ]
+  },
+  {
+    "id": "295.3",
+    "feedback": 295,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_clans",
+    "args": {
+      "location": "US",
+      "as_of": "2026-09-23T12:00:00Z",
+      "limit": 5
+    },
+    "request_id": "e48270a8-d204-4bff-982a-b7e2be415041",
+    "assert": [
+      {
+        "eq": ["clans_total", 624]
+      },
+      {
+        "eq": ["players_without_clan", 115]
+      },
+      {
+        "eq": ["clans[0].clan_tag", "#QPY22Q0L"]
+      },
+      {
+        "eq": ["clans[0].rated_players", 15]
+      }
+    ]
+  },
+  {
+    "id": "295.4",
+    "feedback": 295,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_players",
+    "args": {
+      "board": "mode",
+      "location": "list"
+    },
+    "request_id": "b1c85c61-8c33-4cb9-b7c9-ff6aec480e94",
+    "assert": [
+      {
+        "eq": [
+          "boards[?location=743144].standings_changed_at",
+          "2026-09-21T10:02:59.000Z"
+        ]
+      },
+      {
+        "neq": [
+          "boards[?location=270787].standings_changed_at",
+          "boards[?location=270787].observed_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "295.5",
+    "feedback": 295,
+    "stability": "frozen",
+    "control": true,
+    "tool": "rankings_timeline",
+    "args": {
+      "season": 136,
+      "from": "2026-09-20",
+      "to": "2026-09-22"
+    },
+    "request_id": "c499f64a-f432-46e4-b4a2-a9d2b58c78c6",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "argument"]
+      }
+    ]
+  },
+  {
+    "id": "295.6",
+    "feedback": 295,
+    "stability": "live",
+    "control": true,
+    "tool": "rankings_timeline",
+    "args": {
+      "season": "2026-10"
+    },
+    "request_id": "b0790a0e-9775-495f-9b13-b746870134bd",
+    "assert": [
+      {
+        "notes_match": "(?i)has not begun"
+      },
+      {
+        "count_eq": ["points[]", 0]
+      }
+    ]
+  },
+  {
+    "id": "296.1",
+    "feedback": 296,
+    "stability": "frozen",
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-21",
+      "to": "2026-09-21",
+      "timezone": "America/Chicago"
+    },
+    "request_id": "a19fb6d3-6ac5-4548-b28f-91331b6749a3",
+    "assert": [
+      {
+        "notes_match": "(?i)(no|not)[^.]*read[^.]*2026-09-21"
+      }
+    ]
+  },
+  {
+    "id": "296.2",
+    "feedback": 296,
+    "stability": "frozen",
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-21T12:00:00Z",
+      "to": "2026-09-22T08:00:00Z"
+    },
+    "request_id": "41a79401-254c-471b-9f9c-ca93e450bc14",
+    "assert": [
+      {
+        "count_eq": ["events[]", 0]
+      },
+      {
+        "notes_match": "(?i)(no|not)[^.]*read[^.]*2026-09-21"
+      }
+    ]
+  },
+  {
+    "id": "296.3",
+    "feedback": 296,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22T12:00:00Z",
+      "to": "2026-09-23T08:00:00Z"
+    },
+    "request_id": "22e25190-b33c-4e48-ab9f-1984a50deb78",
+    "assert": [
+      {
+        "count_eq": ["events[]", 0]
+      },
+      {
+        "notes_match": "(?i)(no|not)[^.]*read[^.]*2026-09-22"
+      }
+    ]
+  },
+  {
+    "id": "296.4",
+    "feedback": 296,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-22T08:00:00Z",
+      "to": "2026-09-22T10:00:00Z"
+    },
+    "request_id": "420637b3-7395-4d1d-8e7e-bf71d8a59bcd",
+    "assert": [
+      {
+        "count_eq": ["game_days_read[]", 1]
+      },
+      {
+        "eq": ["game_days_read[0]", "2026-09-21"]
+      },
+      {
+        "notes_not_match": "(?i)(no|not)[^.]*read[^.]*2026-09-21"
+      }
+    ]
+  },
+  {
+    "id": "296.5",
+    "feedback": 296,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-21T10:00:00Z",
+      "to": "2026-09-22T10:00:00Z"
+    },
+    "request_id": "38ae8788-8853-4ea2-81cb-05db2a90ff12",
+    "assert": [
+      {
+        "count_eq": ["events[]", 9]
+      },
+      {
+        "has": "events[?title=Royale Shuffle].first_seen_at"
+      },
+      {
+        "notes_not_match": "(?i)(no|not)[^.]*read[^.]*2026-09-21"
+      }
+    ]
+  },
+  {
+    "id": "297.1",
+    "feedback": 297,
+    "stability": "frozen",
+    "tool": "game_events",
+    "args": {
+      "season": 135
+    },
+    "request_id": "1fb3e035-435d-48db-b903-b834003e4635",
+    "assert": [
+      {
+        "eq": ["applied.window.source", "season"]
+      },
+      {
+        "eq": ["applied.window.from", "2026-08-03T10:00:00.000Z"]
+      },
+      {
+        "eq": ["applied.window.to", "2026-09-07T10:00:00.000Z"]
+      }
+    ]
+  },
+  {
+    "id": "297.2",
+    "feedback": 297,
+    "stability": "frozen",
+    "calls": {
+      "s": {
+        "tool": "game_events",
+        "args": {
+          "season": 135
+        }
+      },
+      "w": {
+        "tool": "game_events",
+        "args": {
+          "from": "2026-08-03T10:00:00Z",
+          "to": "2026-09-07T10:00:00Z"
+        }
+      }
+    },
+    "request_id": "1fb3e035-435d-48db-b903-b834003e4635",
+    "assert": [
+      {
+        "eq": ["s.first_sighting_day", "w.first_sighting_day"]
+      },
+      {
+        "eq": ["s.latest_sighting_day", "w.latest_sighting_day"]
+      }
+    ]
+  },
+  {
+    "id": "297.3",
+    "feedback": 297,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-08-03T10:00:00Z",
+      "to": "2026-09-07T10:00:00Z"
+    },
+    "request_id": "73e9c930-1f55-4d02-9829-e1d73f302ff3",
+    "assert": [
+      {
+        "eq": ["applied.window.season.war", 135]
+      },
+      {
+        "count_eq": ["applied.window.crosses[]", 0]
+      },
+      {
+        "count_eq": ["game_days_read[]", 6]
+      }
+    ]
+  },
+  {
+    "id": "298.1",
+    "feedback": 298,
+    "stability": "frozen",
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-28T12:00:00Z"
+    },
+    "request_id": "5b108a35-2db7-4e82-9f16-e39938813d70",
+    "assert": [
+      {
+        "eq": ["is_colosseum", true]
+      }
+    ]
+  },
+  {
+    "id": "298.2",
+    "feedback": 298,
+    "stability": "frozen",
+    "calls": {
+      "g": {
+        "tool": "game_clock",
+        "args": {
+          "at": "2026-08-31T12:00:00Z"
+        }
+      },
+      "w": {
+        "tool": "war_history",
+        "args": {
+          "season_id": 135,
+          "section_index": 4,
+          "verbosity": "compact"
+        }
+      }
+    },
+    "request_id": "937640f0-3995-496a-b458-7bc3768fbea1",
+    "assert": [
+      {
+        "eq": ["g.is_colosseum", "w.weeks[0].is_colosseum"]
+      }
+    ]
+  },
+  {
+    "id": "298.3",
+    "feedback": 298,
+    "stability": "frozen",
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-24T12:00:00Z"
+    },
+    "request_id": "bd2b63c1-c565-43d4-93f0-639d2b64fd8c",
+    "assert": [
+      {
+        "eq": ["is_colosseum", false]
+      }
+    ]
+  },
+  {
+    "id": "298.4",
+    "feedback": 298,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-28T12:00:00Z"
+    },
+    "request_id": "5b108a35-2db7-4e82-9f16-e39938813d70",
+    "assert": [
+      {
+        "eq": ["week_ends_at", "season_ends_at"]
+      },
+      {
+        "eq": ["section_index", 3]
+      },
+      {
+        "eq": ["day_kind", "training"]
+      }
+    ]
+  },
+  {
+    "id": "298.5",
+    "feedback": 298,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-09-24T12:00:00Z"
+    },
+    "request_id": "bd2b63c1-c565-43d4-93f0-639d2b64fd8c",
+    "assert": [
+      {
+        "neq": ["week_ends_at", "season_ends_at"]
+      },
+      {
+        "eq": ["week", 3]
+      }
+    ]
+  },
+  {
+    "id": "299.1",
+    "feedback": 299,
+    "stability": "live",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2027-01-11T10:00:00Z",
+      "to": "2027-01-15T10:00:00Z"
+    },
+    "request_id": "de734f9c-f77c-43db-aec4-9153cd9e4434",
+    "assert": [
+      {
+        "count_eq": ["events[]", 0]
+      },
+      {
+        "notes_match": "(?i)after now[^.]*empty by construction"
+      }
+    ]
+  },
+  {
+    "id": "299.2",
+    "feedback": 299,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_events",
+    "args": {
+      "from": "2026-09-20",
+      "to": "2026-09-10"
+    },
+    "request_id": "0bbfda2e-b580-47c4-baae-2adc9ba0f6e0",
+    "assert": [
+      {
+        "eq": ["error.code", "bad_request"]
+      },
+      {
+        "notes_match": "(?i)inverted"
+      }
+    ]
+  },
+  {
+    "id": "299.3",
+    "feedback": 299,
+    "stability": "frozen",
+    "control": true,
+    "tool": "game_clock",
+    "args": {
+      "at": "2026-08-31"
+    },
+    "request_id": "2d13212a-4dc2-49c4-82e2-e8e37737ee5b",
+    "assert": [
+      {
+        "notes_match": "read as that game day's start"
+      },
+      {
+        "notes_match": "(?i)final week of a season is Colosseum"
+      },
+      {
+        "notes_match": "(?i)race[^.]*clos[^.]*(before|earlier)"
+      }
+    ]
   }
 ]

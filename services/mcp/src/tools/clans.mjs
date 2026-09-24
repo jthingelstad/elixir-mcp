@@ -112,6 +112,26 @@ async function memberCaptureNote(db, members, fromMs, toMs) {
   );
 }
 
+/** A clan's own scores as its newest roster read carried them (Gym #294:
+ *  a leader's agent summed member trophies for want of these). */
+async function clanScores(db, clanTag) {
+  const {
+    rows: [r],
+  } = await db.query(
+    `select clan_score, clan_war_trophies, observed_at from clan_snapshot_daily
+      where clan_tag = $1 order by observed_at desc limit 1`,
+    [clanTag],
+  );
+  return {
+    clan_score: r?.clan_score ?? null,
+    clan_war_trophies: r?.clan_war_trophies ?? null,
+    scores_observed_at: r?.observed_at?.toISOString() ?? null,
+  };
+}
+
+const CLAN_SCORE_NOTE =
+  "clan_score is the game's own clan score (the clans board of rankings_clan_ladder ranks by it), not the sum of member trophies; clan_war_trophies is the clanwars board's figure. Both as of scores_observed_at, the newest roster read.";
+
 export const clansTools = {
   clans_standings: {
     description:
@@ -362,6 +382,7 @@ export const clansTools = {
           location_id: row.location_id ?? null,
           description: row.description ?? null,
           member_count: row.member_count ?? 0,
+          ...(await clanScores(ctx.db, clanTag)),
           role_counts: {
             leader: row.leaders ?? 0,
             coLeader: row.co_leaders ?? 0,
@@ -373,6 +394,7 @@ export const clansTools = {
           notes: notes(
             livePendingNote(live),
             "verbosity compact is the clan's header and role_counts; the full roster adds each member's trophies, activity stamps, lifetime block and recent_events.",
+            CLAN_SCORE_NOTE,
           ),
           docs: docsRef("recording", "the-games-own-last-seen"),
           // The clan's own poll clock, not a bare as_of.
@@ -453,6 +475,7 @@ export const clansTools = {
         location_id: clanRow.rows[0]?.location_id ?? null,
         description: clanRow.rows[0]?.description ?? null,
         member_count: roster.rows.length,
+        ...(await clanScores(ctx.db, clanTag)),
         // At both sizes (Gym #112): compact had it, full did not.
         role_counts: {
           leader: roster.rows.filter((m) => m.role === "leader").length,
@@ -523,6 +546,7 @@ export const clansTools = {
           "last_seen_in_game is the game's own lastSeen (when the player was last ACTIVE), captured from roster polls; last_recorded_battle only moves when a battle was captured; null means no polled roster has carried them.",
           "A member whose last_seen_in_game predates a race start is left out of that race's roster by the game (see war_current.members_not_in_race).",
           "recent_events are events observed since roster recording began (events_recorded_since), never a complete history.",
+          CLAN_SCORE_NOTE,
           eventsCut
             ? `recent_events holds the newest ${RECENT_EVENTS}, back to ${events.rows.at(-1)?.window_end.toISOString()}; older ones are recorded but not listed here: elixir_timeline filtered to the roster section reads a window's joins, departures and role changes in full.`
             : null,

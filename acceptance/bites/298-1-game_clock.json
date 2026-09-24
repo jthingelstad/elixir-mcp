@@ -1,0 +1,51 @@
+{
+  "feedback": 298,
+  "contract_version": "7.1.10",
+  "captured_at": "2026-09-24T07:21:02.068Z",
+  "request": {
+    "tool": "game_clock",
+    "arguments": {
+      "at": "2026-09-28T12:00:00Z"
+    }
+  },
+  "response": {
+    "as_of": "2026-09-28T12:00:00.000Z",
+    "season_id": 136,
+    "season_month": "2026-09",
+    "season_started_at": "2026-09-07T10:00:00.000Z",
+    "season_ends_at": "2026-10-05T10:00:00.000Z",
+    "week": 4,
+    "section_index": 3,
+    "period_index": 21,
+    "day_kind": "training",
+    "war_day": null,
+    "day_started_at": "2026-09-28T10:00:00.000Z",
+    "day_ends_at": "2026-09-29T10:00:00.000Z",
+    "war_day_closes_at": null,
+    "next_war_day_opens_at": "2026-10-01T10:00:00.000Z",
+    "next_training_starts_at": "2026-10-05T10:00:00.000Z",
+    "week_ends_at": "2026-10-05T10:00:00.000Z",
+    "notes": [
+      "war_day_closes_at is this day's end on a war day and null on a training day; next_war_day_opens_at is the next war day to open after this one; next_training_starts_at is when the next training block begins, after the coming war days. Schedule from these; nothing in the event feed announces the time.",
+      "Days roll at 10:00 UTC, the same hour the season rolls.",
+      "A clan's race closes each war day before this grid, somewhere in the half hour before 10:00 UTC and per race (observed 09:30 to 10:00Z): war_day_closes_at is the policy boundary, not the moment a race stops taking battles, so do not schedule a last attack for its final half hour. war_history.closed_at is each past week's real close (the API's own instant); nothing serves today's close before it happens (Gym #179).",
+      "A season runs first Monday of the month to first Monday of the next; weeks are the Mondays between.",
+      "The final week of a season is Colosseum; its practice days still report as training.",
+      "season_id is the season number the API's war data carries (riverrace seasonId) and the record files everything under; season_month is the API's name for the same season on its Path of Legends finals. The in-game Pass shows a third number (a lower one) that the API does not use anywhere."
+    ],
+    "applied": {
+      "at": "2026-09-28T12:00:00.000Z"
+    },
+    "docs": "clocks#the-policy-day",
+    "meta": {
+      "contract_version": "7.1.10"
+    }
+  },
+  "timings": {
+    "db_ms": 0,
+    "db_queries": 0,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "feedback": 286,
+  "contract_version": "7.1.9",
+  "captured_at": "2026-09-24T07:14:26.530Z",
+  "request": {
+    "tool": "battles_trends",
+    "arguments": {
+      "segment": {
+        "clan_tag": "#Q9QPPGGG"
+      },
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-09-21T00:00:00Z"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "clan",
+        "clan_tag": "#Q9QPPGGG"
+      },
+      "window": {
+        "from": "2026-09-14T00:00:00.000Z",
+        "to": "2026-09-21T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 13
+      }
+    },
+    "weeks": [
+      {
+        "iso_week": "2026-W38",
+        "week_of": "2026-09-14",
+        "battles": 1915,
+        "wins": 988,
+        "losses": 927,
+        "players": 37,
+        "win_rate": 0.516,
+        "trophy_mode_battles": 1424,
+        "trophy_battles": 1424,
+        "net_trophies": -1320,
+        "season_month": "2026-09",
+        "modes": {
+          "casual": {
+            "battles": 32,
+            "wins": 21,
+            "losses": 11
+          },
+          "event": {
+            "battles": 461,
+            "wins": 262,
+            "losses": 199
+          },
+          "ranked": {
+            "battles": 1422,
+            "wins": 705,
+            "losses": 717
+          }
+        }
+      }
+    ],
+    "notes": [
+      "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",
+      "Weeks pool every mode group (modes says which); matchmaking differs by mode, so pass mode before reading win_rate as a trend of strength.",
+      "season_month is the season the week's Tuesday to Sunday fall in; a season rolls on Monday at 10:00 UTC, so a roll week's first hours belong to the season before (applied.window.crosses says where).",
+      "Recording start dates differ per player, so early weeks may be thin because capture was, not because play was."
+    ],
+    "docs": "recording#completeness",
+    "meta": {
+      "contract_version": "7.1.9"
+    }
+  },
+  "timings": {
+    "db_ms": 66,
+    "db_queries": 7,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

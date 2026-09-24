@@ -1,0 +1,166 @@
+{
+  "feedback": 291,
+  "contract_version": "7.1.9",
+  "captured_at": "2026-09-24T07:13:59.732Z",
+  "request": {
+    "tool": "rankings_timeline",
+    "arguments": {
+      "clan_tag": "#J2RGCRVG",
+      "from": "2026-09-12",
+      "to": "2026-09-20"
+    }
+  },
+  "response": {
+    "board": "pol",
+    "location": {
+      "key": "global",
+      "label": "Global"
+    },
+    "applied": {
+      "board": "pol",
+      "location": "global",
+      "subject": "clan",
+      "tag": "#J2RGCRVG",
+      "window": {
+        "from": "2026-09-12T00:00:00.000Z",
+        "to": "2026-09-21T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 13
+      },
+      "limit": 800
+    },
+    "points": [
+      {
+        "observed_at": "2026-09-12T00:36:40.000Z",
+        "day": "2026-09-11",
+        "unchanged_until": "2026-09-12T00:36:40.000Z",
+        "rated_players": 0,
+        "best_rank": null,
+        "best_player_tag": null,
+        "board_full": true,
+        "board_floor_rating": 1705
+      },
+      {
+        "observed_at": "2026-09-12T10:07:55.000Z",
+        "day": "2026-09-12",
+        "unchanged_until": "2026-09-12T10:07:55.000Z",
+        "rated_players": 0,
+        "best_rank": null,
+        "best_player_tag": null,
+        "board_full": true,
+        "board_floor_rating": 1736
+      },
+      {
+        "observed_at": "2026-09-13T10:07:54.000Z",
+        "day": "2026-09-13",
+        "unchanged_until": "2026-09-13T10:07:54.000Z",
+        "rated_players": 0,
+        "best_rank": null,
+        "best_player_tag": null,
+        "board_full": true,
+        "board_floor_rating": 1808
+      },
+      {
+        "observed_at": "2026-09-14T10:07:51.000Z",
+        "day": "2026-09-14",
+        "unchanged_until": "2026-09-14T10:07:51.000Z",
+        "rated_players": 0,
+        "best_rank": null,
+        "best_player_tag": null,
+        "board_full": true,
+        "board_floor_rating": 1870
+      },
+      {
+        "observed_at": "2026-09-15T10:07:50.000Z",
+        "day": "2026-09-15",
+        "unchanged_until": "2026-09-15T10:07:50.000Z",
+        "rated_players": 0,
+        "best_rank": null,
+        "best_player_tag": null,
+        "board_full": true,
+        "board_floor_rating": 1916
+      },
+      {
+        "observed_at": "2026-09-16T10:07:51.000Z",
+        "day": "2026-09-16",
+        "unchanged_until": "2026-09-16T10:07:51.000Z",
+        "rated_players": 0,
+        "best_rank": null,
+        "best_player_tag": null,
+        "board_full": true,
+        "board_floor_rating": 1966
+      },
+      {
+        "observed_at": "2026-09-17T10:07:50.000Z",
+        "day": "2026-09-17",
+        "unchanged_until": "2026-09-17T10:07:50.000Z",
+        "rated_players": 0,
+        "best_rank": null,
+        "best_player_tag": null,
+        "board_full": true,
+        "board_floor_rating": 2018
+      },
+      {
+        "observed_at": "2026-09-18T10:07:50.000Z",
+        "day": "2026-09-18",
+        "unchanged_until": "2026-09-18T10:07:50.000Z",
+        "rated_players": 0,
+        "best_rank": null,
+        "best_player_tag": null,
+        "board_full": true,
+        "board_floor_rating": 2058
+      },
+      {
+        "observed_at": "2026-09-19T10:07:53.000Z",
+        "day": "2026-09-19",
+        "unchanged_until": "2026-09-19T10:07:53.000Z",
+        "rated_players": 0,
+        "best_rank": null,
+        "best_player_tag": null,
+        "board_full": true,
+        "board_floor_rating": 2111
+      },
+      {
+        "observed_at": "2026-09-20T10:07:53.000Z",
+        "day": "2026-09-20",
+        "unchanged_until": "2026-09-20T10:07:53.000Z",
+        "rated_players": 0,
+        "best_rank": null,
+        "best_player_tag": null,
+        "board_full": true,
+        "board_floor_rating": 2148
+      }
+    ],
+    "notes": [
+      "rated_players is 0 at every point in the window: nobody was rated on this board then, so the curve describes an empty field, not a flat one.",
+      "One point per recorded snapshot; a snapshot is written when the board's content changed (ranks, ratings, names or clans), so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
+      "rated_players counts the clan's players on the board at each snapshot; it moves with the cutoff (board_floor_rating, once board_full) as well as with play, and can fall while every one of the clan's players improves.",
+      "10 of 10 points are at the board's full 1,000 places: a player or clan can leave the board without losing rating there, so compare rated_players across dates only against the cutoff.",
+      "Path of Legends lists players above a rating floor, at most 1,000 places: a board is small in a season's first days and grows as players cross the floor, and once it holds 1,000 it is full - from then on floor_rating is the 1,000th place's rating, a cutoff that rises with play, not a qualification threshold."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "7.1.9",
+      "source_polls": {
+        "rankings_pol": {
+          "observed_at": "2026-09-23T10:07:57.000Z",
+          "freshness_seconds": 75963
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 54,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

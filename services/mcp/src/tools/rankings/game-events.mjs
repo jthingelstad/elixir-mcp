@@ -1,5 +1,6 @@
 import { resolveInstant } from "../../time.mjs";
 import {
+  SEASON_ARG_SCHEMA,
   ToolFailure,
   WINDOW_ARGS,
   appliedBlock,
@@ -7,6 +8,7 @@ import {
   docsRef,
   notes,
   requireOrderedWindow,
+  resolveSeasonWindow,
   seasonFieldsForInstants,
   withWindowSugar,
   zoneFor,
@@ -20,6 +22,7 @@ export const game_events = {
     type: "object",
     properties: {
       ...WINDOW_ARGS,
+      season: SEASON_ARG_SCHEMA,
       limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
     },
     additionalProperties: false,
@@ -27,12 +30,19 @@ export const game_events = {
   async handler(ctx, rawArgs) {
     const args = withWindowSugar(rawArgs);
     const tz = zoneFor(ctx, args);
-    const to =
-      args.to !== undefined
+    // season bounds one season, as on every windowed tool (Gym #297).
+    const seasonWin =
+      args.season !== undefined
+        ? await resolveSeasonWindow(ctx, args, { flavor: "plain" })
+        : null;
+    const to = seasonWin
+      ? (seasonWin.to ?? new Date())
+      : args.to !== undefined
         ? resolveInstant(tz, args.to, { endOfDay: true })
         : new Date();
-    const from =
-      args.from !== undefined
+    const from = seasonWin
+      ? seasonWin.from
+      : args.from !== undefined
         ? resolveInstant(tz, args.from)
         : new Date(seasonStartOf(to));
     if (!from || !to)
@@ -109,6 +119,22 @@ export const game_events = {
                and game_day(r.fetched_at) = gd::date)`,
       [from, new Date(to.getTime() - 1)],
     );
+    // The game days the window touches whose reads all fall OUTSIDE it
+    // (Gym #296): a Chicago "Monday" is 19 hours of game day 09-21, read
+    // at 09-22T09:02Z, so that day's events were missing with no word.
+    const readSet = new Set(readDays.map((r) => r.day));
+    const { rows: touched } = await ctx.db.query(
+      `select gd::date::text as day
+         from generate_series(game_day($1::timestamptz), game_day($2::timestamptz), interval '1 day') gd
+        where exists (
+          select 1 from api_receipt r
+           where r.endpoint = 'events' and r.admission = 'admitted'
+             and game_day(r.fetched_at) = gd::date)`,
+      [from, new Date(to.getTime() - 1)],
+    );
+    const readOutside = touched
+      .map((r) => r.day)
+      .filter((d) => !readSet.has(d));
     const seasonFields = await seasonFieldsForInstants(ctx.db, from, to, {
       flavor: "plain",
       clampToNow: false,
@@ -128,8 +154,9 @@ export const game_events = {
         window: {
           from: from.toISOString(),
           to: to.toISOString(),
-          source:
-            args.from !== undefined || args.to !== undefined
+          source: seasonWin
+            ? seasonWin.source
+            : args.from !== undefined || args.to !== undefined
               ? "argument"
               : "default",
           ...seasonFields.echo,
@@ -151,6 +178,7 @@ export const game_events = {
         running_on_latest_day: r.running_on_latest,
       })),
       notes: notes(
+        seasonWin?.seasonNotes,
         futureNote,
         seasonFields.seasonNotes,
         "game_days_seen is the game days (the 10:00Z grid the series tools use; a read before 10:00Z belongs to the day before) on which /events listed the event; the API gives no start or end, so an event's span is its first and last sighting, at daily resolution.",
@@ -159,6 +187,9 @@ export const game_events = {
         "The window selects the events reads made inside it (its instants, not the dates around them), and running_on_latest_day says the event was in the most recent read the record holds - as close to 'on now' as the record gets.",
         gaps.length
           ? `No events read covered the game day${gaps.length === 1 ? "" : "s"} ${gaps.map((g) => g.day).join(", ")}: an event's game_days_seen skip ${gaps.length === 1 ? "it" : "them"} because nothing was read, not because the event was off.`
+          : null,
+        readOutside.length
+          ? `No events read inside the window covered game day${readOutside.length === 1 ? "" : "s"} ${readOutside.join(", ")}, which the window touches: ${readOutside.length === 1 ? "its read" : "their reads"} fell outside it, so ${readOutside.length === 1 ? "that day's" : "those days'"} events are not listed. Widen from/to to take the read in (game_days_read lists the days a read inside the window covered).`
           : null,
       ),
       docs: docsRef("recording", "leaderboards"),

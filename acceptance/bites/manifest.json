@@ -1761,5 +1761,149 @@
     "case": "gym/275.1",
     "captures": ["275-1-players_timeline.json"],
     "expect": "."
+  },
+  {
+    "feedback": 286,
+    "contract": "7.1.9",
+    "why": "the Gym block 286.1 on the answer it read",
+    "case": "gym/286.1",
+    "captures": ["286-1-battles_meta_decks.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 286,
+    "contract": "7.1.9",
+    "why": "the Gym block 286.2 on the answer it read",
+    "case": "gym/286.2",
+    "captures": ["286-2-battles_trends.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 286,
+    "contract": "7.1.8",
+    "why": "the Gym block 286.3 on the answer it read",
+    "case": "gym/286.3",
+    "captures": ["286-3-battles_meta_decks.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 287,
+    "contract": "7.1.9",
+    "why": "the Gym block 287.1 on the answer it read",
+    "case": "gym/287.1",
+    "captures": ["287-1-battles_trends.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 287,
+    "contract": "7.1.9",
+    "why": "the Gym block 287.2 on the answer it read",
+    "case": "gym/287.2",
+    "captures": ["287-2-cards_synergy.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 288,
+    "contract": "7.1.8",
+    "why": "the Gym block 288.1 on the answer it read",
+    "case": "gym/288.1",
+    "captures": ["288-1-collections_get.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 290,
+    "contract": "7.1.10",
+    "why": "the Gym block 290.1 on the answer it read",
+    "case": "gym/290.1",
+    "captures": ["290-1-rankings_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 291,
+    "contract": "7.1.9",
+    "why": "the Gym block 291.1 on the answer it read",
+    "case": "gym/291.1",
+    "captures": ["291-1-rankings_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 292,
+    "contract": "7.1.10",
+    "why": "the Gym block 292.1 on the answer it read",
+    "case": "gym/292.1",
+    "captures": ["292-1-rankings_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 292,
+    "contract": "7.1.10",
+    "why": "the Gym block 292.2 on the answer it read",
+    "case": "gym/292.2",
+    "captures": ["292-2-rankings_timeline.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 293,
+    "contract": "7.1.9",
+    "why": "the Gym block 293.1 on the answer it read",
+    "case": "gym/293.1",
+    "captures": ["293-1-rankings_clan_ladder.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 294,
+    "contract": "7.1.9",
+    "why": "the Gym block 294.1 on the answer it read",
+    "case": "gym/294.1",
+    "captures": ["294-1-clans_roster.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 294,
+    "contract": "7.1.9",
+    "why": "the Gym block 294.2 on the answer it read",
+    "case": "gym/294.2",
+    "captures": ["294-2-rankings_clan_ladder.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 296,
+    "contract": "7.1.10",
+    "why": "the Gym block 296.1 on the answer it read",
+    "case": "gym/296.1",
+    "captures": ["296-1-game_events.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 296,
+    "contract": "7.1.10",
+    "why": "the Gym block 296.2 on the answer it read",
+    "case": "gym/296.2",
+    "captures": ["296-2-game_events.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 297,
+    "contract": "7.1.10",
+    "why": "the Gym block 297.1 on the answer it read",
+    "case": "gym/297.1",
+    "captures": ["297-1-game_events.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 298,
+    "contract": "7.1.10",
+    "why": "the Gym block 298.1 on the answer it read",
+    "case": "gym/298.1",
+    "captures": ["298-1-game_clock.json"],
+    "expect": "."
+  },
+  {
+    "feedback": 298,
+    "contract": "7.1.10",
+    "why": "the Gym block 298.3 on the answer it read",
+    "case": "gym/298.3",
+    "captures": ["298-3-game_clock.json"],
+    "expect": "."
   }
 ]

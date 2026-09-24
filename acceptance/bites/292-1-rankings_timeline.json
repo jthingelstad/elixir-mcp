@@ -1,0 +1,61 @@
+{
+  "feedback": 292,
+  "contract_version": "7.1.10",
+  "captured_at": "2026-09-24T07:16:16.640Z",
+  "request": {
+    "tool": "rankings_timeline",
+    "arguments": {
+      "from": "2026-09-20",
+      "to": "2026-09-15"
+    }
+  },
+  "response": {
+    "board": "pol",
+    "location": {
+      "key": "global",
+      "label": "Global"
+    },
+    "applied": {
+      "board": "pol",
+      "location": "global",
+      "subject": "board",
+      "window": {
+        "from": "2026-09-20T00:00:00.000Z",
+        "to": "2026-09-16T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 8
+      },
+      "limit": 800
+    },
+    "points": [],
+    "notes": [
+      "One point per recorded snapshot; a snapshot is written when the board's content changed (ranks, ratings, names or clans), so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
+      "floor_rating is the last place's rating: the rating floor while rated_players is below depth, and once the board is full (full: true) the cutoff for the last of its 1,000 places, which rises as the field plays (floor_delta is its move since the previous point) while rated_players stays pinned at depth.",
+      "Path of Legends lists players above a rating floor, at most 1,000 places: a board is small in a season's first days and grows as players cross the floor, and once it holds 1,000 it is full - from then on floor_rating is the 1,000th place's rating, a cutoff that rises with play, not a qualification threshold."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "7.1.10",
+      "source_polls": {
+        "rankings_pol": {
+          "observed_at": "2026-09-23T10:07:57.000Z",
+          "freshness_seconds": 76100
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 51,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

@@ -1,0 +1,268 @@
+{
+  "feedback": 287,
+  "contract_version": "7.1.9",
+  "captured_at": "2026-09-24T07:10:12.990Z",
+  "request": {
+    "tool": "battles_trends",
+    "arguments": {
+      "segment": {
+        "collection": "pol-global-top-100"
+      },
+      "days": 28,
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "applied": {
+      "segment": {
+        "kind": "collection",
+        "collection": "pol-global-top-100"
+      },
+      "window": {
+        "from": "2026-08-27T07:10:11.779Z",
+        "to": null,
+        "source": "argument",
+        "season": {
+          "month": "2026-08",
+          "war": 135,
+          "starts_at": "2026-08-03T10:00:00.000Z",
+          "ends_at": "2026-09-07T10:00:00.000Z"
+        },
+        "crosses": [
+          {
+            "kind": "season",
+            "at": "2026-09-07T10:00:00.000Z",
+            "from_season": {
+              "month": "2026-08",
+              "war": 135
+            },
+            "to_season": {
+              "month": "2026-09",
+              "war": 136
+            }
+          }
+        ],
+        "season_age_days": 35
+      },
+      "verbosity": "full"
+    },
+    "weeks": [
+      {
+        "iso_week": "2026-W35",
+        "week_of": "2026-08-24",
+        "battles": 5,
+        "wins": 2,
+        "losses": 3,
+        "players": 4,
+        "win_rate": 0.4,
+        "trophy_mode_battles": 4,
+        "trophy_battles": 4,
+        "net_trophies": -55,
+        "season_month": "2026-08",
+        "modes": {
+          "war": {
+            "battles": 1,
+            "wins": 1,
+            "losses": 0
+          },
+          "ranked": {
+            "battles": 4,
+            "wins": 1,
+            "losses": 3
+          }
+        },
+        "partial": true,
+        "covers": {
+          "from": "2026-08-27T07:10:11.779Z",
+          "to": "2026-08-31T00:00:00.000Z"
+        }
+      },
+      {
+        "iso_week": "2026-W36",
+        "week_of": "2026-08-31",
+        "battles": 396,
+        "wins": 230,
+        "losses": 162,
+        "players": 46,
+        "win_rate": 0.587,
+        "trophy_mode_battles": 390,
+        "trophy_battles": 386,
+        "net_trophies": 1746,
+        "season_month": "2026-08",
+        "modes": {
+          "ranked": {
+            "battles": 390,
+            "wins": 227,
+            "losses": 159
+          },
+          "casual": {
+            "battles": 6,
+            "wins": 3,
+            "losses": 3
+          }
+        }
+      },
+      {
+        "iso_week": "2026-W37",
+        "week_of": "2026-09-07",
+        "battles": 8503,
+        "wins": 5311,
+        "losses": 3189,
+        "players": 85,
+        "win_rate": 0.625,
+        "trophy_mode_battles": 6376,
+        "trophy_battles": 6261,
+        "net_trophies": 35618,
+        "season_month": "2026-09",
+        "modes": {
+          "ranked": {
+            "battles": 6178,
+            "wins": 3680,
+            "losses": 2497
+          },
+          "ladder": {
+            "battles": 45,
+            "wins": 41,
+            "losses": 4
+          },
+          "casual": {
+            "battles": 171,
+            "wins": 101,
+            "losses": 70
+          },
+          "event": {
+            "battles": 1966,
+            "wins": 1374,
+            "losses": 590
+          },
+          "tournament": {
+            "battles": 116,
+            "wins": 93,
+            "losses": 23
+          },
+          "war": {
+            "battles": 27,
+            "wins": 22,
+            "losses": 5
+          }
+        }
+      },
+      {
+        "iso_week": "2026-W38",
+        "week_of": "2026-09-14",
+        "battles": 19368,
+        "wins": 11240,
+        "losses": 8121,
+        "players": 95,
+        "win_rate": 0.581,
+        "trophy_mode_battles": 13988,
+        "trophy_battles": 13986,
+        "net_trophies": 41229,
+        "season_month": "2026-09",
+        "modes": {
+          "tournament": {
+            "battles": 56,
+            "wins": 46,
+            "losses": 10
+          },
+          "casual": {
+            "battles": 726,
+            "wins": 411,
+            "losses": 315
+          },
+          "ladder": {
+            "battles": 56,
+            "wins": 50,
+            "losses": 6
+          },
+          "ranked": {
+            "battles": 13683,
+            "wins": 7602,
+            "losses": 6075
+          },
+          "war": {
+            "battles": 46,
+            "wins": 30,
+            "losses": 16
+          },
+          "event": {
+            "battles": 4801,
+            "wins": 3101,
+            "losses": 1699
+          }
+        }
+      },
+      {
+        "iso_week": "2026-W39",
+        "week_of": "2026-09-21",
+        "battles": 10186,
+        "wins": 6101,
+        "losses": 4084,
+        "players": 97,
+        "win_rate": 0.599,
+        "trophy_mode_battles": 8247,
+        "trophy_battles": 8247,
+        "net_trophies": 25501,
+        "season_month": "2026-09",
+        "modes": {
+          "war": {
+            "battles": 3,
+            "wins": 0,
+            "losses": 3
+          },
+          "tournament": {
+            "battles": 93,
+            "wins": 80,
+            "losses": 13
+          },
+          "ranked": {
+            "battles": 7235,
+            "wins": 4075,
+            "losses": 3159
+          },
+          "casual": {
+            "battles": 470,
+            "wins": 300,
+            "losses": 170
+          },
+          "event": {
+            "battles": 2331,
+            "wins": 1594,
+            "losses": 737
+          },
+          "ladder": {
+            "battles": 54,
+            "wins": 52,
+            "losses": 2
+          }
+        },
+        "partial": true,
+        "covers": {
+          "from": "2026-09-21T00:00:00.000Z",
+          "to": "2026-09-24T07:10:12.982Z"
+        }
+      }
+    ],
+    "notes": [
+      "Buckets 2026-W35, 2026-W39 are partial: the window clips them (covers says the span each row holds), so compare them by win_rate, never by battles, or snap from/to to Mondays.",
+      "Weeks 2026-W36, 2026-W37 and 2026-W38 hold 4, 115 and 2 trophy-mode battles with no reported trophy change (a loss standing on an arena floor reports none): trophy_battles excludes them and is not the count of ladder battles played, so divide by trophy_mode_battles.",
+      "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",
+      "Weeks pool every mode group (modes says which); matchmaking differs by mode, so pass mode before reading win_rate as a trend of strength.",
+      "season_month is the season the week's Tuesday to Sunday fall in; a season rolls on Monday at 10:00 UTC, so a roll week's first hours belong to the season before (applied.window.crosses says where).",
+      "Window spans S135 (2026-08) and S136 (2026-09); balance changes land on the season roll, so card values before and after are not one population. Pass season:'current' or split with from/to.",
+      "Recording start dates differ per player, so early weeks may be thin because capture was, not because play was.",
+      "battles_trends has one size: verbosity 'compact' was accepted and had nothing to drop."
+    ],
+    "docs": "recording#completeness",
+    "meta": {
+      "contract_version": "7.1.9"
+    }
+  },
+  "timings": {
+    "db_ms": 1210,
+    "db_queries": 5,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

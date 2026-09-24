@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-24",
+    title: "Where your clan stands, and when Colosseum is",
+    body: "The clan ladder now says where your own clan stands: its rank when it is on the board, or its clan score and how far it is below the last place when it is not. The clan roster shows the clan's score and war trophies. The game clock says whether a week is Colosseum and when this season's Colosseum starts, since seasons run four or five weeks. The in-game events calendar takes a season, and says when a day in your window was read outside it. Contract 7.1.12.",
+  },
+  {
+    date: "2026-09-24",
     title: "Clan reads count recorded members",
     body: "The Elixir Gym's fourth run over collections and rankings. A clan read for meta decks, trends, synergy or badges now counts only the members Elixir records, and says how many that is; a member seen only as an opponent's teammate in someone else's battle no longer pools in. The rankings timeline explains a clan with none of its players on the board, refuses a window that ends before it starts, and lists the locations it records when asked for one it does not. Contract 7.1.11.",
   },

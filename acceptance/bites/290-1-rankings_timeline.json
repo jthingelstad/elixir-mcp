@@ -1,0 +1,290 @@
+{
+  "feedback": 290,
+  "contract_version": "7.1.10",
+  "captured_at": "2026-09-24T07:16:44.225Z",
+  "request": {
+    "tool": "rankings_timeline",
+    "arguments": {
+      "board": "mode",
+      "location": "170000004",
+      "from": "2026-09-11",
+      "to": "2026-09-23"
+    }
+  },
+  "response": {
+    "board": "mode",
+    "location": {
+      "key": "170000004",
+      "label": "2v2 League"
+    },
+    "applied": {
+      "board": "mode",
+      "location": "170000004",
+      "subject": "board",
+      "window": {
+        "from": "2026-09-11T00:00:00.000Z",
+        "to": "2026-09-24T00:00:00.000Z",
+        "source": "argument",
+        "season": {
+          "month": "2026-09",
+          "war": 136,
+          "starts_at": "2026-09-07T10:00:00.000Z",
+          "ends_at": "2026-10-05T10:00:00.000Z"
+        },
+        "crosses": [],
+        "season_age_days": 16
+      },
+      "limit": 800
+    },
+    "points": [
+      {
+        "observed_at": "2026-09-11T05:06:47.000Z",
+        "day": "2026-09-10",
+        "unchanged_until": "2026-09-11T05:06:47.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3099,
+        "floor_delta": null,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-11T15:48:03.000Z",
+        "day": "2026-09-11",
+        "unchanged_until": "2026-09-11T15:48:03.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3096,
+        "floor_delta": -3,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-12T10:07:52.000Z",
+        "day": "2026-09-12",
+        "unchanged_until": "2026-09-12T10:07:52.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3096,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-13T10:07:52.000Z",
+        "day": "2026-09-13",
+        "unchanged_until": "2026-09-13T10:07:52.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3096,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-14T10:07:49.000Z",
+        "day": "2026-09-14",
+        "unchanged_until": "2026-09-14T10:07:49.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3096,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-15T10:07:48.000Z",
+        "day": "2026-09-15",
+        "unchanged_until": "2026-09-15T10:07:48.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3096,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-16T10:07:50.000Z",
+        "day": "2026-09-16",
+        "unchanged_until": "2026-09-16T10:07:50.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3096,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-17T10:07:48.000Z",
+        "day": "2026-09-17",
+        "unchanged_until": "2026-09-17T10:07:48.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3096,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-18T10:07:47.000Z",
+        "day": "2026-09-18",
+        "unchanged_until": "2026-09-18T10:07:47.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3096,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-19T10:07:50.000Z",
+        "day": "2026-09-19",
+        "unchanged_until": "2026-09-19T10:07:50.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3096,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-20T10:07:50.000Z",
+        "day": "2026-09-20",
+        "unchanged_until": "2026-09-20T10:07:50.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3094,
+        "floor_delta": -2,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-21T10:07:47.000Z",
+        "day": "2026-09-21",
+        "unchanged_until": "2026-09-21T10:07:47.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3094,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-22T10:07:46.000Z",
+        "day": "2026-09-22",
+        "unchanged_until": "2026-09-22T10:07:46.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3094,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      },
+      {
+        "observed_at": "2026-09-23T10:07:53.000Z",
+        "day": "2026-09-23",
+        "unchanged_until": "2026-09-23T10:07:53.000Z",
+        "rated_players": 1000,
+        "depth": 1000,
+        "full": true,
+        "floor_rating": 3094,
+        "floor_delta": 0,
+        "first": {
+          "player_tag": "#PCJ29YJJ",
+          "name": "Samuel Bassotto",
+          "rating": 3896
+        },
+        "truncated": true
+      }
+    ],
+    "notes": [
+      "One point per recorded snapshot; a snapshot is written when the board's content changed (ranks, ratings, names or clans), so the interval observed_at..unchanged_until is how long that state held; day is the game day (10:00Z grid) the snapshot fell in.",
+      "On a mode board a point is also written when only names or clans changed, so consecutive points can hold the same ranks and ratings: a closed event keeps writing points. rankings_players says when the standings last moved (snapshot.standings_changed_at).",
+      "floor_rating is the last place's rating: the rating floor while rated_players is below depth, and once the board is full (full: true) the cutoff for the last of its 1,000 places, which rises as the field plays (floor_delta is its move since the previous point) while rated_players stays pinned at depth.",
+      "14 of 14 points are at the board's full 1,000 places: a player or clan can leave the board without losing rating there, so compare rated_players across dates only against the cutoff.",
+      "rating on a mode board is that event's own leaderboard rating, not a Path of Legends rating: it is not comparable to one, or to another board's rating."
+    ],
+    "docs": "recording#leaderboards",
+    "meta": {
+      "contract_version": "7.1.10",
+      "source_polls": {
+        "leaderboard": {
+          "observed_at": "2026-09-23T10:07:53.000Z",
+          "freshness_seconds": 76131
+        }
+      }
+    }
+  },
+  "timings": {
+    "db_ms": 89,
+    "db_queries": 6,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

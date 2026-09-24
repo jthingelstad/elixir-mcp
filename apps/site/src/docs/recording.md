@@ -212,7 +212,7 @@ will be fetched and a season that has not happened names the current one;
 `season_requested` beside it. A final never changes, so `live: true` is
 refused there. The **clan ladders** (`clans` by clan
 score, `clanwars` by clan war trophies, 1,000 places by location) are
-recorded daily for global, the United States and Japan — `rankings_clan_ladder`.
+recorded daily for global, the United States and Japan — `rankings_clan_ladder`. Each read serves the board's last-place score (`snapshot.floor_score`) and, as `our_clan`, where the caller's own clan stands: its rank when it is on the board, and otherwise its score and how far below the last place it sits. A clan's score is the game's own figure, not the sum of its members' trophies; `clans_roster` serves it for a recorded clan.
 The **game-mode leaderboards** (Merge Tactics, Touchdown, 2v2 League and the
 rest) are enumerated from the API daily, so a board that rotates in is
 followed without anyone naming it. Call
