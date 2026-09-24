@@ -19,7 +19,6 @@ import {
   auditRow,
   onBehalfOfOf,
   timedDb,
-  toolEmf,
 } from "../src/invoker.mjs";
 import { captureCall, captureKey } from "../src/capture.mjs";
 
@@ -291,49 +290,6 @@ test("a tool failure is captured as the error body the caller saw", async () => 
   // which told an agent to fix a call that was fine: feedback #56).
   assert.equal(stored.response.error.code, "internal");
   assert.match(stored.response.error.hint, /Retry the same war_current call/);
-});
-
-test("one EMF line per call: three undimensioned metrics, the tool as a property", async () => {
-  const lines = [];
-  const invoke = makeInvoker({
-    db: recordingDb(),
-    account,
-    emitMetrics: (line) => lines.push(line),
-    registry: { invoke: async () => ({ ok: true }) },
-  });
-  await invoke("clans_roster", {});
-  assert.equal(lines.length, 1);
-  assert.ok(lines[0].endsWith("\n"), "one log event per line");
-  const emf = JSON.parse(lines[0]);
-  const [def] = emf._aws.CloudWatchMetrics;
-  assert.equal(def.Namespace, "ElixirMCP/Tools");
-  assert.deepEqual(def.Dimensions, [[]], "no per-tool metrics");
-  assert.deepEqual(
-    def.Metrics.map((m) => m.Name),
-    ["DurationMs", "DbMs", "Errors"],
-  );
-  assert.equal(emf.Tool, "clans_roster");
-  assert.equal(typeof emf.ResultBytes, "number", "still in the log line");
-  assert.equal(emf.Errors, 0);
-  assert.equal(typeof emf.DurationMs, "number");
-  assert.equal(
-    lines[0].indexOf("\n"),
-    lines[0].length - 1,
-    "no embedded newline: EMF is one JSON object per log event",
-  );
-});
-
-test("toolEmf counts an error as 1", () => {
-  const emf = JSON.parse(
-    toolEmf({
-      tool: "x",
-      durationMs: 5,
-      dbMs: 1,
-      resultBytes: 10,
-      error: true,
-    }),
-  );
-  assert.equal(emf.Errors, 1);
 });
 
 test("a JSON-RPC-layer refusal audits with rpc_error_code and no error_code", async () => {

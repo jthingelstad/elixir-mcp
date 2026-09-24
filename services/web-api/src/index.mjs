@@ -6,7 +6,6 @@
 import { makeHandler } from "./handler.mjs";
 import { makeCollectorDoor } from "./collector-door.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
-import { ingestEmf } from "../../ingest/src/ingest-emf.mjs";
 import { makeArchive } from "../../ingest/src/handler.mjs";
 import { makeCaptureStore } from "../../mcp/src/capture.mjs";
 import { makeOutbox, countStuck } from "./outbox.mjs";
@@ -53,18 +52,7 @@ export const handler = makeHandler({
   collectorDoor: makeCollectorDoor({
     ingest: async (db, envelope) => {
       const archive = makeArchive(process.env.ARCHIVE_BUCKET);
-      const result = await processResult(
-        db,
-        envelope,
-        archive ? { archive } : {},
-      );
-      // The admission line for the dashboard (ingest-emf.mjs): one
-      // verbatim stdout write, never console.log, never awaited on a
-      // network.
-      process.stdout.write(
-        `${ingestEmf({ ...result, endpoint: envelope?.job?.endpoint ?? null })}\n`,
-      );
-      return result;
+      return processResult(db, envelope, archive ? { archive } : {});
     },
     notifyOwner,
   }),

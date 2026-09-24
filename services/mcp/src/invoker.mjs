@@ -279,46 +279,6 @@ function timedLive(live, t) {
   };
 }
 
-const METRICS_NAMESPACE = "ElixirMCP/Tools";
-
-/**
- * One CloudWatch EMF line per call (services/scheduler/src/metrics.mjs is
- * the pattern: the function runs in a NAT-free VPC with no CloudWatch
- * endpoint, so the metric rides the log-delivery path and can never
- * block a call). Three undimensioned metrics, the ones the dashboard
- * draws and ToolLatencyP95Alarm watches. The tool and the result size
- * ride the same line as plain properties: a Tool dimension made one
- * metric per tool and measure (224 of them, $15.50 a month) that nothing
- * read, and per-tool numbers live in mcp_call_audit and in these log
- * lines for Logs Insights (2026-09-24).
- */
-export function toolEmf(
-  { tool, durationMs, dbMs, resultBytes, error },
-  now = Date.now(),
-) {
-  return JSON.stringify({
-    _aws: {
-      Timestamp: now,
-      CloudWatchMetrics: [
-        {
-          Namespace: METRICS_NAMESPACE,
-          Dimensions: [[]],
-          Metrics: [
-            { Name: "DurationMs", Unit: "Milliseconds" },
-            { Name: "DbMs", Unit: "Milliseconds" },
-            { Name: "Errors", Unit: "Count" },
-          ],
-        },
-      ],
-    },
-    Tool: tool,
-    DurationMs: durationMs,
-    DbMs: dbMs ?? 0,
-    ResultBytes: resultBytes ?? 0,
-    Errors: error ? 1 : 0,
-  });
-}
-
 /**
  * Puts the request id where the caller will actually see it.
  *
@@ -348,8 +308,6 @@ export function makeInvoker({
   notifyOwner = null,
   /** { s3, bucket } from capture.mjs makeCaptureStore(); null = no capture. */
   capture = null,
-  /** Where the EMF line goes; null = no metrics (tests, the web explorer). */
-  emitMetrics = null,
   /** MCP's heavy reads leave time for a structured reply, capture and audit. */
   queryBudgetMs = null,
   /** Lambda's remaining time less the reply margin: every read-only tool
@@ -616,21 +574,6 @@ export function makeInvoker({
         principalKind,
         onBehalfOf: onBehalfOfOf(args),
       });
-      if (emitMetrics) {
-        try {
-          emitMetrics(
-            `${toolEmf({
-              tool: name,
-              durationMs: Date.now() - startedAt,
-              dbMs: rounded.db_ms,
-              resultBytes: outcome.resultBytes,
-              error: outcome.errorCode != null,
-            })}\n`,
-          );
-        } catch {
-          // A metric must never break serving.
-        }
-      }
     }
     return { body: outcome.body, isError: outcome.isError };
   };

@@ -35,7 +35,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **CR tags are not PII** — email is PII. (2026-09-08; Jamie)
 - **Nicknames and machine labels are private** — the card name is a collector's only public name; public operator credit shows the primary player only. (2026-09-06, 2026-09-07; Jamie)
 - **Analytics stays client-side Tinylytics** — never proxied through our API (#25 was reverted: "should have asked"); `/signin` loads no analytics. (2026-09-08, 2026-09-19; Jamie)
-- **The servers send Tinylytics nothing** — tool calls first, then sign-in, signup and feedback; `mcp_call_audit`, the `ElixirMCP/Tools` metrics and the database already hold those facts. Page and mail counting stays client-side. (2026-09-24; Jamie)
+- **The servers send Tinylytics nothing** — tool calls first, then sign-in, signup and feedback; `mcp_call_audit` and the database already hold those facts. Page and mail counting stays client-side. (2026-09-24; Jamie)
 - **Name-pattern studies go through `{name_census}`** — counts and means only; nothing per player leaves the database. (2026-09-20; engineering)
 
 ## Tool contract and versioning
@@ -133,7 +133,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **Alarms go to the ops queue, never email** — Elixir application tags on everything; the dashboard is a stack resource pinned by a test. (2026-09-04, 2026-09-17; Jamie)
 - **No Lambda-to-Lambda from the NAT-free VPC** — use the outbox; metrics go out as EMF on stdout. (2026-09-18, 2026-09-06, 2026-09-24; engineering)
 - **The outbox, not an interface endpoint** — VPC Lambdas hand work to the non-VPC relay and editor by writing one object to the outbox bucket through the free S3 gateway endpoint; S3 notifies SQS, which keeps the retries and DLQs. Replaced the $14.60/mo SQS interface endpoint; the status page's dead letters are outbox objects past their lane's last retry. (2026-09-24; Jamie)
-- **Every custom metric has a reader** — an alarm, a dashboard panel or a runbook; anything else is a property on the EMF line (free, and queryable in Logs Insights), never a declared metric. No per-entity dimensions: per-tool numbers live in `mcp_call_audit`. Cut `ElixirMCP/Tools` from 228 metrics to 3. (2026-09-24; Jamie)
+- **A custom metric exists only to back an alarm; no dashboard** — no one reads CloudWatch by hand (Jamie: "I don't plan to log into AWS to review them"), and agents read Postgres, the migrate ops and the status endpoint. Anything else is a property on the EMF line (Logs Insights reads it) or a row in the database; no per-entity dimensions (per-tool numbers live in `mcp_call_audit`). Left: Ledger DeadJobs and OldestQueuedAgeSeconds, Record SeasonWarIdMismatch and WarBattleUnresolved, Email ComposeFailed; the MCP door's latency alarm is on the free Lambda Duration. (2026-09-24; Jamie)
 - **DNS stays at Namecheap** — Jamie applies records by hand. (2026-09-03; Jamie)
 - **Collector-door cost is judged by route attribution** — no fixed baseline. Supersedes the check-in-era rule. (2026-09-22; engineering)
 - **The database is db.t4g.small** — the micro ran out of EBS byte balance and memory under ordinary pre-launch load; the micro reservation still applies (size-flexible). (2026-09-23; Jamie)

@@ -1,49 +1,14 @@
 /**
- * The daily series' growth as one EMF line a night ({series_metrics:
- * true}, and after {shape_census} in the same invocation; 2026-09-17,
- * for the elixir-mcp dashboard). What the roster and the profile wrote
- * on the current game day, one row per kind of writer, and the three
- * series tables' sizes: the storage projection in the time-series
- * review (4.5) is a number here rather than a guess in a document.
- * Read-only against the tables; stdout EMF like every other emitter.
+ * The daily series' growth, once a night ({series_metrics: true}, and
+ * after {shape_census} in the same invocation; 2026-09-17). What the
+ * roster and the profile wrote on the current game day, one row per kind
+ * of writer, and the three series tables' sizes: the storage projection
+ * in the time-series review (4.5) is a number here rather than a guess in
+ * a document. Read-only against the tables; the caller logs what this
+ * returns.
  */
 
 import pg from "pg";
-
-const NAMESPACE = "ElixirMCP/Series";
-
-export function seriesEmf(stats, now = Date.now()) {
-  return JSON.stringify({
-    _aws: {
-      Timestamp: now,
-      CloudWatchMetrics: [
-        {
-          Namespace: NAMESPACE,
-          Dimensions: [[]],
-          Metrics: [
-            { Name: "SnapshotRowsToday", Unit: "Count" },
-            { Name: "RosterRowsToday", Unit: "Count" },
-            { Name: "ProfileRowsToday", Unit: "Count" },
-            { Name: "ClanRowsToday", Unit: "Count" },
-            { Name: "ProgressRowsToday", Unit: "Count" },
-            { Name: "SnapshotTableMB", Unit: "Megabytes" },
-            { Name: "ProgressTableMB", Unit: "Megabytes" },
-          ],
-        },
-      ],
-    },
-    SnapshotRowsToday: stats.snapshot_rows_today ?? 0,
-    RosterRowsToday: stats.roster_rows_today ?? 0,
-    ProfileRowsToday: stats.profile_rows_today ?? 0,
-    ClanRowsToday: stats.clan_rows_today ?? 0,
-    ProgressRowsToday: stats.progress_rows_today ?? 0,
-    SnapshotTableMB: stats.snapshot_table_mb ?? 0,
-    // A log property only: no panel draws it (2026-09-24).
-    ClanTableMB: stats.clan_table_mb ?? 0,
-    ProgressTableMB: stats.progress_table_mb ?? 0,
-    game_day: stats.game_day ?? null,
-  });
-}
 
 /** The numbers, read once. `db` is injectable for the test. */
 export async function seriesStats(db) {
@@ -68,16 +33,12 @@ export async function seriesStats(db) {
   return rows[0];
 }
 
-export async function seriesMetrics(databaseUrl, deps = {}) {
-  const emitMetrics =
-    deps.emitMetrics ?? ((line) => process.stdout.write(line));
+export async function seriesMetrics(databaseUrl) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
     await db.query("set transaction_read_only = on");
-    const stats = await seriesStats(db);
-    emitMetrics(`${seriesEmf(stats, deps.now ?? Date.now())}\n`);
-    return stats;
+    return await seriesStats(db);
   } finally {
     await db.end();
   }

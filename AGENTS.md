@@ -114,9 +114,12 @@ decisions there as they happen and add the line to `DECISIONS.md`.
   parameters silently reset to template defaults.
 - Alarms route to SNS `elixir-mcp-alarms` → the sysadmin `projects-ops-alerts`
   queue. No email subscriptions.
-- The operations dashboard is the stack's `Dashboard` resource (CloudWatch
-  `elixir-mcp`; generated JSON, pinned by `services/jobs/test/dashboard.test.mjs`).
-  `deploy.mjs` tags the stack `awsApplication` (the myApplications
+- No CloudWatch dashboard, and a custom metric exists only to back an
+  alarm (2026-09-24): no one reads CloudWatch by hand, and agents read
+  Postgres, the migrate ops and the public status endpoint. Anything else
+  worth recording rides the EMF line as a plain property (Logs Insights
+  reads it) or lives in the database.
+- `deploy.mjs` tags the stack `awsApplication` (the myApplications
   application "Elixir", shared with Drop and Clan), `Application=Elixir`
   and `Component=elixir-mcp`; CloudFormation propagates them to every
   taggable resource.

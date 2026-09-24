@@ -343,8 +343,8 @@ export async function handler(event) {
   }
   if (event?.shape_census) {
     const result = await shapeCensus(process.env.DATABASE_URL);
-    // The nightly series line rides the same invocation (series-metrics.mjs);
-    // its failure never fails the census.
+    // The nightly series census rides the same invocation
+    // (series-metrics.mjs); its failure never fails the census.
     try {
       result.series_metrics = await seriesMetrics(process.env.DATABASE_URL);
     } catch (err) {

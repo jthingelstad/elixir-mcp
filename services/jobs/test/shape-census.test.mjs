@@ -2,7 +2,7 @@
  * The nightly shape census over a scratch database and an in-memory
  * archive: a correct manifest files nothing; a field the API added is
  * filed once and stays filed while open; a manifest field absent for
- * seven days is filed with its last sighting; the metric counts.
+ * seven days is filed with its last sighting; the report counts.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -64,19 +64,14 @@ after(async () => {
   await admin.end();
 });
 
-const deps = () => {
-  const lines = [];
-  return {
-    getObject: async (key) => {
-      const body = archive.get(key);
-      if (!body) throw new Error(`no object ${key}`);
-      return body;
-    },
-    emitMetrics: (line) => lines.push(JSON.parse(line)),
-    now: NOW,
-    lines,
-  };
-};
+const deps = () => ({
+  getObject: async (key) => {
+    const body = archive.get(key);
+    if (!body) throw new Error(`no object ${key}`);
+    return body;
+  },
+  now: NOW,
+});
 
 test("a correct manifest files nothing; an added field is filed once; an absent one after seven days", async () => {
   const profile = JSON.parse(
@@ -99,7 +94,6 @@ test("a correct manifest files nothing; an added field is filed once; an absent 
   );
   assert.deepEqual(first.findings, []);
   assert.equal(first.filed, 0);
-  assert.equal(d1.lines[0].PayloadShapeFindings, 0);
   const {
     rows: [{ n }],
   } = await db.query(
@@ -125,7 +119,7 @@ test("a correct manifest files nothing; an added field is filed once; an absent 
     [["player", "towerTroopLevel", "new_field", 1, 2]],
   );
   assert.equal(second.filed, 1);
-  assert.equal(d2.lines[0].PayloadShapeFindings, 1);
+  assert.equal(second.findings.length, 1);
   const { rows: filed } = await db.query(
     `select surface, category, status, context, message from feedback where surface = 'recorder'`,
   );
@@ -143,12 +137,12 @@ test("a correct manifest files nothing; an added field is filed once; an absent 
   assert.match(filed[0].message, /payload-keys\.mjs/);
 
   // The next night: still there, still open, not filed again; the
-  // metric still counts it.
+  // report still counts it.
   const d3 = deps();
   const third = await shapeCensus(DB_URL, d3);
   assert.equal(third.filed, 0);
   assert.equal(third.already_open, 1);
-  assert.equal(d3.lines[0].PayloadShapeFindings, 1);
+  assert.equal(third.findings.length, 1);
   const {
     rows: [{ c }],
   } = await db.query(

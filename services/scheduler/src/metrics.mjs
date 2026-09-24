@@ -2,7 +2,7 @@
  * Ledger health as CloudWatch Embedded Metric Format (EMF) on stdout.
  *
  * Why not the CloudWatch API: the scheduler runs in a NAT-free VPC with only
- * SQS + S3 endpoints (no CloudWatch interface endpoint), so an awaited
+ * an S3 endpoint (no CloudWatch interface endpoint), so an awaited
  * PutMetricData call has no network path and hung every tick to the 50s Lambda
  * timeout (issue #1). EMF rides the Lambda log-delivery path, which is
  * out-of-band from the function's VPC ENI, so it always reaches CloudWatch and
@@ -15,7 +15,11 @@
  * JSON structured logging would wrap the line and break EMF extraction.
  *
  * Metric names, namespace, and (absent) dimensions must match the alarms in
- * infra/template.yaml (OldestQueuedAgeSeconds, DeadJobs).
+ * infra/template.yaml (OldestQueuedAgeSeconds, DeadJobs). Those two are the
+ * only declared metrics: a custom metric is billed per hour it reports, and
+ * the rest of the line has no alarm, so it rides as plain properties that
+ * Logs Insights can still read (2026-09-24, "every custom metric has a
+ * reader").
  */
 
 const NAMESPACE = "ElixirMCP/Ledger";
@@ -33,23 +37,6 @@ export function ledgerEmf(stats, now = Date.now(), plan = {}) {
           Metrics: [
             { Name: "OldestQueuedAgeSeconds", Unit: "Seconds" },
             { Name: "DeadJobs", Unit: "Count" },
-            { Name: "QueuedJobs", Unit: "Count" },
-            // Planner counters: what the tick planned; how many battlelog
-            // reads were the session clock's 30-minute follow-up (the
-            // player was playing at the last read; 2026-09-19); how many
-            // were due ONLY because of the reader cap.
-            { Name: "PlannedJobs", Unit: "Count" },
-            { Name: "SessionFollowupJobs", Unit: "Count" },
-            { Name: "ReadCappedJobs", Unit: "Count" },
-            { Name: "RequestedProfileJobs", Unit: "Count" },
-            // The recorder's pace and the fleet (2026-09-17), for the
-            // elixir-mcp dashboard: no alarm reads these.
-            { Name: "FetchesHour", Unit: "Count" },
-            { Name: "FetchErrorsHour", Unit: "Count" },
-            { Name: "CeilingHour", Unit: "Count" },
-            { Name: "Tokens", Unit: "Count" },
-            { Name: "CollectorsActive", Unit: "Count" },
-            { Name: "CollectorsDraining", Unit: "Count" },
           ],
         },
       ],
@@ -57,6 +44,10 @@ export function ledgerEmf(stats, now = Date.now(), plan = {}) {
     OldestQueuedAgeSeconds: stats.oldest_queued_s ?? 0,
     DeadJobs: stats.dead ?? 0,
     QueuedJobs: (stats.queued_bulk ?? 0) + (stats.queued_live ?? 0),
+    // Planner counters: what the tick planned; how many battlelog reads
+    // were the session clock's 30-minute follow-up (the player was
+    // playing at the last read; 2026-09-19); how many were due ONLY
+    // because of the reader cap.
     PlannedJobs: plan.planned ?? 0,
     SessionFollowupJobs: plan.followup ?? 0,
     ReadCappedJobs: plan.read_capped ?? 0,

@@ -38,7 +38,8 @@ Establish, with receipts:
   `battlelog_filter_last_hour` (`nothing_new` was 55–61% of polls before
   the roster gate; watch it fall, and watch `gaps`), the public status
   budget line (`useful_hour / measured_hour`: how much of the hour's
-  spend changed the record), and `ElixirMCP/Ledger PlannedJobs` per hour.
+  spend changed the record), and the status endpoint's `queue` (due,
+  queued, leased, done this hour).
   **Do not run `{probe: true}` as a routine check**: it is the heaviest
   read the migrate lambda has (bounded to 24 h since 2026-09-11, but
   thirteen unbounded runs in 25 minutes preceded the 14:02Z RDS memory
@@ -48,7 +49,8 @@ Establish, with receipts:
   never an optimization target to raise.
 - **Scheduled jobs.** The jobs lambda's work happened: the nightly
   activity row (05:30Z) and efficiency row (05:20Z, `{capture_efficiency}`;
-  yesterday's `LostBattles` on the dashboard) ran, Monday's sweeps ran (CloudWatch logs
+  yesterday's `lost_battles` in `capture_efficiency_daily`, which the
+  console's Efficiency page reads) ran, Monday's sweeps ran (CloudWatch logs
   `/aws/lambda/elixir-mcp-jobs`). The 04:40Z meta rollup's log line
   carries `phases`: since 0140 (2026-09-19) `pop_days` is the days not
   yet sealed, seconds on an ordinary night (10 s on day 12 of
@@ -103,8 +105,9 @@ Establish, with receipts:
 - Drain-and-diagnose a non-empty DLQ in the same run: read the messages
   (they are receipts), find the rejecting seam, fix at the source, and
   only then redrive. Never delete a DLQ message unexamined.
-- A stopped or breaker-open collector: diagnose from metrics and the
-  collector repo's expectations; if the fix is operator-side (a machine
+- A stopped or breaker-open collector: diagnose from the status
+  endpoint's collector rows, the Admin gateways view and the collector
+  repo's expectations; if the fix is operator-side (a machine
   down at Jamie's house or the cabin), write the precise ask in NOTES
   rather than blocking.
 - Transient upstream failures with held cursors self-heal — report and

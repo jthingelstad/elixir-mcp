@@ -11,8 +11,8 @@
  * something, as expLevel was). Each is filed once into feedback under
  * the owner account (category data_quality, surface recorder),
  * deduplicated on (endpoint, path) while an item is open, for Close the
- * Loop to turn into the change; the run emits ElixirMCP/Record
- * PayloadShapeFindings. Nothing mails anyone. On a correct manifest a
+ * Loop to turn into the change; the run returns the count. Nothing
+ * mails anyone. On a correct manifest a
  * night files nothing.
  */
 
@@ -30,24 +30,8 @@ const SAMPLE = 20;
 const ABSENT_DAYS = 7;
 const OPEN = ["new", "seen", "planned"];
 
-function shapeFindingsEmf(count, now = Date.now()) {
-  return JSON.stringify({
-    _aws: {
-      Timestamp: now,
-      CloudWatchMetrics: [
-        {
-          Namespace: "ElixirMCP/Record",
-          Dimensions: [[]],
-          Metrics: [{ Name: "PayloadShapeFindings", Unit: "Count" }],
-        },
-      ],
-    },
-    PayloadShapeFindings: count,
-  });
-}
-
-/** `deps.getObject(key) -> Buffer` (gzip) and `deps.emitMetrics` are
- *  injectable for the tests; the Lambda uses S3 and stdout. */
+/** `deps.getObject(key) -> Buffer` (gzip) is injectable for the tests;
+ *  the Lambda uses S3. */
 export async function shapeCensus(databaseUrl, deps = {}) {
   const bucket = process.env.ARCHIVE_BUCKET;
   let getObject = deps.getObject;
@@ -62,8 +46,6 @@ export async function shapeCensus(databaseUrl, deps = {}) {
       return Buffer.from(await res.Body.transformToByteArray());
     };
   }
-  const emitMetrics =
-    deps.emitMetrics ?? ((line) => process.stdout.write(line));
   const now = deps.now ? new Date(deps.now) : new Date();
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
@@ -208,7 +190,6 @@ export async function shapeCensus(databaseUrl, deps = {}) {
       );
       report.filed += 1;
     }
-    emitMetrics(`${shapeFindingsEmf(report.findings.length, now.getTime())}\n`);
     return { ...report, ms: Date.now() - started };
   } finally {
     await db.end();

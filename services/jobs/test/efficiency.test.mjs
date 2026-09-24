@@ -9,11 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import {
-  captureEfficiency,
-  efficiencyForDay,
-  efficiencyEmf,
-} from "../src/efficiency.mjs";
+import { captureEfficiency, efficiencyForDay } from "../src/efficiency.mjs";
 import { handler } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -183,12 +179,8 @@ test("one day's row: polls and what they found, gaps, and the loss net of the no
   assert.equal(row.players_with_gaps, 1);
 });
 
-test("the nightly run rewrites the last three closed days and emits yesterday's line", async () => {
-  const lines = [];
-  const out = await captureEfficiency(DB_URL, {
-    now: NOW,
-    write: (l) => lines.push(l),
-  });
+test("the nightly run rewrites the last three closed days", async () => {
+  const out = await captureEfficiency(DB_URL, { now: NOW });
   assert.deepEqual(
     out.days.map((d) => d.day),
     ["2026-09-16", "2026-09-17", "2026-09-18"],
@@ -201,16 +193,8 @@ test("the nightly run rewrites the last three closed days and emits yesterday's 
     { day: "2026-09-17", lost_battles: 0, battlelog_polls: 0 },
     { day: "2026-09-18", lost_battles: 26, battlelog_polls: 4 },
   ]);
-  assert.equal(lines.length, 1);
-  const emf = JSON.parse(lines[0]);
-  assert.equal(emf._aws.CloudWatchMetrics[0].Namespace, "ElixirMCP/Record");
-  assert.equal(emf.LostBattles, 26);
-  assert.equal(emf.BattlelogPolls, 4);
-  assert.equal(emf.NothingNewShare, 50);
-  assert.equal(emf.CaptureGaps, 1);
-  assert.equal(emf.day, "2026-09-18");
   // A second run is an upsert, not a second row.
-  await captureEfficiency(DB_URL, { now: NOW, write: () => {} });
+  await captureEfficiency(DB_URL, { now: NOW });
   const again = (
     await db.query(`select count(*)::int n from capture_efficiency_daily`)
   ).rows[0].n;
@@ -221,10 +205,4 @@ test("the handler op runs it", async () => {
   process.env.DATABASE_URL = DB_URL;
   const out = await handler({ capture_efficiency: true });
   assert.equal(out.days.length, 3);
-});
-
-test("the EMF line coalesces an empty row", () => {
-  const emf = JSON.parse(efficiencyEmf({}, 1));
-  assert.equal(emf.LostBattles, 0);
-  assert.equal(emf.NothingNewShare, 0);
 });

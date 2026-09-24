@@ -21,21 +21,8 @@ test("ledgerEmf carries the alarm's namespace, metric names, and no dimensions",
   );
   assert.deepEqual(
     decl.Metrics.map((m) => m.Name),
-    [
-      "OldestQueuedAgeSeconds",
-      "DeadJobs",
-      "QueuedJobs",
-      "PlannedJobs",
-      "SessionFollowupJobs",
-      "ReadCappedJobs",
-      "RequestedProfileJobs",
-      "FetchesHour",
-      "FetchErrorsHour",
-      "CeilingHour",
-      "Tokens",
-      "CollectorsActive",
-      "CollectorsDraining",
-    ],
+    ["OldestQueuedAgeSeconds", "DeadJobs"],
+    "only what an alarm reads is a metric",
   );
   assert.equal(emf.FetchesHour, 0, "pace fields default to 0 when absent");
   assert.equal(

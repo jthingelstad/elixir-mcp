@@ -48,8 +48,6 @@ export function makeHandler({
   notifyOwner = null,
   /** { s3, bucket } from capture.mjs makeCaptureStore(); null = no capture. */
   capture = null,
-  /** Where the per-call EMF line goes; null = no metrics. */
-  emitMetrics = null,
   /** The site session secret, for consent by session (oauth-routes.mjs). */
   sessionSecret = null,
 }) {
@@ -109,8 +107,8 @@ export function makeHandler({
   const resourceMetadata = `${issuer}/.well-known/oauth-protected-resource`;
 
   // One line per HTTP request, the same shape as the site API's
-  // (web-api handler.mjs). The EMF line and the call log cover tool
-  // CALLS; until this line, initialize, tools/list, the OAuth routes and
+  // (web-api handler.mjs). The call log covers tool CALLS; until this
+  // line, initialize, tools/list, the OAuth routes and
   // every 401/403 refusal left nothing at all, so a run of 4xx on the
   // door was a count with no story. The door key never carries a
   // per-principal id (/a/<id> logs as /a/*).
@@ -480,7 +478,6 @@ export function makeHandler({
           oauthFamilyId: account.oauthFamilyId ?? null,
           notifyOwner,
           capture,
-          emitMetrics,
           queryBudgetMs: Math.min(
             18_000,
             Math.max(

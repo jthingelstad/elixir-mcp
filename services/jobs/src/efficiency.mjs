@@ -11,15 +11,11 @@
  * measure the modes the battle log never shows; that rate, taken off the
  * gapped intervals, is the loss. The last three days are rewritten each
  * night, since a snapshot interval can close a day or two after the
- * battles it covers.
- *
- * Also emitted as one EMF line per run (ElixirMCP/Record): yesterday's
- * LostBattles, BattlelogPolls and NothingNewShare, for the dashboard.
+ * battles it covers. The console's Efficiency page reads the table.
  */
 
 import pg from "pg";
 
-const NAMESPACE = "ElixirMCP/Record";
 const DAY = 86_400_000;
 
 /** UTC day string of an instant. */
@@ -162,41 +158,11 @@ async function upsert(db, row) {
   );
 }
 
-export function efficiencyEmf(row, now = Date.now()) {
-  const polls = row.battlelog_polls ?? 0;
-  return JSON.stringify({
-    _aws: {
-      Timestamp: now,
-      CloudWatchMetrics: [
-        {
-          Namespace: NAMESPACE,
-          Dimensions: [[]],
-          Metrics: [
-            { Name: "LostBattles", Unit: "Count" },
-            { Name: "BattlelogPolls", Unit: "Count" },
-            { Name: "NothingNewShare", Unit: "Percent" },
-            { Name: "CaptureGaps", Unit: "Count" },
-          ],
-        },
-      ],
-    },
-    LostBattles: row.lost_battles ?? 0,
-    BattlelogPolls: polls,
-    NothingNewShare:
-      polls > 0
-        ? Math.round(((row.nothing_new_polls ?? 0) / polls) * 1000) / 10
-        : 0,
-    CaptureGaps: row.gaps ?? 0,
-    day: row.day ?? null,
-  });
-}
-
 /** Rewrite the last `days` closed UTC days (yesterday and the two before
- *  it by default) and emit yesterday's line. `now` and `write` are
- *  injectable for tests. */
+ *  it by default). `now` is injectable for tests. */
 export async function captureEfficiency(
   databaseUrl,
-  { now = new Date(), days = 3, write = (l) => process.stdout.write(l) } = {},
+  { now = new Date(), days = 3 } = {},
 ) {
   const started = Date.now();
   const db = new pg.Client({ connectionString: databaseUrl });
@@ -210,8 +176,6 @@ export async function captureEfficiency(
       await upsert(db, row);
       out.days.push(row);
     }
-    const yesterday = out.days.at(-1);
-    if (yesterday) write(`${efficiencyEmf(yesterday, now.getTime())}\n`);
     out.ms = Date.now() - started;
     return out;
   } finally {
