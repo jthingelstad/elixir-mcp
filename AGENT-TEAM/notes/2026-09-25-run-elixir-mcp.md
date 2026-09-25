@@ -55,8 +55,13 @@ they remain the next Run Elixir MCP capacity watch.
 
 - The original live-lane correction passed `node --test
   acceptance/acceptance.test.mjs` (8 passed) and `npm run verify` (316
-  passed). The 9.0.0 runtime correction is independently gated; deployment
-  follows publication.
+  passed). The 9.0.0 runtime correction passed `npm run verify` (315
+  acceptance and automation checks) and deployed from `e2e7d2e` at 12:11Z.
+  Its read-only live acceptance returned contract `9.0.0` for 48 members,
+  retained `war_decks`, `war_points` and `war_scoring_decks`, and omitted all
+  three retired daily fields. Public status was healthy: 200-second
+  fetch/admission freshness, 955 battles in the last hour and zero DLQ
+  messages.
 
 The next scheduled Run Elixir MCP should use the bounded full participation
 case as normal evidence, retain the live-lane exclusion, and investigate only
