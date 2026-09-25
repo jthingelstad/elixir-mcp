@@ -255,7 +255,9 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: elixir-mcp-email
-      VisibilityTimeout: 120
+      # Lambda's SQS guidance is at least six times the 60-second
+      # consumer timeout, so a still-running send is never redelivered.
+      VisibilityTimeout: 360
       MessageRetentionPeriod: 345600
       SqsManagedSseEnabled: true
       RedrivePolicy:
@@ -504,14 +506,14 @@ Resources:
                 Resource: !GetAtt EditorQueue.Arn
 
   # The brief's way out of the VPC: one message per Top 100 issue,
-  # consumed by the editor. Visibility outlasts the editor's timeout so a
-  # running edit is never redelivered; three receives, then it stays in
-  # the DLQ for the owner to see.
+  # consumed by the editor. Visibility is six times the 840-second
+  # consumer timeout so a running edit is never redelivered; three
+  # receives, then it stays in the DLQ for the owner to see.
   EditorQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: elixir-mcp-editor
-      VisibilityTimeout: 900
+      VisibilityTimeout: 5040
       MessageRetentionPeriod: 86400
       SqsManagedSseEnabled: true
       RedrivePolicy:
