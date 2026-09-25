@@ -8,7 +8,7 @@ navTitle: "Connections"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
 console: ["Manage your clients", "/account/connections", "Console ▸ Connections"]
-reviewed: "2026-09-19 against contract 6.1.0"
+reviewed: "2026-09-25 against contract 9.1.0"
 ---
 
 # Users, agents and integrations
@@ -43,11 +43,13 @@ connection almost everybody wants.
 ### Signing in to other Elixir products with this account
 
 Elixir Clan (and, soon, Elixir Drop) can sign you in **with Elixir**: the
-same consent page, plus one extra line, *Know your email address*, which
-only an app that asks for it is ever shown. That is how those products know
-you are the same person you are here. It is listed on Connections like any
-other client, and disconnecting it there ends its access; the address
-itself is never shown to an MCP client or an agent. See
+same consent page, plus one extra line, *Know your email address*. Only the
+Elixir family's own apps (a client whose every redirect is on a family
+origin) can ask for it; any other client is never granted it, whatever it
+asks for. That is how those products know you are the same person you are
+here. It is listed on Connections like any other client, and disconnecting
+it there ends its access. The address itself is never released to any
+client outside the family, which includes every MCP client and agent. See
 [Protocol → Signing a person in](/docs/protocol#signing-a-person-in-with-elixir).
 
 ### Your first question
@@ -68,7 +70,7 @@ MCP service or count as an answered question.
 An agent acts **for a clan, not for a person**.
 
 It is a separate principal that you own: its own identity, its own key, its own
-event feed, its own notion of who it is. What it does never lands in your
+timeline, its own notion of who it is. What it does never lands in your
 history, and what you do never shows up as its.
 
 The reason to want one is that a clan is not a person. If a Discord bot
@@ -78,8 +80,10 @@ agent has no personal players to leak, because it has no self — its subject is
 the clan.
 
 You can create an agent for **any clan you already record**, at any tier. It is
-not a paid feature. It spends your daily call budget, and it carries its own
-tier — an admin's agent is not an admin.
+not a paid feature. It spends your daily call and live-fetch budgets and your
+recording slots, and its own role is capped at yours (and at `leader`) — an
+admin's agent is not an admin, and when your role changes, the agent's is
+clamped to it.
 
 ### Agents serve many people
 
@@ -90,7 +94,10 @@ first time we don't recognise someone, it asks who they are in the clan and
 remembers.
 
 That mapping only picks a default player. It grants nothing: recorded data is
-readable by every account either way.
+readable by every account either way. It is the agent's alone: on your own
+connection "me" is always your primary player, `on_behalf_of` is ignored,
+and the tools that build the map (`elixir_identify`, `elixir_my_identities`)
+are not listed.
 
 ## An integration
 

@@ -32,17 +32,19 @@ The reports cover the **game week**: Monday 10:00 UTC to Monday 10:00
 UTC, the day every clan's war, donation reset and season roll share.
 Whichever day a report lands, it covers the week that closed on Monday,
 so Tuesday's and Wednesday's mail agree with each other. Everything
-sends at 14:00 UTC. At most one Elixir email a day, the milestone note
-excepted.
+sends at 14:00 UTC. The rule is at most one email of a kind about one
+subject a day: one clan report for each clan you track (two clans, two
+reports on Monday), and one of every other kind per account. Milestone
+notes are exempt: they come as the moments do.
 
 | Day | Kind | What it is |
 |---|---|---|
 | Monday | **Clan report** | Your clan's week: battles and sessions, the war result if a war week closed, who joined and left, role changes, standouts, and the roster with each member's trophies and the week's change. One report per clan you track, the same one to every member who tracks it. |
-| Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the record by mode, the decks you played, who you faced. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
+| Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the decks you played, who you faced. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
 | Wednesday | **Tracking report** | Everyone you track, ordered by who they are to you: you in full, your alts shorter, friends a paragraph, watchers a line, your clans a line. It is the [timeline](/docs/timeline) for the week, rendered. |
 | Thursday | **Top 100** | One issue for everyone: a read of the global Path of Legends top 100 over the week that ended at that morning's board. Forward it to anyone who would enjoy it. |
 | Friday | **Card of the Week** | One card the record has something to say about, read in full: how much it is played and how often it wins, where it gets played, who plays it best, what it travels with, and the decks carrying it. One issue for everyone. Forward it to someone who runs that card. |
-| Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): what your collectors fetched, how much the edge filter saved, quiet stretches, and what you earned. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
+| Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): what your collectors fetched, how much the edge filter saved, quiet stretches, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
 | As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked. Checked hourly; everything new since the last note rides together. |
 
 ## Milestones are firsts

@@ -50,7 +50,7 @@ added, or appearances in other players' logs. The question the colour has
 to answer is only what an empty day means, and the record itself answers
 it: Elixir was watching a player on a day when it admitted a read of that
 player's battle log on the day or within the two days after it (a log
-holds about 25 battles, so a read that soon still saw the day). An empty
+holds roughly the last 30 battles, so a read that soon still saw the day). An empty
 day inside that coverage is zero. An empty day outside it is hatched,
 "not recorded", because nobody was looking and nothing is known. When you
 started tracking the player colours nothing; the legend names both dates,

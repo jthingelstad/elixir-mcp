@@ -42,9 +42,10 @@ key and the bearer token Elixir MCP issues you.
    private** — it is visible to you and the maintainer, and to nobody
    else, which is why you can safely call it whatever your box is
    actually called. Your **primary claimed player name and tag are
-   public** on the fleet status page: collectors are credited to the
-   player who runs them, so running one attaches your CR identity to
-   it. If you would rather not be named there, say so before you
+   public** in the fleet listing (`/api/public/status`, which needs no
+   sign-in, and the console's Collectors page): collectors are credited
+   to the player who runs them, so running one attaches your CR identity
+   to it. If you would rather not be named there, say so before you
    enroll. Your email address and IP are never published.
 2. When the maintainer approves, the same page offers your collector
    **token as a one-time reveal** — copy it, because it disappears
@@ -84,9 +85,11 @@ somebody chose deliberately rather than the newest thing that compiled.
 It leases fetch jobs, calls the CR API with your key, and posts the
 results. It never chooses targets, never sees user data, and holds
 nothing that touches our infrastructure — the token only works against
-three API routes, and revoking it is instant. Fetches earn credits:
-every 10 fetches adds +1 to your daily tool-call quota (capped at 4x
-your tier base).
+three API routes, and revoking it is instant. Your collector earns
+points, and points earn credits: a point is a fetch that added something
+new to the record (a fetch that found nothing new earns none), and every
+10 points adds +1 to your daily tool-call quota (capped at 4x your tier
+base).
 
 ## The door, precisely
 

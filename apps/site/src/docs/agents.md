@@ -1,7 +1,7 @@
 ---
 slug: agents
 title: "Building an agent"
-description: "A clan agent is a principal you own with its own key, URL, event cursor and feedback inbox. Creating one, what initialize tells it, resolving which human is asking with on_behalf_of and elixir_identify, consuming the event feed with a private cursor, and the key lifecycle."
+description: "A clan agent is a principal you own with its own key, URL, timeline read pointer and feedback inbox. Creating one, what initialize tells it, resolving which human is asking with on_behalf_of and elixir_identify, consuming the timeline with its own named reader, and the key lifecycle."
 section: using
 order: 15
 navTitle: "Agents"
@@ -13,8 +13,8 @@ console: ["Create and manage agents", "/account/agents", "Console ▸ Connection
 # Building an agent
 
 An agent acts **for a clan**, not for a person. It is a separate principal
-that you own: its own identity, its own key and URL, its own event cursor,
-its own feedback inbox. What it does never lands in your history and what you
+that you own: its own identity, its own key and URL, its own timeline read
+pointer, its own feedback inbox. What it does never lands in your history and what you
 do never shows up as its. If you have not read
 [Users, agents and integrations](/docs/connections), start there.
 
@@ -48,8 +48,10 @@ The response (HTTP 201) carries the agent and its key **once**:
   "token": "svt_…", "note": "This token is shown once. Store it now." }
 ```
 
-Only the key's SHA-256 is stored. The agent's role is your role clamped to
-at most `leader`; it spends **your** daily call budget and **your** live lane.
+Only the key's SHA-256 is stored. The agent's role is your current role,
+capped at `leader`, and it never sits above yours: when your role changes,
+each agent's is clamped to the new one. It spends **your** daily call budget
+and **your** live lane.
 Every tier may create agents (3 / 5 / 10 / 25; owner and admin unlimited);
 over the cap the response is `{"error":"not_entitled","reason":"agent_limit","limit":N}`.
 
@@ -127,7 +129,9 @@ Map it once with `elixir_identify` (scope `account:write`). The tag must be a
 `not_entitled`, because a wrong mapping answers confidently about the wrong
 person for good. The mapping is per agent account, invisible to every other
 account, and confers nothing: recorded data is readable by every account
-anyway. `elixir_my_identities` lists what the agent has learned.
+anyway. `elixir_my_identities` lists what the agent has learned. Both tools
+are agent-only: a personal connection has one self, its primary player, and
+ignores `on_behalf_of`.
 
 ### A complete exchange
 
@@ -231,7 +235,7 @@ Facts in, judgment in your code.
 
 | Action | Where | Effect |
 |---|---|---|
-| Rotate | its console → Settings → Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and the event cursor survive. |
+| Rotate | its console → Settings → Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
 | Revoke | its console → Settings → Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready. |
 | Suspend / Resume | its console → Settings | `status: disabled`; the same key reads as invalid until resumed. Reversible. |
 | Rename | its console → Settings | changes the name; must stay unique among your live agents |
@@ -250,6 +254,7 @@ Usage breaks the agents' calls out of your daily budget.
 ## Feedback from an agent
 
 `elixir_send_feedback` filed through an agent is attributed to the agent, answered
-by the maintainer, and delivered back as a `feedback_responded` event plus
-`meta.feedback_responses_pending` on the agent's own responses. Agents are
+by the maintainer, and delivered back as an `account_feedback_responded` item
+on the agent's timeline plus `meta.feedback_responses_pending` on the agent's
+own responses. Agents are
 expected to file friction on their own judgment.

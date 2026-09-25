@@ -8,7 +8,7 @@ navTitle: "What this is"
 icon: info
 lede: "A hub that records Clash Royale history and serves it to agents over MCP."
 console: ["See the corpus", "/data", "Data"]
-reviewed: "2026-09-19 against contract 6.1.0"
+reviewed: "2026-09-25 against contract 9.1.0"
 ---
 
 # About Elixir MCP
@@ -20,7 +20,7 @@ agent through a remote MCP server.
 The Clash Royale API only answers "what is true right now" — your last
 ~30 battles, your current trophies. Elixir MCP polls continuously,
 stores every battle once (no matter how many members observed it),
-derives daily snapshots, war records, and events from the stream, and
+derives daily snapshots, war records, and timeline moments from the stream, and
 exposes it all as tools your agent can reason over: *"how has my ladder
 win rate trended since I swapped Cannon for Musketeer?"* is a real,
 answerable question here.

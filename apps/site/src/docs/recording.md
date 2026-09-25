@@ -88,9 +88,10 @@ arriving and leaving, and its river races. **Comprehensive also records every
 member's battles**, which is what builds the clan a full history rather than a
 record of who was in it.
 
-Every tier has one activity clan slot, and it is meant for your own clan: it is
-what approval spends when your access request is granted, so the clan you play
-in is being followed from your first sign-in. Comprehensive is the upgrade, and
+Every tier has at least one activity clan slot (member and leader one,
+family three, partner ten; [Roles](/docs/roles)), and the first is meant for
+your own clan: it is what approval spends when your access request is
+granted, so the clan you play in is being followed from your first sign-in. Comprehensive is the upgrade, and
 it costs proportionally more to run — the member tier has none, so
 `elixir_track_clan`, which defaults to `comprehensive`, needs
 `scope: "activity"` there.
@@ -120,7 +121,13 @@ record holds).
 Each player you track is your `primary` (exactly one: the first you track,
 or whichever you mark `relationship: "primary"`), an `alt`, a `friend`, or
 someone you are `watching` (the default). The primary is what "omit
-`player_tag`" means on your connection. Claims are taken at your word
+`player_tag`" means on your connection, and its current clan is what an
+omitted `clan_tag` means. Removing your primary is refused while you track
+other players, because Elixir will not choose who "you" are: make another
+player primary first (`elixir_track_player` with `relationship:
+"primary"`, or the primary control on Tracking), then remove the old one.
+Removing your last player is allowed, and leaves the account with no
+primary until you track one. Claims are taken at your word
 (`claim_status: unverified`) until [Verify](/docs/verify) proves one;
 several accounts may track the same player and share the recording.
 
@@ -226,7 +233,7 @@ will be fetched and a season that has not happened names the current one;
 `season_requested` beside it. A final never changes, so `live: true` is
 refused there. The **clan ladders** (`clans` by clan
 score, `clanwars` by clan war trophies, 1,000 places by location) are
-recorded daily for global, the United States and Japan — `rankings_clan_ladder`. Each read serves the board's last-place score (`snapshot.floor_score`) and, as `our_clan`, where the caller's own clan stands: its rank when it is on the board, and otherwise its score and how far below the last place it sits. A clan's score is the game's own figure, not the sum of its members' trophies; `clans_roster` serves it for a recorded clan.
+recorded daily for global, the United States and Japan — `rankings_clan_ladder`. Each read serves the board's last-place score (`snapshot.floor_score`) and, as `our_clan`, where the caller's own clan stands: its rank when it is on the board, and otherwise its score and how far below the last place it sits. `our_clan.located_elsewhere` is always present: `true` when a country board is for a location the clan is not in, so it can never be ranked there at any score and no distance below the floor is given; `false` on the global board or the clan's own location (`null` only when the record does not know where the clan is located). A clan's score is the game's own figure, not the sum of its members' trophies; `clans_roster` serves it for a recorded clan.
 The **game-mode leaderboards** (Merge Tactics, Touchdown, 2v2 League and the
 rest) are enumerated from the API daily, so a board that rotates in is
 followed without anyone naming it. Call
@@ -269,8 +276,9 @@ moment after a read still fits. Before this rule (September 2026) the
 recorder estimated each player's pace and waited up to a day for the
 quiet ones; measured against the game's own lifetime battle counter, that
 lost about 4% of all battles, almost all of them from long sittings that
-started inside a long wait. The [Efficiency](/status/efficiency) page
-publishes that loss, per day, from the same measurement.
+started inside a long wait. The console's signed-in
+[Efficiency](/status/efficiency) page shows that loss, per day, from the
+same measurement.
 
 | Subject | Rule | Bounds |
 |---|---|---|
@@ -288,10 +296,11 @@ publishes that loss, per day, from the same measurement.
 
 Subjects added together are de-phased by a stable per-subject offset so a
 batch does not poll in lockstep. A sitting can still, rarely, roll past a
-read; the [Status](/status/service) page publishes how many of the last
-day's reads found that it had (`capture_audit_24h` in
-`/api/public/status`), and [Efficiency](/status/efficiency) turns that
-into battles lost per day.
+read; the public status endpoint publishes how many of the last day's
+reads found that it had (`capture_audit_24h` in `/api/public/status`, with
+no sign-in; [Recording now](/data/now) is the public page), and the
+console's signed-in [Status](/status/service) and
+[Efficiency](/status/efficiency) pages turn that into battles lost per day.
 
 ## Freshness, as the envelope reports it
 
@@ -418,11 +427,12 @@ measures; it never rates.
 
 | Field | Meaning |
 |---|---|
-| `weeks[]` | the ISO weeks covered (`iso_week`, `from`, `to`); Monday 00:00 UTC to Monday; the current week carries `partial: true` with `covers` (the mark every clipped bucket carries; 4.0.0, `complete` before) |
+| `weeks[]` | the ISO weeks covered (`iso_week`, `from`, `to`); battles are bucketed Monday 00:00 UTC to Monday, while `donations` follows the counter's own week, the game days Monday 10:00 UTC to Monday 10:00 UTC; the current week carries `partial: true` with `covers` (the mark every clipped bucket carries; 4.0.0, `complete` before) |
 | `war_weeks[]` | the clan's recorded war weeks inside the window with their observed bounds; war weeks run on the game's grid, not ISO weeks |
-| `members[].battles`, `ranked_battles`, `donations` | columns aligned to `weeks[]`, one entry per ISO week in order; `donations` is the game's weekly counter as of the last daily snapshot in the week, `null` with no snapshot |
+| `members[].battles`, `ranked_battles`, `donations` | columns aligned to `weeks[]`, one entry per ISO week in order; `battles` is the member's own battles (a boat defense is not one); `donations` is the highest value the game's weekly counter reached in the week's game days, Monday 10:00 UTC to Monday 10:00 UTC (the counter only climbs until the weekly reset), `null` with no snapshot |
 | `members[].war_decks`, `war_points` | columns aligned to `war_weeks[]`; `war_decks` is the game's count for the race week, never split by war day: the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale (9.0.1). `null` where the member has no race row for the week; `verbosity: "compact"` keeps only `war_decks` |
-| `members[].joined_observed_at`, `tenure_known`, `days_in_clan_observed` | when the record first saw them in the clan; `tenure_known` is `false` for a member already present at the first roster poll, whose observed days are a lower bound |
+| `members[].joined_observed_at`, `tenure_known`, `days_in_clan_observed` | the start of the member's **current stint** as the record observed it: a member who left and came back counts from the rejoin, except that a rejoin within 7 days of leaving continues the stint before it; `tenure_known` is `false` for a member already present at the first roster poll, whose observed days are a lower bound |
+| `members[].first_joined_at` | the member's first recorded join of this clan, whatever stints followed (`clans_roster.first_observed_in_clan` is the same instant) |
 | `members[].last_battle_time`, `days_since_battle` | the last recorded battle in any clan, and its age |
 | `members[].last_battle_time_in_clan` | the last recorded battle played as a member of this clan (3.16.0) |
 | `members[].log_recorded`, `recorded_since` | whether the member's battle log is recorded at all (the clan's comprehensive scope, or a recording of their own) and their first recorded battle (3.16.0); read `log_recorded` before reading a zero |

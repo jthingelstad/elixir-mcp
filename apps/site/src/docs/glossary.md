@@ -31,7 +31,10 @@ claim the same player and share one recording.
 
 **relationship** — who a tracked player is to you: `primary` (you; exactly
 one), `alt` (also you, another tag), `friend`, or `watching` (the default).
-The primary is what omitting `player_tag` means on a personal connection.
+The primary is what omitting `player_tag` means on a personal connection,
+and its current clan is what omitting `clan_tag` means. It is never
+reassigned for you: removing it is refused while you track other players
+(make another primary first).
 
 **reason** — why a subject is recorded: claimed, tracked as a clan, collected,
 or recorded by the maintainer. The widest reason wins; the recording stops
@@ -98,8 +101,12 @@ battles.
 **duel** — a river-race duel of up to three games, recorded as one row:
 crowns summed, `deck_hash` null, decks under `deck.rounds[]`.
 
-**boat battle** — a war attack on a rival's boat defense, `type_class:
-"boat"`. Outside every decided denominator; a boat win still counts in `wins`.
+**boat battle** — a river-race battle at a boat, `type_class: "boat"`. A
+boat **attack** (the member attacking a rival's boat defense) is the member's
+battle: it spends a war deck and counts in `battles` and `wins`, outside
+every decided denominator. A boat **defense** (a rival attacking the
+member's boat, answered by the defense deck) is not the member's battle: it
+is left out of battles, wins, losses and streaks on every surface.
 
 **both perspectives** — every battle is one row seen from each participant's
 side; `me`, `teammates` and `opponents` are relative to the tag asked about.
@@ -108,8 +115,10 @@ side; `me`, `teammates` and `opponents` are relative to the tag asked about.
 participant in one decided battle. Both sides of a match can contribute, so
 observations are not independent matches.
 
-**shrunk win rate** — a win rate pulled toward the corpus prior in proportion
-to how few observations back it. Formula and floors on
+**shrunk win rate** — a win rate pulled toward a prior in proportion to how
+few observations back it: the corpus prior on the meta tools, and on
+`cards_card` the population's own window mean (`prior_basis` says which).
+Formula and floors on
 [Methodology](/docs/methodology#deck-and-card-meta-exactly-what-is-counted).
 
 **timeline** — `elixir_timeline`: what happened to the players and clans you
@@ -121,7 +130,7 @@ minutes or more.
 ## War and the clock
 
 **policy day** — the day the recorder keeps for every clan, rolling at
-10:00 UTC, instead of each clan's drifting race reset. See
+10:00 UTC, instead of each race's drifting reset. See
 [The policy day](/docs/clocks#the-policy-day).
 
 **war day** — `war_day`, 1-based: battle days 1 to 4 of a war week; `null`
@@ -146,12 +155,13 @@ thing a boat battle attacks.
 
 **clan_score** — two different numbers share this name in the API. On the war
 tools it is the clan's WAR trophies going into a race (1,200-ish for a
-mid-ladder clan), served as `clan_war_trophies` with `clan_score` kept as a
-deprecated alias: on `war_current.standings[]`, the exact week's
+mid-ladder clan), served as `clan_war_trophies` (`our_clan_war_trophies` on
+`war_history.weeks`): on `war_current.standings[]`, the exact week's
 `war_history.standings[]` and `war_rivals` rows (going into the latest race
 the record holds with that rival). The clan profile's own clan score, the
 figure the clan ladder ranks by (about a hundred times larger), is
-`clans_roster.clan_score`.
+`clans_roster.clan_score` (and the `clan_score` metric on
+`clans_timeline`, beside `clan_war_trophies`).
 
 **repair_points** — what repairing the boat cost in a race: per clan on the
 standings, per member on participation. Never fame, never points.
@@ -212,8 +222,9 @@ the badge was earned (6.20.0).
 **kind** — a local enum, five of them: a series point's snapshot kind
 (`daily`, `pre_reset`, `season_roll`); a timeline item's kind
 (`battle_session`, `ranked_promotion` and the rest, on
-[Timeline](/docs/timeline)); a war period's kind (`war`, `training`,
-`colosseum`); a badge's kind (`one_off`, `tiered`); an entry's kind
+[Timeline](/docs/timeline)); a war period's kind (`war` or `training`; a
+Colosseum week is `is_colosseum`, not a kind); a badge's kind (`one_off`,
+`tiered`); an entry's kind
 (`player_activity`, `clan_activity`). `crosses[].kind` is always `season`.
 
 **progress bucket** — one of the profile's side ladders (the seasonal
@@ -222,8 +233,10 @@ trophies and arena, keyed by the game's own `progress` key and read with
 `players_timeline({ progress_key })`. A bucket at zero is not a row.
 
 **the four trophy kinds** — `trophies` is Trophy Road, the number on the
-profile; `season_trophies` is the seasonal Trophy Road (resets on the roll;
-`best_trophies` and `season_best_trophies` are their peaks); `pol_trophies`
+profile (`best_trophies` its peak); `season_trophies` is the API's legacy
+`leagueStatistics` mirror of Trophy Road, with a frozen best in
+`season_best_trophies`, and NOT the seasonal Trophy Road, which is a
+progress bucket (above) read with `progress_key`; `pol_trophies`
 is the Path of Legends standing, the number `rankings_players` and
 `rankings_timeline` call `rating` (the same figure, verified equal on the
 live API), null — with `league_number`, `pol_rank` and the best-season peaks
@@ -233,9 +246,14 @@ battle's swing; `net_trophies` is the recorded ladder sum over a window on
 `battles_performance` and `clans_standings` (one spelling since 4.0.0); a
 timeline session's `trophy_net` is the same sum over that session.
 
-**league_number** — the Path of Legends league (1 is unranked): on a
-battle row the league the battle started in, on a series point the
-player's standing that day (4.0.0; `pol_league` before). The profile's
+**league_number** — the API's own `leagueNumber`, passed through
+unchanged. On a battle row it is the value the battle log carried: the
+API sends one on battles that are not ranked too, so it names a Path of
+Legends league only on a `pathOfLegend` battle, where it is the league the
+battle started in. On a series point it is the league of the player's
+current Path of Legends season result that day (4.0.0; `pol_league`
+before). The record does not interpret the number itself; a timeline
+promotion names the leagues beside it (`from_name`, `to_name`). The profile's
 `path_of_legend` object keeps the API's own `leagueNumber`.
 
 **tenure, YearsPlayed** — how long an account has existed, read from the
@@ -265,10 +283,13 @@ Dagger Duchess, ...); part of deck identity.
 tool uses, and the API's per-rarity cap that only `live_fetch` payloads show.
 
 **deck_selection** — how the deck a battle was played with was chosen:
-`collection` is the player's own deck; `draft`, `draftCompetitive`, `pick`,
-`predefined`, `warDeckPick` and the like are decks chosen on the spot, which
-have a `deck_hash` but no identity the player will play again. On
-`battles_query` rows (inside `context` at full verbosity).
+`collection` is the player's own deck, and `warDeckPick` a river-race duel
+deck the player picked from their own war decks; both are decks the player
+chose, and the meta population keeps them. `draft`, `draftCompetitive`,
+`pick`, `predefined` and the like are decks handed out or drafted on the
+spot, which have a `deck_hash` but no identity the player will play again,
+and sit outside the meta. On `battles_query` rows (inside `context` at full
+verbosity).
 
 ## Principals and the service
 
@@ -285,25 +306,20 @@ owner's call budget and live lane; an integration spends its own.
 
 **on_behalf_of** — on an agent connection, the end user's id in your own
 space (`discord:1234`), mapped once with `elixir_identify`; omit
-`player_tag` and the tools mean that person.
+`player_tag` and the tools mean that person. Ignored on a personal
+connection, and the mapping tools are agent-only.
 
 **external_id** — the same id as stored: the key `elixir_my_identities` lists
 and `elixir_identify` maps.
 
-**nod** — what an event is: a signal that something happened over here, with
-a count and no analysis, so a routine can skip the tools that would have
-found nothing. See [Timeline](/docs/timeline).
-
-**coalesced** — an event topic that folds every unread row for one subject
-into a single row with a running `count`; discrete topics arrive one per
-occurrence.
-
 **request_id** — the id minted for one call and stamped into `meta`; quote it
 when reporting an answer.
 
-**contract version** — the semver of the tool surface, `meta.contract_version`
-and the first part of `serverInfo.version`; `elixir_changelog` lists what each
-one changed.
+**contract version** — the version of the tool surface, `meta.contract_version`
+and the first part of `serverInfo.version`: a minor adds a capability, a patch
+corrects (a removed unreliable field included), a major marks a shift in
+the domain model. `elixir_changelog` lists what each one changed. See
+[Versioning](/docs/protocol#versioning-and-the-cache-buster).
 
 ## Responses
 

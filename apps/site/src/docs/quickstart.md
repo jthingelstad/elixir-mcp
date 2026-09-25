@@ -7,7 +7,7 @@ order: 1
 navTitle: "Quickstart"
 icon: rocket
 lede: "Connect your MCP client, tell Elixir what to record, and ask it about Clash Royale history. Five minutes, no key to paste."
-reviewed: "2026-09-19 against contract 6.1.0"
+reviewed: "2026-09-25 against contract 9.1.0"
 ---
 
 # Connect a client
@@ -45,8 +45,9 @@ https://elixir.poapkings.com/mcp
 
 The door speaks Streamable HTTP over JSON and authenticates with OAuth 2.1
 (dynamic client registration, PKCE S256, a `resource` parameter naming the
-endpoint). A client that names no scope is offered every capability, ticked,
-on the consent page; untick what you do not want, and change it later under
+endpoint). A client that names no scope asks for `cr:read` alone, and the
+consent page offers every other capability as a checkbox, unticked on your
+own connection: tick what you want to allow, and change it later under
 Account → Connections. Details are on the [Protocol reference](/docs/protocol).
 
 ### Claude.ai

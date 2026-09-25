@@ -29,6 +29,8 @@ after a month gets a month's timeline (capped at 30 days, and at the newest
 |---|---|---|---|
 | `from` | string | your read pointer, else 24 hours ago | EXCLUSIVE: items observed after it; an ISO instant, or `YYYY-MM-DD` at local midnight in your timezone; capped at 30 days before `to` |
 | `to` | string | now | INCLUSIVE, compared at the millisecond served; an ISO instant, or a date covering that whole local day |
+| `days`, `weeks` | integer | none | the last N days or weeks ending now: sugar for `from` |
+| `season` | string or number | none | one season's span (`current`, `previous`, `2026-08` or `135`), to now while it runs, as on every windowed tool (9.1.0); still capped at 30 days, and `from`/`to`/`days`/`weeks` given win over it |
 | `mark_read` | boolean | `true` | move the read pointer (the reader's, or the account's) to this window's end |
 | `reader` | string | none | this consumer's own pointer, by a short name (`^[a-z0-9][a-z0-9-]{0,31}$`; 3.18.0): an omitted `from` reads since it, `mark_read` moves it, `read_to` reports it; the account's unnamed pointer and every other reader's are untouched |
 | `sections` | string[] | all | keep only items and entry sections in these sections |
@@ -38,8 +40,8 @@ after a month gets a month's timeline (capped at 30 days, and at the newest
 | `timezone` | IANA zone | the account's | for date-only bounds and the text's times |
 
 Response: `{ window: { from, to }, read_to, timeline: [...], timeline_more,
-entries: [...], quiet: [...], subjects, next_cursor, has_more, notes,
-docs, meta }`.
+timeline_more_to, entries: [...], quiet: [...], subjects, next_cursor,
+has_more, notes, docs, meta }`.
 
 - `timeline` is **newest first** by `at` (when a moment happened), like a
   newsfeed (7.0.0). A window selects items by `observed_at`, when the record
@@ -53,8 +55,9 @@ docs, meta }`.
   newest one left out, and the older ones are counted, not served: a
   reader catching up after days away lands on what is happening now, and
   the entries still summarize the whole window. To read the older items
-  on purpose, pass the same `from` with `to` at the instant the note names,
-  and `mark_read: false`.
+  on purpose, pass the same `from` with `to` at the cut, which the note
+  names and `timeline_more_to` carries (`null` when nothing was cut), and
+  `mark_read: false`.
 - `read_to` is your pointer after this call. With `mark_read: false` it is
   unchanged: that is the dry run. It is `null` until something has been
   marked read on the account; the default window is then the last day.
@@ -104,18 +107,10 @@ belongs to, so `sections` filters items and entries together.
 
 | kind | subject | what it is |
 |---|---|---|
-| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `won_in_a_row`, `open` while it may still be going. A session is two or more battles; a single battle is not an item. A reader that moves its pointer sees each sitting once; a member read (`player_tag`) keeps no pointer, so a sitting still being learned can come back with a running total under the same `started_at`: keep the newest. |
+| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `won_in_a_row`, `open` while it may still be going. On a player's own timeline every sitting is an item, a single battle included; a clan's members' ordinary sessions are not items there (see `session_standout`, and `player_tag` below). A reader that moves its pointer sees each sitting once; a member read (`player_tag`) keeps no pointer, so a sitting still being learned can come back with a running total under the same `started_at`: keep the newest. |
 | `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500, `battles` 20 / 40 in one sitting. The session shape plus `crossed` (every rung so far) and `newly` (the rungs this window learned); `at` is the battle that crossed the first new rung. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
 | `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge's API identifier (`MasterySkeletonWarriors`), `facts.badge_label` the badge as a player says it (`Guards Mastery`, 4.2.0), `facts.name` the member on a clan's timeline. A level-up is an item only at the badge's final level or a multiple of five (`max_level` rides on rows written since 3.9.0); the entry's `badges` counts every level-up |
 | `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor and `at` is that battle's instant rather than the poll's; absent means a capture gap, never a guess |
-
-A battle a moment names (`promoted_by`, `crossed_by`) is one shape everywhere:
-`battle_id`, `battle_time`, `type`, `opponent` (`player_tag`, `name`,
-`starting_trophies`) for a 1v1 or `opponents` for a team battle, `crowns`,
-`crowns_against`, `trophy_change`, and `trophies_after` when the battle
-carried trophies (ranked battles carry none). The arena moment adds
-`arena_floor`. The item's text says it: "moved to Royal Crypt from
-Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 | `ranked_promotion` | player, or a clan's member | Path of Legends league went up, by name. `facts.promoted_by` names the promoting battle when the record holds it: the last win played in the league below (a ranked battle is stamped with the league it started in), with `at` at that battle |
 | `best_trophies_band` | player, or a clan's member | a new personal best crossing a 500 band; `facts.band` is the band, `facts.crossed_by` the Trophy Road win whose result first reached it, `at` at that battle |
 | `collection_level_step`, `career_wins_step` | player, or a clan's member | collection level at a step that widens with the level (every 5 below 100, every 50 to 1,000, every 100 above; `facts.step` says which); career wins at a multiple of 1,000. `career_wins_step` carries `facts.step` and, when every win between the two snapshots is on the record (the window's wins reconcile with the lifetime counter), `facts.crossed_by` is the 1,000th win itself, `at` at that battle |
@@ -126,12 +121,25 @@ Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 | `race_finished` | clan | the boat crossed the finish line, with fame |
 | `week_resolved` | clan | the week finished: fame, rank among the five, war trophy change |
 | `quiet_crossed`, `returned` | player, or a clan's member | a member crossed 5, 10 or 20 recorded-quiet days (never while the silence is ours: `days_since_poll` rides along), or played again after seven or more |
-| `account_*` | your account | feedback answered, recordings started or stopped, tier changes, connections |
+| `account_*` | your account | feedback answered (`account_feedback_responded`), recordings started or stopped, role changes (`account_role_changed`), connections |
+
+A battle a moment names (`promoted_by`, `crossed_by`) is one shape everywhere:
+`battle_id`, `battle_time`, `type`, `opponent` (`player_tag`, `name`,
+`starting_trophies`) for a 1v1 or `opponents` for a team battle, `crowns`,
+`crowns_against`, `trophy_change`, and `trophies_after` when the battle
+carried trophies (ranked battles carry none). The arena moment adds
+`arena_floor`. The item's text says it: "moved to Royal Crypt from
+Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 
 Every member moment and every `session_standout` is an item; the response's
 150-item cap bounds them, keeping the newest (7.0.0). The clan entry's `war` is
-the calendar's week at the window's end: its fame, place and decks are that
-week's recorded race, and null when the record holds no race for it. A window
+the calendar's week at the window's end: its fame and place are that week's
+recorded race, and null when the record holds no race for it. Its `decks`
+(who is untouched, partial and finished) is served only when the window
+ends inside the war day still being played, the same day-in-progress
+picture as `war_current.decks_today`, and is `null` for any other window:
+a closed war day is never split out, because war facts are weekly
+([Battle model](/docs/battles#war-weeks-points-and-fame)). A window
 that ends before that week's race closed reads the race as it stood then: fame
 and place at the last war day closed by `to`, no `race_finished_at`, and
 `as_of_window_end: true` (7.1.2). Where the record holds no closed day for
@@ -220,14 +228,17 @@ keeps player `notables` and drops clan `standouts` with the other sections.
 
 A player's entry: `battles` (played, record, sessions, by mode, ladder
 trophy net, late captures), `trophies`, `arena`, `ranked`, `collection`,
-`badges`, `clan` (current clan and moves), `war`, `presence`
-(`last_battle_at`, `days_quiet`, `days_since_poll`, `returned_after_days`).
+`badges`, `clan` (current clan and moves), `war` (`battles`: the war
+battles the player played in the window, boat defenses excluded, with no
+split by war day), `presence` (`last_battle_at`, `days_quiet`,
+`days_since_poll`, `returned_after_days`).
 
 A clan's entry: `activity` (battles, sessions, members active, by mode;
 `basis` says `recorded`, or that an activity-scope clan records roster and
 war only), `roster` (joined, left with tenure, role changes, size at each
 end), `war` (season and week, the day at the window end, fame and place,
-`race_finished_at`, `decks` on a war day with `as_of`, weeks `resolved`),
+`race_finished_at`, `decks` with `as_of` only while the window ends in the
+war day in progress, weeks `resolved`),
 `presence` (quiet rung crossings, returns, never recorded), `standouts`
 (most battles, new bests, arena and ranked promotions, collection levels,
 badges, standout sessions with their rungs, each bounded and named),
@@ -277,8 +288,9 @@ and the cap and the default exist to prevent it.
 a clan's timeline their member moments and sessions (7.1.5-7.1.7). It is
 applied before the item cap, `applied.player_tag` echoes it, a tag that is
 not one of your players or a member of your clans says so, and a member read
-never moves the read pointer. A session item is a sitting of two or more
-battles; a single battle is not an item.
+never moves the read pointer. On a clan's timeline a member's session
+item is a sitting of two or more battles; on a player's own timeline a
+single battle is a session item too.
 
 Every window is **(from, to]** by when the record observed an item, compared
 at the millisecond the tool serves: `from` is exclusive and `to` inclusive,

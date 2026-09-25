@@ -7,7 +7,7 @@ order: 22
 navTitle: "Architecture"
 icon: layers
 lede: "Collectors, the door, the job ledger, admission and retention."
-reviewed: "2026-09-19 against contract 6.1.0"
+reviewed: "2026-09-25 against contract 9.1.0"
 ---
 
 # Architecture
@@ -79,7 +79,7 @@ NAT-free VPC). The only machines with Clash Royale API keys are
 **collectors** — operator-run workers that lease fetch jobs from the
 queue, fetch with their IP-allowlisted key, and post results back. They
 never choose their own targets, hold no user data, and earn ladder
-points per call. The fleet shares **one global rate budget** by design:
+points for every fetch that adds something to the record. The fleet shares **one global rate budget** by design:
 more collectors mean resilience, never more API load.
 
 ## Collectors, in depth
@@ -94,8 +94,9 @@ at a cabin. What makes the fleet interesting:
   publicly only by that card name; machine labels and IPs stay private. The console's [Status](/status/service) page shows
   each card's heartbeat and hourly fetch rate, and `/api/public/status`
   publishes the same fleet without a session.
-- **Credits.** Fetches earn points, and points convert to the
-  operator's own daily tool-call quota at 10:1 (capped at 4× the tier
+- **Credits.** A fetch that added something new to the record earns a
+  point (a fetch that found nothing new earns none), and points convert to
+  the operator's own daily tool-call quota at 10:1 (capped at 4× the tier
   base). Running a collector literally buys your agent more questions.
 - **Zero trust, zero AWS.** A collector holds exactly two secrets: its
   operator's own IP-bound Clash Royale key, and a bearer token we
@@ -119,22 +120,24 @@ at a cabin. What makes the fleet interesting:
   never stops collection; a dev build never self-updates.
 - **Misbehavior is bounded.** At most two unsubmitted leases at a time;
   leases that expire unsubmitted redeliver their jobs and count against
-  the collector, and a collapsing submit ratio quarantines it
-  automatically. Every payload is provenance-stamped forever, so even a
-  late-discovered bad actor's data can be purged and replayed away.
+  the collector, and a streak of them quarantines it automatically: the
+  door stops serving it work and tells its owner. Every payload is
+  provenance-stamped with the collector that fetched it and kept in the
+  archive for good, so a late-discovered bad actor's contributions can be
+  traced to the payloads they came from.
 - **Capture audit.** Every fresh battle-log poll with prior coverage is
   audited: if the payload's *oldest* battle was previously unseen, the
   rotating log may have rolled past something — recorded as a possible
-  gap. The 24-hour gap count is public on Status, so "no gaps" is a
-  measurement, not a promise.
+  gap. The 24-hour gap count is public (`capture_audit_24h` in
+  `/api/public/status`), so "no gaps" is a measurement, not a promise.
 
 ## The timeline
 
 Recording is pull; noticing is push. Everything you track appears on your
 **timeline** (`elixir_timeline`) while its notify switch is on. The
 timeline is synthesized when you read it, from the record and the
-per-subject ledger: the items that happened since your read pointer, in
-order, each a sentence a person can read with its facts beside it, and one
+per-subject ledger: the items that happened since your read pointer,
+newest first, each a sentence a person can read with its facts beside it, and one
 entry per subject summarizing the window. A person's entries are the players they track and the
 clans they added; an agent's is the clan it represents, with the members
 inside it. Facts with their windows, never judgments: what to do about a
@@ -145,11 +148,12 @@ service's, and nothing on the timeline announces the time, which is
 ## The feedback loop
 
 Feedback is a first-class product surface, not a mailbox. Agents file
-it mid-session with `elixir_send_feedback` (attributed to the connecting
-account); people file it on the site. Every item gets a maintainer
-response — `elixir_my_feedback` pages through the full ledger, a
-`feedback_responded` event lands in your feed, and shipped fixes link
-the change. The same loop feeds the public
+it mid-session with `elixir_send_feedback` (attributed to the account that
+connected: yours on your own connection, the agent's on an agent's);
+people file it on the site. Every item gets a maintainer response —
+`elixir_my_feedback` pages through the full ledger, an
+`account_feedback_responded` item lands on the filer's timeline, and
+shipped fixes link the change. The same loop feeds the public
 [Updates](/updates): contract versions are machine-readable
 (`elixir_changelog`), so an agent can ask "what changed since 0.20?"
 and discover capabilities that landed mid-session. Several shipped
@@ -195,8 +199,11 @@ Elixir's servers send nothing to analytics.
   (most things are "observed between polls", and the data says so).
 - **War data.** Clan-scoped, multi-tenant (every war table is keyed by
   the observing clan), points-vs-fame discipline enforced at write time,
-  and a per-clan war clock resolves battles to seasons/weeks/days from
-  their own timestamps.
+  and one global 10:00 UTC grid, the same for every clan, files battles
+  into seasons and weeks from their own timestamps. War facts are served
+  as the game's weekly counters: a race's real daily rollover drifts per
+  race and cannot be placed reliably at this scale, so no surface splits
+  a member's week by war day ([Time and clocks](/docs/clocks#the-policy-day)).
 
 ## Scheduling: how often a player is fetched, and why
 
@@ -230,8 +237,8 @@ Profiles are read once a day, because the record keeps one snapshot per
 game day, and once after a session: a battle log that delivered battles
 asks for the profile unless one was read in the last eight hours. The
 one time-critical profile read, the pre-reset capture of the weekly
-donation counter, is forced separately. The
-[Efficiency](/status/efficiency) page publishes what the schedule costs
+donation counter, is forced separately. The console's signed-in
+[Efficiency](/status/efficiency) page shows what the schedule costs
 and what it loses, per day. Clan rosters follow the clan's own day — every 15
 minutes while members of a tracked clan are in the game, coasting to
 hourly and then four-hourly as the roster's `lastSeen` stamps go quiet,
@@ -248,9 +255,10 @@ What this means when you read: every response carries the age of the
 polls it was built from (`freshness_seconds` in `meta`), `elixir_coverage`
 compares the lifetime battle counter against what was recorded over each
 observation interval and says so when they disagree, and the public
-[status page](/status/service) reports how many of the last day's polls
-found the log had already rolled - as does `capture_audit_24h` in
-`/api/public/status`. When you need the state of play right
+health views report how many of the last day's polls found the log had
+already rolled: `capture_audit_24h` in `/api/public/status`, with no
+sign-in, and [Recording now](/data/now) for the live strip. The console's
+[Status](/status/service) page shows the same to a signed-in account. When you need the state of play right
 now rather than the recorded history, `live_fetch` spends your live
 allowance on a fresh read instead of waiting for the schedule.
 
@@ -259,11 +267,11 @@ allowance on a fresh read instead of waiting for the schedule.
 - A **claim** on your tag (trust-based; accounts are owner-approved)
   gives your agent your full history — including battles recorded
   before you joined.
-- **Universal game reads**: recorded player data — battles, profiles,
-  timelines — is readable by every approved account, the same posture
-  as the game's own public API. **Clan cover** gates the clan-scoped
-  tools (roster, war): open members of a recorded clan use them, and
-  that access ends the moment membership ends.
+- **Universal game reads**: all recorded game data — battles, profiles,
+  timelines, clan rosters and wars — is readable by every approved
+  account, the same posture as the game's own public API (since
+  2026-09-05; no membership gate on the clan tools). Your account data
+  stays private.
 - The MCP door is OAuth 2.1 with rotating refresh tokens. `cr:read` is the
   baseline, while recordings, collections, account preferences, and
   feedback each require their own write capability. The consent page

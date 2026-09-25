@@ -8,7 +8,7 @@ navTitle: "Verify"
 icon: shield-check
 lede: "Play one battle with a deck we name, and the claim on your player becomes a fact rather than a promise."
 console: ["Verify a player you have added", "/account/verify", "Console ▸ Verify"]
-reviewed: "2026-09-19 against contract 6.1.0"
+reviewed: "2026-09-25 against contract 9.1.0"
 ---
 
 # Verify: proving a player is yours

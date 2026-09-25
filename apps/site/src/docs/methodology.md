@@ -1,12 +1,12 @@
 ---
 slug: methodology
 title: "How the numbers are made"
-description: "The populations, denominators, shrinkage formula and limits behind the meta tools and war participation. Descriptive evidence, not proof of skill or improvement."
+description: "The populations, denominators, shrinkage formula and limits behind the meta tools and cards_card, the trophy bands, the card-level gap and rival history. Descriptive evidence, not proof of skill or improvement."
 section: record
 order: 21
 navTitle: "Methodology"
 icon: flask-conical
-lede: "How derived numbers are computed — meta segments, shrinkage, war participation."
+lede: "How derived numbers are computed — meta segments, shrinkage, trophy bands, rival history."
 ---
 
 # How the numbers are made
@@ -29,11 +29,15 @@ not a trophy-band composition breakdown or an effective independent sample size.
 
 `battles_meta_decks` and `battles_meta_cards` count **player-battle observations**,
 not unique matches. If both participants belong to the segment, both contribute.
-These observations are dependent: two sides of a match are not two independent
-trials, and repeated battles by one player are not independent players.
+On a corpus read that is every side of every recorded battle: an opponent's
+deck is meta evidence as much as a recorded player's. These observations are
+dependent: two sides of a match are not two independent trials, and repeated
+battles by one player are not independent players.
 
 A deck row carries three counts of who played it. `players` is every
-distinct player, one battle included. `repeat_players` (8.0.0) is those with
+distinct pilot seen in the population, one battle included: on a corpus
+read that is recorded players and the opponents they met, so it is never a
+count of recorded players. `repeat_players` (8.0.0) is those with
 **two or more** battles on the deck, and it is what `min_players` counts, so
 "decks played across players" cannot be one player's run with two others
 who tried it once (Gym #348: a 57-0 run read as "3 players, 57-2").
@@ -43,23 +47,37 @@ share, and a note names a row one player still carries.
 Only decided **head-to-head** outcomes qualify. Duels (one row for up to three
 games, with no single deck identity), boat battles (an attack on a static
 defense), draws and unresolved outcomes are excluded from `decided_battles`,
-row counts, usage shares, rates and the shrinkage baseline. Each response
-itemizes what the window held and left out in `excluded` (`duels`, `boat`,
-`draws`, `unresolved`, `no_deck`), so a gap between this tool's denominator and
-`battles_performance`'s is self-describing. Deck meta requires a deck hash; card
-meta requires a nonempty cards array.
+row counts, usage shares, rates and the shrinkage baseline. So is everything
+outside the meta population: event battles and decks the player did not
+choose (6.17.0; a war deck the player picked, `warDeckPick`, is chosen and
+stays in). Each response itemizes what the window held and left out in
+`excluded`: `considered` (every observation in scope), `duels`, `boat`,
+`draws`, `unresolved`, `no_deck` and `outside_meta`, so a gap between this
+tool's denominator and `battles_performance`'s is self-describing. Deck meta
+requires a deck hash; card meta requires a nonempty cards array.
 
 - **Raw win rate:** `wins / (wins + losses)`.
 - **Segment win rate:** all eligible wins divided by all eligible wins plus
   losses, before `min_battles`, sorting and the result limit. An empty segment
   returns `null`, not an observed 50%.
-- **Prior win rate:** the same quantity over the **whole recorded corpus** for
-  the same window and mode, regardless of segment. A segment scoped to one
-  player or clan is never shrunk toward its own mean — a one-deck player would
+- **Prior win rate:** on the meta tools, the same quantity over the
+  **whole recorded corpus** for the same window and mode, regardless of segment
+  (`prior_basis: "corpus_window"`). A deck row scoped to one player or clan
+  is not shrunk toward that segment's own mean — a one-deck player would
   then be regularized by exactly nothing, and a 4–0 account would read as a
   shrunk 1.000. When the corpus window itself holds fewer than
   {{ statistics.meta.segment_min_decided }} decided observations, a neutral
-  0.5 stands in; `prior_basis` says which applied.
+  0.5 stands in (`"neutral_0.5"`); `prior_basis` says which applied.
+- **`cards_card` shrinks toward its own population.** Its rows are one
+  card's forms, modes and bands inside one population, so a corpus season
+  read shrinks toward the corpus season's decided mean
+  (`prior_basis: "corpus_season"`), and every other read, a clan, player or
+  collection segment included, shrinks toward that population's own decided
+  mean over the window (`prior_basis: "segment_window"`; 0.5 below
+  {{ statistics.meta.segment_min_decided }} decided observations). The
+  response's `methodology.prior_source` says the same. A segment's shrunk
+  card rate is therefore a statement about the card inside that
+  population, not a comparison of the population with the corpus.
 - **Shrunk win rate:** `(wins + m × prior_win_rate) / (wins + losses + m)`,
   where `m = {{ statistics.meta.prior_strength }}`; the strength is fixed.
 - **Sample floor:** below {{ statistics.meta.segment_min_decided }} decided
@@ -68,8 +86,9 @@ meta requires a nonempty cards array.
 - **Usage share:** the row's eligible observations divided by the segment's
   eligible observations. A battle contains several cards, so card usage shares
   are not parts of a total that sums to 100%.
-- **Players:** distinct observed players in that row. One prolific player can
-  still dominate a pooled rate. Evolution forms remain separate card rows.
+- **Players:** distinct pilots observed in that row (above). One prolific
+  player can still dominate a pooled rate. Evolution forms remain separate
+  card rows.
 
 Calculations use unrounded aggregates. Rates and scores are then independently
 rounded to three decimals. Recalculating a shrunk rate or score from displayed
@@ -151,8 +170,11 @@ first night after the band arrived, or a season the job has not reached)
 the read falls back to the raw rows under the query budget and says so in
 a note. On a banded read `excluded` still counts the whole season and
 mode (a duel or a boat battle has no band of its own); `decided_battles`
-and every row are the band's. Observations without starting trophies
-(war, casual) are in the unbanded rows only.
+and every row are the band's. River race and friendly battles carry the
+player's Trophy Road trophies, so they sit in bands, which is why
+`trophy_road_complete` is a war meta; observations without starting
+trophies, and ranked and tournament observations, are in the unbanded rows
+only.
 
 This shrinkage moderates extremes; it does **not** guarantee rank order. With a
 prior of 80%, a 3–0 record shrinks to about 82.6%, while 60–40 shrinks to
@@ -172,8 +194,9 @@ Deck names, forms and tower troops are rendered from the deck's recorded
 identity (its card rows and the catalog) after ranking and limiting the
 aggregate; no battle payload is re-read.
 
-Within-player, leave-deck-out and leave-card-out lift remain unimplemented design
-ideas. They should not be inferred from these pooled fields.
+Within-player, leave-deck-out and leave-card-out lift were considered and
+declined: no lift, score or similarity number is served, and none is
+coming. None should be inferred from these pooled fields.
 
 ## Card levels: described, not adjusted for
 

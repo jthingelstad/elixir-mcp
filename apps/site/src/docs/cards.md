@@ -58,7 +58,7 @@ date; `season`, `from`/`to` and `mode` as everywhere.
 | block | what it holds | served for |
 | --- | --- | --- |
 | `card` | the catalog row with `type`, `forms_available`, `first_seen_in_catalog` (when Elixir first stored the card; every card already in the game on 2026-09-10, when storage began, carries that date), and `first_played {base, evolution, hero}` (the earliest recorded deck carrying each form) | every read |
-| `season` | this window: `all` (forms merged) and `forms` (one row per form played), each with battles, W/L, players, `usage_share` over the population's `decided_battles`, raw and shrunk win rate; with `mode` omitted, `by_mode` splits it by mode group | every read |
+| `season` | this window: `all` (forms merged) and `forms` (one row per form played), each with battles, W/L, players (every pilot seen in the population, opponents included on a corpus read), `usage_share` over the population's `decided_battles`, raw and shrunk win rate; on a corpus season read with `mode` omitted, `by_mode` splits it by mode group | every read (`by_mode`: corpus season reads) |
 | `history` | one point per recorded season, same shape, from the rollups | corpus reads |
 | `by_band` | the season's usage by trophy band, with `mean_level_gap` | corpus season reads, once the band rollup is filled |
 | `partners` | the eight cards most played with it and their lift (`cards_synergy` has the full list for any segment) | corpus season reads |
@@ -90,8 +90,9 @@ card's win rate describes who played it as much as the card.
 | My collection: levels, forms, counts, and the level I actually field | `players_collection` (`fielded`) |
 | Which meta decks can I field, and what would upgrades open? | `battles_meta_decks` with `fit_for` (`decks[]` fieldable as held, `unfieldable[]` with the missing card or form, `fit.upgrades` on every row); `battles_meta_cards` with `fit_for` carries `held` per row |
 
-What beats a card across the corpus - the matchup question - is not yet
-answered; it needs a rollup the record does not keep, and is queued.
+What beats a card across the corpus - the matchup question - is not
+answered, and none is coming: matchup expectations were considered and
+declined ([Deck archetypes](/docs/archetypes) says the same of decks).
 
 ## Tower troops
 
@@ -100,8 +101,10 @@ records it on every battle side (slot 0) and in each `deck_hash`, so two
 decks with the same eight cards and different tower troops are different
 decks. `battles_meta_cards` with `tower_troops: true` reads the ninth card
 over the same population, window and mode as the eight: `decided_battles`
-is the same number, and a deck recorded without a tower troop counts there
-and in no row. `cards_card` answers a tower troop's usage, win rate and a
+is the same number, but each tower troop's `usage_share` is taken over
+`tower_troop_known_battles`, the observations whose tower troop is known.
+The API reports none on a river race battle, so those observations count
+in `decided_battles` and in no tower-troop row. `cards_card` answers a tower troop's usage, win rate and a
 clan's holders; its season history, top decks and partners are read for
 the eight deck cards, and `cards_synergy` pairs deck cards only.
 `players_collection` lists a player's tower troops and levels

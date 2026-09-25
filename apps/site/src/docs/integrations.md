@@ -23,16 +23,22 @@ Agents use MCP. Programs use the **JSON API at
 - **A person**, by an OAuth grant whose resource is
   `https://elixir.poapkings.com/api/v1` (scope `cr:read`). This is how the
   family's own apps read Elixir as the signed-in person; Elixir Clan is the
-  first. `GET /api/v1/me` returns who you are to Elixir and the players you
-  track. A person's operations answer with the structured result of the
-  Elixir tool they mirror, the same fields as its outputSchema on the
+  first, and Elixir Drop's sign-in moves here too. `GET /api/v1/me` returns
+  who you are to Elixir and the players you track, and, for a family app
+  whose grant holds `account:email`, your `email` (the capability is offered
+  to the family's own apps only; see
+  [Signing a person in](/docs/protocol#signing-a-person-in-with-elixir)).
+  `POST /api/v1/me/players` tracks a player for the signed-in person, the
+  JSON API's `elixir_track_player`, and needs `recordings:write` on the
+  grant. A person's read operations answer with the structured result of
+  the Elixir tool they mirror, the same fields as its outputSchema on the
   [tools page](/docs/tools), without the agent response cap:
-  `GET /clans/{tag}/participation` (`clans_participation`), `GET
-  /clans/{tag}/roster` (`clans_roster`), `GET /clans/{tag}/live` (a live clan
-  read), `POST /players/names`, `GET /players/{tag}/profile` and `GET
-  /players/{tag}/battles` (`fresh=1` asks for a live read). A client whose every redirect URI is on a family origin is
-  first-party and is not metered; any other client is limited per person per
-  hour.
+  `GET /clans/{tag}/participation` (`clans_participation`; `weeks` 1 to 8),
+  `GET /clans/{tag}/roster` (`clans_roster`), `GET /clans/{tag}/live` (a
+  live clan read), `POST /players/names`, `GET /players/{tag}/profile` and
+  `GET /players/{tag}/battles` (`fresh=1` asks for a live read). A client
+  whose every redirect URI is on a family origin is first-party and is not
+  metered; any other client is limited per person per hour.
 
 The two doors keep their credentials apart. An MCP token is refused here, and a
 JSON API token is refused at MCP. These routes share the recorder and its
@@ -78,8 +84,11 @@ specific existing collection, not every collection owned by the sponsoring human
 
 Successful responses contain `data` and `request_id`. Failures use
 `application/problem+json`, with `type`, `title`, `status`, `code`, `detail` and
-`request_id`. The `X-Request-ID` response header ties either response to the
-operational audit. Treat unknown response fields as compatible additions.
+`request_id`, plus `hint` (the one next step) and `retry_after_s` (seconds,
+beside the `Retry-After` header) when the refusal carries them, as a
+person's operation passes on from the tool it mirrors. The `X-Request-ID`
+response header ties either response to the operational audit. Treat
+unknown response fields as compatible additions.
 
 ## Versions
 
@@ -90,11 +99,38 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.1.0** (2026-09-25): `POST /me/players` tracks a player for the
+  signed-in person (scope `recordings:write`), and `GET /me` carries `email`
+  for a family app whose grant holds `account:email`; together they let
+  Elixir Drop's sign-in move to this API. Deck cards on `GET
+  /players/{tag}/battles` carry `form` (`base`, `evolution` or `hero`) beside
+  the API's raw `evolutionLevel`. The document now says what the operations
+  already did: `weeks` on `GET /clans/{tag}/participation` is 1 to 8,
+  matching the tool (the document said 12, and 9 to 12 were refused 400);
+  `GET /players/{tag}/profile` has its own `operationId` rather than
+  sharing `playerProfile` with `GET /players/{tag}`; and the problem body documents `hint`, `retry_after_s`
+  and the codes the person operations return.
 - **2.0.0** (2026-09-25): `GET /clans/{tag}/participation` no longer carries
   `war_decks_by_day`, `war_battles_by_day`, `war_days_battled` or
-  `war_scoring_decks`. Elixir serves war facts as the game's weekly
-  counters: the API does not say which day a deck was played, and a war
-  day's rollover cannot be placed reliably across every clan Elixir records.
+  `war_scoring_decks`, and `war_decks` answers `null`, not `0`, for a
+  member with no race row that week. Elixir serves war facts as the game's
+  weekly counters: the API does not say which day a deck was played, and a
+  war day's rollover cannot be placed reliably across every clan Elixir
+  records.
+- **1.3.0** (2026-09-24): the players on `GET /me` carry `clan_name` beside
+  `clan_tag`.
+- **1.2.0** (2026-09-23): the person operations: `GET
+  /clans/{tag}/participation`, `GET /clans/{tag}/roster`, `GET
+  /clans/{tag}/live`, `POST /players/names`, `GET /players/{tag}/profile`
+  and `GET /players/{tag}/battles`, each answering with the structured
+  result of the tool it mirrors.
+- **1.1.0** (2026-09-23): people are admitted, by an OAuth grant whose
+  audience is `/api/v1` (every operation names its callers in
+  `x-principals`), and `GET /me` says who the signed-in person is to Elixir
+  and the players they track.
+- **1.0.0** (2026-09-08): integrations by admin-issued key: the game clock,
+  recorded profiles, asynchronous profile refreshes and collection
+  enrollment.
 
 ## The game clock is policy
 
@@ -180,13 +216,14 @@ These allowances do not increase the collector fleet's shared upstream budget.
 
 | Status | Meaning |
 | --- | --- |
-| 400 | `invalid_json` (checked before authentication; send `{}` on GET), `invalid_tag`, `invalid_members`, `idempotency_key_required`, or `bad_request` for a badly percent-encoded path |
-| 401 | Missing, wrong-purpose, revoked or suspended credential |
-| 403 | Missing permission |
-| 404 | Unknown or inaccessible resource; `not_recorded` for missing profile data |
+| 400 | `invalid_json` (checked before authentication; send `{}` on GET), `invalid_tag`, `invalid_members`, `idempotency_key_required`, or `bad_request` for a badly percent-encoded path; on a person's operation also `bad_request` and `result_too_large` from the tool |
+| 401 | `unauthenticated`: missing, wrong-purpose, revoked or suspended credential |
+| 403 | Missing permission; `insufficient_scope` when a person's grant lacks the operation's scope; `not_entitled` from a person's tool |
+| 404 | Unknown or inaccessible resource (`not_found`); `not_recorded` for missing profile data; `no_subject` on a person's operation with nothing to answer about |
 | 409 | `enrollment_limit` or `idempotency_conflict` |
-| 429 | `rate_limited`, `daily_quota_exceeded` or `refresh_quota_exceeded` |
-| 503 | `temporarily_unavailable` |
+| 429 | `rate_limited`, `daily_quota_exceeded` or `refresh_quota_exceeded`; `quota_exceeded` from a person's tool |
+| 502 | `internal` or `live_unavailable` from a person's tool |
+| 503 | `temporarily_unavailable`; on a person's operation `live_pending` or `query_timeout`, with `retry_after_s` |
 
 Every request with a resolved key is logged with `surface: rest`, the
 operation name, duration, size, HTTP status and error code, never the

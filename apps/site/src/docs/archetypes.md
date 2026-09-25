@@ -57,7 +57,7 @@ win conditions, which is how a hybrid shows.
 | `bridge_spam` | fast units at the bridge to deny a build-up and punish mistakes | RoyaleAPI's filter, TrophyCoach |
 | `siege` | attack the tower from your own side with X-Bow or Mortar | every guide, RoyaleAPI |
 
-**Named decks** — "2.6 Hog Cycle", "LavaLoon", "PEKKA Ghost bridge spam",
+**Named decks** — "2.6 Hog", "LavaLoon", "PEKKA Bridge Spam",
 "Splashyard" — are hand-curated titles for particular card sets. Deck Shop
 titles each exact deck by hand; no site publishes a rule for them. Elixir
 does not assert one: it never labels a deck "LavaLoon". It *understands*
@@ -178,7 +178,7 @@ history is relabelled — the deck was always that shape.
 Where the community disagrees, Elixir picks and says so in the entry's
 source line: Royal Hogs is *bridge spam* (the deck sites) rather than
 *bait* (one guide); an X-Bow or Mortar deck at cycle cost keeps the
-*siege* family ("2.9 Mortar cycle" resolves to it by alias); P.E.K.K.A
+*siege* family ("Mortar cycle" resolves to it by alias); P.E.K.K.A
 is *control* in the guides and *bridge spam* on the deck sites, and the
 partner test is the difference.
 
@@ -206,8 +206,9 @@ form of the card, and `cards_archetype` says so in a note (6.22.0).
    the aliases file, case and punctuation free.
 2. **A family** — `bridge spam`, `beatdown`, and so on: any win condition.
 3. **A composed label** — `<card(s)> <family>`, the cards by catalog name
-   (`pekka` and `P.E.K.K.A` both), an `evo`/`hero` prefix ignored:
-   "evo royal hogs bridge spam" is Royal Hogs, bridge spam.
+   (`pekka` and `P.E.K.K.A` both), an `evo`/`hero` prefix setting the form:
+   "evo royal hogs bridge spam" is Evo Royal Hogs, bridge spam, and keeps
+   to that form's decks, as above.
 
 The response echoes `applied.archetype` — `family`, `win_conditions`,
 `resolved_from` (`alias`, `family` or `label`) and any `aliases` that name

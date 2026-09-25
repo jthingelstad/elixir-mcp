@@ -48,9 +48,11 @@ came from. The series tools take `YYYY-MM-DD` bounds, game days; an
 instant is accepted and floored to its game day, and the response says
 which day it became (`applied.window.floored`, 3.17.0).
 
-Events carry `created_at`, the moment the recorder noticed the change, which
-is "observed between two polls": a member who left at 09:05 and was noticed
-at 09:15 has an event stamped 09:15.
+Timeline items carry `observed_at`, the moment the recorder noticed the
+change, which is "observed between two polls": a member who left at 09:05
+and was noticed at 09:15 is observed at 09:15. Their `at` is when the moment
+happened, the battle's own instant where the record holds the battle that
+did it ([Timeline](/docs/timeline)).
 
 ## The game day
 
@@ -82,19 +84,20 @@ highest value seen in its game days (Monday 10:00 to Monday 10:00 UTC; 6.33.0).
 ## The policy day
 
 Clash Royale does not publish a calendar. The river race resets once a day
-and the reset **drifts per clan**: matchmaking assigns each clan's race a
-start that wanders from the nominal hour, and the drift is different for every
-clan. Elixir MCP therefore keeps one **policy day** for every clan: the day
-rolls at **10:00 UTC**, the same hour the season rolls, and the recorder
-follows that grid rather than each clan's drifted start. One clock means every
-war number is comparable across clans and across weeks.
+and the reset **drifts per race**: each race (the five clans matched into
+it) rolls at its own moment in the half hour before the nominal hour, and
+the moment differs from race to race. Elixir MCP therefore keeps one
+**policy day** for every clan: the day rolls at **10:00 UTC**, the same hour
+the season rolls, and the recorder follows that one global grid rather than
+any race's drifted start. There is no per-clan war clock. One clock means
+every war number is comparable across clans and across weeks.
 
 The vocabulary, from smallest to largest:
 
 | Word | Meaning |
 |---|---|
 | `war_day` | 1-based: the four battle days of a week are war days 1 to 4; `null` on a training day |
-| `day_in_week` | 0-based: days 0 to 2 are training, 3 to 6 are battle days. `war_day = day_in_week - 2` on a battle day |
+| `day_in_week` | 0-based: days 0 to 2 are training, 3 to 6 are battle days. `war_day = day_in_week - 2` on a battle day. `decks_today` carries the same number as `day_in_section`, with `training_day` (1 to 3) on a training day |
 | period | one policy day; `period_index` counts them from the season start |
 | section | the game's word for a week; `section_index` is 0-based and `week` is 1-based |
 | season | first Monday of the month to first Monday of the next, resetting at 10:00 UTC; the weeks are the Mondays between |
@@ -108,10 +111,13 @@ The one thing that is a clan's own is the instant its race actually
 closed, which sits inside the half hour before 10:00 UTC and differs per
 race; a battle played in that gap belongs to the new day in the game and
 to the old day on the grid. That rollover cannot be placed reliably across
-every clan Elixir records, so no war tool splits a member's week by war
+every clan Elixir records, so no surface splits a member's week by war
 day (9.0.1): war facts are the game's weekly counters, and
-`war_current.decks_today`, the game's own count for the day still being
-played, is the one day-sized figure.
+`war_current.decks_today`, the day still being played, is the one
+day-sized figure. It is the game's own `decksUsedToday` counter for the
+current day, raised to the member's war battles recorded on that day
+where the poll trails play; on a training day it lists the war decks
+members have played for reps (`day_kind: "training"`), which never score.
 
 `game_clock` answers all of this for nobody in particular (pass `at` to learn
 what day a recorded battle fell on) and is the right first call when a
@@ -122,7 +128,7 @@ It also carries the next boundaries, so a scheduled routine can decide for
 itself when to look: `day_ends_at` (this policy day), `war_day_closes_at`
 (the same instant on a war day, `null` on a training day),
 `next_war_day_opens_at`, `next_training_starts_at`, `week_ends_at` and
-`season_ends_at`. Nothing in the event feed announces the time; a routine that
+`season_ends_at`. Nothing in the timeline announces the time; a routine that
 wants to act three hours before a war day closes reads the clock once and sets
 its own timer.
 
@@ -137,10 +143,12 @@ a clan's last poll:
   `null` when it has not seen it yet; `observed_offset_minutes` is that
   sighting's distance from the policy hour, **including polling latency**,
   so it is an upper bound on the clan's real drift.
-- Battles in the drift gap, played after the clan's real reset but before
-  10:00 UTC, land on the **previous** policy day. The first sign is a member
-  counted with five decks: `decks_today.over_cap` lists members observed
-  with more than four decks in a policy day rather than rounding them away.
+- Battles in the drift gap, played after the race's real reset but before
+  10:00 UTC, land on the **previous** policy day. Because `decks_today` is
+  raised to the battles recorded on the day, a member can then count more
+  than four: `decks_today.over_cap` lists members observed with more than
+  four decks in a policy day (`decks_observed`) rather than rounding them
+  away, and a note says the race's reset drifted across the boundary.
 - The period is the calendar's, open by construction (a day that has
   ended is simply not the current one; the always-false
   `nominal_period_elapsed` flag was removed at 4.0.0).
@@ -150,8 +158,11 @@ a clan's last poll:
 
 Every windowed tool takes the same bounds and echoes what it used:
 
-- `from` is inclusive and `to` exclusive. Each is an ISO 8601 instant, taken
-  as given, or a date `YYYY-MM-DD`, resolved in a timezone. A date-only `from`
+- `from` is inclusive and `to` exclusive, except on the daily series (whole
+  game days, both ends included; below) and `elixir_timeline`, which selects
+  over (`from`, `to`] by when the record observed an item. Each is an ISO
+  8601 instant, taken as given, or a date `YYYY-MM-DD`, resolved in a
+  timezone. A date-only `from`
   is local midnight; a date-only `to` covers **that whole day**, ending at the
   next local midnight (exclusive), so `from: "2026-09-01", to: "2026-09-07"`
   is seven full days.
@@ -176,10 +187,11 @@ The defaults differ by tool, and each says which applied:
 | Tool | Window when you give none |
 |---|---|
 | `players_summary` | fixed 30 days (`source: "fixed"`); not an argument |
-| `players_timeline`, `clans_timeline`, `clans_members_timeline` | unbounded, on **game days**: `from`/`to` are `YYYY-MM-DD` game days (inclusive); an instant is floored to its game day, echoed under `applied.window.floored` with a note; `days: N` is N game days, today included |
+| `players_timeline`, `clans_members_timeline` | unbounded, on **game days**: `from`/`to` are `YYYY-MM-DD` game days (inclusive); an instant is floored to its game day, echoed under `applied.window.floored` with a note; `days: N` is N game days, today included |
+| `clans_timeline` | the last 30 game days (`source: "default"`, with a note naming `series_available_from`); bounds as on the other series |
 | `elixir_timeline` | since your read pointer, or the last day without one (`source: "pointer"` or `"default"`); capped at 30 days |
 | `rankings_timeline`, `game_events` | the current season so far |
-| `battles_meta_decks`, `battles_meta_cards`, `cards_synergy` | the current season to date (`source: "season"`); `season` selects another |
+| `battles_meta_decks`, `battles_meta_cards`, `cards_synergy`, `cards_card` | the current season to date (`source: "season"`); `season` selects another |
 | `clans_standings` | 30 days |
 | `clans_participation` | 5 ISO weeks, the current one included |
 | `battles_trends` | 12 weeks |
@@ -206,14 +218,14 @@ roll are not. That is why the meta tools (`battles_meta_decks`,
 date** rather than a rolling number of days, which on most days of the
 month mixes two seasons without saying so.
 
-- **`season`** on the three meta tools, `battles_trends`, the player battle
-  tools (`battles_query`, `battles_performance`, `battles_decks`,
-  `battles_cards`, `battles_opponents`, `battles_compare`) and
-  `clans_standings` bounds the window to one season: `"current"` (the
-  default on the meta tools; to date), `"previous"`, the month
-  (`"2026-08"`) or the war number (`135`). `from`/`to`/`days`/`weeks` given
-  still win, and the battle tools' own default (unbounded, or 30 days on
-  the standings) is unchanged when `season` is omitted.
+- **`season`** on every windowed tool (the meta tools and `cards_card`,
+  `battles_trends`, the player battle tools, `clans_standings`, the daily
+  series, the board and ranking tools, `game_events` and `elixir_timeline`)
+  bounds the window to one season: `"current"` (the default on the meta
+  tools; to date), `"previous"`, the month (`"2026-08"`) or the war number
+  (`135`). `from`/`to`/`days`/`weeks` given still win, and each tool's own
+  default (unbounded, 30 days on the standings, the read pointer on the
+  timeline) is unchanged when `season` is omitted.
 - **`applied.window.season`** names the season the window starts in
   (`month`, `war`, `starts_at`, `ends_at`), whatever set the window, on
   every windowed tool; `null` when it starts before the record's calendar

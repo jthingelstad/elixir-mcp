@@ -30,7 +30,6 @@ spends the one shared Clash Royale API budget).
 | Tool calls / day | 500 | 2,000 | 5,000 | 15,000 | unlimited | unlimited |
 | Live CR fetches / day | 20 | 100 | 250 | 1,000 | unlimited | unlimited |
 | Collections you curate | — | — | 5 | 20 | unlimited | unlimited |
-| Integrations | — | — | — | 1 | unlimited | unlimited |
 | Agents | 3 | 5 | 10 | 25 | unlimited | unlimited |
 
 **member** — the default. You, a couple of alts, and your clan at
@@ -46,17 +45,18 @@ comprehensive watches, and the first tier that creates
 browse.
 
 **partner** — you run serious tooling (a clan bot, a community service)
-on top of Elixir. A service token for headless auth, community-scale
-slots — and an expectation: partners run a collector. At this scale you
-should be adding capacity to the fleet, not only consuming it.
+on top of Elixir. Community-scale slots and budgets — and an expectation:
+partners run a collector. At this scale you should be adding capacity to
+the fleet, not only consuming it.
 
 **admin** — runs the console day-to-day: approves access requests,
-answers feedback, curates collections, manages clan recordings, and
-sets roles up to partner. Unlimited quotas, exempt from every cap.
+answers feedback, curates collections, manages clan recordings,
+provisions platform integrations, and sets roles up to partner. Unlimited
+quotas, exempt from every cap.
 
 **owner** — the super admin; exactly one. Everything an admin can do,
-plus granting or revoking the admin role, service tokens, collectors,
-and quota overrides. No admin can change the owner's account — or
+plus granting or revoking the admin role, collectors, and quota
+overrides. No admin can change the owner's account — or
 another admin's.
 
 ## Three kinds of principal
@@ -65,28 +65,34 @@ Not everything that calls Elixir MCP is a person.
 
 **You** are a person. You sign in with your email and connect your agent of
 choice over OAuth; the tools answer about *your* players, your clans, your
-event feed. There is no personal API key, and there does not need to be — an
-OAuth connection refreshes indefinitely, so even a script that runs unattended
-for months stays signed in as you.
+timeline. There is no personal API key. An OAuth connection refreshes itself,
+so a script that runs unattended stays signed in as you, for up to 90 days
+from your consent; then it asks you to consent again
+([Protocol](/docs/protocol#tokens)). A headless runtime that does clan
+work uses an agent's key instead, which does not expire.
 
 **An agent** acts for a clan rather than for a person. It has its own identity,
-its own key and its own event feed, so what it does never lands in your history
+its own key and its own timeline, so what it does never lands in your history
 and what you do never shows up as its. Agents are **not a tier feature**: you
 can create one for any clan you already record, at any role, up to the
 per-account count in the table above. It spends your daily call budget, **your
 live-fetch budget** — every agent you run shares your one daily live
 allowance — **and your recording slots**: what your agents track is counted
 with what you track, once per player or clan, however many of you track it.
-It carries its own tier: an admin's agent is not an admin. Each agent has
-its own console, chosen at the top of the console's menu.
+Its own role is capped at yours, and at `leader`: an admin's agent is not an
+admin, and when your role changes, each agent's is clamped to your new one,
+so an agent never sits above its owner. Each agent has its own console,
+chosen at the top of the console's menu.
 
 That separation is the point. An agent that borrowed your identity would answer
 "who am I" with *your* player tag, which is not what a clan's Discord bot should
 be able to say out loud.
 
 **An integration** connects another platform to the [REST API](/docs/integrations).
-An admin provisions it with explicit permissions and independent API, refresh
-and enrollment limits. It has no personal subject or inherited admin authority.
+It is platform access an admin provisions, not a tier entitlement: no role
+includes one, and it is set up with explicit permissions and independent
+API, refresh and enrollment limits. It has no personal subject or inherited
+admin authority.
 
 | | You | Agent | Integration |
 |---|---|---|---|
@@ -99,7 +105,7 @@ and enrollment limits. It has no personal subject or inherited admin authority.
 Tracking a player or clan on your account IS the act of recording it —
 there is no separate watch step and no approval queue; your tier's slots
 are the only gate, and capture starts immediately. The one per-subject
-setting is **notify**: whether that player or clan feeds your event pipe
+setting is **notify**: whether that player or clan feeds your timeline
 (`elixir_timeline`). Remove a subject and its slot frees; a clan's shared
 recording stops only when no account tracks it.
 
@@ -117,8 +123,8 @@ or someone you're **watching** — and "how are my friends playing?" is only a
 question worth asking if there is room to keep friends in.
 
 So player slots are deliberately not a rung on the ladder. The tiers differ
-where cost actually scales: clan watches, daily calls, the live lane,
-collections, and integrations.
+where cost actually scales: clan watches, daily calls, the live lane and
+collections.
 
 ## Why comprehensive is the scarce thing
 
@@ -132,9 +138,10 @@ gate.
 
 Any member, leader or family account operating an active collector gets
 **+2 player slots and +1 activity clan watch** on top of its tier (partner
-already assumes one), and collector fetches earn
-daily tool-call credits (1 per 10 fetches, up to 4× your base) — the
-real, compounding benefit of running one. Capacity begets collection:
+already assumes one), and collector points earn
+daily tool-call credits (1 per 10 points, up to 4× your base; a point is a
+fetch that added something to the record, not every fetch) — the real,
+compounding benefit of running one. Capacity begets collection:
 the fleet is the lever that grows the whole service.
 
 ## Upgrades
@@ -142,7 +149,8 @@ the fleet is the lever that grows the whole service.
 Request a tier from **Account ▸ Overview** — say what you're building or
 leading. The maintainer reviews requests by hand; you'll see the outcome
 in your feedback (your agent sees it too, via `elixir_my_feedback`, and
-gets an `account_tier_changed` event on the push lane). Hand-tuned per-account
+your timeline carries an `account_role_changed` item when your role
+changes). Hand-tuned per-account
 overrides exist for cases the ladder doesn't fit — just ask.
 
 ## The fine print
@@ -152,5 +160,5 @@ overrides exist for cases the ladder doesn't fit — just ask.
 - Feedback is never metered. Telling us what's wrong should always be
   free.
 - Where each number is enforced and what a refusal looks like is on
-  [Limits](/docs/limits). Limits may evolve during the alpha; the
+  [Limits](/docs/limits). Limits may evolve during the beta; the
   [updates](/updates) and the `elixir_changelog` tool record every change.

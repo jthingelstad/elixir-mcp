@@ -39,7 +39,12 @@ address itself, so we can actually send you the mail the service
 promises: your sign-in codes and links, and notices about your own
 account. An account we cannot write to is an account we can never tell
 anything. The address is never a lookup key, never appears on a public
-surface, and is never sold, shared, or used to advertise. We also store
+surface, and is never sold, shared, or used to advertise. It is released
+to one kind of client only: an app of the Elixir family itself (Elixir
+Clan, Elixir Drop) that you sign in to with Elixir, when you approve its
+request to know your address. No other client is ever granted it — no
+MCP client, no agent, no integration
+([Protocol](/docs/protocol#signing-a-person-in-with-elixir)). We also store
 your timezone if you set one, and the records of your own activity
 that the product is made of: sign-ins, claims, recording changes, your
 agent's tool calls, every email we sent you, and the feedback you filed.
@@ -88,6 +93,15 @@ page and not which record, so the report reads as pages rather than a
 thousand one-hit rows; that is report hygiene, and the promise above is
 what it rests on.
 
+The signed-in console also sends two kinds of event to the same
+Tinylytics site, so a broken or slow page is visible without anyone
+reporting it: a **browser error** (the error's name and the kind of page
+it happened on) and a **slow or failed request** (a timeout, a network
+failure, a malformed answer, or a request that took longer than a few
+seconds, named by the kind of page or the API route with every id
+collapsed). Neither carries a record id, a tag, a token or anything
+about who you are.
+
 Nothing is sent to Tinylytics from Elixir's servers. Tool calls,
 sign-ins and feedback stay in Elixir's own records; the only
 measurement is the page and mail counting above.
@@ -109,14 +123,16 @@ rather than an oversight, and this paragraph exists so it is not a
 surprise.
 
 **The reports, and the milestone note.** Elixir also sends seven kinds of
-its own mail from your record ([Email](/docs/email)): six weekly
-reports and a congratulations when something you did is a first. They
+its own mail from your record ([Email](/docs/email)): six weekly mails
+(four reports and two written pieces) and a congratulations when
+something you did is a first. They
 are on by default for the same reason the newsletter is, each is its
 own switch on your account page, and every issue carries a one-click
 off for its kind. Turning one off is recorded on your account and never
 overridden. The reports are built by programs from the same readers the
-tools use; the Top 100 is written by a language model from a brief the
-program built, and the program checks every number before it sends.
+tools use; the Top 100 and Card of the Week are written by a language
+model from a brief a program built, and the program checks every number
+before it sends.
 Every mail Elixir sends, sign-in codes included, carries a Tinylytics
 pixel and campaign-tagged links: an open and a click are counted against
 the MAIL (which kind, which issue), never against you. Every product
@@ -146,6 +162,11 @@ see, on your own account pages, and it exists because an account can
 hold several agents and several connected tools: without it, five
 agents are five identical rows saying something made a call.
 
+Signing in to the console records the same for each browser session: a
+short client label ("Safari on iPhone", never the raw user agent), the
+IP address and the country, shown to you in your Profile's list of
+signed-in devices.
+
 The same is recorded when a credential is REFUSED, which is the case
 that matters most. A key you revoked but that something is still
 presenting is invisible otherwise, because a rejected call never
@@ -153,8 +174,8 @@ becomes usage — and that silence is exactly what a leaked or forgotten
 credential looks like. Refusals are counted per credential, per source,
 per day rather than logged one by one.
 
-Addresses are removed after 30 days; the usage history stays without
-them. Nothing here is shared, and it is never used to profile you, only
+Addresses are removed after 30 days, a connection's and a console
+session's alike; the usage history stays without them. Nothing here is shared, and it is never used to profile you, only
 to answer "what is using this, and from where".
 
 **What we never do.** No advertising and no ad or retargeting scripts;
@@ -167,8 +188,9 @@ maintainer and used to improve the product, and nothing else.
 
 **Retention.** Recorded game history is kept indefinitely (it is the
 product). Raw API payloads are archived. Operational logs are pruned
-periodically. Connection IP addresses are cleared after 30 days and
-refusal records deleted after 30 days, both by the housekeeping job; the
+periodically. Connection and console-session IP addresses are cleared
+after 30 days and refusal records deleted after 30 days, all by the
+housekeeping job; the
 arguments of your tool calls are cleared from the call log after 90 days
 and the calls themselves stay. The timeline's game-moment ledger is kept
 with recorded game history; a timeline read covers at most 30 days, which

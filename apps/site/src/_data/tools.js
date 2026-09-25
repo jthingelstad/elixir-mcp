@@ -120,6 +120,7 @@ export default function tools() {
     // What an AGENT's tools/list holds: the person-only tools are hidden
     // from it. Generated, because a hand-typed count was 41 while the
     // door served 44.
+    personCount: all.length - toolsHiddenFrom("person").size,
     agentCount: all.length - toolsHiddenFrom("agent").size,
     integrationCount: all.length - toolsHiddenFrom("integration").size,
     writeCount: all.filter((t) => !t.readOnly).length,

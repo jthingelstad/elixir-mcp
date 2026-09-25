@@ -60,15 +60,15 @@ export default [
         icon: "layers",
         label: "Pick your next deck",
         title: "Pick your next deck",
-        lede: "What is winning in the recorded corpus, weighted by results rather than by how often you see it on a stream — with the sample sizes attached.",
+        lede: "What is winning in the population you name (segment: the recorded corpus, your clan or one player), weighted by results rather than by how often you see it on a stream — with the sample sizes attached.",
         reads: [
           "Meta decks by segment: the corpus, your clan, or one player",
-          "Win rates from recorded battles, shrunk toward the corpus mean",
+          "Win rates from recorded battles, shrunk toward the corpus mean over the same window",
           "Your own deck history",
         ],
         setup: ["Track your player", "Read the methodology"],
         script: {
-          tool: "battles_meta_decks (fit_for, min_players) · battles_decks",
+          tool: "battles_meta_decks · battles_decks",
           lines: [
             {
               role: "user",
@@ -278,7 +278,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Yes — that is what an **agent** is for. I read the Agents page of the documentation; the shape is:\n\n- An agent *acts for a clan, not for a person*: its own identity, its own key and URL (`https://elixir.poapkings.com/a/<public_id>/mcp`), its own event cursor and feedback inbox. Nothing it does lands in your history.\n- You create it under **Connections → Agents → Create agent** with a name and the clan tag. The key is shown once; only its hash is stored.\n- It spends *your* daily call budget, and every tier can create agents — 3, 5, 10 or 25 depending on tier.\n- When a member first asks “how am I doing”, the bot calls `elixir_identify` once with their Discord id and player tag. After that `on_behalf_of` resolves them with no lookup.\n\nSo the loop is: you create the agent, your bot holds the key, and your clanmates talk to the bot. There is a reference bot already running in POAP KINGS' Discord if you want the pattern.",
+              text: "Yes — that is what an **agent** is for. I read the Agents page of the documentation; the shape is:\n\n- An agent *acts for a clan, not for a person*: its own identity, its own key and URL (`https://elixir.poapkings.com/a/<public_id>/mcp`), its own timeline pointer and feedback inbox. Nothing it does lands in your history.\n- You create it under **Connections → Agents → Create agent** with a name and the clan tag. The key is shown once; only its hash is stored.\n- It spends *your* daily call budget, and every tier can create agents — 3, 5, 10 or 25 depending on tier.\n- When a member first asks “how am I doing”, the bot calls `elixir_identify` once with their Discord id and player tag. After that `on_behalf_of` resolves them with no lookup.\n\nSo the loop is: you create the agent, your bot holds the key, and your clanmates talk to the bot. There is a reference bot already running in POAP KINGS' Discord if you want the pattern.",
             },
           ],
         },
@@ -330,7 +330,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Quota, mostly — and a more complete record of your own tag.\n\n**The fleet right now:** three collectors, all active. Ram Rider (11,114 fetch points, 1,111 quota credits earned), Tesla (8,378 / 837) and Wall Breakers (1,961 / 196). All three fetched within the last minute.\n\n**What you earn:** every 10 fetches adds one daily tool call to your budget, capped at 4× your tier's base, plus bonus recording slots. The budget they work inside is shared — more collectors are resilience, never more Clash API quota.\n\n**What it costs:** a machine that is usually on with a static IP, and your own Clash Royale API key allowlisted to it. Per the operators guide the collector holds exactly two secrets and has no cloud access.\n\n**Why it matters to you:** coverage on your tag today is complete — 5 of 5 expected battles captured in the latest interval, 100% over the 78 hours we could measure — because three machines are polling. That is the thing you would be adding to.",
+              text: "Quota, mostly — and a more complete record of your own tag.\n\n**The fleet right now:** three collectors, all active. Ram Rider (11,114 points, 1,111 quota credits earned), Tesla (8,378 / 837) and Wall Breakers (1,961 / 196). All three fetched within the last minute.\n\n**What you earn:** a point for every fetch that adds something new to the record, and every 10 points adds one daily tool call to your budget, capped at 4× your tier's base, plus bonus recording slots. The budget they work inside is shared — more collectors are resilience, never more Clash API quota.\n\n**What it costs:** a machine that is usually on with a static IP, and your own Clash Royale API key allowlisted to it. Per the operators guide the collector holds exactly two secrets and has no cloud access.\n\n**Why it matters to you:** coverage on your tag today is complete — 5 of 5 expected battles captured in the latest interval, 100% over the 78 hours we could measure — because three machines are polling. That is the thing you would be adding to.",
             },
           ],
         },

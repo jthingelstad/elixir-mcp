@@ -32,5 +32,8 @@ be revoked, particularly for abuse of the service or attempts to use it
 against Supercell's terms. Data is served best-effort with honest
 gaps — the coverage tools tell you exactly how complete your record is.
 
-**Your agent, your responsibility.** Tool calls made by an agent you
-connected count as yours: quotas, feedback attribution, and conduct.
+**Your agent, your responsibility.** Tool calls made by a client you
+connected, or by an agent you own, count against your quotas, and their
+conduct is yours to answer for. Feedback is attributed to the account
+that filed it: a client connected as you files as you, and an agent
+files as itself.

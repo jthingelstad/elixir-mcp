@@ -106,7 +106,8 @@ says what moved.
 ### Beside the envelope
 
 Three keys ride at the top level of every response, next to the fields the
-tool is for, since contract 1.0.0:
+tool is for, since contract 1.0.0 (`applied` on all but seven tools, which
+the [Protocol reference](/docs/protocol#argument-conventions) names):
 
 **`applied`** — the one echo block: what the tool actually used. `window`
 (`from`, `to`, `source`, `timezone`) on every windowed tool, plus `limit`,
@@ -185,10 +186,8 @@ that every battle is present.
 
 `completeness_last_7_days` covers intervals **ending** in the last seven days;
 one can begin earlier. `average_ratio` is weighted by expected battles and
-excludes intervals whose ratio is unknown. It is served as a **string**
-(`"0.667"`, three decimals) until 4.0.0, the one rate on the surface that is;
-the interval `ratio` beside it is a number. 4.0.0 makes it a number; parse it
-until then. `measured_intervals` and
+excludes intervals whose ratio is unknown. It is a number, three decimals,
+like the interval `ratio` beside it (4.0.0; a string before). `measured_intervals` and
 `unknown_intervals` make that distinction visible. `measured_span` gives the
 first-to-last extent of the intervals behind the ratio and `measured_hours`
 their summed duration, so you can see how much of the week the number actually

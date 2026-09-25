@@ -21,23 +21,23 @@ conventions that hold everywhere.
 | The question sounds like | Call |
 |---|---|
 | How am I doing? Start here. | `players_summary` |
-| Over a window, or since X compared with before | `battles_performance` (`from`/`to`, `before_after`, `group_by: "week"`) |
+| Over a window, or since X compared with before | `battles_performance` (`from`/`to`, `before_after`, `group_by: "week"`; pass `mode`, or read the per-mode-group split, `modes`, it returns without one) |
 | What decks do I play, and how do they do? | `battles_decks`, then `battles_query({ deck_hash })` to drill |
 | Show me the battles themselves; the workhorse | `battles_query` (filters, cursor, `verbosity: "compact"`) |
 | What day is it in the game? Season, war day, when it rolls | `game_clock` |
 | My clan today: standings, who still has decks | `war_current` (`decks_today` can guide a nudge only while `race_finished_at` is null) |
-| Every current member's W/L/D over a short window | `clans_standings({ days: 1, min_battles: 1 })`, or explicit `from`/`to`; trophy swing and streaks require a selected member's `battles_performance` |
+| Every current member's W/L/D over a short window | `clans_standings({ days: 1, min_battles: 1 })`, or explicit `from`/`to`; each row carries the ladder `net_trophies` and the `current_streak` too, and one member's battle-by-battle detail is `battles_performance` |
 | Which clanmates played this exact deck? | `battles_decks` for a `deck_hash`, then `battles_query({ deck_hash })` without `player_tag`, and compare the returned tags with `clans_roster`; this is exact deck evidence, not a playstyle similarity score |
 | Which game-mode leaderboard ids can I read? | `rankings_players({ board: "mode", location: "list" })`, then pass a returned `location` to read its board |
 | Who has gone quiet? | `clans_roster`, reading `last_seen_in_game` beside `last_recorded_battle` |
 | Who should be promoted, demoted or removed? | Elixir serves the facts and the clan decides: `clans_participation` (war decks, battles and donations per member per week), `clans_standings` (win rate and activity over a window, with who joined mid-window and whose battles were not captured), and `clans_roster` (role, tenure, `last_seen_in_game`). Read a member's week with the capture note in view: a low count can be a capture gap. |
-| What did every member do this week, and the weeks before? | `clans_participation` (battles, ranked, donations, war days per member per week, in one call) |
+| What did every member do this week, and the weeks before? | `clans_participation` (battles, ranked battles and donations per member per week, and war decks used per race week, in one call) |
 | How has the clan moved over the season: score, war trophies, members, the members' trophies? | `clans_timeline` (one point per game day, with the aggregates over the members' rows) |
 | How has each member's trophies or rank moved day by day? | `clans_members_timeline` (every member's day series in one call; compact for first, last and delta) |
 | Scout the bracket | `war_rivals`, then `war_current({ clan_tag, live: true })` or `clans_roster({ clan_tag, live: true })` for one rival |
 | What is the meta, for a clan or the corpus? | `battles_meta_decks` / `battles_meta_cards` with a `segment`; `min_players: 2` keeps decks at least two players have played more than once (`repeat_players`), not one player's own; a row one player still carries says so (`top_player_battles` and a note) |
 | Which of my cards should I upgrade first? | `battles_meta_decks` with `fit_for: "#TAG"` (each row's `fit.upgrades`: the upgrades that would bring that deck to your fielded level), beside `battles_cards` for which of your cards carry |
-| Which tower troops does the population use? | `battles_meta_cards({ tower_troops: true })` (shares over the battles whose tower troop is known; river race battles carry none), `cards_card` for one tower troop |
+| Which tower troops does the population use? | `battles_meta_cards({ segment, tower_troops: true })` (shares over the battles whose tower troop is known; river race battles carry none), `cards_card({ segment, card_id })` for one tower troop |
 | What does "LavaLoon" / "bridge spam" mean, or what is this deck called? | `cards_archetype` (`name`, or `cards`; nothing for the vocabulary) |
 | Which of those decks could THIS player actually play, and what would a few upgrades open? | the same, with `fit_for: "#TAG"`: rows they cannot field move to `unfieldable[]`, every row carries `fit` (their mean level, the gap to what they field, the upgrade path) |
 | Rarest badge, who holds one | `badges_rarity`, `badges_holders` |
@@ -46,7 +46,7 @@ conventions that hold everywhere.
 | How have I moved: trophies, rank, a lifetime counter, day by day? | `players_timeline` (one point per game day; `metrics` picks the series) |
 | Which of my cards carry, which enemy cards beat me? | `battles_cards` (`perspective: "mine"` or `"opponent"`) |
 | Who do I keep meeting, and how does it go? | `battles_opponents` |
-| Two to four players side by side | `battles_compare` |
+| Two to four players side by side | `battles_compare` (`mode`, or read each player's per-mode-group split, `window.modes`) |
 | Were my cards above or below my opponents' this window? | `players_summary` (`mean_level_gap` on each deck), `battles_decks` and `battles_cards` rows (`mean_level_gap`); the record describes the gap and does not score it, see [Methodology](/docs/methodology#card-levels-described-not-adjusted-for) |
 | How is a population trending week by week? | `battles_trends` with a `segment` |
 | Tell me about this card - usage, history, partners, decks, who in my clan plays it | `cards_card` (one call; [Cards](/docs/cards)) |
@@ -56,7 +56,8 @@ conventions that hold everywhere.
 | The clan leaderboards, which clans hold a board, how a board moved | `rankings_clan_ladder`, `rankings_clans`, `rankings_timeline` |
 | What was on in the game: events, challenges, side modes, by day | `game_events` |
 | Curated lists: pros, creators, clan families, your own | `collections_browse`, `collections_get`, `collections_edit` |
-| Track someone, say who they are to you, resolve a human to a player | `elixir_track_player`, `elixir_track_clan`, `elixir_my_players`, `elixir_nickname`, `elixir_identify`, `elixir_my_identities` |
+| Track someone, say who they are to you | `elixir_track_player`, `elixir_track_clan`, `elixir_my_players`, `elixir_nickname` |
+| Resolve a human on an agent's surface to a player (agent connections only) | `elixir_identify`, `elixir_my_identities` |
 | Something is missing or took too many calls | `elixir_send_feedback`; `elixir_my_feedback` says what happened to it |
 | What the service holds and who fetches it | `elixir_data_insights`, `elixir_collectors` |
 | How is this documented? | `elixir_docs`, `elixir_examples`, `elixir_updates`, `elixir_changelog` |
@@ -109,10 +110,13 @@ trophies and the ranked standing, so the two sides of it are not one series.
 
 - **Omit `player_tag` to mean the caller**: a person's primary player, or
   whoever `on_behalf_of` maps to on an agent connection. Omit `clan_tag` to
-  mean the recorded clan. Nothing is looked up first.
+  mean the primary player's current clan (an agent's: the clan it acts
+  for); when that clan is not recorded, or there is none, the call is
+  refused with the fixing call in the hint, never answered for another
+  clan. Nothing is looked up first.
 - **The segment tools name a population.** `battles_meta_decks`,
-  `battles_meta_cards`, `battles_trends`, `cards_synergy`, `badges_rarity` and
-  `badges_holders` take `segment`: `"mine"` (the caller's clan), `"corpus"`
+  `battles_meta_cards`, `battles_trends`, `cards_synergy`, `cards_card`,
+  `badges_rarity` and `badges_holders` take `segment`: `"mine"` (the caller's clan), `"corpus"`
   (the whole recorded corpus, said on purpose) or `{ player_tag | clan_tag |
   collection }`. The corpus is one population among the others, never a
   default: it is the matchmaking neighbourhood of the recorded clans and
@@ -128,15 +132,17 @@ trophies and the ranked standing, so the two sides of it are not one series.
   series (`players_timeline`, `clans_timeline`, `clans_members_timeline`)
   run on game days and floor an instant to its day, saying so. `days` and
   `weeks` are sugar; `season` (`current`, `previous`, `2026-08` or `135`)
-  bounds one season on every windowed tool, and is the meta tools' default.
+  bounds one season on every windowed tool, `elixir_timeline` included, and
+  is the default on the meta tools and `cards_card`.
   Every windowed response echoes `applied.window` with a `source` of
   `argument`, `default`, `unbounded`, `season` or `fixed`, the `season` it
   starts in and `crosses`, every season roll inside it (a note fires when
   there is one); see
   [Windows and timezones](/docs/clocks#windows-and-timezones) and
   [Seasons](/docs/clocks#seasons).
-- **`verbosity: "compact"` is the one size control.** It drops the bulk and
-  keeps identities and counts; a result over the delivery cap answers
+- **`verbosity: "compact"` is the one size control**, accepted on every
+  tool. It drops the bulk and keeps identities and counts (a tool with one
+  size says so in a note); a result over the delivery cap answers
   `result_too_large` naming the arguments that narrow it.
 - **Every response carries `notes[]` and `docs`.** The notes are one-sentence
   caveats to repeat with the numbers; `docs` is a `page#section` for

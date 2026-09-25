@@ -204,7 +204,7 @@ grant. Refreshing never widens scope.
 | `collections:write` | edit collections you own | `collections_edit` |
 | `account:write` | private nicknames and end-user identity mappings | `elixir_nickname`, `elixir_identify` |
 | `feedback:write` | file attributed feedback | `elixir_send_feedback` |
-| `account:email` | read the account's email address at `/oauth/userinfo` | no tool; see below |
+| `account:email` | read the account's email address at `/oauth/userinfo` (and `GET /api/v1/me`); granted only to the Elixir family's own apps | no tool; see below |
 
 Canonical order is the order above. A call to a tool outside the token's
 scope answers HTTP 403 with the `insufficient_scope` challenge and this body:
@@ -246,8 +246,11 @@ as its sign-in. The grant it needs is the ordinary one plus **`account:email`**,
 the one capability that is never offered unasked: it does not appear ticked
 on the consent page, is not part of the default grant, is never widened into
 from a checkbox or from Account → Connections, and is not advertised in a 401
-challenge. A client that names it in `scope` sees it listed with the rest on
-the consent page, and the person can decline the whole connection.
+challenge. It is offered only to the family's own apps: a client whose every
+registered redirect URI is on a family origin. Any other client is never
+granted it, whatever it names in `scope`, so the address is never released
+outside the family. A family app that names it sees it listed with the rest
+on the consent page, and the person can decline the whole connection.
 
 `GET /oauth/userinfo` with a bearer access token whose grant carries it:
 
@@ -261,8 +264,9 @@ Refusals: 401 `invalid_token` (no bearer, or not a live personal-door token),
 403 `insufficient_scope` with `WWW-Authenticate: Bearer error="insufficient_scope", scope="account:email"`,
 and 404 `email_unavailable` for an account that predates Elixir keeping the
 address and whose holder has not signed in since (the next consent fills
-it). The answer is never cached. It is the only place an account's address
-leaves Elixir.
+it). The answer is never cached. This and `GET /api/v1/me` for a family app
+holding the capability (see [Integrations](/docs/integrations)) are the only
+places an account's address leaves Elixir.
 
 ## Principals and what each sees
 
@@ -271,9 +275,9 @@ list.
 
 | Kind | Door | Hidden tools | Tools listed |
 |---|---|---|---|
-| `person` | `/mcp` | none | {{ tools.count }} |
+| `person` | `/mcp` | `elixir_identify`, `elixir_my_identities` | {{ tools.personCount }} |
 | `agent` | `/a/<public_id>/mcp` | `elixir_my_players` | {{ tools.agentCount }} |
-| `integration` | `/i/<public_id>/mcp` | `elixir_my_players`, `elixir_nickname`, `elixir_timeline`, `elixir_track_player`, `elixir_track_clan` | {{ tools.integrationCount }} |
+| `integration` | `/i/<public_id>/mcp` | `elixir_my_players`, `elixir_nickname`, `elixir_timeline`, `elixir_track_player`, `elixir_track_clan`, `elixir_identify`, `elixir_my_identities` | {{ tools.integrationCount }} |
 
 The counts are generated from the registry at build time. Hiding is
 enforced: calling a hidden tool answers JSON-RPC `-32601` with `data.kind`
@@ -335,9 +339,15 @@ until `next_offset` is `null`; `total` counts all releases matching `since`.
 Omit `since` to page through the complete history, or read the complete JSON
 resource at `elixir://changelog`.
 
-The contract is semver over the tool surface, not the code: additive is a
-minor, breaking is a major with a deprecation window. Every response carries
-`meta.contract_version`.
+The MCP contract is versioned over what an agent reasons from, not the code.
+A new capability (a tool, an argument, a field) is a minor. A correction is a
+patch, including one that removes a field that proved unreliable: an agent
+reads the current declaration, output schema and notes, so a missing field
+simply withdraws a claim. A major marks a shift in the domain model, one that
+changes what a task means. There is no deprecation window; a renamed or
+removed field goes in the release that replaces it. Every response carries
+`meta.contract_version`. The JSON API at `/api/v1` is for programs and keeps
+ordinary semver of its own ([Integrations](/docs/integrations#versions)).
 
 ## Errors
 
@@ -371,7 +381,7 @@ never carries internals.
 | `not_entitled` | `subject` | the caller lacks entitlement to the subject (clan tools, slots, identity binding) |
 | `not_recorded` | `subject` | the subject is valid but nothing has been recorded for it; on a person's door with no `clan_tag`, also the primary player's clan when it is not recorded (3.18.0: the default never slides to an alt's clan; the hint names the clan and the tracking call) |
 | `not_found` | `subject` | unknown to the record and to the live API; an unknown docs page, example or collection |
-| `no_subject` | `subject` | nothing to answer about: no primary player on the account, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag). With `display_name` beside an unmapped `on_behalf_of`, `error.candidates[]` lists the clan members whose whole name matches (`player_tag`, `name`, `clan_tag`, `role`; case and spacing ignored, never a partial match), so one candidate is one `elixir_identify` call and zero or several is a question (3.18.0) |
+| `no_subject` | `subject` | nothing to answer about: no primary player on the account, a primary player in no clan when `clan_tag` is omitted, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag). With `display_name` beside an unmapped `on_behalf_of`, `error.candidates[]` lists the clan members whose whole name matches (`player_tag`, `name`, `clan_tag`, `role`; case and spacing ignored, never a partial match), so one candidate is one `elixir_identify` call and zero or several is a question (3.18.0) |
 | `quota_exceeded` | `budget` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
 | `live_unavailable` | `server` | the live lane is not configured, or the fresh payload was refused at admission |
 | `live_pending` | `retry` | `live: true` found no read inside the API's cache window and queued one; nothing is recorded for the subject yet, so there is no answer to give now. `error.retry_after_s` (an integer, seconds) says when to call again (3.14.0; before that only the hint's English carried it) |
@@ -397,8 +407,9 @@ package), so a consumer that counted `live_pending` as a failed call and
 swept after it can stop. Transport-level refusals (the rate limit, a
 database that will not connect) carry the same envelope and class.
 
-The heavy MCP reads `battles_meta_decks`, `battles_meta_cards` and
-`clans_standings` share a query budget of **at most 18 seconds per call**,
+The heavy MCP reads `battles_meta_decks`, `battles_meta_cards`,
+`battles_trends`, `cards_card`, `cards_synergy`, `clans_standings` and
+`war_history` each have a query budget of **at most 18 seconds per call**,
 shortened if Lambda has less time remaining. It covers the whole aggregation,
 not a fresh allowance for each query. PostgreSQL cancels the work before the
 25-second Lambda ceiling so the tool can return `query_timeout`, a retry hint
@@ -438,8 +449,8 @@ population among the others and never an implicit default.
 | Family | Subject argument | Omission rule |
 |---|---|---|
 | Player tools (`players_*`, `battles_query`, `battles_performance`, `battles_decks`, `battles_cards`, `battles_opponents`, `elixir_coverage`) | `player_tag` | the caller: a person's primary player, or whoever `on_behalf_of` maps to on an agent connection |
-| Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | the recorded clan: a person's first tracked clan, an agent's clan |
-| Segment tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_synergy`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, `"corpus"`, or an object naming a player, clan or collection |
+| Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | a person's primary player's current clan (refused `not_recorded` when that clan is not recorded, `no_subject` when the primary is in no clan; never an alt's, a friend's or another tracked clan), an agent's clan |
+| Segment tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_synergy`, `cards_card`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, `"corpus"`, or an object naming a player, clan or collection |
 | `game_clock`, `cards_catalog`, the Help tools | none | no subject at all |
 
 No default is ever looked up first, and there is no "no default" guess: a
@@ -451,31 +462,40 @@ in its hint.
   zero. Anything else is `invalid_tag`. `*_tag` is one tag, `*_tags` an
   array, `collection` a collection's slug.
 - **`on_behalf_of`** (≤200 chars, opaque) selects the end user on an agent
-  connection; ignored on a personal one. An empty `player_tag` is refused as
+  connection; ignored on a personal one, where the caller is always the
+  primary player. The tools that build the map, `elixir_identify` and
+  `elixir_my_identities`, are agent-only. An empty `player_tag` is refused as
   a caller bug, never treated as "default". See [Agents](/docs/agents).
 - **Validation is strict** since 0.39.2: arguments are checked against the
   published `inputSchema` before the handler runs. An unknown enum value, an
   inverted date window, or a `limit` above the declared maximum is
   `bad_request`, never clamped or emptied.
-- **Windows** are `from` (inclusive) and `to` (exclusive) on every windowed
-  tool: an ISO instant, or `YYYY-MM-DD` resolved in the account's timezone,
-  where a date-only `to` covers that whole day. `days` and `weeks` (and
-  `seasons` on `war_history`) are sugar for `from`. The per-tool defaults are
-  on [Time and clocks](/docs/clocks#windows-and-timezones).
+- **Windows** are `from` and `to` on every windowed tool: an ISO instant,
+  or `YYYY-MM-DD` resolved in the account's timezone, where a date-only `to`
+  covers that whole day. The battle and aggregate reads take `from`
+  inclusive and `to` exclusive; the daily series count whole game days, both
+  ends included (an instant is floored to its game day, and the response
+  says so); `elixir_timeline` selects over (`from`, `to`] (below). `days` and
+  `weeks` (and `seasons` on `war_history`) are sugar for `from`, and
+  `season` bounds one season on every windowed tool. The per-tool defaults
+  are on [Time and clocks](/docs/clocks#windows-and-timezones).
 - **`timezone`** on any windowed tool is an IANA zone for that call alone:
   it resolves the date-only bounds and every local label
   (`battle_time_local` is ISO 8601 with its offset). Default: the account's
   timezone. An unknown zone is `bad_request`.
-- **`applied`** is the one echo block on every response: `window` (`from`,
+- **`applied`** is the one echo block, on every response except seven
+  (`elixir_my_players`, `elixir_my_identities`, `elixir_coverage`,
+  `collections_browse`, `elixir_collectors`, `elixir_data_insights`, and
+  `elixir_examples` without an `example`): `window` (`from`,
   `to`, `source` of `argument` | `default` | `unbounded` | `season` |
   `fixed`, `timezone`, and on the season-grained tools `season`,
   `crosses` and `season_age_days`), `limit`, `sort`, `mode`,
   `min_battles`, `segment`, `verbosity`, as used. There are no `filters_applied`, `window_*` or
   `limit_applied` keys.
-- **`verbosity: full | compact`** is the one size control, on
-  `battles_query`, `war_current`, `clans_roster`, `players_collection`
-  and `cards_catalog`; each description says what
-  `compact` drops. There is no other flag for size.
+- **`verbosity: full | compact`** is the one size control, accepted on
+  every tool. Where `compact` changes the answer the description says what
+  it drops; a tool with one size says so in a note and answers in full.
+  There is no other flag for size.
 - **`notes[]` and `docs`** ride every response: one-sentence caveats to
   repeat, and a `page#section` pointer into this documentation
   (`elixir_docs({ page, section })` or `elixir://docs/<page>#<section>`).
@@ -484,8 +504,9 @@ in its hint.
   `meta.timezone_applied` names the display zone when local labels were used.
   Timeline items carry `at`.
 - **Null is unknown, never zero**: a source never polled has `observed_at:
-  null` and `freshness_seconds: null`; an unknown war attendance is `null`; a
-  destroyed tower is `0` and unreported tower data is `null`.
+  null` and `freshness_seconds: null`; a member with no race row has `null`
+  war decks, not `0`; a destroyed tower is `0` and unreported tower data is
+  `null`.
 - **Cursors.** `battles_query` returns `next_cursor` (`null` means the end).
   Treat it as opaque: pass it back unchanged, never parse or construct one; a
   forged or stale cursor is `bad_request`. `elixir_timeline` uses instants:
@@ -513,12 +534,14 @@ in its hint.
 
 ## Feedback and the changelog, over the wire
 
-- `elixir_send_feedback({ message, category?, context?, request_id? })`: `message`
-  1 to 4000 chars; `category` one of `general` (default), `bug`,
+- `elixir_send_feedback({ message, category?, context?, request_id?, request_ids? })`: `message`
+  1 to 8000 chars; `category` one of `general` (default), `bug`,
   `data_quality`, `feature`, `praise`, `other`. `request_id` is the
   `meta.request_id` of the call the feedback is about — every response
   carries one, and passing it attaches that exact request, its arguments and
-  its answer to the report, so the maintainer sees what you saw. `context`
+  its answer to the report, so the maintainer sees what you saw.
+  `request_ids` (up to 20) carries every call a turn made when there were
+  several; the first becomes `request_id` when that was omitted. `context`
   stays free text for naming a tool or a question. Never metered.
 - `elixir_my_feedback({ limit?, offset?, status?, since? })`: `status` one of
   `new`, `seen`, `planned`, `done`, `declined`; returns `response`,

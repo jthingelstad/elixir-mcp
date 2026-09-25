@@ -8,7 +8,7 @@ navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a tier changes."
 console: ["Your budget and what spent it", "/account/usage", "Console ▸ Usage"]
-reviewed: "2026-09-19 against contract 6.1.0"
+reviewed: "2026-09-25 against contract 9.1.0"
 ---
 
 # Limits
@@ -30,11 +30,11 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 |---|---|---|---|---|
 | MCP calls per hour | every credential on the door, keyed by the **budget account** (an agent spends its owner's) | `mcp#<account>` | 300 (per-token override possible) | HTTP 429 in the standard error envelope, `error.code` `quota_exceeded`, naming the ceiling that applied, with `meta.request_id` and a `Retry-After` giving the seconds left in the hourly window |
 | Explorer calls per hour | the website's Explore page | same bucket as above | 300 | HTTP 429 `{"error":"rate_limited"}` |
-| Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` + collector credits, capped at 4× base; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
+| Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` + collector credits (one per 10 collector points, a point being a fetch that added to the record), capped at 4× base; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
 | Explorer calls per day | Explore page | same bucket | same | HTTP 429 `{"error":"quota_exceeded","message":"Daily tool-call quota reached (N per day)…"}` |
 | Live fetches per day | `live_fetch`, and `live: true` on {{ tools.liveFlagNames }}; every agent shares its owner's lane | `liveday#<account>` | role `live_fetches_per_day` or the account override; owner/admin unlimited | tool error `quota_exceeded`: "Live-fetch quota reached (N/day for the <role> tier, shared with your owner's other agents)." |
-| Player slots | `elixir_track_player`, `POST /api/claims` | live count | 50 (member to partner), +2 with an active collector; override `max_player_recordings` | MCP: `quota_exceeded` "Tracked players are capped at N for the <role> tier." Web: HTTP 429 same message |
-| Clan slots, activity | `elixir_track_clan`, `POST /api/me/clans` | live count per scope | 1 / 1 / 3 / 10, +1 with an active collector | `not_entitled` "The <role> tier has no activity-scope clan slots" or `quota_exceeded` "Your activity-scope clan slots are full (N for the <role> tier)." Web: HTTP 429 |
+| Player slots | `elixir_track_player`, `POST /api/claims` | live count | 50 (member to partner), +2 with an active collector below partner; override `max_player_recordings` | MCP: `quota_exceeded` "Tracked players are capped at N for the <role> tier." Web: HTTP 429 same message |
+| Clan slots, activity | `elixir_track_clan`, `POST /api/me/clans` | live count per scope | 1 / 1 / 3 / 10, +1 with an active collector below partner | `not_entitled` "The <role> tier has no activity-scope clan slots" or `quota_exceeded` "Your activity-scope clan slots are full (N for the <role> tier)." Web: HTTP 429 |
 | Clan slots, comprehensive | same | same | 0 / 1 / 3 / 5 | same wording with `comprehensive` |
 | Collections | `POST /api/me/collections` | live count | 0 / 0 / 5 / 20 | HTTP 403 `not_entitled` "Creating collections needs the family tier or above" or HTTP 429 `quota_exceeded` "The <role> tier can curate up to N collections." |
 | Collection members per call | `collections_edit` | per call | 500 tags | `bad_request`; a single malformed tag fails the whole call |
@@ -51,6 +51,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Collector outstanding leases | `/api/collector/lease` | per gateway | 2 unsubmitted | HTTP 429 `{"error":"lease_cap","hint":"At most 2 unsubmitted leases; submit or wait 90s."}` |
 | Collector quarantine | lease expiry | `missed_streak` | 10 expired leases in a row | HTTP 409 `{"error":"quarantined"}`; the collector drains and the owner is notified |
 | REST calls per hour | `/api/v1/*` | `rest-hour:<integration>` | per integration, default 2,000 | HTTP 429 problem `rate_limited`, `Retry-After` to the top of the hour |
+| REST calls per hour, a person | `/api/v1/*` by a person's OAuth grant | `rest-person-hour:<account>` | 600; a first-party client (every redirect on a family origin) is not metered | HTTP 429 problem `rate_limited`, `Retry-After` to the top of the hour |
 | REST calls per day | `/api/v1/*` | usage row | per integration, default 10,000 | HTTP 429 problem `daily_quota_exceeded`, `Retry-After` to UTC midnight |
 | REST profile refreshes per day | `POST /api/v1/profile-refreshes` | usage row | per integration, default 1,000; an idempotent replay does not spend one | HTTP 429 problem `refresh_quota_exceeded`, `Retry-After: 3600` |
 | REST batch size | `POST …/members` | per call | 1 to 500 tags | HTTP 400 problem `invalid_members` |
@@ -92,7 +93,7 @@ if the quota store is unreachable, approved accounts keep working.
 | Timeline game-moment ledger | indefinitely; a timeline read covers at most 30 days |
 | Captured request and response bodies of tool calls | 90 days (S3 lifecycle expiry; the console stops offering them on the same clock) |
 | OAuth tokens | 90 days past expiry (grant life is 90 days) |
-| Console sessions | 90 days absolute, 30 days sliding; rows purged 30 days after |
+| Console sessions | 90 days absolute, 30 days sliding; the address a session was last used from cleared 30 days after that use; rows purged 30 days after expiry |
 | Sign-in codes | 15 minutes live; rows purged 30 days after expiry |
 | Rate-limit counters | 7 days |
 | Integration usage rows | 90 days |
