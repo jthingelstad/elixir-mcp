@@ -192,7 +192,9 @@ export const seriesTools = {
         timezone: TIMEZONE_SCHEMA,
         granularity: GRANULARITY_SCHEMA,
         kind: KIND_SCHEMA,
-        verbosity: VERBOSITY("day and the five clan metrics per point."),
+        verbosity: VERBOSITY(
+          "day and the five clan metrics per point, or the metrics named.",
+        ),
       },
       additionalProperties: false,
     },
@@ -214,11 +216,14 @@ export const seriesTools = {
       for (const m of args.metrics ?? [])
         requireEnum(m, ALL_CLAN_METRICS, "metric");
       const compact = args.verbosity === "compact";
-      const metrics = compact
-        ? CLAN_METRICS
-        : Array.isArray(args.metrics) && args.metrics.length > 0
+      // The metrics a caller names are what both sizes answer: compact
+      // never adds any (9.2.1; it answered the five clan metrics whatever
+      // was named, so a two-metric compact read outgrew the full one).
+      const named =
+        Array.isArray(args.metrics) && args.metrics.length > 0
           ? args.metrics
-          : DEFAULT_CLAN_METRICS;
+          : null;
+      const metrics = named ?? (compact ? CLAN_METRICS : DEFAULT_CLAN_METRICS);
       const kind = args.kind ?? "daily";
       const where = [`c.clan_tag = $1`, `c.snapshot_kind = $2`];
       const params = [clanTag, kind];

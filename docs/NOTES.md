@@ -2482,4 +2482,9 @@ invoker. Elixir Clan's integration (`elixir-clan`) is provisioned through
 the `{integration}` op with a locally minted digest; Clan keeps the key as
 a NoEcho stack parameter, as Drop does. Clan's daily rule waits on one
 administrator IAM change in Clan's own stack (Jamie).
+- **The 2.3.0 deploy's acceptance** (`--acceptance=clans`): 138 cases, 1
+  failed, 9 skipped. `catalogue/clans_timeline#2` ("compact is not larger
+  than full") failed again alone, so not a flake: compact ignored named
+  `metrics` and answered the five clan metrics. Verdict: fix forward, 9.2.1
+  (compact answers the named metrics), with a test in `daily-series`.
 

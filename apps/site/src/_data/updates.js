@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-25",
+    title: "A compact clan series keeps what you asked for",
+    body: "Asking a clan's daily series for a few metrics in compact form now answers those metrics, as the full form does. It used to answer the five standard clan metrics whatever you named, so a compact answer could be larger than the full one. Contract 9.2.1.",
+  },
+  {
+    date: "2026-09-25",
     title: "Clan reads on a schedule",
     body: "An integration can now hold permission to read clans: the participation and roster reads a signed-in person already had, for any clan Elixir records. It is how Elixir Clan evaluates a clan's policy each morning with nobody signed in, so actions are waiting when leaders arrive. Integrations are provisioned by the admin. JSON API 2.3.0.",
   },
