@@ -631,9 +631,9 @@ by the clan's placement that day on points, not by the points: observed 3,000
 for first, 1,800 for second and 1,000 for third. Fame measures where a clan
 placed each day; points measure how much it played.
 
-The war surfaces served it as `clan_score`, the old, wrong name, beside
-`clan_war_trophies` from 6.19.0; that alias (and `our_clan_score` on
-`war_history.weeks`) was removed in 9.1.0. `repair_points`
+From 6.19.0 the war surfaces also served it under its old, wrong name
+beside `clan_war_trophies`; 9.1.0 removed that alias, and `war_history`'s
+weeks carry `our_clan_war_trophies`. `repair_points`
 is what repairing the boat cost: per clan on the standings, per member on
 participation, MAX-merged like every war counter.
 

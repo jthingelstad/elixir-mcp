@@ -7,14 +7,14 @@
   },
   {
     "case": "gym/342.1",
-    "reason": "rankings_timeline carries no incomplete-board note: the fix is at recording (a plausibility re-read of the reset board), which touches Jamie's 2026-09-11 decision to read the daily board at the 10:00Z reset; held for his call. rankings_players says it (7.2.6).",
+    "reason": "rankings_timeline carries no incomplete-board note. Jamie decided the recording side on 2026-09-24 (7.3.0): a reset board whose cutoff fell 40+ is re-read about 30 minutes later and the re-read replaces it for every reader. This case's window (09-20 to 09-24) holds boards recorded before that fix, never re-read, so the gap it reads is still there and unnoted; noting a pre-fix flagged board on rankings_timeline is the rankings family's next Gym round. rankings_players says it (7.2.6).",
     "until": "2026-10-08",
-    "filed": "2026-09-24"
+    "filed": "2026-09-25"
   },
   {
     "case": "gym/342.3",
-    "reason": "As 342.1: the cross-tool incomplete-board note waits on the recording-side fix Jamie decides.",
+    "reason": "As 342.1: the 09-24 reset board predates the 7.3.0 re-read, so rankings_timeline reads its gap without a note; the next rankings Gym round decides the note.",
     "until": "2026-10-08",
-    "filed": "2026-09-24"
+    "filed": "2026-09-25"
   }
 ]

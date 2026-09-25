@@ -257,7 +257,7 @@
         },
         {
           "args": {
-            "limit": 10,
+            "limit": 5,
             "player_tag": "#20JJJ2CCRU",
             "timezone": "America/Chicago"
           },

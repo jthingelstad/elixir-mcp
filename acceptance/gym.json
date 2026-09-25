@@ -4500,11 +4500,9 @@
       },
       {
         "notes_match": "WAR trophies"
-      },
-      {
-        "notes_match": "DEPRECATED"
       }
-    ]
+    ],
+    "amended": "Amended for 9.1.0 (Jamie 2026-09-25: the clan_score alias goes as a patch): the DEPRECATED note went with the alias; clan_war_trophies and its WAR trophies note stand."
   },
   {
     "id": "142.1",
@@ -9626,6 +9624,7 @@
           "segment": "mine",
           "from": "2026-09-14T10:00:00Z",
           "to": "2026-09-21T00:00:00Z",
+          "mode": "ranked",
           "verbosity": "compact",
           "limit": 5
         }
@@ -9635,7 +9634,8 @@
         "args": {
           "segment": "mine",
           "from": "2026-09-14T10:00:00Z",
-          "to": "2026-09-21T00:00:00Z"
+          "to": "2026-09-21T00:00:00Z",
+          "mode": "ranked"
         }
       }
     },
@@ -9647,7 +9647,8 @@
           "t.weeks[0].battles"
         ]
       }
-    ]
+    ],
+    "amended": "Amended for 9.1.0 (Jamie 2026-09-25: a boat defense is not the member's battle): battles_trends leaves boat defenses out while the meta tools' excluded.considered still counts every boat battle, so the identity is read in ranked, where no boat battle exists (662 = 662 on the amending read)."
   },
   {
     "id": "200.3",

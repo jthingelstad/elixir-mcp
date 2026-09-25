@@ -4,7 +4,7 @@
     {
       "args": {
         "player_tag": "#20JJJ2CCRU",
-        "limit": 10,
+        "limit": 5,
         "timezone": "America/Chicago"
       },
       "reason": "battle_time_local rides only with a timezone; towers_before/after on the rows that carry them"
