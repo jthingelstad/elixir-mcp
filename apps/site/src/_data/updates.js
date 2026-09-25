@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-25",
+    title: "What your clan did, on your timeline",
+    body: "The Elixir family's own apps can now tell Elixir what a person did in a clan: a departure a leader says was a kick or a leave, a promotion made, an award the clan granted, a member away, a message sent to the clan. Elixir Drop can say you set a new personal best. These attested facts sit apart from the game record, which only Elixir's collectors write, and each says who said it, in which app, as what role. You see one only if its type allows: anyone in the clan sees promotions, awards and messages; only the clan's leaders see whether a departure was a kick, and an agent never does, so a kick is never narrated. An app asks for the new \"Record what you do in your clan\" capability to write them, and only Elixir's own apps may. Contract 9.2.0; JSON API 2.2.0.",
+  },
+  {
+    date: "2026-09-25",
     title: "Today's war decks are the game's own count",
     body: "Who has played their war decks today now comes straight from the game's own daily counter, as Elixir last read the race. It used to add recorded war battles placed on the day by the clock, which could run ahead of the game and, for a clan whose day rolls a little early, show someone with more than four decks. The count can now trail play by a few minutes instead of guessing ahead. Contract 9.1.2.",
   },

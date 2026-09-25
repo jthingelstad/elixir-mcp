@@ -24,6 +24,11 @@ import { gameClock } from "../../ingest/src/game-clock.mjs";
 import { readRecordedProfile } from "../../ingest/src/recorded-profile.mjs";
 import { enqueueJob } from "../../scheduler/src/ledger.mjs";
 import { json, bearer, UUID_RE } from "./http.mjs";
+import {
+  removeClanFact,
+  writeClanFact,
+  writePlayerFact,
+} from "./attested-facts.mjs";
 
 /** Who an operation admits; an operation that says nothing is the
  *  integration API it was before people could call v1. */
@@ -141,6 +146,30 @@ function personRoute(db, account, method, path, query, body) {
       operation: "clans.live",
       tool: "live_fetch",
       args: { path: `/clans/${encodeURIComponent(clanTag)}` },
+    };
+  }
+  // Attested facts (2.2.0): what the person did in their clan, through a
+  // family app holding clans:attest (attested-facts.mjs checks both).
+  if (
+    method === "POST" &&
+    (m = /^\/api\/v1\/clans\/([^/]+)\/facts$/.exec(path))
+  ) {
+    const clan = decodeURIComponent(m[1]);
+    return {
+      operation: "clans.facts.write",
+      run: () => writeClanFact(db, account, clan, body),
+      statusOf: (r) => (r.created ? 201 : 200),
+    };
+  }
+  if (
+    method === "DELETE" &&
+    (m = /^\/api\/v1\/clans\/([^/]+)\/facts\/([^/]+)$/.exec(path))
+  ) {
+    const clan = decodeURIComponent(m[1]);
+    const ref = decodeURIComponent(m[2]);
+    return {
+      operation: "clans.facts.remove",
+      run: () => removeClanFact(db, account, clan, ref),
     };
   }
   if (method === "POST" && path === "/api/v1/players/names") {
@@ -435,14 +464,12 @@ export async function integrationApi(db, event, body) {
           );
       }
       if (route.tool) toolAudited = true;
+      const answer = route.tool
+        ? await runPersonTool(db, account, route)
+        : await route.run();
       response = json(
-        200,
-        {
-          data: route.tool
-            ? await runPersonTool(db, account, route)
-            : await route.run(),
-          request_id: requestId,
-        },
+        route.statusOf ? route.statusOf(answer) : 200,
+        { data: answer, request_id: requestId },
         { "x-request-id": requestId },
       );
     } else {
@@ -567,6 +594,25 @@ export async function integrationApi(db, event, body) {
             enrollment_established: true,
             recordings_started: result.recordingsStarted,
           };
+        };
+      } else if (
+        method === "POST" &&
+        (match = /^\/api\/v1\/players\/([^/]+)\/facts$/.exec(path))
+      ) {
+        // A family app's own game fact for a player (2.2.0): Elixir
+        // Drop's personal records, on its integration key.
+        operation = "players.facts.write";
+        scope = "facts:write";
+        const playerTag = decodeURIComponent(match[1]);
+        run = async () => {
+          const r = await writePlayerFact(
+            db,
+            { name: policy.name, accountId: account.accountId },
+            playerTag,
+            body,
+          );
+          status = r.created ? 201 : 200;
+          return r;
         };
       } else throw new ApiError(404, "not_found");
       if (!policy.scopes.includes(scope))

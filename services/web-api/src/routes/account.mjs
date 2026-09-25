@@ -12,6 +12,7 @@ import {
   isRole,
   ROLE_ORDER,
   OAUTH_SCOPES,
+  OAUTH_SCOPE_DETAILS,
 } from "@elixir-mcp/contracts";
 import { normalizeScope } from "../../../auth/src/index.mjs";
 import { firstAnswer } from "../first-answer.mjs";
@@ -504,19 +505,22 @@ export function accountRoutes({
           error: "invalid_scope",
           hint: `Space-separated, must include cr:read, and each must be one of: ${OAUTH_SCOPES.join(", ")}.`,
         });
-      // A non-standard capability (account:email) can be taken back here
-      // but never handed to a client that did not ask for it at consent:
-      // the update keeps it only where the family already holds it.
+      // A non-standard capability (account:email, clans:attest) can be
+      // taken back here but never handed to a client that did not ask for
+      // it at consent: the update keeps one only where the family already
+      // holds it.
+      const nonStandard = OAUTH_SCOPE_DETAILS.filter(
+        (d) => !d.standard && scope.split(" ").includes(d.scope),
+      ).map((d) => d.scope);
       const { rows } = await db.query(
         `update oauth_family f set scope = $3
          where f.family_id::text = $1 and f.revoked_at is null
            and f.account_id in (
              select account_id from account
              where account_id = $2 or owned_by_account_id = $2)
-           and (position('account:email' in $3) = 0
-                or position('account:email' in f.scope) > 0)
+           and $4::text[] <@ string_to_array(f.scope, ' ')
          returning f.family_id, f.scope`,
-        [String(body.family_id ?? ""), account.accountId, scope],
+        [String(body.family_id ?? ""), account.accountId, scope, nonStandard],
       );
       if (rows.length === 0) return json(404, { error: "not_found" });
       await logEvent(db, account.accountId, "connection_scope_changed", {

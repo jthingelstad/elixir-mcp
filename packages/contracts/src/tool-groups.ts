@@ -24,6 +24,10 @@ export const OAUTH_SCOPE = {
    *  a first-party web product signing a person in with Elixir needs
    *  the email on the account, and nothing else ever does. */
   ACCOUNT_EMAIL: "account:email",
+  /** The second never offered unasked (JSON API 2.2.0, 2026-09-25): a
+   *  family app recording what the person did in their clan as an
+   *  attested fact (`POST /api/v1/clans/{tag}/facts`). Family apps only. */
+  CLANS_ATTEST: "clans:attest",
 } as const;
 
 export type OAuthScope = (typeof OAUTH_SCOPE)[keyof typeof OAUTH_SCOPE];
@@ -80,13 +84,21 @@ export const OAUTH_SCOPE_DETAILS: ReadonlyArray<{
       "Read the email on your Elixir account, so this app can sign you in as the same person. Offered only to an app that asks for it.",
     standard: false,
   },
+  {
+    scope: OAUTH_SCOPE.CLANS_ATTEST,
+    title: "Record what you do in your clan",
+    description:
+      "Tell Elixir what you did in your clan through this app (a departure you classified, a promotion, an award, a message to the clan), labelled as yours. Offered only to the Elixir family's own apps, when they ask for it.",
+    standard: false,
+  },
 ];
 
 export const OAUTH_SCOPES: readonly OAuthScope[] = OAUTH_SCOPE_DETAILS.map(
   ({ scope }) => scope,
 );
 /** The scopes a client gets without asking, and the ones the consent page
- *  offers ticked. account:email is deliberately not among them. */
+ *  offers ticked. account:email and clans:attest are deliberately not
+ *  among them. */
 export const STANDARD_OAUTH_SCOPES: readonly OAuthScope[] =
   OAUTH_SCOPE_DETAILS.filter(({ standard }) => standard).map(
     ({ scope }) => scope,

@@ -76,11 +76,18 @@ test("redirect URI validation: https or localhost http only, no fragments", () =
 
 test("scope normalization is a closed set", () => {
   // A client that names no scope is offered every STANDARD capability
-  // (1.0.0); account:email is granted only to a client that names it.
+  // (1.0.0); account:email and clans:attest are granted only to a client
+  // that names them.
   assert.equal(normalizeScope(""), STANDARD_OAUTH_SCOPES.join(" "));
   assert.equal(
     normalizeScope(""),
-    OAUTH_SCOPES.filter((s) => s !== "account:email").join(" "),
+    OAUTH_SCOPES.filter(
+      (s) => s !== "account:email" && s !== "clans:attest",
+    ).join(" "),
+  );
+  assert.equal(
+    normalizeScope("clans:attest cr:read account:email"),
+    "cr:read account:email clans:attest",
   );
   assert.equal(
     normalizeScope("account:email cr:read"),

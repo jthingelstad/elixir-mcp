@@ -2424,3 +2424,38 @@ Jamie took the seven follow-ups one at a time; decisions are in DECISIONS.md.
 
   DECISIONS records the exception.
 
+## 2026-09-25 — Attested facts: the family's apps write back (9.2.0, JSON API 2.2.0)
+
+Door 3 of Elixir Clan's doors plan (clan.poapkings.com
+`docs/plans/elixir-doors.md`). Jamie's three calls, 2026-09-25: admit
+attested facts, **separate and labelled**; visibility **per type**; this
+round is **Elixir's door, then Clan** (Drop follows in its own session).
+
+- **Storage:** `attested_fact` (0178), apart from `clan_event` and
+  `player_event`, which stay collector-only. One row per (source, ref): a
+  retry is the same fact and a new detail the attester's newer word.
+- **Writes:** `POST /api/v1/clans/{tag}/facts` and `DELETE
+  /api/v1/clans/{tag}/facts/{ref}` for a person through a first-party
+  client holding the new non-standard scope `clans:attest` (0178 appends it
+  to the grant shape checks, NOT VALID; 0179 validates); the attester is
+  the person's verified player in the clan with the role
+  `clan_membership` holds now, checked against the type. `POST
+  /api/v1/players/{tag}/facts` for an integration with `facts:write`.
+  `services/web-api/src/attested-facts.mjs`; the registry is
+  `packages/contracts/src/facts.ts`.
+- **Reads:** the timeline only (`factItems` in `activity/entries.mjs`,
+  section `attested`). Decided per reader at read time: clan facts to a
+  reader (or an agent's owner) whose verified player is in the clan;
+  leaders' facts only to a PERSON whose verified player leads it; player
+  facts to whoever has the player as a subject. No reader, no facts: the
+  clan mail (`build-clan.mjs`, composed once per clan) carries none, and the
+  tracking mail's kind list does not name them.
+- **Amended:** DECISIONS "game facts only" and "the consumer taxonomy never
+  shapes the domain"; `verify.md`'s "the record is the same for everyone"
+  now names the one exception (a clan's word reaches its verified members).
+- **Not done here:** Drop's `elixir-drop` integration does not hold
+  `facts:write` yet (a `{integration: {action: "configure"}}` in Drop's
+  round; Jamie asked that the agent do it). A clan fact appears only for a
+  reader who has the clan as a subject; `timeline_pending` does not count
+  facts.
+

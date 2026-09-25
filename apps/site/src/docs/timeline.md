@@ -122,6 +122,8 @@ belongs to, so `sections` filters items and entries together.
 | `week_resolved` | clan | the week finished: fame, rank among the five, war trophy change |
 | `quiet_crossed`, `returned` | player, or a clan's member | a member crossed 5, 10 or 20 recorded-quiet days (never while the silence is ours: `days_since_poll` rides along), or played again after seven or more |
 | `account_*` | your account | feedback answered (`account_feedback_responded`), recordings started or stopped, role changes (`account_role_changed`), connections |
+| `departure_classified`, `role_change_made`, `award_granted`, `member_away`, `clan_message` | clan | [attested facts](/docs/integrations#attested-facts) (9.2.0): what a person did in the clan through a family app (a leader says a departure was a kick or a leave; a promotion made; the clan's own award; a member away; a Clan Leader Message or clan chat line). Section `attested`; `facts` is the fact's detail plus `player_tag` and `name` for the member it is about, `attested_by` (`app`, `player_tag`, `name`, `role`) and `visibility`. Shown only to a reader whose verified player (an agent's owner's) is in the clan; a departure's kind and an away only to a **person** whose verified player leads it, never to an agent. `at` is when it happened; it is selected by when Elixir recorded it |
+| `personal_record` | player | an attested fact from a family app's own game (Elixir Drop): `game`, `score`, `previous_best`, `attested_by`. Section `attested` |
 
 A battle a moment names (`promoted_by`, `crossed_by`) is one shape everywhere:
 `battle_id`, `battle_time`, `type`, `opponent` (`player_tag`, `name`,
@@ -259,6 +261,10 @@ entry: a clan's silence is the clan's activity.
   disclosed rung; whether that means anything is the reader's call. The same
   goes for a standout session: `crossed` names the rung, the reader decides
   whether five wins in a row is news in this clan.
+- **It never passes an app's word off as the game's.** An attested fact
+  (section `attested`) is what a person said through a family app, and
+  says so in `attested_by`; the game's own record of the same moment
+  (`member_left`, `member_role_changed`) stays beside it, raw.
 - **It never assumes what the reader is for.** The same items serve a
   clan-management routine, a highlights bot, a recruiter watching churn, a
   war-only agent, and a person reading the console. Each reads the sections

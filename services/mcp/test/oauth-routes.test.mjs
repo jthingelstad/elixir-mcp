@@ -91,6 +91,7 @@ test("discovery documents are well-formed and cacheable", async () => {
     "account:write",
     "feedback:write",
     "account:email",
+    "clans:attest",
   ]);
   const pr = await handler(
     event({ method: "GET", path: "/.well-known/oauth-protected-resource" }),
@@ -105,6 +106,7 @@ test("discovery documents are well-formed and cacheable", async () => {
     "account:write",
     "feedback:write",
     "account:email",
+    "clans:attest",
   ]);
 });
 
@@ -997,6 +999,46 @@ test("any other client asking for account:email is refused at authorize: the add
   );
   assert.equal(refused.statusCode, 400);
   assert.match(refused.body, /offered only to the Elixir family/);
+});
+
+test("clans:attest is the family's too: refused to any other app, shown to a family app that names it (JSON API 2.2.0)", async () => {
+  const reg = await handler(
+    event({
+      path: "/oauth/register",
+      body: JSON.stringify({
+        client_name: "Another app",
+        redirect_uris: [REDIRECT],
+      }),
+    }),
+  );
+  const { client_id } = JSON.parse(reg.body);
+  const refused = await handler(
+    event({
+      method: "GET",
+      path: "/oauth/authorize",
+      query: {
+        response_type: "code",
+        client_id,
+        redirect_uri: REDIRECT,
+        state: "x",
+        code_challenge: "a".repeat(43),
+        code_challenge_method: "S256",
+        scope: "cr:read clans:attest",
+        resource: RESOURCE,
+      },
+    }),
+  );
+  assert.equal(refused.statusCode, 400);
+  assert.match(
+    refused.body,
+    /clans:attest is offered only to the Elixir family/,
+  );
+  const { emailStep, tokens } = await consentFlow({
+    scope: "cr:read clans:attest",
+    redirect: "https://clan.poapkings.com/auth/callback",
+  });
+  assert.match(emailStep.body, /Record what you do in your clan/);
+  assert.equal(tokens.scope, "cr:read clans:attest");
 });
 
 test("a family app that asks for account:email is shown it, and userinfo answers the address the code proved", async () => {

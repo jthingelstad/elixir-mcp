@@ -100,4 +100,9 @@ needs "is this claim proven" can read it without a second lookup.
 [Elixir Clan](https://clan.poapkings.com) is the first consumer: signing in
 with Elixir there requires a verified player, and the clan it acts for is
 chosen from your verified claims only. No data tool changes its answers on
-it; the record is the same for everyone.
+it; the record is the same for everyone. The one thing it opens is what a
+clan says about itself: an [attested fact](/docs/integrations#attested-facts)
+a clan's leaders recorded through a family app reaches the timeline of
+readers whose **verified** player is in that clan (and a departure's kind
+only those whose verified player leads it), because it is the clan's own
+word, not the game's.

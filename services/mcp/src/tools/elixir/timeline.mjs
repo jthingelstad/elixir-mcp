@@ -60,14 +60,14 @@ export const elixir_timeline = {
         items: { type: "string" },
         maxItems: 16,
         description:
-          "Keep only items and entry sections in these sections; the summary, subject, window and player notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations. Plus account.",
+          "Keep only items and entry sections in these sections; the summary, subject, window and player notables always stay. Player sections: battles, trophies, arena, ranked, collection, badges, clan, war, presence. Clan sections: activity, roster, war, presence, standouts, donations. Plus account, and attested (9.2.0: what a person did in a clan through a family app, or a family app's game produced for a player, said as theirs).",
       },
       kinds: {
         type: "array",
         items: { type: "string" },
         maxItems: 32,
         description:
-          "Keep only timeline items of these kinds (entries are untouched): battle_session, session_standout, badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, clan_joined, clan_left, member_joined, member_left, member_role_changed, bracket_observed, race_finished, week_resolved, quiet_crossed, returned, or an account_* kind. A consumer that wakes on a few kinds reads only those.",
+          "Keep only timeline items of these kinds (entries are untouched): battle_session, session_standout, badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, clan_joined, clan_left, member_joined, member_left, member_role_changed, bracket_observed, race_finished, week_resolved, quiet_crossed, returned, the attested facts (departure_classified, role_change_made, award_granted, member_away, clan_message, personal_record; each shown only to the reader its type allows), or an account_* kind. A consumer that wakes on a few kinds reads only those.",
       },
       player_tag: {
         type: "string",
@@ -199,6 +199,7 @@ export const elixir_timeline = {
     const unknown = sections?.find(
       (k) =>
         k !== "account" &&
+        k !== "attested" &&
         !PLAYER_SECTIONS.includes(k) &&
         !CLAN_SECTIONS.includes(k),
     );
@@ -206,7 +207,7 @@ export const elixir_timeline = {
       throw new ToolFailure(
         "bad_request",
         `Unknown section '${unknown}'.`,
-        `Player sections: ${PLAYER_SECTIONS.join(", ")}. Clan sections: ${CLAN_SECTIONS.join(", ")}. Plus account.`,
+        `Player sections: ${PLAYER_SECTIONS.join(", ")}. Clan sections: ${CLAN_SECTIONS.join(", ")}. Plus account and attested.`,
       );
     const kinds =
       Array.isArray(args.kinds) && args.kinds.length > 0

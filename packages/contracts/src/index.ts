@@ -12,3 +12,4 @@ export * from "./changelog.js";
 export * from "./roles.js";
 export * from "./principals.js";
 export * from "./archetypes.js";
+export * from "./facts.js";

@@ -20,15 +20,18 @@ test("OAuth scope catalog is closed and read is the safe default", () => {
     "account:write",
     "feedback:write",
     "account:email",
+    "clans:attest",
   ]);
   // The default grant and the consent page's ticked extras are the
-  // STANDARD five; account:email is granted only to a client that names it.
+  // STANDARD five; account:email and clans:attest are granted only to a
+  // client that names them.
   assert.deepEqual(STANDARD_OAUTH_SCOPES, OAUTH_SCOPES.slice(0, 5));
   assert.equal(FULL_OAUTH_SCOPE, STANDARD_OAUTH_SCOPES.join(" "));
-  assert.equal(
-    OAUTH_SCOPE_DETAILS.find((d) => d.scope === "account:email").standard,
-    false,
-  );
+  for (const scope of ["account:email", "clans:attest"])
+    assert.equal(
+      OAUTH_SCOPE_DETAILS.find((d) => d.scope === scope).standard,
+      false,
+    );
 });
 
 test("every tool has exactly the capability its behavior requires", () => {

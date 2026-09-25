@@ -11,6 +11,7 @@ const scopes = [
   "players:read",
   "profiles:refresh",
   "collections:members:add",
+  "facts:write",
 ];
 const defaults = {
   name: "",

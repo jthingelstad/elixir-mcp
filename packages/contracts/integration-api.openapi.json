@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "2.1.0",
-    "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration). Supplied tags are unverified. Collection grants allow additions only. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
+    "version": "2.2.0",
+    "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration). Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Collection grants allow additions only. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
     {
@@ -1060,6 +1060,277 @@
           }
         }
       }
+    },
+    "/clans/{tag}/facts": {
+      "post": {
+        "operationId": "clanFactWrite",
+        "summary": "Record what the signed-in person did in their clan (an attested fact): a departure classified, a promotion or demotion made, an award granted, a member away, a message sent to the clan. Family apps only, holding clans:attest; attested by the person's verified player in the clan, with the role the record holds for it, and refused when that role may not attest the type (a Clan Leader Message: leaders and co-leaders).",
+        "x-permission": "clans:attest",
+        "x-principals": ["person"],
+        "security": [
+          {
+            "personOAuth": ["clans:attest"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A tag, # URL-encoded as %23."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttestedFactWrite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The app's earlier word for this ref, replaced.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttestedFactResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Made.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttestedFactResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clans/{tag}/facts/{ref}": {
+      "delete": {
+        "operationId": "clanFactRemove",
+        "summary": "Take back a clan fact this app wrote (a grant revoked, a message withdrawn), by its ref; by someone who may attest its type.",
+        "x-permission": "clans:attest",
+        "x-principals": ["person"],
+        "security": [
+          {
+            "personOAuth": ["clans:attest"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A tag, # URL-encoded as %23."
+          },
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removed.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "removed": {
+                          "type": "boolean"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "ref": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{tag}/facts": {
+      "post": {
+        "operationId": "playerFactWrite",
+        "summary": "Record what a family app's own game produced for a player (personal_record): seen by whoever has the player on their timeline. Supplied tags are unverified; this is never a game observation.",
+        "x-permission": "facts:write",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A tag, # URL-encoded as %23."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttestedFactWrite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The integration's earlier word for this ref, replaced.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttestedFactResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Made.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttestedFactResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1077,7 +1348,10 @@
             "authorizationUrl": "https://elixir.poapkings.com/oauth/authorize",
             "tokenUrl": "https://elixir.poapkings.com/oauth/token",
             "scopes": {
-              "cr:read": "Read the record as the signed-in person"
+              "cr:read": "Read the record as the signed-in person",
+              "recordings:write": "Track players as the signed-in person",
+              "account:email": "The account's address, family apps only",
+              "clans:attest": "Record what the person does in their clan as attested facts, family apps only"
             }
           }
         }
@@ -1279,7 +1553,7 @@
           },
           "code": {
             "type": "string",
-            "description": "The closed error code: the integration codes (unauthenticated, insufficient_scope, not_found, bad_request, invalid_json, rate_limited, daily_quota_exceeded, refresh_quota_exceeded) and, on a person operation, the tool's own (not_recorded, no_subject, invalid_tag, not_entitled, query_timeout, live_pending, internal)."
+            "description": "The closed error code: the integration codes (unauthenticated, insufficient_scope, not_found, bad_request, invalid_json, rate_limited, daily_quota_exceeded, refresh_quota_exceeded; on the fact writes: invalid_fact, unknown_fact_type, family_apps_only, not_in_clan, not_permitted, ref_conflict) and, on a person operation, the tool's own (not_recorded, no_subject, invalid_tag, not_entitled, query_timeout, live_pending, internal)."
           },
           "detail": {
             "type": "string"
@@ -1451,6 +1725,134 @@
                 "description": "The account's address, present only for an Elixir family app (every redirect on a family origin) whose grant holds account:email (2.1.0)."
               }
             }
+          }
+        }
+      },
+      "AttestedFact": {
+        "type": "object",
+        "description": "An attested fact as Elixir holds it. The type fixes the subject, who may attest it and who may see it (visibility: clan = anyone whose verified player is in the clan; leaders = a person whose verified player leads it, never an agent or mail; player = whoever has the player on their timeline).",
+        "required": [
+          "id",
+          "type",
+          "ref",
+          "subject",
+          "detail",
+          "visibility",
+          "occurred_at",
+          "recorded_at",
+          "attested_by",
+          "created"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "departure_classified",
+              "role_change_made",
+              "award_granted",
+              "member_away",
+              "clan_message",
+              "personal_record"
+            ]
+          },
+          "ref": {
+            "type": "string",
+            "description": "The app's own id for the fact."
+          },
+          "subject": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["clan", "player"]
+              },
+              "clan_tag": {
+                "type": ["string", "null"]
+              },
+              "player_tag": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["kind"]
+          },
+          "detail": {
+            "type": "object"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["clan", "leaders", "player"]
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attested_by": {
+            "type": "object",
+            "properties": {
+              "app": {
+                "type": "string"
+              },
+              "player_tag": {
+                "type": ["string", "null"]
+              },
+              "role": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["app"]
+          },
+          "created": {
+            "type": "boolean",
+            "description": "true when this write made the fact (201); false when it replaced the app's earlier word for the same ref (200)."
+          }
+        }
+      },
+      "AttestedFactResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AttestedFact"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["data", "request_id"]
+      },
+      "AttestedFactWrite": {
+        "type": "object",
+        "required": ["type", "ref", "detail"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "The app's own id for the fact: a retry with the same ref is the same fact, and a new detail for it replaces the old (the attester's newer word)."
+          },
+          "player_tag": {
+            "type": "string",
+            "description": "The member the fact is about; required for departure_classified, role_change_made, award_granted and member_away."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it happened (default now); at most an hour ahead and a year behind."
+          },
+          "detail": {
+            "type": "object",
+            "description": "The type's detail, nothing else: departure_classified {kind: kick|leave, left_at?}; role_change_made {from, to} (member, elder, coLeader, leader); award_granted {award (60), season_id, place?}; member_away {until? instant or null}; clan_message {channel: leader_message|clan_chat, title? (24), body (200)}; personal_record {game (40), score, previous_best?}."
           }
         }
       }

@@ -305,6 +305,14 @@ function onBattle(b) {
   return `, on a ${score} win over ${who}${change}`;
 }
 
+/** Who attested a fact, and through which app. */
+const attester = (f) =>
+  f.attested_by?.name ?? f.attested_by?.player_tag ?? f.attested_by?.app;
+const by = (f) => attester(f) ?? "A leader";
+const said = (f) =>
+  `${attester(f) ?? "A leader"} said${f.attested_by?.app ? ` (in ${f.attested_by.app})` : ""}`;
+const via = (f) => (f.attested_by?.app ? ` (via ${f.attested_by.app})` : "");
+
 /** One timeline item as a sentence. */
 export function itemText(it, timeZone = "UTC") {
   const f = it.facts ?? {};
@@ -378,6 +386,26 @@ export function itemText(it, timeZone = "UTC") {
       return `${at} ${member || subj} passed ${f.rung} recorded-quiet days${f.days_since_poll ? ` (last polled ${plural(f.days_since_poll, "day")} ago)` : ""}.`;
     case "returned":
       return `${at} ${member || subj} played again after ${plural(f.after_days, "quiet day")}.`;
+    // Attested facts (9.2.0): said by a person through a family app, and
+    // said as theirs.
+    case "departure_classified":
+      return `${at} ${said(f)} ${member} ${f.kind === "kick" ? "was kicked from" : "left"} ${subj}${f.kind === "kick" ? "" : " on their own"}.`;
+    case "role_change_made": {
+      const rank = { member: 0, elder: 1, coLeader: 2, leader: 3 };
+      const dir =
+        (rank[f.to] ?? 0) < (rank[f.from] ?? 0) ? "demoted" : "promoted";
+      return `${at} ${by(f)} ${dir} ${member} from ${f.from} to ${f.to} in ${subj}.`;
+    }
+    case "award_granted":
+      return `${at} ${subj} gave ${member} ${f.award}${f.place ? ` (place ${f.place})` : ""} for season ${f.season_id}${via(f)}.`;
+    case "member_away":
+      return `${at} ${member} said they are away from ${subj}${f.until ? ` until ${atLabel(f.until, timeZone)}` : ""}${via(f)}.`;
+    case "clan_message":
+      return f.channel === "leader_message"
+        ? `${at} ${by(f)} sent ${subj} a Clan Leader Message${f.title ? `, "${f.title}"` : ""}: "${f.body}"`
+        : `${at} ${by(f)} said in ${subj}'s clan chat: "${f.body}"`;
+    case "personal_record":
+      return `${at} ${subj} set a new personal best in ${f.game}: ${num(f.score)}${typeof f.previous_best === "number" ? ` (was ${num(f.previous_best)})` : ""}${via(f)}.`;
     default:
       if (it.kind.startsWith("account_")) {
         const what = it.kind.slice("account_".length).replaceAll("_", " ");

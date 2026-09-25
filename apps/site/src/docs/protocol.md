@@ -81,7 +81,7 @@ the call log.
   "grant_types_supported": ["authorization_code", "refresh_token"],
   "code_challenge_methods_supported": ["S256"],
   "token_endpoint_auth_methods_supported": ["none"],
-  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write", "account:email"]
+  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write", "account:email", "clans:attest"]
 }
 ```
 
@@ -92,15 +92,16 @@ the call log.
 {
   "resource": "https://elixir.poapkings.com/mcp",
   "authorization_servers": ["https://elixir.poapkings.com"],
-  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write", "account:email"],
+  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write", "account:email", "clans:attest"],
   "bearer_methods_supported": ["header"]
 }
 ```
 
 Both documents list every capability the server defines. The five
 **standard** ones are what the 401 challenge's `scope` advertises and what the
-consent page offers; `account:email` is the exception, described
-under [Signing a person in](#signing-a-person-in-with-elixir). **What a
+consent page offers; `account:email` and `clans:attest` are the
+exceptions, offered only to the family's own apps that name them (described
+under [Signing a person in](#signing-a-person-in-with-elixir)). **What a
 client asks for is granted; every other standard capability is a checkbox the
 person decides on the consent page**, and a client that names no scope asks
 for `cr:read` alone. On a person's own connection the checkboxes start
@@ -205,6 +206,7 @@ grant. Refreshing never widens scope.
 | `account:write` | private nicknames and end-user identity mappings | `elixir_nickname`, `elixir_identify` |
 | `feedback:write` | file attributed feedback | `elixir_send_feedback` |
 | `account:email` | read the account's email address at `/oauth/userinfo` (and `GET /api/v1/me`); granted only to the Elixir family's own apps | no tool; see below |
+| `clans:attest` | record what you do in your clan as [attested facts](/docs/integrations#attested-facts) (`POST /api/v1/clans/{tag}/facts`); granted only to the Elixir family's own apps, when they ask for it | no tool |
 
 Canonical order is the order above. A call to a tool outside the token's
 scope answers HTTP 403 with the `insufficient_scope` challenge and this body:

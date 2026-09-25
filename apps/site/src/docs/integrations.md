@@ -38,7 +38,10 @@ Agents use MCP. Programs use the **JSON API at
   live clan read), `POST /players/names`, `GET /players/{tag}/profile` and
   `GET /players/{tag}/battles` (`fresh=1` asks for a live read). A client
   whose every redirect URI is on a family origin is first-party and is not
-  metered; any other client is limited per person per hour.
+  metered; any other client is limited per person per hour. A family app
+  whose grant holds `clans:attest` records what the person did in their
+  clan with `POST /clans/{tag}/facts` (see
+  [Attested facts](#attested-facts)).
 
 The two doors keep their credentials apart. An MCP token is refused here, and a
 JSON API token is refused at MCP. These routes share the recorder and its
@@ -77,6 +80,7 @@ accountable for the integration but contributes no admin authority or quota.
 | `GET /profile-refreshes/{id}` | `profiles:refresh` | Pending, complete or failed refresh |
 | `PUT /collections/{id}/members/{tag}` | `collections:members:add` plus collection grant | Idempotent addition and recording enrollment |
 | `POST /collections/{id}/members` | Same | Bounded add-only batch |
+| `POST /players/{tag}/facts` | `facts:write` | A fact the platform's own game produced for a player ([attested facts](#attested-facts)) |
 
 Tags must be URL-encoded in paths: `#2PYQ0` becomes `%232PYQ0`. Collection IDs
 are decimal identifiers; a collection's slug is also accepted. A grant is for a
@@ -99,6 +103,12 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.2.0** (2026-09-25): [attested facts](#attested-facts). `POST
+  /clans/{tag}/facts` and `DELETE /clans/{tag}/facts/{ref}` for a person
+  through a family app holding the new scope `clans:attest`, and `POST
+  /players/{tag}/facts` for an integration with the new permission
+  `facts:write`. The OpenAPI `personOAuth` flow now lists every scope a
+  person's grant may hold here.
 - **2.1.0** (2026-09-25): `POST /me/players` tracks a player for the
   signed-in person (scope `recordings:write`), and `GET /me` carries `email`
   for a family app whose grant holds `account:email`; together they let
@@ -131,6 +141,52 @@ person's token is issued for.
 - **1.0.0** (2026-09-08): integrations by admin-issued key: the game clock,
   recorded profiles, asynchronous profile refreshes and collection
   enrollment.
+
+## Attested facts
+
+A family app can tell Elixir what a person did in a clan, and what the
+app's own game produced for a player. Elixir keeps these **attested
+facts** apart from the game record, which only collectors write, and
+labels each with the app, the person's player, their role, and when. They
+are facts with a named source, never Elixir's judgment, and they appear on
+the [timeline](/docs/timeline) of the readers their type allows.
+
+| Type | Subject | Who may attest it | Who sees it | Detail |
+| --- | --- | --- | --- | --- |
+| `departure_classified` | clan, about a member | leader, co-leader | the clan's leaders and co-leaders | `kind` (`kick` or `leave`), `left_at` |
+| `role_change_made` | clan, about a member | leader, co-leader | the clan | `from`, `to` (`member`, `elder`, `coLeader`, `leader`) |
+| `award_granted` | clan, about a member | leader, co-leader, elder | the clan | `award` (60 characters), `season_id`, `place` |
+| `member_away` | clan, about a member | leader, co-leader, or the member | the clan's leaders and co-leaders | `until` (an instant, or null) |
+| `clan_message` | clan | leader, co-leader, elder (a Clan Leader Message: leaders and co-leaders) | the clan | `channel` (`leader_message` or `clan_chat`), `title` (24), `body` (200) |
+| `personal_record` | player | an integration with `facts:write` | whoever has the player on their timeline | `game` (40), `score`, `previous_best` |
+
+"The clan" is anyone whose verified player is in it today. A fact for the
+clan's leaders reaches only a person whose verified player leads it: never
+an agent and never mail, so a kick is never narrated.
+
+A clan fact is written by a **person**, through a family app (every
+redirect URI on a family origin) whose grant holds `clans:attest`, with
+`POST /clans/{tag}/facts`:
+
+```json
+{
+  "type": "departure_classified",
+  "ref": "the app's own id for it",
+  "player_tag": "#2PPGY0Q8",
+  "occurred_at": "2026-09-25T18:00:00Z",
+  "detail": { "kind": "leave" }
+}
+```
+
+The attester is the person's **verified** player in that clan, with the
+role Elixir's roster record holds for it now; a role the type does not
+allow is refused (`not_permitted`). `ref` makes a retry the same fact
+(`200`, `created: false`) and a new detail for it the attester's newer
+word; the first write answers `201`. `occurred_at` defaults to now and may
+be at most an hour ahead or a year behind. `DELETE
+/clans/{tag}/facts/{ref}` takes one back, by someone who may attest its
+type. A player fact is an integration's, with `POST /players/{tag}/facts`
+and the same body; its tag is unverified, as everywhere on this API.
 
 ## The game clock is policy
 
@@ -202,7 +258,9 @@ V1 is add-only. Removing a tag from Drop or changing it does not remove its old
 collection membership. Integrations cannot replace membership, delete members,
 change recording depth, create collections, or upload game facts. A supplied tag
 is **unverified** and does not prove identity or participation in the platform.
-Only normal collector admission establishes canonical game observations.
+Only normal collector admission establishes canonical game observations; an
+[attested fact](#attested-facts) is a platform's own word beside them, never
+one of them.
 
 ## Limits and errors
 
@@ -216,11 +274,11 @@ These allowances do not increase the collector fleet's shared upstream budget.
 
 | Status | Meaning |
 | --- | --- |
-| 400 | `invalid_json` (checked before authentication; send `{}` on GET), `invalid_tag`, `invalid_members`, `idempotency_key_required`, or `bad_request` for a badly percent-encoded path; on a person's operation also `bad_request` and `result_too_large` from the tool |
+| 400 | `invalid_json` (checked before authentication; send `{}` on GET), `invalid_tag`, `invalid_members`, `idempotency_key_required`, or `bad_request` for a badly percent-encoded path; on a person's operation also `bad_request` and `result_too_large` from the tool; on a fact write `unknown_fact_type` or `invalid_fact` |
 | 401 | `unauthenticated`: missing, wrong-purpose, revoked or suspended credential |
-| 403 | Missing permission; `insufficient_scope` when a person's grant lacks the operation's scope; `not_entitled` from a person's tool |
+| 403 | Missing permission; `insufficient_scope` when a person's grant lacks the operation's scope; `not_entitled` from a person's tool; on a clan fact `family_apps_only`, `not_in_clan` or `not_permitted` |
 | 404 | Unknown or inaccessible resource (`not_found`); `not_recorded` for missing profile data; `no_subject` on a person's operation with nothing to answer about |
-| 409 | `enrollment_limit` or `idempotency_conflict` |
+| 409 | `enrollment_limit` or `idempotency_conflict`; `ref_conflict` when a fact's `ref` already names another type or subject |
 | 429 | `rate_limited`, `daily_quota_exceeded` or `refresh_quota_exceeded`; `quota_exceeded` from a person's tool |
 | 502 | `internal` or `live_unavailable` from a person's tool |
 | 503 | `temporarily_unavailable`; on a person's operation `live_pending` or `query_timeout`, with `retry_after_s` |

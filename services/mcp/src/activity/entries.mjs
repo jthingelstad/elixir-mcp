@@ -25,7 +25,11 @@
  */
 
 import { badgeLabel } from "../badge-names.mjs";
-import { modeGroupOf } from "@elixir-mcp/contracts";
+import {
+  ATTESTED_FACT_KINDS,
+  FAMILY_APP_NAMES,
+  modeGroupOf,
+} from "@elixir-mcp/contracts";
 import { periodAt } from "../war-period.mjs";
 import { finishInstant } from "../time.mjs";
 import {
@@ -117,6 +121,9 @@ export const ITEM_KINDS = [
   "week_resolved",
   "quiet_crossed",
   "returned",
+  // What a person did in a clan, or a family app's game produced for a
+  // player, said by the app (attested facts, 9.2.0): section `attested`.
+  ...ATTESTED_FACT_KINDS,
 ];
 
 /**
@@ -1705,6 +1712,107 @@ async function accountItems(db, accountId, fromMs, toMs) {
   }));
 }
 
+const ROLE_RANK_SQL = `max(case cm.role when 'leader' then 3 when 'coLeader' then 2
+  when 'elder' then 1 else 0 end)`;
+
+/**
+ * Attested facts (9.2.0; Jamie, 2026-09-25): what a person did in a clan
+ * through a family app, and what a family app's own game produced for a
+ * player, held apart from the game record (attested_fact, 0178). Each is
+ * shown only to the reader its type allows, decided here per reader:
+ *
+ *   - clan: the reader's (an agent's owner's) verified player is in the
+ *     clan today;
+ *   - leaders: a PERSON whose verified player leads it (leader or
+ *     co-leader); never an agent, so a kick is never narrated;
+ *   - player: the player is one of the reader's subjects.
+ *
+ * Only clan subjects carry clan facts, and nothing without a reader
+ * (the clan mail's composition) carries any. Selected by when Elixir
+ * recorded them, like every ledger item; `at` is when they happened.
+ */
+export async function factItems(db, subjects, { accountId, fromMs, toMs }) {
+  if (!accountId) return [];
+  const clanTags = subjects.filter((s) => s.kind === "clan").map((s) => s.tag);
+  const playerTags = subjects
+    .filter((s) => s.kind === "player")
+    .map((s) => s.tag);
+  if (!clanTags.length && !playerTags.length) return [];
+  const { rows: who } = await db.query(
+    `select kind, coalesce(owned_by_account_id, account_id) as seat_account
+       from account where account_id = $1`,
+    [accountId],
+  );
+  if (!who[0]) return [];
+  const seats = clanTags.length
+    ? (
+        await db.query(
+          `select cm.clan_tag, ${ROLE_RANK_SQL} as rank
+             from claim c
+             join clan_membership cm
+               on cm.player_tag = c.player_tag and cm.left_observed_at is null
+            where c.account_id = $1 and c.status = 'verified'
+              and cm.clan_tag = any($2::text[])
+            group by cm.clan_tag`,
+          [who[0].seat_account, clanTags],
+        )
+      ).rows
+    : [];
+  const inClan = seats.map((r) => r.clan_tag);
+  const leads =
+    who[0].kind === "person"
+      ? seats.filter((r) => r.rank >= 2).map((r) => r.clan_tag)
+      : [];
+  if (!inClan.length && !playerTags.length) return [];
+  const { rows } = await db.query(
+    `select f.*, cl.name as clan_name, p.name as player_name,
+            ap.name as attester_name
+       from attested_fact f
+       left join clan cl on cl.clan_tag = f.clan_tag
+       left join player p on p.player_tag = f.player_tag
+       left join player ap on ap.player_tag = f.attester_tag
+      where f.recorded_at >= ${ts(fromMs + 1)} and f.recorded_at < ${ts(toMs + 1)}
+        and ((f.subject_kind = 'clan' and f.visibility = 'clan'
+              and f.clan_tag = any($1::text[]))
+          or (f.subject_kind = 'clan' and f.visibility = 'leaders'
+              and f.clan_tag = any($2::text[]))
+          or (f.subject_kind = 'player' and f.player_tag = any($3::text[])))
+      order by f.recorded_at, f.fact_id`,
+    [inClan, leads, playerTags],
+  );
+  const nicknames = new Map(
+    subjects
+      .filter((s) => s.kind === "player" && s.nickname)
+      .map((s) => [s.tag, s.nickname]),
+  );
+  return rows.map((f) => {
+    const clan = f.subject_kind === "clan";
+    return {
+      subject_tag: clan ? f.clan_tag : f.player_tag,
+      subject_name: clan
+        ? f.clan_name
+        : (nicknames.get(f.player_tag) ?? f.player_name),
+      at: iso(f.occurred_at),
+      observed_at: iso(f.recorded_at),
+      kind: f.fact_type,
+      section: "attested",
+      facts: {
+        ...f.detail,
+        ...(clan && f.player_tag
+          ? { player_tag: f.player_tag, name: f.player_name }
+          : {}),
+        attested_by: {
+          app: FAMILY_APP_NAMES[f.source] ?? f.source,
+          player_tag: f.attester_tag,
+          name: f.attester_name,
+          role: f.attester_role,
+        },
+        visibility: f.visibility,
+      },
+    };
+  });
+}
+
 /**
  * The timeline and its entries for a list of subjects over one window.
  * Player subjects with nothing to say are listed under `quiet` rather than
@@ -1790,6 +1898,7 @@ export async function buildTimeline(
       });
   }
   items.push(...(await accountItems(db, accountId, fromMs, toMs)));
+  items.push(...(await factItems(db, subjects, { accountId, fromMs, toMs })));
   items.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
   // The same moment written twice (feedback #48, still in the 09-14
   // ledger rows, Gym #121): identical subject, kind and facts is one
