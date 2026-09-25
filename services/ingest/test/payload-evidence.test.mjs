@@ -107,6 +107,21 @@ test("values are collected only on the enum allowlist, with counts and days", ()
   assert.equal(enums["[].team[].tag"], undefined, "a tag is never a value");
 });
 
+test("a CHAOS modifier's tag is the participant's, never a value (the 2026-09-25 leak)", () => {
+  const ev = createEvidence("player_battlelog");
+  ev.add(
+    [{ modifiers: [{ tag: "#PLAYER", modifiers: ["AxeMan2"] }] }],
+    "2026-09-25",
+  );
+  const { enums } = ev.toJSON();
+  assert.equal(enums["[].modifiers[].tag"], undefined);
+  assert.deepEqual(
+    enums["[].modifiers[].modifiers[]"].values.map((v) => v.value),
+    ["AxeMan2"],
+  );
+  assert.ok(!JSON.stringify(ev.toJSON()).includes("#PLAYER"));
+});
+
 test("a map's keys are values when the map path is on the allowlist", () => {
   const ev = createEvidence("player");
   ev.add(

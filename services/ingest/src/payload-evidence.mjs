@@ -55,7 +55,6 @@ export const EVIDENCE_ENUMS = {
     "[].isHostedMatch",
     "[].boatBattleSide",
     "[].boatBattleWon",
-    "[].modifiers[].tag",
     "[].modifiers[].modifiers[]",
     "[].team[].cards[].evolutionLevel",
     "[].team[].cards[].rarity",
@@ -89,15 +88,16 @@ export const EVIDENCE_ENUMS = {
 };
 
 /** `endpoint:path` name and tag paths that are game content (a badge, an
- *  achievement, a mode, a leaderboard, a modifier), not a person or a
- *  clan. Qualified by endpoint because `items[].name` is a leaderboard's
+ *  achievement, a mode, a leaderboard), not a person or a clan. A tag
+ *  inside a list is usually a participant's: `[].modifiers[].tag` is the
+ *  player the modifiers belong to (the first audit found it here by
+ *  mistake, 2026-09-25). Qualified by endpoint because `items[].name` is a leaderboard's
  *  name on one and a player's on another. The privacy test refuses any
  *  other `name` or `tag` path in EVIDENCE_ENUMS. */
 export const GAME_CONTENT_NAME_PATHS = new Set([
   "player:badges[].name",
   "player:achievements[].name",
   "player_battlelog:[].gameMode.name",
-  "player_battlelog:[].modifiers[].tag",
   "globaltournaments:items[].gameMode.name",
   "leaderboards:items[].name",
 ]);
