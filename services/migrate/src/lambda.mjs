@@ -473,6 +473,26 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  // Only an empty payload migrates: {} is the deploy's call
+  // (deploy.mjs runMigrations). An op name the dispatcher does not know
+  // (a typo, or a known key with a falsy value such as {"stats": false})
+  // used to fall through to here and apply pending migrations to
+  // production; it is refused instead (Jamie, 2026-09-25). The ops are
+  // listed in .claude/skills/ops/ops.md.
+  const keys =
+    event && typeof event === "object" && !Array.isArray(event)
+      ? Object.keys(event)
+      : [];
+  if (keys.length > 0) {
+    const refused = {
+      error: "unknown_op",
+      keys,
+      message:
+        "No op matched this payload, so nothing ran. Copy the op's key from .claude/skills/ops/ops.md and pass true or an object; an empty payload {} runs the migrations.",
+    };
+    console.log(JSON.stringify(refused));
+    return refused;
+  }
   const here = path.dirname(fileURLToPath(import.meta.url));
   const result = await migrate({
     databaseUrl: process.env.DATABASE_URL,

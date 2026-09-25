@@ -291,6 +291,46 @@ test("ledger ops inspect and selectively requeue dead collector work", async () 
   }
 });
 
+test("a payload no op knows is refused and migrates nothing; {} still migrates", async () => {
+  // Jamie, 2026-09-25: a typo, or {"stats": false}, fell through to the
+  // migration ladder on production.
+  delete process.env.DATABASE_URL;
+  const { handler } = await import("../src/lambda.mjs");
+  for (const payload of [
+    { stat: true },
+    { stats: false },
+    { vacum: { table: "battle" } },
+  ]) {
+    const out = await handler(payload);
+    assert.equal(out.error, "unknown_op", JSON.stringify(payload));
+    assert.deepEqual(out.keys, Object.keys(payload));
+  }
+  // {} goes to the runner, which looks for the migrations bundled beside
+  // the handler at deploy (absent in the source tree): reaching it is the
+  // proof that {} still migrates.
+  process.env.DATABASE_URL = SCRATCH_URL;
+  await assert.rejects(handler({}), /migrations/);
+});
+
+test("explain_meta explains the tool's own excluded-breakdown SQL, not a copy", async () => {
+  process.env.DATABASE_URL = SCRATCH_URL;
+  const { handler } = await import("../src/lambda.mjs");
+  const out = await handler({ explain_meta: { days: 7 } });
+  const excluded = out.explains.find((e) =>
+    e.name.startsWith("excluded breakdown"),
+  );
+  assert.ok(excluded, out.explains.map((e) => e.name).join(", "));
+  assert.match(excluded.name, /the tool's own SQL/);
+  assert.match(excluded.plan, /battle_participant/);
+});
+
+test("mode_shape_census splits Ranked by league and outcome", async () => {
+  process.env.DATABASE_URL = SCRATCH_URL;
+  const { handler } = await import("../src/lambda.mjs");
+  const out = await handler({ mode_shape_census: true });
+  assert.ok(Array.isArray(out.ranked_by_league));
+});
+
 test("tables op: every user table's size and churn, the memory settings, no payloads", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
   const { handler } = await import("../src/lambda.mjs");

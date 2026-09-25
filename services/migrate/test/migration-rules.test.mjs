@@ -63,3 +63,54 @@ test("no migration rewrites a table in place", () => {
     );
   }
 });
+
+// A statement that locks a table live traffic uses fails fast rather than
+// queueing behind a long read with ingest queued behind it: 0156, 0158,
+// 0169, 0170 and 0176 open with `set local lock_timeout`, 0172-0175 did
+// not (the 2026-09-25 skill review). A table the same file creates has no
+// traffic yet and needs none.
+function touchedTables(sql) {
+  const created = new Set(
+    [
+      ...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([\w.]+)/g),
+    ].map((m) => m[1]),
+  );
+  const touched = [
+    ...sql.matchAll(
+      /\b(?:alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?|delete\s+from\s+|update\s+|create\s+(?:unique\s+)?index\s+(?:if\s+not\s+exists\s+)?(?:\w+\s+)?on\s+(?:only\s+)?)([a-z_][\w.]*)/g,
+    ),
+  ].map((m) => m[1]);
+  return [...new Set(touched)].filter((t) => !created.has(t));
+}
+
+test("a migration that locks an existing table sets lock_timeout first", () => {
+  for (const { file, sql } of checked) {
+    const tables = touchedTables(sql);
+    if (tables.length === 0) continue;
+    assert.match(
+      sql,
+      /set\s+local\s+lock_timeout\s*=/,
+      `${file} alters, updates, deletes from or indexes ${tables.join(", ")} without \`set local lock_timeout = '5s';\` at the top`,
+    );
+  }
+});
+
+test("the lock_timeout rule sees the statements it is meant to", () => {
+  assert.deepEqual(touchedTables("alter table battle add column x int;"), [
+    "battle",
+  ]);
+  assert.deepEqual(
+    touchedTables("create index idx_a on war_week (season_id);"),
+    ["war_week"],
+  );
+  assert.deepEqual(
+    touchedTables("delete from war_attendance_day where true;"),
+    ["war_attendance_day"],
+  );
+  assert.deepEqual(
+    touchedTables(
+      "create table t (id int); alter table t add column y int; create index i on t (y);",
+    ),
+    [],
+  );
+});

@@ -137,6 +137,20 @@ Establish, with receipts:
   repo's expectations; if the fix is operator-side (a machine
   down at Jamie's house or the cabin), write the precise ask in NOTES
   rather than blocking.
+- **Incident authority for three write ops (Jamie, 2026-09-25)**, only
+  while the door or the pipeline is failing, each use written into NOTES
+  with its evidence:
+  - `{terminate_backends}` on a migration or backfill backend that has
+    held its query for more than five minutes (the 0099 incident held a
+    lock for about 35). Read `{backends}` first and name that query in
+    `like`; never `true`, because every service connects as the same
+    database user and a loose pattern ends live door queries.
+  - `{gateway_drain}` for a collector submitting errors or bad data, and
+    `{gateway_recover}` once its fix is confirmed.
+
+  Every other write op without a runbook grant (`{collection}`, the
+  `{account_*}` ops, `{oauth_grants}`) stays Jamie's: they change
+  people's accounts.
 - Transient upstream failures with held cursors self-heal — report and
   watch, don't churn. (The awareness-tick triage rule from elixir-bot
   applies here unchanged.)
@@ -154,7 +168,8 @@ Establish, with receipts:
   backfill or repair looping invocations holds the whole function: a
   deploy's migration step answers
   `ReservedFunctionConcurrentInvocationLimitExceeded` (429) and the
-  deploy fails after the code has already updated. Seen twice on
+  deploy stops there: the migrate function's new bundle is in place, the
+  stack has not flipped. Seen twice on
   2026-09-22, both self-inflicted. The lease guards the CHECKOUT, not the
   cluster - a batch can run with the lease released, and an actor who
   takes the lease meanwhile can code, verify and commit but will fail at

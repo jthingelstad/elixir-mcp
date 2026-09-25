@@ -114,7 +114,8 @@ export async function explainMeta(databaseUrl, spec = {}) {
     const scope = `bp.player_tag in (select cm.player_tag from clan_membership cm
                      where cm.clan_tag = $1 and cm.left_observed_at is null)
                    and bp.battle_time >= $2`;
-    const { DUEL_TYPES } = await import("../../mcp/src/tools/shared.mjs");
+    const { excludedBreakdown } =
+      await import("../../mcp/src/tools/shared.mjs");
     await explain(
       "prior (window index)",
       `select count(*)::int as decided, count(*) filter (where bp.outcome = 'win')::int as wins
@@ -123,17 +124,22 @@ export async function explainMeta(databaseUrl, spec = {}) {
          and bp.deck_hash is not null and bp.battle_time >= $1`,
       [from],
     );
-    await explain(
-      "excluded breakdown (clan scope, as shared.excludedBreakdown)",
-      `select count(*)::int as considered,
-              count(*) filter (where b.type = any($3))::int as duels,
-              count(*) filter (where b.type_class = 'boat' and not (b.type = any($3)))::int as boat,
-              count(*) filter (where bp.outcome = 'draw' and b.type_class = 'pvp' and not (b.type = any($3)))::int as draws,
-              count(*) filter (where bp.outcome in ('win','loss') and b.type_class = 'pvp'
-                                 and not (b.type = any($3)) and bp.deck_hash is null)::int as no_deck
-       from battle_participant bp join battle b on b.battle_id = bp.battle_id
-       where ${scope}`,
-      [clanTag, from, DUEL_TYPES],
+    // The tool's own excludedBreakdown, handed a client that EXPLAINs the
+    // SQL it is given: a copy here drifted (it still joined battle after
+    // the tool stopped, 2026-09-25), and a copy explains the wrong plan.
+    await excludedBreakdown(
+      {
+        query: async (text, values) => {
+          await explain(
+            "excluded breakdown (clan scope, the tool's own SQL)",
+            text,
+            values,
+          );
+          return { rows: [{}] };
+        },
+      },
+      [scope],
+      [clanTag, from],
     );
     await explain(
       "deck aggregate (clan scope, no battle join)",

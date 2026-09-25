@@ -6,7 +6,7 @@
  * during the run waits (429) - run this to the end first.
  *
  *   AWS_PROFILE=cloud-engineer node infra/scripts/series-backfill.mjs --lane clan
- *   AWS_PROFILE=cloud-engineer node infra/scripts/series-backfill.mjs --lane player --budget 240 --batch 200
+ *   AWS_PROFILE=cloud-engineer node infra/scripts/series-backfill.mjs --lane player --budget 45 --batch 200
  *
  * Prints one line per invocation (receipts, rows, objects read, cache
  * hits, misses, remaining, ms) and a summary at the end. Exits non-zero
@@ -24,11 +24,11 @@ const flag = (name, dflt) => {
 const lane = flag("lane", null);
 if (!["clan", "player", "race", "battle"].includes(lane)) {
   console.error(
-    "usage: series-backfill.mjs --lane <clan|player|race|battle> [--budget 240] [--batch 200]",
+    "usage: series-backfill.mjs --lane <clan|player|race|battle> [--budget 45] [--batch 200]",
   );
   process.exit(2);
 }
-const budget = Number(flag("budget", 240));
+const budget = Number(flag("budget", 45)); // under the 90 s migrate-duration alarm
 const batch = Number(flag("batch", 50));
 const lambda = new LambdaClient({});
 

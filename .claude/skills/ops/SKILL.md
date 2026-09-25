@@ -59,11 +59,11 @@ named about a dozen ops and the rest could be found only by reading
    backfill holds the function, so the deploy's migration step gets a 429
    and the deploy stops (twice on 2026-09-22). The procedure is the
    `migration` skill's.
-8. **An unknown key runs the migrations.** A payload with no known key,
-   `{}` included, falls through to the migration runner (that is how
-   `deploy.mjs` applies them), so a misspelt op or `{"stats": false}`
-   applies anything pending instead of failing. Copy the key from `ops.md`
-   and pass `true` or an object.
+8. **Only `{}` migrates.** A payload with no known key, a misspelt op or
+   `{"stats": false}`, answers `"error": "unknown_op"` and runs nothing;
+   until 2026-09-25 it fell through to the migration runner and applied
+   anything pending. `{}` is the deploy's call: never send it by hand.
+   Copy the key from `ops.md` and pass `true` or an object.
 9. **Results stay out of the repo.** It is public, and results carry
    feedback text, email-hash prefixes, tags and people's timelines; every
    op but `{integration}` also logs its result to the migrate log group.

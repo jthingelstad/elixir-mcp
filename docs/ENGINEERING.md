@@ -64,7 +64,11 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
   every migration from 0176: `NOT VALID`, `VALIDATE` and `SET NOT NULL`
   never share a file, and a migration never changes a column's type in
   place, re-keys a primary key or adds a stored generated column to an
-  existing table (0152 and 0169 did; both predate the test).
+  existing table (0152 and 0169 did; both predate the test), and one that
+  locks a table it did not create sets `lock_timeout` first.
+  `migration-lock.test.mjs` pins every shipped file's sha256
+  (`db/migrations.sha256`), so an edit fails verify rather than the
+  production deploy.
 - **A backfill that does not vacuum is not finished.** A hot backfill
   leaves the visibility map empty (`relallvisible = 0`) and every
   index-only scan on the table falls back to the heap, so a big rewrite

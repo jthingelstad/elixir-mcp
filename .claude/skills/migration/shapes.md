@@ -132,8 +132,9 @@ The anatomy:
 - **A budget, a cursor and a real remaining count.** Loop batches until
   `budget_ms`, then return `{batches, filled, after, done, remaining,
   ms}`; the caller passes `after` back until `done`. 45 s stays clear of
-  the 90 s `elixir-mcp-migrate-duration` alarm, which `{series_backfill}`'s
-  240 s default trips. A real `remaining` lets anyone tell done from
+  the 90 s `elixir-mcp-migrate-duration` alarm (`{series_backfill}` and its
+  driver default to 45 s since 2026-09-25; they defaulted to 240 s and
+  tripped it). A real `remaining` lets anyone tell done from
   stuck (Run Elixir MCP).
 - **Deadlocks retry.** A batch Postgres picks as the victim (`40P01`) is
   replayed after a beat. Smaller batches overlap ingest less: the series

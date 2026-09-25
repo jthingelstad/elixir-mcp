@@ -47,9 +47,13 @@ migration not yet on `origin/main`, against this file, before `/ship`.
   applied under the live code (2026-09-17: 0117 failed after 0113-0116).
 - **Applied means immutable.** The runner compares each applied file's
   name and sha256, comments included, and refuses: "history is
-  immutable". No test catches an edited shipped file; the production
-  deploy does. Fix forward, even for a comment typo. A migration that
-  failed was never recorded and may be rewritten (0099, 0117).
+  immutable". `db/migrations.sha256` pins every file's sha256, and
+  `services/migrate/test/migration-lock.test.mjs` fails `npm run verify`
+  on an edited or removed file, or a new file without its line (the
+  failure prints the line to add). Until 2026-09-25 only the production
+  deploy caught an edit, halfway. Fix forward, even for a comment typo.
+  A migration that has not shipped may still change, with its line; one
+  that failed was never recorded and may be rewritten (0099, 0117).
 - 300 s timeout, reserved concurrency 1; a killed Lambda does not stop
   Postgres. `elixir-mcp-migrate-duration` alarms past 90 s.
 
@@ -82,7 +86,10 @@ the file that added it and 0169 re-keying `war_attendance_day` with a
 stored generated column; both stay. DECISIONS: "Lock shapes take three
 migrations - NOT VALID, then VALIDATE, then NOT NULL, each in its own
 file", since "an ALTER's lock lives to the end of its transaction"
-(NOTES 2026-09-17, Phase C). Size is not tested: 0099 would pass.
+(NOTES 2026-09-17, Phase C). It also fails a migration that alters,
+updates, deletes from or indexes a table it did not create without `set
+local lock_timeout` (added 2026-09-25: 0172-0175 had none). Size is not
+tested: 0099 would pass.
 
 ## Expand and contract
 
@@ -177,7 +184,7 @@ suite builds its own through the whole ladder (`scratchDb()` in
 `services/ingest/test/helpers.mjs`, or `migrate()`), so all run the file.
 
 ```sh
-node --test services/migrate/test/migration-rules.test.mjs
+node --test services/migrate/test/migration-rules.test.mjs services/migrate/test/migration-lock.test.mjs
 npm test -w @elixir-mcp/migrate   # ladder applies, is idempotent; fingerprint
 ```
 
@@ -219,5 +226,5 @@ API fact, or anything a DECISIONS declined line covers.
 - Never read `.env` files; the production URL lives only in the Lambda.
 - Never apply SQL to production by hand, not even to rescue a failed
   deploy: fix forward with the next number.
-- The migrate handler falls through to the ladder when no op key
-  matches: a misspelled op answers `{applied, ran}`, not an error.
+- Only `{}` runs the ladder (the deploy's call); a payload whose op key
+  the handler does not know is refused with `unknown_op` (2026-09-25).

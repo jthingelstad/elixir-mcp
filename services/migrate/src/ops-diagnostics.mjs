@@ -1085,10 +1085,26 @@ export async function modeShapeCensus(databaseUrl) {
               min(global_rank)::int as best, max(global_rank)::int as worst
          from battle_participant where global_rank is not null`,
     );
+    // Ranked by league (the 2026-09-25 reference audit's held patch): one
+    // clan's sample said leagues 1-6 carry trophy_change only on a win
+    // (+30) and starting_trophies only in league 7. This is the whole
+    // record's answer, by league and outcome.
+    const { rows: rankedByLeague } = await db.query(
+      `select b.league_number, bp.outcome,
+              count(*)::int as participants,
+              count(bp.trophy_change)::int as with_trophy_change,
+              min(bp.trophy_change)::int as min_change,
+              max(bp.trophy_change)::int as max_change,
+              count(bp.starting_trophies)::int as with_starting_trophies
+         from battle_participant bp join battle b on b.battle_id = bp.battle_id
+        where b.type = 'pathOfLegend'
+        group by 1, 2 order by 1, 2`,
+    );
     return {
       modes,
       stakes,
       trophy_rule: trophyRule,
+      ranked_by_league: rankedByLeague,
       ladder_calendar: calendar,
       ladder_levels: levels,
       trail_calendar: trailCalendar,

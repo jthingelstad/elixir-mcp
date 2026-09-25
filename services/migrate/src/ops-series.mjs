@@ -97,7 +97,7 @@ export async function seriesStatus(databaseUrl, spec = {}) {
 }
 
 /**
- * {series_backfill: {lane: 'clan'|'player'|'race'|'battle', budget_s?: 240, batch?: 200}}
+ * {series_backfill: {lane: 'clan'|'player'|'race'|'battle', budget_s?: 45, batch?: 200}}
  *
  * The backfill from the archive (time-series review Part 5). Receipts,
  * not objects, are the walk: an archived object exists once per
@@ -185,8 +185,11 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
     throw new Error(
       `series_backfill: lane must be one of ${Object.keys(LANE_ENDPOINT).join(", ")}`,
     );
+  // 45 s by default, under the migrate-duration alarm's 90 s: a longer
+  // default tripped the alarm by design (2026-09-25). A driver that
+  // wants longer invocations passes budget_s, up to 280.
   const budgetMs =
-    Math.min(Math.max(Number(spec.budget_s ?? 240), 5), 280) * 1000;
+    Math.min(Math.max(Number(spec.budget_s ?? 45), 5), 280) * 1000;
   // Fifty receipts a transaction, not two hundred: the first live run
   // (2026-09-17 21:4xZ) deadlocked against a collector submission on
   // the player rows both upsert, and a batch that holds fifty clans'
