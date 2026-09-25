@@ -1,5 +1,12 @@
 # Review 2026-09-19: the Elixir MCP interface after the record redesign
 
+**Outcome (2026-09-25):** executed in six phases on 2026-09-19, contracts
+3.14.0 through 4.0.0 (the batched major, with no deprecation window), and
+closed that day; the per-phase record is in `docs/notes/2026-W38.md`
+("Interface review, Phase 1" to "Phase 6", then the close-out). The
+execution brief it names was deleted as spent on 2026-09-25 (git history
+keeps it).
+
 Written 2026-09-18 (evening) against `docs/reviews/2026-09-18-INTERFACE-REVIEW-BRIEF.md`,
 contract **3.13.0**, commit `d0da6ed` (main, clean tree plus the brief). The
 question: after cards became rows (0091-0100), the profile and roster JSON
@@ -10,8 +17,8 @@ one cohesive record to an agent, or a 1.0.0 surface with 3.12/3.13 annexes?
 Five investigations follow: what is collected but not served; whether the
 words mean the things; eight agent journeys and the seam; the 3.13.0
 principle applied to every aggregate; and cohesion. **Recommendations only.
-Nothing here is applied.** The execution plan is
-`docs/reviews/2026-09-19-INTERFACE-EXECUTION-BRIEF.md`.
+Nothing here is applied.** The execution plan was
+`docs/reviews/2026-09-19-INTERFACE-EXECUTION-BRIEF.md` (deleted 2026-09-25).
 
 **Method.** Read in the brief's order: `AGENTS.md`, `docs/ENGINEERING.md`
 ("Tool conventions" is the baseline reviewed against), `docs/NOTES.md`

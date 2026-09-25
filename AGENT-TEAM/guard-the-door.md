@@ -43,11 +43,16 @@ on changes since the last successful review; Sunday is the full weekly sweep.
 - **Third-party data discipline.** The servers send Tinylytics
   nothing (removed 2026-09-24; the call audit and the database hold
   those facts), and page and mail counts never carry an account; the
-  public status page still shows card names only (no IPs, no machine
-  labels); Buttondown holds addresses of people who signed in, nothing
-  more; unsubscribes were never overridden.
+  public status endpoint (`/api/public/status`; the console `/status`
+  page is signed-in, and `/data/now` is the other public health read)
+  names each collector by its card name and credits its operator by
+  their primary player only, never by an IP, a machine label, the account
+  or any other claimed player (`docs/DECISIONS.md`); Buttondown holds
+  addresses of people who signed in, nothing more; unsubscribes were
+  never overridden.
 - **Blast-radius review** of the week's diffs: new env vars, new IAM
-  grants, new outbound calls from the relay, new queue consumers —
+  grants, new outbound calls from the relay or the editor (the only
+  non-VPC Lambdas), new outbox lanes or queue consumers —
   each one justified or challenged.
 
 ## Action

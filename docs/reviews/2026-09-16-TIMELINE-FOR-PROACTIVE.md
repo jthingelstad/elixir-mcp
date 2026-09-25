@@ -1,5 +1,11 @@
 # What the timeline is missing for a record-triggered clan bot — 2026-09-16
 
+**Outcome (2026-09-25):** Jamie said yes to every request and all but one
+shipped the same day as contract 3.9.0 (`session_standout`,
+`clans_standings` trophy net and current streak, `bracket_observed`,
+`kinds`, the member-name defect); `war_day_resolved` (section 4) was not
+built by decision. Record: `docs/notes/2026-W38.md`, 2026-09-16.
+
 **Status:** capability requests, not built. Written from the consumer side:
 `elixir-mcp-discord` is redesigning its proactive posting so that a
 scheduled slot is the exception and every post fires from `elixir_timeline`

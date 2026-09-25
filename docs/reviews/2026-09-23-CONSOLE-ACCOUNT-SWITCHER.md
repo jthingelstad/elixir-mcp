@@ -1,5 +1,11 @@
 # The console account switcher: you and your agents — design, 2026-09-23
 
+**Outcome (2026-09-25):** built 2026-09-23 as designed (all three phases;
+agents track over MCP at contract 7.1.0, pooled slots, re-pointing an
+agent's clan), except that Explore and Status stay in the person's own
+console; the ledger lines are in `docs/DECISIONS.md` ("The console
+switches into an agent", "Agents track, in the person's pooled slots").
+
 **Ask (Jamie):** an agent is an account the person owns, so in effect every
 person has sub-accounts. Today an agent's settings sit on its own page under
 Connections, and seeing its timeline means Connections → Agents → the agent.

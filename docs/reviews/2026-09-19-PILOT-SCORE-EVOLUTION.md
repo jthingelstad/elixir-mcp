@@ -14,7 +14,8 @@ exported the exact population both Pilot readers score, 365 days ending
 with each side's deck level, outcome, crowns, mode, starting trophies /
 Ranked rating and arena. Every number below is computed from that export
 by `scripts/pilot-evolution-2026-09-19.py`; the script reproduces them
-from the two CSVs and touches nothing else.
+from the two CSVs and touches nothing else. (The script was deleted with
+the other Pilot-era leftovers on 2026-09-25; git history keeps it.)
 
 ---
 

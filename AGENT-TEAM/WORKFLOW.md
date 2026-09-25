@@ -1,13 +1,15 @@
 # AGENT-TEAM operating model
 
-Elixir MCP is maintained by four objective owners. An objective owner is
+Elixir MCP is maintained by five objective owners (Run Elixir MCP, Keep
+the Record True, Close the Loop, Guard the Door, Keep the Boards). An objective owner is
 accountable for an outcome, not a type of task or a directory of code.
 It follows evidence through diagnosis, implementation, verification, and
 production acceptance rather than handing steps to another role.
 
 Read order for every run:
 
-1. `AGENTS.md` (the repo golden rules) and `docs/ENGINEERING.md`
+1. `AGENTS.md` (the repo golden rules), `docs/ENGINEERING.md` and the
+   ratified-decision ledger `docs/DECISIONS.md`
 2. this file and `AGENT-TEAM/READING.md`
 3. `AGENT-TEAM/README.md`
 4. the objective file and the current source documents selected by READING
@@ -29,8 +31,10 @@ READING is a document map, not a second product specification.
    Check queued notes read-only; transcribing or clearing them is a mutation.
 2. **Measure before changing.** Establish the live state from the
    objective's authoritative evidence: the public status endpoint, the
-   migrate/jobs lambda read ops, CloudWatch metrics, `mcp_call_audit`,
-   the feedback table, or a read-only probe. Reproduce an observed
+   migrate/jobs lambda read ops, Postgres (`mcp_call_audit`, the job
+   ledger, the feedback table), an alarm that fired, or a read-only
+   probe. There is no CloudWatch dashboard and no metric without an
+   alarm; Logs Insights reads the EMF line when a log is the evidence. Reproduce an observed
    problem before touching code.
 3. **Decide whether there is an objective gap.** A healthy no-op is a
    successful run; write a one-line note and stop. Do not manufacture
@@ -38,8 +42,8 @@ READING is a document map, not a second product specification.
 4. **Fix at the source, in the same run,** when the gap is clear, safe,
    and within standing authority (see each objective's Action section).
    Guards and prompt patches are last resorts; the emitter or schema is
-   almost always the right seam (see `docs/NOTES.md`: "normalize the
-   shape at the source").
+   almost always the right seam: normalize the shape at the source,
+   never with a predicate in each reader.
 5. **Check readiness, then claim the checkout lease before the first mutation.**
    For a runtime fix, verify the documented identity, required read access,
    deployment prerequisites and rollback path before editing. A successful
@@ -50,9 +54,10 @@ READING is a document map, not a second product specification.
    Claim only when the intended work is eligible:
 
    ```bash
-   node AGENT-TEAM/scripts/objective-lease.mjs claim <run|record|loop|guard>
+   node AGENT-TEAM/scripts/objective-lease.mjs claim <run|record|loop|guard|boards|session>
    ```
 
+   `session` is for an interactive session; the Gym claims `loop`.
    Keep the returned `leaseId`; `check` it before the first edit and
    before push; `release --lease-id <id>` once the worktree is clean.
    Read-only runs need no lease. A held lease means another actor —
@@ -76,7 +81,7 @@ READING is a document map, not a second product specification.
    make abort succeed. The dirty-worktree refusal remains enforced.
 
    A run with mutation eligibility and its own lease transcribes queued notes
-   into `docs/NOTES.md` under a dated heading and only then clears the queue
+   into `docs/NOTES.md` (the working notes) under a dated heading and only then clears the queue
    (`notes --clear`), so an escalation reaches the ledger even though
    the run that raised it could not commit.
 
@@ -90,17 +95,29 @@ READING is a document map, not a second product specification.
    same commit for user-visible changes; a contracts version bump
    appends a changelog entry. The tool reference (`/docs/tools`) is
    GENERATED from the MCP registry - never hand-edit it; fix the tool's
-   declaration instead. Commit small and message-first, push `main`, and
+   declaration instead. When a tool changes whose result a JSON API
+   operation mirrors (`clans_participation`, `clans_roster`, the
+   `live_fetch` clan read, `players_names`, `players_profile`,
+   `battles_query`), check the matching `/api/v1` operation in
+   `packages/contracts/integration-api.openapi.json`: the JSON API keeps
+   ordinary semver, so a removed or renamed field there is its own major
+   and a Jamie decision. Commit small and message-first, push `main`, and
    when runtime code changed, deploy:
-   `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`. Migrations run
+   `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`, adding
+   `--acceptance=<family>` whenever a tool in that family changed
+   (acceptance is opt-in per deploy and `deploy.mjs` prints a WARNING
+   when it is skipped; the whole suite, `--acceptance`, is for shared
+   code or a release). Migrations run
    BEFORE the code flip (expand-and-contract makes that safe) and a
    failed migration stops the deploy; the smoke checks after the flip
    REPORT failure loudly but do not roll back — a red smoke means fix
    forward now, not walk away. Verify the deployed behavior with a
    read.
 9. **Record the run.** Append what happened to `docs/NOTES.md` when it
-   changes durable state or a decision, and to `AGENT-TEAM/notes/` for
-   run-level detail worth keeping (findings, watches, proposals).
+   changes durable state or a decision (a ratified decision also gets its
+   one line in `docs/DECISIONS.md`), and to `AGENT-TEAM/notes/` for
+   run-level detail worth keeping (findings, watches, proposals), named
+   `<date>-<objective>.md` (`AGENT-TEAM/notes/README.md`).
    Weekly, the Friday Close the Loop pass writes
    `AGENT-TEAM/summaries/<year>-W<week>.md`.
 
@@ -123,7 +140,7 @@ READING is a document map, not a second product specification.
 Numbers with receipts: every claim in a note names its source (the
 endpoint, the query, the metric, the commit). If the evidence and a
 comment disagree, trust the live reader — comments describe past
-architecture here more than once (`docs/NOTES.md` has the scars).
+architecture here more than once (`docs/NOTES.md` and `docs/notes/` have the scars).
 
 ## Definition checks and recurring work
 

@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-09-25** — Jamie's pre-build handoff bundle for the Top 100 mail ("nothing here is implemented yet"), reviewed against the record and built 2026-09-18. Superseded by `docs/EMAIL.md` (`top_100`) and <https://elixir.poapkings.com/docs/email>. The writer prompt it lists stays at `docs/top100/generator-prompt.md` (a runtime prompt); the brief schema, sample brief and gold issue are in `services/editor/fixtures/`. Moved from `docs/top100/README.md`.
+
 # Elixir Weekly — handoff bundle
 
 A weekly newsletter about the global Path of Legends top 100, generated from

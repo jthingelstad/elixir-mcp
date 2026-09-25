@@ -73,7 +73,11 @@ decisions there as they happen and add the line to `DECISIONS.md`.
    surrogate keys; accounts touch game data only through `claim`.
 5. **`packages/contracts` is the single source of truth** for tool schemas,
    the error enum, `deck_hash`, and the meta envelope. Versioning rules:
-   `docs/ENGINEERING.md`, “The tool contract has clients that never update.”
+   `docs/ENGINEERING.md`, “The tool contract has clients that never update,”
+   and `docs/DECISIONS.md`: the MCP rule is MCP-only (majors track domain
+   shifts; removing an unreliable field is a patch), while the `/api/v1`
+   JSON API keeps ordinary semver, so a change to a tool whose result a
+   JSON API operation mirrors is checked against that operation.
 6. **Schema changes are ordered migrations in `db/migrations`**, applied only
    by the migrate Lambda at deploy — never at handler start, never by hand.
    Expand-and-contract; canonical tables are lossless by policy.
@@ -128,11 +132,14 @@ decisions there as they happen and add the line to `DECISIONS.md`.
 
 ## AGENT-TEAM
 
-Standing maintenance is objective-owned: four owners defined in
+Standing maintenance is objective-owned: five owners defined in
 `AGENT-TEAM/` (Run Elixir MCP, Keep the Record True, Close the Loop,
-Guard the Door) run on the `automations.toml` schedules. Read order for
-any objective run: this file -> `AGENT-TEAM/WORKFLOW.md` ->
-`AGENT-TEAM/README.md` -> the objective file. EVERY mutating actor on
+Guard the Door, Keep the Boards) run on the `automations.toml` schedules.
+Read order for any objective run: this file and `docs/DECISIONS.md` ->
+`AGENT-TEAM/WORKFLOW.md` -> `AGENT-TEAM/README.md` -> the objective file.
+The Elixir Gym (`.claude/skills/gym/`) is the repo skill that tests the MCP
+tool families; it replaced the daily Claude Cloud routine, which is
+retired. EVERY mutating actor on
 this checkout - objective run or interactive session - claims the
 checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
 
@@ -149,7 +156,12 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
   the dead-export/dependency check alone during refactoring. CI uses the same gate.
 - Commits are small and message-first; assert HEAD moved after committing
   (don't pipe commit output through `tail`).
-- Manual steps only Jamie can do (Supercell keys, DNS, Fastmail tokens,
+- Deploy with `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`.
+  Acceptance is opt-in per deploy and `deploy.mjs` prints a WARNING when
+  it is skipped: pass `--acceptance=<family>` whenever a tool in that
+  family changes, and the whole suite (`--acceptance`) only for shared
+  code or a release.
+- Manual steps only Jamie can do (Supercell keys, DNS, secret values,
   first-run bootstrap) get queued in `docs/NOTES.md`, not silently blocked on.
 - Collector (gateway) code lives in its OWN repo:
   `~/Projects/clash-royale/elixir-mcp-collector` (github jthingelstad/elixir-mcp-collector,
@@ -158,10 +170,12 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
   reaches the fleet only when this repo names it, which also promotes it
   to Latest. Named versions land on collectors within the hour. Follow
   `docs/RELEASING-COLLECTOR.md` — candidate, soak, name, verify, roll
-  back — it carries the platform-key trap that fails silently. The queue
-  contract stays canonical here in `packages/contracts` — contract
-  changes land server-side first (operator pointer:
-  `docs/OPERATORS.md`).
+  back — it carries the platform-key trap that fails silently. The
+  collector contract (`config`, `lease`, `submit`) stays canonical here in
+  `packages/contracts` — contract changes land server-side first
+  (operators read <https://elixir.poapkings.com/docs/operators>). There is
+  no collector version pin, not even for a canary: rollback is naming the
+  previous release.
 
 ---
 

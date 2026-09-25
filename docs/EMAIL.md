@@ -1,10 +1,11 @@
 # Weekly email — the report kinds and the written ones
 
 **Design, ratified 2026-09-18 (Jamie, in session); BUILT AND DEPLOYED the
-same night** (NOTES 2026-09-18, "Product email shipped"). Six kinds, not
-five: the milestone mail joined during the design. A SEVENTH,
-`card_of_week`, was designed and built 2026-09-22 and has its own
-section below. The public description is `/docs/email`; this file is the
+same night** (`docs/notes/2026-W38.md`, 2026-09-18, "Product email
+shipped"). There are **seven kinds** (`PRODUCT_EMAIL_KINDS` in
+`packages/contracts/src/queue.ts` is the list): the milestone mail joined
+during the design, and `card_of_week` was designed and built 2026-09-22
+and has its own section below. The public description is `/docs/email`; this file is the
 design and the engineering shape. Palette: dark for all of them
 (Jamie, from the gallery). Collector Activity is
 one mail per ACCOUNT, every collector it runs pooled.
@@ -21,7 +22,8 @@ one mail per ACCOUNT, every collector it runs pooled.
   email, and every issue carries one-click unsubscribe. Unlike the removed
   Buttondown toggle, these switches are honest — Elixir decides the send,
   so the flag is the whole truth.
-- **Four of the five are structured reports with no LLM.** elixir-bot's
+- **Five of the seven are structured reports with no LLM** (`clan_report`,
+  `arena_week`, `tracking_report`, `collector_activity`, `milestone`). elixir-bot's
   recap and Arena Dispatch narrate with a model; the cost of a generated
   email per user per week is why they are being replaced, not carried.
   Every number comes from the readers the tools use, rendered into a fixed
@@ -33,15 +35,14 @@ one mail per ACCOUNT, every collector it runs pooled.
 - **Top 100 was the first LLM email**: the same issue for everyone, content
   first (a shareable read of the global top 100 with a call to action).
   Generated once a week by a multi-pass job with an editor cycle
-  (Jamie's bundle in `docs/top100/`, the decisions under `top_100`
-  below). No human approval gate: the first readers are the beta users
+  (Jamie's bundle, archived; the decisions under `top_100` below). No human approval gate: the first readers are the beta users
   and their feedback is the review.
 - **Buttondown stays** as Jamie's own channel to users (product
-  announcements). It is not one of the five and none of the five goes
+  announcements). It is not one of the seven and none of the seven goes
   through it.
-- **One report per clan.** An account tracking several clans gets several
-  Clan Reports. Nobody runs a clan family today; a combined report is a
-  later question.
+- **One mail per kind and subject per day.** An account tracking several
+  clans gets one Clan Report per tracked clan on Monday. Nobody runs a
+  clan family today; a combined report is a later question.
 - **Arena skips a week with no battles** across the account's own tags. The
   other kinds always have something to say (Tracking is built from added
   subjects; Clan has a roster; Collector's silence is itself the report;
@@ -49,7 +50,9 @@ one mail per ACCOUNT, every collector it runs pooled.
 
 ## Cadence
 
-At most one Elixir email per person per day. 14:00Z is 09:00 CDT / 08:00
+At most one mail per kind and subject per day, and each weekly kind has
+its own day, so a person gets one weekly kind a day (one Clan Report per
+tracked clan on Monday); the milestone mail is exempt. 14:00Z is 09:00 CDT / 08:00
 CST — a morning read for the (US Central) audience, year-round, without
 DST bookkeeping.
 
@@ -154,7 +157,9 @@ the ordinary `/login`; a bulk mail never carries a magic link.
 
 ### 5. Schedule and plumbing
 
-Five EventBridge cron rules → the jobs Lambda with `{"email": "<kind>"}`.
+Nine EventBridge cron rules → the jobs Lambda: one per kind with
+`{"email": "<kind>"}` (seven), plus the two written kinds' brief builds
+(Top 100 Thu 10:30Z, Card of the Week Fri 06:00Z).
 Reserved concurrency 1 serializes them, harmless days apart. The jobs
 Lambda writes mail to the outbox (`OUTBOX_BUCKET`, `s3:PutObject` on
 `email/*`; the editor's brief goes to `editor/*`). SES is production, 14/s and 50k/day; 20 or 500
@@ -162,7 +167,7 @@ mails at one instant is a non-event.
 
 ### 6. Public docs
 
-`/docs/email`: the five kinds, what each contains, cadence, how to turn
+`/docs/email`: the seven kinds, what each contains, cadence, how to turn
 one off. A line on `/docs/privacy`. The repo does not describe product
 behaviour (AGENTS.md); this file is the design, not the description.
 
@@ -186,8 +191,10 @@ battles.** Neither shows the other's numbers.
 primary and each alt, sectioned by mode family as the Dispatch does
 (Trophy Road / Ranked / River Race / 2v2 / special events split). Who you
 battled: opponents faced, repeat opponents, clanmates met. How the week
-went: W/L, streaks, best battle, the deck used most. Skipped when zero
-battles across all the account's own tags.
+went: W/L, streaks, best battle, the deck used most. The headline is per
+mode family too, never one win rate pooled across modes (`docs/DECISIONS.md`,
+mode discipline). Skipped when zero battles across all the account's own
+tags.
 
 ### `clan_report` — Mon
 
@@ -197,15 +204,19 @@ roster, trophies, donations, joins and leaves, war; **comprehensive** adds
 per-member battle performance (the "full roster with play performance"
 needs comprehensive; true for POAP KINGS today). The war section appears
 only when a war week completed. Composed once per clan, sent to every
-person account tracking that clan.
+person account tracking that clan: one Clan Report per tracked clan.
 
 ### `top_100` — Thu
 
-One issue for everyone, the platform's one LLM email. Jamie's starting
-bundle is in `docs/top100/` (spec, generator prompt, handoff notes) and
-`services/editor/fixtures/` (brief schema, a real brief from 2026-09-18, the
-hand-written gold issue); the review that reconciled it with the record
-is in `NOTES.md` (2026-09-18, "Top 100 bundle reviewed"). Decided:
+One issue for everyone, and the first LLM email (`card_of_week` is the
+second). Jamie's starting bundle was a spec and handoff notes, archived
+2026-09-25 as `docs/archive/TOP100-SPEC.md` and
+`docs/archive/TOP100-README.md` because this file holds the reviewed
+design; the writer prompt stays at `docs/top100/generator-prompt.md`,
+which the editor loads at runtime, and `services/editor/fixtures/` holds
+the brief schema, a real brief from 2026-09-18 and the hand-written gold
+issue. The review that reconciled the bundle with the record is in
+`docs/notes/2026-W38.md` (2026-09-18, "Top 100 bundle reviewed"). Decided:
 
 - **The brief builder computes, the model writes.** ("Collector" in the
   bundle means this builder; in this repo a collector is the fetch
@@ -233,8 +244,10 @@ is in `NOTES.md` (2026-09-18, "Top 100 bundle reviewed"). Decided:
   separately; repo paths and the kind stay `top100` / `top_100`.
 - **Names are links.** Every named player links to their page in Browse.
   Every recipient is an account holder, so the sign-in is one code and
-  the link works; the public share page sends non-members through the
-  same door, which is the call to action. A "players in this issue"
+  the link works. There is no public issue page (Jamie, 2026-09-18:
+  "sharing means forwarding the email"); a forwarded issue's links send a
+  non-member through the same sign-in door, which is the call to action.
+  A "players in this issue"
   appendix in the footer carries name and tag in small type for anyone
   who needs to search elsewhere; tags appear nowhere else.
 - **Window Thu 10:00Z → Thu 10:00Z** (the one kind off the game-week
@@ -320,8 +333,10 @@ builder, its names and its facts. Decided with Jamie in session,
 
 Only accounts with a collector. Facts are in the collector ledger: fetches,
 bytes, `api_bytes` saved by edge filtering, check-ins and quiet stretches,
-breaker trips, credits earned and the +2/+1 slot bonus in force, share of
-the fleet's week (the status page already has it). Never empty: a silent
+breaker trips, credits earned and the collector slot bonus in force, share
+of the fleet's week. Credits are points ÷ 10, where a point is a fetch that
+added to the record (`new_facts > 0`), the same rule the quota applies;
+raw fetches never earn credit. Never empty: a silent
 collector is the report ("your collector went quiet Wednesday"). The
 thank-you is concrete, in the operator's own numbers.
 
@@ -347,9 +362,11 @@ as the subject. Friends' and watchers' moments are the Tracking report's.
   account_id | account_email, force}`), builders per kind calling tool
   handlers in-process (`ctx.mjs`) and the timeline's own entries, the
   ledger, `deliver`. Top 100: `top100.mjs` builds the brief, writes it to
-  `mail/top100/<date>/brief.json` and queues `{brief_key}` on
-  `EditorQueue` (the NAT-free VPC has no Lambda endpoint); `top100_accept`
-  lints and stores the issue.
+  `mail/top100/<date>/brief.json` and hands `{brief_key}` to the editor
+  through the outbox (one object under `editor/`, whose S3 notification
+  wakes the editor; the NAT-free VPC has no Lambda endpoint, and until
+  2026-09-24 this was a message on `EditorQueue`); `top100_accept` lints
+  and stores the issue.
 - `services/editor`: the non-VPC Lambda on the Anthropic API
   (`claude-opus-5`, the `EditorModel` parameter): writer with the
   `brief_value` tool, editor pass with the lint's findings, issue back to
@@ -362,11 +379,14 @@ as the subject. Friends' and watchers' moments are the Tracking report's.
   `/api/email/unsubscribe` (GET page, POST flip; the RFC 8058 form body
   tolerated). No anonymous page for an issue (Jamie, 2026-09-18): sharing
   a Top 100 is forwarding the mail.
-- Console: the Email panel on Profile (six switches, send-me-this-now,
-  recent sends). Names link to the Explore record pages that exist
-  (`/explore/player/<tag>`, `/explore/clan/<tag>`); a card page is still
-  to come.
-- Seven EventBridge rules; 0137 + 0138.
+- Console: the Email panel on Profile (one switch per kind, the Collector
+  switch only for an account with a collector; recent sends; the
+  send-me-this-now button was removed 2026-09-19). Names link to the
+  Explore record pages (`/explore/player/<tag>`, `/explore/clan/<tag>`),
+  and a card links to its public page, `/cards/<id>` (see
+  `card_of_week`).
+- EventBridge rules and migrations 0137 + 0138 (nine rules since
+  `card_of_week`; see "Schedule and plumbing").
 
 ## Send ids and the record (2026-09-19)
 
@@ -394,8 +414,10 @@ submit feedback from one." Built the same day, contract 4.2.0:
 - The footer links the record by id and, with `?report=1`, straight
   into feedback with the email attached ("Something not right? Send
   feedback about this email", Jamie's second pass the same morning).
-  Those two links carry NO campaign tag (the id is a per-recipient
-  identifier; `/docs/email` promises none travels in a tagged link) and
+  Those links carry the mail's `utm_` tags like every other link into the
+  site: a send id is a product identifier its holder can open, not a
+  tracking identifier (`docs/DECISIONS.md`, which superseded the first
+  footer pass's "no campaign tag"), and
   `apps/web/src/analytics.js` reports a record page without its id: the
   bridge normalizes `/account/activity/{c,e}/<id>` and `/admin/emails/<id>`
   to the page, and a document that LANDS on one skips the embed's raw
@@ -438,6 +460,5 @@ other rule.
 
 - The Top 100 masthead name (subjects are generated; the name is a string;
   "Ultimate Champions" is the placeholder in code).
-- A card record page in Browse, so deck lists can link.
 - Multi-clan Clan Report for a family account (no such account yet).
 - Local-morning delivery (see Cadence).

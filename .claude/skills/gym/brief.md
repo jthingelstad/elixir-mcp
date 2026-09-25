@@ -1,7 +1,7 @@
 # The Elixir Gym — tester brief
 
 This is the Gym's own prompt. Jamie wrote it, and it ran as a scheduled Claude Cloud
-routine until 2026-09-23. `SKILL.md` hands it to one subagent per run,
+routine until 2026-09-23 (the routine was retired 2026-09-25). `SKILL.md` hands it to one subagent per run,
 together with an **assignment header** (family, report path, date). Where
 the header and this brief disagree, the header wins.
 

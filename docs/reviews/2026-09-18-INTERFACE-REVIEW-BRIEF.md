@@ -2,7 +2,7 @@
 
 Written 2026-09-18 for the Fable session that runs it. This is the prompt;
 the review it produces lands beside it as `2026-09-19-INTERFACE-REVIEW.md`
-and its execution plan as `2026-09-19-INTERFACE-EXECUTION-BRIEF.md`, the
+and its execution plan as `2026-09-19-INTERFACE-EXECUTION-BRIEF.md` (deleted as spent 2026-09-25), the
 same pair the schema and time-series reviews left. Opus executes the plan
 one phase per session; Jamie gates each phase.
 
@@ -64,7 +64,7 @@ annexes bolted on.
    3.13.0 principle and its six "decisions taken inside the change". Do
    not re-litigate them; do build on them.
 3. The prior reviews, so you review at a higher altitude than they did:
-   `docs/REVIEW-2026-09-10-DOCS-TOOLS-SEAM.md` (actioned in full as
+   `docs/REVIEW-2026-09-10-DOCS-TOOLS-SEAM.md` (now `docs/reviews/2026-09-10-DOCS-TOOLS-SEAM.md`; actioned in full as
    1.0.0), `docs/DOCS-GAP-2026-09-09.md`, `docs/reviews/2026-09-16-SCHEMA-REVIEW.md`
    and `docs/reviews/2026-09-18-TIME-SERIES.md` (both executed; their
    "open" and "declined" lists are inputs), `docs/CONSUMER-SURFACES.md`,

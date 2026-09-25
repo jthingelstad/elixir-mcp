@@ -61,6 +61,16 @@ samples real values against game reality (the Observatory rule).
 - A purge or restatement must sweep EVERY table carrying the poisoned
   key, and any stamp-once field needs a revisit story (the 0021/0022
   lesson).
+- **A backfill that does not vacuum is not finished.** A bulk rewrite
+  leaves the table's visibility map empty and its index-only scans fall
+  back to the heap until a vacuum runs; finish with the migrate lambda's
+  `{vacuum: {table}}` and read its before/after `relallvisible`.
+- **Never run a backfill and a deploy together.** The migrate and jobs
+  Lambdas run at reserved concurrency 1, so a batch looping invocations
+  makes the deploy's migration step fail with a 429 after the code has
+  already updated (Run Elixir MCP, "A long batch against a Lambda").
+  Say in `docs/NOTES.md` when a long batch is running and roughly when
+  it ends.
 - New game content (cards, modes, mechanics) that the record handles
   wrongly is this owner's gap even when nothing crashes.
 

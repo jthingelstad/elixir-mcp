@@ -1,13 +1,13 @@
 # AGENT-TEAM — objective owners for Elixir MCP
 
-Four objective owners maintain Elixir MCP. Each owns a durable outcome —
+Five objective owners maintain Elixir MCP. Each owns a durable outcome —
 not a task type — and follows evidence through diagnosis, implementation,
 verification, and production acceptance itself. There is no dispatcher,
 Build Manager, or routing pipeline; building and testing are capabilities
 of every owner.
 
 This project needs a standing team more than most: data moves
-continuously (collectors → queues → projections → the record), and two
+continuously (collectors → the job ledger → projections → the record), and two
 feedback loops run at once — human feedback on the site and agent
 feedback arriving mid-session over MCP. Silence in either loop is a
 defect somewhere.
@@ -16,7 +16,7 @@ defect somewhere.
 
 | Objective | File | Primary question |
 |---|---|---|
-| **Run Elixir MCP** | `run-elixir-mcp.md` | Is the recorder pipeline healthy end to end — queues drained, collectors heartbeating, doors serving, cost visible and intended? |
+| **Run Elixir MCP** | `run-elixir-mcp.md` | Is the recorder pipeline healthy end to end — the job ledger draining, collectors heartbeating, doors serving, cost visible and intended? |
 | **Keep the Record True** | `keep-the-record-true.md` | Is what we recorded actually what happened in the game — and do our docs and projections still match the live API? |
 | **Close the Loop** | `close-the-loop.md` | Is feedback (human AND agent) plus call-audit signal turning into responses, shipped improvements, and honest docs? |
 | **Guard the Door** | `guard-the-door.md` | Are entitlements, privacy boundaries, the public repo, secrets, and the one-key rate-budget posture actually holding? |
@@ -45,7 +45,9 @@ deploys, recovery, or cost; **Keep the Record True** for game facts,
 payload meaning, projection correctness, or CR API drift; **Close the
 Loop** when the machinery works but feedback sits unanswered, agents
 stumble on tool ergonomics, or docs have gone stale; **Guard the Door**
-for secrets, entitlements, privacy, or ToS-posture questions.
+for secrets, entitlements, privacy, or ToS-posture questions; **Keep the
+Boards** for leaderboard snapshots, ranking presence and the
+board-driven collections.
 Cross-cutting work keeps one originating owner through acceptance.
 
 ## Boundaries with the neighbors
@@ -71,13 +73,23 @@ Cross-cutting work keeps one originating owner through acceptance.
 ## Project map
 
 - `CLAUDE.md` / `AGENTS.md` — golden rules; `docs/ENGINEERING.md` is the spec
-  of engineering invariants; `docs/NOTES.md` is the decision ledger (newest last).
-  `AGENT-TEAM/READING.md` selects authoritative product docs for each objective.
-- `packages/contracts` — tool schemas, queue contracts, error enum,
-  changelog. Version rules in `docs/ENGINEERING.md`.
-- `services/` — mcp (door + tools), web-api, ingest, scheduler, migrate
-  (deploy plumbing + break-glass ops), jobs (scheduled product work),
-  email-relay (the ONLY internet egress: email, analytics, enrollment).
+  of engineering invariants; `docs/DECISIONS.md` is the ratified-decision
+  ledger, one line each; `docs/NOTES.md` holds the current week's working
+  notes and `docs/notes/` the earlier weeks, where each decision's
+  reasoning lives. `AGENT-TEAM/READING.md` selects authoritative product
+  docs for each objective.
+- `packages/contracts` — tool schemas, the collector and mail message
+  contracts, error enum, changelog. Version rules in `docs/ENGINEERING.md`
+  and `docs/DECISIONS.md`: the MCP contract's majors track domain shifts
+  (removing an unreliable field is a patch), while the `/api/v1` JSON API
+  keeps ordinary semver in its own `info.version`.
+- `services/` — mcp (door + tools), web-api (site API + collector door),
+  auth (the shared credential core), ingest, scheduler (plans the job
+  ledger), migrate (deploy plumbing + break-glass ops), jobs (scheduled
+  product work), and the two non-VPC Lambdas that are the only internet
+  egress: email-relay (mail over SES, Buttondown enrollment) and editor
+  (the Anthropic API for the written mails). The VPC Lambdas hand them
+  work through the outbox bucket; the servers send analytics nothing.
 - `~/Projects/clash-royale/elixir-mcp-collector` — the collector fleet's own repo;
   queue contract stays canonical here.
 - `~/Projects/clash-royale/cr-agent-api-docs` — CR API truth; patch it when the live
@@ -86,15 +98,22 @@ Cross-cutting work keeps one originating owner through acceptance.
   DB-backed collector heartbeat, admission, and recent-fetch signals), the
   migrate lambda ops (`{stats}`, `{tables}`, `{feedback_pending}`…; `{probe}`
   is an on-demand census, never a routine read — see Run Elixir MCP), the jobs
-  lambda (sweeps, the activity row, the efficiency row), CloudWatch alarms and service metrics, and
-  `mcp_call_audit`. Per-gateway CloudWatch metrics were retired with the
-  zero-trust collector door.
+  lambda (sweeps, the activity row, the efficiency row), Postgres itself
+  (`mcp_call_audit`, the job ledger, `capture_efficiency_daily`), and the
+  alarms that fired. There is no CloudWatch dashboard, and a custom metric
+  exists only to back an alarm (`docs/DECISIONS.md`); anything else rides
+  the EMF log line, which Logs Insights reads. The console `/status` page is
+  signed-in; the public health reads are `/data/now` and
+  `/api/public/status`.
 - Gates: `npm run verify` before push; deploys via
-  `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs` (smoke-gated; add
-  `--acceptance` to gate the deploy on `acceptance/` too - read-only
-  against the live door, ~4.5 min, a red case fails the deploy - for a
-  contract bump, a query change or a release; `npm run acceptance` on
-  demand).
+  `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs` (smoke-gated).
+  Acceptance is opt-in per deploy, and `deploy.mjs` prints a WARNING when
+  it is skipped: pass `--acceptance=<family>` whenever a tool in that
+  family changes (read-only against the live door, after the code is
+  live: a red case fails the deploy's exit, and you fix forward or roll
+  back), and the whole suite, `--acceptance`, only for shared code
+  (protocol, `tools.mjs`, `shared.mjs`, ingest) or a release.
+  `npm run acceptance` runs it on demand.
 
 ## Ground rules that bind every owner
 

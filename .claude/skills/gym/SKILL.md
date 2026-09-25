@@ -22,8 +22,21 @@ build we announce.
 `players`, `rankings`, `war`
 
 These are the tool-name prefixes. `live_*` is out, and so are the web app,
-email and REST: they derive from the MCP (Jamie, 2026-09-23). The grid is
-`coverage.md` in this directory.
+email and the `/api/v1` JSON API: the Gym does not test them, because they
+derive from the MCP (Jamie, 2026-09-23). The grid is `coverage.md` in this
+directory.
+
+Out of scope for testing is not out of scope for fixing. Six JSON API
+operations serve a tool's result: `clans_participation`, `clans_roster`,
+the `live_fetch` clan read, `players_names`, `players_profile` and
+`battles_query` (wiring in `services/web-api/src/integration-api.mjs`,
+contract in `packages/contracts/integration-api.openapi.json`). A fix to
+one of those tools is checked against its operation before it ships. The
+MCP versioning rule is MCP-only (majors track domain shifts; removing an
+unreliable field is a patch), while the JSON API keeps ordinary semver, so
+a Gym patch that removes or renames a field the operation returns would be
+a JSON API major. A round that would change a JSON API response stops and
+asks Jamie (see "Stop and ask Jamie").
 
 ## The Gym's account
 
@@ -53,8 +66,13 @@ brief forbids them from using it, and your assignment header repeats that.
 1. **Preflight.**
    - Check that the connection answers: `node .claude/skills/gym/call.mjs game_clock '{}'`.
    - Check that `acceptance/gym.json` parses.
-   - No lease is needed. A Gym run writes only its report, under
-     `reports/` (ignored by git).
+   - The run itself needs no lease: the subagent writes only its report,
+     under `reports/` (ignored by git). Recording the result in
+     `coverage.md` (tracked) is a checkout write, so it is made under the
+     `loop` lease, the same lease a fix round holds
+     (`AGENT-TEAM/scripts/objective-lease.mjs claim loop`). If another
+     actor holds the lease, the report waits and the grid is updated once
+     it frees.
 2. **Build the legacy list.** Findings #1–#89 were filed from Jamie's
    account, before the Gym had its own.
    - Read them with Jamie's connection (`mcp__elixir-mcp__elixir_my_feedback`,
@@ -83,7 +101,8 @@ brief forbids them from using it, and your assignment header repeats that.
    `node .claude/skills/gym/check-appendix.mjs <report>`. If it fails, send
    the problems back to the same subagent (SendMessage) to fix. Never fix
    the Gym's cases yourself: nothing is hand-translated.
-5. **Record the result** in `coverage.md`. The run is **clean** when:
+5. **Record the result** in `coverage.md`, under the `loop` lease. The
+   run is **clean** when:
    - it filed no new findings (`praise` does not count),
    - every regression it checked was CONFIRMED FIXED.
 
@@ -99,7 +118,8 @@ day, until every family has a clean run on the build we will announce.
 2. Families whose last clean run predates a deploy that touched them.
 
 `elixir`, `game`, `badges` and `collections` are light. `battles`, `cards`
-and `rankings` read the corpus and are heavy on the db.t4g.micro.
+and `rankings` read the corpus and are heavy on the database (db.t4g.small
+since 2026-09-23, after the sweep drained the micro's EBS byte balance).
 
 **Parallelism.**
 - At the account's 300 calls an hour, ONE Gym at a time: a full run spends
@@ -125,8 +145,20 @@ Gym runs are read-only, so they may run while you fix another family.
      a `refuted` field giving the answer; the interpreter skips it with
      that reason (148.1, 148.4: event content is outside the meta population
      by decision).
+   - **Prune a refuted case once what it tests is gone.** When the field,
+     argument or behavior a refuted case exercises has left the contract
+     (a removed war-day field, a retired trophy band, a changed timeline
+     order), delete the case from `gym.json`; git and the changelog keep
+     it. Keep a refutation where the Gym misread data that still exists
+     (148.x, 183.x, 234.1, 238.3, 248.x, 249.2, 264.x): it guards against
+     the same misreading next time. A case marked `refuted` that says it
+     is held for Jamie is an open question, not a refutation; carry it in
+     the grid's notes.
    - Fix at the source. The site docs and `apps/site/src/_data/updates.js`
      go in the same commit.
+   - Check the JSON API for the six mirrored tools (see "Scope"). If the
+     fix would change what the `/api/v1` operation returns, stop: park the
+     family and ask Jamie.
    - Merge the report's appendix into `acceptance/gym.json` unchanged.
      Fetch each finding's bite:
      `acceptance/bites/fetch.mjs <date> <request-id prefix> <name> <feedback id>`.
@@ -137,7 +169,9 @@ Gym runs are read-only, so they may run while you fix another family.
    - Run `npm run verify` and check that it reached the tests: a knip
      failure stops before them.
    - Deploy: `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --acceptance=<family>`.
-     This runs only that family's cases. Use the whole suite (`--acceptance`)
+     This runs only that family's cases. Acceptance is opt-in per deploy
+     and `deploy.mjs` prints a WARNING when it is skipped, so a Gym deploy
+     always names its family. Use the whole suite (`--acceptance`)
      only for a change to shared code (protocol, tools.mjs, shared.mjs,
      ingest). On 2026-09-23 a full gate on every deploy, plus the Gym runs,
      drained the database's EBS byte balance in one afternoon.
@@ -155,7 +189,11 @@ rest):
 - a new tool,
 - a refusal that breaks existing callers,
 - anything touching a decision or declined idea in `docs/DECISIONS.md` (for example a branded
-  metric, or the 7.0.0 refusals).
+  metric, or the 7.0.0 refusals),
+- a change to a JSON API response (a fix to `clans_participation`,
+  `clans_roster`, the `live_fetch` clan read, `players_names`,
+  `players_profile` or `battles_query` that alters what its `/api/v1`
+  operation returns).
 
 **The sweep ends when** all ten families are clean, or clean-or-parked. The
 final message to Jamie has four parts:
@@ -172,6 +210,6 @@ correct answers" finding, or the sweep finishing.
 - Never read the token and never run `call.mjs` with output that could
   include it. It prints bodies, never headers.
 - Gym subagents never edit the repo. You are the only writer, under the lease.
-- The daily Claude Cloud routine (Jamie's connector, Jamie's budget) and a
-  sweep double-file if both run. Jamie decides whether the cloud routine is
-  paused or retired. Until Jamie decides, say so when a sweep starts.
+- The daily Claude Cloud Gym routine is retired (Jamie, 2026-09-25); this
+  skill replaces it. Do not re-create it: it ran on Jamie's connector and
+  budget and double-filed against a sweep.

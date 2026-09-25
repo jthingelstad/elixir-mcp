@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-09-25** — its per-consumer status is stale (Elixir Clan and Drop's runtime read the `/api/v1` JSON API), and its two live principles, "the consumer taxonomy never shapes the domain" and "hub-and-spoke PULL", now stand in `docs/DECISIONS.md`. Superseded by `docs/DECISIONS.md` and <https://elixir.poapkings.com/docs/integrations>. Moved from `docs/CONSUMER-SURFACES.md`.
+
 # Consumer Surfaces — how third parties use Elixir MCP
 
 > **The product side of this now lives at <https://elixir.poapkings.com/docs/integrations>** — start there if

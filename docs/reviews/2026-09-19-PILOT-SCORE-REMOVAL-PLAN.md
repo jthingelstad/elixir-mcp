@@ -1,5 +1,12 @@
 # Removing Pilot Score — plan, 2026-09-19
 
+**Outcome (2026-09-25):** executed as contract 5.0.0 on 2026-09-19:
+`battles_levels` and `clans_pilot_scores` removed with everything built
+on them, and "no branded or derived player metric, ever" stands in
+`docs/DECISIONS.md`. The docs this plan lists for edits were later
+archived (`docs/archive/META-INTEL.md`, `SITE-IA.md`,
+`CONSUMER-SURFACES.md`, `TOP100-SPEC.md`).
+
 **Decision (Jamie, 2026-09-19):** Pilot Score is a mirage and comes out
 entirely. Elixir will not attempt a branded metric of any kind. The lane
 is recording and making the record available; derived judgments of

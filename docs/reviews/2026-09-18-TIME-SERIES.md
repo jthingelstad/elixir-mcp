@@ -1,5 +1,12 @@
 # Time-series capture at the data layer
 
+**Outcome (2026-09-25):** Phases 1-4 shipped 2026-09-17/18 (migrations
+0126-0134, contract 3.12.0) and Phase 5 was declined; see "Outcome
+(2026-09-18)" below. Since then war facts are weekly aggregates on every
+surface (`docs/DECISIONS.md`, 2026-09-25), so no tool splits a member's
+week by the `war_attendance_day` rows designed here. The execution brief
+was deleted as spent on 2026-09-25 (git history keeps it).
+
 Written 2026-09-17 (evening) against the brief for the 2026-09-18 session.
 Assessment only; nothing here has been applied. Execution is a separate
 session, one phase at a time, gated by Jamie. The six decisions Jamie made

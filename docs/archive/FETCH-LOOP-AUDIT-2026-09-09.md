@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-09-25** — the target-batch cadence, the yield clock and the loss bound (`ELIXIR_LOSS_BOUND`) it measured and shipped were superseded on 2026-09-19 by the session clock. Superseded by `docs/DECISIONS.md` ("The session clock is the player schedule") and `services/scheduler/src/plan.mjs`. Moved from `docs/FETCH-LOOP-AUDIT-2026-09-09.md`.
+
 # Fetch-loop audit: player and battlelog polling (2026-09-09)
 
 **Status: measured 13:56-14:40Z, IMPLEMENTED the same afternoon at Jamie's

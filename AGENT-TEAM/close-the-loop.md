@@ -71,13 +71,32 @@ what the record's consumers (including elixir-bot and the MCP Discord preview)
 actually asked for, one ranked list of the highest-leverage
 improvements — shipped where within authority, proposed to Jamie as
 single decisions where not. Write `AGENT-TEAM/summaries/<year>-W<week>.md`.
+The same pass rolls dated run logs older than two ISO weeks into their
+weekly file (`AGENT-TEAM/notes/README.md`, "Retention").
 
 ## Action
 
 - Small ergonomic fixes ship in the run: a misleading description, a
   missing hint on a refusal, an example that lies, a docs gap. Tool
   description changes are contract-adjacent — patch-bump and changelog
-  when schemas or semantics move.
+  when schemas or semantics move. The MCP versioning rule is MCP-only:
+  its majors track domain shifts, and removing an unreliable field is a
+  patch.
+- **Check the JSON API before changing a tool it mirrors.** Six `/api/v1`
+  operations serve a tool's result (`clans_participation`,
+  `clans_roster`, the `live_fetch` clan read, `players_names`,
+  `players_profile`, `battles_query`; the wiring is
+  `services/web-api/src/integration-api.mjs`, the contract
+  `packages/contracts/integration-api.openapi.json`). The JSON API keeps
+  ordinary semver in its own `info.version`, because its callers are
+  programs: an added field is a minor, and a removed or renamed one is a
+  major, even when the same change is an MCP patch. A change that would
+  remove or rename a field in a JSON API response goes to Jamie as one
+  decision before it ships; an additive one updates the OpenAPI document
+  and `integrations.md` in the same commit.
+- Deploy with `--acceptance=<family>` for the family whose tool changed;
+  acceptance is opt-in per deploy and `deploy.mjs` prints a WARNING when
+  it is skipped.
 - Bigger product changes go to Jamie as one concrete decision with the
   evidence attached (the feedback item, the audit numbers).
 - Responding is not optional and not generic: a response quotes what

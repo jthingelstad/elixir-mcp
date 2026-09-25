@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-09-25** — its Pilot Score design (sections 9-10, the "Branding" note) was removed at contract 5.0.0 and contradicts "no branded or derived player metric, ever" in `docs/DECISIONS.md`. Superseded by <https://elixir.poapkings.com/docs/methodology> for what the meta tools do, and by `docs/reviews/2026-09-19-PILOT-SCORE-ASSESSMENT.md` and `-REMOVAL-PLAN.md` for why Pilot Score went. Moved from `docs/META-INTEL.md`.
+
 # Corpus meta intelligence — statistical design for review
 
 > **The product side of this now lives at <https://elixir.poapkings.com/docs/methodology>** — start there if

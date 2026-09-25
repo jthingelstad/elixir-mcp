@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-09-25** — the `clan_pulse` digest and the `war_day_open` event it designed were retired on 2026-09-13 (contract 2.0.0 dropped both rows; 3.0.0 replaced `elixir_events` with `elixir_timeline`), and the `/docs/events` page it points at no longer exists. Superseded by the timeline, <https://elixir.poapkings.com/docs/timeline>, and `docs/reviews/2026-09-13-EVENT-FEED.md`.
+
 # Clan Pulse — clan-management signals for agent routines
 
 > **The product side of this now lives at <https://elixir.poapkings.com/docs/events>** — start there if

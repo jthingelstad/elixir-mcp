@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-09-25** — the 2026-09-05 navigation spec; its own amendment banner already contradicted its body, the React foundation (2026-09-13) replaced the app it describes, Pilot Score is gone, and the console Status page is signed-in (public health lives at `/data/now` and `/api/public/status`). Superseded by the route tree in `apps/web/src/App.jsx` and the pages `apps/site` builds. Moved from `docs/SITE-IA.md`.
+
 # Site information architecture (ratified 2026-09-05)
 
 > **Amended 2026-09-07 - the site is two builds.** The IA below is

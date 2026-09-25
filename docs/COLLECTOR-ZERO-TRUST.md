@@ -1,6 +1,6 @@
 # Collector Zero-Trust — kill the IAM users
 
-**SHIPPED 2026-09-06 and live end to end** (see `NOTES.md`: "ZERO-TRUST COLLECTOR TRANSITION EXECUTED"). This document is the design as ratified; the header said "awaiting ratification" for two days after the transition was complete, which is the failure mode a status line exists to prevent. Jamie's
+**SHIPPED 2026-09-06 and live end to end** (see `docs/notes/2026-W36-W37.md`: "ZERO-TRUST COLLECTOR TRANSITION EXECUTED"). This document is the design as ratified; the header said "awaiting ratification" for two days after the transition was complete, which is the failure mode a status line exists to prevent. The transport under the doors changed after it shipped: jobs live in the Postgres job ledger (0040) rather than SQS request queues, a submit is ingested inline rather than sent to a results queue, and since 2026-09-11 a collector checks in rather than long-polling. The sections below describe that, and mark what was retired. How to run a collector is public: <https://elixir.poapkings.com/docs/operators>. Jamie's
 directive: operators cannot be assumed safe; collectors must have NO
 AWS connectivity — pure API clients of Elixir MCP with a token we
 issue, a launch-time contract so collection changes need no client
@@ -27,9 +27,10 @@ zero-trust.** An enrolled operator is a person we have decided to
 trust with write access to the permanent public corpus, and enrollment
 should be treated with exactly that weight. This is tolerable because
 enrollment is not self-serve: raising a hand does nothing until the
-maintainer hand-issues an IP-allowlisted CR key and per-gateway
-credentials out of band, and every collector to date is one of Jamie's
-own machines.
+maintainer approves it, and approval issues only a one-time bearer token.
+The operator brings their own CR key, allowlisted to their own IP with
+Supercell; Elixir never issues or stores one. When this was written
+(2026-09-06) every collector was one of Jamie's own machines.
 
 **The activation gate.** Before the first gateway run by someone other
 than the maintainer is moved to `active`, either the shadow lane below
@@ -47,11 +48,11 @@ seen by an honest clanmate's collector must survive the excision.
 Treat "lies are removable" as an intention with a plausible mechanism
 under it, not as a capability on the shelf.
 
-## Assessment of the current model — the worry is justified
+## Assessment of the IAM-user model it replaced (2026-09-06) — the worry was justified
 
-Today each collector holds a per-collector **IAM user** (a principal
+Before 2026-09-06 each collector held a per-collector **IAM user** (a principal
 inside the AWS account) plus the operator's own CR key. Verified
-against the shipped code, three concrete problems:
+against the code shipped then, three concrete problems:
 
 1. **`cloudwatch:PutMetricData` on `Resource: "*"`**
    (provision-gateway.mjs). PutMetricData cannot be resource-scoped and
@@ -82,9 +83,9 @@ is right, and it also deletes our most complex operational flow.**
 
 ### Doors
 
-Three routes on the existing hostname, served by web-api (which already
-sits in the VPC with SQS + DB access), Bearer-authenticated by a
-per-collector token:
+Three routes on the existing hostname, served by web-api (which sits in
+the VPC with database access), Bearer-authenticated by a per-collector
+token:
 
 - **`GET /api/collector/config`** — the launch-time contract:
   `{contract_version, pacing_ms, breaker: {threshold_403, cooldown_s},
@@ -102,14 +103,17 @@ per-collector token:
   are served first to whichever collector checks in.
   **`cr_path` is computed by the server** — the client never learns
   endpoint→path mapping, so new CR endpoints and collection changes
-  ship with zero client changes. `lease` is the opaque SQS receipt
-  handle; the 60s visibility timeout means a leased-but-never-submitted
-  job redelivers itself — an operator can no longer black-hole work.
+  ship with zero client changes. `lease` is an opaque, signed handle on
+  a row in the Postgres job ledger (0040; it was an SQS receipt handle
+  until then). A lease expires unsubmitted after 90 s and the job goes
+  back to `queued`, so an operator can no longer black-hole work; after
+  five attempts the job is `dead` (see "The black-hole collector").
 - **`POST /api/collector/submit`** — `{lease, status, body_gzip_b64 |
   error}`. The server builds the result envelope, **stamps gateway_id
-  and gateway_sha server-side from the token** (spoofing dies), sends
-  to the results queue, deletes the request message. Every
-  authenticated call also stamps `last_heartbeat_at` in the DB.
+  and gateway_sha server-side from the token** (spoofing dies), ingests
+  it inline in the same request and settles the ledger job (there is no
+  results queue). Every authenticated call also stamps
+  `last_heartbeat_at` in the DB.
 
 The client loop collapses to: config → `lease → fetch cr_path (paced)
 → submit`. No AWS SDK in either runtime — the Go binary drops
@@ -139,16 +143,18 @@ generates the token and the one-time download IS the provisioning.
 
 The per-gateway CloudWatch namespaces (`ElixirMCP/Gateway/<name>`) go
 away with the permission that fed them. DB heartbeats (already shown on
-the public Status page) become the single fleet-health truth; fleet
-death is already alarmed via bulk-queue age. One less credential use,
-one less unpinnable permission, no custom-metric spend.
+the Status page) become the single fleet-health truth; fleet death is
+alarmed by `LedgerOldestJobAlarm` (`OldestQueuedAgeSeconds` in
+`ElixirMCP/Ledger`: the oldest queued job 30 minutes old across two
+15-minute periods), and an exhausted job by `LedgerDeadJobsAlarm`. One
+less credential use, one less unpinnable permission.
 
 ### What a hostile operator can still do — and can't
 
 Still can: fetch wrong/garbage data (admission + identity binding +
-lifecycle quarantine bound it), sit on leases (visibility timeout
-redelivers), hammer the API (rate-limited per token, revocable
-instantly). **Can no longer:** touch any AWS API, impersonate another
+lifecycle quarantine bound it), sit on leases (each expires in 90 s and
+the job returns to the ledger), hammer the API (rate-limited per token,
+revocable instantly). **Can no longer:** touch any AWS API, impersonate another
 collector, delete work unprocessed, forge metrics, or learn anything
 about the tenant beyond three HTTPS endpoints.
 
@@ -204,8 +210,9 @@ postures, so it is a separate decision:
    live means a Supercell key in Secrets Manager, resolved into a
    fetcher Lambda. IP-bound and revocable, but a rule change.
 2. **The VPC would need egress.** NAT-free is a security posture. A
-   managed NAT gateway is ~$32/mo (material against the $40 cost
-   alarm); the hobby-honest alternative is a t4g.nano NAT instance
+   managed NAT gateway is ~$32/mo (material for a hobby account; the
+   $40 cost alarm this once cited was removed 2026-09-24); the
+   hobby-honest alternative is a t4g.nano NAT instance
    with an Elastic IP (~$4/mo) — which is a small pet to keep.
    Supercell allowlists the EIP.
 
@@ -228,8 +235,10 @@ took priority work (see the retired-section note above).
   jobs gain up to one check-in interval of latency, irrelevant
   against cadences measured in minutes.
 - One extra HTTPS hop per job (~50–150ms) against a 1.5s pace — negligible.
-- web-api's role gains receive/delete on request queues + send on
-  results (an internal role, not an operator credential).
+- (Retired with the SQS transport: web-api's role once gained
+  receive/delete on the request queues and send on results. The door
+  now reads and writes the job ledger in Postgres and holds no queue
+  grants for collector work.)
 - The bearer token is still a secret in the operator's .env — but
   single-purpose, instantly revocable, and worthless against AWS.
 
@@ -276,11 +285,11 @@ ever includes strangers at scale.)
 
 ### The black-hole collector (takes work, never responds)
 
-The visibility timeout already guarantees no job is LOST — an
-unsubmitted lease redelivers in 60s. What it doesn't stop is a
-persistent black-holer grabbing jobs repeatedly: five failed
-deliveries dead-letters a job, so a determined black-holer could walk
-the queue into the DLQ. Because leasing is now server-mediated, we can
+The lease expiry guarantees no job is LOST: an unsubmitted lease
+expires after 90 s and the job returns to the ledger. What it doesn't
+stop is a persistent black-holer grabbing jobs repeatedly: a job whose
+fifth lease expires is marked `dead`, so a determined black-holer could
+walk work into the dead state. Because leasing is server-mediated, we can
 do what the SQS-direct model never could:
 
 - **Outstanding-lease cap**: at most 2 unsubmitted leases per token —
@@ -294,13 +303,14 @@ do what the SQS-direct model never could:
   1500ms pacing floor, so it bounds abuse without touching collection.
   Distinct from the lease cap, which bounds concurrent WORK rather than
   request volume.
-- **Yield accounting**: the door counts leases issued vs results
-  submitted per token. A collector whose submit ratio collapses (or
-  goes N consecutive leases without a submit) is **auto-quarantined**:
-  the server simply stops issuing it leases, flips it to drain, and
-  notifies the owner (existing owner_notify path + feed event). Honest
-  collectors are unaffected; the failure is visible in minutes instead
-  of as mysteriously falling yield.
+- **Missed-streak quarantine** (as built): every lease that expires
+  unsubmitted charges the gateway's `missed_streak` when the ledger
+  settles it, and a submit resets it. At ten in a row the collector is
+  **auto-quarantined**: the door stops issuing it leases, flips it to
+  draining, and notifies the owner. (The design also proposed a
+  submit-ratio trigger; only the streak was built.) Honest collectors
+  are unaffected; the failure is visible in minutes instead of as
+  mysteriously falling yield.
 
 ### The lying collector (submits plausible garbage)
 
@@ -329,28 +339,14 @@ Defense in depth, layered by cost:
    the procedure needs a disposable database and archived fixtures
    before anyone should rely on it.
 
-## Migration (end state ratified by Jamie, 2026-09-06)
+## Migration (done 2026-09-06)
 
-End state: **Node is retired entirely** — it was the bootstrap
-implementation and v2 removes its last reason to exist (the server
-computes cr_path and pins the wire shape; no shared-JS contract
-argument remains). The Mac runs TWO v2 collectors on the existing CR
-keys — **one Python, one Go** — deliberate runtime diversity, so a bad
-release of either client can never silence the whole home fleet. The
-cabin runs the same Go binary.
-
-1. **Server first**: routes + token issuance + `static_ip` optional +
-   channels; SQS path keeps working (both doors live).
-2. **Collector v2 clients**: the Go client speaks HTTPS only; a small
-   Python twin (~150 lines) joins it. The cabin (magic-pines) has
-   never started — it begins life on the zero-trust Go client and
-   **never receives AWS credentials at all**.
-3. **Mac cutover**: the two Node collectors are REPLACED by one Python
-   and one Go v2 client on the existing keys. Node runs the old SQS
-   path until this moment and is never ported to v2.
-4. **Teardown**: delete the per-collector IAM users, the minting
-   script, and the collector repo's Node source; remove the
-   SQS/metrics grants from OPERATORS.md; admin UI drops the IP column.
+Executed overnight 2026-09-06 (`docs/notes/2026-W36-W37.md`, "ZERO-TRUST
+COLLECTOR TRANSITION EXECUTED"): Node was retired, the home fleet runs one
+Go and one Python v2 collector for runtime diversity, the cabin runs the
+Go binary and never received AWS credentials, and the per-collector IAM
+users were deleted. The SQS request and results queues then gave way to
+the Postgres job ledger with inline ingest (0040).
 
 ## Deliberately out (v1)
 

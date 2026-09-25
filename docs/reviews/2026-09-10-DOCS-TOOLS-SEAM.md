@@ -1,14 +1,20 @@
 # Review 2026-09-10: docs vs code, the tool surface, and the agent seam
 
+**Outcome (2026-09-25):** actioned in full at Jamie's word ("move forward
+with actioning all of it") as contract 1.0.0 on 2026-09-10; the call
+capture of Part 5 is migration 0063. Moved here from
+`docs/REVIEW-2026-09-10-DOCS-TOOLS-SEAM.md` on 2026-09-25.
+
 Three questions from Jamie, answered against contract **0.43.0** (commit
 `1df8694`): does the documentation cover what the code does; is the tool
 surface consistent enough for an agent to learn; and where is the agent-to-MCP
-seam leaving value on the table. Recommendations only. Nothing here is applied.
+seam leaving value on the table. Written as recommendations only; it was
+applied afterwards (see Outcome above).
 
 **Method.** Read every page in `apps/site/src/docs/`, the registry and all ten
 tool modules, `packages/contracts`, the initialize/invoker/protocol layer, the
 docs corpus builder, `docs/NOTES.md` (ratified decisions are not re-litigated
-below), yesterday's `DOCS-GAP-2026-09-09.md`, and both first-party consumers
+below), yesterday's `DOCS-GAP-2026-09-09.md` (now `docs/archive/`), and both first-party consumers
 (`elixir-mcp-discord`, `elixir-bot/elixir_mcp.py`). Called eleven tools
 read-only through this session's own connection as King Thing to see real
 response shapes. Measured the published `tools/list`. Read the server's own

@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-09-25** — the Top 100 mail's pre-build product spec from Jamie's handoff bundle; the reviewed and built design differs (the mail is a default-on switch on every beta account with one-click unsubscribe, not an opt-in list; the builder computes and the editor Lambda writes). Superseded by `docs/EMAIL.md` (`top_100`) and <https://elixir.poapkings.com/docs/email>. Moved from `docs/top100/SPEC.md`.
+
 # Elixir Weekly — spec
 
 ## What this is

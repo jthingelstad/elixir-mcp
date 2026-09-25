@@ -44,9 +44,10 @@ A NAS or a spare box is ideal; do not use the whole fleet.
 > so stage `collector.py` from the candidate on a Python machine, restart
 > it through its supervisor, and read its log for the version line and an
 > activity summary. The Go binary is then named on the strength of its
-> tests and the shared logic the twin exercised. A `ELIXIR_MCP_PIN_VERSION`
-> for Go canaries is the fix that would make this section true again for
-> both; until it ships, this is the procedure.
+> tests and the shared logic the twin exercised. There is no version pin,
+> not even for a canary (Jamie, 2026-09-25): the server names the one
+> release every Go collector runs, and rollback is naming the previous
+> release (below). This is the procedure.
 
 ```sh
 TAG=v2.0.NN     # the candidate
@@ -62,17 +63,44 @@ line naming the new version, a `config` line, and at least one activity
 summary with no fetch errors:
 
 ```
-"gateway up (go, zero-trust v2) version=v2.0.NN"
-"config: channel=live pacing=1500ms status=active"
-"activity: 30 jobs done, 0 fetch errors in the last 5m (channel=live)"
+"gateway up (python, zero-trust v2) version=py-v2.0.NN"
+"config: channel=bulk pacing=1500ms"
+"activity: 30 jobs done, 0 fetch errors in the last 5m (channel=bulk)"
 ```
+
+There has been no `live` channel since 2026-09-11: every collector checks
+in and takes live jobs first. The `channel=` the clients still print is a
+leftover column (expand-and-contract) that nothing routes on; ignore its
+value.
 
 > **Do not run a staged collector by hand to check its version.** If a
 > `.env` is already beside it you have just started a second live
 > collector on that identity. Start it through its supervisor and read
 > the version from the log.
 
-## 3. Name it
+## 3. Run the full payload audit
+
+The full audit gates a release (`docs/DECISIONS.md`: every payload field
+needs a manifest disposition). The nightly shape census samples twenty
+archived objects per endpoint a day and cannot see a rare field; this
+reads every archived object for one endpoint and exits 1 when any field
+path arrives with no disposition in `services/ingest/src/payload-keys.mjs`:
+
+```sh
+cd ~/Projects/clash-royale/elixir-mcp
+AWS_PROFILE=cloud-engineer node infra/scripts/payload-field-audit.mjs                   # player_battlelog, the default
+AWS_PROFILE=cloud-engineer node infra/scripts/payload-field-audit.mjs <endpoint>        # any endpoint the release touches
+```
+
+The endpoint names are the keys of `PAYLOAD_KEYS` (`player`, `clan`,
+`currentriverrace`, `riverracelog`, `player_battlelog`, `cards`, the
+ranking boards, `events`). It lists the whole archive, so it is slow on
+`player_battlelog`; run it once, not in a loop. A non-zero exit stops the
+release: the missing disposition is a server-side change that lands here
+first (a manifest entry plus its projection or written reason), and the
+audit is re-run before naming.
+
+## 4. Name it
 
 Naming writes the update authority and promotes the release. Dry-run
 first — it prints exactly what it would write and touches nothing:
@@ -95,7 +123,7 @@ a key that is not in the response and simply never updates:
 | `go-linux-arm` | `collector_linux_armv7` (GOARM is not part of GOARCH) |
 | `go-windows-amd64` | `collector_windows_amd64.exe` (the key has no `.exe`) |
 
-## 4. Verify the fleet moves
+## 5. Verify the fleet moves
 
 Go collectors check `/config` at startup and hourly, so a rollout lands
 **within an hour**. To see it immediately on a machine you control,
@@ -112,7 +140,7 @@ an update. Confirm the whole fleet on **Admin → Collectors**, Version
 column. `py-dev` there means a machine is running a working tree rather
 than a release.
 
-## 5. Update the Python twins by hand
+## 6. Update the Python twins by hand
 
 The Python collector never self-updates — that is the point of it, so a
 bad Go release cannot silence a whole fleet. Each Python machine needs:
@@ -152,14 +180,35 @@ that speaks `config`/`lease`/`submit`, and it is the number the door's
 contract holds. The Python twin reports `py-v2.0.<run>` from the same
 stamp; a checkout copy reports `py-dev`.
 
-Enforcement of the minimum is server-side and **off** unless
-`COLLECTOR_MIN_ENFORCE=1`. It refuses `lease` and `submit` with a 426
-but never `config`, because config is the channel a stale client updates
-through. It also fails open on any version it cannot parse: this gate
-retires old clients, it does not authenticate anyone.
+The minimum itself is `CONFIG.min_client_version` in
+`services/web-api/src/collector-door.mjs`. Enforcement is server-side and
+switched by the stack parameter `CollectorMinEnforce` (`"0"` or `"1"`,
+template default `"0"`), which reaches the web-api Lambda as
+`COLLECTOR_MIN_ENFORCE`. It is a PRESERVED parameter
+(`infra/scripts/parameters.mjs`), so an ordinary deploy never flips it
+either way; changing it is a parameter-only update,
+`AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --param=CollectorMinEnforce=<0|1>`. The last
+value the notes record for production is `1` (set 2026-09-06, restated
+2026-09-12 with the minimum at 2.0.30; `docs/notes/2026-W36-W37.md`). The
+repo cannot show the live value: read the stack's parameters before
+relying on it.
+
+With enforcement on, the door refuses `lease` and `submit` with a 426
+`client_too_old` but never `config`, because config is the channel a stale
+client updates through. It also fails open on any version it cannot parse
+(`py-dev` passes): this gate retires old clients, it does not authenticate
+anyone.
+
+> **A refused client looks idle, not broken.** Both collector twins
+> currently treat a 426 `client_too_old` on `/lease` as an empty answer
+> (a collector-repo bug, reported to Jamie 2026-09-25), so a stale client
+> logs quiet activity summaries rather than errors, and its heartbeat stays
+> fresh because the door stamps it before the version check. Look for a
+> collector checking in with no leases issued and a stale
+> `last_success_at`, not for errors in its log.
 
 ---
 
-_Related: `docs/OPERATORS.md` (the operator's side),
+_Related: <https://elixir.poapkings.com/docs/operators> (the operator's side),
 `docs/COLLECTOR-ZERO-TRUST.md` (why the server is the update authority),
-and `AGENTS.md` rule 4._
+and `AGENTS.md`, "Working style"._

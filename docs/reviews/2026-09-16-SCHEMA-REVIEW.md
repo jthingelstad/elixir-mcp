@@ -1,5 +1,11 @@
 # Schema review: the Elixir MCP PostgreSQL model
 
+**Outcome (2026-09-25):** Phases A-E (steps 1-15) shipped 2026-09-17 as
+migrations 0104-0125 and contracts 3.10.0-3.11.1; `card_pair_season` was
+struck. Phase F (steps 16-17: the participant index diet, the arena seed
+and foreign keys, `poll_state.subject_key`) is still open, waiting on
+Jamie's go after the week of `idx_scan` evidence from 2026-09-24.
+
 Written 2026-09-17 against the brief in `2026-09-16-SCHEMA-REVIEW-BRIEF.md`.
 Assessment only; nothing here has been applied.
 
