@@ -11,6 +11,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { makeDoor } from "./door.mjs";
+import { shapeCatalogue } from "./catalogue.mjs";
 import { noteTokens, notesNameFields, deepKeys } from "./lib.mjs";
 import { runSuite, SUITES } from "./run.mjs";
 
@@ -209,4 +210,51 @@ test("every real case is read-only: no write tool, no live: true", () => {
     !/\blive:\s*true\s*[,}]/.test(src),
     "live: true sent as an argument",
   );
+});
+
+test("catalogue excludes every live-lane call", () => {
+  const shaped = shapeCatalogue(
+    {
+      days: 7,
+      per_tool: 3,
+      timing: [],
+      sets: [
+        { tool: "live_fetch", args: { path: "/clans/#J2RGCRVG" }, calls: 1 },
+        {
+          tool: "players_profile",
+          args: { player_tag: "#J2RGCRVG", live: true },
+          calls: 1,
+        },
+        {
+          tool: "players_profile",
+          args: { player_tag: "#J2RGCRVG" },
+          calls: 1,
+        },
+      ],
+    },
+    [
+      { name: "live_fetch", inputSchema: { properties: { path: {} } } },
+      {
+        name: "players_profile",
+        inputSchema: { properties: { player_tag: {}, live: {} } },
+      },
+    ],
+  );
+  assert.deepEqual(Object.keys(shaped.tools), ["players_profile"]);
+  assert.deepEqual(shaped.tools.players_profile.sets, [
+    { args: { player_tag: "#J2RGCRVG" }, calls: 1 },
+  ]);
+});
+
+test("catalogue seeds a bounded full participation response for its docs", () => {
+  const seeds = JSON.parse(
+    readFileSync(new URL("./catalogue-seed.json", import.meta.url), "utf8"),
+  );
+  assert.deepEqual(seeds.clans_participation, [
+    {
+      args: { weeks: 2, verbosity: "full" },
+      reason:
+        "the eight-week usage calls can refuse the full body at the agent cap; this safe full window carries the per-day war arrays the recording docs promise",
+    },
+  ]);
 });

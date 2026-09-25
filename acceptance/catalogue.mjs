@@ -12,7 +12,7 @@
  *   AWS_PROFILE=cloud-engineer node acceptance/catalogue.mjs --refresh [--days 7] [--per-tool 3]
  *
  * What is dropped: write tools (the token could not call them anyway),
- * live reads, caller identity (the op already drops on_behalf_of and
+ * live-lane reads, caller identity (the op already drops on_behalf_of and
  * display_name), and the two tools whose answer is the caller's own
  * private state (elixir_my_feedback, elixir_my_identities) - an agent
  * principal has none.
@@ -59,6 +59,10 @@ export function shapeCatalogue(raw, declarations, { stale = [] } = {}) {
     if (!decl) continue;
     if (TOOL_GROUPS[row.tool]?.readOnly === false) continue;
     if (PRIVATE_TO_THE_CALLER.has(row.tool)) continue;
+    // A raw live fetch always spends the live lane; a `live: true` variant
+    // does too. The acceptance principal is deliberately recorded-data-only,
+    // so neither can become a one-shot catalogue case.
+    if (row.tool === "live_fetch" || row.args?.live === true) continue;
     const args = { ...row.args };
     delete args.live;
     // A caller-default read (omit player_tag to mean you) has no "you"

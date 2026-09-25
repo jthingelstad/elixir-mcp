@@ -20,6 +20,15 @@
       "reason": "rows with name_known: min_battles 2 over 30 days can be empty for a ranked player"
     }
   ],
+  "clans_participation": [
+    {
+      "args": {
+        "weeks": 2,
+        "verbosity": "full"
+      },
+      "reason": "the eight-week usage calls can refuse the full body at the agent cap; this safe full window carries the per-day war arrays the recording docs promise"
+    }
+  ],
   "cards_card": [
     {
       "args": {
