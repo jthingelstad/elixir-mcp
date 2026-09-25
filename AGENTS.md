@@ -139,7 +139,10 @@ Read order for any objective run: this file and `docs/DECISIONS.md` ->
 `AGENT-TEAM/WORKFLOW.md` -> `AGENT-TEAM/README.md` -> the objective file.
 The Elixir Gym (`.claude/skills/gym/`) is the repo skill that tests the MCP
 tool families; it replaced the daily Claude Cloud routine, which is
-retired. EVERY mutating actor on
+retired. The consistency skill (`.claude/skills/consistency/`) checks that
+a decision reaches every surface that depends on it: run
+`/consistency <decision>` the day a DECISIONS line lands or changes, and
+`/consistency sweep` before a milestone. EVERY mutating actor on
 this checkout - objective run or interactive session - claims the
 checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
 
