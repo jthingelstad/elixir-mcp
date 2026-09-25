@@ -191,6 +191,7 @@ Resources:
       PubliclyAccessible: false
       BackupRetentionPeriod: 7
       DeletionProtection: true
+      CopyTagsToSnapshot: true
       EnablePerformanceInsights: false
       AutoMinorVersionUpgrade: true
       # Enhanced Monitoring at one minute (review 2026-09-11, item 12):
