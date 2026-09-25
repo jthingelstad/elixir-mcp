@@ -103,13 +103,15 @@ The vocabulary, from smallest to largest:
 The record holds that grid as rows, one per policy day of every season,
 and **a war battle is filed by where its `battle_time` falls on it**, for
 the clan the player was in when it was played. The API stamps nothing on a
-war battle beyond its type and time, so the record stamps nothing either:
-attendance in `war_current`, `war_days` in `war_history` and the per-day
-columns of `clans_participation` all count every recorded war battle
-this way, however long after the fact it was recorded. The one thing that
-is a clan's own is the instant its race actually closed, which sits inside
-the half hour before 10:00 UTC and differs per race; a battle played in
-that gap belongs to the new day in the game and to the old day on the grid.
+war battle beyond its type and time, so the record stamps nothing either.
+The one thing that is a clan's own is the instant its race actually
+closed, which sits inside the half hour before 10:00 UTC and differs per
+race; a battle played in that gap belongs to the new day in the game and
+to the old day on the grid. That rollover cannot be placed reliably across
+every clan Elixir records, so no war tool splits a member's week by war
+day (9.0.1): war facts are the game's weekly counters, and
+`war_current.decks_today`, the game's own count for the day still being
+played, is the one day-sized figure.
 
 `game_clock` answers all of this for nobody in particular (pass `at` to learn
 what day a recorded battle fell on) and is the right first call when a

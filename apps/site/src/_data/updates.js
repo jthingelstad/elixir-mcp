@@ -10,8 +10,8 @@
 export default [
   {
     date: "2026-09-25",
-    title: "War participation keeps weekly deck totals",
-    body: "Clan participation now serves each member's total war decks for the week, rather than guessing which game day each deck belonged to. The game counters and recorded captures cannot make that daily split reliably. Exact-week war history remains available for its separately observed attendance facts. Contract 9.0.0.",
+    title: "War facts are weekly totals",
+    body: "Elixir no longer splits a member's war week by day. The API does not say which day a deck was played, and each race rolls its day at its own moment, which cannot be placed reliably across every clan Elixir records. Clan participation, war history and the current race now serve the game's weekly counters: decks used, points, boat attacks and repair points. Per-day attendance, training-day totals and the scoring-deck count after a finish are gone; the current day's deck count in the current race stays. Contracts 9.0.0 and 9.0.1; JSON API 2.0.0.",
   },
   {
     date: "2026-09-24",

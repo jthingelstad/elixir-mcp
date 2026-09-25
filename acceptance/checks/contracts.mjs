@@ -15,6 +15,23 @@ import {
   JAMIE,
 } from "../lib.mjs";
 
+/** The per-day war fields retired 2026-09-25 (Jamie: weekly aggregates
+ *  only; a war day's rollover cannot be placed reliably at scale). */
+const DAY_SPLIT = [
+  "war_days",
+  "war_days_battled",
+  "scoring_decks",
+  "training_decks",
+  "war_scoring_decks",
+  "war_decks_by_day",
+  "war_battles_by_day",
+];
+const noDaySplit = (rows, label) => {
+  for (const row of rows ?? [])
+    for (const f of DAY_SPLIT)
+      ok(!(f in row), `${label} carries no ${f} (weekly aggregates only)`);
+};
+
 const read = (ctx, tool, args) =>
   ctx
     .read(tool, args)
@@ -28,7 +45,7 @@ export const contracts = [
       const body = answered(r, "war_history");
       notesNameFields(ctx, "war_history", body, {
         // member rows' fields, named by the notes that describe them
-        allow: ["member_weeks", "war_days_battled", "war_days", "decks_used"],
+        allow: ["member_weeks", "decks_used"],
       });
       everyRowHas(body.weeks, "finished_early", "war_history.weeks");
       everyRowHas(body.weeks, "finish_war_day", "war_history.weeks");
@@ -51,11 +68,9 @@ export const contracts = [
       };
       const r = await ctx.read("war_history", args);
       const body = answered(r, "war_history exact");
-      notesNameFields(ctx, "war_history", body, {
-        allow: ["war_days_battled", "war_days"],
-      });
-      everyRowHas(body.member_weeks, "scoring_decks", "member_weeks");
+      notesNameFields(ctx, "war_history", body);
       everyRowHas(body.member_weeks, "decks_used", "member_weeks");
+      noDaySplit(body.member_weeks, "member_weeks");
       everyRowHas(body.standings, "finish_time", "standings");
       ok(Array.isArray(body.days), "days[] on an exact week");
       return { ms: r.ms };
@@ -73,8 +88,9 @@ export const contracts = [
       ok("race_finished_at" in body, "race_finished_at key");
       ok("finish_war_day" in body, "finish_war_day key");
       ok("decks_today" in body, "decks_today is an answer, null included");
-      everyRowHas(body.participants, "scoring_decks", "participants");
       everyRowHas(body.participants, "decks_used", "participants");
+      noDaySplit(body.participants, "participants");
+      ok(!("attendance_by_war_day" in body), "no attendance_by_war_day");
       everyRowHas(body.standings, "clan_score", "standings");
       return { ms: r.ms };
     },
@@ -221,7 +237,7 @@ export const contracts = [
       const body = answered(r, "elixir_docs");
       const text = JSON.stringify(body);
       // The docs promise these; the war_history case proves the rows.
-      for (const f of ["finished_early", "finish_war_day", "scoring_decks"])
+      for (const f of ["finished_early", "finish_war_day", "decks_used"])
         ok(text.includes(f), `docs name ${f}`);
       return { ms: r.ms };
     },

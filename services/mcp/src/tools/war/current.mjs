@@ -18,9 +18,7 @@ import {
   boatFinished,
   cappedProgressNote,
   clanSubject,
-  decksAfterFinish,
   finishWarDays,
-  scoringDecks,
   warDaysLog,
   warTrophyAlias,
   weekKey,
@@ -28,13 +26,13 @@ import {
 
 export const war_current = {
   description:
-    "The current (latest recorded) river race for a clan, yours by default: standings across the five clans with banked fame and current-day period_points, per-member points and decks used, the war day and attendance so far. decks_today names who is untouched, partial and finished on every race-week day, day_kind training or war (only war decks score). verbosity compact keeps standings, the period, the counts and the nudge lists and drops participants. live: true asks for a read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
+    "The current (latest recorded) river race for a clan, yours by default: standings across the five clans with banked fame and current-day period_points, per-member points and decks used this race week, and the war day. decks_today names who is untouched, partial and finished on every race-week day, day_kind training or war (only war decks score). verbosity compact keeps standings, the period, the counts and the nudge lists and drops participants. live: true asks for a read of ANY clan, recorded or not: served if in hand, otherwise queued while the record answers with live_status pending.",
   inputSchema: {
     type: "object",
     properties: {
       clan_tag: CLAN_TAG_SCHEMA,
       verbosity: VERBOSITY(
-        "drops the participants array and attendance history; keeps standings, period, counts, members_not_in_race and the decks_today lists.",
+        "drops the participants array; keeps standings, period, counts, members_not_in_race and the decks_today lists.",
       ),
       live: {
         type: "boolean",
@@ -176,39 +174,16 @@ export const war_current = {
          order by p.name nulls last`,
       [clanTag, wk.season_id, wk.section_index],
     );
-    // Battled = decksUsedToday observed >0 at any poll, OR a recorded
-    // war battle by that member that day — polls alone undercount
-    // when the cadence misses a member's play window (round-3).
-    const attendance = await ctx.db.query(
-      `with att as (
-             select war_day, player_tag, decks_used_today > 0 as battled
-             from war_attendance_day
-             where clan_tag = $1 and season_id = $2 and section_index = $3
-               and war_day is not null),
-           fought as (
-             select distinct wb.war_day, wb.player_tag
-             from (${warBattlesSql({ clan: "$1", season: "$2", section: "$3", types: "$4" })}) wb),
-           merged as (
-             select war_day, player_tag, bool_or(battled) as battled from (
-               select war_day, player_tag, battled from att
-               union all
-               select war_day, player_tag, true from fought) x
-             group by war_day, player_tag)
-           select war_day,
-                  count(*) filter (where battled)::int as battled,
-                  count(*)::int as participants
-           from merged
-           group by war_day order by war_day`,
-      [clanTag, wk.season_id, wk.section_index, WAR_BATTLE_TYPES],
-    );
     // Our own boat's finish, if it has one this week: standings carry
     // finish_time per participant, and ours is the one that decides
     // whether remaining decks still add fame.
     const own = standings.rows.find((r) => r.participant_clan_tag === clanTag);
     const raceFinishedAt = finishInstant(own?.finish_time);
-    // The finish day and what was played after it (feedback #81):
-    // points and decks_used sit on one participant row, and the decks
-    // inside decks_used from the days after the finish earned nothing.
+    // The finish day (feedback #81): decks played after it earn nothing,
+    // so decks_used is no points-per-deck denominator on a finished week.
+    // How many were played after it is not served: it would split the
+    // weekly count at a war day's rollover, which cannot be placed
+    // reliably at Elixir's scale (Jamie 2026-09-25).
     const raceFinished = boatFinished({
       is_colosseum: wk.is_colosseum,
       fame: own?.fame,
@@ -219,29 +194,14 @@ export const war_current = {
         ? await finishWarDays(ctx.db, clanTag, [wk])
         : new Map();
     const finishWarDay = finishDays.get(weekKey(wk)) ?? null;
-    const afterFinish = (
-      await decksAfterFinish(ctx.db, clanTag, finishDays)
-    ).get(weekKey(wk));
-    const decksAfter = afterFinish
-      ? [...afterFinish.values()].reduce((a, b) => a + b, 0)
-      : null;
-    const participants = participation.rows.map((r) => ({
-      ...r,
-      scoring_decks: scoringDecks({
-        decksUsed: r.decks_used,
-        finished: raceFinished,
-        finishDay: finishWarDay,
-        after: afterFinish,
-        playerTag: r.player_tag,
-      }),
-    }));
+    const participants = participation.rows;
     const finishedNote =
       raceFinished === true
-        ? `This clan's boat finished the race${raceFinishedAt ? ` at ${raceFinishedAt}` : ""}${finishWarDay ? ` (the close of war day ${finishWarDay})` : ""}: decks used after that earn zero points${decksAfter !== null ? ` - ${decksAfter} ${decksAfter === 1 ? "deck was" : "decks were"} played on the war days since, for 0 clan points` : ""} - so participants[].decks_used is not the denominator of a points-per-deck rate; scoring_decks is${finishWarDay && afterFinish ? "" : " (null here: the record cannot separate the two for this week)"}.`
+        ? `This clan's boat finished the race${raceFinishedAt ? ` at ${raceFinishedAt}` : ""}${finishWarDay ? ` (the close of war day ${finishWarDay})` : ""}: decks used after that earn zero points, so participants[].decks_used is not the denominator of a points-per-deck rate this week.`
         : null;
     // A training day's war decks (Jamie 2026-09-24): the same four decks,
-    // played for reps; they do not score, so they never enter decks_today
-    // or attendance. Same table as the war days (0169).
+    // played for reps; they do not score, so they never enter a war day's
+    // decks_today. Same table as the war days (0169).
     let trainingToday = null;
     let trainingDecks = null;
     if (
@@ -435,14 +395,13 @@ export const war_current = {
                 : "training_day",
           }),
       ...(trainingToday ? { training_today: trainingToday } : {}),
-      ...(compact ? {} : { attendance_by_war_day: attendance.rows }),
       ...(daysClosed ? { days_closed: daysClosed } : {}),
       notes: notes(
         livePendingNote(live),
         "points are per-member contributions; fame belongs to the boat (the clan).",
         // Two groups both called participants (Gym #312).
-        !compact && participation.rows.some((r) => !r.in_clan)
-          ? `The participants count in attendance_by_war_day is the race roster, which keeps ${participation.rows.filter((r) => !r.in_clan).length} member(s) who have since left the clan; decks_today.counts.participants counts current members only. For an attendance rate among current members, use decks_today or participants[] with in_clan.`
+        participation.rows.some((r) => !r.in_clan)
+          ? `participants_count is the race roster, which keeps ${participation.rows.filter((r) => !r.in_clan).length} member(s) who have since left the clan; decks_today.counts.participants counts current members only. For a rate among current members, use decks_today or participants[] with in_clan.`
           : null,
         trainingToday
           ? `Training day ${trainingToday.training_day}: decks_today (day_kind training) lists the war decks each member has played so far today. They are the same four decks the war days use, and on a war day each can be played once, so training days are where members get reps in with them; training decks earn no points and never count as war attendance. training_today is the same picture in its 7.1.14 shape, deprecated and removed in the next major version.`
@@ -468,7 +427,7 @@ export const war_current = {
         // The race closes before the grid (Gym #169, #179).
         "A race closes each war day before the 10:00 UTC grid, in the half hour before it and per race (observed 09:30 to 10:00Z); observed_offset_minutes is when the recorder saw a period open, never when the race closed. war_history.closed_at has past weeks' real closes.",
         "period.api_period_type is the API's own word for the day at the last race poll (training, warDay, colosseum); period.kind is the policy grid's, and the two disagree only when the clan's reset has drifted across the boundary.",
-        "war_day is 1-based, day_in_week 0-based; attendance_by_war_day is empty before the week's first war day.",
+        "war_day is 1-based, day_in_week 0-based. participants[] carries the race week's totals; past war days are not split out, because the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale.",
       ),
       docs: CLOCK_DOCS,
       meta,

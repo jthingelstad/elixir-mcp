@@ -1952,20 +1952,13 @@ export const OUTPUT_SCHEMAS = {
             season_id: COUNT,
             section_index: COUNT,
             points: NULLABLE_INT,
-            decks_used: NULLABLE_INT,
-            scoring_decks: {
-              type: ["integer", "null"],
+            decks_used: {
+              ...NULLABLE_INT,
               description:
-                "decks_used less the decks played on the war days after the boat finished, which earn nothing: the denominator of a points-per-deck rate. Equal to decks_used on an unfinished week; null when the record cannot separate the two (6.11.0).",
+                "The game's own count of war decks the member used in the race week. Elixir serves only this weekly total: the API does not say which day a deck was played, and a war day's rollover cannot be placed reliably at Elixir's scale (9.0.1).",
             },
             boat_attacks: NULLABLE_INT,
             repair_points: NULLABLE_INT,
-            war_days_battled: {
-              type: ["integer", "null"],
-              description:
-                "null when neither polls nor recorded battles covered the week.",
-            },
-            war_days: { type: ["array", "null"], items: COUNT },
           },
           required: ["player_tag", "season_id", "section_index", "points"],
         },
@@ -2162,7 +2155,7 @@ export const OUTPUT_SCHEMAS = {
       members: {
         type: "array",
         description:
-          "Per-member columns aligned to weeks[] (battles, ranked_battles, donations) and war_weeks[] (war_decks, war_points, war_scoring_decks), one entry each in order; null is unknown, never zero. war_decks is a weekly total; daily deck and battle allocations are intentionally not served because the record cannot reliably assign it to a day. war_scoring_decks (6.23.0, full verbosity, windows of up to six war weeks) is war_decks less the decks played after the finish: the denominator for points per deck.",
+          "Per-member columns aligned to weeks[] (battles, ranked_battles, donations) and war_weeks[] (war_decks, war_points), one entry each in order; null is unknown, never zero. war_decks is the game's weekly count; nothing is split by war day, because the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale.",
         items: {
           type: "object",
           properties: {
@@ -2930,7 +2923,7 @@ export const OUTPUT_SCHEMAS = {
       finish_war_day: {
         type: ["integer", "null"],
         description:
-          "The war day whose close carried this clan's boat over the line (6.11.0); null while it has not finished or when the day-by-day log does not say. participants[].scoring_decks is decks_used less the decks played on the days after it.",
+          "The war day whose close carried this clan's boat over the line (6.11.0); null while it has not finished or when the day-by-day log does not say. Decks used after it earn nothing, so on a finished week participants[].decks_used is not the denominator of a points-per-deck rate.",
       },
       decks_today: {
         type: ["object", "null"],
@@ -2952,7 +2945,6 @@ export const OUTPUT_SCHEMAS = {
         enum: ["period_unknown", "war_day_over", "training_day"],
       },
       training_today: { type: "object" },
-      attendance_by_war_day: { type: "array" },
       notes: NOTES,
       docs: DOCS,
       meta: META,

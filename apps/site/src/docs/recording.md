@@ -421,7 +421,7 @@ measures; it never rates.
 | `weeks[]` | the ISO weeks covered (`iso_week`, `from`, `to`); Monday 00:00 UTC to Monday; the current week carries `partial: true` with `covers` (the mark every clipped bucket carries; 4.0.0, `complete` before) |
 | `war_weeks[]` | the clan's recorded war weeks inside the window with their observed bounds; war weeks run on the game's grid, not ISO weeks |
 | `members[].battles`, `ranked_battles`, `donations` | columns aligned to `weeks[]`, one entry per ISO week in order; `donations` is the game's weekly counter as of the last daily snapshot in the week, `null` with no snapshot |
-| `members[].war_decks`, `war_points`, `war_scoring_decks` | columns aligned to `war_weeks[]`; `war_decks` is the week's total. Elixir does not allocate decks or battles to individual days: the sampled counters and captures cannot reliably make that attribution. `war_scoring_decks` is full-only and only on windows of up to six war weeks; `verbosity: "compact"` keeps only `war_decks` |
+| `members[].war_decks`, `war_points` | columns aligned to `war_weeks[]`; `war_decks` is the game's count for the race week, never split by war day: the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale (9.0.1). `null` where the member has no race row for the week; `verbosity: "compact"` keeps only `war_decks` |
 | `members[].joined_observed_at`, `tenure_known`, `days_in_clan_observed` | when the record first saw them in the clan; `tenure_known` is `false` for a member already present at the first roster poll, whose observed days are a lower bound |
 | `members[].last_battle_time`, `days_since_battle` | the last recorded battle in any clan, and its age |
 | `members[].last_battle_time_in_clan` | the last recorded battle played as a member of this clan (3.16.0) |
@@ -430,7 +430,8 @@ measures; it never rates.
 | `recording_active_since`, `first_roster_observed_at` | the recording horizon for the clan |
 
 Null is unknown, never zero, throughout: a week with no snapshot has
-`donations: null`, a war day nobody polled has `decks_used_today: null`,
+`donations: null`, a war week with no race row for the member has
+`war_decks: null`,
 a member with no recorded battle has `days_since_battle: null`. Counts
 cover recorded battles only; `elixir_coverage` per tag says how complete
 a member's log is. `weeks` is 1 to 8 (default 5). The per-member values

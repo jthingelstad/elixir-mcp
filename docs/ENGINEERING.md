@@ -112,13 +112,19 @@ connection of their own.
 ## The tool contract has clients that never update
 
 - `packages/contracts` is the single source of truth for tool schemas, the error
-  enum, `deck_hash`, and the `meta` envelope. Semver describes the **domain
-  contract**, not a brittle wire interface: a new capability is a minor and a
-  correction is a patch, including removing a response field that withdrew an
-  unreliable claim. A major is reserved for a domain-model shift that requires
-  an agent to change what its task means. MCP agents reason from the current
-  tool declaration, schema and notes; an absent field means no claim, not an
-  interface failure.
+  enum, `deck_hash`, and the `meta` envelope. For **MCP**, semver describes the
+  **domain contract**, not a brittle wire interface: a new capability is a
+  minor and a correction is a patch, including removing a response field that
+  withdrew an unreliable claim. A major is reserved for a domain-model shift
+  that requires an agent to change what its task means. MCP agents reason from
+  the current tool declaration, schema and notes; an absent field means no
+  claim, not an interface failure.
+- **The JSON API is versioned separately, on ordinary semver.** Its callers are
+  programs (Elixir Clan, integrations), so a removed or renamed response field
+  is a major of `integration-api.openapi.json`'s `info.version`, even when the
+  same change is an MCP patch; its operations serve the tool's structured
+  result, so check them on every MCP field removal. The path stays `/api/v1`:
+  it is also the OAuth audience. Its history is on the integrations page.
 - **Clients cache `tools/list` forever.** `serverInfo.version` is
   `<contract>+tools.<fingerprint>` precisely so a cache can be busted; a
   stateless server can never push `listChanged`. Every bump gets a

@@ -79,7 +79,22 @@ specific existing collection, not every collection owned by the sponsoring human
 Successful responses contain `data` and `request_id`. Failures use
 `application/problem+json`, with `type`, `title`, `status`, `code`, `detail` and
 `request_id`. The `X-Request-ID` response header ties either response to the
-operational audit. Treat unknown response fields as additions compatible with v1.
+operational audit. Treat unknown response fields as compatible additions.
+
+## Versions
+
+The JSON API carries its own semantic version, the OpenAPI document's
+`info.version`. Its callers are programs, so a removed or renamed response
+field is a major, and an added field or operation is a minor. (MCP versions
+differently: its callers are agents reading the current declaration.) The
+path stays `/api/v1` across majors, because it is also the OAuth audience a
+person's token is issued for.
+
+- **2.0.0** (2026-09-25): `GET /clans/{tag}/participation` no longer carries
+  `war_decks_by_day`, `war_battles_by_day`, `war_days_battled` or
+  `war_scoring_decks`. Elixir serves war facts as the game's weekly
+  counters: the API does not say which day a deck was played, and a war
+  day's rollover cannot be placed reliably across every clan Elixir records.
 
 ## The game clock is policy
 

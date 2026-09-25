@@ -40,21 +40,12 @@ import {
   coverageBasis,
   coverageBasisNote,
 } from "../controls.mjs";
-import {
-  weekKey,
-  finishWarDays,
-  decksAfterFinish,
-  scoringDecks,
-} from "./war/common.mjs";
+import { weekKey, finishWarDays } from "./war/common.mjs";
 
 const CLAN_TAG_SCHEMA = {
   type: "string",
   description: "Clan tag like #J2RGCRVG. Omit to mean your recorded clan.",
 };
-
-/** The war weeks war_scoring_decks rides on (full verbosity): the
- *  default window; past it the response outgrows the result cap. */
-const SCORING_DECKS_WEEKS = 6;
 
 /** Members on today's roster who joined inside the window, with the
  *  battles they played in it before joining (Gym #237: a member who
@@ -647,9 +638,7 @@ export const clansTools = {
           description:
             "How many ISO weeks back, the current partial week included.",
         },
-        verbosity: VERBOSITY(
-          "war_decks only; no war_points or scoring-deck denominator.",
-        ),
+        verbosity: VERBOSITY("war_decks only; no war_points."),
       },
       additionalProperties: false,
     },
@@ -705,7 +694,7 @@ export const clansTools = {
       // Whether the members' logs are recorded at all (3.16.0): for an
       // activity-scope clan every count below is zero by construction.
       const coverage = await coverageBasis(ctx.db, clanTag);
-      // The six reads that follow, from participation-sql.mjs so the
+      // The four reads that follow, from participation-sql.mjs so the
       // migrate Lambda's explain_participation diagnostic reads the same
       // plans this serves.
       const reads = participationQueries({
@@ -718,30 +707,18 @@ export const clansTools = {
         const q = reads.find((r) => r.name === name);
         return ctx.db.query(q.text, q.values);
       };
-      const combined = await run("battles_by_week_and_war_day");
-      const battles = {
-        rows: combined.rows.filter((r) => r.kind === "week"),
-      };
-      // union all names columns after the first branch: the war-day
-      // count arrives as `battles`.
-      const battledDays = {
-        rows: combined.rows
-          .filter((r) => r.kind === "war_day")
-          .map((r) => ({ ...r, war_battles: r.battles })),
-      };
+      const battles = await run("battles_by_week");
       const donations = await run("donations_by_week");
       const warWeeks = await run("war_weeks");
       // The finish under each war week (Gym #110): decks played after the
       // boat crossed earn nothing, so war_points over war_decks is not a
-      // rate on a finished week. The same helpers war_history uses.
+      // rate on a finished week. The same helper war_history uses.
       const finishDays = await finishWarDays(ctx.db, clanTag, warWeeks.rows);
-      const afterFinish = await decksAfterFinish(ctx.db, clanTag, finishDays);
       const finishedEarly = (w) =>
         w.is_colosseum || w.finished_observed_at === null
           ? null
           : finishDays.has(weekKey(w));
       const participation = await run("war_participation");
-      const attendance = await run("war_attendance");
 
       const keyWeek = (d) => new Date(d).toISOString();
       const byMemberWeek = new Map();
@@ -753,20 +730,6 @@ export const clansTools = {
       const partByKey = new Map();
       for (const r of participation.rows)
         partByKey.set(`${r.player_tag}|${r.season_id}|${r.section_index}`, r);
-      const daysByKey = new Map();
-      for (const r of attendance.rows) {
-        const k = `${r.player_tag}|${r.season_id}|${r.section_index}`;
-        if (!daysByKey.has(k)) daysByKey.set(k, new Map());
-        daysByKey.get(k).set(r.war_day, {
-          decks_used_today: r.decks_used_today,
-        });
-      }
-      const battledByKey = new Map();
-      for (const r of battledDays.rows) {
-        const k = `${r.player_tag}|${r.season_id}|${r.section_index}`;
-        if (!battledByKey.has(k)) battledByKey.set(k, new Map());
-        battledByKey.get(k).set(r.war_day, r.war_battles);
-      }
       const firstRoster = clan.first_roster_observed_at
         ? new Date(clan.first_roster_observed_at)
         : null;
@@ -828,13 +791,13 @@ export const clansTools = {
               donationByWeek.get(`${m.player_tag}|${w.from}`)?.donations ??
               null,
           ),
-          war_decks: warWeeks.rows.map((w) => {
-            const k = `${m.player_tag}|${w.season_id}|${w.section_index}`;
-            return (
-              partByKey.get(k)?.decks_used ??
-              (daysByKey.get(k) || battledByKey.get(k) ? 0 : null)
-            );
-          }),
+          // The game's weekly count, null where the member has no race
+          // row for the week (Jamie 2026-09-25: weekly aggregates only).
+          war_decks: warWeeks.rows.map(
+            (w) =>
+              partByKey.get(`${m.player_tag}|${w.season_id}|${w.section_index}`)
+                ?.decks_used ?? null,
+          ),
           ...(compact
             ? {}
             : {
@@ -844,26 +807,6 @@ export const clansTools = {
                       `${m.player_tag}|${w.season_id}|${w.section_index}`,
                     )?.points ?? null,
                 ),
-                // Up to six war weeks (the default): at seven to eight the
-                // full response ran past the result cap (6.23.0 gate);
-                // war_history's scoring_decks has every week.
-                ...(warWeeks.rows.length <= SCORING_DECKS_WEEKS
-                  ? {
-                      war_scoring_decks: warWeeks.rows.map((w) => {
-                        const k = `${m.player_tag}|${w.season_id}|${w.section_index}`;
-                        const used =
-                          partByKey.get(k)?.decks_used ??
-                          (daysByKey.get(k) || battledByKey.get(k) ? 0 : null);
-                        return scoringDecks({
-                          decksUsed: used,
-                          finished: finishedEarly(w),
-                          finishDay: finishDays.get(weekKey(w)) ?? null,
-                          after: afterFinish.get(weekKey(w)),
-                          playerTag: m.player_tag,
-                        });
-                      }),
-                    }
-                  : {}),
               }),
         };
       });
@@ -912,7 +855,7 @@ export const clansTools = {
             // result cap (6.23.0).
             const done = warWeeks.rows.filter((w) => finishedEarly(w) === true);
             return done.length
-              ? `The boat crossed the finish line early in ${done.map((w) => `${w.season_id}/${w.section_index} (war day ${finishDays.get(weekKey(w))})`).join(", ")}: decks played on the days after it earned 0 points, so war_points / war_decks is not a rate for those weeks - use war_history.scoring_decks, or this tool's full verbosity (up to ${SCORING_DECKS_WEEKS} war weeks) for per-member scoring decks.`
+              ? `The boat crossed the finish line early in ${done.map((w) => `${w.season_id}/${w.section_index} (war day ${finishDays.get(weekKey(w))})`).join(", ")}: decks played after the finish earned 0 points, so war_points / war_decks is not a points-per-deck rate for those weeks.`
               : null;
           })(),
           "ISO weeks run Monday 00:00 UTC to Monday; war weeks run on the game's own grid and are listed separately with their observed bounds.",
@@ -922,7 +865,7 @@ export const clansTools = {
           "donations is the highest value the game's weekly counter reached in that week's game days (it only climbs until the weekly reset around the start of Monday UTC, so the highest read is a lower bound on the week's total: donations after the last read before the reset are not in it); null means no snapshot fell in the week.",
           compact
             ? "Per-member columns align to the top-level weeks and war_weeks, one entry each in order."
-            : "Per-member columns align to the top-level weeks and war_weeks, one entry each in order. war_decks is the weekly total: sampled game counters and battle captures cannot reliably allocate that total to individual days, so no daily deck or battle arrays are served.",
+            : "Per-member columns align to the top-level weeks and war_weeks, one entry each in order. war_decks is the game's count for the race week, never split by war day: the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale.",
           "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
           "joined_observed_at and days_in_clan_observed are the member's CURRENT stint: a member who left and came back counts from the rejoin, except that a rejoin within 7 days of leaving continues the stint before it. first_joined_at is the member's first recorded join here (clans_roster.first_observed_in_clan is the same instant).",
           coverageBasisNote(coverage.basis),

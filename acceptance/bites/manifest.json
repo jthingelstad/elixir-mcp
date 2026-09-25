@@ -283,14 +283,6 @@
     "expect": "finish_war_day"
   },
   {
-    "feedback": 110,
-    "contract": "6.21.1",
-    "why": "the Gym's block 110.2: no scoring-deck column to divide points by",
-    "case": "gym/110.2",
-    "captures": ["110-clans_participation.json"],
-    "expect": "war_scoring_decks"
-  },
-  {
     "feedback": 111,
     "contract": "6.21.1",
     "why": "the Gym's block 111.2: today's in-progress point unmarked",
@@ -1627,22 +1619,6 @@
     "expect": "."
   },
   {
-    "feedback": 263,
-    "contract": "7.1.6",
-    "why": "the Gym block 263.1 on the answer it read",
-    "case": "gym/263.1",
-    "captures": ["263-1-war_history.json"],
-    "expect": "."
-  },
-  {
-    "feedback": 263,
-    "contract": "7.1.6",
-    "why": "the Gym block 263.2 on the answer it read",
-    "case": "gym/263.2",
-    "captures": ["263-2-war_history.json"],
-    "expect": "."
-  },
-  {
     "feedback": 265,
     "contract": "7.1.6",
     "why": "the Gym block 265.1 on the answer it read",
@@ -1896,22 +1872,6 @@
     "why": "the Gym block 305.3 on the answer it read",
     "case": "gym/305.3",
     "captures": ["305-3-clans_members_timeline.json"],
-    "expect": "."
-  },
-  {
-    "feedback": 306,
-    "contract": "7.1.16",
-    "why": "the Gym block 306.1 on the answer it read",
-    "case": "gym/306.1",
-    "captures": ["306-1-war_history.json"],
-    "expect": "."
-  },
-  {
-    "feedback": 306,
-    "contract": "7.1.16",
-    "why": "the Gym block 306.2 on the answer it read",
-    "case": "gym/306.2",
-    "captures": ["306-2-war_history.json"],
     "expect": "."
   },
   {

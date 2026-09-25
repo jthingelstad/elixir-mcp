@@ -508,21 +508,16 @@
         "eq": ["member_weeks[?player_tag=#UCRLVL29U].decks_used", 4]
       },
       {
-        "eq": ["member_weeks[?player_tag=#UCRLVL29U].scoring_decks", 4]
-      },
-      {
         "eq": ["member_weeks[?player_tag=#UCRLVL29U].points", 350]
       },
       {
         "eq": ["member_weeks[?player_tag=#JRVV9VC0C].boat_attacks", 8]
       },
       {
-        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].scoring_decks", 12]
-      },
-      {
         "eq": ["member_weeks[?player_tag=#JRVV9VC0C].points", 1600]
       }
-    ]
+    ],
+    "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the scoring_decks asserts went with the field and the rest of the case stands."
   },
   {
     "id": "85.2",
@@ -541,11 +536,9 @@
       },
       {
         "eq": ["member_weeks[?player_tag=#JRVV9VC0C].boat_attacks", 0]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].scoring_decks", 12]
       }
-    ]
+    ],
+    "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the scoring_decks asserts went with the field and the rest of the case stands."
   },
   {
     "id": "85.3",
@@ -628,11 +621,9 @@
     "assert": [
       {
         "lte": ["boat_attacks", "decks_used"]
-      },
-      {
-        "lte": ["scoring_decks", "decks_used"]
       }
-    ]
+    ],
+    "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the scoring_decks asserts went with the field and the rest of the case stands."
   },
   {
     "id": "85.6",
@@ -652,7 +643,8 @@
       {
         "lt": ["scoring_decks", "decks_used"]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so scoring_decks is no longer served."
   },
   {
     "id": "86.1",
@@ -794,7 +786,8 @@
       {
         "eq": ["scoring_decks", "decks_used"]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so scoring_decks is no longer served."
   },
   {
     "id": "87.4",
@@ -818,18 +811,13 @@
         "eq": ["weeks[0].in_progress", false]
       },
       {
-        "eq": ["member_weeks[?player_tag=#U92P8PQG0].scoring_decks", 8]
-      },
-      {
         "eq": ["member_weeks[?player_tag=#U92P8PQG0].decks_used", 12]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#2YG98VVQ].scoring_decks", 0]
       },
       {
         "eq": ["member_weeks[?player_tag=#2YG98VVQ].decks_used", 4]
       }
-    ]
+    ],
+    "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the scoring_decks asserts went with the field and the rest of the case stands."
   },
   {
     "id": "87.5",
@@ -2233,7 +2221,8 @@
       {
         "has": "members[].war_scoring_decks"
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so war_scoring_decks is no longer served."
   },
   {
     "id": "110.3",
@@ -4732,9 +4721,10 @@
         "has": "history_starts_at"
       },
       {
-        "notes_match": "up to \\d+ of \\d+ scoring decks"
+        "notes_match": "\\d+ of \\d+ decks"
       }
-    ]
+    ],
+    "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the boat-note share: the boat note quotes the share against the week's decks, since scoring_decks is gone; the rest of the case stands."
   },
   {
     "id": "143.2",
@@ -4750,12 +4740,10 @@
     "for_each": "member_weeks[]",
     "assert": [
       {
-        "lte": ["scoring_decks", "decks_used"]
-      },
-      {
         "lte": ["boat_attacks", "decks_used"]
       }
-    ]
+    ],
+    "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the scoring_decks asserts went with the field and the rest of the case stands."
   },
   {
     "id": "143.3",
@@ -4777,12 +4765,9 @@
       },
       {
         "count_eq": ["days_closed[]", 0]
-      },
-      {
-        "notes_match": "attendance_by_war_day is empty before the week's first war day"
       }
     ],
-    "amended": "Amended for 7.1.21 (Jamie 2026-09-24: training days are race-week days): on a training day decks_today is the training picture (day_kind training), and decks_today_reason is served only when no day can be read."
+    "amended": "Amended for 7.1.21 (Jamie 2026-09-24: training days are race-week days): on a training day decks_today is the training picture (day_kind training), and decks_today_reason is served only when no day can be read. Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the attendance_by_war_day note asserts went with the field and the rest of the case stands."
   },
   {
     "id": "143.4",
@@ -6310,7 +6295,8 @@
       {
         "has": "war_weeks[].finish_war_day"
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so the war_history.scoring_decks pointer is no longer served."
   },
   {
     "id": "159.2",
@@ -6322,12 +6308,10 @@
     "request_id": "bbe3259c-89e4-43ed-9e2f-00908cea6415",
     "assert": [
       {
-        "has": "members[].war_scoring_decks"
-      },
-      {
         "has": "war_weeks[].finished_early"
       }
-    ]
+    ],
+    "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the war_scoring_decks asserts went with the field and the rest of the case stands."
   },
   {
     "id": "159.3",
@@ -14854,7 +14838,8 @@
       {
         "eq": ["member_weeks[?player_tag=#JRVV9VC0C].war_days_battled", 1]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so war_days_battled is no longer served."
   },
   {
     "id": "263.2",
@@ -14873,7 +14858,8 @@
       {
         "eq": ["member_weeks[?player_tag=#2LRYLQPL].war_days_battled", 3]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so war_days_battled is no longer served."
   },
   {
     "id": "263.3",
@@ -14955,7 +14941,8 @@
       {
         "eq": ["member_weeks[?player_tag=#JYRQ8U92C].war_days_battled", 4]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so war_days_battled is no longer served."
   },
   {
     "id": "263.6",
@@ -18378,7 +18365,8 @@
       {
         "gte": ["member_weeks[?player_tag=#JYRQ8U92C].training_decks", 12]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
   },
   {
     "id": "306.2",
@@ -18394,7 +18382,8 @@
       {
         "gte": ["member_weeks[?player_tag=#20R8QRLYLP].training_decks", 12]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
   },
   {
     "id": "306.3",
@@ -18429,7 +18418,8 @@
           "b.total_count"
         ]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
   },
   {
     "id": "306.4",
@@ -18449,7 +18439,8 @@
       {
         "eq": ["member_weeks[?player_tag=#20R8QRLYLP].training_decks", 12]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
   },
   {
     "id": "307.1",
@@ -19104,9 +19095,10 @@
     },
     "assert": [
       {
-        "notes_match": "attendance_by_war_day[^.]*(left the clan|in_clan|member_count)"
+        "notes_match": "participants_count[^.]*(left the clan|in_clan|member_count)"
       }
-    ]
+    ],
+    "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the attendance_by_war_day: the two-participants note now names participants_count, the race roster that remains."
   },
   {
     "id": "312.2",
@@ -19152,14 +19144,9 @@
           ["participants[].points"],
           "standings[?participant_clan_tag=#J2RGCRVG].period_points"
         ]
-      },
-      {
-        "lte": [
-          "attendance_by_war_day[?war_day=1].battled",
-          "attendance_by_war_day[?war_day=1].participants"
-        ]
       }
-    ]
+    ],
+    "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the attendance_by_war_day asserts went with the field and the rest of the case stands."
   },
   {
     "id": "313.1",
@@ -19197,7 +19184,8 @@
       {
         "eq": ["member_weeks[?player_tag=#20JJJ2CCRU].training_decks", 0]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
   },
   {
     "id": "313.2",
@@ -19217,7 +19205,8 @@
       {
         "not_contains": ["member_weeks[?player_tag=#JRVV9VC0C].war_days", 2]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so war_days_battled or war_days is no longer served."
   },
   {
     "id": "313.3",
@@ -21944,7 +21933,8 @@
       {
         "notes_match": "not in decks_used"
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so scoring_decks or training_decks is no longer served."
   },
   {
     "id": "342.1",
@@ -22448,7 +22438,8 @@
       {
         "eq": ["member_weeks[?player_tag=#UQ2R9RGVP].training_decks", 0]
       }
-    ]
+    ],
+    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
   },
   {
     "id": "349.3",

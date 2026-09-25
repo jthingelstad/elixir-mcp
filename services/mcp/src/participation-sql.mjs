@@ -4,14 +4,16 @@
  * ANALYZEs it, so the plan being read is the plan being served. Every
  * slow page in Elixir Clan is one call to this tool (live, 2026-09-13:
  * 8.7 s for one week, 20 s for eight), and without a psql path the plan
- * is the only way to see which of these seven is the one.
+ * is the only way to see which of these is the one.
  *
- * `participationQueries()` returns the six per-clan reads that follow
+ * `participationQueries()` returns the four per-clan reads that follow
  * the member list, each `{ name, text, values }`; MEMBERS_SQL is the
- * list itself, which the others take the tags from.
+ * list itself, which the others take the tags from. War is read as the
+ * game's weekly counters only (Jamie 2026-09-25): the per-war-day
+ * battle count and the per-day attendance rows went with the fields
+ * they fed, since a war day's rollover cannot be placed reliably at
+ * Elixir's scale.
  */
-
-import { WAR_BATTLE_TYPES } from "./war-battles-sql.mjs";
 
 export const MEMBERS_SQL = `select cm.player_tag, p.name, cm.role, cm.joined_observed_at,
        (select max(bp.battle_time) from battle_participant bp
@@ -25,56 +27,20 @@ join player p on p.player_tag = cm.player_tag
 where cm.clan_tag = $1 and cm.left_observed_at is null
 order by cm.player_tag`;
 
-export function participationQueries({
-  clanTag,
-  tags,
-  from,
-  rankedTypes,
-  warTypes = WAR_BATTLE_TYPES,
-}) {
+export function participationQueries({ clanTag, tags, from, rankedTypes }) {
   return [
     {
-      // Battles per member per ISO week, ranked counted beside all, AND
-      // the war-day battles per member, from ONE pass over the
-      // participant rows: the two used to be separate reads and each
-      // scanned the same 26k rows (8.4 s apiece on the live database,
-      // 2026-09-13). The CTE is index-only on
-      // battle_participant_player_time_cover (0100 carries type); the
-      // war half resolves each battle against the calendar (0105) by
-      // range instead of the stamps three quarters of them never had,
-      // and nothing joins battle any more.
-      name: "battles_by_week_and_war_day",
-      text: `with bp as (
-               select bp.player_tag, bp.battle_time, bp.clan_tag, bp.type, bp.battle_id
-               from battle_participant bp
-               where bp.player_tag = any($1) and bp.battle_time >= $2
-             )
-             select 'week' as kind, player_tag,
-                    date_trunc('week', battle_time) as week_start,
-                    null::int as season_id, null::int as section_index, null::int as war_day,
+      // Battles per member per ISO week, ranked counted beside all, in
+      // one pass index-only on battle_participant_player_time_cover (0100
+      // carries type); nothing joins battle.
+      name: "battles_by_week",
+      text: `select player_tag, date_trunc('week', battle_time) as week_start,
                     count(*)::int as battles,
                     count(*) filter (where type = any($3))::int as ranked_battles
-             from bp
-             group by player_tag, date_trunc('week', battle_time)
-             union all
-             select 'war_day', bp.player_tag, null,
-                    p.war_season_id, p.section_index, p.war_day,
-                    count(*)::int, 0
-             from bp
-             join war_period p
-               on bp.battle_time >= p.starts_at and bp.battle_time < p.ends_at
-             where bp.clan_tag = $4 and bp.type = any($5) and p.war_day is not null
-               -- A boat DEFENSE is not the member's battle (Gym #263). The
-               -- lookup runs for boat rows only, by primary key, so the
-               -- scan above stays index-only.
-               and not (bp.type = 'boatBattle' and exists (
-                 select 1 from battle bd
-                   join battle_participant x
-                     on x.battle_id = bd.battle_id and x.player_tag = bp.player_tag
-                  where bd.battle_id = bp.battle_id and bd.boat_battle_side is not null
-                    and (bd.boat_battle_side = 'defender') = (x.side = 0)))
-             group by bp.player_tag, p.war_season_id, p.section_index, p.war_day`,
-      values: [tags, from, rankedTypes, clanTag, warTypes],
+             from battle_participant
+             where player_tag = any($1) and battle_time >= $2
+             group by player_tag, date_trunc('week', battle_time)`,
+      values: [tags, from, rankedTypes],
     },
     {
       // A week's donations are the highest counter value the record saw
@@ -108,19 +74,6 @@ export function participationQueries({
              from war_participation wp
              where wp.clan_tag = $1 and wp.player_tag = any($2)
                and (wp.season_id, wp.section_index) in (
-                 select w.season_id, w.section_index from war_week w
-                 where w.clan_tag = $1
-                   and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $3)`,
-      values: [clanTag, tags, from],
-    },
-    {
-      name: "war_attendance",
-      text: `select ad.player_tag, ad.season_id, ad.section_index, ad.war_day,
-                    ad.decks_used_today
-             from war_attendance_day ad
-             where ad.clan_tag = $1 and ad.player_tag = any($2)
-               and ad.war_day is not null
-               and (ad.season_id, ad.section_index) in (
                  select w.season_id, w.section_index from war_week w
                  where w.clan_tag = $1
                    and coalesce(w.finished_observed_at, w.started_observed_at, now()) >= $3)`,

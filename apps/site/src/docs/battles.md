@@ -197,8 +197,8 @@ head-to-head match. The record classes every battle as `type_class` `pvp`
 outside every decided-battle denominator (win rates, crown differentials);
 a boat win still counts in `wins`. They are **inside** the war deck counts:
 a boat battle spends one of the member's four war decks, so
-`war_current.participants[].decks_used`, `war_history.member_weeks[].decks_used`
-and `scoring_decks` include them, and `boat_attacks` on the same row says
+`war_current.participants[].decks_used` and `war_history.member_weeks[].decks_used`
+include them, and `boat_attacks` on the same row says
 how many (see [War weeks, points and fame](#war-weeks-points-and-fame)).
 
 ## Comparisons, and what a battle proves about its own length
@@ -429,28 +429,36 @@ consumes one, so four decks is anywhere from two to four battles, and a
 member at `decks_used: 4` on war day 1 with one duel and one 1v1 in their
 log has finished the day.
 
+**War facts are weekly** (9.0.1, 2026-09-25). Every per-member war figure
+is the game's own counter for the race week: `decks_used`, `points`,
+`boat_attacks` and `repair_points`. The API does not say which day a war
+deck was played, and each race rolls its day at its own moment in the half
+hour before 10:00 UTC, so putting a deck on a day means guessing where the
+rollover fell. One clan's rollover can be calibrated; across every clan
+Elixir records it cannot be placed reliably. So no tool splits a week by
+war day: there is no per-day attendance, no training-day total, and no
+count of the decks played after the finish. `war_current.decks_today` is
+the one day-sized figure, and it is the game's own count for the day still
+being played.
+
 **Training days are recorded too** (since 2026-09-24). A member battles
 with the same four war decks all week. On a war day each deck can be played
 once and it scores; the three training days before are where members get
 reps in with those decks, up to four a day, for no points. Elixir keeps
 every day of the race week the same way. On a training day
 `war_current.decks_today` (with `day_kind: "training"`) lists who has played
-and how many decks, the same untouched, partial and finished lists a war day
-has, and
-`war_history.member_weeks[].training_decks` totals a week's training decks
-per member: read from the race poll since 2026-09-24, and rebuilt for
-earlier weeks from the members' recorded river-race battles on training
-days, split where the clan's own race rolls its days (a 1v1 is one deck, a duel one per round, four a day at most), which
-is a floor wherever a member's log was not fully captured. Training never
-counts as war attendance: `war_days` and the attendance counts are war days
-only, and a nudge toward decks that score belongs to `day_kind: "war"`.
+and how many decks so far today, the same untouched, partial and finished
+lists a war day has. Training decks earn no points and are not in
+`decks_used`, and a nudge toward decks that score belongs to
+`day_kind: "war"`. No weekly training total is served: it would split the
+week at the rollover from the last training day to war day 1 (above).
 (`training_today`, the 7.1.14 shape of the training picture, is deprecated.)
 
-`boat_attacks` is counted **inside** `decks_used` and `scoring_decks`, and a
+`boat_attacks` is counted **inside** `decks_used`, and a
 boat battle scores on a different scale from a 1v1 or a duel: in one
 recorded week the member who spent all four decks on the boat earned 350
-points to the 700-800 of the members who spent four on 1v1s. So
-`points / scoring_decks` is not comparable between a row with boat attacks
+points to the 700-800 of the members who spent four on 1v1s. So a
+points-per-deck figure is not comparable between a row with boat attacks
 and a row without, and whenever any row in a response carries
 `boat_attacks > 0`, a note says so and names who (6.15.0). The record
 holds `boat_attacks` as the game's weekly counter, not per day, so no
@@ -493,15 +501,11 @@ because that endpoint does not report the former current-day value.
   recording began (unrecorded, not a week the clan sat out), after the
   latest recorded week (not yet played or observed), a section no season
   has (sections run 0-4), or a gap inside the recorded span.
-- `member_weeks` (with `player_tag`) for one member week by week:
-  `war_days_battled` counts the days they fought and `war_days` lists the day
-  indices; `null` `war_days_battled` means per-day attendance is unknown for
-  that week, not zero. `scoring_decks` is `decks_used` less the decks
-  played on the war days after the finish, the denominator for a
-  points-per-deck rate: equal to `decks_used` on an unfinished week, `null`
-  when the record cannot separate the two (no day-by-day log for the week,
-  or no poll saw the days past the finish). It can overstate by a deck where
-  a poll missed a day's last battle.
+- `member_weeks` (with `player_tag`) for one member week by week: the
+  game's weekly counters `points`, `decks_used`, `boat_attacks` and
+  `repair_points`, never split by war day (above). On a finished week
+  `decks_used` includes the decks played after the finish, which earned
+  nothing, so it is not the denominator of a points-per-deck rate there.
 
 - `closed_at`, the API's own close instant for the week (its
   `createdDate` on the race log), beside `finished`, the close instant the
@@ -515,8 +519,8 @@ because that endpoint does not report the former current-day value.
 
 Supply `season_id` and `section_index` together to select one exact week.
 Without `player_tag`, `member_weeks` then contains every recorded participant
-for that week, including their tag, name, points, decks, boat attacks,
-`repair_points` and the same per-day attendance fields. This is the one-call
+for that week, including their tag, name, points, decks, boat attacks and
+`repair_points`. This is the one-call
 closed-week roster path. The exact week also carries:
 
 - `standings[]`, every clan in the week's bracket with `fame`, `rank`,
@@ -563,11 +567,9 @@ effort.
 
 Once the clan's boat has finished, `war_current` says so: `race_finished_at`
 is the finish (a war-day close, as above), `finish_war_day` the day it
-closed, and a note names both with the count of decks played on the days
-since, which earned nothing. `participants[].scoring_decks` sits beside
-`decks_used` with the same meaning as on `war_history.member_weeks[]`: the
-denominator for a points-per-deck rate, `null` when the record cannot
-separate the decks that scored from the decks that did not.
+closed, and a note names both: decks played after the finish earned
+nothing, so `participants[].decks_used` is not the denominator of a
+points-per-deck rate that week.
 
 **War trophies and repair points.** `clan_war_trophies` is the clan's WAR
 trophies as the race payload carries them during the week, going into that

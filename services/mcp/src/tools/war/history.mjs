@@ -1,6 +1,5 @@
 import { responseMeta } from "@elixir-mcp/contracts";
 import { sectionsInSeason } from "../../../../ingest/src/war-clock.mjs";
-import { WAR_BATTLE_TYPES, warBattlesSql } from "../../war-battles-sql.mjs";
 import { finishInstant } from "../../time.mjs";
 import {
   DISPLAY_NAME_SCHEMA,
@@ -19,9 +18,7 @@ import {
   boatDecksNote,
   boatFinished,
   cappedProgressNote,
-  decksAfterFinish,
   finishWarDays,
-  scoringDecks,
   warDaysLog,
   warTrophyAlias,
   weekKey,
@@ -30,7 +27,7 @@ import {
 
 export const war_history = {
   description:
-    "Recorded war weeks for a clan, yours by default: final ranks and boat fame. With player_tag (or on_behalf_of), returns one member's per-week points, decks and war days battled. With season_id and section_index together, returns that exact week plus every recorded participant in member_weeks. seasons says how far back otherwise; from/to are not needed here.",
+    "Recorded war weeks for a clan, yours by default: final ranks and boat fame. With player_tag (or on_behalf_of), returns one member's per-week points and decks used (weekly totals; nothing is split by war day). With season_id and section_index together, returns that exact week plus every recorded participant in member_weeks. seasons says how far back otherwise; from/to are not needed here.",
   inputSchema: {
     type: "object",
     properties: {
@@ -139,8 +136,8 @@ export const war_history = {
          order by w.season_id desc, w.section_index desc`,
       [clanTag, seasons, exactSeason, exactSection],
     );
-    // Which weeks' boats finished, on which war day, and what each
-    // member played after that (feedback #81: finished_early was
+    // Which weeks' boats finished, and on which war day (feedback #81:
+    // finished_early was
     // computed as fame === 10000, which only a week known from the
     // capped log alone ever equals - every live-polled week carries
     // the overshoot - so no served week carried it while the docs
@@ -160,107 +157,31 @@ export const war_history = {
       clanTag,
       weeks.filter((w) => finished.get(weekKey(w)) === true),
     );
-    const afterFinish =
-      focus || hasSeason
-        ? await decksAfterFinish(ctx.db, clanTag, finishDays)
-        : new Map();
     let memberWeeks = null;
     if (focus || hasSeason) {
-      // war_days_battled unions TWO observation sources — decksUsedToday
-      // polls AND the member's own recorded war battles, the latter
-      // resolved by the calendar (0105). Null when the week has NO
-      // coverage from either source. One pass: the week's battles are
-      // scanned once per week and grouped by player, then joined to the
-      // participants; two correlated subqueries per row ran the week
-      // scan twice per participant and a 46-member exact week timed
-      // out the Lambda (review 2026-09-19, defect 1).
-      const weekBattles = warBattlesSql({
-        clan: "$1",
-        season: "k.season_id",
-        section: "k.section_index",
-        types: "$6",
-      });
+      // The game's weekly counters only (Jamie 2026-09-25). The API does
+      // not say which day a deck was played, and a war day's rollover
+      // cannot be placed reliably across every clan Elixir records, so
+      // per-day attendance (war_days_battled, war_days), training-day
+      // decks and the after-the-finish subtraction (scoring_decks) are
+      // not served: each split a weekly count at a guessed boundary.
       const { rows } = await ctx.db.query(
-        `with wp as (
-             select wp.player_tag, wp.season_id, wp.section_index,
-                    wp.points, wp.decks_used, wp.boat_attacks, wp.repair_points
-             from war_participation wp
-             where wp.clan_tag = $1
-               and ($2::text is null or wp.player_tag = $2)
-               and (($4::integer is not null
-                     and wp.season_id = $4 and wp.section_index = $5)
-                    or ($4::integer is null and wp.season_id > coalesce(
-                      (select max(season_id) from war_week where clan_tag = $1), 0) - $3))),
-           k as (select distinct season_id, section_index from wp),
-           att as (
-             select ad.season_id, ad.section_index, ad.player_tag, ad.war_day::int as war_day,
-                    ad.decks_used_today > 0 as battled
-             from war_attendance_day ad
-             join k on k.season_id = ad.season_id and k.section_index = ad.section_index
-             where ad.clan_tag = $1 and ad.war_day is not null),
-           fought as (
-             select k.season_id, k.section_index, wb.player_tag, wb.war_day::int as war_day
-             from k cross join lateral (${weekBattles}) wb),
-           covered as (
-             select season_id, section_index from att
-             union
-             select season_id, section_index from fought),
-           days as (
-             select season_id, section_index, player_tag, war_day from att where battled
-             union
-             select season_id, section_index, player_tag, war_day from fought),
-           -- The war decks played on the week's training days (0169: one
-           -- row per race-week day; war_day null on a training day).
-           trn as (
-             select t.season_id, t.section_index, t.player_tag,
-                    sum(t.decks_used_today)::int as training_decks
-             from war_attendance_day t
-             join k on k.season_id = t.season_id and k.section_index = t.section_index
-             where t.clan_tag = $1 and t.war_day is null
-             group by t.season_id, t.section_index, t.player_tag),
-           trn_cov as (select distinct season_id, section_index from trn),
-           per_player as (
-             select season_id, section_index, player_tag,
-                    count(distinct war_day)::int as war_days_battled,
-                    array_agg(distinct war_day order by war_day) as war_days
-             from days
-             group by season_id, section_index, player_tag)
-           select wp.player_tag, p.name, wp.season_id, wp.section_index,
-                  wp.points, wp.decks_used, wp.boat_attacks, wp.repair_points,
-                  case when cov.season_id is not null
-                       then coalesce(pp.war_days_battled, 0) end as war_days_battled,
-                  case when cov.season_id is not null
-                       then coalesce(pp.war_days, '{}'::int[]) end as war_days,
-                  case when tc.season_id is not null
-                       then coalesce(trn.training_decks, 0) end as training_decks
-           from wp
+        `select wp.player_tag, p.name, wp.season_id, wp.section_index,
+                wp.points, wp.decks_used, wp.boat_attacks, wp.repair_points
+           from war_participation wp
            left join player p on p.player_tag = wp.player_tag
-           left join per_player pp on pp.season_id = wp.season_id
-             and pp.section_index = wp.section_index and pp.player_tag = wp.player_tag
-           left join covered cov on cov.season_id = wp.season_id
-             and cov.section_index = wp.section_index
-           left join trn on trn.season_id = wp.season_id
-             and trn.section_index = wp.section_index and trn.player_tag = wp.player_tag
-           left join trn_cov tc on tc.season_id = wp.season_id
-             and tc.section_index = wp.section_index
-           order by wp.season_id desc, wp.section_index desc, wp.points desc,
-                    p.name nulls last
-           limit ${hasSeason ? 60 : 40}`,
-        [clanTag, focus, seasons, exactSeason, exactSection, WAR_BATTLE_TYPES],
+          where wp.clan_tag = $1
+            and ($2::text is null or wp.player_tag = $2)
+            and (($4::integer is not null
+                  and wp.season_id = $4::integer and wp.section_index = $5::integer)
+                 or ($4::integer is null and wp.season_id > coalesce(
+                   (select max(season_id) from war_week where clan_tag = $1), 0) - $3::integer))
+          order by wp.season_id desc, wp.section_index desc, wp.points desc,
+                   p.name nulls last
+          limit ${hasSeason ? 60 : 40}`,
+        [clanTag, focus, seasons, exactSeason, exactSection],
       );
-      // war_days: the day indices battled, so "played 3 of 4" can become
-      // "missed day 2" (feedback item 30, 2026-09-10). Null when unknown.
-      memberWeeks = rows.map((r) => ({
-        ...r,
-        scoring_decks: scoringDecks({
-          decksUsed: r.decks_used,
-          finished: finished.get(weekKey(r)),
-          finishDay: finishDays.get(weekKey(r)),
-          after: afterFinish.get(weekKey(r)),
-          playerTag: r.player_tag,
-        }),
-        war_days: r.war_days_battled === null ? null : (r.war_days ?? []),
-      }));
+      memberWeeks = rows;
     }
     // The exact week's day-by-day and its standings with the rivals'
     // clan_score and repair_points (3.15.0).
@@ -396,22 +317,19 @@ export const war_history = {
             // 3,100 points up); war_current carries the live standing.
             "On the week in progress (in_progress), our_fame is the fame banked at the last war-day close, 0 until war day 1 closes: the day's points so far are war_current.standings[].period_points.",
             hasSeason && !focus
-              ? "member_weeks contains every recorded participant for the exact week; null war_days_battled means per-day attendance is unknown, while war_days lists the observed day indices battled."
+              ? "member_weeks contains every recorded participant for the exact week."
               : focus
-                ? "member_weeks: null war_days_battled means per-day attendance is unknown for that week (unknown, not zero); war_days lists the day indices battled."
+                ? null
                 : "Pass player_tag for one member's week-by-week participation (member_weeks).",
             "finished_early is true on a regular week whose boat reached the 10,000-fame line, false when it did not, null on a Colosseum week (no finish line), a week whose standings were never recorded, or a week still IN PROGRESS - which has not failed to reach the line, it has not had the chance; finish_war_day is the war day whose close carried it over (null when the day-by-day log does not hold the week). Decks used after the finish earn zero points, so decks_used is not the denominator of a points-per-deck rate on a finished week.",
             focus || hasSeason
-              ? "member_weeks[].decks_used is the week's cumulative count; a duel consumes one deck per round played (two or three), a 1v1 one and a boat battle one, so decks are not battles. scoring_decks is decks_used less the decks played on the war days after the finish (the denominator for a points-per-deck rate; equal to decks_used on an unfinished week; null when the record cannot separate them); it can overstate by a deck where a poll missed a day's last battle."
+              ? "member_weeks[].decks_used is the game's count for the race week; a duel consumes one deck per round played (two or three), a 1v1 one and a boat battle one, so decks are not battles. Every member figure here is a weekly total: the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so nothing is split by war day."
               : null,
             boatDecksNote(memberWeeks, "member_weeks"),
             cappedProgressNote(days, "days"),
             hasSeason
               ? null
               : "history_starts_at is the recording horizon: fewer seasons than requested is coverage, not absence.",
-            memberWeeks?.length
-              ? "member_weeks[].training_decks is the war decks played on the week's training days: the same four decks a member battles with on war days, where each can be played once, so training days are reps with them. They earn no points and are not in decks_used or war_days; from the race poll since 2026-09-24 and rebuilt from recorded river-race battles before that (a floor where a member's log was not fully captured); null for a week with no practice recorded at all."
-              : null,
           ),
       docs: WAR_DOCS,
       meta: responseMeta({ as_of: new Date().toISOString() }),

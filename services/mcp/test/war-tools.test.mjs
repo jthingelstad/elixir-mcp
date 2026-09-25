@@ -156,7 +156,22 @@ test("war_current: latest recorded week with standings, points, note", async () 
   assert.match(body.notes.join(" "), /banked at the day close/);
 });
 
-test("war_history: ranks per week and one member focus with attendance", async () => {
+/** The per-day war fields no war tool serves any more (Jamie 2026-09-25):
+ *  the API does not say which day a deck was played, and a war day's
+ *  rollover cannot be placed reliably at Elixir's scale. */
+const DAY_SPLIT_FIELDS = [
+  "war_days",
+  "war_days_battled",
+  "scoring_decks",
+  "training_decks",
+  "war_decks_by_day",
+  "war_battles_by_day",
+  "war_scoring_decks",
+];
+const daySplitFieldsIn = (row) =>
+  DAY_SPLIT_FIELDS.filter((f) => Object.hasOwn(row, f));
+
+test("war_history: ranks per week and one member focus, weekly counts only", async () => {
   const { body } = await call(invoke, "war_history", { seasons: 3 });
   assert.ok(body.weeks.length >= 9, "the log fixture spans ten weeks");
   assert.ok(body.weeks.every((w) => w.our_rank >= 1 && w.our_rank <= 5));
@@ -172,13 +187,11 @@ test("war_history: ranks per week and one member focus with attendance", async (
     allMembers.body.member_weeks.length > 1,
     "one closed-week call returns every recorded member",
   );
-  assert.ok(
-    allMembers.body.member_weeks.every(
-      (week) =>
-        typeof week.player_tag === "string" && Object.hasOwn(week, "war_days"),
-    ),
-    "each member row is identified and carries the day indices when known",
-  );
+  for (const week of allMembers.body.member_weeks) {
+    assert.equal(typeof week.player_tag, "string");
+    assert.ok(Object.hasOwn(week, "decks_used"), "the game's weekly count");
+    assert.deepEqual(daySplitFieldsIn(week), [], week.player_tag);
+  }
   const halfExact = await call(invoke, "war_history", {
     season_id: closed.season_id,
   });
@@ -206,16 +219,12 @@ test("war_history: ranks per week and one member focus with attendance", async (
   });
   assert.equal(focused.isError, false, JSON.stringify(focused.body));
   assert.ok(focused.body.member_weeks.length > 0);
-  // The log fixture carries NO per-day attendance (it comes from daily
-  // currentriverrace polls), so war_days_battled must be null — unknown,
-  // never a false zero.
   assert.ok(
-    focused.body.member_weeks.every(
-      (w) => typeof w.points === "number" && w.war_days_battled === null,
-    ),
+    focused.body.member_weeks.every((w) => typeof w.points === "number"),
   );
 
-  // Give one week attendance coverage: that week turns numeric, others stay null.
+  // A per-day poll for one week changes nothing a member week says: the
+  // week is the game's own counters, never split by day.
   const wk = focused.body.member_weeks[0];
   await db.query(
     `insert into war_attendance_day
@@ -223,20 +232,13 @@ test("war_history: ranks per week and one member focus with attendance", async (
      values ($1, $2, $3, 3, $4, 4)`,
     [CLAN, wk.season_id, wk.section_index, focusTag],
   );
-  const covered = await call(invoke, "war_history", {
+  const polled = await call(invoke, "war_history", {
     player_tag: focusTag,
     seasons: 3,
   });
-  const cw = covered.body.member_weeks.find(
-    (w) => w.season_id === wk.season_id && w.section_index === wk.section_index,
-  );
-  assert.equal(cw.war_days_battled, 1, "covered week counts battled days");
-  assert.ok(
-    covered.body.member_weeks
-      .filter((w) => w !== cw)
-      .every((w) => w.war_days_battled === null),
-    "uncovered weeks stay null",
-  );
+  assert.deepEqual(polled.body.member_weeks, focused.body.member_weeks);
+  for (const w of polled.body.member_weeks)
+    assert.deepEqual(daySplitFieldsIn(w), []);
 
   // seasons scopes member_weeks the same as weeks (round-2 finding: it
   // ignored the arg entirely).
@@ -255,11 +257,11 @@ test("war_history: ranks per week and one member focus with attendance", async (
   );
 });
 
-test("war_history exact week: a 50-participant roster answers in one pass, attendance from both sources (defect 1, 2026-09-19)", async () => {
+test("war_history exact week: a 50-participant roster answers in one pass, weekly counts only (defect 1, 2026-09-19)", async () => {
   // Season 132 section 3 is the fixture's oldest week and no other test
-  // touches it. Fifty synthetic participants: the first ten battled on
-  // day 2 by a decksUsedToday poll, the next ten by a recorded war battle
-  // on day 3, one did both, the rest have no observed day.
+  // touches it. Fifty synthetic participants: the first ten seen on day 2
+  // by a decksUsedToday poll, the next ten with a recorded war battle on
+  // day 3, one both. None of it reaches the answer (2026-09-25).
   const season = 132;
   const section = 3;
   // Tags are CR tags: the alphabet is 0289PYLQGRJCUV.
@@ -315,17 +317,10 @@ test("war_history exact week: a 50-participant roster answers in one pass, atten
   const mine = body.member_weeks.filter((w) => tags.includes(w.player_tag));
   assert.equal(mine.length, 50, "every participant, not the old 40-row cap");
   assert.ok(body.member_weeks.length <= 60, "the exact-week cap is 60");
-  const byTag = new Map(mine.map((w) => [w.player_tag, w]));
-  assert.deepEqual(byTag.get(tags[0]).war_days, [2, 3], "poll AND battle");
-  assert.equal(byTag.get(tags[0]).war_days_battled, 2);
-  assert.deepEqual(byTag.get(tags[5]).war_days, [2], "poll only");
-  assert.deepEqual(byTag.get(tags[15]).war_days, [3], "battle only");
-  assert.equal(byTag.get(tags[40]).war_days_battled, 0, "covered week, no day");
-  assert.deepEqual(byTag.get(tags[40]).war_days, []);
-  assert.ok(
-    mine.every((w) => w.war_days_battled !== null),
-    "a covered week is never null",
-  );
+  for (const w of mine) {
+    assert.equal(w.decks_used, 4, "the game's weekly count");
+    assert.deepEqual(daySplitFieldsIn(w), [], w.player_tag);
+  }
 });
 
 test("battles_compare: two clanmates side by side", async () => {
@@ -536,13 +531,15 @@ test("the registry declares 55 tools, every one classified and annotated", () =>
   );
 });
 
-test("round-3: seasons range refused loudly; attendance unions recorded battles", async () => {
+test("round-3: seasons range refused loudly; a recorded war battle is never placed on a day", async () => {
   const thirteen = await call(invoke, "war_history", { seasons: 13 });
   assert.equal(thirteen.isError, true);
   assert.equal(thirteen.body.error.code, "bad_request");
 
-  // A recorded war battle proves attendance even with NO decksUsedToday
-  // poll observation (sparse polls undercount — round-3 cross-check).
+  // A recorded war battle used to be placed on a war day by where its
+  // time fell on the calendar, and counted as that day's attendance. No
+  // day is served any more (2026-09-25): the rollover cannot be placed
+  // reliably at Elixir's scale.
   const wk = (
     await db.query(
       `select season_id, section_index from war_week where clan_tag = $1
@@ -579,13 +576,9 @@ test("round-3: seasons range refused loudly; attendance unions recorded battles"
   );
 
   const war = await call(invoke, "war_current", {});
-  const day1 = war.body.attendance_by_war_day.find((d) => d.war_day === 1);
-  assert.ok(day1, "battle-derived war day appears");
-  assert.ok(day1.battled >= 1, "recorded battle counts as battled");
-  assert.ok(
-    typeof day1.participants === "number",
-    "attendance counts race participants, field renamed from members",
-  );
+  assert.ok(!Object.hasOwn(war.body, "attendance_by_war_day"));
+  for (const p of war.body.participants)
+    assert.deepEqual(daySplitFieldsIn(p), []);
 
   const focused = await call(invoke, "war_history", {
     player_tag: member,
@@ -594,10 +587,7 @@ test("round-3: seasons range refused loudly; attendance unions recorded battles"
   const cw = focused.body.member_weeks.find(
     (w) => w.season_id === wk.season_id && w.section_index === wk.section_index,
   );
-  assert.ok(
-    cw.war_days_battled >= 1,
-    "battle-derived day reaches war_days_battled",
-  );
+  assert.deepEqual(daySplitFieldsIn(cw), []);
   assert.ok(
     focused.body.weeks[0].in_progress === true ||
       focused.body.weeks[0].finished !== null,
@@ -1227,17 +1217,18 @@ test("game_clock refuses a date it cannot read, rather than guessing now", async
 
 /**
  * The note described war_days_battled unconditionally, but that field only
- * exists on member_weeks, which only exist when player_tag was supplied.
+ * existed on member_weeks, which only exist when player_tag was supplied.
  * A clan leader read the note on a plain war_history call and went hunting
  * for a field that was never going to be there (playtest round,
- * 2026-09-09).
+ * 2026-09-09). The member-week note still rides only with member_weeks;
+ * the day fields themselves are gone (2026-09-25).
  */
-test("war_history only documents war_days_battled when it can actually return it", async () => {
+test("war_history only documents member_weeks when it can actually return them", async () => {
   const plain = await call(invoke, "war_history", { seasons: 3 });
   assert.equal(plain.body.member_weeks, undefined, "no focus, no member rows");
   assert.doesNotMatch(
     plain.body.notes.join(" "),
-    /war_days_battled/,
+    /member_weeks\[\]\.decks_used/,
     "the note must not describe a field this response cannot carry",
   );
   // It should say how to get it instead of going silent.
@@ -1264,12 +1255,11 @@ test("war_history only documents war_days_battled when it can actually return it
     seasons: 3,
   });
   assert.ok(focused.body.member_weeks, "focus returns member rows");
-  assert.match(
-    focused.body.notes.join(" "),
-    /war_days_battled/,
-    "and then the note explains them",
-  );
-  assert.match(focused.body.notes.join(" "), /finished_early/);
+  const said = focused.body.notes.join(" ");
+  assert.match(said, /member_weeks\[\]\.decks_used/, "the note explains them");
+  assert.match(said, /nothing is split by war day/);
+  assert.doesNotMatch(said, /war_days_battled|scoring_decks|training_decks/);
+  assert.match(said, /finished_early/);
 });
 
 /**
@@ -1421,7 +1411,6 @@ test("clans_participation: every open member, per ISO week and per war week, fac
     "tenure_known",
     "war_decks",
     "war_points",
-    "war_scoring_decks",
   ]);
   // 3.16.0: the coverage controls. This clan's recording is
   // comprehensive, so basis is recorded and every member's log is.
@@ -1460,9 +1449,7 @@ test("clans_participation: every open member, per ISO week and per war week, fac
     );
     for (const col of ["war_decks", "war_points"])
       assert.equal(member[col].length, body.war_weeks.length, col);
-    assert.ok(!("war_decks_by_day" in member));
-    assert.ok(!("war_battles_by_day" in member));
-    assert.ok(!("war_days_battled" in member));
+    assert.deepEqual(daySplitFieldsIn(member), [], member.player_tag);
   }
   const compact = (
     await call(invoke, "clans_participation", {
@@ -1664,7 +1651,7 @@ test("war_current on a clan the game has no race for says so instead of pointing
 // flag the docs promised and every note named was served on no row, and
 // war_current put points beside decks_used with no word that the decks
 // after the finish earned nothing.
-test("6.11.0: finished_early on every week, finish_war_day, scoring_decks (feedback #81)", async () => {
+test("6.11.0: finished_early on every week and finish_war_day; decks past the finish are never split out (feedback #81, 2026-09-25)", async () => {
   const { projectRaceSeries } = await import("../../ingest/src/war.mjs");
   const race = await fixture("currentriverrace/war_day.json");
   const own = async (season, section) =>
@@ -1764,7 +1751,10 @@ test("6.11.0: finished_early on every week, finish_war_day, scoring_decks (feedb
     );
     assert.match(all.notes.join(" "), /finish_war_day/);
 
-    // The exact week: scoring_decks subtracts the decks past the finish.
+    // The exact week: polls past the finish change nothing. Member weeks
+    // are the game's weekly counters; splitting off the decks after the
+    // finish needs a war day's rollover, which cannot be placed reliably
+    // at Elixir's scale (Jamie 2026-09-25).
     const exact = (
       await call(invoke, "war_history", { season_id: 133, section_index: 3 })
     ).body;
@@ -1773,45 +1763,14 @@ test("6.11.0: finished_early on every week, finish_war_day, scoring_decks (feedb
     const a = exact.member_weeks.find(
       (m) => m.player_tag === members[0].player_tag,
     );
-    const b = exact.member_weeks.find(
-      (m) => m.player_tag === members[1].player_tag,
+    assert.equal(a.decks_used, members[0].decks_used);
+    for (const m of exact.member_weeks)
+      assert.deepEqual(daySplitFieldsIn(m), [], m.player_tag);
+    assert.match(
+      exact.notes.join(" "),
+      /decks_used is not the denominator of a points-per-deck rate on a finished week/,
     );
-    assert.equal(a.scoring_decks, a.decks_used - 4);
-    assert.equal(b.scoring_decks, b.decks_used);
-    assert.ok(
-      exact.member_weeks.every((m) => Number.isInteger(m.scoring_decks)),
-    );
-    assert.match(exact.notes.join(" "), /scoring_decks is decks_used less/);
-
-    // Finished with no day-by-day log: the record cannot separate them.
-    const unlogged = (
-      await call(invoke, "war_history", { season_id: 134, section_index: 1 })
-    ).body;
-    assert.equal(unlogged.weeks[0].finished_early, true);
-    assert.ok(unlogged.member_weeks.length > 0);
-    assert.ok(
-      unlogged.member_weeks.every((m) => m.scoring_decks === null),
-      "null, not decks_used",
-    );
-
-    // Not finished: every deck scored.
-    const open = (
-      await call(invoke, "war_history", { season_id: 133, section_index: 0 })
-    ).body;
-    assert.equal(open.weeks[0].finished_early, false);
-    assert.ok(open.member_weeks.every((m) => m.scoring_decks === m.decks_used));
-
-    // One member's weeks carry it too.
-    const one = (
-      await call(invoke, "war_history", {
-        seasons: 12,
-        player_tag: members[0].player_tag,
-      })
-    ).body;
-    const oneWeek = one.member_weeks.find(
-      (m) => m.season_id === 133 && m.section_index === 3,
-    );
-    assert.equal(oneWeek.scoring_decks, a.scoring_decks);
+    assert.doesNotMatch(exact.notes.join(" "), /scoring_decks/);
   } finally {
     for (const [key, row] of Object.entries(before)) {
       const [season, section] = key.split(":").map(Number);
@@ -1824,7 +1783,7 @@ test("6.11.0: finished_early on every week, finish_war_day, scoring_decks (feedb
   }
 });
 
-test("6.11.0: war_current says the boat finished, names the day, and serves the scoring denominator (feedback #81)", async () => {
+test("6.11.0: war_current says the boat finished and names the day; decks past it are never split out (feedback #81, 2026-09-25)", async () => {
   const { projectRaceSeries } = await import("../../ingest/src/war.mjs");
   const race = await fixture("currentriverrace/war_day.json");
   // The race fixture as its own week, 135/3: a regular week, finished at
@@ -1857,20 +1816,16 @@ test("6.11.0: war_current says the boat finished, names the day, and serves the 
     const p0 = body.participants.find((p) => p.player_tag === tags[0]);
     const p1 = body.participants.find((p) => p.player_tag === tags[1]);
     assert.equal(p0.decks_used, 12);
-    assert.equal(p0.scoring_decks, 8, "four decks on day 4 earned nothing");
-    assert.equal(p1.scoring_decks, 12);
+    assert.equal(p1.decks_used, 12);
+    for (const p of [p0, p1]) assert.deepEqual(daySplitFieldsIn(p), []);
     const note = body.notes.find((n) => /boat finished the race/.test(n));
     assert.ok(note, "the finished note fires");
     assert.match(
       note,
       /at 2026-08-30T09:34:04\.000Z \(the close of war day 3\)/,
     );
-    assert.match(
-      note,
-      /4 decks were played on the war days since, for 0 clan points/,
-    );
     assert.match(note, /decks_used is not the denominator/);
-    assert.match(note, /scoring_decks is\./);
+    assert.doesNotMatch(note, /played on the war days since|scoring_decks/);
     const compact = (
       await call(invoke, "war_current", { verbosity: "compact" })
     ).body;
@@ -1978,8 +1933,8 @@ test("6.11.0: war_current says the boat finished, names the day, and serves the 
 // ---------------------------------------------------- 6.15.0 (feedback #84-#86)
 // The Gym's second war run: the race log caps a finished boat's
 // progressEndOfDay at the line (the one day row whose own arithmetic
-// breaks), boat decks pool with PvP decks under the rate scoring_decks
-// sanctions, and the exact-week path dropped history_starts_at.
+// breaks), boat decks pool with PvP decks in decks_used, and the
+// exact-week path dropped history_starts_at.
 test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and the horizon on the exact week (feedback #84-#86)", async () => {
   const { projectRaceSeries } = await import("../../ingest/src/war.mjs");
   const race = await fixture("currentriverrace/war_day.json");
@@ -1995,10 +1950,9 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
     await db.query(`select player_tag from player order by player_tag limit 2`)
   ).rows.map((r) => r.player_tag);
   await db.query(
-    // ryguy67's shape from feedback #89: a week that FINISHED, so
-    // scoring_decks is decks_used less the decks played after it, and
-    // the two denominators differ. 8 used, 4 of them on war day 4
-    // (after the day-3 finish) -> scoring_decks 4, boat_attacks 1.
+    // ryguy67's shape from feedback #89: a week that FINISHED, 8 decks
+    // used with a poll seeing 4 on war day 4 (after the day-3 finish),
+    // boat_attacks 1. The poll no longer splits the week (2026-09-25).
     `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)
      values ($1, 135, 3, $2, 525, 8, 1), ($1, 135, 3, $3, 800, 4, 0)`,
     [CLAN, tags[0], tags[1]],
@@ -2051,19 +2005,11 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
     );
     assert.ok(boatNote, "the boat note fires");
     assert.match(boatNote, /1 of 2 member_weeks rows have boat_attacks > 0/);
-    // The share is of scoring_decks - the denominator the sentence names
-    // - not of decks_used, and it is a ceiling because boat_attacks is
-    // the week's counter (feedback #89).
-    // decks_used 8 but scoring_decks 4: the old note said "1 of 8", the
-    // rate's own denominator makes it 1 of 4 - exactly the doubling #89
-    // reported.
-    assert.match(boatNote, /up to 1 of 4 scoring decks/);
-    assert.match(boatNote, /ceiling/);
-    assert.ok(
-      !/\b1 of 8 decks\b/.test(boatNote),
-      "the share is never quoted against decks_used",
-    );
-    assert.match(boatNote, /points \/ scoring_decks is not comparable/);
+    // Both counters are the week's, so the share is of the week's decks
+    // (#89 quoted it against scoring_decks, gone since 2026-09-25).
+    assert.match(boatNote, /\b1 of 8 decks\b/);
+    assert.doesNotMatch(boatNote, /scoring/);
+    assert.match(boatNote, /points-per-deck figure is not comparable/);
     assert.match(
       exact.notes.join(" "),
       /a 1v1 one and a boat battle one/,

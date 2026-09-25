@@ -148,33 +148,24 @@ export function cappedProgressNote(days, field) {
 
 /** The note beside participant rows when any carries boat attacks
  *  (feedback #85): a boat battle spends a war deck and is counted inside
- *  decks_used and scoring_decks, and it scores on a different scale, so a
+ *  decks_used, and it scores on a different scale, so a
  *  points-per-deck rate is not comparable between the rows that hold
  *  boat decks and the rows that do not. Null when no row does. */
 export function boatDecksNote(rows, field) {
   const boat = (rows ?? []).filter((r) => r.boat_attacks > 0);
   if (boat.length === 0) return null;
-  // The share must be of the denominator this sentence names. 6.15.0
-  // named scoring_decks as the rate at risk and then quoted the share
-  // against decks_used, which for a member whose week had a finish is a
-  // different, larger number - ryguy67 read "1 of 8" where the rate's
-  // own denominator made it 1 of 4, exactly double (feedback #89, the
-  // Gym's Pass 2 on its own #85).
-  //
-  // "up to", because boat_attacks is the WEEK's counter: the record
-  // cannot say which of them fell on a scoring day, so a boat attack
-  // played after the boat finished is outside scoring_decks entirely.
-  // The count is therefore a ceiling on the contamination, never a
-  // measurement of it, and it is clamped to the denominator.
-  const share = (r) =>
-    Number.isInteger(r.scoring_decks)
-      ? `up to ${Math.min(r.boat_attacks, r.scoring_decks)} of ${r.scoring_decks} scoring decks`
-      : `${r.boat_attacks} of ${r.decks_used} decks, scoring_decks unknown`;
+  // Both are the week's counters, so the share is of the week's decks.
+  // 6.15.0 to 9.0.0 quoted it against scoring_decks (feedback #89); that
+  // denominator split the week at the finish day's rollover and went
+  // with every other day split (Jamie 2026-09-25).
   const shown = boat
     .slice(0, 4)
-    .map((r) => `${r.name ?? r.player_tag} ${share(r)}`);
+    .map(
+      (r) =>
+        `${r.name ?? r.player_tag} ${r.boat_attacks} of ${r.decks_used} decks`,
+    );
   const more = boat.length > 4 ? `, and ${boat.length - 4} more` : "";
-  return `boat_attacks are counted INSIDE decks_used and scoring_decks: a boat battle spends a war deck and scores on a different scale from a 1v1 or a duel. ${boat.length} of ${rows.length} ${field} rows have boat_attacks > 0 (${shown.join(", ")}${more}), so points / scoring_decks is not comparable between them and the rest. The per-member count is a ceiling: boat_attacks is the week's counter and the record cannot say which of them fell on a scoring day.`;
+  return `boat_attacks are counted INSIDE decks_used: a boat battle spends a war deck and scores on a different scale from a 1v1 or a duel. ${boat.length} of ${rows.length} ${field} rows have boat_attacks > 0 (${shown.join(", ")}${more}), so a points-per-deck figure is not comparable between them and the rest.`;
 }
 
 export const weekKey = (r) => `${r.season_id}:${r.section_index}`;
@@ -212,56 +203,6 @@ export async function finishWarDays(db, clanTag, keys) {
     ],
   );
   return new Map(rows.map((r) => [weekKey(r), r.war_day]));
-}
-
-/** Decks each member used on the war days AFTER the finish day, from the
- *  attendance polls: weekKey -> Map(player_tag -> decks). A week the polls
- *  never saw past its finish day is absent (a poll writes every
- *  participant's row, zeros included, so no rows means no sighting, and
- *  the subtraction must not read as zero). */
-export async function decksAfterFinish(db, clanTag, finishDays) {
-  const entries = [...finishDays.entries()];
-  if (entries.length === 0) return new Map();
-  const { rows } = await db.query(
-    `select ad.season_id, ad.section_index, ad.player_tag,
-            sum(ad.decks_used_today)::int as decks
-       from war_attendance_day ad
-       join unnest($2::int[], $3::int[], $4::int[]) as k(season_id, section_index, finish_day)
-         on k.season_id = ad.season_id and k.section_index = ad.section_index
-      where ad.clan_tag = $1 and ad.war_day > k.finish_day
-      group by ad.season_id, ad.section_index, ad.player_tag`,
-    [
-      clanTag,
-      entries.map(([k]) => Number(k.split(":")[0])),
-      entries.map(([k]) => Number(k.split(":")[1])),
-      entries.map(([, day]) => day),
-    ],
-  );
-  const out = new Map();
-  for (const r of rows) {
-    const key = weekKey(r);
-    if (!out.has(key)) out.set(key, new Map());
-    out.get(key).set(r.player_tag, r.decks);
-  }
-  return out;
-}
-
-/** The denominator of a points-per-deck rate (feedback #81): decks_used
- *  less the decks the member played on war days after the boat finished,
- *  which earn nothing. decks_used itself on an unfinished week; null when
- *  the record cannot separate the two (no day-by-day log for the week, or
- *  no poll saw the days past the finish). */
-export function scoringDecks({
-  decksUsed,
-  finished,
-  finishDay,
-  after,
-  playerTag,
-}) {
-  if (!Number.isInteger(decksUsed)) return null;
-  if (finished !== true) return decksUsed;
-  if (!Number.isInteger(finishDay) || !after) return null;
-  return decksUsed - (after.get(playerTag) ?? 0);
 }
 
 export async function clanSubject(ctx, args, endpoint) {

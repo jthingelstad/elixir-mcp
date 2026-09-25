@@ -90,30 +90,14 @@ export const identities = [
     1,
     4,
   ),
+  // scoring_decks and its identities went 2026-09-25 (weekly aggregates
+  // only); both counters here are the game's own for the week.
   bounded(
-    "scoring_decks within decks_used",
+    "boat_attacks within decks_used",
     "war_history",
     closedWeek,
     "member_weeks",
-    "scoring_decks",
-    0,
-    "decks_used",
-  ),
-  implies(
-    "an unfinished week scores every deck",
-    "war_history",
-    closedWeek,
-    "member_weeks",
-    (m, body) =>
-      body.weeks[0].finished_early !== true && m.scoring_decks !== null,
-    (m) => m.scoring_decks === m.decks_used,
-  ),
-  bounded(
-    "scoring_decks within decks_used, running race",
-    "war_current",
-    {},
-    "participants",
-    "scoring_decks",
+    "boat_attacks",
     0,
     "decks_used",
   ),
@@ -184,7 +168,7 @@ export const identities = [
     (body) => (body.member_weeks ?? []).some((m) => m.boat_attacks > 0),
     (body) =>
       body.notes.some((n) =>
-        /boat_attacks are counted INSIDE decks_used and scoring_decks/.test(n),
+        /boat_attacks are counted INSIDE decks_used/.test(n),
       ),
   ),
   implies(
