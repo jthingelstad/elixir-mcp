@@ -62,6 +62,12 @@ export const elixir_track_player = {
     }
     if (action === "remove") {
       const r = await removePlayer(ctx.db, ctx.account, { tag, via: "mcp" });
+      if (r.refused === "primary_in_use")
+        throw new ToolFailure(
+          "bad_request",
+          `${tag} is your primary player and you track others, so it cannot be removed yet.`,
+          "Make another of your players your primary first (the console's Players page, or elixir_track_player with relationship 'primary'), then remove this one.",
+        );
       return {
         player_tag: tag,
         removed: r.removed,

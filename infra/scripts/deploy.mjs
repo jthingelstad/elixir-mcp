@@ -80,6 +80,22 @@ if (args.unknown.length > 0) {
 const isCreate = args.create;
 const skipWeb = args.skipWeb;
 
+// Deploy what is committed (DECISIONS "Lease first": deploy from a clean
+// worktree). The build bundles the working tree as it is, so an edit that
+// was never committed would ship with no trace in git. Untracked files
+// (local progress files, caches) are not the build's and do not count.
+const dirty = execFileSync(
+  "git",
+  ["status", "--porcelain", "--untracked-files=no"],
+  { cwd: repoRoot, encoding: "utf8" },
+).trim();
+if (dirty) {
+  console.error(
+    `deploy: the worktree has uncommitted changes; commit them first. Nothing was deployed.\n${dirty}`,
+  );
+  process.exit(2);
+}
+
 const sts = new STSClient({ region: REGION });
 const { Account: accountId } = await sts.send(new GetCallerIdentityCommand({}));
 const codeBucket = `elixir-mcp-code-${accountId}`;
@@ -346,7 +362,7 @@ const acceptanceFamily = args.acceptanceFamily;
 const wantAcceptance = args.acceptance || process.env.ACCEPTANCE === "1";
 if (!wantAcceptance) {
   console.log(
-    "acceptance: not run (opt in with --acceptance or ACCEPTANCE=1; npm run acceptance any time).",
+    "WARNING: acceptance NOT run. Pass --acceptance=<family> when a tool in that family changed, --acceptance for shared code or a release (or ACCEPTANCE=1); npm run acceptance any time.",
   );
 } else if (existsSync(acceptanceEnv)) {
   const acceptance = spawnSync(

@@ -104,9 +104,10 @@ export function Fleet({ navigate }) {
           <div className="empty__title">You don&rsquo;t run one yet</div>
           <p className="empty__body" style={{ marginBottom: 0 }}>
             A collector is a machine that fetches for the corpus on a schedule.
-            It earns you bonus quota — 10 fetches buys one extra daily call, up
-            to 4× your base — and wears a Clash Royale card of your choosing as
-            its public name.
+            It earns you bonus quota — 10 points buy one extra daily call, up to
+            4× your base, where a point is a fetch that added something to the
+            record — and wears a Clash Royale card of your choosing as its
+            public name.
           </p>
         </div>
       )}

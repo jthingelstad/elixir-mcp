@@ -53,7 +53,6 @@ export const api = {
     request("GET", `/api/me/email/sends/${encodeURIComponent(send_id)}`),
   addClaim: (player_tag) => request("POST", "/api/claims", { player_tag }),
   claimAction: (body) => request("POST", "/api/claims", body),
-  clan: () => request("GET", "/api/clan"),
   usage: (agent) => request("GET", `${home(agent)}/usage`),
   explore: (tool, args) => request("POST", "/api/explore", { tool, args }),
   adminCollections: () => request("GET", "/api/admin/collections"),

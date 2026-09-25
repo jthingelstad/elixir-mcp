@@ -24,6 +24,26 @@ const list = (...items: string[]) => items.map((i) => `- ${i}`).join("\n");
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "9.1.0",
+    date: "2026-09-25",
+    summary: md(
+      "The consistency pass (Jamie, 2026-09-25): decisions that had reached one tool now reach every tool they apply to, and the war family's old names go.",
+      list(
+        "A boat defense is not the member's battle: an enemy attacked the boat and the defense deck answered. It leaves `battles_performance` (and its streak), `battles_compare`, `battles_cards`, `battles_decks`, `battles_trends`, `clans_participation` and the timeline's battle sessions; boat attacks stay.",
+        "`battles_performance` without a `mode` and `battles_compare` (which now takes `mode`) serve `modes`, the record split by mode family, and a note says the headline pools them.",
+        "`battles_trends` over the corpus counts recorded players only, like every other metric; a battle-stub player is a ghost entry, never a metric.",
+        "`clanMate` and unrecognized battle types are casual in every mode group, never ranked or an event.",
+        "Battle deck cards carry `form` (`base`, `evolution`, `hero`) beside the API's raw `evolutionLevel`.",
+        "`elixir_timeline` takes `season` like every windowed tool, and says where a capped feed stops (`timeline_more_to`).",
+        "`war_current`, `war_rivals` and `war_history` drop the `clan_score` and `our_clan_score` aliases (deprecated since 6.19.0; the names are `clan_war_trophies` and `our_clan_war_trophies`), and `war_current` drops `training_today` (`decks_today.day_kind` says it).",
+        "On a personal connection `on_behalf_of` is ignored and `elixir_identify` and `elixir_my_identities` are not listed: they map an agent's other people, and a person is themselves. Omitting `clan_tag` means your primary player's clan; the brief names the other clans you track.",
+        "`elixir_track_player` refuses to remove your primary player while you track others (`bad_request`): make another player primary first. It used to promote one silently.",
+        "`rankings_clan_ladder` always emits `located_elsewhere`; `clans_standings` declares `current_streak` as the object it is; `elixir_collectors` says credits follow points.",
+      ),
+      "Additive, with removals that are patches under the agent-facing rule (DECISIONS: majors track domain shifts). The JSON API mirrors none of the removed names and moves to 2.1.0 separately.",
+    ),
+  },
+  {
     version: "9.0.1",
     date: "2026-09-25",
     summary: md(
@@ -46,8 +66,9 @@ export const CHANGELOG: ChangelogEntry[] = [
         "`clans_participation.members[]` keeps `war_decks` as the total for each recorded war week, with `war_points` and `war_scoring_decks` where full verbosity serves them.",
         "`war_decks_by_day`, `war_battles_by_day` and `war_days_battled` are removed from participation. Sampled game counters and recorded battles cannot reliably allocate a weekly deck total to the game's individual days. `war_history` remains the exact-week surface for its separately observed attendance facts.",
       ),
-      "Breaking: clients reading any removed participation day field must use the weekly total instead.",
     ),
+    breaking:
+      "Clients reading any removed participation day field must use the weekly total instead.",
   },
   {
     version: "8.1.0",
@@ -58,8 +79,9 @@ export const CHANGELOG: ChangelogEntry[] = [
         "`trophy_road_complete` is war and friendlies: at 14,000 the ladder is Path of Legends, which carries no band. A note says so on every tool that takes the band, and on cards_card's by_band.",
         "`top_player_battles` rides rows with at most five REPEAT players (it was rows with 2-5 players): in the wider band a 98-battle deck had 16 players, only 2 of them repeat, and its busiest player went uncounted.",
       ),
-      "Breaking for a caller passing an old band name, which is now refused with the three names; no first-party client passes one.",
     ),
+    breaking:
+      "A caller passing an old band name is now refused with the three names; no first-party client passes one.",
   },
   {
     version: "8.0.1",
@@ -77,8 +99,9 @@ export const CHANGELOG: ChangelogEntry[] = [
         '`rankings_players`, `rankings_clans` and `rankings_clan_ladder` serve the snapshot\'s `season_id` as a number, like every other `season_id` (it was the string "135" beside `applied.season` 135 in the same response) (#345).',
         "`battles_meta_decks` `min_players` counts **repeat players**, those with two or more battles on the deck, carried on every row as `repeat_players`; `players` stays every distinct player. Two players who tried a deck once no longer carry one player's deck past `min_players: 2` (#348). A season rollup row not yet rebuilt is judged on `players` until the nightly, and a note says so.",
       ),
-      "Breaking: a client parsing rankings season_id as a string, or relying on min_players counting one-battle players, must update. Every first-party client was checked: none reads either.",
     ),
+    breaking:
+      "A client parsing rankings season_id as a string, or relying on min_players counting one-battle players, must update. Every first-party client was checked: none reads either.",
   },
   {
     version: "7.3.0",

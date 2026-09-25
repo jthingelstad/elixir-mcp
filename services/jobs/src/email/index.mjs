@@ -1,9 +1,8 @@
 /** The product email job: one op per kind, idempotent by the ledger.
  *
- *  runEmail composes for every eligible recipient (or one, for the
- *  account page's "send me this now"), enqueues each rendered mail on
- *  the email queue the relay drains, and records the send after the
- *  enqueue. Re-running a period sends only what the ledger lacks;
+ *  runEmail composes for every eligible recipient (or one, with
+ *  account_id + force: the manual path), hands each rendered mail to the
+ *  relay through the outbox, and records the send after the hand-off. Re-running a period sends only what the ledger lacks;
  *  `force` is the manual path and skips that check. Every kind is
  *  bulk under the mail policy, so every message carries the signed
  *  one-click unsubscribe URL for its recipient and kind. */

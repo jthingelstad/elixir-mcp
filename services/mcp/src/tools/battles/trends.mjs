@@ -1,4 +1,5 @@
 import { participantModeClause } from "../../mode-filter.mjs";
+import { notBoatDefense } from "../../boat-defense-sql.mjs";
 import { MODE_GROUPS, modeGroupSql, responseMeta } from "@elixir-mcp/contracts";
 import {
   MODE_SCHEMA,
@@ -8,6 +9,7 @@ import {
   appliedBlock,
   docsRef,
   notes,
+  RECORDED_PLAYERS_SQL,
   populationBlock,
   requireEnum,
   resolveSeasonWindow,
@@ -45,8 +47,13 @@ export const battles_trends = {
   async handler(ctx, args) {
     const params = [];
     const seg = await segmentFilter(ctx, args, params);
-    const where = ["bp.outcome is not null"];
+    // A member's own battles (boat defenses are not theirs, 0171); on the
+    // corpus, the recorded players' side only: every battle has two
+    // sides, so counting both makes every win rate 0.500 by construction
+    // (Jamie 2026-09-25).
+    const where = ["bp.outcome is not null", notBoatDefense()];
     if (seg.where) where.push(seg.where);
+    else where.push(`bp.player_tag in (${RECORDED_PLAYERS_SQL})`);
     const win = await resolveSeasonWindow(ctx, args, {
       defaultDays: 12 * 7,
     });
@@ -145,6 +152,9 @@ export const battles_trends = {
       weeks,
       notes: notes(
         collectionSegmentNote(seg),
+        seg.where
+          ? null
+          : "On the corpus every count reads the recorded players' side of each battle (their opponents are not counted: the two sides of a battle always sum to a 0.500 win rate), so players_in_window is recorded players who played in the window.",
         partialWeeksNote(partial),
         trophyBattlesNote(weeks),
         "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",

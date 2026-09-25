@@ -119,11 +119,16 @@ test("rule 4: leadership needs elder+; member refused, elder passes, owner passe
   assert.equal(await requireLeadership(db, accounts.owner, CLAN), "leader");
 });
 
-test("owner administers recorded clans without membership; default clan resolves", async () => {
+test("owner administers recorded clans without membership; the default clan is the primary player's, for the owner too (2026-09-25)", async () => {
   const s = await resolveSubject(db, accounts.owner, "#YYYYYYYY", "summary");
   assert.equal(s.scope, "public");
   assert.equal(await resolveEntitledClan(db, accounts.alice), CLAN);
-  assert.equal(await resolveEntitledClan(db, accounts.owner), CLAN);
+  // An owner whose primary is in no clan is refused like anyone else:
+  // "refuse rather than choose", never the first recorded clan.
+  await assert.rejects(
+    () => resolveEntitledClan(db, accounts.owner),
+    (e) => e.code === "no_subject",
+  );
   await assert.rejects(
     () => resolveEntitledClan(db, accounts.carol),
     (e) => e.code === "no_subject",

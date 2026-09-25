@@ -11,7 +11,6 @@ import {
   notes,
 } from "../shared.mjs";
 import {
-  CLAN_SCORE_DEPRECATION,
   CLAN_TAG_SCHEMA,
   CLOCK_DOCS,
   boatDecksNote,
@@ -20,7 +19,6 @@ import {
   clanSubject,
   finishWarDays,
   warDaysLog,
-  warTrophyAlias,
   weekKey,
 } from "./common.mjs";
 
@@ -125,7 +123,7 @@ export const war_current = {
     }
     const standings = await ctx.db.query(
       `select participant_clan_tag, participant_name, fame, period_points,
-                rank, trophy_change, finish_time, clan_score, repair_points
+                rank, trophy_change, finish_time, clan_score as clan_war_trophies, repair_points
            from war_week_clan
            where clan_tag = $1 and season_id = $2 and section_index = $3
            order by rank nulls last, fame desc`,
@@ -202,7 +200,6 @@ export const war_current = {
     // A training day's war decks (Jamie 2026-09-24): the same four decks,
     // played for reps; they do not score, so they never enter a war day's
     // decks_today. Same table as the war days (0169).
-    let trainingToday = null;
     let trainingDecks = null;
     if (
       period &&
@@ -225,17 +222,6 @@ export const war_current = {
           order by decks_used desc, p.name nulls last`,
         [clanTag, wk.season_id, wk.section_index, trainingDay],
       );
-      trainingToday = {
-        training_day: trainingDay,
-        trained: trainRows
-          .filter((r) => r.decks_used > 0)
-          .map(({ player_tag, name, decks_used }) => ({
-            player_tag,
-            name,
-            decks_used,
-          })),
-        not_trained_count: trainRows.filter((r) => r.decks_used === 0).length,
-      };
       // The same picture decks_today draws on a war day (Jamie 2026-09-24:
       // one field for every day of the race week).
       const tPick = (lo, hi) =>
@@ -263,7 +249,7 @@ export const war_current = {
         },
       };
     }
-    // Today's remaining-decks picture (CLAN-PULSE.md): only while the
+    // Today's remaining-decks picture (first designed in docs/archive/CLAN-PULSE.md, now archived): only while the
     // anchored war-day period is nominally still open.
     let decksToday = null;
     let overCapNote = null;
@@ -369,7 +355,6 @@ export const war_current = {
       ...(live ? { live_status: liveStatus(live) } : {}),
       standings: standings.rows.map((row) => ({
         ...row,
-        ...warTrophyAlias(row),
         finish_time: finishInstant(row.finish_time),
       })),
       ...(compact ? {} : { participants }),
@@ -394,7 +379,6 @@ export const war_current = {
                 ? "war_day_over"
                 : "training_day",
           }),
-      ...(trainingToday ? { training_today: trainingToday } : {}),
       ...(daysClosed ? { days_closed: daysClosed } : {}),
       notes: notes(
         livePendingNote(live),
@@ -403,11 +387,10 @@ export const war_current = {
         participation.rows.some((r) => !r.in_clan)
           ? `participants_count is the race roster, which keeps ${participation.rows.filter((r) => !r.in_clan).length} member(s) who have since left the clan; decks_today.counts.participants counts current members only. For a rate among current members, use decks_today or participants[] with in_clan.`
           : null,
-        trainingToday
-          ? `Training day ${trainingToday.training_day}: decks_today (day_kind training) lists the war decks each member has played so far today. They are the same four decks the war days use, and on a war day each can be played once, so training days are where members get reps in with them; training decks earn no points and never count as war attendance. training_today is the same picture in its 7.1.14 shape, deprecated and removed in the next major version.`
+        decksToday?.day_kind === "training"
+          ? `Training day ${decksToday.training_day}: decks_today (day_kind training) lists the war decks each member has played so far today. They are the same four decks the war days use, and on a war day each can be played once, so training days are where members get reps in with them; training decks earn no points and never count as war attendance.`
           : null,
         "standings.clan_war_trophies is each bracket clan's WAR trophies going into this race (the race's own trophy_change lands in the next one's figure) and repair_points what repairs cost it; participants[].repair_points is each member's share.",
-        CLAN_SCORE_DEPRECATION,
         daysClosed
           ? "days_closed is the race's own day-by-day (the API's periodLogs): one entry per closed war day with every clan's points_earned, progress, rank (1-based; null while unranked) and end_of_day_rank (the API's 0-based value); the running day is not in it until it closes."
           : null,

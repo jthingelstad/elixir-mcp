@@ -25,7 +25,7 @@ import {
   modeSplit,
   shortHash,
 } from "../../controls.mjs";
-import { CONTROLS_DOCS, modeClause } from "./common.mjs";
+import { CONTROLS_DOCS, modeClause, ownBattlesClause } from "./common.mjs";
 
 export const battles_decks = {
   description:
@@ -78,6 +78,7 @@ export const battles_decks = {
     };
     if (win.from) add("bp.battle_time >= ?", win.from);
     if (win.to) add("bp.battle_time < ?", win.to);
+    ownBattlesClause(add);
     modeClause(args, add);
     // The control beside the win rate (feedback #54, 3.13.0): the mean
     // level gap against the opposing side (deck_avg_level is stamped at

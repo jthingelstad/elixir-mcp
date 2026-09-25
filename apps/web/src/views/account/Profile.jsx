@@ -335,7 +335,6 @@ function TierLimits({ me, entitlements: e, usage }) {
     ["Tool calls / day", usage?.today_calls, e.mcp_calls_per_day],
     ["Live CR fetches / day", usage?.live_today, e.live_fetches_per_day],
     ["Collections you curate", e.collections?.used, e.collections?.limit],
-    ["Integrations", undefined, e.integrations?.limit],
     ["Agents", undefined, e.agents?.limit],
   ];
   return (

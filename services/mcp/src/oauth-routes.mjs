@@ -47,6 +47,7 @@ import {
   mintTokens,
   redeemRefreshToken,
   validateAccessToken,
+  isFirstPartyClient,
   OAUTH_SCOPES,
   resolveSession,
   createSession,
@@ -346,6 +347,17 @@ async function validatedAuthRequest(db, q, targetFor) {
   const explicitScope = String(q.scope ?? "").trim() !== "";
   const scope = explicitScope ? normalizeScope(q.scope) : DEFAULT_OAUTH_SCOPE;
   if (!scope) return { error: "invalid_scope" };
+  // The account's address goes only to the Elixir family's own apps
+  // (every redirect on a family origin); no other client may even ask
+  // (Jamie 2026-09-25: privacy.md's "never shared" stays true).
+  if (
+    scope.split(" ").includes(OAUTH_SCOPE.ACCOUNT_EMAIL) &&
+    !isFirstPartyClient(client.redirectUris)
+  )
+    return {
+      error:
+        "invalid_scope: account:email is offered only to the Elixir family's own apps",
+    };
   const target = targetFor(q.resource);
   if (!target) return { error: "invalid_target" };
   return {
@@ -984,7 +996,12 @@ export function makeOauthRoutes({
         resource: `${issuer}/mcp`,
       });
       if (!account) return challenge("invalid_token");
-      if (!account.scopes.includes(OAUTH_SCOPE.ACCOUNT_EMAIL))
+      // Family apps only, checked again at the door the address leaves by:
+      // a grant made before the rule (2026-09-25) carries no exception.
+      if (
+        !account.scopes.includes(OAUTH_SCOPE.ACCOUNT_EMAIL) ||
+        !account.firstParty
+      )
         return challenge(
           "insufficient_scope",
           `, scope="${OAUTH_SCOPE.ACCOUNT_EMAIL}"`,

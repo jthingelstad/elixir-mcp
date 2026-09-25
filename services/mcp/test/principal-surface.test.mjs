@@ -36,8 +36,10 @@ const call = (kind, name) =>
     context(kind),
   );
 
-test("a person still sees everything — the default surface does not move", () => {
-  assert.equal(names("person").length, registry.declarations().length);
+test("a person sees everything but the agent's identity tools (2026-09-25)", () => {
+  assert.equal(names("person").length, registry.declarations().length - 2);
+  assert.ok(!names("person").includes("elixir_identify"));
+  assert.ok(!names("person").includes("elixir_my_identities"));
   assert.ok(names("person").includes("elixir_my_players"));
   assert.ok(
     names(null).includes("elixir_my_players"),
@@ -153,6 +155,8 @@ test("a person is told who they are, and told not to look it up", async () => {
       watching: [{ player_tag: "#20R8QRLYLP", name: "Chanco" }],
     },
     clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
+    // "Your clan" is the primary player's current clan (2026-09-25).
+    primaryClan: { clan_tag: "#J2RGCRVG", name: "POAP KINGS", recorded: true },
   };
   const text = (
     await handleMcpMessage(

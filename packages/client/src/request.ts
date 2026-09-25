@@ -50,6 +50,9 @@ export interface Client {
  *  record, and no tag or token ever reaches the analytics. */
 export function routeLabel(method: string, path: string): string {
   const segments = (path.split("?")[0] ?? "").split("/").filter(Boolean);
+  // /api/agent/<public_id>/...: which agent is never reported (2026-09-25).
+  if (segments[0] === "api" && segments[1] === "agent" && segments[2])
+    segments[2] = "*";
   const head = segments.slice(0, 3).join("/");
   return `${method} /${head}${segments.length > 3 ? "/*" : ""}`;
 }

@@ -81,8 +81,43 @@ function personRoute(db, account, method, path, query, body) {
           await describeIdentity(db, account),
         ),
         players: await myPlayers(db, account.accountId),
+        // The address, for a family app holding account:email (JSON API
+        // 2.1.0): the Elixir family's own apps only, as at /oauth/userinfo.
+        ...(account.firstParty &&
+        (account.scopes ?? []).includes("account:email")
+          ? {
+              email:
+                (
+                  await db.query(
+                    `select email from account where account_id = $1`,
+                    [account.accountId],
+                  )
+                ).rows[0]?.email ?? null,
+            }
+          : {}),
       }),
     };
+  // Track a player as the signed-in person (JSON API 2.1.0): the
+  // elixir_track_player add, for a family app signing a person in (Elixir
+  // Drop adds the tag the person saved there, as an alt).
+  if (method === "POST" && path === "/api/v1/me/players") {
+    const relationship = body.relationship ?? "watching";
+    if (!["alt", "friend", "watching"].includes(relationship))
+      throw new ApiError(
+        400,
+        "bad_request",
+        "relationship must be alt, friend or watching (the primary is chosen in the console).",
+      );
+    return {
+      operation: "me.players.add",
+      tool: "elixir_track_player",
+      args: {
+        player_tag: String(body.player_tag ?? ""),
+        action: "add",
+        relationship,
+      },
+    };
+  }
   if (
     method === "GET" &&
     (m = /^\/api\/v1\/clans\/([^/]+)\/(participation|roster|live)$/.exec(path))
@@ -146,6 +181,15 @@ function personRoute(db, account, method, path, query, body) {
 
 /** Run a person operation's tool; a refusal becomes the problem body. */
 async function runPersonTool(db, account, route) {
+  // The tool's own capability, as the MCP door checks it (handler.mjs):
+  // a read-only grant never runs a write (2.1.0 added the first one).
+  const need = toolRegistry().requiredScope(route.tool);
+  if (need && !(account.scopes ?? []).includes(need))
+    throw new ApiError(
+      403,
+      "insufficient_scope",
+      `This grant lacks the capability ${need}.`,
+    );
   const invoke = makeInvoker({
     db,
     account,

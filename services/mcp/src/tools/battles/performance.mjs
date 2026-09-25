@@ -1,3 +1,4 @@
+import { modeGroupSql } from "@elixir-mcp/contracts";
 import { resolveInstant } from "../../time.mjs";
 import {
   DISPLAY_NAME_SCHEMA,
@@ -25,7 +26,7 @@ import {
   trophyFloor,
   trophyFloorNote,
 } from "../../controls.mjs";
-import { DENOMINATOR_DOCS, modeClause } from "./common.mjs";
+import { DENOMINATOR_DOCS, modeClause, ownBattlesClause } from "./common.mjs";
 
 export const battles_performance = {
   description:
@@ -91,6 +92,7 @@ export const battles_performance = {
       };
       if (from) add("bp.battle_time >= ?", from);
       if (to) add("bp.battle_time < ?", to);
+      ownBattlesClause(add);
       modeClause(args, add);
       if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
       requireOrderedWindow(from, to);
@@ -99,7 +101,7 @@ export const battles_performance = {
       } = await ctx.db.query(
         `with sample as materialized (
              select bp.outcome, bp.crowns, bp.trophy_change, bp.battle_time, bp.battle_id,
-                    b.type_class, b.type,
+                    b.type_class, b.type, b.event_tag,
                     (select max(o.crowns) from battle_participant o
                      where o.battle_id = bp.battle_id and o.side <> bp.side) as opp_crowns
              from battle_participant bp join battle b on b.battle_id = bp.battle_id
@@ -130,7 +132,16 @@ export const battles_performance = {
                                    and type <> all($${params.length + 1}))::int as head_to_head,
                   count(*) filter (where crowns = 3 and type_class = 'pvp'
                                    and type <> all($${params.length + 1}))::int as three_crowns,
-                  (select n::int from streak) as current_streak
+                  (select n::int from streak) as current_streak,
+                  -- The control beside a pooled rate (DECISIONS: mode
+                  -- discipline): the same sample split by mode group.
+                  (select json_object_agg(g, json_build_object(
+                            'battles', n, 'wins', w, 'losses', l))
+                     from (select ${modeGroupSql("type", "event_tag")} as g,
+                                  count(*)::int as n,
+                                  count(*) filter (where outcome = 'win')::int as w,
+                                  count(*) filter (where outcome = 'loss')::int as l
+                             from sample group by 1) m) as modes
            from sample`,
         [...params, DUEL_TYPES],
       );
@@ -139,6 +150,7 @@ export const battles_performance = {
         head_to_head,
         decided_wins,
         decided_losses,
+        modes,
         ...counts
       } = row;
       // Decided = head-to-head wins + losses. Boat attacks (a static
@@ -160,6 +172,8 @@ export const battles_performance = {
           head_to_head > 0
             ? Number((three_crowns / head_to_head).toFixed(3))
             : null,
+        // With no mode the rate pools modes; the split rides beside it.
+        ...(args.mode ? {} : { modes: modes ?? {} }),
       };
     };
 
@@ -187,6 +201,7 @@ export const battles_performance = {
       };
       if (from) add("bp.battle_time >= ?", from);
       if (to) add("bp.battle_time < ?", to);
+      ownBattlesClause(add);
       modeClause(args, add);
       if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
       const { rows } = await ctx.db.query(
@@ -235,6 +250,7 @@ export const battles_performance = {
       };
       if (from) add("bp.battle_time >= ?", from);
       if (to) add("bp.battle_time < ?", to);
+      ownBattlesClause(add);
       modeClause(args, add);
       if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
       // trophy_battles counts the rows that REPORTED a delta and a loss
@@ -322,6 +338,11 @@ export const battles_performance = {
       };
     }
     const grouped = Boolean(args.group_by);
+    const pooled = grouped
+      ? []
+      : [result.window, result.compare_window, result.before, result.after]
+          .filter(Boolean)
+          .filter((w) => Object.keys(w.modes ?? {}).length > 1);
     // The floor under net_trophies (feedback #59): a player standing on
     // an arena's trophy floor loses nothing on a loss, so the sum counts
     // wins in full and losses at zero. Read once over the window (a
@@ -360,6 +381,9 @@ export const battles_performance = {
       ...(floor ? { trophy_floor: floor } : {}),
       notes: notes(
         trophyFloorNote(floor),
+        pooled.length > 0
+          ? `win_rate pools ${[...new Set(pooled.flatMap((w) => Object.keys(w.modes)))].join(", ")}: game modes are different games with different matchmaking, so modes carries each one's record; pass mode to read one.`
+          : null,
         win.seasonNotes,
         caveats,
         grouped

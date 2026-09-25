@@ -33,10 +33,10 @@
   "rank": 1,
   "fame": 10134,
   "trophy_change": 20,
-  "clan_score": 1160,
+  "war_trophies": 1160,
   "finished": "2026-09-14T09:38:05Z",
   "finished_early": false,
-  "participants": null
+  "battled": 41
  },
  "membership": {
   "joined": [

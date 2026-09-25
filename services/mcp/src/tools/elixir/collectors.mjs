@@ -5,7 +5,7 @@ import { docsRef, notes } from "../shared.mjs";
 
 export const elixir_collectors = {
   description:
-    "The collector fleet: operator-run machines that fetch from the CR API, each named for a Clash Royale card. More collectors mean resilience, never more CR budget; what operators earn is quota (10 fetches = +1 daily tool call, capped at 4x base) and bonus recording slots.",
+    "The collector fleet: operator-run machines that fetch from the CR API, each named for a Clash Royale card. More collectors mean resilience, never more CR budget; what operators earn is quota (10 points = +1 daily tool call, a point being a fetch that added to the record; capped at 4x base) and bonus recording slots.",
   inputSchema: {
     type: "object",
     properties: {},
@@ -43,7 +43,7 @@ export const elixir_collectors = {
     return {
       collectors,
       notes: notes(
-        "Running one earns real quota (every 10 fetches adds +1 daily tool call, capped at 4x base) plus bonus recording slots; a machine with a static IP is all it takes.",
+        "Running one earns real quota (every 10 points adds +1 daily tool call, capped at 4x base; a point is a fetch that added something to the record, so a fetch that returned nothing new earns none) plus bonus recording slots; a machine with a static IP is all it takes.",
         "status is what the collector is doing now: active (checked in within the hour), silent (enrolled to run but not checked in for over an hour), probation, pending or draining (stopped on purpose); lifecycle is the enrolment state.",
         silentCount > 0
           ? `${silentCount} collector${silentCount === 1 ? " is" : "s are"} silent; the fleet's budget is one whatever the count, so silence costs redundancy, not throughput.`

@@ -21,7 +21,12 @@ import {
 // Event-aware labels (#148): the tag, not the type, marks event content,
 // so an event battle is never counted as casual.
 const MODE_GROUP = modeGroupSql("b.type", "b.event_tag");
-import { CONTROLS_DOCS, FORM_ROWS_NOTE, modeClause } from "./common.mjs";
+import {
+  CONTROLS_DOCS,
+  FORM_ROWS_NOTE,
+  modeClause,
+  ownBattlesClause,
+} from "./common.mjs";
 
 export const battles_cards = {
   description:
@@ -67,6 +72,7 @@ export const battles_cards = {
     };
     if (win.from) add("bp.battle_time >= ?", win.from);
     if (win.to) add("bp.battle_time < ?", win.to);
+    ownBattlesClause(add);
     modeClause(args, add);
 
     // Cards as rows (0091): mine are this participant's played cards;

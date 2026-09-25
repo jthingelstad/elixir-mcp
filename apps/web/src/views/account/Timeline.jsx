@@ -26,7 +26,10 @@ export function Timeline() {
     return [
       stamp(it.at),
       it.subject_name ?? it.subject_tag ?? "your account",
-      it.text,
+      // The item's own "Sat 11:18" lead carries no zone; the WHEN column
+      // already says the time in yours (DECISIONS: the console tells time
+      // in the account's zone), so the sentence starts after it.
+      String(it.text ?? "").replace(/^[A-Z][a-z]{2} \d{2}:\d{2} /, ""),
       unread ? { text: "unread", tone: "accent-bright" } : "read",
     ];
   });

@@ -332,7 +332,9 @@ async function playerLedger(db, tag, fromMs, toMs) {
  * narrated. "Late" is the battle's own capture delay, not its distance
  * from the window's start (Gym #211): measured against `from`, the same
  * backfilled session was a standout in a wide window and absent in a
- * narrow one.
+ * narrow one. A boat DEFENSE is not the member's battle (Jamie
+ * 2026-09-24; 0171): an enemy attacked their boat and their defense deck
+ * answered, so it never counts here.
  */
 async function playerBattles(db, tag, fromMs, toMs) {
   const { rows } = await db.query(
@@ -344,6 +346,8 @@ async function playerBattles(db, tag, fromMs, toMs) {
         and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
         and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
         and b.battle_time >= b.created_at - interval '1 day'
+        and not (b.boat_battle_side is not null
+                 and (b.boat_battle_side = 'defender') = (bp.side = 0))
       order by b.battle_time`,
     [tag],
   );
@@ -702,14 +706,10 @@ export async function buildPlayerEntry(
       role: who[0]?.role ?? null,
       changes: clanChanges,
     },
-    war: {
-      battles: warBattles.length,
-      days: [
-        ...new Set(
-          warBattles.map((b) => b.battle_time.toISOString().slice(0, 10)),
-        ),
-      ].length,
-    },
+    // The week's war battles only: which war DAY each fell on is not
+    // served (Jamie 2026-09-25: a war day's rollover cannot be placed
+    // reliably at Elixir's scale; war facts are weekly aggregates).
+    war: { battles: warBattles.length },
     presence: {
       last_battle_at: presence.last_battle_at,
       days_quiet: presence.days_quiet,
@@ -1120,7 +1120,12 @@ export async function buildClanEntry(
         war.place_of_five = null;
       }
     }
-    if (p && sameWeek) {
+    // The deck tally is the day IN PROGRESS only (Jamie 2026-09-25): a
+    // closed war day's per-member decks would place the game's counter
+    // and recorded battles on a day the record cannot place reliably.
+    const nowMs = Date.now();
+    const dayInProgress = p && nowMs >= p.startMs && nowMs < p.endMs;
+    if (p && sameWeek && dayInProgress) {
       if (p.warDay) {
         const { rows: decks } = await db.query(
           `with base as (
@@ -1157,7 +1162,7 @@ export async function buildClanEntry(
           ],
         );
         if (decks[0].participants > 0)
-          war.decks = { as_of: iso(toMs), ...decks[0] };
+          war.decks = { as_of: iso(Math.min(toMs, nowMs)), ...decks[0] };
       }
     }
   }

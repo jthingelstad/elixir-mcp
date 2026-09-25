@@ -1,5 +1,5 @@
 /** The Top 100 issue: the brief builder, the lint, and the hand-off to
- *  the editor Lambda (docs/top100/README.md: the builder computes, the
+ *  the editor Lambda (docs/EMAIL.md; first specified in docs/archive/TOP100-README.md: the builder computes, the
  *  model writes).
  *
  *  top100Generate reads the recorded global Path of Legends board now

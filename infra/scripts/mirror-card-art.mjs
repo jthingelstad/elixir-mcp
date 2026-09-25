@@ -7,10 +7,14 @@
  *  collector avatars and that is fine - a page can; a mail cannot.
  *
  *  Run on a machine with the internet (not CI, not Lambda: the VPC has
- *  neither NAT nor a reason). Output is committed, because 64/96/160
- *  pixel thumbnails of ~130 cards are about a megabyte and a build that
- *  reaches the network to succeed is a build that fails on a Sunday.
- *  Re-run when the catalog's as_of moves.
+ *  neither NAT nor a reason). Output lands in apps/site/src/assets/cards
+ *  and is never committed (.gitignore): it is a local cache, not a
+ *  source, and the repo is public. The site build copies it in when it
+ *  is there and the deploy uploads it with the site; a checkout that has
+ *  not mirrored builds without it, with a warning (eleventy.config.mjs).
+ *  It stays a separate step because a build that reaches the network to
+ *  succeed is a build that fails on a Sunday. Re-run when the catalog's
+ *  as_of moves.
  *
  *    node infra/scripts/mirror-card-art.mjs [--catalog <file|url>] [--force]
  *    node infra/scripts/mirror-card-art.mjs --source-dir <dir> [--force]

@@ -2,7 +2,7 @@
  * Tool taxonomy — the ONE place tools are classified (Jamie, 2026-09-04:
  * "right now they are just one big blob"). Groups follow the
  * cr-agent-api-docs outline (players / battles / clans / river-race /
- * cards) plus our own. The 1.0.0 review (docs/REVIEW-2026-09-10) split
+ * cards) plus our own. The 1.0.0 review (docs/reviews/2026-09-10-DOCS-TOOLS-SEAM.md) split
  * the old "Elixir MCP" bucket - 16 of 47 tools - into what each part is
  * FOR: Account (what you track and who you know), Feed (the push lane),
  * Help (the service explaining itself and the feedback loop) and Service

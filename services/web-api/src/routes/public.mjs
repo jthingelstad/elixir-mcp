@@ -48,8 +48,9 @@ export function publicRoutes({ deadLetters }) {
          left join lateral (
            select p.name, p.player_tag
            from claim c join player p on p.player_tag = c.player_tag
-           where c.account_id = g.owner_account_id
-           order by c.is_primary desc, (c.status = 'verified') desc, c.created_at
+           -- Public operator credit is the PRIMARY player only (DECISIONS:
+           -- privacy): no primary, no name, never another claimed player.
+           where c.account_id = g.owner_account_id and c.is_primary
            limit 1
          ) op on true
          where g.status in ('active', 'probation', 'pending')
@@ -467,7 +468,7 @@ export function publicRoutes({ deadLetters }) {
     },
 
     "GET /api/public/stats": async (db) => {
-      // The public data story (SITE-IA 2026-09-05): corpus scale and
+      // The public data story (docs/archive/SITE-IA.md, 2026-09-05): corpus scale and
       // full-history daily series. No auth, no account data - the
       // universal-reads boundary applied to aggregates. CloudFront
       // caches it for an hour.

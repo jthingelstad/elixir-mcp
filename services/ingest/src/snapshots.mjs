@@ -311,9 +311,9 @@ export async function projectPlayerSnapshot(
     fetchedAt,
     receiptId = null,
     kind = "daily",
-    // false for a replay ({replay: {moments: false}}): the rows, never
-    // the moments - the settled rule, applied to the profile path on
-    // 2026-09-18 for the elixir-bot profile replay.
+    // false for a projection rebuild ({series_backfill}): the rows,
+    // never the moments - the settled rule ("replays and backfills write
+    // rows, never moments"), applied to the profile path on 2026-09-18.
     moments = true,
   },
 ) {

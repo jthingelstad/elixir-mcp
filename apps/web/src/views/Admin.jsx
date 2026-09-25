@@ -953,7 +953,7 @@ function AdminCollectors({ navigate }) {
       filters={[{ key: "state", label: "State", col: 2 }]}
       minWidth={880}
       empty="No collectors yet."
-      footnote="Heartbeat is any contact with the door, including check-ins that found no work — a fresh heartbeat with stale data is an idle collector, not a broken one. Yield is the share of the last day's fetches that changed the record; edge filter is the share of battle-log entries the collector dropped before the wire; calls/fetch normalizes door calls against each admitted fetch's required lease and submit pair this hour (1.0 is perfect). Issuing the IP-bound CR key is manual."
+      footnote="Heartbeat is any contact with the door, including check-ins that found no work — a fresh heartbeat with stale data is an idle collector, not a broken one. Yield is the share of the last day's fetches that changed the record; edge filter is the share of battle-log entries the collector dropped before the wire; calls/fetch normalizes door calls against each admitted fetch's required lease and submit pair this hour (1.0 is perfect). Operators bring their own CR key; approval issues the collector token."
     />
   );
 }

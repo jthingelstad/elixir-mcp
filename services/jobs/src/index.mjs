@@ -9,9 +9,8 @@
  *  {activity_histogram: true} · {capture_efficiency: true} · {meta_rollup_nightly: true} ·
  *  {meta_rollup_hourly: true} · {meta_rollup_equivalence: true} · {meta_rollup_season: {season_month}} ·
  *  {shape_census: true} · {email: "<kind>",
- *  account_id?, force?} (docs/EMAIL.md: the six product mail kinds, one
- *  EventBridge rule each; account_id + force is the account page's
- *  "send me this now") · {top100_generate: true} (the brief for the
+ *  account_id?, force?} (docs/EMAIL.md: the seven product mail kinds,
+ *  on their EventBridge rules; account_id + force is the manual path) · {top100_generate: true} (the brief for the
  *  Top 100 issue, handed to the editor Lambda through the archive
  *  bucket) · {top100_accept: {key}} (the editor's answer, linted and
  *  stored as the issue to send). */
@@ -75,7 +74,7 @@ export async function sweepPayloads(databaseUrl, s3override) {
       try {
         await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
       } catch {
-        missing += 1; // no twin -> the row stays; export fills the gap
+        missing += 1; // no twin -> the row stays until the archive has it
         continue;
       }
       await db.query(`delete from api_payload where payload_id = $1`, [
@@ -95,7 +94,7 @@ export async function sweepPayloads(databaseUrl, s3override) {
        order by last_fetched_at limit 5000`,
     );
     let cleared = 0;
-    let unarchived = 0; // no twin: the JSON stays, the export fills the gap
+    let unarchived = 0; // no twin: the JSON stays until the archive has it
     for (const r of stale) {
       const key = archiveKey(
         r.endpoint,
@@ -185,6 +184,17 @@ export async function sweepOperational(databaseUrl) {
     out.magic_login = (
       await db.query(
         `delete from magic_login where expires_at < now() - interval '30 days'`,
+      )
+    ).rowCount;
+    // A console session's address is kept no longer than a connection's
+    // (privacy.md: IP addresses are cleared after 30 days). An active
+    // session rewrites it on every request; an idle one used to keep it
+    // until the row itself went, 30 days after its sliding expiry.
+    out.session_ip_scrubbed = (
+      await db.query(
+        `update session set last_seen_from = null
+          where last_seen_from is not null
+            and last_seen_at < now() - interval '30 days'`,
       )
     ).rowCount;
     out.session = (

@@ -208,7 +208,7 @@ function CopyLink() {
 const BROWSE = {
   players: {
     title: "Players",
-    lede: "Anyone we have recorded — yours, your clanmates, and every opponent they have met.",
+    lede: "Anyone the record knows — the players it records, and every opponent they have met, known from that battle alone.",
     hint: "Paste a player tag, or type a name or one of your nicknames.",
     placeholder: "#20JJJ2CCRU",
   },
@@ -226,7 +226,7 @@ const BROWSE = {
   },
   weeks: {
     title: "War weeks",
-    lede: "One river race, its participants and what each of them contributed.",
+    lede: "One river race: the five clans' standings, fame and the finish.",
     hint: "Type a week as S135 W3, or open one from a clan.",
     placeholder: "S135 W3",
   },
@@ -648,9 +648,12 @@ function Lookup({ me, navigate, browse }) {
             {corpus && (
               <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
                 {[
+                  // Recorded counts are the headline (DECISIONS: ghost
+                  // players are not metrics); a player or clan known
+                  // only from a battle stub names an opponent, no more.
                   ["battles", corpus.battles],
-                  ["players", corpus.players],
-                  ["clans", corpus.clans],
+                  ["players recorded", corpus.players_recording],
+                  ["clans recorded", corpus.clans_recording],
                 ].map(([label, v]) => (
                   <div key={label}>
                     <div className="stat__label">{label}</div>

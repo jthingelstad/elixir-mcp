@@ -180,13 +180,24 @@ test("make_primary on an already-claimed player switches to it", async () => {
   assert.equal(rows.find((c) => c.player_tag === A).is_primary, false);
 });
 
-test("removing the primary promotes a replacement, never leaves none", async () => {
+test("removing the primary while others are tracked is refused, never leaves none", async () => {
   await addPlayer(db, alice, { tag: A, via: "test" });
   await addPlayer(db, alice, { tag: B, via: "test" });
   // Reported: B was left is_primary=false and default-player tools then
-  // answered "No primary claimed tag on this account".
+  // answered "No primary claimed tag on this account". It used to promote
+  // one silently; Jamie, 2026-09-25: refuse, and the person chooses first.
   const r = await removePlayer(db, alice, { tag: A, via: "test" });
-  assert.equal(r.promotedPrimary, B);
+  assert.equal(r.removed, false);
+  assert.equal(r.refused, "primary_in_use");
+  assert.equal(r.promotedPrimary, null);
+  assert.deepEqual(await claims(alice), [
+    { player_tag: B, is_primary: false },
+    { player_tag: A, is_primary: true },
+  ]);
+  // Choosing first makes the removal an ordinary one.
+  await addPlayer(db, alice, { tag: B, via: "test", makePrimary: true });
+  const after = await removePlayer(db, alice, { tag: A, via: "test" });
+  assert.equal(after.removed, true);
   assert.deepEqual(await claims(alice), [{ player_tag: B, is_primary: true }]);
 });
 

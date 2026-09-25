@@ -110,6 +110,21 @@ export async function buildArena({ db, account, week, season }) {
         crowns_against: w?.crowns_against ?? 0,
         three_crown_rate: w?.three_crown_rate ?? null,
         sessions: entry.battles.sessions,
+        // The headline record per mode family (Jamie 2026-09-25: modes are
+        // different games): battles_performance's own split, busiest first.
+        by_family: Object.entries(w?.modes ?? {})
+          .map(([mode, m]) => ({
+            mode,
+            battles: m.battles,
+            wins: m.wins,
+            losses: m.losses,
+            win_rate:
+              m.wins + m.losses > 0
+                ? Number((m.wins / (m.wins + m.losses)).toFixed(3))
+                : null,
+          }))
+          .filter((m) => m.battles > 0)
+          .sort((a, b) => b.battles - a.battles),
       },
       trophies: trophies
         ? {

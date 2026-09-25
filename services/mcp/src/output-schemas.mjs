@@ -300,7 +300,7 @@ const PARTICIPANT = {
 const MODE_SPLIT = {
   type: "object",
   description:
-    "The row's battles by mode group (ladder, ranked, war, casual, challenge, event, tournament, other), each with battles, wins and losses.",
+    "The row's battles by mode group (ladder, ranked, war, casual, challenge, event, tournament), each with battles, wins and losses.",
   additionalProperties: {
     type: "object",
     properties: { battles: COUNT, wins: COUNT, losses: COUNT },
@@ -498,7 +498,8 @@ const DECK_FIT = {
     },
     vs_fielded: {
       type: ["number", "null"],
-      description: "own_mean_level minus fit_for.fielded_mean_level.",
+      description:
+        "own_mean_level minus the level the player fields now: fit_for.recent_mean_level (their last ten decided pvp battles), fielded_mean_level when that is unknown.",
     },
     upgrades: {
       type: "array",
@@ -982,6 +983,11 @@ export const OUTPUT_SCHEMAS = {
     type: "object",
     properties: {
       applied: { type: "object" },
+      population: {
+        type: "object",
+        description:
+          "On a corpus read only: the recorded population (recorded players and clans) and players_in_window, the recorded players who played in the window (the corpus counts read the recorded players' side of each battle).",
+      },
       docs: DOCS,
       meta: META,
       notes: NOTES,
@@ -1236,8 +1242,17 @@ export const OUTPUT_SCHEMAS = {
             last_success: { type: ["string", "null"] },
             lifecycle: { type: ["string", "null"] },
             name: { type: ["string", "null"] },
-            points: { type: ["number", "null"] },
-            quota_credits: { type: ["number", "null"] },
+            points: {
+              type: ["number", "null"],
+              description:
+                "One per fetch that added something to the record (new_facts > 0); a fetch that returned nothing new earns none.",
+            },
+            quota_credits: {
+              type: ["number", "null"],
+              description:
+                "points / 10, the calls a day this collector adds to its operator's quota.",
+            },
+            silent_since: { type: ["string", "null"] },
             status: { type: ["string", "null"] },
           },
         },
@@ -1551,6 +1566,11 @@ export const OUTPUT_SCHEMAS = {
   rankings_clan_ladder: {
     type: "object",
     properties: {
+      live_status: {
+        type: "object",
+        description:
+          "With live: true: whether a fresh read was served or is pending (retry_after_s says when to call again).",
+      },
       applied: { type: "object" },
       board: { type: ["string", "null"] },
       clans: {
@@ -1591,6 +1611,11 @@ export const OUTPUT_SCHEMAS = {
   rankings_clans: {
     type: "object",
     properties: {
+      live_status: {
+        type: "object",
+        description:
+          "With live: true: whether a fresh read was served or is pending (retry_after_s says when to call again).",
+      },
       applied: { type: "object" },
       board: { type: ["string", "null"] },
       clans: {
@@ -1685,11 +1710,6 @@ export const OUTPUT_SCHEMAS = {
               type: ["integer", "null"],
               description:
                 "The clan's WAR trophies from the latest recorded race it was in, going into that race (its trophy_change not included).",
-            },
-            clan_score: {
-              type: ["number", "null"],
-              description:
-                "DEPRECATED (6.19.0), removed in the next major version: the same number as clan_war_trophies under the old, wrong name.",
             },
             clan_tag: { type: ["string", "null"] },
             colosseum_races: { type: ["number", "null"] },
@@ -1914,11 +1934,6 @@ export const OUTPUT_SCHEMAS = {
               description:
                 "Our clan's WAR trophies as the race payload carried them during the week, going into it: the week's own trophy_change is not included.",
             },
-            our_clan_score: {
-              type: ["integer", "null"],
-              description:
-                "DEPRECATED (6.19.0), removed in the next major version: the same number as our_clan_war_trophies under the old, wrong name.",
-            },
             our_repair_points: NULLABLE_INT,
             finished_early: {
               type: ["boolean", "null"],
@@ -1979,11 +1994,6 @@ export const OUTPUT_SCHEMAS = {
               type: ["integer", "null"],
               description:
                 "The clan's WAR trophies (6.19.0). As the race payload carried them during the week, going into it: the week's own trophy_change is not included. The race payload's clanScore carries this, not the ~100x larger clan score a profile shows.",
-            },
-            clan_score: {
-              type: ["integer", "null"],
-              description:
-                "DEPRECATED (6.19.0), removed in the next major version: the same number as clan_war_trophies under the old, wrong name.",
             },
             repair_points: NULLABLE_INT,
           },
@@ -2361,6 +2371,11 @@ export const OUTPUT_SCHEMAS = {
   players_profile: {
     type: "object",
     properties: {
+      live_status: {
+        type: "object",
+        description:
+          "With live: true: whether a fresh read was served or is pending (retry_after_s says when to call again).",
+      },
       player_tag: TAG,
       name: { type: ["string", "null"] },
       applied: { type: "object" },
@@ -2573,6 +2588,11 @@ export const OUTPUT_SCHEMAS = {
   battles_query: {
     type: "object",
     properties: {
+      live_status: {
+        type: "object",
+        description:
+          "With live: true: whether a fresh read was served or is pending (retry_after_s says when to call again).",
+      },
       player_tag: TAG,
       name: NAME,
       battle_id: { type: "string" },
@@ -2813,6 +2833,11 @@ export const OUTPUT_SCHEMAS = {
   war_current: {
     type: "object",
     properties: {
+      live_status: {
+        type: "object",
+        description:
+          "With live: true: whether a fresh read was served or is pending (retry_after_s says when to call again).",
+      },
       clan_tag: TAG,
       season_id: COUNT,
       section_index: COUNT,
@@ -2845,11 +2870,6 @@ export const OUTPUT_SCHEMAS = {
               type: ["integer", "null"],
               description:
                 "The clan's WAR trophies going into this race, as the race payload carries them (6.19.0); not the ~100x larger clan score a profile shows.",
-            },
-            clan_score: {
-              type: ["integer", "null"],
-              description:
-                "DEPRECATED (6.19.0), removed in the next major version: the same number as clan_war_trophies under the old, wrong name.",
             },
             repair_points: { type: ["integer", "null"] },
           },
@@ -2944,7 +2964,6 @@ export const OUTPUT_SCHEMAS = {
         type: "string",
         enum: ["period_unknown", "war_day_over", "training_day"],
       },
-      training_today: { type: "object" },
       notes: NOTES,
       docs: DOCS,
       meta: META,
@@ -2969,6 +2988,11 @@ export const OUTPUT_SCHEMAS = {
   clans_roster: {
     type: "object",
     properties: {
+      live_status: {
+        type: "object",
+        description:
+          "With live: true: whether a fresh read was served or is pending (retry_after_s says when to call again).",
+      },
       clan_tag: TAG,
       applied: { type: "object" },
       name: { type: ["string", "null"] },
@@ -3229,6 +3253,15 @@ export const OUTPUT_SCHEMAS = {
                 "Sum of trophy_change on ladder battles in the window, the name battles_performance uses (4.0.0; trophy_net before); null when ladder_battles is 0.",
             },
             ladder_battles: COUNT,
+            current_streak: {
+              type: ["object", "null"],
+              description:
+                "The run of equal decided outcomes ending at the member's latest recorded battle in the window; null with no decided battle.",
+              properties: {
+                kind: { type: "string", enum: ["win", "loss"] },
+                length: COUNT,
+              },
+            },
             modes: MODE_SPLIT,
             mean_level_gap: LEVEL_GAP,
             level_gap_battles: {
@@ -3292,6 +3325,11 @@ export const OUTPUT_SCHEMAS = {
         },
       },
       timeline_more: COUNT,
+      timeline_more_to: {
+        type: ["string", "null"],
+        description:
+          "When has_more: the instant the page was cut at. Read the older, counted items by passing the same from with this as to and mark_read false (9.1.0). Null when nothing was cut.",
+      },
       entries: {
         type: "array",
         items: {

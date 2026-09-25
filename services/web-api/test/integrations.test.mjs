@@ -394,6 +394,83 @@ test("a person reads /api/v1/me with a grant for this door; an MCP grant is refu
   assert.equal(thirdParty.firstParty, false);
 });
 
+test("a family app signs a person in through /api/v1: its address on /me with account:email, and a player tracked with recordings:write (2.1.0)", async () => {
+  const drop = await registerClient(db, {
+    clientName: "Elixir Drop",
+    redirectUris: ["https://drop.poapkings.com/auth/elixir/callback"],
+  });
+  const other = await registerClient(db, {
+    clientName: "Someone's app",
+    redirectUris: ["https://example.org/callback"],
+  });
+  await db.query("update account set email = $2 where account_id = $1", [
+    person,
+    "person@example.org",
+  ]);
+  const grant = await mintTokens(db, {
+    clientId: drop.clientId,
+    accountId: person,
+    scope: "cr:read recordings:write account:email",
+    resource: "https://elixir.poapkings.com/api/v1",
+  });
+  const me = await request("GET", "/api/v1/me", undefined, grant.accessToken);
+  assert.equal(me.statusCode, 200, me.body);
+  assert.equal(data(me).data.email, "person@example.org");
+  // Without the capability, or from any other app, the address is absent.
+  const plain = await mintTokens(db, {
+    clientId: drop.clientId,
+    accountId: person,
+    scope: "cr:read",
+    resource: "https://elixir.poapkings.com/api/v1",
+  });
+  assert.equal(
+    data(await request("GET", "/api/v1/me", undefined, plain.accessToken)).data
+      .email,
+    undefined,
+  );
+  const third = await mintTokens(db, {
+    clientId: other.clientId,
+    accountId: person,
+    scope: "cr:read account:email",
+    resource: "https://elixir.poapkings.com/api/v1",
+  });
+  assert.equal(
+    data(await request("GET", "/api/v1/me", undefined, third.accessToken)).data
+      .email,
+    undefined,
+  );
+  // Track a player: the tool's result, and the relationship bounded.
+  const refusedPrimary = await request(
+    "POST",
+    "/api/v1/me/players",
+    { player_tag: "#2PPGY0Q8", relationship: "primary" },
+    grant.accessToken,
+  );
+  assert.equal(refusedPrimary.statusCode, 400);
+  const tracked = await request(
+    "POST",
+    "/api/v1/me/players",
+    { player_tag: "#2PPGY0Q8", relationship: "alt" },
+    grant.accessToken,
+  );
+  assert.equal(tracked.statusCode, 200, tracked.body);
+  const {
+    rows: [claim],
+  } = await db.query(
+    "select relationship from claim where account_id = $1 and player_tag = '#2PPGY0Q8'",
+    [person],
+  );
+  assert.ok(claim, "the player is now tracked");
+  // A read-only grant cannot write.
+  const readOnly = await request(
+    "POST",
+    "/api/v1/me/players",
+    { player_tag: "#8QQ8QQ8Q" },
+    plain.accessToken,
+  );
+  assert.notEqual(readOnly.statusCode, 200);
+});
+
 test("the person operations answer with the tools' structured results, uncapped, and refusals become problems with the tool's code (plan clan-app-api phases 2-3)", async () => {
   const clan = await registerClient(db, {
     clientName: "Elixir Clan",

@@ -15,6 +15,8 @@
  * Elixir's scale.
  */
 
+import { notBoatDefense } from "./boat-defense-sql.mjs";
+
 export const MEMBERS_SQL = `select cm.player_tag, p.name, cm.role, cm.joined_observed_at,
        (select max(bp.battle_time) from battle_participant bp
         where bp.player_tag = cm.player_tag) as last_battle,
@@ -32,14 +34,16 @@ export function participationQueries({ clanTag, tags, from, rankedTypes }) {
     {
       // Battles per member per ISO week, ranked counted beside all, in
       // one pass index-only on battle_participant_player_time_cover (0100
-      // carries type); nothing joins battle.
+      // carries type); boat defenses are not the member's battle (0171),
+      // and only boat rows look up their side, by primary key.
       name: "battles_by_week",
-      text: `select player_tag, date_trunc('week', battle_time) as week_start,
+      text: `select bp.player_tag, date_trunc('week', bp.battle_time) as week_start,
                     count(*)::int as battles,
-                    count(*) filter (where type = any($3))::int as ranked_battles
-             from battle_participant
-             where player_tag = any($1) and battle_time >= $2
-             group by player_tag, date_trunc('week', battle_time)`,
+                    count(*) filter (where bp.type = any($3))::int as ranked_battles
+             from battle_participant bp
+             where bp.player_tag = any($1) and bp.battle_time >= $2
+               and ${notBoatDefense()}
+             group by bp.player_tag, date_trunc('week', bp.battle_time)`,
       values: [tags, from, rankedTypes],
     },
     {

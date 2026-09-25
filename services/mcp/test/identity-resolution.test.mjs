@@ -363,8 +363,9 @@ test("the clan named at initialize is the primary player's, and it is what an om
     `named the wrong clan: ${sentences}`,
   );
   // The other clan is real and must not be hidden - silence about it is
-  // what made the mismatch unresolvable.
-  assert.match(sentences, new RegExp(`also in ALT CLAN ${ALT_CLAN}`));
+  // what made the mismatch unresolvable. It is a clan you TRACK, which is
+  // not the same as being in it (2026-09-25).
+  assert.match(sentences, new RegExp(`also track ALT CLAN ${ALT_CLAN}`));
 
   // The default, which must not disagree with the sentence.
   assert.equal(

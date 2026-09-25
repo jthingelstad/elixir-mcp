@@ -15,7 +15,8 @@
 import { modeGroupOf as modeGroupFor } from "@elixir-mcp/contracts";
 
 /** The mode group a battle folds into; the API's own odd values
- *  ('unknown', 'casual1v1', 'None') are 'other'. An event-tagged battle
+ *  ('unknown', 'casual1v1', 'None') are 'casual', as in the rollups
+ *  (Jamie 2026-09-25: one battle, one mode). An event-tagged battle
  *  is `event` whatever its type: the tag, not the type, is what marks
  *  time-bound content (6.17.0). */
 export function modeGroupOf(type, eventTag = null) {

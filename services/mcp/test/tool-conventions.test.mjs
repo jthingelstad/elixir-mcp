@@ -111,14 +111,25 @@ test("every published schema declares verbosity: the two-size tools in their own
 });
 
 test("segment tools take a nested segment, never a flat scope; the population is named (3.16.0)", () => {
-  for (const name of [
+  const SEGMENT_TOOLS = [
     "battles_meta_decks",
     "battles_meta_cards",
     "battles_trends",
     "cards_synergy",
+    "cards_card",
     "badges_rarity",
     "badges_holders",
-  ]) {
+  ];
+  // The list is the registry's, not a hand copy (cards_card required
+  // segment for weeks while every list of "the six" left it out).
+  assert.deepEqual(
+    declarations
+      .filter((d) => (d.inputSchema.required ?? []).includes("segment"))
+      .map((d) => d.name)
+      .sort(),
+    [...SEGMENT_TOOLS].sort(),
+  );
+  for (const name of SEGMENT_TOOLS) {
     const p = byName.get(name).inputSchema.properties;
     assert.ok(p.segment, `${name} has segment`);
     // "mine" and "corpus" as strings, or the object naming one subject.
@@ -177,7 +188,9 @@ test("annotations follow the rules: destructive when an action removes, open-wor
   }
 });
 
-const sources = readdirSync(toolsDir)
+// Every tool source, the family subdirectories included (battles/,
+// elixir/, rankings/, war/ were split out 2026-09-23 and went unscanned).
+const sources = readdirSync(toolsDir, { recursive: true })
   .filter((f) => f.endsWith(".mjs"))
   .map((f) => ({
     file: f,
@@ -290,4 +303,49 @@ test("every output schema requires notes and docs (journey r3: two help-tool bra
     )
     .map((d) => d.name);
   assert.deepEqual(missing, []);
+});
+
+test("the brief names every segment tool, and every windowed tool accepts season (the stated conventions are schema)", async () => {
+  const { handleMcpMessage } = await import("../src/protocol.mjs");
+  const brief = (
+    await handleMcpMessage(
+      { jsonrpc: "2.0", id: 1, method: "initialize", params: {} },
+      {
+        registry: makeRegistry(),
+        kind: "person",
+        spendQuota: async () => ({ allowed: true, count: 1, max: 100 }),
+        invokeTool: async () => ({ body: { ok: true }, isError: false }),
+      },
+    )
+  ).payload.result.instructions;
+  for (const d of declarations)
+    if ((d.inputSchema.required ?? []).includes("segment"))
+      assert.ok(
+        brief.includes(d.name) || /badges_/.test(d.name),
+        `the brief's segment list names ${d.name}`,
+      );
+  for (const d of declarations)
+    if ("from" in (d.inputSchema.properties ?? {}))
+      assert.ok(
+        "season" in d.inputSchema.properties,
+        `${d.name} takes from/to, so it takes season`,
+      );
+});
+
+test("9.x: the retired war day fields, the war clan_score alias and Pilot Score appear in no declaration, and in the docs only as history", () => {
+  const retired =
+    /\b(war_days_battled|war_days|attendance_by_war_day|scoring_decks|war_scoring_decks|training_decks|war_decks_by_day|war_battles_by_day|training_today|our_clan_score|pilot_score|clans_pilot_scores|battles_levels)\b/;
+  assert.doesNotMatch(JSON.stringify(declarations), retired);
+  const docsDir = path.join(here, "../../../apps/site/src/docs");
+  for (const f of readdirSync(docsDir).filter((x) => x.endsWith(".md")))
+    // By paragraph: a history sentence wraps across lines.
+    for (const line of readFileSync(path.join(docsDir, f), "utf8").split(
+      /\n\s*\n/,
+    ))
+      if (retired.test(line))
+        assert.match(
+          line,
+          /\b(9\.0\.[01]|9\.1\.0|2\.0\.0|5\.0\.0|removed|retired|no longer|is gone|went)\b/i,
+          `docs/${f} names a retired field outside history: ${line.trim().slice(0, 120)}`,
+        );
 });

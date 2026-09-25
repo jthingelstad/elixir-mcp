@@ -2,6 +2,7 @@
  *  argument schemas and notes more than one of them uses. Split out of
  *  tools/battles.mjs (2026-09-23), one file per tool. */
 
+import { notBoatDefense } from "../../boat-defense-sql.mjs";
 import {
   EVENT_MODE_GROUP,
   MODE_GROUPS,
@@ -401,6 +402,11 @@ export const DENOMINATOR_DOCS = docsRef(
  *  (6.17.0). The permanent groups must therefore also exclude tagged
  *  battles, or `casual` would keep collecting the events that used to
  *  fold into it. */
+/** A member's own battles only: boat defenses are not theirs (0171). */
+export function ownBattlesClause(add) {
+  add(notBoatDefense(), undefined);
+}
+
 export function modeClause(args, add) {
   requireEnum(args.mode, MODE_GROUPS, "mode");
   if (!args.mode) return;

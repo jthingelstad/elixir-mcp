@@ -23,14 +23,10 @@ export const CLOCK_DOCS = docsRef("clocks", "the-policy-day");
  *  the war BOARD (cr-agent-api-docs locations.md); the race payload is
  *  where it was inherited silently.
  *
- *  6.19.0 serves the honest name beside the old one. `clan_score` stays
- *  as a DEPRECATED alias so no caller breaks today, and goes at 7.0.0
- *  with the other breaking changes - one break, not two. */
-export const warTrophyAlias = (row, key = "clan_score") => ({
-  clan_war_trophies: row[key] ?? null,
-});
-export const CLAN_SCORE_DEPRECATION =
-  "clan_war_trophies is the clan's WAR trophies, which is what the race payload's clanScore actually carries - not the clan score a profile shows (that is ~100x larger; clans_timeline serves both as separate metrics). clan_score is the same number under the old, wrong name: it is DEPRECATED (6.19.0), kept so nothing breaks today, and is removed in the next major version.";
+ *  6.19.0 served the honest name, clan_war_trophies, beside the old
+ *  one; 9.1.0 removed the old one (Jamie 2026-09-25). */
+export const WAR_TROPHIES_NOTE =
+  "clan_war_trophies is the clan's WAR trophies, which is what the race payload's clanScore actually carries - not the clan score a profile shows (that is ~100x larger; clans_roster serves it as clan_score and clans_timeline serves both as separate metrics).";
 /** When the figure is from (feedback #140): the race payload carries a
  *  clan's war trophies as they stood going into the race, and the week's
  *  trophy_change lands only in the next race's figure - 26 of 26 chained

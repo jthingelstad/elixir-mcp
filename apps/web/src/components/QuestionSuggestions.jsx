@@ -10,7 +10,7 @@ function questions(player) {
     const days = player.battles_7d > 0 ? 7 : 30;
     result.push({
       title: "Review your recorded battles",
-      prompt: `Summarize the recorded battles for ${tag} in the last ${days} days: wins, losses, and the decks I played most. ${evidence}`,
+      prompt: `Summarize the recorded battles for ${tag} in the last ${days} days, mode by mode (ladder, war, Path of Legends and the rest are different games): wins, losses, and the decks I played most. ${evidence}`,
     });
   } else if (player.profile_available) {
     result.push({
@@ -32,7 +32,7 @@ function questions(player) {
   if (player.battles_7d > 0 && player.battles_previous_7d > 0) {
     result.push({
       title: "Compare two recorded weeks",
-      prompt: `Compare the recorded results for ${tag} in the last 7 days with the preceding 7 days. ${evidence} Describe the differences without claiming they prove improvement.`,
+      prompt: `Compare the recorded results for ${tag} in the last 7 days with the preceding 7 days, within each game mode rather than pooled. ${evidence} Describe the differences without claiming they prove improvement.`,
     });
   }
   return result;

@@ -284,16 +284,12 @@ test("request-access is rate limited per IP", async () => {
   assert.ok(limited > 0);
 });
 
-test("clan page: entitled member sees war + roster; outsiders refused", async () => {
+// GET /api/clan is gone (2026-09-25: no caller; the console reads clans
+// through /api/me/clans). This seeds the recorded clan and the two
+// sign-ins the tests below rely on.
+test("seed: a recorded clan the newcomer belongs to", async () => {
   memberCookie = await signIn(NEWCOMER);
   bossCookie = await signIn(JAMIE);
-  const cookie = memberCookie;
-
-  // Before any recorded clan membership: no clan for this account.
-  const before = await handler(
-    event({ method: "GET", path: "/api/clan", cookie, body: undefined }),
-  );
-  assert.equal(before.statusCode, 403);
 
   // Seed a recorded clan the newcomer's claimed tag belongs to.
   const CLAN = "#J2RGCRVG";
@@ -325,33 +321,6 @@ test("clan page: entitled member sees war + roster; outsiders refused", async ()
      values ($1, 135, 3, $1, 'POAP KINGS', 5050, 2), ($1, 135, 3, '#YRLQ', 'Rivals', 6000, 1)`,
     [CLAN],
   );
-
-  const res = parse(
-    await handler(
-      event({ method: "GET", path: "/api/clan", cookie, body: undefined }),
-    ),
-  );
-  assert.equal(res.clan_tag, CLAN);
-  assert.equal(res.name, "POAP KINGS");
-  assert.equal(res.war.season_id, 135);
-  assert.equal(res.war.is_colosseum, true);
-  assert.equal(res.war.standings.length, 2);
-  assert.equal(res.war.standings[0].rank, 1, "ordered by final rank");
-  assert.equal(res.members.length, 2);
-
-  // The owner falls back to the first active recorded clan.
-  const ownerCookie = bossCookie;
-  const ownerView = parse(
-    await handler(
-      event({
-        method: "GET",
-        path: "/api/clan",
-        cookie: ownerCookie,
-        body: undefined,
-      }),
-    ),
-  );
-  assert.equal(ownerView.clan_tag, CLAN);
 });
 
 test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; guards", async () => {

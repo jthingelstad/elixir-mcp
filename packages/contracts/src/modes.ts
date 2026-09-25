@@ -13,6 +13,11 @@ export const MODE_GROUP_BY_TYPE: Record<string, string> = {
   riverRaceDuelColosseum: "war",
   boatBattle: "war",
   clanMate2v2: "casual",
+  // Friendlies with a clanmate, and the API's own `unknown` (some
+  // friendly and event battles): casual play, one answer in JS and SQL
+  // (Jamie 2026-09-25; it was `other` here and `casual` in the rollups).
+  clanMate: "casual",
+  unknown: "casual",
   friendly: "casual",
   challenge: "challenge",
   tournament: "tournament",
@@ -40,7 +45,7 @@ export const EVENT_MODE_GROUP = "event";
 
 export function modeGroupOf(type: string, eventTag?: string | null): string {
   if (eventTag) return EVENT_MODE_GROUP;
-  return MODE_GROUP_BY_TYPE[type] ?? "other";
+  return MODE_GROUP_BY_TYPE[type] ?? "casual";
 }
 
 export const MODE_GROUPS = [

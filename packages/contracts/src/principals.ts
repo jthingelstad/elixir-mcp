@@ -46,14 +46,30 @@ export const AGENT_ONLY_TOOLS: readonly string[] = [
   "elixir_track_clan",
 ];
 
+/**
+ * Withheld from a person's connection: the identity map is an agent's
+ * (one connection serving several humans, `on_behalf_of` naming which).
+ * A person is themselves, so a personal connection ignores on_behalf_of
+ * and has no map to keep; an integration serves no humans by name
+ * either (Jamie, 2026-09-25: the identity tools are agent-only).
+ */
+export const NOT_FOR_PERSONS: readonly string[] = [
+  "elixir_identify",
+  "elixir_my_identities",
+];
+
 export function toolsHiddenFrom(kind: string | null | undefined): Set<string> {
   // Unknown or absent kind is a person: every credential issued before the
   // three-kind model is one, and defaulting the other way would silently
   // remove tools from real users.
   if (kind === "agent") return new Set(PERSON_ONLY_TOOLS);
   if (kind === "integration")
-    return new Set([...PERSON_ONLY_TOOLS, ...AGENT_ONLY_TOOLS]);
-  return new Set();
+    return new Set([
+      ...PERSON_ONLY_TOOLS,
+      ...AGENT_ONLY_TOOLS,
+      ...NOT_FOR_PERSONS,
+    ]);
+  return new Set(NOT_FOR_PERSONS);
 }
 
 export function toolAvailableTo(

@@ -1,5 +1,6 @@
-import { responseMeta } from "@elixir-mcp/contracts";
+import { modeGroupSql, responseMeta } from "@elixir-mcp/contracts";
 import {
+  MODE_SCHEMA,
   SEASON_ARG_SCHEMA,
   ToolFailure,
   WINDOW_ARGS,
@@ -9,10 +10,11 @@ import {
   resolveSeasonWindow,
   subject,
 } from "../shared.mjs";
+import { modeClause, ownBattlesClause } from "./common.mjs";
 
 export const battles_compare = {
   description:
-    "Side-by-side of 2-4 recorded tags (any recorded player): latest snapshot topline plus a shared performance window.",
+    "Side-by-side of 2-4 recorded tags (any recorded player): latest snapshot topline plus a shared performance window. mode reads one mode group; with no mode each player's window carries its per-mode split.",
   inputSchema: {
     type: "object",
     properties: {
@@ -25,6 +27,7 @@ export const battles_compare = {
       },
       ...WINDOW_ARGS,
       season: SEASON_ARG_SCHEMA,
+      mode: MODE_SCHEMA,
     },
     required: ["player_tags"],
     additionalProperties: false,
@@ -67,21 +70,54 @@ export const battles_compare = {
         params.push(to);
         where.push(`bp.battle_time < $${params.length}`);
       }
+      const add = (clause, value) => {
+        if (!clause.includes("?")) return where.push(clause);
+        params.push(value);
+        where.push(clause.replace("?", `$${params.length}`));
+      };
+      // A member's own battles (boat defenses are not theirs, 0171), in
+      // the one mode group asked for, or every mode split beside the
+      // pooled record (DECISIONS: mode discipline).
+      ownBattlesClause(add);
+      modeClause(args, add);
       const { rows: perf } = await ctx.db.query(
         `select count(*)::int battles,
                   count(*) filter (where bp.outcome = 'win')::int wins,
                   count(*) filter (where bp.outcome = 'loss')::int losses,
-                  coalesce(sum(bp.trophy_change), 0)::int net_trophies
+                  coalesce(sum(bp.trophy_change), 0)::int net_trophies,
+                  (select json_object_agg(g, json_build_object(
+                            'battles', n, 'wins', w, 'losses', l))
+                     from (select ${modeGroupSql("b.type", "b.event_tag")} as g,
+                                  count(*)::int as n,
+                                  count(*) filter (where bp.outcome = 'win')::int as w,
+                                  count(*) filter (where bp.outcome = 'loss')::int as l
+                             from battle_participant bp
+                             join battle b on b.battle_id = bp.battle_id
+                            where ${where.join(" and ")}
+                            group by 1) m) as modes
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
            where ${where.join(" and ")}`,
         params,
       );
-      players.push({ player_tag: tag, ...snap[0], window: perf[0] });
+      const { modes, ...window } = perf[0];
+      players.push({
+        player_tag: tag,
+        ...snap[0],
+        window: { ...window, ...(args.mode ? {} : { modes: modes ?? {} }) },
+      });
     }
     return {
-      applied: appliedBlock({ window: win.echo, player_tags: tags }),
+      applied: appliedBlock({
+        window: win.echo,
+        player_tags: tags,
+        mode: args.mode,
+      }),
       players,
       notes: notes(
+        !args.mode &&
+          players.some((p) => Object.keys(p.window.modes ?? {}).length > 1)
+          ? "Each window pools every mode group it played (window.modes says which): modes are different games with different matchmaking, so compare players within a mode; pass mode to read one."
+          : null,
         win.seasonNotes,
         "window covers RECORDED battles only, and recording start dates differ per player; net_trophies sums recorded trophy changes, not the full ladder delta.",
       ),

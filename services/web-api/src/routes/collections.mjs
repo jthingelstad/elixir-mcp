@@ -15,62 +15,6 @@ import { json } from "../http.mjs";
 
 export function collectionsRoutes({ resolveAccount }) {
   return {
-    "GET /api/clan": async (db, event) => {
-      const account = await resolveAccount(db, event);
-      if (!account) return json(401, { error: "unauthenticated" });
-      // The account's clan: open membership of a claimed tag in a recorded
-      // clan; the owner falls back to the first recorded clan.
-      const { rows: mine } = await db.query(
-        `select distinct cm.clan_tag from claim c
-         join clan_membership cm on cm.player_tag = c.player_tag and cm.left_observed_at is null
-         join recording r on r.subject_type = 'clan' and r.subject_tag = cm.clan_tag and r.status = 'active'
-         where c.account_id = $1`,
-        [account.accountId],
-      );
-      let clanTag = mine[0]?.clan_tag ?? null;
-      if (!clanTag && account.isOwner) {
-        const { rows } = await db.query(
-          `select subject_tag from recording where subject_type = 'clan' and status = 'active' limit 1`,
-        );
-        clanTag = rows[0]?.subject_tag ?? null;
-      }
-      if (!clanTag) return json(403, { error: "not_entitled" });
-
-      // One pg.Client per invocation: queries run sequentially by design.
-      const clanRow = await db.query(
-        `select name from clan where clan_tag = $1`,
-        [clanTag],
-      );
-      const week = await db.query(
-        `select w.season_id, w.section_index, w.is_colosseum,
-                  (select json_agg(json_build_object('clan', s.participant_name, 'tag', s.participant_clan_tag,
-                                                     'fame', s.fame, 'rank', s.rank) order by s.rank nulls last, s.fame desc)
-                   from war_week_clan s where s.clan_tag = w.clan_tag
-                     and s.season_id = w.season_id and s.section_index = w.section_index) as standings
-           from war_week w where w.clan_tag = $1
-           order by w.season_id desc, w.section_index desc limit 1`,
-        [clanTag],
-      );
-      const roster = await db.query(
-        `select cm.player_tag, cm.role, p.name, s.trophies, s.donations,
-                  (select max(bp.battle_time) from battle_participant bp
-                   where bp.player_tag = cm.player_tag) as last_battle
-           from clan_membership cm join player p on p.player_tag = cm.player_tag
-           left join lateral (select trophies, donations from player_snapshot_daily
-                              where player_tag = cm.player_tag
-                              order by snapshot_date desc, snapshot_kind desc limit 1) s on true
-           where cm.clan_tag = $1 and cm.left_observed_at is null
-           order by s.trophies desc nulls last`,
-        [clanTag],
-      );
-      return json(200, {
-        clan_tag: clanTag,
-        name: clanRow.rows[0]?.name ?? null,
-        war: week.rows[0] ?? null,
-        members: roster.rows,
-      });
-    },
-
     "GET /api/me/clans": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });

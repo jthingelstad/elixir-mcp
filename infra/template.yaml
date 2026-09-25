@@ -777,7 +777,6 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
       Environment:
         Variables:
-          # Loss-aware battlelog bound A/B arm (docs/FETCH-LOOP-AUDIT-2026-09-09.md):
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
 
   SchedulerRule:

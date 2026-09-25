@@ -279,7 +279,9 @@ export function Collections({ me, navigate }) {
           <p className="empty__body" style={{ marginBottom: 0 }}>
             A collection is a set of players or clans you want recorded together
             — a rival roster, a deck&rsquo;s pilots, the people you duo with.
-            Every member added starts capture and counts against your slots.
+            Every member added starts capture; members do not count against your
+            player slots (a collection has its own limits: how many you curate
+            and 500 tags a call).
           </p>
         </div>
       ) : (

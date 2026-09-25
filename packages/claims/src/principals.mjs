@@ -110,27 +110,12 @@ export async function createPrincipal(
       }
       clan = rows[0];
     } else {
-      const limit = roleQuotas(owner.role).integrations;
-      if (limit === 0) {
+      // Integrations are admin-provisioned platform access, not a tier
+      // entitlement (Jamie, 2026-09-25): the partner tier's "1" was a
+      // promise no route kept (POST /api/me/integrations answers 403).
+      if (owner.role !== "owner" && owner.role !== "admin") {
         await db.query("rollback");
-        return { ok: false, error: "not_entitled", limit, role: owner.role };
-      }
-      if (limit !== Infinity) {
-        const { rows } = await db.query(
-          `select count(*)::int as n from account
-           where owned_by_account_id = $1 and kind = 'integration'
-             and status = 'approved'`,
-          [owner.accountId],
-        );
-        if (rows[0].n >= limit) {
-          await db.query("rollback");
-          return {
-            ok: false,
-            error: "quota_exceeded",
-            limit,
-            role: owner.role,
-          };
-        }
+        return { ok: false, error: "not_entitled", role: owner.role };
       }
     }
 

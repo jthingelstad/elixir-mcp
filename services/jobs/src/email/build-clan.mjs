@@ -68,6 +68,19 @@ export async function buildClan({ db, account, clanTag, week, season }) {
       !w.in_progress
     );
   });
+  // Who battled, from the closed week's own roster (the tool, never a
+  // second derivation): members whose weekly war decks were more than
+  // none. war_history's week rows carry no participant count.
+  const exact = closed
+    ? await tryTool(callTool, ctx, "war_history", {
+        clan_tag: clanTag,
+        season_id: closed.season_id,
+        section_index: closed.section_index,
+      })
+    : null;
+  const battled = exact?.member_weeks
+    ? exact.member_weeks.filter((m) => (m.decks_used ?? 0) > 0).length
+    : null;
   const war = closed
     ? {
         present: true,
@@ -76,9 +89,9 @@ export async function buildClan({ db, account, clanTag, week, season }) {
         rank: closed.our_rank ?? null,
         fame: closed.our_fame ?? null,
         trophy_change: closed.trophy_change ?? null,
-        clan_score: closed.our_clan_score ?? null,
+        war_trophies: closed.our_clan_war_trophies ?? null,
         finished_early: Boolean(closed.finished_early),
-        participants: closed.participants ?? null,
+        battled,
       }
     : { present: false };
 

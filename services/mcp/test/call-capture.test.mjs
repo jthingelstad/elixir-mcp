@@ -1,5 +1,5 @@
 /**
- * Capture the payloads (docs/REVIEW-2026-09-10-DOCS-TOOLS-SEAM.md, Part 5).
+ * Capture the payloads (docs/reviews/2026-09-10-DOCS-TOOLS-SEAM.md, Part 5).
  *
  * Three properties, each pinned because the failure is silent: the
  * timings on the row are the TOOL's (db_ms counts the tool's queries and

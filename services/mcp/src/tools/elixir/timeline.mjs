@@ -9,7 +9,9 @@ import {
   TAG_RULE_HINT,
   ToolFailure,
   VERBOSITY,
+  SEASON_ARG_SCHEMA,
   WINDOW_ARGS,
+  resolveSeasonWindow,
   WINDOW_OBSERVED_FROM_DESC,
   WINDOW_OBSERVED_TO_DESC,
   appliedBlock,
@@ -34,6 +36,9 @@ export const elixir_timeline = {
     type: "object",
     properties: {
       ...WINDOW_ARGS,
+      // The stated convention (9.1.0): `season` bounds one season on
+      // every windowed tool; here it is capped at 30 days like any window.
+      season: SEASON_ARG_SCHEMA,
       // The timeline selects by when the record OBSERVED an item, over
       // (from, to] at the millisecond it serves (7.1.5, Gym #273).
       from: { type: "string", description: WINDOW_OBSERVED_FROM_DESC },
@@ -102,7 +107,17 @@ export const elixir_timeline = {
     const pointerMs = acct[0]?.activity_seen_at
       ? acct[0].activity_seen_at.getTime()
       : null;
-    let toMs = Date.now();
+    // season with no explicit window: that season's span, to now while
+    // it runs (resolveSeasonWindow, as every windowed tool reads it).
+    const seasonOnly =
+      args.season !== undefined &&
+      ["from", "to", "days", "weeks"].every((k) => rawArgs[k] === undefined);
+    const seasonWin = seasonOnly
+      ? await resolveSeasonWindow(ctx, args, { flavor: "plain" })
+      : null;
+    let toMs = seasonWin?.to
+      ? Math.min(seasonWin.to.getTime(), Date.now())
+      : Date.now();
     if (args.to !== undefined) {
       const parsed = resolveInstant(tz, args.to, { endOfDay: true });
       if (!parsed)
@@ -115,7 +130,10 @@ export const elixir_timeline = {
     }
     let fromMs;
     let source;
-    if (args.from !== undefined) {
+    if (seasonWin) {
+      fromMs = seasonWin.from.getTime();
+      source = "season";
+    } else if (args.from !== undefined) {
       const parsed = resolveInstant(tz, args.from);
       if (!parsed)
         throw new ToolFailure(
@@ -418,6 +436,10 @@ export const elixir_timeline = {
       subjects: subjects.length,
       next_cursor: iso(endMs),
       has_more: cutMs !== null,
+      // The cut as a field (9.1.0; it was only in the note): the older,
+      // counted items are read by passing the same from with this as to
+      // and mark_read false. Null when nothing was cut.
+      timeline_more_to: cutMs !== null ? iso(cutMs) : null,
       notes: notes(
         seasonFields.seasonNotes,
         entries.length === 0 && built.quiet.length === 0

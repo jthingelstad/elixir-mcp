@@ -47,7 +47,7 @@ export function RaiseCollector({ navigate }) {
       <p className="page__lede" style={{ maxWidth: "64ch" }}>
         {runsOne
           ? "Every collector you run is yours and earns on the same ladder. Name the new machine, pick its card, and raise your hand again."
-          : "A collector is a machine that fetches for the corpus on a schedule. It earns you bonus quota — 10 fetches buys one extra daily call, up to 4× your base."}
+          : "A collector is a machine that fetches for the corpus on a schedule. It earns you bonus quota — 10 points buy one extra daily call, up to 4× your base, where a point is a fetch that added something to the record."}
       </p>
 
       <section className="panel" style={{ marginBottom: "14px" }}>

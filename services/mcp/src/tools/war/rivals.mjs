@@ -7,9 +7,8 @@ import {
   notes,
 } from "../shared.mjs";
 import {
-  CLAN_SCORE_DEPRECATION,
+  WAR_TROPHIES_NOTE,
   WAR_DOCS,
-  warTrophyAlias,
   WAR_FAME_BY_PLACEMENT,
 } from "./common.mjs";
 
@@ -68,7 +67,7 @@ export const war_rivals = {
     }
     // Observer-scoped duplication is by design in the war tables; rival
     // stats dedupe on (season, section, rival) BEFORE aggregating so a
-    // race two recorded clans both saw counts once (META-INTEL §10).
+    // race two recorded clans both saw counts once (docs/archive/META-INTEL.md §10).
     const { rows } = await ctx.db.query(
       `with latest as (
            select season_id, section_index from war_week
@@ -105,7 +104,7 @@ export const war_rivals = {
                 (select w.clan_score from war_week_clan w
                   where w.participant_clan_tag = races.participant_clan_tag
                     and w.clan_score is not null
-                  order by w.season_id desc, w.section_index desc limit 1) as clan_score
+                  order by w.season_id desc, w.section_index desc limit 1) as clan_war_trophies
          from races group by participant_clan_tag
          order by mean_fame desc nulls last`,
       [clanTag, rivals],
@@ -160,10 +159,10 @@ export const war_rivals = {
       }),
       rivals: rows.map((r) => ({
         ...r,
-        ...warTrophyAlias(r),
         ...effort(r.clan_tag),
       })),
       notes: notes(
+        WAR_TROPHIES_NOTE,
         // mean_fame measures placements (Gym #180).
         WAR_FAME_BY_PLACEMENT,
         "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",
@@ -173,7 +172,6 @@ export const war_rivals = {
           : null,
         "clan_war_trophies is the clan's WAR trophies from the latest recorded race it was in, going into that race (what that race itself won or lost is not included); null only when no recorded race carried it.",
         "mean_points and points_vs_ours measure effort, which fame does not: points per finished week from the day logs, and the rival's points over yours across the weeks the record holds both (0.05 is about a twentieth of your play). A rival with points_weeks 0 has no day log recorded, not zero effort.",
-        CLAN_SCORE_DEPRECATION,
         "A rival's roster and war state are not recorded; war_current({ clan_tag, live: true }) asks for a fresh read (queued if none is in hand).",
       ),
       docs: WAR_DOCS,

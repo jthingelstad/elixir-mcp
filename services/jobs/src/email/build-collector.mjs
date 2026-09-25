@@ -3,7 +3,7 @@
  *  fleet pages read), pacing and gaps from the receipt times, credits
  *  the way quota.mjs computes them: 1 per 10 points, pooled per account,
  *  capped at 4x the tier base. Only accounts with a collector get one. */
-import { roleQuotas } from "@elixir-mcp/contracts";
+import { OPERATOR_BONUS, roleQuotas } from "@elixir-mcp/contracts";
 
 const CREDIT_DIVISOR = 10;
 const CREDIT_CAP_MULTIPLE = 4;
@@ -27,7 +27,10 @@ export async function buildCollector({ db, account, week }) {
             coalesce(sum(api_bytes), 0)::bigint as api_bytes,
             coalesce(sum(coalesce(observed, 0) - coalesce(filtered, 0)), 0)::bigint as kept,
             coalesce(sum(coalesce(filtered, 0)), 0)::bigint as filtered,
-            coalesce(sum(new_facts), 0)::bigint as new_facts
+            coalesce(sum(new_facts), 0)::bigint as new_facts,
+            -- The points this week: a point is a fetch that added to the
+            -- record (ingest/pipeline.mjs, new_facts > 0), not every fetch.
+            count(*) filter (where admission <> 'rejected' and new_facts > 0)::int as points
        from api_receipt
       where gateway_id = any($1) and fetched_at >= $2 and fetched_at < $3
       group by gateway_id`,
@@ -79,8 +82,15 @@ export async function buildCollector({ db, account, week }) {
   const kept = per.reduce((s, r) => s + Number(r.kept), 0);
   const filtered = per.reduce((s, r) => s + Number(r.filtered), 0);
   const pointsLifetime = gws.reduce((s, g) => s + Number(g.fetch_points), 0);
-  const base = roleQuotas(account.role).mcp_calls_per_day;
-  const unlimited = base == null;
+  // The same base quota.mjs spends against: the account's override when
+  // set, else its role's; owner and admin are unbounded.
+  const base =
+    account.mcpDailyQuota ?? roleQuotas(account.role).mcp_calls_per_day;
+  const unlimited =
+    base == null ||
+    base === Infinity ||
+    account.role === "owner" ||
+    account.role === "admin";
   const creditsLifetime = Math.floor(pointsLifetime / CREDIT_DIVISOR);
   const applied = unlimited
     ? null
@@ -88,6 +98,10 @@ export async function buildCollector({ db, account, week }) {
   const capped =
     !unlimited && base + creditsLifetime > base * CREDIT_CAP_MULTIPLE;
   const newFacts = per.reduce((s, r) => s + Number(r.new_facts), 0);
+  const pointsWeek = per.reduce((s, r) => s + Number(r.points), 0);
+  // The bonus slots stack on member, leader and family only (roles.ts:
+  // partner's tier assumes a collector; admin and owner are unbounded).
+  const bonus = !["partner", "admin", "owner"].includes(account.role);
   return {
     week: { label: week.label, key: week.key },
     account: { name: account.email },
@@ -104,11 +118,20 @@ export async function buildCollector({ db, account, week }) {
     },
     by_endpoint: byEndpoint.map((r) => [endpointLabel(r.endpoint), r.n]),
     credits: {
-      earned: Math.floor(fetches / CREDIT_DIVISOR),
-      base: base ?? 0,
+      // Credits this week: the whole credits the week's points completed.
+      earned:
+        creditsLifetime -
+        Math.floor((pointsLifetime - pointsWeek) / CREDIT_DIVISOR),
+      points_week: pointsWeek,
+      base: unlimited ? 0 : base,
       applied: applied ?? 0,
       capped,
-      slots: { players: 2, clans: 1 },
+      slots: bonus
+        ? {
+            players: OPERATOR_BONUS.player_slots,
+            clans: OPERATOR_BONUS.activity_clans,
+          }
+        : { players: 0, clans: 0 },
     },
     lifetime: { points: pointsLifetime, credits: creditsLifetime },
     fleet_note: `${newFacts.toLocaleString("en-US")} new facts entered the record through your collectors this week (battles, membership events, moved snapshots, changed cards).`,

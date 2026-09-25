@@ -1445,7 +1445,9 @@ test("battles_query: name_known, duel rounds_played, padded princess towers, leg
 test("battles_performance: decided vs boat denominators, mode key documented", async () => {
   const { body } = await call("battles_performance", {});
   const w = body.window;
-  assert.equal(w.boat_battles, 10, "the fixture holds ten boat attacks");
+  // The fixture's boat rows: ten, of which three are defenses, which are
+  // not the member's battle (0171, 2026-09-25) and are left out.
+  assert.equal(w.boat_battles, 7, "the fixture's seven boat attacks");
   assert.ok(w.decided_battles <= w.wins + w.losses);
   assert.ok(w.decided_battles < w.battles);
   assert.match(body.notes.join(" "), /decided_wins/);
@@ -2205,7 +2207,18 @@ test("a window on bp.battle_time answers what a window on b.battle_time answered
   assert.equal(q.body.total_count, old.n, "the old predicate's count");
   const perf = await call("battles_performance", { from, to });
   assert.equal(perf.isError, false, JSON.stringify(perf.body));
-  assert.equal(perf.body.window.battles, old.n);
+  // battles_performance counts the member's own battles: a boat defense
+  // is not theirs (0171, 2026-09-25), so it leaves the same count out.
+  const {
+    rows: [own],
+  } = await db.query(
+    `select count(*)::int as n from battle_participant bp join battle b on b.battle_id = bp.battle_id
+     where bp.player_tag = $1 and b.battle_time >= $2 and b.battle_time < $3
+       and not (b.boat_battle_side is not null
+                and (b.boat_battle_side = 'defender') = (bp.side = 0))`,
+    [OBSERVER, from, to],
+  );
+  assert.equal(perf.body.window.battles, own.n);
 });
 
 test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", async () => {

@@ -86,6 +86,12 @@ export function accountRoutes({
     }
     if (action === "remove") {
       const r = await removePlayer(db, account, { tag, via: "web" });
+      if (r.refused === "primary_in_use")
+        return json(409, {
+          error: "primary_in_use",
+          message:
+            "This is your primary player. Make another player your primary first, then remove this one.",
+        });
       return json(200, {
         ok: true,
         removed: r.removed,
@@ -309,10 +315,10 @@ export function accountRoutes({
             used: e.collections_used,
             limit: lim(q.collections_max),
           },
-          // The two the ladder publishes that this payload did not, so
-          // the console's limits table and /docs/roles can be the same
-          // eight rows from the same source (roles.ts).
-          integrations: { limit: lim(q.integrations) },
+          // The one the ladder publishes that this payload did not, so
+          // the console's limits table and /docs/roles are the same rows
+          // from the same source (roles.ts). Integrations are admin-
+          // provisioned, not a tier row (2026-09-25).
           agents: { limit: lim(q.agents) },
         },
         agents: agents.map((a) => ({ ...a, name: a.name ?? a.public_id })),
@@ -723,7 +729,7 @@ export function accountRoutes({
     },
 
     "GET /api/me/requests": async (db, event) => {
-      // Activity tab 1 (SITE-IA): the MCP requests this account's
+      // Activity tab 1 (docs/archive/SITE-IA.md): the MCP requests this account's
       // agents made - the user's own audit slice, newest first.
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });

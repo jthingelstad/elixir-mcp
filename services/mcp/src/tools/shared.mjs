@@ -850,7 +850,7 @@ export async function subject(
 /**
  * A resolved subject is a subject somebody asked about: stamp it so the
  * scheduler keeps that player's battlelog within an hour for the next day
- * (docs/FETCH-LOOP-AUDIT-2026-09-09.md). Best-effort by construction --
+ * (docs/archive/FETCH-LOOP-AUDIT-2026-09-09.md). Best-effort by construction --
  * one PK-indexed update, and a failure is logged, never surfaced -- and a
  * subject with no poll_state row (not recorded) is a no-op.
  */
@@ -1086,7 +1086,7 @@ export async function segmentFilter(ctx, args, params) {
   };
 }
 
-/** Empirical-Bayes shrinkage (META-INTEL): pull small samples toward
+/** Empirical-Bayes shrinkage (docs/archive/META-INTEL.md): pull small samples toward
  *  the segment mean; this moderates extremes, not rank ordering. */
 export const META_METHODOLOGY = {
   observation_unit: "player_battle",
@@ -1487,10 +1487,14 @@ export async function renderDecks(db, battleIds) {
   const vocab = await vocabulary(db);
   const out = new Map();
   const costs = new Map(); // deck object -> its cards with cost
+  // The API's own card shape (evolutionLevel is its raw form code), with
+  // the one form vocabulary beside it (DECISIONS: labels go beside
+  // identifiers; form base|evolution|hero, 9.1.0).
   const card = (r) => ({
     id: r.card_id,
     name: r.name,
     level: r.level,
+    form: formName(r.form),
     ...(r.form > 0 ? { evolutionLevel: r.form } : {}),
     ...(r.star_level !== null ? { starLevel: r.star_level } : {}),
   });

@@ -42,7 +42,7 @@ const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
  * straight here) skips the embed's raw-URL hit and reports the same
  * normalized page by beacon instead, so the landing counts once, cleanly.
  */
-const PRIVATE_RECORD = /^\/(account\/activity\/[ce]|admin\/emails)\/./;
+const PRIVATE_RECORD = /^\/((account|admin)\/[^/]+\/.|agent\/)/;
 
 export function loadTinylytics() {
   if (["localhost", "127.0.0.1", "::1"].includes(window.location.hostname))
@@ -85,13 +85,26 @@ export function analyticsLocation(
   origin = window.location.origin,
 ) {
   if (pathname.startsWith("/signin")) return null;
-  const segments = pathname.split("/").filter(Boolean);
+  let segments = pathname.split("/").filter(Boolean);
+  // An agent's console is a place, /agent/<public_id>/... (2026-09-23):
+  // which agent is never reported, only the kind of page (privacy.md: a
+  // page of your own records reports its kind, not which record).
+  if (segments[0] === "agent") segments = ["agent", ...segments.slice(2)];
   const page = segments.length ? `/${segments.slice(0, 2).join("/")}` : "/";
   const url = new URL(page, origin);
-  // A record page (see PRIVATE_RECORD) reports as its kind of record,
+  // A record page under the console (a call, an email, feedback, a
+  // tracked subject, an admin's account or email) reports as its kind,
   // never which one: /account/activity/e, not the send id.
-  if (PRIVATE_RECORD.test(pathname)) {
-    const kindOf = segments[0] === "admin" ? page : `${page}/${segments[2]}`;
+  if (
+    ["account", "admin", "agent"].includes(segments[0]) &&
+    segments.length > 2
+  ) {
+    const kindOf =
+      segments[1] === "activity" &&
+      ["c", "e"].includes(segments[2]) &&
+      segments[3]
+        ? `${page}/${segments[2]}`
+        : page;
     return { path: kindOf, url: new URL(kindOf, origin).toString() };
   }
   const id = segments.slice(2).join("/");

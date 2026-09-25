@@ -9,6 +9,17 @@
 import { DISCLAIMER } from "@elixir-mcp/contracts";
 import { pixelPath, pixelTag } from "./pixel.mjs";
 
+/** A mode group's reader-facing name (contracts MODE_GROUPS). */
+const FAMILY_LABEL = {
+  ladder: "Ladder",
+  ranked: "Path of Legends",
+  war: "War",
+  casual: "Casual",
+  event: "Events",
+  challenge: "Challenges",
+  tournament: "Tournaments",
+};
+
 const SITE = "https://elixir.poapkings.com";
 const FONT =
   "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -286,7 +297,17 @@ function arena(f, c) {
         n(t.battles),
         `${t.sessions} session${t.sessions === 1 ? "" : "s"}`,
       ],
-      ["Record", rec(t), pct(t.win_rate)],
+      // One record per mode family played (DECISIONS: mode discipline);
+      // a single family, or an older facts file, reads as one record.
+      ...((t.by_family?.length ?? 0) > 1
+        ? t.by_family
+            .slice(0, 3)
+            .map((m) => [
+              `${FAMILY_LABEL[m.mode] ?? m.mode} record`,
+              `${n(m.wins)}–${n(m.losses)}`,
+              pct(m.win_rate),
+            ])
+        : [["Record", rec(t), pct(t.win_rate)]]),
       [
         "Trophies",
         n(pr.trophies?.to),
@@ -441,12 +462,14 @@ function clan(f, c) {
       [
         "War trophies",
         signed(f.war.trophy_change),
-        f.war.clan_score ? `clan score ${n(f.war.clan_score)}` : "",
+        f.war.war_trophies != null
+          ? `${n(f.war.war_trophies)} going into the race`
+          : "",
       ],
       [
         "Battled",
-        f.war.participants == null ? "—" : n(f.war.participants),
-        "members with points",
+        f.war.battled == null ? "—" : n(f.war.battled),
+        "members who used a war deck",
       ],
     ])}`
     : "";
@@ -809,7 +832,11 @@ function collector(f, c) {
     ${c.h2("Your collectors")}${rows}
     ${c.h2("What they fetched")}${endpoints}
     ${c.h2("What you earned")}${c.tiles([
-      ["Credits", `+${n(f.credits.earned)}`, "1 per 10 fetches, pooled"],
+      [
+        "Credits",
+        `+${n(f.credits.earned)}`,
+        "1 per 10 points; a point is a fetch that added to the record",
+      ],
       [
         "Daily calls",
         n(f.credits.applied),

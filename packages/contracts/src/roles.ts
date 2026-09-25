@@ -31,7 +31,8 @@ export interface RoleQuotas {
    *
    * Player slots therefore stop being a rung on the ladder. The tiers still
    * differ where the cost actually scales — clan watches, daily calls, the
-   * live lane, collections, integrations.
+   * live lane, collections. (Integrations are admin-provisioned platform
+   * access, not a tier entitlement: Jamie, 2026-09-25.)
    */
   player_slots: number;
   /** Clan watches at activity scope (roster + war, no member fan-out). */
@@ -44,22 +45,6 @@ export interface RoleQuotas {
   live_fetches_per_day: number;
   /** Collections the account may create and curate. */
   collections_max: number;
-  /**
-   * Integrations the account may own: token-only principals with no "me",
-   * consuming the corpus for their own userbase (Elixir Drop is the type
-   * specimen). Gated because an integration's traffic scales with ITS users,
-   * not its owner's — it is a capacity conversation.
-   *
-   * AGENTS ARE NOT HERE and are not gated by role. An agent acts for a clan,
-   * spends its owner's quota, and is bounded by the clan slots above: you may
-   * create an agent for a clan you have added. Ratified 2026-09-08 — "this is
-   * actually a feature all clan leaders should have available."
-   *
-   * This field was `service_tokens` and, until 0053, was read by nothing at
-   * all: the ladder promised partners a token while the only route to one was
-   * owner-gated. It had the wrong name, which is probably why.
-   */
-  integrations: number;
   /**
    * Agents the account may create. Agents are not a tier feature - any role
    * may create one for a clan it has added - but each agent is a credential
@@ -87,7 +72,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: 500,
     live_fetches_per_day: 20,
     collections_max: 0,
-    integrations: 0,
     agents: 3,
   },
   leader: {
@@ -97,7 +81,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: 2000,
     live_fetches_per_day: 100,
     collections_max: 0,
-    integrations: 0,
     agents: 5,
   },
   family: {
@@ -107,7 +90,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: 5000,
     live_fetches_per_day: 250,
     collections_max: 5,
-    integrations: 0,
     agents: 10,
   },
   partner: {
@@ -117,7 +99,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: 15000,
     live_fetches_per_day: 1000,
     collections_max: 20,
-    integrations: 1,
     agents: 25,
   },
   admin: {
@@ -127,7 +108,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: Infinity,
     live_fetches_per_day: Infinity,
     collections_max: Infinity,
-    integrations: Infinity,
     agents: Infinity,
   },
   owner: {
@@ -137,7 +117,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     mcp_calls_per_day: Infinity,
     live_fetches_per_day: Infinity,
     collections_max: Infinity,
-    integrations: Infinity,
     agents: Infinity,
   },
 };

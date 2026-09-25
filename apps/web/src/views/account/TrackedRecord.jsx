@@ -27,6 +27,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   const { data: clans = null } = useMyClans();
   const [nick, setNick] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [refusal, setRefusal] = useState(null);
   const [now] = useState(() => Date.now());
   const invalidate = useInvalidate();
   const loadClans = () => invalidate();
@@ -174,6 +175,28 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                   <option value="watching">watching</option>
                 </select>
               )}
+              {!isClan && !claim.is_primary && (
+                // Your primary is "you"; choosing a new one here is how the
+                // current primary becomes removable (2026-09-25).
+                <button
+                  className="btn"
+                  style={{ marginLeft: "8px" }}
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    await api.claimAction({
+                      player_tag: wanted,
+                      action: "add",
+                      make_primary: true,
+                    });
+                    setBusy(false);
+                    setRefusal(null);
+                    refresh();
+                  }}
+                >
+                  Make primary
+                </button>
+              )}
             </span>
 
             <span style={{ color: "var(--ink-faint)" }}>Scope</span>
@@ -287,11 +310,21 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                     clan_tag: wanted,
                     action: "remove",
                   });
-                else
-                  await api.claimAction({
+                else {
+                  const r = await api.claimAction({
                     player_tag: wanted,
                     action: "remove",
                   });
+                  // Your primary cannot be removed while you track others
+                  // (409 primary_in_use): say so and stay on the page.
+                  if (!r.ok) {
+                    setBusy(false);
+                    setRefusal(
+                      r.data?.message ?? "This player could not be removed.",
+                    );
+                    return;
+                  }
+                }
                 setBusy(false);
                 await refresh();
                 navigate("/account/tracking");
@@ -301,7 +334,9 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             </button>
             {/* The consequence beside the control: this stops new capture
                 and takes nothing away. */}
-            <span className="footnote">History already recorded is kept.</span>
+            <span className="footnote">
+              {refusal ?? "History already recorded is kept."}
+            </span>
           </div>
         </section>
 

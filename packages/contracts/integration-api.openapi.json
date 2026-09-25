@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "2.0.0",
-    "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration). Supplied tags are unverified. Collection grants allow additions only."
+    "version": "2.1.0",
+    "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration). Supplied tags are unverified. Collection grants allow additions only. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
     {
@@ -502,8 +502,9 @@
             "schema": {
               "type": "integer",
               "minimum": 1,
-              "maximum": 12
-            }
+              "maximum": 8
+            },
+            "description": "ISO weeks back, the current partial week included: 1 to 8 (the tool's own range), default 5."
           }
         ],
         "responses": {
@@ -799,7 +800,7 @@
     },
     "/players/{tag}/profile": {
       "get": {
-        "operationId": "playerProfile",
+        "operationId": "playerRecordedProfile",
         "summary": "The latest recorded profile; fresh=1 asks for a live read.",
         "x-permission": "cr:read",
         "x-principals": ["person"],
@@ -941,6 +942,94 @@
                     "data": {
                       "type": "object",
                       "x-tool": "battles_query"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/players": {
+      "post": {
+        "operationId": "meTrackPlayer",
+        "summary": "Track a player as the signed-in person: the elixir_track_player add (tracked means recorded). relationship alt, friend or watching; the primary is chosen in the console.",
+        "x-permission": "recordings:write",
+        "x-principals": ["person"],
+        "x-tool": "elixir_track_player",
+        "security": [
+          {
+            "personOAuth": ["recordings:write"]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["player_tag"],
+                "properties": {
+                  "player_tag": {
+                    "type": "string",
+                    "description": "A player tag, # included."
+                  },
+                  "relationship": {
+                    "type": "string",
+                    "enum": ["alt", "friend", "watching"],
+                    "default": "watching"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success: the elixir_track_player tool's structured result (added, recording started), the same fields its outputSchema declares at /docs/tools.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "elixir_track_player"
                     }
                   }
                 }
@@ -1189,7 +1278,8 @@
             "type": "integer"
           },
           "code": {
-            "type": "string"
+            "type": "string",
+            "description": "The closed error code: the integration codes (unauthenticated, insufficient_scope, not_found, bad_request, invalid_json, rate_limited, daily_quota_exceeded, refresh_quota_exceeded) and, on a person operation, the tool's own (not_recorded, no_subject, invalid_tag, not_entitled, query_timeout, live_pending, internal)."
           },
           "detail": {
             "type": "string"
@@ -1197,6 +1287,14 @@
           "request_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "hint": {
+            "type": "string",
+            "description": "What to do next, when the refusal has one (person operations carry the tool's hint)."
+          },
+          "retry_after_s": {
+            "type": "integer",
+            "description": "Seconds to wait before retrying, on throttling and temporary failures (the Retry-After header carries the same)."
           }
         },
         "required": ["type", "title", "status", "code", "detail", "request_id"]
@@ -1347,6 +1445,10 @@
                     }
                   }
                 }
+              },
+              "email": {
+                "type": ["string", "null"],
+                "description": "The account's address, present only for an Elixir family app (every redirect on a family origin) whose grant holds account:email (2.1.0)."
               }
             }
           }

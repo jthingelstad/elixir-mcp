@@ -172,14 +172,19 @@ export const rankings_clan_ladder = {
         const boardLocation = /^\d+$/.test(String(row.location_key))
           ? Number(row.location_key)
           : null;
+        // Always emitted (DECISIONS: booleans are always emitted): false on
+        // a global board or a clan located there, null when the clan's
+        // location is unknown to the record.
         const elsewhere =
-          boardLocation !== null &&
-          ours.location_id !== null &&
-          Number(ours.location_id) !== boardLocation;
+          boardLocation === null
+            ? false
+            : ours.location_id === null
+              ? null
+              : Number(ours.location_id) !== boardLocation;
         ourClan = {
           clan_tag: ourTag,
           name: ours.name,
-          ...(elsewhere ? { located_elsewhere: true } : {}),
+          located_elsewhere: elsewhere,
           on_board: ours.rank !== null,
           rank: ours.rank,
           score: score ?? null,
@@ -188,7 +193,10 @@ export const rankings_clan_ladder = {
               ? snapshot.observed_at.toISOString()
               : (ours.observed_at?.toISOString() ?? null),
           below_floor_by:
-            !elsewhere && ours.rank === null && score !== null && floorRow
+            elsewhere !== true &&
+            ours.rank === null &&
+            score !== null &&
+            floorRow
               ? Number(floorRow.score) - Number(score)
               : null,
         };

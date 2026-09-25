@@ -555,7 +555,7 @@ export const battles_query = {
       // it had counted the deck's lifetime whatever the window and
       // filters said): counts, W-L, distinct pilots, span. Deliberately
       // NO win rate - a deck's pooled rate describes who plays it
-      // (docs/META-INTEL §2); lift with a sample size is an agent tool
+      // (docs/archive/META-INTEL.md §2); lift with a sample size is an agent tool
       // (battles_meta_decks).
       const { rows: ds } = await ctx.db.query(
         `select count(*)::int as battles,

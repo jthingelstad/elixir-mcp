@@ -1020,10 +1020,13 @@ test("the race's day-by-day, clan_score, repair_points, closed_at and the API's 
   // the same week, so the union is what the record holds.
   assert.ok(body.standings.length >= 5, "every clan in the bracket");
   const ours = body.standings.find((c) => c.clan_tag === CLAN);
-  assert.ok(Number.isInteger(ours.clan_score), "the game's strength number");
+  assert.ok(
+    Number.isInteger(ours.clan_war_trophies),
+    "the clan's war trophies",
+  );
   assert.equal(ours.repair_points, 0);
   assert.ok(body.member_weeks.every((w) => "repair_points" in w));
-  assert.equal(body.weeks[0].our_clan_score, ours.clan_score);
+  assert.equal(body.weeks[0].our_clan_war_trophies, ours.clan_war_trophies);
   assert.ok(
     body.weeks[0].closed_at === null ||
       /^\d{4}-\d{2}-\d{2}T/.test(body.weeks[0].closed_at),
@@ -1040,7 +1043,7 @@ test("the race's day-by-day, clan_score, repair_points, closed_at and the API's 
   // war_current: the running week's closed days and the API's own word.
   const current = (await call(invoke, "war_current", {})).body;
   assert.ok(Array.isArray(current.days_closed));
-  assert.ok(current.standings.every((c) => "clan_score" in c));
+  assert.ok(current.standings.every((c) => "clan_war_trophies" in c));
   assert.ok(current.participants.every((p) => "repair_points" in p));
   assert.equal(current.period.api_period_type, "warDay");
   const compact = (await call(invoke, "war_current", { verbosity: "compact" }))
@@ -1103,7 +1106,7 @@ test("the race's day-by-day, clan_score, repair_points, closed_at and the API's 
     .slice(0, 2);
   const rivals = (await call(invoke, "war_rivals", { rival_tags: rivalTags }))
     .body;
-  assert.ok(rivals.rivals.every((r) => Number.isInteger(r.clan_score)));
+  assert.ok(rivals.rivals.every((r) => Number.isInteger(r.clan_war_trophies)));
 });
 
 test("war_history: finished_early flags 10000-fame regular weeks; horizon named", async () => {
@@ -2156,16 +2159,12 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
 // The race payload spells it clanScore, which is the API overloading the
 // key - a clan profile carries both, ~129,000 and ~1,200 - and the docs
 // used to call it "the same figure a clan's profile shows".
-test("6.19.0: the war surfaces carry clan_war_trophies, with clan_score kept as a deprecated alias", async () => {
+test("6.19.0 and 9.1.0: the war surfaces carry clan_war_trophies, and the clan_score alias is gone", async () => {
   const seasons = (await call(invoke, "war_history", { seasons: 12 })).body;
-  const scored = seasons.weeks.filter((w) => w.our_clan_score !== null);
+  const scored = seasons.weeks.filter((w) => w.our_clan_war_trophies !== null);
   assert.ok(scored.length > 0, "a week with the figure");
-  for (const w of scored)
-    assert.equal(
-      w.our_clan_war_trophies,
-      w.our_clan_score,
-      `${w.season_id}/${w.section_index}: the alias is the same number`,
-    );
+  for (const w of seasons.weeks)
+    assert.ok(!("our_clan_score" in w), "the alias went at 9.1.0");
 
   const exact = (
     await call(invoke, "war_history", {
@@ -2173,14 +2172,15 @@ test("6.19.0: the war surfaces carry clan_war_trophies, with clan_score kept as 
       section_index: scored[0].section_index,
     })
   ).body;
-  for (const row of exact.standings)
-    assert.equal(row.clan_war_trophies, row.clan_score, row.clan_tag);
+  for (const row of exact.standings) {
+    assert.ok("clan_war_trophies" in row, row.clan_tag);
+    assert.ok(!("clan_score" in row), row.clan_tag);
+  }
   assert.match(exact.notes.join(" "), /clan_war_trophies/);
-  assert.match(exact.notes.join(" "), /DEPRECATED/);
+  assert.doesNotMatch(exact.notes.join(" "), /DEPRECATED|next major/);
 
   const rivals = (await call(invoke, "war_rivals", {})).body;
-  for (const r of rivals.rivals)
-    assert.equal(r.clan_war_trophies, r.clan_score, r.clan_tag);
+  for (const r of rivals.rivals) assert.ok(!("clan_score" in r), r.clan_tag);
   assert.match(rivals.notes.join(" "), /clan_war_trophies/);
 
   // It is a WAR TROPHY ladder, not a clan score. Earlier tests in this
@@ -2197,16 +2197,17 @@ test("6.19.0: the war surfaces carry clan_war_trophies, with clan_score kept as 
     );
 });
 
-test("6.29.0: the war outputSchemas declare clan_war_trophies and call clan_score what it is (feedback #141)", async () => {
+test("6.29.0 and 9.1.0: the war outputSchemas declare clan_war_trophies and no clan_score alias (feedback #141)", async () => {
   const { OUTPUT_SCHEMAS } = await import("../src/output-schemas.mjs");
   const row = (tool, list) =>
     OUTPUT_SCHEMAS[tool].properties[list].items.properties;
   const current = row("war_current", "standings");
   assert.ok(current.clan_war_trophies);
-  assert.doesNotMatch(current.clan_score.description, /strength number/);
-  assert.match(current.clan_score.description, /DEPRECATED/);
+  assert.equal(current.clan_score, undefined);
   assert.ok(row("war_rivals", "rivals").clan_war_trophies);
+  assert.equal(row("war_rivals", "rivals").clan_score, undefined);
   assert.ok(row("war_history", "weeks").our_clan_war_trophies);
+  assert.equal(row("war_history", "weeks").our_clan_score, undefined);
 });
 
 test("clans_participation tenure is the current stint; a rejoin within 7 days continues it (Jamie 2026-09-24)", async () => {

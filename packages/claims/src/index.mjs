@@ -352,13 +352,17 @@ export async function addPlayer(
 /**
  * Remove (unsubscribe from) a player.
  *
- * Returns {removed, recordingStopped, promotedPrimary}. Two behaviours
- * the old copies got wrong:
+ * Returns {removed, refused?, recordingStopped, promotedPrimary}. Two
+ * behaviours the old copies got wrong, and one decision:
  *
  * - Removing the primary while other players remain used to leave the
  *   account with NO primary, so default-player tools answered
- *   "not_found" for an account that still had players (#8). The oldest
- *   remaining claim is promoted instead.
+ *   "not_found" for an account that still had players (#8). Then the
+ *   oldest remaining claim was promoted, friends and watched players
+ *   included. Since 2026-09-25 (Jamie) the removal is refused
+ *   (`refused: "primary_in_use"`): choose the new primary first (adding
+ *   a player with make_primary promotes it atomically). promotedPrimary
+ *   is always null now.
  * - A claim-origin recording now stops when its LAST subscriber leaves,
  *   whoever created it. It used to require the remover to be the
  *   original requester, so the wrong removal order orphaned it forever
@@ -370,6 +374,28 @@ export async function removePlayer(db, account, { tag, via }) {
     await lockAccount(db, account.accountId);
     await lockSubject(db, tag);
 
+    // Your primary is "you": removing it while you have other players is
+    // refused, and you choose the new primary first (Jamie 2026-09-25;
+    // it used to promote the oldest claim, a friend or a watched player
+    // included, and the brief then said YOU ARE that player). Removing
+    // your last player is allowed: nothing is left to be you.
+    const { rows: others } = await db.query(
+      `select exists (select 1 from claim where account_id = $1 and player_tag = $2 and is_primary)
+                as is_primary,
+              (select count(*)::int from claim where account_id = $1 and player_tag <> $2)
+                as others`,
+      [account.accountId, tag],
+    );
+    if (others[0].is_primary && others[0].others > 0) {
+      await db.query("rollback");
+      return {
+        removed: false,
+        refused: "primary_in_use",
+        recordingStopped: false,
+        promotedPrimary: null,
+      };
+    }
+
     const { rows: deleted } = await db.query(
       `delete from claim where account_id = $1 and player_tag = $2
        returning is_primary`,
@@ -380,19 +406,8 @@ export async function removePlayer(db, account, { tag, via }) {
       return { removed: false, recordingStopped: false, promotedPrimary: null };
     }
 
-    let promotedPrimary = null;
-    if (deleted[0].is_primary) {
-      const { rows: promoted } = await db.query(
-        `update claim set is_primary = true
-         where account_id = $1 and player_tag = (
-           select player_tag from claim where account_id = $1
-           order by created_at, player_tag limit 1
-         )
-         returning player_tag`,
-        [account.accountId],
-      );
-      promotedPrimary = promoted[0]?.player_tag ?? null;
-    }
+    // Nothing is promoted: a primary is only removed when it is the last.
+    const promotedPrimary = null;
 
     const { stopped } = await reconcileRecording(
       db,

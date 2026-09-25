@@ -11,7 +11,7 @@ import {
   subject,
 } from "../shared.mjs";
 import {
-  CLAN_SCORE_DEPRECATION,
+  WAR_TROPHIES_NOTE,
   warTrophyTiming,
   CLAN_TAG_SCHEMA,
   WAR_DOCS,
@@ -20,7 +20,6 @@ import {
   cappedProgressNote,
   finishWarDays,
   warDaysLog,
-  warTrophyAlias,
   weekKey,
   WAR_FAME_BY_PLACEMENT,
 } from "./common.mjs";
@@ -118,7 +117,7 @@ export const war_history = {
     const { rows: weeks } = await ctx.db.query(
       `select w.season_id, w.section_index, w.is_colosseum, w.finished_observed_at, w.closed_at,
                 own.fame as our_fame, own.rank as our_rank, own.trophy_change,
-                own.clan_score as our_clan_score, own.repair_points as our_repair_points,
+                own.clan_score as our_clan_war_trophies, own.repair_points as our_repair_points,
                 own.finish_time as our_finish_time,
                 (w.season_id, w.section_index) =
                   (select season_id, section_index from war_week
@@ -184,14 +183,14 @@ export const war_history = {
       memberWeeks = rows;
     }
     // The exact week's day-by-day and its standings with the rivals'
-    // clan_score and repair_points (3.15.0).
+    // war trophies and repair_points (3.15.0).
     let days = null;
     let standings = null;
     if (hasSeason && weeks.length > 0) {
       days = await warDaysLog(ctx.db, clanTag, exactSeason, exactSection);
       const { rows } = await ctx.db.query(
         `select participant_clan_tag as clan_tag, participant_name as name, fame, period_points,
-                  rank, trophy_change, finish_time, clan_score, repair_points
+                  rank, trophy_change, finish_time, clan_score as clan_war_trophies, repair_points
              from war_week_clan
             where clan_tag = $1 and season_id = $2 and section_index = $3
             order by rank nulls last, fame desc`,
@@ -199,7 +198,6 @@ export const war_history = {
       );
       standings = rows.map((r) => ({
         ...r,
-        ...warTrophyAlias(r),
         finish_time: finishInstant(r.finish_time),
       }));
     }
@@ -254,10 +252,7 @@ export const war_history = {
         closed_at: w.closed_at?.toISOString() ?? null,
         our_rank: w.our_rank,
         our_fame: w.our_fame,
-        our_clan_war_trophies: w.our_clan_score,
-        // DEPRECATED (6.19.0), removed in the next major version: the name says clan score and
-        // the number is war trophies (feedback #88).
-        our_clan_score: w.our_clan_score,
+        our_clan_war_trophies: w.our_clan_war_trophies,
         our_repair_points: w.our_repair_points,
         // A regular week whose boat reached the finish line stopped
         // earning member points; decks_used keeps counting. Null on a
@@ -301,10 +296,7 @@ export const war_history = {
             "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is that same instant where the API gave it, else when the recorder first saw the week closed (Gym #179).",
             // Fame is paid for placement (Gym #180).
             WAR_FAME_BY_PLACEMENT,
-            // The default read serves our_clan_score too (Gym #225).
-            hasSeason
-              ? CLAN_SCORE_DEPRECATION
-              : "our_clan_score is our_clan_war_trophies under the old, wrong name (the race payload's clanScore is the clan's WAR trophies): DEPRECATED (6.19.0), kept so nothing breaks today, and removed in the next major version.",
+            WAR_TROPHIES_NOTE,
             warTrophyTiming(
               hasSeason ? "clan_war_trophies" : "our_clan_war_trophies",
             ),

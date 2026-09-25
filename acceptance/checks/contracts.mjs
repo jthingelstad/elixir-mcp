@@ -91,7 +91,7 @@ export const contracts = [
       everyRowHas(body.participants, "decks_used", "participants");
       noDaySplit(body.participants, "participants");
       ok(!("attendance_by_war_day" in body), "no attendance_by_war_day");
-      everyRowHas(body.standings, "clan_score", "standings");
+      everyRowHas(body.standings, "clan_war_trophies", "standings");
       return { ms: r.ms };
     },
   },
@@ -107,7 +107,7 @@ export const contracts = [
         "mean_fame",
         "zero_fame_races",
         "current_race_fame",
-        "clan_score",
+        "clan_war_trophies",
       ])
         everyRowHas(body.rivals, k, "rivals");
       return { ms: r.ms };

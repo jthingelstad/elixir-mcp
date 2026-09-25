@@ -88,6 +88,24 @@ export async function describeIdentity(db, account) {
      order by primary_players_clan desc, ac.is_primary desc, ac.clan_tag`,
     [account.accountId],
   );
+  // "Your clan" is the primary player's CURRENT clan, the same fact an
+  // omitted clan_tag resolves to (entitlements: primary only, never an
+  // alt's or a tracked clan's; 2026-09-25), recorded or not.
+  const {
+    rows: [primaryClan],
+  } = await db.query(
+    `select m.clan_tag, c.name,
+            exists (select 1 from recording r
+                     where r.subject_type = 'clan' and r.subject_tag = m.clan_tag
+                       and r.status = 'active') as recorded
+       from claim cl
+       join clan_membership m on m.player_tag = cl.player_tag
+                             and m.left_observed_at is null
+       left join clan c on c.clan_tag = m.clan_tag
+      where cl.account_id = $1 and cl.is_primary
+      limit 1`,
+    [account.accountId],
+  );
   // is_primary is still the read path during 0055's expand window; the label
   // follows it so the two can never appear to disagree.
   const grouped = {};
@@ -95,7 +113,7 @@ export async function describeIdentity(db, account) {
     const rel = row.is_primary ? "primary" : (row.relationship ?? "watching");
     (grouped[rel] ??= []).push(row);
   }
-  return { kind, grouped, clans };
+  return { kind, grouped, clans, primaryClan: primaryClan ?? null };
 }
 
 async function countIdentities(db, account) {
@@ -131,21 +149,23 @@ export function identitySentences(identity) {
               : `You are also watching: ${names}.`,
         );
       }
-      const clan = identity.clans?.[0];
-      if (clan) {
+      const clan = identity.primaryClan;
+      if (clan)
         out.push(
-          `Your clan is ${clan.name ? `${clan.name} ` : ""}${clan.clan_tag}.`,
+          `Your clan is ${clan.name ? `${clan.name} ` : ""}${clan.clan_tag}${clan.recorded ? "" : " (not recorded yet: an omitted clan_tag refuses until elixir_track_clan records it)"}.`,
         );
-        // Silence about the others is what made the mismatch unresolvable:
-        // a tester could not tell a wrong default from a second clan.
-        if (identity.clans.length > 1)
-          out.push(
-            `You are also in ${identity.clans
-              .slice(1)
-              .map((c) => (c.name ? `${c.name} ${c.clan_tag}` : c.clan_tag))
-              .join(", ")} - name the tag to mean those.`,
-          );
-      }
+      // Silence about the others is what made the mismatch unresolvable:
+      // a tester could not tell a wrong default from a second clan. They
+      // are clans you TRACK, which is not the same as being in them.
+      const others = (identity.clans ?? []).filter(
+        (c) => c.clan_tag !== clan?.clan_tag,
+      );
+      if (others.length > 0)
+        out.push(
+          `You also track ${others
+            .map((c) => (c.name ? `${c.name} ${c.clan_tag}` : c.clan_tag))
+            .join(", ")} - name the tag to mean those.`,
+        );
       out.push(
         "OMIT player_tag and clan_tag to mean these — do not look yourself up first. Name a tag only when you mean somebody else.",
       );

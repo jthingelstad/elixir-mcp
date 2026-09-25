@@ -184,7 +184,7 @@ export function Data() {
               todayIdx={todayIdx}
             />
             <Chart
-              label="players observed / day"
+              label="new players first seen / day"
               series={players}
               hover={hover != null && players[hover] ? hover : null}
               setHover={setHover}

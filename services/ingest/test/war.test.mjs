@@ -664,11 +664,13 @@ test("the close slot: a captured 09:57Z read of the next race keys to the CURREN
   });
 });
 
-test("decks the counter rolled past land on the previous war day (the Gym's open question 2, 2026-09-21)", async () => {
+test("each day's row is the game's counter as polled; nothing is carried to the previous war day (2026-09-25)", async () => {
   // Day 3's last poll sees a member at 10 decks, 3 of them today; day
-  // 4's first poll sees 12 decks, 1 of them today. The extra one was
-  // played late on day 3 after the poll: day 3's row becomes 4, day 4's
-  // is 1, and by_day sums to the cumulative again.
+  // 4's first poll sees 12 decks, 1 of them today. The extra deck was
+  // played on day 3 after its last poll, or at the race's own roll: the
+  // record cannot say which (Jamie 2026-09-25: war facts are weekly
+  // aggregates), so day 3 keeps the 3 the game served and nothing is
+  // placed on it after the fact. The weekly decks_used carries the 12.
   const day3 = structuredClone(await fixture("currentriverrace/war_day.json"));
   const member = day3.clan.participants[0];
   // The fixture is period 27 (war day 4); make it day 3 for the first poll.
@@ -700,13 +702,9 @@ test("decks the counter rolled past land on the previous war day (the Gym's open
   const byDay = Object.fromEntries(
     rows.map((r) => [r.war_day, r.decks_used_today]),
   );
-  assert.equal(
-    byDay[3],
-    4,
-    "the deck played after day 3's last poll lands on day 3",
-  );
+  assert.equal(byDay[3], 3, "day 3 keeps what its poll served");
   assert.equal(byDay[4], 1, "today is today's");
-  // A second poll on day 4 carries nothing more.
+  // A later poll on day 4 moves only day 4.
   const later = structuredClone(day4);
   later.clan.participants[0].decksUsed = 13;
   later.clan.participants[0].decksUsedToday = 2;
@@ -721,11 +719,7 @@ test("decks the counter rolled past land on the previous war day (the Gym's open
      where clan_tag = $1 and season_id = 135 and section_index = 3 and player_tag = $2 and war_day = 3`,
     [CLAN, member.tag],
   );
-  assert.equal(
-    again[0].decks_used_today,
-    4,
-    "a poll inside a day never carries",
-  );
+  assert.equal(again[0].decks_used_today, 3, "day 3 is never rewritten");
 });
 
 test("a training day is a race-week day like any other, with no war_day (0169)", async () => {

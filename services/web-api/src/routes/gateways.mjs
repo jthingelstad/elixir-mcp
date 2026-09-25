@@ -234,7 +234,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         gateway_id: rows[0].gateway_id,
         status: "pending",
         card: card?.name ?? null,
-        next: "The owner issues an IP-bound CR key and credentials, then follow docs/OPERATORS.md.",
+        next: "Once approved you get a one-time collector token to download; you bring your own CR API key (IP-bound by Supercell to your machine). Setup: https://elixir.poapkings.com/docs/operators",
       });
     },
 

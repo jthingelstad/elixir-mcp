@@ -2,9 +2,9 @@ import { Icon, secsSince, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { usePublicStatus } from "../lib/queries.js";
 
-/** Data ▸ Status (Jamie, 2026-09-06): the operational dashboard —
- *  public, mobile-first, installable (add to Home Screen from this
- *  page). Collectors and roughly an hour of system health, refreshed
+/** Data ▸ Status (Jamie, 2026-09-06): the operational dashboard,
+ *  mobile-first, behind sign-in since 2026-09-09 (the public health
+ *  views are /data/now and /api/public/status). Collectors and roughly an hour of system health, refreshed
  *  every 60s. Health is derived from data, never vibes.
  *
  *  The SQS queue panel was dropped 2026-09-06: migration 0040 replaced

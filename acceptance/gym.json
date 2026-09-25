@@ -626,27 +626,6 @@
     "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the scoring_decks asserts went with the field and the rest of the case stands."
   },
   {
-    "id": "85.6",
-    "feedback": 85,
-    "stability": "frozen",
-    "tool": "war_history",
-    "args": {
-      "season_id": 136,
-      "section_index": 1
-    },
-    "request_id": "e81d7d16-687b-4c75-812e-5edbb7207148",
-    "for_each": "member_weeks",
-    "when": {
-      "contains": ["war_days", 4]
-    },
-    "assert": [
-      {
-        "lt": ["scoring_decks", "decks_used"]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so scoring_decks is no longer served."
-  },
-  {
     "id": "86.1",
     "feedback": 86,
     "stability": "frozen",
@@ -769,25 +748,6 @@
         "has": "finished_races"
       }
     ]
-  },
-  {
-    "id": "87.3",
-    "feedback": 87,
-    "stability": "frozen",
-    "control": true,
-    "tool": "war_history",
-    "args": {
-      "season_id": 135,
-      "section_index": 4
-    },
-    "request_id": "4e920d85-f43f-4cd7-b734-a2eb40692c9f",
-    "for_each": "member_weeks",
-    "assert": [
-      {
-        "eq": ["scoring_decks", "decks_used"]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so scoring_decks is no longer served."
   },
   {
     "id": "87.4",
@@ -2211,20 +2171,6 @@
     ]
   },
   {
-    "id": "110.2",
-    "feedback": 110,
-    "stability": "live",
-    "tool": "clans_participation",
-    "args": {},
-    "request_id": "2c7cdb28-60d0-4603-a10f-6bc4dad47a9b",
-    "assert": [
-      {
-        "has": "members[].war_scoring_decks"
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so war_scoring_decks is no longer served."
-  },
-  {
     "id": "110.3",
     "feedback": 110,
     "stability": "live",
@@ -2239,29 +2185,6 @@
         "notes_not_match": "after the (boat's )?finish|scoring_decks"
       }
     ]
-  },
-  {
-    "id": "111.1",
-    "feedback": 111,
-    "stability": "frozen",
-    "tool": "clans_timeline",
-    "args": {
-      "from": "2026-09-16",
-      "to": "2026-09-22",
-      "metrics": [
-        "members",
-        "members_with_profile",
-        "members_collection_1000_plus",
-        "avg_member_wins"
-      ]
-    },
-    "request_id": "e9453c73-1045-4180-9630-cbf0e5a638d9",
-    "assert": [
-      {
-        "notes_match": "_plus[^.]*members_with_profile|members_with_profile[^.]*_plus"
-      }
-    ],
-    "refuted": "Superseded by Jamie's #111 decision (6.36.7): a member not polled that day counts with their latest earlier profile, so these days are no longer thin and the thin-day note correctly does not fire. The carry is disclosed by members_profile_carried and the denominator note."
   },
   {
     "id": "111.2",
@@ -2890,32 +2813,6 @@
     ]
   },
   {
-    "id": "120.1",
-    "feedback": 120,
-    "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-08-24T16:40:30.377Z",
-      "to": "2026-09-23T16:40:30.377Z",
-      "mark_read": false,
-      "verbosity": "compact",
-      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
-    },
-    "request_id": "839e38ea-601a-4f8d-a931-b7fbd30bd775",
-    "when": {
-      "gt": ["timeline_more", 0]
-    },
-    "assert": [
-      {
-        "eq": ["has_more", true]
-      },
-      {
-        "neq": ["next_cursor", "applied.window.to"]
-      }
-    ],
-    "refuted": "Superseded by 7.0.0 (Jamie, 2026-09-23: the timeline is a newsfeed): a window past the cap keeps its NEWEST items and counts the rest, and next_cursor is always the window's end, so a cut no longer hands back a cursor before it. 120.3 pins the rule that replaced it."
-  },
-  {
     "id": "120.2",
     "feedback": 120,
     "control": true,
@@ -3048,28 +2945,6 @@
         "has": "facts.step"
       }
     ]
-  },
-  {
-    "id": "122.1",
-    "feedback": 122,
-    "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-08-25",
-      "to": "2026-09-21",
-      "mark_read": false,
-      "verbosity": "compact"
-    },
-    "request_id": "f8986744-bafb-46c7-98a1-905b916a5e10",
-    "assert": [
-      {
-        "notes_not_match": "compact' is usually enough"
-      },
-      {
-        "notes_match": "(?i)kinds|sections"
-      }
-    ],
-    "refuted": "Superseded by 6.34.2: elixir_timeline no longer refuses an oversized window. It pages by size (a page stops at 40,000 characters, cut on observed_at, with has_more and next_cursor), so the too-large refusal this case pinned cannot occur for this tool. The guarantee it stood for (a reader is told how to get the rest) is the cut note and next_cursor."
   },
   {
     "id": "122.2",
@@ -6280,25 +6155,6 @@
     ]
   },
   {
-    "id": "159.1",
-    "feedback": 159,
-    "stability": "live",
-    "tool": "clans_participation",
-    "args": {
-      "weeks": 8
-    },
-    "request_id": "7256545d-f6ae-4283-a0d3-19ac4d49ef5a",
-    "assert": [
-      {
-        "notes_match": "war_history\\.scoring_decks"
-      },
-      {
-        "has": "war_weeks[].finish_war_day"
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so the war_history.scoring_decks pointer is no longer served."
-  },
-  {
     "id": "159.2",
     "feedback": 159,
     "stability": "live",
@@ -6728,32 +6584,6 @@
     ]
   },
   {
-    "id": "164.3",
-    "feedback": 164,
-    "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-09-14T00:00:00Z",
-      "to": "2026-09-23T21:00:00Z",
-      "mark_read": false,
-      "verbosity": "compact",
-      "kinds": ["session_standout"]
-    },
-    "request_id": "196a2740-1cba-40df-81ac-3b7106c3ce1f",
-    "when": {
-      "eq": ["has_more", true]
-    },
-    "assert": [
-      {
-        "gt": ["timeline_more", 0]
-      },
-      {
-        "notes_match": "(?i)session_standout|cap"
-      }
-    ],
-    "refuted": "Fixed the other way the Gym proposed: every session_standout is served as an item (6.34.0), so nothing is dropped and there is no per-kind cap to count; the timeline cap and next_cursor bound them like any item. 164.1 and 164.2 pin the fix."
-  },
-  {
     "id": "164.4",
     "feedback": 164,
     "control": true,
@@ -7085,32 +6915,6 @@
     ]
   },
   {
-    "id": "168.4",
-    "feedback": 168,
-    "control": true,
-    "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-08-25",
-      "to": "2026-09-21",
-      "mark_read": false,
-      "verbosity": "compact"
-    },
-    "request_id": "fe1e0d02-5e97-4f32-a57c-fe6affed4e06",
-    "assert": [
-      {
-        "notes_match": "Result is \\d+ characters"
-      },
-      {
-        "notes_not_match": "compact' is usually enough"
-      },
-      {
-        "notes_match": "kinds"
-      }
-    ],
-    "refuted": "Superseded by 6.34.2: elixir_timeline no longer refuses an oversized window. It pages by size (a page stops at 40,000 characters, cut on observed_at, with has_more and next_cursor), so the too-large refusal this case pinned cannot occur for this tool. The guarantee it stood for (a reader is told how to get the rest) is the cut note and next_cursor."
-  },
-  {
     "id": "168.5",
     "feedback": 168,
     "control": true,
@@ -7414,7 +7218,7 @@
         ]
       }
     ],
-    "refuted": "Held for Jamie: the two trophy_range fields measure different things (trophy_floor: trophies landed on after each battle; a deck: starting trophies). Making them one quantity changes what a served number means, which is Jamie's call, not a sweep fix. 6.35.0 declares and documents both instead. This case assumes one meaning, so it cannot pass until that decision."
+    "refuted": "Decided by Jamie 2026-09-25: the two trophy_range fields are two quantities (trophy_floor: trophies landed on after each battle; a deck's: its starting trophies), each named and documented since 6.35.0. This case assumes one meaning, which is not the rule."
   },
   {
     "id": "172.2",
@@ -7436,7 +7240,7 @@
         ]
       }
     ],
-    "refuted": "Held for Jamie: the two trophy_range fields measure different things (trophy_floor: trophies landed on after each battle; a deck: starting trophies). Making them one quantity changes what a served number means, which is Jamie's call, not a sweep fix. 6.35.0 declares and documents both instead. This case assumes one meaning, so it cannot pass until that decision."
+    "refuted": "Decided by Jamie 2026-09-25: the two trophy_range fields are two quantities (trophy_floor: trophies landed on after each battle; a deck's: its starting trophies), each named and documented since 6.35.0. This case assumes one meaning, which is not the rule."
   },
   {
     "id": "172.3",
@@ -11075,43 +10879,6 @@
     ]
   },
   {
-    "id": "211.2",
-    "feedback": 211,
-    "stability": "frozen",
-    "calls": {
-      "p0": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-08-08T00:00:00Z",
-          "to": "2026-09-07T00:00:00Z",
-          "mark_read": false,
-          "verbosity": "compact",
-          "kinds": ["session_standout"]
-        }
-      },
-      "p1": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-03T18:25:48.830Z",
-          "to": "2026-09-07T00:00:00Z",
-          "mark_read": false,
-          "verbosity": "compact",
-          "kinds": ["session_standout"]
-        }
-      }
-    },
-    "request_id": "b991c6b0-a8a1-41ac-933f-306e647cb07b",
-    "when": {
-      "eq": ["p0.next_cursor", "p1.window.from"]
-    },
-    "assert": [
-      {
-        "count_eq": ["p1.timeline[]", "p0.timeline_more"]
-      }
-    ],
-    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
-  },
-  {
     "id": "211.3",
     "feedback": 211,
     "stability": "frozen",
@@ -11168,162 +10935,6 @@
     ]
   },
   {
-    "id": "211.5",
-    "feedback": 211,
-    "control": true,
-    "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-09-23T18:13:07.933Z",
-      "to": "2026-09-23T21:00:00Z",
-      "mark_read": false,
-      "verbosity": "compact",
-      "kinds": ["session_standout"]
-    },
-    "request_id": "f5f87617-d7ec-4cc5-aa09-9ceb2f8313c4",
-    "assert": [
-      {
-        "has": "timeline[?observed_at=2026-09-23T18:13:07.933Z]"
-      }
-    ],
-    "refuted": "Superseded by #245 (7.1.5): every window bound is (from, to] at the millisecond the tool serves, so an item observed at a window's from belongs to the window before it. This case pinned the old [from, to) behaviour of standouts."
-  },
-  {
-    "id": "211.6",
-    "feedback": 211,
-    "control": true,
-    "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-09-23T12:00:00Z",
-      "to": "2026-09-23T18:13:07.933Z",
-      "mark_read": false,
-      "verbosity": "compact",
-      "kinds": ["session_standout"]
-    },
-    "request_id": "8093d416-984c-48ea-a799-3726be10df88",
-    "assert": [
-      {
-        "absent": "timeline[?observed_at=2026-09-23T18:13:07.933Z]"
-      }
-    ],
-    "refuted": "Superseded by #245 (7.1.5): (from, to] for every kind, so an item observed exactly at `to` is in this window. This case pinned the old [from, to) behaviour."
-  },
-  {
-    "id": "212.1",
-    "feedback": 212,
-    "stability": "frozen",
-    "calls": {
-      "p0": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-14T00:00:00Z",
-          "to": "2026-09-23T21:00:00Z",
-          "mark_read": false,
-          "verbosity": "compact",
-          "kinds": ["session_standout"]
-        }
-      },
-      "p1": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-22T12:07:51.158Z",
-          "to": "2026-09-23T21:00:00Z",
-          "mark_read": false,
-          "verbosity": "compact",
-          "kinds": ["session_standout"]
-        }
-      }
-    },
-    "request_id": "a959fdc7-1fc3-42fa-a425-2c759fcabde7",
-    "when": {
-      "eq": ["p0.next_cursor", "p1.window.from"]
-    },
-    "assert": [
-      {
-        "count_eq": ["p1.timeline[]", "p0.timeline_more"]
-      }
-    ],
-    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
-  },
-  {
-    "id": "212.2",
-    "feedback": 212,
-    "stability": "frozen",
-    "calls": {
-      "p0": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-08-24T16:40:30.377Z",
-          "to": "2026-09-23T16:40:30.377Z",
-          "mark_read": false,
-          "verbosity": "compact",
-          "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
-        }
-      },
-      "p1": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-14T20:27:51.999Z",
-          "to": "2026-09-23T16:40:30.377Z",
-          "mark_read": false,
-          "verbosity": "compact",
-          "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
-        }
-      }
-    },
-    "request_id": "00b99773-435e-40de-8408-bc25cdb4b348",
-    "when": {
-      "eq": ["p0.next_cursor", "p1.window.from"]
-    },
-    "assert": [
-      {
-        "count_eq": ["p1.timeline[]", "p0.timeline_more"]
-      }
-    ],
-    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
-  },
-  {
-    "id": "212.3",
-    "feedback": 212,
-    "stability": "frozen",
-    "calls": {
-      "p0": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-14T00:00:00Z",
-          "to": "2026-09-23T21:00:00Z",
-          "mark_read": false,
-          "verbosity": "compact",
-          "kinds": ["session_standout"]
-        }
-      },
-      "p1": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-22T12:07:51.158Z",
-          "to": "2026-09-23T21:00:00Z",
-          "mark_read": false,
-          "verbosity": "compact",
-          "kinds": ["session_standout"]
-        }
-      }
-    },
-    "request_id": "4f695a9f-da94-431a-8f45-d8fc7a7111c5",
-    "when": {
-      "has": "p1.timeline[?at=2026-09-22T11:58:30.000Z]"
-    },
-    "assert": [
-      {
-        "not_contains": [
-          "p0.timeline[?at=2026-09-22T10:20:26.000Z].facts.newly",
-          "battles>=40"
-        ]
-      }
-    ],
-    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
-  },
-  {
     "id": "212.4",
     "feedback": 212,
     "control": true,
@@ -11345,42 +10956,6 @@
         "absent": "timeline[?at=2026-09-22T11:58:30.000Z]"
       }
     ]
-  },
-  {
-    "id": "212.5",
-    "feedback": 212,
-    "control": true,
-    "stability": "frozen",
-    "calls": {
-      "p0": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-14T12:32:52.913Z",
-          "to": "2026-09-22T00:00:00.000Z",
-          "mark_read": false,
-          "verbosity": "compact"
-        }
-      },
-      "p1": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-19T12:17:58.999Z",
-          "to": "2026-09-22T00:00:00.000Z",
-          "mark_read": false,
-          "verbosity": "compact"
-        }
-      }
-    },
-    "request_id": "ce3e735a-4922-4476-93a1-912f2e434465",
-    "when": {
-      "eq": ["p0.next_cursor", "p1.window.from"]
-    },
-    "assert": [
-      {
-        "count_eq": ["p1.timeline[]", "p0.timeline_more"]
-      }
-    ],
-    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
   },
   {
     "id": "213.1",
@@ -11767,54 +11342,6 @@
         "eq": ["facts.days_quiet", "facts.rung"]
       }
     ]
-  },
-  {
-    "id": "218.2",
-    "feedback": 218,
-    "control": true,
-    "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-09-14T00:00:00Z",
-      "to": "2026-09-23T21:00:00Z",
-      "mark_read": false,
-      "verbosity": "compact",
-      "kinds": [
-        "ranked_promotion",
-        "arena_changed",
-        "best_trophies_band",
-        "career_wins_step",
-        "session_standout"
-      ]
-    },
-    "request_id": "79340334-2161-47af-b8f3-ccab3045b979",
-    "assert": [
-      {
-        "notes_match": "longest here is \\d+ h"
-      }
-    ],
-    "refuted": "Superseded by 7.0.0: the lag note fires when a served item happened before from, and newest-first keeps the recent items, so on this window no served item predates from."
-  },
-  {
-    "id": "218.3",
-    "feedback": 218,
-    "control": true,
-    "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-09-14T20:27:51.999Z",
-      "to": "2026-09-23T16:40:30.377Z",
-      "mark_read": false,
-      "verbosity": "compact",
-      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
-    },
-    "request_id": "b6293f8f-3032-4a89-87dc-efde9e07563f",
-    "assert": [
-      {
-        "has": "timeline[?observed_at=2026-09-14T20:27:52.000Z]"
-      }
-    ],
-    "refuted": "Superseded by 7.0.0 (the timeline is a newsfeed, newest first): a capped window keeps its newest items and counts the older ones in timeline_more, and next_cursor is always the window's end, so there is no continuation page for this case to compare; a later window is a different read, not a continuation."
   },
   {
     "id": "218.4",
@@ -13581,33 +13108,6 @@
     ]
   },
   {
-    "id": "244.2",
-    "feedback": 244,
-    "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-08-25T04:43:02.413Z",
-      "to": "2026-09-24T04:43:02.413Z",
-      "mark_read": false,
-      "verbosity": "compact",
-      "kinds": [
-        "quiet_crossed",
-        "returned",
-        "member_joined",
-        "member_left",
-        "ranked_promotion",
-        "collection_level_step"
-      ]
-    },
-    "request_id": "9b652a25-ebd9-4073-9a57-8f7fe8f6913e",
-    "assert": [
-      {
-        "eq": ["has_more", false]
-      }
-    ],
-    "refuted": "Premise changed by #247 (7.1.5): quiet crossings are now served from every battle gap, so these six kinds over 30 days hold 87 items and the 40,000-character size budget (not the item cap) cuts at 58, where the cap had cut at 8. The filter-before-cap fix is pinned by 244.1."
-  },
-  {
     "id": "244.3",
     "feedback": 244,
     "control": true,
@@ -13649,39 +13149,6 @@
         "eq": ["timeline_more", 0]
       }
     ]
-  },
-  {
-    "id": "245.1",
-    "feedback": 245,
-    "stability": "frozen",
-    "calls": {
-      "a": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-23T04:43:00.427Z",
-          "to": "2026-09-24T04:43:00.427Z",
-          "mark_read": false
-        }
-      },
-      "b": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-23T04:43:00.427Z",
-          "to": "2026-09-23T17:06:27.573Z",
-          "mark_read": false
-        }
-      }
-    },
-    "request_id": "c25d1b62-35f1-4c5b-a83a-0a055b5a77a0",
-    "when": {
-      "eq": ["a.has_more", true]
-    },
-    "assert": [
-      {
-        "count_eq": ["b.timeline[]", "a.timeline_more"]
-      }
-    ],
-    "refuted": "Retired per the elixir round 5 report: it depended on the Gym's own account items, which move every run; 274.1 pins the exact older-items split."
   },
   {
     "id": "245.3",
@@ -14403,51 +13870,6 @@
     ]
   },
   {
-    "id": "256.1",
-    "feedback": 256,
-    "stability": "frozen",
-    "tool": "battles_meta_decks",
-    "args": {
-      "segment": "corpus",
-      "mode": "ladder",
-      "trophy_band": "11000_13000",
-      "sort": "shrunk_win_rate",
-      "season": 135,
-      "verbosity": "compact"
-    },
-    "request_id": "2d5662df-ee98-4cd0-a21b-9d7b03e5653f",
-    "assert": [
-      {
-        "has": "decks[?players=1].deck_hash"
-      },
-      {
-        "notes_match": "one player|one pilot|single player"
-      }
-    ],
-    "refuted": "The band this case pinned was retired at 8.1.0 (0175, Jamie 2026-09-24: under_10000, 10000_13999, trophy_road_complete). The rule holds in the live cases on the new bands (256.3, 348.5)."
-  },
-  {
-    "id": "256.2",
-    "feedback": 256,
-    "stability": "frozen",
-    "tool": "battles_meta_decks",
-    "args": {
-      "segment": "corpus",
-      "mode": "ladder",
-      "trophy_band": "11000_13000",
-      "sort": "shrunk_win_rate",
-      "season": 135,
-      "verbosity": "compact"
-    },
-    "request_id": "2d5662df-ee98-4cd0-a21b-9d7b03e5653f",
-    "assert": [
-      {
-        "notes_not_match": "withheld below 30 decided observations \\(insufficient_sample"
-      }
-    ],
-    "refuted": "The band this case pinned was retired at 8.1.0 (0175, Jamie 2026-09-24: under_10000, 10000_13999, trophy_road_complete). The rule holds in the live cases on the new bands (256.3, 348.5)."
-  },
-  {
     "id": "256.3",
     "feedback": 256,
     "stability": "live",
@@ -14825,43 +14247,6 @@
     ]
   },
   {
-    "id": "263.1",
-    "feedback": 263,
-    "stability": "frozen",
-    "tool": "war_history",
-    "args": {
-      "season_id": 136,
-      "section_index": 0
-    },
-    "request_id": "e5176ba0-deb1-4f7a-b18f-f26c406c131e",
-    "assert": [
-      {
-        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].war_days_battled", 1]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so war_days_battled is no longer served."
-  },
-  {
-    "id": "263.2",
-    "feedback": 263,
-    "stability": "frozen",
-    "tool": "war_history",
-    "args": {
-      "season_id": 136,
-      "section_index": 1
-    },
-    "request_id": "30e621e5-0ad2-4936-b135-94a25fe83c6d",
-    "assert": [
-      {
-        "eq": ["member_weeks[?player_tag=#U92P8PQG0].war_days_battled", 3]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#2LRYLQPL].war_days_battled", 3]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so war_days_battled is no longer served."
-  },
-  {
     "id": "263.3",
     "feedback": 263,
     "stability": "frozen",
@@ -14919,30 +14304,6 @@
         "has": "boat.side"
       }
     ]
-  },
-  {
-    "id": "263.5",
-    "feedback": 263,
-    "stability": "frozen",
-    "control": true,
-    "tool": "war_history",
-    "args": {
-      "season_id": 136,
-      "section_index": 1
-    },
-    "request_id": "30e621e5-0ad2-4936-b135-94a25fe83c6d",
-    "assert": [
-      {
-        "eq": ["member_weeks[?player_tag=#UCRLVL29U].war_days_battled", 1]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#UCRLVL29U].boat_attacks", 4]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#JYRQ8U92C].war_days_battled", 4]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so war_days_battled is no longer served."
   },
   {
     "id": "263.6",
@@ -15066,12 +14427,6 @@
         "contains": ["text", "sikander sidhu"]
       }
     ]
-  },
-  {
-    "id": "265.2",
-    "feedback": 265,
-    "open_question": "On the same frozen read, two battle_session items have facts.battles 1, but the timeline docs say of battle_session 'Single battles never appear'. Either apply the floor to member sessions (then every battle_session item has facts.battles >= 2) or scope the docs sentence to player subjects; the maintainer picks, and the case follows.",
-    "refuted": "Retired by the elixir r6 Gym (2026-09-24): 265.2's open question is answered and 270.2's when-guard now always skips."
   },
   {
     "id": "265.3",
@@ -15368,32 +14723,6 @@
         ]
       }
     ]
-  },
-  {
-    "id": "270.2",
-    "feedback": 270,
-    "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-09-23T07:00:00Z",
-      "to": "2026-09-23T08:00:00Z",
-      "mark_read": false,
-      "player_tag": "#C920YGLC2",
-      "verbosity": "compact"
-    },
-    "request_id": "193289a4-55e3-49ee-90be-bca7a979864e",
-    "when": {
-      "has": "timeline[?observed_at=2026-09-23T07:27:58.320Z]"
-    },
-    "assert": [
-      {
-        "neq": [
-          "timeline[?observed_at=2026-09-23T07:27:58.320Z].facts.open",
-          false
-        ]
-      }
-    ],
-    "refuted": "Retired by the elixir r6 Gym (2026-09-24): 265.2's open question is answered and 270.2's when-guard now always skips."
   },
   {
     "id": "270.3",
@@ -15717,120 +15046,6 @@
         "contains": ["markdown", "played_here_learned_later"]
       }
     ]
-  },
-  {
-    "id": "274.1",
-    "feedback": 274,
-    "control": true,
-    "stability": "frozen",
-    "calls": {
-      "a": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-17T00:00:00Z",
-          "to": "2026-09-24T00:00:00Z",
-          "mark_read": false,
-          "kinds": [
-            "battle_session",
-            "session_standout",
-            "badge_earned",
-            "legendary_badge_earned",
-            "arena_changed",
-            "ranked_promotion",
-            "best_trophies_band",
-            "collection_level_step",
-            "career_wins_step",
-            "card_unlocked",
-            "clan_joined",
-            "clan_left",
-            "member_joined",
-            "member_left",
-            "member_role_changed",
-            "bracket_observed",
-            "race_finished",
-            "week_resolved",
-            "quiet_crossed",
-            "returned"
-          ]
-        }
-      },
-      "b": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-17T00:00:00Z",
-          "to": "2026-09-19T22:22:44.000Z",
-          "mark_read": false,
-          "kinds": [
-            "battle_session",
-            "session_standout",
-            "badge_earned",
-            "legendary_badge_earned",
-            "arena_changed",
-            "ranked_promotion",
-            "best_trophies_band",
-            "collection_level_step",
-            "career_wins_step",
-            "card_unlocked",
-            "clan_joined",
-            "clan_left",
-            "member_joined",
-            "member_left",
-            "member_role_changed",
-            "bracket_observed",
-            "race_finished",
-            "week_resolved",
-            "quiet_crossed",
-            "returned"
-          ]
-        }
-      },
-      "c": {
-        "tool": "elixir_timeline",
-        "args": {
-          "from": "2026-09-19T22:22:44.000Z",
-          "to": "2026-09-24T00:00:00Z",
-          "mark_read": false,
-          "kinds": [
-            "battle_session",
-            "session_standout",
-            "badge_earned",
-            "legendary_badge_earned",
-            "arena_changed",
-            "ranked_promotion",
-            "best_trophies_band",
-            "collection_level_step",
-            "career_wins_step",
-            "card_unlocked",
-            "clan_joined",
-            "clan_left",
-            "member_joined",
-            "member_left",
-            "member_role_changed",
-            "bracket_observed",
-            "race_finished",
-            "week_resolved",
-            "quiet_crossed",
-            "returned"
-          ]
-        }
-      }
-    },
-    "request_id": "6fdcaaff-73da-46e2-bc1a-47b053dc87f3",
-    "when": {
-      "eq": ["a.has_more", true]
-    },
-    "assert": [
-      {
-        "count_eq": ["b.timeline[]", "a.timeline_more"]
-      },
-      {
-        "eq": ["b.has_more", false]
-      },
-      {
-        "count_eq": ["c.timeline[]", "a.timeline[]"]
-      }
-    ],
-    "refuted": "The case pins b.to at the 7.1.6 cut (22:22:44). 7.1.7 serves more presence items (every gap return and crossing), so window a's cut moved to 2026-09-19T22:47:40; re-run on the live cut the split is exact: timeline_more 46, the older read serves 46 with has_more false (2026-09-24)."
   },
   {
     "id": "274.2",
@@ -18352,97 +17567,6 @@
     ]
   },
   {
-    "id": "306.1",
-    "feedback": 306,
-    "stability": "frozen",
-    "tool": "war_history",
-    "args": {
-      "season_id": 136,
-      "section_index": 1
-    },
-    "request_id": "d2d792a0-e371-4eb8-8d98-0d048dcfe727",
-    "assert": [
-      {
-        "gte": ["member_weeks[?player_tag=#JYRQ8U92C].training_decks", 12]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
-  },
-  {
-    "id": "306.2",
-    "feedback": 306,
-    "stability": "live",
-    "tool": "war_history",
-    "args": {
-      "season_id": 136,
-      "section_index": 2
-    },
-    "request_id": "6b40b1fc-7da4-4756-9486-823d6a419f7b",
-    "assert": [
-      {
-        "gte": ["member_weeks[?player_tag=#20R8QRLYLP].training_decks", 12]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
-  },
-  {
-    "id": "306.3",
-    "feedback": 306,
-    "stability": "frozen",
-    "calls": {
-      "w": {
-        "tool": "war_history",
-        "args": {
-          "season_id": 136,
-          "section_index": 2
-        }
-      },
-      "b": {
-        "tool": "battles_query",
-        "args": {
-          "player_tag": "#20R8QRLYLP",
-          "from": "2026-09-21T09:38:05Z",
-          "to": "2026-09-24T09:30:00Z",
-          "mode": "war",
-          "include_total": true,
-          "limit": 1,
-          "verbosity": "compact"
-        }
-      }
-    },
-    "request_id": "6b40b1fc-7da4-4756-9486-823d6a419f7b",
-    "assert": [
-      {
-        "gte": [
-          "w.member_weeks[?player_tag=#20R8QRLYLP].training_decks",
-          "b.total_count"
-        ]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
-  },
-  {
-    "id": "306.4",
-    "feedback": 306,
-    "stability": "frozen",
-    "control": true,
-    "tool": "war_history",
-    "args": {
-      "season_id": 136,
-      "section_index": 1
-    },
-    "request_id": "d2d792a0-e371-4eb8-8d98-0d048dcfe727",
-    "assert": [
-      {
-        "eq": ["member_weeks[?player_tag=#U92P8PQG0].training_decks", 12]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#20R8QRLYLP].training_decks", 12]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
-  },
-  {
     "id": "307.1",
     "feedback": 307,
     "stability": "live",
@@ -19068,20 +18192,12 @@
     "assert": [
       {
         "eq": [
-          "w.standings[?participant_clan_tag=#J2RGCRVG].clan_score",
-          "w.standings[?participant_clan_tag=#J2RGCRVG].clan_war_trophies"
-        ]
-      },
-      {
-        "eq": [
           "w.standings[?participant_clan_tag=#J2RGCRVG].clan_war_trophies",
           "r.clan_war_trophies"
         ]
-      },
-      {
-        "gt": ["r.clan_score", "r.clan_war_trophies"]
       }
-    ]
+    ],
+    "amended": "Amended for 9.1.0 (Jamie 2026-09-25): the war clan_score alias is gone, so its equality with clan_war_trophies is no longer asserted; the rest of the case stands."
   },
   {
     "id": "312.1",
@@ -19147,66 +18263,6 @@
       }
     ],
     "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the attendance_by_war_day asserts went with the field and the rest of the case stands."
-  },
-  {
-    "id": "313.1",
-    "feedback": 313,
-    "stability": "frozen",
-    "control": true,
-    "tool": "war_history",
-    "args": {
-      "season_id": 136,
-      "section_index": 1
-    },
-    "request_id": "64ec85db-eee9-4710-8c67-ad56ab61a18c",
-    "assert": [
-      {
-        "eq": ["member_weeks[?player_tag=#20R8QRLYLP].training_decks", 12]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#U92P8PQG0].training_decks", 12]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#JYRQ8U92C].training_decks", 12]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#229QY8UL9U].training_decks", 7]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#UCRLVL29U].training_decks", 4]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#CV20JCY0V].training_decks", 1]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].training_decks", 0]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#20JJJ2CCRU].training_decks", 0]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
-  },
-  {
-    "id": "313.2",
-    "feedback": 313,
-    "stability": "frozen",
-    "control": true,
-    "tool": "war_history",
-    "args": {
-      "season_id": 136,
-      "section_index": 0
-    },
-    "request_id": "2171cb6d-4fb2-471b-9267-b6050095ea76",
-    "assert": [
-      {
-        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].war_days_battled", 1]
-      },
-      {
-        "not_contains": ["member_weeks[?player_tag=#JRVV9VC0C].war_days", 2]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so war_days_battled or war_days is no longer served."
   },
   {
     "id": "313.3",
@@ -21909,34 +20965,6 @@
     ]
   },
   {
-    "id": "341.3",
-    "feedback": 341,
-    "stability": "frozen",
-    "control": true,
-    "tool": "war_history",
-    "args": {
-      "player_tag": "#20R8QRLYLP",
-      "season_id": 136,
-      "section_index": 1
-    },
-    "request_id": "f02c78af-01b0-4088-a807-587d675419a0",
-    "assert": [
-      {
-        "eq": ["member_weeks[0].decks_used", 16]
-      },
-      {
-        "eq": ["member_weeks[0].scoring_decks", 12]
-      },
-      {
-        "eq": ["member_weeks[0].training_decks", 12]
-      },
-      {
-        "notes_match": "not in decks_used"
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so scoring_decks or training_decks is no longer served."
-  },
-  {
     "id": "342.1",
     "feedback": 342,
     "stability": "frozen",
@@ -22290,32 +21318,6 @@
     ]
   },
   {
-    "id": "348.1",
-    "feedback": 348,
-    "stability": "frozen",
-    "tool": "battles_meta_decks",
-    "args": {
-      "segment": "corpus",
-      "mode": "ladder",
-      "trophy_band": "11000_13000",
-      "min_players": 2,
-      "from": "2026-09-07T10:00:00Z",
-      "to": "2026-09-21T10:00:00Z",
-      "sort": "shrunk_win_rate",
-      "verbosity": "compact"
-    },
-    "request_id": "5bb9ed14-14fb-4e9b-ac29-c4ef1f9d07b8",
-    "when": {
-      "has": "decks[?deck_hash=72c6c8fba5a9990675a74eb682fa2bf5168629809de09e434403b910ed60f50c].deck_hash"
-    },
-    "assert": [
-      {
-        "notes_match": "72c6c8fb.*(one player|a single player|one pilot)"
-      }
-    ],
-    "refuted": "The band this case pinned was retired at 8.1.0 (0175, Jamie 2026-09-24: under_10000, 10000_13999, trophy_road_complete). The rule holds in the live cases on the new bands (256.3, 348.5)."
-  },
-  {
     "id": "348.2",
     "feedback": 348,
     "stability": "live",
@@ -22413,33 +21415,6 @@
         "notes_match": "fame can be zero on war day 1 while members already have points"
       }
     ]
-  },
-  {
-    "id": "349.2",
-    "feedback": 349,
-    "stability": "live",
-    "control": true,
-    "tool": "war_history",
-    "args": {
-      "season_id": 136,
-      "section_index": 2
-    },
-    "request_id": "63e36623-43a4-464e-89bc-8080f6e3cc53",
-    "assert": [
-      {
-        "eq": ["member_weeks[?player_tag=#20R8QRLYLP].training_decks", 12]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#JRVV9VC0C].training_decks", 2]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#2LRYLQPL].training_decks", 1]
-      },
-      {
-        "eq": ["member_weeks[?player_tag=#UQ2R9RGVP].training_decks", 0]
-      }
-    ],
-    "refuted": "Decided by Jamie 2026-09-25 (9.0.1): war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale, so training_decks is no longer served."
   },
   {
     "id": "349.3",

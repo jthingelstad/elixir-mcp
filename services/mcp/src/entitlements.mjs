@@ -29,7 +29,7 @@ async function resolveEntitlements(db, account) {
   // and the "Your clan is X" sentence could both point somewhere the
   // primary player does not play (playtest round, 2026-09-09).
   const { rows: claims } = await db.query(
-    `select c.player_tag, c.is_primary, cm.clan_tag, cm.role
+    `select c.player_tag, c.is_primary, c.relationship, cm.clan_tag, cm.role
      from claim c
      left join clan_membership cm
        on cm.player_tag = c.player_tag and cm.left_observed_at is null
@@ -123,6 +123,22 @@ async function resolveEntitlements(db, account) {
     // an omitted clan_tag means on a person's door, so the default agrees
     // with the "Your clan is" sentence and never slides to an alt's.
     primaryClan: claims.find((c) => c.is_primary)?.clan_tag ?? null,
+    // The recorded clans of the person's ALTS only: the other players who
+    // are also them. A friend's or a watched player's clan is never
+    // offered as "yours" (DECISIONS: refuse rather than choose).
+    altClans: [
+      ...new Set(
+        claims
+          .filter(
+            (c) =>
+              !c.is_primary &&
+              c.relationship === "alt" &&
+              c.clan_tag &&
+              recordedClans.includes(c.clan_tag),
+          )
+          .map((c) => c.clan_tag),
+      ),
+    ],
   };
 }
 
@@ -206,7 +222,12 @@ export async function resolveSubject(
     };
   }
   if (inputTag === undefined || inputTag === null) {
-    const mapped = await identityFor(db, account.accountId, onBehalfOf);
+    // on_behalf_of is an agent's (it serves several humans); a person's
+    // connection ignores it, as the docs promise (2026-09-25).
+    const mapped =
+      (account.kind ?? "person") === "person"
+        ? null
+        : await identityFor(db, account.accountId, onBehalfOf);
     if (mapped) {
       tag = mapped;
     } else if ((account.kind ?? "person") !== "person") {
@@ -314,21 +335,27 @@ export async function resolveEntitledClan(db, account, inputTag) {
     }
     return tag;
   }
-  // A person's default is the PRIMARY player's clan (3.18.0, review Part
-  // 3.2 item 7). It sorted first already when recorded; when it is not,
-  // the default used to slide to an alt's recorded clan, which is why
-  // Elixir Clan pinned the tag on every call. Now it says so instead.
-  if (
-    (account.kind ?? "person") === "person" &&
-    !account.isOwner &&
-    ent.primaryClan &&
-    !ent.clans.includes(ent.primaryClan)
-  ) {
-    throw {
-      code: "not_recorded",
-      message: `Your primary player's clan ${ent.primaryClan} is not recorded, so nothing defaults to it.`,
-      hint: `elixir_track_clan({ clan_tag: "${ent.primaryClan}" }) records it; or pass clan_tag explicitly${ent.clans.length ? ` (recorded clans of your other players: ${ent.clans.join(", ")})` : ""}.`,
-    };
+  // A person's default is the PRIMARY player's clan and nothing else
+  // (3.18.0; DECISIONS "refuse rather than choose", 2026-09-25): never an
+  // alt's, a friend's or a watched player's clan, for the owner too.
+  if ((account.kind ?? "person") === "person") {
+    const alts = ent.altClans.length
+      ? ` (your alts' recorded clans: ${ent.altClans.join(", ")})`
+      : "";
+    if (!ent.primaryClan)
+      throw {
+        code: "no_subject",
+        message:
+          "Your primary player is not in a clan (or you have none), so nothing defaults to a clan.",
+        hint: `Pass clan_tag explicitly${alts}; any recorded clan works.`,
+      };
+    if (!ent.clans.includes(ent.primaryClan))
+      throw {
+        code: "not_recorded",
+        message: `Your primary player's clan ${ent.primaryClan} is not recorded, so nothing defaults to it.`,
+        hint: `elixir_track_clan({ clan_tag: "${ent.primaryClan}" }) records it; or pass clan_tag explicitly${alts}.`,
+      };
+    return ent.primaryClan;
   }
   if (ent.clans.length === 0) {
     // Two ways to have no default, and they need different next steps: a

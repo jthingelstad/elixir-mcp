@@ -1,6 +1,6 @@
 /**
  * Call capture: the request and response of every tool call, gzipped to
- * the archive bucket (docs/REVIEW-2026-09-10-DOCS-TOOLS-SEAM.md, Part 5).
+ * the archive bucket (docs/reviews/2026-09-10-DOCS-TOOLS-SEAM.md, Part 5).
  *
  * Bodies do not belong in the audit row - players_collection averages
  * 37 KB and a partner tier is entitled to 15,000 calls a day - so the

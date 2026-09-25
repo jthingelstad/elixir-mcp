@@ -429,7 +429,9 @@ export function CollectorPage({ id, navigate, me }) {
           <div className="stats__cell">
             <div className="label">points</div>
             <div className="stats__value">{points.toLocaleString()}</div>
-            <div className="stats__note">one per admitted fetch, lifetime</div>
+            <div className="stats__note">
+              one per fetch that added to the record, lifetime
+            </div>
           </div>
           <div className="stats__cell">
             <div className="label">credits</div>
@@ -437,7 +439,7 @@ export function CollectorPage({ id, navigate, me }) {
               {Number(own.credits ?? Math.floor(points / 10)).toLocaleString()}
             </div>
             <div className="stats__note">
-              extra daily calls earned — 10 fetches buys one
+              extra daily calls earned — 10 points buy one
             </div>
           </div>
           <div className="stats__cell">

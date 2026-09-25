@@ -314,7 +314,6 @@ test("full flow: register -> authorize (email, code) -> 303 with iss -> token ->
   assert.ok(readTools.length > 0);
   assert.deepEqual(writeTools.map(({ name }) => name).sort(), [
     "collections_edit",
-    "elixir_identify",
     "elixir_nickname",
     "elixir_send_feedback",
     "elixir_track_clan",
@@ -812,13 +811,17 @@ test("with an origin secret set, the MCP door refuses requests that did not come
  * consent page", which had no such control. Reported by the account owner,
  * 2026-09-09: "I don't see any part where I can select scopes."
  */
-async function consentFlow({ grants = [], scope = "cr:read" } = {}) {
+async function consentFlow({
+  grants = [],
+  scope = "cr:read",
+  redirect = REDIRECT,
+} = {}) {
   const reg = await handler(
     event({
       path: "/oauth/register",
       body: JSON.stringify({
         client_name: "Scope Tester",
-        redirect_uris: [REDIRECT],
+        redirect_uris: [redirect],
       }),
     }),
   );
@@ -830,7 +833,7 @@ async function consentFlow({ grants = [], scope = "cr:read" } = {}) {
     .digest("base64url");
   const q = {
     client_id,
-    redirect_uri: REDIRECT,
+    redirect_uri: redirect,
     state: "sc0pe",
     code_challenge: challenge,
     code_challenge_method: "S256",
@@ -868,7 +871,7 @@ async function consentFlow({ grants = [], scope = "cr:read" } = {}) {
         code: authCode,
         code_verifier: verifier,
         client_id,
-        redirect_uri: REDIRECT,
+        redirect_uri: redirect,
         resource: RESOURCE,
       },
     }),
@@ -936,9 +939,41 @@ test("account:email is never offered unasked, and a token without it cannot read
   assert.match(refused.headers["www-authenticate"], /account:email/);
 });
 
-test("a client that asks for account:email is shown it, and userinfo answers the address the code proved", async () => {
+test("any other client asking for account:email is refused at authorize: the address goes to the family's own apps only (2026-09-25)", async () => {
+  const reg = await handler(
+    event({
+      path: "/oauth/register",
+      body: JSON.stringify({
+        client_name: "Someone's app",
+        redirect_uris: [REDIRECT],
+      }),
+    }),
+  );
+  const { client_id } = JSON.parse(reg.body);
+  const refused = await handler(
+    event({
+      method: "GET",
+      path: "/oauth/authorize",
+      query: {
+        response_type: "code",
+        client_id,
+        redirect_uri: REDIRECT,
+        state: "x",
+        code_challenge: "a".repeat(43),
+        code_challenge_method: "S256",
+        scope: "cr:read account:email",
+        resource: RESOURCE,
+      },
+    }),
+  );
+  assert.equal(refused.statusCode, 400);
+  assert.match(refused.body, /offered only to the Elixir family/);
+});
+
+test("a family app that asks for account:email is shown it, and userinfo answers the address the code proved", async () => {
   const { emailStep, tokens } = await consentFlow({
     scope: "cr:read account:email",
+    redirect: "https://drop.poapkings.com/auth/elixir/callback",
   });
   assert.match(emailStep.body, /Know your email address/);
   assert.equal(tokens.scope, "cr:read account:email");

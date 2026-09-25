@@ -251,7 +251,7 @@ test("a reader who runs no collector is told what one is and what it earns, and 
   const navigate = vi.fn();
   await paintFleet([], [], navigate);
   expect(screen.getByText(/You don.t run one yet/)).toBeTruthy();
-  expect(screen.getByText(/10 fetches buys one extra daily call/)).toBeTruthy();
+  expect(screen.getByText(/10 points buy one extra daily call/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: /Run a collector/ }));
   expect(navigate).toHaveBeenCalledWith("/status/collectors/new");
 });

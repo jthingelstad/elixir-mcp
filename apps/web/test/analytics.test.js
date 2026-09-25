@@ -68,6 +68,31 @@ describe("analyticsLocation", () => {
     expect(at("/admin/emails").path).toBe("/admin/emails");
   });
 
+  test("an agent's console never reports which agent, and its records report their kind (2026-09-25)", () => {
+    const id = "5c1c5dbf-b0d0-4843-b751-8d6a60e535c7";
+    expect(at("/agent/a1b2c3d4e5f6/overview")).toEqual({
+      path: "/agent/overview",
+      url: `${ORIGIN}/agent/overview`,
+    });
+    expect(at(`/agent/a1b2c3d4e5f6/activity/c/${id}`)).toEqual({
+      path: "/agent/activity/c",
+      url: `${ORIGIN}/agent/activity/c`,
+    });
+    expect(at("/agent/a1b2c3d4e5f6").path).toBe("/agent");
+  });
+
+  test("feedback, tracked subjects and admin accounts report their page, never the record", () => {
+    for (const [path, kind] of [
+      ["/account/feedback/812", "/account/feedback"],
+      ["/account/tracking/2ABC", "/account/tracking"],
+      ["/admin/accounts/42", "/admin/accounts"],
+    ]) {
+      const seen = at(path);
+      expect(seen.path).toBe(kind);
+      expect(new URL(seen.url).search).toBe("");
+    }
+  });
+
   test("an encoded tag is reported decoded", () => {
     // Explore strips the leading '#' when it builds hrefs, but a bookmark
     // or a hand-typed URL can still carry %23.
@@ -180,6 +205,10 @@ describe("failure events", async () => {
     );
     expect(routeLabel("GET", "/api/me/gateways")).toBe("GET /api/me/gateways");
     expect(routeLabel("POST", "/api/explore")).toBe("POST /api/explore");
+    // Which agent is never reported (2026-09-25).
+    expect(routeLabel("GET", "/api/agent/a1b2c3d4e5f6/usage")).toBe(
+      "GET /api/agent/*/*",
+    );
   });
 
   test("an event is one click on a hidden collector node, then gone", () => {

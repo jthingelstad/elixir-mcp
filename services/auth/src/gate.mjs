@@ -120,7 +120,23 @@ export async function setAccountRole(db, { accountId, role, actorRole }) {
      returning account_id, role`,
     [accountId, role, settableTargets],
   );
-  if (rows[0]) return rows[0];
+  if (rows[0]) {
+    // An agent's tier is capped at its owner's (DECISIONS: principals),
+    // and never above leader: a downgrade takes the owner's agents down
+    // with it. They were clamped once at creation and never again, so an
+    // owner moved below leader left an agent above them (2026-09-25).
+    const ceiling =
+      ROLE_ORDER[
+        Math.min(ROLE_ORDER.indexOf(role), ROLE_ORDER.indexOf("leader"))
+      ];
+    await db.query(
+      `update account set role = $2
+        where owned_by_account_id = $1 and kind = 'agent'
+          and array_position($3::text[], role) > array_position($3::text[], $2)`,
+      [accountId, ceiling, ROLE_ORDER],
+    );
+    return rows[0];
+  }
   // No row moved: nothing to set, or the target is above this actor —
   // including a target that got promoted a moment ago. Tell them apart
   // so a refusal is never reported as a successful change.

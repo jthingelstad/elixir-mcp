@@ -1,5 +1,5 @@
 /** The deterministic lint a written issue must pass before it sends
- *  (docs/top100/README.md, build order step 3): every number in the
+ *  (docs/archive/TOP100-README.md, build order step 3): every number in the
  *  body exists in the brief, every numbers_used path resolves, no bare
  *  tag, no exclamation mark, prose within the kind's length, every
  *  table row that moves a rank carries a rating delta. Pure: the editor

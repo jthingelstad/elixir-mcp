@@ -32,6 +32,9 @@ import { ToolFailure } from "./tools/shared.mjs";
 
 export { ToolFailure, ensureClanRecording } from "./tools/shared.mjs";
 
+const EVENT_POOL_NOTE =
+  "mode 'event' pools every event read in the window: one event is not another (a tournament, a seasonal Trophy Road and a 2v2 weekend are different games), so a rate here mixes them; key on context.event_tag (battles_query lists it per battle) for one event.";
+
 const TOOLS = {
   ...elixirTools,
   ...collectionsTools,
@@ -88,9 +91,15 @@ export function makeRegistry() {
     /** Omitted from the list AND refused on call: clients cache tools/list
      *  forever, so a tool that merely disappears is still callable. */
     availableTo: (name, kind) => !toolsHiddenFrom(kind).has(name),
-    declarations: (kind = null) =>
+    // No argument is the whole catalogue (the site's tool reference,
+    // tools.json, tests); a caller's kind - null or undefined meaning a
+    // person - filters to what that principal may see and call.
+    declarations: (...kindArg) =>
       Object.entries(TOOLS)
-        .filter(([name]) => !toolsHiddenFrom(kind).has(name))
+        .filter(
+          ([name]) =>
+            kindArg.length === 0 || !toolsHiddenFrom(kindArg[0]).has(name),
+        )
         .map(([name, t]) => {
           // Classification is mandatory: an unclassified tool is a build
           // error, not a silent "Other tools" entry (Jamie, 2026-09-04).
@@ -182,6 +191,11 @@ export function makeRegistry() {
       if (body && typeof body === "object") {
         if (!Array.isArray(body.notes)) body.notes = [];
         if (typeof body.docs !== "string") body.docs = "choosing-a-tool";
+        // `event` is a coarse filter, never a population (DECISIONS:
+        // never pool across events): every aggregate read with it says so.
+        // battles_query lists battles, each with its own event_tag.
+        if (args?.mode === "event" && name !== "battles_query")
+          body.notes.push(EVENT_POOL_NOTE);
       }
       if (oneSize !== null && body && typeof body === "object") {
         body.applied = { ...(body.applied ?? {}), verbosity: "full" };
