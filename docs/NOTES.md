@@ -2416,3 +2416,11 @@ Jamie took the seven follow-ups one at a time; decisions are in DECISIONS.md.
 
   `ABC` and `ABC123` are not valid tags (the hub's normalizer refuses them), and `{poll_state}` finds no receipts or state for either. The two stubs under real entities carry no clans, periods or members for a projector to write. Deletion waits on Jamie's look at the exact list.
 - After the 9.1.2 deploy (acceptance for war, elixir and clans: 436 cases, 0 failed), two live reads. A misspelled op (`{"stat": true}`) answered `unknown_op` and ran nothing. `{mode_shape_census}`'s `ranked_by_league` settled the held reference patch on the whole record: leagues 1-6 carry `trophyChange` only on a win, always +30 (47,571 wins, no loss) and never `startingTrophies` (95,148 participants), and league 7 carries both on every participant (397,202). The patch was applied as counted (cr-agent-api-docs a1a17b9), without the sample's tournament and boat-battle parts. timeline.md's "ranked battles carry none" was corrected and deployed. The snapshot commit 7360275f says a1a17b9 but recorded bc6be0f; this commit's snapshot is a1a17b9.
+- The archive fixtures, removed on Jamie's go. All five matched the list by byte count, and each is now a delete marker that `HeadObject` answers 404 (the bucket is versioned, so the old versions stay recoverable):
+  - `payloads/endpoint=clan/entity=ABC/…3bfd67fefcfc3a02`
+  - `player/entity=ABC123/…458fd7fbf8cac5f7` and `…87133eab6876acd6`
+  - `currentriverrace/entity=J2RGCRVG/…230a6a07a9cb877d`
+  - `cards/entity=GLOBAL/…d9b631282b0bb668`
+
+  DECISIONS records the exception.
+
