@@ -346,8 +346,8 @@ policy (settled 2026-09-17 with the move to SES):
 
 Adding a kind without classifying it fails to typecheck, so the decision
 is made where the kind is born and cannot be forgotten. The unsubscribe
-endpoint is `/api/email/unsubscribe` (2026-09-18, with the six product
-kinds; docs/EMAIL.md). SES's own open and click tracking are never
+endpoint is `/api/email/unsubscribe` (2026-09-18, with the first product
+kinds; eight since 2026-09-25; docs/EMAIL.md). SES's own open and click tracking are never
 enabled (the configuration set's event list has neither): no link is
 rewritten through Amazon. What mail carries instead (Jamie, 2026-09-18)
 is the site's Tinylytics, from `packages/mail`: a pixel whose path names

@@ -133,10 +133,12 @@ in adds your address to the mailing list. That is a deliberate choice
 rather than an oversight, and this paragraph exists so it is not a
 surprise.
 
-**The reports, and the milestone note.** Elixir also sends seven kinds of
-its own mail from your record ([Email](/docs/email)): six weekly mails
-(four reports and two written pieces) and a congratulations when
-something you did is a first. They
+**The reports, and the milestone note.** Elixir also sends eight kinds of
+mail ([Email](/docs/email)): six weekly mails (four reports and two
+written pieces), a congratulations when something you did is a first,
+and, for the Elixir family's app Elixir Clan, a note when something in
+your clan is yours to do (the app writes it and names your player;
+Elixir sends it, so your address never reaches the app). They
 are on by default for the same reason the newsletter is, each is its
 own switch on your account page, and every issue carries a one-click
 off for its kind. Turning one off is recorded on your account and never

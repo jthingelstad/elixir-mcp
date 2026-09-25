@@ -16,10 +16,12 @@ const BLURB = {
     "Sunday: what your collectors fetched and earned. Only if you run one.",
   milestone:
     "As it happens: a new arena, a promotion, a first. Never a move down.",
+  clan_actions_waiting:
+    "Mornings: from Elixir Clan, when something new in your clan is yours to do. Only if you can act on it.",
 };
 
 /**
- * Profile → Email: the seven product emails, each a switch. Absent
+ * Profile → Email: the eight product emails, each a switch. Absent
  * preference means on; the switch writes only a change. Its own page
  * (Jamie, 2026-09-19): the switches and the record of what was sent
  * are a subject, not a panel on the profile. The "send me this now"
@@ -43,9 +45,9 @@ export function EmailPage({ navigate }) {
       <div className="mb-[18px]">
         <h1 className="page__title">Email</h1>
         <p className="page__lede">
-          The seven emails Elixir sends from your record. All on by default;
-          every issue carries a one-click off for its kind, and turning one off
-          here is immediate and yours to reverse.
+          The eight emails Elixir sends. All on by default; every issue carries
+          a one-click off for its kind, and turning one off here is immediate
+          and yours to reverse.
         </p>
       </div>
 

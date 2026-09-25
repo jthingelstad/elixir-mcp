@@ -2488,3 +2488,22 @@ administrator IAM change in Clan's own stack (Jamie).
   `metrics` and answered the five clan metrics. Verdict: fix forward, 9.2.1
   (compact answers the named metrics), with a test in `daily-series`.
 
+## 2026-09-25 — A family app's mail: clan actions waiting (JSON API 2.4.0)
+
+Door 2 of Elixir Clan's doors plan. Jamie's calls: the kind is on to
+start; a family app composing mail that Elixir sends is an appropriate
+exception to "mail is composed by calling the tools"; only people who can
+act on an action are sent it.
+
+- `clan_actions_waiting` is the eighth product kind (bulk, per-account
+  switch, one-click off). Rendered by `packages/mail` from the app's plain
+  lines, escaped; `tagLink` now tags links into any family app.
+- `POST /api/v1/clans/{tag}/mail` (`services/web-api/src/clan-mail.mjs`,
+  permission `mail:send`): per player tag, the account whose verified
+  claim it is, in the clan today, kind on; `deliver` from jobs does the
+  render, archive, outbox and send record; an advisory lock per clan, kind
+  and UTC day makes "one a day" hold across the web-api's concurrency.
+  The web-api's `email_compose_failed` lines feed the same alarm.
+- `facts:write` and `mail:send` are never granted unnamed
+  (`DEFAULT_INTEGRATION_SCOPES`; the admin form leaves them unticked).
+

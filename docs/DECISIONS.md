@@ -130,6 +130,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 ## Email
 
 - **Send over SES, receive at Fastmail** — Fastmail "isn't for that"; never create SES address identities under the stack's domain. Supersedes Fastmail JMAP sending. (2026-09-16, 2026-09-17; Jamie)
+- **A family app's mail goes through Elixir** — Elixir Clan's "actions waiting" (`clan_actions_waiting`) is composed by the app and sent by Elixir, which holds the address, the switch (on to start) and the unsubscribe; only people who can act on an action are sent it, only the account that verified the player, at most one per clan per account per day; the app's words are escaped lines in Elixir's template, its link a family app's. An exception to "mail is composed by calling the tools", for a family app's own mail only. `mail:send` and `facts:write` are granted only by name. (2026-09-25; Jamie)
 - **Seven kinds, at most one mail per kind and subject per day** — each kind is an account switch, default ON; a person tracking several clans gets one clan report per clan; the milestone mail is exempt; bulk kinds need one-click unsubscribe; login mail is transactional with no unsubscribe. (2026-09-18, 2026-09-17, 2026-09-25; Jamie)
 - **No per-user LLM mail** — the model-written issues (Top 100, Card of the Week) are one for everyone, written by Anthropic direct from a non-VPC editor, not Bedrock; "the builder computes and the model writes". (2026-09-18, 2026-09-22; Jamie)
 - **No public issue page** — "sharing means forwarding the email". (2026-09-18 late; Jamie)

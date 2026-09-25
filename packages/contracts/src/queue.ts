@@ -84,12 +84,14 @@ export interface CrResultMessage {
 /** Email queue message — VPC Lambdas enqueue, the non-VPC relay sends
  *  (DESIGN §7 NAT-free posture). Plaintext email address rides the queue
  *  (SSE-encrypted at rest) because the relay must address the mail. */
-/** The seven product mail kinds (docs/EMAIL.md): six weekly reports
- *  and the event-driven milestone mail. Every one is bulk: sent
- *  on a schedule to many people, switchable per kind on the account
- *  page, one-click unsubscribable. The body is RENDERED upstream (the
- *  jobs Lambda, packages/mail) and rides the message; the relay sends
- *  what it is given and never composes a report. */
+/** The eight product mail kinds (docs/EMAIL.md): six weekly reports,
+ *  the event-driven milestone mail, and a family app's own mail sent
+ *  through Elixir (clan_actions_waiting, Elixir Clan, 2026-09-25). Every
+ *  one is bulk: switchable per kind on the account page, one-click
+ *  unsubscribable. The body is RENDERED upstream (packages/mail, by the
+ *  jobs Lambda or, for a family app's kind, the web-api from the app's
+ *  plain lines) and rides the message; the relay sends what it is given
+ *  and never composes a report. */
 export const PRODUCT_EMAIL_KINDS = [
   "clan_report",
   "arena_week",
@@ -98,6 +100,7 @@ export const PRODUCT_EMAIL_KINDS = [
   "card_of_week",
   "collector_activity",
   "milestone",
+  "clan_actions_waiting",
 ] as const;
 export type ProductEmailKind = (typeof PRODUCT_EMAIL_KINDS)[number];
 
@@ -174,6 +177,7 @@ export const EMAIL_KIND_CLASS: Record<
   card_of_week: "bulk",
   collector_activity: "bulk",
   milestone: "bulk",
+  clan_actions_waiting: "bulk",
 };
 
 export function isProductEmailKind(kind: unknown): kind is ProductEmailKind {

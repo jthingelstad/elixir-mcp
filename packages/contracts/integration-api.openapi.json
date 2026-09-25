@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "2.3.0",
+    "version": "2.4.0",
     "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Collection grants allow additions only. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
@@ -1339,6 +1339,75 @@
           }
         }
       }
+    },
+    "/clans/{tag}/mail": {
+      "post": {
+        "operationId": "clanMailSend",
+        "summary": "A family app's own mail, sent through Elixir: per player tag, a subject, plain lines and a link into the app. Elixir resolves each to the account that verified the player, if the player is in the clan today and the kind is switched on (it is on to start), sends at most one of the kind per clan per account per UTC day, and records it like every Elixir email. The app never sees an address.",
+        "x-permission": "mail:send",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "A clan tag, # URL-encoded as %23."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClanMail"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Each message's outcome.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClanMailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1561,7 +1630,7 @@
           },
           "code": {
             "type": "string",
-            "description": "The closed error code: the integration codes (unauthenticated, insufficient_scope, not_found, bad_request, invalid_json, rate_limited, daily_quota_exceeded, refresh_quota_exceeded; on the fact writes: invalid_fact, unknown_fact_type, family_apps_only, not_in_clan, not_permitted, ref_conflict) and, on a person operation, the tool's own (not_recorded, no_subject, invalid_tag, not_entitled, query_timeout, live_pending, internal)."
+            "description": "The closed error code: the integration codes (unauthenticated, insufficient_scope, not_found, bad_request, invalid_json, rate_limited, daily_quota_exceeded, refresh_quota_exceeded; on the fact writes: invalid_fact, unknown_fact_type, family_apps_only, not_in_clan, not_permitted, ref_conflict; on mail: invalid_mail, unknown_mail_kind) and, on a person operation, the tool's own (not_recorded, no_subject, invalid_tag, not_entitled, query_timeout, live_pending, internal)."
           },
           "detail": {
             "type": "string"
@@ -1861,6 +1930,103 @@
           "detail": {
             "type": "object",
             "description": "The type's detail, nothing else: departure_classified {kind: kick|leave, left_at?}; role_change_made {from, to} (member, elder, coLeader, leader); award_granted {award (60), season_id, place?}; member_away {until? instant or null}; clan_message {channel: leader_message|clan_chat, title? (24), body (200)}; personal_record {game (40), score, previous_best?}."
+          }
+        }
+      },
+      "ClanMail": {
+        "type": "object",
+        "required": ["kind", "messages"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["clan_actions_waiting"]
+          },
+          "messages": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "required": ["player_tag", "subject", "lines", "link"],
+              "additionalProperties": false,
+              "properties": {
+                "player_tag": {
+                  "type": "string",
+                  "description": "Who the email is for: Elixir sends to the account whose verified claim is this player, if the player is in the clan today and the account has the kind switched on."
+                },
+                "subject": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "lines": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "items": {
+                    "type": "string",
+                    "maxLength": 160
+                  },
+                  "description": "Plain lines; Elixir renders and escapes them."
+                },
+                "link": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Into a family app (https://clan.poapkings.com, https://drop.poapkings.com or https://elixir.poapkings.com)."
+                }
+              }
+            }
+          }
+        }
+      },
+      "ClanMailResponse": {
+        "type": "object",
+        "required": ["data", "request_id"],
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "day": {
+                "type": "string",
+                "description": "The UTC day: at most one email of the kind per clan per account per day."
+              },
+              "clan_tag": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "player_tag": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "sent",
+                        "already_sent_today",
+                        "no_account",
+                        "not_in_clan",
+                        "no_address",
+                        "switched_off",
+                        "failed"
+                      ]
+                    },
+                    "send_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

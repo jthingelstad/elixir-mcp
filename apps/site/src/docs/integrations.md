@@ -81,6 +81,7 @@ accountable for the integration but contributes no admin authority or quota.
 | `PUT /collections/{id}/members/{tag}` | `collections:members:add` plus collection grant | Idempotent addition and recording enrollment |
 | `POST /collections/{id}/members` | Same | Bounded add-only batch |
 | `GET /clans/{tag}/participation`, `GET /clans/{tag}/roster` | `clans:read` | Any recorded clan, answered as a person's grant is (the `clans_participation` and `clans_roster` results): a family app evaluating a clan with nobody signed in |
+| `POST /clans/{tag}/mail` | `mail:send` | A family app's own mail, sent through Elixir by player tag, never by address ([below](#a-family-apps-mail)) |
 | `POST /players/{tag}/facts` | `facts:write` | A fact the platform's own game produced for a player ([attested facts](#attested-facts)) |
 
 Tags must be URL-encoded in paths: `#2PYQ0` becomes `%232PYQ0`. Collection IDs
@@ -104,6 +105,11 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.4.0** (2026-09-25): `POST /clans/{tag}/mail` with the new
+  permission `mail:send`: [a family app's mail](#a-family-apps-mail).
+  Permissions that act on people (`facts:write`, `mail:send`) are granted
+  only when an admin names them; an integration provisioned without a
+  list gets the others.
 - **2.3.0** (2026-09-25): an integration holding the new permission
   `clans:read` calls `GET /clans/{tag}/participation` and `GET
   /clans/{tag}/roster`, the two clan reads a person's grant already had,
@@ -194,6 +200,37 @@ be at most an hour ahead or a year behind. `DELETE
 /clans/{tag}/facts/{ref}` takes one back, by someone who may attest its
 type. A player fact is an integration's, with `POST /players/{tag}/facts`
 and the same body; its tag is unverified, as everywhere on this API.
+
+## A family app's mail
+
+A family app can send people its own mail through Elixir, which holds the
+address, the switch and the unsubscribe. The first is Elixir Clan's
+**clan actions waiting** ([Email](/docs/email)). `POST
+/clans/{tag}/mail` names who each email is for by player tag:
+
+```json
+{
+  "kind": "clan_actions_waiting",
+  "messages": [
+    {
+      "player_tag": "#2PPGY0Q8",
+      "subject": "2 actions waiting for you in Example Clan",
+      "lines": ["Promote to Elder: Ada (new)", "Welcome a newcomer: Newbie"],
+      "link": "https://clan.poapkings.com/clan/2PQRJ8LV/actions"
+    }
+  ]
+}
+```
+
+Elixir sends a message only to the account whose **verified** claim is
+that player, while the player is in the clan, with the kind switched on
+(on to start), and at most one of the kind per clan per account per UTC
+day. It renders the lines itself, escaped, in its own template (the
+unsubscribe, the send id, the disclaimer); the link must lead to a family
+app. The answer says what happened to each message (`sent` with its
+`send_id`, `already_sent_today`, `no_account`, `not_in_clan`,
+`no_address`, `switched_off` or `failed`) and never an address. Up to 50
+messages a call.
 
 ## The game clock is policy
 

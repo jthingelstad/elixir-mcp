@@ -1,10 +1,14 @@
 import { randomBytes } from "node:crypto";
 import { mintServiceTokenValue } from "@elixir-mcp/auth";
-import { INTEGRATION_SCOPES } from "../integration-api.mjs";
+import {
+  DEFAULT_INTEGRATION_SCOPES,
+  INTEGRATION_SCOPES,
+} from "../integration-api.mjs";
 import { json } from "../http.mjs";
 
 function settings(body) {
-  const scopes = body.scopes ?? INTEGRATION_SCOPES;
+  // Unnamed, the permissions that act on people are left out.
+  const scopes = body.scopes ?? DEFAULT_INTEGRATION_SCOPES;
   if (
     !Array.isArray(scopes) ||
     scopes.some((s) => !INTEGRATION_SCOPES.includes(s))

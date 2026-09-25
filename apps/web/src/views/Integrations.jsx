@@ -13,7 +13,10 @@ const scopes = [
   "collections:members:add",
   "facts:write",
   "clans:read",
+  "mail:send",
 ];
+// Permissions that act on people are ticked only on purpose.
+const EXPLICIT = ["facts:write", "mail:send"];
 const defaults = {
   name: "",
   daily_limit: 10000,
@@ -21,7 +24,7 @@ const defaults = {
   refresh_limit: 1000,
   member_limit: 10000,
   collection_id: "",
-  scopes,
+  scopes: scopes.filter((s) => !EXPLICIT.includes(s)),
 };
 export function Integrations() {
   const integrations = useAdminIntegrations();

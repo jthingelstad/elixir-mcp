@@ -81,7 +81,10 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
         [account.accountId],
       );
       const { rows: ops } = await db.query(
-        `select exists (select 1 from gateway where owner_account_id = $1 and status <> 'revoked') as operator`,
+        `select exists (select 1 from gateway where owner_account_id = $1 and status <> 'revoked') as operator,
+                exists (select 1 from claim c join clan_membership m
+                          on m.player_tag = c.player_tag and m.left_observed_at is null
+                         where c.account_id = $1 and c.status = 'verified') as in_clan`,
         [account.accountId],
       );
       const { rows: recent } = await db.query(
@@ -96,7 +99,11 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
           enabled: by.get(kind)?.enabled ?? true,
           changed_at: by.get(kind)?.changed_at ?? null,
           applies:
-            kind === "collector_activity" ? Boolean(ops[0]?.operator) : true,
+            kind === "collector_activity"
+              ? Boolean(ops[0]?.operator)
+              : kind === "clan_actions_waiting"
+                ? Boolean(ops[0]?.in_clan)
+                : true,
         })),
         recent: recent.map(sendRow),
       });

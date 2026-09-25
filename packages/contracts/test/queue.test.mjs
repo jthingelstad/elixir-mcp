@@ -65,7 +65,7 @@ test("a result may carry the collector's observed/filtered counts; the filter sp
 });
 
 test("mail policy: every kind is classified; bulk needs one-click unsubscribe, transactional refuses it", () => {
-  // Three transactional kinds, six product (bulk) kinds (docs/EMAIL.md).
+  // Three transactional kinds; every product kind is bulk (docs/EMAIL.md).
   for (const kind of ["login", "welcome", "owner_notify"])
     assert.equal(EMAIL_KIND_CLASS[kind], "transactional", `${kind}`);
   for (const kind of PRODUCT_EMAIL_KINDS)

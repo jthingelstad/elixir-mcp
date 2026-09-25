@@ -1,4 +1,4 @@
-/** The renderer: facts in, {subject, preheader, html} out, for the seven
+/** The renderer: facts in, {subject, preheader, html} out, for the eight
  *  product kinds. The shell and the components are the transactional
  *  templates' idiom (services/email-relay/src/templates.mjs) grown for
  *  report mail: packages/design tokens inline, tables, 600 px, a 2x2
@@ -59,7 +59,16 @@ export const KIND_LABELS = {
   card_of_week: "Card of the Week",
   collector_activity: "Collector activity",
   milestone: "Milestones",
+  clan_actions_waiting: "Clan actions waiting",
 };
+
+/** The family's apps: a family app's own mail links back to it, and
+ *  those links carry the campaign tag too (2026-09-25). */
+const FAMILY_ORIGINS = [
+  SITE,
+  "https://clan.poapkings.com",
+  "https://drop.poapkings.com",
+];
 
 const esc = (v) =>
   String(v ?? "")
@@ -99,7 +108,8 @@ const sentMailUrl = (sendId, { report = false } = {}) =>
  *  someone in and to what. No pixel, no redirector: the tag is on the
  *  link, the count happens on the page (docs/email). */
 export function tagLink(url, campaign) {
-  if (!campaign || !url.startsWith(SITE)) return url;
+  if (!campaign || !FAMILY_ORIGINS.some((o) => url.startsWith(`${o}/`)))
+    return url;
   const u = new URL(url);
   u.searchParams.set("utm_source", "email");
   u.searchParams.set("utm_medium", campaign.kind);
@@ -904,6 +914,35 @@ function milestone(f, c) {
   };
 }
 
+/**
+ * clan_actions_waiting (2026-09-25; Jamie): Elixir Clan's morning mail to
+ * a person who can act on something new in their clan. The app composes
+ * the words (a subject, a few plain lines, a link into the app); Elixir
+ * holds the address, the switch and the unsubscribe, and renders the
+ * lines itself, escaped: no markup crosses from an app.
+ */
+function clanActions(f, c) {
+  const clan = f.clan?.name ?? f.clan?.tag ?? "your clan";
+  const body = `${c.p(`Waiting for you in ${c.K(f.clan.tag, clan)}:`)}
+    ${c.list(f.lines.map(esc))}
+    ${c.button("Open your actions", f.link)}
+    ${c.cov(`${esc(f.app ?? "Elixir Clan")} sends this through Elixir after its morning run, when something new is yours to do; only people who can act on an action are sent it. Everything in it is what the app shows you signed in.`)}`;
+  return {
+    subject: f.subject,
+    preheader: f.lines[0] ?? f.subject,
+    html: (links) =>
+      c.shell({
+        kind: "Clan actions",
+        title: "Actions waiting for you",
+        subtitle: esc(`${clan} · ${f.app ?? "Elixir Clan"}`),
+        preheader: f.lines[0] ?? f.subject,
+        body,
+        unsubscribeKind: "Clan actions emails",
+        links,
+      }),
+  };
+}
+
 const RENDERERS = {
   arena_week: arena,
   tracking_report: tracking,
@@ -912,6 +951,7 @@ const RENDERERS = {
   card_of_week: cardOfWeek,
   collector_activity: collector,
   milestone,
+  clan_actions_waiting: clanActions,
 };
 
 /** {subject, preheader, html} for a kind's facts. `links.unsubscribe`

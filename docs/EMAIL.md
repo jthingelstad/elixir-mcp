@@ -2,7 +2,7 @@
 
 **Design, ratified 2026-09-18 (Jamie, in session); BUILT AND DEPLOYED the
 same night** (`docs/notes/2026-W38.md`, 2026-09-18, "Product email
-shipped"). There are **seven kinds** (`PRODUCT_EMAIL_KINDS` in
+shipped"). There are **eight kinds** (`PRODUCT_EMAIL_KINDS` in
 `packages/contracts/src/queue.ts` is the list): the milestone mail joined
 during the design, and `card_of_week` was designed and built 2026-09-22
 and has its own section below. The public description is `/docs/email`; this file is the
@@ -12,11 +12,14 @@ one mail per ACCOUNT, every collector it runs pooled.
 
 ## What is decided
 
-- **Seven kinds**, all bulk under the mail policy (`docs/ENGINEERING.md`,
+- **Eight kinds**, all bulk under the mail policy (`docs/ENGINEERING.md`,
   "Mail is transactional until a kind says otherwise"): six weekly
   (`clan_report`, `arena_week`, `tracking_report`, `top_100`,
-  `card_of_week`, `collector_activity`) and the event-driven
-  `milestone`.
+  `card_of_week`, `collector_activity`), the event-driven `milestone`,
+  and `clan_actions_waiting` (2026-09-25), a family app's own mail:
+  Elixir Clan composes it and sends it through `POST
+  /api/v1/clans/{tag}/mail` (`services/web-api/src/clan-mail.mjs`), and
+  Elixir resolves, checks, renders, records and sends it (`/docs/integrations`).
 - **Every kind is a switch on the account page. All default ON (opt-out),**
   the beta stance from 0051: taking part in the beta includes the product
   email, and every issue carries one-click unsubscribe. Unlike the removed

@@ -29,6 +29,7 @@ import {
   writeClanFact,
   writePlayerFact,
 } from "./attested-facts.mjs";
+import { sendClanMail } from "./clan-mail.mjs";
 
 /** Who an operation admits; an operation that says nothing is the
  *  integration API it was before people could call v1. */
@@ -49,6 +50,14 @@ export const INTEGRATION_SCOPES = [
     ),
   ),
 ];
+
+/** Permissions that act on people (write facts about them, send them
+ *  mail) are granted only when an admin names them; an integration
+ *  created without a list gets the rest (2026-09-25). */
+const EXPLICIT_INTEGRATION_SCOPES = ["facts:write", "mail:send"];
+export const DEFAULT_INTEGRATION_SCOPES = INTEGRATION_SCOPES.filter(
+  (s) => !EXPLICIT_INTEGRATION_SCOPES.includes(s),
+);
 
 /** The audience a person's grant for this door carries (0160). */
 const API_RESOURCE = "https://elixir.poapkings.com/api/v1";
@@ -435,7 +444,9 @@ async function requestRefresh(db, account, policy, body, event) {
   }
 }
 
-export async function integrationApi(db, event, body) {
+/** `deps.mail` ({ enqueue, secret, archive }) sends a family app's mail
+ *  (2.4.0); without it the mail operation answers 503. */
+export async function integrationApi(db, event, body, deps = {}) {
   const requestId = randomUUID(),
     started = Date.now();
   let account,
@@ -640,6 +651,23 @@ export async function integrationApi(db, event, body) {
           toolAudited = true;
           return runTool(db, account, route);
         };
+      } else if (
+        method === "POST" &&
+        (match = /^\/api\/v1\/clans\/([^/]+)\/mail$/.exec(path))
+      ) {
+        // A family app's own mail, sent through Elixir (2.4.0): Elixir
+        // Clan's "actions waiting for you", by player tag, never by address.
+        operation = "clans.mail.send";
+        scope = "mail:send";
+        const clan = decodeURIComponent(match[1]);
+        run = () =>
+          sendClanMail(
+            db,
+            { name: policy.name, accountId: account.accountId },
+            clan,
+            body,
+            deps.mail ?? {},
+          );
       } else if (
         method === "POST" &&
         (match = /^\/api\/v1\/players\/([^/]+)\/facts$/.exec(path))

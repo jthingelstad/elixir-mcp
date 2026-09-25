@@ -49,6 +49,12 @@ export const handler = makeHandler({
   // Captured tool calls are read back for the console's call record;
   // absent bucket = the record carries the row only.
   capture: makeCaptureStore(process.env.ARCHIVE_BUCKET),
+  // A family app's mail (JSON API 2.4.0) leaves through the same outbox
+  // and is archived like every send.
+  mail: {
+    enqueue: enqueueEmail,
+    archive: makeCaptureStore(process.env.ARCHIVE_BUCKET),
+  },
   collectorDoor: makeCollectorDoor({
     ingest: async (db, envelope) => {
       const archive = makeArchive(process.env.ARCHIVE_BUCKET);

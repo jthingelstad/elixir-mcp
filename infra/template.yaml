@@ -1983,6 +1983,17 @@ Resources:
           # No DefaultValue: a default writes a zero on every jobs log
           # event and bills the metric every hour; without one it exists
           # only when a compose fails, and the alarm fires the same.
+  # A family app's mail composes in the web-api (JSON API 2.4.0): its
+  # failures count toward the same metric and alarm.
+  WebApiEmailComposeFailedFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref WebApiLogGroup
+      FilterPattern: '"email_compose_failed"'
+      MetricTransformations:
+        - MetricNamespace: ElixirMCP/Email
+          MetricName: ComposeFailed
+          MetricValue: "1"
   EmailComposeFailedAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

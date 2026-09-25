@@ -1,0 +1,14 @@
+{
+ "clan": {
+  "tag": "#2PQRJ8LV",
+  "name": "Example Clan"
+ },
+ "app": "Elixir Clan",
+ "subject": "3 actions waiting for you in Example Clan",
+ "lines": [
+  "Welcome a newcomer: Newbie (new)",
+  "Promote to Elder: Ada",
+  "Remove from the clan: Quiet"
+ ],
+ "link": "https://clan.poapkings.com/clan/2PQRJ8LV/actions"
+}

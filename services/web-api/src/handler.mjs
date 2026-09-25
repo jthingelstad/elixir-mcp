@@ -141,6 +141,9 @@ export function makeHandler({
   /** { s3, bucket } for reading captured tool calls (capture.mjs
    *  makeCaptureStore); null = the call record carries the row only. */
   capture = null,
+  /** { enqueue, archive } for a family app's mail on the JSON API
+   *  (2.4.0): the outbox and the sent-mail archive; null = refused. */
+  mail = null,
 }) {
   async function resolveAccount(
     db,
@@ -283,7 +286,13 @@ export function makeHandler({
     const isIntegration = path.startsWith("/api/v1/");
     const agentPath = isIntegration ? null : AGENT_PATH.exec(path);
     const found = isIntegration
-      ? { route: integrationApi, key: `${method} /api/v1/*` }
+      ? {
+          route: (db, event, body) =>
+            integrationApi(db, event, body, {
+              mail: mail ? { ...mail, secret } : null,
+            }),
+          key: `${method} /api/v1/*`,
+        }
       : findRoute(
           routes,
           method,

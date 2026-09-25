@@ -1,24 +1,24 @@
 ---
 slug: email
 title: "Email"
-description: "The seven emails Elixir sends: four weekly reports built from your record with no model in the loop, two written weekly pieces, and a milestone note when something you did is a first. Every one is a switch on your account page; every issue carries a one-click off; opens and clicks are counted per issue, never per reader."
+description: "The eight emails Elixir sends: four weekly reports built from your record with no model in the loop, two written weekly pieces, a milestone note when something you did is a first, and Elixir Clan's note when something new in your clan is yours to do. Every one is a switch on your account page; every issue carries a one-click off; opens and clicks are counted per issue, never per reader."
 section: using
 order: 17
 navTitle: "Email"
 icon: mail
-lede: "Seven kinds, each a switch, each one click from off. Six are weekly; one arrives when something you did is a first."
+lede: "Eight kinds, each a switch, each one click from off. Six are weekly; one arrives when something you did is a first; one when something in your clan is yours to do."
 ---
 
 # Email
 
-Elixir sends seven kinds of email. All seven are **on by default** for
+Elixir sends eight kinds of email. All eight are **on by default** for
 every approved account, because taking part in the beta includes the
-product's mail, and all seven are **a switch on your account page**
+product's mail, and all eight are **a switch on your account page**
 ([Profile → Email](/account/profile/email)) with a one-click *turn off* link in every
 issue. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
-Five of the seven are **reports**: structured, built from your record
+Five of the eight are **reports**: structured, built from your record
 by the same readers the tools answer with, no language model anywhere
 in them. Every number is the number a tool would give you, and every
 one of them carries the coverage note the tools carry, because a report
@@ -45,6 +45,7 @@ notes are exempt: they come as the moments do.
 | Thursday | **Top 100** | One issue for everyone: a read of the global Path of Legends top 100 over the week that ended at that morning's board. Forward it to anyone who would enjoy it. |
 | Friday | **Card of the Week** | One card the record has something to say about, read in full: how much it is played and how often it wins, where it gets played, who plays it best, what it travels with, and the decks carrying it. One issue for everyone. Forward it to someone who runs that card. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): what your collectors fetched, how much the edge filter saved, quiet stretches, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
+| Mornings | **Clan actions waiting** | From [Elixir Clan](https://clan.poapkings.com), one of the Elixir family's apps: after its morning run, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Elixir Clan writes the words; Elixir sends them, so the app never sees your address. |
 | As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked. Checked hourly; everything new since the last note rides together. |
 
 ## Milestones are firsts
