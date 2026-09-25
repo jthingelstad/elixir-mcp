@@ -41,6 +41,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 ## Tool contract and versioning
 
 - **8.0.0 is the major before open beta** — rankings `season_id` becomes a number like every other `season_id` (Gym #345) and `min_players` counts repeat players; breaking changes are cheapest while every caller is first-party. (2026-09-24; Jamie)
+- **Majors track domain shifts, not agent-visible wire cleanup** — an MCP agent reasons from the current tool declaration, schema and notes; a missing response field simply withdraws a claim. A correction that removes an unreliable field is a patch, while a major is for a domain-model change that requires the agent to change what its task means. Contract 9.0.0 remains a historical release label, not a precedent. (2026-09-25; Jamie)
 - **`packages/contracts` is the single source** — additive changes are a minor, a patch is a behaviour correction only, and an output-schema change is a patch that moves the fingerprint. (2026-09-10, 2026-09-17; engineering)
 - **No deprecation window** — every client is first-party and updated in the same pass; breaking renames are batched into one major. Supersedes Phase 5's 30-day window. (2026-09-19 Phase 6; Jamie)
 - **The 7.0.0 refusals are dropped** — no blanket mode refusal and no unbounded-window refusal or season default; supersedes the 09-22 intent. (2026-09-23 Closing out; Jamie)

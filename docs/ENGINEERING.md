@@ -112,8 +112,13 @@ connection of their own.
 ## The tool contract has clients that never update
 
 - `packages/contracts` is the single source of truth for tool schemas, the error
-  enum, `deck_hash`, and the `meta` envelope. Semver over the contract, not the
-  code: additive is a minor, breaking is a major with a deprecation window.
+  enum, `deck_hash`, and the `meta` envelope. Semver describes the **domain
+  contract**, not a brittle wire interface: a new capability is a minor and a
+  correction is a patch, including removing a response field that withdrew an
+  unreliable claim. A major is reserved for a domain-model shift that requires
+  an agent to change what its task means. MCP agents reason from the current
+  tool declaration, schema and notes; an absent field means no claim, not an
+  interface failure.
 - **Clients cache `tools/list` forever.** `serverInfo.version` is
   `<contract>+tools.<fingerprint>` precisely so a cache can be busted; a
   stateless server can never push `listChanged`. Every bump gets a
