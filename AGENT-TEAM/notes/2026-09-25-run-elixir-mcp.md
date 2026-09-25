@@ -37,11 +37,12 @@ recorded-data-only, so `shapeCatalogue` now drops raw `live_fetch` and any
 `live: true` row; the committed catalogue no longer carries it.
 
 The one catalogue-only confirmation run did not invoke that live call. It
-found that `recording#participation-by-week` promises `war_decks_by_day` and
-`war_battles_by_day`, but the only full eight-week participation twins were
-correctly refused at the agent result cap, leaving no response to witness the
-documented fields. A `weeks: 2, verbosity: full` seed now provides that
-bounded full witness. Regression tests pin both catalogue rules.
+exposed an old daily-allocation assertion in
+`recording#participation-by-week`. Jamie's weekly-deck decision supersedes
+it: the 9.0.0 contract removes `war_decks_by_day`, `war_battles_by_day` and
+`war_days_battled` from participation. Its bounded-full seed now witnesses
+the retained weekly fields. `war_history` retains its separately observed
+exact-week attendance facts.
 
 That same confirmation run had three red cases: the documentation witness,
 `badges_rarity` at 4,064 ms over its 4,000 ms ceiling, and
@@ -52,12 +53,10 @@ they remain the next Run Elixir MCP capacity watch.
 
 ## Verification and handoff
 
-- `node --test acceptance/acceptance.test.mjs`: 8 passed, 0 failed after the
-  correction.
-- `npm run verify`: passed after the final seed addition (316 tests passed, no
-  failures).
-- No deployment is owed: this changes the local read-only acceptance harness,
-  its committed inputs, and the engineering ledger, not runtime code.
+- The original live-lane correction passed `node --test
+  acceptance/acceptance.test.mjs` (8 passed) and `npm run verify` (316
+  passed). The 9.0.0 runtime correction is independently gated; deployment
+  follows publication.
 
 The next scheduled Run Elixir MCP should use the bounded full participation
 case as normal evidence, retain the live-lane exclusion, and investigate only

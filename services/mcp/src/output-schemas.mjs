@@ -2162,7 +2162,7 @@ export const OUTPUT_SCHEMAS = {
       members: {
         type: "array",
         description:
-          "Per-member columns aligned to weeks[] (battles, ranked_battles, donations) and war_weeks[] (war_decks, war_points, war_scoring_decks, war_decks_by_day, war_battles_by_day, war_days_battled), one entry each in order; null is unknown, never zero. war_scoring_decks (6.23.0, full verbosity, windows of up to five war weeks) is war_decks less the decks played after the finish: the denominator for points per deck.",
+          "Per-member columns aligned to weeks[] (battles, ranked_battles, donations) and war_weeks[] (war_decks, war_points, war_scoring_decks), one entry each in order; null is unknown, never zero. war_decks is a weekly total; daily deck and battle allocations are intentionally not served because the record cannot reliably assign it to a day. war_scoring_decks (6.23.0, full verbosity, windows of up to six war weeks) is war_decks less the decks played after the finish: the denominator for points per deck.",
         items: {
           type: "object",
           properties: {
@@ -2183,9 +2183,6 @@ export const OUTPUT_SCHEMAS = {
             donations: { type: "array", items: NULLABLE_INT },
             war_decks: { type: "array", items: NULLABLE_INT },
             war_points: { type: "array", items: NULLABLE_INT },
-            war_decks_by_day: { type: "array" },
-            war_battles_by_day: { type: "array" },
-            war_days_battled: { type: "array", items: NULLABLE_INT },
           },
           required: [
             "player_tag",
@@ -2193,7 +2190,6 @@ export const OUTPUT_SCHEMAS = {
             "log_recorded",
             "battles",
             "war_decks",
-            "war_days_battled",
           ],
         },
       },

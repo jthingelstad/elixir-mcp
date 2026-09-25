@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-09-25",
+    title: "War participation keeps weekly deck totals",
+    body: "Clan participation now serves each member's total war decks for the week, rather than guessing which game day each deck belonged to. The game counters and recorded captures cannot make that daily split reliably. Exact-week war history remains available for its separately observed attendance facts. Contract 9.0.0.",
+  },
+  {
     date: "2026-09-24",
     title: "Elixir's servers send nothing to analytics",
     body: "Sign-ins, signups and feedback were the last events Elixir's servers sent to Tinylytics, the site's analytics. They are gone too: the servers send it nothing now. Page views and mail opens are still counted, anonymously, as the privacy page describes.",

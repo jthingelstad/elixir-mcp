@@ -119,21 +119,6 @@
     ]
   },
   {
-    "id": "81.7",
-    "stability": "live",
-    "tool": "clans_participation",
-    "args": {
-      "weeks": 2
-    },
-    "request_id": "c59da92b-4416-4932-9242-b18fd7c89399",
-    "for_each": "members",
-    "assert": [
-      {
-        "sum_eq": [["war_decks_by_day[1][]"], "war_decks[1]"]
-      }
-    ]
-  },
-  {
     "id": "82.1",
     "stability": "live",
     "tool": "war_rivals",

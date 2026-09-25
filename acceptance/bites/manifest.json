@@ -64,14 +64,6 @@
     "expect": "has weeks\\[\\].finished_early"
   },
   {
-    "feedback": 81,
-    "contract": "6.10.0",
-    "why": "the Gym's block 81.7: war_decks_by_day one short of war_decks for a member (polls missed the day's last deck; the ingest carries it to the previous day since 2026-09-21)",
-    "case": "gym/81.7",
-    "captures": ["81-7-participation-by-day-short.json"],
-    "expect": "sum_eq"
-  },
-  {
     "feedback": 84,
     "contract": "6.14.0",
     "why": "the Gym's block 84.1 on the answer it read: days[].progress_end clamped to 10000 on the finishing day and no note said so",

@@ -1419,10 +1419,7 @@ test("clans_participation: every open member, per ISO week and per war week, fac
     "recorded_since",
     "role",
     "tenure_known",
-    "war_battles_by_day",
-    "war_days_battled",
     "war_decks",
-    "war_decks_by_day",
     "war_points",
     "war_scoring_decks",
   ]);
@@ -1430,18 +1427,6 @@ test("clans_participation: every open member, per ISO week and per war week, fac
   // comprehensive, so basis is recorded and every member's log is.
   assert.equal(body.basis, "recorded");
   assert.ok(body.members.every((x) => x.log_recorded === true));
-  assert.ok(
-    body.members.every(
-      (x) => x.war_days_battled.length === body.war_weeks.length,
-    ),
-  );
-  assert.ok(
-    body.members.every((x) =>
-      x.war_days_battled.every(
-        (d) => d === null || (Number.isInteger(d) && d >= 0 && d <= 4),
-      ),
-    ),
-  );
   assert.ok(
     body.members.every(
       (x) =>
@@ -1462,7 +1447,7 @@ test("clans_participation: every open member, per ISO week and per war week, fac
     );
   assert.ok(body.members.some((x) => x.tenure_known === false));
   // Null is unknown, never zero: a week without a snapshot answers null
-  // donations; a day nobody polled answers null decks.
+  // donations.
   for (const member of body.members) {
     for (const col of ["battles", "ranked_battles", "donations"])
       assert.equal(member[col].length, body.weeks.length, col);
@@ -1473,17 +1458,11 @@ test("clans_participation: every open member, per ISO week and per war week, fac
       member.days_since_battle === null ||
         typeof member.days_since_battle === "number",
     );
-    for (const col of [
-      "war_decks",
-      "war_points",
-      "war_decks_by_day",
-      "war_battles_by_day",
-    ])
+    for (const col of ["war_decks", "war_points"])
       assert.equal(member[col].length, body.war_weeks.length, col);
-    for (const days of member.war_decks_by_day) {
-      assert.equal(days.length, 4);
-      for (const d of days) assert.ok(d === null || Number.isInteger(d));
-    }
+    assert.ok(!("war_decks_by_day" in member));
+    assert.ok(!("war_battles_by_day" in member));
+    assert.ok(!("war_days_battled" in member));
   }
   const compact = (
     await call(invoke, "clans_participation", {
@@ -1493,7 +1472,6 @@ test("clans_participation: every open member, per ISO week and per war week, fac
   ).body;
   assert.equal(compact.applied.verbosity, "compact");
   for (const member of compact.members) {
-    assert.ok(!("war_decks_by_day" in member));
     assert.ok(!("war_points" in member));
     assert.equal(member.war_decks.length, compact.war_weeks.length);
   }

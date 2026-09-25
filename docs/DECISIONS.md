@@ -122,6 +122,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 
 ## Web and site
 
+- **Participation serves weekly war-deck facts, never a guessed daily allocation** — sampled counters and captures cannot reliably assign a week's decks or battles to individual game days; `war_history` keeps its separately observed exact-week attendance facts. (2026-09-25; Jamie)
 - **The web is a record browser, not a BI platform** — "the agent is the analyst; the website's job is verification"; web and agent see the same registry. (2026-09-06, 2026-09-04; Jamie)
 - **Adopt the ecosystem early** — React 19, TanStack, and Tailwind v4 in the shared kit; kit gaps are fixed in the kit, never copied; no Radix before a real dialog; no PWA ("just make it a mobile view"). (2026-09-13, 2026-09-06; Jamie)
 - **Docs ship with the change** — the tool reference is generated from the registry; docs pointers must resolve before a tool names them. (2026-09-04, 2026-09-18 Phase 4; Jamie)

@@ -246,7 +246,7 @@ test("catalogue excludes every live-lane call", () => {
   ]);
 });
 
-test("catalogue seeds a bounded full participation response for its docs", () => {
+test("catalogue seeds a bounded full participation response for weekly fields", () => {
   const seeds = JSON.parse(
     readFileSync(new URL("./catalogue-seed.json", import.meta.url), "utf8"),
   );
@@ -254,7 +254,7 @@ test("catalogue seeds a bounded full participation response for its docs", () =>
     {
       args: { weeks: 2, verbosity: "full" },
       reason:
-        "the eight-week usage calls can refuse the full body at the agent cap; this safe full window carries the per-day war arrays the recording docs promise",
+        "the eight-week usage calls can refuse the full body at the agent cap; this bounded full read witnesses retained weekly war fields",
     },
   ]);
 });
