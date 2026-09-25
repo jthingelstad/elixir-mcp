@@ -47,9 +47,9 @@ AWS_PROFILE=cloud-engineer node infra/scripts/payload-field-audit.mjs all --json
 ```
 
 - One file per endpoint: `<endpoint>.json`. A full sweep reads every
-  archived object: about 240,000 on 2026-09-25, 1.7 GB, roughly ten cents
-  of S3 requests, and it takes a while (player_battlelog and clan are the
-  bulk). Run it in the background.
+  archived payload: 227,949 on 2026-09-25, roughly ten cents
+  of S3 requests, and about 16 minutes (player_battlelog, clan and player
+  are the bulk). Run it in the background.
 - For a quick look, name an endpoint and pass `--per-entity 3` (each
   entity's newest three objects). The evidence then says it is a sample.
   An enum hunt or a "never observed" claim needs the full sweep: rare
