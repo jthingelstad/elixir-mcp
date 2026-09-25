@@ -9,8 +9,10 @@ an integration are, the tools, the roles and quotas, what is recorded. If you
 are about to explain product behaviour in this repo, you are about to create a
 second copy that will drift. Write it there instead.
 
-**Where decisions are recorded:** `docs/NOTES.md`, newest last. Ratified
-decisions live there and are not re-litigated.
+**Where decisions are recorded:** `docs/DECISIONS.md`, one line per
+ratified decision and declined idea; they are not re-litigated. The
+reasoning behind each sits in `docs/NOTES.md` (this week) and
+`docs/notes/` (earlier weeks).
 
 **Why this file exists:** `docs/DESIGN.md` claimed to be the spec of record for
 five days after it stopped being true. It described a claims model that had been
@@ -26,8 +28,8 @@ is still worth reading, and the reasoning is all it should ever have carried.
 **One conservative global budget, regardless of how many gateways exist.** The
 fleet is redundancy — a gateway dying, an IP getting soft-blocked — and never
 quota multiplication. Budget state is a Postgres row settled each scheduler
-tick, not process memory, because a Lambda that ticks every minute has nowhere
-to keep it.
+tick, not process memory, because a Lambda that ticks every few minutes
+(`SchedulerTickMinutes`, 5 by default) has nowhere to keep it.
 
 Only the gateway calls the Clash Royale API at runtime. The key lives solely on
 allowlisted operator machines: never in CI, never in a Lambda, never in a
@@ -50,12 +52,27 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
   EXCLUSIVE lock that the transaction holds to its end. 0099 as first
   written (add column + 468k-row UPDATE + two index builds) outlived the
   Lambda, and its orphaned backend kept the lock until every connection
-  was queued behind it - the door was down ~35 minutes (docs/NOTES.md,
+  was queued behind it - the door was down ~35 minutes (docs/notes/2026-W38.md,
   2026-09-15). The shape is: the migration adds the nullable column
   (instant, no default that rewrites); a keyset-batched migrate op fills
   it in short transactions (`{type_backfill}`, `{deck_backfill}` were
   this); index builds follow in their own migration once filled. If a
   migration needs more than a few seconds of lock, it is an op.
+  `services/migrate/test/migration-rules.test.mjs` enforces the shape on
+  every migration from 0176: `NOT VALID`, `VALIDATE` and `SET NOT NULL`
+  never share a file, and a migration never changes a column's type in
+  place, re-keys a primary key or adds a stored generated column to an
+  existing table (0152 and 0169 did; both predate the test).
+- **A backfill that does not vacuum is not finished.** A hot backfill
+  leaves the visibility map empty (`relallvisible = 0`) and every
+  index-only scan on the table falls back to the heap, so a big rewrite
+  ends with the `{vacuum}` op on the tables it touched. Never run a
+  backfill and a deploy together: migrate has reserved concurrency 1, and
+  the deploy's migration queues behind the op.
+- **Live diagnostics only through migrate ops.** No psql path reaches the
+  private database; the ops (`{explain_*}`, `{vacuum}`, the census ops)
+  are the read path, and an EXPLAIN runs the exact SQL the tool serves,
+  never a hand-typed approximation of it.
 - **The fingerprint test** asserts that a from-scratch create and the full
   migration ladder produce the same schema — the drift between "what a new
   install gets" and "what production accumulated" has bitten this family
@@ -103,7 +120,7 @@ Measured 2026-09-09 against three `pg_sleep(0.3)` calls on one client:
 **So: await database queries one at a time.** A test walks the service
 source and fails on a `Promise.all` that wraps `db.query`. If a handler
 ever genuinely needs concurrent database work, it needs a second
-connection (a pool), which is a capacity decision about a db.t4g.micro —
+connection (a pool), which is a capacity decision about a db.t4g.small —
 not something to reach for inside a request.
 
 Non-database work still parallelises fine: S3 calls, for one, need no
@@ -136,7 +153,7 @@ connection of their own.
 
 ## Tool conventions
 
-The 1.0.0 contract (review `docs/REVIEW-2026-09-10-DOCS-TOOLS-SEAM.md`, 2.3)
+The 1.0.0 contract (review `docs/reviews/2026-09-10-DOCS-TOOLS-SEAM.md`, 2.3)
 made these uniform; the registry tests enforce the mechanical ones. The
 product meaning of each lives on the site (`protocol.md`, "Argument
 conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
@@ -182,9 +199,9 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
 - **Declarations.** Description at most 600 characters; shared schemas by
   reference (`TAG_SCHEMA`, `ON_BEHALF_OF_SCHEMA`, `WINDOW_ARGS`,
   `MODE_SCHEMA`, `SEGMENT_SCHEMA`, `TIMEZONE_SCHEMA`), never re-typed;
-  `limit` carries a `maximum`; the most-called tools declare an
-  `outputSchema` (`services/mcp/src/output-schemas.mjs`) that the registry
-  validates responses against.
+  `limit` carries a `maximum`; every tool declares an `outputSchema`
+  (`services/mcp/src/output-schemas.mjs`) that the registry validates
+  responses against, and a test fails on a tool without one.
 - **Every docs pointer resolves.** `services/mcp/test/docs-pointers.test.mjs`
   scans the tool modules for `docsRef(...)` and `*_DOCS` literals and fails
   when the page or H2 section is not in the built corpus. Add the section to
@@ -310,7 +327,9 @@ policy (settled 2026-09-17 with the move to SES):
   **no `List-Unsubscribe`**: nobody can opt out of a code they just
   requested, Gmail's and Yahoo's bulk-sender rules exempt transactional mail,
   and the header on it would be a false signal. The body says "if you did
-  not request this, ignore it" instead. Every kind today is transactional.
+  not request this, ignore it" instead. Sign-in codes and account notices
+  are transactional; the scheduled product mail (the weekly kinds, the
+  milestone mail) is bulk.
 - A **bulk** message goes to many people on a schedule (a digest). It MUST
   carry `unsubscribe.url` (https). The relay adds `List-Unsubscribe` and
   `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058) from it;
@@ -359,7 +378,10 @@ tie sponsorship (`/support`) to anything on an account.
 ## Deploying
 
 `node infra/scripts/deploy.mjs` with `AWS_PROFILE=cloud-engineer` **in the environment** —
-the CLI profile flag alone does not satisfy the SDK's provider chain. Order is
+the CLI profile flag alone does not satisfy the SDK's provider chain. It
+refuses a worktree with uncommitted changes to tracked files (it would
+build and ship them) and an unknown flag, and prints a WARNING when
+acceptance is skipped. Order is
 build → upload → migrate → vocabulary import → stack → web. It is smoke-gated,
 and acceptance-gated when asked (`--acceptance`; below), and deploys are cumulative: never deploy past a commit whose infrastructure
 change is blocked. The vocabulary import reads `../cr-agent-api-docs` and
@@ -394,7 +416,7 @@ the 18 s query budget (`budgets`), and the Gym's filed repros keep their
 acceptance criteria (`gym`). The deploy runs it after the smoke gate **when
 asked** (`node infra/scripts/deploy.mjs --acceptance`, or `ACCEPTANCE=1`;
 Jamie, 2026-09-21: four and a half minutes and a pass of heavy reads on the
-shared micro, so it is turned on when wanted - a contract bump, a query
+shared database, so it is turned on when wanted - a contract bump, a query
 change, a release - not on every deploy) and fails on a red case; `npm run
 acceptance` runs it any time. It never writes and never passes `live: true`. When the
 Gym files a finding, its criterion goes under the feedback id in
