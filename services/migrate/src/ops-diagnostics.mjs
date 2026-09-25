@@ -664,7 +664,7 @@ export async function explainParticipation(databaseUrl, spec = {}) {
 }
 
 /** Tables the vacuum op may name. A closed list: the op takes a table
- *  name into SQL, and it is the only maintenance op that writes. */
+ *  name into SQL. `{rewrite_table}` (VACUUM FULL) writes too. */
 const VACUUMABLE = new Set([
   "battle",
   "battle_participant",

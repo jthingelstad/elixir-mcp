@@ -1,5 +1,6 @@
 /**
- * Output schemas for the most-called tools (1.0.0, review Part 3.2).
+ * Output schemas for every tool (the most-called at 1.0.0, review Part 3.2;
+ * every tool since 6.14.0, and a test fails on one without).
  *
  * Responses were JSON inside a text block, visible to the model and to
  * nothing else: /docs/tools documented inputs only, and every response

@@ -109,8 +109,8 @@ export function makeRegistry() {
             name,
             description: t.description,
             inputSchema: publishedInputSchema(t.inputSchema),
-            // The response contract, for the ten most-called tools first
-            // (output-schemas.mjs): rendered on the docs, validated below.
+            // The response contract (output-schemas.mjs; every tool has
+            // one since 6.14.0): rendered on the docs, validated below.
             ...(OUTPUT_SCHEMAS[name]
               ? { outputSchema: OUTPUT_SCHEMAS[name] }
               : {}),

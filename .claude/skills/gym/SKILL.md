@@ -26,10 +26,10 @@ email and the `/api/v1` JSON API: the Gym does not test them, because they
 derive from the MCP (Jamie, 2026-09-23). The grid is `coverage.md` in this
 directory.
 
-Out of scope for testing is not out of scope for fixing. Six JSON API
+Out of scope for testing is not out of scope for fixing. Seven JSON API
 operations serve a tool's result: `clans_participation`, `clans_roster`,
-the `live_fetch` clan read, `players_names`, `players_profile` and
-`battles_query` (wiring in `services/web-api/src/integration-api.mjs`,
+the `live_fetch` clan read, `players_names`, `players_profile`,
+`battles_query` and `elixir_track_player` (`POST /api/v1/me/players`, 2.1.0) (wiring in `services/web-api/src/integration-api.mjs`,
 contract in `packages/contracts/integration-api.openapi.json`). A fix to
 one of those tools is checked against its operation before it ships. The
 MCP versioning rule is MCP-only (majors track domain shifts; removing an
@@ -156,7 +156,7 @@ Gym runs are read-only, so they may run while you fix another family.
      the grid's notes.
    - Fix at the source. The site docs and `apps/site/src/_data/updates.js`
      go in the same commit.
-   - Check the JSON API for the six mirrored tools (see "Scope"). If the
+   - Check the JSON API for the seven mirrored tools (see "Scope"). If the
      fix would change what the `/api/v1` operation returns, stop: park the
      family and ask Jamie.
    - Merge the report's appendix into `acceptance/gym.json` unchanged.
@@ -166,16 +166,13 @@ Gym runs are read-only, so they may run while you fix another family.
    - **One contract bump per family round**, not one per finding, which is
      the cadence rule. Majors are off the table in a sweep. Anything that
      would need one is a Jamie decision.
-   - Run `npm run verify` and check that it reached the tests: a knip
-     failure stops before them.
-   - Deploy: `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --acceptance=<family>`.
-     This runs only that family's cases. Acceptance is opt-in per deploy
-     and `deploy.mjs` prints a WARNING when it is skipped, so a Gym deploy
-     always names its family. Use the whole suite (`--acceptance`)
-     only for a change to shared code (protocol, tools.mjs, shared.mjs,
-     ingest). On 2026-09-23 a full gate on every deploy, plus the Gym runs,
-     drained the database's EBS byte balance in one afternoon.
-     Read the fix back live.
+   - Ship with `/ship` (`.claude/skills/ship/`), deploying with
+     `--acceptance=<family>`: only that family's cases. A Gym deploy
+     always names its family; the whole suite (`--acceptance`) is only
+     for a change to shared code (protocol, tools.mjs, shared.mjs,
+     ingest). On 2026-09-23 a full gate on every deploy, plus the Gym
+     runs, drained the database's EBS byte balance in one afternoon.
+     A change to a tool follows `/tool-change`.
    - Answer each item with `{feedback_respond}`, `done` naming the version,
      following close-the-loop.md's write rules. Add a short `docs/NOTES.md`
      entry for the round. Commit, push, and release the lease.

@@ -140,12 +140,22 @@ Standing maintenance is objective-owned: five owners defined in
 Guard the Door, Keep the Boards) run on the `automations.toml` schedules.
 Read order for any objective run: this file and `docs/DECISIONS.md` ->
 `AGENT-TEAM/WORKFLOW.md` -> `AGENT-TEAM/README.md` -> the objective file.
-The Elixir Gym (`.claude/skills/gym/`) is the repo skill that tests the MCP
-tool families; it replaced the daily Claude Cloud routine, which is
-retired. The consistency skill (`.claude/skills/consistency/`) checks that
-a decision reaches every surface that depends on it: run
-`/consistency <decision>` the day a DECISIONS line lands or changes, and
-`/consistency sweep` before a milestone. EVERY mutating actor on
+The repo skills (`.claude/skills/`) are the procedures for recurring work;
+read the one that fits before starting:
+
+- `ship`: a finished change to production (bookkeeping, verify, commits,
+  deploy with the right acceptance scope, acceptance triage, read-back).
+- `tool-change`: adding or changing an MCP tool, from the DECISIONS check
+  to the JSON API mirror and the docs.
+- `migration`: a schema change, expand-and-contract, and a backfill as an op.
+- `ops`: live diagnostics and the catalogue of every migrate op (a test
+  keeps the catalogue equal to the code).
+- `gym`: the adversarial tester of the MCP tool families; it replaced the
+  daily Claude Cloud routine, which is retired.
+- `consistency`: a decision reaching every surface that depends on it
+  (`/consistency <decision>` the day a DECISIONS line lands or changes,
+  `/consistency sweep` before a milestone).
+- `reference-audit`: the S3 payload archive against cr-agent-api-docs. EVERY mutating actor on
 this checkout - objective run or interactive session - claims the
 checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
 
@@ -157,7 +167,7 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
   the What's-new list (`apps/site/src/_data/updates.js`) in the same
   commit. The tool reference (`/docs/tools`) is GENERATED from the MCP
   registry - never hand-edit it; fix the tool's declaration instead.
-- `npm run verify` (prettier check + oxlint + knip + all workspace tests) is the
+- `npm run verify` (prettier check + oxlint + knip + typecheck + all workspace tests) is the
   pre-push gate; `npm run format` fixes style. `npm run knip` can also run
   the dead-export/dependency check alone during refactoring. CI uses the same gate.
 - Commits are small and message-first; assert HEAD moved after committing

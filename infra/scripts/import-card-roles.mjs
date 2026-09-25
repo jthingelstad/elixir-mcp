@@ -4,8 +4,9 @@
  * checkout into the record (docs/reviews/2026-09-20-DECK-ARCHETYPES-DESIGN.md
  * §12.4). The Lambdas have no internet, so the operator's machine reads
  * ../cr-agent-api-docs/data/card-roles.json and data/deck-aliases.json,
- * refuses a dirty or unpushed sibling (the version must be a commit
- * anyone can read), sends the rows to the migrate Lambda
+ * refuses a sibling whose two data files are uncommitted (it checks
+ * `git status` on them, not whether the commit is pushed: push the
+ * reference first, so the version is a commit anyone can read), sends the rows to the migrate Lambda
  * ({card_roles_import}), and refreshes fixtures/card-roles.snapshot.json
  * so the tests run in CI without the sibling. Run by deploy.mjs after
  * migrations; runnable alone:

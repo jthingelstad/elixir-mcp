@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 /**
- * Deploy (run with AWS_PROFILE=cloud-engineer). Order is the design (§11.1):
- * build -> upload -> stack create/update -> MIGRATE -> web sync -> outputs.
+ * Deploy (run with AWS_PROFILE=cloud-engineer). Order: build -> upload ->
+ * MIGRATE (the migrate bundle is pushed ahead of the flip, so a failed
+ * migration stops the deploy before any code changes) -> vocabulary import
+ * -> stack update -> web sync and invalidation -> smoke -> acceptance when
+ * asked. On --create the stack comes first and migrations run after it.
  *
  *   node infra/scripts/deploy.mjs --create   # first deploy (GATED)
  *   node infra/scripts/deploy.mjs            # update

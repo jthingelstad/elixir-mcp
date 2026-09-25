@@ -2363,3 +2363,30 @@ Jamie took the seven follow-ups one at a time; decisions are in DECISIONS.md.
 - First run, the same day: a full sweep (227,949 payloads, 15 endpoints, about 16 minutes), two read-only reviewers, 30 patches proposed. Jamie approved 29 and held one (Ranked `trophyChange`/`startingTrophies`, which rests on one clan's sample). cr-agent-api-docs 3716e7b: 16 new game mode ids, the RR_ event, `rounds` on every duel, CHAOS modifiers on all seven rulesets, King Tower HP never null, `deckSelection` filled in, the 2v2 League, battle arenas off Trophy Road, the empty progress key, `periodLogs` absent (not `[]`) on a fresh race, Colosseum days unlogged (five-week seasons), eventTag = one run of an event, board depth and cursors, and no real tag left in its prose. The run also caught this repo's own privacy slip: `[].modifiers[].tag` was on the evidence allowlist and is a player tag (51dc8e82).
 - Queued from the run: three elixir-bot test fixtures in the S3 archive (via the 09-15 backfill; the bot's tests are isolated now), and removing them from the kept-forever archive is Jamie's call; manifest paths never observed in six months (support-card evolution fields, `[].challenge*`, `collectionEndTime`/`warEndTime`, clanwars `clanWarTrophies`, leaderboard `expLevel`); probes on 2026-10-02 (four-week Colosseum logging) and one `riverracelog?limit=20`.
 
+
+## 2026-09-25 — Four procedure skills: ship, tool-change, migration, ops
+
+- Jamie asked for the four suggested after the reference audit. Each was drafted by a worker from the code, then reviewed against it: every quoted DECISIONS line, path, flag and commit was checked.
+  - `ship` is the loop done by hand four times today. It covers bookkeeping, verify, commits, the deploy's acceptance scope, and triage (verdicts in `triage.md`). It also covers the read-back, siblings and close.
+  - `tool-change` goes from the DECISIONS check and stop list to the conventions and the second derivations. It then covers the seven mirrored `/api/v1` operations, tests, docs, acceptance and the version class, and has a checklist.
+  - `migration` is the ladder: sort the change, the rules test, expand and contract, lock_timeout, a plain index in its own migration, the backfill op, vacuum, the header, the lossless record, the fingerprint re-pin. Its `shapes.md` holds the step-by-step shapes and the SQL traps.
+  - `ops` is the read paths plus `ops.md`, a catalogue of all 56 migrate ops, 22 of which write, each naming who may run it. `services/migrate/test/ops-catalogue.test.mjs` keeps it equal to the dispatcher. The Gym and consistency skills now hand shipping to `/ship`, and AGENTS.md indexes all seven repo skills.
+- Stale text the workers found and fixed:
+  - the Gym skill and WORKFLOW listed six mirrored operations (seven since 2.1.0);
+  - ENGINEERING said indexes are built `CONCURRENTLY` (none can be: every migration is one transaction);
+  - I had written that a deploy "queues behind" a running backfill (it gets a 429 and stops);
+  - the fingerprint test was described as comparing a from-scratch create (it compares the ladder with `db/schema.fingerprint`);
+  - `resolveWindow()` is private (`resolveSeasonWindow()`);
+  - deploy.mjs's header order was wrong;
+  - the card-roles importer claimed to refuse an unpushed reference (it checks uncommitted only);
+  - two comments said "ten tools" have output schemas;
+  - the acceptance README pointed Gym criteria at `checks/gym.mjs`;
+  - AGENTS.md's verify omitted typecheck.
+- Queued, not done:
+  - The migrate handler runs the migration ladder for any payload with no known key, so a misspelled op or `{"stats": false}` applies pending migrations. It should refuse a non-empty payload it does not know; `{}` stays the deploy's call.
+  - `{explain_meta}`'s excluded breakdown has drifted from the tool's.
+  - `{series_backfill}` defaults to a 240 s budget, past the 90 s duration alarm.
+  - Checksum immutability is enforced only when production applies a migration; no test catches an edited shipped file.
+  - The rules test does not require `set local lock_timeout` (0172-0175 lack it).
+  - No test enforces the changelog's `breaking` field.
+  - No runbook grants `{terminate_backends}`, `{gateway_drain}`/`{gateway_recover}`, `{collection}`, the `{account_*}` ops or `{oauth_grants}`, so each is Jamie's call.

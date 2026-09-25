@@ -44,8 +44,10 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
 - Ordered SQL in `db/migrations/NNNN_name.sql`, applied by the **migrate Lambda
   only**, at deploy. Never at handler start. Never by hand. Concurrent Lambdas
   racing migrations is a self-inflicted outage.
-- **Expand and contract.** Additive first: nullable columns, new tables, indexes
-  `CONCURRENTLY`. Drops and renames land only once no deployed code reads the
+- **Expand and contract.** Additive first: nullable columns, new tables, an
+  index in its own migration once its column is filled (a plain `create
+  index`: every migration runs in a transaction, which refuses
+  `CONCURRENTLY`). Drops and renames land only once no deployed code reads the
   old shape. A migration that breaks running code cannot ship with it.
 - **A migration never rewrites a large table.** The migrate Lambda has
   300 s and a migration is one transaction; `ALTER TABLE` takes an ACCESS
@@ -67,16 +69,17 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
   leaves the visibility map empty (`relallvisible = 0`) and every
   index-only scan on the table falls back to the heap, so a big rewrite
   ends with the `{vacuum}` op on the tables it touched. Never run a
-  backfill and a deploy together: migrate has reserved concurrency 1, and
-  the deploy's migration queues behind the op.
+  backfill and a deploy together: migrate has reserved concurrency 1, so
+  the deploy's migration step gets a 429 and the deploy stops (twice on
+  2026-09-22).
 - **Live diagnostics only through migrate ops.** No psql path reaches the
   private database; the ops (`{explain_*}`, `{vacuum}`, the census ops)
   are the read path, and an EXPLAIN runs the exact SQL the tool serves,
   never a hand-typed approximation of it.
-- **The fingerprint test** asserts that a from-scratch create and the full
-  migration ladder produce the same schema — the drift between "what a new
-  install gets" and "what production accumulated" has bitten this family
-  before. Re-pin it from a **fresh scratch database**, never the dev one.
+- **The fingerprint test** applies the whole ladder to a fresh scratch
+  database and compares its schema with the committed `db/schema.fingerprint`
+  — the drift between "what a new install gets" and "what production
+  accumulated" has bitten this family before. Re-pin it from a **fresh scratch database**, never the dev one.
 - **Canonical tables are lossless by policy.** Projections are rebuildable
   from the S3 payload archive (every distinct payload, forever); battles,
   snapshots and receipts are the system of record and must never need a
@@ -171,7 +174,8 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   `population` (`populationBlock`). The first sentence of the description
   says which, in the fixed phrase. Nothing to default to is `no_subject`, never a guess.
 - **Windows.** `from`/`to` (`WINDOW_ARGS`) on every windowed tool, `days` /
-  `weeks` as sugar, resolved once by `resolveWindow()`; date-only bounds in
+  `weeks` as sugar, and `season` (`SEASON_ARG_SCHEMA`), resolved once by
+  `resolveSeasonWindow()` in `tools/shared.mjs`; date-only bounds in
   `zoneFor()`'s zone, which the per-call `timezone` argument overrides.
   The SESSION zone is UTC, pinned on the database itself (0155), so a bare
   `::date` or `current_date` over a timestamptz is a UTC day on every
@@ -376,6 +380,10 @@ tie sponsorship (`/support`) to anything on an account.
   guard, which must not be lost in translation.
 
 ## Deploying
+
+The whole loop, from release bookkeeping to acceptance triage and the
+live read-back, is the `ship` skill (`.claude/skills/ship/`); what follows
+is the invariant it serves.
 
 `node infra/scripts/deploy.mjs` with `AWS_PROFILE=cloud-engineer` **in the environment** —
 the CLI profile flag alone does not satisfy the SDK's provider chain. It

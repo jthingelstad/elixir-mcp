@@ -98,7 +98,7 @@ READING is a document map, not a second product specification.
    declaration instead. When a tool changes whose result a JSON API
    operation mirrors (`clans_participation`, `clans_roster`, the
    `live_fetch` clan read, `players_names`, `players_profile`,
-   `battles_query`), check the matching `/api/v1` operation in
+   `battles_query`, `elixir_track_player`), check the matching `/api/v1` operation in
    `packages/contracts/integration-api.openapi.json`: the JSON API keeps
    ordinary semver, so a removed or renamed field there is its own major
    and a Jamie decision. Commit small and message-first, push `main`, and

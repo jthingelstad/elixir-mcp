@@ -149,25 +149,20 @@ report. Every answer becomes a DECISIONS line in the fix phase.
 
 ## Phase 5: ship
 
-1. `npm run verify`. It must reach the tests; a knip failure stops before
-   them.
-2. Commit in logical chunks (docs and artifacts, ops and migrations, code,
-   site docs, ledger), each message-first, and check that HEAD moved.
-3. Push, then deploy:
-   `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --acceptance`.
-   A sweep touches shared code, so it runs the whole suite; a trace that
-   touched one family may pass `--acceptance=<family>`.
-4. **Triage every acceptance failure.** The suite is how 2026-09-25's
-   9.1.0 found a note still naming a removed field. For each failure:
-   - fix forward (a new patch) when the product is wrong,
-   - amend a case the round's decisions changed, with an `amended` reason,
-   - allow a real but rare field in `catalogue-allow.json` with a reason,
-   - keep a `known.json` entry only with a current reason and an expiry,
-   - re-run a suspected flake alone (`node acceptance/run.mjs --only <id>`)
-     before calling it one.
-   Never delete a control case: every finding keeps one.
-5. Sibling repos last, after the hub they depend on is live. Their gates,
-   their deploys, their leases, released when done.
+Ship with `/ship` (`.claude/skills/ship/`): verify, commit in logical chunks
+(docs and artifacts, ops and migrations, code, site docs, ledger), deploy,
+triage every acceptance failure, read it back. What is particular to a
+consistency round:
+
+- A sweep touches shared code, so it runs the whole suite
+  (`--acceptance`); a trace that touched one family may pass
+  `--acceptance=<family>`.
+- The suite is how 9.1.0 found a note still naming a removed field
+  (2026-09-25): expect the round's decisions to break Gym cases that
+  asserted the old behavior, and amend them with the decision as the
+  reason rather than calling them flakes.
+- Sibling repos last, after the hub they depend on is live. Their gates,
+  their deploys, their leases, released when done.
 
 ## Phase 6: close
 
