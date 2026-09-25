@@ -128,8 +128,8 @@ is the same shape with `tournamentTag`.
 
 Event content is the `event` mode group (6.17.0). `mode: "event"` selects it and
 every other `mode` excludes it. Before this it folded into `casual`, which filed
-the reworked Seasonal Trophy Road as casual play and pooled a fortnight's 2v2
-tournament with ordinary friendlies.
+the reworked Seasonal Trophy Road as casual play and pooled the September 2026
+2v2 League with ordinary friendlies.
 
 **`event` is a filter, not a population.** One event is not another: `trail`
 with `gameMode: TeamVsTeam` alone has carried ten distinct event tags, because
