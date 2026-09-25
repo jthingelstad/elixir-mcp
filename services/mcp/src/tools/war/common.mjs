@@ -25,8 +25,8 @@ export const CLOCK_DOCS = docsRef("clocks", "the-policy-day");
  *
  *  6.19.0 served the honest name, clan_war_trophies, beside the old
  *  one; 9.1.0 removed the old one (Jamie 2026-09-25). */
-export const WAR_TROPHIES_NOTE =
-  "clan_war_trophies is the clan's WAR trophies, which is what the race payload's clanScore actually carries - not the clan score a profile shows (that is ~100x larger; clans_roster serves it as clan_score and clans_timeline serves both as separate metrics).";
+export const warTrophiesNote = (field = "clan_war_trophies") =>
+  `${field} is the clan's WAR trophies, which is what the race payload's clanScore actually carries - not the clan score a profile shows, which is about 100 times larger (clans_roster serves that one, and clans_timeline serves both as separate metrics).`;
 /** When the figure is from (feedback #140): the race payload carries a
  *  clan's war trophies as they stood going into the race, and the week's
  *  trophy_change lands only in the next race's figure - 26 of 26 chained

@@ -6,11 +6,7 @@ import {
   entitledClan,
   notes,
 } from "../shared.mjs";
-import {
-  WAR_TROPHIES_NOTE,
-  WAR_DOCS,
-  WAR_FAME_BY_PLACEMENT,
-} from "./common.mjs";
+import { warTrophiesNote, WAR_DOCS, WAR_FAME_BY_PLACEMENT } from "./common.mjs";
 
 export const war_rivals = {
   description:
@@ -162,7 +158,7 @@ export const war_rivals = {
         ...effort(r.clan_tag),
       })),
       notes: notes(
-        WAR_TROPHIES_NOTE,
+        warTrophiesNote(),
         // mean_fame measures placements (Gym #180).
         WAR_FAME_BY_PLACEMENT,
         "races_observed counts our sightings in races shared with recorded clans, not the rival's full history; a race seen by two recorded clans counts once.",

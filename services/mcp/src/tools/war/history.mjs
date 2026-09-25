@@ -11,7 +11,7 @@ import {
   subject,
 } from "../shared.mjs";
 import {
-  WAR_TROPHIES_NOTE,
+  warTrophiesNote,
   warTrophyTiming,
   CLAN_TAG_SCHEMA,
   WAR_DOCS,
@@ -296,7 +296,9 @@ export const war_history = {
             "closed_at is the API's own close instant for the week (null on weeks older than the log the API still served when the column arrived); finished is that same instant where the API gave it, else when the recorder first saw the week closed (Gym #179).",
             // Fame is paid for placement (Gym #180).
             WAR_FAME_BY_PLACEMENT,
-            WAR_TROPHIES_NOTE,
+            warTrophiesNote(
+              hasSeason ? "clan_war_trophies" : "our_clan_war_trophies",
+            ),
             warTrophyTiming(
               hasSeason ? "clan_war_trophies" : "our_clan_war_trophies",
             ),

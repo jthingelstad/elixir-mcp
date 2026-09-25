@@ -815,6 +815,7 @@ async function consentFlow({
   grants = [],
   scope = "cr:read",
   redirect = REDIRECT,
+  resource = RESOURCE,
 } = {}) {
   const reg = await handler(
     event({
@@ -838,7 +839,7 @@ async function consentFlow({
     code_challenge: challenge,
     code_challenge_method: "S256",
     scope,
-    resource: RESOURCE,
+    resource,
   };
   sentEmails.length = 0;
   const emailStep = await handler(
@@ -872,12 +873,40 @@ async function consentFlow({
         code_verifier: verifier,
         client_id,
         redirect_uri: redirect,
-        resource: RESOURCE,
+        resource,
       },
     }),
   );
   return { emailStep, tokens: JSON.parse(tokenRes.body) };
 }
+
+test("userinfo answers a family app's JSON API grant as it does an MCP one", async () => {
+  const { tokens } = await consentFlow({
+    scope: "cr:read account:email",
+    redirect: "https://drop.poapkings.com/auth/elixir/callback",
+    resource: `${ISSUER}/api/v1`,
+  });
+  assert.equal(tokens.scope, "cr:read account:email");
+  const answer = await handler(
+    event({
+      method: "GET",
+      path: "/oauth/userinfo",
+      headers: { authorization: `Bearer ${tokens.access_token}` },
+    }),
+  );
+  assert.equal(answer.statusCode, 200, answer.body);
+  const info = JSON.parse(answer.body);
+  assert.equal(info.email, EMAIL);
+  assert.equal(info.kind, "person");
+  const junk = await handler(
+    event({
+      method: "GET",
+      path: "/oauth/userinfo",
+      headers: { authorization: "Bearer not-a-token" },
+    }),
+  );
+  assert.equal(junk.statusCode, 401);
+});
 
 test("ticking a capability the client never asked for grants it", async () => {
   const { emailStep, tokens } = await consentFlow({

@@ -992,9 +992,18 @@ export function makeOauthRoutes({
       });
       if (!auth.toLowerCase().startsWith("bearer "))
         return challenge("invalid_token");
-      const account = await validateAccessToken(db, auth.slice(7).trim(), {
-        resource: `${issuer}/mcp`,
-      });
+      // Userinfo is the issuer's, not a door's: a person's grant for either
+      // personal audience answers here (a family app that signs in for the
+      // JSON API, Drop since 2026-09-25, needs the stable sub as an MCP
+      // client did). An agent's audience (/mcp/agent/<id>) never does.
+      const token = auth.slice(7).trim();
+      const account =
+        (await validateAccessToken(db, token, {
+          resource: `${issuer}/mcp`,
+        })) ??
+        (await validateAccessToken(db, token, {
+          resource: `${issuer}/api/v1`,
+        }));
       if (!account) return challenge("invalid_token");
       // Family apps only, checked again at the door the address leaves by:
       // a grant made before the rule (2026-09-25) carries no exception.

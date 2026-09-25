@@ -252,7 +252,8 @@ granted it, whatever it names in `scope`, so the address is never released
 outside the family. A family app that names it sees it listed with the rest
 on the consent page, and the person can decline the whole connection.
 
-`GET /oauth/userinfo` with a bearer access token whose grant carries it:
+`GET /oauth/userinfo` with a bearer access token whose grant carries it,
+for either personal audience (`/mcp` or `/api/v1`; an agent's is refused):
 
 ```json
 { "sub": "<stable account id>", "email": "you@example.com", "email_verified": true, "kind": "person" }
@@ -260,7 +261,7 @@ on the consent page, and the person can decline the whole connection.
 
 `email_verified` is always true: the person proved the address with a code
 before any grant existed, and consent records the address on the account.
-Refusals: 401 `invalid_token` (no bearer, or not a live personal-door token),
+Refusals: 401 `invalid_token` (no bearer, or not a live personal token for `/mcp` or `/api/v1`),
 403 `insufficient_scope` with `WWW-Authenticate: Bearer error="insufficient_scope", scope="account:email"`,
 and 404 `email_unavailable` for an account that predates Elixir keeping the
 address and whose holder has not signed in since (the next consent fills
