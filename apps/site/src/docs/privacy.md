@@ -32,6 +32,17 @@ profiles, clan rosters, war standings. All of it is publicly queryable
 by anyone with a tag and an API key. No sponsor owns any part of the
 record.
 
+Beside it, and never mixed into it, are **attested facts**: what a
+person did in a clan through one of the Elixir family's own apps (a
+leader saying a departure was a kick or a leave, a promotion made, the
+clan's own award, a member saying they are away, a message sent to the
+clan), or what a family app's own game produced for a player (a personal
+best in Elixir Drop). Each says who said it, in which app, and when, and
+is shown only to the people its kind allows: the clan's verified members,
+and for a departure's kind or an away only its leaders; an agent never
+sees those. What a clan shares is the clan's choice, made in the app.
+See [attested facts](/docs/integrations#attested-facts).
+
 **2. Your account.** We store two things about your email address. A one-way hash is your
 account's identity — it is what a sign-in looks you up by, and it is
 the only thing older parts of the system ever see. We also keep the

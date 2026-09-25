@@ -2458,4 +2458,16 @@ round is **Elixir's door, then Clan** (Drop follows in its own session).
   round; Jamie asked that the agent do it). A clan fact appears only for a
   reader who has the clan as a subject; `timeline_pending` does not count
   facts.
+- **Shipped** 77dd4c2e: migrations 0178 and 0179 ran (`{"applied":177,"ran":2}`);
+  acceptance `--acceptance=elixir` 191 cases, 0 failed, 9 skipped (conditions
+  not met). Read-back: status healthy; `/tools.json` contract 9.2.0;
+  `/docs/integration-api.json` 2.2.0 with the three fact paths;
+  `scopes_supported` ends `clans:attest`; `POST /api/v1/clans/%23…/facts`
+  without a token answers 401; `/updates` carries the entry. No live write
+  was made to verify (reads and refusal paths only). The privacy page now
+  describes attested facts beside game data (not a new bucket).
+- **Owed:** a `/consistency` pass on the new DECISIONS line (this session
+  swept the docs for contradicted claims by hand; `verify.md` amended,
+  the support and privacy "same for everyone" lines are about money and
+  still hold).
 
