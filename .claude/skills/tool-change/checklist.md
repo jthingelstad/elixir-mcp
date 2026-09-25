@@ -48,8 +48,9 @@ only when it does not apply, and say why in the commit message.
   `trophyFloor()`, `markPartialWeeks()` and the other controls.
 - The SQL seams are `boat-defense-sql.mjs` (`notBoatDefense`),
   `mode-filter.mjs` (`participantModeClause`, `metaPopulationClause`),
-  `participation-sql.mjs`, `standings-sql.mjs`, `daily-sql.mjs` and
-  `war-battles-sql.mjs`.
+  `participation-sql.mjs`, `standings-sql.mjs` and `daily-sql.mjs`
+  (`war-battles-sql.mjs`, which placed war battles on a policy day, went
+  in 9.1.2 with the last per-day reader).
 - `services/mcp/src/output-schemas.mjs`: the shared blocks are
   `WINDOW_ECHO`, `NOTES`, `DOCS`, `META`, `MODE_SPLIT`, `NAME`, `RATE`
   and `COUNT`.

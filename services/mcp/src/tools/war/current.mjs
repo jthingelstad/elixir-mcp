@@ -1,5 +1,4 @@
 import { observedStart, periodAt } from "../../war-period.mjs";
-import { WAR_BATTLE_TYPES, warBattlesSql } from "../../war-battles-sql.mjs";
 import { finishInstant } from "../../time.mjs";
 import {
   VERBOSITY,
@@ -252,40 +251,29 @@ export const war_current = {
     // Today's remaining-decks picture (first designed in docs/archive/CLAN-PULSE.md, now archived): only while the
     // anchored war-day period is nominally still open.
     let decksToday = null;
-    let overCapNote = null;
     let raceFinishedNote = null;
     if (period?.war_day && Date.now() < Date.parse(period.period_end_nominal)) {
+      // The game's own counter (decksUsedToday, as the race poll recorded
+      // it), like the training days. Jamie 2026-09-25: war facts are
+      // weekly, and the recorded war battles placed on the 10:00Z policy
+      // day (which this took the larger of) were that per-day
+      // attribution; over_cap existed only because the placement
+      // overshot a clan's real reset.
       const { rows: dayRows } = await ctx.db.query(
-        `with base as (
-             select wp.player_tag, p.name
-             from war_participation wp join player p on p.player_tag = wp.player_tag
-             where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
-               and exists (select 1 from clan_membership cm
-                           where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
-                             and cm.left_observed_at is null)),
-           att as (
-             select player_tag, decks_used_today from war_attendance_day
-             where clan_tag = $1 and season_id = $2 and section_index = $3 and war_day = $4),
-           fought as (
-             select wb.player_tag, count(distinct wb.battle_id)::int as n
-             from (${warBattlesSql({ clan: "$1", season: "$2", section: "$3", warDay: "$4", types: "$5" })}) wb
-             group by wb.player_tag)
-           select base.player_tag, base.name,
-                  least(greatest(coalesce(att.decks_used_today, 0),
-                                 coalesce(fought.n, 0)), 4)::int as decks_used,
-                  greatest(coalesce(att.decks_used_today, 0),
-                           coalesce(fought.n, 0))::int as decks_raw
-           from base
-           left join att on att.player_tag = base.player_tag
-           left join fought on fought.player_tag = base.player_tag
-           order by decks_used, base.name nulls last`,
-        [
-          clanTag,
-          wk.season_id,
-          wk.section_index,
-          period.war_day,
-          WAR_BATTLE_TYPES,
-        ],
+        `select wp.player_tag, p.name,
+                least(coalesce(t.decks_used_today, 0), 4)::int as decks_used
+           from war_participation wp
+           join player p on p.player_tag = wp.player_tag
+           left join war_attendance_day t
+             on t.clan_tag = wp.clan_tag and t.season_id = wp.season_id
+            and t.section_index = wp.section_index and t.war_day = $4
+            and t.player_tag = wp.player_tag
+          where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
+            and exists (select 1 from clan_membership cm
+                         where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
+                           and cm.left_observed_at is null)
+          order by decks_used, p.name nulls last`,
+        [clanTag, wk.season_id, wk.section_index, period.war_day],
       );
       const pick = (lo, hi) =>
         dayRows
@@ -295,17 +283,6 @@ export const war_current = {
             name,
             decks_used,
           }));
-      // A day holds four decks. Following the 10:00Z POLICY reset rather
-      // than each clan's drifted start means battles in the drift gap
-      // land on the previous policy day; the first sign is somebody
-      // counting FIVE decks. Surface it instead of rounding it away.
-      const overCap = dayRows
-        .filter((r) => r.decks_raw > 4)
-        .map((r) => ({
-          player_tag: r.player_tag,
-          name: r.name,
-          decks_observed: r.decks_raw,
-        }));
       decksToday = {
         day_kind: "war",
         day_in_section: period.war_day + 2,
@@ -325,14 +302,10 @@ export const war_current = {
           finished: pick(4, 4).length,
           participants: dayRows.length,
         },
-        ...(overCap.length > 0 ? { over_cap: overCap } : {}),
       };
       if (raceFinishedAt)
         raceFinishedNote =
           "race_finished_at is set: this clan's boat has crossed the finish line this week, so decks_today reports who played today, not who still owes the race anything.";
-      if (overCap.length > 0)
-        overCapNote =
-          "over_cap lists members observed with more than four decks in this policy day: this clan's real reset drifts far enough from the policy hour to move battles across the boundary.";
     }
     if (!decksToday && trainingDecks) decksToday = trainingDecks;
     return {
@@ -404,7 +377,6 @@ export const war_current = {
         decksToday
           ? "decks_today trails actual play early in a day: cite it as observed so far, never as final."
           : null,
-        overCapNote,
         raceFinishedNote,
         "Days follow the 10:00 UTC policy reset for every clan and the period is the calendar's: cite the *_nominal instants; started_observed_at is when the recorder first saw this period open (null when it has not), observed_offset_minutes its distance from the policy hour including polling latency.",
         // The race closes before the grid (Gym #169, #179).

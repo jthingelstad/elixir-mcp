@@ -115,9 +115,9 @@ every clan Elixir records, so no surface splits a member's week by war
 day (9.0.1): war facts are the game's weekly counters, and
 `war_current.decks_today`, the day still being played, is the one
 day-sized figure. It is the game's own `decksUsedToday` counter for the
-current day, raised to the member's war battles recorded on that day
-where the poll trails play; on a training day it lists the war decks
-members have played for reps (`day_kind: "training"`), which never score.
+current day, as the last race poll recorded it (so it can trail play by a
+poll); on a training day it lists the war decks members have played for
+reps (`day_kind: "training"`), which never score.
 
 `game_clock` answers all of this for nobody in particular (pass `at` to learn
 what day a recorded battle fell on) and is the right first call when a
@@ -144,11 +144,9 @@ a clan's last poll:
   sighting's distance from the policy hour, **including polling latency**,
   so it is an upper bound on the clan's real drift.
 - Battles in the drift gap, played after the race's real reset but before
-  10:00 UTC, land on the **previous** policy day. Because `decks_today` is
-  raised to the battles recorded on the day, a member can then count more
-  than four: `decks_today.over_cap` lists members observed with more than
-  four decks in a policy day (`decks_observed`) rather than rounding them
-  away, and a note says the race's reset drifted across the boundary.
+  10:00 UTC, would land on the **previous** policy day, which is why no
+  count places war battles on a day: `decks_today` is the game's own
+  counter, which follows the race's real reset (9.1.2).
 - The period is the calendar's, open by construction (a day that has
   ended is simply not the current one; the always-false
   `nominal_period_elapsed` flag was removed at 4.0.0).

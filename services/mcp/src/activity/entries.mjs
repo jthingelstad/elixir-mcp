@@ -27,7 +27,6 @@
 import { badgeLabel } from "../badge-names.mjs";
 import { modeGroupOf } from "@elixir-mcp/contracts";
 import { periodAt } from "../war-period.mjs";
-import { warBattlesSql, WAR_BATTLE_TYPES } from "../war-battles-sql.mjs";
 import { finishInstant } from "../time.mjs";
 import {
   hydratePlayerEvents,
@@ -1127,39 +1126,29 @@ export async function buildClanEntry(
     const dayInProgress = p && nowMs >= p.startMs && nowMs < p.endMs;
     if (p && sameWeek && dayInProgress) {
       if (p.warDay) {
+        // The game's own counter, as war_current.decks_today reads it
+        // (9.1.2, Jamie 2026-09-25): no longer raised to war battles
+        // placed on the policy day, which was the per-day attribution
+        // the weekly decision retired.
         const { rows: decks } = await db.query(
-          `with base as (
-             select wp.player_tag from war_participation wp
+          `with merged as (
+             select wp.player_tag,
+                    least(coalesce(t.decks_used_today, 0), 4) as d
+               from war_participation wp
+               left join war_attendance_day t
+                 on t.clan_tag = wp.clan_tag and t.season_id = wp.season_id
+                and t.section_index = wp.section_index and t.war_day = $4
+                and t.player_tag = wp.player_tag
               where wp.clan_tag = $1 and wp.season_id = $2 and wp.section_index = $3
                 and exists (select 1 from clan_membership cm
                              where cm.clan_tag = wp.clan_tag and cm.player_tag = wp.player_tag
-                               and cm.left_observed_at is null)),
-           att as (
-             select player_tag, decks_used_today from war_attendance_day
-              where clan_tag = $1 and season_id = $2 and section_index = $3 and war_day = $4),
-           fought as (
-             select wb.player_tag, count(distinct wb.battle_id)::int as n
-               from (${warBattlesSql({ clan: "$1", season: "$2", section: "$3", warDay: "$4", types: "$5" })}) wb
-              group by wb.player_tag),
-           merged as (
-             select base.player_tag,
-                    least(greatest(coalesce(att.decks_used_today, 0),
-                                   coalesce(fought.n, 0)), 4) as d
-               from base
-               left join att on att.player_tag = base.player_tag
-               left join fought on fought.player_tag = base.player_tag)
+                               and cm.left_observed_at is null))
            select count(*) filter (where d = 0)::int as untouched,
                   count(*) filter (where d between 1 and 3)::int as partial,
                   count(*) filter (where d = 4)::int as finished,
                   count(*)::int as participants
              from merged`,
-          [
-            tag,
-            wk[0].season_id,
-            wk[0].section_index,
-            p.warDay,
-            WAR_BATTLE_TYPES,
-          ],
+          [tag, wk[0].season_id, wk[0].section_index, p.warDay],
         );
         if (decks[0].participants > 0)
           war.decks = { as_of: iso(Math.min(toMs, nowMs)), ...decks[0] };

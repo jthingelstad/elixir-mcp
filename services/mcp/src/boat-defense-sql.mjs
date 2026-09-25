@@ -8,7 +8,7 @@
  * `battle_participant` alias is in scope (and survives the alias rewrite
  * battles_trends does for its window count). The lookup runs for boat
  * rows only, by primary key, so a scan over participants stays
- * index-only - the same shape war-battles-sql.mjs uses.
+ * index-only.
  */
 export const notBoatDefense = (bp = "bp") =>
   `not (${bp}.type = 'boatBattle' and exists (

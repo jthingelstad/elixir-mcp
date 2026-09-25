@@ -334,7 +334,7 @@ test("the brief names every segment tool, and every windowed tool accepts season
 
 test("9.x: the retired war day fields, the war clan_score alias and Pilot Score appear in no declaration, and in the docs only as history", () => {
   const retired =
-    /\b(war_days_battled|war_days|attendance_by_war_day|scoring_decks|war_scoring_decks|training_decks|war_decks_by_day|war_battles_by_day|training_today|our_clan_score|pilot_score|clans_pilot_scores|battles_levels)\b/;
+    /\b(war_days_battled|war_days|attendance_by_war_day|scoring_decks|war_scoring_decks|training_decks|war_decks_by_day|war_battles_by_day|training_today|our_clan_score|over_cap|decks_observed|pilot_score|clans_pilot_scores|battles_levels)\b/;
   assert.doesNotMatch(JSON.stringify(declarations), retired);
   const docsDir = path.join(here, "../../../apps/site/src/docs");
   for (const f of readdirSync(docsDir).filter((x) => x.endsWith(".md")))

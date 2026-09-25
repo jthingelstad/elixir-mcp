@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-25",
+    title: "Today's war decks are the game's own count",
+    body: "Who has played their war decks today now comes straight from the game's own daily counter, as Elixir last read the race. It used to add recorded war battles placed on the day by the clock, which could run ahead of the game and, for a clan whose day rolls a little early, show someone with more than four decks. The count can now trail play by a few minutes instead of guessing ahead. Contract 9.1.2.",
+  },
+  {
+    date: "2026-09-25",
     title: "Your own battles, counted the same everywhere",
     body: "A boat defense, where an enemy attacked your clan's boat and the defense deck answered, is no longer counted as one of your battles in performance, comparisons, trends, card and deck stats, or clan participation. When a record mixes game modes, the answer now shows each mode family and says it pooled them, and the weekly arena mail does the same. On your own connection you are yourself: your agent no longer sees the tools for mapping other people, and leaving out a clan means your primary player's clan. You cannot remove your primary player while you track others; make another player primary first, from the player's page. Only Elixir's own apps, like Elixir Drop, can ask for your email address when you sign in.",
   },

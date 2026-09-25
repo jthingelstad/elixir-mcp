@@ -475,11 +475,8 @@ Elixir records it cannot be placed reliably. So no tool splits a week by
 war day: there is no per-day attendance, no training-day total, and no
 count of the decks played after the finish. `war_current.decks_today` is
 the one day-sized figure, for the day still being played: the game's own
-`decksUsedToday` counter for the current day, raised to the member's war
-battles recorded on that day where the poll trails play. Because the grid
-is the policy day, a race whose real reset drifts across 10:00 UTC can put
-more than four on one member; `decks_today.over_cap` lists them rather
-than rounding them away ([Time and clocks](/docs/clocks#the-policy-day)).
+`decksUsedToday` counter for the current day, as the last race poll
+recorded it ([Time and clocks](/docs/clocks#the-policy-day)).
 
 **Training days are recorded too** (since 2026-09-24). A member battles
 with the same four war decks all week. On a war day each deck can be played

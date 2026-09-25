@@ -2948,6 +2948,8 @@ export const OUTPUT_SCHEMAS = {
       },
       decks_today: {
         type: ["object", "null"],
+        description:
+          "The day still being played, from the game's own decksUsedToday counter as the last race poll recorded it (9.1.2: no longer raised to war battles placed on the policy day).",
         properties: {
           day_kind: { type: "string", enum: ["training", "war"] },
           day_in_section: COUNT,
@@ -2958,7 +2960,6 @@ export const OUTPUT_SCHEMAS = {
           partial: { type: "array" },
           finished: { type: "array" },
           counts: { type: "object" },
-          over_cap: { type: "array" },
         },
       },
       decks_today_reason: {

@@ -40,8 +40,7 @@
     "player_activity": "a timeline entry kind for a player subject; the acceptance principal is a clan agent and follows no player",
     "training_today": "deprecated at 7.2.x (decks_today covers every race-week day); war_current serves it only on a training day, so a war-day run never sees it",
     "roster_and_war_only": "an activity basis served only for an activity-scope clan (members' logs not recorded); a run over recorded clans never sees it",
-    "account_role_changed": "timeline: an account item written only when an admin changes the account's role; the suite's account has had none",
-    "decks_observed": "war_current decks_today.over_cap: only on a member who counts more than four decks in one policy day, the drift-gap sign"
+    "account_role_changed": "timeline: an account item written only when an admin changes the account's role; the suite's account has had none"
   },
   "battles_query": {
     "king_tower_fell": "a VALUE of inferred.duration.basis, not a field; the note explains the three rules",

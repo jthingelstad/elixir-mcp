@@ -2390,3 +2390,28 @@ Jamie took the seven follow-ups one at a time; decisions are in DECISIONS.md.
   - The rules test does not require `set local lock_timeout` (0172-0175 lack it).
   - No test enforces the changelog's `breaking` field.
   - No runbook grants `{terminate_backends}`, `{gateway_drain}`/`{gateway_recover}`, `{collection}`, the `{account_*}` ops or `{oauth_grants}`, so each is Jamie's call.
+
+## 2026-09-25 — The Needs-you list, decided (9.1.2)
+
+- Jamie took every recommendation, one at a time.
+  - **Only `{}` migrates:** a migrate payload whose op key the dispatcher does not know is refused (`unknown_op`), with a test.
+  - **Incident authority** for Run Elixir MCP: `{terminate_backends}` on a migration or backfill backend past five minutes, `{gateway_drain}`/`{gateway_recover}` for a collector submitting errors or bad data. Recorded in its Action section, in DECISIONS and in the ops catalogue. Account-touching write ops stay his.
+  - **The four small fixes:**
+    - `{explain_meta}` now EXPLAINs the tool's own `excludedBreakdown` SQL through a stand-in client, so it cannot drift again.
+    - `{series_backfill}` and its driver default to 45 s, under the 90 s alarm.
+    - `db/migrations.sha256` pins every shipped migration and `migration-lock.test.mjs` fails an edit (checked by editing 0177 and reverting).
+    - The rules test requires `lock_timeout` on a migration that locks a table it did not create.
+  - **`decks_today` is the game's counter only** (contract 9.1.2), and the timeline's clan `war.decks` with it. The grid-placed battle count, `over_cap` and `decks_observed` are gone, the names banned by the retired-names test, and `war-battles-sql.mjs` removed with its last reader.
+  - **`{mode_shape_census}` gains `ranked_by_league`.** It is run once after this deploy to settle the held Ranked patch.
+- Outside the hub:
+  - elixir-bot retired `cr-api-doc-audit` (89b17f86); Represent the Game points at the reference audit.
+  - The reference now says the river race log is ten weeks: one `limit=20` read on POAP KINGS returned the same ten with empty cursors (cr-agent-api-docs bc6be0f).
+  - Understand Clash Royale has a dated watch for four-week Colosseum logging, from 2026-10-03 (clash-royale bc4c37a).
+  - The Clan item resolved itself: that session pushed its work and is still working under its lease.
+- **The archive fixtures, found read-only.** Five objects, all stamped 2026-05-28T22:20:24Z, one elixir-bot test run:
+  - a clan stub under entity `ABC`;
+  - two player stubs under `ABC123`;
+  - a race stub under `J2RGCRVG`;
+  - a one-card catalog under `GLOBAL`.
+
+  `ABC` and `ABC123` are not valid tags (the hub's normalizer refuses them), and `{poll_state}` finds no receipts or state for either. The two stubs under real entities carry no clans, periods or members for a projector to write. Deletion waits on Jamie's look at the exact list.
