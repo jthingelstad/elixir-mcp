@@ -127,7 +127,8 @@ A battle a moment names (`promoted_by`, `crossed_by`) is one shape everywhere:
 `battle_id`, `battle_time`, `type`, `opponent` (`player_tag`, `name`,
 `starting_trophies`) for a 1v1 or `opponents` for a team battle, `crowns`,
 `crowns_against`, `trophy_change`, and `trophies_after` when the battle
-carried trophies (ranked battles carry none). The arena moment adds
+carried a starting count (a Ranked battle does only in league 7, where it
+is the rating; leagues 1-6 carry a win's `+30` and nothing else). The arena moment adds
 `arena_floor`. The item's text says it: "moved to Royal Crypt from
 Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 
