@@ -6,6 +6,7 @@
  *   node infra/scripts/deploy.mjs --create   # first deploy (GATED)
  *   node infra/scripts/deploy.mjs            # update
  *   node infra/scripts/deploy.mjs --skip-web # code/infra only
+ *   node infra/scripts/deploy.mjs --help     # every flag; deploys nothing
  */
 
 import { createHash } from "node:crypto";
@@ -37,6 +38,7 @@ import {
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { buildAll } from "./build.mjs";
 import { buildParameters } from "./parameters.mjs";
+import { DEPLOY_USAGE, parseDeployArgs } from "./lib/deploy-args.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../..");
@@ -62,9 +64,21 @@ const stackTags = (accountId) => [
   { Key: "Repository", Value: "jthingelstad/elixir-mcp" },
 ];
 
-const args = process.argv.slice(2);
-const isCreate = args.includes("--create");
-const skipWeb = args.includes("--skip-web");
+// Refuse anything but a known flag before the first AWS call: an unknown
+// one used to be ignored, so `--help` deployed production (2026-09-25).
+const args = parseDeployArgs(process.argv.slice(2));
+if (args.help) {
+  console.log(DEPLOY_USAGE);
+  process.exit(0);
+}
+if (args.unknown.length > 0) {
+  console.error(
+    `deploy: unknown argument ${args.unknown.join(" ")}; nothing was deployed.\n\n${DEPLOY_USAGE}`,
+  );
+  process.exit(2);
+}
+const isCreate = args.create;
+const skipWeb = args.skipWeb;
 
 const sts = new STSClient({ region: REGION });
 const { Account: accountId } = await sts.send(new GetCallerIdentityCommand({}));
@@ -153,12 +167,7 @@ await cfn.send(new ValidateTemplateCommand({ TemplateURL: templateUrl }));
 
 // --param=Key=Value: one-time explicit values for PRESERVED parameters
 // (a parameter's first deploy cannot UsePreviousValue).
-const paramOverrides = {};
-for (const arg of process.argv) {
-  if (!arg.startsWith("--param=")) continue;
-  const [key, ...rest] = arg.slice("--param=".length).split("=");
-  paramOverrides[key] = rest.join("=");
-}
+const paramOverrides = args.params;
 
 const required = {
   CodeBucket: codeBucket,
@@ -333,12 +342,8 @@ const acceptanceEnv = new URL("../../acceptance/.env", import.meta.url)
 // full pass on every deploy of a sweep drained the database's EBS byte
 // balance). Plain --acceptance is the whole suite, for releases that
 // touch shared code.
-const familyArg = process.argv.find((a) => a.startsWith("--acceptance="));
-const acceptanceFamily = familyArg ? familyArg.split("=")[1] : null;
-const wantAcceptance =
-  process.argv.includes("--acceptance") ||
-  Boolean(familyArg) ||
-  process.env.ACCEPTANCE === "1";
+const acceptanceFamily = args.acceptanceFamily;
+const wantAcceptance = args.acceptance || process.env.ACCEPTANCE === "1";
 if (!wantAcceptance) {
   console.log(
     "acceptance: not run (opt in with --acceptance or ACCEPTANCE=1; npm run acceptance any time).",

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { API_THROTTLES } from "../../../infra/scripts/api-throttle-config.mjs";
+import { parseDeployArgs } from "../../../infra/scripts/lib/deploy-args.mjs";
 
 const templateUrl = new URL("../../../infra/template.yaml", import.meta.url);
 
@@ -57,4 +58,39 @@ test("API throttles preserve measured production bursts", () => {
       burstLimit: 100,
     },
   ]);
+});
+
+test("deploy flags: every known flag parses, anything else is refused", () => {
+  const parsed = parseDeployArgs([
+    "--skip-web",
+    "--param=OpsQueueArn=arn:aws:sqs:us-east-1:1:q=x",
+    "--acceptance=cards,war",
+  ]);
+  assert.equal(parsed.skipWeb, true);
+  assert.equal(parsed.create, false);
+  assert.deepEqual(parsed.params, {
+    OpsQueueArn: "arn:aws:sqs:us-east-1:1:q=x",
+  });
+  assert.equal(parsed.acceptance, true);
+  assert.equal(parsed.acceptanceFamily, "cards,war");
+  assert.deepEqual(parsed.unknown, []);
+  assert.equal(parseDeployArgs(["--help"]).help, true);
+  assert.equal(parseDeployArgs(["-h"]).help, true);
+  // 2026-09-25: `--help` was not a flag and an unknown flag was ignored,
+  // so asking for help deployed production.
+  for (const typo of ["--dry-run", "--skipweb", "help", "--param=", "-y"])
+    assert.deepEqual(parseDeployArgs([typo]).unknown, [typo], typo);
+});
+
+test("deploy.mjs refuses its arguments before the first AWS call", async () => {
+  const source = await readFile(
+    new URL("../../../infra/scripts/deploy.mjs", import.meta.url),
+    "utf8",
+  );
+  const parse = source.indexOf("parseDeployArgs(process.argv");
+  const refuse = source.indexOf("args.unknown.length > 0");
+  assert.ok(parse > 0 && refuse > parse);
+  for (const first of ["new STSClient(", "buildAll(", ".send("])
+    assert.ok(refuse < source.indexOf(first), first);
+  assert.doesNotMatch(source, /process\.argv\.(includes|find)\(/);
 });
