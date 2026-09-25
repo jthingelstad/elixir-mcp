@@ -254,7 +254,7 @@
       "tier": 9.1,
       "family": "bridge_spam",
       "at_cycle_cost": "cycle",
-      "source": "https://trophycoach.com/tools/deck-finder (bridge spam: Bandit, Battle Ram, and Royal Hogs decks that pressure both lanes); https://royaletracker.gg/best-decks/archetypes (Archer Queen Royal Hogs); https://gamingonphone.com/guides/clash-royale-deck-archetypes/ files Royal Hogs under bait - Elixir follows the deck sites; bridge partner: https://trophycoach.com/tools/deck-finder (Bandit, Battle Ram, Royal Hogs); https://gamingonphone.com/guides/clash-royale-deck-archetypes/ (Bandit, Battle Ram, Royal Ghost); https://www.deckshop.pro/deck/detail/battle-ram,pekka,royal-ghost,bandit,electro-wizard,magic-archer,poison,zap (Royal Ghost, Bandit, Battle Ram beside P.E.K.K.A); https://clashroyale.fandom.com/wiki/Deck:Ram_Rider_LumberJack_Bridge_Spam (Lumberjack); Deck Shop titles 'Golden Knight PEKKA bridge spam', 'Mighty Miner PEKKA bridge spam'",
+      "source": "https://trophycoach.com/tools/deck-finder (bridge spam: Bandit, Battle Ram, and Royal Hogs decks that pressure both lanes); https://royaletracker.gg/best-decks/archetypes (Archer Queen Royal Hogs); https://gamingonphone.com/guides/clash-royale-deck-archetypes/ files Royal Hogs under bait - this reference follows the deck sites; bridge partner: https://trophycoach.com/tools/deck-finder (Bandit, Battle Ram, Royal Hogs); https://gamingonphone.com/guides/clash-royale-deck-archetypes/ (Bandit, Battle Ram, Royal Ghost); https://www.deckshop.pro/deck/detail/battle-ram,pekka,royal-ghost,bandit,electro-wizard,magic-archer,poison,zap (Royal Ghost, Bandit, Battle Ram beside P.E.K.K.A); https://clashroyale.fandom.com/wiki/Deck:Ram_Rider_LumberJack_Bridge_Spam (Lumberjack); Deck Shop titles 'Golden Knight PEKKA bridge spam', 'Mighty Miner PEKKA bridge spam'",
       "attested_at": "2026-09-20",
       "bridge_partner": true
     },
@@ -350,7 +350,7 @@
       "tier": 9.35,
       "family": "control",
       "at_cycle_cost": "cycle",
-      "source": "https://gamingonphone.com/guides/clash-royale-minion-giant-best-decks-guide ('a building-targeting win condition'); https://deckmelon.com/best-decks/with/minion-giant ('Minion Giant Cycle', 'Minion Giant Lightning Control'). Elixir's record on 2026-09-20: the most-played nameless deck of the season was 2.6 Hog's eight with Minion Giant in the Hog slot.",
+      "source": "https://gamingonphone.com/guides/clash-royale-minion-giant-best-decks-guide ('a building-targeting win condition'); https://deckmelon.com/best-decks/with/minion-giant ('Minion Giant Cycle', 'Minion Giant Lightning Control'). Observed 2026-09-20 in a multi-clan battle record: the most-played nameless deck of the season was 2.6 Hog's eight with Minion Giant in the Hog slot.",
       "attested_at": "2026-09-20"
     },
     {
@@ -366,7 +366,7 @@
       "name": "X-Bow",
       "tier": 1,
       "family": "siege",
-      "source": "https://gamingonphone.com/guides/clash-royale-deck-archetypes/ (siege: Mortar or X-Bow); https://trophycoach.com/tools/deck-finder files X-Bow under control - Elixir keeps siege because RoyaleAPI and the named decks do; '3.0 X-Bow cycle' resolves to siege by alias",
+      "source": "https://gamingonphone.com/guides/clash-royale-deck-archetypes/ (siege: Mortar or X-Bow); https://trophycoach.com/tools/deck-finder files X-Bow under control - this reference keeps siege because RoyaleAPI and the named decks do; '3.0 X-Bow cycle' resolves to siege by alias",
       "attested_at": "2026-09-20"
     },
     {
@@ -591,7 +591,7 @@
         27000002
       ],
       "family": "siege",
-      "source": "https://clashroyale.fandom.com/wiki/Deck:2.9_Mortar_Cycle ('2.9 Mortar Cycle'); Elixir's family for a Mortar deck is siege",
+      "source": "https://clashroyale.fandom.com/wiki/Deck:2.9_Mortar_Cycle ('2.9 Mortar Cycle'); a Mortar deck's family is siege here",
       "attested_at": "2026-09-20"
     },
     {
@@ -600,7 +600,7 @@
         27000008
       ],
       "family": "siege",
-      "source": "'3.0 X-Bow cycle' in community usage (e.g. https://deckmelon.com/best-decks/ronin-bridge-spam names X-Bow Cycle); Elixir's family for an X-Bow deck is siege",
+      "source": "'3.0 X-Bow cycle' in community usage (e.g. https://deckmelon.com/best-decks/ronin-bridge-spam names X-Bow Cycle); an X-Bow deck's family is siege here",
       "attested_at": "2026-09-20"
     },
     {
@@ -683,7 +683,7 @@
         27000002
       ],
       "family": "siege",
-      "source": "community usage for a Mortar deck with a bait package (e.g. https://deckmelon.com/best-decks/with/mortar); Elixir's family for a Mortar deck is siege",
+      "source": "community usage for a Mortar deck with a bait package (e.g. https://deckmelon.com/best-decks/with/mortar); a Mortar deck's family is siege here",
       "attested_at": "2026-09-20"
     }
   ],
@@ -706,6 +706,6 @@
       "reason": "Support/tank in the named decks (they carry Battle Ram, Sparky or Royal Hogs); no source names decks by it."
     }
   ],
-  "roles_version": "2026-09-20T20:16:47.000Z",
-  "source_commit": "b12af4c2260af468c64b9703ce4025493a843b8e"
+  "roles_version": "2026-09-25T15:03:30.000Z",
+  "source_commit": "ab27d700d1950fb98cf43009351410b9ae469455"
 }
