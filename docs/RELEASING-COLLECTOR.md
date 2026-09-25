@@ -90,6 +90,7 @@ path arrives with no disposition in `services/ingest/src/payload-keys.mjs`:
 cd ~/Projects/clash-royale/elixir-mcp
 AWS_PROFILE=cloud-engineer node infra/scripts/payload-field-audit.mjs                   # player_battlelog, the default
 AWS_PROFILE=cloud-engineer node infra/scripts/payload-field-audit.mjs <endpoint>        # any endpoint the release touches
+AWS_PROFILE=cloud-engineer node infra/scripts/payload-field-audit.mjs all             # every endpoint
 ```
 
 The endpoint names are the keys of `PAYLOAD_KEYS` (`player`, `clan`,

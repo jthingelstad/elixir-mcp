@@ -99,7 +99,7 @@ is where the war-days gap lived.
 | `../drop.poapkings.com` | `services/api/src/elixir-oauth.ts` (sign-in, `/api/v1`), `elixir-mcp.ts` and `elixir-collection.ts` (integration key), `seasons.ts` (policy clock), SPEC.md, AGENTS.md | `/api/v1`, the OAuth door, the clock |
 | `../elixir-bot` | `elixir_mcp.py`, `capabilities/mcp_stats.py`, AGENTS.md | MCP fields it reads; no contract pin |
 | `../elixir-mcp-discord` | `src/events.js`, `src/prompt.js`, `src/feedback.js`, AGENTS.md | `elixir_timeline` paging and order, tool names |
-| `../cr-agent-api-docs` | the endpoint and field pages | the hub's observed semantics (general findings only) |
+| `../cr-agent-api-docs` | the endpoint and field pages | the hub's observed semantics (general findings only); `.claude/skills/reference-audit/` checks it against the payload archive |
 | `../poapkings.com` | `src/elixir-mcp.njk`, member pages | REPORT ONLY (Jamie, 2026-09-25) |
 | `../elixir-family` | `MAP.md` (historical, frozen 2026-09-13), `plans/` | nothing current; Clan's guide still points at MAP.md |
 

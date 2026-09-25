@@ -100,7 +100,10 @@ decisions there as they happen and add the line to `DECISIONS.md`.
    them.
 
    `infra/scripts/cr-api.mjs` (`npm run cr`) calls any CR endpoint directly,
-   which is how you check a claim before writing it down.
+   which is how you check a claim before writing it down. The reference
+   audit skill (`.claude/skills/reference-audit/`) diffs the whole S3
+   payload archive against the reference and proposes the patches, by
+   population and date, never by tag.
 
 9. **Tests:** scratch databases generated per run (brew `postgresql@17`, no
    Docker); against live data, reads and refusal-paths only — never verify
