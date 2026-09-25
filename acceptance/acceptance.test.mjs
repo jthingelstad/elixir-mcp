@@ -212,7 +212,7 @@ test("every real case is read-only: no write tool, no live: true", () => {
   );
 });
 
-test("catalogue excludes every live-lane call", () => {
+test("catalogue drops live_fetch and keeps a live: true call as its recorded read", () => {
   const shaped = shapeCatalogue(
     {
       days: 7,
@@ -241,20 +241,8 @@ test("catalogue excludes every live-lane call", () => {
     ],
   );
   assert.deepEqual(Object.keys(shaped.tools), ["players_profile"]);
+  // The live: true call is the same recorded read once the flag goes.
   assert.deepEqual(shaped.tools.players_profile.sets, [
-    { args: { player_tag: "#J2RGCRVG" }, calls: 1 },
-  ]);
-});
-
-test("catalogue seeds a bounded full participation response for weekly fields", () => {
-  const seeds = JSON.parse(
-    readFileSync(new URL("./catalogue-seed.json", import.meta.url), "utf8"),
-  );
-  assert.deepEqual(seeds.clans_participation, [
-    {
-      args: { weeks: 2, verbosity: "full" },
-      reason:
-        "the eight-week usage calls can refuse the full body at the agent cap; this bounded full read witnesses retained weekly war fields",
-    },
+    { args: { player_tag: "#J2RGCRVG" }, calls: 2 },
   ]);
 });

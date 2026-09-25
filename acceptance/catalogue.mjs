@@ -59,10 +59,11 @@ export function shapeCatalogue(raw, declarations, { stale = [] } = {}) {
     if (!decl) continue;
     if (TOOL_GROUPS[row.tool]?.readOnly === false) continue;
     if (PRIVATE_TO_THE_CALLER.has(row.tool)) continue;
-    // A raw live fetch always spends the live lane; a `live: true` variant
-    // does too. The acceptance principal is deliberately recorded-data-only,
-    // so neither can become a one-shot catalogue case.
-    if (row.tool === "live_fetch" || row.args?.live === true) continue;
+    // live_fetch is nothing but the live lane, and the acceptance principal
+    // is deliberately recorded-data-only (2026-09-25: its catalogue case
+    // correctly answered live_pending). Any other tool called with
+    // `live: true` loses the flag below and is kept as the recorded read.
+    if (row.tool === "live_fetch") continue;
     const args = { ...row.args };
     delete args.live;
     // A caller-default read (omit player_tag to mean you) has no "you"

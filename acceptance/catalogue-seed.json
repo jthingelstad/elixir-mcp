@@ -47,15 +47,6 @@
       "reason": "a final board echoes season_requested"
     }
   ],
-  "clans_participation": [
-    {
-      "args": {
-        "weeks": 2,
-        "verbosity": "full"
-      },
-      "reason": "the eight-week usage calls can refuse the full body at the agent cap; this bounded full read witnesses retained weekly war fields"
-    }
-  ],
   "elixir_timeline": [
     {
       "args": {
