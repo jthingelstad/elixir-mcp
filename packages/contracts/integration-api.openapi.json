@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "2.2.0",
-    "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration). Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Collection grants allow additions only. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
+    "version": "2.3.0",
+    "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Collection grants allow additions only. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
     {
@@ -477,13 +477,16 @@
     "/clans/{tag}/participation": {
       "get": {
         "operationId": "clanParticipation",
-        "summary": "Every current member of a clan over whole ISO weeks and the war weeks inside them: facts only.",
+        "summary": "Every current member of a clan over whole ISO weeks and the war weeks inside them: facts only. An integration holding clans:read reads any recorded clan the same way (2.3.0): Elixir Clan evaluating a clan with nobody signed in.",
         "x-permission": "cr:read",
-        "x-principals": ["person"],
+        "x-principals": ["person", "integration"],
         "x-tool": "clans_participation",
         "security": [
           {
             "personOAuth": ["cr:read"]
+          },
+          {
+            "integrationKey": []
           }
         ],
         "parameters": [
@@ -557,19 +560,23 @@
               }
             }
           }
-        }
+        },
+        "x-integration-permission": "clans:read"
       }
     },
     "/clans/{tag}/roster": {
       "get": {
         "operationId": "clanRoster",
-        "summary": "A clan's current roster and the recent membership events.",
+        "summary": "A clan's current roster and the recent membership events. An integration holding clans:read reads any recorded clan the same way (2.3.0): Elixir Clan evaluating a clan with nobody signed in.",
         "x-permission": "cr:read",
-        "x-principals": ["person"],
+        "x-principals": ["person", "integration"],
         "x-tool": "clans_roster",
         "security": [
           {
             "personOAuth": ["cr:read"]
+          },
+          {
+            "integrationKey": []
           }
         ],
         "parameters": [
@@ -633,7 +640,8 @@
               }
             }
           }
-        }
+        },
+        "x-integration-permission": "clans:read"
       }
     },
     "/clans/{tag}/live": {

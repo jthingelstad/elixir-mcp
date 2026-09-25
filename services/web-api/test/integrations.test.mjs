@@ -514,3 +514,42 @@ test("the person operations answer with the tools' structured results, uncapped,
   const unknown = await call("GET", "/api/v1/clans/%232PPQQ/everything");
   assert.equal(unknown.statusCode, 404);
 });
+
+test("an integration with clans:read reads a clan as a person's grant does, audited by the tool; without it, refused (2.3.0)", async () => {
+  const provision = (scopes, nameOf) =>
+    request("POST", "/api/admin/integrations", { name: nameOf, scopes });
+  const clanApp = data(await provision(["clans:read"], "elixir-clan"));
+  const other = data(await provision(["players:read"], "no-clans"));
+  const read = (path, token) =>
+    handler({
+      rawPath: path,
+      requestContext: { http: { method: "GET" } },
+      headers: { authorization: `Bearer ${token}` },
+    });
+  // A clan the record does not hold: the tool's own refusal, as for a person.
+  const roster = await read(
+    `/api/v1/clans/${encodeURIComponent("#2PPQQ")}/roster`,
+    clanApp.token,
+  );
+  assert.equal(roster.statusCode, 404, roster.body);
+  assert.equal(data(roster).code, "not_recorded");
+  const part = await read(
+    `/api/v1/clans/${encodeURIComponent("#2PPQQ")}/participation`,
+    clanApp.token,
+  );
+  assert.equal(data(part).code, "not_recorded");
+  const refused = await read(
+    `/api/v1/clans/${encodeURIComponent("#2PPQQ")}/roster`,
+    other.token,
+  );
+  assert.equal(refused.statusCode, 403);
+  assert.equal(data(refused).code, "insufficient_scope");
+  // The tool's run is audited once, as a REST call of the tool.
+  const { rows } = await db.query(
+    `select tool from mcp_call_audit where surface = 'rest' and tool in ('clans_roster', 'clans.roster') order by audit_id desc limit 2`,
+  );
+  assert.ok(
+    rows.some((r) => r.tool === "clans_roster"),
+    JSON.stringify(rows),
+  );
+});

@@ -2471,3 +2471,15 @@ round is **Elixir's door, then Clan** (Drop follows in its own session).
   the support and privacy "same for everyone" lines are about money and
   still hold).
 
+## 2026-09-25 — Clans on a schedule: `clans:read` (JSON API 2.3.0)
+
+Door 1 of Elixir Clan's doors plan, Jamie's pick after deferring Drop's
+move to Elixir-only sign-in. `GET /api/v1/clans/{tag}/participation` and
+`/roster` admit an integration holding `clans:read` (the OpenAPI
+operations name it in `x-integration-permission`; `INTEGRATION_SCOPES`
+reads it), running the same tools through `runTool`, audited by the
+invoker. Elixir Clan's integration (`elixir-clan`) is provisioned through
+the `{integration}` op with a locally minted digest; Clan keeps the key as
+a NoEcho stack parameter, as Drop does. Clan's daily rule waits on one
+administrator IAM change in Clan's own stack (Jamie).
+

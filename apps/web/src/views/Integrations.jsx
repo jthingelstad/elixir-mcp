@@ -12,6 +12,7 @@ const scopes = [
   "profiles:refresh",
   "collections:members:add",
   "facts:write",
+  "clans:read",
 ];
 const defaults = {
   name: "",

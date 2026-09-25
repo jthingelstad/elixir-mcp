@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-25",
+    title: "Clan reads on a schedule",
+    body: "An integration can now hold permission to read clans: the participation and roster reads a signed-in person already had, for any clan Elixir records. It is how Elixir Clan evaluates a clan's policy each morning with nobody signed in, so actions are waiting when leaders arrive. Integrations are provisioned by the admin. JSON API 2.3.0.",
+  },
+  {
+    date: "2026-09-25",
     title: "What your clan did, on your timeline",
     body: "The Elixir family's own apps can now tell Elixir what a person did in a clan: a departure a leader says was a kick or a leave, a promotion made, an award the clan granted, a member away, a message sent to the clan. Elixir Drop can say you set a new personal best. These attested facts sit apart from the game record, which only Elixir's collectors write, and each says who said it, in which app, as what role. You see one only if its type allows: anyone in the clan sees promotions, awards and messages; only the clan's leaders see whether a departure was a kick, and an agent never does, so a kick is never narrated. An app asks for the new \"Record what you do in your clan\" capability to write them, and only Elixir's own apps may. Contract 9.2.0; JSON API 2.2.0.",
   },

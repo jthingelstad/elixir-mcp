@@ -80,6 +80,7 @@ accountable for the integration but contributes no admin authority or quota.
 | `GET /profile-refreshes/{id}` | `profiles:refresh` | Pending, complete or failed refresh |
 | `PUT /collections/{id}/members/{tag}` | `collections:members:add` plus collection grant | Idempotent addition and recording enrollment |
 | `POST /collections/{id}/members` | Same | Bounded add-only batch |
+| `GET /clans/{tag}/participation`, `GET /clans/{tag}/roster` | `clans:read` | Any recorded clan, answered as a person's grant is (the `clans_participation` and `clans_roster` results): a family app evaluating a clan with nobody signed in |
 | `POST /players/{tag}/facts` | `facts:write` | A fact the platform's own game produced for a player ([attested facts](#attested-facts)) |
 
 Tags must be URL-encoded in paths: `#2PYQ0` becomes `%232PYQ0`. Collection IDs
@@ -103,6 +104,12 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.3.0** (2026-09-25): an integration holding the new permission
+  `clans:read` calls `GET /clans/{tag}/participation` and `GET
+  /clans/{tag}/roster`, the two clan reads a person's grant already had,
+  so a family app can evaluate a clan on a schedule (Elixir Clan's
+  morning run). An operation both kinds may call names the integration's
+  permission in `x-integration-permission`.
 - **2.2.0** (2026-09-25): [attested facts](#attested-facts). `POST
   /clans/{tag}/facts` and `DELETE /clans/{tag}/facts/{ref}` for a person
   through a family app holding the new scope `clans:attest`, and `POST

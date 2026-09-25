@@ -35,12 +35,17 @@ import {
 const principalsOf = (operation) =>
   operation["x-principals"] ?? ["integration"];
 
+/** An operation both kinds may call names the integration's permission
+ *  apart from the person's scope (2.3.0: `clans:read`). */
 export const INTEGRATION_SCOPES = [
   ...new Set(
     Object.values(integrationContract.paths).flatMap((methods) =>
       Object.values(methods)
         .filter((operation) => principalsOf(operation).includes("integration"))
-        .map((operation) => operation["x-permission"]),
+        .map(
+          (operation) =>
+            operation["x-integration-permission"] ?? operation["x-permission"],
+        ),
     ),
   ),
 ];
@@ -219,6 +224,12 @@ async function runPersonTool(db, account, route) {
       "insufficient_scope",
       `This grant lacks the capability ${need}.`,
     );
+  return runTool(db, account, route);
+}
+
+/** One tool, as the caller (a person, or an integration whose permission
+ *  was checked): the same registry, invoker and budget as MCP. */
+async function runTool(db, account, route) {
   const invoke = makeInvoker({
     db,
     account,
@@ -594,6 +605,40 @@ export async function integrationApi(db, event, body) {
             enrollment_established: true,
             recordings_started: result.recordingsStarted,
           };
+        };
+      } else if (
+        method === "GET" &&
+        (match = /^\/api\/v1\/clans\/([^/]+)\/(participation|roster)$/.exec(
+          path,
+        ))
+      ) {
+        // A family app's scheduled read of a clan (2.3.0, clans:read):
+        // Elixir Clan evaluating a clan's policy with nobody signed in.
+        // The same tool answers a person's read of the same path.
+        scope = "clans:read";
+        const clanTag = tag(decodeURIComponent(match[1]));
+        const query = event.queryStringParameters ?? {};
+        const weeks =
+          query.weeks === undefined ? undefined : Number(query.weeks);
+        const route =
+          match[2] === "participation"
+            ? {
+                operation: "clans.participation",
+                tool: "clans_participation",
+                args: {
+                  clan_tag: clanTag,
+                  ...(weeks === undefined ? {} : { weeks }),
+                },
+              }
+            : {
+                operation: "clans.roster",
+                tool: "clans_roster",
+                args: { clan_tag: clanTag },
+              };
+        operation = route.operation;
+        run = () => {
+          toolAudited = true;
+          return runTool(db, account, route);
         };
       } else if (
         method === "POST" &&
