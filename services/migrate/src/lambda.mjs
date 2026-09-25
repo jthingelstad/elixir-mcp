@@ -10,9 +10,6 @@ import {
   rewriteTable,
   terminateBackends,
   listBackends,
-  typeBackfill,
-  towerHpBackfill,
-  oppLevelBackfill,
 } from "./deck-backfill.mjs";
 import { migrate } from "./migrate.mjs";
 import { activityPreview, explainTimeline } from "./ops-activity.mjs";
@@ -29,15 +26,8 @@ import {
   integrationOp,
   serviceTokenLimitsOp,
 } from "./ops-accounts.mjs";
+import { collectionOp } from "./ops-record.mjs";
 import {
-  replay,
-  tenureHistory,
-  exportPayloads,
-  collectionOp,
-  playerNames,
-} from "./ops-record.mjs";
-import {
-  gatewayProvision,
   collectorTokenOp,
   collectorReleaseOp,
   gatewayRecoverOp,
@@ -48,16 +38,9 @@ import {
   tables,
   ledger,
   warDrift,
-  warWeekSeasonCensus,
-  battleDetailBackfill,
   battleFidelityCensus,
-  rollupModeGroupRepair,
   modeShapeCensus,
-  battleLengthCensus,
-  outcomePairRepair,
-  duelOutcomeRepair,
   enumCensus,
-  donationResetCensus,
   captureAudit,
   probe,
   explainParticipation,
@@ -86,40 +69,16 @@ import {
   feedbackRead,
   feedbackRespond,
 } from "./ops-feedback.mjs";
-import { seriesImport, seriesCensus } from "./ops-bot-import.mjs";
 import {
-  snapshotDayCensus,
-  snapshotRekey,
   seriesStatus,
   seriesBackfill,
   seriesCensusSelf,
-  arenaMomentDedupe,
-  raceWeekRepair,
-  warWeekRekeyRepair,
   explainSeries,
-  lifetimeZeroCensus,
-  lifetimeZeroRepair,
 } from "./ops-series.mjs";
 
 export async function handler(event) {
   if (event?.inspect) {
     const result = await inspect(process.env.DATABASE_URL);
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.tenure_history) {
-    return tenureHistory(process.env.DATABASE_URL, event.tenure_history);
-  }
-  if (event?.replay) {
-    const result = await replay(process.env.DATABASE_URL, event.replay);
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.player_names) {
-    const result = await playerNames(
-      process.env.DATABASE_URL,
-      event.player_names,
-    );
     console.log(JSON.stringify(result));
     return result;
   }
@@ -263,14 +222,6 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.gateway_provision) {
-    const result = await gatewayProvision(
-      process.env.DATABASE_URL,
-      event.gateway_provision,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.poll_replay) {
     const result = await pollReplay(
       process.env.DATABASE_URL,
@@ -350,11 +301,6 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.war_week_season_census) {
-    const result = await warWeekSeasonCensus(process.env.DATABASE_URL);
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.war_drift) {
     const result = await warDrift(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
@@ -364,38 +310,6 @@ export async function handler(event) {
     const result = await captureAudit(
       process.env.DATABASE_URL,
       event.capture_audit,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.duel_outcome_repair) {
-    const result = await duelOutcomeRepair(
-      process.env.DATABASE_URL,
-      event.duel_outcome_repair === true ? {} : event.duel_outcome_repair,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.opp_level_backfill) {
-    const result = await oppLevelBackfill(
-      process.env.DATABASE_URL,
-      event.opp_level_backfill === true ? {} : event.opp_level_backfill,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.tower_hp_backfill) {
-    const result = await towerHpBackfill(
-      process.env.DATABASE_URL,
-      event.tower_hp_backfill === true ? {} : event.tower_hp_backfill,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.type_backfill) {
-    const result = await typeBackfill(
-      process.env.DATABASE_URL,
-      event.type_backfill === true ? {} : event.type_backfill,
     );
     console.log(JSON.stringify(result));
     return result;
@@ -429,55 +343,13 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.battle_length_census) {
-    const result = await battleLengthCensus(
-      process.env.DATABASE_URL,
-      event.battle_length_census === true ? {} : event.battle_length_census,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.outcome_pair_repair) {
-    const result = await outcomePairRepair(
-      process.env.DATABASE_URL,
-      event.outcome_pair_repair === true ? {} : event.outcome_pair_repair,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.battle_fidelity_census) {
     const result = await battleFidelityCensus(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.battle_detail_backfill) {
-    const result = await battleDetailBackfill(
-      process.env.DATABASE_URL,
-      event.battle_detail_backfill,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.mode_shape_census) {
     const result = await modeShapeCensus(process.env.DATABASE_URL);
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.rollup_mode_group_repair) {
-    const result = await rollupModeGroupRepair(
-      process.env.DATABASE_URL,
-      event.rollup_mode_group_repair === true
-        ? {}
-        : event.rollup_mode_group_repair,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.donation_reset_census) {
-    const result = await donationResetCensus(
-      process.env.DATABASE_URL,
-      event.donation_reset_census,
-    );
     console.log(JSON.stringify(result));
     return result;
   }
@@ -555,55 +427,10 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.export_payloads) {
-    const result = await exportPayloads(
-      process.env.DATABASE_URL,
-      event.export_payloads,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.snapshot_day_census) {
-    const result = await snapshotDayCensus(process.env.DATABASE_URL);
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.series_backfill) {
     const result = await seriesBackfill(
       process.env.DATABASE_URL,
       event.series_backfill,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.series_import) {
-    const result = await seriesImport(
-      process.env.DATABASE_URL,
-      event.series_import,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.series_census) {
-    const result = await seriesCensus(
-      process.env.DATABASE_URL,
-      event.series_census === true ? {} : event.series_census,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.lifetime_zero_census) {
-    const result = await lifetimeZeroCensus(
-      process.env.DATABASE_URL,
-      event.lifetime_zero_census === true ? {} : event.lifetime_zero_census,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.lifetime_zero_repair) {
-    const result = await lifetimeZeroRepair(
-      process.env.DATABASE_URL,
-      event.lifetime_zero_repair === true ? {} : event.lifetime_zero_repair,
     );
     console.log(JSON.stringify(result));
     return result;
@@ -616,60 +443,10 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.war_week_rekey_repair) {
-    const result = await warWeekRekeyRepair(
-      process.env.DATABASE_URL,
-      event.war_week_rekey_repair === true ? {} : event.war_week_rekey_repair,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.race_week_repair) {
-    const result = await raceWeekRepair(
-      process.env.DATABASE_URL,
-      event.race_week_repair === true ? {} : event.race_week_repair,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.arena_moment_dedupe) {
-    const result = await arenaMomentDedupe(
-      process.env.DATABASE_URL,
-      event.arena_moment_dedupe === true ? {} : event.arena_moment_dedupe,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.series_census_self) {
     const result = await seriesCensusSelf(
       process.env.DATABASE_URL,
       event.series_census_self === true ? {} : event.series_census_self,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.trophy_band_census) {
-    const { trophyBandCensus } = await import("./ops-trophy-census.mjs");
-    const result = await trophyBandCensus(
-      process.env.DATABASE_URL,
-      typeof event.trophy_band_census === "object"
-        ? event.trophy_band_census
-        : {},
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.war_gap_census) {
-    const { warGapCensus } = await import("./ops-war-gap.mjs");
-    const result = await warGapCensus(process.env.DATABASE_URL);
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.rollup_boat_defenses) {
-    const { rollupBoatDefenses } = await import("./ops-rollup-defenses.mjs");
-    const result = await rollupBoatDefenses(
-      process.env.DATABASE_URL,
-      event.rollup_boat_defenses,
     );
     console.log(JSON.stringify(result));
     return result;
@@ -683,27 +460,10 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.training_backfill) {
-    const { trainingBackfill } = await import("./ops-training.mjs");
-    const result = await trainingBackfill(
-      process.env.DATABASE_URL,
-      event.training_backfill,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
   if (event?.series_status) {
     const result = await seriesStatus(
       process.env.DATABASE_URL,
       event.series_status === true ? {} : event.series_status,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.snapshot_rekey) {
-    const result = await snapshotRekey(
-      process.env.DATABASE_URL,
-      event.snapshot_rekey === true ? {} : event.snapshot_rekey,
     );
     console.log(JSON.stringify(result));
     return result;

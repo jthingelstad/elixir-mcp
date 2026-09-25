@@ -291,261 +291,6 @@ test("ledger ops inspect and selectively requeue dead collector work", async () 
   }
 });
 
-test("replay op: archive messages flow through the real pipeline in order, attributed to the backfill gateway", async () => {
-  await migrate({ databaseUrl: SCRATCH_URL, migrationsDir: MIGRATIONS_DIR });
-  const db = new pg.Client({ connectionString: SCRATCH_URL });
-  await db.connect();
-  await db.query(
-    `insert into account (email_hash, status, is_owner) values ('replay-owner', 'approved', true)
-     on conflict (email_hash) do nothing`,
-  );
-  await db.end();
-
-  const { gzipSync } = await import("node:zlib");
-  const payload = JSON.parse(
-    await readFile(
-      path.join(repoRoot, "fixtures/player_battlelog/with_path_of_legend.json"),
-      "utf8",
-    ),
-  );
-  const metaJson = JSON.parse(
-    await readFile(path.join(repoRoot, "fixtures/meta.json"), "utf8"),
-  );
-  const tag = metaJson[
-    "player_battlelog/with_path_of_legend.json"
-  ].entity_key.replace("#", ""); // archive keys are bare tags
-  const msg = {
-    v: 1,
-    job: { endpoint: "player_battlelog", entity_key: tag, lane: "bulk" },
-    gateway_id: "backfill",
-    fetched_at: "2026-07-20T12:00:00Z",
-    status: "ok",
-    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString(
-      "base64",
-    ),
-  };
-
-  process.env.DATABASE_URL = SCRATCH_URL;
-  const { handler } = await import("../src/lambda.mjs");
-  const first = await handler({ replay: { messages: [msg] } });
-  assert.equal(first.tally.admitted, 1);
-
-  // Second run: gateway row reused, message dedupes.
-  const second = await handler({ replay: { messages: [msg] } });
-  assert.equal(second.gateway_id, first.gateway_id);
-  assert.equal(second.tally.duplicate, 1);
-
-  const check = new pg.Client({ connectionString: SCRATCH_URL });
-  await check.connect();
-  const gw = await check.query(
-    `select count(*)::int n from gateway where name = 'backfill-elixir-bot'`,
-  );
-  assert.equal(gw.rows[0].n, 1, "exactly one backfill gateway row");
-  const battles = await check.query(`select count(*)::int n from battle`);
-  assert.ok(battles.rows[0].n > 0, "archive battles landed");
-  const receipts = await check.query(
-    `select count(*)::int n from api_receipt r
-     join gateway g on g.gateway_id = r.gateway_id
-     where g.name = 'backfill-elixir-bot'`,
-  );
-  assert.equal(
-    receipts.rows[0].n,
-    1,
-    "receipt attributed to the backfill gateway",
-  );
-  await check.end();
-});
-
-test("replay op with skip_projection: a roster lands as receipt and archive only, never as membership", async () => {
-  await migrate({ databaseUrl: SCRATCH_URL, migrationsDir: MIGRATIONS_DIR });
-  const { gzipSync } = await import("node:zlib");
-  const payload = JSON.parse(
-    await readFile(path.join(repoRoot, "fixtures/clan/roster.json"), "utf8"),
-  );
-  const msg = {
-    v: 1,
-    job: { endpoint: "clan", entity_key: "J2RGCRVG", lane: "bulk" },
-    gateway_id: "backfill",
-    fetched_at: "2026-05-20T12:00:00Z",
-    status: "ok",
-    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(payload))).toString(
-      "base64",
-    ),
-  };
-  process.env.DATABASE_URL = SCRATCH_URL;
-  const check = new pg.Client({ connectionString: SCRATCH_URL });
-  await check.connect();
-  // An earlier test seeds a membership row for this clan; the roster
-  // fixture holds dozens of members, so an unchanged count is the proof.
-  const before = (
-    await check.query(
-      `select count(*)::int n from clan_membership where clan_tag = '#J2RGCRVG'`,
-    )
-  ).rows[0].n;
-  const { handler } = await import("../src/lambda.mjs");
-  const out = await handler({
-    replay: { skip_projection: true, messages: [msg] },
-  });
-  assert.equal(out.tally.admitted, 1);
-  const receipt = await check.query(
-    `select admission from api_receipt where endpoint = 'clan' and entity_key = '#J2RGCRVG'`,
-  );
-  assert.equal(receipt.rows[0]?.admission, "admitted");
-  const members = await check.query(
-    `select count(*)::int n from clan_membership where clan_tag = '#J2RGCRVG'`,
-  );
-  assert.equal(members.rows[0].n, before, "the state machine did not run");
-  await check.end();
-});
-
-test("tenure_history op: closes history before the live horizon, backdates open rows only earlier", async () => {
-  await migrate({ databaseUrl: SCRATCH_URL, migrationsDir: MIGRATIONS_DIR });
-  const db = new pg.Client({ connectionString: SCRATCH_URL });
-  await db.connect();
-  await db.query(
-    `insert into clan (clan_tag, name) values ('#YYCQ2P', 'Tenure Test') on conflict do nothing`,
-  );
-  for (const t of ["#2P0Y8", "#8QRL9", "#9GJC0", "#0VUCP"])
-    await db.query(
-      `insert into player (player_tag) values ($1) on conflict do nothing`,
-      [t],
-    );
-  // The live record's first roster read: a real collector's receipt,
-  // two open rows, one prior closed row.
-  const live = "2026-09-03T18:00:00Z";
-  const {
-    rows: [owner],
-  } = await db.query(
-    `insert into account (email_hash, status, is_owner) values ('tenure-owner', 'approved', true)
-     on conflict (email_hash) do update set status = 'approved' returning account_id`,
-  );
-  const {
-    rows: [gw],
-  } = await db.query(
-    `insert into gateway (owner_account_id, name, static_ip, status)
-     values ($1, 'tenure-collector', '127.0.0.1', 'active') returning gateway_id`,
-    [owner.account_id],
-  );
-  await db.query(
-    `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
-     values ('clan', '#YYCQ2P', $1, 'tenure-hash', $2, 'admitted')`,
-    [live, gw.gateway_id],
-  );
-  await db.query(
-    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, left_observed_at, role) values
-       ('#YYCQ2P', '#2P0Y8', $1, null, 'member'),
-       ('#YYCQ2P', '#9GJC0', $1, null, 'elder'),
-       ('#YYCQ2P', '#8QRL9', '2026-04-01T00:00:00Z', '2026-04-10T00:00:00Z', 'member'),
-       -- present at the first live read, left a week later: the stint
-       -- across the horizon is this closed row
-       ('#YYCQ2P', '#0VUCP', $1, '2026-09-10T00:00:00Z', 'member')`,
-    [live],
-  );
-  await db.end();
-  process.env.DATABASE_URL = SCRATCH_URL;
-  const { handler } = await import("../src/lambda.mjs");
-  const out = await handler({
-    tenure_history: {
-      clan_tag: "#YYCQ2P",
-      intervals: [
-        // open at the end of history: backdates the live row
-        {
-          player_tag: "#2P0Y8",
-          joined_at: "2026-03-11T00:00:00Z",
-          left_at: null,
-          role: "member",
-        },
-        // a first stint that ended before the horizon, then the live stint
-        {
-          player_tag: "#9GJC0",
-          joined_at: "2026-03-11T00:00:00Z",
-          left_at: "2026-06-01T00:00:00Z",
-          role: "member",
-        },
-        {
-          player_tag: "#9GJC0",
-          joined_at: "2026-08-01T00:00:00Z",
-          left_at: null,
-          role: "elder",
-        },
-        // overlaps the row already there
-        {
-          player_tag: "#8QRL9",
-          joined_at: "2026-03-30T00:00:00Z",
-          left_at: "2026-04-05T00:00:00Z",
-          role: "member",
-        },
-        // present at the last historical read, since departed live:
-        // the closed row the first live read created is backdated
-        {
-          player_tag: "#0VUCP",
-          joined_at: "2026-05-01T00:00:00Z",
-          left_at: null,
-          role: "member",
-        },
-        // after the horizon: untouched
-        {
-          player_tag: "#0VUCP",
-          joined_at: "2026-09-04T00:00:00Z",
-          left_at: null,
-          role: "member",
-        },
-      ],
-    },
-  });
-  assert.equal(out.live_since, "2026-09-03T18:00:00.000Z");
-  assert.equal(out.inserted, 1, "the ended first stint");
-  assert.equal(
-    out.backdated,
-    3,
-    "#2P0Y8, the live #9GJC0 stint, departed #0VUCP",
-  );
-  assert.equal(out.overlapping, 1);
-  assert.equal(out.after_horizon, 1);
-  assert.deepEqual(out.no_open_row, []);
-  const check = new pg.Client({ connectionString: SCRATCH_URL });
-  await check.connect();
-  const rows = (
-    await check.query(
-      `select player_tag, joined_observed_at, left_observed_at from clan_membership
-       where clan_tag = '#YYCQ2P' order by player_tag, joined_observed_at`,
-    )
-  ).rows.map((r) => [
-    r.player_tag,
-    r.joined_observed_at.toISOString(),
-    r.left_observed_at?.toISOString() ?? null,
-  ]);
-  assert.deepEqual(rows, [
-    ["#0VUCP", "2026-05-01T00:00:00.000Z", "2026-09-10T00:00:00.000Z"],
-    ["#2P0Y8", "2026-03-11T00:00:00.000Z", null],
-    ["#8QRL9", "2026-04-01T00:00:00.000Z", "2026-04-10T00:00:00.000Z"],
-    ["#9GJC0", "2026-03-11T00:00:00.000Z", "2026-06-01T00:00:00.000Z"],
-    ["#9GJC0", "2026-08-01T00:00:00.000Z", null],
-  ]);
-  // Idempotent: a second run changes nothing.
-  const again = await handler({
-    tenure_history: {
-      clan_tag: "#YYCQ2P",
-      intervals: [
-        {
-          player_tag: "#2P0Y8",
-          joined_at: "2026-03-11T00:00:00Z",
-          left_at: null,
-        },
-        {
-          player_tag: "#9GJC0",
-          joined_at: "2026-03-11T00:00:00Z",
-          left_at: "2026-06-01T00:00:00Z",
-        },
-      ],
-    },
-  });
-  assert.equal(again.backdated, 0);
-  assert.equal(again.unchanged, 1);
-  assert.equal(again.overlapping, 1);
-  await check.end();
-});
-
 test("tables op: every user table's size and churn, the memory settings, no payloads", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
   const { handler } = await import("../src/lambda.mjs");
@@ -565,27 +310,54 @@ test("tables op: every user table's size and churn, the memory settings, no payl
 });
 
 test("probe op: hourly census counts live fetches, excludes the backfill gateway", async () => {
-  // Runs after the replay test: the scratch DB holds backfill receipts
-  // and battles. Those battles show as harvests; the backfill fetch must
-  // NOT show as capture volume.
+  // The elixir-bot import's receipts are attributed to the
+  // 'backfill-elixir-bot' gateway, which production still holds: its
+  // battles show as harvests, its fetches must NOT show as capture
+  // volume.
   process.env.DATABASE_URL = SCRATCH_URL;
   const { handler } = await import("../src/lambda.mjs");
+  const { ingestBattlelog } = await import("../../ingest/src/battles.mjs");
+  const metaJson = JSON.parse(
+    await readFile(path.join(repoRoot, "fixtures/meta.json"), "utf8"),
+  );
+  const fixture = "player_battlelog/with_path_of_legend.json";
 
   const db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
   const {
+    rows: [owner],
+  } = await db.query(
+    `insert into account (email_hash, status) values ('probe-owner', 'approved')
+     returning account_id`,
+  );
+  const {
+    rows: [backfill],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     values ($1, 'backfill-elixir-bot', '127.0.0.1', 'active')
+     returning gateway_id`,
+    [owner.account_id],
+  );
+  const {
     rows: [gw],
   } = await db.query(
     `insert into gateway (owner_account_id, name, static_ip, status)
-     select account_id, 'probe-live-gw', '10.0.0.9', 'active'
-     from account where email_hash = 'replay-owner'
+     values ($1, 'probe-live-gw', '10.0.0.9', 'active')
      returning gateway_id`,
+    [owner.account_id],
   );
   await db.query(
     `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
-     values ('player_battlelog', '#PROBE1', now(), 'probe-hash', $1, 'admitted')`,
-    [gw.gateway_id],
+     values ('player_battlelog', $1, now(), 'probe-backfill-hash', $2, 'admitted'),
+            ('player_battlelog', '#PROBE1', now(), 'probe-hash', $3, 'admitted')`,
+    [metaJson[fixture].entity_key, backfill.gateway_id, gw.gateway_id],
   );
+  await ingestBattlelog(db, {
+    observerTag: metaJson[fixture].entity_key,
+    payload: JSON.parse(
+      await readFile(path.join(repoRoot, "fixtures", fixture), "utf8"),
+    ),
+  });
   await db.end();
 
   const result = await handler({ probe: true });
@@ -593,7 +365,7 @@ test("probe op: hourly census counts live fetches, excludes the backfill gateway
   const totalBattlelog = result.hours.reduce((s, h) => s + h.battlelog, 0);
   const totalBattles = result.hours.reduce((s, h) => s + h.battles, 0);
   assert.equal(totalBattlelog, 1, "only the live gateway's fetch counts");
-  assert.ok(totalBattles > 0, "replayed battles appear as harvests");
+  assert.ok(totalBattles > 0, "the recorded battles appear as harvests");
   assert.match(result.hours[0].hour, /^\d{2}-\d{2}T\d{2}Z$/);
 });
 
@@ -658,30 +430,27 @@ test("capture-audit op: reports only gap subjects with their scheduler evidence"
   );
 });
 
-test("export + sweep: history lands in S3 keys; only twinned superseded rows leave Postgres", async () => {
+test("payload sweep: only superseded rows with an S3 twin leave Postgres", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
   process.env.ARCHIVE_BUCKET = "test-archive";
-  const { exportPayloads } = await import("../src/ops-record.mjs");
+  const { archiveKey } = await import("../../ingest/src/pipeline.mjs");
   const { sweepPayloads } = await import("../../jobs/src/index.mjs");
 
   const db = new pg.Client({ connectionString: SCRATCH_URL });
   await db.connect();
   // Two versions of one entity: v1 superseded, v2 latest.
-  await db.query(
+  const { rows: versions } = await db.query(
     `insert into api_payload (endpoint, entity_key, payload_hash, payload_json, first_fetched_at, last_fetched_at)
      values ('player', '#SWEEP1', 'hash-v1', '{"v":1}', '2026-09-01T10:00:00Z', '2026-09-01T10:00:00Z'),
-            ('player', '#SWEEP1', 'hash-v2', '{"v":2}', '2026-09-02T10:00:00Z', '2026-09-02T10:00:00Z')`,
+            ('player', '#SWEEP1', 'hash-v2', '{"v":2}', '2026-09-02T10:00:00Z', '2026-09-02T10:00:00Z')
+     returning endpoint, entity_key, payload_hash, first_fetched_at`,
   );
   await db.end();
 
-  const stored = new Map();
+  const stored = new Set();
   const fakeS3 = {
     async send(cmd) {
       const name = cmd.constructor.name;
-      if (name === "PutObjectCommand") {
-        stored.set(cmd.input.Key, cmd.input.Body);
-        return {};
-      }
       if (name === "HeadObjectCommand") {
         if (!stored.has(cmd.input.Key)) throw new Error("NotFound");
         return {};
@@ -690,34 +459,22 @@ test("export + sweep: history lands in S3 keys; only twinned superseded rows lea
     },
   };
 
-  // Sweep BEFORE export: superseded row has no twin -> stays.
+  // Nothing archived yet: the superseded row has no twin and stays.
   const dry = await sweepPayloads(SCRATCH_URL, fakeS3);
   assert.equal(dry.swept, 0);
   assert.ok(dry.missing >= 1, "untwinned rows are never deleted");
 
-  // Export everything (cursor loop).
-  let cursor = 0;
-  let total = 0;
-  for (;;) {
-    const r = await exportPayloads(
-      SCRATCH_URL,
-      { after_id: cursor, limit: 2 },
-      fakeS3,
-    );
-    total += r.exported;
-    cursor = r.last_id;
-    if (r.done) break;
-  }
-  assert.ok(total >= 2, "both versions exported");
-  const keys = [...stored.keys()];
-  assert.ok(
-    keys.some((k) =>
-      /^payloads\/endpoint=player\/entity=SWEEP1\/dt=2026-09-01\/20260901T100000Z-hash-v1/.test(
-        k,
+  // Both versions archived under the ingest key scheme, as admission
+  // writes them.
+  for (const v of versions)
+    stored.add(
+      archiveKey(
+        v.endpoint,
+        v.entity_key,
+        v.first_fetched_at.toISOString(),
+        v.payload_hash,
       ),
-    ),
-    `ingest key scheme, got: ${keys.join(", ")}`,
-  );
+    );
 
   // Sweep again: v1 (superseded, twinned) leaves; v2 (latest) stays.
   const swept = await sweepPayloads(SCRATCH_URL, fakeS3);

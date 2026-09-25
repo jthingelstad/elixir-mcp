@@ -1,7 +1,7 @@
 {
   "name": "@elixir-mcp/jobs",
   "version": "0.1.0",
-  "description": "Scheduled product jobs (clan pulse, sweeps) - split from the migrate Lambda so schema-capable code never runs on a timer.",
+  "description": "Scheduled product jobs (product mail, meta rollups, sweeps, housekeeping) - split from the migrate Lambda so schema-capable code never runs on a timer.",
   "type": "module",
   "main": "src/index.mjs",
   "scripts": {

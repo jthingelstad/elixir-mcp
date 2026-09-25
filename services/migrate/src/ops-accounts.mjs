@@ -4,10 +4,12 @@ import { createPrincipal, addPlayer } from "@elixir-mcp/claims";
 
 /**
  * One-time production seeding, run by explicit invoke payload only
- * ({seed: {owner_email_hash, gateway: {name, static_ip}}}): the owner
- * account (approved, is_owner) and the first gateway row. Idempotent.
- * Everything else (claims, recording opt-in) goes through the real
- * product flow on the site.
+ * ({seed: {owner_email_hash, record_clan?}}): the owner account
+ * (approved, is_owner) and, optionally, a comprehensive recording of one
+ * clan. Idempotent. Collectors are enrolled through the collector door
+ * (docs/COLLECTOR-ZERO-TRUST.md), never seeded here. Everything else
+ * (claims, recording opt-in) goes through the real product flow on the
+ * site.
  */
 export async function seed(databaseUrl, spec) {
   const db = new pg.Client({ connectionString: databaseUrl });
@@ -22,28 +24,6 @@ export async function seed(databaseUrl, spec) {
        returning account_id`,
       [spec.owner_email_hash],
     );
-    let gatewayId = null;
-    if (spec.gateway) {
-      const { rows } = await db.query(
-        `insert into gateway (owner_account_id, name, static_ip, status)
-         select $1, $2, $3, 'active'
-         where not exists (select 1 from gateway where name = $2)
-         returning gateway_id`,
-        [account.account_id, spec.gateway.name, spec.gateway.static_ip],
-      );
-      gatewayId =
-        rows[0]?.gateway_id ??
-        (
-          await db.query(`select gateway_id from gateway where name = $1`, [
-            spec.gateway.name,
-          ])
-        ).rows[0].gateway_id;
-      // Re-seeding transfers ownership: the seeded account owns the gateway.
-      await db.query(
-        `update gateway set owner_account_id = $1 where gateway_id = $2`,
-        [account.account_id, gatewayId],
-      );
-    }
     let clanRecording = null;
     if (spec.record_clan) {
       await db.query(
@@ -59,50 +39,10 @@ export async function seed(databaseUrl, spec) {
       );
       clanRecording = spec.record_clan;
     }
-    let purged = 0;
-    if (spec.purge_email_hash) {
-      // Hard delete of a mis-seeded account and everything it touches
-      // (explicit, one-off; dependents first, FK order).
-      const { rows: victims } = await db.query(
-        `select account_id from account where email_hash = $1 and account_id <> $2`,
-        [spec.purge_email_hash, account.account_id],
-      );
-      for (const v of victims) {
-        await db.query(`delete from session where account_id = $1`, [
-          v.account_id,
-        ]);
-        await db.query(`delete from mcp_call_audit where account_id = $1`, [
-          v.account_id,
-        ]);
-        await db.query(`delete from recording where requested_by = $1`, [
-          v.account_id,
-        ]);
-        await db.query(`delete from claim where account_id = $1`, [
-          v.account_id,
-        ]);
-        await db.query(
-          `delete from oauth_token t using oauth_family f
-                        where t.family_id = f.family_id and f.account_id = $1`,
-          [v.account_id],
-        );
-        await db.query(`delete from oauth_code where account_id = $1`, [
-          v.account_id,
-        ]);
-        await db.query(`delete from oauth_family where account_id = $1`, [
-          v.account_id,
-        ]);
-        await db.query(`delete from account where account_id = $1`, [
-          v.account_id,
-        ]);
-        purged += 1;
-      }
-    }
     return {
       seeded: true,
       accountId: account.account_id,
-      gatewayId,
       clanRecording,
-      purged,
     };
   } finally {
     await db.end();

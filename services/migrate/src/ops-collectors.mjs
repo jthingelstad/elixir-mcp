@@ -1,39 +1,5 @@
 import pg from "pg";
 
-/** Gateway provisioning ({gateway_provision: {name, iam_user_name,
- *  env}}): stores the owner-minted one-time config for the operator's
- *  web download (0034). The env content passes through as an opaque
- *  string - this op never logs it. */
-export async function gatewayProvision(databaseUrl, spec) {
-  if (!spec?.name || !spec?.env) {
-    throw new Error("gateway_provision needs name and env");
-  }
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
-  try {
-    const { rows: found } = await db.query(
-      `select gateway_id from gateway where name = $1 and status <> 'revoked'`,
-      [String(spec.name)],
-    );
-    if (!found[0]) throw new Error(`no live gateway named ${spec.name}`);
-    const env = String(spec.env).replaceAll(
-      "__GATEWAY_ID__",
-      found[0].gateway_id,
-    );
-    const { rows } = await db.query(
-      `update gateway
-       set provision_env = $2, iam_user_name = $3, provision_claimed_at = null,
-           provision_expires_at = now() + interval '72 hours'
-       where gateway_id = $1
-       returning gateway_id, name`,
-      [found[0].gateway_id, env, spec.iam_user_name ?? null],
-    );
-    return { gateway_id: rows[0].gateway_id, name: rows[0].name, staged: true };
-  } finally {
-    await db.end();
-  }
-}
-
 /** Zero-trust collector ops (COLLECTOR-ZERO-TRUST.md).
  *  {collector_token: {name, token_hash, channel?}} stores the sha256 of
  *  a LOCALLY generated token (the raw token never reaches the cloud in
