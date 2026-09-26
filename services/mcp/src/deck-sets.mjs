@@ -40,15 +40,18 @@ const LEVEL_CORRECTED = new Set(["ladder", "war"]);
 export const FAMILIAR_MIN_BATTLES = 5;
 const FAMILIARITY_LOGIT = 0.05;
 
-/** The level gate: a card more than this many levels under the level the
- *  player fields leaves the deck out (the war-ready rule other builders
- *  use: no gap larger than 2). */
-export const MAX_CARD_LEVELS_BELOW = 2;
+/** The level floor: a card this many levels or more under the level the
+ *  player fields leaves the deck out; above it, level_term prices the gap.
+ *  It shipped at 2 (the "war ready" rule other builders label with) and
+ *  left one maxed account 3 decks of 889 (2026-09-25): a player who fields
+ *  level 16 holds few decks with no card under 14, and a floor that tight
+ *  refuses the question instead of pricing the gap. */
+export const MAX_CARD_LEVELS_BELOW = 4;
 
 /** What the search maximises, as the response states it. */
 export const SET_OBJECTIVE = {
   deck_value:
-    "corpus_logit + level_term + familiarity_term, in log-odds: corpus_logit pools the deck's shrunk win rate over Trophy Road, Path of Legends and Clan Wars by battles, each Trophy Road and Clan Wars rate first corrected for its players' level edge at 0.5 log-odds per level; level_term is 0.5 per level the player would field the deck above (+) or below (-) the level they field now; familiarity_term is 0.05 when they have played the exact deck 5+ times this season",
+    "corpus_logit + level_term + form_term + familiarity_term, in log-odds: corpus_logit pools the deck's shrunk win rate over Trophy Road, Path of Legends and Clan Wars by battles, each Trophy Road and Clan Wars rate first corrected for its players' level edge at 0.5 log-odds per level; level_term is 0.5 per level the player would field the deck above (+) or below (-) the level they field now; form_term, on a deck played with an Evolution or Hero form the player has not unlocked (they would play the base card), subtracts each such card's measured form advantage this season (its form's shrunk win rate against its base form's, in log-odds, never a bonus); familiarity_term is 0.05 when they have played the exact deck 5+ times this season",
   set_value:
     "the sum of the deck values plus the weakest deck's value again, so a set is not carried by three strong decks and one weak one: every war day asks for all four",
   constraint:
@@ -76,7 +79,15 @@ function shrink(wins, decided, prior, m) {
  * Returns the parts and their sum, all in log-odds, plus the pooled
  * shrunk win rate the corpus part is built from (for reading).
  */
-export function deckValue({ modes, priors, ownMean, target, yours = 0, m }) {
+export function deckValue({
+  modes,
+  priors,
+  ownMean,
+  target,
+  yours = 0,
+  formTerm = 0,
+  m,
+}) {
   let battles = 0;
   let weighted = 0;
   let wins = 0;
@@ -108,9 +119,26 @@ export function deckValue({ modes, priors, ownMean, target, yours = 0, m }) {
     shrunk_win_rate: round(shrunkWeighted / battles),
     corpus_logit: round(corpus),
     level_term: round(level),
+    form_term: round(formTerm),
     familiarity_term: familiarity,
-    value: round(corpus + level + familiarity),
+    value: round(corpus + level + formTerm + familiarity),
   };
+}
+
+/**
+ * One card's measured form advantage this season, in log-odds: its form's
+ * shrunk win rate against its base form's (card_meta_season, every mode),
+ * floored at 0 so a form that does worse never earns a bonus. null when
+ * either form has too few battles to say (MIN_FORM_BATTLES).
+ */
+const MIN_FORM_BATTLES = 30;
+export function formAdvantage({ form, base, prior, m }) {
+  if (!form || !base) return null;
+  if (form.battles < MIN_FORM_BATTLES || base.battles < MIN_FORM_BATTLES)
+    return null;
+  const f = logit(shrink(form.wins, form.battles, prior, m));
+  const b = logit(shrink(base.wins, base.battles, prior, m));
+  return round(Math.max(0, f - b));
 }
 
 /** The set's value: every deck once, the weakest twice. */

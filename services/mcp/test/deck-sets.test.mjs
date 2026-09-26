@@ -47,9 +47,10 @@ const DECKS = {
   E: { ids: span(32), rate: 0.52 },
   F: { ids: span(48), rate: 0.5 },
   G: { ids: span(56), rate: 0.48 },
-  L: { ids: span(40), rate: 0.75 }, // C40-C44 held three levels under
+  L: { ids: span(40), rate: 0.75 }, // C40-C44 held five levels under
   U: { ids: span(70), rate: 0.8 }, // not owned
-  V: { ids: [6, ...span(32).slice(0, 7)], evo: { 6: 1 }, rate: 0.78 }, // Evo C6 locked
+  V: { ids: [6, ...span(32).slice(0, 7)], evo: { 6: 1 }, rate: 0.78 }, // Evo C6 not unlocked: played as base
+  W: { ids: [6, 64, 65, 66, 67, 68, 69, 70], rate: 0.4 }, // base C6, so its Evolution's edge is measured; C70 not owned
   S: { ids: [0, 8, 16, 24, 32, 48, 56, 64], rate: 0.85 }, // collides with every deck
 };
 const hashOf = (k) =>
@@ -106,8 +107,8 @@ before(async () => {
     [TAG, account.accountId],
   );
   // The catalog first (the collection references it), then the
-  // collection: C0-C69 at level 14 except C40-C44 at 11; Evo C5
-  // unlocked, Evo C6 not; C70 and up not owned.
+  // collection: C0-C69 at level 14 except C40-C44 at 9 (under the floor,
+  // 14 - 4); Evo C5 unlocked, Evo C6 not; C70 and up not owned.
   for (let i = 0; i < 78; i++)
     await scratch.db.query(
       `insert into card (card_id, name, kind) values ($1, $2, 'card') on conflict (card_id) do nothing`,
@@ -117,7 +118,7 @@ before(async () => {
     await scratch.db.query(
       `insert into player_card (player_tag, card_id, level, count, evolution_level, star_level, first_seen_at, observed_at)
        values ($1, $2, $3, 0, $4, 0, now(), now())`,
-      [TAG, 26000000 + i, i >= 40 && i <= 44 ? 11 : 14, i === 5 ? 1 : 0],
+      [TAG, 26000000 + i, i >= 40 && i <= 44 ? 9 : 14, i === 5 ? 1 : 0],
     );
   // Every deck: three players, twenty battles each over three modes, at
   // the deck's rate.
@@ -176,17 +177,44 @@ test("the best set: four fieldable decks, 32 distinct cards, the weakest named",
   );
 });
 
-test("the reductions: unowned, locked forms and cards under the level gate never reach a set", async () => {
+test("the reductions: unowned cards and cards under the level floor never reach a set", async () => {
   const res = await call();
   assert.equal(res.fit_for.target_level, 14);
-  assert.equal(res.fit_for.min_card_level, 12);
-  assert.equal(res.candidates.not_owned, 1, "U");
-  assert.equal(res.candidates.form_not_unlocked, 1, "V");
+  assert.equal(res.fit_for.min_card_level, 10);
+  assert.equal(res.candidates.not_owned, 2, "U and W");
   assert.equal(res.candidates.below_level, 1, "L");
+  assert.equal(
+    res.candidates.forms_substituted,
+    1,
+    "V stays, played as base C6",
+  );
   const chosen = new Set(
     res.sets.flatMap((s) => s.decks.map((d) => d.deck_hash)),
   );
-  for (const k of ["U", "V", "L"]) assert.ok(!chosen.has(hashOf(k)), k);
+  for (const k of ["U", "W", "L"]) assert.ok(!chosen.has(hashOf(k)), k);
+});
+
+test("a deck with a form not unlocked is played with the base card, priced by the form's measured edge", async () => {
+  // Everything but E and V excluded: one deck per set, E first, V second.
+  const res = await call({
+    count: 1,
+    alternatives: 2,
+    exclude_cards: [
+      26000000, 26000008, 26000016, 26000024, 26000048, 26000056, 26000064,
+    ],
+  });
+  const v = res.sets
+    .flatMap((s) => s.decks)
+    .find((d) => d.deck_hash === hashOf("V"));
+  assert.ok(v, "V is a candidate, not refused");
+  assert.equal(v.forms_substituted.length, 1);
+  const [swap] = v.forms_substituted;
+  assert.equal(swap.id, 26000006);
+  assert.equal(swap.form, "evolution");
+  assert.equal(swap.plays_as, "base");
+  assert.equal(swap.measured, true, "W's base C6 battles measure it");
+  assert.ok(v.value.form_term < 0);
+  assert.equal(v.value.form_term, -swap.form_advantage);
 });
 
 test("the strongest deck that collides with everything is a near miss, with the cards it lost", async () => {

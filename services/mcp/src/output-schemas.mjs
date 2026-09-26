@@ -2076,15 +2076,15 @@ export const OUTPUT_SCHEMAS = {
       candidates: {
         type: "object",
         description:
-          "How the season's rollup decks reduced: considered (over min_battles and min_players, or the player's own 5+ decks), then left out for a card not owned, a form not unlocked, a card under min_card_level, an excluded card or a locked deck's card; fieldable, valued and searched remain.",
+          "How the season's rollup decks reduced: considered (over min_battles and min_players, or the player's own 5+ decks), then left out for a card not owned, a card under min_card_level, an excluded card or a locked deck's card; fieldable, valued and searched remain, forms_substituted of them played with a base card for a form not unlocked.",
         properties: {
           considered: COUNT,
           not_owned: COUNT,
-          form_not_unlocked: COUNT,
           below_level: COUNT,
           excluded_cards: COUNT,
           shares_locked_cards: COUNT,
           fieldable: COUNT,
+          forms_substituted: COUNT,
           valued: COUNT,
           searched: COUNT,
         },
@@ -2134,13 +2134,18 @@ export const OUTPUT_SCHEMAS = {
                     description:
                       "Full verbosity: the record per mode (ladder, ranked, war) with its players' mean_level_gap, the control the value corrects for.",
                   },
+                  forms_substituted: {
+                    type: "array",
+                    description:
+                      "Cards the deck's players ran as an Evolution or Hero form the player has not unlocked, so they would play the base card: full verbosity {id, name, form, plays_as, form_advantage, measured}; compact the names. Empty when none.",
+                  },
                   fit: { type: "object" },
                   own_mean_level: { type: ["number", "null"] },
                   your_battles: COUNT,
                   value: {
                     type: ["object", "null"],
                     description:
-                      "total = corpus_logit + level_term + familiarity_term, in log-odds (objective.deck_value); an ordering, not a forecast.",
+                      "total = corpus_logit + level_term + form_term + familiarity_term, in log-odds (objective.deck_value); an ordering, not a forecast.",
                   },
                 },
                 required: ["deck_hash", "locked", "record", "value"],

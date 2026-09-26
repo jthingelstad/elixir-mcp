@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import {
   LOGIT_PER_LEVEL,
   deckValue,
+  formAdvantage,
   nearMisses,
   packSets,
   setValue,
@@ -140,4 +141,30 @@ test("a deck's value: shrunk, level-corrected where levels are free, then fitted
   const known = deckValue({ ...base, yours: 5 });
   assert.equal(known.familiarity_term, 0.05);
   assert.equal(deckValue({ ...base, modes: {} }), null, "no record, no value");
+});
+
+test("a form's advantage is measured against its base form, never a bonus, and unmeasured when thin", () => {
+  const m = 20;
+  const prior = 0.5;
+  const evo = { battles: 200, wins: 120 };
+  const base = { battles: 200, wins: 100 };
+  const a = formAdvantage({ form: evo, base, prior, m });
+  assert.ok(a > 0.3 && a < 0.45, `${a}`);
+  // A form that does worse than its base costs nothing.
+  assert.equal(formAdvantage({ form: base, base: evo, prior, m }), 0);
+  // Too few battles on either side: not measured.
+  assert.equal(
+    formAdvantage({ form: { battles: 10, wins: 9 }, base, prior, m }),
+    null,
+  );
+  // A substituted deck carries it as a negative form_term.
+  const v = deckValue({
+    modes: { ladder: { battles: 100, wins: 60, mean_level_gap: 0 } },
+    priors: { ladder: 0.5 },
+    ownMean: 14,
+    target: 14,
+    formTerm: -a,
+    m,
+  });
+  assert.equal(v.form_term, -a);
 });

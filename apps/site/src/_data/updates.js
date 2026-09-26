@@ -21,7 +21,7 @@ export default [
   {
     date: "2026-09-25",
     title: "Four war decks that share no card",
-    body: "Ask for your war decks and Elixir now answers with sets you can actually field: four decks with no card in common (an Evolution or Hero form counts as the same card), picked from decks this season's players really played in Trophy Road, Path of Legends and Clan Wars, and fitted to your collection and card levels. Each deck shows its record and why it was chosen, the weakest deck of the set is named, and the decks it had to give up are listed with the card they lost. Keep the decks you like and ask again for the rest, or ask for a different last deck. Contract 9.4.0.",
+    body: "Ask for your war decks and Elixir now answers with sets you can actually field: four decks with no card in common (an Evolution or Hero form counts as the same card), picked from decks this season's players really played in Trophy Road, Path of Legends and Clan Wars, and fitted to your collection and card levels. A deck built around an Evolution you have not unlocked still counts, played with the base card and priced by how much that Evolution is measured to add. Each deck shows its record and why it was chosen, the weakest deck of the set is named, and the decks it had to give up are listed with the card they lost. Keep the decks you like and ask again for the rest, or ask for a different last deck. Contracts 9.4.0 and 9.5.0.",
   },
   {
     date: "2026-09-25",

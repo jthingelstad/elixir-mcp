@@ -461,8 +461,8 @@ The reductions, in order:
 | Step | What it keeps |
 | --- | --- |
 | The season's decks | eight-card decks in the season rollup with `min_battles` decided battles and `min_players` repeat players, or that the player has played five or more times this season |
-| The player's collection | every card owned and every Evolution or Hero form unlocked (`candidates.not_owned`, `form_not_unlocked` say how many fell out) |
-| The player's levels | no card more than two levels under the level they field now, `fit_for.target_level` (`below_level`) |
+| The player's collection | every card owned (`candidates.not_owned` says how many fell out); a deck played with an Evolution or Hero form the player has not unlocked stays, played with the base card (`forms_substituted`) |
+| The player's levels | no card four or more levels under the level they field now, `fit_for.target_level` (`below_level`); above that floor the gap is priced, not refused |
 | The caller's shape | no `exclude_cards`, none of a locked deck's cards |
 
 Each remaining deck is valued in log-odds, and every part rides the row
@@ -479,6 +479,11 @@ Each remaining deck is valued in log-odds, and every part rides the row
   modes are pooled by battles.
 - **level_term**: 0.5 per level the player would field the deck above or
   below their target level.
+- **form_term**: for each card played as a form the player has not
+  unlocked, minus that card's measured form advantage this season (its
+  form's rate against its base form's over every mode, in log-odds, never
+  a bonus); a card whose forms are too thin to measure takes the season's
+  median (`measured: false`).
 - **familiarity_term**: 0.05 when the player has played the exact deck five
   or more times this season, a tie-break for a deck they know.
 
@@ -486,7 +491,8 @@ A set's value is its decks' values plus the weakest deck's again, so a
 set is never carried by three strong decks and one weak one: every war
 day asks for all four. The search is exact (branch and bound over the
 best 1,500 candidates); `search.exhausted` false says it stopped at its
-budget. `alternatives` returns more sets, each sharing at most two decks
+budget. When the defaults find no set, the candidates are widened once
+(`min_battles` 5, `min_players` 2) and `applied` says so. `alternatives` returns more sets, each sharing at most two decks
 with every earlier one, and `near_misses` names decks worth at least the
 first set's weakest that it gave up, with the cards they share with a
 chosen deck.

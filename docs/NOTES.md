@@ -2584,4 +2584,17 @@ weakest deck protected (yes).
   whole path on a rebuilt season).
 - Next, by decision: the upgrade path to decks a player could field is its
   own tool; "complete this partial deck" from co-occurrence is open.
+- **9.5.0, the same night (read back through the Discord agent):** asked
+  "Create me a 4 strong war decks" as King Thing (fields 15.94), the agent
+  called `battles_deck_sets` unprompted and got no set: 889 season decks
+  considered, 133 not owned, 419 refused for an Evolution or Hero form not
+  unlocked, 334 for a card under 14, 3 left (widening to 5 battles / 2
+  players still left 3). A maxed account holds few decks with no card two
+  under 16, and most of the meta runs a form someone lacks. Now a form not
+  unlocked is played as its base card with `form_term` = minus that card's
+  measured form advantage (card_meta_season, form vs base, shrunk, floored
+  at 0; the season median where thin), the floor is four levels, and the
+  default gates widen once when nothing packs. The 9.4.0 acceptance run's
+  one failure, `budgets/meta-decks-clan-season` (10.6 s against 10 s),
+  was the post-deploy cold start: 668, 639 and 518 ms alone. Verdict: flake.
 
