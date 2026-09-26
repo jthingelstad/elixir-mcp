@@ -39,7 +39,11 @@ envelope, `createClient()`, `answered()`/`unwrap()` and the query client
 with its one retry rule. Anything a vertical needs that the kit lacks is
 a kit addition here, never a local copy there. An inline-style ratchet
 test pins the console's count and only goes down; Radix arrives with the
-first real dialog, not before.
+first real dialog, not before. There is no local API runner: the dev
+server's `/api` proxy (port 4319) has nothing behind it. The console's
+pre-deploy lane is `npm run e2e`, Playwright against the built app with
+`/api` route fixtures and axe (`apps/web/e2e/`); a signed-in check against
+the real door waits for the deploy.
 
 `CLAUDE.md` is a symlink to this file. Do not fork them.
 

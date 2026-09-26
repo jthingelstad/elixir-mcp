@@ -122,10 +122,9 @@ and `rankings` read the corpus and are heavy on the database (db.t4g.small
 since 2026-09-23, after the sweep drained the micro's EBS byte balance).
 
 **Parallelism.**
-- At the account's 300 calls an hour, ONE Gym at a time: a full run spends
-  150-250 calls, and on 2026-09-23 badges and battles together emptied the
-  hour so the next two runs were refused at their first call. Up to two at
-  once only after Jamie raises the ceiling to 900.
+- The `gym` token has its own bucket, `hourly_rate_limit` 1,000,000
+  (Jamie, 2026-09-23; NOTES), so two Gyms may run at once. Before that, at
+  300 calls an hour, badges and battles together emptied the hour.
 - Never two heavy families together.
 - If a `rate_limited` refusal comes back, drop to one and wait for the hour.
 
@@ -154,6 +153,10 @@ Gym runs are read-only, so they may run while you fix another family.
      the same misreading next time. A case marked `refuted` that says it
      is held for Jamie is an open question, not a refutation; carry it in
      the grid's notes.
+   - **Check a cited request id's age.** A Gym can cite an old request id
+     as live evidence (a 6.35.0 lead on 2026-09-24 was a call from the
+     night before). Pull the capture with `acceptance/bites/fetch.mjs` and
+     read its `captured_at` before building a stale-deploy theory.
    - Fix at the source. The site docs and `apps/site/src/_data/updates.js`
      go in the same commit.
    - Check the JSON API for the seven mirrored tools (see "Scope"). If the

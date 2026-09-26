@@ -7,6 +7,9 @@
 export const MODE_GROUP_BY_TYPE: Record<string, string> = {
   PvP: "ladder",
   pathOfLegend: "ranked",
+  // Fallback for an untagged trail row only; eventTag decides `event`. Mapping
+  // trail to "event" here trips meta_season_pop's mode_group CHECK (0140), so
+  // the tag stays the rule (Gym #187, 2026-09-23).
   trail: "casual",
   riverRacePvP: "war",
   riverRaceDuel: "war",

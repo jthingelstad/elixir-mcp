@@ -70,6 +70,10 @@ Establish, with receipts:
   plus the collection created by hand in the console. Retiring one is the
   reverse. Every added board is fetches, and every recording board is up
   to N more recorded players — say the cost in the note.
+- A session holding the checkout lease across the 10:20Z run makes this
+  objective stand down, and the day's collections are not synced. Whoever
+  held the lease runs `node clients/boards/boards.mjs` by hand after
+  releasing it.
 - Deploys are part of this objective when a fix needs one:
   `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`, adding
   `--acceptance=<family>` (`rankings`, `collections`) whenever a tool in
