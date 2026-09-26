@@ -73,7 +73,9 @@ the 17th; what execution corrected in it:
 Still open for Jamie after the phases: revoke the `backfill-elixir-bot`
 gateway row in Admin; refresh any connector holding a pre-3.12.0
 `tools/list`; drop the `staging` schema; the Drop and Clan stacks take the
-Elixir application tags in their own repos.
+Elixir application tags in their own repos. (2026-09-26: the `staging`
+schema was dropped by 0177, and Drop and Clan carry `Application=Elixir`;
+revoking the gateway row is the one item left, unconfirmed from the repo.)
 
 ## Read this first: the principle, and the four decisions
 

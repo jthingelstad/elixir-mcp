@@ -63,7 +63,10 @@ pol-global-top-100 · Path of Legends · global · 100 players · +25 −25 woul
 A **service token**, issued in the console under Admin ▸ Service tokens
 (owner only, shown once). It acts with the issuing account's entitlements, so
 it must be an account that **owns** the collections listed in `BOARDS` —
-`collections_edit` refuses somebody else's.
+`collections_edit` refuses somebody else's. The live one is named
+`collection-updater`, so this client shows up in `mcp_call_audit` and the
+census ops as `svc:collection-updater`; grepping the source for that name
+finds nothing.
 
 A connection's own credential will not work here: an agent's token is bound to
 that agent's door (`/a/<id>/mcp`) and answers `wrong_resource` at `/mcp`, which
