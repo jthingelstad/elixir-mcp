@@ -40,8 +40,9 @@ const LEVEL_CORRECTED = new Set(["ladder", "war"]);
 export const FAMILIAR_MIN_BATTLES = 5;
 const FAMILIARITY_LOGIT = 0.05;
 
-/** The level floor: a card this many levels or more under the level the
- *  player fields leaves the deck out; above it, level_term prices the gap.
+/** The level floor: a card MORE than this many levels under the level the
+ *  player fields leaves the deck out (min_level < target - 4); at or above
+ *  it, level_term prices the gap.
  *  It shipped at 2 (the "war ready" rule other builders label with) and
  *  left one maxed account 3 decks of 889 (2026-09-25): a player who fields
  *  level 16 holds few decks with no card under 14, and a floor that tight
@@ -75,6 +76,7 @@ function shrink(wins, decided, prior, m) {
  *   ownMean: the mean level the player would field the deck at
  *   target:  the level the player fields now (null: no level term)
  *   yours:   the player's own games on these eight cards (duel rounds count)
+ *   formTerm: minus the measured advantage of each form played as its base
  *   m:       the prior strength (META_METHODOLOGY.prior_strength)
  * Returns the parts and their sum, all in log-odds, plus the pooled
  * shrunk win rate the corpus part is built from (for reading).
