@@ -2692,3 +2692,9 @@ standings and the upgrade tool."
   but not the deck each lifts (only `set_after` said so) and read
   `decks_affected` as "helps 210 decks". Each option now carries `lifts`;
   `decks_affected` is described.
+- **9.7.1 shipped** (620026c2). Acceptance (`--acceptance=battles`): 197
+  cases, 2 failed, the same timing pair (`battles_trends#1` a cold
+  query_timeout this time); both pass alone. Read back through the clan
+  agent's ask lane with the routine line (elixir-mcp-discord f1872fd): each
+  card, its levels, the deck it lifts, the one that reshuffles the set, no
+  values.
