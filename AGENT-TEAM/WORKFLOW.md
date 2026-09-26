@@ -71,11 +71,16 @@ READING is a document map, not a second product specification.
    to release a clean checkout and queue the exact blocked capability.
 
    If this run has edits, complete offline gates and commit only its verified,
-   coherent work when safe. Record the commit, tests, deployment still owed,
-   dependent-change boundary, acceptance predicate and next owner check in
-   `AGENT-TEAM/notes/`; a source commit is not a shipped runtime fix. Do not
-   deploy past blocked infrastructure. Push only when the verified source is
-   safe to publish without that deployment, then abort from the clean tree.
+   coherent work when safe, on the run's branch (`<objective>/<slug>`), and
+   preserve it as a PR: `git push -u origin HEAD`, `gh pr create --fill`.
+   Turn on auto-merge (`gh pr merge --auto --rebase --delete-branch`) only
+   when the verified source is safe on `main` without that deployment; the
+   next deploy from `main` carries it, so never merge blocked
+   infrastructure. Otherwise leave the PR open. Record the commit, the PR,
+   tests, deployment still owed, dependent-change boundary, acceptance
+   predicate and next owner check in `AGENT-TEAM/notes/`; a merged PR is
+   not a shipped runtime fix. Then `git switch main && git pull --ff-only`
+   and abort from the clean tree.
    If the change cannot be made coherent, verified and clean, retain the lease
    and report exact recovery steps; never stash, discard, or abandon edits to
    make abort succeed. The dirty-worktree refusal remains enforced.

@@ -20,9 +20,9 @@ fleet is turned away here first.
 
 ## 1. Land the change
 
-Work lands on `main` in `elixir-mcp-collector` through a PR; its
-`validate` workflow (gofmt, go vet, `go test ./...`, and the
-`run-forever.sh` shell tests) is the gate. A green push runs
+Work lands on `main` in `elixir-mcp-collector` through a PR; the
+collector's `validate` check (all of its CI jobs) is the gate. A green
+push runs
 `release.yml`, which builds seven binaries plus the installers, writes
 `VERSION` and `SHA256SUMS`, signs `SHA256SUMS` with the release key in
 the `release` environment (`SHA256SUMS.sig`), verifies that signature

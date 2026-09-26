@@ -401,7 +401,7 @@ build → upload → migrate → vocabulary import → stack → web. It is smok
 and acceptance-gated when asked (`--acceptance`; below), and deploys are cumulative: never deploy past a commit whose infrastructure
 change is blocked. The vocabulary import reads `../cr-agent-api-docs` and
 refuses a checkout whose `data/card-roles.json` or `data/deck-aliases.json`
-is uncommitted: commit (and push) the reference first. It also refreshes
+is uncommitted: commit (and land, through its PR) the reference first. It also refreshes
 `fixtures/card-roles.snapshot.json`, the tests' copy; commit that with the
 deploy's change if it moved.
 
