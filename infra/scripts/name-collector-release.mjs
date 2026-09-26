@@ -12,10 +12,21 @@
  *   AWS_PROFILE=cloud-engineer node infra/scripts/name-collector-release.mjs --dry-run
  *
  * With no tag it reads the collector repo's latest GitHub release. It
- * pulls that release's SHA256SUMS, re-derives each platform key from
- * the asset names, and upserts one row per platform through the migrate
- * lambda. Idempotent: naming the same tag twice changes nothing but
- * updated_at.
+ * pulls that release's SHA256SUMS and SHA256SUMS.sig, re-derives each
+ * platform key from the asset names, and upserts one row per platform
+ * through the migrate lambda. Idempotent: naming the same tag twice
+ * changes nothing but updated_at.
+ *
+ * It refuses what a collector would refuse, before writing a row
+ * (2026-09-26, collector v3): collectors install only a release whose
+ * SHA256SUMS carries a valid signature by the release key, with a
+ * VERSION line for the named tag, fetched from this repo's release
+ * download URL. Naming a release a verifying collector will refuse
+ * would ship nothing and look like it shipped. So: no SHA256SUMS.sig,
+ * a signature `ssh-keygen -Y verify` rejects, a VERSION line for
+ * another tag, or a url of any other shape, and nothing is named.
+ * A release from before signing (v2.0.30 is the floor) is signed first
+ * with the collector repo's sign-release workflow.
  *
  * SOAK FIRST. Every green push to the collector repo's main publishes a
  * release, so a tag existing means nothing about whether it is good.
@@ -37,8 +48,27 @@
 import { execFileSync } from "node:child_process";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
+import { createHash } from "node:crypto";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 const REGION = "us-east-1";
 const REPO = "jthingelstad/elixir-mcp-collector";
+
+// The release key, as elixir-mcp-collector's SECURITY.md publishes it
+// (and the collector compiles it in, internal/v2/releasekey.go). The
+// fingerprint is checked against the line before anything is verified,
+// so an edit to one without the other stops the script. Rotation
+// (SECURITY.md) adds the new line here beside the old one.
+const RELEASE_KEYS = [
+  {
+    line: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFvN1mZGTcFXSGnIXf8h33cxAhvrHPYn80BO5FkELh28",
+    fingerprint: "SHA256:mktajl7kjMESYLyiY34rRu9hLTL6+EJS3I6aa/sGqeU",
+  },
+];
+const SIGNER = "elixir-mcp-collector-release";
+const NAMESPACE = "elixir-mcp-collector-release";
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
@@ -124,11 +154,28 @@ if (release.isDraft) {
   process.exit(1);
 }
 
+const refuse = (why) => {
+  console.error(`refusing to name ${release.tagName}: ${why}`);
+  process.exit(1);
+};
+
+const assetNames = new Set(release.assets.map((a) => a.name));
+if (!assetNames.has("SHA256SUMS")) refuse("it has no SHA256SUMS.");
+if (!assetNames.has("SHA256SUMS.sig")) {
+  refuse(
+    "it has no SHA256SUMS.sig, so every verifying collector would refuse it. " +
+      "Run the collector repo's sign-release workflow for this tag first.",
+  );
+}
+
 // The checksums are the release's own SHA256SUMS asset, which is what
-// the collector repo's release job generates from the built binaries.
+// the collector repo's release job generates from the built binaries
+// and signs. Verify the signature the way a collector does before
+// believing a line of it.
+const work = mkdtempSync(path.join(tmpdir(), "name-collector-release-"));
 let sums;
 try {
-  sums = gh(
+  gh(
     "release",
     "download",
     release.tagName,
@@ -136,22 +183,79 @@ try {
     REPO,
     "-p",
     "SHA256SUMS",
-    "-O",
-    "-",
+    "-p",
+    "SHA256SUMS.sig",
+    "-D",
+    work,
   );
+  sums = readFileSync(path.join(work, "SHA256SUMS"), "utf8");
+
+  for (const key of RELEASE_KEYS) {
+    const fp = execFileSync("ssh-keygen", ["-lf", "-"], {
+      input: `${key.line} ${SIGNER}\n`,
+      encoding: "utf8",
+    }).split(" ")[1];
+    if (fp !== key.fingerprint) {
+      throw new Error(
+        `release key fingerprint is ${fp}, expected ${key.fingerprint}; fix RELEASE_KEYS`,
+      );
+    }
+  }
+  const allowed = path.join(work, "allowed_signers");
+  writeFileSync(
+    allowed,
+    RELEASE_KEYS.map((k) => `${SIGNER} ${k.line}\n`).join(""),
+  );
+  try {
+    execFileSync(
+      "ssh-keygen",
+      [
+        "-Y",
+        "verify",
+        "-f",
+        allowed,
+        "-I",
+        SIGNER,
+        "-n",
+        NAMESPACE,
+        "-s",
+        path.join(work, "SHA256SUMS.sig"),
+      ],
+      { input: sums, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] },
+    );
+  } catch (err) {
+    throw new Error(
+      `SHA256SUMS.sig does not verify against the release key: ${String(err.stderr || err.stdout || err.message).trim()}`,
+    );
+  }
 } catch (err) {
-  console.error(
-    `release ${release.tagName} has no readable SHA256SUMS: ${err.message}`,
-  );
-  process.exit(1);
+  rmSync(work, { recursive: true, force: true });
+  refuse(err.message);
 }
+rmSync(work, { recursive: true, force: true });
+console.error(`  signature: good ${SIGNER} signature over SHA256SUMS`);
 
 const shaByAsset = new Map();
 for (const line of sums.split("\n")) {
-  const m = line.trim().match(/^([0-9a-f]{64})\s+(\S+)$/);
+  const m = line.trim().match(/^([0-9a-f]{64})\s+\*?(\S+)$/);
   if (m) shaByAsset.set(m[2], m[1]);
 }
 
+// The VERSION line binds the signed hashes to this tag, so a signed
+// SHA256SUMS from one release cannot be named as another. The collector
+// refuses a mismatch; so does this.
+const versionSha = createHash("sha256")
+  .update(`${release.tagName}\n`)
+  .digest("hex");
+if (shaByAsset.get("VERSION") !== versionSha) {
+  refuse(`its signed SHA256SUMS has no VERSION line for ${release.tagName}.`);
+}
+
+// Collectors accept exactly this repo's release download URL for the
+// named version; anything else is refused on the collector, so it is
+// refused here, before a row is written.
+const expectedUrl = (asset) =>
+  `https://github.com/${REPO}/releases/download/${release.tagName}/${asset}`;
 const urlByAsset = new Map(release.assets.map((a) => [a.name, a.url]));
 
 const rows = [];
@@ -162,6 +266,9 @@ for (const [asset, platform] of Object.entries(KEY_BY_ASSET)) {
   if (!sha256 || !url) {
     skipped.push(`${asset} (${!url ? "no asset" : "no checksum"})`);
     continue;
+  }
+  if (url !== expectedUrl(asset)) {
+    refuse(`${asset} is served from ${url}, not ${expectedUrl(asset)}.`);
   }
   rows.push({ platform, version: release.tagName, sha256, url });
 }
@@ -228,8 +335,8 @@ try {
     "--latest",
     "--notes",
     `Named as the update authority ${stamp} for ${rows.length} platform(s).\n\n` +
-      `Collectors install this build and no other. Released binaries pick it up on ` +
-      `their next hourly config call; the Python twin must be re-downloaded.`,
+      `Collectors install this build and no other, once its signature verifies. ` +
+      `Released binaries pick it up on their next hourly config call.`,
   );
   console.error(`  promoted ${release.tagName} to Latest in ${REPO}`);
 } catch (err) {

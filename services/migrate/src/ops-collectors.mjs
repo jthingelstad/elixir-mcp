@@ -33,14 +33,36 @@ export async function collectorTokenOp(databaseUrl, spec) {
   }
 }
 
+const RELEASE_DOWNLOAD =
+  "https://github.com/jthingelstad/elixir-mcp-collector/releases/download/";
+
+/** What a collector would refuse, refused before the row is written
+ *  (2026-09-26): collectors install only this repo's release download
+ *  URL for the named version, so a row naming anything else would ship
+ *  nothing while looking shipped. name-collector-release.mjs checks the
+ *  same and the signature besides; this is the server-side floor for a
+ *  hand-typed payload. */
+function collectorReleaseRefusal({ platform, version, sha256, url }) {
+  if (!/^go-[a-z0-9]+-[a-z0-9]+$/.test(platform ?? ""))
+    return "platform must be a go-<os>-<arch> key";
+  if (!/^v\d+\.\d+\.\d+$/.test(version ?? "")) return "version must be vX.Y.Z";
+  if (!/^[0-9a-f]{64}$/.test(sha256 ?? ""))
+    return "sha256 must be 64 lowercase hex";
+  const asset = String(url ?? "").startsWith(`${RELEASE_DOWNLOAD}${version}/`)
+    ? url.slice(`${RELEASE_DOWNLOAD}${version}/`.length)
+    : null;
+  if (!asset || !/^collector_[A-Za-z0-9_.-]+$/.test(asset))
+    return `url must be ${RELEASE_DOWNLOAD}${version}/<asset>`;
+  return null;
+}
+
 export async function collectorReleaseOp(databaseUrl, spec) {
+  const refusal = collectorReleaseRefusal(spec ?? {});
+  if (refusal) return { error: refusal };
+  const { platform, version, sha256, url } = spec;
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    const { platform, version, sha256, url } = spec ?? {};
-    if (!platform || !version || !/^[0-9a-f]{64}$/.test(sha256 ?? "") || !url) {
-      return { error: "platform, version, sha256 (hex), url required" };
-    }
     await db.query(
       `insert into collector_release (platform, version, sha256, url)
        values ($1, $2, $3, $4)
