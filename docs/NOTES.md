@@ -2606,4 +2606,18 @@ weakest deck protected (yes).
   under his floor of 12: main decks maxed, the rest of the collection not.
   **9.5.1** drops the floor on the one wider pass; the gap is priced by
   `level_term` and shown as `fit.lowest_card`.
+- **9.5.1 shipped** (61539908). Acceptance (`--acceptance=battles`): 192
+  cases, 2 failed, both the same post-deploy timing pair as 9.4.0 and
+  9.5.0 (`budgets/meta-decks-clan-season` 12.8 s, `catalogue/battles_trends#1`
+  17.7 s; alone 4.6 s and 3.8 s): flakes. Both run before the deck-sets
+  case in the suite. `catalogue/battles_deck_sets#0` and `#notes` pass.
+  Read back through the Discord agent's ask lane as King Thing: "Create me
+  a 4 strong war decks" returned a 32-card set of season decks (97-258
+  battles each, one Balloon played as base); "a different last war deck"
+  locked his three current war decks (from `battles_decks`) and returned a
+  fourth sharing none, its level gap (13.4 vs 15.9) said. The Discord
+  brief now names the tool (elixir-mcp-discord df3d75f).
+- Owed: the post-deploy timing pair fails every battles deploy now; worth a
+  look at whether a warm-up before acceptance, or those ceilings, is the
+  fix (not this change's).
 
