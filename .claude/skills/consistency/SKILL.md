@@ -105,8 +105,8 @@ Every verified finding is one of:
   would change what a number means, remove something someone relies on,
   or touch a declined idea. A review bullet is not a decision: when a
   finding carries a policy half, ask about the policy.
-- **Sibling repo.** The fix belongs to Clan, Drop, elixir-bot, the Discord
-  preview or cr-agent-api-docs. Fix it there under that repo's rules and
+- **Sibling repo.** The fix belongs to Clan, Drop, the Discord preview or
+  cr-agent-api-docs (elixir-bot is retired, 2026-09-26). Fix it there under that repo's rules and
   lease, in the domain lease order (`../AGENT-TEAM/WORKFLOW.md`).
   poapkings.com is report-only (Jamie, 2026-09-25: "leave poapkings.com
   website as is for now even if it is wrong").

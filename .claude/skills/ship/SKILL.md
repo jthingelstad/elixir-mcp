@@ -234,20 +234,26 @@ The smoke read the doors; read what this change moved, reads only:
 - Only after the hub change it needs is live: Drop's sign-in over
   `/api/v1` (cffc06d) went out after 9.1.1 let `/oauth/userinfo` answer an
   `/api/v1` grant, Clan b4a5d61 after 9.0.1.
-- Elixir Clan (`validate`, then `deploy`) and Elixir Drop (`Validate Main`,
-  then `Build and Deploy`) deploy by CI on push to `main`, the second run
-  started by `workflow_run` once the first is green: `gh run list -w
-  <workflow> -c <sha> -L 1`, then `gh run watch <id> --exit-status`. That
-  push is a production deploy, so a session that could not deploy the hub
-  does not push a sibling that needs it.
+- Clan, Drop, poapkings.com, cr-agent-api-docs and elixir-mcp-discord
+  take only pull requests from 2026-09-26, on this repo's ruleset shape
+  (`validate`, rebase, no bypass): each lands through its own Merge step.
+- Elixir Clan and Elixir Drop still deploy by CI from `main` once
+  `validate` is green on the merged commit (moving to GitHub OIDC roles),
+  so merging one is a production deploy: a session that could not deploy
+  the hub does not merge a sibling that needs it. Watch the deploy on the
+  merge SHA (`gh pr view <n> --json mergeCommit`), not the branch's:
+  `gh run list -c <sha>`, then `gh run watch <id> --exit-status`.
+- elixir-mcp-discord's three bots build from the local checkout on
+  purpose (nearly live code: they are Jamie's tests); its own guide
+  owns their deploy.
 - A kit change (`packages/design`, `ui`, `client`) reaches Clan when the
-  `elixir-mcp` pin in its `apps/web/package.json` moves to the pushed commit.
-- elixir-bot commits straight to `main` and reads MCP unpinned, "reading a
-  missing field as unavailable, never 0" (DECISIONS).
+  `elixir-mcp` pin in its `apps/web/package.json` moves to the merged commit.
+- elixir-bot is retired (stopped 2026-09-26): no sibling step, never in
+  scope.
 - Each repo keeps its own lease tool, objectives and gate (Clan `npm run
-  verify`, Drop the one its `CONTRIBUTING.md` names, elixir-bot
-  `scripts/gates.sh`); leases in directory-alphabetical order, released in
-  reverse (`../AGENT-TEAM/WORKFLOW.md`). Collectors: `docs/RELEASING-COLLECTOR.md`.
+  verify`, Drop the one its `CONTRIBUTING.md` names); leases in
+  directory-alphabetical order, released in reverse
+  (`../AGENT-TEAM/WORKFLOW.md`). Collectors: `docs/RELEASING-COLLECTOR.md`.
 
 ## Close
 
