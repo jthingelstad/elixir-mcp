@@ -80,6 +80,24 @@ Your collector updates itself. Every candidate build waits until this server
 names it as the fleet's current version, so what you run is always a version
 somebody chose deliberately rather than the newest thing that compiled.
 
+Naming is not enough on its own. Every release is signed, and your
+collector installs a named release only after it checks the signature
+over the release's `SHA256SUMS` against the release key built into it,
+and the download against the hash this server named. So neither this
+server alone nor GitHub alone can put code on your machine. The release
+key:
+
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFvN1mZGTcFXSGnIXf8h33cxAhvrHPYn80BO5FkELh28 elixir-mcp-collector-release
+```
+
+Its fingerprint is `SHA256:mktajl7kjMESYLyiY34rRu9hLTL6+EJS3I6aa/sGqeU`,
+the one your collector logs when it verifies an update. This page is a
+second place to check it: the collector repository's
+[SECURITY.md](https://github.com/jthingelstad/elixir-mcp-collector/blob/main/SECURITY.md)
+publishes the same line, with how to verify a release by hand. If the
+two ever disagree, do not install, and tell the maintainer.
+
 ## What your collector can and cannot do
 
 It leases fetch jobs, calls the CR API with your key, and posts the
@@ -103,8 +121,7 @@ Three routes, all `Authorization: Bearer emcg_…`:
 
 Config hands out pacing (1,500 ms between fetches), the 403 breaker (5 in
 a row, 300 s cooldown), the payload ceiling (5,000,000 bytes compressed and
-base64-encoded), the next check-in interval, and a 20-second idle fallback
-for released collectors that still need it, your channel, your status, the address your requests arrive from (`observed_ip`
+base64-encoded), the next check-in interval, your channel, your status, the address your requests arrive from (`observed_ip`
 — the one to allowlist on your CR key), the one Clash Royale path
 `collector doctor` may read to prove your key works from there, and the
 one release version and SHA-256 you may run. A `pending` token can read

@@ -90,8 +90,8 @@ token:
 - **`GET /api/collector/config`** — the launch-time contract:
   `{contract_version, pacing_ms, breaker: {threshold_403, cooldown_s},
   overflow_bytes, check_in: {idle_s, capped_s}, submit_retry,
-  min_client_version}` (the `poll` block is still served for clients
-  from before 2026-09-11). Fetched at startup and re-fetched
+  min_client_version}` (the `poll` block, served until 2026-09-26 for
+  clients from before 2026-09-11, is gone). Fetched at startup and re-fetched
   opportunistically; `min_client_version` is the kill switch that can
   force a self-update.
 - **`POST /api/collector/lease`** — a check-in (2026-09-11: never a

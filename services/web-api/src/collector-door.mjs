@@ -82,7 +82,7 @@ const CONFIG = {
   // 2.0.30 (2026-09-12): the first client that checks in instead of
   // long-polling. Below it the door refuses lease and submit (426) when
   // COLLECTOR_MIN_ENFORCE=1; config is never refused. Unparseable
-  // versions (a py-dev checkout) are allowed, by design.
+  // versions (a dev build) are allowed, by design.
   min_client_version: "2.0.30",
   pacing_ms: 1500,
   breaker: { threshold_403: 5, cooldown_s: 300 },
@@ -105,12 +105,6 @@ const CONFIG = {
   // constant: told "15 s" from the same empty queue, five collectors
   // arrived together after every scheduler tick.
   check_in: { idle_s: 15, capped_s: 5 },
-  // Released Python twins still read this object while using
-  // next_check_in_s for ordinary check-ins. Keep its historical values in
-  // the server response until every supported client tolerates its absence:
-  // without it, an otherwise healthy collector loops on a KeyError and
-  // silently removes a redundant fetcher from the fleet.
-  poll: { live_wait_s: 8, bulk_wait_s: 2, idle_backoff_s: 20 },
   // A failed ingestion must not make the collector abandon a valid lease
   // immediately. Keep this bounded below the 90-second lease TTL: clients
   // retry only transport failures and 5xx responses with this same envelope.
@@ -187,9 +181,11 @@ function sha256hex(value) {
 
 /** Pull a numeric version out of whatever a client calls itself.
  *
- *  Clients report a build string, not a bare semver: the Go binary says
- *  "v2.0.19" and the Python twin says "py-v2.0.19". Both mean the same
- *  generation. A local build says "dev" or "py-dev" and yields null.
+ *  Clients report a build string, not a bare semver: a release says
+ *  "v3.0.1" and a local build says "dev", which yields null. The
+ *  retired Python collector said "py-v2.0.19"; that still parses, on
+ *  purpose, because an unreadable version is let through and a readable
+ *  one is what lets the gate refuse a stray Python client.
  */
 export function parseClientVersion(raw) {
   const m = /(\d+)\.(\d+)\.(\d+)/.exec(String(raw ?? ""));
@@ -232,7 +228,7 @@ function versionRefusal(event) {
       error: "client_too_old",
       min_client_version: CONFIG.min_client_version,
       your_version: raw,
-      hint: "This collector is below the minimum client version. Released binaries update themselves from /api/collector/config within the hour; the Python twin must be re-downloaded from the latest release.",
+      hint: "This collector is below the minimum client version. Released binaries update themselves from /api/collector/config within the hour. A Python collector is retired: install the Go collector instead (https://github.com/jthingelstad/elixir-mcp-collector#3-run-it).",
     },
   };
 }

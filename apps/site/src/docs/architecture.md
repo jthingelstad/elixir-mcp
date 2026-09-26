@@ -84,7 +84,7 @@ more collectors mean resilience, never more API load.
 
 ## Collectors, in depth
 
-A collector is a single static binary, Go or Python (its own public repo,
+A collector is a single static Go binary (its own public repo,
 [elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector))
 that runs anywhere with a static IP — a Mac in a closet, a Synology NAS
 at a cabin. What makes the fleet interesting:
