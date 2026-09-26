@@ -2855,3 +2855,24 @@ rebuild 2026-09 and 2026-08 with `{meta_rollup_season}`.
 - 337.1, 343.2 (live cases), `catalogue/cards_archetype#docs`,
   `elixir_timeline#docs`, `war_history#notes`: not this change's tools;
   re-run alone after the next deploy before a verdict.
+
+**9.11.1's acceptance (full suite): 1,188 cases, 11 failed; the rollups
+rebuilt during the run** (`{meta_rollup_season}`: 2026-08 in 40 s, 51,568
+decided, equal to the raw window; 2026-09 in 86 s, 534,038 decided).
+Verdicts, each re-run alone:
+
+- nc.meta.reconcile, 190.3: amended for the decision (23f7beff), with the
+  meta identity checks; pass.
+- 285.1, 154.1, 154.4, 207.1, 188.3, 200.1, 301.1,
+  `catalogue/battles_meta_cards#1`, the three catalogue docs/notes cases:
+  pass alone (the rebuild was running under them).
+- `budgets/meta-cards-corpus-week`, `catalogue/battles_trends#1`: the
+  first call of every fresh acceptance process is 13-16 s in the door's
+  own log line and the next is 3.2-3.6 s (13:50:28Z 16,269 ms, 13:50:32Z
+  3,550 ms); `{profile_tool}` reads the corpus week in 3.0 s of database
+  time. The first-call slowness is this morning's open item, not 9.11.
+- 337.1 (#GRJ20LQP is no longer a recorded clan) and 343.2 (live board
+  state): live cases whose world moved; `/gym` re-seeds them.
+
+Open: round order as deck slot (#363 item 4) is unverified; nothing names
+"deck 1-4".
