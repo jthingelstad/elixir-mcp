@@ -199,12 +199,15 @@ export const battles_meta_decks = {
     let rows;
     let excluded;
     let prior;
+    // Of decided_battles, how many were duel rounds (9.11.0).
+    let duelRounds = null;
     let totalDecided;
     let totalWins;
     let modeGroups = null;
     let playersInWindow = null;
     if (roll) {
       ({ excluded, prior } = roll);
+      duelRounds = roll.duel_rounds;
       rows = await rollupDecks(ctx.db, roll, { minBattles });
       totalDecided = prior.decided;
       totalWins = Math.round((prior.mean ?? 0) * prior.decided);
@@ -212,16 +215,16 @@ export const battles_meta_decks = {
       if (!args.mode) modeGroups = await rollupModeGroups(ctx.db, roll);
     } else {
       await rawScanMemory(ctx.db);
-      const { prior: populationPrior, ...breakdown } = await excludedBreakdown(
-        ctx.db,
-        scope,
-        params,
-        {
-          withPrior: !seg.where,
-          source: pop ? "meta_season_pop" : "battle_participant",
-        },
-      );
+      const {
+        prior: populationPrior,
+        duel_rounds: rawRounds,
+        ...breakdown
+      } = await excludedBreakdown(ctx.db, scope, params, {
+        withPrior: !seg.where,
+        source: pop ? "meta_season_pop" : "battle_participant",
+      });
       excluded = breakdown;
+      duelRounds = rawRounds;
       // What the population rule left out, said (Gym #188). A segment
       // read only: a corpus window would pay a third corpus scan.
       if (!pop && seg.where)
@@ -610,6 +613,7 @@ export const battles_meta_decks = {
       ...(population ? { population } : {}),
       ...(compact ? {} : { methodology: META_METHODOLOGY }),
       decided_battles: totalDecided,
+      duel_rounds: duelRounds,
       segment_win_rate: totalDecided > 0 ? Number(mean.toFixed(3)) : null,
       prior_win_rate: Number(priorMean.toFixed(3)),
       prior_basis: prior.mean === null ? "neutral_0.5" : "corpus_window",

@@ -152,14 +152,14 @@ function popTable(month) {
 }
 
 /** A population relation as games under the alias every aggregate names
- *  (9.11.0, feedback #363): a duel's recorded rounds, each with its own
- *  deck and result, in place of its one deckless row; a duel with no
- *  recorded rounds stays whole, the totals' `duels`. A round has no
- *  level gap of its own. */
+ *  (9.11.0, feedback #363): every row as it was, `round` 0, and a duel's
+ *  recorded rounds beside it, each with its own deck and result. The
+ *  totals' battle categories read round 0 (a duel once, its whole row
+ *  deckless); decided reads every row with a deck, rounds included. A
+ *  round has no level gap of its own. */
 function gamesOf(relation) {
   return `${duelGamesSql(relation, POP_COLUMNS.split(", "), {
     blank: ["level_gap"],
-    wholeDuels: true,
   })} pop`;
 }
 
@@ -214,17 +214,16 @@ function aggregateSql(
        (season_month, mode_group, considered, duels, boat, draws, unresolved, no_deck, decided, wins,
         duel_rounds)
      select '${month}', m.mode_group,
-            count(*)::int,
-            -- A duel still whole is one whose rounds were never recorded;
-            -- a round is a game like any other below.
+            -- Battles (round 0: a duel once); a duel's rounds are not
+            -- battles here, they are decided games below.
+            count(*) filter (where pop.round = 0)::int,
             count(*) filter (where pop.round = 0 and pop.type = any($1))::int,
-            count(*) filter (where pop.type_class = 'boat' and not (pop.round = 0 and pop.type = any($1)))::int,
-            count(*) filter (where pop.outcome = 'draw' and pop.type_class = 'pvp'
-                               and not (pop.round = 0 and pop.type = any($1)))::int,
+            count(*) filter (where pop.type_class = 'boat' and not pop.type = any($1))::int,
+            count(*) filter (where pop.outcome = 'draw' and pop.type_class = 'pvp' and not pop.type = any($1))::int,
             count(*) filter (where (pop.outcome is null or pop.outcome = 'unresolved')
-                               and pop.type_class = 'pvp' and not (pop.round = 0 and pop.type = any($1)))::int,
+                               and pop.type_class = 'pvp' and not pop.type = any($1))::int,
             count(*) filter (where pop.outcome in ('win','loss') and pop.type_class = 'pvp'
-                               and not (pop.round = 0 and pop.type = any($1)) and pop.deck_hash is null)::int,
+                               and not pop.type = any($1) and pop.deck_hash is null)::int,
             count(*) filter (where pop.outcome in ('win','loss') and pop.type_class = 'pvp'
                                and pop.deck_hash is not null)::int,
             count(*) filter (where pop.outcome = 'win' and pop.type_class = 'pvp'

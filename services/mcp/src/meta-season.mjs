@@ -82,7 +82,8 @@ export async function seasonRollup(db, { win, seg, mode, trophyBand = null }) {
   const {
     rows: [totals],
   } = await db.query(
-    `select considered, duels, boat, draws, unresolved, no_deck, decided, wins, players
+    `select considered, duels, boat, draws, unresolved, no_deck, decided, wins, players,
+            duel_rounds
      from meta_season_totals where season_month = $1 and mode_group = $2`,
     [month, modeGroup],
   );
@@ -96,6 +97,7 @@ export async function seasonRollup(db, { win, seg, mode, trophyBand = null }) {
     decided: 0,
     wins: 0,
     players: null,
+    duel_rounds: 0,
   };
   if (trophyBand) {
     // The band's own decided total and wins; the exclusion categories are
@@ -107,11 +109,23 @@ export async function seasonRollup(db, { win, seg, mode, trophyBand = null }) {
        where season_month = $1 and mode_group = $2 and trophy_band = $3`,
       [month, modeGroup, trophyBand],
     );
+    // The band's duel rounds are its deck rows' (the band totals carry
+    // none); null while any row is unsplit, as the season's.
+    const {
+      rows: [rounds],
+    } = await db.query(
+      `select case when bool_or(duel_rounds is null) then null
+                   else coalesce(sum(duel_rounds), 0) end::int as duel_rounds
+         from deck_meta_season_band
+        where season_month = $1 and mode_group = $2 and trophy_band = $3`,
+      [month, modeGroup, trophyBand],
+    );
     t = {
       ...t,
       decided: band?.decided ?? 0,
       wins: band?.wins ?? 0,
       players: band?.players ?? null,
+      duel_rounds: rounds?.duel_rounds ?? 0,
     };
   }
   return {
@@ -121,6 +135,9 @@ export async function seasonRollup(db, { win, seg, mode, trophyBand = null }) {
     // The distinct players decided in the season and mode, as of the
     // rebuild (product call 5); null until a rebuild has counted them.
     players: t.players ?? null,
+    // Of the decided, how many were duel rounds (0183); null until the
+    // season's next rebuild splits them.
+    duel_rounds: t.duel_rounds ?? null,
     final: state.final,
     counters_through: state.counters_through.toISOString(),
     players_as_of: state.rebuilt_at.toISOString(),

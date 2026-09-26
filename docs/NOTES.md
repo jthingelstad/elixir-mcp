@@ -2836,3 +2836,22 @@ joining it at read time costs nothing beside the 563k-row population.
 record (the rollup has everyone's); `modes.war.your_duel_rounds` became
 `modes.<mode>.duel_rounds`. `battles_decks` is unchanged. After the deploy:
 rebuild 2026-09 and 2026-08 with `{meta_rollup_season}`.
+
+**9.11.0's first acceptance (full suite): 1,188 cases, 13 failed. Verdicts:**
+
+- 188.3, 200.1 (`considered` against `battles_query` and `battles_trends`)
+  and 301.1: product answered wrong, fixed forward in 9.11.1. The first cut
+  counted `considered` in games; it counts battles again (a duel once, in
+  `excluded.duels`), decided counts games, and `duel_rounds` beside
+  `decided_battles` says how many were rounds. `duelGamesSql` keeps every
+  row at round 0 and adds the rounds, so one source serves both counts.
+- 301.1 amended as well: decided games are `battles_decks`' battles with a
+  deck plus the rounds (`sum_eq` takes a list total now).
+- 154.1, 154.4, 207.1 (a season rollup against the raw window): the
+  rollups predate the rounds until `{meta_rollup_season}` rebuilds 2026-08
+  and 2026-09; re-run after.
+- `budgets/meta-cards-corpus-week` (15.6 s) and `catalogue/battles_trends#1`:
+  first calls after the deploy, 3.3-3.9 s alone.
+- 337.1, 343.2 (live cases), `catalogue/cards_archetype#docs`,
+  `elixir_timeline#docs`, `war_history#notes`: not this change's tools;
+  re-run alone after the next deploy before a verdict.

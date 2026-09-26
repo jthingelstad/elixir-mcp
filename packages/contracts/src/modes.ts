@@ -92,14 +92,14 @@ export const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
  * (0182), and as one row with no deck it was invisible to every meta
  * count: a war deck played only in duels was in no one's war meta.
  *
- * The rows of `from` pass through as they are, `round` 0, except a
- * duel's, which becomes one row per recorded round carrying that round's
- * `deck_hash` and `outcome`; the `blank` columns (a side's level, which a
- * round does not carry) are null on a round. With `wholeDuels`, a duel
- * whose rounds were never recorded stays one row, round 0, as before:
- * the breakdown's `excluded.duels`. A decided-only read leaves it out (a
- * whole duel has no deck, so it is never decided) and keeps the
- * participant scan index-only.
+ * Every row of `from` passes through as it is, `round` 0, a duel's whole
+ * row among them; and each recorded round of a duel is added as a row of
+ * its own, `round` 1-3, carrying that round's `deck_hash` and `outcome`.
+ * The `blank` columns (a side's level, which a round does not carry) are
+ * null on a round. So a count of BATTLES reads `round = 0` (a duel once,
+ * as every other tool counts it), and a count of decided GAMES reads the
+ * rows with a deck: a duel's whole row has none, so it is never decided,
+ * and its rounds are.
  *
  * `from` is a relation or a parenthesized subquery whose columns include
  * battle_id, player_tag, type, deck_hash and outcome, each in `columns`.
@@ -108,10 +108,7 @@ export const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
 export function duelGamesSql(
   from: string,
   columns: readonly string[],
-  {
-    blank = [],
-    wholeDuels = false,
-  }: { blank?: readonly string[]; wholeDuels?: boolean } = {},
+  { blank = [] }: { blank?: readonly string[] } = {},
 ): string {
   const duels = `'{${DUEL_TYPES.join(",")}}'::text[]`;
   const own = columns.map((c) => `g.${c}`).join(", ");
@@ -124,19 +121,10 @@ export function duelGamesSql(
           : `g.${c}`,
     )
     .join(", ");
-  const whole = wholeDuels
-    ? `
-     union all
-     select ${own}, 0::smallint from ${from} g
-      where g.type = any(${duels})
-        and not exists (select 1 from battle_participant_round r
-                         where r.battle_id = g.battle_id and r.player_tag = g.player_tag)`
-    : "";
   return `(select ${own}, 0::smallint as round from ${from} g
-      where g.type <> all(${duels})
      union all
      select ${perRound}, r.round from ${from} g
        join battle_participant_round r
          on r.battle_id = g.battle_id and r.player_tag = g.player_tag
-      where g.type = any(${duels})${whole})`;
+      where g.type = any(${duels}))`;
 }

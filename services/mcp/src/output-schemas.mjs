@@ -409,6 +409,11 @@ const META_COMMON = {
   population: POPULATION,
   methodology: { type: "object" },
   decided_battles: COUNT,
+  duel_rounds: {
+    type: ["integer", "null"],
+    description:
+      "9.11.0: of decided_battles, how many were rounds of a Clan Wars duel (each round one game with its own deck and result; the duel itself is one battle in excluded.duels and considered). null on a season rollup read until the nightly rebuild splits them.",
+  },
   segment_win_rate: RATE,
   prior_win_rate: RATE,
   prior_basis: { type: "string" },

@@ -12,8 +12,9 @@
  * an alias (`r.rivals[...]`, `w.standings[...]`).
  *
  * Verbs: has, absent, eq, neq, lt, lte, gt, gte, count_eq, sum_eq (paths
- * and literals; a fanned total `list[].field` is summed, 87.1; a decimal
- * compares to 0.005, 96.1), contains
+ * and literals; a fanned total `list[].field` is summed, 87.1; a total
+ * that is a list of parts is their sum, 301.1; a decimal compares to
+ * 0.005, 96.1), contains
  * (a scalar list holds a value, 85.6), sorted_desc, sorted_asc,
  * notes_match, notes_not_match, every_row_has, unique_by (121.3), before and
  * all_before (instants: 162.1, 162.2). An `eq` right-hand side that is a
@@ -219,7 +220,11 @@ export function assertOne(spec, scope, root) {
       );
       if (vals.some((v) => v === null)) return;
       const sum = vals.reduce((x, y) => x + y, 0);
-      let want = at(total);
+      // A total of several parts (301.1: decided games against battles
+      // plus the duel rounds they became) sums like the left side.
+      let want = Array.isArray(total)
+        ? total.map((p) => (typeof p === "number" ? p : at(p)))
+        : at(total);
       ok(want !== undefined, `sum_eq: ${total} absent`);
       if (Array.isArray(want)) {
         // A fanned total (member_weeks[].points) is the sum of the list.

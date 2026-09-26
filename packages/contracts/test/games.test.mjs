@@ -6,7 +6,7 @@ test("the duel types are war types", () => {
   for (const t of DUEL_TYPES) assert.ok(typesForModeGroup("war").includes(t));
 });
 
-test("duelGamesSql: a round carries its own deck and result, a blank column is null, whole duels only on request", () => {
+test("duelGamesSql: every row passes as round 0; a round carries its own deck and result, a blank column is null", () => {
   const sql = duelGamesSql(
     "battle_participant",
     [
@@ -21,21 +21,14 @@ test("duelGamesSql: a round carries its own deck and result, a blank column is n
   );
   assert.match(
     sql,
+    /select g\.battle_id, g\.player_tag, g\.type, g\.deck_hash, g\.outcome, g\.deck_avg_level, 0::smallint as round from battle_participant g\s+union all/,
+  );
+  assert.match(
+    sql,
     /r\.deck_hash, r\.outcome, null as deck_avg_level, r\.round/,
   );
   assert.match(
     sql,
-    /g\.type <> all\('\{riverRaceDuel,riverRaceDuelColosseum\}'::text\[\]\)/,
-  );
-  assert.doesNotMatch(sql, /not exists/);
-  assert.match(
-    duelGamesSql(
-      "pop",
-      ["battle_id", "player_tag", "type", "deck_hash", "outcome"],
-      {
-        wholeDuels: true,
-      },
-    ),
-    /not exists \(select 1 from battle_participant_round r/,
+    /g\.type = any\('\{riverRaceDuel,riverRaceDuelColosseum\}'::text\[\]\)/,
   );
 });

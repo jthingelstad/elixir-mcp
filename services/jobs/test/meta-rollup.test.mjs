@@ -604,8 +604,10 @@ test("a duel counts as its rounds, each with its own deck and result; a duel wit
       where season_month = $1 and mode_group = 'war'`,
     [current.season_month],
   );
+  // Battles: the two duels once per participant, both itemized as
+  // duels; games: the first duel's six rounds, all decided.
   assert.deepEqual(war, [
-    { considered: 8, duels: 2, decided: 6, wins: 3, duel_rounds: 6 },
+    { considered: 4, duels: 4, decided: 6, wins: 3, duel_rounds: 6 },
   ]);
   const { rows: hogCard } = await db.query(
     `select battles, wins, duel_rounds from card_meta_season

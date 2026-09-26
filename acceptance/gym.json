@@ -17129,13 +17129,14 @@
       {
         "sum_eq": [
           ["m.decided_battles", "m.excluded.outside_meta"],
-          "d.total_battles_in_window"
+          ["d.total_battles_in_window", "m.duel_rounds"]
         ]
       },
       {
         "eq": ["m.excluded.duels", "d.excluded.duels"]
       }
-    ]
+    ],
+    "amended": "Amended for 9.11.0 (Jamie 2026-09-26, feedback #363: a duel counts as its rounds): the meta's decided games are battles_decks' battles with one deck plus the duel rounds they became (m.duel_rounds); a duel is still one battle in excluded.duels on both tools."
   },
   {
     "id": "301.2",

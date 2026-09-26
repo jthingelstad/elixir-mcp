@@ -621,6 +621,8 @@ async function seasonUsage(
   // population filters scopeClauses opens with.
   const scopeParams = params.slice(0, -1);
   const excluded = await excludedBreakdown(ctx.db, where.slice(3), scopeParams);
+  // Not an exclusion; season.all.duel_rounds carries this card's.
+  delete excluded.duel_rounds;
   return {
     season,
     decided,

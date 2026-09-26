@@ -49,16 +49,17 @@ games, and each round counts as one game (9.11.0): the eight cards played that
 round, won or lost by that round's crowns against the opponent's, so a war
 deck's record holds its duel rounds beside its 1v1 battles, and every row
 says how many of its battles were rounds (`duel_rounds`). A round carries no
-level of its own, so it is outside `mean_level_gap`. Boat battles (an attack
-on a static defense), draws and unresolved outcomes are excluded from
+level of its own, so it is outside `mean_level_gap`, and a drawn round is
+not decided. `decided_battles` counts games, and `duel_rounds` beside it
+says how many of them were rounds. Boat battles (an attack on a static
+defense), draws and unresolved outcomes are excluded from
 `decided_battles`, row counts, usage shares, rates and the shrinkage
-baseline, a drawn or unresolved round among them, and so is a duel whose
-rounds were never recorded. So is everything
+baseline. So is everything
 outside the meta population: event battles and decks the player did not
 choose (6.17.0; a war deck the player picked, `warDeckPick`, is chosen and
 stays in). Each response itemizes what the window held and left out in
-`excluded`: `considered` (every game in scope), `duels` (duels without
-recorded rounds), `boat`,
+`excluded`, in battles: `considered` (every battle in scope, a duel once),
+`duels` (each counted by its rounds instead), `boat`,
 `draws`, `unresolved`, `no_deck` and `outside_meta`, so a gap between this
 tool's denominator and `battles_performance`'s is self-describing. Deck meta
 requires a deck hash; card meta requires a nonempty cards array.

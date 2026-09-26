@@ -1504,9 +1504,10 @@ test("meta tools shrink toward the corpus prior, itemize exclusions, exclude boa
   });
   assert.equal(isError, false, JSON.stringify(body));
   assert.equal(body.excluded.boat, 10);
-  // The duel counts by its rounds (9.11.0): nothing of it is excluded,
-  // and its rounds sit in the rows.
-  assert.equal(body.excluded.duels, 0);
+  // A duel is one battle, in excluded.duels and considered as before;
+  // its rounds are decided games in the rows (9.11.0), and duel_rounds
+  // says how many of decided_battles they are.
+  assert.equal(body.excluded.duels, 1);
   const {
     rows: [{ rounds }],
   } = await db.query(
@@ -1519,6 +1520,7 @@ test("meta tools shrink toward the corpus prior, itemize exclusions, exclude boa
     body.decks.reduce((s, d) => s + d.duel_rounds, 0),
     rounds,
   );
+  assert.equal(body.duel_rounds, rounds);
   assert.match(body.methodology.prior_source, /corpus/);
   assert.ok(["corpus_window", "neutral_0.5"].includes(body.prior_basis));
   const cards = await call("battles_meta_cards", {
