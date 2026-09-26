@@ -208,9 +208,12 @@ test("hourly: battles created since the cursor add to the counters; players wait
     `select counters_through from meta_season_state where season_month = $1`,
     [current.season_month],
   );
-  // Created "now", so after the cursor the rebuild set; one more Knight
-  // win by a THIRD pilot and a brand-new deck.
-  const later = Date.now() + 1000;
+  // Created just after the cursor the rebuild set, and already in the
+  // past: one more Knight win by a THIRD pilot and a brand-new deck.
+  // Never Date.now() plus a margin: the later tests' rebuilds bound by
+  // the database clock, so a margin counted these rows on a slow CI
+  // runner and not on a fast machine (the 2026-09 flake).
+  const later = before.getTime() + 1;
   await db.query(`insert into player (player_tag) values ('#2RRRR')`);
   await battle("inc-1", "#2RRRR", KNIGHT, "win", start + 20000_000, {
     createdAt: later,
@@ -505,13 +508,14 @@ test("nightly: a season finalised in the last three days is rolled again for its
 test("nightly: repeat_players counts players with two or more battles on the deck (0174, Gym #348)", async () => {
   const current = await seasonAt(db, NOW);
   await metaRollupNightly(URL, { nowMs: NOW });
-  // The Knight deck this season: #2PPPP twice (cur-1, cur-2), #2QQQQ once.
+  // The Knight deck this season: #2PPPP twice (cur-1, cur-2), #2QQQQ
+  // once (cur-3), #2RRRR once (the hourly test's inc-1).
   const { rows } = await db.query(
-    `select d.players, d.repeat_players from deck_meta_season d
-      where d.season_month = $1 and d.mode_group = 'all' and d.battles = 3`,
-    [current.season_month],
+    `select d.battles, d.players, d.repeat_players from deck_meta_season d
+      where d.season_month = $1 and d.mode_group = 'all' and d.deck_hash = $2`,
+    [current.season_month, hashFor(KNIGHT)],
   );
-  assert.deepEqual(rows, [{ players: 2, repeat_players: 1 }]);
+  assert.deepEqual(rows, [{ battles: 4, players: 3, repeat_players: 1 }]);
   const { rows: band } = await db.query(
     `select count(*)::int as n from deck_meta_season_band
       where season_month = $1 and players is not null and repeat_players is null`,
@@ -598,7 +602,8 @@ test("a duel counts as its rounds, each with its own deck and result; a duel wit
       where season_month = $1 and deck_hash = $2 and mode_group = 'all'`,
     [current.season_month, hashFor(KNIGHT)],
   );
-  assert.deepEqual(knight, [{ battles: 4, duel_rounds: 1 }]);
+  // Four 1v1 (cur-1..3, inc-1) and the one duel round.
+  assert.deepEqual(knight, [{ battles: 5, duel_rounds: 1 }]);
   const { rows: war } = await db.query(
     `select considered, duels, decided, wins, duel_rounds from meta_season_totals
       where season_month = $1 and mode_group = 'war'`,
