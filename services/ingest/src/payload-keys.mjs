@@ -35,9 +35,18 @@ const CARD_CATALOG =
   "the card catalog (card) carries it; a card's label never varies per holder";
 
 /** A card as it appears on a player or in a battle: id, level and form
- *  are the fact; the catalog fields ride along and are the catalog's. */
-function cardFields(prefix, target, { count = false, played = false } = {}) {
-  return {
+ *  are the fact; the catalog fields ride along and are the catalog's.
+ *  `within` marks every field optional when the list itself is
+ *  conditional (a duel's rounds): the census expects a field in every
+ *  sampled payload, and twenty battle logs a night rarely hold a duel
+ *  (Close the Loop, feedback 350-361: "absent for 7 days" while duels
+ *  recorded 2026-09-25 carried every field). */
+function cardFields(
+  prefix,
+  target,
+  { count = false, played = false, within = false } = {},
+) {
+  const fields = {
     [`${prefix}.id`]: to(`${target}.card_id`),
     [`${prefix}.level`]: to(`${target}.level`),
     [`${prefix}.starLevel`]: to(`${target}.star_level`, opt),
@@ -57,6 +66,10 @@ function cardFields(prefix, target, { count = false, played = false } = {}) {
         }
       : {}),
   };
+  if (!within) return fields;
+  return Object.fromEntries(
+    Object.entries(fields).map(([k, d]) => [k, { ...d, optional: true }]),
+  );
 }
 
 /** A battle participant, on either side. */
@@ -89,6 +102,7 @@ function participant(side) {
     ...cardFields(`${p}.supportCards[]`, "battle_participant_card"),
     ...cardFields(`${p}.rounds[].cards[]`, "battle_participant_card (round)", {
       played: true,
+      within: true,
     }),
     [`${p}.rounds[].crowns`]: to("battle_participant_round.crowns", opt),
     [`${p}.rounds[].kingTowerHitPoints`]: to(
@@ -571,12 +585,13 @@ export const PAYLOAD_KEYS = {
     "paging.cursors.after": to("ranking_snapshot.truncated", opt),
     "paging.cursors.before": derived("with paging.cursors.after", opt),
   },
+  // A mode leaderboard's entry carries no expLevel at all, unlike the
+  // trophy and Path of Legends boards (live read 2026-09-26; feedback 362).
   leaderboard: {
     "items[].tag": to("ranking_entry.player_tag"),
     "items[].name": to("ranking_entry.name"),
     "items[].rank": to("ranking_entry.rank"),
     "items[].score": to("ranking_entry.rating"),
-    "items[].expLevel": dropped(RETIRED_EXP_LEVEL),
     "items[].clan.tag": to("ranking_entry.clan_tag", opt),
     "items[].clan.name": to("ranking_entry.clan_name", opt),
     "items[].clan.badgeId": derived("a label on a board entry", opt),
