@@ -44,14 +44,21 @@ who tried it once (Gym #348: a 57-0 run read as "3 players, 57-2").
 `top_player_battles`, on a row with at most five repeat players, is the busiest player's
 share, and a note names a row one player still carries.
 
-Only decided **head-to-head** outcomes qualify. Duels (one row for up to three
-games, with no single deck identity), boat battles (an attack on a static
-defense), draws and unresolved outcomes are excluded from `decided_battles`,
-row counts, usage shares, rates and the shrinkage baseline. So is everything
+Only decided **head-to-head** games qualify. A Clan Wars duel is up to three
+games, and each round counts as one game (9.11.0): the eight cards played that
+round, won or lost by that round's crowns against the opponent's, so a war
+deck's record holds its duel rounds beside its 1v1 battles, and every row
+says how many of its battles were rounds (`duel_rounds`). A round carries no
+level of its own, so it is outside `mean_level_gap`. Boat battles (an attack
+on a static defense), draws and unresolved outcomes are excluded from
+`decided_battles`, row counts, usage shares, rates and the shrinkage
+baseline, a drawn or unresolved round among them, and so is a duel whose
+rounds were never recorded. So is everything
 outside the meta population: event battles and decks the player did not
 choose (6.17.0; a war deck the player picked, `warDeckPick`, is chosen and
 stays in). Each response itemizes what the window held and left out in
-`excluded`: `considered` (every observation in scope), `duels`, `boat`,
+`excluded`: `considered` (every game in scope), `duels` (duels without
+recorded rounds), `boat`,
 `draws`, `unresolved`, `no_deck` and `outside_meta`, so a gap between this
 tool's denominator and `battles_performance`'s is self-describing. Deck meta
 requires a deck hash; card meta requires a nonempty cards array.

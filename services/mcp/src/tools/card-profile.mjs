@@ -47,6 +47,7 @@ import {
   deckStamps,
   stampMatches,
   decksContaining,
+  PARTICIPANT_GAMES,
   populationBlock,
 } from "./shared.mjs";
 import {
@@ -107,6 +108,9 @@ function usageRow(r, decided, prior) {
       r.players === null || r.players === undefined ? null : Number(r.players),
     usage_share: share(battles, decided),
     win_rate: rate(wins, losses),
+    // Of battles, how many were duel rounds (9.11.0, #363); null on a
+    // rollup row the nightly has not split since 0183.
+    duel_rounds: r.duel_rounds === null ? null : Number(r.duel_rounds ?? 0),
   };
   if (
     decided >= META_METHODOLOGY.segment_min_decided &&
@@ -260,7 +264,7 @@ export const cardProfileTools = {
       if (!seg.where) {
         const { rows } = await ctx.db.query(
           `select cm.season_month, cm.battles, cm.wins, cm.losses, cm.players,
-                  t.decided, s.war_season_id
+                  cm.duel_rounds, t.decided, s.war_season_id
            from card_meta_season cm
            join meta_season_totals t
              on t.season_month = cm.season_month and t.mode_group = cm.mode_group
@@ -317,7 +321,7 @@ export const cardProfileTools = {
         // --- by_band (corpus season read only) -------------------------
         if (roll) {
           const { rows } = await ctx.db.query(
-            `select b.trophy_band, b.battles, b.wins, b.losses, b.players,
+            `select b.trophy_band, b.battles, b.wins, b.losses, b.players, b.duel_rounds,
                     round((b.level_gap_sum / nullif(b.level_gap_battles, 0))::numeric, 2) as mean_level_gap,
                     bt.decided, bt.wins as pop_wins
              from card_meta_season_band b
@@ -484,7 +488,7 @@ async function seasonUsage(
   if (roll) {
     const { rows } = await ctx.db.query(
       `select cm.mode_group, cm.form, cm.battles, cm.wins, cm.losses, cm.players,
-              t.decided, t.wins as pop_wins
+              cm.duel_rounds, t.decided, t.wins as pop_wins
        from card_meta_season cm
        join meta_season_totals t
          on t.season_month = cm.season_month and t.mode_group = cm.mode_group
@@ -544,7 +548,7 @@ async function seasonUsage(
     `select count(*)::int as decided,
             count(*) filter (where bp.outcome = 'win')::int as wins,
             count(distinct bp.player_tag)::int as players
-     from battle_participant bp where ${where.join(" and ")}`,
+     from ${PARTICIPANT_GAMES} bp where ${where.join(" and ")}`,
     params,
   );
   params.push(anchor.id);
@@ -553,8 +557,9 @@ async function seasonUsage(
             count(*)::int as battles,
             count(*) filter (where bp.outcome = 'win')::int as wins,
             count(*) filter (where bp.outcome = 'loss')::int as losses,
-            count(distinct bp.player_tag)::int as players
-     from battle_participant bp
+            count(distinct bp.player_tag)::int as players,
+            count(*) filter (where bp.round > 0)::int as duel_rounds
+     from ${PARTICIPANT_GAMES} bp
      join deck_card dc on dc.deck_hash = bp.deck_hash and dc.card_id = $${params.length}
      where ${where.join(" and ")}
      group by grouping sets ((dc.form, bp.type), (dc.form))`,
@@ -570,11 +575,12 @@ async function seasonUsage(
   const prior =
     decided >= META_METHODOLOGY.segment_min_decided ? pop.wins / decided : null;
   const fold = (list) => {
-    const acc = { battles: 0, wins: 0, losses: 0 };
+    const acc = { battles: 0, wins: 0, losses: 0, duel_rounds: 0 };
     for (const r of list) {
       acc.battles += r.battles;
       acc.wins += r.wins;
       acc.losses += r.losses;
+      acc.duel_rounds += r.duel_rounds;
     }
     return acc;
   };
@@ -595,7 +601,7 @@ async function seasonUsage(
     rows: [allPlayers],
   } = await ctx.db.query(
     `select count(distinct bp.player_tag)::int as players
-     from battle_participant bp
+     from ${PARTICIPANT_GAMES} bp
      join deck_card dc on dc.deck_hash = bp.deck_hash and dc.card_id = $${params.length}
      where ${where.join(" and ")}`,
     params,
@@ -650,8 +656,9 @@ async function topDecks(
       `select bp.deck_hash, count(*)::int as battles,
               count(*) filter (where bp.outcome = 'win')::int as wins,
               count(*) filter (where bp.outcome = 'loss')::int as losses,
-              count(distinct bp.player_tag)::int as players
-       from battle_participant bp where ${where.join(" and ")}
+              count(distinct bp.player_tag)::int as players,
+              count(*) filter (where bp.round > 0)::int as duel_rounds
+       from ${PARTICIPANT_GAMES} bp where ${where.join(" and ")}
        group by bp.deck_hash`,
       p,
     );
@@ -680,6 +687,7 @@ async function topDecks(
     players: r.players ?? null,
     usage_share: share(r.battles, decided),
     win_rate: rate(r.wins, r.losses),
+    duel_rounds: r.duel_rounds ?? null,
     ...(identities.get(r.deck_hash) ?? { cards: [] }),
   }));
 }
@@ -688,9 +696,9 @@ async function topDecks(
  *  what level), who holds it and at what level and forms. */
 async function clanMembers(ctx, { anchor, clanTag, win, args }) {
   const params = [clanTag, anchor.id, win.from.toISOString()];
-  // The population season counts (scopeClauses): a deck identity, so a
-  // war duel - no single deck - is out here too (Gym #103: 35 Witch
-  // battles beside season's 32, the 3 being duels).
+  // The population season counts (scopeClauses): games with a deck
+  // identity, so a duel counts by its rounds as the season does
+  // (9.11.0, #363; Gym #103 was a whole duel counted here and not there).
   const where = [
     "bp.deck_hash is not null",
     "bp.outcome in ('win','loss')",
@@ -711,9 +719,10 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
             round(avg(c.level)::numeric, 1) as level_played,
             array_agg(distinct c.form) as forms
      from clan_membership cm
-     join battle_participant bp on bp.player_tag = cm.player_tag
+     join ${PARTICIPANT_GAMES} bp on bp.player_tag = cm.player_tag
      join battle_participant_card c
-       on c.battle_id = bp.battle_id and c.player_tag = bp.player_tag and c.card_id = $2
+       on c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
+      and c.round = bp.round and c.card_id = $2
      join player p on p.player_tag = bp.player_tag
      where cm.clan_tag = $1 and cm.left_observed_at is null and ${where.join(" and ")}
      group by bp.player_tag, p.name

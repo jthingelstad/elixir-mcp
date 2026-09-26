@@ -12,14 +12,16 @@
  * eight cards were a Trophy Road identity and a separate war identity and
  * a deck's war record never pooled with its ladder record. A set's
  * constraint is about cards anyway (the tower troop is not one of the 32),
- * so every variant's record pools under its eight cards, and a duel's
- * rounds, which carry no deck_hash at all, count as the player's own
- * games on those cards (feedback #363: a war deck played only in duels
- * was invisible to the sets built for its player).
+ * so every variant's record pools under its eight cards. A duel's rounds
+ * are games in the season rollup itself (9.11.0, feedback #363: a war
+ * deck played only in duels was invisible), every player's, so a set's
+ * war record holds them with no merge here; the player's own rounds
+ * still count toward familiarity (ownGames).
  */
 import { deckHash, typesForModeGroup } from "@elixir-mcp/contracts";
 import {
   META_METHODOLOGY,
+  PARTICIPANT_GAMES,
   ToolFailure,
   fieldedLevel,
   resolveFitFor,
@@ -210,63 +212,31 @@ function variantHashes(pairs, towers) {
 }
 
 /** The player's own games this season (competitive modes) per card set:
- *  decided 1v1 battles by their deck's cards, and each duel round as its
- *  own game, won or lost by that round's crowns. */
+ *  decided games by their deck's cards, a duel's rounds among them, each
+ *  won or lost by its own crowns (9.11.0; `rounds` counts those). */
 async function ownGames(db, tag, { from, to }) {
   const own = new Map();
-  const add = (key, games, decided = 0, wins = 0) => {
-    const o = own.get(key) ?? { games: 0, rounds: 0, round_wins: 0 };
-    o.games += games;
-    o.rounds += decided;
-    o.round_wins += wins;
-    own.set(key, o);
-  };
-  const { rows: decks } = await db.query(
-    `select o.deck_hash, o.n, array_agg(dc.card_id || ':' || dc.form) as pairs
-       from (select deck_hash, count(*)::int as n from battle_participant
+  const { rows } = await db.query(
+    `select o.deck_hash, o.n, o.rounds, array_agg(dc.card_id || ':' || dc.form) as pairs
+       from (select deck_hash, count(*)::int as n,
+                    count(*) filter (where round > 0)::int as rounds
+               from ${PARTICIPANT_GAMES} bp
               where player_tag = $1 and battle_time >= $2
                 and ($3::timestamptz is null or battle_time < $3)
                 and type = any($4) and type_class = 'pvp'
                 and outcome in ('win', 'loss') and deck_hash is not null
               group by deck_hash) o
        join deck_card dc on dc.deck_hash = o.deck_hash
-      group by o.deck_hash, o.n`,
+      group by o.deck_hash, o.n, o.rounds`,
     [tag, from, to, COMPETITIVE_TYPES],
   );
-  for (const r of decks) if (r.pairs?.length === 8) add(setKey(r.pairs), r.n);
-  // Duel rounds (0151): the round's eight cards, and its result against
-  // the opponent's crowns in the same round.
-  const { rows: rounds } = await db.query(
-    `select bpc.battle_id, bpc.round,
-            array_agg(bpc.card_id || ':' || bpc.form) as pairs,
-            max(mine.crowns) as mine, max(theirs.crowns) as theirs
-       from battle_participant bp
-       join battle_participant_card bpc
-         on bpc.battle_id = bp.battle_id and bpc.player_tag = bp.player_tag
-        and bpc.round > 0
-       left join battle_participant_round mine
-         on mine.battle_id = bp.battle_id and mine.player_tag = bp.player_tag
-        and mine.round = bpc.round
-       left join battle_participant op
-         on op.battle_id = bp.battle_id and op.side <> bp.side
-       left join battle_participant_round theirs
-         on theirs.battle_id = op.battle_id and theirs.player_tag = op.player_tag
-        and theirs.round = bpc.round
-      where bp.player_tag = $1 and bp.battle_time >= $2
-        and ($3::timestamptz is null or bp.battle_time < $3)
-        and bp.type = any($4)
-      group by bpc.battle_id, bpc.round`,
-    [tag, from, to, COMPETITIVE_TYPES],
-  );
-  for (const r of rounds) {
+  for (const r of rows) {
     if (r.pairs?.length !== 8) continue;
-    const decided = r.mine !== null && r.theirs !== null && r.mine !== r.theirs;
-    add(
-      setKey(r.pairs),
-      1,
-      decided ? 1 : 0,
-      decided && r.mine > r.theirs ? 1 : 0,
-    );
+    const key = setKey(r.pairs);
+    const o = own.get(key) ?? { games: 0, rounds: 0 };
+    o.games += r.n;
+    o.rounds += r.rounds;
+    own.set(key, o);
   }
   return own;
 }
@@ -285,7 +255,7 @@ async function ownGames(db, tag, { from, to }) {
  *
  *  Each set: key, ids, pairs, owned, missing_ids, missing_forms
  *  (`id:form`), min_level, own_mean, modes ({ [mode]: { battles, wins,
- *  losses, mean_level_gap, your_duel_rounds? } }), variants ([{
+ *  losses, mean_level_gap, duel_rounds } }), variants ([{
  *  deck_hash, tower_troop_id, battles }], most played first), deck_hash
  *  (the most played variant, else the tower-less identity), yours (the
  *  player's games on these cards) and your_rounds. */
@@ -331,6 +301,7 @@ const emptyMode = () => ({
   battles: 0,
   wins: 0,
   losses: 0,
+  duel_rounds: 0,
   gap_sum: 0,
   gap_battles: 0,
 });
@@ -351,7 +322,7 @@ async function buildSets(db, { month, keys, held, own }) {
   if (hashes.length) {
     const { rows } = await db.query(
       `select deck_hash, mode_group, battles, wins, losses,
-              level_gap_sum, level_gap_battles
+              level_gap_sum, level_gap_battles, duel_rounds
          from deck_meta_season
         where season_month = $1 and mode_group = any($2) and deck_hash = any($3)`,
       [month, SET_MODES, hashes],
@@ -379,18 +350,17 @@ async function buildSets(db, { month, keys, held, own }) {
           m.battles += r.battles;
           m.wins += r.wins;
           m.losses += r.losses;
+          // Null on a row the nightly has not split since 0183: the
+          // mode's count is then unknown, not zero.
+          m.duel_rounds =
+            m.duel_rounds === null || r.duel_rounds === null
+              ? null
+              : m.duel_rounds + r.duel_rounds;
           m.gap_sum += Number(r.level_gap_sum ?? 0);
           m.gap_battles += r.level_gap_battles ?? 0;
         }
       }
       const mine = own.get(key);
-      if (mine?.rounds) {
-        const w = (modes.war ??= emptyMode());
-        w.battles += mine.rounds;
-        w.wins += mine.round_wins;
-        w.losses += mine.rounds - mine.round_wins;
-        w.your_duel_rounds = mine.rounds;
-      }
       for (const m of Object.values(modes)) {
         m.mean_level_gap = m.gap_battles
           ? Number((m.gap_sum / m.gap_battles).toFixed(2))

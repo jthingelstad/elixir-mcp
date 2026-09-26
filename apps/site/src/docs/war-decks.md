@@ -1,7 +1,7 @@
 ---
 slug: war-decks
 title: "War decks"
-description: "How Elixir answers which four decks a player should field in Clan Wars and what to upgrade for better ones: a deck as its eight cards, the player's own duel rounds, the reductions, the value and its parts, the exact search, and single upgrades priced by re-packing the set."
+description: "How Elixir answers which four decks a player should field in Clan Wars and what to upgrade for better ones: a deck as its eight cards, duel rounds as games, the reductions, the value and its parts, the exact search, and single upgrades priced by re-packing the set."
 section: record
 order: 19.7
 navTitle: "War decks"
@@ -25,11 +25,12 @@ A deck here is its eight cards. Clan Wars battles carry no tower troop
 Legends battles do, so the same eight cards are several `deck_hash`
 values in the record: every one's record pools into the deck's
 (`variants` lists them, most played first, and `deck_hash` is the
-first). The player's own Clan Wars duel rounds count too: a duel is one
-battle with up to three games, each game its own deck, so each round is
-a game on its eight cards, won or lost by that round's crowns
-(`your_duel_rounds`, and `modes.war.your_duel_rounds`). A war deck the
-player plays only in duels is a candidate like any other.
+first). Clan Wars duel rounds count too, every player's: a duel is one
+battle with up to three games, each game its own deck, so each round is a
+game on its eight cards, won or lost by that round's crowns, in the
+season's record like any battle (`modes.war.duel_rounds`, 9.11.0;
+`your_duel_rounds` is the player's own). A war deck the player plays only
+in duels is a candidate like any other.
 
 The reductions, in order:
 

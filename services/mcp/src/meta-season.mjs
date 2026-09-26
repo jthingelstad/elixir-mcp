@@ -14,7 +14,7 @@
 
 import { unbandedTypes } from "@elixir-mcp/contracts";
 import { metaPopulationClause } from "./mode-filter.mjs";
-import { META_METHODOLOGY } from "./tools/shared.mjs";
+import { META_METHODOLOGY, PARTICIPANT_GAMES } from "./tools/shared.mjs";
 
 /** The raw meta scans spill at the micro's 4 MB work_mem (review 2.6:
  *  an external merge over 37k temp blocks). The call's connection is its
@@ -168,7 +168,7 @@ export async function rollupDecks(db, roll, { minBattles }) {
   if (banded) params.push(roll.trophyBand);
   const { rows } = await db.query(
     `select deck_hash, battles, wins, losses, players, repeat_players, first_used, last_used,
-            level_gap_battles, ${MEAN_GAP_SQL} as mean_level_gap
+            level_gap_battles, ${MEAN_GAP_SQL} as mean_level_gap, duel_rounds
      from ${banded ? "deck_meta_season_band" : "deck_meta_season"}
      where season_month = $1 and mode_group = $2 and battles >= $3
        ${banded ? "and trophy_band = $4" : ""}
@@ -216,7 +216,7 @@ export async function rollupCards(db, roll, { minBattles }) {
   if (banded) params.push(roll.trophyBand);
   const { rows } = await db.query(
     `select cm.card_id, c.name, cm.form as evolution,
-            cm.battles, cm.wins, cm.losses, cm.players,
+            cm.battles, cm.wins, cm.losses, cm.players, cm.duel_rounds,
             round((cm.level_gap_sum / nullif(cm.level_gap_battles, 0))::numeric, 2) as mean_level_gap
      from ${banded ? "card_meta_season_band" : "card_meta_season"} cm
      join card c on c.card_id = cm.card_id
@@ -270,7 +270,8 @@ export async function rollupModeGroups(db, roll) {
             round((sum(level_gap_sum) / nullif(sum(level_gap_battles), 0))::numeric, 2) as mean_level_gap
      from ${banded ? "deck_meta_season_band" : "deck_meta_season"}
      where season_month = $1 and mode_group <> 'all' ${banded ? "and trophy_band = $2" : ""}
-     group by mode_group`,
+     group by mode_group
+     order by battles desc, mode_group`,
     params,
   );
   return rows.map((r) => ({
@@ -331,7 +332,7 @@ export async function rollupSynergy(
               count(*)::int as battles,
               count(*) filter (where bp.outcome = 'win')::int as wins
        from anchored ad
-       join battle_participant bp on bp.deck_hash = ad.deck_hash
+       join ${PARTICIPANT_GAMES} bp on bp.deck_hash = ad.deck_hash
        where bp.battle_time >= $1 and bp.battle_time < $2
          and bp.outcome in ('win', 'loss') and bp.type_class = 'pvp' ${typeClause} ${bandClause}
          -- The rollup's own population (Gym #153): the anchor row and the

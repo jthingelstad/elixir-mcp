@@ -53,13 +53,17 @@
  */
 
 import pg from "pg";
-import { modeGroupSql, unbandedTypes } from "@elixir-mcp/contracts";
+import {
+  DUEL_TYPES,
+  duelGamesSql,
+  modeGroupSql,
+  unbandedTypes,
+} from "@elixir-mcp/contracts";
 
 /** The battle types whose starting trophies are not trophies (ranked's
  *  rating, a tournament's running score): no trophy band (#102, #191). */
 const UNBANDED_TYPES = unbandedTypes();
 
-const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
 const MODE_GROUP_CASE = modeGroupSql("bp.type", "b.event_tag");
 
 /** The meta describes what people CHOOSE to play and how it does. Two
@@ -142,9 +146,21 @@ function popSql(fromWhere) {
 }
 
 /** The persisted population as the aggregates read it: the season's
- *  rows of meta_season_pop under the alias every statement names. */
+ *  rows of meta_season_pop. */
 function popTable(month) {
-  return `(select * from meta_season_pop where season_month = '${month}') pop`;
+  return `(select * from meta_season_pop where season_month = '${month}')`;
+}
+
+/** A population relation as games under the alias every aggregate names
+ *  (9.11.0, feedback #363): a duel's recorded rounds, each with its own
+ *  deck and result, in place of its one deckless row; a duel with no
+ *  recorded rounds stays whole, the totals' `duels`. A round has no
+ *  level gap of its own. */
+function gamesOf(relation) {
+  return `${duelGamesSql(relation, POP_COLUMNS.split(", "), {
+    blank: ["level_gap"],
+    wholeDuels: true,
+  })} pop`;
 }
 
 /** The season's rows from the raw heap, bounded by created_at: one game
@@ -186,25 +202,35 @@ const NIGHTLY_BUDGET_MS = 300_000;
 
 /** The aggregate statements, shared by the rebuild (into empty rows)
  *  and the increment (added onto existing ones). `pop` must exist. */
-function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
+function aggregateSql(
+  month,
+  { withPlayers, withBands = true, pop: relation = "pop" },
+) {
   const players = withPlayers ? "count(distinct player_tag)::int" : "null";
+  const pop = gamesOf(relation);
   return {
     withBands,
     totals: `insert into meta_season_totals
-       (season_month, mode_group, considered, duels, boat, draws, unresolved, no_deck, decided, wins)
+       (season_month, mode_group, considered, duels, boat, draws, unresolved, no_deck, decided, wins,
+        duel_rounds)
      select '${month}', m.mode_group,
             count(*)::int,
-            count(*) filter (where pop.type = any($1))::int,
-            count(*) filter (where pop.type_class = 'boat' and not pop.type = any($1))::int,
-            count(*) filter (where pop.outcome = 'draw' and pop.type_class = 'pvp' and not pop.type = any($1))::int,
+            -- A duel still whole is one whose rounds were never recorded;
+            -- a round is a game like any other below.
+            count(*) filter (where pop.round = 0 and pop.type = any($1))::int,
+            count(*) filter (where pop.type_class = 'boat' and not (pop.round = 0 and pop.type = any($1)))::int,
+            count(*) filter (where pop.outcome = 'draw' and pop.type_class = 'pvp'
+                               and not (pop.round = 0 and pop.type = any($1)))::int,
             count(*) filter (where (pop.outcome is null or pop.outcome = 'unresolved')
-                               and pop.type_class = 'pvp' and not pop.type = any($1))::int,
+                               and pop.type_class = 'pvp' and not (pop.round = 0 and pop.type = any($1)))::int,
             count(*) filter (where pop.outcome in ('win','loss') and pop.type_class = 'pvp'
-                               and not pop.type = any($1) and pop.deck_hash is null)::int,
+                               and not (pop.round = 0 and pop.type = any($1)) and pop.deck_hash is null)::int,
             count(*) filter (where pop.outcome in ('win','loss') and pop.type_class = 'pvp'
                                and pop.deck_hash is not null)::int,
             count(*) filter (where pop.outcome = 'win' and pop.type_class = 'pvp'
-                               and pop.deck_hash is not null)::int
+                               and pop.deck_hash is not null)::int,
+            count(*) filter (where pop.round > 0 and pop.outcome in ('win','loss')
+                               and pop.type_class = 'pvp' and pop.deck_hash is not null)::int
      from ${pop} cross join lateral (values (pop.mode_group), ('all')) m(mode_group)
      group by m.mode_group
      on conflict (season_month, mode_group) do update set
@@ -215,10 +241,11 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
        unresolved = meta_season_totals.unresolved + excluded.unresolved,
        no_deck = meta_season_totals.no_deck + excluded.no_deck,
        decided = meta_season_totals.decided + excluded.decided,
-       wins = meta_season_totals.wins + excluded.wins`,
+       wins = meta_season_totals.wins + excluded.wins,
+       duel_rounds = meta_season_totals.duel_rounds + excluded.duel_rounds`,
     decided: `create temp table dec on commit drop as
      select m.mode_group, pop.deck_hash, pop.player_tag, pop.outcome, pop.battle_time,
-            pop.trophy_band, pop.level_gap
+            pop.trophy_band, pop.level_gap, pop.round
      from ${pop} cross join lateral (values (pop.mode_group), ('all')) m(mode_group)
      where pop.type_class = 'pvp' and pop.deck_hash is not null
        and pop.outcome in ('win', 'loss')`,
@@ -227,14 +254,15 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
     // gap that covers a few hours as the season's.
     decks: `insert into deck_meta_season
        (season_month, mode_group, deck_hash, battles, wins, losses, players, first_used, last_used,
-        level_gap_sum, level_gap_battles)
+        level_gap_sum, level_gap_battles, duel_rounds)
      select '${month}', mode_group, deck_hash,
             count(*)::int,
             count(*) filter (where outcome = 'win')::int,
             count(*) filter (where outcome = 'loss')::int,
             ${players},
             min(battle_time), max(battle_time),
-            sum(level_gap), count(level_gap)::int
+            sum(level_gap), count(level_gap)::int,
+            count(*) filter (where round > 0)::int
      from dec
      group by mode_group, deck_hash
      on conflict (season_month, mode_group, deck_hash) do update set
@@ -244,14 +272,16 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
        first_used = least(deck_meta_season.first_used, excluded.first_used),
        last_used = greatest(deck_meta_season.last_used, excluded.last_used),
        level_gap_sum = deck_meta_season.level_gap_sum + excluded.level_gap_sum,
-       level_gap_battles = deck_meta_season.level_gap_battles + excluded.level_gap_battles`,
+       level_gap_battles = deck_meta_season.level_gap_battles + excluded.level_gap_battles,
+       duel_rounds = deck_meta_season.duel_rounds + excluded.duel_rounds`,
     // (deck, player) pairs first, as the card meta tool does: one row per
     // card per deck from deck_card, never one probe per participant.
     deckPlayers: `create temp table dp on commit drop as
      select mode_group, deck_hash, player_tag,
             count(*)::int as battles,
             count(*) filter (where outcome = 'win')::int as wins,
-            sum(level_gap) as gap_sum, count(level_gap)::int as gap_n
+            sum(level_gap) as gap_sum, count(level_gap)::int as gap_n,
+            count(*) filter (where round > 0)::int as rounds
      from dec group by mode_group, deck_hash, player_tag`,
     // Players with two or more battles on the deck (0174, Gym #348):
     // what min_players counts from 8.0.0. Nightly only, with players.
@@ -264,11 +294,11 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
       : null,
     cards: `insert into card_meta_season
        (season_month, mode_group, card_id, form, battles, wins, losses, players,
-        level_gap_sum, level_gap_battles)
+        level_gap_sum, level_gap_battles, duel_rounds)
      select '${month}', dp.mode_group, dc.card_id, f.form,
             sum(dp.battles)::int, sum(dp.wins)::int, sum(dp.battles - dp.wins)::int,
             ${withPlayers ? "count(distinct dp.player_tag)::int" : "null"},
-            sum(dp.gap_sum), sum(dp.gap_n)::int
+            sum(dp.gap_sum), sum(dp.gap_n)::int, sum(dp.rounds)::int
      from dp
      join deck_card dc on dc.deck_hash = dp.deck_hash
      cross join lateral (values (dc.form::smallint), (-1::smallint)) f(form)
@@ -278,7 +308,8 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
        wins = card_meta_season.wins + excluded.wins,
        losses = card_meta_season.losses + excluded.losses,
        level_gap_sum = card_meta_season.level_gap_sum + excluded.level_gap_sum,
-       level_gap_battles = card_meta_season.level_gap_battles + excluded.level_gap_battles`,
+       level_gap_battles = card_meta_season.level_gap_battles + excluded.level_gap_battles,
+       duel_rounds = card_meta_season.duel_rounds + excluded.duel_rounds`,
     // The band tables (0135): the same three shapes keyed by the
     // participant's own trophy band, decided rows with a band only.
     bandTotals: `insert into meta_season_band_totals
@@ -298,14 +329,15 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
       : null,
     bandDecks: `insert into deck_meta_season_band
        (season_month, mode_group, trophy_band, deck_hash, battles, wins, losses, players,
-        first_used, last_used, level_gap_sum, level_gap_battles)
+        first_used, last_used, level_gap_sum, level_gap_battles, duel_rounds)
      select '${month}', mode_group, trophy_band, deck_hash,
             count(*)::int,
             count(*) filter (where outcome = 'win')::int,
             count(*) filter (where outcome = 'loss')::int,
             ${players},
             min(battle_time), max(battle_time),
-            sum(level_gap), count(level_gap)::int
+            sum(level_gap), count(level_gap)::int,
+            count(*) filter (where round > 0)::int
      from dec where trophy_band is not null
      group by mode_group, trophy_band, deck_hash
      on conflict (season_month, mode_group, trophy_band, deck_hash) do update set
@@ -315,12 +347,14 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
        first_used = least(deck_meta_season_band.first_used, excluded.first_used),
        last_used = greatest(deck_meta_season_band.last_used, excluded.last_used),
        level_gap_sum = deck_meta_season_band.level_gap_sum + excluded.level_gap_sum,
-       level_gap_battles = deck_meta_season_band.level_gap_battles + excluded.level_gap_battles`,
+       level_gap_battles = deck_meta_season_band.level_gap_battles + excluded.level_gap_battles,
+       duel_rounds = deck_meta_season_band.duel_rounds + excluded.duel_rounds`,
     bandDeckPlayers: `create temp table dpb on commit drop as
      select mode_group, trophy_band, deck_hash, player_tag,
             count(*)::int as battles,
             count(*) filter (where outcome = 'win')::int as wins,
-            sum(level_gap) as gap_sum, count(level_gap)::int as gap_n
+            sum(level_gap) as gap_sum, count(level_gap)::int as gap_n,
+            count(*) filter (where round > 0)::int as rounds
      from dec where trophy_band is not null
      group by mode_group, trophy_band, deck_hash, player_tag`,
     bandDeckRepeat: withPlayers
@@ -333,11 +367,11 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
       : null,
     bandCards: `insert into card_meta_season_band
        (season_month, mode_group, trophy_band, card_id, form, battles, wins, losses, players,
-        level_gap_sum, level_gap_battles)
+        level_gap_sum, level_gap_battles, duel_rounds)
      select '${month}', dp.mode_group, dp.trophy_band, dc.card_id, f.form,
             sum(dp.battles)::int, sum(dp.wins)::int, sum(dp.battles - dp.wins)::int,
             ${withPlayers ? "count(distinct dp.player_tag)::int" : "null"},
-            sum(dp.gap_sum), sum(dp.gap_n)::int
+            sum(dp.gap_sum), sum(dp.gap_n)::int, sum(dp.rounds)::int
      from dpb dp
      join deck_card dc on dc.deck_hash = dp.deck_hash
      cross join lateral (values (dc.form::smallint), (-1::smallint)) f(form)
@@ -347,7 +381,8 @@ function aggregateSql(month, { withPlayers, withBands = true, pop = "pop" }) {
        wins = card_meta_season_band.wins + excluded.wins,
        losses = card_meta_season_band.losses + excluded.losses,
        level_gap_sum = card_meta_season_band.level_gap_sum + excluded.level_gap_sum,
-       level_gap_battles = card_meta_season_band.level_gap_battles + excluded.level_gap_battles`,
+       level_gap_battles = card_meta_season_band.level_gap_battles + excluded.level_gap_battles,
+       duel_rounds = card_meta_season_band.duel_rounds + excluded.duel_rounds`,
   };
 }
 
@@ -860,7 +895,7 @@ export async function metaRollupEquivalence(
         );
       const sql = aggregateSql(month, {
         withPlayers: true,
-        pop: "pop_raw pop",
+        pop: "pop_raw",
       });
       Object.assign(phases, await runAggregates(db, sql));
       const tables = {};

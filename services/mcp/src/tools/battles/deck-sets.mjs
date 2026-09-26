@@ -434,7 +434,7 @@ export const battles_deck_sets = {
         : null,
       near_misses: nearMissRows,
       notes: notes(
-        `A set's decks share no card: a card's Evolution or Hero form is the same card; the tower troop is not one of the ${count * 8}. A deck is its eight cards: Clan Wars battles carry no tower troop, so every tower troop's variant pools into one record (variants lists them), and the player's own Clan Wars duel rounds count as their war games on those cards (modes.war.your_duel_rounds).`,
+        `A set's decks share no card: a card's Evolution or Hero form is the same card; the tower troop is not one of the ${count * 8}. A deck is its eight cards: Clan Wars battles carry no tower troop, so every tower troop's variant pools into one record (variants lists them), and each round of a Clan Wars duel is a war game on its eight cards, every player's (modes.war.duel_rounds; your_duel_rounds counts the player's own).`,
         `Each deck's record pools ${SET_MODES.map((m) => MODE_NAMES[m]).join(", ")} (modes carries each); a Trophy Road or Clan Wars rate is corrected for its players' level edge at ${LOGIT_PER_LEVEL} log-odds per level, and Path of Legends equalises levels, so its rows are not. familiarity_term rewards eight cards the player has played ${FAMILIAR_MIN_BATTLES}+ times this season.`,
         target === null
           ? "No decided battle this season shows the level this player fields, so there is no level term and no level gate: every deck is valued at the corpus's levels."

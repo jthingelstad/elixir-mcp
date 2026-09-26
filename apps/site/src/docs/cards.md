@@ -63,8 +63,8 @@ date; `season`, `from`/`to` and `mode` as everywhere.
 | `by_band` | the season's usage by trophy band, with `mean_level_gap` | corpus season reads, once the band rollup is filled |
 | `partners` | the eight cards most played with it and their lift (`cards_synergy` has the full list for any segment) | corpus season reads |
 | `decks` | the five most-played decks containing it, with their cards | every read |
-| `excluded`, `prior_win_rate`, `prior_basis` | what the window held outside the decided head-to-head population (duels, boat battles, draws, unresolved, no deck), and the mean `shrunk_win_rate` shrinks toward: the corpus season's (`corpus_season`) or this population's own over the window (`segment_window`). A row below the sample floor says `insufficient_sample: true` (6.22.0) | every read |
-| `members` | on a clan segment: `played` (each member's battles with it in the same population as `season`, so duels are out, win rate, `level_played`, forms) and `held` (each member's level, forms unlocked, star level from the collection snapshot), with how many members have a recorded collection | clan segments |
+| `excluded`, `prior_win_rate`, `prior_basis` | what the window held outside the decided head-to-head population (duels without recorded rounds, boat battles, draws, unresolved, no deck; each duel round is a game, and every row's `duel_rounds` says how many of its battles were rounds), and the mean `shrunk_win_rate` shrinks toward: the corpus season's (`corpus_season`) or this population's own over the window (`segment_window`). A row below the sample floor says `insufficient_sample: true` (6.22.0) | every read |
+| `members` | on a clan segment: `played` (each member's battles with it in the same population as `season`, a duel's rounds counted as games, win rate, `level_played`, forms) and `held` (each member's level, forms unlocked, star level from the collection snapshot), with how many members have a recorded collection | clan segments |
 
 `verbosity: "compact"` keeps `card`, `season` and `history`. Every number
 is a description of what was recorded, with the same caveats as the meta

@@ -519,3 +519,98 @@ test("nightly: repeat_players counts players with two or more battles on the dec
   );
   assert.equal(band[0].n, 0, "band rows carry it too");
 });
+
+test("a duel counts as its rounds, each with its own deck and result; a duel with no recorded rounds stays excluded (0183, #363)", async () => {
+  const current = await seasonAt(db, NOW);
+  const start = current.starts_at.getTime();
+  const HOG = [
+    { id: 26000021, name: "Hog Rider" },
+    { id: 26000014, name: "Musketeer" },
+  ];
+  const at = new Date(start + 5 * 3600_000);
+  const duel = async (id, rounds) => {
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class)
+       values ($1, $2, 'riverRaceDuel', 'pvp')`,
+      [id, at],
+    );
+    for (const [tag, side, outcome] of [
+      [A, 0, "win"],
+      [B, 1, "loss"],
+    ])
+      await db.query(
+        `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, deck_hash, type, type_class)
+         values ($1, $2, $3, $4, $5, null, 'riverRaceDuel', 'pvp')`,
+        [id, tag, side, at, outcome],
+      );
+    for (const [tag, round, cards, outcome] of rounds)
+      await db.query(
+        `insert into battle_participant_round (battle_id, player_tag, round, crowns, deck_hash, outcome)
+         values ($1, $2, $3, 1, $4, $5)`,
+        [
+          id,
+          tag,
+          round,
+          await seedDeck(db, { battle_time: at, cards }),
+          outcome,
+        ],
+      );
+  };
+  // A won two rounds of three on the Hog deck and a third deck; B lost
+  // them on Giant. A second duel carries no rounds at all.
+  await duel("duel-1", [
+    [A, 1, HOG, "win"],
+    [A, 2, HOG, "loss"],
+    [A, 3, KNIGHT, "win"],
+    [B, 1, GIANT, "loss"],
+    [B, 2, GIANT, "win"],
+    [B, 3, GIANT, "loss"],
+  ]);
+  await duel("duel-2", []);
+  await metaRollupNightly(URL, { nowMs: NOW });
+
+  const { rows: hog } = await db.query(
+    `select mode_group, battles, wins, losses, players, duel_rounds from deck_meta_season
+      where season_month = $1 and deck_hash = $2 order by mode_group`,
+    [current.season_month, hashFor(HOG)],
+  );
+  assert.deepEqual(hog, [
+    {
+      mode_group: "all",
+      battles: 2,
+      wins: 1,
+      losses: 1,
+      players: 1,
+      duel_rounds: 2,
+    },
+    {
+      mode_group: "war",
+      battles: 2,
+      wins: 1,
+      losses: 1,
+      players: 1,
+      duel_rounds: 2,
+    },
+  ]);
+  // A deck played 1v1 and in a duel pools both, and says how many were rounds.
+  const { rows: knight } = await db.query(
+    `select battles, duel_rounds from deck_meta_season
+      where season_month = $1 and deck_hash = $2 and mode_group = 'all'`,
+    [current.season_month, hashFor(KNIGHT)],
+  );
+  assert.deepEqual(knight, [{ battles: 4, duel_rounds: 1 }]);
+  const { rows: war } = await db.query(
+    `select considered, duels, decided, wins, duel_rounds from meta_season_totals
+      where season_month = $1 and mode_group = 'war'`,
+    [current.season_month],
+  );
+  assert.deepEqual(war, [
+    { considered: 8, duels: 2, decided: 6, wins: 3, duel_rounds: 6 },
+  ]);
+  const { rows: hogCard } = await db.query(
+    `select battles, wins, duel_rounds from card_meta_season
+      where season_month = $1 and mode_group = 'war' and card_id = 26000021 and form = -1`,
+    [current.season_month],
+  );
+  assert.deepEqual(hogCard, [{ battles: 2, wins: 1, duel_rounds: 2 }]);
+});

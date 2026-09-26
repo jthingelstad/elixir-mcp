@@ -99,7 +99,9 @@ draws, unresolved outcomes and boat battles. See
 battles.
 
 **duel** — a river-race duel of up to three games, recorded as one row:
-crowns summed, `deck_hash` null, decks under `deck.rounds[]`.
+crowns summed, `deck_hash` null, decks under `deck.rounds[]`. Each round is
+also a game of its own, with its own deck and result, and the meta and
+war-deck tools count it as one (`duel_rounds`, 9.11.0).
 
 **boat battle** — a river-race battle at a boat, `type_class: "boat"`. A
 boat **attack** (the member attacking a rival's boat defense) is the member's

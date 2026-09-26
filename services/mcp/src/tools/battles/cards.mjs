@@ -6,6 +6,7 @@ import {
   SEASON_ARG_SCHEMA,
   TAG_SCHEMA,
   WINDOW_ARGS,
+  PARTICIPANT_GAMES,
   appliedBlock,
   buildMeta,
   notes,
@@ -30,7 +31,7 @@ import {
 
 export const battles_cards = {
   description:
-    'Per-card win/loss attribution over recorded battles. perspective "mine": which of your cards carry. perspective "opponent": which enemy cards beat you (the nemesis question). Each row carries its battles per mode group and mean_level_gap; modes_in_window and comparable say whether modes with different matchmaking were pooled (pass mode to isolate one). Duels are excluded (no single deck).',
+    'Per-card win/loss attribution over recorded battles. perspective "mine": which of your cards carry. perspective "opponent": which enemy cards beat you (the nemesis question). Each row carries its battles per mode group and mean_level_gap; modes_in_window and comparable say whether modes with different matchmaking were pooled (pass mode to isolate one). Each round of a Clan Wars duel is one game: the cards played that round, and that round\'s result.',
   inputSchema: {
     type: "object",
     properties: {
@@ -77,17 +78,21 @@ export const battles_cards = {
 
     // Cards as rows (0091): mine are this participant's played cards;
     // the opponent's are one opposing participant's (the first by tag,
-    // as the JSON path took the first with a deck). round 0, slot > 0:
-    // the deck's cards array, no duel rounds, no tower troop.
+    // as the JSON path took the first with a deck). Slot > 0, no tower
+    // troop. A game is a participant row, or one round of a duel (9.11.0,
+    // #363): the cards of that round (battle_participant_card.round) and
+    // that round's result, the opponent's cards from the same round.
     const cardSource = mine
       ? `join battle_participant_card pc
-             on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag`
+             on pc.battle_id = bp.battle_id and pc.player_tag = bp.player_tag
+            and pc.round = bp.round`
       : `join lateral (select o.player_tag from battle_participant o
                          where o.battle_id = bp.battle_id and o.side <> bp.side
-                           and o.deck_hash is not null
+                           and (o.deck_hash is not null or bp.round > 0)
                          order by o.player_tag limit 1) opp on true
            join battle_participant_card pc
-             on pc.battle_id = bp.battle_id and pc.player_tag = opp.player_tag`;
+             on pc.battle_id = bp.battle_id and pc.player_tag = opp.player_tag
+            and pc.round = bp.round`;
     // The control beside each row (feedback #54, 3.13.0): the mean
     // level gap over the battles the card appeared in, and the row's
     // battles by mode group, so a card met mostly in war games does not
@@ -102,25 +107,25 @@ export const battles_cards = {
                 count(*) filter (where bp.outcome = 'loss')::int as losses,
                 round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap,
                 array_agg(${MODE_GROUP}) as mode_groups
-         from battle_participant bp
+         from ${PARTICIPANT_GAMES} bp
          join battle b on b.battle_id = bp.battle_id
          ${cardSource}
          ${levelSource}
          join card c on c.card_id = pc.card_id
-         where ${where.join(" and ")} and pc.round = 0 and pc.slot > 0
+         where ${where.join(" and ")} and pc.slot > 0
          group by 1, 2, 3
          having count(*) >= 3
          order by count(*) desc
          limit 120`,
       params,
     );
-    // The window's own split, for the pooled note: battles and mean
-    // level gap per mode group over every battle the rows were drawn
-    // from (duels excluded as the rows are).
+    // The window's own split, for the pooled note: games and mean level
+    // gap per mode group over every game the rows were drawn from (a
+    // duel's rounds, as the rows count them; a round has no level).
     const { rows: groups } = await ctx.db.query(
       `select ${MODE_GROUP} as mode_group, count(*)::int as battles, count(lv.lvl)::int as level_battles,
                 round(avg(bp.deck_avg_level - lv.lvl)::numeric, 2) as mean_level_gap
-         from battle_participant bp
+         from ${PARTICIPANT_GAMES} bp
          join battle b on b.battle_id = bp.battle_id
          ${levelSource}
          where ${where.join(" and ")} and bp.deck_hash is not null

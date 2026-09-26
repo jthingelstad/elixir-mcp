@@ -9,7 +9,12 @@ import {
   cardDisplayName,
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
-import { deckStamps, docsRef, requireEnum } from "../shared.mjs";
+import {
+  PARTICIPANT_GAMES,
+  deckStamps,
+  docsRef,
+  requireEnum,
+} from "../shared.mjs";
 import { TROPHY_BAND_NAMES } from "../../meta-season.mjs";
 
 /** group_by on battles_meta_decks (6.6.0, design §6): the population's
@@ -128,7 +133,7 @@ export async function groupByArchetype(
       `select bp.player_tag, p.name, bp.deck_hash,
               count(*)::int as battles,
               count(*) filter (where bp.outcome = 'win')::int as wins
-       from battle_participant bp
+       from ${PARTICIPANT_GAMES} bp
        left join player p on p.player_tag = bp.player_tag
        where ${where.join(" and ")}
        group by bp.player_tag, p.name, bp.deck_hash`,

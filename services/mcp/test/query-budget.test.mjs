@@ -288,7 +288,8 @@ test("corpus meta reuses its population scan for the unchanged shrinkage prior",
     const scans = [];
     const observed = {
       query: async (sql, params) => {
-        if (sql.includes("from battle_participant bp")) scans.push(sql);
+        // The participant heap, read directly or as games (9.11.0).
+        if (/from battle_participant (bp|g)\b/.test(sql)) scans.push(sql);
         return db.query(sql, params);
       },
     };

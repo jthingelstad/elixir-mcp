@@ -33,6 +33,8 @@ import {
   normalizeName,
   FAMILIES,
   cardDisplayName,
+  DUEL_TYPES,
+  duelGamesSql,
 } from "@elixir-mcp/contracts";
 import { cachedVocabulary } from "../../../ingest/src/card-roles.mjs";
 import { reconcileRecording } from "@elixir-mcp/claims";
@@ -1103,7 +1105,14 @@ export const META_METHODOLOGY = {
   // insufficient_sample and shrunk rates are withheld rather than
   // serving a number the sample cannot support.
   segment_min_decided: 30,
-  excluded: ["duels (no single deck)", "boat battles", "draws", "unresolved"],
+  // A duel counts as its rounds (9.11.0, feedback #363); only a duel
+  // whose rounds were never recorded is left out.
+  excluded: [
+    "duels without recorded rounds",
+    "boat battles",
+    "draws",
+    "unresolved",
+  ],
   confidence_intervals: false,
 };
 
@@ -1142,15 +1151,67 @@ export function collectionSegmentNote(seg) {
 
 export const SEGMENT_NOTES = [
   "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
-  "Only decided head-to-head battles count; `excluded` says how many duels, boat battles, draws and unresolved outcomes the window held.",
+  "Only decided head-to-head games count, and each round of a Clan Wars duel is one game with its own deck and result (duel_rounds says how many of a row's battles were rounds); `excluded` says how many duels without recorded rounds, boat battles, draws and unresolved outcomes the window held.",
   `shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld (null, insufficient_sample: true) when the population is under ${META_METHODOLOGY.segment_min_decided} decided observations, not per row: a row with few battles still carries one, shrunk hard toward the mean. win_rate is the raw rate at any sample size, so read it beside battles.`,
   "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
 ];
 export const SEGMENT_DOCS =
   "methodology#deck-and-card-meta-exactly-what-is-counted";
 
-/** Battle types that are one row for up to three games (rounds[]). */
-export const DUEL_TYPES = ["riverRaceDuel", "riverRaceDuelColosseum"];
+export { DUEL_TYPES };
+
+/** The meta population's sources as GAMES (9.11.0, feedback #363): a
+ *  duel's recorded rounds, each with its own deck_hash and outcome, in
+ *  place of its one deckless row (contracts' duelGamesSql). Each is a
+ *  parenthesized subquery with `round` (0 outside a duel); name it `bp`.
+ *  The *_WHOLE forms keep a duel whose rounds were never recorded as one
+ *  row, for a breakdown's `duels`; a decided-only read never sees one
+ *  (no deck) and uses the lighter form. A round carries no side level. */
+const PARTICIPANT_GAME_COLUMNS = [
+  "battle_id",
+  "player_tag",
+  "side",
+  "battle_time",
+  "type",
+  "type_class",
+  "deck_hash",
+  "outcome",
+  "deck_avg_level",
+  "opp_deck_avg_level",
+  "starting_trophies",
+];
+const PARTICIPANT_LEVELS = ["deck_avg_level", "opp_deck_avg_level"];
+export const PARTICIPANT_GAMES = duelGamesSql(
+  "battle_participant",
+  PARTICIPANT_GAME_COLUMNS,
+  { blank: PARTICIPANT_LEVELS },
+);
+const PARTICIPANT_GAMES_WHOLE = duelGamesSql(
+  "battle_participant",
+  PARTICIPANT_GAME_COLUMNS,
+  { blank: PARTICIPANT_LEVELS, wholeDuels: true },
+);
+const POP_GAME_COLUMNS = [
+  "season_month",
+  "game_day",
+  "battle_id",
+  "player_tag",
+  "deck_hash",
+  "outcome",
+  "battle_time",
+  "type",
+  "type_class",
+  "mode_group",
+  "trophy_band",
+  "level_gap",
+];
+export const POP_GAMES = duelGamesSql("meta_season_pop", POP_GAME_COLUMNS, {
+  blank: ["level_gap"],
+});
+const POP_GAMES_WHOLE = duelGamesSql("meta_season_pop", POP_GAME_COLUMNS, {
+  blank: ["level_gap"],
+  wholeDuels: true,
+});
 
 /** What a meta window held that the decided head-to-head population left
  *  out, so a 246-vs-212 gap is self-describing instead of something a
@@ -1167,6 +1228,9 @@ export async function excludedBreakdown(
   const battleJoin = where.some((w) => /\bb\./.test(w))
     ? "join battle b on b.battle_id = bp.battle_id"
     : "";
+  // A duel still whole: its rounds were never recorded. A round is a
+  // game like any other (9.11.0).
+  const whole = `(bp.round = 0 and coalesce(bp.type = any($${params.length + 1}), false))`;
   const {
     rows: [r],
   } = await db.query(
@@ -1177,18 +1241,15 @@ export async function excludedBreakdown(
         : ""
     }
             count(*)::int as considered,
-            count(*) filter (where coalesce(bp.type = any($${params.length + 1}), false))::int as duels,
-            count(*) filter (where bp.type_class = 'boat'
-                               and not coalesce(bp.type = any($${params.length + 1}), false))::int as boat,
+            count(*) filter (where ${whole})::int as duels,
+            count(*) filter (where bp.type_class = 'boat' and not ${whole})::int as boat,
             count(*) filter (where bp.outcome = 'draw' and bp.type_class = 'pvp'
-                               and not coalesce(bp.type = any($${params.length + 1}), false))::int as draws,
+                               and not ${whole})::int as draws,
             count(*) filter (where (bp.outcome is null or bp.outcome = 'unresolved')
-                               and bp.type_class = 'pvp'
-                               and not coalesce(bp.type = any($${params.length + 1}), false))::int as unresolved,
+                               and bp.type_class = 'pvp' and not ${whole})::int as unresolved,
             count(*) filter (where bp.outcome in ('win','loss') and bp.type_class = 'pvp'
-                               and not coalesce(bp.type = any($${params.length + 1}), false)
-                               and bp.deck_hash is null)::int as no_deck
-     from ${source} bp ${battleJoin}
+                               and not ${whole} and bp.deck_hash is null)::int as no_deck
+     from ${source === "meta_season_pop" ? POP_GAMES_WHOLE : PARTICIPANT_GAMES_WHOLE} bp ${battleJoin}
      where ${where.join(" and ")}`,
     [...params, DUEL_TYPES],
   );
@@ -1237,7 +1298,7 @@ export async function corpusPrior(db, { from, to = null, types = null }) {
   } = await db.query(
     `select count(*)::int as decided,
             count(*) filter (where bp.outcome = 'win')::int as wins
-     from battle_participant bp
+     from ${PARTICIPANT_GAMES} bp
      where bp.outcome in ('win','loss') and bp.type_class = 'pvp'
        and bp.deck_hash is not null and ${where.join(" and ")}`,
     params,

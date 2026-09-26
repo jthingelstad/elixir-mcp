@@ -188,14 +188,20 @@ per-round `differential`, which the summed top-level counter cannot have. So
 "how did round two go" is answerable: read `rounds[]` rather than the top-level
 values whenever the question is about one game. The history was filled back from
 the payload archive (20,218 rounds across 4,362 duels); a duel older than that
-sweep has an empty `rounds[]`, and every non-duel row has none at all. `battles_decks`, `battles_cards` and the meta
-tools exclude duels for exactly this reason: `battles_decks` itemizes them
-under `excluded {duels, no_deck}` and its `total_battles_in_window` is the
-head-to-head battles with a deck, the denominator of `share_of_battles`, so
-`total_battles_in_window + excluded.duels + excluded.no_deck` is
-`battles_performance.battles` over the same window (4.1.0); a note says so
-whenever the window held a duel. `battles_opponents` counts a duel once
-however many rounds it held.
+sweep has an empty `rounds[]`, and every non-duel row has none at all.
+
+**Each round is a game with its own deck** (9.11.0). A round's eight cards
+carry their own `deck_hash`, with no tower troop (the identity every Clan Wars
+battle has), and its own result by that round's crowns against the
+opponent's. `battles_cards`, the meta tools (`battles_meta_decks`,
+`battles_meta_cards`, `cards_card`, `cards_synergy`) and the war-deck tools
+count each round as one game, and their rows say how many of their battles
+were rounds (`duel_rounds`). `battles_decks` keeps its rows to battles with
+one deck: it itemizes duels under `excluded {duels, no_deck}` and lists their
+round decks apart (`duel_decks`), so `total_battles_in_window +
+excluded.duels + excluded.no_deck` is `battles_performance.battles` over the
+same window (4.1.0). `battles_opponents` counts a duel once however many
+rounds it held.
 
 A **boat battle** (`boatBattle`) is an attack on a static defense, not a
 head-to-head match. The record classes every battle as `type_class` `pvp`

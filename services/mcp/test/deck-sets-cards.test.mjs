@@ -89,8 +89,9 @@ async function battle({ deck, player, type, win, day, war = false }) {
 }
 
 /** A duel: the player's rounds (deck, my crowns, their crowns) against
- *  one opponent, as ingest writes it: no deck_hash, the round decks in
- *  battle_participant_card, the round results beside them. */
+ *  one opponent, as ingest writes it (0182): no deck_hash on the
+ *  participant, the round decks in battle_participant_card, and each
+ *  round's own deck_hash (tower-less, a deck row beside it) and result. */
 async function duel(day, rounds) {
   const id = `duel-${++n}`;
   const wonRounds = rounds.filter(([, m, t]) => m > t).length;
@@ -118,12 +119,28 @@ async function duel(day, rounds) {
       cardsOf(deck).map((c) => ({ ...c, level: 14 })),
     ),
   });
-  for (const [i, [, mine, theirs]] of rounds.entries())
+  const result = (a, b) => (a > b ? "win" : a < b ? "loss" : "draw");
+  for (const [i, [deck, mine, theirs]] of rounds.entries()) {
+    const hash = await seedDeck(scratch.db, {
+      battle_time: at(day),
+      cards: cardsOf(deck),
+    });
     await scratch.db.query(
-      `insert into battle_participant_round (battle_id, player_tag, round, crowns)
-       values ($1, $2, $3, $4), ($1, $5, $3, $6)`,
-      [id, TAG, i + 1, mine, OPP, theirs],
+      `insert into battle_participant_round (battle_id, player_tag, round, crowns, deck_hash, outcome)
+       values ($1, $2, $3, $4, $5, $6), ($1, $7, $3, $8, null, $9)`,
+      [
+        id,
+        TAG,
+        i + 1,
+        mine,
+        hash,
+        result(mine, theirs),
+        OPP,
+        theirs,
+        result(theirs, mine),
+      ],
     );
+  }
 }
 
 before(async () => {
@@ -220,9 +237,10 @@ test("a deck's Trophy Road and Clan Wars variants pool under its eight cards", a
   assert.equal(
     a.modes.war.battles,
     24 + 6,
-    "24 recorded war battles and the player's 6 duel rounds",
+    "24 recorded war battles and the player's 6 duel rounds, from the season rollup (9.11.0)",
   );
-  assert.equal(a.modes.war.your_duel_rounds, 6);
+  assert.equal(a.modes.war.duel_rounds, 6);
+  assert.equal(a.your_duel_rounds, 6);
   assert.equal(a.record.battles, 36 + 30);
 });
 

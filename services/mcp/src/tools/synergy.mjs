@@ -31,6 +31,7 @@ import {
   populationBlock,
   buildMeta,
   collectionSegmentNote,
+  PARTICIPANT_GAMES,
 } from "./shared.mjs";
 import {
   seasonRollup,
@@ -261,7 +262,7 @@ export const synergyTools = {
           `select ${RAW_MODE_GROUP} as mode_group, count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
                   count(*) filter (where bp.outcome = 'loss')::int as losses
-           from battle_participant bp
+           from ${PARTICIPANT_GAMES} bp
            where ${where.join(" and ")} and ${anchorMatch}
            group by 1`,
           params,
@@ -271,7 +272,7 @@ export const synergyTools = {
           await ctx.db.query(
             `with pop as (
            select bp.player_tag, bp.outcome, bp.deck_hash, (${anchorMatch}) as has_anchor
-           from battle_participant bp
+           from ${PARTICIPANT_GAMES} bp
            where ${where.join(" and ")}),
          totals as (
            select count(*)::int as decided,
@@ -313,7 +314,7 @@ export const synergyTools = {
                     count(*) filter (where ${anchorMatch})::int as anchor_decks,
                     count(distinct bp.player_tag) filter (where ${anchorMatch})::int as anchor_players,
                     count(*) filter (where ${anchorMatch} and bp.outcome = 'win')::int as anchor_wins
-             from battle_participant bp
+             from ${PARTICIPANT_GAMES} bp
              where ${where.join(" and ")}`,
             params,
           );
@@ -393,7 +394,7 @@ export const synergyTools = {
             : null,
           "co_occurrence_rate = decks with anchor AND partner / decks with anchor; baseline_usage = the partner's share of all decided decks in the segment; lift = co_occurrence_rate / baseline_usage.",
           "players is distinct pilots for the pair and is what tells a personal habit from a pattern; win_rate_with_anchor describes who plays the pair, not the pair.",
-          "Decided head-to-head player-battle observations only (duels, boat battles, draws excluded; both sides of a match can contribute); partners keep forms as separate rows.",
+          "Decided head-to-head player-game observations only, each round of a Clan Wars duel one game (boat battles, draws and duels without recorded rounds excluded; both sides of a match can contribute); partners keep forms as separate rows.",
           args.trophy_band && args.mode !== "ladder"
             ? RANKED_NO_BAND_NOTE
             : null,

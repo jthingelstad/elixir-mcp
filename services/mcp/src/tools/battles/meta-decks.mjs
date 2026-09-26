@@ -27,6 +27,8 @@ import {
   excludedBreakdown,
   fieldedLevel,
   notes,
+  PARTICIPANT_GAMES,
+  POP_GAMES,
   populationBlock,
   requireEnum,
   resolveArchetypeArg,
@@ -244,14 +246,17 @@ export const battles_meta_decks = {
                     count(*)::int as battles,
                     count(*) filter (where bp.outcome = 'win')::int as wins,
                     count(*) filter (where bp.outcome = 'loss')::int as losses,
+                    -- A duel's rounds are games (9.11.0, #363); how many
+                    -- of the deck's were.
+                    count(*) filter (where bp.round > 0)::int as duel_rounds,
                     min(bp.battle_time) as first_used,
                     max(bp.battle_time) as last_used,
                     ${
                       pop
-                        ? "sum(bp.level_gap) as gap_sum, count(bp.level_gap)::int as gap_n from meta_season_pop bp"
+                        ? `sum(bp.level_gap) as gap_sum, count(bp.level_gap)::int as gap_n from ${POP_GAMES} bp`
                         : `sum(bp.deck_avg_level - lv.lvl) as gap_sum,
                     count(lv.lvl)::int as gap_n
-             from battle_participant bp
+             from ${PARTICIPANT_GAMES} bp
              cross join lateral (
              -- The other side's level, stamped at ingest (0156).
              select case when bp.deck_avg_level is not null
@@ -286,6 +291,7 @@ export const battles_meta_decks = {
            decks as (
              select d.deck_hash, d.type,
                     sum(d.battles)::int as battles, sum(d.wins)::int as wins, sum(d.losses)::int as losses,
+                    sum(d.duel_rounds)::int as duel_rounds,
                     count(distinct d.player_tag)::int as players,
                     min(d.first_used) as first_used, max(d.last_used) as last_used,
                     sum(d.gap_sum) as gap_sum, sum(d.gap_n)::int as gap_n,
@@ -315,9 +321,11 @@ export const battles_meta_decks = {
           last_used: t.last_used,
           gap_sum: 0,
           gap_n: 0,
+          duel_rounds: 0,
           types: [],
         };
         cur.battles += t.battles;
+        cur.duel_rounds += t.duel_rounds;
         cur.wins += t.wins;
         cur.losses += t.losses;
         if (t.first_used < cur.first_used) cur.first_used = t.first_used;
@@ -386,6 +394,8 @@ export const battles_meta_decks = {
             ? null
             : Number(r.mean_level_gap),
         level_gap_battles: r.level_gap_battles ?? 0,
+        // Null on a rollup row the nightly has not split since 0183.
+        duel_rounds: r.duel_rounds ?? null,
       }));
     const sort = args.sort ?? "battles";
     shaped.sort(
@@ -499,7 +509,7 @@ export const battles_meta_decks = {
       // What the player already fields, by shape (6.6.0, design §12.2):
       // a row in a family they play costs the least to adopt.
       const { rows: ownDecks } = await ctx.db.query(
-        `select distinct deck_hash from battle_participant
+        `select distinct deck_hash from ${PARTICIPANT_GAMES} bp
            where player_tag = $1 and battle_time >= $2
              and ($3::timestamptz is null or battle_time < $3)
              and ($4::text[] is null or type = any($4))
@@ -651,7 +661,7 @@ export const battles_meta_decks = {
         args.trophy_band && args.mode !== "ladder" ? RANKED_NO_BAND_NOTE : null,
         args.trophy_band === "trophy_road_complete" ? CAP_BAND_NOTE : null,
         args.trophy_band && roll
-          ? "excluded counts the season and mode, not the band (a duel or a boat battle has no band); decided_battles and every row are the band's."
+          ? "excluded counts the season and mode, not the band; decided_battles and every row are the band's."
           : null,
         SEGMENT_NOTES,
         collectionSegmentNote(seg),
@@ -709,7 +719,7 @@ async function topPlayerBattles(ctx, args, { hashes, from, to }) {
   const { rows } = await ctx.db.query(
     `select deck_hash, max(n)::int as top
        from (select bp.deck_hash, bp.player_tag, count(*) as n
-               from battle_participant bp
+               from ${PARTICIPANT_GAMES} bp
               where ${where.join(" and ")}
               group by bp.deck_hash, bp.player_tag) t
       group by deck_hash`,

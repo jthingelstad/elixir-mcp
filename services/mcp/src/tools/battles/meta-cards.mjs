@@ -23,6 +23,8 @@ import {
   fieldedLevel,
   heldCard,
   notes,
+  PARTICIPANT_GAMES,
+  POP_GAMES,
   populationBlock,
   requireEnum,
   resolveFitFor,
@@ -225,12 +227,14 @@ export const battles_meta_cards = {
            select bp.deck_hash, bp.player_tag, bp.type,
                   count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
+                  -- A duel's rounds are games (9.11.0, #363).
+                  count(*) filter (where bp.round > 0)::int as rounds,
                   ${
                     pop
-                      ? "sum(bp.level_gap) as gap_sum, count(bp.level_gap)::int as gap_n from meta_season_pop bp"
+                      ? `sum(bp.level_gap) as gap_sum, count(bp.level_gap)::int as gap_n from ${POP_GAMES} bp`
                       : `sum(bp.deck_avg_level - lv.lvl) as gap_sum,
                   count(lv.lvl)::int as gap_n
-           from battle_participant bp
+           from ${PARTICIPANT_GAMES} bp
            cross join lateral (
              -- The other side's level, stamped at ingest (0156).
              select case when bp.deck_avg_level is not null
@@ -257,16 +261,17 @@ export const battles_meta_cards = {
          joined as materialized (
            ${
              towers
-               ? `select d.tower_troop_id as card_id, 0 as form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n
+               ? `select d.tower_troop_id as card_id, 0 as form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n, p.rounds
            from pairs p join deck d on d.deck_hash = p.deck_hash
            where d.tower_troop_id is not null`
-               : `select dc.card_id, dc.form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n
+               : `select dc.card_id, dc.form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n, p.rounds
            from pairs p join deck_card dc on dc.deck_hash = p.deck_hash`
            }),
          per_type as (
            select card_id, form, type,
                   sum(battles)::int as battles, sum(wins)::int as wins,
-                  sum(gap_sum) as gap_sum, sum(gap_n)::int as gap_n
+                  sum(gap_sum) as gap_sum, sum(gap_n)::int as gap_n,
+                  sum(rounds)::int as rounds
            from joined group by card_id, form, type),
          per_card as (
            select card_id, form, count(distinct player_tag)::int as players
@@ -276,6 +281,7 @@ export const battles_meta_cards = {
                 sum(pt.wins)::int as wins,
                 sum(pt.battles - pt.wins)::int as losses,
                 pc.players,
+                sum(pt.rounds)::int as duel_rounds,
                 round((sum(pt.gap_sum) / nullif(sum(pt.gap_n), 0))::numeric, 2) as mean_level_gap,
                 json_agg(json_build_object('type', pt.type, 'battles', pt.battles,
                                            'wins', pt.wins, 'losses', pt.battles - pt.wins)) as by_type,
@@ -311,7 +317,7 @@ export const battles_meta_cards = {
                 count(*) filter (where exists (
                   select 1 from deck d
                    where d.deck_hash = bp.deck_hash and d.tower_troop_id is not null))::int as known
-           from ${pop ? "meta_season_pop" : "battle_participant"} bp
+           from ${pop ? POP_GAMES : PARTICIPANT_GAMES} bp
           where ${where.join(" and ")}`,
         params,
       );
@@ -356,6 +362,8 @@ export const battles_meta_cards = {
           r.mean_level_gap === null || r.mean_level_gap === undefined
             ? null
             : Number(r.mean_level_gap),
+        // Null on a rollup row the nightly has not split since 0183.
+        duel_rounds: r.duel_rounds ?? null,
         _form: r.evolution,
         _types: r.by_type ?? null,
       }));
@@ -475,7 +483,7 @@ export const battles_meta_cards = {
         args.trophy_band && args.mode !== "ladder" ? RANKED_NO_BAND_NOTE : null,
         args.trophy_band === "trophy_road_complete" ? CAP_BAND_NOTE : null,
         args.trophy_band && roll
-          ? "excluded counts the season and mode, not the band (a duel or a boat battle has no band); decided_battles and every row are the band's."
+          ? "excluded counts the season and mode, not the band; decided_battles and every row are the band's."
           : null,
         SEGMENT_NOTES,
         collectionSegmentNote(seg),

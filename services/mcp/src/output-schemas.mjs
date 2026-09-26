@@ -387,6 +387,11 @@ const META_ROW_COMMON = {
   insufficient_sample: { type: "boolean" },
   mean_level_gap: LEVEL_GAP,
   modes: MODE_SPLIT,
+  duel_rounds: {
+    type: ["integer", "null"],
+    description:
+      "9.11.0: of battles, how many were rounds of a Clan Wars duel (each round one game with its own deck and result); null on a season rollup row the nightly has not rebuilt since.",
+  },
 };
 const META_COMMON = {
   applied: {
@@ -1029,6 +1034,7 @@ export const OUTPUT_SCHEMAS = {
           properties: {
             battles: { type: ["number", "null"] },
             decided_battles: { type: ["number", "null"] },
+            duel_rounds: { type: ["number", "null"] },
             losses: { type: ["number", "null"] },
             mean_level_gap: { type: ["number", "null"] },
             players: { type: ["number", "null"] },
@@ -1050,6 +1056,7 @@ export const OUTPUT_SCHEMAS = {
             battles: { type: ["number", "null"] },
             cards: { type: "array" },
             deck_hash: { type: ["string", "null"] },
+            duel_rounds: { type: ["number", "null"] },
             losses: { type: ["number", "null"] },
             players: { type: ["number", "null"] },
             tower_troop: { type: "object" },
@@ -1067,6 +1074,7 @@ export const OUTPUT_SCHEMAS = {
           properties: {
             battles: { type: ["number", "null"] },
             decided_battles: { type: ["number", "null"] },
+            duel_rounds: { type: ["number", "null"] },
             losses: { type: ["number", "null"] },
             players: { type: ["number", "null"] },
             season: { type: "object" },
@@ -2311,12 +2319,12 @@ export const OUTPUT_SCHEMAS = {
                   record: {
                     type: ["object", "null"],
                     description:
-                      "The eight cards' decided battles this season over the three modes and every tower troop, and the player's own duel rounds: battles, wins, losses, win_rate, and shrunk_win_rate (each mode shrunk to its own prior, pooled by battles). null for a locked deck with no record.",
+                      "The eight cards' decided games this season over the three modes and every tower troop, each round of a Clan Wars duel one game: battles, wins, losses, win_rate, and shrunk_win_rate (each mode shrunk to its own prior, pooled by battles). null for a locked deck with no record.",
                   },
                   modes: {
                     type: "object",
                     description:
-                      "Full verbosity: the record per mode (ladder, ranked, war) with its players' mean_level_gap, the control the value corrects for; war.your_duel_rounds counts the player's own duel rounds in it.",
+                      "Full verbosity: the record per mode (ladder, ranked, war) with its players' mean_level_gap, the control the value corrects for; each mode's duel_rounds counts the duel rounds in its battles, every player's (null until the season's next rebuild splits them).",
                   },
                   forms_substituted: {
                     type: "array",

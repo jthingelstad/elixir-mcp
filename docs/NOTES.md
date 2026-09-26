@@ -2812,3 +2812,27 @@ migrate op fills the rounds recorded before, from a cursor, then
 rollups and the meta and card tools onto rounds (a round is one war deck
 used), and `battles_deck_sets` drops its own merge of round decks so a
 round is never counted twice.
+
+## 2026-09-26 — Duel rounds are games in every meta count (9.11.0, #363), step two
+
+The history fill ran live at 13:0x UTC: 23,290 rounds filled in two calls
+(45 s, 30 s), none left null; `battle_participant_round` vacuumed. `deck`
+grew by about 10k rows over the morning, round decks and ordinary ingest
+together.
+
+A duel now counts as its rounds wherever a deck or card is counted. One SQL
+rule in contracts, `duelGamesSql`: a relation's rows pass through with
+`round` 0, a duel's become one row per recorded round with that round's
+`deck_hash` and `outcome`, and a duel with no recorded rounds stays whole
+only where a breakdown counts it (`excluded.duels`). The rollup reads its
+population through it (0183 adds `duel_rounds` to the deck, card, band and
+totals tables, null until a season's rebuild); the live paths of
+`battles_meta_decks`, `battles_meta_cards`, `cards_synergy`, `cards_card`,
+`battles_cards` and the war-deck tools read the participant heap or the
+population table through it, so the rollup-equals-raw test still holds.
+No separate population table: `battle_participant_round` is 23k rows, so
+joining it at read time costs nothing beside the 563k-row population.
+`battles_deck_sets` no longer adds the player's own rounds to the war
+record (the rollup has everyone's); `modes.war.your_duel_rounds` became
+`modes.<mode>.duel_rounds`. `battles_decks` is unchanged. After the deploy:
+rebuild 2026-09 and 2026-08 with `{meta_rollup_season}`.

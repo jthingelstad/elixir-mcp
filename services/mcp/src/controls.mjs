@@ -136,13 +136,21 @@ export function modeGaps(typeRows) {
     }
     pooled.set(mode, cur);
   }
-  return [...pooled.values()].map((g) => ({
-    mode: g.mode,
-    battles: g.battles,
-    // + 0 folds a -0 to 0, so a rollup read and a raw read compare equal.
-    mean_level_gap:
-      g.gapN > 0 ? Number((g.gapSum / g.gapN).toFixed(2)) + 0 : null,
-  }));
+  // Most battles first, then by name: the rollup and raw paths read
+  // their groups in no order of their own, and must list them alike.
+  return [...pooled.values()]
+    .sort(
+      (a, z) =>
+        z.battles - a.battles ||
+        (a.mode < z.mode ? -1 : a.mode > z.mode ? 1 : 0),
+    )
+    .map((g) => ({
+      mode: g.mode,
+      battles: g.battles,
+      // + 0 folds a -0 to 0, so a rollup read and a raw read compare equal.
+      mean_level_gap:
+        g.gapN > 0 ? Number((g.gapSum / g.gapN).toFixed(2)) + 0 : null,
+    }));
 }
 
 /** The group holding the largest share of a split, with that share. */

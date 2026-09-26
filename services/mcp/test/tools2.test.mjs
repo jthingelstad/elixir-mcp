@@ -14,6 +14,7 @@ import { makeInvoker } from "../src/invoker.mjs";
 import { ensureSeasonsAround, ensureSeason } from "../../ingest/src/season.mjs";
 import { rebuildSeason } from "../../jobs/src/meta-rollup.mjs";
 import { dailySql } from "../src/daily-sql.mjs";
+import { notBoatDefense } from "../src/boat-defense-sql.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
 import { typesForModeGroup } from "@elixir-mcp/contracts";
 import { seasonFromDate, monthKey } from "../../ingest/src/war-clock.mjs";
@@ -210,7 +211,7 @@ test("days/weeks are sugar on EVERY windowed tool, as the instructions promise",
   );
 });
 
-test("battles_cards: mine and opponent perspectives, duels excluded", async () => {
+test("battles_cards: mine and opponent perspectives, each duel round a game (9.11.0)", async () => {
   const mine = await call("battles_cards", { perspective: "mine" });
   assert.equal(mine.isError, false);
   assert.ok(mine.body.cards.length > 0, "cards attributed");
@@ -218,6 +219,25 @@ test("battles_cards: mine and opponent perspectives, duels excluded", async () =
     assert.equal(c.battles, c.wins + c.losses);
     assert.ok(c.win_rate >= 0 && c.win_rate <= 1);
   }
+  // The duel's rounds are war games: the window's war group holds them
+  // beside the war battles with a deck (1v1 and boat attacks), each
+  // decided by its own crowns.
+  const {
+    rows: [war],
+  } = await db.query(
+    `select (select count(*)::int from battle_participant bp
+              where bp.player_tag = $1 and bp.type = any($2)
+                and bp.deck_hash is not null and bp.outcome in ('win','loss')
+                and ${notBoatDefense()}) as battles,
+            (select count(*)::int from battle_participant_round
+              where player_tag = $1 and outcome in ('win','loss')) as rounds`,
+    [OBSERVER, typesForModeGroup("war")],
+  );
+  assert.ok(war.rounds > 0, "the fixture's duel has decided rounds");
+  assert.equal(
+    mine.body.modes_in_window.war?.battles,
+    war.battles + war.rounds,
+  );
   const opp = await call("battles_cards", { perspective: "opponent" });
   assert.equal(opp.isError, false);
   assert.match(opp.body.notes.join(" "), /OPPONENT/);
@@ -1484,7 +1504,21 @@ test("meta tools shrink toward the corpus prior, itemize exclusions, exclude boa
   });
   assert.equal(isError, false, JSON.stringify(body));
   assert.equal(body.excluded.boat, 10);
-  assert.equal(body.excluded.duels, 1);
+  // The duel counts by its rounds (9.11.0): nothing of it is excluded,
+  // and its rounds sit in the rows.
+  assert.equal(body.excluded.duels, 0);
+  const {
+    rows: [{ rounds }],
+  } = await db.query(
+    `select count(*)::int as rounds from battle_participant_round
+      where player_tag = $1 and outcome in ('win','loss') and deck_hash is not null`,
+    [OBSERVER],
+  );
+  assert.ok(rounds > 0);
+  assert.equal(
+    body.decks.reduce((s, d) => s + d.duel_rounds, 0),
+    rounds,
+  );
   assert.match(body.methodology.prior_source, /corpus/);
   assert.ok(["corpus_window", "neutral_0.5"].includes(body.prior_basis));
   const cards = await call("battles_meta_cards", {
