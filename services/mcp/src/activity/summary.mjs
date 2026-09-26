@@ -411,7 +411,7 @@ export function itemText(it, timeZone = "UTC") {
         { points: "points", donations: "donations", war_decks: "war decks" }[
           f.unit
         ] ?? f.unit;
-      return `${at} ${member} stands ${f.place === 1 ? "first" : `in place ${f.place}`} in ${subj}'s ${f.award} for season ${f.season_id} with ${num(f.value)} ${unit}${f.previous_player_tag ? `, a place ${f.previous_player_tag} held before` : ""}${via(f)}.`;
+      return `${at} ${member} stands ${f.place === 1 ? "first" : `in place ${f.place}`} in ${subj}'s ${f.award} for season ${f.season_id} with ${num(f.value)} ${unit}${f.previous_player_tag ? `, taking it from ${f.previous_name ?? f.previous_player_tag}` : ""}${via(f)}.`;
     }
     default:
       if (it.kind.startsWith("account_")) {

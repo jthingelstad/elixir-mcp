@@ -1778,11 +1778,12 @@ export async function factItems(db, subjects, { accountId, fromMs, toMs }) {
   if (!inClan.length && !playerTags.length) return [];
   const { rows } = await db.query(
     `select f.*, cl.name as clan_name, p.name as player_name,
-            ap.name as attester_name
+            ap.name as attester_name, pp.name as previous_name
        from attested_fact f
        left join clan cl on cl.clan_tag = f.clan_tag
        left join player p on p.player_tag = f.player_tag
        left join player ap on ap.player_tag = f.attester_tag
+       left join player pp on pp.player_tag = f.detail->>'previous_player_tag'
       where f.recorded_at >= ${ts(fromMs + 1)} and f.recorded_at < ${ts(toMs + 1)}
         and ((f.subject_kind = 'clan' and f.fact_type = any($4::text[])
               and f.clan_tag = any($1::text[]))
@@ -1818,6 +1819,11 @@ export async function factItems(db, subjects, { accountId, fromMs, toMs }) {
         ...f.detail,
         ...(clan && f.player_tag
           ? { player_tag: f.player_tag, name: f.player_name }
+          : {}),
+        // The name beside the tag of who held a place before (9.10.1): a
+        // lead changing hands is said with both names.
+        ...(f.detail?.previous_player_tag
+          ? { previous_name: f.previous_name ?? null }
           : {}),
         attested_by: {
           app: FAMILY_APP_NAMES[f.source] ?? f.source,

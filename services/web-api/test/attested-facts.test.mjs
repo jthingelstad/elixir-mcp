@@ -476,7 +476,7 @@ test("an app records its computed award standing on its integration key; a perso
     facts,
     {
       ...standing,
-      detail: { ...standing.detail, value: 6500, previous_player_tag: null },
+      detail: { ...standing.detail, value: 6500 },
     },
     clanApp.token,
   );
@@ -519,6 +519,7 @@ test("an app records its computed award standing on its integration key; a perso
   ).filter((i) => i.kind === "award_standing");
   assert.equal(seen.length, 1);
   assert.equal(seen[0].facts.value, 6500);
+  assert.equal(seen[0].facts.previous_name, "gone", "who held first, by name");
   assert.equal(seen[0].facts.attested_by.app, "Elixir Clan");
   // Only the app that wrote it takes it back.
   const path = `${facts}/${encodeURIComponent(standing.ref)}`;
