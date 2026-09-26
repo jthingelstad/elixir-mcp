@@ -2745,3 +2745,8 @@ issues") found more in the same code.
   `deck`/`deck_card`), a backfill op over every recorded duel and a
   rollup change: migration work for a day Jamie is around, not a night.
   `battles_cards` also still reads round 0 only.
+- **9.8.0 shipped** (d6fd0560, with bd6aa1d3 the census manifest). Battles
+  acceptance: the timing pair again, both pass alone; the elixir family:
+  one real failure, gym 187.3, `elixir_docs {page: "battles"}` over the
+  48,000-character cap with the new text. 9.8.1 moves the war-deck
+  sections to their own page, `/docs/war-decks`.

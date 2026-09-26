@@ -62,13 +62,18 @@ test("section slugs are GitHub-style, the shape the code's docs pointers use", (
       "the-control-next-to-the-number",
       "decided-battles-and-denominators",
       "deck-identity-and-forms",
-      "deck-sets",
-      "deck-upgrades",
       "war-weeks-points-and-fame",
     ],
   );
   // The mode table is rendered from the contract, not typed.
   assert.match(battles.markdown, /`riverRaceDuelColosseum`/);
+  // War decks have their own page (9.8.0: the battle model had grown
+  // past the result cap of elixir_docs with them).
+  const war = DOCS.find((d) => d.slug === "war-decks");
+  assert.deepEqual(
+    war.sections.map((s) => s.slug),
+    ["deck-sets", "deck-upgrades"],
+  );
   const clocks = DOCS.find((d) => d.slug === "clocks");
   assert.ok(clocks.sections.some((s) => s.slug === "the-policy-day"));
 });

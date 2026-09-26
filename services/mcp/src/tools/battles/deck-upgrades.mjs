@@ -428,7 +428,7 @@ export const battles_deck_upgrades = {
         c.win.seasonNotes,
         c.roll.note,
       ),
-      docs: docsRef("battles", "deck-upgrades"),
+      docs: docsRef("war-decks", "deck-upgrades"),
       meta: responseMeta({ as_of: new Date().toISOString() }),
     };
   },

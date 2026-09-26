@@ -476,7 +476,7 @@ export const battles_deck_sets = {
         c.win.seasonNotes,
         roll.note,
       ),
-      docs: docsRef("battles", "deck-sets"),
+      docs: docsRef("war-decks", "deck-sets"),
       meta: responseMeta({ as_of: new Date().toISOString() }),
     };
   },

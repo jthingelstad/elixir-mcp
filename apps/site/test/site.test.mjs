@@ -93,6 +93,7 @@ const STATIC_PAGES = [
   "/docs/architecture",
   "/docs/recording",
   "/docs/battles",
+  "/docs/war-decks",
   "/docs/cards",
   "/docs/archetypes",
   "/docs/clocks",
