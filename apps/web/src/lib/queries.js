@@ -329,10 +329,18 @@ export const usePublicStats = () =>
 /** `invalidate(keys.sessions)` after a mutation: the read refetches and
  *  every screen showing it follows. `invalidate()` with no key is the
  *  console's root: the session and everything that is the reader's own,
- *  or, on an agent's console, everything that is the agent's. */
+ *  or, on an agent's console, everything that is the agent's.
+ *
+ *  In-flight reads are cancelled first. A read with no data yet that is
+ *  still in flight when the write lands is not refetched by
+ *  invalidateQueries: TanStack joins the pending fetch, which read before
+ *  the write, and the page shows the list without the row just created
+ *  (the admin integrations journey, flaky on CI 2026-09-24). */
 export function useInvalidate() {
   const queryClient = useQueryClient();
   const agent = useScope();
-  return (queryKey = rootFor(agent)) =>
-    queryClient.invalidateQueries({ queryKey });
+  return async (queryKey = rootFor(agent)) => {
+    await queryClient.cancelQueries({ queryKey });
+    return queryClient.invalidateQueries({ queryKey });
+  };
 }
