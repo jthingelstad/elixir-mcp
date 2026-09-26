@@ -2976,3 +2976,11 @@ signed release, with "some cool fingerprint thing". From collector v3.0.4
   badge use tokens only, so they follow one if it arrives.
 
 No release was named and `min_client_version` is unchanged.
+
+**Follow-up, same evening: every collector read unverified after the
+0184 deploy.** CloudFront's `SiteApiOriginRequestPolicy` forwards a
+header whitelist, and it listed `x-collector-version` but not the two new
+headers, so the door never saw them; the door tests call the handler
+directly and could not notice. Both are on the whitelist now (nine of
+CloudFront's ten), and `collector-edge.test.mjs` fails when the door reads
+an `x-collector-*` header the edge does not forward.

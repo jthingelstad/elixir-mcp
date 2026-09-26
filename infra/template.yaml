@@ -1425,7 +1425,11 @@ Resources:
 
   # Cookies and the contract header flow to the site API; caching off.
   # user-agent is forwarded for the Profile page's device list (a short
-  # label is derived from it; the string itself is never stored).
+  # label is derived from it; the string itself is never stored). The
+  # x-collector-* headers are what a collector says it runs; a header
+  # missing here never reaches the door (0184 shipped reading two that
+  # were not listed, and every collector read unverified). A test holds
+  # this list to the headers the door reads. CloudFront allows ten.
   SiteApiOriginRequestPolicy:
     Type: AWS::CloudFront::OriginRequestPolicy
     Properties:
@@ -1440,6 +1444,8 @@ Resources:
               content-type,
               authorization,
               x-collector-version,
+              x-collector-binary-sha256,
+              x-collector-release-key,
               user-agent,
               cloudfront-viewer-address,
               cloudfront-viewer-country,
