@@ -16,6 +16,7 @@ import {
   bounded,
   sumAtMost,
   check,
+  get,
 } from "../dsl.mjs";
 
 const read = (ctx, tool, args = {}) =>
@@ -54,6 +55,17 @@ const EXCLUSIONS = [
   "excluded.no_deck",
   "decided_battles",
 ];
+/** `excluded` counts battles and decided_battles counts games (9.11.0,
+ *  #363): a duel is one battle in excluded.duels and its decided rounds
+ *  are in decided_battles, so the exclusions and decided sum to the
+ *  battles considered plus the rounds they became (duel_rounds). */
+const CONSIDERED_PLUS_ROUNDS = (r) => {
+  const considered = get(r, "excluded.considered");
+  const rounds = r.duel_rounds;
+  if (considered === undefined || rounds === undefined) return undefined;
+  if (considered === null || rounds === null) return null;
+  return considered + rounds;
+};
 
 export const identities = [
   // --- war: a finish and its detail agree
@@ -234,14 +246,14 @@ export const identities = [
     "decks: considered = exclusions + decided",
     "battles_meta_decks",
     META_CORPUS,
-    "excluded.considered",
+    CONSIDERED_PLUS_ROUNDS,
     EXCLUSIONS,
   ),
   sums(
     "cards: considered = exclusions + decided",
     "battles_meta_cards",
     META_CORPUS,
-    "excluded.considered",
+    CONSIDERED_PLUS_ROUNDS,
     EXCLUSIONS,
   ),
   sums(

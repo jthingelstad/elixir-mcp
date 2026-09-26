@@ -350,10 +350,11 @@
             "excluded.unresolved",
             "excluded.no_deck"
           ],
-          "excluded.considered"
+          ["excluded.considered", "duel_rounds"]
         ]
       }
-    ]
+    ],
+    "amended": "Amended for 9.11.0 (Jamie 2026-09-26, feedback #363: a duel counts as its rounds): excluded counts battles and decided_battles counts games, so the exclusions and decided sum to the battles considered plus the duel rounds they became (duel_rounds)."
   },
   {
     "id": "84.1",
@@ -8689,10 +8690,11 @@
             "excluded.unresolved",
             "excluded.no_deck"
           ],
-          "excluded.considered"
+          ["excluded.considered", "duel_rounds"]
         ]
       }
-    ]
+    ],
+    "amended": "Amended for 9.11.0 (Jamie 2026-09-26, feedback #363: a duel counts as its rounds): excluded counts battles and decided_battles counts games, so the exclusions and decided sum to the battles considered plus the duel rounds they became (duel_rounds)."
   },
   {
     "id": "190.4",
