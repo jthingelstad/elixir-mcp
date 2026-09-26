@@ -671,6 +671,13 @@ const VACUUMABLE = new Set([
   "battle_participant_card",
   "battle_participant_round",
   "player_snapshot_daily",
+  // A backfill's deck rows (0182's {duel_round_decks} added about 80k
+  // deck_card rows, and the meta readers' index-only probes of deck_card
+  // fetched the heap for them: a corpus week read 15 s cold against 3 s),
+  // and the population a rollup rebuild rewrites.
+  "deck",
+  "deck_card",
+  "meta_season_pop",
 ]);
 
 /**
