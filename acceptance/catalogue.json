@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-26T03:40:11.703Z",
+  "generated_at": "2026-09-26T04:48:32.475Z",
   "days": 7,
   "per_tool": 3,
   "tools": {
@@ -72,10 +72,59 @@
         }
       ]
     },
+    "battles_deck_sets": {
+      "calls": 6,
+      "p50_ms": 797,
+      "p95_ms": 2912,
+      "sets": [
+        {
+          "args": {
+            "alternatives": 3,
+            "lock_decks": [
+              "ce06788aed5c01a8989b4ba549d81bb5c2f2fcdc6a3586859333bab89dd4e8a0",
+              "d984fe5a4c6be4c9e34b0d41516fa74e8fb86bb9a62e2f6be645479a93002804",
+              "5de4903fcfe6cd7b51bdfc71933b1e7157992d6f2c1ba666297400268645a2b2"
+            ],
+            "player_tag": "#20JJJ2CCRU",
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "alternatives": 2,
+            "lock_decks": [
+              "ce06788aed5c01a8989b4ba549d81bb5c2f2fcdc6a3586859333bab89dd4e8a0"
+            ],
+            "player_tag": "#20JJJ2CCRU",
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "alternatives": 1,
+            "lock_decks": [
+              "ce06788aed5c01a8989b4ba549d81bb5c2f2fcdc6a3586859333bab89dd4e8a0"
+            ],
+            "player_tag": "#VJQV8G8RL",
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "player_tag": "#20JJJ2CCRU"
+          },
+          "calls": 0,
+          "seed": "the tool's first shape (9.4.0): sets[].decks[].value parts, modes, fit, candidates and near_misses the battles docs promise"
+        }
+      ]
+    },
     "battles_decks": {
-      "calls": 28,
-      "p50_ms": 172,
-      "p95_ms": 492,
+      "calls": 26,
+      "p50_ms": 176,
+      "p95_ms": 507,
       "sets": [
         {
           "args": {
@@ -134,9 +183,9 @@
       ]
     },
     "battles_meta_decks": {
-      "calls": 20,
-      "p50_ms": 498,
-      "p95_ms": 5964,
+      "calls": 24,
+      "p50_ms": 626,
+      "p95_ms": 5467,
       "sets": [
         {
           "args": {
@@ -214,9 +263,9 @@
       ]
     },
     "battles_performance": {
-      "calls": 36,
-      "p50_ms": 148,
-      "p95_ms": 434,
+      "calls": 34,
+      "p50_ms": 152,
+      "p95_ms": 438,
       "sets": [
         {
           "args": {
@@ -243,9 +292,9 @@
       ]
     },
     "battles_query": {
-      "calls": 55,
+      "calls": 57,
       "p50_ms": 180,
-      "p95_ms": 788,
+      "p95_ms": 785,
       "sets": [
         {
           "args": {
@@ -542,15 +591,15 @@
       ]
     },
     "elixir_coverage": {
-      "calls": 2,
-      "p50_ms": 764,
-      "p95_ms": 837,
+      "calls": 1,
+      "p50_ms": 684,
+      "p95_ms": 684,
       "sets": [
         {
           "args": {
             "player_tag": "#20JJJ2CCRU"
           },
-          "calls": 2
+          "calls": 1
         }
       ]
     },
@@ -590,10 +639,20 @@
       ]
     },
     "elixir_timeline": {
-      "calls": 6,
-      "p50_ms": 2196,
-      "p95_ms": 5604,
+      "calls": 7,
+      "p50_ms": 2133,
+      "p95_ms": 5439,
       "sets": [
+        {
+          "args": {
+            "days": 1,
+            "kinds": ["member_left", "member_joined"],
+            "mark_read": false,
+            "player_tag": "#20JJJ2CCRU",
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
         {
           "args": {
             "days": 2,
@@ -613,22 +672,6 @@
           "args": {
             "days": 3,
             "kinds": ["badge_earned", "legendary_badge_earned"],
-            "mark_read": false,
-            "player_tag": "#20JJJ2CCRU",
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "days": 3,
-            "kinds": [
-              "departure_classified",
-              "role_change_made",
-              "award_granted",
-              "member_away",
-              "clan_message"
-            ],
             "mark_read": false,
             "player_tag": "#20JJJ2CCRU",
             "verbosity": "compact"
@@ -691,16 +734,16 @@
       ]
     },
     "players_collection": {
-      "calls": 3,
-      "p50_ms": 152,
-      "p95_ms": 167,
+      "calls": 4,
+      "p50_ms": 160,
+      "p95_ms": 204,
       "sets": [
         {
           "args": {
             "player_tag": "#20JJJ2CCRU",
             "verbosity": "compact"
           },
-          "calls": 3
+          "calls": 4
         },
         {
           "args": {
@@ -725,15 +768,15 @@
       ]
     },
     "players_profile": {
-      "calls": 2,
-      "p50_ms": 122,
-      "p95_ms": 150,
+      "calls": 1,
+      "p50_ms": 153,
+      "p95_ms": 153,
       "sets": [
         {
           "args": {
             "player_tag": "#20JJJ2CCRU"
           },
-          "calls": 2
+          "calls": 1
         }
       ]
     },
@@ -772,39 +815,6 @@
             "player_tag": "#20JJJ2CCRU"
           },
           "calls": 2
-        }
-      ]
-    },
-    "players_timeline": {
-      "calls": 1,
-      "p50_ms": 91,
-      "p95_ms": 91,
-      "sets": [
-        {
-          "args": {
-            "from": "2026-09-17",
-            "metrics": [
-              "trophies",
-              "donations",
-              "donations_received",
-              "battle_count",
-              "wins",
-              "losses",
-              "three_crown_wins",
-              "collection_level",
-              "total_donations",
-              "league_number",
-              "pol_trophies",
-              "pol_rank",
-              "season_trophies",
-              "season_best_trophies",
-              "game_last_seen_at"
-            ],
-            "player_tag": "#20JJJ2CCRU",
-            "timezone": "America/Chicago",
-            "to": "2026-09-18"
-          },
-          "calls": 1
         }
       ]
     },
@@ -929,9 +939,9 @@
       ]
     },
     "war_current": {
-      "calls": 12,
-      "p50_ms": 1122,
-      "p95_ms": 1349,
+      "calls": 11,
+      "p50_ms": 1126,
+      "p95_ms": 1351,
       "sets": [
         {
           "args": {
@@ -998,7 +1008,7 @@
         }
       ]
     },
-    "battles_deck_sets": {
+    "battles_deck_upgrades": {
       "calls": null,
       "p50_ms": null,
       "p95_ms": null,
@@ -1008,7 +1018,7 @@
             "player_tag": "#20JJJ2CCRU"
           },
           "calls": 0,
-          "seed": "the tool's first shape (9.4.0): sets[].decks[].value parts, modes, fit, candidates and near_misses the battles docs promise"
+          "seed": "the tool's first shape (9.7.0): baseline, options with gain and set_after, within_reach with raises and levels the battles docs promise"
         }
       ]
     }

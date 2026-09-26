@@ -2070,7 +2070,16 @@ export const OUTPUT_SCHEMAS = {
             to_level: COUNT,
             levels: COUNT,
             form: { type: "string", enum: ["evolution", "hero"] },
-            decks_affected: COUNT,
+            decks_affected: {
+              type: "integer",
+              description:
+                "Candidate decks that could reach the set and hold this card (a level) or play this form (a form): how widely the card is used, not how many decks it improves.",
+            },
+            lifts: {
+              type: "array",
+              description:
+                "9.7.1: the decks of the set after whose value this upgrade raises (deck_hash, archetype_label, value_before, value_after); a deck that joins only because another left is not listed.",
+            },
             value_before: { type: "number" },
             value_after: { type: "number" },
             gain: {
@@ -2092,6 +2101,7 @@ export const OUTPUT_SCHEMAS = {
             "kind",
             "card",
             "decks_affected",
+            "lifts",
             "value_before",
             "value_after",
             "gain",

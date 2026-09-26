@@ -2682,3 +2682,13 @@ standings and the upgrade tool."
   ceiling first.
 - Levels, not gold: upgrade costs are not in the record (and `adoption_cost`
   stays declined). `cards_held` is the profile's last count.
+- **9.7.0 shipped** (955a9397). Acceptance (`--acceptance=battles`): 192
+  cases, 2 failed, the post-deploy timing pair again (both pass alone);
+  catalogue refreshed, `battles_deck_upgrades#0` and `#notes` pass (1.2 s).
+  Live read on a level-16 account: 0.9 s; the top single upgrades are the
+  low cards of the set's weakest deck (counted twice); `within_reach` is
+  empty at `max_levels` 2 and names decks needing 19-37 levels at 6.
+- 9.7.1: read back through a clan's Discord agent, the answer named cards
+  but not the deck each lifts (only `set_after` said so) and read
+  `decks_affected` as "helps 210 decks". Each option now carries `lifts`;
+  `decks_affected` is described.

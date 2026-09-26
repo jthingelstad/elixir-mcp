@@ -157,6 +157,11 @@ test("each option re-packs the best set; the Evolution that opens a strong deck 
   assert.equal(top.form, "evolution");
   assert.equal(top.set_changes, true, "V joins the set");
   assert.ok(top.set_after.some((d) => d.deck_hash === hashOf("V")));
+  assert.deepEqual(
+    top.lifts.map((d) => d.deck_hash),
+    [hashOf("V")],
+    "the Evolution lifts V; W plays the base card and the rest are unmoved",
+  );
   // Sorted by gain, every gain positive and equal to after minus before.
   for (let i = 0; i < res.options.length; i++) {
     const o = res.options[i];
@@ -176,6 +181,9 @@ test("a card in the set held under the fielded level is raised toward it", async
   assert.equal(lift.levels, 1);
   assert.equal(lift.card.cards_held, 7);
   assert.equal(lift.set_changes, false);
+  assert.equal(lift.lifts.length, 1);
+  assert.equal(lift.lifts[0].deck_hash, hashOf("C"));
+  assert.ok(lift.lifts[0].value_after > lift.lifts[0].value_before);
   assert.ok(
     !res.options.some((o) => o.card.id >= 26000008 && o.card.id <= 26000015),
     "one of B's cards alone lifts nothing",

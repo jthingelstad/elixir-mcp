@@ -522,8 +522,9 @@ upgrade closes) and prices single upgrades:
 
 For each option the set is re-packed exactly and `gain` is its value after
 minus before, in log-odds: the change in the same set value `battles_deck_sets`
-optimises, never a score of its own. `set_changes` says whether the upgrade
-changes which decks the set holds, and `set_after` shows the set it gives.
+optimises, never a score of its own. `lifts` names the decks of the set
+whose value it raises, `set_changes` says whether the upgrade changes which
+decks the set holds, and `set_after` shows the set it gives.
 Options are priced one at a time and do not add up: take the first, then
 ask again. Levels, not gold: the game's upgrade costs are not in the record,
 and a card the player does not own is never an option.

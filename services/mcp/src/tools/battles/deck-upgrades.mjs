@@ -376,6 +376,19 @@ export const battles_deck_upgrades = {
               .join(", "),
           }),
     });
+    /** The decks of the set after whose value the upgrade moved: the ones
+     *  it lifts (a deck that joined only because another left is not). */
+    const liftsOf = (setAfter) =>
+      setAfter
+        .filter(
+          (d) => Math.abs(d.value - (base.get(d.key) ?? -Infinity)) > 1e-9,
+        )
+        .map((d) => ({
+          deck_hash: d.key,
+          archetype_label: identities.get(d.key)?.archetype?.label ?? null,
+          value_before: base.get(d.key) ?? null,
+          value_after: d.value,
+        }));
     const { rows: nameRows } = await ctx.db.query(
       "select name from player where player_tag = $1",
       [tag],
@@ -419,6 +432,7 @@ export const battles_deck_upgrades = {
           ? { held_level: o.held_level, to_level: o.to_level, levels: o.levels }
           : { form: o.form === 1 ? "evolution" : "hero" }),
         decks_affected: o.decks,
+        lifts: liftsOf(o.set_after),
         value_before: o.value_before,
         value_after: o.value_after,
         gain: o.gain,

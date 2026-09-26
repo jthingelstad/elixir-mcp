@@ -11,7 +11,7 @@ export default [
   {
     date: "2026-09-25",
     title: "What to upgrade for better war decks",
-    body: "Ask what to upgrade and Elixir now answers from your own war decks: starting from your best four decks that share no card, it tries each upgrade that could matter (a card raised toward the level you play at, or an Evolution or Hero you have not unlocked) and says how much each would improve the set and whether it would change which decks you field. It also names the decks that are close: ones that would join your four once a few of their cards reach your level, with every card and how many levels each needs. Levels, not gold, since upgrade costs are not in the record. Contract 9.7.0.",
+    body: "Ask what to upgrade and Elixir now answers from your own war decks: starting from your best four decks that share no card, it tries each upgrade that could matter (a card raised toward the level you play at, or an Evolution or Hero you have not unlocked) and says which of your decks each would lift, how much it would improve the set, and whether it would change which decks you field. It also names the decks that are close: ones that would join your four once a few of their cards reach your level, with every card and how many levels each needs. Levels, not gold, since upgrade costs are not in the record. Contracts 9.7.0 and 9.7.1.",
   },
   {
     date: "2026-09-25",
