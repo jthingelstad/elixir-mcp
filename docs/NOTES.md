@@ -2750,3 +2750,10 @@ issues") found more in the same code.
   one real failure, gym 187.3, `elixir_docs {page: "battles"}` over the
   48,000-character cap with the new text. 9.8.1 moves the war-deck
   sections to their own page, `/docs/war-decks`.
+- **9.8.1 shipped** (18bcda32): the elixir family 188 cases, 0 failed.
+  Read back live: King Thing's first set is now his own four war decks,
+  the duel-only Furnace/Skeleton Barrel deck among them (8 duel rounds, no
+  deck row). Through the clan agent (dry run, his words): the four-deck
+  answer is right; "a different last war deck" read his war decks from
+  `battles_decks` rows, missed the duel deck and recommended it back to
+  him. 9.9.0: `battles_decks.duel_decks`.

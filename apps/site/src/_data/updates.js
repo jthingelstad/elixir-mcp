@@ -11,7 +11,7 @@ export default [
   {
     date: "2026-09-26",
     title: "War decks count your duels",
-    body: "A Clan Wars duel is up to three games, each with its own deck, and until now the war-deck tools never saw them, so a war deck you only play in duels looked like a missing fourth deck. Your duel rounds now count as your games on each deck, won or lost round by round, and every deck's record pools all of its tower troops (Clan Wars battles carry none, so the same eight cards used to be two separate decks with half a record each). When no full set of four exists, you get the best partial set and the cards that would open up the most decks; asking for something impossible, like a card that is both required and excluded, is refused with the reason instead of timing out. Searching your battles for a card now finds your duels too. Contract 9.8.0.",
+    body: "A Clan Wars duel is up to three games, each with its own deck, and until now the war-deck tools never saw them, so a war deck you only play in duels looked like a missing fourth deck. Your duel rounds now count as your games on each deck, won or lost round by round, and every deck's record pools all of its tower troops (Clan Wars battles carry none, so the same eight cards used to be two separate decks with half a record each). When no full set of four exists, you get the best partial set and the cards that would open up the most decks; asking for something impossible, like a card that is both required and excluded, is refused with the reason instead of timing out. Searching your battles for a card now finds your duels too, and your list of decks shows the ones you played in duels. Contracts 9.8.0 and 9.9.0.",
   },
   {
     date: "2026-09-25",

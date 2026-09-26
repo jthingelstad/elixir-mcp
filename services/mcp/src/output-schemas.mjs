@@ -3184,11 +3184,38 @@ export const OUTPUT_SCHEMAS = {
           ],
         },
       },
+      duel_decks: {
+        type: "array",
+        description:
+          "9.8.0: the decks played in the window's duel rounds (a duel has no single deck, so it is outside decks[]), most rounds first, at most 20: deck_hash (the eight cards' identity; a Clan Wars battle carries no tower troop), cards, archetype, rounds, wins and losses by each round's own crowns, first_used, last_used.",
+        items: {
+          type: "object",
+          properties: {
+            deck_hash: { type: "string" },
+            cards: { type: "array", items: DECK_CARD },
+            archetype: ARCHETYPE,
+            rounds: COUNT,
+            wins: COUNT,
+            losses: COUNT,
+            first_used: ISO,
+            last_used: ISO,
+          },
+          required: ["deck_hash", "cards", "rounds", "wins", "losses"],
+        },
+      },
       notes: NOTES,
       docs: DOCS,
       meta: META,
     },
-    required: ["player_tag", "applied", "decks", "notes", "docs", "meta"],
+    required: [
+      "player_tag",
+      "applied",
+      "decks",
+      "duel_decks",
+      "notes",
+      "docs",
+      "meta",
+    ],
   },
 
   war_current: {

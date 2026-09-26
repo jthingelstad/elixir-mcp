@@ -789,3 +789,26 @@ test("battles_query: with_card and with_cards match a duel on its rounds' decks 
     "cards from two rounds are not one deck",
   );
 });
+
+test("battles_decks: a duel's round decks are listed beside the rows, never in them (feedback #363)", async () => {
+  const res = await call("battles_decks", {
+    player_tag: F,
+    from: "2026-07-25",
+    to: "2026-07-26",
+    mode: "war",
+  });
+  assert.ok(res.excluded.duels >= 1);
+  assert.equal(res.duel_decks.length, 2, "two rounds, two decks");
+  for (const d of res.duel_decks) {
+    assert.equal(d.rounds, 1);
+    assert.equal(d.cards.length, 8);
+    assert.match(d.deck_hash, /^[0-9a-f]{64}$/);
+  }
+  assert.ok(
+    !res.decks.some((d) =>
+      res.duel_decks.some((x) => x.deck_hash === d.deck_hash),
+    ),
+  );
+  const ladder = await call("battles_decks", { player_tag: F, mode: "ladder" });
+  assert.deepEqual(ladder.duel_decks, [], "a mode without duels lists none");
+});

@@ -1,4 +1,4 @@
-import { modeGroupSql } from "@elixir-mcp/contracts";
+import { deckHash, modeGroupSql } from "@elixir-mcp/contracts";
 import {
   ARCHETYPE_ARG,
   ARCHETYPE_NOTE,
@@ -11,6 +11,7 @@ import {
   WINDOW_ARGS,
   appliedBlock,
   buildMeta,
+  cardSetIdentities,
   deckIdentities,
   matchesArchetype,
   notes,
@@ -29,7 +30,7 @@ import { CONTROLS_DOCS, modeClause, ownBattlesClause } from "./common.mjs";
 
 export const battles_decks = {
   description:
-    "Battles grouped by exact deck identity (deck_hash): per-deck record, win rate, share of battles, first/last used, plus the controls that make a win rate readable: modes (battles per mode group), dominant_mode and mean_level_gap against the opposing side. comparable is false when rows were played in different modes or at gaps half a level apart (war matchmaking flatters a deck), and a note says which. Duels have no single deck and sit under excluded, outside rows and shares. Unbounded by default; pass mode to rank within one mode, a deck_hash to battles_query or battles_performance to drill in.",
+    "Battles grouped by exact deck identity (deck_hash): per-deck record, win rate, share of battles, first/last used, and the controls that make a win rate readable: modes, dominant_mode and mean_level_gap against the opposing side (comparable is false when rows mix modes or level gaps, with a note). A duel has no single deck: it sits under excluded, and duel_decks lists each deck its rounds were played with, by round record. Unbounded by default; pass mode to rank within one mode, a deck_hash to battles_query to drill in.",
   inputSchema: {
     type: "object",
     properties: {
@@ -145,6 +146,79 @@ export const battles_decks = {
       [...params, DUEL_TYPES],
     );
     const excluded = { duels: left.duels, no_deck: left.no_deck };
+    // A duel's rounds (feedback #363): the duel has no single deck, so it
+    // stays outside the rows, but each round is a game on one deck, won or
+    // lost by that round's crowns. Listed beside the rows, so a player's
+    // war decks include the one they play only in duels (a Clan Wars deck
+    // carries no tower troop, so its deck_hash is the eight cards').
+    const duelDecks = [];
+    if (left.duels > 0) {
+      const { rows: rounds } = await ctx.db.query(
+        `select bpc.battle_id, bpc.round, b.battle_time,
+                array_agg(bpc.card_id || ':' || bpc.form) as pairs,
+                max(mine.crowns) as mine, max(theirs.crowns) as theirs
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+           join battle_participant_card bpc
+             on bpc.battle_id = bp.battle_id and bpc.player_tag = bp.player_tag
+            and bpc.round > 0
+           left join battle_participant_round mine
+             on mine.battle_id = bp.battle_id and mine.player_tag = bp.player_tag
+            and mine.round = bpc.round
+           left join battle_participant op
+             on op.battle_id = bp.battle_id and op.side <> bp.side
+           left join battle_participant_round theirs
+             on theirs.battle_id = op.battle_id and theirs.player_tag = op.player_tag
+            and theirs.round = bpc.round
+          where ${where
+            .filter((w) => w !== "bp.deck_hash is not null")
+            .join(" and ")} and b.type = any($${params.length + 1})
+          group by bpc.battle_id, bpc.round, b.battle_time`,
+        [...params, DUEL_TYPES],
+      );
+      const byKey = new Map();
+      for (const r of rounds) {
+        if (r.pairs?.length !== 8) continue;
+        const key = [...r.pairs].sort().join(",");
+        const d = byKey.get(key) ?? {
+          pairs: key.split(",").map((p) => {
+            const [id, form] = p.split(":").map(Number);
+            return { id, form };
+          }),
+          rounds: 0,
+          wins: 0,
+          losses: 0,
+          first: r.battle_time,
+          last: r.battle_time,
+        };
+        d.rounds += 1;
+        if (r.mine !== null && r.theirs !== null && r.mine !== r.theirs)
+          d[r.mine > r.theirs ? "wins" : "losses"] += 1;
+        if (r.battle_time < d.first) d.first = r.battle_time;
+        if (r.battle_time > d.last) d.last = r.battle_time;
+        byKey.set(key, d);
+      }
+      const named = await cardSetIdentities(
+        ctx.db,
+        new Map([...byKey].map(([k, d]) => [k, d.pairs])),
+      );
+      for (const [key, d] of [...byKey].sort(
+        (a, z) => z[1].rounds - a[1].rounds,
+      ))
+        duelDecks.push({
+          deck_hash: deckHash({
+            cards: d.pairs.map(({ id, form }) => ({
+              id,
+              ...(form ? { evolutionLevel: form } : {}),
+            })),
+          }),
+          ...(named.get(key) ?? { cards: [] }),
+          rounds: d.rounds,
+          wins: d.wins,
+          losses: d.losses,
+          first_used: d.first.toISOString(),
+          last_used: d.last.toISOString(),
+        });
+    }
     const excludedNote =
       excluded.duels + excluded.no_deck > 0
         ? `${[
@@ -241,6 +315,7 @@ export const battles_decks = {
       excluded,
       comparable: guard === null,
       decks,
+      duel_decks: duelDecks.slice(0, 20),
       notes: notes(
         guard,
         ARCHETYPE_NOTE,
@@ -249,7 +324,10 @@ export const battles_decks = {
         win.source === "unbounded"
           ? "No window was given, so this is the whole recorded history for the player; pass from/to for a period."
           : null,
-        "Deck identity includes each card's form and the tower troop, so two decks with the same eight names can be different decks.",
+        "Deck identity includes each card's form and the tower troop, so two decks with the same eight names can be different decks (a Clan Wars battle carries no tower troop, so a deck played in war and on Trophy Road is two rows).",
+        duelDecks.length
+          ? "duel_decks are the decks played in duel rounds, each round a game won or lost by its own crowns; a duel counts once in battles_performance and is outside the rows and shares above."
+          : null,
         "mean_level_gap is this deck's average card level minus the opposing side's over level_gap_battles (positive = you outlevelled them); modes splits the row by mode group, and win rates across rows are comparable only when comparable is true.",
       ),
       docs: CONTROLS_DOCS,
