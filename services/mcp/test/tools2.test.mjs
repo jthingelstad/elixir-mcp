@@ -243,15 +243,53 @@ test("battles_cards: mine and opponent perspectives, each duel round a game (9.1
   assert.match(opp.body.notes.join(" "), /OPPONENT/);
 });
 
-test("battles_decks: grouped by deck_hash with samples", async () => {
+test("battles_decks: a light list by deck_hash, one page at a time, and one deck in full (9.12.0)", async () => {
   const { body, isError } = await call("battles_decks", {});
   assert.equal(isError, false);
   assert.ok(body.decks.length > 0);
   const d = body.decks[0];
   assert.ok(d.deck_hash);
-  assert.ok(d.cards.length > 0, "sample deck rides along");
+  assert.equal(d.card_names.split(", ").length, 8, "the cards in one line");
+  assert.equal(d.cards, undefined, "no card objects in the list");
+  assert.equal(d.archetype, undefined);
   assert.ok(d.battles >= d.wins + d.losses + d.draws);
   assert.ok(d.first_used <= d.last_used);
+  assert.equal(body.total_decks >= body.decks.length, true);
+
+  // Pages: every deck once, in the list's order, and the last says so.
+  const pages = [];
+  for (let offset = 0; offset !== null;) {
+    const page = await call("battles_decks", { limit: 2, offset });
+    assert.equal(page.body.total_decks, body.total_decks);
+    pages.push(...page.body.decks.map((x) => x.deck_hash));
+    offset = page.body.next_offset;
+    assert.ok(pages.length <= body.total_decks, "paging ends");
+  }
+  const whole = await call("battles_decks", { limit: 100 });
+  assert.deepEqual(
+    pages,
+    whole.body.decks.map((x) => x.deck_hash),
+  );
+
+  // One deck: the same row, its objects in full, the window's totals.
+  const one = await call("battles_decks", { deck_hash: d.deck_hash });
+  assert.equal(one.body.decks.length, 1);
+  const full = one.body.decks[0];
+  assert.equal(full.battles, d.battles);
+  assert.equal(full.share_of_battles, d.share_of_battles);
+  assert.equal(full.cards.length, 8);
+  assert.equal(typeof full.archetype.label, "string");
+  assert.equal(full.card_names, d.card_names);
+  assert.equal(one.body.total_battles_in_window, body.total_battles_in_window);
+
+  // compact keeps the comparison and drops the detail.
+  const compact = await call("battles_decks", { verbosity: "compact" });
+  assert.equal(compact.body.decks[0].modes, undefined);
+  assert.equal(compact.body.decks[0].level_gap_battles, undefined);
+  assert.equal(
+    compact.body.decks[0].mean_level_gap,
+    body.decks[0].mean_level_gap,
+  );
 });
 
 test("players_collection: API-shaped passthrough of the latest payload", async () => {
@@ -2259,7 +2297,9 @@ test("a window on bp.battle_time answers what a window on b.battle_time answered
 
 test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", async () => {
   const decks = await call("battles_decks", {});
-  const anchorId = decks.body.decks[0].cards[0].id;
+  const anchorId = (
+    await call("battles_decks", { deck_hash: decks.body.decks[0].deck_hash })
+  ).body.decks[0].cards[0].id;
   const { body, isError } = await call("cards_synergy", {
     segment: "corpus",
     card_id: anchorId,

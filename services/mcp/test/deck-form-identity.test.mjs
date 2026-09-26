@@ -127,9 +127,16 @@ test("battles_decks distinguishes the forms visibly, not only by hash", async ()
   assert.ok(res.decks.every((d) => d.battles === 3));
 
   const byHash = Object.fromEntries(res.decks.map((d) => [d.deck_hash, d]));
-  const base = byHash[hashFor(0)];
-  const evo = byHash[hashFor(1)];
-  assert.ok(base && evo, "both hashes present");
+  assert.ok(byHash[hashFor(0)] && byHash[hashFor(1)], "both hashes present");
+  // The list says the form in each row's card names (9.12.0)...
+  assert.match(byHash[hashFor(1)].card_names, /\bEvo Witch\b/);
+  assert.doesNotMatch(byHash[hashFor(0)].card_names, /Evo /);
+  // ...and one deck asked for by its hash carries the card objects.
+  const one = async (h) =>
+    (await call("battles_decks", { player_tag: TAG, deck_hash: h })).decks;
+  const [base] = await one(hashFor(0));
+  const [evo] = await one(hashFor(1));
+  assert.ok(base && evo, "each deck answers alone");
 
   const witch = (d) => d.cards.find((c) => c.id === 26000007);
   assert.equal(witch(base).form, "base", "base form says so (5.0.0)");
@@ -614,10 +621,16 @@ test("6.5.0: every deck object carries its archetype once the vocabulary is impo
       `update card set elixir_cost = $2 where card_id = $1`,
       [id, cost],
     );
-  // Before the import: named by cost, version null.
+  // Before the import: named by cost, version null. The archetype
+  // object rides the one deck asked for by its hash (9.12.0).
+  const listed = await call("battles_decks", {
+    player_tag: TAG,
+    from: "2026-09-01",
+  });
   const before = await call("battles_decks", {
     player_tag: TAG,
     from: "2026-09-01",
+    deck_hash: listed.decks[0].deck_hash,
   });
   assert.equal(before.decks[0].archetype.win_conditions.length, 0);
   assert.equal(before.decks[0].archetype.roles_version, null);
@@ -641,7 +654,15 @@ test("6.5.0: every deck object carries its archetype once the vocabulary is impo
       player_tag: TAG,
       from: "2026-09-01",
     });
-    for (const d of res.decks) {
+    assert.ok(res.decks.every((d) => d.archetype_label === "Hog Rider cycle"));
+    for (const listed of res.decks) {
+      const [d] = (
+        await callFresh("battles_decks", {
+          player_tag: TAG,
+          from: "2026-09-01",
+          deck_hash: listed.deck_hash,
+        })
+      ).decks;
       assert.equal(d.archetype.family, "cycle");
       assert.equal(d.archetype.label, "Hog Rider cycle");
       assert.deepEqual(d.archetype.win_conditions, [

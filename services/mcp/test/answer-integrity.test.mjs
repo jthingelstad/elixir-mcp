@@ -232,7 +232,7 @@ test("a one-size tool's oversized page never advises compact (feedback #151)", a
       id: 1,
       method: "tools/call",
       params: {
-        name: "battles_decks",
+        name: "battles_opponents",
         arguments: { limit: 40, verbosity: "compact" },
       },
     },
@@ -242,7 +242,8 @@ test("a one-size tool's oversized page never advises compact (feedback #151)", a
       invokeTool: async () => ({
         body: {
           applied: { window: {}, limit: 40, verbosity: "full" },
-          decks: "x".repeat(96000),
+          // battles_decks drew #151; it has a compact size since 9.12.0.
+          opponents: "x".repeat(96000),
           meta: {
             request_id: "00000000-0000-0000-0000-000000000003",
             as_of: new Date().toISOString(),

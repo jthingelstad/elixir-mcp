@@ -273,6 +273,12 @@ whatever their quality; that is the default shape of the data for anyone
 who plays both, not an edge case. Every aggregate that serves a win rate
 therefore serves the controls beside it:
 
+- `battles_decks` answers a page at a time (9.12.0): each row names its
+  cards in one line (`card_names`, forms prefixed, `tower_troop_name`
+  beside it) with its `archetype_label`, `total_decks` counts the whole
+  list and `next_offset` starts the next page (null on the last). A row's
+  `deck_hash` passed back returns that one deck with its cards, tower troop
+  and archetype in full, its share still over the window's battles.
 - `battles_decks` rows carry `modes` (battles, wins and losses per
   [mode group](#mode-groups)), `dominant_mode` with its share, and
   `mean_level_gap`: the deck's average card level minus the opposing
@@ -424,8 +430,8 @@ A card's **form** is what the API encodes as the bit field `evolutionLevel`
 (`1` Evolution, `2` Hero, `3` both, absent or `0` the base card). Every card
 object the tools serve spells it as one word, **`form: "base" | "evolution"
 | "hero"`** (5.0.0; the integer `evolution` key is retired): on a played
-deck's cards in `battles_query`, `battles_decks`, `battles_meta_decks` and
-`players_summary`, on `battles_cards` and `battles_meta_cards` rows, and
+deck's cards in `battles_query`, `battles_decks` (one deck by `deck_hash`),
+`battles_meta_decks` and `players_summary`, on `battles_cards` and `battles_meta_cards` rows, and
 on `cards_synergy` partners. It is a form discriminator, never a level or a
 progress counter, and forms are never merged: the card readers carry one
 row per form. On a collection, `maxEvolutionLevel` says which forms exist
@@ -443,8 +449,8 @@ lookups rather than scans of every deck. `battles_query` takes `with_card`
 `battles_meta_cards` and `cards_synergy` count from the same rows, and a
 deck's cards in `battles_decks` and `battles_meta_decks` are the identity's
 own (ordered by card id, named from the catalog), not one player's copy.
-Card filters match the deck's cards, not the tower troop, and not the
-separate rounds of a duel. An empty `cards` list - some event formats
+Card filters match the deck's cards, not the tower troop; a duel matches on
+any one round's deck (9.8.0). An empty `cards` list - some event formats
 disclose no deck - has no `deck_hash`.
 
 Levels are served on the **in-game 1 to 16 scale** everywhere in the recorded

@@ -100,6 +100,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **`min_players` counts repeat players** — a player counts toward it after two or more battles on the deck (`repeat_players`); `players` stays the distinct count, and the carried-row note backstops a deck one player still dominates (Gym #348; 8.0.0). (2026-09-24; Jamie)
 - **An incomplete reset board is re-read, not the read moved** — the daily Path of Legends read stays at 10:00Z; a full board whose cutoff fell 40+ from the day before is re-read once about 30 minutes later and replaces that game day's board (Gym #342). (2026-09-24; Jamie)
 - **A closed season's meta rollup is rebuilt for three days after the close** — late battles arrive while they are still in battle logs; after that the season is final. (2026-09-24; Jamie)
+- **`battles_decks` is a light list with one deck in full** — rows name their cards in one line (`card_names`, `archetype_label`), paged by `offset`/`next_offset`; `deck_hash` returns one deck with its card objects, tower troop and archetype. The list stays under the result cap however long the history. (2026-09-26, 9.12.0; Jamie)
 - **A duel counts as its rounds** — each round of a Clan Wars duel is one game with its own deck (tower-less `deck_hash`) and its own result by its crowns, in the season rollups and every meta, card and war-deck count; rows carry `duel_rounds`; `battles_decks` alone keeps battles with one deck and lists round decks apart. (2026-09-26, 9.11.0; Jamie, feedback #363)
 
 ## Recording, collectors and rate budget

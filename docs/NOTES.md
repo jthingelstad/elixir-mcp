@@ -2876,3 +2876,17 @@ Verdicts, each re-run alone:
 
 Open: round order as deck slot (#363 item 4) is unverified; nothing names
 "deck 1-4".
+
+## 2026-09-26 — `battles_decks` pages and lightens (9.12.0)
+
+Jamie agreed to the recommendation for the deck list near the cap (King
+Thing's whole history at limit 30 was about 47,000 characters): light rows
+(`card_names`, `archetype_label`, `tower_troop_name`) with the card objects,
+tower troop and archetype on the single-deck read (`deck_hash`), and paging
+(`offset`, `total_decks`, `next_offset`). The list was also cut at the 100
+most-played decks before sorting, so `sort: win_rate` ranked only those; it
+now sorts and pages every deck. `duel_decks` reads the rounds' own
+`deck_hash` and result (0182) instead of re-hashing the round cards.
+`verbosity: compact` drops `modes` and the level detail; `battles_decks` is
+no longer a one-size tool, so the one-size tests use `battles_cards` and
+`battles_opponents`.

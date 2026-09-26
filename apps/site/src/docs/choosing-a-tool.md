@@ -22,7 +22,7 @@ conventions that hold everywhere.
 |---|---|
 | How am I doing? Start here. | `players_summary` |
 | Over a window, or since X compared with before | `battles_performance` (`from`/`to`, `before_after`, `group_by: "week"`; pass `mode`, or read the per-mode-group split, `modes`, it returns without one) |
-| What decks do I play, and how do they do? | `battles_decks`, then `battles_query({ deck_hash })` to drill |
+| What decks do I play, and how do they do? | `battles_decks` (a page of decks, each one line of card names; `next_offset` for more), `battles_decks({ deck_hash })` for one deck's cards in full, `battles_query({ deck_hash })` for its battles |
 | Show me the battles themselves; the workhorse | `battles_query` (filters, cursor, `verbosity: "compact"`) |
 | What day is it in the game? Season, war day, when it rolls | `game_clock` |
 | My clan today: standings, who still has decks | `war_current` (`decks_today` can guide a nudge only while `race_finished_at` is null) |

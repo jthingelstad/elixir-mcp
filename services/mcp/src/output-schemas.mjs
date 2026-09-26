@@ -3156,6 +3156,16 @@ export const OUTPUT_SCHEMAS = {
         description:
           "Head-to-head battles with a deck in the window, the denominator of share_of_battles; duels have no single deck and sit in excluded (4.1.0).",
       },
+      total_decks: {
+        ...COUNT,
+        description:
+          "9.12.0: decks in the sorted list after min_battles and archetype, over every page.",
+      },
+      next_offset: {
+        type: ["integer", "null"],
+        description:
+          "9.12.0: the offset of the next page; null on the last page.",
+      },
       excluded: {
         type: "object",
         description:
@@ -3174,7 +3184,19 @@ export const OUTPUT_SCHEMAS = {
           type: "object",
           properties: {
             deck_hash: { type: "string" },
-            cards: { type: "array", items: DECK_CARD },
+            card_names: {
+              type: "string",
+              description:
+                "9.12.0: the eight cards as one line of names, forms prefixed (Evo, Hero).",
+            },
+            archetype_label: { type: ["string", "null"] },
+            tower_troop_name: { type: ["string", "null"] },
+            cards: {
+              type: "array",
+              items: DECK_CARD,
+              description:
+                "Only on the one deck asked for by deck_hash (9.12.0), with archetype and tower_troop.",
+            },
             archetype: ARCHETYPE,
             tower_troop: { type: "object" },
             ...RECORD,
@@ -3191,10 +3213,9 @@ export const OUTPUT_SCHEMAS = {
           },
           required: [
             "deck_hash",
-            "cards",
+            "card_names",
             "battles",
             "win_rate",
-            "modes",
             "mean_level_gap",
           ],
         },

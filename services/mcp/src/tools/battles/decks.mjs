@@ -1,4 +1,4 @@
-import { cardDisplayName, deckHash, modeGroupSql } from "@elixir-mcp/contracts";
+import { cardDisplayName, modeGroupSql } from "@elixir-mcp/contracts";
 import {
   ARCHETYPE_ARG,
   ARCHETYPE_NOTE,
@@ -8,10 +8,10 @@ import {
   ON_BEHALF_OF_SCHEMA,
   SEASON_ARG_SCHEMA,
   TAG_SCHEMA,
+  VERBOSITY,
   WINDOW_ARGS,
   appliedBlock,
   buildMeta,
-  cardSetIdentities,
   deckIdentities,
   matchesArchetype,
   notes,
@@ -31,9 +31,19 @@ import { CONTROLS_DOCS, modeClause, ownBattlesClause } from "./common.mjs";
 /** Decks from duel rounds listed beside the rows, most rounds first. */
 const DUEL_DECKS = 8;
 
+/** A deck in the list (9.12.0): its eight cards as one line of names,
+ *  forms prefixed, and its archetype label. A whole history of rows with
+ *  eight card objects and the archetype object each reached the 48,000
+ *  character result cap at 30 rows; the objects are one call away, by
+ *  deck_hash. */
+const cardNames = (identity) =>
+  (identity?.cards ?? [])
+    .map((c) => cardDisplayName({ name: c.name, form: c.form }))
+    .join(", ");
+
 export const battles_decks = {
   description:
-    "Battles grouped by exact deck identity (deck_hash): per-deck record, win rate, share of battles, first/last used, and the controls that make a win rate readable: modes, dominant_mode and mean_level_gap against the opposing side (comparable is false when rows mix modes or level gaps, with a note). A duel has no single deck: it sits under excluded, and duel_decks lists each deck its rounds were played with, by round record. Unbounded by default; pass mode to rank within one mode, a deck_hash to battles_query to drill in.",
+    "Battles grouped by exact deck identity (deck_hash), one page at a time (offset, next_offset): each row's cards as one line of names, archetype label, record, win rate, share of battles and the controls that make a win rate readable (modes, dominant_mode, mean_level_gap; comparable says whether rows can be ranked). deck_hash returns that one deck with its cards, tower troop and archetype in full. A duel sits under excluded; duel_decks lists its round decks. Unbounded window by default.",
   inputSchema: {
     type: "object",
     properties: {
@@ -55,7 +65,23 @@ export const battles_decks = {
         description: "Drop decks with fewer battles than this.",
       },
       limit: { type: "integer", minimum: 1, maximum: 100, default: 40 },
+      offset: {
+        type: "integer",
+        minimum: 0,
+        default: 0,
+        description:
+          "Rows of the sorted list to skip: the next page starts at the answer's next_offset (null on the last page).",
+      },
+      deck_hash: {
+        type: "string",
+        pattern: "^[0-9a-f]{64}$",
+        description:
+          "One deck, from a row's deck_hash: its row with the cards (id, name, form), tower troop and archetype in full, and its duel rounds in duel_decks when it was played in duels. The totals stay the window's.",
+      },
       archetype: ARCHETYPE_ARG,
+      verbosity: VERBOSITY(
+        "rows keep the record, win rate, share, dominant_mode and mean_level_gap; modes and the level detail are dropped.",
+      ),
     },
     additionalProperties: false,
   },
@@ -84,6 +110,10 @@ export const battles_decks = {
     if (win.to) add("bp.battle_time < ?", win.to);
     ownBattlesClause(add);
     modeClause(args, add);
+    // One deck (9.12.0): its row, in full; the window's totals stay the
+    // window's, so its share of battles reads as in the list.
+    const one = args.deck_hash ?? null;
+    const compact = args.verbosity === "compact";
     // The control beside the win rate (feedback #54, 3.13.0): the mean
     // level gap against the opposing side (deck_avg_level is stamped at
     // ingest) and the mode split, so a war-only deck's 79% and a
@@ -104,11 +134,10 @@ export const battles_decks = {
              -- The other side's level, stamped at ingest (0156).
              select case when bp.deck_avg_level is not null
                          then bp.opp_deck_avg_level end as lvl) opp
-         where ${where.join(" and ")}
+         where ${[...where, ...(one ? [`bp.deck_hash = $${params.length + 1}`] : [])].join(" and ")}
          group by bp.deck_hash
-         order by count(*) desc
-         limit 100`,
-      params,
+         order by count(*) desc, bp.deck_hash`,
+      one ? [...params, args.deck_hash] : params,
     );
     const { rows: byType } = await ctx.db.query(
       // The mode group is event-aware (Gym #130): by type alone, the
@@ -127,13 +156,8 @@ export const battles_decks = {
       if (!typesByDeck.has(r.deck_hash)) typesByDeck.set(r.deck_hash, []);
       typesByDeck.get(r.deck_hash).push(r);
     }
-    const identities = await deckIdentities(
-      ctx.db,
-      rows.map((r) => r.deck_hash),
-    );
     // The denominator of share_of_battles is every deck-bearing battle
-    // in the window (the type split above has no row cap; the deck
-    // query keeps 100), and what has no deck is itemized beside it
+    // in the window, and what has no deck is itemized beside it
     // (feedback #63): a duel has no single deck, so it is outside
     // these rows, and battles_performance.battles counts it.
     const totalBattles = byType.reduce((n, r) => n + r.battles, 0);
@@ -150,81 +174,46 @@ export const battles_decks = {
     );
     const excluded = { duels: left.duels, no_deck: left.no_deck };
     // A duel's rounds (feedback #363): the duel has no single deck, so it
-    // stays outside the rows, but each round is a game on one deck, won or
-    // lost by that round's crowns. Listed beside the rows, so a player's
-    // war decks include the one they play only in duels (a Clan Wars deck
-    // carries no tower troop, so its deck_hash is the eight cards').
+    // stays outside the rows, but each round is a game on one deck, with
+    // its own deck_hash and result (0182; a Clan Wars deck carries no
+    // tower troop, so its deck_hash is the eight cards'). Listed beside
+    // the rows, so a player's war decks include the one they play only in
+    // duels.
     const duelDecks = [];
     if (left.duels > 0) {
+      const base = where.filter((w) => w !== "bp.deck_hash is not null");
+      const extra = [...params, DUEL_TYPES];
+      if (one) extra.push(one);
       const { rows: rounds } = await ctx.db.query(
-        `select bpc.battle_id, bpc.round, b.battle_time,
-                array_agg(bpc.card_id || ':' || bpc.form) as pairs,
-                max(mine.crowns) as mine, max(theirs.crowns) as theirs
+        `select r.deck_hash, count(*)::int as rounds,
+                count(*) filter (where r.outcome = 'win')::int as wins,
+                count(*) filter (where r.outcome = 'loss')::int as losses,
+                min(bp.battle_time) as first_used, max(bp.battle_time) as last_used
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
-           join battle_participant_card bpc
-             on bpc.battle_id = bp.battle_id and bpc.player_tag = bp.player_tag
-            and bpc.round > 0
-           left join battle_participant_round mine
-             on mine.battle_id = bp.battle_id and mine.player_tag = bp.player_tag
-            and mine.round = bpc.round
-           left join battle_participant op
-             on op.battle_id = bp.battle_id and op.side <> bp.side
-           left join battle_participant_round theirs
-             on theirs.battle_id = op.battle_id and theirs.player_tag = op.player_tag
-            and theirs.round = bpc.round
-          where ${where
-            .filter((w) => w !== "bp.deck_hash is not null")
-            .join(" and ")} and b.type = any($${params.length + 1})
-          group by bpc.battle_id, bpc.round, b.battle_time`,
-        [...params, DUEL_TYPES],
+           join battle_participant_round r
+             on r.battle_id = bp.battle_id and r.player_tag = bp.player_tag
+          where ${base.join(" and ")} and b.type = any($${params.length + 1})
+            and r.deck_hash is not null
+            ${one ? `and r.deck_hash = $${params.length + 2}` : ""}
+          group by r.deck_hash
+          order by count(*) desc, r.deck_hash
+          limit ${DUEL_DECKS}`,
+        extra,
       );
-      const byKey = new Map();
-      for (const r of rounds) {
-        if (r.pairs?.length !== 8) continue;
-        const key = [...r.pairs].sort().join(",");
-        const d = byKey.get(key) ?? {
-          pairs: key.split(",").map((p) => {
-            const [id, form] = p.split(":").map(Number);
-            return { id, form };
-          }),
-          rounds: 0,
-          wins: 0,
-          losses: 0,
-          first: r.battle_time,
-          last: r.battle_time,
-        };
-        d.rounds += 1;
-        if (r.mine !== null && r.theirs !== null && r.mine !== r.theirs)
-          d[r.mine > r.theirs ? "wins" : "losses"] += 1;
-        if (r.battle_time < d.first) d.first = r.battle_time;
-        if (r.battle_time > d.last) d.last = r.battle_time;
-        byKey.set(key, d);
-      }
-      const named = await cardSetIdentities(
+      const named = await deckIdentities(
         ctx.db,
-        new Map([...byKey].map(([k, d]) => [k, d.pairs])),
+        rounds.map((r) => r.deck_hash),
       );
-      // Small beside the rows (a whole history of duels crossed the result
-      // cap at 20 with full archetype objects): the most played, labelled.
-      for (const [key, d] of [...byKey]
-        .sort((a, z) => z[1].rounds - a[1].rounds)
-        .slice(0, DUEL_DECKS))
+      for (const r of rounds)
         duelDecks.push({
-          deck_hash: deckHash({
-            cards: d.pairs.map(({ id, form }) => ({
-              id,
-              ...(form ? { evolutionLevel: form } : {}),
-            })),
-          }),
-          card_names: (named.get(key)?.cards ?? [])
-            .map((c) => cardDisplayName({ name: c.name, form: c.form }))
-            .join(", "),
-          archetype_label: named.get(key)?.archetype?.label ?? null,
-          rounds: d.rounds,
-          wins: d.wins,
-          losses: d.losses,
-          first_used: d.first.toISOString(),
-          last_used: d.last.toISOString(),
+          deck_hash: r.deck_hash,
+          card_names: cardNames(named.get(r.deck_hash)),
+          archetype_label: named.get(r.deck_hash)?.archetype?.label ?? null,
+          rounds: r.rounds,
+          wins: r.wins,
+          losses: r.losses,
+          first_used: r.first_used.toISOString(),
+          last_used: r.last_used.toISOString(),
         });
     }
     const excludedNote =
@@ -252,23 +241,45 @@ export const battles_decks = {
       args.archetype === undefined
         ? null
         : await resolveArchetypeArg(ctx.db, args.archetype);
-    if (archetype)
+    // The identities: every row's when the archetype filters, else the
+    // page's only (a whole history is hundreds of decks).
+    const identities = new Map();
+    if (archetype) {
+      for (const [h, id] of await deckIdentities(
+        ctx.db,
+        shaped.map((r) => r.deck_hash),
+      ))
+        identities.set(h, id);
       shaped = shaped.filter((r) =>
         matchesArchetype(identities.get(r.deck_hash)?.archetype, archetype),
       );
+    }
     const wr = (r) =>
       r.wins + r.losses > 0 ? r.wins / (r.wins + r.losses) : -1;
     requireEnum(args.sort, ["battles", "wins", "win_rate"], "sort");
     if (args.sort === "wins") shaped.sort((a, z) => z.wins - a.wins);
     else if (args.sort === "win_rate") shaped.sort((a, z) => wr(z) - wr(a));
     const limit = Math.min(Math.max(Number(args.limit ?? 40), 1), 100);
-    shaped = shaped.slice(0, limit);
+    const offset = Math.max(Number(args.offset ?? 0), 0);
+    const totalDecks = shaped.length;
+    shaped = shaped.slice(offset, offset + limit);
+    const nextOffset = offset + limit < totalDecks ? offset + limit : null;
+    const missing = shaped
+      .map((r) => r.deck_hash)
+      .filter((h) => !identities.has(h));
+    for (const [h, id] of await deckIdentities(ctx.db, missing))
+      identities.set(h, id);
     const decks = shaped.map((r) => {
       const modes = modeSplit(typesByDeck.get(r.deck_hash) ?? []);
       const dominant = dominantMode(modes);
+      const identity = identities.get(r.deck_hash);
       return {
         deck_hash: r.deck_hash,
-        ...(identities.get(r.deck_hash) ?? { cards: [] }),
+        card_names: cardNames(identity),
+        archetype_label: identity?.archetype?.label ?? null,
+        tower_troop_name: identity?.tower_troop?.name ?? null,
+        // The one deck asked for carries its objects in full.
+        ...(one ? (identity ?? { cards: [] }) : {}),
         battles: r.battles,
         wins: r.wins,
         losses: r.losses,
@@ -281,7 +292,7 @@ export const battles_decks = {
           totalBattles > 0
             ? Number((r.battles / totalBattles).toFixed(3))
             : null,
-        modes,
+        ...(compact ? {} : { modes }),
         ...(dominant
           ? {
               dominant_mode: dominant.mode,
@@ -290,17 +301,28 @@ export const battles_decks = {
           : {}),
         mean_level_gap:
           r.mean_level_gap === null ? null : Number(r.mean_level_gap),
-        own_mean_level:
-          r.own_mean_level === null ? null : Number(r.own_mean_level),
-        opponent_mean_level:
-          r.opponent_mean_level === null ? null : Number(r.opponent_mean_level),
-        level_gap_battles: r.level_gap_battles,
+        ...(compact
+          ? {}
+          : {
+              own_mean_level:
+                r.own_mean_level === null ? null : Number(r.own_mean_level),
+              opponent_mean_level:
+                r.opponent_mean_level === null
+                  ? null
+                  : Number(r.opponent_mean_level),
+              level_gap_battles: r.level_gap_battles,
+            }),
         first_used: r.first_used.toISOString(),
         last_used: r.last_used.toISOString(),
       };
     });
+    // Judged on each row's modes whether or not compact serves them.
     const guard = comparabilityNote(
-      decks.map((d) => ({ ...d, label: shortHash(d.deck_hash) })),
+      decks.map((d) => ({
+        ...d,
+        modes: modeSplit(typesByDeck.get(d.deck_hash) ?? []),
+        label: shortHash(d.deck_hash),
+      })),
       { what: "deck" },
     );
     const {
@@ -317,9 +339,14 @@ export const battles_decks = {
         sort: args.sort ?? "battles",
         min_battles: args.min_battles,
         archetype: archetype ?? undefined,
+        deck_hash: one ?? undefined,
         limit,
+        offset,
+        verbosity: compact ? "compact" : "full",
       }),
       total_battles_in_window: totalBattles,
+      total_decks: totalDecks,
+      next_offset: nextOffset,
       excluded,
       comparable: guard === null,
       decks,
@@ -332,7 +359,13 @@ export const battles_decks = {
         win.source === "unbounded"
           ? "No window was given, so this is the whole recorded history for the player; pass from/to for a period."
           : null,
-        "Deck identity includes each card's form and the tower troop, so two decks with the same eight names can be different decks (a Clan Wars battle carries no tower troop, so a deck played in war and on Trophy Road is two rows).",
+        "Deck identity includes each card's form and the tower troop, so two decks with the same eight names can be different decks (a Clan Wars battle carries no tower troop, so a deck played in war and on Trophy Road is two rows; tower_troop_name tells them apart).",
+        nextOffset === null
+          ? null
+          : `Rows ${offset + 1}-${offset + decks.length} of ${totalDecks} decks; the next page starts at offset ${nextOffset}.`,
+        one
+          ? null
+          : "card_names lists each row's cards, forms prefixed; pass a row's deck_hash for its cards, tower troop and archetype in full.",
         duelDecks.length
           ? "duel_decks are the decks played in duel rounds, each round a game won or lost by its own crowns; a duel counts once in battles_performance and is outside the rows and shares above."
           : null,

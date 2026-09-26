@@ -13,8 +13,9 @@ lede: "Royal Hogs bridge spam, Hog cycle, Log Bait - the names players use, on e
 
 Players talk about decks by name, and Elixir speaks the language in both
 directions. Every deck object it serves — on `battles_query`,
-`battles_decks`, `battles_meta_decks`, `cards_card` and `players_summary` —
-carries an `archetype`: the deck's **family** and **win condition(s)**, a
+`battles_decks` (the one deck asked for by `deck_hash`; its list rows
+carry the label alone, `archetype_label`), `battles_meta_decks`,
+`cards_card` and `players_summary` — carries an `archetype`: the deck's **family** and **win condition(s)**, a
 descriptive **label** composed from them, and the average elixir the deck
 runs at. And a name a person uses — a family, a label, or a community
 name like *LavaLoon* — is understood by the deck readers' `archetype`

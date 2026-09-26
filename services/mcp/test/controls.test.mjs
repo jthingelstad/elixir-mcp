@@ -244,6 +244,24 @@ before(async () => {
     battle_time: "2026-07-25T12:00:00Z",
     rounds: [DECK_A, DECK_B],
   });
+  // Each round's own deck and result, as ingest writes them (0182); the
+  // opponent's rounds stay unseeded (the elixir case below reads that).
+  for (const [round, cards] of [
+    [1, DECK_A],
+    [2, DECK_B],
+  ])
+    await scratch.db.query(
+      `insert into battle_participant_round (battle_id, player_tag, round, crowns, deck_hash, outcome)
+       values ('ctrl-duel', $1, $2, 1, $3, 'loss')`,
+      [
+        F,
+        round,
+        await seedDeck(scratch.db, {
+          battle_time: "2026-07-25T12:00:00Z",
+          cards,
+        }),
+      ],
+    );
 
   // G's three ladder months at F's gap (+0.70, a populated bin): June in
   // Magic Academy at 11,972, July in Magic Academy at 12,300 (+328, a
@@ -307,7 +325,9 @@ test("battles_cards: per-row modes and gap, the window's pooled split, and the p
   assert.equal(res.comparable, false);
   assert.equal(res.modes_in_window.ladder.battles, 406);
   assert.equal(res.modes_in_window.ladder.mean_level_gap, 0.7);
-  assert.equal(res.modes_in_window.war.battles, 14);
+  // 14 war battles and the duel's two rounds, each a game (9.11.0); a
+  // round carries no level, so the gap is the battles'.
+  assert.equal(res.modes_in_window.war.battles, 16);
   assert.equal(res.modes_in_window.war.mean_level_gap, 1.62);
   assert.match(res.notes[0], /Pooled across modes with different matchmaking/);
   assert.match(res.notes[0], /ladder 406 \(mean level gap \+0\.70\)/);
@@ -723,9 +743,10 @@ test("players_summary: the window's mode split, the deck's modes and dominant mo
 });
 
 test("verbosity is accepted on every tool: a one-size tool answers in full and says so (2026-09-19)", async () => {
-  // battles_decks declares no verbosity; the instructions call it the
-  // one size control, so agents send it (four refusals in four days).
-  const res = await call("battles_decks", {
+  // battles_cards declares no verbosity; the instructions call it the
+  // one size control, so agents send it (four refusals in four days; the
+  // tool that drew them, battles_decks, has a compact size since 9.12.0).
+  const res = await call("battles_cards", {
     player_tag: F,
     from: "2026-09-15",
     to: "2026-09-18",
@@ -734,7 +755,7 @@ test("verbosity is accepted on every tool: a one-size tool answers in full and s
   assert.equal(res.applied.verbosity, "full");
   assert.ok(
     res.notes.some((l) =>
-      /battles_decks has one size: verbosity 'compact' was accepted/.test(l),
+      /battles_cards has one size: verbosity 'compact' was accepted/.test(l),
     ),
     res.notes.join("\n"),
   );
