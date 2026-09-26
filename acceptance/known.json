@@ -16,5 +16,29 @@
     "reason": "As 342.1: the 09-24 reset board predates the 7.3.0 re-read, so rankings_timeline reads its gap without a note; the next rankings Gym round decides the note.",
     "until": "2026-10-08",
     "filed": "2026-09-25"
+  },
+  {
+    "case": "gym/303.1",
+    "reason": "A frozen window's presence moved when two members left the clan on 2026-09-25: the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Keep the Record True: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
+    "until": "2026-10-02",
+    "filed": "2026-09-25"
+  },
+  {
+    "case": "gym/303.2",
+    "reason": "A frozen window's presence moved when two members left the clan on 2026-09-25: the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Keep the Record True: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
+    "until": "2026-10-02",
+    "filed": "2026-09-25"
+  },
+  {
+    "case": "gym/303.3",
+    "reason": "A frozen window's presence moved when two members left the clan on 2026-09-25: the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Keep the Record True: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
+    "until": "2026-10-02",
+    "filed": "2026-09-25"
+  },
+  {
+    "case": "gym/304.2",
+    "reason": "A frozen window's presence moved when two members left the clan on 2026-09-25: the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Keep the Record True: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
+    "until": "2026-10-02",
+    "filed": "2026-09-25"
   }
 ]

@@ -2529,3 +2529,19 @@ data and agents can't, "assume all of that is fixable and changeable".
   and say "left" or "was removed".
 - Contract 9.3.0 (additive for agents); JSON API 2.5.0 (a departure's
   `visibility` reads `clan`). DECISIONS' attested-facts line amended.
+- **Shipped:** 6a5e2768, live by 02:26Z on 09-26 (9:26 PM CT on 09-25; a
+  timeline read at 02:26:36Z answered `contract_version` 9.3.0). No
+  migrations. `/tools.json` 9.3.0, `/docs/integration-api.json` 2.5.0,
+  `/updates/2026-09-25-contract-9-3-0/` 200, status healthy.
+- **Acceptance** (`--acceptance=elixir`): 191 cases, 4 failed, 9 skipped.
+  All four are one pre-existing behaviour, not 9.3.0 (which changed only
+  who sees attested facts; none exist yet): gym 303.1-303.3 and 304.2 are
+  "frozen" presence windows whose quiet/returned names and +N moved when
+  two members left POAP KINGS' roster that day. The clan entry still counts
+  them among "players who were members during the window" and lists their
+  joins, while its quiet and returned lists and the quiet_crossed/returned
+  items read today's roster. 303.3 failed again alone. Verdict: KNOWN until
+  2026-10-02, filed for a decision - should a past window's presence keep
+  members who have since left, as its header does? - owed to Keep the
+  Record True; then fix it or re-freeze the cases.
+
