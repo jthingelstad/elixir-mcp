@@ -12,6 +12,10 @@ import {
   phasedCheckIn,
 } from "../src/collector-door.mjs";
 import {
+  RELEASE_SIGNED_SQL,
+  signatureState,
+} from "../src/collector-signature.mjs";
+import {
   enqueueJob,
   ledgerStats,
   settleLeases,
@@ -727,4 +731,76 @@ test("per-token request budgets are enforced, isolated, and recoverable", async 
     before,
     "a refused caller charges nothing and creates no bucket",
   );
+});
+
+// 0184: the door stamps what the collector says it runs, on every call,
+// and the pages read a signed badge from it against every named release.
+test("every door call stamps the build; the badge reads it against named releases", async () => {
+  const SIGNED_NOW = sha256("collector v3.0.4 linux arm64");
+  const SIGNED_BEFORE = sha256("collector v3.0.3 linux arm64");
+  const FP = "SHA256:mktajl7kjMESYLyiY34rRu9hLTL6+EJS3I6aa/sGqeU";
+  await db.query(
+    `insert into collector_release_history (platform, version, sha256, url)
+     values ('go-linux-arm64', 'v3.0.4', $1, 'u'), ('go-linux-arm64', 'v3.0.3', $2, 'u'),
+            ('go-linux-amd64', 'v3.0.4', $3, 'u')`,
+    [SIGNED_NOW, SIGNED_BEFORE, sha256("collector v3.0.4 linux amd64")],
+  );
+  const call = (headers) =>
+    door.config(db, {
+      headers: { ...authed(TOKEN_LIVE).headers, ...headers },
+    });
+  const badge = async () => {
+    const { rows } = await db.query(
+      `select g.last_seen_sha, g.binary_sha256, g.release_key_fingerprints,
+              ${RELEASE_SIGNED_SQL}
+       from gateway g where name = 'live-own'`,
+    );
+    return { row: rows[0], state: signatureState(rows[0]) };
+  };
+
+  // An older client: no hash, no key. Unverified, never a blank badge.
+  assert.equal((await call({ "x-collector-version": "v3.0.1" })).status, 200);
+  assert.equal((await badge()).state, "unverified");
+
+  // The named build for its version, reported in capitals: signed.
+  await call({
+    "x-collector-version": "v3.0.4",
+    "x-collector-binary-sha256": SIGNED_NOW.toUpperCase(),
+    "x-collector-release-key": FP,
+  });
+  let b = await badge();
+  assert.equal(b.state, "signed");
+  assert.equal(b.row.binary_sha256, SIGNED_NOW);
+  assert.equal(b.row.release_key_fingerprints, FP);
+  assert.equal(b.row.last_seen_sha, "v3.0.4");
+
+  // One release behind still verifies: history, not the current row.
+  await call({
+    "x-collector-version": "v3.0.3",
+    "x-collector-binary-sha256": SIGNED_BEFORE,
+  });
+  assert.equal((await badge()).state, "signed");
+
+  // A named hash under another version's name is not that version.
+  await call({
+    "x-collector-version": "v3.0.3",
+    "x-collector-binary-sha256": SIGNED_NOW,
+  });
+  assert.equal((await badge()).state, "mismatch");
+
+  // A local build says dev whatever it hashes to.
+  await call({
+    "x-collector-version": "dev",
+    "x-collector-binary-sha256": sha256("my local build"),
+  });
+  assert.equal((await badge()).state, "dev_build");
+
+  // A client that stops sending the hash loses the badge; the version
+  // it last reported stays, as ingest's stamp does.
+  await call({});
+  b = await badge();
+  assert.equal(b.state, "dev_build", "version kept, and it was dev");
+  assert.equal(b.row.binary_sha256, null);
+  await call({ "x-collector-version": "v3.0.4" });
+  assert.equal((await badge()).state, "unverified");
 });

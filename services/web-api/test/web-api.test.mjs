@@ -1659,6 +1659,14 @@ test("public status: no auth, 60s cache, no confidential fields", async () => {
   // We keep addresses now (0046). A public surface must never carry one.
   assert.ok(!blob.includes("@"), "no email address on a public surface");
   assert.ok(!blob.includes("kitchen-mac"), "machine labels stay private");
+  // The signed badge is public; the hash behind it is not (0184).
+  for (const c of body.collectors)
+    assert.ok(
+      ["signed", "dev_build", "unverified", "mismatch"].includes(c.signature),
+      `${c.name}: ${c.signature}`,
+    );
+  assert.ok(!blob.includes("binary_sha256"), "no binary hash in public");
+  assert.ok(!blob.includes("release_key"), "no key report in public");
 });
 
 test("provision_token: one click mints, one look claims (zero-trust copy flow)", async () => {
@@ -1749,6 +1757,10 @@ test("admin provisioning says what it did: staged state and ownership on the adm
   assert.equal(row.provision_ready, true, "admin sees the token is staged");
   assert.equal(row.owner_is_me, false, "...and that someone else reveals it");
   assert.equal(row.channel, "bulk", "channel rides the admin list");
+  // A collector that has never called the door has sent no hash (0184).
+  assert.equal(row.signature, "unverified");
+  assert.equal(row.binary_sha256, null);
+  assert.ok(!("release_signed" in row), "the state, not the join");
 
   // The operator's one-time reveal clears the staged state.
   const revealed = parse(

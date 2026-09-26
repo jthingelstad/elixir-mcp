@@ -63,6 +63,10 @@ export async function collectorReleaseOp(databaseUrl, spec) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
+    // The current release per platform, and every one ever named (0184):
+    // the pages verify a collector's binary against the hash named for
+    // its version, so a collector one release behind still verifies.
+    await db.query("begin");
     await db.query(
       `insert into collector_release (platform, version, sha256, url)
        values ($1, $2, $3, $4)
@@ -71,7 +75,18 @@ export async function collectorReleaseOp(databaseUrl, spec) {
          url = excluded.url, updated_at = now()`,
       [platform, version, sha256, url],
     );
+    await db.query(
+      `insert into collector_release_history (platform, version, sha256, url)
+       values ($1, $2, $3, $4)
+       on conflict (platform, version) do update set
+         sha256 = excluded.sha256, url = excluded.url, named_at = now()`,
+      [platform, version, sha256, url],
+    );
+    await db.query("commit");
     return { ok: true, platform, version };
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
   } finally {
     await db.end();
   }

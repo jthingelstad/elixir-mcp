@@ -7,6 +7,7 @@ import {
 } from "../../../mcp/src/gateway-cards.mjs";
 
 import { UUID_RE, json } from "../http.mjs";
+import { RELEASE_SIGNED_SQL, signatureState } from "../collector-signature.mjs";
 
 // The two ways a pick is refused, worded for the form that shows them.
 const cardRefusal = (error) =>
@@ -132,6 +133,8 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
                 g.owner_account_id, g.static_ip, g.key_source,
                 g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
                 g.fetch_points, g.last_seen_sha,
+                g.binary_sha256, g.release_key_fingerprints,
+                ${RELEASE_SIGNED_SQL},
                 (g.provision_env is not null
                  and g.provision_expires_at > now()) as provision_ready,
                 (g.owner_account_id = $1) as owner_is_me,
@@ -174,7 +177,12 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
          order by g.enrolled_at`,
         [account.accountId],
       );
-      return json(200, { gateways: rows });
+      return json(200, {
+        gateways: rows.map(({ release_signed, ...g }) => ({
+          ...g,
+          signature: signatureState({ ...g, release_signed }),
+        })),
+      });
     },
 
     // The pickable cards and who holds which: the raise form and the

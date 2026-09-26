@@ -6,6 +6,7 @@ import {
 } from "../../../scheduler/src/plan.mjs";
 
 import { json } from "../http.mjs";
+import { RELEASE_SIGNED_SQL, signatureState } from "../collector-signature.mjs";
 import { DISCLAIMER, cardForms, cardType } from "@elixir-mcp/contracts";
 import { RECORDED_PLAYERS_SQL } from "../../../mcp/src/tools/shared.mjs";
 
@@ -28,7 +29,8 @@ export function publicRoutes({ deadLetters }) {
       const collectors = await q(
         `select coalesce(g.card_name, 'unnamed') as name, g.card_icon, g.status,
                 g.channel, g.last_success_at, g.last_heartbeat_at,
-                g.last_seen_sha,
+                g.last_seen_sha, g.binary_sha256,
+                ${RELEASE_SIGNED_SQL},
                 op.name as operator,
                 op.player_tag as operator_tag,
                 (select count(*)::int from api_receipt ar
@@ -271,6 +273,11 @@ export function publicRoutes({ deadLetters }) {
             // Public because the client is: a fleet that has not all
             // picked up a named release is visible at a glance.
             version: c.last_seen_sha ?? null,
+            // Whether that version is byte for byte a release the hub
+            // named (0184): signed, dev_build, unverified (the collector
+            // sent no hash) or mismatch. The state only; the hash is the
+            // operator's and Admin's.
+            signature: signatureState(c),
             // Which lane this collector drains. The live lane is what serves
             // an interactive live_fetch, so "who can answer a request right
             // now" is a different question from "who is capturing", and the

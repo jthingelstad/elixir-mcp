@@ -233,17 +233,53 @@ function versionRefusal(event) {
   };
 }
 
+/** What the collector says it runs, from its headers (collector
+ *  v3.0.4+): the version, the running executable's SHA-256 and the
+ *  release-key fingerprints it trusts. Self-reported telemetry, capped
+ *  in length and never trusted for anything but the pages' signed
+ *  badge. An absent header is null: an older client, not a blank. */
+function reportedBuild(event) {
+  const h = (name, max) => {
+    const v = String(event.headers?.[name] ?? "")
+      .trim()
+      .slice(0, max);
+    return v || null;
+  };
+  return {
+    version: h("x-collector-version", 64),
+    binarySha256: h("x-collector-binary-sha256", 128)?.toLowerCase() ?? null,
+    releaseKeys: h("x-collector-release-key", 512),
+  };
+}
+
 async function authGateway(db, event, statuses) {
   const header =
     event.headers?.authorization ?? event.headers?.Authorization ?? "";
   if (!header.startsWith("Bearer ")) return null;
   const token = header.slice(7).trim();
   if (!token.startsWith(TOKEN_PREFIX)) return null;
+  // The build is stamped with the heartbeat, on every door call, and
+  // the three together: after a self-update the first call (config)
+  // already carries the new version AND the new hash, so the pages
+  // never compare a new binary with the old version. The version
+  // coalesces, as ingest's submit stamp does; the hash and keys are
+  // what this call said, so a client that stops sending them reads as
+  // unverified rather than keeping a stale badge.
+  const build = reportedBuild(event);
   const { rows } = await db.query(
-    `update gateway set last_heartbeat_at = now()
+    `update gateway set last_heartbeat_at = now(),
+            last_seen_sha = coalesce($3, last_seen_sha),
+            binary_sha256 = $4,
+            release_key_fingerprints = $5
      where token_hash = $1 and status = any($2)
      returning gateway_id, name, card_name, channel, status, missed_streak`,
-    [sha256hex(token), statuses],
+    [
+      sha256hex(token),
+      statuses,
+      build.version,
+      build.binarySha256,
+      build.releaseKeys,
+    ],
   );
   return rows[0] ?? null;
 }
