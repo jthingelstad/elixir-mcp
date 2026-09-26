@@ -272,6 +272,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Meta decks (observed)",
     readOnly: true,
   },
+  battles_deck_sets: {
+    group: "Battles",
+    title: "Deck sets sharing no card",
+    readOnly: true,
+  },
   battles_meta_cards: {
     group: "Battles",
     title: "Meta cards (observed)",

@@ -2012,6 +2012,166 @@ export const OUTPUT_SCHEMAS = {
     required: ["clan_tag", "applied", "weeks", "notes", "docs", "meta"],
   },
 
+  battles_deck_sets: {
+    type: "object",
+    description:
+      "9.4.0: sets of decks a player can field together sharing no card, chosen exactly from the season's recorded decks and fitted to the player; value parts say why each set won.",
+    properties: {
+      player: {
+        type: "object",
+        properties: {
+          player_tag: { type: "string" },
+          name: { type: ["string", "null"] },
+        },
+        required: ["player_tag"],
+      },
+      applied: {
+        type: "object",
+        properties: {
+          player_tag: { type: "string" },
+          window: WINDOW_ECHO,
+          modes: { type: "array", items: { type: "string" } },
+          count: COUNT,
+          lock_decks: { type: "array", items: { type: "string" } },
+          exclude_cards: { type: "array", items: COUNT },
+          require_cards: { type: "array", items: COUNT },
+          alternatives: COUNT,
+          min_battles: COUNT,
+          min_players: COUNT,
+        },
+        required: ["player_tag", "window", "modes", "count"],
+      },
+      objective: {
+        type: "object",
+        description:
+          "Full verbosity: what the search maximises, term by term (deck_value, set_value, constraint).",
+      },
+      population: POPULATION,
+      fit_for: {
+        type: "object",
+        properties: {
+          player_tag: { type: "string" },
+          collection_as_of: { type: ["string", "null"] },
+          fielded_mean_level: { type: ["number", "null"] },
+          recent_mean_level: { type: ["number", "null"] },
+          fielded_battles: COUNT,
+          target_level: {
+            type: ["number", "null"],
+            description:
+              "The level the player fields now (recent_mean_level, else fielded_mean_level) over the three modes this season; null with no decided battle.",
+          },
+          min_card_level: {
+            type: ["integer", "null"],
+            description:
+              "The level gate: a deck with a held card under this is left out (candidates.below_level).",
+          },
+        },
+        required: ["player_tag", "target_level"],
+      },
+      priors: {
+        type: "object",
+        description:
+          "The corpus mean win rate per mode this season, the prior each deck's rate is shrunk toward.",
+      },
+      candidates: {
+        type: "object",
+        description:
+          "How the season's rollup decks reduced: considered (over min_battles and min_players, or the player's own 5+ decks), then left out for a card not owned, a form not unlocked, a card under min_card_level, an excluded card or a locked deck's card; fieldable, valued and searched remain.",
+        properties: {
+          considered: COUNT,
+          not_owned: COUNT,
+          form_not_unlocked: COUNT,
+          below_level: COUNT,
+          excluded_cards: COUNT,
+          shares_locked_cards: COUNT,
+          fieldable: COUNT,
+          valued: COUNT,
+          searched: COUNT,
+        },
+        required: ["considered", "fieldable", "searched"],
+      },
+      search: {
+        type: "object",
+        properties: {
+          exhausted: {
+            type: "boolean",
+            description:
+              "true: the sets are proven best under the objective; false: the search stopped at its node budget with the best it found.",
+          },
+          pool_capped: { type: "boolean" },
+        },
+        required: ["exhausted", "pool_capped"],
+      },
+      sets: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            rank: COUNT,
+            value: { type: "number" },
+            weakest_deck: { type: ["string", "null"] },
+            distinct_cards: COUNT,
+            card_slots: COUNT,
+            decks: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  deck_hash: { type: "string" },
+                  locked: { type: "boolean" },
+                  cards: { type: "array", items: DECK_CARD },
+                  card_names: { type: "string" },
+                  archetype: { type: ["object", "null"] },
+                  archetype_label: { type: ["string", "null"] },
+                  tower_troop: { type: ["object", "null"] },
+                  record: {
+                    type: ["object", "null"],
+                    description:
+                      "The deck's decided battles this season over the three modes: battles, wins, losses, win_rate, and shrunk_win_rate (each mode shrunk to its own prior, pooled by battles). null for a locked deck with no record.",
+                  },
+                  modes: {
+                    type: "object",
+                    description:
+                      "Full verbosity: the record per mode (ladder, ranked, war) with its players' mean_level_gap, the control the value corrects for.",
+                  },
+                  fit: { type: "object" },
+                  own_mean_level: { type: ["number", "null"] },
+                  your_battles: COUNT,
+                  value: {
+                    type: ["object", "null"],
+                    description:
+                      "total = corpus_logit + level_term + familiarity_term, in log-odds (objective.deck_value); an ordering, not a forecast.",
+                  },
+                },
+                required: ["deck_hash", "locked", "record", "value"],
+              },
+            },
+          },
+          required: ["rank", "value", "weakest_deck", "decks"],
+        },
+      },
+      near_misses: {
+        type: "array",
+        description:
+          "Decks valued at least as high as the first set's weakest that it could not hold, the same row shape plus conflicts: [{with_deck, cards: [{id, name}]}].",
+      },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: [
+      "player",
+      "applied",
+      "fit_for",
+      "candidates",
+      "search",
+      "sets",
+      "near_misses",
+      "notes",
+      "docs",
+      "meta",
+    ],
+  },
   battles_meta_decks: {
     type: "object",
     properties: {

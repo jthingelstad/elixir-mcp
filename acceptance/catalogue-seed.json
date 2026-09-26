@@ -81,5 +81,13 @@
       },
       "reason": "fit rows carry held_level, vs_fielded, to_level, mean_level_after_upgrades the battles docs promise"
     }
+  ],
+  "battles_deck_sets": [
+    {
+      "args": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "reason": "the tool's first shape (9.4.0): sets[].decks[].value parts, modes, fit, candidates and near_misses the battles docs promise"
+    }
   ]
 }

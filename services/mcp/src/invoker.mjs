@@ -197,6 +197,7 @@ const BUDGET_WORK_MEM = "32MB";
 const BUDGETED_TOOLS = new Set([
   "battles_meta_decks",
   "battles_meta_cards",
+  "battles_deck_sets",
   "battles_trends",
   "cards_card",
   "cards_synergy",

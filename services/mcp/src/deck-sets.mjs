@@ -1,0 +1,232 @@
+/**
+ * Deck sets (battles_deck_sets, 9.4.0; Jamie, 2026-09-25): the decks a
+ * player could field together, N of them sharing no card, chosen from
+ * decks the season's recorded players actually played. Clan Wars asks for
+ * four decks with 32 distinct cards; a card and its Evolution or Hero form
+ * are the same card (the tower troop is not one of the 32).
+ *
+ * Why it lives here and not in a prompt: an agent handed the meta and a
+ * collection returned "war sets" repeating six cards (dry runs of real
+ * member questions, 2026-09-25), and choosing decks one at a time fails at
+ * the last deck ("even if you're able to construct 3 meta decks, the 4th
+ * deck is always a struggle", RoyaleAPI, 2022). Packing is a small exact
+ * search, so it is solved once, here, for every agent and every person
+ * asking Claude directly.
+ *
+ * Facts, never judgments: every number a deck carries is a record or a
+ * measured effect, and the order the search optimises is written out in
+ * `SET_OBJECTIVE`, term by term, so an agent can say why a set won.
+ *
+ * This module is pure (no I/O): the tool gathers rows, this scores and
+ * packs them.
+ */
+
+/** The modes a deck's record pools (Jamie, 2026-09-25: "all competitive
+ *  modes is just more data"): Trophy Road, Path of Legends and Clan Wars.
+ *  Casual, challenges, tournaments and events are other games. */
+export const SET_MODES = ["ladder", "ranked", "war"];
+
+/** Log-odds per deck level where levels are free, measured on the corpus
+ *  (docs/reviews/2026-09-19-PILOT-SCORE-ASSESSMENT.md: ladder 0.50, war
+ *  0.50). Ranked equalises levels, so its rows are not corrected: a
+ *  residual gap there marks an under-developed account, not card power. */
+export const LOGIT_PER_LEVEL = 0.5;
+const LEVEL_CORRECTED = new Set(["ladder", "war"]);
+
+/** A deck the player has played at least this often this season is one
+ *  they know; it earns a tie-break, not a thumb on the scale (a 2026 study
+ *  of 926k matches links switching decks to lower win rates, unquantified
+ *  here, so the bonus stays small). */
+export const FAMILIAR_MIN_BATTLES = 5;
+const FAMILIARITY_LOGIT = 0.05;
+
+/** The level gate: a card more than this many levels under the level the
+ *  player fields leaves the deck out (the war-ready rule other builders
+ *  use: no gap larger than 2). */
+export const MAX_CARD_LEVELS_BELOW = 2;
+
+/** What the search maximises, as the response states it. */
+export const SET_OBJECTIVE = {
+  deck_value:
+    "corpus_logit + level_term + familiarity_term, in log-odds: corpus_logit pools the deck's shrunk win rate over Trophy Road, Path of Legends and Clan Wars by battles, each Trophy Road and Clan Wars rate first corrected for its players' level edge at 0.5 log-odds per level; level_term is 0.5 per level the player would field the deck above (+) or below (-) the level they field now; familiarity_term is 0.05 when they have played the exact deck 5+ times this season",
+  set_value:
+    "the sum of the deck values plus the weakest deck's value again, so a set is not carried by three strong decks and one weak one: every war day asks for all four",
+  constraint:
+    "no card appears in two decks (a card's Evolution or Hero form is the same card; the tower troop is not counted)",
+};
+
+const clamp = (p) => Math.min(0.999, Math.max(0.001, p));
+const logit = (p) => Math.log(clamp(p) / (1 - clamp(p)));
+const round = (x, d = 3) =>
+  x === null || x === undefined ? null : Number(x.toFixed(d));
+
+/** Empirical-Bayes shrinkage toward a prior mean, as the meta tools do. */
+function shrink(wins, decided, prior, m) {
+  return (wins + m * prior) / (decided + m);
+}
+
+/**
+ * One deck's value for one player.
+ *   modes:   { [mode]: { battles, wins, mean_level_gap|null } } over SET_MODES
+ *   priors:  { [mode]: corpus mean win rate } (0.5 when unknown)
+ *   ownMean: the mean level the player would field the deck at
+ *   target:  the level the player fields now (null: no level term)
+ *   yours:   the player's own decided battles on this exact deck
+ *   m:       the prior strength (META_METHODOLOGY.prior_strength)
+ * Returns the parts and their sum, all in log-odds, plus the pooled
+ * shrunk win rate the corpus part is built from (for reading).
+ */
+export function deckValue({ modes, priors, ownMean, target, yours = 0, m }) {
+  let battles = 0;
+  let weighted = 0;
+  let wins = 0;
+  let shrunkWeighted = 0;
+  for (const mode of SET_MODES) {
+    const r = modes[mode];
+    if (!r || !r.battles) continue;
+    const prior = priors[mode] ?? 0.5;
+    const s = shrink(r.wins, r.battles, prior, m);
+    const gap =
+      LEVEL_CORRECTED.has(mode) && r.mean_level_gap !== null
+        ? r.mean_level_gap
+        : 0;
+    weighted += r.battles * (logit(s) - LOGIT_PER_LEVEL * gap);
+    shrunkWeighted += r.battles * s;
+    battles += r.battles;
+    wins += r.wins;
+  }
+  if (battles === 0) return null;
+  const corpus = weighted / battles;
+  const level =
+    target === null || ownMean === null
+      ? 0
+      : LOGIT_PER_LEVEL * (ownMean - target);
+  const familiarity = yours >= FAMILIAR_MIN_BATTLES ? FAMILIARITY_LOGIT : 0;
+  return {
+    battles,
+    wins,
+    shrunk_win_rate: round(shrunkWeighted / battles),
+    corpus_logit: round(corpus),
+    level_term: round(level),
+    familiarity_term: familiarity,
+    value: round(corpus + level + familiarity),
+  };
+}
+
+/** The set's value: every deck once, the weakest twice. */
+export function setValue(values) {
+  if (values.length === 0) return -Infinity;
+  return values.reduce((s, v) => s + v, 0) + Math.min(...values);
+}
+
+/**
+ * The best sets of `count` decks sharing no card, exactly, by branch and
+ * bound over candidates sorted by value (highest first).
+ *
+ *   candidates:   [{ key, cards: Set<card id>, value }]
+ *   count:        decks to choose (1-4)
+ *   alternatives: how many sets to return; each after the first shares at
+ *                 most count - minDiffer decks with every earlier one
+ *   require:      card ids that must appear somewhere in the set
+ *   blocked:      card ids no chosen deck may hold (the locked decks' cards)
+ *   nodeBudget:   search nodes before it stops with the best found so far
+ *
+ * Returns { sets: [{ keys, value }], exhausted } where exhausted false
+ * means a search stopped at the budget (its set is the best it found).
+ */
+export function packSets(
+  candidates,
+  {
+    count,
+    alternatives = 1,
+    minDiffer = 2,
+    require = [],
+    blocked = new Set(),
+    nodeBudget = 2_000_000,
+  },
+) {
+  const pool = candidates
+    .filter((c) => ![...c.cards].some((id) => blocked.has(id)))
+    .sort((a, z) => z.value - a.value || (a.key < z.key ? -1 : 1));
+  const need = require.filter((id) => !blocked.has(id));
+  const found = [];
+  let exhausted = true;
+  const maxShared = count - Math.min(minDiffer, count);
+  for (let alt = 0; alt < alternatives; alt++) {
+    let best = null;
+    let bestValue = -Infinity;
+    let nodes = 0;
+    const chosen = [];
+    const used = new Set();
+    const acceptable = (keys) =>
+      found.every(
+        (f) => keys.filter((k) => f.keys.includes(k)).length <= maxShared,
+      ) && need.every((id) => chosen.some((i) => pool[i].cards.has(id)));
+    const search = (start, sum, min) => {
+      if (nodes++ > nodeBudget) return false;
+      const r = count - chosen.length;
+      if (r === 0) {
+        const keys = chosen.map((i) => pool[i].key);
+        const value = sum + min;
+        if (value > bestValue && acceptable(keys)) {
+          bestValue = value;
+          best = { keys, value: round3(value) };
+        }
+        return true;
+      }
+      for (let i = start; i <= pool.length - r; i++) {
+        const v = pool[i].value;
+        // Sorted descending: r more picks add at most r * v, and the set's
+        // minimum can be no higher than v or the minimum so far.
+        if (sum + r * v + Math.min(min, v) <= bestValue) break;
+        const cards = pool[i].cards;
+        let clash = false;
+        for (const id of cards)
+          if (used.has(id)) {
+            clash = true;
+            break;
+          }
+        if (clash) continue;
+        chosen.push(i);
+        for (const id of cards) used.add(id);
+        const ok = search(i + 1, sum + v, Math.min(min, v));
+        for (const id of cards) used.delete(id);
+        chosen.pop();
+        if (!ok) return false;
+      }
+      return true;
+    };
+    if (!search(0, 0, Infinity)) exhausted = false;
+    if (!best) break;
+    found.push(best);
+  }
+  return { sets: found, exhausted };
+}
+
+const round3 = (x) => Number(x.toFixed(3));
+
+/**
+ * What almost made the first set, and why not: decks worth at least the
+ * set's weakest deck that are not in it, each with the cards it shares
+ * with the set's decks (a deck the set had to give up for a card another
+ * deck holds). At most `limit`.
+ */
+export function nearMisses(pool, set, { limit = 5 } = {}) {
+  if (!set) return [];
+  const inSet = pool.filter((c) => set.keys.includes(c.key));
+  const weakest = Math.min(...inSet.map((c) => c.value));
+  return pool
+    .filter((c) => !set.keys.includes(c.key) && c.value >= weakest)
+    .sort((a, z) => z.value - a.value)
+    .slice(0, limit)
+    .map((c) => ({
+      key: c.key,
+      value: c.value,
+      conflicts: inSet
+        .map((d) => ({
+          with: d.key,
+          cards: [...c.cards].filter((id) => d.cards.has(id)),
+        }))
+        .filter((x) => x.cards.length > 0),
+    }));
+}

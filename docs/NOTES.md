@@ -2545,3 +2545,43 @@ data and agents can't, "assume all of that is fixable and changeable".
   members who have since left, as its header does? - owed to Keep the
   Record True; then fix it or re-freeze the cases.
 
+## 2026-09-25 — battles_deck_sets: four war decks sharing no card (9.4.0)
+
+Jamie, retiring elixir-bot this weekend: "The hardest problem for Elixir-bot
+is when members ask it to recommend decks, specifically war decks where you
+need 4 decks with no overlapping cards. I suspect that deck
+recommendations need to be much more the job of elixir, which is key
+because of course players will do the same thing with Claude." Then, on the
+design: a new tool (yes), all competitive modes ("just more data"), the
+weakest deck protected (yes).
+
+- **The walk it collapses** (dry runs of real #ask-elixir questions through
+  the Discord agent's ask lane, 2026-09-25): "Create me a 4 strong war
+  decks" took `players_profile`, `link_me` twice and `battles_meta_decks`,
+  and returned four decks sharing six cards (Arrows in three); a second run
+  (`players_collection`, `battles_meta_decks` twice, `battles_decks`)
+  shared Electro Spirit and Fireball. A prompt line made one later run
+  valid; the combinatorics are not a prompt's job.
+- **Prior art** (research, 2026-09-25): RoyaleAPI's builder dropped
+  deck-at-a-time picking ("the 4th deck is always a struggle"); RoyaleTools
+  fits to the collection with no outcomes; RoyaleTracker ranks by raw rate
+  with no diversity (its ten sets share three decks). A synthetic benchmark
+  had greedy failing to find four decks at all where exact search did.
+- **What it does** (`services/mcp/src/deck-sets.mjs`, pure;
+  `tools/battles/deck-sets.mjs`): the season rollup's eight-card decks over
+  `min_battles` (20) and `min_players` (3 repeat players), plus the
+  player's own 5+ decks; the collection check in SQL (owned, form unlocked,
+  lowest card no more than two under the fielded level); each deck valued
+  in log-odds from `deck_meta_season` per mode (shrunk to the mode's prior,
+  Trophy Road and Clan Wars minus 0.5 per level of `mean_level_gap`, the
+  2026-09-19 measurement), plus 0.5 per level of fit and a 0.05 tie-break
+  for a deck they know; branch and bound over the best 1,500 for the sum
+  plus the weakest again; alternatives sharing at most two decks; near
+  misses with the cards they lost. Evolution/Hero slot rules need no code:
+  every candidate is a deck the game let someone play.
+- Tests: `deck-sets-solver.test.mjs` (exactness, the weakest counted twice,
+  alternatives, require/block, value parts) and `deck-sets.test.mjs` (the
+  whole path on a rebuilt season).
+- Next, by decision: the upgrade path to decks a player could field is its
+  own tool; "complete this partial deck" from co-occurrence is open.
+

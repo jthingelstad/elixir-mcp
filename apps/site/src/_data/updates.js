@@ -20,6 +20,11 @@ export default [
   },
   {
     date: "2026-09-25",
+    title: "Four war decks that share no card",
+    body: "Ask for your war decks and Elixir now answers with sets you can actually field: four decks with no card in common (an Evolution or Hero form counts as the same card), picked from decks this season's players really played in Trophy Road, Path of Legends and Clan Wars, and fitted to your collection and card levels. Each deck shows its record and why it was chosen, the weakest deck of the set is named, and the decks it had to give up are listed with the card they lost. Keep the decks you like and ask again for the rest, or ask for a different last deck. Contract 9.4.0.",
+  },
+  {
+    date: "2026-09-25",
     title: "A clan sees who left and who was removed",
     body: "When a leader tells Elixir Clan whether a member left or was kicked, everyone in the clan now sees it on their timeline, and so does the clan's own agent, which can now say it in the clan's Discord. Until today only the clan's leaders saw it. The game already shows the whole clan when someone is kicked, and leaders say why in clan chat, so hiding it from the clan's agent hid nothing. Whether a member is away stays with the leaders. Contract 9.3.0; JSON API 2.5.0.",
   },

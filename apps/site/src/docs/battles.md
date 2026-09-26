@@ -447,6 +447,57 @@ levels relative to rarity (a maxed legendary reads 8 of 8), and
 `cards_catalog` carries both maxima as `maxLevel` and `maxLevelRarityScale`;
 `live_fetch` returns the raw payload, so levels there are rarity-relative.
 
+## Deck sets
+
+Clan Wars asks a member for four decks with 32 distinct cards, and a card
+and its Evolution or Hero form are the same card (the tower troop is not
+one of the 32). `battles_deck_sets` answers "which four should I play"
+from the record rather than a guess: it reads the decks this season's
+recorded players played, keeps the ones the player can field, values
+each, and packs the best sets exactly.
+
+The reductions, in order:
+
+| Step | What it keeps |
+| --- | --- |
+| The season's decks | eight-card decks in the season rollup with `min_battles` decided battles and `min_players` repeat players, or that the player has played five or more times this season |
+| The player's collection | every card owned and every Evolution or Hero form unlocked (`candidates.not_owned`, `form_not_unlocked` say how many fell out) |
+| The player's levels | no card more than two levels under the level they field now, `fit_for.target_level` (`below_level`) |
+| The caller's shape | no `exclude_cards`, none of a locked deck's cards |
+
+Each remaining deck is valued in log-odds, and every part rides the row
+(`value`):
+
+- **corpus_logit**: its record over Trophy Road, Path of Legends and Clan
+  Wars (`modes` carries each). Each mode's rate is pulled toward that
+  mode's corpus mean as the meta tools' rates are (the formula is on the
+  [methodology](/docs/methodology) page; `priors` carries the means), and
+  a Trophy Road or Clan Wars rate is
+  corrected for its players' level edge (`mean_level_gap`) at 0.5
+  log-odds per level, the effect measured on the corpus in both modes.
+  Path of Legends equalises levels, so its rows are not corrected. The
+  modes are pooled by battles.
+- **level_term**: 0.5 per level the player would field the deck above or
+  below their target level.
+- **familiarity_term**: 0.05 when the player has played the exact deck five
+  or more times this season, a tie-break for a deck they know.
+
+A set's value is its decks' values plus the weakest deck's again, so a
+set is never carried by three strong decks and one weak one: every war
+day asks for all four. The search is exact (branch and bound over the
+best 1,500 candidates); `search.exhausted` false says it stopped at its
+budget. `alternatives` returns more sets, each sharing at most two decks
+with every earlier one, and `near_misses` names decks worth at least the
+first set's weakest that it gave up, with the cards they share with a
+chosen deck.
+
+Shape the set in conversation: `lock_decks` keeps decks (their
+`deck_hash` from `battles_decks`, `battles_meta_decks` or an earlier
+answer) and fills the rest, so "a different last war deck" is the other
+three locked; `exclude_cards` keeps cards out; `require_cards` puts cards
+in. A value is an ordering, not a forecast: a deck's record is its
+players', and pilots differ.
+
 ## War weeks, points and fame
 
 A river race is scored twice, and the two numbers are not interchangeable.
