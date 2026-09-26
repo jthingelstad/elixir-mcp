@@ -1,4 +1,4 @@
-import { deckHash, modeGroupSql } from "@elixir-mcp/contracts";
+import { cardDisplayName, deckHash, modeGroupSql } from "@elixir-mcp/contracts";
 import {
   ARCHETYPE_ARG,
   ARCHETYPE_NOTE,
@@ -27,6 +27,9 @@ import {
   shortHash,
 } from "../../controls.mjs";
 import { CONTROLS_DOCS, modeClause, ownBattlesClause } from "./common.mjs";
+
+/** Decks from duel rounds listed beside the rows, most rounds first. */
+const DUEL_DECKS = 8;
 
 export const battles_decks = {
   description:
@@ -201,9 +204,11 @@ export const battles_decks = {
         ctx.db,
         new Map([...byKey].map(([k, d]) => [k, d.pairs])),
       );
-      for (const [key, d] of [...byKey].sort(
-        (a, z) => z[1].rounds - a[1].rounds,
-      ))
+      // Small beside the rows (a whole history of duels crossed the result
+      // cap at 20 with full archetype objects): the most played, labelled.
+      for (const [key, d] of [...byKey]
+        .sort((a, z) => z[1].rounds - a[1].rounds)
+        .slice(0, DUEL_DECKS))
         duelDecks.push({
           deck_hash: deckHash({
             cards: d.pairs.map(({ id, form }) => ({
@@ -211,7 +216,10 @@ export const battles_decks = {
               ...(form ? { evolutionLevel: form } : {}),
             })),
           }),
-          ...(named.get(key) ?? { cards: [] }),
+          card_names: (named.get(key)?.cards ?? [])
+            .map((c) => cardDisplayName({ name: c.name, form: c.form }))
+            .join(", "),
+          archetype_label: named.get(key)?.archetype?.label ?? null,
           rounds: d.rounds,
           wins: d.wins,
           losses: d.losses,
@@ -315,7 +323,7 @@ export const battles_decks = {
       excluded,
       comparable: guard === null,
       decks,
-      duel_decks: duelDecks.slice(0, 20),
+      duel_decks: duelDecks,
       notes: notes(
         guard,
         ARCHETYPE_NOTE,

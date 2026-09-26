@@ -801,7 +801,7 @@ test("battles_decks: a duel's round decks are listed beside the rows, never in t
   assert.equal(res.duel_decks.length, 2, "two rounds, two decks");
   for (const d of res.duel_decks) {
     assert.equal(d.rounds, 1);
-    assert.equal(d.cards.length, 8);
+    assert.equal(d.card_names.split(", ").length, 8);
     assert.match(d.deck_hash, /^[0-9a-f]{64}$/);
   }
   assert.ok(
