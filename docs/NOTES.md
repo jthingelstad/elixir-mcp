@@ -3034,3 +3034,15 @@ ever waited on them.
 - **Watch**: the first scheduled Codex run after rollout has to open and merge
   a PR with `gh` from its sandbox. If it cannot, that run's lease abort names
   the blocked step.
+
+**Rolled out, same afternoon.** The four commits (acb9c160..b595c13f) were
+the last direct push. `validate` went green on b595c13f, and deploy.mjs
+passed its own gate on it ("validate green on main"). It deployed at 20:12Z
+(3:12 PM CT) with no migrations and a clean smoke; no tool changed, so
+acceptance was not run. The live app shell serves `index-BPWROorX.js` with
+the `useInvalidate` fix. The repo allows only rebase merges now, with
+auto-merge, update-branch and delete-on-merge on. Ruleset 24050992
+("main: pull requests on a green validate") is active with no bypass. Its
+required check is pinned to the GitHub Actions app (integration 15368), so
+a status from anywhere else cannot satisfy it. This entry is the first
+change to reach main through a PR, after a direct push to main was refused.
