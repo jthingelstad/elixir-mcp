@@ -2780,3 +2780,21 @@ stalled request. This is acceptance harness code only, so no production runtime
 deploy is required. `npm run verify` passed before publication. The next daily
 acceptance pass is the first live confirmation of the bounded failure path;
 capacity and record-capture watches remain with their existing owners.
+
+## 2026-09-26 — Keep the Boards: current collections, incomplete regional coverage
+
+The authorized Keep the Boards run confirmed the global Path of Legends
+snapshot at 10:07:54Z: exactly one receipt in the 10:00Z--10:15Z policy
+window, 1,000 entries and `truncated: false` (`elixir-mcp-migrate`
+`{stats:true}`, CloudEngineer identity). All four board-driven collections
+were then synchronized and the post-sync read showed no additions or drops.
+
+Regional coverage remains an objective gap: 172 of 262 enabled locations were
+confirmed within 26 hours (90 stale), and 608 active recordings have
+`origin = ranking`, above the approximately-400 alert line. The same stats
+receipt reported eight `rankings_pol` 404s in the trailing 24 hours, but does
+not identify the stale locations or prove causation. Preserve the daily
+cadence, sticky retention and one global rate budget; Run Elixir MCP owns the
+regional planner/collector/admission seam, while Keep the Boards retains the
+ranking-presence watch. See `AGENT-TEAM/notes/2026-09-26-keep-the-boards.md`
+for the complete receipt and collection movement.
