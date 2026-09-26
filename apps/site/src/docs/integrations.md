@@ -105,6 +105,10 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.5.0** (2026-09-25): a `departure_classified` fact is seen by the
+  clan, its agents included, and its `visibility` reads `clan`; it read
+  `leaders` in 2.2.0. Who sees a fact is its type's rule at read time, so
+  the facts already written follow.
 - **2.4.0** (2026-09-25): `POST /clans/{tag}/mail` with the new
   permission `mail:send`: [a family app's mail](#a-family-apps-mail).
   Permissions that act on people (`facts:write`, `mail:send`) are granted
@@ -166,16 +170,19 @@ the [timeline](/docs/timeline) of the readers their type allows.
 
 | Type | Subject | Who may attest it | Who sees it | Detail |
 | --- | --- | --- | --- | --- |
-| `departure_classified` | clan, about a member | leader, co-leader | the clan's leaders and co-leaders | `kind` (`kick` or `leave`), `left_at` |
+| `departure_classified` | clan, about a member | leader, co-leader | the clan | `kind` (`kick` or `leave`), `left_at` |
 | `role_change_made` | clan, about a member | leader, co-leader | the clan | `from`, `to` (`member`, `elder`, `coLeader`, `leader`) |
 | `award_granted` | clan, about a member | leader, co-leader, elder | the clan | `award` (60 characters), `season_id`, `place` |
 | `member_away` | clan, about a member | leader, co-leader, or the member | the clan's leaders and co-leaders | `until` (an instant, or null) |
 | `clan_message` | clan | leader, co-leader, elder (a Clan Leader Message: leaders and co-leaders) | the clan | `channel` (`leader_message` or `clan_chat`), `title` (24), `body` (200) |
 | `personal_record` | player | an integration with `facts:write` | whoever has the player on their timeline | `game` (40), `score`, `previous_best` |
 
-"The clan" is anyone whose verified player is in it today. A fact for the
-clan's leaders reaches only a person whose verified player leads it: never
-an agent and never mail, so a kick is never narrated.
+"The clan" is anyone whose verified player is in it today, and an agent
+whose owner's player is. A fact for the clan's leaders reaches only a
+person whose verified player leads it: never an agent and never mail.
+A departure's kind is the clan's since 2.5.0: the game already tells the
+whole clan in clan chat that a member was kicked, and its leaders say why
+there.
 
 A clan fact is written by a **person**, through a family app (every
 redirect URI on a family origin) whose grant holds `clans:attest`, with

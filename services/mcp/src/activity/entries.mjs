@@ -27,6 +27,7 @@
 import { badgeLabel } from "../badge-names.mjs";
 import {
   ATTESTED_FACT_KINDS,
+  ATTESTED_FACT_TYPES,
   FAMILY_APP_NAMES,
   modeGroupOf,
 } from "@elixir-mcp/contracts";
@@ -1724,13 +1725,24 @@ const ROLE_RANK_SQL = `max(case cm.role when 'leader' then 3 when 'coLeader' the
  *   - clan: the reader's (an agent's owner's) verified player is in the
  *     clan today;
  *   - leaders: a PERSON whose verified player leads it (leader or
- *     co-leader); never an agent, so a kick is never narrated;
+ *     co-leader); never an agent;
  *   - player: the player is one of the reader's subjects.
+ *
+ * Who sees a type is read from the registry here, not from the row's
+ * stored `visibility` (what the type said when it was written): 9.3.0
+ * made a departure's kind `clan`, and the rows written under 9.2.0 follow
+ * without a rewrite.
  *
  * Only clan subjects carry clan facts, and nothing without a reader
  * (the clan mail's composition) carries any. Selected by when Elixir
  * recorded them, like every ledger item; `at` is when they happened.
  */
+const FACT_KINDS_SEEN_BY = (visibility) =>
+  ATTESTED_FACT_KINDS.filter(
+    (k) =>
+      ATTESTED_FACT_TYPES[k].subject === "clan" &&
+      ATTESTED_FACT_TYPES[k].visibility === visibility,
+  );
 export async function factItems(db, subjects, { accountId, fromMs, toMs }) {
   if (!accountId) return [];
   const clanTags = subjects.filter((s) => s.kind === "clan").map((s) => s.tag);
@@ -1772,13 +1784,19 @@ export async function factItems(db, subjects, { accountId, fromMs, toMs }) {
        left join player p on p.player_tag = f.player_tag
        left join player ap on ap.player_tag = f.attester_tag
       where f.recorded_at >= ${ts(fromMs + 1)} and f.recorded_at < ${ts(toMs + 1)}
-        and ((f.subject_kind = 'clan' and f.visibility = 'clan'
+        and ((f.subject_kind = 'clan' and f.fact_type = any($4::text[])
               and f.clan_tag = any($1::text[]))
-          or (f.subject_kind = 'clan' and f.visibility = 'leaders'
+          or (f.subject_kind = 'clan' and f.fact_type = any($5::text[])
               and f.clan_tag = any($2::text[]))
           or (f.subject_kind = 'player' and f.player_tag = any($3::text[])))
       order by f.recorded_at, f.fact_id`,
-    [inClan, leads, playerTags],
+    [
+      inClan,
+      leads,
+      playerTags,
+      FACT_KINDS_SEEN_BY("clan"),
+      FACT_KINDS_SEEN_BY("leaders"),
+    ],
   );
   const nicknames = new Map(
     subjects
@@ -1807,7 +1825,8 @@ export async function factItems(db, subjects, { accountId, fromMs, toMs }) {
           name: f.attester_name,
           role: f.attester_role,
         },
-        visibility: f.visibility,
+        visibility:
+          ATTESTED_FACT_TYPES[f.fact_type]?.visibility ?? f.visibility,
       },
     };
   });

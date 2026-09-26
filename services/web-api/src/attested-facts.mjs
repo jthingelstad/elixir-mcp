@@ -178,7 +178,9 @@ function shapeFact(row) {
         ? { kind: "clan", clan_tag: row.clan_tag, player_tag: row.player_tag }
         : { kind: "player", player_tag: row.player_tag },
     detail: row.detail,
-    visibility: row.visibility,
+    // Who sees it is the type's rule now, as the timeline reads it (9.3.0).
+    visibility:
+      ATTESTED_FACT_TYPES[row.fact_type]?.visibility ?? row.visibility,
     occurred_at: new Date(row.occurred_at).toISOString(),
     recorded_at: new Date(row.recorded_at).toISOString(),
     attested_by: {
@@ -199,6 +201,7 @@ async function upsert(db, fact) {
      on conflict (source, source_ref) do update set
        player_tag = excluded.player_tag,
        detail = excluded.detail,
+       visibility = excluded.visibility,
        attester_account_id = excluded.attester_account_id,
        attester_tag = excluded.attester_tag,
        attester_role = excluded.attester_role,

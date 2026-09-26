@@ -2507,3 +2507,25 @@ act on an action are sent it.
 - `facts:write` and `mail:send` are never granted unnamed
   (`DEFAULT_INTEGRATION_SCOPES`; the admin form leaves them unticked).
 
+
+## 2026-09-25 — A departure's kind reaches the clan and its agent (9.3.0, JSON API 2.5.0)
+
+Jamie, the evening 9.2.0 shipped, while wiring Elixir Clan to the Discord
+agent that replaces elixir-bot this weekend: "Departures should be visible
+even on a kick… in clan chat everyone sees that the person was kicked. We
+then comment on it so everyone knows why." And: where leaders can see
+data and agents can't, "assume all of that is fixable and changeable".
+
+- `departure_classified` moves from `leaders` to `clan` in
+  `ATTESTED_FACT_TYPES`. `member_away` stays with the leaders.
+- The timeline (`factItems`) reads who sees each kind from the registry,
+  not the row's stored `visibility`, and the item's `visibility` is the
+  type's; a correction (same `ref`) now rewrites the stored column too.
+  So no migration rewrites rows written under 9.2.0 (none were expected:
+  no clan had turned Elixir Clan's sharing on), and they follow the rule
+  anyway.
+- Why it matters: a clan's Discord agent posts raw `member_left` items it
+  cannot classify. With the kind visible it can wait for the leader's word
+  and say "left" or "was removed".
+- Contract 9.3.0 (additive for agents); JSON API 2.5.0 (a departure's
+  `visibility` reads `clan`). DECISIONS' attested-facts line amended.

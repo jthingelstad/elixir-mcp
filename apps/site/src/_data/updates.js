@@ -20,6 +20,11 @@ export default [
   },
   {
     date: "2026-09-25",
+    title: "A clan sees who left and who was removed",
+    body: "When a leader tells Elixir Clan whether a member left or was kicked, everyone in the clan now sees it on their timeline, and so does the clan's own agent, which can now say it in the clan's Discord. Until today only the clan's leaders saw it. The game already shows the whole clan when someone is kicked, and leaders say why in clan chat, so hiding it from the clan's agent hid nothing. Whether a member is away stays with the leaders. Contract 9.3.0; JSON API 2.5.0.",
+  },
+  {
+    date: "2026-09-25",
     title: "Clan reads on a schedule",
     body: "An integration can now hold permission to read clans: the participation and roster reads a signed-in person already had, for any clan Elixir records. It is how Elixir Clan evaluates a clan's policy each morning with nobody signed in, so actions are waiting when leaders arrive. Integrations are provisioned by the admin. JSON API 2.3.0.",
   },

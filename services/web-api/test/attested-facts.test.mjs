@@ -122,7 +122,7 @@ test("a leader records a departure as a kick; a retry is the same fact and a cor
   assert.equal(made.statusCode, 201, made.body);
   const f = data(made).data;
   assert.equal(f.created, true);
-  assert.equal(f.visibility, "leaders");
+  assert.equal(f.visibility, "clan");
   assert.deepEqual(f.attested_by, {
     app: "Elixir Clan",
     player_tag: LEADER_TAG,
@@ -296,7 +296,7 @@ test("an integration records its game's fact for a player with facts:write", asy
   assert.equal(data(clanFact).code, "unknown_fact_type");
 });
 
-test("the timeline shows each fact only to the reader its type allows; a kick never reaches an agent", async () => {
+test("the timeline shows each fact only to the reader its type allows; a departure reaches the clan and its agent, an away only leaders", async () => {
   const window = { fromMs: Date.now() - 86_400_000, toMs: Date.now() + 1000 };
   const clanSubject = [{ kind: "clan", tag: CLAN, scope: "activity" }];
   const leader = await grant(accounts.leader, "cr:read clans:attest");
@@ -331,14 +331,16 @@ test("the timeline shows each fact only to the reader its type allows; a kick ne
   assert.ok(seen.includes("award_granted"));
   assert.ok(seen.includes("departure_classified:kick"));
   assert.ok(seen.includes("member_away"));
-  // A member sees the award, never a departure or an away.
+  // A member sees the award and the departure, kick and all (9.3.0: the
+  // game already told the clan), never an away.
   const memberSees = await kinds(accounts.member);
   assert.ok(memberSees.includes("award_granted"));
-  assert.ok(!memberSees.some((k) => k.startsWith("departure_classified")));
+  assert.ok(memberSees.includes("departure_classified:kick"));
   assert.ok(!memberSees.includes("member_away"));
   // Someone outside the clan sees none of it.
   assert.deepEqual(await kinds(accounts.outsider), []);
-  // The leader's own agent reads as its owner, but never a leaders' fact.
+  // The leader's own agent reads as its owner: the clan's facts, the
+  // departure included, never a leaders' fact.
   const agent = (
     await db.query(
       "insert into account(kind,owned_by_account_id,status,role) values ('agent',$1,'approved','member') returning account_id",
@@ -347,7 +349,23 @@ test("the timeline shows each fact only to the reader its type allows; a kick ne
   ).rows[0].account_id;
   const agentSees = await kinds(agent);
   assert.ok(agentSees.includes("award_granted"));
-  assert.ok(!agentSees.some((k) => k.startsWith("departure_classified")));
+  assert.ok(agentSees.includes("departure_classified:kick"));
+  assert.ok(!agentSees.includes("member_away"));
+  // A departure written under 9.2.0 carries visibility 'leaders' in its
+  // row; who sees it is the type's rule now, so the agent sees it too.
+  await db.query(
+    `insert into attested_fact
+       (subject_kind, clan_tag, player_tag, fact_type, detail, visibility,
+        source, source_ref, occurred_at)
+     values ('clan', $1, $2, 'departure_classified', '{"kind":"leave"}',
+             'leaders', 'clan.poapkings.com', 'legacy-9.2.0', now())`,
+    [CLAN, LEFT_TAG],
+  );
+  const legacy = (
+    await factItems(db, clanSubject, { accountId: agent, ...window })
+  ).find((i) => i.kind === "departure_classified" && i.facts.kind === "leave");
+  assert.ok(legacy, "a 9.2.0 row follows the type's rule");
+  assert.equal(legacy.facts.visibility, "clan");
   // No reader, no facts (the clan mail is composed without one).
   assert.deepEqual(
     await factItems(db, clanSubject, { accountId: null, ...window }),

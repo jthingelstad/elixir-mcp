@@ -38,9 +38,10 @@ leader saying a departure was a kick or a leave, a promotion made, the
 clan's own award, a member saying they are away, a message sent to the
 clan), or what a family app's own game produced for a player (a personal
 best in Elixir Drop). Each says who said it, in which app, and when, and
-is shown only to the people its kind allows: the clan's verified members,
-and for a departure's kind or an away only its leaders; an agent never
-sees those. What a clan shares is the clan's choice, made in the app.
+is shown only to the people its kind allows: the clan's verified members
+and their agents, and for an away only its leaders; an agent never sees
+an away. Whether a departure was a kick is the clan's to see, as the game
+already shows it in clan chat. What a clan shares is the clan's choice, made in the app.
 See [attested facts](/docs/integrations#attested-facts).
 
 **2. Your account.** We store two things about your email address. A one-way hash is your
