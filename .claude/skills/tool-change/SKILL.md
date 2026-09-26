@@ -151,8 +151,8 @@ mirrored tool's schemas and the API's paths. When it fails, bump
 Versions in `apps/site/src/docs/integrations.md`. Output schemas are
 permissive below the top level, so a nested field can move without
 moving the pin: read the operation's response yourself. On a removal,
-also grep elixir-bot and the Discord preview, which read MCP fields by
-name with no pin (facets.md section 8 names the files).
+also grep the Discord preview, which reads MCP fields by name with no
+pin (facets.md section 8 names the files).
 
 ## 6. Tests
 

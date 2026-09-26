@@ -67,7 +67,7 @@ receipt before repeating work. A retry resumes an incomplete summary; it does
 not send responses again or count an incomplete draft as success.
 
 A weekly synthesis: tool-usage census across the week, feedback themes,
-what the record's consumers (including elixir-bot and the MCP Discord preview)
+what the record's consumers (including the MCP Discord preview)
 actually asked for, one ranked list of the highest-leverage
 improvements — shipped where within authority, proposed to Jamie as
 single decisions where not. Write `AGENT-TEAM/summaries/<year>-W<week>.md`.

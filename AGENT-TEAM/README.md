@@ -56,9 +56,9 @@ Cross-cutting work keeps one originating owner through acceptance.
   weekly and drains the shared alarm queue daily. This team owns *this
   stack's* operational truth — the Operator sees that an alarm fired;
   Run Elixir MCP owns why, and the fix.
-- **elixir-bot AGENT-TEAM** owns community facts and the clan agent's
-  behavior. This team owns the recorded game facts elixir-bot consumes
-  over its service token. Contract changes land server-side here first.
+- **elixir-bot** is retired (stopped 2026-09-26): no boundary to keep,
+  and nothing here waits on it. Contract changes still land server-side
+  here first, for every consumer.
 - **elixir-mcp-discord preview** has operational ownership in Run Elixir MCP
   and tool-friction/quality ownership in Close the Loop. Its own repository
   rules govern fixes; host signal triage remains with Run Operations. The

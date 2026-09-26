@@ -177,8 +177,8 @@ only when it does not apply, and say why in the commit message.
       the schema and the served body). If the pin moved,
       `info.version`, `integration-api.pin.json` and the Versions list
       in `integrations.md` all move. Test: `integration-pin`.
-- [ ] On a removal, the unpinned MCP readers (elixir-bot and the
-      Discord preview) are grepped for the field.
+- [ ] On a removal, the unpinned MCP reader (the Discord preview) is
+      grepped for the field.
 
 ## Tests
 
