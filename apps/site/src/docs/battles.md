@@ -506,6 +506,35 @@ three locked; `exclude_cards` keeps cards out; `require_cards` puts cards
 in. A value is an ordering, not a forecast: a deck's record is its
 players', and pilots differ.
 
+## Deck upgrades
+
+`battles_deck_upgrades` is the other half of a war set: not "which four
+can I play" but "what should I upgrade so my four get better". It starts
+from the player's best set today (the same candidates, values and exact
+packing as `battles_deck_sets`, with no level floor: the gap is what an
+upgrade closes) and prices single upgrades:
+
+- **a card raised** toward the level the player fields (`to_level`, at most
+  `max_levels` at a time), for every card below that level in a deck that
+  could join the set;
+- **an Evolution or Hero form unlocked** that a candidate deck plays, which
+  takes that card's measured form price off every deck that uses it.
+
+For each option the set is re-packed exactly and `gain` is its value after
+minus before, in log-odds: the change in the same set value `battles_deck_sets`
+optimises, never a score of its own. `set_changes` says whether the upgrade
+changes which decks the set holds, and `set_after` shows the set it gives.
+Options are priced one at a time and do not add up: take the first, then
+ask again. Levels, not gold: the game's upgrade costs are not in the record,
+and a card the player does not own is never an option.
+
+One card raised rarely moves a deck whose every card sits two levels under,
+so `within_reach` lists the decks outside the set that would join it once
+their low cards reach the fielded level: each card at most `max_levels`
+under, `raises` naming every card and its levels, `forms` any Evolution or
+Hero form it plays that the player has not unlocked, `levels` the total,
+and the same `gain` and `set_after`.
+
 ## War weeks, points and fame
 
 A river race is scored twice, and the two numbers are not interchangeable.

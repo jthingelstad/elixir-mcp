@@ -2012,6 +2012,167 @@ export const OUTPUT_SCHEMAS = {
     required: ["clan_tag", "applied", "weeks", "notes", "docs", "meta"],
   },
 
+  battles_deck_upgrades: {
+    type: "object",
+    description:
+      "9.7.0: which single upgrade (a card raised toward the fielded level, or an Evolution or Hero form unlocked) lifts the player's best set of decks sharing no card the most, and which decks would join the set once their low cards reach that level, each priced by re-packing the set.",
+    properties: {
+      player: {
+        type: "object",
+        properties: {
+          player_tag: { type: "string" },
+          name: { type: ["string", "null"] },
+        },
+        required: ["player_tag"],
+      },
+      applied: {
+        type: "object",
+        properties: {
+          player_tag: { type: "string" },
+          window: WINDOW_ECHO,
+          count: COUNT,
+          max_levels: COUNT,
+          limit: COUNT,
+          min_battles: COUNT,
+          min_players: COUNT,
+        },
+        required: ["player_tag", "window", "count"],
+      },
+      objective: { type: "object" },
+      fit_for: {
+        type: "object",
+        properties: {
+          player_tag: { type: "string" },
+          collection_as_of: { type: ["string", "null"] },
+          fielded_mean_level: { type: ["number", "null"] },
+          recent_mean_level: { type: ["number", "null"] },
+          target_level: { type: ["number", "null"] },
+        },
+        required: ["player_tag", "target_level"],
+      },
+      baseline: {
+        type: ["object", "null"],
+        description:
+          "The player's best set today: its value (objective.set_value) and decks (deck_hash, archetype_label, value, card_names in full). null when no set exists yet.",
+      },
+      options: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            kind: { type: "string", enum: ["level", "form"] },
+            card: {
+              type: "object",
+              description:
+                "id and name; a level option adds cards_held, the count the profile last showed.",
+            },
+            held_level: COUNT,
+            to_level: COUNT,
+            levels: COUNT,
+            form: { type: "string", enum: ["evolution", "hero"] },
+            decks_affected: COUNT,
+            value_before: { type: "number" },
+            value_after: { type: "number" },
+            gain: {
+              type: "number",
+              description:
+                "value_after minus value_before, in log-odds: the change in the same set value battles_deck_sets optimises. An ordering, not a forecast.",
+            },
+            set_changes: {
+              type: "boolean",
+              description:
+                "true when the upgrade changes which decks the best set holds.",
+            },
+            set_after: {
+              type: "array",
+              description: "Full verbosity: the best set with this upgrade.",
+            },
+          },
+          required: [
+            "kind",
+            "card",
+            "decks_affected",
+            "value_before",
+            "value_after",
+            "gain",
+            "set_changes",
+          ],
+        },
+      },
+      within_reach: {
+        type: "array",
+        description:
+          "Decks outside the best set whose every card is at most max_levels under the fielded level: raised to it (raises, levels in total), with any form they play unlocked (forms), they join the set.",
+        items: {
+          type: "object",
+          properties: {
+            deck: {
+              type: "object",
+              description:
+                "deck_hash, archetype_label, its value once raised, card_names in full.",
+            },
+            raises: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  card: { type: "object" },
+                  held_level: COUNT,
+                  to_level: COUNT,
+                },
+                required: ["card", "held_level", "to_level"],
+              },
+            },
+            forms: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  card: { type: "object" },
+                  form: { type: "string", enum: ["evolution", "hero"] },
+                },
+                required: ["card", "form"],
+              },
+            },
+            levels: COUNT,
+            value_before: { type: "number" },
+            value_after: { type: "number" },
+            gain: { type: "number" },
+            set_after: { type: "array" },
+          },
+          required: [
+            "deck",
+            "raises",
+            "forms",
+            "levels",
+            "value_before",
+            "value_after",
+            "gain",
+          ],
+        },
+      },
+      search: {
+        type: "object",
+        properties: { exhausted: { type: "boolean" } },
+        required: ["exhausted"],
+      },
+      notes: NOTES,
+      docs: DOCS,
+      meta: META,
+    },
+    required: [
+      "player",
+      "applied",
+      "fit_for",
+      "baseline",
+      "options",
+      "within_reach",
+      "search",
+      "notes",
+      "docs",
+      "meta",
+    ],
+  },
   battles_deck_sets: {
     type: "object",
     description:

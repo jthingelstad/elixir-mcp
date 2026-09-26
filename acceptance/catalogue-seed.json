@@ -89,5 +89,13 @@
       },
       "reason": "the tool's first shape (9.4.0): sets[].decks[].value parts, modes, fit, candidates and near_misses the battles docs promise"
     }
+  ],
+  "battles_deck_upgrades": [
+    {
+      "args": {
+        "player_tag": "#20JJJ2CCRU"
+      },
+      "reason": "the tool's first shape (9.7.0): baseline, options with gain and set_after, within_reach with raises and levels the battles docs promise"
+    }
   ]
 }

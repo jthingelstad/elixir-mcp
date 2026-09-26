@@ -2643,16 +2643,42 @@ labels as its own.
   validates it.
 - Elixir Clan's morning run writes the running season's podium places per
   computed award (a clan with awards and a policy), one ref per place
-  (`standing:<season>:<award>:<place>`), and takes back places no longer
-  held. The elixir-clan integration needs `facts:write` added
+  (`standing:<season>:<award>:<player_tag>`), and takes back places no
+  longer held. The elixir-clan integration needs `facts:write` added
   (`{integration}` configure) after this deploy.
 - **9.6.0 shipped** (0a94dff9; migrations 0180-0181 ran, 179 applied + 2).
   Acceptance (`--acceptance=elixir`): 188 cases, 3 failed, all the frozen
-  presence class filed at 9.3.0: gym 267.2, 272.4 and 272.5 name alex
-  #20G0JGQLPL and Brotherinpants, who left POAP KINGS at 03:13Z. KNOWN to
+  presence class filed at 9.3.0: gym 267.2, 272.4 and 272.5 name two
+  members who left their clan at 03:13Z. KNOWN to
   2026-10-02 with the same open question.
 - The elixir-clan integration was reconfigured through `{integration}`
   (`configure`, id e432feb79431): scopes clans:read, mail:send, facts:write;
   limits unchanged (2,000/day, 500/hour, refresh 0). Authority: Jamie, "Do
   the mid season standings" (2026-09-25).
 
+
+## 2026-09-25 — battles_deck_upgrades (9.7.0)
+
+Jamie: "there is also an angle to think about cards that could be unlocked
+with some upgrades... that is a whole other tool", then "Do the mid season
+standings and the upgrade tool."
+
+- The reads behind both deck tools moved to `services/mcp/src/deck-sets-data.mjs`
+  (priors, form advantages, own decks, the season pool checked against the
+  collection, mode records, substitutions), so the two value a deck the
+  same way; `battles_deck_sets` answers exactly as before.
+- `battles_deck_upgrades`: the baseline is the best set with no level
+  floor (the gap is what an upgrade closes). Options are single upgrades
+  from decks that could reach the set (their value with every card at the
+  fielded level clears the set's weakest deck): a card below that level
+  raised at most `max_levels` (default 2), or a form a candidate plays
+  unlocked; at most 60 priced, each by re-packing the set with every deck
+  holding that card revalued. `gain` is the set value after minus before.
+- `within_reach` came from the first test: one card raised by two levels
+  moves a deck held two levels under by 0.125 log-odds, never enough to
+  join the set, so single options alone never name such a deck. A deck
+  outside the set whose every card is at most `max_levels` under is priced
+  raised whole (and with its forms unlocked); at most 40 priced, best
+  ceiling first.
+- Levels, not gold: upgrade costs are not in the record (and `adoption_cost`
+  stays declined). `cards_held` is the profile's last count.

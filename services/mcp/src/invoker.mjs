@@ -198,6 +198,7 @@ const BUDGETED_TOOLS = new Set([
   "battles_meta_decks",
   "battles_meta_cards",
   "battles_deck_sets",
+  "battles_deck_upgrades",
   "battles_trends",
   "cards_card",
   "cards_synergy",

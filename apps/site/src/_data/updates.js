@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-25",
+    title: "What to upgrade for better war decks",
+    body: "Ask what to upgrade and Elixir now answers from your own war decks: starting from your best four decks that share no card, it tries each upgrade that could matter (a card raised toward the level you play at, or an Evolution or Hero you have not unlocked) and says how much each would improve the set and whether it would change which decks you field. It also names the decks that are close: ones that would join your four once a few of their cards reach your level, with every card and how many levels each needs. Levels, not gold, since upgrade costs are not in the record. Contract 9.7.0.",
+  },
+  {
+    date: "2026-09-25",
     title: "Clan actions waiting, by email",
     body: "An eighth email, from Elixir Clan: on a morning when something new in your clan is yours to do (promote a member, welcome a newcomer, answer a departure, say whether you are away), one note lists everything waiting for you, with a link to act. Only if you can act on it, and at most one a day per clan. Elixir Clan writes the words and Elixir sends them, so your address never reaches the app. It is on to start, and a switch on your email page like every other. JSON API 2.4.0.",
   },

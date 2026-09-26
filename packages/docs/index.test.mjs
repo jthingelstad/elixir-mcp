@@ -63,6 +63,7 @@ test("section slugs are GitHub-style, the shape the code's docs pointers use", (
       "decided-battles-and-denominators",
       "deck-identity-and-forms",
       "deck-sets",
+      "deck-upgrades",
       "war-weeks-points-and-fame",
     ],
   );

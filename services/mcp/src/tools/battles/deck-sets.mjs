@@ -1,4 +1,4 @@
-import { responseMeta, typesForModeGroup } from "@elixir-mcp/contracts";
+import { responseMeta } from "@elixir-mcp/contracts";
 import {
   DISPLAY_NAME_SCHEMA,
   META_METHODOLOGY,
@@ -19,11 +19,18 @@ import {
   subject,
 } from "../shared.mjs";
 import { seasonRollup } from "../../meta-season.mjs";
+import {
+  COMPETITIVE_TYPES,
+  formAdvantages,
+  modeRecords,
+  ownDecks,
+  seasonDeckPool,
+  seasonPriors,
+  substitutions,
+} from "../../deck-sets-data.mjs";
 import { CARD_IDS_ARG } from "./common.mjs";
 import {
-  FAMILIAR_MIN_BATTLES,
   MAX_CARD_LEVELS_BELOW,
-  formAdvantage,
   SET_MODES,
   SET_OBJECTIVE,
   deckValue,
@@ -35,7 +42,6 @@ import {
  *  benchmark (2026-09-25) solved 3,000 in under 0.2 s. */
 const POOL_CAP = 1500;
 const HASH_RE = /^[0-9a-f]{64}$/;
-const COMPETITIVE_TYPES = SET_MODES.flatMap((m) => typesForModeGroup(m));
 
 const MODE_NAMES = {
   ladder: "Trophy Road",
@@ -147,19 +153,7 @@ export const battles_deck_sets = {
 
     // The decks they know: played 5+ times this season, a candidate
     // whatever the population gates say.
-    const { rows: ownRows } = await ctx.db.query(
-      `select deck_hash, count(*)::int as n from battle_participant
-        where player_tag = $1 and battle_time >= $2
-          and ($3::timestamptz is null or battle_time < $3)
-          and type = any($4) and type_class = 'pvp'
-          and outcome in ('win', 'loss') and deck_hash is not null
-        group by deck_hash`,
-      [tag, from, to, COMPETITIVE_TYPES],
-    );
-    const yours = new Map(ownRows.map((r) => [r.deck_hash, r.n]));
-    const familiar = ownRows
-      .filter((r) => r.n >= FAMILIAR_MIN_BATTLES)
-      .map((r) => r.deck_hash);
+    const { yours, familiar } = await ownDecks(ctx.db, tag, { from, to });
 
     // Locked decks: their cards leave the pool, their slots leave the count.
     const locks = [...new Set(args.lock_decks ?? [])];
@@ -207,41 +201,13 @@ export const battles_deck_sets = {
     // The corpus prior per mode, and each card's measured form advantage
     // (its Evolution or Hero form's shrunk rate against its base form's
     // this season): the price of playing a deck with a form not unlocked.
-    const priors = {};
-    for (const mode of SET_MODES) {
-      const m = await seasonRollup(ctx.db, { win, seg: null, mode });
-      priors[mode] = m?.prior?.mean ?? 0.5;
-    }
-    const { rows: formRows } = await ctx.db.query(
-      `select card_id, form, battles, wins from card_meta_season
-        where season_month = $1 and mode_group = 'all' and form in (0, 1, 2)`,
-      [roll.month],
+    const priors = await seasonPriors(ctx.db, win);
+    const forms = await formAdvantages(
+      ctx.db,
+      roll.month,
+      roll.prior.mean ?? 0.5,
     );
-    const byCard = new Map();
-    for (const r of formRows) {
-      if (!byCard.has(r.card_id)) byCard.set(r.card_id, {});
-      byCard.get(r.card_id)[r.form] = r;
-    }
-    const prior = roll.prior.mean ?? 0.5;
-    const measured = [];
-    const advantage = new Map();
-    for (const [id, forms] of byCard)
-      for (const form of [1, 2]) {
-        const a = formAdvantage({
-          form: forms[form],
-          base: forms[0],
-          prior,
-          m: META_METHODOLOGY.prior_strength,
-        });
-        if (a !== null) {
-          advantage.set(`${id}:${form}`, a);
-          measured.push(a);
-        }
-      }
-    measured.sort((a, z) => a - z);
-    const medianAdvantage = measured.length
-      ? measured[Math.floor(measured.length / 2)]
-      : 0;
+    const medianAdvantage = forms.median;
 
     const lockMeans = new Map();
     if (locks.length) {
@@ -292,32 +258,13 @@ export const battles_deck_sets = {
       // Every deck in the season rollup over the gates (or theirs),
       // checked against the collection in SQL: owned, which forms are not
       // unlocked, the lowest card's level. Eight-card decks only.
-      const { rows: pool } = await ctx.db.query(
-        `with cand as (
-           select deck_hash from deck_meta_season
-            where season_month = $1 and mode_group = 'all'
-              and ((battles >= $2 and coalesce(repeat_players, players, 0) >= $3)
-                   or deck_hash = any($5))
-         ),
-         held as (
-           select card_id, level, coalesce(evolution_level, 0) as ev
-             from player_card where player_tag = $4
-         )
-         select c.deck_hash,
-                bool_and(h.card_id is not null) as owned,
-                array_agg(dc.card_id || ':' || dc.form)
-                  filter (where h.card_id is not null and dc.form <> 0 and (h.ev & dc.form) = 0)
-                  as missing_forms,
-                min(h.level) as min_level,
-                round(avg(h.level)::numeric, 3) as own_mean,
-                array_agg(dc.card_id order by dc.card_id) as card_ids
-           from cand c
-           join deck_card dc on dc.deck_hash = c.deck_hash
-           left join held h on h.card_id = dc.card_id
-          group by c.deck_hash
-         having count(distinct dc.card_id) = 8`,
-        [roll.month, minB, minP, tag, familiar],
-      );
+      const pool = await seasonDeckPool(ctx.db, {
+        month: roll.month,
+        minBattles: minB,
+        minPlayers: minP,
+        tag,
+        familiar,
+      });
       counts = {
         considered: pool.length,
         not_owned: 0,
@@ -341,19 +288,7 @@ export const battles_deck_sets = {
           fieldable.push(r);
           if (r.missing_forms?.length) {
             counts.forms_substituted++;
-            substituted.set(
-              r.deck_hash,
-              r.missing_forms.map((x) => {
-                const [id, form] = x.split(":").map(Number);
-                const a = advantage.get(`${id}:${form}`);
-                return {
-                  id,
-                  form,
-                  advantage: a ?? medianAdvantage,
-                  measured: a !== undefined,
-                };
-              }),
-            );
+            substituted.set(r.deck_hash, substitutions(r.missing_forms, forms));
           }
         }
       }
@@ -361,26 +296,7 @@ export const battles_deck_sets = {
 
       // Each fieldable deck's record by mode.
       const scoreHashes = [...fieldable.map((r) => r.deck_hash), ...locks];
-      const { rows: modeRows } = scoreHashes.length
-        ? await ctx.db.query(
-            `select deck_hash, mode_group, battles, wins, losses,
-                    round((level_gap_sum / nullif(level_gap_battles, 0))::numeric, 2) as mean_level_gap
-               from deck_meta_season
-              where season_month = $1 and mode_group = any($2) and deck_hash = any($3)`,
-            [roll.month, SET_MODES, scoreHashes],
-          )
-        : { rows: [] };
-      modes = new Map();
-      for (const r of modeRows) {
-        if (!modes.has(r.deck_hash)) modes.set(r.deck_hash, {});
-        modes.get(r.deck_hash)[r.mode_group] = {
-          battles: r.battles,
-          wins: r.wins,
-          losses: r.losses,
-          mean_level_gap:
-            r.mean_level_gap === null ? null : Number(r.mean_level_gap),
-        };
-      }
+      modes = await modeRecords(ctx.db, roll.month, scoreHashes);
       valued = new Map();
       const valueOf = (hash, ownMean) =>
         deckValue({

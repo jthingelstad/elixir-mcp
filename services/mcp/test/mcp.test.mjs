@@ -191,10 +191,10 @@ test("protocol basics: batching rejected, notifications 202, unknown method/tool
   assert.equal(badTool.payload.error.code, -32602);
 });
 
-test("tools/list declares all 56 tools, 54 to a person (the identity tools are an agent's, 2026-09-25)", async () => {
+test("tools/list declares all 57 tools, 55 to a person (the identity tools are an agent's, 2026-09-25)", async () => {
   const res = await handleMcpMessage(rpc("tools/list"), context());
-  assert.equal(res.payload.result.tools.length, 54);
-  assert.equal(makeRegistry().declarations().length, 56);
+  assert.equal(res.payload.result.tools.length, 55);
+  assert.equal(makeRegistry().declarations().length, 57);
   const listed = res.payload.result.tools.map((t) => t.name);
   assert.ok(!listed.includes("elixir_identify"));
   assert.ok(!listed.includes("elixir_my_identities"));
