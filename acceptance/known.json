@@ -40,5 +40,23 @@
     "reason": "A frozen window's presence moved when two members left the clan on 2026-09-25: the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Keep the Record True: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
     "until": "2026-10-02",
     "filed": "2026-09-25"
+  },
+  {
+    "case": "gym/267.2",
+    "reason": "A frozen window's presence moved when members left the clan on 2026-09-25 (four by 22:13 CT: Chanco, VVSBUDGET, alex #20G0JGQLPL and Brotherinpants, the last two named by these cases): the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Keep the Record True: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
+    "until": "2026-10-02",
+    "filed": "2026-09-25"
+  },
+  {
+    "case": "gym/272.4",
+    "reason": "A frozen window's presence moved when members left the clan on 2026-09-25 (four by 22:13 CT: Chanco, VVSBUDGET, alex #20G0JGQLPL and Brotherinpants, the last two named by these cases): the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Keep the Record True: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
+    "until": "2026-10-02",
+    "filed": "2026-09-25"
+  },
+  {
+    "case": "gym/272.5",
+    "reason": "A frozen window's presence moved when members left the clan on 2026-09-25 (four by 22:13 CT: Chanco, VVSBUDGET, alex #20G0JGQLPL and Brotherinpants, the last two named by these cases): the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Keep the Record True: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
+    "until": "2026-10-02",
+    "filed": "2026-09-25"
   }
 ]

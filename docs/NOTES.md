@@ -2646,4 +2646,13 @@ labels as its own.
   (`standing:<season>:<award>:<place>`), and takes back places no longer
   held. The elixir-clan integration needs `facts:write` added
   (`{integration}` configure) after this deploy.
+- **9.6.0 shipped** (0a94dff9; migrations 0180-0181 ran, 179 applied + 2).
+  Acceptance (`--acceptance=elixir`): 188 cases, 3 failed, all the frozen
+  presence class filed at 9.3.0: gym 267.2, 272.4 and 272.5 name alex
+  #20G0JGQLPL and Brotherinpants, who left POAP KINGS at 03:13Z. KNOWN to
+  2026-10-02 with the same open question.
+- The elixir-clan integration was reconfigured through `{integration}`
+  (`configure`, id e432feb79431): scopes clans:read, mail:send, facts:write;
+  limits unchanged (2,000/day, 500/hour, refresh 0). Authority: Jamie, "Do
+  the mid season standings" (2026-09-25).
 
