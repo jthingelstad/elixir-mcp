@@ -263,11 +263,15 @@ export const battles_deck_sets = {
     // one wider pass (said in a note): a season's first weeks are thin.
     const explicitGates =
       args.min_battles !== undefined || args.min_players !== undefined;
+    // The wider pass also drops the level floor: an account whose main
+    // decks are maxed and whose other cards are not (one had a card under
+    // 12 in 1,585 of 1,864 season decks) is answered with the gap priced
+    // by level_term and shown as each deck's lowest card, not refused.
     const attempts = explicitGates
-      ? [[minBattles, minPlayers]]
+      ? [[minBattles, minPlayers, minCardLevel]]
       : [
-          [minBattles, minPlayers],
-          [5, 2],
+          [minBattles, minPlayers, minCardLevel],
+          [5, 2, null],
         ];
     let counts;
     let candidates;
@@ -279,8 +283,12 @@ export const battles_deck_sets = {
     let valued;
     let substituted;
     let gatesUsed;
-    for (const [minB, minP] of attempts) {
-      gatesUsed = { min_battles: minB, min_players: minP };
+    for (const [minB, minP, floor] of attempts) {
+      gatesUsed = {
+        min_battles: minB,
+        min_players: minP,
+        min_card_level: floor,
+      };
       // Every deck in the season rollup over the gates (or theirs),
       // checked against the collection in SQL: owned, which forms are not
       // unlocked, the lowest card's level. Eight-card decks only.
@@ -323,8 +331,7 @@ export const battles_deck_sets = {
       substituted = new Map();
       for (const r of pool) {
         if (!r.owned) counts.not_owned++;
-        else if (minCardLevel !== null && r.min_level < minCardLevel)
-          counts.below_level++;
+        else if (floor !== null && r.min_level < floor) counts.below_level++;
         else if (r.card_ids.some((id) => excluded.has(id)))
           counts.excluded_cards++;
         else if (locks.includes(r.deck_hash)) continue;
@@ -581,7 +588,7 @@ export const battles_deck_sets = {
         recent_mean_level: fielded.recent_mean_level,
         fielded_battles: fielded.battles,
         target_level: target,
-        min_card_level: minCardLevel,
+        min_card_level: gatesUsed.min_card_level,
       },
       priors: Object.fromEntries(
         SET_MODES.map((m) => [m, Number(priors[m].toFixed(3))]),
@@ -599,9 +606,11 @@ export const battles_deck_sets = {
         `Each deck's record pools ${SET_MODES.map((m) => MODE_NAMES[m]).join(", ")} (modes carries each); a Trophy Road or Clan Wars rate is corrected for its players' level edge at 0.5 log-odds per level, and Path of Legends equalises levels, so its rows are not.`,
         target === null
           ? "No decided battle this season shows the level this player fields, so there is no level term and no level gate: every deck is valued at the corpus's levels."
-          : `Fitted to the level this player fields now (${target}): level_term is 0.5 per level a deck would sit above or below it, and only a deck with a card under ${minCardLevel} is left out (candidates.below_level).`,
+          : gatesUsed.min_card_level === null
+            ? `Fitted to the level this player fields now (${target}): level_term is 0.5 per level a deck would sit above or below it, with no level floor on this pass (fit.lowest_card shows each deck's weakest card).`
+            : `Fitted to the level this player fields now (${target}): level_term is 0.5 per level a deck would sit above or below it, and only a deck with a card under ${gatesUsed.min_card_level} is left out (candidates.below_level).`,
         widened
-          ? `Nothing packed at min_battles ${minBattles} and min_players ${minPlayers}, so the candidates were widened to min_battles ${gatesUsed.min_battles} and min_players ${gatesUsed.min_players} (applied says which answered).`
+          ? `Nothing packed at min_battles ${minBattles}, min_players ${minPlayers} and a level floor of ${minCardLevel}, so the candidates were widened once: min_battles ${gatesUsed.min_battles}, min_players ${gatesUsed.min_players}, no level floor (applied and fit_for.min_card_level say which answered).`
           : null,
         counts.forms_substituted > 0
           ? `${counts.forms_substituted} candidate decks use an Evolution or Hero form the player has not unlocked; they would play its base card, so forms_substituted names each card and form_term subtracts its measured form advantage this season (the season's median, ${medianAdvantage} log-odds, where a card's forms are too thin to measure: measured false).`

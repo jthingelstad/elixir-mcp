@@ -2597,4 +2597,13 @@ weakest deck protected (yes).
   default gates widen once when nothing packs. The 9.4.0 acceptance run's
   one failure, `budgets/meta-decks-clan-season` (10.6 s against 10 s),
   was the post-deploy cold start: 668, 639 and 518 ms alone. Verdict: flake.
+- **9.5.0's acceptance** (`--acceptance=battles`): 192 cases, 3 failed.
+  `budgets/meta-decks-clan-season` (11.6 s) and `catalogue/battles_trends#1`
+  (18.1 s against 4 s) passed alone at 4.3 s and 2.2 s: post-deploy load,
+  flakes. `catalogue/battles_deck_sets#notes` was real: King Thing's call
+  still returned no set (the notes named `level_term` and `form_term`, which
+  only deck rows carry), because 1,585 of 1,864 season decks held a card
+  under his floor of 12: main decks maxed, the rest of the collection not.
+  **9.5.1** drops the floor on the one wider pass; the gap is priced by
+  `level_term` and shown as `fit.lowest_card`.
 

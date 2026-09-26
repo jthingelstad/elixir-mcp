@@ -269,3 +269,25 @@ test("compact keeps the set and drops the detail", async () => {
   assert.equal(row.modes, undefined);
   assert.equal(res.objective, undefined);
 });
+
+test("when the defaults pack nothing, one wider pass drops the level floor and says so", async () => {
+  // A, B, C and D excluded: E, F and G are left, V shares E's cards, and
+  // the only fourth deck is L, whose C40-C44 sit under the floor (9 < 10).
+  const res = await registry.invoke(
+    "battles_deck_sets",
+    { db: scratch.db, account },
+    {
+      player_tag: TAG,
+      season: "2026-08",
+      exclude_cards: [26000000, 26000008, 26000016, 26000024],
+    },
+  );
+  assert.equal(res.applied.min_battles, 5, "the wider pass answered");
+  assert.equal(res.fit_for.min_card_level, null, "no floor on it");
+  assert.ok(res.sets.length >= 1);
+  const l = res.sets[0].decks.find((d) => d.deck_hash === hashOf("L"));
+  assert.ok(l, "L is in the set, its gap priced");
+  assert.equal(l.fit.lowest_card.level, 9);
+  assert.ok(l.value.level_term < 0);
+  assert.ok(res.notes.some((n) => /widened once/.test(n)));
+});

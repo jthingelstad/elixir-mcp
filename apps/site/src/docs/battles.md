@@ -492,7 +492,9 @@ set is never carried by three strong decks and one weak one: every war
 day asks for all four. The search is exact (branch and bound over the
 best 1,500 candidates); `search.exhausted` false says it stopped at its
 budget. When the defaults find no set, the candidates are widened once
-(`min_battles` 5, `min_players` 2) and `applied` says so. `alternatives` returns more sets, each sharing at most two decks
+(`min_battles` 5, `min_players` 2, no level floor: the gap is priced by
+`level_term` and each deck's `fit.lowest_card` shows its weakest card) and
+`applied` says so. `alternatives` returns more sets, each sharing at most two decks
 with every earlier one, and `near_misses` names decks worth at least the
 first set's weakest that it gave up, with the cards they share with a
 chosen deck.
