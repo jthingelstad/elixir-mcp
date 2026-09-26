@@ -110,6 +110,27 @@ test("the door turns a JSON-RPC refusal into an answer and times a call", async 
   assert.match(refused.body.error.message, /feedback:write/);
 });
 
+test("the door bounds a stalled request", async () => {
+  const door = makeDoor({
+    url: "http://fake/mcp",
+    token: "svt_fake",
+    timeoutMs: 1,
+    fetchImpl: async (_url, init) =>
+      new Promise((_resolve, reject) => {
+        init.signal.addEventListener(
+          "abort",
+          () => reject(init.signal.reason),
+          {
+            once: true,
+          },
+        );
+      }),
+  });
+  const stalled = await door.call("game_clock", {});
+  assert.equal(stalled.isError, true);
+  assert.match(stalled.body.error.message, /timeout/i);
+});
+
 test("the runner reports red and green and reuses a read", async () => {
   let calls = 0;
   const door = fakeDoor({

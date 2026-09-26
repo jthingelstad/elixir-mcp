@@ -2763,3 +2763,20 @@ issues") found more in the same code.
   duels, but a search free to choose any fourth chose the one he plays.
   9.10.0: `exclude_decks`; the ask routine says to exclude the current
   fourth.
+
+## 2026-09-26 — Run: bounded acceptance transport
+
+The daily read-only acceptance run passed its initial contract, identity and
+budget cases, then one MCP request remained in flight for more than four
+minutes. The runner had no transport deadline, so the read-only process was
+stopped rather than left consuming a connection; it was not re-run to obtain a
+green result. The public status, migrate `{stats}`, alarms, scheduled jobs,
+RDS headroom, OAuth discovery and preview evidence were healthy at the time.
+
+`acceptance/door.mjs` now uses a 20-second `AbortSignal` deadline, matching the
+door's 18-second analytical budget; the failure becomes an ordinary acceptance
+result instead of an unbounded operator process. `acceptance.test.mjs` pins a
+stalled request. This is acceptance harness code only, so no production runtime
+deploy is required. `npm run verify` passed before publication. The next daily
+acceptance pass is the first live confirmation of the bounded failure path;
+capacity and record-capture watches remain with their existing owners.

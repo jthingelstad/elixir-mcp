@@ -28,7 +28,12 @@ export function loadEnv(file = path.join(here, ".env")) {
   return env;
 }
 
-export function makeDoor({ url, token, fetchImpl = fetch }) {
+export function makeDoor({
+  url,
+  token,
+  fetchImpl = fetch,
+  timeoutMs = 20_000,
+}) {
   let seq = 0;
   async function rpc(method, params) {
     const started = performance.now();
@@ -40,6 +45,9 @@ export function makeDoor({ url, token, fetchImpl = fetch }) {
         authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ jsonrpc: "2.0", id: ++seq, method, params }),
+      // The server has an 18 s analytical budget. Keep the acceptance runner
+      // bounded when a connection or proxy fails to deliver that response.
+      signal: AbortSignal.timeout(timeoutMs),
     });
     const ms = Math.round(performance.now() - started);
     const text = await res.text();
