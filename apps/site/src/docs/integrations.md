@@ -105,6 +105,11 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.6.0** (2026-09-25): `POST /clans/{tag}/facts` and `DELETE
+  /clans/{tag}/facts/{ref}` also admit an integration holding
+  `facts:write`, for the fact types a family app computes itself: the new
+  `award_standing` (Elixir Clan's award standings for the running
+  season).
 - **2.5.0** (2026-09-25): a `departure_classified` fact is seen by the
   clan, its agents included, and its `visibility` reads `clan`; it read
   `leaders` in 2.2.0. Who sees a fact is its type's rule at read time, so
@@ -176,6 +181,7 @@ the [timeline](/docs/timeline) of the readers their type allows.
 | `member_away` | clan, about a member | leader, co-leader, or the member | the clan's leaders and co-leaders | `until` (an instant, or null) |
 | `clan_message` | clan | leader, co-leader, elder (a Clan Leader Message: leaders and co-leaders) | the clan | `channel` (`leader_message` or `clan_chat`), `title` (24), `body` (200) |
 | `personal_record` | player | an integration with `facts:write` | whoever has the player on their timeline | `game` (40), `score`, `previous_best` |
+| `award_standing` | clan, about a member | the family app itself, on its integration key with `facts:write` | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
 
 "The clan" is anyone whose verified player is in it today, and an agent
 whose owner's player is. A fact for the clan's leaders reaches only a
@@ -186,7 +192,13 @@ there.
 
 A clan fact is written by a **person**, through a family app (every
 redirect URI on a family origin) whose grant holds `clans:attest`, with
-`POST /clans/{tag}/facts`:
+`POST /clans/{tag}/facts`. The one exception (2.6.0) is what the app itself
+computes from its own rules: `award_standing`, where a member stands in one
+of the clan's own awards for a season still running (Elixir Clan writes it
+each morning). An integration holding `facts:write` writes and takes back
+only those types, on the same paths, labelled as the app's and never as a
+person's; a person's kinds are refused on its key, and the app's kind on a
+person's grant.
 
 ```json
 {

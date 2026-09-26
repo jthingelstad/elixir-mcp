@@ -385,3 +385,112 @@ test("the timeline shows each fact only to the reader its type allows; a departu
   assert.equal(award.facts.attested_by.app, "Elixir Clan");
   assert.equal(award.facts.attested_by.role, "leader");
 });
+
+test("an app records its computed award standing on its integration key; a person cannot, and it cannot write a person's kind", async () => {
+  const admin = (
+    await db.query(
+      "insert into account(email_hash,status,role) values ('admin-standing','approved','admin') returning account_id",
+    )
+  ).rows[0].account_id;
+  const { createSession } = await import("@elixir-mcp/auth");
+  const session = await createSession(db, {
+    secret: "test",
+    accountId: admin,
+    emailHash: "admin-standing",
+  });
+  const cookie = `__Host-elixir_session=${session.token}`;
+  const provision = (scopes, nameOf) =>
+    handler({
+      rawPath: "/api/admin/integrations",
+      requestContext: { http: { method: "POST" } },
+      headers: { cookie, "x-elixir-client": "web" },
+      body: JSON.stringify({ name: nameOf, scopes }),
+    });
+  const clanApp = data(
+    await provision(["clans:read", "facts:write"], "elixir-clan"),
+  );
+  const other = data(await provision(["facts:write"], "someone-else"));
+  const standing = {
+    type: "award_standing",
+    ref: "standing:136:war_champ:1",
+    player_tag: MEMBER_TAG,
+    detail: {
+      award: "War Champ",
+      award_id: "war_champ",
+      season_id: 136,
+      place: 1,
+      value: 6400,
+      unit: "points",
+      as_of: new Date().toISOString(),
+      previous_player_tag: LEFT_TAG,
+    },
+  };
+  const made = await request("POST", facts, standing, clanApp.token);
+  assert.equal(made.statusCode, 201, made.body);
+  assert.equal(data(made).data.attested_by.app, "Elixir Clan");
+  assert.equal(
+    data(made).data.attested_by.player_tag,
+    null,
+    "the app's, not a person's",
+  );
+  assert.equal(data(made).data.visibility, "clan");
+  // A newer standing under the same ref replaces it.
+  const again = await request(
+    "POST",
+    facts,
+    {
+      ...standing,
+      detail: { ...standing.detail, value: 6500, previous_player_tag: null },
+    },
+    clanApp.token,
+  );
+  assert.equal(again.statusCode, 200);
+  assert.equal(data(again).data.detail.value, 6500);
+  // A person's kind is refused on the key; the app's kind on a person's grant.
+  const kick = await request(
+    "POST",
+    facts,
+    {
+      type: "departure_classified",
+      ref: "k-1",
+      player_tag: LEFT_TAG,
+      detail: { kind: "kick" },
+    },
+    clanApp.token,
+  );
+  assert.equal(data(kick).code, "unknown_fact_type");
+  const leader = await grant(accounts.leader, "cr:read clans:attest");
+  const asPerson = await request(
+    "POST",
+    facts,
+    { ...standing, ref: "p-1" },
+    leader,
+  );
+  assert.equal(asPerson.statusCode, 403);
+  // The clan's agent sees it, in words.
+  const window = { fromMs: Date.now() - 86_400_000, toMs: Date.now() + 1000 };
+  const agent = (
+    await db.query(
+      "insert into account(kind,owned_by_account_id,status,role) values ('agent',$1,'approved','member') returning account_id",
+      [accounts.leader],
+    )
+  ).rows[0].account_id;
+  const seen = (
+    await factItems(db, [{ kind: "clan", tag: CLAN, scope: "activity" }], {
+      accountId: agent,
+      ...window,
+    })
+  ).filter((i) => i.kind === "award_standing");
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].facts.value, 6500);
+  assert.equal(seen[0].facts.attested_by.app, "Elixir Clan");
+  // Only the app that wrote it takes it back.
+  const path = `${facts}/${encodeURIComponent(standing.ref)}`;
+  assert.equal(
+    (await request("DELETE", path, undefined, other.token)).statusCode,
+    404,
+  );
+  const gone = await request("DELETE", path, undefined, clanApp.token);
+  assert.equal(gone.statusCode, 200, gone.body);
+  assert.equal(data(gone).data.removed, true);
+});

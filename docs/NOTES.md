@@ -2621,3 +2621,29 @@ weakest deck protected (yes).
   look at whether a warm-up before acceptance, or those ceilings, is the
   fix (not this change's).
 
+## 2026-09-25 — award_standing: the clan's award races mid-season (9.6.0, JSON API 2.6.0)
+
+Jamie: "how will we relay awards status mid week? I guess Clan can publish
+the standings each day to Elixir?" — then "Do the mid season standings".
+The awards are Elixir Clan's (names, rules, tiebreaks, who is a rookie);
+Elixir stays facts-only, so the standing is a fact the app computes and
+labels as its own.
+
+- `award_standing` (contracts facts.ts): clan subject, clan visibility,
+  about a member; attesters `["app"]`, a new sentinel: the family app on
+  its integration key, not a person. Detail: award, award_id, season_id,
+  place 1-10, value, unit (points | donations | war_decks), as_of,
+  previous_player_tag.
+- Written with `POST /clans/{tag}/facts` by an integration holding
+  `facts:write` (`writeClanFactAsApp`), taken back with DELETE by the app
+  that wrote it (`removeClanFactAsApp`); a person's kinds are refused on
+  the key and the app's kind on a person's grant. Source = the
+  integration's name (`elixir-clan`, named "Elixir Clan").
+- 0180 re-adds the fact_type check NOT VALID with the new type; 0181
+  validates it.
+- Elixir Clan's morning run writes the running season's podium places per
+  computed award (a clan with awards and a policy), one ref per place
+  (`standing:<season>:<award>:<place>`), and takes back places no longer
+  held. The elixir-clan integration needs `facts:write` added
+  (`{integration}` configure) after this deploy.
+

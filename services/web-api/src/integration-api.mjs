@@ -26,7 +26,9 @@ import { enqueueJob } from "../../scheduler/src/ledger.mjs";
 import { json, bearer, UUID_RE } from "./http.mjs";
 import {
   removeClanFact,
+  removeClanFactAsApp,
   writeClanFact,
+  writeClanFactAsApp,
   writePlayerFact,
 } from "./attested-facts.mjs";
 import { sendClanMail } from "./clan-mail.mjs";
@@ -687,6 +689,29 @@ export async function integrationApi(db, event, body, deps = {}) {
           status = r.created ? 201 : 200;
           return r;
         };
+      } else if (
+        (method === "POST" &&
+          (match = /^\/api\/v1\/clans\/([^/]+)\/facts$/.exec(path))) ||
+        (method === "DELETE" &&
+          (match = /^\/api\/v1\/clans\/([^/]+)\/facts\/([^/]+)$/.exec(path)))
+      ) {
+        // A family app's own computed clan fact (2.6.0): Elixir Clan's
+        // award standings, on its integration key, labelled as the app's.
+        scope = "facts:write";
+        const clan = decodeURIComponent(match[1]);
+        const app = { name: policy.name, accountId: account.accountId };
+        if (method === "POST") {
+          operation = "clans.facts.write";
+          run = async () => {
+            const r = await writeClanFactAsApp(db, app, clan, body);
+            status = r.created ? 201 : 200;
+            return r;
+          };
+        } else {
+          operation = "clans.facts.remove";
+          const ref = decodeURIComponent(match[2]);
+          run = () => removeClanFactAsApp(db, app, clan, ref);
+        }
       } else throw new ApiError(404, "not_found");
       if (!policy.scopes.includes(scope))
         throw new ApiError(403, "insufficient_scope");

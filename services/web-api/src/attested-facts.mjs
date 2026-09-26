@@ -9,6 +9,10 @@
  *                                           holding clans:attest
  *   DELETE /api/v1/clans/{tag}/facts/{ref}  the same, to take one back
  *   POST   /api/v1/players/{tag}/facts      an integration with facts:write
+ *   POST   /api/v1/clans/{tag}/facts        an integration with facts:write,
+ *   DELETE /api/v1/clans/{tag}/facts/{ref}  for the types the app itself
+ *                                           computes (attesters ["app"],
+ *                                           9.6.0: Elixir Clan's standings)
  *
  * A clan fact is attested by the person's VERIFIED player in that clan,
  * with the role the record holds for it now; the type names the roles
@@ -327,6 +331,74 @@ export async function removeClanFact(db, account, clanInput, refInput) {
     throw new FactError(403, "not_permitted");
   await db.query(`delete from attested_fact where fact_id = $1`, [row.fact_id]);
   return { removed: true, id: String(row.fact_id), ref };
+}
+
+/** The clan fact types a family app writes itself (attesters ["app"]). */
+const APP_CLAN_TYPES = Object.keys(ATTESTED_FACT_TYPES).filter(
+  (k) =>
+    ATTESTED_FACT_TYPES[k].subject === "clan" &&
+    ATTESTED_FACT_TYPES[k].attesters.includes("app"),
+);
+
+/** A family app's own computed clan fact, on its integration key
+ *  (facts:write, 9.6.0): what the app worked out from its own rules,
+ *  labelled as the app's, never a person's. A person's kind of fact is
+ *  refused here, as the app's kind is refused on a person's grant. */
+export async function writeClanFactAsApp(db, integration, clanInput, body) {
+  const clanTag = tagOf(clanInput, "clan_tag");
+  const type = String(body.type ?? "");
+  if (!APP_CLAN_TYPES.includes(type))
+    throw new FactError(
+      400,
+      "unknown_fact_type",
+      `A family app writes these clan facts itself: ${APP_CLAN_TYPES.join(", ")}. A person's kind of fact is written on their own grant (clans:attest).`,
+    );
+  const t = ATTESTED_FACT_TYPES[type];
+  const ref = refOf(body.ref);
+  const detail = checkDetail(type, body.detail);
+  const playerTag = t.member ? tagOf(body.player_tag, "player_tag") : null;
+  const occurredAt =
+    body.occurred_at === undefined
+      ? new Date().toISOString()
+      : instantOf(body.occurred_at, "occurred_at");
+  const { rows } = await db.query(`select 1 from clan where clan_tag = $1`, [
+    clanTag,
+  ]);
+  if (!rows[0]) throw new FactError(404, "not_recorded");
+  return upsert(db, {
+    subject_kind: "clan",
+    clan_tag: clanTag,
+    player_tag: playerTag,
+    fact_type: type,
+    detail,
+    visibility: t.visibility,
+    source: integration.name,
+    source_ref: ref,
+    attester_account_id: integration.accountId,
+    attester_tag: null,
+    attester_role: null,
+    occurred_at: occurredAt,
+  });
+}
+
+/** Take back a clan fact the app wrote itself, by its ref. */
+export async function removeClanFactAsApp(
+  db,
+  integration,
+  clanInput,
+  refInput,
+) {
+  const clanTag = tagOf(clanInput, "clan_tag");
+  const ref = refOf(refInput);
+  const { rows } = await db.query(
+    `delete from attested_fact
+      where source = $1 and source_ref = $2 and clan_tag = $3
+        and fact_type = any($4)
+      returning fact_id`,
+    [integration.name, ref, clanTag, APP_CLAN_TYPES],
+  );
+  if (!rows[0]) throw new FactError(404, "not_found");
+  return { removed: true, id: String(rows[0].fact_id), ref };
 }
 
 /** A family app's own game fact for a player, on its integration key. */

@@ -67,7 +67,7 @@ export const elixir_timeline = {
         items: { type: "string" },
         maxItems: 32,
         description:
-          "Keep only timeline items of these kinds (entries are untouched): battle_session, session_standout, badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, clan_joined, clan_left, member_joined, member_left, member_role_changed, bracket_observed, race_finished, week_resolved, quiet_crossed, returned, the attested facts (departure_classified, role_change_made, award_granted, member_away, clan_message, personal_record; each shown only to the reader its type allows), or an account_* kind. A consumer that wakes on a few kinds reads only those.",
+          "Keep only timeline items of these kinds (entries are untouched): battle_session, session_standout, badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, clan_joined, clan_left, member_joined, member_left, member_role_changed, bracket_observed, race_finished, week_resolved, quiet_crossed, returned, the attested facts (departure_classified, role_change_made, award_granted, award_standing, member_away, clan_message, personal_record; each shown only to the reader its type allows), or an account_* kind. A consumer that wakes on a few kinds reads only those.",
       },
       player_tag: {
         type: "string",

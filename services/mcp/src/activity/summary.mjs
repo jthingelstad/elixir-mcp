@@ -406,6 +406,13 @@ export function itemText(it, timeZone = "UTC") {
         : `${at} ${by(f)} said in ${subj}'s clan chat: "${f.body}"`;
     case "personal_record":
       return `${at} ${subj} set a new personal best in ${f.game}: ${num(f.score)}${typeof f.previous_best === "number" ? ` (was ${num(f.previous_best)})` : ""}${via(f)}.`;
+    case "award_standing": {
+      const unit =
+        { points: "points", donations: "donations", war_decks: "war decks" }[
+          f.unit
+        ] ?? f.unit;
+      return `${at} ${member} stands ${f.place === 1 ? "first" : `in place ${f.place}`} in ${subj}'s ${f.award} for season ${f.season_id} with ${num(f.value)} ${unit}${f.previous_player_tag ? `, a place ${f.previous_player_tag} held before` : ""}${via(f)}.`;
+    }
     default:
       if (it.kind.startsWith("account_")) {
         const what = it.kind.slice("account_".length).replaceAll("_", " ");

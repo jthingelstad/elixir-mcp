@@ -14,7 +14,11 @@ test("attested facts: a closed registry, each with a subject, a visibility and a
     "member_away",
     "clan_message",
     "personal_record",
+    "award_standing",
   ]);
+  // An app's own computed clan fact is the app's alone to write (9.6.0).
+  assert.deepEqual(ATTESTED_FACT_TYPES.award_standing.attesters, ["app"]);
+  assert.equal(ATTESTED_FACT_TYPES.award_standing.visibility, "clan");
   for (const [kind, t] of Object.entries(ATTESTED_FACT_TYPES)) {
     assert.ok(["clan", "player"].includes(t.subject), kind);
     assert.ok(["clan", "leaders", "player"].includes(t.visibility), kind);

@@ -23,6 +23,11 @@
  * would never be narrated; the game already tells the whole clan, so
  * keeping it from the clan's own agent kept nothing from anyone.
  *
+ * `app` among a clan fact's attesters (9.6.0) means the family app itself
+ * writes it on its integration key (`facts:write`), not a person: what the
+ * app computed from its own rules (Elixir Clan's award standings), labelled
+ * as the app's, never passed off as a leader's word.
+ *
  * This registry is the one list: the write routes validate against it, and
  * the timeline reads its kinds AND who sees each from it at read time, so a
  * change here reaches rows written before it.
@@ -45,7 +50,8 @@ export interface FactType {
   subject: FactSubject;
   visibility: FactVisibility;
   /** Clan facts: the in-game roles that may attest it; `self` lets the
-   *  member it is about attest it too. Player facts are an integration's. */
+   *  member it is about attest it too; `app` is the family app on its
+   *  integration key (9.6.0). Player facts are an integration's. */
   attesters: readonly string[];
   /** Whether the fact is about one member (`player_tag` required). */
   member: boolean;
@@ -137,6 +143,29 @@ export const ATTESTED_FACT_TYPES: Readonly<Record<string, FactType>> = {
     about:
       "A family app's own game produced a new personal best for the player (Elixir Drop).",
   },
+  award_standing: {
+    subject: "clan",
+    visibility: "clan",
+    attesters: ["app"],
+    member: true,
+    detail: {
+      award: { type: "string", max: 60 },
+      award_id: { type: "string", max: 40 },
+      season_id: { type: "integer", min: 1, max: 9999 },
+      place: { type: "integer", min: 1, max: 10 },
+      value: { type: "integer", min: 0, max: 1_000_000_000 },
+      unit: { type: "enum", values: ["points", "donations", "war_decks"] },
+      as_of: { type: "instant" },
+      previous_player_tag: {
+        type: "string",
+        max: 16,
+        optional: true,
+        nullable: true,
+      },
+    },
+    about:
+      "Where a member stands in one of the clan's own awards for a season still running, as the clan's app computed it from its rules: the place, the value and unit, as of when. previous_player_tag names who held the place before, when that changed.",
+  },
 };
 
 export const ATTESTED_FACT_KINDS: readonly string[] =
@@ -151,4 +180,5 @@ export const FAMILY_APP_NAMES: Readonly<Record<string, string>> = {
   "drop.poapkings.com": "Elixir Drop",
   "elixir.poapkings.com": "Elixir",
   "elixir-drop": "Elixir Drop",
+  "elixir-clan": "Elixir Clan",
 };

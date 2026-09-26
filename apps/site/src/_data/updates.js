@@ -20,6 +20,11 @@ export default [
   },
   {
     date: "2026-09-25",
+    title: "Your clan's award races, as they stand",
+    body: "A clan that runs its awards in Elixir Clan now shares where each race stands while the season is still running: who is first, second and third in each award, by the clan's own rules, updated every morning. Everyone in the clan sees it on their timeline, and the clan's own agent can say who leads and notice when the lead changes hands. The standings are the clan app's, labelled as such, apart from the game record. Contract 9.6.0; JSON API 2.6.0.",
+  },
+  {
+    date: "2026-09-25",
     title: "Four war decks that share no card",
     body: "Ask for your war decks and Elixir now answers with sets you can actually field: four decks with no card in common (an Evolution or Hero form counts as the same card), picked from decks this season's players really played in Trophy Road, Path of Legends and Clan Wars, and fitted to your collection and card levels. A deck built around an Evolution you have not unlocked still counts, played with the base card and priced by how much that Evolution is measured to add. Each deck shows its record and why it was chosen, the weakest deck of the set is named, and the decks it had to give up are listed with the card they lost. Keep the decks you like and ask again for the rest, or ask for a different last deck. Contracts 9.4.0 and 9.5.0.",
   },

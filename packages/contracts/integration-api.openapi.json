@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "2.5.0",
+    "version": "2.6.0",
     "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Collection grants allow additions only. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
@@ -1074,7 +1074,7 @@
         "operationId": "clanFactWrite",
         "summary": "Record what the signed-in person did in their clan (an attested fact): a departure classified, a promotion or demotion made, an award granted, a member away, a message sent to the clan. Family apps only, holding clans:attest; attested by the person's verified player in the clan, with the role the record holds for it, and refused when that role may not attest the type (a Clan Leader Message: leaders and co-leaders).",
         "x-permission": "clans:attest",
-        "x-principals": ["person"],
+        "x-principals": ["person", "integration"],
         "security": [
           {
             "personOAuth": ["clans:attest"]
@@ -1158,7 +1158,9 @@
               }
             }
           }
-        }
+        },
+        "x-integration-permission": "facts:write",
+        "description": "An integration holding facts:write (2.6.0) writes only the types a family app computes itself (award_standing: Elixir Clan's award standings), labelled as the app's; a person's kinds need a person's grant."
       }
     },
     "/clans/{tag}/facts/{ref}": {
@@ -1166,7 +1168,7 @@
         "operationId": "clanFactRemove",
         "summary": "Take back a clan fact this app wrote (a grant revoked, a message withdrawn), by its ref; by someone who may attest its type.",
         "x-permission": "clans:attest",
-        "x-principals": ["person"],
+        "x-principals": ["person", "integration"],
         "security": [
           {
             "personOAuth": ["clans:attest"]
@@ -1251,7 +1253,9 @@
               }
             }
           }
-        }
+        },
+        "x-integration-permission": "facts:write",
+        "description": "An integration holding facts:write (2.6.0) takes back only the app-computed facts it wrote itself."
       }
     },
     "/players/{tag}/facts": {
@@ -1832,7 +1836,8 @@
               "award_granted",
               "member_away",
               "clan_message",
-              "personal_record"
+              "personal_record",
+              "award_standing"
             ]
           },
           "ref": {
@@ -1929,7 +1934,7 @@
           },
           "detail": {
             "type": "object",
-            "description": "The type's detail, nothing else: departure_classified {kind: kick|leave, left_at?}; role_change_made {from, to} (member, elder, coLeader, leader); award_granted {award (60), season_id, place?}; member_away {until? instant or null}; clan_message {channel: leader_message|clan_chat, title? (24), body (200)}; personal_record {game (40), score, previous_best?}."
+            "description": "The type's detail, nothing else: departure_classified {kind: kick|leave, left_at?}; role_change_made {from, to} (member, elder, coLeader, leader); award_granted {award (60), season_id, place?}; member_away {until? instant or null}; clan_message {channel: leader_message|clan_chat, title? (24), body (200)}; personal_record {game (40), score, previous_best?}; award_standing {award (60), award_id (40), season_id, place (1-10), value, unit: points|donations|war_decks, as_of, previous_player_tag?} (an integration's, 2.6.0)."
           }
         }
       },
