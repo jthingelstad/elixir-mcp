@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Take a finished Elixir MCP change to production and prove it there. Preflight (checkout lease, AWS caller), release bookkeeping (MCP contract and changelog, JSON API version and pin, What's new, site docs, NOTES), `npm run verify`, commits and push, the deploy with the right acceptance scope, triage of every acceptance failure, the live read-back, then sibling repos and the close. `/ship` runs every step; `/ship from <step>` resumes at one (`/ship from triage` after Jamie ran a deploy the session was refused). Use whenever work in this checkout is ready for production, including at the end of `/tool-change`, `/migration`, a Gym round or a consistency round.
+description: Take a finished Elixir MCP change to production and prove it there. Preflight (checkout lease, AWS caller), release bookkeeping (MCP contract and changelog, JSON API version and pin, What's new, site docs, NOTES), `npm run verify`, commits, a pull request merged on a green `validate` check, the deploy with the right acceptance scope, triage of every acceptance failure, the live read-back, then sibling repos and the close. `/ship` runs every step; `/ship from <step>` resumes at one (`/ship from triage` after Jamie ran a deploy the session was refused). Use whenever work in this checkout is ready for production, including at the end of `/tool-change`, `/migration`, a Gym round or a consistency round.
 ---
 
 # Ship
@@ -17,7 +17,7 @@ major, anything a DECISIONS line covers) are asked before building.
 
 How to change a tool is `/tool-change`, a migration `/migration`, a live
 op `/ops`; they end here. Steps, in order: `preflight`, `bookkeeping`,
-`verify`, `commit`, `deploy`, `triage`, `read-back`, `siblings`, `close`.
+`verify`, `commit`, `merge`, `deploy`, `triage`, `read-back`, `siblings`, `close`.
 
 ## Preflight
 
@@ -32,6 +32,8 @@ op `/ops`; they end here. Steps, in order: `preflight`, `bookkeeping`,
    no role). Never the `jamie` profile.
 3. **main is current:** after `git fetch`, `git status -sb` is not behind
    `origin/main`. Behind means another actor shipped: find out who first.
+   Then branch before the first edit: `git switch -c <objective>/<slug>`
+   (`session/`, `loop/`, `run/`...). main takes nothing but merged PRs.
 4. **Nothing holds migrate:** `elixir-mcp-migrate` runs at reserved
    concurrency 1, so a deploy behind a running backfill fails at its
    migration step with a 429 (twice on 2026-09-22, `run-elixir-mcp.md`).
@@ -110,8 +112,33 @@ the test summaries, not the last line.
   trailer the session's instructions require, if any.
 - Assert HEAD moved (`git log --oneline -1`). Never pipe commit output
   through `tail`: the pipe's status is tail's, so a failed commit passes.
-- `&&`, never `;`, before push or deploy (DECISIONS, "Lease first"). Check
-  the lease, `git push origin main`; CI's `validate.yml` reruns the gate.
+- `&&`, never `;`, before push or deploy (DECISIONS, "Lease first").
+
+## Merge
+
+main accepts only a pull request whose `validate` check is green on a
+branch up to date with main (the ruleset on `main`, 2026-09-26; no
+bypass, for Jamie's account either, which is the account agents push
+as). No review is required: the check is the gate, the PR is the record.
+
+1. Check the lease, then `git push -u origin HEAD`.
+2. `gh pr create --fill` (title and body from the commits; a
+   multi-commit PR gets a title that says what the whole ships), then
+   `gh pr merge --auto --rebase --delete-branch`. Rebase keeps each
+   message-first commit on main as its own commit.
+3. `gh pr checks --watch --fail-fast`. Green: auto-merge lands it. Red:
+   read the failure, fix on the branch, push; never merge around it. A
+   check that fails and passes on a re-run is a flake, and a flake is a
+   defect: fix it in this PR or file it in NOTES the same day.
+4. main moved while it ran (another actor, or Dependabot): `gh pr update-branch
+   --rebase`, which re-runs the check.
+5. `gh pr view --json state -q .state` is `MERGED`, then `git switch main
+   && git pull --ff-only`, and `git branch -d` the local branch. Deploy
+   from there.
+
+Work that stops before the merge (credentials, a red check you cannot
+fix now) leaves the PR open with its state in NOTES and the checkout on
+main; the next preflight refuses a checkout left on a branch.
 
 ## Deploy
 
@@ -150,6 +177,11 @@ change.
 **Refusals.** A dirty worktree (untracked files aside): the build bundles
 the tree as it is, so an uncommitted edit would ship untraced. An unknown
 flag exits 2 before any AWS call: until 2026-09-25, `--help` deployed.
+**The CI gate** (`infra/scripts/lib/ci-gate.mjs`): HEAD must be
+`origin/main`, and `validate` must be green on HEAD or on the merged PR
+head with the same tree; a check still running is waited for (15 min).
+`--break-glass` skips it only when GitHub itself is unreachable, never
+for a red check, and NOTES records why.
 
 **Order:** build, upload, migrations (a failure stops the deploy before
 code flips), vocabulary import, stack, site sync and CloudFront
@@ -158,7 +190,8 @@ red smoke or acceptance means the code is already live: "a red smoke means
 fix forward now, not walk away" (WORKFLOW.md). Migrations never roll back.
 
 **The snapshot.** The import rewrites `fixtures/card-roles.snapshot.json`,
-the tests' copy of the vocabulary. If it moved, commit it ("fixtures:
+the tests' copy of the vocabulary. If it moved, commit it on a branch and
+merge it (it is a PR like any other) ("fixtures:
 card-roles snapshot at the reference's <sha>", as f9b5efa5), or refresh it
 first with `node infra/scripts/import-card-roles.mjs --snapshot-only`.
 
@@ -225,7 +258,10 @@ The smoke read the doors; read what this change moved, reads only:
 - Answer the feedback the change closes after the read-back, `done` naming
   the version, by `AGENT-TEAM/close-the-loop.md`'s write rules.
 - A DECISIONS line added or changed: `/consistency <decision>` that day.
-- `git status --porcelain` empty (untracked files count), then
+- The NOTES entry and anything else written after the deploy go through
+  their own PR (branch, `/ship from merge`); no deploy follows a
+  notes-only merge.
+- On main, `git status --porcelain` empty (untracked files count), then
   `objective-lease.mjs release <objective> --lease-id <id>`.
 - Tell Jamie what shipped (versions, commits), what acceptance caught, and
   **Needs you** (a refused deploy's command, a live check only he can

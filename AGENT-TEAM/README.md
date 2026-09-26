@@ -105,7 +105,8 @@ Cross-cutting work keeps one originating owner through acceptance.
   the EMF log line, which Logs Insights reads. The console `/status` page is
   signed-in; the public health reads are `/data/now` and
   `/api/public/status`.
-- Gates: `npm run verify` before push; deploys via
+- Gates: `npm run verify` before push; the `validate` check before
+  merge (a PR is the only way into main); deploys, from main after it, via
   `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs` (smoke-gated).
   Acceptance is opt-in per deploy, and `deploy.mjs` prints a WARNING when
   it is skipped: pass `--acceptance=<family>` whenever a tool in that
@@ -121,7 +122,8 @@ Cross-cutting work keeps one originating owner through acceptance.
 2. Never verify with writes on live data — reads and refusal paths only.
 3. Docs ship with the change (site docs + `updates.js` same commit);
    contract bumps append to the changelog.
-4. Commit to `main`; small, message-first commits; assert HEAD moved.
+4. Small, message-first commits on a branch; assert HEAD moved; main
+   takes them through a PR merged on a green `validate` check.
 5. A healthy no-op is a successful run. Do not manufacture work.
 
 ## Calendar implementation

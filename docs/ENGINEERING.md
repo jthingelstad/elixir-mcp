@@ -392,8 +392,11 @@ is the invariant it serves.
 `node infra/scripts/deploy.mjs` with `AWS_PROFILE=cloud-engineer` **in the environment** —
 the CLI profile flag alone does not satisfy the SDK's provider chain. It
 refuses a worktree with uncommitted changes to tracked files (it would
-build and ship them) and an unknown flag, and prints a WARNING when
-acceptance is skipped. Order is
+build and ship them), an unknown flag, and a HEAD that is not
+`origin/main` with a green `validate` check (the CI gate,
+`infra/scripts/lib/ci-gate.mjs`: production runs only what main holds
+and CI passed, including the site build and the browser journeys that
+run only there), and prints a WARNING when acceptance is skipped. Order is
 build → upload → migrate → vocabulary import → stack → web. It is smoke-gated,
 and acceptance-gated when asked (`--acceptance`; below), and deploys are cumulative: never deploy past a commit whose infrastructure
 change is blocked. The vocabulary import reads `../cr-agent-api-docs` and
@@ -404,7 +407,9 @@ deploy's change if it moved.
 
 ## Verification follows the boundaries
 
-`npm run verify` is the same pre-push and CI gate: formatting, lint, Knip, the
+`npm run verify` is the same pre-push and CI gate (CI's `validate` check,
+which also builds the site and runs the Playwright journeys, is what
+main's ruleset requires before a PR merges): formatting, lint, Knip, the
 TypeScript check over the console and the kit packages, and all workspace
 tests. The root test command first builds the shared contracts,
 so a fresh checkout cannot depend on a previous local build. Knip entries name

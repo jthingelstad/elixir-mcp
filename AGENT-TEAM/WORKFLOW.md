@@ -101,8 +101,10 @@ READING is a document map, not a second product specification.
    `battles_query`, `elixir_track_player`), check the matching `/api/v1` operation in
    `packages/contracts/integration-api.openapi.json`: the JSON API keeps
    ordinary semver, so a removed or renamed field there is its own major
-   and a Jamie decision. Commit small and message-first, push `main`, and
-   when runtime code changed, deploy:
+   and a Jamie decision. Commit small and message-first on a branch
+   (`<objective>/<slug>`), open a PR and let it merge on a green
+   `validate` check (the `ship` skill's Merge step), return to an
+   up-to-date main, and when runtime code changed, deploy:
    `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`, adding
    `--acceptance=<family>` whenever a tool in that family changed
    (acceptance is opt-in per deploy and `deploy.mjs` prints a WARNING

@@ -47,6 +47,6 @@ with a failure nobody triaged is a gate nobody kept.
 - **Never delete a control case.** Every finding keeps one (`control:
   true`); `acceptance/acceptance.test.mjs` rejects a finding without one at
   load.
-- **Triage edits are local files.** Verify, commit, push, then re-run the
+- **Triage edits are local files.** Verify, commit, merge (a PR), then re-run the
   cases with `--only` or `--family`; they need no deploy of their own. The
   next deploy refuses the worktree until they are committed.

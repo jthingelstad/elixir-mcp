@@ -175,7 +175,8 @@ Gym runs are read-only, so they may run while you fix another family.
      A change to a tool follows `/tool-change`.
    - Answer each item with `{feedback_respond}`, `done` naming the version,
      following close-the-loop.md's write rules. Add a short `docs/NOTES.md`
-     entry for the round. Commit, push, and release the lease.
+     entry for the round. Commit, merge through a PR (`/ship`'s Merge
+     step), and release the lease.
 4. **Re-run** the family (round N+1). The header says what shipped since.
 5. **Stop the family after three rounds without a clean run.** Park it as
    `needs Jamie` with the reason and keep sweeping the others.

@@ -161,7 +161,13 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
 
 ## Working style
 
-- Work lands on `main`; CI (validate workflow) must stay green.
+- **Work reaches `main` only through a pull request** (2026-09-26): a
+  branch, `gh pr create --fill`, `gh pr merge --auto --rebase
+  --delete-branch`, merged when the `validate` check is green on a branch
+  up to date with main. No review is required and nobody bypasses the
+  ruleset, Jamie's account included (the agents push as it). The steps
+  are the `ship` skill's Merge step; the lease covers the whole loop,
+  branch to merge to deploy, in this one checkout.
 - **Docs ship with the change**: anything altering architecture or
   user-facing behavior updates the site docs (`apps/site/src/docs/`) and
   the What's-new list (`apps/site/src/_data/updates.js`) in the same
@@ -169,10 +175,15 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
   registry - never hand-edit it; fix the tool's declaration instead.
 - `npm run verify` (prettier check + oxlint + knip + typecheck + all workspace tests) is the
   pre-push gate; `npm run format` fixes style. `npm run knip` can also run
-  the dead-export/dependency check alone during refactoring. CI uses the same gate.
+  the dead-export/dependency check alone during refactoring. CI runs the
+  same gate plus the site build and the Playwright journeys, and its
+  `validate` check is the merge gate.
 - Commits are small and message-first; assert HEAD moved after committing
   (don't pipe commit output through `tail`).
-- Deploy with `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`.
+- Deploy with `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`,
+  from an up-to-date main: it refuses a HEAD that is not `origin/main`
+  or has no green `validate` check (`--break-glass` is for GitHub being
+  down, never a red check).
   Acceptance is opt-in per deploy and `deploy.mjs` prints a WARNING when
   it is skipped: pass `--acceptance=<family>` whenever a tool in that
   family changes, and the whole suite (`--acceptance`) only for shared

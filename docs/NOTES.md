@@ -2984,3 +2984,53 @@ headers, so the door never saw them; the door tests call the handler
 directly and could not notice. Both are on the whitelist now (nine of
 CloudFront's ten), and `collector-edge.test.mjs` fails when the door reads
 an `x-collector-*` header the edge does not forward.
+
+## 2026-09-26 — main takes only pull requests; deploys take only green main
+
+Jamie: "we have outgrown our cowboy commit to main and push workflow."
+Measured first (`gh run list -w validate -L 200`, 2026-09-23 23:16Z to
+09-26 19:41Z): 412 commits to main in seven days, every one by an agent;
+200 CI runs, 9 red. Six of the red were flakes and three were real
+breaks that a follow-up commit repaired (the acceptance bites
+`gym/111.1` twice and `gym/244.2`, `248.1`, `248.2` once). CI finished
+about 3.5 minutes after a push, and `deploy.mjs` checked only for a
+dirty tree, so deploys ran ahead of CI and could ship an unpushed HEAD.
+The site build and the Playwright journeys run only in CI, so no deploy
+ever waited on them.
+
+- **The ruleset on main**: a pull request is required (zero approvals), the
+  `validate` check must be green on a branch up to date with main, history is
+  linear, force pushes and deletion are blocked, and there is no bypass. Merges
+  are rebase-only with auto-merge on, and merged branches are deleted. The
+  agents push as Jamie's account, so a bypass for admins would be a bypass for
+  every agent.
+- **CI**: the job is named `validate`. That name is the required check
+  and the gate's lookup, so renaming it means changing both. A new push
+  to a PR cancels that PR's running check. There is no docs-only fast
+  path: the whole job takes about 2.5 minutes (verify 81 s).
+- **The deploy gate** (`infra/scripts/lib/ci-gate.mjs`): HEAD must be
+  `origin/main`, and `validate` must be green on HEAD or on the merged
+  PR's head with the same tree, which up-to-date plus rebase guarantees.
+  A check that is still running is waited for, up to 15 minutes.
+  `--break-glass` skips the gate for a GitHub outage and nothing else.
+- **The loop**: the `ship` skill's new Merge step. It runs in one checkout
+  under one lease, from branch to merge to deploy. Preflight already
+  refuses a checkout left on a branch.
+- **Flakes fixed first**, because a required check turns each one into a
+  blocked merge:
+  - The meta-rollup `repeat_players` and duel tests failed four times.
+    The hourly test stamped `created_at = Date.now() + 1 s`, and later
+    rebuilds are bounded by the database clock, so a slow runner counted
+    those rows and a fast one did not. They are now stamped 1 ms past the
+    cursor, which is always in the past.
+  - The admin integrations journey failed twice, and that was a real
+    console race. TanStack joins an in-flight fetch on a query that has
+    no data yet (query-core 5.102.8 `query.js:157`), so a write landing
+    before the first list read answered showed the list without the new
+    row. `useInvalidate` now cancels the in-flight reads before
+    invalidating, which covers all 23 call sites, and
+    `test/invalidate.test.jsx` fails without the fix.
+  - `players_summary` was already fixed by a188fa48.
+- **Watch**: the first scheduled Codex run after rollout has to open and merge
+  a PR with `gh` from its sandbox. If it cannot, that run's lease abort names
+  the blocked step.
