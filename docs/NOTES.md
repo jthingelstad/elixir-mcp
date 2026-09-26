@@ -2906,3 +2906,37 @@ Verdicts:
 - `catalogue/battles_trends#1`: a `query_timeout` alone. `battles_trends`
   has not changed since 9.1.0; this morning's open first-call item, still
   open.
+
+## 2026-09-26 — Collector follow-ups: Go only, signed naming, the `poll` block gone
+
+The collector is Go only, signed and able to roll itself back
+(elixir-mcp-collector v3.0.1, PRs #8-#12). Before touching the door, the
+fleet was read from `/api/public/status`: at 18:16Z Skeleton Army and
+Cannon still reported v2.0.30 (below v2.0.31, so they still read
+`poll.idle_backoff_s` and would have waited 0 s after a refusal naming no
+`next_check_in_s`); by 18:46Z all five active collectors reported v3.0.0
+or later (Hog Rider is draining). Only then:
+
+- **`poll` removed from `CONFIG`** (collector-door.mjs) with its comment
+  and the test that pinned it. Jamie: restoring it on 2026-09-12
+  (21ccc5f8) for a stale Python collector was the wrong fix; the client
+  should have been updated. `packages/contracts` never declared `poll`,
+  so there is no contract bump.
+- **Python references removed**: the 426 hint points a leftover Python
+  collector at the Go installer; `parseClientVersion` keeps reading
+  `py-` on purpose (an unreadable version is let through, a readable one
+  is what the gate can refuse).
+- **Naming verifies what collectors verify** (`name-collector-release.mjs`):
+  refuses a release with no `SHA256SUMS.sig`, verifies it with
+  `ssh-keygen -Y verify` against the release key (fingerprint checked
+  against the line first), requires the VERSION line for the tag and the
+  exact release-download url per asset. Dry runs: v3.0.1 and v2.0.30
+  (already signed by sign-release) pass; v2.0.29 is refused for no
+  signature; a wrong key and a wrong fingerprint are both refused.
+  `{collector_release}` checks url shape, 64-hex sha256 and `vX.Y.Z`
+  before connecting (new `ops-collectors.test.mjs`).
+- **RELEASING-COLLECTOR.md rewritten for v3**; the release key is on
+  /docs/operators; DECISIONS gained four lines.
+
+`min_client_version` stays 2.0.30 (raising it retires the pre-signing
+rollback lever; Jamie's call). No release was named.
