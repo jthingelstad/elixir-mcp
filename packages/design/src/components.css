@@ -592,6 +592,10 @@ table {
   background: var(--info-fill);
   border: 1px solid var(--info-edge);
 }
+.callout--bad {
+  background: var(--bad-fill);
+  border: 1px solid var(--bad-edge);
+}
 
 /* An empty state says WHY it is empty, then offers one action. */
 .empty {
@@ -3422,4 +3426,266 @@ input[aria-invalid="true"] {
 }
 .activity__table .table {
   margin-top: var(--s-2);
+}
+
+/* ==================================================================
+   Collector release signatures — the per-collector badge and the
+   release key drawn as SSH randomart (0184). Tokens only, so it follows
+   whatever the tokens say; the board scales to its column on a phone.
+   ================================================================== */
+
+.sig {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  border-radius: var(--r-pill);
+  padding: 3px 8px 3px 6px;
+  border: 1px solid var(--line);
+  color: var(--ink-faint);
+  vertical-align: middle;
+}
+.sig--signed {
+  color: var(--ok);
+  background: var(--ok-fill);
+  border-color: var(--ok-edge);
+}
+.sig--dev_build {
+  color: var(--accent-bright);
+  background: var(--info-fill);
+  border-color: var(--info-edge);
+}
+.sig--mismatch {
+  color: var(--bad);
+  background: var(--bad-fill);
+  border-color: var(--bad-edge);
+}
+/* The icon-only mark beside a collector's name: a phone's only view of
+   the badge, since the version column is behind the table's scroll. */
+.sig--icon {
+  display: none;
+  padding: 3px;
+}
+@media (max-width: 560px) {
+  .sig--icon {
+    display: inline-flex;
+  }
+}
+.version-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.release-key {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+.release-key__art {
+  flex: 0 0 auto;
+  width: 238px;
+}
+.release-key__text {
+  min-width: 0;
+  flex: 1 1 18rem;
+  font-size: var(--t-body-sm);
+  line-height: 1.6;
+  color: var(--ink-body);
+}
+.release-key__text p {
+  margin: 0 0 10px;
+  max-width: 62ch;
+}
+.release-key__title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.release-key__title svg {
+  color: var(--accent-bright);
+}
+.release-key__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-family: var(--font-mono);
+  color: var(--ink-dim);
+}
+.release-key__fp {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-code);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-chip);
+  padding: 7px 10px;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.release-key__foot {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.release-key__ascii {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.release-key__ascii summary {
+  cursor: pointer;
+}
+.release-key__ascii pre {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.15;
+  color: var(--ink-code);
+  background: var(--ground-sunken);
+  border-radius: var(--r-chip);
+  padding: 8px 10px;
+  margin: 6px 0 0;
+  overflow-x: auto;
+}
+
+.randomart {
+  margin: 0;
+  padding: 10px;
+  border-radius: var(--r-block);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+.randomart--pending {
+  aspect-ratio: 17 / 11;
+}
+.randomart__rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  margin: 2px 0 6px;
+}
+.randomart__rule:last-child {
+  margin: 6px 0 2px;
+}
+.randomart__rule::before,
+.randomart__rule::after {
+  content: "";
+  flex: 1;
+  border-top: 1px dashed var(--line);
+}
+.randomart__board {
+  display: grid;
+  grid-template-columns: repeat(17, 1fr);
+  gap: 2px;
+}
+.randomart__cell {
+  aspect-ratio: 3 / 4;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-faint);
+  background: color-mix(in oklab, var(--line-soft) 45%, transparent);
+}
+.randomart__cell--l1 {
+  background: color-mix(in oklab, var(--accent) 14%, var(--ground-sunken));
+  color: var(--ink-dim);
+}
+.randomart__cell--l2 {
+  background: color-mix(in oklab, var(--accent) 20%, var(--ground-sunken));
+  color: var(--ink-dim);
+}
+.randomart__cell--l3 {
+  background: color-mix(in oklab, var(--accent) 26%, var(--ground-sunken));
+  color: var(--ink-dim);
+}
+.randomart__cell--l4 {
+  background: color-mix(in oklab, var(--accent) 32%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--l5 {
+  background: color-mix(in oklab, var(--accent) 37%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--l6 {
+  background: color-mix(in oklab, var(--accent) 43%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--l7 {
+  background: color-mix(in oklab, var(--accent) 49%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--l8 {
+  background: color-mix(in oklab, var(--accent) 55%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--l9 {
+  background: color-mix(in oklab, var(--accent) 61%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--l10 {
+  background: color-mix(in oklab, var(--accent) 67%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--l11 {
+  background: color-mix(in oklab, var(--accent) 72%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--l12 {
+  background: color-mix(in oklab, var(--accent) 78%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--l13 {
+  background: color-mix(in oklab, var(--accent) 84%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--l14 {
+  background: color-mix(in oklab, var(--accent) 90%, var(--ground-sunken));
+  color: var(--ink);
+}
+.randomart__cell--start,
+.randomart__cell--end {
+  color: var(--gold-on);
+  background: var(--gold-grad);
+  box-shadow:
+    0 0 0 1px var(--gold),
+    0 0 10px var(--gold);
+}
+.randomart__cell--end {
+  color: var(--ok-on);
+  background: var(--ok);
+  box-shadow:
+    0 0 0 1px var(--ok),
+    0 0 10px var(--ok);
+}
+
+@media (max-width: 560px) {
+  .release-key {
+    flex-direction: column;
+    padding: 14px;
+    gap: 14px;
+  }
+  .release-key__art {
+    width: 100%;
+    max-width: 340px;
+    margin: 0 auto;
+  }
 }

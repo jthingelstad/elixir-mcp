@@ -15,6 +15,7 @@ import {
   Droplet,
   ExternalLink,
   FileText,
+  Fingerprint,
   Gauge,
   HeartPulse,
   History,
@@ -40,9 +41,12 @@ import {
   Settings,
   Shield,
   ShieldCheck,
+  ShieldQuestionMark,
+  ShieldX,
   UserRound,
   Users,
   X,
+  Wrench,
 } from "lucide-react";
 
 /**
@@ -82,6 +86,7 @@ const ICONS = {
   droplet: Droplet,
   "external-link": ExternalLink,
   "file-text": FileText,
+  fingerprint: Fingerprint,
   gauge: Gauge,
   "heart-pulse": HeartPulse,
   history: History,
@@ -107,8 +112,11 @@ const ICONS = {
   settings: Settings,
   shield: Shield,
   "shield-check": ShieldCheck,
+  "shield-question-mark": ShieldQuestionMark,
+  "shield-x": ShieldX,
   "user-round": UserRound,
   users: Users,
+  wrench: Wrench,
   x: X,
 } as const;
 

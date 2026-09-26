@@ -47,6 +47,10 @@
 
 import { execFileSync } from "node:child_process";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import {
+  COLLECTOR_RELEASE_KEYS,
+  COLLECTOR_RELEASE_SIGNER,
+} from "@elixir-mcp/contracts";
 
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -56,19 +60,14 @@ import path from "node:path";
 const REGION = "us-east-1";
 const REPO = "jthingelstad/elixir-mcp-collector";
 
-// The release key, as elixir-mcp-collector's SECURITY.md publishes it
-// (and the collector compiles it in, internal/v2/releasekey.go). The
-// fingerprint is checked against the line before anything is verified,
-// so an edit to one without the other stops the script. Rotation
-// (SECURITY.md) adds the new line here beside the old one.
-const RELEASE_KEYS = [
-  {
-    line: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFvN1mZGTcFXSGnIXf8h33cxAhvrHPYn80BO5FkELh28",
-    fingerprint: "SHA256:mktajl7kjMESYLyiY34rRu9hLTL6+EJS3I6aa/sGqeU",
-  },
-];
-const SIGNER = "elixir-mcp-collector-release";
-const NAMESPACE = "elixir-mcp-collector-release";
+// The release key (packages/contracts, the one copy), as
+// elixir-mcp-collector's SECURITY.md publishes it and the collector
+// compiles it in. Each fingerprint is checked against its line before
+// anything is verified, so an edit to one without the other stops the
+// script. Rotation adds the new key there beside the old one.
+const RELEASE_KEYS = COLLECTOR_RELEASE_KEYS;
+const SIGNER = COLLECTOR_RELEASE_SIGNER;
+const NAMESPACE = COLLECTOR_RELEASE_SIGNER;
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");

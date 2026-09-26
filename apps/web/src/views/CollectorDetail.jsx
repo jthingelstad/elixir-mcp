@@ -10,6 +10,7 @@ import {
   useMyGateways,
   usePublicStatus,
 } from "../lib/queries.js";
+import { SignatureBadge } from "../components/ReleaseSignature.jsx";
 import { CardPicker } from "../components/CardPicker.jsx";
 
 /**
@@ -180,6 +181,18 @@ function Operations({ g, staged, setStaged, reload }) {
         <dd className="mono">{Number(g.fetch_points ?? 0).toLocaleString()}</dd>
         <dt>version</dt>
         <dd className="mono">{g.last_seen_sha ?? "—"}</dd>
+        {/* 0184: what the collector says it runs, against the named
+            release's signed hash. Absent on an older hub or client. */}
+        <dt>release</dt>
+        <dd>
+          <SignatureBadge state={g.signature ?? "unverified"} />
+        </dd>
+        <dt>binary</dt>
+        <dd className="mono break-all">{g.binary_sha256 ?? "not reported"}</dd>
+        <dt>trusts</dt>
+        <dd className="mono break-all">
+          {g.release_key_fingerprints ?? "not reported"}
+        </dd>
       </dl>
       <div
         style={{
@@ -406,6 +419,12 @@ export function CollectorPage({ id, navigate, me }) {
             {detail?.gateway?.last_seen_sha
               ? ` · ${detail.gateway.last_seen_sha.slice(0, 7)}`
               : ""}
+            {pub?.signature && (
+              <>
+                {" "}
+                <SignatureBadge state={pub.signature} />
+              </>
+            )}
           </p>
         </div>
         <span className={`chip chip--${tone}`} style={{ marginLeft: "auto" }}>

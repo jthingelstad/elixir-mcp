@@ -4,6 +4,10 @@ import { useEffect, useState, Fragment } from "react";
 import { api } from "../api.js";
 import { MailFrame } from "../components/MailFrame.jsx";
 import {
+  ReleaseKeyCard,
+  signatureCounts,
+} from "../components/ReleaseSignature.jsx";
+import {
   keys,
   useAdminAccounts,
   useAdminCall,
@@ -886,6 +890,14 @@ function AdminCollections({ navigate }) {
  * own record — the SAME record the status page opens, with the
  * operations panel on it for whoever may act. One collector, one page.
  */
+const SIGNATURE_LABEL = {
+  signed: "signed",
+  dev_build: "dev build",
+  unverified: "unverified",
+  mismatch: "MISMATCH",
+};
+const SIGNATURE_TONE = { signed: "ok", mismatch: "bad", dev_build: "accent" };
+
 function AdminCollectors({ navigate }) {
   const { stamp } = useClock();
   const gateways = useAdminGateways().data?.gateways ?? [];
@@ -931,7 +943,19 @@ function AdminCollectors({ navigate }) {
     g.door_calls_hour && g.fetches_last_hour
       ? (g.door_calls_hour / (2 * g.fetches_last_hour)).toFixed(1)
       : "—",
+    // Signed release (0184): the reported binary hash against the named
+    // one for its version. A mismatch is the loud one.
+    {
+      text: `${SIGNATURE_LABEL[g.signature] ?? "unverified"} · ${g.last_seen_sha ?? "—"}`,
+      tone: SIGNATURE_TONE[g.signature],
+      title: g.binary_sha256
+        ? `binary ${g.binary_sha256}\ntrusts ${g.release_key_fingerprints ?? "no key reported"}`
+        : "sends no binary hash (an older client)",
+    },
   ]);
+  const mismatched = gateways.filter(
+    (g) => g.signature === "mismatch" && g.status !== "revoked",
+  );
 
   return (
     <LogTable
@@ -947,11 +971,34 @@ function AdminCollectors({ navigate }) {
         ["YIELD 24H", "right"],
         ["EDGE FILTER", "right"],
         ["CALLS/FETCH", "right"],
+        ["RELEASE", "left"],
       ]}
       rows={rows}
       monoCols={[3, 4, 5, 6, 7]}
+      above={
+        <>
+          {mismatched.length > 0 && (
+            <div className="callout callout--bad mb-[18px]" role="alert">
+              <Icon name="shield-x" size={18} />
+              <div>
+                <strong>
+                  {mismatched.length === 1
+                    ? "A collector is not running a signed release"
+                    : `${mismatched.length} collectors are not running a signed release`}
+                </strong>
+                : {mismatched.map((g) => g.card_name ?? g.name).join(", ")}.
+                Each reports a binary hash that is not the named one for its
+                version. Either it runs a local build under a release&rsquo;s
+                version, or something is wrong with the machine. Hover the
+                Release cell for the hash, and ask the operator.
+              </div>
+            </div>
+          )}
+          <ReleaseKeyCard counts={signatureCounts(gateways)} />
+        </>
+      }
       filters={[{ key: "state", label: "State", col: 2 }]}
-      minWidth={880}
+      minWidth={960}
       empty="No collectors yet."
       footnote="Heartbeat is any contact with the door, including check-ins that found no work — a fresh heartbeat with stale data is an idle collector, not a broken one. Yield is the share of the last day's fetches that changed the record; edge filter is the share of battle-log entries the collector dropped before the wire; calls/fetch normalizes door calls against each admitted fetch's required lease and submit pair this hour (1.0 is perfect). Operators bring their own CR key; approval issues the collector token."
     />

@@ -13,3 +13,4 @@ export * from "./roles.js";
 export * from "./principals.js";
 export * from "./archetypes.js";
 export * from "./facts.js";
+export * from "./collector-release.js";

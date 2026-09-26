@@ -98,6 +98,22 @@ second place to check it: the collector repository's
 publishes the same line, with how to verify a release by hand. If the
 two ever disagree, do not install, and tell the maintainer.
 
+**The signed badge.** From v3.0.4, your collector tells this server,
+on every call, the SHA-256 of the binary it is running and the
+fingerprint of the release key it trusts. The fleet page on
+https://elixir.poapkings.com (Status > Collectors) then marks each
+collector **signed** when that binary is exactly a release this server
+named for its version, **dev build** for a local build, **unverified**
+when the collector does not report its hash yet (an older release), and
+**mismatch** when it reports a hash that is not the named one: a local
+build under a release's version, or something wrong with the machine.
+The badge is public; the hash itself is seen only by you and the
+maintainer. It is what your collector says about itself, shown so a
+fleet that runs exactly the releases it was given is visible at a
+glance, not a check anything depends on. The same page draws the
+release key's fingerprint as the picture `ssh-keygen -lv` prints for
+it, so you can compare it with your own by eye.
+
 ## What your collector can and cannot do
 
 It leases fetch jobs, calls the CR API with your key, and posts the

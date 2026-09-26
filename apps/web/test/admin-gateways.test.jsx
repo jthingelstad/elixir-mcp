@@ -104,8 +104,9 @@ test("the fleet list finds a collector; it does not operate on one", async () =>
   // name rather than a column: the card is the identity every other
   // surface uses, and the list is for finding the row you want.
   const row = screen.getByText("Ram Rider").closest("tr");
-  // Five columns became eight on 2026-09-11: yield, edge filter, calls/fetch.
-  expect(row.querySelectorAll("td").length).toBe(8);
+  // Five columns became eight on 2026-09-11: yield, edge filter, calls/fetch;
+  // nine on 2026-09-26: whether its version is a signed release.
+  expect(row.querySelectorAll("td").length).toBe(9);
   expect(within(row).getByTitle("jamie-mac")).toBeTruthy();
   expect(within(row).getByText("Thingelstad")).toBeTruthy();
   expect(within(row).getByText("active")).toBeTruthy();
@@ -195,4 +196,50 @@ test("a reader who is not an admin gets the record without the operations", asyn
   );
   await waitFor(() => expect(screen.getByText("Two clocks")).toBeTruthy());
   expect(screen.queryByText("Operations")).toBeNull();
+});
+
+// 0184: these fixtures carry no signature at all, the shape an older hub
+// (or a collector that never sent its hash) gives. The page still renders
+// and says unverified rather than leaving a blank or throwing.
+test("a collector with no signature reads unverified, and nothing is alarmed", async () => {
+  await paint();
+  const row = screen.getByText("Wall Breakers").closest("tr");
+  expect(within(row).getByText("unverified · v0.1.16")).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByText("Signed releases")).toBeTruthy();
+});
+
+test("a mismatch is loud: an alert names the collector, the cell says MISMATCH", async () => {
+  const listed = [
+    {
+      ...GATEWAYS[0],
+      last_seen_sha: "v3.0.4",
+      signature: "mismatch",
+      binary_sha256: "f".repeat(64),
+      release_key_fingerprints:
+        "SHA256:mktajl7kjMESYLyiY34rRu9hLTL6+EJS3I6aa/sGqeU",
+    },
+    { ...GATEWAYS[1], last_seen_sha: "v3.0.4", signature: "signed" },
+  ];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (path) => {
+      const body = path.includes("gateways") ? { gateways: listed } : EMPTY;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    }),
+  );
+  await paint();
+  const alert = screen.getByRole("alert");
+  expect(alert.textContent).toMatch(/not running a signed release/);
+  expect(alert.textContent).toMatch(/Ram Rider/);
+  const bad = screen.getByText("Ram Rider").closest("tr");
+  expect(within(bad).getByText("MISMATCH · v3.0.4")).toBeTruthy();
+  expect(within(bad).getByTitle(/binary f{64}/)).toBeTruthy();
+  const good = screen.getByText("Wall Breakers").closest("tr");
+  expect(within(good).getByText("signed · v3.0.4")).toBeTruthy();
 });

@@ -488,3 +488,45 @@ test("work waiting is the pipeline in order: due, queued, leased, done", async (
   expect(within(panel).getByText(/player_battlelog 6 · clan 3/)).toBeTruthy();
   expect(within(panel).getByText(/next tick can plan 270/)).toBeTruthy();
 });
+
+// 0184: the badge per collector, and the release key's card. These
+// fixtures come without `signature` (a hub or collector from before it):
+// the page renders with no badge rather than a wrong one.
+test("the fleet renders without signatures, and badges the ones it has", async () => {
+  await paintFleet();
+  const plain = screen.getByText("Ram Rider").closest("tr");
+  expect(plain.querySelector(".sig")).toBeNull();
+  expect(screen.getByText("Signed releases")).toBeTruthy();
+  expect(
+    screen.getByText("SHA256:mktajl7kjMESYLyiY34rRu9hLTL6+EJS3I6aa/sGqeU"),
+  ).toBeTruthy();
+  cleanup();
+
+  const withStates = {
+    ...PAYLOAD,
+    collectors: [
+      { ...PAYLOAD.collectors[0], version: "v3.0.4", signature: "signed" },
+      { ...PAYLOAD.collectors[1], version: "dev", signature: "dev_build" },
+    ],
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (path) => {
+      const body = String(path).includes("me/gateways")
+        ? { gateways: [] }
+        : withStates;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    }),
+  );
+  renderWithProviders(<Fleet navigate={() => {}} />);
+  await waitFor(() => expect(screen.getByText("Ram Rider")).toBeTruthy());
+  const signed = screen.getByText("Ram Rider").closest("tr");
+  expect(within(signed).getByText("signed")).toBeTruthy();
+  const dev = screen.getByText("Wall Breakers").closest("tr");
+  expect(within(dev).getByText("dev build")).toBeTruthy();
+});

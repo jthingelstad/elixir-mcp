@@ -1,6 +1,11 @@
 import { Icon, agoExact, secsSince } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMyGateways, usePublicStatus } from "../lib/queries.js";
+import {
+  ReleaseKeyCard,
+  SignatureBadge,
+  signatureCounts,
+} from "../components/ReleaseSignature.jsx";
 
 /**
  * Service ▸ Status ▸ Collectors — the whole fleet, and one machine.
@@ -112,6 +117,8 @@ export function Fleet({ navigate }) {
         </div>
       )}
 
+      <ReleaseKeyCard counts={signatureCounts(fleet)} />
+
       <div className="table__scroll" tabIndex={0}>
         <table className="table" style={{ minWidth: "640px" }}>
           <thead>
@@ -159,6 +166,9 @@ export function Fleet({ navigate }) {
                     >
                       {c.name}
                     </a>
+                    {c.signature && (
+                      <SignatureBadge state={c.signature} iconOnly />
+                    )}
                     {mineIds.has(c.name) && (
                       <span
                         style={{
@@ -193,11 +203,13 @@ export function Fleet({ navigate }) {
                     ? `${Math.round(((c.fetches_1h ?? 0) / todays) * 100)}%`
                     : "—"}
                 </td>
-                <td
-                  style={{ fontFamily: "var(--font-mono)" }}
-                  title="the client version it last submitted with"
-                >
-                  {c.version ?? "—"}
+                <td title="the client version it last reported">
+                  <span className="version-cell">
+                    <span className="mono">{c.version ?? "—"}</span>
+                    {/* A hub from before 0184 sends no state: no badge
+                        rather than a wrong one. */}
+                    {c.signature && <SignatureBadge state={c.signature} />}
+                  </span>
                 </td>
                 <td>
                   <StateChip collector={c} now={now} />

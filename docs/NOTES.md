@@ -2940,3 +2940,39 @@ or later (Hog Rider is draining). Only then:
 
 `min_client_version` stays 2.0.30 (raising it retires the pre-signing
 rollback lever; Jamie's call). No release was named.
+
+## 2026-09-26 — Collectors show a signed badge and the release key's randomart (0184)
+
+Jamie asked for the Collectors pages to show that each collector runs a
+signed release, with "some cool fingerprint thing". From collector v3.0.4
+(PR #14), every door call carries `x-collector-binary-sha256` and
+`x-collector-release-key` beside `x-collector-version`.
+
+- **Recorded at the door, not at ingest.** The version reaches the pages
+  through `last_seen_sha`, which ingest stamps on submit. The door's
+  `authGateway` update, which already stamps the heartbeat on every call,
+  now stamps the version (coalesced, as ingest does) and the hash and key
+  report (exactly as sent, null when absent) together, so the first call
+  after a self-update never compares a new binary with the old version.
+- **0184**: `gateway.binary_sha256` and `release_key_fingerprints`;
+  `collector_release_history` (platform, version) of every named release,
+  seeded from `collector_release`, written by `{collector_release}`
+  beside the current row. Hashes named before today were never kept.
+- **The state** (`services/web-api/src/collector-signature.mjs`): the
+  collector reports no platform, and needs none, since each platform's
+  binary has its own hash: `signed` when the hash is any named hash for
+  its version; `dev_build`, `unverified`, `mismatch`. Public status carries
+  the state only; Admin carries the hash and key report too.
+- **Pages**: a badge beside the version on Status → Collectors (an icon
+  beside the name under 560 px, where the version column is behind the
+  table's scroll), a Release column and a red alert naming any mismatch in
+  Admin → Collectors, the record page's badge and hash rows, and a card
+  with the release key's randomart computed in the browser from
+  `COLLECTOR_RELEASE_KEYS` (packages/contracts, now the one copy the
+  naming script also reads; a test holds operators.md to it). The
+  randomart test runs `ssh-keygen -lv` on the release key and twelve
+  fresh keys and compares character for character.
+- The console has no light theme (tokens are dark only); the card and
+  badge use tokens only, so they follow one if it arrives.
+
+No release was named and `min_client_version` is unchanged.
