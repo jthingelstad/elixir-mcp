@@ -1416,6 +1416,39 @@ export function stampMatches(stamp, resolved) {
 export const ARCHETYPE_NOTE =
   "archetype is Elixir's descriptive name for a deck's shape - its win condition and family, composed from the cards and their costs - not a claim about what players call it or how it performs; several deck identities (forms) share one label, and a deck with no attested win condition is named by its cost alone.";
 
+/** A card set's identity from its cards alone ([{id, form}] per key), for
+ *  a deck no deck row holds (a war deck played only in duels): the cards
+ *  named, with the archetype deckIdentities would give them. */
+export async function cardSetIdentities(db, sets) {
+  const ids = [...new Set([...sets.values()].flat().map((c) => c.id))];
+  if (ids.length === 0) return new Map();
+  const { rows } = await db.query(
+    `select card_id, name, elixir_cost from card where card_id = any($1)`,
+    [ids],
+  );
+  const catalog = new Map(rows.map((r) => [r.card_id, r]));
+  const vocab = await vocabulary(db);
+  const out = new Map();
+  for (const [key, pairs] of sets) {
+    const sorted = [...pairs].sort((a, z) => a.id - z.id || a.form - z.form);
+    const priced = sorted.map((c) => ({
+      id: c.id,
+      name: catalog.get(c.id)?.name ?? null,
+      form: c.form,
+      elixir_cost: catalog.get(c.id)?.elixir_cost ?? null,
+    }));
+    out.set(key, {
+      cards: priced.map((c) => ({
+        id: c.id,
+        name: c.name,
+        form: formName(c.form),
+      })),
+      archetype: archetypeOf(priced, vocab),
+    });
+  }
+  return out;
+}
+
 export async function deckIdentities(db, hashes) {
   const wanted = [...new Set(hashes.filter(Boolean))];
   if (wanted.length === 0) return new Map();

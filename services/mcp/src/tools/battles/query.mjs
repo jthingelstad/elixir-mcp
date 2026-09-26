@@ -57,7 +57,8 @@ export const battles_query = {
       outcome: { type: "string", enum: ["win", "loss", "draw"] },
       with_card: {
         type: "integer",
-        description: "Card id present in YOUR deck.",
+        description:
+          "Card id present in YOUR deck (a duel: in any of its rounds' decks).",
       },
       with_cards: {
         type: "array",
@@ -65,7 +66,7 @@ export const battles_query = {
         minItems: 1,
         maxItems: 8,
         description:
-          "Card ids ALL present in YOUR deck (any form). Combine with with_card freely; a deck is matched by its played cards, tower troop excluded.",
+          "Card ids ALL present in YOUR deck (any form). Combine with with_card freely; a deck is matched by its played cards, tower troop excluded, and a duel when one of its rounds' decks holds them all.",
       },
       against_card: {
         type: "integer",
@@ -203,22 +204,27 @@ export const battles_query = {
     if (args.outcome) add("bp.outcome = ?", args.outcome);
     if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
     // Card filters read the played-card rows (0091): an index probe per
-    // card, never a JSON containment scan. round 0 and slot > 0 match
-    // what the deck's cards array held (no duel rounds, no tower troop).
+    // card, never a JSON containment scan. slot > 0 is a deck card (slot 0
+    // is the tower troop), in any round: round 0 is a 1v1 deck, 1-3 a
+    // duel's round decks (feedback #363: a duel never matched, so a war
+    // deck played only in duels was invisible to with_card). with_cards
+    // wants all of them in ONE deck, so a duel matches on a round.
     if (args.with_card !== undefined) {
       add(
         `exists (select 1 from battle_participant_card c
                    where c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
-                     and c.round = 0 and c.slot > 0 and c.card_id = ?)`,
+                     and c.slot > 0 and c.card_id = ?)`,
         Number(args.with_card),
       );
     }
     if (Array.isArray(args.with_cards) && args.with_cards.length > 0) {
       const ids = [...new Set(args.with_cards.map(Number))];
       add(
-        `(select count(distinct c.card_id) from battle_participant_card c
-             where c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
-               and c.round = 0 and c.slot > 0 and c.card_id = any(?)) = ${ids.length}`,
+        `exists (select 1 from battle_participant_card c
+                   where c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
+                     and c.slot > 0 and c.card_id = any(?)
+                   group by c.round
+                  having count(distinct c.card_id) = ${ids.length})`,
         ids,
       );
     }
@@ -244,7 +250,7 @@ export const battles_query = {
                    join battle_participant_card c
                      on c.battle_id = o.battle_id and c.player_tag = o.player_tag
                    where o.battle_id = bp.battle_id and o.side <> bp.side
-                     and c.round = 0 and c.slot > 0 and c.card_id = ?)`,
+                     and c.slot > 0 and c.card_id = ?)`,
         Number(args.against_card),
       );
     }

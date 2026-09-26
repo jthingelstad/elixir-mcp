@@ -764,3 +764,28 @@ test("verbosity is accepted on every tool: a one-size tool answers in full and s
   assert.equal(compact.applied.verbosity, "compact");
   assert.equal(compact.battles[0].me.deck, undefined);
 });
+
+test("battles_query: with_card and with_cards match a duel on its rounds' decks (feedback #363)", async () => {
+  const win = {
+    player_tag: F,
+    from: "2026-07-25",
+    to: "2026-07-26",
+    game_mode: "duel",
+  };
+  const ids = (res) => res.battles.map((b) => b.battle_id);
+  const one = await call("battles_query", { ...win, with_card: DECK_B[0].id });
+  assert.ok(ids(one).includes("ctrl-duel"), "a card of round two");
+  const same = await call("battles_query", {
+    ...win,
+    with_cards: [DECK_A[0].id, DECK_A[1].id],
+  });
+  assert.ok(ids(same).includes("ctrl-duel"), "two cards of one round");
+  const split = await call("battles_query", {
+    ...win,
+    with_cards: [DECK_A[0].id, DECK_B[0].id],
+  });
+  assert.ok(
+    !ids(split).includes("ctrl-duel"),
+    "cards from two rounds are not one deck",
+  );
+});

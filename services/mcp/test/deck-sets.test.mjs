@@ -215,6 +215,12 @@ test("a deck with a form not unlocked is played with the base card, priced by th
   assert.equal(swap.measured, true, "W's base C6 battles measure it");
   assert.ok(v.value.form_term < 0);
   assert.equal(v.value.form_term, -swap.form_advantage);
+  assert.equal(
+    v.fit.fieldable,
+    true,
+    "the base card is owned: it can be built",
+  );
+  assert.equal(v.fit.exact_form, false);
 });
 
 test("the strongest deck that collides with everything is a near miss, with the cards it lost", async () => {

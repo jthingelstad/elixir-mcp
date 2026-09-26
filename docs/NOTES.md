@@ -2698,3 +2698,50 @@ standings and the upgrade tool."
   agent's ask lane with the routine line (elixir-mcp-discord f1872fd): each
   card, its levels, the deck it lifts, the one that reshuffles the set, no
   values.
+
+## 2026-09-26 — war decks as eight cards, duels included (9.8.0)
+
+Jamie's own agent filed #363 and #364 at 04:20Z and 04:24Z, probing the
+deck tools as King Thing; an overnight review (Jamie: "spend as much time
+as you want until 6am testing... and attending to any code hygiene
+issues") found more in the same code.
+
+- **The finding under #363.** A live battle log (2026-09-26): every
+  `riverRacePvP` and `riverRaceDuel` entry had `supportCards: []`, every
+  Trophy Road entry a tower troop. deck_hash carries the tower troop, so
+  the same eight cards were a ladder identity and a separate war identity
+  and battles_deck_sets never pooled a deck's war record with its ladder
+  record (it claimed to pool "all three modes"). Duels have no deck_hash
+  at all, so a war deck played only in duels was invisible: the tool
+  told King Thing to find a fourth deck he had.
+- **The fix, no migration.** Candidates are card sets
+  (`deck-sets-data.mjs` `seasonCardSets`): gated per variant on the three
+  competitive modes (the `'all'` row counted casual play), then every
+  variant's record pooled (the tower-less hash and one per tower troop in
+  the catalog, looked up by primary key); the player's own games per card
+  set, 1v1 decks and each duel round with its result from
+  `battle_participant_round` crowns. Rendering from the cards themselves
+  (`cardSetIdentities`), since a duel-only deck has no deck row.
+- **#364.** Contradictions refused up front (require and exclude, a
+  required card not held, locked decks sharing cards named in full);
+  `packSets` settles a required card no candidate holds before searching
+  (the timeout); `locked_decks` echoed with fit; `partial_set` and
+  `one_card_short` instead of a dead end; `fieldable` true with
+  `exact_form` for a substituted form; tower troops are not checked
+  because Clan Wars carries none (answered on the item).
+- **The review's finds, fixed here:** locked decks were left out of the
+  set value (packSets `fixed`); a locked deck skipped the collection
+  checks; the "omit fit_for" hint on a player with no collection; the
+  upgrades ceiling ignored cards above the target, its pricing order was
+  inverted, and its pool widened on the wrong condition; a future
+  `member_away.until` was refused; `role_change_made` took the same role
+  twice; `previous_player_tag` went unnormalised.
+- **#363's `with_card` bug:** the card filters read round 0 only; they
+  read every round now (`with_cards` within one round).
+- **Not done (#363 in full):** other players' duel rounds in the corpus
+  rollups (`deck_meta_season`), so the meta tools and `cards_card` count
+  duel games. It needs the round deck identity stored at ingest (a
+  column on `battle_participant_round`, round decks projected into
+  `deck`/`deck_card`), a backfill op over every recorded duel and a
+  rollup change: migration work for a day Jamie is around, not a night.
+  `battles_cards` also still reads round 0 only.

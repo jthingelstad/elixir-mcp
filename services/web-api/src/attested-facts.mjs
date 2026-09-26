@@ -50,15 +50,20 @@ function tagOf(value, field) {
   }
 }
 
-function instantOf(value, field) {
+function instantOf(value, field, { ahead = false } = {}) {
   const ms = Date.parse(String(value));
   if (!Number.isFinite(ms))
     throw new FactError(400, "invalid_fact", `${field} is not an instant.`);
-  if (ms > Date.now() + FUTURE_MS || ms < Date.now() - PAST_MS)
+  // An away's end lies ahead by nature ("away until next week" was
+  // refused, 2026-09-26 review); anything else happened already.
+  const future = ahead ? PAST_MS : FUTURE_MS;
+  if (ms > Date.now() + future || ms < Date.now() - PAST_MS)
     throw new FactError(
       400,
       "invalid_fact",
-      `${field} is more than an hour ahead of now or a year behind it.`,
+      ahead
+        ? `${field} is more than a year ahead of now or behind it.`
+        : `${field} is more than an hour ahead of now or a year behind it.`,
     );
   return new Date(ms).toISOString();
 }
@@ -113,8 +118,20 @@ function checkDetail(type, input) {
           `${key} is a whole number from ${f.min} to ${f.max}.`,
         );
       out[key] = v;
-    } else out[key] = instantOf(v, key);
+    } else out[key] = instantOf(v, key, { ahead: f.ahead === true });
   }
+  // What the field types cannot say.
+  if (type === "role_change_made" && out.from === out.to)
+    throw new FactError(
+      400,
+      "invalid_fact",
+      "role_change_made needs two different roles: from and to are the same.",
+    );
+  if (out.previous_player_tag)
+    out.previous_player_tag = tagOf(
+      out.previous_player_tag,
+      "previous_player_tag",
+    );
   return out;
 }
 

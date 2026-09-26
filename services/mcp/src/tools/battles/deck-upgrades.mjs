@@ -1,36 +1,25 @@
-import { responseMeta } from "@elixir-mcp/contracts";
+import { cardDisplayName, formName, responseMeta } from "@elixir-mcp/contracts";
 import {
   DISPLAY_NAME_SCHEMA,
-  META_METHODOLOGY,
   ON_BEHALF_OF_SCHEMA,
   SEASON_ARG_SCHEMA,
   TAG_SCHEMA,
   VERBOSITY,
-  ToolFailure,
   appliedBlock,
-  deckIdentities,
+  cardSetIdentities,
   docsRef,
-  fieldedLevel,
   notes,
-  resolveFitFor,
-  resolveSeasonWindow,
-  subject,
 } from "../shared.mjs";
-import { seasonRollup } from "../../meta-season.mjs";
 import {
-  COMPETITIVE_TYPES,
-  formAdvantages,
-  modeRecords,
-  ownDecks,
-  seasonDeckPool,
-  seasonPriors,
-  substitutions,
+  deckSetContext,
+  seasonCardSets,
+  valueOfSet,
 } from "../../deck-sets-data.mjs";
-import { SET_OBJECTIVE, deckValue, packSets } from "../../deck-sets.mjs";
+import { LOGIT_PER_LEVEL, SET_OBJECTIVE, packSets } from "../../deck-sets.mjs";
 
 /** The decks re-packed per option, best first after the option. */
 const SEARCH_CAP = 600;
-/** Options priced, most promising first (their decks' headroom). */
+/** Options priced, most promising first. */
 const OPTION_CAP = 60;
 /** Decks within reach priced, best ceiling first. */
 const REACH_CAP = 40;
@@ -43,14 +32,16 @@ const REACH_CAP = 40;
  * Evolution or Hero form unlocked) lifts the player's best set of decks
  * sharing no card the most, each option priced by re-packing the set with
  * it; and which decks would join the set once their low cards reach that
- * level (one card raised rarely moves a deck held two levels under). Facts and the disclosed ordering only: levels, never gold (the
- * game's upgrade costs are not in the record), and no score of its own
- * (DECISIONS declined adoption_cost): the gain is the change in the same
- * set value battles_deck_sets optimises.
+ * level (one card raised rarely moves a deck held two levels under). Facts
+ * and the disclosed ordering only: levels, never gold (the game's upgrade
+ * costs are not in the record), and no score of its own (DECISIONS
+ * declined adoption_cost): the gain is the change in the same set value
+ * battles_deck_sets optimises, over the same card sets (9.8.0).
  */
 export const battles_deck_upgrades = {
   description:
-    "Which single upgrade lifts a player's best set of decks sharing no card the most (a card raised toward the level they field, or an Evolution or Hero form unlocked), and which decks would join that set once their low cards reach that level. Each is priced by re-packing the set exactly (as battles_deck_sets does): the set's value before and after, the levels it takes, and the set it would give. Candidates are decks this season's recorded players played in Trophy Road, Path of Legends and Clan Wars. Levels, not gold.",
+    "Which single upgrade lifts a player's best set of decks sharing no card the most (a card raised toward the level they field, or an Evolution or Hero form unlocked), and which decks would join that set once their low cards reach that level. Each is priced by re-packing the set exactly, over battles_deck_sets' decks: the set's value before and after, the decks it lifts, the levels it takes, the set it gives. Levels, not gold.",
+
   inputSchema: {
     type: "object",
     properties: {
@@ -86,98 +77,19 @@ export const battles_deck_upgrades = {
     const count = args.count ?? 4;
     const maxLevels = args.max_levels ?? 2;
     const limit = args.limit ?? 8;
-    const { tag } = await subject(
-      ctx.db,
-      ctx.account,
-      args.player_tag,
-      "summary",
-      args.on_behalf_of,
-      args.display_name,
-    );
-    const fit = await resolveFitFor(ctx.db, tag);
-    const win = await resolveSeasonWindow(ctx, { season: args.season });
-    const roll = await seasonRollup(ctx.db, { win, seg: null, mode: null });
-    if (!roll)
-      throw new ToolFailure(
-        "not_recorded",
-        `No season rollup covers ${win.season?.season_month ?? "that window"} yet.`,
-        "Upgrades read the season's deck rollup, rebuilt nightly; pass season:'previous' for the last full season.",
-      );
-    const from = win.from.toISOString();
-    const to = win.to ? win.to.toISOString() : null;
-    const fielded = await fieldedLevel(ctx.db, tag, {
-      from,
-      to,
-      types: COMPETITIVE_TYPES,
-    });
-    const target = fielded.recent_mean_level ?? fielded.mean_level;
+    const c = await deckSetContext(ctx, args, "upgrades");
+    const { tag, fit, target } = c;
     const targetLevel = target === null ? null : Math.round(target);
-    const { yours, familiar } = await ownDecks(ctx.db, tag, { from, to });
-    const priors = await seasonPriors(ctx.db, win);
-    const forms = await formAdvantages(
-      ctx.db,
-      roll.month,
-      roll.prior.mean ?? 0.5,
-    );
 
-    // The decks the player owns every card of, at the default gates, then
-    // wider when those pack no set; no level floor (the gap is the point).
+    // The card sets the player owns every card of, at the default gates,
+    // then once wider when those pack no set; no level floor (the gap is
+    // the point).
     let decks = [];
     let gates = null;
-    for (const [minB, minP] of [
-      [20, 3],
-      [5, 2],
-    ]) {
-      const pool = await seasonDeckPool(ctx.db, {
-        month: roll.month,
-        minBattles: minB,
-        minPlayers: minP,
-        tag,
-        familiar,
-      });
-      gates = { min_battles: minB, min_players: minP };
-      decks = pool
-        .filter((r) => r.owned)
-        .map((r) => ({
-          key: r.deck_hash,
-          ids: r.card_ids,
-          cards: new Set(r.card_ids),
-          missing: substitutions(r.missing_forms, forms),
-        }));
-      if (decks.length >= count * 2) break;
-    }
-    const modes = await modeRecords(
-      ctx.db,
-      roll.month,
-      decks.map((d) => d.key),
-    );
-    const levelOf = (id, raised) =>
-      raised?.get(id) ?? fit.held.get(id)?.level ?? null;
-    /** A deck's value with some cards raised (id -> level) and some forms
-     *  unlocked (`id:form`). */
-    const valueOf = (d, { raised = null, unlocked = null } = {}) => {
-      const levels = d.ids.map((id) => levelOf(id, raised));
-      const ownMean = levels.some((l) => l === null)
-        ? null
-        : levels.reduce((s, l) => s + l, 0) / levels.length;
-      const formTerm = -d.missing
-        .filter((x) => !unlocked?.has(`${x.id}:${x.form}`))
-        .reduce((s, x) => s + x.advantage, 0);
-      return deckValue({
-        modes: modes.get(d.key) ?? {},
-        priors,
-        ownMean,
-        target,
-        yours: yours.get(d.key) ?? 0,
-        formTerm,
-        m: META_METHODOLOGY.prior_strength,
-      });
-    };
-    const base = new Map();
-    for (const d of decks) {
-      const v = valueOf(d);
-      if (v) base.set(d.key, v.value);
-    }
+    let base = new Map();
+    let baseSet = null;
+    let exhausted = true;
+    let widened = false;
     const pack = (values) => {
       const list = decks
         .filter((d) => values.has(d.key))
@@ -186,8 +98,37 @@ export const battles_deck_upgrades = {
         .slice(0, SEARCH_CAP);
       return packSets(list, { count, nodeBudget: 300_000 });
     };
-    /** The best set with some cards raised and some forms unlocked,
-     *  against the baseline: every deck holding a changed card revalued. */
+    for (const [minB, minP] of [
+      [20, 3],
+      [5, 2],
+    ]) {
+      const pool = await seasonCardSets(ctx.db, {
+        month: c.roll.month,
+        minBattles: minB,
+        minPlayers: minP,
+        tag,
+        from: c.from,
+        to: c.to,
+        held: fit.held,
+      });
+      gates = { min_battles: minB, min_players: minP };
+      widened = minB !== 20;
+      decks = pool
+        .filter((s) => s.owned)
+        .map((s) => ({ ...s, cards: new Set(s.ids) }));
+      base = new Map();
+      for (const d of decks) {
+        const v = valueOfSet(d, c);
+        if (v) base.set(d.key, v.value);
+      }
+      const baseline = pack(base);
+      exhausted = baseline.exhausted;
+      baseSet = baseline.sets[0] ?? null;
+      if (baseSet) break;
+    }
+
+    // Re-pack with some cards raised (id -> level) and some forms unlocked
+    // (`id:form`): every deck holding a changed card revalued.
     const repack = ({ raised = new Map(), unlocked = new Set() }) => {
       const values = new Map(base);
       const touched = new Set([
@@ -196,7 +137,7 @@ export const battles_deck_upgrades = {
       ]);
       for (const d of decks) {
         if (!d.ids.some((id) => touched.has(id))) continue;
-        const v = valueOf(d, { raised, unlocked });
+        const v = valueOfSet(d, c, { raised, unlocked });
         if (v) values.set(d.key, v.value);
       }
       const after = pack(values);
@@ -214,74 +155,85 @@ export const battles_deck_upgrades = {
         set_after: set.keys.map((k) => ({ key: k, value: values.get(k) })),
       };
     };
-    const baseline = pack(base);
-    const baseSet = baseline.sets[0] ?? null;
 
     let options = [];
     let reach = [];
-    let exhausted = baseline.exhausted;
     if (baseSet) {
+      const inSet = new Set(baseSet.keys);
       const weakest = Math.min(...baseSet.keys.map((k) => base.get(k)));
-      // A deck worth pricing an upgrade for could reach the set: its value
-      // with every card at the fielded level and every form unlocked
-      // clears the set's weakest deck.
-      const reachable = decks.filter((d) => {
-        const ceiling = deckValue({
-          modes: modes.get(d.key) ?? {},
-          priors,
-          ownMean: target,
-          target,
-          yours: yours.get(d.key) ?? 0,
-          m: META_METHODOLOGY.prior_strength,
-        });
-        return ceiling && ceiling.value >= weakest;
-      });
+      // A deck's ceiling: every card at least at the fielded level (a card
+      // already above it stays where it is) and every form unlocked. A deck
+      // whose ceiling clears the set's weakest deck could reach the set.
+      const ceilingOf = (d) =>
+        valueOfSet(d, c, {
+          raised:
+            targetLevel === null
+              ? null
+              : new Map(
+                  d.ids.map((id) => [
+                    id,
+                    Math.max(fit.held.get(id)?.level ?? 0, targetLevel),
+                  ]),
+                ),
+          unlocked: new Set(d.missing_forms),
+        })?.value ?? -Infinity;
+      const reachable = decks.filter(
+        (d) => inSet.has(d.key) || ceilingOf(d) >= weakest,
+      );
+      // Each option's promise, in log-odds: how close its best deck sits to
+      // the set's weakest (a deck in the set counts most) plus what the
+      // option adds to that deck. The most promising are priced first.
       const byOption = new Map();
+      const consider = (key, seed, now, adds) => {
+        const o = byOption.get(key) ?? {
+          ...seed,
+          decks: 0,
+          promise: -Infinity,
+        };
+        o.decks += 1;
+        o.promise = Math.max(o.promise, now + adds - weakest);
+        byOption.set(key, o);
+      };
       for (const d of reachable) {
-        const headroom = (base.get(d.key) ?? -Infinity) - weakest;
+        const now = base.get(d.key) ?? -Infinity;
         for (const id of d.ids) {
           const held = fit.held.get(id)?.level ?? null;
           if (targetLevel === null || held === null || held >= targetLevel)
             continue;
-          const key = `level:${id}`;
           const to = Math.min(targetLevel, held + maxLevels);
-          const o = byOption.get(key) ?? {
-            kind: "level",
-            id,
-            held_level: held,
-            to_level: to,
-            levels: to - held,
-            decks: 0,
-            headroom: -Infinity,
-          };
-          o.decks += 1;
-          o.headroom = Math.max(o.headroom, -headroom);
-          byOption.set(key, o);
+          consider(
+            `level:${id}`,
+            {
+              kind: "level",
+              id,
+              held_level: held,
+              to_level: to,
+              levels: to - held,
+            },
+            now,
+            (LOGIT_PER_LEVEL * (to - held)) / d.ids.length,
+          );
         }
-        for (const x of d.missing) {
-          const key = `form:${x.id}:${x.form}`;
-          const o = byOption.get(key) ?? {
-            kind: "form",
-            id: x.id,
-            form: x.form,
-            decks: 0,
-            headroom: -Infinity,
-          };
-          o.decks += 1;
-          o.headroom = Math.max(o.headroom, x.advantage);
-          byOption.set(key, o);
+        for (const k of d.missing_forms) {
+          const [id, form] = k.split(":").map(Number);
+          consider(
+            `form:${k}`,
+            { kind: "form", id, form },
+            now,
+            c.forms.advantage.get(k) ?? c.forms.median,
+          );
         }
       }
       const priced = [...byOption.values()]
-        .sort((a, z) => z.decks - a.decks || z.headroom - a.headroom)
+        .sort((a, z) => z.promise - a.promise || z.decks - a.decks)
         .slice(0, OPTION_CAP);
       for (const o of priced) {
-        const priced = repack(
+        const result = repack(
           o.kind === "level"
             ? { raised: new Map([[o.id, o.to_level]]) }
             : { unlocked: new Set([`${o.id}:${o.form}`]) },
         );
-        if (priced) options.push({ ...o, ...priced });
+        if (result) options.push({ ...o, ...result });
       }
       options.sort(
         (a, z) =>
@@ -293,42 +245,39 @@ export const battles_deck_upgrades = {
       // under the fielded level and at least one under; raised to it, with
       // their forms unlocked, they join the set.
       if (targetLevel !== null) {
-        const inSet = new Set(baseSet.keys);
         const within = reachable
           .map((d) => {
-            const gaps = d.ids.map((id) => ({
-              id,
-              held: fit.held.get(id)?.level ?? null,
-            }));
-            const low = gaps.filter(
-              (g) => g.held !== null && g.held < targetLevel,
-            );
+            const low = d.ids
+              .map((id) => ({ id, held: fit.held.get(id)?.level ?? null }))
+              .filter((g) => g.held !== null && g.held < targetLevel);
             if (inSet.has(d.key) || !low.length) return null;
             if (low.some((g) => targetLevel - g.held > maxLevels)) return null;
-            const raised = new Map(low.map((g) => [g.id, targetLevel]));
-            const unlocked = new Set(d.missing.map((x) => `${x.id}:${x.form}`));
-            const ceiling =
-              valueOf(d, { raised, unlocked })?.value ?? -Infinity;
-            return { d, low, raised, unlocked, ceiling };
+            return { d, low, ceiling: ceilingOf(d) };
           })
           .filter(Boolean)
           .sort((a, z) => z.ceiling - a.ceiling)
           .slice(0, REACH_CAP);
         for (const w of within) {
-          const priced = repack({ raised: w.raised, unlocked: w.unlocked });
-          if (!priced || !priced.set_after.some((x) => x.key === w.d.key))
-            continue;
+          const result = repack({
+            raised: new Map(w.low.map((g) => [g.id, targetLevel])),
+            unlocked: new Set(w.d.missing_forms),
+          });
+          const joined = result?.set_after.find((x) => x.key === w.d.key);
+          if (!joined) continue;
           reach.push({
             key: w.d.key,
-            value: priced.set_after.find((x) => x.key === w.d.key).value,
+            value: joined.value,
             raises: w.low.map((g) => ({
               id: g.id,
               held_level: g.held,
               to_level: targetLevel,
             })),
-            forms: w.d.missing.map((x) => ({ id: x.id, form: x.form })),
+            forms: w.d.missing_forms.map((k) => {
+              const [id, form] = k.split(":").map(Number);
+              return { id, form };
+            }),
             levels: w.low.reduce((s, g) => s + (targetLevel - g.held), 0),
-            ...priced,
+            ...result,
           });
         }
         reach.sort((a, z) => z.gain - a.gain || a.levels - z.levels);
@@ -352,27 +301,24 @@ export const battles_deck_upgrades = {
         )
       : { rows: [] };
     const cardInfo = new Map(cardRows.map((r) => [r.card_id, r]));
-    const named = [
-      ...new Set([
-        ...(baseSet?.keys ?? []),
-        ...options.flatMap((o) => o.set_after.map((d) => d.key)),
-        ...reach.flatMap((w) => [w.key, ...w.set_after.map((d) => d.key)]),
-      ]),
-    ];
-    const identities = await deckIdentities(ctx.db, named);
+    const byKey = new Map(decks.map((d) => [d.key, d]));
+    const named = new Map();
+    for (const k of [
+      ...(baseSet?.keys ?? []),
+      ...options.flatMap((o) => o.set_after.map((d) => d.key)),
+      ...reach.flatMap((w) => [w.key, ...w.set_after.map((d) => d.key)]),
+    ])
+      if (byKey.has(k)) named.set(k, byKey.get(k).pairs);
+    const identities = await cardSetIdentities(ctx.db, named);
     const deckOf = (key, value) => ({
-      deck_hash: key,
+      deck_hash: byKey.get(key)?.deck_hash ?? key,
       archetype_label: identities.get(key)?.archetype?.label ?? null,
       value,
       ...(compact
         ? {}
         : {
             card_names: (identities.get(key)?.cards ?? [])
-              .map((c) =>
-                c.form && c.form !== "base"
-                  ? `${c.form === "evolution" ? "Evo" : "Hero"} ${c.name}`
-                  : c.name,
-              )
+              .map((x) => cardDisplayName({ name: x.name, form: x.form }))
               .join(", "),
           }),
     });
@@ -384,20 +330,16 @@ export const battles_deck_upgrades = {
           (d) => Math.abs(d.value - (base.get(d.key) ?? -Infinity)) > 1e-9,
         )
         .map((d) => ({
-          deck_hash: d.key,
+          deck_hash: byKey.get(d.key)?.deck_hash ?? d.key,
           archetype_label: identities.get(d.key)?.archetype?.label ?? null,
           value_before: base.get(d.key) ?? null,
           value_after: d.value,
         }));
-    const { rows: nameRows } = await ctx.db.query(
-      "select name from player where player_tag = $1",
-      [tag],
-    );
     return {
-      player: { player_tag: tag, name: nameRows[0]?.name ?? null },
+      player: { player_tag: tag, name: c.name },
       applied: appliedBlock({
         player_tag: tag,
-        window: win.echo,
+        window: c.win.echo,
         count,
         max_levels: maxLevels,
         limit,
@@ -409,8 +351,8 @@ export const battles_deck_upgrades = {
       fit_for: {
         player_tag: tag,
         collection_as_of: fit.as_of,
-        fielded_mean_level: fielded.mean_level,
-        recent_mean_level: fielded.recent_mean_level,
+        fielded_mean_level: c.fielded.mean_level,
+        recent_mean_level: c.fielded.recent_mean_level,
         target_level: target,
       },
       baseline: baseSet
@@ -430,7 +372,7 @@ export const battles_deck_upgrades = {
         },
         ...(o.kind === "level"
           ? { held_level: o.held_level, to_level: o.to_level, levels: o.levels }
-          : { form: o.form === 1 ? "evolution" : "hero" }),
+          : { form: formName(o.form) }),
         decks_affected: o.decks,
         lifts: liftsOf(o.set_after),
         value_before: o.value_before,
@@ -454,7 +396,7 @@ export const battles_deck_upgrades = {
         })),
         forms: w.forms.map((x) => ({
           card: { id: x.id, name: cardInfo.get(x.id)?.name ?? null },
-          form: x.form === 1 ? "evolution" : "hero",
+          form: formName(x.form),
         })),
         levels: w.levels,
         value_before: w.value_before,
@@ -466,22 +408,25 @@ export const battles_deck_upgrades = {
       })),
       search: { exhausted },
       notes: notes(
-        "Each option is priced alone: the best set is re-packed with that one upgrade (the objective battles_deck_sets optimises) and gain is the set's value after minus before, in log-odds. Options do not add up; take the first, then ask again.",
+        "Each option is priced alone: the best set is re-packed with that one upgrade (the objective battles_deck_sets optimises, over the same card sets) and gain is the set's value after minus before, in log-odds. Options do not add up; take the first, then ask again.",
         "Levels, not gold or cards: the game's upgrade costs are not in the record. cards_held is the count the player's profile last showed for the card. A card the player does not own is never an option (unlocking one is the game's, not an upgrade).",
         `A level option raises a card at most ${maxLevels} level${maxLevels === 1 ? "" : "s"} toward the level the player fields (${targetLevel ?? "unknown"}); a form option unlocks an Evolution or Hero form a candidate deck plays, removing that card's measured form price from it. within_reach is a deck outside the set whose every card is at most ${maxLevels} under that level: raised to it, with any form it plays unlocked, it joins the set; levels is the total.`,
+        widened && baseSet
+          ? "No set packed at min_battles 20, min_players 3, so the candidates were widened once (applied says which answered)."
+          : null,
         baseSet
           ? options.length === 0
             ? reach.length
               ? "No single upgrade lifts this player's best set; within_reach says which decks would, with several."
               : "No upgrade lifts this player's best set: every deck that could join it is already fielded at their level with its forms, or further than max_levels away."
             : null
-          : `No set of ${count} decks sharing no card exists among the decks this player owns every card of this season, so there is nothing to lift yet; battles_deck_sets says what fell out and why.`,
+          : `No set of ${count} decks sharing no card exists among the decks this player owns every card of this season, so there is nothing to lift yet; battles_deck_sets gives the best partial set and the cards one short of the most decks.`,
         exhausted
           ? null
           : "A search stopped at its node budget; the values are the best it found.",
         "value is an ordering, not a forecast: a deck's record is its players', and pilots differ.",
-        win.seasonNotes,
-        roll.note,
+        c.win.seasonNotes,
+        c.roll.note,
       ),
       docs: docsRef("battles", "deck-upgrades"),
       meta: responseMeta({ as_of: new Date().toISOString() }),

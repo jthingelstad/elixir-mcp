@@ -221,6 +221,33 @@ test("refusals say why: another app, no capability, not in the clan, the wrong r
     member,
   );
   assert.equal(away.statusCode, 201, away.body);
+  // An away's end lies ahead: next week is fine, two years out is not.
+  const nextWeek = new Date(Date.now() + 7 * 86_400_000).toISOString();
+  const until = await request(
+    "POST",
+    facts,
+    {
+      type: "member_away",
+      ref: "away-1",
+      player_tag: MEMBER_TAG,
+      detail: { until: nextWeek },
+    },
+    member,
+  );
+  assert.equal(until.statusCode, 200, "the same ref, now with an end");
+  assert.equal(JSON.parse(until.body).data.detail.until, nextWeek);
+  const farOff = await request(
+    "POST",
+    facts,
+    {
+      type: "member_away",
+      ref: "away-1",
+      player_tag: MEMBER_TAG,
+      detail: { until: new Date(Date.now() + 800 * 86_400_000).toISOString() },
+    },
+    member,
+  );
+  assert.equal(data(farOff).code, "invalid_fact");
   const notMine = await request(
     "POST",
     facts,
@@ -235,6 +262,15 @@ test("refusals say why: another app, no capability, not in the clan, the wrong r
     [{ ...departure, ref: "" }, "invalid_fact"],
     [{ ...departure, occurred_at: "2020-01-01T00:00:00Z" }, "invalid_fact"],
     [{ ...departure, player_tag: "nope!" }, "invalid_tag"],
+    [
+      {
+        type: "role_change_made",
+        ref: "role-same",
+        player_tag: MEMBER_TAG,
+        detail: { from: "elder", to: "elder" },
+      },
+      "invalid_fact",
+    ],
   ]) {
     const r = await request("POST", facts, bad, leader);
     assert.equal(r.statusCode, 400, r.body);

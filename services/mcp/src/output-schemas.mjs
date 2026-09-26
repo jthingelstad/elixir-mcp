@@ -2186,7 +2186,7 @@ export const OUTPUT_SCHEMAS = {
   battles_deck_sets: {
     type: "object",
     description:
-      "9.4.0: sets of decks a player can field together sharing no card, chosen exactly from the season's recorded decks and fitted to the player; value parts say why each set won.",
+      "9.4.0: sets of decks a player can field together sharing no card, chosen exactly from the season's recorded decks and fitted to the player; value parts say why each set won. 9.8.0: a deck is its eight cards (every tower troop's variant pools; the player's duel rounds count), locked decks are echoed, and a partial set answers when no whole one exists.",
     properties: {
       player: {
         type: "object",
@@ -2234,7 +2234,7 @@ export const OUTPUT_SCHEMAS = {
           min_card_level: {
             type: ["integer", "null"],
             description:
-              "The level gate: a deck with a held card under this is left out (candidates.below_level).",
+              "The level gate: a deck with a held card under this (more than four levels under the target) is left out (candidates.below_level); null on the wider pass.",
           },
         },
         required: ["player_tag", "target_level"],
@@ -2244,20 +2244,27 @@ export const OUTPUT_SCHEMAS = {
         description:
           "The corpus mean win rate per mode this season, the prior each deck's rate is shrunk toward.",
       },
+      locked_decks: {
+        type: "array",
+        description:
+          "9.8.0: every locked deck, the same row shape as a set's decks, whether or not a set exists; fit.fieldable false and fit.unowned when the player lacks a card of it.",
+      },
       candidates: {
         type: "object",
         description:
-          "How the season's rollup decks reduced: considered (over min_battles and min_players, or the player's own 5+ decks), then left out for a card not owned, a card under min_card_level, an excluded card or a locked deck's card; fieldable, valued and searched remain, forms_substituted of them played with a base card for a form not unlocked.",
+          "How the season's card sets reduced, in this order: considered (over min_battles and min_players in the three modes, the player's own 5+, and the locked), then left out for an excluded card, a locked deck's card, a card not owned, or a card under min_card_level; fieldable remain, forms_substituted of them played with a base card for a form not unlocked, no_competitive_record of them with no record to value; valued and searched. one_card_short: the cards whose absence alone keeps the most decks out, [{id, name, decks}].",
         properties: {
           considered: COUNT,
-          not_owned: COUNT,
-          below_level: COUNT,
           excluded_cards: COUNT,
           shares_locked_cards: COUNT,
+          not_owned: COUNT,
+          below_level: COUNT,
           fieldable: COUNT,
           forms_substituted: COUNT,
+          no_competitive_record: COUNT,
           valued: COUNT,
           searched: COUNT,
+          one_card_short: { type: "array" },
         },
         required: ["considered", "fieldable", "searched"],
       },
@@ -2294,25 +2301,35 @@ export const OUTPUT_SCHEMAS = {
                   card_names: { type: "string" },
                   archetype: { type: ["object", "null"] },
                   archetype_label: { type: ["string", "null"] },
-                  tower_troop: { type: ["object", "null"] },
+                  variants: {
+                    type: "array",
+                    description:
+                      "Full verbosity, 9.8.0: the deck_hash values these eight cards carry in the record this season, one per tower troop (null: a Clan Wars battle, which carries none), most played first, with their battles; deck_hash is the first.",
+                  },
                   record: {
                     type: ["object", "null"],
                     description:
-                      "The deck's decided battles this season over the three modes: battles, wins, losses, win_rate, and shrunk_win_rate (each mode shrunk to its own prior, pooled by battles). null for a locked deck with no record.",
+                      "The eight cards' decided battles this season over the three modes and every tower troop, and the player's own duel rounds: battles, wins, losses, win_rate, and shrunk_win_rate (each mode shrunk to its own prior, pooled by battles). null for a locked deck with no record.",
                   },
                   modes: {
                     type: "object",
                     description:
-                      "Full verbosity: the record per mode (ladder, ranked, war) with its players' mean_level_gap, the control the value corrects for.",
+                      "Full verbosity: the record per mode (ladder, ranked, war) with its players' mean_level_gap, the control the value corrects for; war.your_duel_rounds counts the player's own duel rounds in it.",
                   },
                   forms_substituted: {
                     type: "array",
                     description:
-                      "Cards the deck's players ran as an Evolution or Hero form the player has not unlocked, so they would play the base card: full verbosity {id, name, form, plays_as, form_advantage, measured}; compact the names. Empty when none.",
+                      "Cards the deck's players ran as an Evolution or Hero form the player has not unlocked, so they would play the base card: full verbosity {id, name, form, plays_as, form_advantage, measured}; compact {id, name}. Empty when none.",
                   },
-                  fit: { type: "object" },
+                  fit: {
+                    type: "object",
+                    description:
+                      "fieldable (every card owned: the deck can be built), exact_form (false when a form is played as its base card), own_mean_level, vs_fielded, lowest_card, and unowned [{id, name}] when a card is not owned.",
+                  },
+                  unowned: { type: "array" },
                   own_mean_level: { type: ["number", "null"] },
                   your_battles: COUNT,
+                  your_duel_rounds: COUNT,
                   value: {
                     type: ["object", "null"],
                     description:
@@ -2325,6 +2342,11 @@ export const OUTPUT_SCHEMAS = {
           },
           required: ["rank", "value", "weakest_deck", "decks"],
         },
+      },
+      partial_set: {
+        type: ["object", "null"],
+        description:
+          "9.8.0: when no whole set exists, the best set of fewer decks that does (decks_found of decks_asked, the locked decks included), the same shape as a set; null otherwise.",
       },
       near_misses: {
         type: "array",
@@ -2339,9 +2361,11 @@ export const OUTPUT_SCHEMAS = {
       "player",
       "applied",
       "fit_for",
+      "locked_decks",
       "candidates",
       "search",
       "sets",
+      "partial_set",
       "near_misses",
       "notes",
       "docs",

@@ -44,6 +44,9 @@ export interface FactField {
   min?: number;
   optional?: boolean;
   nullable?: boolean;
+  /** An instant that may lie ahead (up to a year): an away's end. Any
+   *  other instant is when something happened, so it may not. */
+  ahead?: boolean;
 }
 
 export interface FactType {
@@ -107,7 +110,7 @@ export const ATTESTED_FACT_TYPES: Readonly<Record<string, FactType>> = {
     attesters: [...LEADERS, "self"],
     member: true,
     detail: {
-      until: { type: "instant", optional: true, nullable: true },
+      until: { type: "instant", optional: true, nullable: true, ahead: true },
     },
     about: "A member says they will be away, until an instant or for now.",
   },
@@ -164,7 +167,7 @@ export const ATTESTED_FACT_TYPES: Readonly<Record<string, FactType>> = {
       },
     },
     about:
-      "Where a member stands in one of the clan's own awards for a season still running, as the clan's app computed it from its rules: the place, the value and unit, as of when. previous_player_tag names who held the place before, when that changed.",
+      "Where a member stands in one of the clan's own awards for a season running (or, until the next one closes, the final places of the season just closed), as the clan's app computed it from its rules: the place, the value and unit, as of when. previous_player_tag names who held first place before, when it changed hands.",
   },
 };
 
