@@ -1,6 +1,10 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { ingestBattlelog, canonicalizeBattle } from "../src/battles.mjs";
+import {
+  ingestBattlelog,
+  canonicalizeBattle,
+  roundDeckHash,
+} from "../src/battles.mjs";
 import { canonicalBattleTime } from "../src/battle-time.mjs";
 import { fixture, fixtureMeta, scratchDb, seedReceipt } from "./helpers.mjs";
 
@@ -488,6 +492,78 @@ test("0151: a duel's per-round results land, so round two can be answered", asyn
     [battle.battle_id],
   );
   assert.ok(used[0].n > 0, "the API's per-round used flag is recorded");
+});
+
+// 0182: a duel's rounds are decks. Each round carries its eight cards'
+// deck_hash (no tower troop, the war identity) and its result by that
+// round's crowns, and the deck is a deck row like any other.
+test("0182: each duel round carries its deck and its result", async () => {
+  const log = await fixture("player_battlelog/with_boat_and_duel.json");
+  const observer = meta["player_battlelog/with_boat_and_duel.json"].entity_key;
+  await ingestBattlelog(ctx.db, {
+    observerTag: observer,
+    receiptId,
+    payload: log,
+  });
+  const duel = log.find((e) =>
+    [...(e.team ?? []), ...(e.opponent ?? [])].some((p) =>
+      Array.isArray(p.rounds),
+    ),
+  );
+  const { battle } = canonicalizeBattle(duel);
+  const { rows } = await ctx.db.query(
+    `select player_tag, round, crowns, deck_hash, outcome
+       from battle_participant_round where battle_id = $1`,
+    [battle.battle_id],
+  );
+  for (const [side, other] of [
+    ["team", "opponent"],
+    ["opponent", "team"],
+  ])
+    for (const p of duel[side])
+      p.rounds.forEach((r, i) => {
+        const got = rows.find(
+          (x) => x.player_tag === p.tag && x.round === i + 1,
+        );
+        assert.equal(
+          got.deck_hash,
+          roundDeckHash(r.cards),
+          `${p.tag} r${i + 1}`,
+        );
+        const them = duel[other][0].rounds[i].crowns;
+        assert.equal(
+          got.outcome,
+          r.crowns > them ? "win" : r.crowns < them ? "loss" : "draw",
+        );
+      });
+  const hashes = [...new Set(rows.map((r) => r.deck_hash).filter(Boolean))];
+  assert.ok(hashes.length > 0, "the fixture's rounds carry eight cards");
+  const { rows: decks } = await ctx.db.query(
+    `select d.deck_hash, d.tower_troop_id, count(dc.card_id)::int as cards
+       from deck d join deck_card dc on dc.deck_hash = d.deck_hash
+      where d.deck_hash = any($1) group by d.deck_hash, d.tower_troop_id`,
+    [hashes],
+  );
+  assert.equal(decks.length, hashes.length, "every round deck is a deck row");
+  for (const d of decks) {
+    assert.equal(d.tower_troop_id, null);
+    assert.equal(d.cards, 8);
+  }
+  // A re-ingest of the same log writes no round again.
+  const { rows: before } = await ctx.db.query(
+    `select xmin::text from battle_participant_round where battle_id = $1 order by player_tag, round`,
+    [battle.battle_id],
+  );
+  await ingestBattlelog(ctx.db, {
+    observerTag: observer,
+    receiptId,
+    payload: log,
+  });
+  const { rows: after } = await ctx.db.query(
+    `select xmin::text from battle_participant_round where battle_id = $1 order by player_tag, round`,
+    [battle.battle_id],
+  );
+  assert.deepEqual(after, before, "an unchanged round is not rewritten");
 });
 
 test("0151: global_rank is recorded when the API reports one, null otherwise", async () => {

@@ -2798,3 +2798,17 @@ cadence, sticky retention and one global rate budget; Run Elixir MCP owns the
 regional planner/collector/admission seam, while Keep the Boards retains the
 ranking-presence watch. See `AGENT-TEAM/notes/2026-09-26-keep-the-boards.md`
 for the complete receipt and collection movement.
+
+## 2026-09-26 — Duel rounds are decks (0182, feedback #363), step one
+
+Jamie approved the backfill for duel support. Each duel round now carries
+its own deck and its own result: `battle_participant_round.deck_hash` (the
+round's eight cards with no tower troop, the identity every Clan Wars
+battle already has) and `outcome` (win, loss or draw by that round's crowns
+against the other side's same round). Ingest writes both and puts each
+round deck in `deck`/`deck_card`, named at once; the `{duel_round_decks}`
+migrate op fills the rounds recorded before, from a cursor, then
+`{vacuum}`. Nothing reads the columns yet: step two moves the season
+rollups and the meta and card tools onto rounds (a round is one war deck
+used), and `battles_deck_sets` drops its own merge of round decks so a
+round is never counted twice.

@@ -86,15 +86,51 @@ function participantDeck(entry) {
 
 /** A duel's rounds, one row per game (0151). `round` is 1-based to match
  *  battle_participant_card.round, which already holds that round's deck.
+ *  Each round carries its own deck identity and result (0182): its eight
+ *  cards' deck_hash with no tower troop (the identity every Clan Wars
+ *  battle has: the API sends no tower troop on a war battle), and win,
+ *  loss or draw by its crowns against the other side's same round.
  *  Empty for every battle the API does not report rounds for. */
-function roundRows(entry) {
+function roundRows(entry, otherSide = []) {
   if (!Array.isArray(entry.rounds)) return [];
-  return entry.rounds.map((r, i) => ({
-    round: i + 1,
-    crowns: Number.isInteger(r?.crowns) ? r.crowns : null,
-    ...towerColumns(r ?? {}),
-    elixir_leaked: typeof r?.elixirLeaked === "number" ? r.elixirLeaked : null,
-  }));
+  const theirs = Array.isArray(otherSide[0]?.rounds) ? otherSide[0].rounds : [];
+  return entry.rounds.map((r, i) => {
+    const mine = Number.isInteger(r?.crowns) ? r.crowns : null;
+    const them = Number.isInteger(theirs[i]?.crowns) ? theirs[i].crowns : null;
+    return {
+      round: i + 1,
+      crowns: mine,
+      ...towerColumns(r ?? {}),
+      elixir_leaked:
+        typeof r?.elixirLeaked === "number" ? r.elixirLeaked : null,
+      deck_hash: roundDeckHash(r?.cards),
+      outcome:
+        mine === null || them === null
+          ? null
+          : mine > them
+            ? "win"
+            : mine < them
+              ? "loss"
+              : "draw",
+    };
+  });
+}
+
+/** A round's deck identity: eight cards, no tower troop; null when the
+ *  round does not carry eight. */
+export function roundDeckHash(cards) {
+  const valid = Array.isArray(cards)
+    ? cards.filter((c) => Number.isInteger(c?.id))
+    : [];
+  if (valid.length !== 8) return null;
+  return deckHash({
+    cards: valid.map((c) => ({
+      id: c.id,
+      ...(c.evolutionLevel !== undefined
+        ? { evolutionLevel: c.evolutionLevel }
+        : {}),
+    })),
+  });
 }
 
 /** The three tower columns (0123): 0 = destroyed (the API omits a
@@ -236,7 +272,7 @@ export function canonicalizeBattle(entry) {
         // A duel's per-round results (0151). The top-level crowns are
         // their sum and the top-level tower hitpoints the final round's,
         // so without these a duel cannot answer "how did round two go".
-        rounds: roundRows(p),
+        rounds: roundRows(p, otherEntries),
         ...towerColumns(p),
         outcome: outcomeFor(p, entries, otherEntries, entry, isTeamSide),
         clan_tag: p.clan?.tag ? normalizeTag(p.clan.tag) : null,

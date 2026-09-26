@@ -75,6 +75,7 @@ import {
   seriesCensusSelf,
   explainSeries,
 } from "./ops-series.mjs";
+import { duelRoundDecks } from "./ops-duel-rounds.mjs";
 
 export async function handler(event) {
   if (event?.inspect) {
@@ -431,6 +432,14 @@ export async function handler(event) {
     const result = await seriesBackfill(
       process.env.DATABASE_URL,
       event.series_backfill,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.duel_round_decks) {
+    const result = await duelRoundDecks(
+      process.env.DATABASE_URL,
+      event.duel_round_decks === true ? {} : event.duel_round_decks,
     );
     console.log(JSON.stringify(result));
     return result;

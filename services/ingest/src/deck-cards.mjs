@@ -115,9 +115,36 @@ export async function ensureCards(db, cards, observedAt) {
 export async function projectDecks(db, partRows) {
   const decks = new Map();
   const cards = [];
+  const note = (hash, at, fields) => {
+    const prior = decks.get(hash);
+    if (!prior)
+      decks.set(hash, {
+        deck_hash: hash,
+        ...fields,
+        first_seen_at: at,
+        last_seen_at: at,
+      });
+    else {
+      if (at < prior.first_seen_at) prior.first_seen_at = at;
+      if (at > prior.last_seen_at) prior.last_seen_at = at;
+    }
+  };
   for (const p of partRows) {
     const played = participantCardRows(p.deck);
     for (const r of played) cards.push(r);
+    // A duel's rounds are decks too (0182): each round's eight cards, no
+    // tower troop, so a round played with the deck a 1v1 war battle used
+    // is the same deck.
+    for (const r of p.rounds ?? []) {
+      if (!r.deck_hash) continue;
+      const own = played.filter((c) => c.round === r.round && c.slot > 0);
+      if (own.length !== 8) continue;
+      note(r.deck_hash, p.battle_time, {
+        tower_troop_id: null,
+        card_count: 8,
+        cards: own.map((c) => ({ card_id: c.card_id, form: c.form })),
+      });
+    }
     if (!p.deck_hash || Array.isArray(p.deck?.rounds)) continue;
     const prior = decks.get(p.deck_hash);
     const tower = played.find((r) => r.slot === 0)?.card_id ?? null;
@@ -241,25 +268,41 @@ export async function projectRounds(db, partRows, written) {
         princess_tower_hp_1: r.princess_tower_hp_1,
         princess_tower_hp_2: r.princess_tower_hp_2,
         elixir_leaked: r.elixir_leaked,
+        deck_hash: r.deck_hash ?? null,
+        outcome: r.outcome ?? null,
       });
   }
   if (rows.length === 0) return 0;
+  // A blank is filled, a value never overwritten, and a conflict that
+  // fills nothing writes nothing (no new tuple for an unchanged row).
   const { rowCount } = await db.query(
     `insert into battle_participant_round
        (battle_id, player_tag, round, crowns, king_tower_hp,
-        princess_tower_hp_1, princess_tower_hp_2, elixir_leaked)
+        princess_tower_hp_1, princess_tower_hp_2, elixir_leaked,
+        deck_hash, outcome)
      select r.battle_id, r.player_tag, r.round, r.crowns, r.king_tower_hp,
-            r.princess_tower_hp_1, r.princess_tower_hp_2, r.elixir_leaked
+            r.princess_tower_hp_1, r.princess_tower_hp_2, r.elixir_leaked,
+            r.deck_hash, r.outcome
      from jsonb_to_recordset($1::jsonb)
        as r(battle_id text, player_tag text, round smallint, crowns smallint,
             king_tower_hp smallint, princess_tower_hp_1 smallint,
-            princess_tower_hp_2 smallint, elixir_leaked numeric)
+            princess_tower_hp_2 smallint, elixir_leaked numeric,
+            deck_hash text, outcome text)
      on conflict (battle_id, player_tag, round) do update
        set crowns = coalesce(battle_participant_round.crowns, excluded.crowns),
            king_tower_hp = coalesce(battle_participant_round.king_tower_hp, excluded.king_tower_hp),
            princess_tower_hp_1 = coalesce(battle_participant_round.princess_tower_hp_1, excluded.princess_tower_hp_1),
            princess_tower_hp_2 = coalesce(battle_participant_round.princess_tower_hp_2, excluded.princess_tower_hp_2),
-           elixir_leaked = coalesce(battle_participant_round.elixir_leaked, excluded.elixir_leaked)`,
+           elixir_leaked = coalesce(battle_participant_round.elixir_leaked, excluded.elixir_leaked),
+           deck_hash = coalesce(battle_participant_round.deck_hash, excluded.deck_hash),
+           outcome = coalesce(battle_participant_round.outcome, excluded.outcome)
+     where (battle_participant_round.crowns is null and excluded.crowns is not null)
+        or (battle_participant_round.king_tower_hp is null and excluded.king_tower_hp is not null)
+        or (battle_participant_round.princess_tower_hp_1 is null and excluded.princess_tower_hp_1 is not null)
+        or (battle_participant_round.princess_tower_hp_2 is null and excluded.princess_tower_hp_2 is not null)
+        or (battle_participant_round.elixir_leaked is null and excluded.elixir_leaked is not null)
+        or (battle_participant_round.deck_hash is null and excluded.deck_hash is not null)
+        or (battle_participant_round.outcome is null and excluded.outcome is not null)`,
     [JSON.stringify(rows)],
   );
   return rowCount;
