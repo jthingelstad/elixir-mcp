@@ -2204,6 +2204,7 @@ export const OUTPUT_SCHEMAS = {
           modes: { type: "array", items: { type: "string" } },
           count: COUNT,
           lock_decks: { type: "array", items: { type: "string" } },
+          exclude_decks: { type: "array", items: { type: "string" } },
           exclude_cards: { type: "array", items: COUNT },
           require_cards: { type: "array", items: COUNT },
           alternatives: COUNT,
@@ -2252,9 +2253,10 @@ export const OUTPUT_SCHEMAS = {
       candidates: {
         type: "object",
         description:
-          "How the season's card sets reduced, in this order: considered (over min_battles and min_players in the three modes, the player's own 5+, and the locked), then left out for an excluded card, a locked deck's card, a card not owned, or a card under min_card_level; fieldable remain, forms_substituted of them played with a base card for a form not unlocked, no_competitive_record of them with no record to value; valued and searched. one_card_short: the cards whose absence alone keeps the most decks out, [{id, name, decks}].",
+          "How the season's card sets reduced, in this order: considered (over min_battles and min_players in the three modes, the player's own 5+, and the locked), then left out as an excluded deck, for an excluded card, a locked deck's card, a card not owned, or a card under min_card_level; fieldable remain, forms_substituted of them played with a base card for a form not unlocked, no_competitive_record of them with no record to value; valued and searched. one_card_short: the cards whose absence alone keeps the most decks out, [{id, name, decks}].",
         properties: {
           considered: COUNT,
+          excluded_decks: COUNT,
           excluded_cards: COUNT,
           shares_locked_cards: COUNT,
           not_owned: COUNT,

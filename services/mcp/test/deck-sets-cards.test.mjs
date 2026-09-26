@@ -290,3 +290,24 @@ test("a deck played with a form's base card is fieldable, not exact", async () =
   assert.equal(res.sets[0].decks[0].fit.fieldable, true);
   assert.equal(res.sets[0].decks[0].fit.exact_form, true);
 });
+
+test("a different last deck: the other three locked, the current fourth excluded", async () => {
+  const locks = [ladderHash("A"), ladderHash("B"), ladderHash("C")];
+  const same = await call({ lock_decks: locks });
+  const fourth = same.sets[0].decks.find((d) => !d.locked);
+  const other = await call({
+    lock_decks: locks,
+    exclude_decks: [fourth.deck_hash],
+  });
+  const next = other.sets[0]?.decks.find((d) => !d.locked) ?? null;
+  assert.notEqual(
+    next?.deck_hash,
+    fourth.deck_hash,
+    "never the deck they have",
+  );
+  assert.equal(other.candidates.excluded_decks, 1);
+  await assert.rejects(
+    call({ lock_decks: [ladderHash("A")], exclude_decks: [warHash("A")] }),
+    /both lock_decks and exclude_decks/,
+  );
+});

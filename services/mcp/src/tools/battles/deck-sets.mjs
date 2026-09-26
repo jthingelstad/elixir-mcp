@@ -67,6 +67,14 @@ export const battles_deck_sets = {
         description:
           "deck_hash values (from battles_decks, battles_meta_decks or an earlier answer; any tower troop's variant names the same eight cards) that every set keeps; the search fills the rest with decks sharing none of their cards. 'A different last war deck' is the other three locked.",
       },
+      exclude_decks: {
+        type: "array",
+        items: { type: "string" },
+        minItems: 1,
+        maxItems: 8,
+        description:
+          "deck_hash values no set may choose (any variant names the same eight cards): 'a different last war deck' is the other three locked and the current fourth excluded.",
+      },
       exclude_cards: {
         ...CARD_IDS_ARG,
         description:
@@ -120,11 +128,12 @@ export const battles_deck_sets = {
     // The arguments, settled before anything is searched (feedback #364:
     // contradictions used to run the whole search and time out).
     const locks = [...new Set(args.lock_decks ?? [])];
-    for (const h of locks)
+    const unwanted = [...new Set(args.exclude_decks ?? [])];
+    for (const h of [...locks, ...unwanted])
       if (!HASH_RE.test(h))
         throw new ToolFailure(
           "bad_request",
-          `lock_decks takes deck_hash values (64 hex characters); '${h}' is not one.`,
+          `lock_decks and exclude_decks take deck_hash values (64 hex characters); '${h}' is not one.`,
         );
     if (locks.length > count)
       throw new ToolFailure(
@@ -150,8 +159,8 @@ export const battles_deck_sets = {
 
     // Locked decks: their eight cards, from the record's deck rows or a
     // card set this answer names (a duel-only deck has no deck row).
-    const lockKeyOf = await keysOfHashes(ctx.db, locks);
-    const extra = [...lockKeyOf.values()];
+    const lockKeyOf = await keysOfHashes(ctx.db, [...locks, ...unwanted]);
+    const extra = locks.map((h) => lockKeyOf.get(h)).filter(Boolean);
 
     // The gates as asked, or the defaults and then, when nothing packs,
     // one wider pass (said in a note): a season's first weeks are thin.
@@ -174,6 +183,7 @@ export const battles_deck_sets = {
         minP,
         floor,
         locks,
+        unwanted,
         lockKeyOf,
         extra,
         excluded,
@@ -385,6 +395,7 @@ export const battles_deck_sets = {
         modes: SET_MODES,
         count,
         lock_decks: locks.length ? locks : undefined,
+        exclude_decks: unwanted.length ? unwanted : undefined,
         exclude_cards: args.exclude_cards,
         require_cards: args.require_cards,
         alternatives,
@@ -486,7 +497,17 @@ export const battles_deck_sets = {
  *  exact search, with the locked decks resolved and valued like any
  *  other. */
 async function attempt(db, c, o) {
-  const { minB, minP, floor, locks, lockKeyOf, extra, excluded, count } = o;
+  const {
+    minB,
+    minP,
+    floor,
+    locks,
+    unwanted,
+    lockKeyOf,
+    extra,
+    excluded,
+    count,
+  } = o;
   const gatesUsed = {
     min_battles: minB,
     min_players: minP,
@@ -515,6 +536,17 @@ async function attempt(db, c, o) {
       "Take deck_hash from battles_decks (the player's own decks), battles_meta_decks or an earlier battles_deck_sets answer.",
     );
   const lockSets = [...new Set(lockKeys)].map((k) => bySet.get(k));
+  // Decks no set may choose, by their eight cards; one not in the record
+  // simply is not a candidate.
+  const unwantedKeys = new Set(
+    unwanted.map((h) => lockKeyOf.get(h) ?? byHash.get(h)).filter(Boolean),
+  );
+  const both = lockSets.filter((x) => unwantedKeys.has(x.key));
+  if (both.length)
+    throw new ToolFailure(
+      "bad_request",
+      "A deck is in both lock_decks and exclude_decks; a set cannot keep a deck and leave it out.",
+    );
   // Locked decks that share cards: every shared card, by name.
   const owner = new Map();
   const clashes = new Map();
@@ -536,6 +568,7 @@ async function attempt(db, c, o) {
 
   const counts = {
     considered: pool.length,
+    excluded_decks: 0,
     excluded_cards: 0,
     shares_locked_cards: 0,
     not_owned: 0,
@@ -551,7 +584,8 @@ async function attempt(db, c, o) {
   // cards, a locked deck's cards) before what the collection does.
   for (const s of pool) {
     if (lockKeySet.has(s.key)) continue;
-    if (s.ids.some((id) => excluded.has(id))) counts.excluded_cards++;
+    if (unwantedKeys.has(s.key)) counts.excluded_decks++;
+    else if (s.ids.some((id) => excluded.has(id))) counts.excluded_cards++;
     else if (s.ids.some((id) => blocked.has(id))) counts.shares_locked_cards++;
     else if (!s.owned) counts.not_owned++;
     else if (floor !== null && s.min_level < floor) counts.below_level++;

@@ -2757,3 +2757,9 @@ issues") found more in the same code.
   answer is right; "a different last war deck" read his war decks from
   `battles_decks` rows, missed the duel deck and recommended it back to
   him. 9.9.0: `battles_decks.duel_decks`.
+- 9.9.0/9.9.1 shipped (6a0b3f2a, 35a19425; 9.9.0's duel_decks pushed a
+  30-deck page past the result cap, gym 151.3/152.3; 9.9.1 slimmed it and
+  both pass). Replayed: the agent now knows the Furnace deck is played in
+  duels, but a search free to choose any fourth chose the one he plays.
+  9.10.0: `exclude_decks`; the ask routine says to exclude the current
+  fourth.

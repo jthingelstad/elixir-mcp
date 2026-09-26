@@ -79,7 +79,8 @@ gave up, with the cards they share with a chosen deck.
 Shape the set in conversation: `lock_decks` keeps decks (a `deck_hash`
 from `battles_decks`, `battles_meta_decks` or an earlier answer; any
 variant names the same eight cards) and fills the rest, so "a different
-last war deck" is the other three locked; `exclude_cards` keeps cards
+last war deck" is the other three locked and the current fourth in
+`exclude_decks`, which no set may choose; `exclude_cards` keeps cards
 out; `require_cards` puts cards in. The arguments are settled before any
 search: a card both required and excluded, a required card the player
 does not hold, and locked decks that share cards are refused, naming the
