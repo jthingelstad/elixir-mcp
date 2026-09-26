@@ -42,11 +42,13 @@ import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { buildAll } from "./build.mjs";
 import { buildParameters } from "./parameters.mjs";
 import { DEPLOY_USAGE, parseDeployArgs } from "./lib/deploy-args.mjs";
+import { ciGate } from "./lib/ci-gate.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../..");
 const REGION = process.env.AWS_REGION ?? "us-east-1";
 const STACK = "elixir-mcp";
+const GITHUB_REPO = "jthingelstad/elixir-mcp";
 // The stack's tags, propagated by CloudFormation to every taggable
 // resource (2026-09-17). awsApplication puts them into the myApplications
 // application "Elixir" (created by Jamie in the console; the id is the
@@ -64,7 +66,7 @@ const stackTags = (accountId) => [
   { Key: "Project", Value: "elixir-mcp" },
   { Key: "Environment", Value: "production" },
   { Key: "ManagedBy", Value: "cloudformation" },
-  { Key: "Repository", Value: "jthingelstad/elixir-mcp" },
+  { Key: "Repository", Value: GITHUB_REPO },
 ];
 
 // Refuse anything but a known flag before the first AWS call: an unknown
@@ -97,6 +99,31 @@ if (dirty) {
     `deploy: the worktree has uncommitted changes; commit them first. Nothing was deployed.\n${dirty}`,
   );
   process.exit(2);
+}
+
+// Deploy only what main holds and CI passed (the PR workflow,
+// 2026-09-26; lib/ci-gate.mjs). --break-glass is for GitHub being
+// unreachable, never for a red check.
+if (args.breakGlass) {
+  console.warn(
+    "deploy: WARNING --break-glass: the CI gate is skipped; record why in docs/NOTES.md.",
+  );
+} else {
+  const gate = await ciGate({
+    git: (a) =>
+      execFileSync("git", a, { cwd: repoRoot, encoding: "utf8" }).trim(),
+    ghApi: async (p) =>
+      JSON.parse(execFileSync("gh", ["api", p], { encoding: "utf8" })),
+    repo: GITHUB_REPO,
+    log: (line) => console.log(line),
+  });
+  if (!gate.ok) {
+    console.error(`deploy: ${gate.reason}`);
+    process.exit(2);
+  }
+  console.log(
+    `deploy: CI gate passed for ${gate.sha.slice(0, 8)} (validate green on ${gate.via}).`,
+  );
 }
 
 const sts = new STSClient({ region: REGION });

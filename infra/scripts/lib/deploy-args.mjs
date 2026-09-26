@@ -13,6 +13,9 @@ export const DEPLOY_USAGE = `usage: AWS_PROFILE=cloud-engineer node infra/script
   --param=Key=Value      a one-time value for a PRESERVED parameter
   --acceptance           run the whole acceptance suite after the smoke
   --acceptance=<family>  run one family's acceptance cases (a,b for several)
+  --break-glass          skip the CI gate (HEAD must be origin/main with a
+                         green validate check); GitHub down only, and
+                         NOTES says why
   --help, -h             print this and exit; nothing is deployed`;
 
 /** @param {string[]} argv process.argv.slice(2) */
@@ -24,6 +27,7 @@ export function parseDeployArgs(argv) {
     params: {},
     acceptance: false,
     acceptanceFamily: null,
+    breakGlass: false,
     unknown: [],
   };
   for (const arg of argv) {
@@ -31,6 +35,7 @@ export function parseDeployArgs(argv) {
     else if (arg === "--create") out.create = true;
     else if (arg === "--skip-web") out.skipWeb = true;
     else if (arg === "--acceptance") out.acceptance = true;
+    else if (arg === "--break-glass") out.breakGlass = true;
     else if (/^--acceptance=[\w,-]+$/.test(arg)) {
       out.acceptance = true;
       out.acceptanceFamily = arg.slice("--acceptance=".length);
