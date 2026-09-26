@@ -2890,3 +2890,19 @@ now sorts and pages every deck. `duel_decks` reads the rounds' own
 `verbosity: compact` drops `modes` and the level detail; `battles_decks` is
 no longer a one-size tool, so the one-size tests use `battles_cards` and
 `battles_opponents`.
+
+**9.12.0 shipped** (e7f6fb15). Acceptance (`--acceptance=battles`): 197
+cases, 3 failed; every `battles_decks` case passed. King Thing's list at
+limit 30 is 25.9 KB (was about 47 KB); his whole history, limit 100, 34.4 KB.
+Verdicts:
+
+- `budgets/meta-cards-corpus-week`, `catalogue/battles_meta_cards#1`: cold
+  reads, not the query. `{profile_tool}` ran it at 15.4 s and at 2.9 s one
+  call later. 0182's fill had left `deck` 39% all-visible (`deck_card`
+  92%, `meta_season_pop` 83% after the rebuilds), so the meta readers'
+  index-only probes went to the heap. The vacuum op now takes `deck`,
+  `deck_card` and `meta_season_pop` (878a8cc8); all three vacuumed to 100%;
+  both cases pass alone (13.7 s cold, 3.4 s warm; 3.3 s).
+- `catalogue/battles_trends#1`: a `query_timeout` alone. `battles_trends`
+  has not changed since 9.1.0; this morning's open first-call item, still
+  open.
