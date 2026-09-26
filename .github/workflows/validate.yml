@@ -16,10 +16,18 @@ concurrency:
   group: validate-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# No default token permissions; each job asks for its own. Actions are
+# pinned to commit SHAs (Dependabot's monthly github-actions run moves
+# them) and checkout leaves no token behind. infra/scripts/test-workflows.sh
+# holds every workflow here to that, as a step below.
+permissions: {}
+
 jobs:
   validate:
     name: validate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       postgres:
         image: postgres:17
@@ -34,8 +42,11 @@ jobs:
     env:
       PG_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: sh infra/scripts/test-workflows.sh
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
       - run: npm ci
