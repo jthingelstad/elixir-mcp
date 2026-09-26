@@ -170,8 +170,9 @@ In `../cr-agent-api-docs`, under its AGENTS.md:
   `tools/docs-build/scripts/validate-observed-enums.mjs` in the same
   commit, so a later rewrite cannot drop it.
 - Run the gate: `cd tools/docs-build && npm run format && npm run build`.
-- Commit (message-first, what was observed and where it is written),
-  check HEAD moved, push.
+- On a branch, commit (message-first, what was observed and where it is
+  written), check HEAD moved, and land it through a PR under that repo's
+  AGENTS.md (its `main` takes only pull requests from 2026-09-26).
 
 A patch that also changes the hub (a manifest entry, a mode map, a docs
 page that quotes the reference) is a hub change: take the hub lease, fix

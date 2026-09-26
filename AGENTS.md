@@ -91,7 +91,8 @@ decisions there as they happen and add the line to `DECISIONS.md`.
    **Write to it.** It exists to accumulate observed API behavior, and Elixir
    MCP is its best contributor: we record many clans, so we see API and game
    behavior a single-clan tool cannot. When the live API surprises us, patch
-   that repo as part of the fix and push.
+   that repo as part of the fix and land it through a PR there (its `main`
+   takes only pull requests too, from 2026-09-26).
 
    Push findings that hold for ANY caller — endpoint shapes, field semantics,
    nullability, timing and reset behavior. Never push clan-specific material
@@ -176,8 +177,11 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
 - `npm run verify` (prettier check + oxlint + knip + typecheck + all workspace tests) is the
   pre-push gate; `npm run format` fixes style. `npm run knip` can also run
   the dead-export/dependency check alone during refactoring. CI runs the
-  same gate plus the site build and the Playwright journeys, and its
-  `validate` check is the merge gate.
+  same gate plus the site build, the Playwright journeys and the workflow
+  lint (`sh infra/scripts/test-workflows.sh`: SHA-pinned actions,
+  `permissions: {}` with per-job grants, no persisted checkout token; run
+  it after touching `.github/workflows/`), and its `validate` check is the
+  merge gate.
 - Commits are small and message-first; assert HEAD moved after committing
   (don't pipe commit output through `tail`).
 - Deploy with `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`,
