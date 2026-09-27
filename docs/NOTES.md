@@ -3046,3 +3046,15 @@ auto-merge, update-branch and delete-on-merge on. Ruleset 24050992
 required check is pinned to the GitHub Actions app (integration 15368), so
 a status from anywhere else cannot satisfy it. This entry is the first
 change to reach main through a PR, after a direct push to main was refused.
+
+## 2026-09-26 - Dependabot dev-toolchain group (PR #51) deployed
+
+PR #51 bumped 18 packages, all patch or minor: the AWS SDK clients
+(3.1126/3.1133 to 3.1137), knip, oxlint, prettier, marked, jsdom,
+lucide, TanStack Query 5.103.2 and Router 1.170.38, vitest 5.0.1 and
+`@types/node`. It was rebased onto main (`gh pr update-branch --rebase`)
+and merged on a green `validate` as 96955a28. Deployed at 00:37Z on
+2026-09-27 (7:37 PM CT on 2026-09-26) with 0 migrations run and a clean
+smoke. No tool changed, so acceptance was not run. `/api/public/status`
+reports `health.ok` true. The deploy's vocabulary import moved the
+card-roles snapshot's `source_commit` to aada797, which this PR commits.
