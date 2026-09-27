@@ -8,9 +8,13 @@
  *
  * Writes bites/<name>.json: the request, the response with its meta
  * reduced to contract_version (no request id, no quota), the contract
- * version at the top, and the feedback id when given. The response is
- * recorded public game data, the same class as fixtures/; nothing
- * private rides a tool body.
+ * version at the top, and the feedback id when given. This repo is
+ * public, and a tool body is NOT all public game data: since 9.2.0 a
+ * timeline carries attested facts, some for a clan's members or leaders
+ * only, and the reader's own account items. Every item in the
+ * `attested` or `account` section is reduced to its kind, section,
+ * instant and subject (private.mjs); bites.test.mjs fails on a committed
+ * bite that holds more. The private S3 capture stays whole.
  */
 
 import { writeFileSync } from "node:fs";
@@ -22,6 +26,7 @@ import {
   ListObjectsV2Command,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
+import { stubPrivate } from "./private.mjs";
 
 const [date, prefix, name, feedback] = process.argv.slice(2);
 if (!date || !prefix || !name) {
@@ -51,7 +56,7 @@ const obj = await s3.send(
 const raw = gunzipSync(Buffer.from(await obj.Body.transformToByteArray()));
 const capture = JSON.parse(raw.toString("utf8"));
 const contract = capture.response?.meta?.contract_version ?? null;
-const response = { ...capture.response };
+const response = stubPrivate(capture.response ?? {});
 // meta keeps the contract version and the poll times a case may compare
 // against (source_polls: public freshness, Gym 91.1); never the request
 // id or the caller's quota.

@@ -38,121 +38,58 @@
     "read_to": null,
     "timeline": [
       {
-        "subject_tag": null,
-        "subject_name": "your account",
+        "kind": "account_feedback_responded",
+        "section": "account",
         "at": "2026-09-24T10:49:57.477Z",
-        "kind": "account_feedback_responded",
-        "section": "account",
-        "facts": {
-          "status": "seen",
-          "feedback_id": 313
-        },
-        "observed_at": "2026-09-24T10:49:57.477Z",
-        "text": "Thu 10:49 your account: feedback responded."
+        "subject_tag": null
       },
       {
-        "subject_tag": null,
-        "subject_name": "your account",
+        "kind": "account_feedback_responded",
+        "section": "account",
         "at": "2026-09-24T10:49:57.187Z",
-        "kind": "account_feedback_responded",
-        "section": "account",
-        "facts": {
-          "status": "done",
-          "feedback_id": 312
-        },
-        "observed_at": "2026-09-24T10:49:57.187Z",
-        "text": "Thu 10:49 your account: feedback responded."
+        "subject_tag": null
       },
       {
-        "subject_tag": null,
-        "subject_name": "your account",
+        "kind": "account_feedback_responded",
+        "section": "account",
         "at": "2026-09-24T10:49:56.905Z",
-        "kind": "account_feedback_responded",
-        "section": "account",
-        "facts": {
-          "status": "done",
-          "feedback_id": 311
-        },
-        "observed_at": "2026-09-24T10:49:56.905Z",
-        "text": "Thu 10:49 your account: feedback responded."
+        "subject_tag": null
       },
       {
-        "subject_tag": null,
-        "subject_name": "your account",
+        "kind": "account_feedback_responded",
+        "section": "account",
         "at": "2026-09-24T10:19:07.034Z",
-        "kind": "account_feedback_responded",
-        "section": "account",
-        "facts": {
-          "status": "seen",
-          "feedback_id": 310
-        },
-        "observed_at": "2026-09-24T10:19:07.034Z",
-        "text": "Thu 10:19 your account: feedback responded."
+        "subject_tag": null
       },
       {
-        "subject_tag": null,
-        "subject_name": "your account",
+        "kind": "account_feedback_responded",
+        "section": "account",
         "at": "2026-09-24T09:17:12.349Z",
-        "kind": "account_feedback_responded",
-        "section": "account",
-        "facts": {
-          "status": "seen",
-          "feedback_id": 309
-        },
-        "observed_at": "2026-09-24T09:17:12.349Z",
-        "text": "Thu 09:17 your account: feedback responded."
+        "subject_tag": null
       },
       {
-        "subject_tag": null,
-        "subject_name": "your account",
+        "kind": "account_feedback_responded",
+        "section": "account",
         "at": "2026-09-24T09:17:12.020Z",
-        "kind": "account_feedback_responded",
-        "section": "account",
-        "facts": {
-          "status": "done",
-          "feedback_id": 308
-        },
-        "observed_at": "2026-09-24T09:17:12.020Z",
-        "text": "Thu 09:17 your account: feedback responded."
+        "subject_tag": null
       },
       {
-        "subject_tag": null,
-        "subject_name": "your account",
+        "kind": "account_feedback_responded",
+        "section": "account",
         "at": "2026-09-24T09:02:46.266Z",
-        "kind": "account_feedback_responded",
-        "section": "account",
-        "facts": {
-          "status": "seen",
-          "feedback_id": 307
-        },
-        "observed_at": "2026-09-24T09:02:46.266Z",
-        "text": "Thu 09:02 your account: feedback responded."
+        "subject_tag": null
       },
       {
-        "subject_tag": null,
-        "subject_name": "your account",
+        "kind": "account_feedback_responded",
+        "section": "account",
         "at": "2026-09-24T09:02:45.967Z",
-        "kind": "account_feedback_responded",
-        "section": "account",
-        "facts": {
-          "status": "done",
-          "feedback_id": 306
-        },
-        "observed_at": "2026-09-24T09:02:45.967Z",
-        "text": "Thu 09:02 your account: feedback responded."
+        "subject_tag": null
       },
       {
-        "subject_tag": null,
-        "subject_name": "your account",
-        "at": "2026-09-24T09:02:45.482Z",
         "kind": "account_feedback_responded",
         "section": "account",
-        "facts": {
-          "status": "done",
-          "feedback_id": 305
-        },
-        "observed_at": "2026-09-24T09:02:45.482Z",
-        "text": "Thu 09:02 your account: feedback responded."
+        "at": "2026-09-24T09:02:45.482Z",
+        "subject_tag": null
       }
     ],
     "timeline_more": 217,
