@@ -77,7 +77,41 @@ import {
 } from "./ops-series.mjs";
 import { duelRoundDecks } from "./ops-duel-rounds.mjs";
 
+/** The function's own application_name (PGAPPNAME in
+ *  infra/template.yaml), read once, before any op renames it. */
+const APP_NAME = process.env.PGAPPNAME || "elixir-mcp-migrate";
+
+/** The op a payload names, as it appears in pg_stat_activity: `migrate`
+ *  for {} (the ladder), else its first key, reduced to what an op key can
+ *  be. application_name holds 63 bytes; the server truncates the rest. */
+export function opName(event) {
+  const keys =
+    event && typeof event === "object" && !Array.isArray(event)
+      ? Object.keys(event)
+      : [];
+  if (keys.length === 0) return "migrate";
+  return keys[0].replace(/[^a-z0-9_]/gi, "").slice(0, 40) || "unknown";
+}
+
+/**
+ * Every connection an op opens is named for it: node-pg reads PGAPPNAME
+ * when a client is constructed, and the function runs one invocation at a
+ * time (reserved concurrency 1), so setting it for the invocation names
+ * every backend the op opens. {backends} then says which op a backend
+ * belongs to, and {terminate_backends} can filter by it; before
+ * 2026-09-27 every service connected as one user with no name, and
+ * query text was the only handle on an orphan (review §3.1).
+ */
 export async function handler(event) {
+  process.env.PGAPPNAME = `${APP_NAME}:${opName(event)}`;
+  try {
+    return await dispatch(event);
+  } finally {
+    process.env.PGAPPNAME = APP_NAME;
+  }
+}
+
+async function dispatch(event) {
   if (event?.inspect) {
     const result = await inspect(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
@@ -316,14 +350,20 @@ export async function handler(event) {
     return result;
   }
   if (event?.backends) {
-    const result = await listBackends(process.env.DATABASE_URL);
+    const result = await listBackends(
+      process.env.DATABASE_URL,
+      event.backends === true ? {} : event.backends,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
   if (event?.terminate_backends) {
+    // No `true` shorthand: the op ends backends, so it names them
+    // (DECISIONS, incident authority: "named, never `true`"). `true`
+    // reaches the op as itself and is refused there.
     const result = await terminateBackends(
       process.env.DATABASE_URL,
-      event.terminate_backends === true ? {} : event.terminate_backends,
+      event.terminate_backends,
     );
     console.log(JSON.stringify(result));
     return result;
