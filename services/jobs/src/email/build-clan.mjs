@@ -6,24 +6,23 @@
 import { badgeLabel } from "../../../mcp/src/badge-names.mjs";
 import { buildClanEntry } from "../../../mcp/src/activity/entries.mjs";
 import { accountCtx, callTool } from "./ctx.mjs";
-import { tryTool, weekday } from "./shared.mjs";
+import { tryTool } from "./shared.mjs";
 
+/** The facts are the same for every reader (review 2026-09-27 §6.7):
+ *  `account` only shapes the ctx the tools are called with, the scope is
+ *  the clan's own recording scope, and a day is carried as an instant
+ *  that each recipient's render names in their own zone. */
 export async function buildClan({ db, account, clanTag, week, season }) {
   const ctx = accountCtx(db, account);
   const fromMs = week.from.getTime();
   const toMs = week.to.getTime();
-  const tz = account.timezone;
-  const { rows: scopeRows } = await db.query(
-    `select scope from account_clan where account_id = $1 and clan_tag = $2`,
-    [account.accountId, clanTag],
-  );
-  const scope = scopeRows[0]?.scope ?? "activity";
+  const scope = await clanScope(db, clanTag);
   const { entry } = await buildClanEntry(db, {
     tag: clanTag,
     scope,
     fromMs,
     toMs,
-    timezone: tz,
+    timezone: "UTC",
   });
   const roster = await tryTool(callTool, ctx, "clans_roster", {
     clan_tag: clanTag,
@@ -109,7 +108,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
     standouts.push({
       tag: s.tag,
       name: s.name ?? s.tag,
-      text: sessionText(s, tz),
+      text: sessionText(s),
     });
   for (const x of items(st?.ranked_promotions))
     standouts.push({
@@ -171,7 +170,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
       joined: (r.joined?.items ?? r.joined ?? []).map((m) => ({
         tag: m.tag,
         name: m.name ?? m.tag,
-        when: weekday(m.at, tz),
+        at: m.at ?? null,
         note: r.bounced?.includes?.(m.tag)
           ? "left again inside the week"
           : null,
@@ -179,7 +178,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
       left: (r.left?.items ?? r.left ?? []).map((m) => ({
         tag: m.tag,
         name: m.name ?? m.tag,
-        when: weekday(m.at, tz),
+        at: m.at ?? null,
         role: m.role,
       })),
       roles: (r.role_changes?.items ?? r.role_changes ?? []).map((m) => ({
@@ -219,14 +218,37 @@ function roleLabel(role) {
   return role === "coLeader" ? "co-leader" : (role ?? "member");
 }
 
-function sessionText(s, tz) {
+/** The clan's recording scope: the widest any tracker (or collection)
+ *  asked for, as the recording holds it; with no active recording, the
+ *  widest tracker's request. Never one reader's own request: a tracker
+ *  who chose activity scope does not narrow a clan another tracker has
+ *  recorded comprehensively. */
+async function clanScope(db, clanTag) {
+  const { rows } = await db.query(
+    `select coalesce(
+        (select case when bool_or(scope = 'comprehensive') then 'comprehensive' else 'activity' end
+           from recording
+          where subject_type = 'clan' and subject_tag = $1 and status = 'active'
+         having count(*) > 0),
+        (select case when bool_or(scope = 'comprehensive') then 'comprehensive' else 'activity' end
+           from account_clan where clan_tag = $1
+         having count(*) > 0),
+        'activity') as scope`,
+    [clanTag],
+  );
+  return rows[0].scope;
+}
+
+function sessionText(s) {
   const modes = Object.entries(s.by_mode ?? {})
     .filter(([, n]) => n > 0)
     .sort((a, b) => b[1] - a[1])
     .map(([m, n]) => `${n} ${m}`)
     .join(", ");
   const streak = s.won_in_a_row >= 5 ? `, ${s.won_in_a_row} wins in a row` : "";
-  return `${s.battles} battles in one ${weekday(s.started_at, tz)} sitting (${s.won}W-${s.lost}L${modes ? `; ${modes}` : ""}${streak})`;
+  // {{day:<instant>}}: the render names the day in the reader's zone.
+  const day = s.started_at ? `{{day:${s.started_at}}} ` : "";
+  return `${s.battles} battles in one ${day}sitting (${s.won}W-${s.lost}L${modes ? `; ${modes}` : ""}${streak})`;
 }
 
 function dedupe(rows) {

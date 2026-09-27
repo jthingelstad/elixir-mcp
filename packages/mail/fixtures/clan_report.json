@@ -43,17 +43,17 @@
    {
     "name": "Brotherinpants",
     "tag": "#RRU9PGJQ9",
-    "when": "Tue"
+    "at": "2026-09-08T18:00:00Z"
    },
    {
     "name": "VVSBUDGET",
     "tag": "#20CLVPLG8R",
-    "when": "Sat"
+    "at": "2026-09-12T18:00:00Z"
    },
    {
     "name": "ㅤᴀɴᴅᴇʀㅤ:)",
     "tag": "#LCUVPUYCY",
-    "when": "Sat",
+    "at": "2026-09-12T18:00:00Z",
     "note": "left again the same day"
    }
   ],
@@ -61,19 +61,19 @@
    {
     "name": "pax",
     "tag": "#UCP028JQ8",
-    "when": "Thu",
+    "at": "2026-09-10T18:00:00Z",
     "role": "member"
    },
    {
     "name": "Ditaka",
     "tag": "#VGJJLC9PR",
-    "when": "Thu",
+    "at": "2026-09-10T18:00:00Z",
     "role": "member"
    },
    {
     "name": "Th15_Guy",
     "tag": "#QLGYYG0Q",
-    "when": "Thu",
+    "at": "2026-09-10T18:00:00Z",
     "role": "member"
    }
   ],
@@ -96,7 +96,7 @@
   {
    "name": "Aaqib Javed",
    "tag": "#2G2RPVPP",
-   "text": "449 battles, the most in the clan; 37 in one Saturday sitting with 12 wins in a row; promoted to Master 2 in ranked"
+   "text": "449 battles, the most in the clan; 37 in one {{day:2026-09-12T18:00:00Z}} sitting with 12 wins in a row; promoted to Master 2 in ranked"
   },
   {
    "name": "L-Drxgo⚡",

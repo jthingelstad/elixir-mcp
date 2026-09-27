@@ -117,7 +117,33 @@ export function tagLink(url, campaign) {
   return u.toString();
 }
 
-function make(campaign = null, { pixel = true } = {}) {
+/** A weekday in the reader's zone ("Tue"). A report composed once for
+ *  everyone (the clan report) carries instants, and each recipient's
+ *  render names the day in their own timezone (review 2026-09-27 §6.7:
+ *  it had been composed in the first tracker's zone). */
+function weekdayIn(iso, timezone = "UTC") {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone || "UTC",
+      weekday: "short",
+    }).format(d);
+  } catch {
+    return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getUTCDay()];
+  }
+}
+
+function make(campaign = null, { pixel = true, timezone = "UTC" } = {}) {
+  // An entry's day: its instant in the reader's zone, or the label an
+  // issue composed before 2026-09-27 stored.
+  const day = (m) => (m?.at ? weekdayIn(m.at, timezone) : (m?.when ?? ""));
+  // Free text carrying {{day:<instant>}}, the same idea as the Card of
+  // the Week's {{deck:N}}: the composer places the day, the render names it.
+  const days = (text) =>
+    String(text ?? "").replace(/\{\{day:([^}]+)\}\}/g, (_, iso) =>
+      weekdayIn(iso, timezone),
+    );
   const T = (url) => tagLink(url, campaign);
   const P = (tag, name) =>
     `<a href="${T(playerUrl(tag))}" title="${esc(tag)}" style="color:${C.link};text-decoration:underline;text-decoration-color:${C.lineSoft};text-underline-offset:2px;">${esc(name)}</a>`;
@@ -229,6 +255,8 @@ function make(campaign = null, { pixel = true } = {}) {
     button,
     cov,
     shell,
+    day,
+    days,
   };
 }
 
@@ -491,12 +519,12 @@ function clan(f, c) {
       ),
     );
   const mem = `${c.h2("Membership", `${f.clan.members_from} → ${f.clan.members}`)}
-    ${f.membership.joined.length ? `${c.h3("Joined")}${names(f.membership.joined, (m) => `${esc(m.when)}${m.note ? ` · ${esc(m.note)}` : ""}`)}` : ""}
-    ${f.membership.left.length ? `${c.h3("Left")}${names(f.membership.left, (m) => `${esc(m.when)}${m.role ? ` · was ${esc(m.role)}` : ""}`)}` : ""}
+    ${f.membership.joined.length ? `${c.h3("Joined")}${names(f.membership.joined, (m) => `${esc(c.day(m))}${m.note ? ` · ${esc(m.note)}` : ""}`)}` : ""}
+    ${f.membership.left.length ? `${c.h3("Left")}${names(f.membership.left, (m) => `${esc(c.day(m))}${m.role ? ` · was ${esc(m.role)}` : ""}`)}` : ""}
     ${f.membership.roles.length ? `${c.h3("Roles")}${names(f.membership.roles, (m) => `${esc(m.from)} → ${esc(m.to)}`)}` : ""}
     ${!f.membership.joined.length && !f.membership.left.length && !f.membership.roles.length ? c.small("No joins, departures or role changes.") : ""}`;
   const stand = f.standouts.length
-    ? `${c.h2("Standouts")}${c.list(f.standouts.map((s) => `<strong style="color:${C.ink};">${c.P(s.tag, s.name)}</strong> — ${esc(s.text)}`))}`
+    ? `${c.h2("Standouts")}${c.list(f.standouts.map((s) => `<strong style="color:${C.ink};">${c.P(s.tag, s.name)}</strong> — ${esc(c.days(s.text))}`))}`
     : "";
   const notes = [];
   if (f.badges?.length)
@@ -971,7 +999,13 @@ export function renderMail(kind, facts, links) {
   const campaign = links.period ? { kind, period: String(links.period) } : null;
   // A page render (the public Top 100 issue) tags its links but counts
   // as a page view through the site's script, not as an open.
-  const out = fn(facts, make(campaign, { pixel: links.pixel !== false }));
+  const out = fn(
+    facts,
+    make(campaign, {
+      pixel: links.pixel !== false,
+      timezone: links.timezone ?? "UTC",
+    }),
+  );
   return {
     subject: out.subject,
     preheader: out.preheader,
