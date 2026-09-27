@@ -3219,3 +3219,39 @@ named "Elixir Clan" from 2026-09-12, with a clan redirect plus a
 CloudFront fallback, so never first-party, and no live grants. Revoking it
 waits for Jamie. The committed acceptance bite
 `317-2-elixir_timeline.json` (account-section items) is #66's.
+
+## 2026-09-27 — #63 (A2): every database backend bounded and named (contract 9.12.2, JSON API 2.6.2)
+
+Review §3.1-3.3. Three incidents (0099's 35-minute lock, the 09-15 read
+queue behind a migration, the orphaned `battle_participant` backfill) had
+one cause: a query outlives the Lambda that sent it, because ending the
+client does not cancel it, and nothing on the server bounded it.
+
+- **Connection ceilings (template).** Each database function sets
+  `PGAPPNAME=elixir-mcp-<function>` and `PGOPTIONS` with
+  `statement_timeout` just under its Lambda kill (web-api 18 s of 20,
+  mcp 23 of 25, scheduler 45 of 50, migrate 285 of 300) and
+  `idle_in_transaction_session_timeout=60s`. jobs is 300 s of 900: the
+  longest jobs statement in 29 days of logs was the cards aggregate at
+  108 s (09-22); the retired `pop` statement was 227 s (09-19). The
+  invoker's per-call `set_config` still overrides the ceiling inside a
+  tool (a scratch-DB test pins it). A pinned template test keeps every
+  function named and its ceiling under its timeout.
+- **0186** sets `client_connection_check_interval = 10s` on the
+  database, so a backend notices a vanished client between checks.
+  Best-effort: it needs a socket the kernel has closed.
+- **Reads wait at most 5 s for a lock** (`lock_timeout` on the budgeted
+  read path only; writes carry none) and answer `query_timeout`.
+- **Explore and `/api/v1` race the request deadline** (`deadline.mjs`),
+  so `clans_participation` and the other unbudgeted reads there answer
+  `query_timeout` instead of a 504. Not added to `BUDGETED_TOOLS`: the
+  deadline now covers it on all three doors, and the budget would only
+  add `work_mem`; measure first.
+- **`packSets`** stops at a 4 s time budget as well as its node budget
+  (a 1,500-deck pool over 32 cards ran 4.3 s inside its node budget).
+- **`{terminate_backends}`** refuses `true`, a missing `like` and a
+  wildcard-only pattern (`named_query_required`), floors at 300 s and can
+  narrow by `application_name`. **`{backends}`** groups by application
+  and names its own connection (`elixir-mcp-migrate:backends`).
+- **`{oauth_grants}` revoke** writes its UPDATE and account event in one
+  transaction; it and `{collection}` gained tests.
