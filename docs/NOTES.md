@@ -3058,3 +3058,16 @@ and merged on a green `validate` as 96955a28. Deployed at 00:37Z on
 smoke. No tool changed, so acceptance was not run. `/api/public/status`
 reports `health.ok` true. The deploy's vocabulary import moved the
 card-roles snapshot's `source_commit` to aada797, which this PR commits.
+
+## 2026-09-27 - Guard the Door: bounded relay failure logs (PR #56) deployed
+
+The weekly boundary sweep found that the email relay's best-effort failure
+logs could emit untrusted transport error text, which may contain recipient or
+message-body data. A regression captured that leak across the owner,
+Buttondown, outbox-delete, and retry paths; the relay now records only bounded
+error classes. `npm run verify` and PR #56's `validate` passed; it merged as
+76f68c6d and deployed with zero migrations and a clean public smoke. The
+post-deploy public status was healthy (zero DLQ messages; five active signed
+collectors; one 1 rps, 3,600/hour global budget with its 10% live reserve),
+and invalid MCP and JSON API Bearers remained 401 without cookies. No tool
+changed, so tool-family acceptance was not run; no production email was sent.

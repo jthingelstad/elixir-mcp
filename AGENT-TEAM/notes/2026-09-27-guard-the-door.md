@@ -33,5 +33,13 @@ the bounded `transport_error` class (and `invalid_message` for rejected owner
 notifications), preserving the operational signal without retaining
 third-party data.
 
-Focused relay, auth, MCP, and JSON API tests pass after the repair. Canonical
-verification and deployment/read-only acceptance are recorded after they run.
+Focused relay, auth, MCP, and JSON API tests pass after the repair. The
+canonical `npm run verify` gate passed. PR #56 merged as `76f68c6d` after its
+green `validate` check, and deployment completed with zero migrations and a
+clean public smoke; no tool changed, so tool-family acceptance was not run.
+
+Post-deploy read-only acceptance found `/api/public/status` healthy (zero DLQ
+messages), five active signed collectors, and the singleton 1 request/second,
+3,600/hour budget with its 10% live reserve. Invalid credentials at both MCP
+and `/api/v1` received 401 responses without a cookie. No production email was
+sent to test a privacy boundary.
