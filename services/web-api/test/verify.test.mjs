@@ -69,8 +69,29 @@ async function seedCollection(tag, n = 20) {
 
 let battleSeq = 0;
 /** A recorded battle for `tag` with the given deck, against a stand-in
- *  opponent; the shape the battlelog projector writes. */
-async function playBattle(tag, ids, at = new Date(), outcome = "win") {
+ *  opponent; the shape the battlelog projector writes. Trophy Road
+ *  unless `mode` says otherwise. */
+const MODES = {
+  ladder: { type: "PvP", game_mode_name: "Ladder", event_tag: null },
+  ranked: {
+    type: "pathOfLegend",
+    game_mode_name: "Ranked1v1_NewArena2",
+    event_tag: null,
+  },
+  event: {
+    type: "trail",
+    game_mode_name: "Draft_Competitive",
+    event_tag: "Draft",
+  },
+};
+async function playBattle(
+  tag,
+  ids,
+  at = new Date(),
+  outcome = "win",
+  mode = "ladder",
+) {
+  const m = MODES[mode];
   battleSeq += 1;
   const battleId = `verify-battle-${process.pid}-${battleSeq}`;
   const opponent = "#PPRJ8V0L";
@@ -79,16 +100,16 @@ async function playBattle(tag, ids, at = new Date(), outcome = "win") {
     [opponent],
   );
   await db.query(
-    `insert into battle (battle_id, battle_time, type, type_class, game_mode_name)
-     values ($1, $2, 'pathOfLegend', 'pvp', 'Ranked1v1_NewArena2')`,
-    [battleId, at],
+    `insert into battle (battle_id, battle_time, type, type_class, game_mode_name, event_tag)
+     values ($1, $2, $3, 'pvp', $4, $5)`,
+    [battleId, at, m.type, m.game_mode_name, m.event_tag],
   );
   const cards = ids.map((id) => ({ id, level: 14 }));
   await seedDeck(db, { battle_time: at, cards });
   await db.query(
     `insert into battle_participant (battle_id, player_tag, side, crowns, deck_hash, outcome, battle_time, type, type_class)
-     values ($1, $2, 0, $5, $3, $4, $6, 'pathOfLegend', 'pvp'),
-            ($1, $7, 1, $8, null, $9, $6, 'pathOfLegend', 'pvp')`,
+     values ($1, $2, 0, $5, $3, $4, $6, $10, 'pvp'),
+            ($1, $7, 1, $8, null, $9, $6, $10, 'pvp')`,
     [
       battleId,
       tag,
@@ -99,6 +120,7 @@ async function playBattle(tag, ids, at = new Date(), outcome = "win") {
       opponent,
       outcome === "win" ? 1 : 3,
       outcome === "win" ? "loss" : "win",
+      m.type,
     ],
   );
   await seedPlayedDeck(db, {
@@ -321,6 +343,17 @@ test("poll: a near-miss battle lights up what matched, a battle after the brief 
   r = JSON.parse((await poll()).body);
   assert.equal(r.state, "open", "a battle before the challenge proves nothing");
 
+  // The full target outside Trophy Road - Path of Legends, then an event
+  // that hands out decks - is shown but proves nothing.
+  for (const mode of ["ranked", "event"]) {
+    await playBattle(TAG, target, new Date(), "win", mode);
+    r = JSON.parse((await poll()).body);
+    assert.equal(r.state, "open", `a ${mode} battle proves nothing`);
+    assert.equal(r.matched, 8);
+    assert.equal(r.last_battle.trophy_road, false);
+    assert.equal(r.last_battle.proof, false);
+  }
+
   // The full target, in a different order, played now: verified, and the
   // proving battle is named with its result.
   const proofId = await playBattle(
@@ -334,6 +367,7 @@ test("poll: a near-miss battle lights up what matched, a battle after the brief 
   assert.ok(r.verified_at);
   assert.equal(r.last_battle.battle_id, proofId);
   assert.equal(r.last_battle.proof, true);
+  assert.equal(r.last_battle.trophy_road, true);
   assert.equal(r.last_battle.outcome, "win");
   assert.equal(r.matched, 8);
   assert.equal(
@@ -578,4 +612,53 @@ test("over HTTP: the routes need a session and the client header, and a bad tag 
     "/api/me/verify/00000000-0000-0000-0000-000000000000",
   );
   assert.equal(missing.statusCode, 404);
+});
+
+test("the target is drawn from the player's Trophy Road decks, never a deck another mode handed them", async () => {
+  const tag = "#9JCVGQ28";
+  const third = (
+    await db.query(
+      "insert into account(email_hash,status,role) values ('verify-third','approved','member') returning account_id",
+    )
+  ).rows[0].account_id;
+  await seedCollection(tag);
+  await db.query(
+    `insert into claim (account_id, player_tag, status, is_primary, relationship)
+     values ($1, $2, 'unverified', true, 'primary')`,
+    [third, tag],
+  );
+  const eventDeck = Array.from({ length: 8 }, (_, i) => 26000001 + i);
+  const ladderDeck = Array.from({ length: 8 }, (_, i) => 26000009 + i);
+  // The event deck is the most played by far; the one Trophy Road deck
+  // must still be the base.
+  const past = Date.now() - 2 * 3600_000;
+  for (let i = 0; i < 5; i += 1)
+    await playBattle(
+      tag,
+      eventDeck,
+      new Date(past + i * 60_000),
+      "win",
+      "event",
+    );
+  await playBattle(tag, ladderDeck, new Date(past - 60_000), "win", "ladder");
+  const routes = verifyRoutes({
+    resolveAccount: async () => ({
+      accountId: third,
+      role: "member",
+      kind: "person",
+    }),
+    logEvent: async () => {},
+    live: async () => ({ ok: false, reason: "pending", job_id: 9 }),
+  });
+  const c = JSON.parse(
+    (await routes["POST /api/me/verify"](db, {}, { player_tag: tag })).body,
+  );
+  assert.equal(c.state, "open");
+  assert.equal(c.target_source, "most_played");
+  const ids = c.target.map((x) => x.id);
+  assert.equal(
+    ids.filter((id) => ladderDeck.includes(id)).length,
+    DECK_SIZE - 2,
+    "the Trophy Road deck with two swaps",
+  );
 });

@@ -61,8 +61,9 @@ const OPEN = {
 const battle = (cards, outcome, proof = false) => ({
   battle_id: `b-${outcome}`,
   battle_time: "2026-09-12T14:01:30Z",
-  type: "pathOfLegend",
-  mode: "Path of Legends",
+  type: "PvP",
+  mode: "Ladder",
+  trophy_road: true,
   outcome,
   crowns: outcome === "win" ? 3 : 1,
   opponent: {
@@ -203,8 +204,9 @@ test("the picker lists the account's players and a start shows the eight-card br
   expect(target.querySelectorAll(".deck__slot--swapped").length).toBe(2);
   expect(screen.getAllByLabelText("swapped in").length).toBe(2);
   expect(
-    screen.getByText(/your own recent deck with two cards swapped/),
+    screen.getByText(/your own recent Trophy Road deck with two cards swapped/),
   ).toBeTruthy();
+  expect(screen.getByText(/Only Trophy Road counts/)).toBeTruthy();
   // No battle yet: eight empty slots on the live side.
   const seen = screen.getByRole("list", {
     name: "The deck in your latest battle",
@@ -231,7 +233,7 @@ test("the live half polls every 15 s, lights matched cards up, then unlocks and 
   });
   await waitFor(() =>
     expect(screen.getByRole("status").textContent).toMatch(
-      /3 of 8 in that deck · Loss 1-3 vs Rival · Path of Legends/,
+      /3 of 8 in that deck · Loss 1-3 vs Rival · Ladder/,
     ),
   );
   const target = screen.getByRole("list", { name: "The deck to play" });
@@ -267,6 +269,35 @@ test("the live half polls every 15 s, lights matched cards up, then unlocks and 
     String(c[0]).startsWith("/api/me/verify/"),
   ).length;
   expect(after).toBe(before);
+});
+
+test("a battle outside Trophy Road is shown but said not to count", async () => {
+  const ranked = {
+    ...PARTIAL,
+    last_battle: {
+      ...PARTIAL.last_battle,
+      type: "pathOfLegend",
+      mode: "Ranked1v1_NewArena2",
+      trophy_road: false,
+    },
+  };
+  statusQueue = [ranked, ranked];
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  window.history.pushState({}, "", "/account/verify");
+  render(<App />);
+  await waitFor(() => screen.getByText("King Thing"));
+  fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+  await waitFor(() =>
+    screen.getByRole("heading", { name: "Play one battle with this deck" }),
+  );
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(15_100);
+  });
+  await waitFor(() =>
+    expect(screen.getByRole("status").textContent).toMatch(
+      /Not Trophy Road, so it does not count · Loss 1-3 vs Rival · Ranked1v1 New Arena2/,
+    ),
+  );
 });
 
 test("reduced motion: the badge lands without sparks", async () => {
