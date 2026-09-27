@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-27",
+    title: "Captured calls are gone at 90 days, as promised",
+    body: "The request and response of a tool call are kept for 90 days, as the privacy page says. Because the storage keeps earlier versions of a file, a call's body could linger as an old version for up to a year after that; it now goes the day after its 90 days end. The weekly tracking mail also picks its moments before it trims a busy week, so a clan's messages and other facts from Elixir's family apps can no longer push your own milestones out of it, and never appear in it. No change to the tools.",
+  },
+  {
+    date: "2026-09-27",
     title: "Your agent hears the whole opening brief",
     body: "When an agent connects, Elixir tells it who you are and how to use the tools. That brief had grown past what some apps pass on (Claude Code keeps the first 2,048 characters), so the part about where to start and how to send feedback never reached the model. It is now written to arrive whole: if you track a lot of players it counts them instead of listing every one, and the finer points live in the documentation it points to. A personal connection's tool list also drops two arguments only clan agents use, and refusals now reach apps that check answers strictly. Contract 9.12.4.",
   },
