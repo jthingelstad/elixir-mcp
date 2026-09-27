@@ -46,6 +46,50 @@ test("database-facing Lambda concurrency remains bounded", async () => {
   }
 });
 
+test("every database-facing Lambda names its connections and bounds its statements under its own timeout", async () => {
+  // Review 2026-09-27 §3.1: five functions connected as one user with no
+  // application_name and, the invoker's budget aside, no statement bound,
+  // so a statement a Lambda abandoned ran on (0099, 2026-09-15; two `pop`
+  // backends of 42 and 57 minutes, 2026-09-18).
+  const template = await readFile(templateUrl, "utf8");
+  const functions = [
+    ["WebApiFunction", "McpLogGroup", "elixir-mcp-web-api"],
+    ["McpFunction", "SchedulerLogGroup", "elixir-mcp-mcp"],
+    ["SchedulerFunction", "SchedulerRule", "elixir-mcp-scheduler"],
+    ["MigrateFunction", "JobsLogGroup", "elixir-mcp-migrate"],
+    ["JobsFunction", "EditorLogGroup", "elixir-mcp-jobs"],
+  ];
+  for (const [logicalId, nextLogicalId, name] of functions) {
+    const block = resource(template, logicalId, nextLogicalId);
+    assert.match(block, /DATABASE_URL:/, logicalId);
+    assert.match(
+      block,
+      new RegExp(`^          PGAPPNAME: ${name}$`, "m"),
+      logicalId,
+    );
+    const timeout = Number(/^      Timeout: (\d+)$/m.exec(block)[1]);
+    const options = /^          PGOPTIONS: "(.+)"$/m.exec(block)?.[1] ?? "";
+    const statement = /-c statement_timeout=(\d+)s\b/.exec(options);
+    assert.ok(statement, `${logicalId} sets statement_timeout`);
+    assert.ok(
+      Number(statement[1]) < timeout,
+      `${logicalId}: statement_timeout ${statement[1]} s is under the ${timeout} s Lambda timeout`,
+    );
+    assert.match(
+      options,
+      /-c idle_in_transaction_session_timeout=60s\b/,
+      logicalId,
+    );
+    assert.doesNotMatch(
+      options,
+      /lock_timeout/,
+      `${logicalId}: lock_timeout belongs to the read-only tool path only (the invoker), never a whole function`,
+    );
+  }
+  // No other function reaches the database.
+  assert.equal((template.match(/^          DATABASE_URL:/gm) ?? []).length, 5);
+});
+
 test("API throttles preserve measured production bursts", () => {
   assert.deepEqual(API_THROTTLES, [
     {
