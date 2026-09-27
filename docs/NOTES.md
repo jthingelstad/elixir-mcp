@@ -3536,3 +3536,46 @@ Pending (natural runs; the lane B revisit confirms): the Monday
 10-01 `top_100` and Friday 10-02 `card_of_week` runs log `ms` and send
 with no `already_sent` churn; the Top 100 and Card of the Week send
 their own period's issue (or, with none, one owner notice).
+
+## 2026-09-27 - #68 (A7): the written-issue pipeline hardened
+
+Review §6.7, lane A. docs/EMAIL.md, "The written-issue pipeline
+hardened", has the design.
+
+- **One spine.** `top100Generate`/`top100Accept` run on
+  `generateIssue`/`acceptIssue` with `top100Facts`, `briefNames(brief,
+  kind)` from packages/mail, `kind` in the hand-off, and
+  `{top100_generate: {force: true}}` as the ops flag. New archive prefix
+  `mail/top_100/<date>/`; issues through 09-24 stay under `mail/top100/`.
+- **Late accept sends.** `writtenSendDue(kind, period, now)` (slot Thu or
+  Fri 14:00Z, pinned to the crons by a test); `issue_accept` then runs
+  `runEmail(kind)` and logs `late_send`. Never for an ops brief.
+- **Editor errors classified.** `FinalEditorError` (refusal,
+  max_tokens, context_window, turn_limit, bad_json) and a 4xx are final:
+  `issue.json` = `{_pipeline: {error}}`, jobs `issue_accept` marks the row
+  failed and mails the owner "was not written", the hand-off is deleted.
+  429, 5xx, 408/409 and connection errors rethrow to SQS.
+- **Brief cache breakpoint** on the brief's content block (first user
+  block, both passes) beside the system prompt's; the `{editor: {pass,
+  turn, stop, usage}}` log shows `cache_read_input_tokens`.
+- **Lint binding.** A number in a sentence naming someone must belong to
+  that name's brief object (or be global/structural); a `numbers_used`
+  claim must print the value at its path. The rotated sample podium
+  (`services/editor/test/lint-binding.test.mjs`) fails the old lint two
+  of four tests; the 09-18 and 09-24 Top 100 and W38 Card of the Week
+  archived issues give zero findings on the new lint.
+
+Tests: `services/editor/test/{lint-binding,generate}.test.mjs`,
+`services/jobs/test/issue-pipeline.test.mjs`; verify 1405 of 1405.
+
+Shipped in PR #87 (146f5fe5..1106cfea), deployed with no acceptance
+(jobs and editor only): smoke green. `elixir-mcp-jobs` LastModified
+23:53:13Z, `elixir-mcp-editor` 23:53:24Z (6:53 PM CT).
+`/api/public/status` `health.ok: true`, `dlq_messages` 0; `/updates`
+carries the entry.
+
+Pending (natural runs): the Thursday 2026-10-01 generate (10:30Z, 5:30
+AM CT) writes under `mail/top_100/2026-10-01/`, its editor turns after
+the first log `cache_read_input_tokens` > 0, and the Top 100 sends on
+its own period at 14:00Z (9:00 AM CT) or on accept if later; the Friday
+10-02 `card_of_week` likewise.
