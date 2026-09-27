@@ -16,6 +16,7 @@ import { makeRegistry } from "../services/mcp/src/tools.mjs";
 import { replayDoor } from "./replay.mjs";
 import { runSuite } from "./run.mjs";
 import * as lib from "./lib.mjs";
+import { privateLeaks } from "./bites/private.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const bitesDir = path.join(here, "bites");
@@ -43,6 +44,15 @@ test("every capture in bites/ is named by the manifest", () => {
     (f) => f.endsWith(".json") && f !== "manifest.json",
   ))
     assert.ok(named.has(f), `${f} is not in the manifest`);
+});
+
+// This repo is public: a committed bite holds no attested or account
+// item beyond its stub (fetch.mjs, review 2026-09-27 §6.4).
+test("no committed bite carries an attested or account item's facts", () => {
+  for (const f of readdirSync(bitesDir).filter(
+    (f) => f.endsWith(".json") && f !== "manifest.json",
+  ))
+    assert.deepEqual(privateLeaks(load(f)), [], `${f} leaks private items`);
 });
 
 for (const bite of manifest) {
