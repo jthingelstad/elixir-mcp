@@ -76,7 +76,7 @@ invalid one.
 
 ```json
 { "serverInfo": { "name": "elixir-mcp", "version": "{{ tools.contractVersion }}+tools.…" },
-  "instructions": "YOU ACT FOR POAP KINGS #J2RGCRVG (47 members). Leadership: King Thing #20JJJ2CCRU (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE and reuse it… You have no player of your own: pass on_behalf_of… call elixir_identify once… You already know 9 of them.",
+  "instructions": "YOU ACT FOR POAP KINGS #J2RGCRVG (47 members). Leadership: King Thing (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it… Nothing defaults to 'you': … pass on_behalf_of… call elixir_identify once. You already know 9 of them. …",
   "_meta": { "elixir.poapkings.com/principal": {
       "kind": "agent",
       "subject": { "type": "clan", "tag": "#J2RGCRVG", "name": "POAP KINGS", "members": 47 } } } }

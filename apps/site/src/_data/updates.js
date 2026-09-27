@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-27",
+    title: "Your agent hears the whole opening brief",
+    body: "When an agent connects, Elixir tells it who you are and how to use the tools. That brief had grown past what some apps pass on (Claude Code keeps the first 2,048 characters), so the part about where to start and how to send feedback never reached the model. It is now written to arrive whole: if you track a lot of players it counts them instead of listing every one, and the finer points live in the documentation it points to. A personal connection's tool list also drops two arguments only clan agents use, and refusals now reach apps that check answers strictly. Contract 9.12.4.",
+  },
+  {
+    date: "2026-09-27",
     title:
       "Live reads share the one request budget, and the status page says how much is spent",
     body: "Every live read, whether your agent asks for one or an app refreshes a profile, is now counted against the same shared request budget the scheduled recording spends. When that budget is spent for the moment, a live read is not queued and costs you nothing; it answers with the record and says when to try again, within five minutes. The status page and Recording now lead with the last 24 hours against the day's budget. Contract 9.12.3; JSON API 2.6.3.",

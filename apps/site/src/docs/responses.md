@@ -112,7 +112,8 @@ the [Protocol reference](/docs/protocol#argument-conventions) names):
 **`applied`** — the one echo block: what the tool actually used. `window`
 (`from`, `to`, `source`, `timezone`) on every windowed tool, plus `limit`,
 `sort`, `mode`, `min_battles`, `segment` and `verbosity` where they apply.
-`window.source` is `argument`, `default`, `unbounded`, `season` or `fixed`;
+`window.source` is `argument`, `default`, `unbounded`, `season` or `fixed`
+(and `pointer` on `elixir_timeline`);
 read it before you say "your last 30 days". The season-grained tools add
 `window.season`, `window.crosses` and `window.season_age_days`
 ([Seasons](/docs/clocks#seasons)). It replaces the old `filters_applied`,

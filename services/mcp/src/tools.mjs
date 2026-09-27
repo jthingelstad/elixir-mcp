@@ -9,6 +9,7 @@
 
 import {
   assertResponseMeta,
+  CONTRACT_VERSION,
   TOOL_GROUPS,
   GROUP_ORDER,
   requiredOAuthScope,
@@ -74,6 +75,60 @@ function publishedInputSchema(schema) {
   };
 }
 
+/** The arguments only an agent connection uses: a personal connection
+ *  ignores them (DECISIONS, "The identity map is an agent's"), so its
+ *  published schemas leave them out (review 2026-09-27 §6.1: about 6 KB
+ *  of every person's tools/list said nothing to them). */
+const AGENT_ARGS = ["on_behalf_of", "display_name"];
+
+/** A connection that is a person's: no kind, "person", or anything the
+ *  principals module does not know (toolsHiddenFrom's rule). */
+const isPerson = (kind) => kind !== "agent" && kind !== "integration";
+
+function withoutAgentArgs(schema) {
+  const props = schema.properties ?? {};
+  if (!AGENT_ARGS.some((a) => Object.hasOwn(props, a)) && !props.segment?.anyOf)
+    return schema;
+  const properties = Object.fromEntries(
+    Object.entries(props)
+      .filter(([k]) => !AGENT_ARGS.includes(k))
+      .map(([k, v]) =>
+        // segment's object branch carries on_behalf_of too.
+        k === "segment" && Array.isArray(v.anyOf)
+          ? [k, { ...v, anyOf: v.anyOf.map((b) => withoutAgentArgs(b)) }]
+          : [k, v],
+      ),
+  );
+  return { ...schema, properties };
+}
+
+/** What a connection of this kind is shown and validated against. */
+function schemaFor(schema, kind) {
+  const published = publishedInputSchema(schema);
+  return isPerson(kind) ? withoutAgentArgs(published) : published;
+}
+
+/** A cached client (or a habit) may still send an agent argument on a
+ *  personal connection: it is dropped, silently, before validation, as
+ *  the one-size verbosity is, so nothing that used to be accepted is
+ *  refused. It never reached a person's answer anyway. */
+function dropAgentArgs(args) {
+  const out = Object.fromEntries(
+    Object.entries(args).filter(([k]) => !AGENT_ARGS.includes(k)),
+  );
+  const seg = out.segment;
+  if (
+    seg &&
+    typeof seg === "object" &&
+    !Array.isArray(seg) &&
+    Object.hasOwn(seg, "on_behalf_of")
+  )
+    out.segment = Object.fromEntries(
+      Object.entries(seg).filter(([k]) => k !== "on_behalf_of"),
+    );
+  return out;
+}
+
 /**
  * `kind` shapes what a connection can see and call. It is threaded in rather
  * than read from a module global because one Lambda serves every principal,
@@ -108,7 +163,12 @@ export function makeRegistry() {
           return {
             name,
             description: t.description,
-            inputSchema: publishedInputSchema(t.inputSchema),
+            // The whole catalogue (no kind) keeps every argument: it is
+            // the reference for every kind of connection.
+            inputSchema:
+              kindArg.length === 0
+                ? publishedInputSchema(t.inputSchema)
+                : schemaFor(t.inputSchema, kindArg[0]),
             // The response contract (output-schemas.mjs; every tool has
             // one since 6.14.0): rendered on the docs, validated below.
             ...(OUTPUT_SCHEMAS[name]
@@ -143,7 +203,9 @@ export function makeRegistry() {
       // it, drops it before validation, echoes applied.verbosity as full
       // and says in a note that compact had nothing to drop. Additive:
       // the eleven tools that declare it are unchanged.
+      const kind = ctx?.account?.kind ?? null;
       let args = rawArgs ?? {};
+      if (isPerson(kind)) args = dropAgentArgs(args);
       let oneSize = null;
       if (
         Object.hasOwn(args, "verbosity") &&
@@ -165,7 +227,7 @@ export function makeRegistry() {
       // refusal's "Known:" list names verbosity on a one-size tool too
       // (Gym #151); verbosity itself was taken off args above.
       const problem = validateArgs(
-        publishedInputSchema(TOOLS[name].inputSchema),
+        schemaFor(TOOLS[name].inputSchema, kind),
         args,
       );
       if (problem) {
@@ -176,11 +238,17 @@ export function makeRegistry() {
         const own =
           missing &&
           TOOLS[name].inputSchema.properties?.[missing[1]]?.description;
+        // An argument the server does not know is most often a client
+        // holding an older tools/list: say which contract this is and
+        // that a reconnect re-reads it, as the unknown-tool hint does.
+        const unknown = / has no property '/.test(problem);
         throw new ToolFailure(
           "bad_request",
           problem,
           own ??
-            "Valid values and shapes are the tool's declared inputSchema (tools/list).",
+            (unknown
+              ? `This server is contract ${CONTRACT_VERSION}; the arguments it takes are this tool's inputSchema in tools/list. If your client cached that list earlier, reconnect; elixir_changelog(since) says what moved.`
+              : "Valid values and shapes are the tool's declared inputSchema (tools/list)."),
         );
       }
       const body = await TOOLS[name].handler(ctx, args);

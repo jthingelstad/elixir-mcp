@@ -36,6 +36,26 @@ import {
 
 const MCP_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
+/** What a request without the header is taken to speak: the 2025-06-18
+ *  transport's backwards-compatibility rule. Nothing this server sends
+ *  differs between the two versions it supports. */
+const ASSUMED_PROTOCOL_VERSION = "2025-03-26";
+
+/**
+ * The MCP-Protocol-Version header (2025-06-18, streamable HTTP): every
+ * request after initialize carries the negotiated version. Absent, it is
+ * taken as 2025-03-26; a value this server does not speak is refused with
+ * HTTP 400, as the transport requires. `initialize` is exempt: its body
+ * negotiates the version, and a client has none to send yet.
+ */
+export function requestProtocolVersion(header) {
+  if (header === undefined || header === null || header === "")
+    return { ok: true, version: ASSUMED_PROTOCOL_VERSION };
+  const version = String(header).trim();
+  return SUPPORTED_PROTOCOL_VERSIONS.includes(version)
+    ? { ok: true, version }
+    : { ok: false, version };
+}
 export const MCP_RESULT_MAX_CHARS = 48_000;
 export const MCP_QUOTA_ERROR_CODE = -32029;
 
@@ -60,108 +80,82 @@ function rpcError(id, code, message, data) {
   };
 }
 
+/** What Claude Code hands the model of `instructions`: the first 2,048
+ *  characters and not one more (review 2026-09-27 §6.1: the brief ran
+ *  about 4,500 and stopped mid-sentence, so START, the feedback line and
+ *  half the rules never arrived). The brief is written to fit. */
+export const INSTRUCTIONS_BUDGET = 2048;
+
 /**
- * The opening brief, written for the principal actually connecting.
- *
- * Identity first (the thing every session used to spend calls
- * discovering), then the conventions every tool follows - said once here
- * rather than in fifteen argument descriptions - then where to start and
- * where the manual is.
+ * The opening brief, written for the principal actually connecting,
+ * ordered by value so that a client which cuts it keeps the most:
+ * identity (capped, identity.mjs), the one-line rules that change an
+ * answer, START, the feedback line, then one pointer to the manual,
+ * where the window grammar, verbosity and the response envelope are
+ * spelled out (protocol#argument-conventions). A test renders a
+ * 50-player, 10-clan identity and holds the whole brief under
+ * INSTRUCTIONS_BUDGET.
  */
 function instructionsFor(kind, identity) {
-  const conventions = [
-    "Recorded Clash Royale history: battles, performance, snapshots, war,",
-    "coverage; all recorded game data is readable by every account.",
-    "CONVENTIONS. Omit player_tag to mean the caller (a person's primary",
-    "player; on an agent connection, whoever on_behalf_of is mapped to via",
-    "elixir_identify). Omit clan_tag to mean the recorded clan. The segment",
-    "tools (battles_meta_decks, battles_meta_cards, battles_trends,",
-    "cards_synergy, cards_card, badges_*) take segment: 'mine' (your clan), 'corpus'",
-    "(the whole recorded corpus, said on purpose) or {player_tag | clan_tag",
-    "| collection}; segment is required: name a population, the corpus is",
-    "never a default, and a corpus read carries a population block.",
-    "Windows are from/to (ISO instants, or YYYY-MM-DD resolved in",
-    "the account's timezone, or the call's timezone argument; a date-only",
-    "`to` covers that whole day; the daily series floor an instant to its",
-    "game day, the 10:00Z grid, and say so); days/weeks are sugar; season",
-    "('current', 'previous', 2026-08 or 135) bounds one season on every",
-    "windowed tool (the meta tools default to it). Every windowed response",
-    "echoes applied.window with source argument, default, unbounded, fixed,",
-    "season or (elixir_timeline) pointer, the season it starts in and crosses (every season roll",
-    "inside it; a note fires when one is).",
-    "verbosity: 'compact' is the one size control, accepted on every tool",
-    "(a tool with one size says so in a note and answers in full). Every",
-    "response carries notes[] (one-sentence caveats to repeat) and docs (a",
-    "page#section for elixir_docs). meta.freshness_seconds and",
-    "meta.completeness_note say how current and complete an answer is;",
-    "elixir_coverage says how complete a player's record is. game_clock says",
-    "what season and war day it is. live: true (players_profile,",
-    "clans_roster, war_current, battles_query, the board tools) serves a",
-    "fresh read if in hand, otherwise answers from the record with",
-    "live_status pending and retry_after_s to call again.",
-    "All tags are CR tags like #20JJJ2CCRU.",
-    "Every deck object carries archetype: say its label ('Royal Hogs bridge",
-    "spam', 'Hog Rider cycle'), never eight card names; win_conditions,",
-    "secondary_win_conditions and named_by say what the label rests on. A",
-    "name a person uses (a family, a label, 'LavaLoon', '2.6 Hog') is the",
-    "archetype argument on battles_meta_decks, battles_decks and cards_card,",
-    "and cards_archetype resolves a name or names eight cards on its own.",
-    "battles_meta_decks group_by 'archetype' is what a clan plays, with who",
-    "plays each. A label is a noun, never a verdict: no matchups exist here.",
-    "A deck named to a person passes fit_for (their collection and upgrade",
-    "path). Modes are different games: a battle rate with no mode says it",
-    "pools modes and carries the per-mode split; pass mode to read one.",
-    "Tool schemas evolve: if serverInfo.version differs from your cached",
-    "value, re-fetch tools/list; elixir_changelog(since) lists what shipped.",
-    "The manual is elixir_docs (start with pages choosing-a-tool and",
-    "glossary) and the same pages are resources at elixir://docs/<slug>.",
+  const rules = [
+    "segment is REQUIRED on battles_meta_decks, battles_meta_cards,",
+    "battles_trends, cards_synergy, cards_card and badges_*: 'mine',",
+    "'corpus' (on purpose) or {player_tag | clan_tag | collection}.",
+    "Windows: from/to, days/weeks or season ('current', 'previous', 2026-08,",
+    "135); applied.window says what was read. Name a deck by its archetype",
+    "label ('Hog Rider cycle'), never eight cards; a label is not a verdict;",
+    "cards_archetype resolves a name a person uses. A deck named to a person",
+    "passes fit_for (their collection). Modes are different games: a rate",
+    "with no mode pools them; pass mode for one. Repeat a response's",
+    "notes[]. When serverInfo.version changes, re-fetch tools/list;",
+    "elixir_changelog(since) says what shipped.",
   ];
   const start = {
     person: [
-      "START with players_summary for 'how am I doing', battles_performance",
-      "for a window or a before/after, battles_decks for decks, and",
-      "elixir_timeline for what happened (sessions, moments and an entry",
-      "per player you track). Tracked means recorded:",
-      "elixir_track_player / elixir_track_clan start capture in one act, and",
-      "each player you track is your primary, an alt, a friend or someone you",
-      "watch (elixir_my_players shows which). meta.timeline_pending signals",
-      "new elixir_timeline for the subjects you keep notify-on.",
+      "START: players_summary for 'how am I doing', battles_performance for",
+      "a window or a before/after, battles_decks for decks, elixir_timeline",
+      "for what happened; elixir_track_player / elixir_track_clan start",
+      "recording someone. meta.timeline_pending means elixir_timeline has",
+      "news.",
     ],
     agent: [
-      "START with clans_roster (once per run; verbosity 'compact' for a",
-      "count), war_current (decks_today is who still has decks) and",
-      "elixir_timeline as your own reader (reader: a short name for this",
-      "consumer; its pointer moves only when you mark): the clan's items in",
-      "order, then its entry. meta.timeline_pending (against the oldest",
-      "named reader) and meta.feedback_responses_pending ride every",
-      "response: poll the feed and elixir_my_feedback only when they say",
-      "there is something new, never on a timer. Pass display_name beside",
-      "an unmapped on_behalf_of and no_subject carries candidates[].",
-      "'What decks do we play' is battles_meta_decks({ segment: 'mine',",
-      "group_by: 'archetype' }).",
+      "START: war_current (decks_today: who still has decks), elixir_timeline",
+      "under your own reader name; poll it and elixir_my_feedback only when",
+      "meta.timeline_pending or meta.feedback_responses_pending says so.",
+      "display_name beside an unmapped on_behalf_of makes no_subject carry",
+      "candidates[]. 'What decks do we play': battles_meta_decks({ segment:",
+      "'mine', group_by: 'archetype' }).",
     ],
     integration: [],
   };
   const feedback = [
-    "If you hit friction - a missing capability, a confusing result, a",
-    "workflow that took more calls than it should - file it via",
-    "elixir_send_feedback ON YOUR OWN JUDGMENT before the session ends;",
-    "agent-initiated feedback is expected and welcome, and every item gets a",
-    "maintainer response (watch meta.feedback_responses_pending, read via",
-    "elixir_my_feedback).",
+    "Hit friction (a missing capability, a confusing result, too many",
+    "calls)? File elixir_send_feedback on your own judgment; every item is",
+    "answered.",
+  ];
+  const manual = [
+    "Manual: elixir_docs (choosing-a-tool, glossary; windows, verbosity and",
+    "response fields: protocol#argument-conventions).",
   ];
   const k = kind === "agent" || kind === "integration" ? kind : "person";
-  const who = identitySentences(identity);
-  return [
-    ...(who ? [who] : []),
-    ...conventions,
-    ...start[k],
-    ...feedback,
-    DISCLAIMER,
-  ]
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const render = (who) =>
+    [
+      ...(who ? [who] : []),
+      ...rules,
+      ...start[k],
+      ...feedback,
+      ...manual,
+      DISCLAIMER,
+    ]
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+  // Every name while the whole brief fits; past the budget, the identity
+  // counts instead of listing (elixir_my_players lists them all).
+  const full = render(identitySentences(identity));
+  return full.length <= INSTRUCTIONS_BUDGET
+    ? full
+    : render(identitySentences(identity, { compact: true }));
 }
 
 function initializeResult(
@@ -284,7 +278,8 @@ export function renderToolResultText(registry, name, invoked, kind = null) {
 
 /**
  * One JSON-RPC message in, one HTTP-ready reply out.
- * context: { registry, spendQuota(), invokeTool(name, args), db? }
+ * context: { registry, spendQuota(), invokeTool(name, args), db?,
+ *            protocolVersionHeader? }
  */
 export async function handleMcpMessage(message, context) {
   if (Array.isArray(message)) {
@@ -309,6 +304,22 @@ export async function handleMcpMessage(message, context) {
   const params =
     record.params && typeof record.params === "object" ? record.params : {};
 
+  if (method !== "initialize") {
+    const version = requestProtocolVersion(context.protocolVersionHeader);
+    if (!version.ok)
+      return {
+        statusCode: 400,
+        payload: rpcError(
+          id ?? null,
+          -32600,
+          `Unsupported MCP-Protocol-Version: ${version.version.slice(0, 40)}.`,
+          {
+            supported: SUPPORTED_PROTOCOL_VERSIONS,
+            hint: `Send the version initialize negotiated (${MCP_PROTOCOL_VERSION} unless you asked for ${SUPPORTED_PROTOCOL_VERSIONS.slice(1).join(", ")}), or omit the header.`,
+          },
+        ),
+      };
+  }
   if (id === undefined) return { statusCode: 202, payload: null }; // notifications
   if (method === "initialize") {
     return {
@@ -467,16 +478,22 @@ export async function handleMcpMessage(message, context) {
       invoked.body,
       context.kind,
     );
+    const isError = invoked.isError === true || truncated;
     return {
       statusCode: 200,
       payload: rpcResult(id, {
         content: [{ type: "text", text }],
         // The same JSON as data, for clients that read structuredContent
-        // (2025-06-18); the text block stays for the rest.
-        ...(body && typeof body === "object"
+        // (2025-06-18); the text block stays for the rest. Never on an
+        // error: the spec holds structuredContent to the tool's
+        // outputSchema, which requires meta, notes and docs, and a strict
+        // client (the reference SDK validates) would throw away exactly
+        // the refusal whose hint matters (review 2026-09-27 §6.2). The
+        // text block carries the same {error, meta}.
+        ...(!isError && body && typeof body === "object"
           ? { structuredContent: body }
           : {}),
-        isError: invoked.isError === true || truncated,
+        isError,
       }),
     };
   }
