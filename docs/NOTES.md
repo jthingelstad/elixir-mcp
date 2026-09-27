@@ -3380,3 +3380,38 @@ references held (the query-budget assertion had moved to ~386).
 Contract 9.12.4 (patch: behaviour correction; the person output of
 `tools/list` changes, the declarations' shapes do not). JSON API
 unchanged. Ship: `--acceptance` (shared protocol code).
+
+Shipped in PR #81 (cd687455), deployed 21:55-22:10Z (4:55-5:10 PM CT)
+with `--acceptance`; smoke green, migrate ran 0. Acceptance (full suite):
+1,188 cases, 11 failed, the same set #63 triaged at 9.12.2, none touching
+this change (the suite's token is an agent's, whose schemas did not move;
+its door reads the text block when `structuredContent` is absent):
+
+- `catalogue/cards_archetype#docs`, `elixir_timeline#docs`,
+  `war_history#notes`: rare fields absent from this run; pass alone.
+- `catalogue/badges_rarity#1` 4,318 ms against 4,000: 1,018 ms re-run
+  after a warm-up call.
+- `catalogue/battles_trends#1` 12.6 s (11.2 s re-run) and
+  `catalogue/battles_meta_cards#1` 15.2 s against 15.0 s (15.7 s re-run):
+  the open slow-seed item (10.5 s at 9.12.2, 13-16 s at 9.11.1), not
+  this change.
+- 289.3, 337.1, 343.2: live cases whose world moved, as at 9.12.2; `/gym`
+  re-seeds them.
+- The two `identities/implies` finish cases: season 136 week 2 still in
+  progress past the line, as at 9.12.2; they clear when the week closes
+  Monday about 09:30Z.
+
+Read-back 22:22Z (5:22 PM CT), reads only: `/api/public/status` `ok:
+true`. On the acceptance agent's door: `serverInfo.version`
+`9.12.4+tools.8eb638847d89`, the agent brief 1,938 characters with every
+key sentence inside 2,048; `game_clock` with an unknown argument answers
+`isError` with no `structuredContent` and the contract-9.12.4 reconnect
+hint; a success still carries `structuredContent`; a `ping` with
+`MCP-Protocol-Version: 2099-01-01` is HTTP 400, -32600, `supported`
+listed; `elixir_changelog` since 9.12.3 answers 9.12.4. `/tools.json`
+says 9.12.4 and `/updates` lists the entry. A real Claude Code session
+(`claude -p`, Jamie's personal `elixir-mcp` connection) quoted the whole
+person brief back, disclaimer last: his full identity (13 players, 2
+more clans) still fits, so it is named, not counted.
+
+Pending: none needing a natural event.
