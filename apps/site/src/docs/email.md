@@ -39,7 +39,7 @@ notes are exempt: they come as the moments do.
 
 | Day | Kind | What it is |
 |---|---|---|
-| Monday | **Clan report** | Your clan's week: battles and sessions, the war result if a war week closed, who joined and left, role changes, standouts, and the roster with each member's trophies and the week's change. One report per clan you track, the same one to every member who tracks it. |
+| Monday | **Clan report** | Your clan's week: battles and sessions, the war result if a war week closed, who joined and left, role changes, standouts, and the roster with each member's trophies and the week's change. One report per clan you track, the same one to every member who tracks it, with its days named in your own timezone. |
 | Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the decks you played, who you faced. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
 | Wednesday | **Tracking report** | Everyone you track, ordered by who they are to you: you in full, your alts shorter, friends a paragraph, watchers a line, your clans a line. It is the [timeline](/docs/timeline) for the week, rendered. |
 | Thursday | **Top 100** | One issue for everyone: a read of the global Path of Legends top 100 over the week that ended at that morning's board. Forward it to anyone who would enjoy it. |
