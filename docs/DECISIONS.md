@@ -190,3 +190,4 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **A `war_week.season_id` FK and `card_pair_season`** — the FK would refuse API facts; `card_pair_season` blew the time budget. (2026-09-17; engineering)
 - **Favourite-card or deck-slot verification** — neither proves control. (2026-09-12; engineering)
 - **A lower full-verbosity page limit, `pvp_decks`, and a king-tower level comparison** — the data can't support them or the refusal already prices the retry. (2026-09-22, 2026-09-23; engineering)
+- **Database restore readiness work** — a restore runbook or rehearsal, longer backup retention, Multi-AZ, an off-account database copy, or a replay proof that the archive can rebuild the database; Jamie is comfortable with AWS's resilience ("the one thing I'm not worried about is restoring the database"). Archive (`payloads/`) replication is a separate question and stays open. (2026-09-27; Jamie)
