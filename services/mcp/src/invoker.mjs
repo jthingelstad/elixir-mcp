@@ -186,6 +186,17 @@ export function onBehalfOfOf(args) {
 /** work_mem for one budgeted analytical query (see timedDb). */
 const BUDGET_WORK_MEM = "32MB";
 
+/** How long a read-only tool's statement waits for a lock before it gives
+ *  up. A read takes only ACCESS SHARE, so what it waits behind is DDL: a
+ *  migration's ALTER, or an orphaned backend still holding one. On
+ *  2026-09-15 reads queued behind an orphaned migration's ACCESS
+ *  EXCLUSIVE until the door had no connections left (about 35 minutes
+ *  down). A read that fails fast returns its connection and answers
+ *  query_timeout, which the caller retries. The read-only tool path only:
+ *  writes, ingest above all, wait on row locks as a matter of course
+ *  (review 2026-09-27 §3.1). */
+const READ_LOCK_TIMEOUT_MS = 5_000;
+
 /** The tools whose reads earn the analytical budget: corpus-wide
  *  aggregations and the two clan reads whose 14-day p95 exceeded 5 s
  *  (war_history's exact-week roster path timed out the Lambda,
@@ -228,9 +239,14 @@ export function timedDb(db, t, budget = null) {
             if (remaining < 1) throw budget.failure();
             if (budget.previousTimeout === null) {
               const { rows } = await target.query(
-                "select current_setting('statement_timeout') as timeout, current_setting('work_mem') as work_mem",
+                "select current_setting('statement_timeout') as timeout, current_setting('work_mem') as work_mem, current_setting('lock_timeout') as lock_timeout",
               );
               budget.previousTimeout = rows[0].timeout;
+              budget.previousLockTimeout = rows[0].lock_timeout;
+              await target.query(
+                "select set_config('lock_timeout', $1, false)",
+                [String(budget.lockTimeoutMs)],
+              );
               // A budgeted analytical call may sort a whole window's
               // (deck, player) pairs; at the server's 4 MB that spilled to
               // temp files (explain_meta, 2026-09-15). One such call at a
@@ -256,7 +272,10 @@ export function timedDb(db, t, budget = null) {
             throw budget.failure();
           return result;
         } catch (err) {
-          if (budget && err?.code === "57014") throw budget.failure();
+          // 57014: the statement_timeout fired; 55P03: a lock wait ran
+          // past READ_LOCK_TIMEOUT_MS. Both are this call's budget.
+          if (budget && (err?.code === "57014" || err?.code === "55P03"))
+            throw budget.failure();
           throw err;
         } finally {
           t.db_ms += performance.now() - t0;
@@ -317,6 +336,8 @@ export function makeInvoker({
    *  HTTP 500 with no request id and no audit row (review 2026-09-19,
    *  Part 7.1). null = no deadline (tests, the web explorer). */
   deadlineMs = null,
+  /** The read path's lock wait (READ_LOCK_TIMEOUT_MS); tests shorten it. */
+  lockTimeoutMs = READ_LOCK_TIMEOUT_MS,
 }) {
   const principalKind = account.kind ?? "person";
   return async function invokeTool(name, args, { finalizeMeta = null } = {}) {
@@ -364,8 +385,10 @@ export function makeInvoker({
                 ? "query_timeout"
                 : "timeout",
             workMem: analytical,
+            lockTimeoutMs,
             previousTimeout: null,
             previousWorkMem: null,
+            previousLockTimeout: null,
             failure: () =>
               new ToolFailure(
                 "query_timeout",
@@ -382,6 +405,12 @@ export function makeInvoker({
         await db.query("select set_config('statement_timeout', $1, false)", [
           budget.previousTimeout,
         ]);
+        if (budget.previousLockTimeout !== null) {
+          await db.query("select set_config('lock_timeout', $1, false)", [
+            budget.previousLockTimeout,
+          ]);
+          budget.previousLockTimeout = null;
+        }
         if (budget.previousWorkMem) {
           await db.query("select set_config('work_mem', $1, false)", [
             budget.previousWorkMem,
