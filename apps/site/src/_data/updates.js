@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-27",
+    title: "A late Top 100 still goes out that day",
+    body: "The Top 100 and Card of the Week are written by a model from a brief the program builds. If the writing finished after the issue's send time, the issue used to miss its week; it now goes out as soon as it passes its checks, while it is still the current issue, and nobody gets it twice. The checks are stricter too: a number must now belong to the player or clan named beside it, so a rating printed next to the wrong name stops the issue instead of sending. No change to the tools.",
+  },
+  {
+    date: "2026-09-27",
     title: "Milestone notes come as the moments do",
     body: "A second milestone on the same day used to wait until after midnight, and could be lost if the mail was down then; each new first now gets its note on the next hourly check. The Monday clan report is now the same for everyone who tracks the clan: it covers the clan at the depth it is recorded, even if you chose the lighter scope, and names each day in your own timezone. The Top 100 and Card of the Week only ever go out as that week's issue; if one is not ready, nothing is sent rather than last week's. No change to the tools.",
   },
