@@ -16,6 +16,7 @@ import {
   eligibleNow,
   queueSummary,
 } from "../src/plan.mjs";
+import { tickOnce } from "../src/handler.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -209,16 +210,19 @@ test("budget caps selection and starved subjects strictly dominate busy ones", a
 });
 
 test("tokens are consumed and an immediate second tick has no budget", async () => {
+  await db.query("delete from job");
   await addPlayer("#YYYYYYYY");
   await setTokens(3); // floor(3*0.9) = 2 jobs
-  const first = await planTick(db, NOW);
+  const first = await tickOnce(db, NOW);
   assert.equal(first.jobs.length, 2);
-  const second = await planTick(db, NOW);
+  assert.equal(first.tokensAfter, 1, "the two inserted rows were charged");
+  const second = await tickOnce(db, NOW);
   assert.equal(
     second.jobs.length,
     0,
     "bucket exhausted; accrual needs elapsed time",
   );
+  await db.query("delete from job");
 });
 
 test("a planned job is not re-enqueued while in flight", async () => {
@@ -1150,4 +1154,90 @@ test("Gym #342: an incomplete board owes one re-read at reread_at, then is done 
   await db.query(
     `update ranking_board set reread_at = null where board = 'pol' and location_key = '57000249'`,
   );
+});
+
+// Review 2026-09-27 §4.1 (#64). The bucket is the one global budget, so
+// a fleet outage must not turn into a backlog that recovery drains at
+// fleet speed. Before the fix the planner charged every plan whether or
+// not the enqueue inserted, and planned against tokens alone, so two
+// dark hours left one queued job per due subject for the returning fleet.
+test("a two-hour fleet outage leaves the ledger within the bucket, and recovery stays inside it (#64)", async () => {
+  // 0.1 rps: a 30-token bucket (300 s of carryover) whose bulk share is
+  // 27, so a handful of players is enough to over-subscribe it.
+  const RATE = 0.1;
+  const CAP = RATE * 300;
+  const BULK_CAP = Math.floor(CAP * 0.9);
+  const TICK_MS = 5 * 60_000;
+  await db.query("delete from job");
+  await freshenCards(NOW);
+  try {
+    const ALPHA = "0289PYLQGRJCUV";
+    for (let i = 0; i < 100; i++)
+      await addPlayer(`#QQ${ALPHA[Math.floor(i / 14)]}${ALPHA[i % 14]}`);
+    await db.query(
+      "update budget_state set rate_per_sec = $1, tokens = $2, settled_at = $3",
+      [RATE, CAP, NOW],
+    );
+    const queuedBulk = async () =>
+      (
+        await db.query(
+          "select count(*)::int as n from job where status = 'queued' and lane = 'bulk'",
+        )
+      ).rows[0].n;
+    const at = (k) => new Date(NOW.getTime() + k * TICK_MS);
+    // Two hours of ticks with no collector leasing anything: queued plus
+    // planned never passes one tick's bulk allowance.
+    for (let k = 0; k < 24; k++) {
+      const r = await tickOnce(db, at(k));
+      assert.ok(
+        r.queuedBulk + r.jobs.length <= BULK_CAP,
+        `tick ${k}: ${r.queuedBulk} queued + ${r.jobs.length} planned, past one tick's allowance of ${BULK_CAP}`,
+      );
+      assert.ok((await queuedBulk()) <= BULK_CAP);
+    }
+    // The fleet returns and drains what is queued before each tick. What
+    // it is handed in the recovery hour - the backlog, then every tick's
+    // new rows - stays within what the bucket allows in an hour: its
+    // carryover plus an hour's accrual.
+    let handed = await queuedBulk();
+    for (let k = 24; k < 36; k++) {
+      await db.query(
+        "update job set status = 'done', done_at = now() where status = 'queued'",
+      );
+      const r = await tickOnce(db, at(k));
+      assert.ok(r.queuedBulk + r.jobs.length <= BULK_CAP, `recovery tick ${k}`);
+      handed += r.inserted;
+    }
+    assert.ok(
+      handed <= CAP + RATE * 3600,
+      `recovery hour: ${handed} jobs handed to the fleet, past the bucket's ${CAP + RATE * 3600}`,
+    );
+  } finally {
+    await db.query("delete from job");
+    await db.query("update budget_state set rate_per_sec = 1");
+  }
+});
+
+test("the tick charges the bucket only for the rows it inserted (#64)", async () => {
+  await db.query("delete from job");
+  await freshenCards(NOW);
+  try {
+    await addPlayer("#CCC00002");
+    await addPlayer("#CCC00008");
+    // One subject the planner will pick already has a queued live job:
+    // the enqueue upgrades nothing and inserts nothing, so it is free.
+    await db.query(
+      `insert into job (endpoint, entity_key, lane) values ('player', '#CCC00002', 'live')`,
+    );
+    await setTokens(100);
+    const r = await tickOnce(db, NOW);
+    assert.equal(r.jobs.length, 4, "both players, both endpoints");
+    assert.equal(r.inserted, 3);
+    const {
+      rows: [b],
+    } = await db.query("select tokens::float as tokens from budget_state");
+    assert.equal(b.tokens, 97, "100 settled, three inserted rows charged");
+  } finally {
+    await db.query("delete from job");
+  }
 });

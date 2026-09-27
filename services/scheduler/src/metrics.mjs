@@ -49,6 +49,10 @@ export function ledgerEmf(stats, now = Date.now(), plan = {}) {
     // playing at the last read; 2026-09-19); how many were due ONLY
     // because of the reader cap.
     PlannedJobs: plan.planned ?? 0,
+    // The planned rows the enqueue really inserted, which is what the
+    // bucket was charged (#64): a plan that folded into a queued row
+    // costs nothing.
+    ChargedJobs: plan.charged ?? 0,
     SessionFollowupJobs: plan.followup ?? 0,
     ReadCappedJobs: plan.read_capped ?? 0,
     RequestedProfileJobs: plan.requested ?? 0,

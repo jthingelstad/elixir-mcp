@@ -29,6 +29,7 @@ dataNav: now
       <span>last battle <strong data-live="last" style="color: var(--ink)">{% if t %}{{ t.newest_battle | day }}{% else %}{{ n }}{% endif %}</strong></span>
       <span><strong data-live="hour" style="color: var(--ink)">{{ n }}</strong> this hour</span>
       <span><strong data-live="collectors" style="color: var(--ink)">{% if t %}{{ t.collectors_active }}{% else %}{{ n }}{% endif %}</strong> collectors</span>
+      <span><strong data-live="budget" style="color: var(--ink)">{{ n }}</strong> of the day&rsquo;s shared API budget</span>
     </div>
     <p class="footnote" style="margin: 11px 0 0">
       Operators get the whole picture in the <a href="/status/service">console&rsquo;s status page</a>.

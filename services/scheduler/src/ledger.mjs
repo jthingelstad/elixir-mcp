@@ -25,6 +25,61 @@ export async function enqueueJob(db, { endpoint, entity_key, lane }) {
   return rows[0];
 }
 
+/** Add `n` to the hour's charge row for a lane (budget_charge, 0187):
+ *  what the one budget spent, which the status page reads. */
+export async function recordCharge(db, lane, n, at = null) {
+  await db.query(
+    `insert into budget_charge (hour, lane, charged)
+     values (date_trunc('hour', coalesce($3::timestamptz, now())), $1, $2)
+     on conflict (hour, lane) do update set charged = budget_charge.charged + excluded.charged`,
+    [lane, n, at],
+  );
+}
+
+/** The scheduler's tick, in minutes (SchedulerTickMinutes). */
+function tickMinutes() {
+  const m = Number(process.env.SCHEDULER_TICK_MINUTES ?? 5);
+  return m > 0 ? m : 5;
+}
+
+/**
+ * Charge one token from the one global bucket for a live job about to be
+ * minted (review 2026-09-27 §4.1). Until then live mints never touched the
+ * bucket, so the live reserve was only the planner abstaining and the
+ * per-account daily caps were the only bound on the live lane. Atomic: the
+ * row is decremented only while a whole token is left, so concurrent
+ * mints cannot overdraw it. The bucket refills at the scheduler tick, so
+ * with no token left the answer is when the next tick should have run
+ * (`retry_after_s`, at least 15 s), and nothing is charged.
+ */
+export async function takeLiveToken(db) {
+  const { rows } = await db.query(
+    `update budget_state set tokens = tokens - 1 where tokens >= 1
+     returning tokens`,
+  );
+  if (rows.length) {
+    await recordCharge(db, "live", 1);
+    return { ok: true };
+  }
+  const {
+    rows: [b],
+  } = await db.query(
+    `select ceil(extract(epoch from
+               settled_at + make_interval(mins => $1) - now()))::int as s
+     from budget_state`,
+    [tickMinutes()],
+  );
+  // Ten seconds for the tick itself to run once it fires.
+  return { ok: false, retry_after_s: Math.max(15, (b?.s ?? 0) + 10) };
+}
+
+/** Give back a token taken for a mint that did not happen (the per-account
+ *  quota refused it, or another caller's job got there first). */
+export async function refundLiveToken(db) {
+  await db.query("update budget_state set tokens = tokens + 1");
+  await recordCharge(db, "live", -1);
+}
+
 /**
  * Settle expired leases in ONE transaction: requeue (bounded retries),
  * dead the exhausted, fold the redundant — and charge every abandoned

@@ -107,6 +107,11 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.6.3** (2026-09-27): `POST /profile-refreshes` charges the
+  collector fleet's one global budget when it mints a live fetch. When
+  that budget has no room, it answers 429 `rate_limited` with
+  `Retry-After` and `retry_after_s` at the next scheduler tick, and
+  nothing is charged: no refresh unit, no job, no refresh.
 - **2.6.2** (2026-09-27): an operation that runs a tool (a person's
   operations, `clans.roster`) races the request's deadline, so a slow or
   lock-blocked read answers 503 `query_timeout` with `retry_after_s`
@@ -301,7 +306,11 @@ The `202` response includes an opaque refresh `id`, `status`, `created_at` and
 `expires_at`, plus a `Location` status URL and `Retry-After: 5`. Retry the same
 operation with the same key. Reusing a key for a different tag is a conflict.
 Collectors execute the request through the existing live lane and global CR
-budget. An active live job for the same tag can be shared.
+budget. An active live job for the same tag can be shared. A new live fetch
+spends one request from that budget; when it has none left the request answers
+429 `rate_limited` with `Retry-After` set to the next scheduler tick (at most
+five minutes), and neither your refresh allowance nor the idempotency key is
+spent.
 
 Poll the status URL at or after `Retry-After`. A refresh is readable only by its
 integration; rotating the credential preserves access. `complete` includes a
@@ -343,7 +352,8 @@ Admins size each integration independently: API calls per UTC day (default
 10,000), API calls per hour (default 2,000), profile-refresh requests per UTC
 day (default 1,000), and collection member capacity per grant (default
 10,000). `Retry-After` is the seconds to the top of the hour, to UTC midnight,
-or 3600 for a refresh refusal.
+3600 for a refresh refusal, or the seconds to the next scheduler tick when
+the shared budget is spent.
 Refresh retries with the same idempotency key do not spend another refresh unit.
 These allowances do not increase the collector fleet's shared upstream budget.
 
@@ -354,7 +364,7 @@ These allowances do not increase the collector fleet's shared upstream budget.
 | 403 | Missing permission; `insufficient_scope` when a person's grant lacks the operation's scope; `not_entitled` from a person's tool; on a clan fact `family_apps_only`, `not_in_clan` or `not_permitted` |
 | 404 | Unknown or inaccessible resource (`not_found`); `not_recorded` for missing profile data; `no_subject` on a person's operation with nothing to answer about |
 | 409 | `enrollment_limit` or `idempotency_conflict`; `ref_conflict` when a fact's `ref` already names another type or subject |
-| 429 | `rate_limited`, `daily_quota_exceeded` or `refresh_quota_exceeded`; `quota_exceeded` from a person's tool |
+| 429 | `rate_limited` (also a refresh when the shared CR budget is spent until the next tick), `daily_quota_exceeded` or `refresh_quota_exceeded`; `quota_exceeded` from a person's tool |
 | 502 | `internal` or `live_unavailable` from a person's tool |
 | 503 | `temporarily_unavailable`; on a person's operation `live_pending` or `query_timeout`, with `retry_after_s` |
 

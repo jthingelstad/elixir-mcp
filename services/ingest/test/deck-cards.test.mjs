@@ -2,7 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { ingestBattlelog, canonicalizeBattle } from "../src/battles.mjs";
 import { projectCardCatalog, projectPlayerCards } from "../src/cards.mjs";
-import { participantCardRows } from "../src/deck-cards.mjs";
+import { participantCardRows, ensureCards } from "../src/deck-cards.mjs";
 import { fixture, fixtureMeta, scratchDb, seedReceipt } from "./helpers.mjs";
 
 let ctx;
@@ -13,6 +13,9 @@ before(async () => {
   ctx = await scratchDb("deckcards");
   receiptId = await seedReceipt(ctx.db);
   meta = await fixtureMeta();
+  // The healing catalog read is a live mint and takes a token from the
+  // one global bucket (#64).
+  await ctx.db.query("update budget_state set tokens = 100");
 });
 
 after(async () => ctx.drop());
@@ -316,4 +319,49 @@ test("the table aggregate equals the payload aggregate the readers used to run (
   ).rows[0].n;
   assert.ok(oldMatch > 0);
   assert.equal(newMatch, oldMatch);
+});
+
+test("a stub's catalog read takes a token from the one budget, and waits for the daily read without one (#64)", async () => {
+  const tokens = async () =>
+    (await ctx.db.query("select tokens::float as t from budget_state")).rows[0]
+      .t;
+  const catalogJobs = async () =>
+    (
+      await ctx.db.query(
+        "select count(*)::int as n from job where endpoint = 'cards' and status = 'queued'",
+      )
+    ).rows[0].n;
+  await ctx.db.query("delete from job where endpoint = 'cards'");
+  try {
+    await ctx.db.query("update budget_state set tokens = 0");
+    const none = await ensureCards(
+      ctx.db,
+      [{ card_id: 26999001, name: "Unreleased", kind: "card" }],
+      "2026-09-27T00:00:00Z",
+    );
+    assert.deepEqual(none, [26999001], "stubbed all the same");
+    assert.equal(await catalogJobs(), 0, "no token: nothing queued");
+    assert.equal(await tokens(), 0);
+
+    await ctx.db.query("update budget_state set tokens = 3");
+    await ensureCards(
+      ctx.db,
+      [{ card_id: 26999002, name: "Unreleased too", kind: "card" }],
+      "2026-09-27T00:00:00Z",
+    );
+    assert.equal(await catalogJobs(), 1, "queued live");
+    assert.equal(await tokens(), 2, "for one token");
+    await ensureCards(
+      ctx.db,
+      [{ card_id: 26999003, name: "And another", kind: "card" }],
+      "2026-09-27T00:00:00Z",
+    );
+    assert.equal(await catalogJobs(), 1, "one queued catalog job");
+    assert.equal(await tokens(), 2, "the queued job serves it: refunded");
+  } finally {
+    await ctx.db.query(
+      "delete from card where card_id between 26999001 and 26999003",
+    );
+    await ctx.db.query("update budget_state set tokens = 100");
+  }
 });

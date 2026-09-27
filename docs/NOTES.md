@@ -3290,3 +3290,42 @@ reads show none); `{"terminate_backends": true}` answers
 Pending: the next nightly jobs run under the 300 s ceiling (the meta
 rollup's longest statement was 108 s), and a week with no orphaned
 backend in `{backends}`.
+
+## 2026-09-27 - #64 (A3): the one global budget, enforced in code (contract 9.12.3, JSON API 2.6.3)
+
+Review §4.1 and §4.2. The bucket was only half a budget: the tick
+decremented tokens for every row it PLANNED, including subjects already
+queued (so it overcharged while a queue stood), and nothing that minted
+live work charged it at all (the live lane, `/api/v1` profile refreshes,
+and deck-cards' raw insert of a newly seen card). And planning ignored
+queued bulk, so a fleet outage stacked a tick's allowance on top of the
+queue every five minutes.
+
+- The tick reads the bucket without a lock (the MCP invoker's 5 s
+  `lock_timeout` must never wait behind a planning tick), plans against
+  `min(tokens, capacity - queued bulk)` of the bulk share, then charges
+  only the rows `enqueueJob` reported `inserted`, with one relative
+  update at the end (`chargeBudget`).
+- Every new live row takes a token atomically (`takeLiveToken`: `update
+  budget_state set tokens = tokens - 1 where tokens >= 1`). None left:
+  nothing is queued, nothing is charged (the per-account live quota
+  included), and the caller hears `retry_after_s` at the next tick. MCP
+  keeps its `pending` shape with a different note; `/api/v1` answers the
+  existing 429 `rate_limited` with Retry-After, rolled back whole.
+  deck-cards goes through `enqueueJob` now and skips the stub read when
+  the bucket is dry; the daily catalog read heals it.
+- `budget_charge` (0187) records charges by hour and lane.
+  `/api/public/status` `budget` drops `expected_hour` and
+  `hour_started_at`; the headline is `fetches_24h` against
+  `bulk_capacity_24h` (77,760 at 1/s with the 10% reserve) as
+  `share_24h`, with `used_hour` a rolling 60 minutes and `charged_24h`
+  by lane. Admin usage `capacity_24h` is the same 77,760. The console
+  gauge and `/data/now` lead with it.
+- The plan test simulates a two-hour dark fleet: queued plus planned
+  never passes the bulk cap, and the first hour of recovery hands out no
+  more than the bucket's cap plus an hour's refill. It fails without the
+  queued term.
+
+No acceptance: the live lane is excluded from the acceptance suite, and
+nothing in a tool's declared shape changed. The ship is smoke plus a
+status read-back one tick after the deploy (`charged_24h.bulk` above 0).

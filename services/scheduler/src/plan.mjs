@@ -8,11 +8,17 @@
  *      (past the fairness floor). Sort: starved FIRST (floors strictly
  *      dominate), then expected yield (bph x hours overdue), then
  *      overdue, then endpoint/tag for determinism;
- *   4. take at most the bulk share of available tokens, stamp
- *      last_planned_at, decrement tokens, return jobs.
+ *   4. take at most the bulk allowance (bulkAllowance: the bulk share
+ *      of the tokens, less what is already queued), stamp
+ *      last_planned_at, return jobs. The handler enqueues them and
+ *      charges the bucket for the rows that were really inserted
+ *      (chargeBudget), in the same transaction.
  *
- * The live lane never goes through this planner — its reserve is the
- * budget the planner deliberately does not spend (live_reserve fraction).
+ * The live lane never goes through this planner. Each live job is
+ * charged one token when it is minted (takeLiveToken in ledger.mjs), so
+ * the reserve the planner leaves (live_reserve) is real: a live mint
+ * with no token left answers pending until the next tick (review
+ * 2026-09-27 §4.1).
  *
  * The player endpoints run the SESSION CLOCK since 2026-09-19 (NOTES that
  * day, "The session clock replayed, and what a week loses"). A battle is
@@ -37,6 +43,7 @@ import {
   seasonRollWindowStartMs,
 } from "../../ingest/src/war-clock.mjs";
 import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
+import { recordCharge } from "./ledger.mjs";
 
 const MINUTE = 60_000;
 
@@ -308,7 +315,14 @@ const BOARD_OF_SQL = `case ps.endpoint
   when 'rankings_clans_loc' then 'clans' when 'rankings_clanwars' then 'clanwars'
   when 'leaderboard' then 'mode' end`;
 
-export async function settleBudget(db, now) {
+/**
+ * The bucket as it stands at `now`: the stored tokens plus what accrued
+ * since the last settle, capped at BUCKET_CAP_SECONDS of carryover. A
+ * read only - nothing is locked while the tick plans, so a live mint is
+ * never held behind a tick (the row is written once, at the end, by
+ * chargeBudget).
+ */
+export async function readBudget(db, now) {
   const {
     rows: [b],
   } = await db.query(
@@ -318,16 +332,53 @@ export async function settleBudget(db, now) {
     0,
     (now.getTime() - b.settled_at.getTime()) / 1000,
   );
-  const cap = Number(b.rate_per_sec) * BUCKET_CAP_SECONDS;
-  const tokens = Math.min(
-    cap,
-    Number(b.tokens) + Number(b.rate_per_sec) * elapsedSec,
+  const ratePerSec = Number(b.rate_per_sec);
+  const cap = ratePerSec * BUCKET_CAP_SECONDS;
+  const tokens = Math.min(cap, Number(b.tokens) + ratePerSec * elapsedSec);
+  return { tokens, ratePerSec, cap, liveReserve: Number(b.live_reserve) };
+}
+
+/**
+ * What the next plan may add to the bulk lane: the bulk share of the
+ * tokens, and never more than one bucket's bulk share in the ledger at
+ * once, counting what is already queued. Without the second term a fleet
+ * outage left one queued job per due subject, which the returning fleet
+ * drained at about 3.3 a second, two to three times the budget (review
+ * 2026-09-27 §4.1).
+ */
+export function bulkAllowance({ tokens, cap, liveReserve, queuedBulk }) {
+  const share = 1 - liveReserve;
+  return Math.max(
+    0,
+    Math.min(Math.floor(tokens * share), Math.floor(cap * share) - queuedBulk),
   );
-  await db.query("update budget_state set tokens = $1, settled_at = $2", [
-    tokens,
-    now,
-  ]);
-  return { tokens, liveReserve: Number(b.live_reserve) };
+}
+
+/**
+ * Settle the bucket to `now` and charge it `charged` tokens, in one
+ * statement at the end of the tick. Relative to the row as it stands, so
+ * a live mint that charged a token while the tick planned is kept, not
+ * overwritten. Also records the charge by hour (budget_charge, 0187), the
+ * ledger the status page reads.
+ */
+export async function chargeBudget(db, now, charged) {
+  const {
+    rows: [b],
+  } = await db.query(
+    `update budget_state set
+       tokens = least(rate_per_sec * $3,
+                      tokens + rate_per_sec * greatest(0, extract(epoch from ($1::timestamptz - settled_at))))
+                - $2,
+       settled_at = $1
+     returning tokens::float as tokens`,
+    [now, charged, BUCKET_CAP_SECONDS],
+  );
+  if (charged > 0) await recordCharge(db, "bulk", charged, now);
+  await db.query(
+    "delete from budget_charge where hour < $1::timestamptz - interval '8 days'",
+    [now],
+  );
+  return b.tokens;
 }
 
 async function seedPollState(db, now = new Date()) {
@@ -616,19 +667,27 @@ export function queueSummary(eligible) {
  * @param {Date} now injectable for tests
  */
 export async function planTick(db, now = new Date()) {
-  const { tokens, liveReserve } = await settleBudget(db, now);
+  const budget = await readBudget(db, now);
+  const { tokens } = budget;
   await seedPollState(db, now);
   // The season rollover (0104): the running season and the next one are
   // rows before the roll, so the tools' default window never finds a
   // gap. Two idempotent inserts a tick.
   await ensureSeasonsAround(db, now.getTime());
 
-  const bulkBudget = Math.floor(tokens * (1 - liveReserve));
+  const {
+    rows: [q],
+  } = await db.query(
+    "select count(*)::int as n from job where status = 'queued' and lane = 'bulk'",
+  );
+  const queuedBulk = q.n;
+  const bulkBudget = bulkAllowance({ ...budget, queuedBulk });
   if (bulkBudget <= 0)
     return {
       jobs: [],
       tokens,
       bulkBudget,
+      queuedBulk,
       followup: 0,
       readCapped: 0,
       requested: 0,
@@ -643,11 +702,6 @@ export async function planTick(db, now = new Date()) {
       [job.subject_tag, job.endpoint, now],
     );
   }
-  if (selected.length > 0) {
-    await db.query("update budget_state set tokens = tokens - $1", [
-      selected.length,
-    ]);
-  }
 
   return {
     jobs: selected.map((j) => ({
@@ -657,6 +711,7 @@ export async function planTick(db, now = new Date()) {
     })),
     tokens,
     bulkBudget,
+    queuedBulk,
     followup: selected.filter((j) => j.followup).length,
     readCapped: selected.filter((j) => j.readCapped).length,
     requested: selected.filter((j) => j.requested).length,

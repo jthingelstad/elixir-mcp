@@ -23,7 +23,7 @@ import { normalizeTag } from "@elixir-mcp/contracts";
 import { setCollectionMembers } from "@elixir-mcp/claims";
 import { gameClock } from "../../ingest/src/game-clock.mjs";
 import { readRecordedProfile } from "../../ingest/src/recorded-profile.mjs";
-import { enqueueJob } from "../../scheduler/src/ledger.mjs";
+import { enqueueJob, takeLiveToken } from "../../scheduler/src/ledger.mjs";
 import { json, bearer, UUID_RE } from "./http.mjs";
 import {
   removeClanFact,
@@ -431,12 +431,29 @@ async function requestRefresh(db, account, policy, body, event) {
     ).rows[0];
     if (usage.refreshes > policy.refresh_limit)
       throw new ApiError(429, "refresh_quota_exceeded", undefined, 3600);
-    if (!job)
+    if (!job) {
       job = await enqueueJob(db, {
         endpoint: "player",
         entity_key: playerTag,
         lane: "live",
       });
+      // A new live row is charged one token from the one global budget
+      // (review 2026-09-27 §4.1); promoting a queued bulk row was paid for
+      // when the planner inserted it. With no token the whole transaction
+      // rolls back - the job, the refresh and this day's quota count - and
+      // the answer is when the budget refills.
+      if (job.inserted) {
+        const token = await takeLiveToken(db);
+        if (!token.ok)
+          throw new ApiError(
+            429,
+            "rate_limited",
+            "The shared Clash Royale budget has no room for a live refresh until the next scheduler tick; nothing was charged.",
+            token.retry_after_s,
+            { retry_after_s: token.retry_after_s },
+          );
+      }
+    }
     const row = (
       await db.query(
         "insert into integration_profile_refresh(account_id,player_tag,idempotency_key,job_id) values($1,$2,$3,$4) returning refresh_id",

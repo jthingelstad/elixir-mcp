@@ -68,6 +68,8 @@ before(async () => {
       [person],
     )
   ).rows[0].collection_id;
+  // A new live refresh takes a token from the one global bucket (#64).
+  await db.query("update budget_state set tokens = 100, settled_at = now()");
 });
 after(async () => {
   await db?.end();
@@ -283,6 +285,66 @@ test("refresh retries share the job, stay principal-bound, and require an admitt
     (await request("GET", "/api/v1/game/clock", undefined, rotated)).statusCode,
     401,
   );
+});
+
+test("a refresh with no token left in the one budget is refused whole: no job, no refresh, no quota spent (#64)", async () => {
+  const { token, integration } = data(
+    await request("POST", "/api/admin/integrations", {
+      name: "refresh-budget-test",
+      refresh_limit: 5,
+    }),
+  );
+  const post = (key) =>
+    handler({
+      rawPath: "/api/v1/profile-refreshes",
+      requestContext: { http: { method: "POST" } },
+      headers: { authorization: `Bearer ${token}`, "idempotency-key": key },
+      body: JSON.stringify({ player_tag: "#2PYQ0" }),
+    });
+  await db.query("delete from job where entity_key = '#2PYQ0'");
+  await db.query(
+    "update budget_state set tokens = 0.5, settled_at = now() - interval '1 minute'",
+  );
+  try {
+    const refused = await post("budget-1");
+    assert.equal(refused.statusCode, 429, refused.body);
+    const problem = JSON.parse(refused.body);
+    assert.equal(problem.code, "rate_limited");
+    assert.match(problem.detail, /shared Clash Royale budget/);
+    assert.ok(problem.retry_after_s >= 200, String(problem.retry_after_s));
+    assert.equal(refused.headers["retry-after"], String(problem.retry_after_s));
+    const count = async (sql) =>
+      (await db.query(sql, [integration.account_id])).rows[0]?.n ?? 0;
+    assert.equal(
+      await count(
+        "select count(*)::int n from job where entity_key = '#2PYQ0' and $1::uuid is not null",
+      ),
+      0,
+    );
+    assert.equal(
+      await count(
+        "select count(*)::int n from integration_profile_refresh where account_id = $1",
+      ),
+      0,
+    );
+    assert.equal(
+      await count(
+        "select coalesce(sum(refreshes), 0)::int n from integration_usage where account_id = $1",
+      ),
+      0,
+      "the day's refresh quota is untouched",
+    );
+    // The token back: the same key now mints, and is charged one token.
+    await db.query("update budget_state set tokens = 2");
+    const accepted = await post("budget-1");
+    assert.equal(accepted.statusCode, 202, accepted.body);
+    const { rows } = await db.query(
+      "select tokens::float as t from budget_state",
+    );
+    assert.equal(rows[0].t, 1);
+  } finally {
+    await db.query("update budget_state set tokens = 100, settled_at = now()");
+  }
 });
 
 test("IAM provisioning accepts only a digest and returns no credential", async () => {

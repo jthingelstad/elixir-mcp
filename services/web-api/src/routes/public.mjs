@@ -2,6 +2,7 @@ import { ledgerStats } from "../../../scheduler/src/ledger.mjs";
 import {
   eligibleNow,
   queueSummary,
+  bulkAllowance,
   BUCKET_CAP_SECONDS,
 } from "../../../scheduler/src/plan.mjs";
 
@@ -152,40 +153,72 @@ export function publicRoutes({ deadLetters }) {
                 count(*) filter (where gap)::int as gaps
          from capture_audit where fetched_at > now() - interval '24 hours'`,
       );
-      // The global Clash Royale request budget, sliced to the calendar hour.
+      // The global Clash Royale request budget (review 2026-09-27 §4.2).
       //
-      // It is really a continuous token bucket (rate_per_sec, burst), not an
-      // hourly allowance — but "how much of this hour have we spent" is the
-      // question an operator actually has, and a bucket is unreadable at a
-      // glance. `expected` is elapsed-fraction of capacity: level with `used`
-      // means on pace, well under means idle, over means a burst. Without it
-      // 500 spent at ten past and 500 at five to look identical.
+      // The headline is the last 24 hours against the BULK share of a
+      // day's budget (rate x 86,400 x (1 - live_reserve)): consumed load
+      // against the capacity the planner may actually spend. The hour
+      // beside it is a rolling 60 minutes. Until 2026-09-27 the hour was
+      // the calendar hour against an elapsed-fraction "expected", so a
+      // read at 05:10Z said "152 of 636" while the rolling hour was 28%.
+      // charged_24h is what the bucket was charged, by lane (0187): the
+      // tick's inserted bulk rows and one token per live mint.
       const budgetRow = await q(
-        `select rate_per_sec, burst, live_reserve, tokens, settled_at from budget_state`,
+        `select rate_per_sec, live_reserve, tokens, settled_at from budget_state`,
       );
       const usedRow = await q(
-        `select count(*)::int as used,
-                count(*) filter (where new_facts > 0)::int as useful,
-                count(*) filter (where new_facts is not null)::int as measured
-         from api_receipt
-         where fetched_at >= date_trunc('hour', now())`,
+        `select count(*)::int as used_24h,
+                count(*) filter (where r.fetched_at > now() - interval '1 hour')::int as used,
+                count(*) filter (where r.fetched_at > now() - interval '1 hour'
+                                   and r.new_facts > 0)::int as useful,
+                count(*) filter (where r.fetched_at > now() - interval '1 hour'
+                                   and r.new_facts is not null)::int as measured
+         from api_receipt r join gateway g on g.gateway_id = r.gateway_id
+         where r.fetched_at > now() - interval '24 hours'
+           and g.name <> 'backfill-elixir-bot'`,
+      );
+      const chargedRows = await q(
+        `select lane, sum(charged)::int as charged from budget_charge
+         where hour >= date_trunc('hour', now() - interval '23 hours')
+         group by lane`,
+      );
+      const charged = Object.fromEntries(
+        chargedRows.map((r) => [r.lane, r.charged]),
       );
       const ratePerSec = Number(budgetRow[0]?.rate_per_sec ?? 1);
+      const liveReserve = Number(budgetRow[0]?.live_reserve ?? 0);
       const nowMs = Date.now();
-      const hourStart = new Date(nowMs);
-      hourStart.setUTCMinutes(0, 0, 0);
-      const elapsed = (nowMs - hourStart.getTime()) / 3_600_000;
+      const settledAt = budgetRow[0]?.settled_at
+        ? new Date(budgetRow[0].settled_at)
+        : null;
+      const tokensNow = Math.min(
+        ratePerSec * BUCKET_CAP_SECONDS,
+        Number(budgetRow[0]?.tokens ?? 0) +
+          (settledAt ? ((nowMs - settledAt.getTime()) / 1000) * ratePerSec : 0),
+      );
+      const bulkCapacity24h = Math.round(
+        ratePerSec * 86400 * (1 - liveReserve),
+      );
+      const fetches24h = usedRow[0]?.used_24h ?? 0;
       const budget = {
         rate_per_sec: ratePerSec,
-        capacity_hour: Math.round(ratePerSec * 3600),
+        live_reserve: liveReserve,
+        fetches_24h: fetches24h,
+        bulk_capacity_24h: bulkCapacity24h,
+        share_24h:
+          bulkCapacity24h > 0
+            ? Math.round((fetches24h / bulkCapacity24h) * 1000) / 1000
+            : null,
+        capacity_24h: Math.round(ratePerSec * 86400),
+        // The last 60 minutes, rolling.
         used_hour: usedRow[0]?.used ?? 0,
+        capacity_hour: Math.round(ratePerSec * 3600),
         // Of those, how many changed the record (0077) - the number that
         // says whether the budget bought information or repetition.
         useful_hour: usedRow[0]?.useful ?? 0,
         measured_hour: usedRow[0]?.measured ?? 0,
-        expected_hour: Math.round(ratePerSec * 3600 * elapsed),
-        hour_started_at: hourStart.toISOString(),
-        live_reserve: Number(budgetRow[0]?.live_reserve ?? 0),
+        charged_24h: { bulk: charged.bulk ?? 0, live: charged.live ?? 0 },
+        tokens: Math.floor(tokensNow),
       };
 
       const dead = await deadLetters();
@@ -193,21 +226,12 @@ export function publicRoutes({ deadLetters }) {
       // Work waiting, as a pipeline: due for the next tick (the scheduler
       // only plans every SCHEDULER_TICK_MINUTES, so due-ness accumulates
       // between ticks), queued for a collector, leased (being fetched),
-      // done this hour. The next tick can plan at most the bulk share of
-      // the token bucket, which is what the gauge fills against.
+      // done in the last hour. The next tick can plan at most the bulk
+      // allowance, which is what the gauge fills against.
       const tickMinutes =
         Number(process.env.SCHEDULER_TICK_MINUTES ?? 5) > 0
           ? Number(process.env.SCHEDULER_TICK_MINUTES ?? 5)
           : 5;
-      const settledAt = budgetRow[0]?.settled_at
-        ? new Date(budgetRow[0].settled_at)
-        : null;
-      const liveReserve = Number(budgetRow[0]?.live_reserve ?? 0);
-      const tokensNow = Math.min(
-        ratePerSec * BUCKET_CAP_SECONDS,
-        Number(budgetRow[0]?.tokens ?? 0) +
-          (settledAt ? ((nowMs - settledAt.getTime()) / 1000) * ratePerSec : 0),
-      );
       let due = null;
       try {
         due = queueSummary(await eligibleNow(db, new Date(nowMs)));
@@ -226,10 +250,14 @@ export function publicRoutes({ deadLetters }) {
           ? new Date(settledAt.getTime() + tickMinutes * 60_000).toISOString()
           : null,
         tick_minutes: tickMinutes,
-        next_tick_capacity: Math.max(
-          0,
-          Math.floor(tokensNow * (1 - liveReserve)),
-        ),
+        // What the next tick may add: the bulk share of the tokens, less
+        // what is already queued (the planner's own bulkAllowance).
+        next_tick_capacity: bulkAllowance({
+          tokens: tokensNow,
+          cap: ratePerSec * BUCKET_CAP_SECONDS,
+          liveReserve,
+          queuedBulk: jobs?.queued_bulk ?? 0,
+        }),
       };
       // Health verdict derived from data, never vibes: pipeline is OK
       // when something was admitted recently, no message has run out of

@@ -63,7 +63,9 @@ export const liveTools = {
       if (live.state === "pending") {
         throw new ToolFailure(
           "live_pending",
-          `A fresh read of ${args.path} is queued.`,
+          live.queued === false
+            ? `The shared Clash Royale budget has no room for a fresh read of ${args.path} until the next scheduler tick; nothing was queued or charged.`
+            : `A fresh read of ${args.path} is queued.`,
           `Call again in ${live.retry_after_s} s; the recorded-data tools answer now.`,
           { retry_after_s: live.retry_after_s },
         );

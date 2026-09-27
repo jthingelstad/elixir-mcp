@@ -769,7 +769,13 @@ export async function liveRead(ctx, { endpoint, entityKey, needPayload }) {
       "The live fetch returned a payload our admission rejected.",
       "Call again without live: true for the recorded view.",
     );
-  return { state: "pending", retry_after_s: r.retry_after_s };
+  // queued: false - the one budget had no token for a live read, so none
+  // was minted and nothing was charged (review 2026-09-27 §4.1).
+  return {
+    state: "pending",
+    retry_after_s: r.retry_after_s,
+    queued: r.queued !== false,
+  };
 }
 
 /** The `live_status` block a live: true answer carries. */
@@ -782,9 +788,10 @@ export function liveStatus(live) {
 
 /** The one-sentence caveat for a pending live read (a note, not a key). */
 export function livePendingNote(live) {
-  return live?.state === "pending"
-    ? `A fresh read of the game is queued; call again in ${live.retry_after_s} s for it - this answer is the record as it stands.`
-    : null;
+  if (live?.state !== "pending") return null;
+  return live.queued === false
+    ? `The shared Clash Royale budget has no room for a fresh read until the next scheduler tick; call again in ${live.retry_after_s} s - this answer is the record as it stands.`
+    : `A fresh read of the game is queued; call again in ${live.retry_after_s} s for it - this answer is the record as it stands.`;
 }
 
 /** A not_recorded refusal becomes live_pending when a live read is queued:
@@ -793,7 +800,9 @@ export function notRecordedOrPending(live, message, hint) {
   if (live?.state === "pending")
     return new ToolFailure(
       "live_pending",
-      `${message} A live read is queued.`,
+      live.queued === false
+        ? `${message} The shared Clash Royale budget has no room for a live read until the next scheduler tick.`
+        : `${message} A live read is queued.`,
       `Call again in ${live.retry_after_s} s.`,
       { retry_after_s: live.retry_after_s },
     );

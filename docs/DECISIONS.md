@@ -107,7 +107,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 
 ## Recording, collectors and rate budget
 
-- **One global rate budget** — the fleet is redundancy, never quota multiplication; this is ToS posture, and the ceiling does not move. (Decisions block, 2026-09-10; engineering)
+- **One global rate budget** — the fleet is redundancy, never quota multiplication; this is ToS posture, and the ceiling does not move. Enforced in code: the tick charges only the rows it inserts and plans inside capacity less queued bulk; every live mint takes a token or queues nothing. (Decisions block, 2026-09-10; 2026-09-27 #64; engineering)
 - **Zero-trust collectors** — no AWS access, Bearer config/lease/submit, and the server chooses the work; provisioning is reveal-and-copy of a one-time token. (2026-09-06; Jamie)
 - **Releases are candidates until named** — naming promotes to Latest; `min_client_version` never refuses config, fails open on unparseable versions, and should not be "fixed". There is no version pin, not even for a canary: rollback is naming the previous release. (2026-09-06, 2026-09-25; Jamie)
 - **The collector is Go only** — since 2026-09-26 (elixir-mcp-collector v3.0.x); the Python twin is retired. `parseClientVersion` still reads a `py-` version so the minimum can refuse a stray Python client; the 426 hint points it at the Go installer. (2026-09-26; Jamie)

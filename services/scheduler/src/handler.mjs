@@ -6,8 +6,28 @@
  */
 
 import pg from "pg";
-import { planTick } from "./plan.mjs";
+import { planTick, chargeBudget } from "./plan.mjs";
 import { enqueueJob, settleLeases, ledgerStats } from "./ledger.mjs";
+
+/**
+ * One tick's work inside the caller's transaction: plan, enqueue, and
+ * charge the bucket for the rows the enqueue really INSERTED. A planned
+ * subject that already had a queued job (a live row, or a bulk row a
+ * dark fleet never leased) upgrades or folds into it and costs nothing:
+ * charging every plan spent tokens on work that was never added (review
+ * 2026-09-27 §4.1). The charge settles the bucket in the same statement,
+ * last, so the budget row is locked only for the commit.
+ */
+export async function tickOnce(client, now) {
+  const result = await planTick(client, now);
+  let inserted = 0;
+  for (const job of result.jobs) {
+    const row = await enqueueJob(client, job);
+    if (row?.inserted) inserted += 1;
+  }
+  const tokensAfter = await chargeBudget(client, now, inserted);
+  return { ...result, inserted, tokensAfter };
+}
 
 export function makeHandler({ databaseUrl, emitMetrics = () => {} }) {
   return async function handler() {
@@ -15,12 +35,11 @@ export function makeHandler({ databaseUrl, emitMetrics = () => {} }) {
     await client.connect();
     try {
       await client.query("begin");
-      const result = await planTick(client, new Date());
-      for (const job of result.jobs) {
-        await enqueueJob(client, job);
-      }
+      const result = await tickOnce(client, new Date());
       await client.query("commit");
-      // Backstop settle (the door settles too; this covers idle fleets).
+      // Settle expired leases. This tick is the only settler: the door
+      // stopped settling on lease on 2026-09-11 (83f0a6c5), so an
+      // abandoned lease waits at most one tick past its 90 s TTL.
       const settled = await settleLeases(client);
       const stats = await ledgerStats(client);
       // Metric emission is best-effort and MUST NOT hold the tick open
@@ -30,6 +49,7 @@ export function makeHandler({ databaseUrl, emitMetrics = () => {} }) {
       try {
         const pending = emitMetrics(stats, {
           planned: result.jobs.length,
+          charged: result.inserted,
           followup: result.followup,
           read_capped: result.readCapped,
           requested: result.requested,

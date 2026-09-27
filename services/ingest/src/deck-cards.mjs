@@ -15,7 +15,8 @@
  * A card in a battle that the catalog does not know yet - a release day,
  * up to the daily /cards poll - gets a stub card row (id, name, kind are
  * in the payload) so ingest never waits on the catalog, and a live-lane
- * catalog job is queued so the stub heals in minutes. catalog_seen_at
+ * catalog job is queued, when the one budget has a token for it, so the
+ * stub heals in minutes. catalog_seen_at
  * stays null until /cards confirms it.
  *
  * Re-ingest writes nothing: every statement is on-conflict-guarded so an
@@ -26,6 +27,11 @@
  *  holds. slot 1..8 as the API listed the cards; slot 0 is the tower
  *  troop; round 0 except for duels, where each round is its own deck. */
 import { cachedVocabulary, stampDecks } from "./card-roles.mjs";
+import {
+  enqueueJob,
+  takeLiveToken,
+  refundLiveToken,
+} from "../../scheduler/src/ledger.mjs";
 
 export function participantCardRows(deck) {
   if (!deck) return [];
@@ -92,14 +98,20 @@ export async function ensureCards(db, cards, observedAt) {
     [JSON.stringify(rows), observedAt],
   );
   if (stubbed.length > 0) {
-    // Same upsert as the scheduler's enqueueJob (ledger.mjs): live beats
-    // bulk, nothing downgrades, one queued row per subject.
-    await db.query(
-      `insert into job (endpoint, entity_key, lane)
-       values ('cards', 'GLOBAL', 'live')
-       on conflict (endpoint, entity_key) where status = 'queued'
-         do update set lane = 'live'`,
-    );
+    // A live catalog read, minted like every other (review 2026-09-27
+    // §4.1): one token from the one global budget, taken first and given
+    // back if a queued catalog job was already there to promote. With no
+    // token left nothing is queued; the daily catalog read still heals
+    // the stub, and ingest never waits on the catalog.
+    const token = await takeLiveToken(db);
+    if (token.ok) {
+      const row = await enqueueJob(db, {
+        endpoint: "cards",
+        entity_key: "GLOBAL",
+        lane: "live",
+      });
+      if (!row.inserted) await refundLiveToken(db);
+    }
   }
   return stubbed.map((r) => r.card_id);
 }

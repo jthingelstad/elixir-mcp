@@ -222,95 +222,75 @@ function ChartLegend({ series }) {
 }
 
 /**
- * The global Clash Royale request budget for the hour in progress.
+ * The global Clash Royale request budget.
  *
  * This is the one number on the page with a rule attached to it rather than a
  * preference: the fleet exists for redundancy and must never multiply the
  * spend, so "are we inside the budget" is a compliance question. It goes at the
- * top because it is the first thing worth knowing and it was not shown at all.
+ * top because it is the first thing worth knowing.
  *
- * The pace marker is what makes it readable. Spend is not meant to be flat —
- * the scheduler polls where battles are — so a bar alone cannot distinguish a
- * busy hour from an overspent one. The marker is elapsed-fraction of capacity:
- * fill level with it is on pace, well short is idle, past it is a burst.
+ * The headline is the last 24 hours against the BULK share of a day's
+ * capacity - what the planner may actually spend once the live reserve is
+ * held back - and the line under it is the rolling hour and what the live
+ * lane was charged. Until 2026-09-27 this was the calendar hour against an
+ * elapsed-fraction pace marker, which at ten past the hour read "152 of 636"
+ * while the rolling hour was 28% (review 2026-09-27 §4.2).
  */
 function BudgetGauge({ budget }) {
   // The page that answers "is the recorder broken" must not be the page
   // that breaks: a body missing a number renders without that panel
   // rather than taking the screen down with it.
-  if (typeof budget?.used_hour !== "number") return null;
-  const {
-    used_hour: used,
-    capacity_hour: cap,
-    expected_hour: expected,
-  } = budget;
-  const pct = cap > 0 ? Math.min(100, (used / cap) * 100) : 0;
-  const pacePct = cap > 0 ? Math.min(100, (expected / cap) * 100) : 0;
-  const over = used > expected * 1.25 && used > 60;
-  const nearCap = pct >= 90;
-  const verdict = nearCap
-    ? "at the hour's ceiling"
-    : over
-      ? "ahead of pace"
-      : used < expected * 0.5
-        ? "below pace"
-        : "on pace";
+  if (
+    typeof budget?.fetches_24h !== "number" ||
+    !(budget.bulk_capacity_24h > 0)
+  )
+    return null;
+  const used = budget.fetches_24h;
+  const cap = budget.bulk_capacity_24h;
+  const pct = Math.min(100, (used / cap) * 100);
+  const hour =
+    typeof budget.used_hour === "number" && budget.capacity_hour > 0
+      ? `last hour ${budget.used_hour.toLocaleString()} of ${budget.capacity_hour.toLocaleString()}`
+      : null;
+  const changed =
+    typeof budget.useful_hour === "number" && budget.measured_hour > 0
+      ? `${Math.round((budget.useful_hour / budget.measured_hour) * 100)}% of the hour changed the record`
+      : null;
+  const live =
+    typeof budget.charged_24h?.live === "number"
+      ? `live lane charged ${budget.charged_24h.live.toLocaleString()} in 24 hours`
+      : null;
 
   return (
-    <section className="panel" style={{ marginBottom: "14px" }}>
+    <section className="panel mb-[14px]">
       <div className="panel__head">
         <span>Shared request budget</span>
-        <span className="mono" style={{ marginLeft: "auto", fontWeight: 400 }}>
-          {used.toLocaleString()} of {cap.toLocaleString()} this hour ·{" "}
-          {budget.rate_per_sec}/s
-          {typeof budget.useful_hour === "number" && budget.measured_hour > 0
-            ? ` · ${Math.round((budget.useful_hour / budget.measured_hour) * 100)}% changed the record`
-            : ""}
+        <span className="mono ml-auto font-normal">
+          {used.toLocaleString()} of {cap.toLocaleString()} in 24 hours ·{" "}
+          {Math.round(pct)}%
         </span>
       </div>
       <div className="panel__body">
-        {/* The fill is always --accent. State is the marker and the line
-            under it, because a meter that changes colour has stopped
-            being a measurement and become a status chip. */}
+        {/* The fill is always --accent: a meter that changes colour has
+            stopped being a measurement and become a status chip. */}
         <div
-          className="meter meter--marked"
+          className="meter"
           role="img"
-          aria-label={`${used} of ${cap} requests used this hour; ${expected} expected by now`}
+          aria-label={`${used} of ${cap} requests in the last 24 hours`}
         >
           <div className="meter__fill" style={{ width: `${pct}%` }} />
-          <div
-            className="meter__mark"
-            style={{ left: `${pacePct}%` }}
-            title="Pace — where we should be at this hour"
-          />
         </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            marginTop: "12px",
-            fontSize: "12.5px",
-            color: "var(--ink-faint)",
-          }}
-        >
-          <span
-            style={{
-              width: "2px",
-              height: "13px",
-              background: "var(--ink)",
-              display: "inline-block",
-              flex: "0 0 auto",
-            }}
-          />
-          <span>
-            pace at {Math.round(pacePct)}% — {verdict}
-          </span>
-        </div>
+        <p className="block text-[12.5px] text-ink-faint mt-3">
+          {[hour, live, changed, `${budget.rate_per_sec}/s`]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
       </div>
       <div className="panel__foot">
-        One budget for the whole fleet. More collectors are resilience, never
-        more quota.
+        One budget for the whole fleet, and the live lane spends it too. More
+        collectors are resilience, never more quota. The day's capacity is the
+        bulk share, after the {Math.round((budget.live_reserve ?? 0) * 100)}%
+        live reserve.
       </div>
     </section>
   );
