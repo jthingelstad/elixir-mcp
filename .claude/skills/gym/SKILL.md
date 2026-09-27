@@ -166,6 +166,11 @@ Gym runs are read-only, so they may run while you fix another family.
      Fetch each finding's bite:
      `acceptance/bites/fetch.mjs <date> <request-id prefix> <name> <feedback id>`.
      New verbs go into `acceptance/gym-interp.mjs`.
+   - **Attested facts are counted, never quoted** into NOTES, a report
+     excerpt, `gym.json` or anything else in this public repo: say "3
+     `clan_message` items", never what one says or who said it. The Gym
+     reads its clan's facts; the fetcher stubs `attested` and `account`
+     items in a bite, and `bites.test.mjs` fails on one that holds more.
    - **One contract bump per family round**, not one per finding, which is
      the cadence rule. Majors are off the table in a sweep. Anything that
      would need one is a Jamie decision.

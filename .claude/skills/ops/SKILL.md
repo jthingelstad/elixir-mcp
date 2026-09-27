@@ -140,13 +140,17 @@ Stamps are UTC; Jamie reads US Central.
 response, gzipped JSON, to the archive bucket (`ArchiveBucket`,
 `elixir-mcp-archive-<account id>`) at
 `calls/dt=<YYYY-MM-DD>/request_id=<id>.json.gz`, keyed by the call's UTC
-day (`services/mcp/src/capture.mjs`). They expire after 90 days, and
+day (`services/mcp/src/capture.mjs`). They expire after 90 days (the
+body a day after its delete marker, `calls-purge-expired`), and
 `mcp_call_audit.captured` says whether one was written. Take the request
 id from the response's meta, the audit row or the door's log line; read
 the object in the S3 console or with a GetObject
 (`aws s3 cp s3://<bucket>/calls/dt=<day>/request_id=<id>.json.gz - | gunzip`).
 `{refusal_census}` and `{controls_census}` read many at once. A Gym
-finding's capture becomes a bite through `acceptance/bites/fetch.mjs`.
+finding's capture becomes a bite through `acceptance/bites/fetch.mjs`,
+which stubs `attested` and `account` items. Attested facts are counted,
+never quoted into NOTES or the repo: a capture holds them whole, and a
+leaders-only fact read here is still leaders-only.
 
 **Alarms.** Every `elixir-mcp-*` alarm publishes to SNS
 `elixir-mcp-alarms`, which feeds the sysadmin `projects-ops-alerts` queue

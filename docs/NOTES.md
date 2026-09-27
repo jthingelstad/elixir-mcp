@@ -3415,3 +3415,34 @@ person brief back, disclaimer last: his full identity (13 players, 2
 more clans) still fits, so it is named, not counted.
 
 Pending: none needing a natural event.
+
+## 2026-09-27 - #66 (A5): captures and the public repo match the privacy page
+
+Review §6.4 and §6.8, lane A; privacy.md itself untouched (lane C).
+
+- **Capture retention.** The archive bucket is versioned, so
+  `calls-expire` only wrote a delete marker at 90 days and the
+  bucket-wide `expire-superseded-versions` kept the body another 365
+  (about 455 days against the published 90). New `calls/` rule
+  `calls-purge-expired`: `NoncurrentVersionExpiration: 1` and
+  `ExpiredObjectDeleteMarker` (that flag cannot share a rule with
+  `ExpirationInDays`). Payload versions keep their year.
+- **Bites.** `acceptance/bites/fetch.mjs` reduces every `attested` or
+  `account` item to `{kind, section, at, subject_tag}`
+  (`acceptance/bites/private.mjs`); `acceptance/bites.test.mjs` fails on
+  a committed bite holding more. `317-2-elixir_timeline.json` held nine
+  `account_feedback_responded` items with their facts; now stubs (gym
+  317.2 still bites). Git history keeps the old copy: feedback ids and
+  statuses of the Gym's own account, nothing about a person.
+- **Tracking mail.** `build-tracking` passes its `MOMENT_KINDS` filter
+  into `buildTimeline`, so the 150-item cap is spent on moments and no
+  attested item enters the mail path. `services/jobs/test/tracking.test.mjs`
+  (a leader recipient, 160 clan messages newer than their career-wins
+  moment) failed before: the moment was cut. `services/mcp/test/attested-readers.test.mjs`
+  lets only `entries.mjs` and `attested-facts.mjs` name `attested_fact`
+  in runtime code.
+- **Skills.** Gym and ops: attested facts are counted, never quoted into
+  NOTES or the repo.
+
+No MCP contract or JSON API change. Ship: stack and jobs only, no
+acceptance (nothing a tool serves changed); smoke.
