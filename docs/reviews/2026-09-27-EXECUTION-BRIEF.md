@@ -8,8 +8,10 @@ This brief takes
 sorted by *who has to decide*, not by subsystem, into four lanes:
 
 - **Lane A** is being worked now. Its findings are GitHub issues labelled
-  `review-2026-09-27`, one issue per local Claude Code session. Each
-  issue closes only once its fix is deployed and read back.
+  `review-2026-09-27`. Each issue gets a fresh session: either one
+  interactive session per issue, or one unattended orchestrator that
+  hands each issue to a new subagent. Each issue closes only once its
+  fix is deployed and read back.
 - **Lanes B, C and D** are held in this file, not filed as issues, so
   nothing sits open. When no labelled issue remains open, Jamie and
   Claude revisit them, starting with lane B.
@@ -37,7 +39,7 @@ Worked in this order:
 
 | Order | Issue | Title | Review § |
 |---|---|---|---|
-| 1 | #62 | A1: Door hardening (the details are private; ask Jamie) | 6.5 |
+| 1 | #62 | A1: Door hardening (interactive only: private notes, Jamie's approvals, Clan and Drop) | 6.5 |
 | 2 | #63 | A2: Bound and name every database backend | 3.1-3.3 |
 | 3 | #64 | A3: Enforce the one global budget in code | 4.1, 4.2 |
 | 4 | #65 | A4: Deliver the whole server brief; spec-compliant error results | 6.1, 6.2 |
@@ -54,54 +56,138 @@ Worked in this order:
 
 ### Working the queue
 
-Paste the same prompt into a fresh Claude Code session for each issue:
+There are two ways to run the queue. The worker rules are the same in
+both.
+
+- **Prompt A: interactive.** One issue per session, with Jamie at the
+  keyboard.
+- **Prompt B: unattended.** One session is the orchestrator. It hands
+  each issue to a fresh subagent and loops until the queue is done. When
+  nobody is at the keyboard, "ask Jamie" becomes the `needs-jamie` label.
+
+**#62 (A1, door hardening) is interactive only.** It needs Jamie's
+private notes, two approvals and changes in Elixir Clan and Elixir Drop,
+so the unattended loop skips it.
+
+#### Worker rules (one issue)
+
+1. **Read, in order:**
+   - the issue, with `gh issue view <N> --comments`;
+   - the review sections it names;
+   - `docs/DECISIONS.md`;
+   - the working style in `AGENTS.md`;
+   - the SKILL.md of every skill the issue names, under
+     `.claude/skills/`. Always read and follow
+     `.claude/skills/ship/SKILL.md` for shipping.
+2. **Sync, then claim.**
+   - On a clean `main`, fast-forward to `origin/main`.
+   - Run `AGENT-TEAM/scripts/preflight.sh`.
+   - Claim the lease: `node AGENT-TEAM/scripts/objective-lease.mjs
+     claim session`, and keep the returned lease id. If the claim is
+     refused, stop and report `lease busy`.
+   - Branch as `review/<N>-<slug>`.
+3. **Re-verify.** The issues cite `c8ae040`. Check every `path:line`
+   against current `main`. If a part no longer holds, skip it and say
+   why.
+4. **Decisions.** Some parts need a product, policy or cost decision
+   that neither the issue nor the run's pre-authorizations settle.
+   - **Interactive:** ask Jamie before writing code.
+   - **Unattended:** do not guess, and do not widen scope.
+     - Finish the parts that stand alone without the decision.
+     - Comment the exact question on the issue. The repo is public, so
+       the comment holds no secrets and no private data.
+     - Add the `needs-jamie` label.
+     - Release the lease and stop.
+5. **Build.** Where the issue names a failure, write the test that shows
+   it first. Then run `npm run verify`.
+6. **Ship** per the ship skill:
+   - the PR body says `Refs #<N>`, never `Fixes #<N>`, so the issue does
+     not close on merge;
+   - `gh pr merge --auto --rebase --delete-branch`, then wait for the
+     merge on a green `validate`;
+   - deploy from an up-to-date `main` at the issue's acceptance scope;
+   - triage any acceptance failure;
+   - do the read-back the issue asks for.
+
+   A large issue may take two PRs.
+7. **Failure.** If CI or the deploy fails and the fix is outside the
+   issue's scope:
+   - leave the PR open;
+   - comment on the issue with what failed;
+   - add `needs-jamie`;
+   - release the lease;
+   - report whether production is healthy (`/api/public/status` shows
+     `"ok":true`).
+8. **Close.**
+   - Comment on the issue with the PRs, the deploy and the read-back.
+   - List any check that needs a later natural event (a Monday run, a
+     day of lifecycle, a week of data). The lane B revisit confirms
+     those.
+   - Close the issue with `gh issue close <N> --reason completed`.
+   - Confirm the tree is clean, then release the lease.
+9. **Report,** in at most 10 lines:
+   - the issue;
+   - the outcome: closed, needs-jamie, failed, or lease busy;
+   - the PRs and the deploy;
+   - pending checks;
+   - whether production is healthy.
+
+**Always:**
+
+- Never commit secrets or private data.
+- Never push to `main` directly.
+- Never skip or disable a test to get to green.
+
+#### Prompt A: one issue, interactive
 
 ```
 Work the next issue in the review queue: the open GitHub issues labelled
-review-2026-09-27 in jthingelstad/elixir-mcp. Follow "Working the queue"
-in docs/reviews/2026-09-27-EXECUTION-BRIEF.md. One issue this session.
+review-2026-09-27 in jthingelstad/elixir-mcp, in the order of the lane A
+table in docs/reviews/2026-09-27-EXECUTION-BRIEF.md. Follow the worker
+rules there, interactively. One issue this session.
 ```
 
-The rules that prompt points to:
+#### Prompt B: the loop (the orchestrator follows this)
 
-1. **First session only.** If the review is not yet on `main`, land the
-   branch `claude/data-product-review-61awdw` through a PR (`gh pr
-   create --fill`, `gh pr merge --auto --rebase --delete-branch`). It is
-   docs only, so there is no deploy. Then close #48 as not planned,
-   citing the 2026-09-27 DECISIONS line that declines database restore
-   work.
-2. **Pick** the next open labelled issue in the order in the table
-   above. Before changing anything, tell Jamie which issue it is and give
-   a plan in about five lines.
-3. **A1 (#62) is private.** Ask Jamie for the private notes before
-   starting. Never commit, log or quote them in a commit, PR, NOTES entry
-   or issue comment until the fixes are deployed. PR titles and
-   descriptions say "door hardening (review §6.5)" and nothing more.
-4. **Preflight.** Claim the checkout lease (`session`), run the
-   preflight, and branch from an up-to-date `main`.
-5. **Read, in order:** the issue, the review sections it names,
-   `docs/DECISIONS.md`, and the repo skills it names. Re-verify every
-   `path:line` against current `main`; the issues cite `c8ae040`. If a
-   part no longer holds, skip it and say why in the closing comment.
-6. **Decisions come before code.** If a part needs a product, policy or
-   cost decision the issue does not already name, ask Jamie before
-   writing any code. Do not widen scope. Anything new that turns up goes
-   into the closing comment for the lane B/C/D revisit, not into a new
-   issue.
-7. **Build.** Where the issue names a failure, write the test that shows
-   it first. Then run `npm run verify`.
-8. **Ship with `/ship`** at the issue's acceptance scope. The PR
-   references the issue with `Refs #N`, not `Fixes #N`, so the issue does
-   not close on merge. A large issue may take two PRs.
-9. **Close.** After the deploy and the read-back the issue asks for,
-   comment on the issue with the PRs, the deploy and the read-back, then
-   close it. If a done-when check needs a later natural event (a Monday
-   run, a day of lifecycle, a week of data), close the issue anyway once
-   it is deployed, and list the pending check in the closing comment. The
-   revisit confirms those.
-10. **Stop.** Release the lease and report: the issue closed, what
-    shipped, and what was deferred. When no labelled issue is open, say
-    it is time for the lane B revisit.
+The orchestrator never works an issue itself. Its context holds only the
+queue state and each subagent's report.
+
+1. **Pick.**
+   - Take the next open issue labelled `review-2026-09-27` and not
+     labelled `needs-jamie`, in the order of the lane A table.
+   - Skip #62.
+   - If none is left, go to step 6.
+2. **Check health.** `curl -s
+   https://elixir.poapkings.com/api/public/status` must show
+   `"ok":true`. If it does not, stop the loop and report.
+3. **Delegate.** Spawn one general-purpose subagent, in the foreground,
+   with this prompt:
+
+   ```
+   Work GitHub issue #<N> in jthingelstad/elixir-mcp end to end,
+   unattended: nobody can answer questions during this run. Follow the
+   worker rules in "Working the queue" in
+   docs/reviews/2026-09-27-EXECUTION-BRIEF.md, in unattended mode.
+   Pre-authorized for this run: <the run's pre-authorizations, or
+   "none">. Return only the rule 9 report.
+   ```
+
+4. **Read the report**, and confirm the issue's state with `gh issue view
+   <N>`.
+   - **Closed:** go to the next issue.
+   - **needs-jamie:** note the question, then go to the next issue.
+   - **Lease busy:** wait about 10 minutes, then retry the same issue,
+     up to six times. After that, stop and report.
+   - **Failed:** stop the loop if production is unhealthy, if a deploy
+     failed and was not recovered, or if `main`'s `validate` is red.
+     Never start another issue on top of a broken deploy.
+5. Go back to step 1.
+6. **Finish.** Report:
+   - a table of every issue with its outcome, PRs and pending checks;
+   - the needs-jamie questions.
+
+   If only #62 and needs-jamie issues remain open, say that lane A is
+   done apart from those, and that it is time for the lane B revisit.
 
 ---
 
