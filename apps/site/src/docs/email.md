@@ -106,8 +106,12 @@ in the brief. The writer may print a number only after reading it from
 the brief through a tool, so the record of what it read is the audit; an
 editor pass then corrects the draft against the program's findings.
 Before an issue sends, the program checks every number in it against
-the brief, refuses bare tags and exclamation marks, and holds the length.
-An issue that fails does not send that week. Named players are public
+the brief, and against the player or clan named beside it, so a rating
+printed next to the wrong name fails; it refuses bare tags and
+exclamation marks, and holds the length. An issue that fails does not
+send that week. One that passes but was finished after its usual send
+time goes out as soon as it is ready, while it is still the current issue, and only to the
+readers the scheduled send did not reach. Named players are public
 leaderboard entries, written about neutrally, and linked to their record.
 
 ## Turning one off

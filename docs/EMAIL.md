@@ -365,7 +365,8 @@ as the subject. Friends' and watchers' moments are the Tracking report's.
   account_id | account_email, force}`), builders per kind calling tool
   handlers in-process (`ctx.mjs`) and the timeline's own entries, the
   ledger, `deliver`. Top 100: `top100.mjs` builds the brief, writes it to
-  `mail/top100/<date>/brief.json` and hands `{brief_key}` to the editor
+  `mail/top100/<date>/brief.json` (`mail/top_100/<date>/` since #68,
+  2026-09-27) and hands `{brief_key}` to the editor
   through the outbox (one object under `editor/`, whose S3 notification
   wakes the editor; the NAT-free VPC has no Lambda endpoint, and until
   2026-09-24 this was a message on `EditorQueue`); `top100_accept` lints
@@ -495,7 +496,7 @@ Four send bugs, one fix each:
   The send no longer upserts the issue row, so its status and `issue
   <key>` note stay as the pipeline wrote them. The operator's forced
   send still takes the newest accepted issue. A late accept sending on
-  its own is A7 (#68).
+  its own is A7 (#68), below.
 - **The clan report is the clan's.** It was composed as `members[0]`,
   with that account's own `account_clan.scope` and timezone. It now uses
   the clan's recording scope (the widest any tracker or collection asked
@@ -503,6 +504,44 @@ Four send bugs, one fix each:
   in a standout's text), and the renderer names each day in the
   recipient's `account.timezone` (`links.timezone`, set by `deliver`).
   Issues stored before this carry `when` labels and still render.
+
+## The written-issue pipeline hardened (2026-09-27, review §6.7, #68)
+
+- **One spine.** The Top 100 now runs on `issue-pipeline.mjs` like Card
+  of the Week: `generateIssue` stores the brief at
+  `mail/top_100/<date>/brief.json` (issues before 2026-10-01 stay under
+  `mail/top100/`) and hands the editor `{brief_key, kind}`;
+  `acceptIssue` repairs names with `packages/mail`'s `briefNames(brief,
+  kind)`, lints, and stores `top100Facts`. `{top100_generate: {force:
+  true}}` is the operator's regenerate: the brief says `ops`, a failure
+  is noted `[ops]` and mails nobody.
+- **A late accept sends.** An issue accepted after its kind's send slot
+  (Thursday or Friday 14:00Z), for the period that slot sent, runs
+  `runEmail(kind)` from the `issue_accept` handler (`late_send` in the
+  log). The ledger skips everyone the scheduled run reached. An accept
+  for an older period, after the period rolled, or from an ops brief
+  never sends on its own. `WRITTEN_SEND_SLOT` is pinned to the
+  EventBridge crons by a test.
+- **The editor classifies its errors.** A refusal, `max_tokens`, the
+  context window, the 12-turn limit, an answer that is not JSON, or a
+  4xx from the API is final: `issue.json` is written as
+  `{_pipeline: {error: {kind, message}}}`, jobs is invoked so the row
+  says failed and the owner hears "was not written", the hand-off is
+  deleted and the invocation succeeds. Only a 429, a 5xx (408 and 409
+  too, the SDK's own retry class) or a connection error rethrows for SQS.
+- **The brief is cached.** It is the first content block of each pass,
+  with its own `cache_control` breakpoint beside the system prompt's, so
+  every `brief_value` turn after the first reads it from the cache. The
+  per-turn `{editor: {pass, turn, stop, usage}}` log line shows it as
+  `cache_read_input_tokens`.
+- **The lint binds numbers to names.** A number in a sentence that names
+  someone must belong to that name's brief object (an object whose own
+  strings carry the name owns every number inside it), unless no named
+  object holds it or it is one of the small structural numbers; and a
+  `numbers_used` claim must print the value at its `brief_path`. The
+  repo's sample podium with its three ratings rotated passed with zero
+  findings; it is now `services/editor/test/lint-binding.test.mjs`, and
+  fails. Placeholders (`{{v:path}}`) were out of scope.
 
 ## Open
 

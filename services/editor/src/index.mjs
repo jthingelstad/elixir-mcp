@@ -3,7 +3,14 @@
  *  the brief the jobs Lambda wrote to the archive bucket, runs the
  *  writer and the editor, writes the issue beside the brief, and hands
  *  it back to the jobs Lambda to lint and store. The API key arrives
- *  from the app secret in the environment and is never logged. */
+ *  from the app secret in the environment and is never logged.
+ *
+ *  Errors are classified (review 2026-09-27 §6.7). One no retry changes
+ *  (a refusal, max_tokens, the turn limit, bad JSON, a 4xx) is final:
+ *  the issue is written as `{_pipeline: {error}}`, the jobs Lambda is
+ *  told so the period's row says failed and the owner hears, the
+ *  hand-off is deleted and the invocation succeeds. Only a 429, a 5xx
+ *  or a connection error rethrows, for SQS to try again. */
 import {
   S3Client,
   GetObjectCommand,
@@ -12,7 +19,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { outboxObjects } from "@elixir-mcp/contracts";
-import { generateIssue } from "./generate.mjs";
+import { generateIssue, isFinal, finalError } from "./generate.mjs";
 import { lintIssue } from "@elixir-mcp/mail";
 
 const s3 = new S3Client({});
@@ -28,6 +35,38 @@ async function readHandoff({ bucket, key }) {
     if (err?.name === "NoSuchKey") return null;
     throw err;
   }
+}
+
+async function putIssue(bucket, key, value) {
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: "application/json",
+      Body: JSON.stringify(value),
+    }),
+  );
+}
+
+/** The jobs Lambda lints and stores the answer (or records the failure). */
+async function handBack(issueKey, kind) {
+  if (!process.env.JOBS_FUNCTION) return;
+  await lambda.send(
+    new InvokeCommand({
+      FunctionName: process.env.JOBS_FUNCTION,
+      InvocationType: "Event",
+      Payload: Buffer.from(
+        JSON.stringify({ issue_accept: { key: issueKey, kind } }),
+      ),
+    }),
+  );
+}
+
+async function deleteHandoff(handoff) {
+  if (!handoff) return;
+  await s3.send(
+    new DeleteObjectCommand({ Bucket: handoff.bucket, Key: handoff.key }),
+  );
 }
 
 export async function handler(event) {
@@ -60,29 +99,38 @@ export async function handler(event) {
   // invoke that named only a key.
   const kind = brief.kind ?? message?.kind ?? "top_100";
   const started = Date.now();
-  const result = await generateIssue({
-    brief,
-    kind,
-    lint: lintIssue,
-    log: (l) => console.log(JSON.stringify({ editor: l, kind })),
-  });
   const issueKey = briefKey.replace(/brief\.json$/, "issue.json");
-  await s3.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: issueKey,
-      ContentType: "application/json",
-      Body: JSON.stringify({
-        ...result.issue,
-        _pipeline: {
-          draft_findings: result.draft_findings,
-          paths_read: result.paths_read,
-          ms: Date.now() - started,
-          model: process.env.EDITOR_MODEL || "claude-opus-5",
-        },
-      }),
-    }),
-  );
+  const model = process.env.EDITOR_MODEL || "claude-opus-5";
+  let result;
+  try {
+    result = await generateIssue({
+      brief,
+      kind,
+      lint: lintIssue,
+      log: (l) => console.log(JSON.stringify({ editor: l, kind })),
+    });
+  } catch (err) {
+    if (!isFinal(err)) throw err;
+    const error = finalError(err);
+    await putIssue(bucket, issueKey, {
+      _pipeline: { error, ms: Date.now() - started, model },
+    });
+    await handBack(issueKey, kind);
+    await deleteHandoff(handoff);
+    console.log(
+      JSON.stringify({ editor_final_error: { kind, issueKey, error } }),
+    );
+    return { issue_key: issueKey, final_error: error };
+  }
+  await putIssue(bucket, issueKey, {
+    ...result.issue,
+    _pipeline: {
+      draft_findings: result.draft_findings,
+      paths_read: result.paths_read,
+      ms: Date.now() - started,
+      model,
+    },
+  });
   await s3.send(
     new PutObjectCommand({
       Bucket: bucket,
@@ -91,20 +139,8 @@ export async function handler(event) {
       Body: JSON.stringify(result.draft),
     }),
   );
-  if (process.env.JOBS_FUNCTION)
-    await lambda.send(
-      new InvokeCommand({
-        FunctionName: process.env.JOBS_FUNCTION,
-        InvocationType: "Event",
-        Payload: Buffer.from(
-          JSON.stringify({ issue_accept: { key: issueKey, kind } }),
-        ),
-      }),
-    );
-  if (handoff)
-    await s3.send(
-      new DeleteObjectCommand({ Bucket: handoff.bucket, Key: handoff.key }),
-    );
+  await handBack(issueKey, kind);
+  await deleteHandoff(handoff);
   console.log(
     JSON.stringify({
       editor_done: {
