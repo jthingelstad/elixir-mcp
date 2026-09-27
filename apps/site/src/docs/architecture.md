@@ -80,7 +80,11 @@ NAT-free VPC). The only machines with Clash Royale API keys are
 queue, fetch with their IP-allowlisted key, and post results back. They
 never choose their own targets, hold no user data, and earn ladder
 points for every fetch that adds something to the record. The fleet shares **one global rate budget** by design:
-more collectors mean resilience, never more API load.
+more collectors mean resilience, never more API load. The budget is a token
+bucket the scheduler plans from, and everything that asks the API for a read
+spends it: each scheduled job, and each live read an agent, a JSON API
+refresh or a newly seen card asks for. A live read that finds the bucket
+empty is not queued; it is answered with the record and a time to try again.
 
 ## Collectors, in depth
 

@@ -261,7 +261,9 @@ been served empty by the API for recent seasons.
 ## How often a subject is fetched
 
 Recording is a schedule over one shared, conservative API budget that the
-whole collector fleet stays inside. For players the schedule is **the
+whole collector fleet stays inside: one request a second, a tenth of it held
+back for live reads. [Recording now](/data/now) shows how much of the last
+24 hours' share was spent. For players the schedule is **the
 session clock**, one rule you can hold in your head:
 
 > While you are playing, your battle log is read every 30 minutes. After a

@@ -488,6 +488,8 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
   assert.equal(row.calls_7d, 3);
   assert.equal(row.errors_7d, 1);
   assert.ok(fleet.tools.some((t) => t.tool === "battles_query"));
+  // A day's capacity is the planner's bulk share, not rate x 86,400 (#64).
+  assert.equal(fleet.budget.capacity_24h, 77760);
 
   const nonOwner = await handler(
     event({ method: "GET", path: "/api/admin/usage", cookie, body: undefined }),
@@ -1656,6 +1658,22 @@ test("public status: no auth, 60s cache, no confidential fields", async () => {
     Number.isInteger(body.queue.due_now),
     "due_now is a count, not an error",
   );
+  // The budget headline is the last day against the bulk share of a
+  // day's capacity, and the charges by lane; no calendar-hour pace
+  // (review 2026-09-27 §4.2, #64).
+  assert.equal(
+    body.budget.bulk_capacity_24h,
+    Math.round(
+      body.budget.rate_per_sec * 86400 * (1 - body.budget.live_reserve),
+    ),
+  );
+  assert.ok(Number.isInteger(body.budget.fetches_24h));
+  assert.equal(typeof body.budget.share_24h, "number");
+  assert.ok(Number.isInteger(body.budget.charged_24h.bulk));
+  assert.ok(Number.isInteger(body.budget.charged_24h.live));
+  assert.ok(Number.isInteger(body.budget.used_hour));
+  assert.ok(!("expected_hour" in body.budget), "no calendar-hour pace");
+  assert.ok(!("hour_started_at" in body.budget));
   const blob = JSON.stringify(body);
   assert.ok(!blob.includes("static_ip"), "no IPs on the public surface");
   assert.ok(!blob.includes("email_hash"), "no account data");

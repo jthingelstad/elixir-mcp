@@ -199,11 +199,15 @@ export function adminRoutes({
          from mcp_call_audit where created_at > now() - interval '7 days'
          group by 1 order by 2 desc`,
       );
-      // Budget reality: the global 1 rps budget supports ~86,400
-      // fetches/day; show consumption and the heaviest subjects.
+      // Budget reality: consumption against the BULK share of a day's
+      // budget, rate x 86,400 x (1 - live_reserve) - 77,760 at 1 rps and
+      // a 10% reserve, not the 86,400 the planner may never spend (review
+      // 2026-09-27 §4.2) - and the heaviest subjects.
       const { rows: budget } = await db.query(
         `select count(*)::int as fetches_24h,
-                count(distinct entity_key)::int as subjects_24h
+                count(distinct entity_key)::int as subjects_24h,
+                (select round(rate_per_sec * 86400 * (1 - live_reserve))::int
+                   from budget_state) as capacity_24h
          from api_receipt where fetched_at > now() - interval '24 hours'`,
       );
       const { rows: topSubjects } = await db.query(
@@ -216,7 +220,6 @@ export function adminRoutes({
         tools,
         budget: {
           ...budget[0],
-          capacity_24h: 86400,
           top_subjects: topSubjects,
         },
       });

@@ -109,6 +109,9 @@ before(async () => {
     [acct.account_id],
   );
   gatewayId = gw.gateway_id;
+  // Every live mint takes a token from the one global bucket (#64); the
+  // bucket tests below set their own balance and put this one back.
+  await db.query("update budget_state set tokens = 1000, settled_at = now()");
 });
 
 after(async () => {
@@ -408,4 +411,108 @@ test("an agent's live fetch is charged to its owner's bucket, and the owner's ca
   assert.equal(refused.isError, true);
   assert.equal(refused.body.error.code, "quota_exceeded");
   assert.match(refused.body.error.message, /20\/day for the member tier/);
+});
+
+// Review 2026-09-27 §4.1 (#64): a live mint is charged to the one global
+// bucket, so the live reserve is a reservation and not the planner
+// abstaining.
+const tokens = async () =>
+  (await db.query("select tokens::float as t from budget_state")).rows[0].t;
+const liveCharged = async () =>
+  (
+    await db.query(
+      "select coalesce(sum(charged), 0)::int as n from budget_charge where lane = 'live'",
+    )
+  ).rows[0].n;
+
+test("a minted live job takes one token from the one budget; asking again and promoting a queued bulk row are free (#64)", async () => {
+  await db.query("update budget_state set tokens = 10");
+  const chargedBefore = await liveCharged();
+  const live = fakeGatewayLive({});
+  const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
+  try {
+    const first = await invoke("live_fetch", { path: "/clans/#G2CQ9PJ8" });
+    assert.equal(first.body.error.code, "live_pending");
+    assert.equal(await tokens(), 9, "minted: one token");
+    assert.equal(await liveCharged(), chargedBefore + 1, "and recorded");
+    await invoke("live_fetch", { path: "/clans/#G2CQ9PJ8" });
+    assert.equal(await tokens(), 9, "the same open job: not charged again");
+    // A queued bulk row was paid for when the planner inserted it.
+    await enqueueJob(db, {
+      endpoint: "clan",
+      entity_key: "#G2CQ9PJ9",
+      lane: "bulk",
+    });
+    await invoke("live_fetch", { path: "/clans/#G2CQ9PJ9" });
+    assert.equal(await tokens(), 9, "a promotion is free");
+    const { rows } = await db.query(
+      "select lane from job where entity_key = '#G2CQ9PJ9' and status = 'queued'",
+    );
+    assert.equal(rows[0].lane, "live");
+  } finally {
+    await db.query("update budget_state set tokens = 1000");
+  }
+});
+
+test("with no token left nothing is minted or charged, and the answer is pending until the next tick (#64)", async () => {
+  // The last tick ran a minute ago: the next is about four minutes off.
+  await db.query(
+    "update budget_state set tokens = 0.5, settled_at = now() - interval '1 minute'",
+  );
+  const day = new Date().toISOString().slice(0, 10);
+  const quota = async () =>
+    (
+      await db.query(
+        `select coalesce(sum(count), 0)::int as n from rate_limit where bucket = $1 and window_start = $2::date`,
+        [`liveday#${account.accountId}`, day],
+      )
+    ).rows[0].n;
+  const quotaBefore = await quota();
+  const live = fakeGatewayLive({});
+  const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
+  try {
+    const { body, isError } = await invoke("live_fetch", {
+      path: "/clans/#G2CQ9PJL",
+    });
+    assert.equal(isError, true);
+    assert.equal(body.error.code, "live_pending");
+    assert.match(body.error.message, /shared Clash Royale budget/);
+    assert.ok(
+      body.error.retry_after_s >= 200 && body.error.retry_after_s <= 260,
+      `retry at the next tick, got ${body.error.retry_after_s}`,
+    );
+    const { rows } = await db.query(
+      "select count(*)::int n from job where entity_key = '#G2CQ9PJL'",
+    );
+    assert.equal(rows[0].n, 0, "nothing minted");
+    assert.equal(await quota(), quotaBefore, "the account's quota untouched");
+    assert.equal(await tokens(), 0.5, "the bucket untouched");
+  } finally {
+    await db.query("update budget_state set tokens = 1000, settled_at = now()");
+  }
+});
+
+test("a live ask the account's quota refuses gives its token back (#64)", async () => {
+  await db.query("update budget_state set tokens = 5");
+  const day = new Date().toISOString().slice(0, 10);
+  await db.query(
+    `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 50)
+     on conflict (bucket, window_start) do update set count = 50`,
+    [`liveday#${account.accountId}`, day],
+  );
+  const chargedBefore = await liveCharged();
+  const live = fakeGatewayLive({});
+  const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
+  try {
+    const { body } = await invoke("live_fetch", { path: "/clans/#G2CQ9PJQ" });
+    assert.equal(body.error.code, "quota_exceeded");
+    assert.equal(await tokens(), 5, "refunded");
+    assert.equal(await liveCharged(), chargedBefore, "and uncounted");
+  } finally {
+    await db.query(
+      `delete from rate_limit where bucket = $1 and window_start = $2::date`,
+      [`liveday#${account.accountId}`, day],
+    );
+    await db.query("update budget_state set tokens = 1000");
+  }
 });

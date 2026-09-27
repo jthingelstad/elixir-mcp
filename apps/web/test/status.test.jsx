@@ -23,6 +23,20 @@ const PAYLOAD = {
     capture_audit_24h: { polls: 50, gaps: 0 },
   },
   jobs: null,
+  budget: {
+    rate_per_sec: 1,
+    live_reserve: 0.1,
+    fetches_24h: 25660,
+    bulk_capacity_24h: 77760,
+    share_24h: 0.33,
+    capacity_24h: 86400,
+    used_hour: 1010,
+    capacity_hour: 3600,
+    useful_hour: 400,
+    measured_hour: 1000,
+    charged_24h: { bulk: 25500, live: 140 },
+    tokens: 30,
+  },
   queue: {
     due_now: 9,
     due_starved: 1,
@@ -529,4 +543,15 @@ test("the fleet renders without signatures, and badges the ones it has", async (
   expect(within(signed).getByText("signed")).toBeTruthy();
   const dev = screen.getByText("Wall Breakers").closest("tr");
   expect(within(dev).getByText("dev build")).toBeTruthy();
+});
+
+// Review 2026-09-27 §4.2 (#64): the headline is the day against the bulk
+// share, and the live lane's charge is on the page.
+test("the budget gauge leads with the last 24 hours against the bulk share", async () => {
+  await paint();
+  expect(screen.getByText("Shared request budget")).toBeTruthy();
+  expect(screen.getByText(/25,660 of 77,760 in 24 hours · 33%/)).toBeTruthy();
+  expect(screen.getByText(/last hour 1,010 of 3,600/)).toBeTruthy();
+  expect(screen.getByText(/live lane charged 140 in 24 hours/)).toBeTruthy();
+  expect(screen.queryByText(/pace at/)).toBeNull();
 });

@@ -14,7 +14,15 @@
  * for max-age seconds (60 s for players, battle logs and boards; 120 s
  * for clans and the river race - cr-agent-api-docs), so a receipt inside
  * that window IS what a new fetch would return, whichever lane fetched it.
+ *
+ * A minted live job is charged one token from the one global bucket
+ * (review 2026-09-27 §4.1), before the per-account quota. With no token
+ * left nothing is minted and nothing is charged: the answer is `pending`
+ * with `queued: false` and `retry_after_s` at the next scheduler tick,
+ * when the bucket refills.
  */
+
+import { takeLiveToken, refundLiveToken } from "../../scheduler/src/ledger.mjs";
 
 /** The API's cache-control max-age per endpoint, in seconds. */
 const MAX_AGE_S = {
@@ -24,7 +32,12 @@ const MAX_AGE_S = {
 };
 const DEFAULT_MAX_AGE_S = 60;
 
-export function makeLive({ enqueue, retryAfterS = 15 }) {
+export function makeLive({
+  enqueue,
+  retryAfterS = 15,
+  charge = takeLiveToken,
+  refund = refundLiveToken,
+}) {
   return async function liveFetch(
     db,
     { endpoint, entityKey, needPayload = false, beforeMint = async () => {} },
@@ -76,18 +89,38 @@ export function makeLive({ enqueue, retryAfterS = 15 }) {
         minted: false,
       };
     }
-    await beforeMint();
-    const row = await enqueue(db, {
-      endpoint,
-      entity_key: entityKey,
-      lane: "live",
-    });
+    const token = await charge(db);
+    if (!token.ok)
+      return {
+        ok: false,
+        reason: "pending",
+        retry_after_s: token.retry_after_s,
+        job_id: null,
+        minted: false,
+        queued: false,
+      };
+    let row;
+    try {
+      await beforeMint();
+      row = await enqueue(db, {
+        endpoint,
+        entity_key: entityKey,
+        lane: "live",
+      });
+    } catch (err) {
+      await refund(db).catch(() => {});
+      throw err;
+    }
+    // Another caller's job got in between the check above and this
+    // insert: it was charged for, so this token goes back.
+    const minted = row?.inserted !== false;
+    if (!minted) await refund(db);
     return {
       ok: false,
       reason: "pending",
       retry_after_s: retryAfterS,
       job_id: Number(row?.job_id),
-      minted: true,
+      minted,
     };
   };
 }

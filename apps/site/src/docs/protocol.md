@@ -405,7 +405,7 @@ never carries internals.
 | `no_subject` | `subject` | nothing to answer about: no primary player on the account, a primary player in no clan when `clan_tag` is omitted, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag). With `display_name` beside an unmapped `on_behalf_of`, `error.candidates[]` lists the clan members whose whole name matches (`player_tag`, `name`, `clan_tag`, `role`; case and spacing ignored, never a partial match), so one candidate is one `elixir_identify` call and zero or several is a question (3.18.0) |
 | `quota_exceeded` | `budget` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
 | `live_unavailable` | `server` | the live lane is not configured, or the fresh payload was refused at admission |
-| `live_pending` | `retry` | `live: true` found no read inside the API's cache window and queued one; nothing is recorded for the subject yet, so there is no answer to give now. `error.retry_after_s` (an integer, seconds) says when to call again (3.14.0; before that only the hint's English carried it) |
+| `live_pending` | `retry` | `live: true` found no read inside the API's cache window and queued one (or, with the shared budget spent until the next tick, queued nothing and charged nothing); nothing is recorded for the subject yet, so there is no answer to give now. `error.retry_after_s` (an integer, seconds) says when to call again (3.14.0; before that only the hint's English carried it) |
 | `bad_request` | `input` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, unknown timezone |
 | `result_too_large` | `input` | the request was fine and the result exceeded the delivery cap; the hint names the narrowing arguments. Also what `live_fetch` answers for a battle-log path, before spending the lane |
 | `query_timeout` | `retry` | an analytical read exceeded its cancellable query budget; no analytical result is returned. Retry the named call after a few seconds or narrow its `from`/`to` window; report `meta.request_id` if it persists. |
@@ -536,8 +536,11 @@ in its hint.
   `battles_query` and the board tools asks for a read no older than the
   API's cache. Asynchronous (1.7.0): fresh if in hand, otherwise queued
   and answered now from the record with `live_status: { state:
-  "pending", retry_after_s }`; call again after that. The tools are
-  annotated `openWorldHint`.
+  "pending", retry_after_s }`; call again after that. A new live read
+  spends one request of the fleet's one global budget; when that budget is
+  spent until the next scheduler tick nothing is queued or charged,
+  `live_status` stays `pending` with `retry_after_s` the seconds to that
+  tick, and the note says the budget had no room (9.12.3). The tools are annotated `openWorldHint`.
   `elixir_timeline` is the one exception: it selects by when the record
   observed an item, over (from, to] at the millisecond it serves, so a cut
   instant passed as `to` reaches the item at the cut (7.1.5).

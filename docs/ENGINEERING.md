@@ -31,6 +31,20 @@ quota multiplication. Budget state is a Postgres row settled each scheduler
 tick, not process memory, because a Lambda that ticks every few minutes
 (`SchedulerTickMinutes`, 5 by default) has nowhere to keep it.
 
+**Every minted fetch is charged, once** (review 2026-09-27 §4.1, #64). The
+tick charges the bucket for the rows it actually inserted (a subject
+already queued is not charged twice) and plans against
+`min(tokens, capacity - queued bulk)` of the bulk share, so work queued
+through a fleet outage cannot stack past what the bucket allows. Every
+new live row - the live lane, a JSON API profile refresh, a card first
+seen in a deck - takes one token atomically
+(`takeLiveToken` in `services/scheduler/src/ledger.mjs`); with none left it
+queues nothing, charges nothing (not even the account's live quota) and
+answers at the next tick. `budget_charge` (0187) records the charges by
+hour and lane, and the public status reports them as `charged_24h`. The
+status headline is fetches in 24 hours against the bulk share of a day,
+rate x 86,400 x (1 - live_reserve).
+
 Only the gateway calls the Clash Royale API at runtime. The key lives solely on
 allowlisted operator machines: never in CI, never in a Lambda, never in a
 browser.
