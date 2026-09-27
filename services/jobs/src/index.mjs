@@ -274,7 +274,7 @@ async function mailArchiveStore() {
   return (mailArchive = { s3: new S3Client({}), bucket });
 }
 
-export async function handler(event) {
+export async function handler(event, context) {
   if (typeof event?.email === "string") {
     const result = await runEmail({
       databaseUrl: process.env.DATABASE_URL,
@@ -285,8 +285,20 @@ export async function handler(event) {
       enqueue: enqueueEmail,
       secret: process.env.SESSION_SECRET,
       archive: await mailArchiveStore(),
+      remainingMs:
+        typeof context?.getRemainingTimeInMillis === "function"
+          ? () => context.getRemainingTimeInMillis()
+          : null,
     });
     console.log(JSON.stringify({ email: result }));
+    // A run that stopped short of its recipients fails the invocation,
+    // so the async retry (JobsInvokeConfig) carries on from where
+    // the ledger says it stopped, and the jobs errors alarm says a mail
+    // run has outgrown one invocation.
+    if (result.incomplete)
+      throw new Error(
+        `email_run_incomplete: ${event.email} sent ${result.sent}, ${result.remaining} remaining after ${result.ms} ms`,
+      );
     return result;
   }
   if (event?.top100_generate) {

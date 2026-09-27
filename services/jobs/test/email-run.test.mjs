@@ -1,0 +1,291 @@
+/**
+ * The mail run over a scratch database (review 2026-09-27 §6.7): the
+ * ledger is asked before anything is composed, a run stops with time to
+ * spare and says how far it got, a second milestone on one UTC day is a
+ * second mail, a written issue goes out only for its own period, and a
+ * clan report is the same whoever tracked the clan first.
+ */
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import pg from "pg";
+import { migrate } from "../../migrate/src/migrate.mjs";
+import { runEmail, milestonePeriodKey } from "../src/email/index.mjs";
+import { buildClan } from "../src/email/build-clan.mjs";
+import { lastGameWeek } from "../src/email/week.mjs";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(here, "../../..");
+const ADMIN_URL =
+  process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
+const NAME = `elixir_mcp_test_email_run_${process.pid}`;
+const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
+
+const CLAN = "#2PQRJ8LV";
+const OLD_TAG = "#20QQL8CC";
+const NEW_TAG = "#8QQ8QQ8Q";
+// A Thursday: the Top 100's send day.
+const THURSDAY = new Date("2026-09-17T14:00:00Z");
+
+let db;
+const acct = {};
+
+async function person(label, tag, createdAt, timezone) {
+  const id = (
+    await db.query(
+      `insert into account (email_hash, email, status, timezone, created_at)
+       values ($1, $2, 'approved', $3, $4) returning account_id`,
+      [`h-${label}`, `${label}@example.com`, timezone, createdAt],
+    )
+  ).rows[0].account_id;
+  await db.query(`insert into player (player_tag, name) values ($1, $2)`, [
+    tag,
+    label,
+  ]);
+  await db.query(
+    `insert into claim (account_id, player_tag, status, is_primary, relationship, notify)
+     values ($1, $2, 'verified', true, 'primary', true)`,
+    [id, tag],
+  );
+  return id;
+}
+
+function sink() {
+  const out = [];
+  return { out, enqueue: async (m) => void out.push(m) };
+}
+
+before(async () => {
+  const admin = new pg.Client({ connectionString: ADMIN_URL });
+  await admin.connect();
+  await admin.query(`drop database if exists ${NAME} with (force)`);
+  await admin.query(`create database ${NAME}`);
+  await admin.end();
+  await migrate({
+    databaseUrl: DB_URL,
+    migrationsDir: path.join(repoRoot, "db/migrations"),
+  });
+  db = new pg.Client({ connectionString: DB_URL });
+  await db.connect();
+  // The oldest account tracks the clan at activity scope, in Chicago;
+  // a newer one asked for comprehensive, in UTC.
+  acct.old = await person(
+    "old",
+    OLD_TAG,
+    "2026-08-01T00:00:00Z",
+    "America/Chicago",
+  );
+  acct.new = await person("new", NEW_TAG, "2026-09-01T00:00:00Z", null);
+  await db.query(`insert into clan (clan_tag, name) values ($1, 'Example')`, [
+    CLAN,
+  ]);
+  await db.query(
+    `insert into account_clan (account_id, clan_tag, scope) values ($1, $3, 'activity'), ($2, $3, 'comprehensive')`,
+    [acct.old, acct.new, CLAN],
+  );
+  await db.query(
+    `insert into recording (subject_type, subject_tag, status, scope, requested_by)
+     values ('clan', $1, 'active', 'comprehensive', $2)`,
+    [CLAN, acct.new],
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
+     values ($1, $2, '2026-09-08T03:00:00Z', 'member')`,
+    [CLAN, NEW_TAG],
+  );
+  // Monday night in Chicago, Tuesday in UTC.
+  await db.query(
+    `insert into clan_event (clan_tag, event_type, timing, window_start, window_end, occurred_at, player_tag, role_after)
+     values ($1, 'member_joined', 'estimated', '2026-09-08T03:00:00Z', '2026-09-08T03:00:00Z', '2026-09-08T03:00:00Z', $2, 'member')`,
+    [CLAN, NEW_TAG],
+  );
+});
+
+after(async () => {
+  await db?.end();
+  const admin = new pg.Client({ connectionString: ADMIN_URL });
+  await admin.connect();
+  await admin.query(`drop database if exists ${NAME} with (force)`);
+  await admin.end();
+});
+
+test("a weekly run asks the ledger first: an account already sent is not recomposed, and its issue keeps its facts", async () => {
+  const now = new Date("2026-09-22T14:00:00Z");
+  const week = lastGameWeek(now);
+  const {
+    rows: [{ issue_id }],
+  } = await db.query(
+    `insert into email_issue (kind, period_key, subject_key, facts, status)
+     values ('arena_week', $1, $2, '{"marker": true}', 'queued') returning issue_id`,
+    [week.key, acct.old],
+  );
+  await db.query(
+    `insert into email_send (send_id, issue_id, account_id) values (gen_random_uuid(), $1, $2)`,
+    [issue_id, acct.old],
+  );
+  const { enqueue, out } = sink();
+  const r = await runEmail({
+    db,
+    kind: "arena_week",
+    now,
+    enqueue,
+    secret: "s",
+  });
+  assert.equal(r.recipients, 2);
+  assert.equal(r.already_sent, 1, JSON.stringify(r));
+  assert.ok(!out.some((m) => m.to === "old@example.com"));
+  const { rows } = await db.query(
+    `select facts from email_issue where issue_id = $1`,
+    [issue_id],
+  );
+  assert.deepEqual(rows[0].facts, { marker: true });
+  assert.equal(typeof r.ms, "number");
+  assert.equal(r.remaining, 0);
+  assert.equal(r.incomplete, false);
+});
+
+test("a run with under 90 s left stops before composing, and says how many remain", async () => {
+  const { enqueue, out } = sink();
+  const r = await runEmail({
+    db,
+    kind: "tracking_report",
+    now: new Date("2026-09-23T14:00:00Z"),
+    enqueue,
+    secret: "s",
+    remainingMs: () => 60_000,
+  });
+  assert.equal(r.incomplete, true);
+  assert.equal(r.remaining, 2);
+  assert.equal(r.composed, 0);
+  assert.equal(out.length, 0);
+});
+
+test("two milestones on one UTC day are two mails; the same moments again are not", async () => {
+  const step = (n, from, to) =>
+    db.query(
+      `insert into player_event
+         (player_tag, event_type, timing, window_start, window_end, value_after, step)
+       values ($1, 'career_wins_step', 'estimated', $2, $3, $4, $4)`,
+      [NEW_TAG, from, to, n],
+    );
+  const run = (at) => {
+    const { enqueue, out } = sink();
+    return runEmail({
+      db,
+      kind: "milestone",
+      now: new Date(at),
+      enqueue,
+      secret: "s",
+      accountId: acct.new,
+    }).then((r) => ({ r, out }));
+  };
+  await step(5000, "2026-09-15T08:00:00Z", "2026-09-15T09:00:00Z");
+  const first = await run("2026-09-15T09:20:00Z");
+  assert.equal(first.r.sent, 1, JSON.stringify(first.r));
+  await step(6000, "2026-09-15T14:00:00Z", "2026-09-15T15:00:00Z");
+  const second = await run("2026-09-15T15:20:00Z");
+  assert.equal(second.r.sent, 1, JSON.stringify(second.r));
+  const third = await run("2026-09-15T16:20:00Z");
+  assert.equal(third.r.sent, 0);
+  const { rows } = await db.query(
+    `select period_key from email_issue where kind = 'milestone' order by composed_at`,
+  );
+  assert.equal(rows.length, 2);
+  assert.ok(rows.every((x) => x.period_key.startsWith("2026-09-15.")));
+  // The campaign period on the pixel and links stays the date.
+  assert.match(first.out[0].html, /path=%2Fmail%2Fmilestone%2F2026-09-15"/);
+});
+
+test("the milestone key is the moments', not the order they came in", () => {
+  const a = { subject_tag: "#A", kind: "badge_earned", key: "badge:x" };
+  const b = { subject_tag: "#A", kind: "career_wins_step", key: "wins:5000" };
+  const now = new Date("2026-09-15T09:20:00Z");
+  assert.equal(
+    milestonePeriodKey(now, [a, b]),
+    milestonePeriodKey(now, [b, a]),
+  );
+  assert.notEqual(milestonePeriodKey(now, [a]), milestonePeriodKey(now, [b]));
+});
+
+test("a written issue goes out only for its own period; with none, nothing sends and the owner hears once", async () => {
+  const facts = JSON.parse(
+    readFileSync(
+      path.join(repoRoot, "packages/mail/fixtures/top_100.json"),
+      "utf8",
+    ),
+  );
+  // Last week's accepted issue.
+  await db.query(
+    `insert into email_issue (kind, period_key, facts, subject_line, status, note, composed_at)
+     values ('top_100', '2026-09-10', $1, 'Last week', 'composed', 'issue mail/top100/2026-09-10/issue.json', '2026-09-10T12:00:00Z')`,
+    [facts],
+  );
+  const early = sink();
+  const r = await runEmail({
+    db,
+    kind: "top_100",
+    now: THURSDAY,
+    enqueue: early.enqueue,
+    secret: "s",
+  });
+  assert.equal(r.sent, 0);
+  assert.equal(r.skipped, 2);
+  assert.equal(early.out.length, 1);
+  assert.equal(early.out[0].kind, "owner_notify");
+  assert.match(early.out[0].note, /top_100 2026-09-17/);
+
+  // This week's issue, accepted.
+  const note = "issue mail/top100/2026-09-17/issue.json";
+  await db.query(
+    `insert into email_issue (kind, period_key, facts, subject_line, status, note)
+     values ('top_100', '2026-09-17', $1, 'This week', 'composed', $2)`,
+    [facts, note],
+  );
+  const onTime = sink();
+  const sent = await runEmail({
+    db,
+    kind: "top_100",
+    now: THURSDAY,
+    enqueue: onTime.enqueue,
+    secret: "s",
+  });
+  assert.equal(sent.sent, 2);
+  assert.ok(onTime.out.every((m) => m.issue_key === "top_100/2026-09-17/all"));
+  const { rows } = await db.query(
+    `select status, note from email_issue where kind = 'top_100' and period_key = '2026-09-17'`,
+  );
+  assert.deepEqual(rows[0], { status: "composed", note });
+  // A retry sends nobody twice.
+  const again = await runEmail({
+    db,
+    kind: "top_100",
+    now: THURSDAY,
+    enqueue: sink().enqueue,
+    secret: "s",
+  });
+  assert.equal(again.sent, 0);
+  assert.equal(again.already_sent, 2);
+});
+
+test("a clan report is the clan's, not its first tracker's: the same facts under either account, at the recording's scope", async () => {
+  const week = lastGameWeek(new Date("2026-09-15T14:00:00Z"));
+  const load = (id, timezone) =>
+    buildClan({
+      db,
+      account: { accountId: id, timezone, kind: "person", role: "member" },
+      clanTag: CLAN,
+      week,
+      season: null,
+    });
+  const asOld = await load(acct.old, "America/Chicago");
+  const asNew = await load(acct.new, "UTC");
+  assert.deepEqual(asOld, asNew);
+  assert.equal(asOld.clan.scope, "comprehensive");
+  assert.equal(asOld.roster_note, null);
+  // A day is an instant; each reader's render names it.
+  const joined = asOld.membership.joined.find((m) => m.tag === NEW_TAG);
+  assert.equal(joined?.at, "2026-09-08T03:00:00.000Z");
+  assert.equal(joined.when, undefined);
+});

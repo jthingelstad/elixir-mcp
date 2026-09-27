@@ -928,6 +928,20 @@ Resources:
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
 
+  # The async retries of every scheduled job, stated rather than left to
+  # the defaults (six hours, two retries). A mail run that stops short of
+  # its recipients fails on purpose, and a retry carries on from where
+  # the ledger says it stopped (review 2026-09-27 section 6.7); an event
+  # an hour old has been superseded by the next hourly run, and a weekly
+  # mail run gets three invocations inside that hour.
+  JobsInvokeConfig:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Qualifier: $LATEST
+      MaximumEventAgeInSeconds: 3600
+      MaximumRetryAttempts: 2
+
   EditorLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
