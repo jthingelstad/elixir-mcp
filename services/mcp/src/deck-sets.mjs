@@ -163,11 +163,23 @@ export function setValue(values) {
  *                 objective (every deck once, the weakest twice) counts
  *                 them, and a weak locked deck is the set's weakest
  *   nodeBudget:   search nodes before it stops with the best found so far
+ *   deadline:     a performance.now() instant it stops at, the same way;
+ *                 default SEARCH_TIME_MS from the call. The node budget
+ *                 counts decks placed, not the candidates each level scans
+ *                 past a clash, so on a pool of 1,500 decks over 32 cards
+ *                 one call ran 4.3 s inside its node budget. The search is
+ *                 synchronous: the invoker's timer cannot interrupt it, so
+ *                 it keeps its own time (review 2026-09-27 §3.2). A tool
+ *                 that searches more than once passes one deadline to all.
  *
  * Returns { sets: [{ keys, value }], exhausted } where exhausted false
- * means a search stopped at the budget (its set is the best it found).
+ * means a search stopped at a budget (its set is the best it found).
  * A set's value is the whole set's, locked decks included.
  */
+export const SEARCH_TIME_MS = 4_000;
+/** Candidates scanned between clock reads: a read costs about what a
+ *  clash check does, so the clock is nearly free at this spacing. */
+const CLOCK_EVERY = 4096;
 export function packSets(
   candidates,
   {
@@ -178,6 +190,7 @@ export function packSets(
     blocked = new Set(),
     fixed = [],
     nodeBudget = 2_000_000,
+    deadline = performance.now() + SEARCH_TIME_MS,
   },
 ) {
   const fixedSum = fixed.reduce((sum, v) => sum + v, 0);
@@ -195,7 +208,14 @@ export function packSets(
   const found = [];
   let exhausted = true;
   const maxShared = count - Math.min(minDiffer, count);
+  let steps = 0;
+  const late = () =>
+    ++steps % CLOCK_EVERY === 0 && performance.now() > deadline;
   for (let alt = 0; alt < alternatives; alt++) {
+    if (performance.now() > deadline) {
+      exhausted = false;
+      break;
+    }
     let best = null;
     let bestValue = -Infinity;
     let nodes = 0;
@@ -218,6 +238,7 @@ export function packSets(
         return true;
       }
       for (let i = start; i <= pool.length - r; i++) {
+        if (late()) return false;
         const v = pool[i].value;
         // Sorted descending: r more picks add at most r * v, and the set's
         // minimum can be no higher than v or the minimum so far.

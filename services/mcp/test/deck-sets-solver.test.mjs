@@ -168,3 +168,28 @@ test("a form's advantage is measured against its base form, never a bonus, and u
   });
   assert.equal(v.form_term, -a);
 });
+
+test("the search keeps its own time: a pool the node budget does not bound stops at the deadline", () => {
+  // 1,500 decks over 32 cards (review 2026-09-27 §3.2): four disjoint
+  // decks need all 32, so nearly every candidate a level scans clashes
+  // and places no node. Untimed, this call ran 4.3 s inside its node
+  // budget, synchronously, where the invoker's timer cannot reach it.
+  let seed = 7;
+  const rnd = () =>
+    (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const candidates = [];
+  for (let i = 0; i < 1500; i++) {
+    const ids = new Set();
+    while (ids.size < 8) ids.add(Math.floor(rnd() * 32));
+    candidates.push({ key: `d${i}`, value: 1 + rnd(), cards: ids });
+  }
+  const started = performance.now();
+  const { exhausted } = packSets(candidates, {
+    count: 4,
+    alternatives: 3,
+    deadline: performance.now() + 100,
+  });
+  const ms = performance.now() - started;
+  assert.equal(exhausted, false, "stopped at the deadline, and says so");
+  assert.ok(ms < 1000, `returned in ${Math.round(ms)} ms`);
+});

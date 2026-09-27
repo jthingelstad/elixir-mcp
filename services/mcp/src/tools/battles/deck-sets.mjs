@@ -27,6 +27,7 @@ import {
   SET_OBJECTIVE,
   nearMisses,
   packSets,
+  SEARCH_TIME_MS,
 } from "../../deck-sets.mjs";
 
 /** The candidates the exact search runs over, best first: the research
@@ -476,7 +477,7 @@ export const battles_deck_sets = {
             : null,
         packed.exhausted || sets.length === 0
           ? null
-          : "The search stopped at its node budget; the sets are the best it found, not proven best.",
+          : "The search stopped at its node or time budget; the sets are the best it found, not proven best.",
         capped
           ? `The search ran over the ${POOL_CAP} highest-valued of ${candidates.length} candidates.`
           : null,
@@ -617,6 +618,8 @@ async function attempt(db, c, o) {
     require: required,
     blocked,
     fixed,
+    // One clock for the set and every partial search after it.
+    deadline: performance.now() + SEARCH_TIME_MS,
   };
   const packed = packSets(searched, { ...opts, count: free });
   const misses = free > 0 ? nearMisses(searched, packed.sets[0]) : [];
