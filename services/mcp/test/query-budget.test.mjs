@@ -234,6 +234,126 @@ test("an analytical tool under both guards audits the one that fired", async () 
   assert.equal(rows[0].error_code, "timeout");
 });
 
+test("a connection-wide ceiling from PGOPTIONS stays a ceiling: the per-call budget overrides it, and it comes back", async () => {
+  // Production sets PGAPPNAME and PGOPTIONS per function (review
+  // 2026-09-27 §3.1); node-pg reads both at connect. The invoker's
+  // set_config must still win for the call, above the default as well as
+  // below it, and the default must be what is left afterwards.
+  const url = adminUrl.replace(/\/postgres$/, `/${name}`);
+  const saved = [process.env.PGAPPNAME, process.env.PGOPTIONS];
+  process.env.PGAPPNAME = "elixir-mcp-test";
+  process.env.PGOPTIONS =
+    "-c statement_timeout=1s -c idle_in_transaction_session_timeout=60s";
+  const bounded = new pg.Client({ connectionString: url });
+  try {
+    await bounded.connect();
+  } finally {
+    [process.env.PGAPPNAME, process.env.PGOPTIONS] = saved;
+    if (saved[0] === undefined) delete process.env.PGAPPNAME;
+    if (saved[1] === undefined) delete process.env.PGOPTIONS;
+  }
+  try {
+    const setting = async (key) =>
+      (await bounded.query(`select current_setting('${key}') as v`)).rows[0].v;
+    assert.equal(await setting("application_name"), "elixir-mcp-test");
+    assert.equal(await setting("statement_timeout"), "1s");
+    assert.equal(await setting("idle_in_transaction_session_timeout"), "1min");
+    // Above the default: a 1.2 s read inside a 5 s budget completes.
+    const slow = await makeInvoker({
+      db: bounded,
+      account,
+      queryBudgetMs: 5000,
+      registry: {
+        invoke: async (_name, ctx) => {
+          await ctx.db.query("select pg_sleep(1.2)");
+          return { ok: true };
+        },
+      },
+    })("clans_standings", {});
+    assert.equal(slow.isError, false, JSON.stringify(slow.body));
+    assert.equal(await setting("statement_timeout"), "1s");
+    // Below it: the budget cancels first.
+    const started = Date.now();
+    const cut = await makeInvoker({
+      db: bounded,
+      account,
+      queryBudgetMs: 150,
+      registry: {
+        invoke: async (_name, ctx) => {
+          await ctx.db.query("select pg_sleep(0.8)");
+          return { ok: true };
+        },
+      },
+    })("clans_standings", {});
+    assert.equal(cut.body.error.code, "query_timeout");
+    assert.ok(Date.now() - started < 700);
+    assert.equal(await setting("statement_timeout"), "1s");
+    // Outside a tool the ceiling holds.
+    await assert.rejects(bounded.query("select pg_sleep(1.5)"), {
+      code: "57014",
+    });
+  } finally {
+    await bounded.end();
+  }
+});
+
+test("a read-only tool behind a lock gives up at the lock timeout, answers query_timeout, and restores the setting", async () => {
+  // The 2026-09-15 shape: an orphaned backend holds ACCESS EXCLUSIVE and
+  // every read queues behind it, each holding a connection.
+  await db.query("create table if not exists budget_locked (n int)");
+  const url = adminUrl.replace(/\/postgres$/, `/${name}`);
+  const holder = new pg.Client({ connectionString: url });
+  await holder.connect();
+  try {
+    await holder.query("begin");
+    await holder.query("lock table budget_locked in access exclusive mode");
+    const started = Date.now();
+    const result = await makeInvoker({
+      db,
+      account,
+      deadlineMs: 10_000,
+      lockTimeoutMs: 200,
+      registry: {
+        invoke: async (_name, ctx) =>
+          (await ctx.db.query("select count(*) from budget_locked")).rows[0],
+      },
+    })("war_current", {});
+    assert.equal(result.isError, true);
+    assert.equal(result.body.error.code, "query_timeout");
+    assert.ok(
+      Date.now() - started < 2000,
+      "the lock wait ended at the lock timeout, not the deadline",
+    );
+    assert.equal(
+      (await db.query("show lock_timeout")).rows[0].lock_timeout,
+      "0",
+    );
+    // A write is never on this path: it waits for the lock as before.
+    const statements = [];
+    const fake = {
+      query: async (sql) => {
+        statements.push(String(sql));
+        return { rows: [] };
+      },
+    };
+    await makeInvoker({
+      db: fake,
+      account,
+      deadlineMs: 10_000,
+      registry: {
+        invoke: async (_name, ctx) => {
+          await ctx.db.query("account write");
+          return { ok: true };
+        },
+      },
+    })("elixir_nickname", {});
+    assert.ok(statements.every((sql) => !sql.includes("lock_timeout")));
+  } finally {
+    await holder.query("rollback").catch(() => {});
+    await holder.end();
+  }
+});
+
 test("the real MCP handler shortens the budget to leave Lambda reply time", async () => {
   const key = "svt_query_budget_fixture";
   await db.query(
