@@ -1332,6 +1332,20 @@ Resources:
               - StorageClass: STANDARD_IA
                 TransitionInDays: 30
             ExpirationInDays: 90
+          # On this versioned bucket, calls-expire only writes a delete
+          # marker: without this rule the body would sit on as a
+          # noncurrent version under expire-superseded-versions for
+          # another 365 days, about 455 in all, against the 90 that
+          # privacy.md and limits.md promise (review 2026-09-27 6.4).
+          # The noncurrent body goes a day after the marker, then the
+          # marker itself. ExpiredObjectDeleteMarker cannot share a rule
+          # with ExpirationInDays, hence a rule of its own.
+          - Id: calls-purge-expired
+            Status: Enabled
+            Prefix: calls/
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 1
+            ExpiredObjectDeleteMarker: true
           # Payloads are content-addressed, so an overwrite means
           # something went wrong rather than something changed. Keep a
           # year of superseded versions - long enough to notice and
