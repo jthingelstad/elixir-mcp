@@ -342,6 +342,88 @@ test("owner_notify is best-effort: a transport failure or a bad message never de
   assert.equal(sent[0].subject, "Elixir MCP: new feedback");
 });
 
+test("relay failure logs are bounded and never include transport error detail", async (t) => {
+  const errors = [];
+  t.mock.method(console, "error", (...args) => errors.push(args));
+  const sensitive = new Error(
+    "delivery for member@example.com included private message body",
+  );
+  const record = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
+
+  const owner = makeHandler({
+    send: async () => {
+      throw sensitive;
+    },
+  });
+  await owner({
+    Records: [
+      record("owner", {
+        v: 1,
+        kind: "owner_notify",
+        to: "owner@example.com",
+        note: "private message body",
+      }),
+    ],
+  });
+
+  const retry = makeHandler({
+    send: async () => {
+      throw sensitive;
+    },
+  });
+  await retry({
+    Records: [
+      record("retry", { v: 1, kind: "welcome", to: "member@example.com" }),
+    ],
+  });
+
+  const enrollment = makeHandler({
+    send: async () => {},
+    enroll: async () => {
+      throw sensitive;
+    },
+  });
+  await enrollment({
+    Records: [
+      record("enroll", {
+        v: 1,
+        kind: "login",
+        to: "member@example.com",
+        code: "123456",
+        newsletter: true,
+      }),
+    ],
+  });
+
+  const outbox = makeHandler({
+    send: async () => {},
+    readObject: async () =>
+      JSON.stringify({ v: 1, kind: "welcome", to: "member@example.com" }),
+    deleteObject: async () => {
+      throw sensitive;
+    },
+  });
+  await outbox({
+    Records: [
+      record("outbox", {
+        Records: [
+          {
+            eventSource: "aws:s3",
+            s3: { bucket: { name: "outbox" }, object: { key: "email/1.json" } },
+          },
+        ],
+      }),
+    ],
+  });
+
+  assert.deepEqual(errors, [
+    ["owner_notify_drop", "transport_error"],
+    ["send_retry", "transport_error"],
+    ["buttondown_drop", "transport_error"],
+    ["outbox_delete_failed", "transport_error"],
+  ]);
+});
+
 test("SES sender: one SendEmail through the configuration set, text always, html beside it", async () => {
   const sent = [];
   const client = {

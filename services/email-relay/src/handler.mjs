@@ -42,14 +42,14 @@ export function makeHandler({
     if (parsed?.kind === "owner_notify") {
       // Best-effort: sent once or dropped with a log line.
       if (!validated.ok) {
-        console.error("owner_notify_drop", validated.errors.join(","));
+        console.error("owner_notify_drop", "invalid_message");
         return "sent";
       }
       try {
         const { subject, text, html } = renderEmail(validated.msg);
         await send({ to: validated.msg.to, subject, text, html });
-      } catch (err) {
-        console.error("owner_notify_drop", err?.message);
+      } catch {
+        console.error("owner_notify_drop", "transport_error");
       }
       return "sent";
     }
@@ -86,8 +86,8 @@ export function makeHandler({
     if (validated.msg.kind === "login" && validated.msg.newsletter && enroll) {
       try {
         await enroll(validated.msg.to);
-      } catch (err) {
-        console.error("buttondown_drop", err?.message);
+      } catch {
+        console.error("buttondown_drop", "transport_error");
       }
     }
     return "sent";
@@ -106,10 +106,10 @@ export function makeHandler({
       if (outcome !== "sent") return outcome;
       try {
         await deleteObject(obj);
-      } catch (err) {
+      } catch {
         // The bucket's lifecycle expires it; a duplicate notification
         // before then would send it again.
-        console.error("outbox_delete_failed", err?.message);
+        console.error("outbox_delete_failed", "transport_error");
       }
     }
     return "sent";
@@ -121,12 +121,11 @@ export function makeHandler({
       let outcome;
       try {
         outcome = await fromRecord(record.body);
-      } catch (err) {
-        // The message goes back for a retry; the reason must be on the
-        // record, or a broken transport is ten invocations of nothing
-        // (2026-09-17, first SES send). Name and message only: never the
-        // recipient, never a body.
-        console.error("send_retry", err?.name ?? "Error", err?.message);
+      } catch {
+        // The message goes back for a retry. Transport errors are
+        // untrusted and may include recipient or body data, so only a
+        // bounded class reaches the log.
+        console.error("send_retry", "transport_error");
         outcome = "retry";
       }
       if (outcome !== "sent")
