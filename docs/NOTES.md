@@ -3329,3 +3329,16 @@ queue every five minutes.
 No acceptance: the live lane is excluded from the acceptance suite, and
 nothing in a tool's declared shape changed. The ship is smoke plus a
 status read-back one tick after the deploy (`charged_24h.bulk` above 0).
+
+Shipped in PR #79 (3c50c4a6), deployed 21:28-21:32Z (4:28-4:32 PM CT)
+with smoke only (40 ok, 0 failed); migrate ran 1 (0187). Read-back
+21:32:59Z (4:32 PM CT), one tick after the stack flip: `/api/public/status`
+`ok: true`; `budget` carries `fetches_24h` 25,623 of `bulk_capacity_24h`
+77,760 (`share_24h` 0.33), `used_hour` 1,121 of 3,600, `tokens` 251, and
+`charged_24h` `{bulk: 71, live: 0}` from the 21:32:37Z tick;
+`expected_hour` is gone; `next_tick_capacity` 226 with 21 queued.
+`elixir_changelog` since 9.12.2 answers 9.12.3.
+
+Pending: the first natural live mint showing in `charged_24h.live`
+(never manufactured), and a day of `charged_24h.bulk` tracking the
+receipts.
