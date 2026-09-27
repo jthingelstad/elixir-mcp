@@ -21,26 +21,36 @@ export async function oauthGrants(databaseUrl, spec = {}) {
   try {
     if (Array.isArray(spec.revoke) && spec.revoke.length) {
       const out = [];
-      for (const id of spec.revoke) {
-        const { rows } = await db.query(
-          `update oauth_family set revoked_at = now()
+      // One transaction: a revoked family always has its
+      // connection_revoked event, and a failed event leaves the family
+      // live, so the op can simply be run again (review 2026-09-27 §3.3).
+      await db.query("begin");
+      try {
+        for (const id of spec.revoke) {
+          const { rows } = await db.query(
+            `update oauth_family set revoked_at = now()
             where family_id::text = $1 and revoked_at is null
             returning account_id`,
-          [String(id)],
-        );
-        if (rows[0])
-          await db.query(
-            `insert into account_event (account_id, kind, detail) values ($1, 'connection_revoked', $2)`,
-            [
-              rows[0].account_id,
-              JSON.stringify({
-                family_id: String(id),
-                by: "operator",
-                reason: spec.reason ?? null,
-              }),
-            ],
+            [String(id)],
           );
-        out.push({ family_id: String(id), revoked: rows.length === 1 });
+          if (rows[0])
+            await db.query(
+              `insert into account_event (account_id, kind, detail) values ($1, 'connection_revoked', $2)`,
+              [
+                rows[0].account_id,
+                JSON.stringify({
+                  family_id: String(id),
+                  by: "operator",
+                  reason: spec.reason ?? null,
+                }),
+              ],
+            );
+          out.push({ family_id: String(id), revoked: rows.length === 1 });
+        }
+        await db.query("commit");
+      } catch (err) {
+        await db.query("rollback").catch(() => {});
+        throw err;
       }
       return { revoked: out };
     }
