@@ -3518,3 +3518,21 @@ config.
 
 No MCP contract or JSON API change. Ship: stack and jobs, no acceptance
 (mail only, nothing a tool serves changed); smoke.
+
+Shipped in PR #85 (22ea45ae..2c4ee306), deployed with no acceptance
+(mail and stack only; nothing a tool serves changed): migrate ran 0 of
+187, stack UPDATE_COMPLETE, smoke green. `elixir-mcp-jobs` LastModified
+23:12:31Z (6:12 PM CT); `GetFunctionEventInvokeConfig` on `$LATEST`
+answers `MaximumRetryAttempts` 2, `MaximumEventAgeInSeconds` 3600.
+
+Read-back, reads only: `/api/public/status` `health.ok: true`;
+`/updates` carries the entry. The first milestone pass on the new code,
+23:20Z (6:20 PM CT), logged `recipients` 21, `sent` 5, `skipped` 16,
+`already_sent` 0, `failed` 0, `remaining` 0, `incomplete` false, `ms`
+3227.
+
+Pending (natural runs; the lane B revisit confirms): the Monday
+2026-09-28 `clan_report`, Wednesday 09-30 `tracking_report`, Thursday
+10-01 `top_100` and Friday 10-02 `card_of_week` runs log `ms` and send
+with no `already_sent` churn; the Top 100 and Card of the Week send
+their own period's issue (or, with none, one owner notice).
