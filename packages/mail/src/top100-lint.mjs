@@ -16,7 +16,12 @@
  *  that does not trace — deleted a true one. It failed quiet, because
  *  the second lint then passed. Numbers are canonicalised at every
  *  spelling a writer would reasonably use, and the body is scanned for
- *  decimals rather than for their integer parts. */
+ *  decimals rather than for their integer parts.
+ *
+ *  A number is also BOUND to the names in its sentence (review
+ *  2026-09-27 §6.7): beside a name it must belong to that name's object
+ *  in the brief, or to no named object at all. Every numbers_used claim
+ *  that prints a number must print the value at its path. */
 
 /** How a number may be spelled in prose: the integer forms, the decimal
  *  forms, and — for a rate — its percentage. 0.294 clears "29.4" and
@@ -52,6 +57,129 @@ function numberSet(v, out = new Set()) {
     Object.values(v).forEach((x) => numberSet(x, out));
   return out;
 }
+
+/** Every name a written kind's brief carries: the names the writer may
+ *  have mangled (repairNames puts them back) and the names a sentence
+ *  binds its numbers to (lintIssue). One list per kind, here, so the
+ *  editor's draft lint and the jobs Lambda's accept lint read the same. */
+export function briefNames(brief, kind = "top_100") {
+  const names = new Set();
+  if (kind === "card_of_week") {
+    names.add(brief?.card?.name);
+    for (const p of brief?.partners ?? []) names.add(p.name);
+    for (const d of [...(brief?.decks ?? []), brief?.best_of_five].filter(
+      Boolean,
+    ))
+      for (const c of d.cards ?? []) names.add(c.name);
+    for (const r of [brief?.rank?.above, brief?.rank?.below].filter(Boolean))
+      names.add(r.name);
+  } else {
+    for (const p of brief?.board?.top100 ?? []) names.add(p.name);
+    for (const list of [
+      brief?.movers?.up,
+      brief?.movers?.down,
+      brief?.movers?.entered,
+      brief?.movers?.exited,
+      brief?.podium,
+    ])
+      for (const p of list ?? []) names.add(p.name);
+    for (const c of brief?.clans ?? []) names.add(c.clan_name);
+    if (brief?.deep_cut?.facts?.player) names.add(brief.deep_cut.facts.player);
+  }
+  return [...names].filter((n) => typeof n === "string" && n);
+}
+
+/** Who owns each number in the brief. An object that carries a name
+ *  (a board row, a mover, a partner card) owns every number inside it;
+ *  a number no named object holds (the cutoff, the median gain, the
+ *  season) is the issue's own and may sit beside anyone. Returns
+ *  `global` (spellings no name owns) and `owned` (spelling -> names). */
+function numberOwners(brief, binding) {
+  const global = new Set();
+  const owned = new Map();
+  const walk = (v, owners) => {
+    if (typeof v === "number" && Number.isFinite(v)) {
+      const s = new Set();
+      spellings(v, s);
+      for (const x of s) {
+        if (owners.length === 0) global.add(x);
+        else {
+          if (!owned.has(x)) owned.set(x, new Set());
+          for (const o of owners) owned.get(x).add(o);
+        }
+      }
+    } else if (Array.isArray(v)) v.forEach((x) => walk(x, owners));
+    else if (v && typeof v === "object") {
+      const own = Object.values(v).filter(
+        (x) => typeof x === "string" && binding.has(x),
+      );
+      const next = own.length ? [...new Set([...owners, ...own])] : owners;
+      Object.values(v).forEach((x) => walk(x, next));
+    }
+  };
+  walk(brief, []);
+  return { global, owned };
+}
+
+/** Where the brief's names sit in one line, longest first so a name
+ *  inside a longer one is not found twice, and only where it stands as
+ *  a word (no ASCII letter or digit touching either end). */
+function nameSpans(line, names) {
+  const spans = [];
+  const taken = (a, b) => spans.some((s) => a < s.end && b > s.start);
+  for (const name of [...names].sort((a, b) => b.length - a.length)) {
+    for (
+      let at = line.indexOf(name);
+      at !== -1;
+      at = line.indexOf(name, at + 1)
+    ) {
+      const end = at + name.length;
+      if (/[A-Za-z0-9_]/.test(line[at - 1] ?? "")) continue;
+      if (/[A-Za-z0-9_]/.test(line[end] ?? "")) continue;
+      if (taken(at, end)) continue;
+      spans.push({ start: at, end, name });
+    }
+  }
+  return spans;
+}
+
+/** The body cut into sentences (a table row or a line is one too), each
+ *  with the names it carries and its text with those names blanked, so
+ *  a digit inside a name ("Pompeyo4.1", "91至寒") is never read as a
+ *  number and a full stop inside one ("YouTube. KAi_CR") never ends the
+ *  sentence. */
+function sentences(body, names) {
+  const out = [];
+  for (const line of body.split("\n")) {
+    const spans = nameSpans(line, names);
+    let masked = line;
+    for (const s of spans)
+      masked =
+        masked.slice(0, s.start) +
+        "\u0001".repeat(s.end - s.start) +
+        masked.slice(s.end);
+    let from = 0;
+    const cut = (to) => {
+      if (to > from)
+        out.push({
+          text: masked.slice(from, to),
+          names: spans
+            .filter((s) => s.start >= from && s.start < to)
+            .map((s) => s.name),
+        });
+      from = to;
+    };
+    for (const m of masked.matchAll(/[.;?!][*_)"'”’]*\s+/g))
+      cut(m.index + m[0].length);
+    cut(masked.length);
+  }
+  return out;
+}
+
+const NUMBER = /(?<![\w#])[+−-]?\d[\d,]*(?:\.\d+)?(?![\w])/g;
+
+/** Does a printed number trace to a spelling in the set? */
+const tracesTo = (raw, set) => set.has(raw) || set.has(raw.replace(/,/g, ""));
 
 function resolvePath(obj, path) {
   return String(path)
@@ -92,6 +220,25 @@ const KIND_RULES = {
   card_of_week: { words: 600, slack: 60, floor: 380, pairRankAndRating: false },
 };
 
+/** Numbers a writer may print without a brief path. */
+const STRUCTURAL = ["100", "10", "3", "5", "1", "2", "4", "6", "7", "8", "9"];
+const STRUCTURAL_SET = new Set(STRUCTURAL);
+
+/** The spellings of the value at a numbers_used path: a number's own,
+ *  every number inside an object, and the digit runs a string carries
+ *  (a label like "Sep 12 – 18", an instant). */
+function valueSpellings(v) {
+  const out = numberSet(v);
+  // Digit runs, not NUMBER: an instant ("2026-09-18T10:07:50Z") glues
+  // its digits to letters, and a claim prints "September 18".
+  if (typeof v === "string")
+    for (const m of v.matchAll(/\d+(?:[.,]\d+)*/g)) {
+      out.add(m[0]);
+      out.add(String(Number(m[0].replace(/,/g, ""))));
+    }
+  return out;
+}
+
 /** The deterministic lint. Returns [] when the issue may send. */
 export function lintIssue(issue, brief, { kind = "top_100" } = {}) {
   const rules = KIND_RULES[kind] ?? KIND_RULES.top_100;
@@ -113,32 +260,42 @@ export function lintIssue(issue, brief, { kind = "top_100" } = {}) {
     problems.push(`prose is ${words} words; the floor is ${rules.floor}`);
   const known = numberSet(brief);
   // Structural numbers the writer may print without a brief path.
-  [
-    "100",
-    "10",
-    "3",
-    "5",
-    "1",
-    "2",
-    "4",
-    "6",
-    "7",
-    "8",
-    "9",
-    String(brief?.season?.id ?? ""),
-  ].forEach((x) => known.add(x));
-  // Decimals are scanned WHOLE. Matching the integer part alone let
-  // "51.2 percent" be judged as "51" and, worse, let a wrong decimal
-  // pass on a right integer.
-  for (const m of body.matchAll(
-    /(?<![\w#])[+−-]?\d[\d,]*(?:\.\d+)?(?![\w])/g,
-  )) {
-    const raw = m[0].replace(/^[+−-]/, "");
-    if (raw.length < 2) continue;
-    if (/^\d{4}$/.test(raw) && Number(raw) >= 2022 && Number(raw) <= 2030)
-      continue; // a year
-    if (!known.has(raw) && !known.has(raw.replace(/,/g, "")))
-      problems.push(`number ${m[0]} is not in the brief`);
+  STRUCTURAL.forEach((x) => known.add(x));
+  known.add(String(brief?.season?.id ?? ""));
+  // A number beside a name must be that name's, or the issue's own.
+  // Flattening the brief into one set let the three podium ratings be
+  // rotated between the three podium players and pass: every one of them
+  // is "in the brief" (review 2026-09-27 §6.7). For Card of the Week the
+  // featured card is the issue's subject, so its numbers bind to nobody.
+  const names = briefNames(brief, kind);
+  const subject = kind === "card_of_week" ? brief?.card?.name : null;
+  const binding = new Set(names.filter((n) => n !== subject && n.length >= 3));
+  const { global, owned } = numberOwners(brief, binding);
+  const structural = new Set(STRUCTURAL);
+  structural.add(String(brief?.season?.id ?? ""));
+  for (const s of sentences(body, names)) {
+    const beside = s.names.filter((n) => binding.has(n));
+    // Decimals are scanned WHOLE. Matching the integer part alone let
+    // "51.2 percent" be judged as "51" and, worse, let a wrong decimal
+    // pass on a right integer.
+    for (const m of s.text.matchAll(NUMBER)) {
+      const raw = m[0].replace(/^[+−-]/, "");
+      if (raw.length < 2) continue;
+      if (/^\d{4}$/.test(raw) && Number(raw) >= 2022 && Number(raw) <= 2030)
+        continue; // a year
+      if (!tracesTo(raw, known)) {
+        problems.push(`number ${m[0]} is not in the brief`);
+        continue;
+      }
+      if (!beside.length || tracesTo(raw, structural) || tracesTo(raw, global))
+        continue;
+      const whose =
+        owned.get(raw) ?? owned.get(raw.replace(/,/g, "")) ?? new Set();
+      if (beside.some((n) => whose.has(n))) continue;
+      problems.push(
+        `number ${m[0]} beside ${beside.join(", ")} belongs to ${[...whose].slice(0, 3).join(", ")} in the brief`,
+      );
+    }
   }
   if (rules.pairRankAndRating)
     for (const row of body
@@ -149,10 +306,28 @@ export function lintIssue(issue, brief, { kind = "top_100" } = {}) {
           `table row without a rating delta: ${row.trim().slice(0, 60)}`,
         );
     }
+  // The self-audit is checked, not just resolved: a claim that prints a
+  // number must print the value at the path it names.
   for (const u of issue?.numbers_used ?? []) {
     const v = resolvePath(brief, u.brief_path);
-    if (v === undefined)
+    if (v === undefined) {
       problems.push(`numbers_used path ${u.brief_path} does not resolve`);
+      continue;
+    }
+    const printed = [...String(u.claim ?? "").matchAll(NUMBER)]
+      .map((m) => m[0].replace(/^[+−-]/, ""))
+      .filter(
+        (raw) =>
+          raw.length >= 2 &&
+          !tracesTo(raw, STRUCTURAL_SET) &&
+          !(/^\d{4}$/.test(raw) && Number(raw) >= 2022 && Number(raw) <= 2030),
+      );
+    if (!printed.length) continue;
+    const at = valueSpellings(v);
+    if (!printed.some((raw) => tracesTo(raw, at)))
+      problems.push(
+        `numbers_used claim "${String(u.claim).slice(0, 60)}" does not match ${u.brief_path} (${JSON.stringify(v)?.slice(0, 40)})`,
+      );
   }
   if (!issue?.subject || String(issue.subject).length > 78)
     problems.push("subject missing or over 78 characters");

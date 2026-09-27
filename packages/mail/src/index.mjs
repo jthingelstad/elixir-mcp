@@ -16,7 +16,7 @@ export {
   TINYLYTICS_EMBED_CODE,
 } from "./pixel.mjs";
 export { htmlToText } from "./text.mjs";
-export { lintIssue, repairNames } from "./top100-lint.mjs";
+export { lintIssue, repairNames, briefNames } from "./top100-lint.mjs";
 export {
   signUnsubscribe,
   verifyUnsubscribe,
