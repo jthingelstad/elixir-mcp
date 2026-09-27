@@ -247,7 +247,7 @@ A refused key never reaches the call log, so a runtime still presenting a
 rotated key produces silence, not errors. The agent's page shows, per key,
 `last_used_at` and **the current key has never been used**; per source
 address, refusals in the last seven days with the reason (`revoked_key`,
-`principal_suspended`, `wrong_door`, `unknown_key`); and `calls_7d`,
+`principal_suspended`, `wrong_door`); and `calls_7d`,
 `last_seen` (address, country, client name) and `timeline_pending`. Your own
 Usage breaks the agents' calls out of your daily budget.
 

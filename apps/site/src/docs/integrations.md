@@ -36,9 +36,11 @@ Agents use MCP. Programs use the **JSON API at
   `GET /clans/{tag}/participation` (`clans_participation`; `weeks` 1 to 8),
   `GET /clans/{tag}/roster` (`clans_roster`), `GET /clans/{tag}/live` (a
   live clan read), `POST /players/names`, `GET /players/{tag}/profile` and
-  `GET /players/{tag}/battles` (`fresh=1` asks for a live read). A client
-  whose every redirect URI is on a family origin is first-party and is not
-  metered; any other client is limited per person per hour. A family app
+  `GET /players/{tag}/battles` (`fresh=1` asks for a live read). A family
+  app's client is first-party and is not metered; any other client is
+  limited per person per hour. A family app's client is provisioned by
+  Elixir, not registered: its every redirect URI is on a family origin, and
+  it authenticates at `/oauth/token` with `client_secret_post`. A family app
   whose grant holds `clans:attest` records what the person did in their
   clan with `POST /clans/{tag}/facts` (see
   [Attested facts](#attested-facts)).
@@ -105,6 +107,11 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.6.1** (2026-09-27): `POST /clans/{tag}/facts` checks a write that
+  replaces a fact against the fact already there as well as the one sent.
+  A family app's OAuth client is provisioned by Elixir and authenticates
+  at `/oauth/token` with `client_secret_post`; only such a client is
+  first-party.
 - **2.6.0** (2026-09-25): `POST /clans/{tag}/facts` and `DELETE
   /clans/{tag}/facts/{ref}` also admit an integration holding
   `facts:write`, for the fact types a family app computes itself: the new
@@ -190,8 +197,8 @@ A departure's kind is the clan's since 2.5.0: the game already tells the
 whole clan in clan chat that a member was kicked, and its leaders say why
 there.
 
-A clan fact is written by a **person**, through a family app (every
-redirect URI on a family origin) whose grant holds `clans:attest`, with
+A clan fact is written by a **person**, through a family app (its
+provisioned client) whose grant holds `clans:attest`, with
 `POST /clans/{tag}/facts`. The one exception (2.6.0) is what the app itself
 computes from its own rules: `award_standing`, where a member stands in one
 of the clan's own awards for a season still running (Elixir Clan writes it
@@ -214,7 +221,8 @@ The attester is the person's **verified** player in that clan, with the
 role Elixir's roster record holds for it now; a role the type does not
 allow is refused (`not_permitted`). `ref` makes a retry the same fact
 (`200`, `created: false`) and a new detail for it the attester's newer
-word; the first write answers `201`. `occurred_at` defaults to now and may
+word; the first write answers `201`. Replacing a fact needs the right to
+the one already there as well as to the one sent (`not_permitted`). `occurred_at` defaults to now and may
 be at most an hour ahead or a year behind. `DELETE
 /clans/{tag}/facts/{ref}` takes one back, by someone who may attest its
 type. A player fact is an integration's, with `POST /players/{tag}/facts`

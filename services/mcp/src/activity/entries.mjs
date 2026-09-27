@@ -1725,7 +1725,9 @@ const ROLE_RANK_SQL = `max(case cm.role when 'leader' then 3 when 'coLeader' the
  *   - clan: the reader's (an agent's owner's) verified player is in the
  *     clan today;
  *   - leaders: a PERSON whose verified player leads it (leader or
- *     co-leader); never an agent;
+ *     co-leader), reading with an INTERACTIVE credential (a session or
+ *     their own OAuth consent, never a service key, review §6.5); never
+ *     an agent;
  *   - player: the player is one of the reader's subjects.
  *
  * Who sees a type is read from the registry here, not from the row's
@@ -1743,7 +1745,11 @@ const FACT_KINDS_SEEN_BY = (visibility) =>
       ATTESTED_FACT_TYPES[k].subject === "clan" &&
       ATTESTED_FACT_TYPES[k].visibility === visibility,
   );
-export async function factItems(db, subjects, { accountId, fromMs, toMs }) {
+export async function factItems(
+  db,
+  subjects,
+  { accountId, fromMs, toMs, interactive = false },
+) {
   if (!accountId) return [];
   const clanTags = subjects.filter((s) => s.kind === "clan").map((s) => s.tag);
   const playerTags = subjects
@@ -1772,7 +1778,7 @@ export async function factItems(db, subjects, { accountId, fromMs, toMs }) {
     : [];
   const inClan = seats.map((r) => r.clan_tag);
   const leads =
-    who[0].kind === "person"
+    who[0].kind === "person" && interactive
       ? seats.filter((r) => r.rank >= 2).map((r) => r.clan_tag)
       : [];
   if (!inClan.length && !playerTags.length) return [];
@@ -1868,6 +1874,9 @@ export async function buildTimeline(
     perf = null,
     filter = null,
     memberTag = null,
+    // A person reading with a session or their own consent, not a key
+    // (factItems: leaders-only facts). False unless the caller says so.
+    interactive = false,
   },
 ) {
   const entries = [];
@@ -1923,7 +1932,14 @@ export async function buildTimeline(
       });
   }
   items.push(...(await accountItems(db, accountId, fromMs, toMs)));
-  items.push(...(await factItems(db, subjects, { accountId, fromMs, toMs })));
+  items.push(
+    ...(await factItems(db, subjects, {
+      accountId,
+      fromMs,
+      toMs,
+      interactive,
+    })),
+  );
   items.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
   // The same moment written twice (feedback #48, still in the 09-14
   // ledger rows, Gym #121): identical subject, kind and facts is one

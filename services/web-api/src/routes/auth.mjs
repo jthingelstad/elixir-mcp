@@ -17,14 +17,16 @@ import {
   sessionSeenFrom,
   listSessions,
   revokeAccountSessions,
+  signinMailAllowed,
+  viewerIp,
 } from "@elixir-mcp/auth";
 import { normalizeTag } from "@elixir-mcp/contracts";
 
 import { json, sessionCookie } from "../http.mjs";
 
-/** The two rate-limit ceilings on sign-in mail, named once. */
+/** The per-caller ceiling on sign-in mail; the per-address one is
+ *  shared with OAuth consent (auth signinMailAllowed). */
 const SIGNIN_MAIL_PER_IP_HOUR = 10;
-const SIGNIN_MAIL_PER_ADDRESS_HOUR = 5;
 
 export function authRoutes({
   resolveAccount,
@@ -34,7 +36,7 @@ export function authRoutes({
 }) {
   return {
     "POST /api/request-access": async (db, event, body) => {
-      const ip = event.requestContext?.http?.sourceIp ?? "unknown";
+      const ip = viewerIp(event) ?? "unknown";
       if (!(await checkRateLimit(db, { bucket: `reqaccess#${ip}`, max: 5 }))) {
         return json(429, { error: "rate_limited" });
       }
@@ -65,16 +67,13 @@ export function authRoutes({
     },
 
     "POST /api/auth": async (db, event, body) => {
-      const ip = event.requestContext?.http?.sourceIp ?? "unknown";
+      const ip = viewerIp(event) ?? "unknown";
       const email = String(body.email ?? "").trim();
       const okIp = await checkRateLimit(db, {
         bucket: `auth#${ip}`,
         max: SIGNIN_MAIL_PER_IP_HOUR,
       });
-      const okEmail = await checkRateLimit(db, {
-        bucket: `auth#${emailHash(email)}`,
-        max: SIGNIN_MAIL_PER_ADDRESS_HOUR,
-      });
+      const okEmail = await signinMailAllowed(db, emailHash(email));
       // The handoff secret (0083): minted for EVERY request, stored only
       // when a row is, so the answer's shape cannot say whether one was.
       const pollId = createMagicToken();
@@ -192,10 +191,7 @@ export function authRoutes({
       // Keyed on the viewer's own address (sourceIp is an edge node,
       // shared): a screen asking every four seconds for the link's
       // fifteen minutes is 225 asks, and the ceilings sit above that.
-      const from =
-        sessionSeenFrom(event).from ??
-        event.requestContext?.http?.sourceIp ??
-        "unknown";
+      const from = viewerIp(event) ?? "unknown";
       const okIp = await checkRateLimit(db, {
         bucket: `poll#${from}`,
         max: 900,

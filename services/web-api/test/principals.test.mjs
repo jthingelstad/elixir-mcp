@@ -45,6 +45,7 @@ function event({ method = "POST", path: p, body, cookie, ip = "8.8.4.4" }) {
     requestContext: { http: { method, sourceIp: ip } },
     headers: {
       ...(cookie ? { cookie } : {}),
+      "cloudfront-viewer-address": `${ip}:443`,
       "x-elixir-client": "web",
     },
     body: body === undefined ? undefined : JSON.stringify(body),

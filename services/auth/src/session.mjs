@@ -10,6 +10,7 @@
  */
 
 import crypto from "node:crypto";
+import { viewerIp } from "./origin.mjs";
 
 // Sliding 30 days (was 9 until 2026-09-12): a person who is away for a
 // week and a half is not a person who should have to sign in again. The
@@ -55,13 +56,7 @@ export function readSessionCookie(event) {
  */
 export function sessionSeenFrom(event) {
   const headers = event?.headers ?? {};
-  const address = String(headers["cloudfront-viewer-address"] ?? "");
-  // "1.2.3.4:56789" or "[2001:db8::1]:56789"; the port is noise.
-  const from = address
-    ? address.startsWith("[")
-      ? address.slice(1, address.indexOf("]"))
-      : address.replace(/:\d+$/, "")
-    : null;
+  const from = viewerIp(event);
   const country = String(headers["cloudfront-viewer-country"] ?? "") || null;
   return { client: clientLabel(headers["user-agent"]), from, country };
 }

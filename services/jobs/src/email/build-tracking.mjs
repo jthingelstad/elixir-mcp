@@ -38,6 +38,8 @@ export async function buildTracking({ db, account, week, season }) {
     toMs,
     timezone: tz,
     accountId: account.accountId,
+    // The mail goes to the person's own address, nowhere else.
+    interactive: true,
   });
   // Each subject's newest moments, newest first: the timeline's own
   // order, a newsfeed (Jamie, 2026-09-23).

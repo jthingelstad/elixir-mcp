@@ -39,9 +39,9 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Collections | `POST /api/me/collections` | live count | 0 / 0 / 5 / 20 | HTTP 403 `not_entitled` "Creating collections needs the family tier or above" or HTTP 429 `quota_exceeded` "The <role> tier can curate up to N collections." |
 | Collection members per call | `collections_edit` | per call | 500 tags | `bad_request`; a single malformed tag fails the whole call |
 | Agents | `POST /api/me/agents` | live count | 3 / 5 / 10 / 25 | HTTP 400 `{"error":"not_entitled","reason":"agent_limit","limit":N,"role":"…"}` |
-| OAuth client registration | `POST /oauth/register` | `dcr#<ip>`, `dcr#global` | 20 per hour per address; 200 per day in total | HTTP 429 `{"error":"temporarily_unavailable"}` |
-| OAuth consent emails | `/oauth/authorize` step one | `oauthmail#<ip>` | 10 per hour | silent: the page says "check your email" and no mail is sent |
-| Sign-in emails (console) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address, 5 per hour per email | silent: HTTP 200 with the usual message |
+| OAuth client registration | `POST /oauth/register` | `dcr#<ip>`, `dcr#global` | 20 per hour per address; 5,000 per day in total | HTTP 429 `{"error":"temporarily_unavailable"}` |
+| OAuth consent emails | `/oauth/authorize` step one | `oauthmail#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email, shared with the console's sign-in | silent: the page says "check your email" and no mail is sent |
+| Sign-in emails (console) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email, shared with OAuth consent | silent: HTTP 200 with the usual message |
 | Sign-in code attempts | code verification | per pending code | 5, then the code is dead | HTTP 400 `{"error":"invalid_or_expired","reason":"attempts_exhausted"}` (console); the OAuth page says "Too many attempts on that code" |
 | Access requests | `POST /api/request-access` | `reqaccess#<ip>` | 5 per hour | HTTP 429 `{"error":"rate_limited"}` |
 | Role-upgrade requests | `POST /api/me/role-request` | pending state | one pending at a time | HTTP 409 |
@@ -51,7 +51,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Collector outstanding leases | `/api/collector/lease` | per gateway | 2 unsubmitted | HTTP 429 `{"error":"lease_cap","hint":"At most 2 unsubmitted leases; submit or wait 90s."}` |
 | Collector quarantine | lease expiry | `missed_streak` | 10 expired leases in a row | HTTP 409 `{"error":"quarantined"}`; the collector drains and the owner is notified |
 | REST calls per hour | `/api/v1/*` | `rest-hour:<integration>` | per integration, default 2,000 | HTTP 429 problem `rate_limited`, `Retry-After` to the top of the hour |
-| REST calls per hour, a person | `/api/v1/*` by a person's OAuth grant | `rest-person-hour:<account>` | 600; a first-party client (every redirect on a family origin) is not metered | HTTP 429 problem `rate_limited`, `Retry-After` to the top of the hour |
+| REST calls per hour, a person | `/api/v1/*` by a person's OAuth grant | `rest-person-hour:<account>` | 600; a first-party client (a family app's provisioned client) is not metered | HTTP 429 problem `rate_limited`, `Retry-After` to the top of the hour |
 | REST calls per day | `/api/v1/*` | usage row | per integration, default 10,000 | HTTP 429 problem `daily_quota_exceeded`, `Retry-After` to UTC midnight |
 | REST profile refreshes per day | `POST /api/v1/profile-refreshes` | usage row | per integration, default 1,000; an idempotent replay does not spend one | HTTP 429 problem `refresh_quota_exceeded`, `Retry-After: 3600` |
 | REST batch size | `POST …/members` | per call | 1 to 500 tags | HTTP 400 problem `invalid_members` |

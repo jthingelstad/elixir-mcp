@@ -18,3 +18,15 @@ export async function checkRateLimit(db, { bucket, max, now = Date.now() }) {
   );
   return rows[0].count <= max;
 }
+
+/** Sign-in codes mailed to one address in an hour, website and OAuth
+ *  consent together: one bucket, so neither door is a way to flood an
+ *  approved inbox the other one guards (review §6.5). */
+export const SIGNIN_MAIL_PER_ADDRESS_HOUR = 5;
+
+export function signinMailAllowed(db, emailHash) {
+  return checkRateLimit(db, {
+    bucket: `auth#${emailHash}`,
+    max: SIGNIN_MAIL_PER_ADDRESS_HOUR,
+  });
+}

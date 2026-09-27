@@ -7,9 +7,12 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import {
   emailHash,
+  FIRST_PARTY_ORIGINS,
   mintTokens,
+  signinMailAllowed,
   validateAccessToken,
 } from "../../auth/src/index.mjs";
+import { familyClientsOn } from "../../migrate/src/ops-family-clients.mjs";
 import { makeHandler } from "../src/handler.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +28,7 @@ const RESOURCE = `${ISSUER}/mcp`;
 
 let db;
 let handler;
+let provisioned = 0;
 const sentEmails = [];
 
 function event({
@@ -36,11 +40,13 @@ function event({
   ip = "9.9.9.9",
   headers = {},
 }) {
+  // As CloudFront delivers it: the caller in cloudfront-viewer-address,
+  // one shared edge node in sourceIp.
   return {
     rawPath: p,
-    requestContext: { http: { method, sourceIp: ip } },
+    requestContext: { http: { method, sourceIp: "130.176.0.9" } },
     queryStringParameters: query,
-    headers,
+    headers: { "cloudfront-viewer-address": `${ip}:50412`, ...headers },
     body: form ? new URLSearchParams(form).toString() : body,
   };
 }
@@ -83,7 +89,12 @@ test("discovery documents are well-formed and cacheable", async () => {
   const meta = JSON.parse(as.body);
   assert.equal(meta.issuer, ISSUER);
   assert.deepEqual(meta.code_challenge_methods_supported, ["S256"]);
-  assert.deepEqual(meta.token_endpoint_auth_methods_supported, ["none"]);
+  // client_secret_post is the family's own provisioned clients (0185).
+  assert.deepEqual(meta.token_endpoint_auth_methods_supported, [
+    "none",
+    "client_secret_post",
+  ]);
+  assert.equal(meta.revocation_endpoint, `${ISSUER}/oauth/revoke`);
   assert.deepEqual(meta.scopes_supported, [
     "cr:read",
     "recordings:write",
@@ -572,7 +583,16 @@ test("DCR validates redirect uris and rate-limits per IP", async () => {
     );
     if (r.statusCode === 429) limited += 1;
   }
-  assert.ok(limited > 0, "per-IP DCR cap engages");
+  assert.equal(limited, 5, "20 an hour per caller");
+  // Keyed on the viewer, not the edge node every caller shares.
+  const other = await handler(
+    event({
+      path: "/oauth/register",
+      ip: "5.5.5.5",
+      body: JSON.stringify({ client_name: "R", redirect_uris: [REDIRECT] }),
+    }),
+  );
+  assert.equal(other.statusCode, 201);
 });
 
 test("base64-encoded form bodies (API Gateway v2 reality) parse correctly", async () => {
@@ -671,23 +691,20 @@ test("a revoked key being presented is recorded, named, and counted", async () =
   assert.equal(row.viewer_country, "US");
 });
 
-test("an unrecognised key is recorded without inventing an owner", async () => {
+test("a key that names nobody is refused and not written down (review §6.5)", async () => {
   const raw = "svt_never_issued_by_anyone";
-  await handler({
+  const response = await handler({
     rawPath: "/mcp",
     requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
     headers: { authorization: `Bearer ${raw}` },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
   });
+  assert.equal(response.statusCode, 401);
   const { rows } = await db.query(
-    `select account_id, token_id, reason from credential_refusal
-     where credential_hash = $1`,
+    `select 1 from credential_refusal where credential_hash = $1`,
     [crypto.createHash("sha256").update(raw).digest("hex")],
   );
-  assert.equal(rows.length, 1);
-  assert.equal(rows[0].account_id, null, "nobody to attribute it to");
-  assert.equal(rows[0].token_id, null);
-  assert.equal(rows[0].reason, "unknown_key");
+  assert.equal(rows.length, 0, "no owner to tell, so no row");
 });
 
 // A refused OAuth token used to come back 500: the describer selected
@@ -711,13 +728,10 @@ test("an unknown OAuth access token is refused with 401 and a challenge, never 5
     /scope="cr:read recordings:write collections:write account:write feedback:write"/,
   );
   const { rows } = await db.query(
-    `select account_id, kind, reason from credential_refusal where credential_hash = $1`,
+    `select 1 from credential_refusal where credential_hash = $1`,
     [crypto.createHash("sha256").update(raw).digest("hex")],
   );
-  assert.equal(rows.length, 1);
-  assert.equal(rows[0].kind, "access_token");
-  assert.equal(rows[0].reason, "unknown_key");
-  assert.equal(rows[0].account_id, null);
+  assert.equal(rows.length, 0, "names nobody, so not written down");
 });
 
 test("an expired OAuth access token is refused with 401 and attributed to its family's account", async () => {
@@ -818,17 +832,44 @@ async function consentFlow({
   scope = "cr:read",
   redirect = REDIRECT,
   resource = RESOURCE,
+  clientSecret,
+  secretHash,
 } = {}) {
-  const reg = await handler(
-    event({
-      path: "/oauth/register",
-      body: JSON.stringify({
-        client_name: "Scope Tester",
-        redirect_uris: [redirect],
-      }),
-    }),
+  // A family redirect cannot be registered at /oauth/register: family
+  // apps are provisioned by the migrate op (0185).
+  const family = FIRST_PARTY_ORIGINS.includes(new URL(redirect).origin);
+  const client_id = family
+    ? (
+        await familyClientsOn(db, {
+          provision: {
+            app: `app-${++provisioned}`,
+            client_name: "Scope Tester",
+            redirect_uris: [redirect],
+          },
+        })
+      ).provisioned.client_id
+    : JSON.parse(
+        (
+          await handler(
+            event({
+              path: "/oauth/register",
+              body: JSON.stringify({
+                client_name: "Scope Tester",
+                redirect_uris: [redirect],
+              }),
+            }),
+          )
+        ).body,
+      ).client_id;
+  if (secretHash)
+    await familyClientsOn(db, {
+      set_secret: { app: `app-${provisioned}`, secret_hash: secretHash },
+    });
+  // Every flow here signs in the same address; its hourly mail allowance
+  // belongs to the tests that measure it.
+  await db.query(
+    `delete from rate_limit where bucket like 'auth#%' or bucket like 'oauthmail#%'`,
   );
-  const { client_id } = JSON.parse(reg.body);
   const verifier = crypto.randomBytes(48).toString("base64url");
   const challenge = crypto
     .createHash("sha256")
@@ -876,10 +917,16 @@ async function consentFlow({
         client_id,
         redirect_uri: redirect,
         resource,
+        ...(clientSecret ? { client_secret: clientSecret } : {}),
       },
     }),
   );
-  return { emailStep, tokens: JSON.parse(tokenRes.body) };
+  return {
+    emailStep,
+    tokenRes,
+    tokens: JSON.parse(tokenRes.body),
+    client_id,
+  };
 }
 
 test("userinfo answers a family app's JSON API grant as it does an MCP one", async () => {
@@ -1084,4 +1131,299 @@ test("a family app that asks for account:email is shown it, and userinfo answers
   );
   assert.equal(discovery.userinfo_endpoint, `${ISSUER}/oauth/userinfo`);
   assert.ok(discovery.scopes_supported.includes("account:email"));
+});
+
+/* ---- door hardening (review §6.5) ---- */
+
+const sha = (v) => crypto.createHash("sha256").update(v).digest("hex");
+const register = (body, ip) =>
+  handler(event({ path: "/oauth/register", ip, body: JSON.stringify(body) }));
+const authorizeGet = (client_id, redirect, scope = "cr:read") =>
+  handler(
+    event({
+      method: "GET",
+      path: "/oauth/authorize",
+      query: {
+        response_type: "code",
+        client_id,
+        redirect_uri: redirect,
+        state: "x",
+        code_challenge: "a".repeat(43),
+        code_challenge_method: "S256",
+        scope,
+        resource: RESOURCE,
+      },
+    }),
+  );
+
+test("registration refuses a family redirect and a name that borrows the family's", async () => {
+  for (const [i, uris] of [
+    ["https://clan.poapkings.com/auth/callback"],
+    [REDIRECT, "https://drop.poapkings.com/auth/elixir/callback"],
+    ["https://elixir.poapkings.com/cb"],
+  ].entries()) {
+    const r = await register(
+      { client_name: "Ordinary", redirect_uris: uris },
+      `6.6.6.${i}`,
+    );
+    assert.equal(r.statusCode, 400, uris.join());
+    assert.equal(JSON.parse(r.body).error, "invalid_redirect_uri");
+  }
+  for (const [i, name] of [
+    "Elixir Clan",
+    "elixir",
+    "ＥＬＩＸＩＲ Drop",
+    " Poap-Kings helper",
+    "E.L.I.X.I.R",
+  ].entries()) {
+    const r = await register(
+      { client_name: name, redirect_uris: [REDIRECT] },
+      `6.6.7.${i}`,
+    );
+    assert.equal(r.statusCode, 400, name);
+    assert.equal(JSON.parse(r.body).error, "invalid_client_metadata");
+  }
+  const fine = await register(
+    { client_name: "Claude Code (elixir-mcp)", redirect_uris: [REDIRECT] },
+    "6.6.8.1",
+  );
+  assert.equal(fine.statusCode, 201);
+});
+
+test("a client registered to family origins before provisioning is not first-party", async () => {
+  await db.query(
+    `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
+     values ('legacy-family-redirect', 'Old Clan', $1, now() + interval '1 day')`,
+    [["https://clan.poapkings.com/auth/callback"]],
+  );
+  const refused = await authorizeGet(
+    "legacy-family-redirect",
+    "https://clan.poapkings.com/auth/callback",
+    "cr:read account:email",
+  );
+  assert.equal(refused.statusCode, 400);
+  assert.match(refused.body, /offered only to the Elixir family/);
+  const plain = await authorizeGet(
+    "legacy-family-redirect",
+    "https://clan.poapkings.com/auth/callback",
+  );
+  assert.equal(plain.statusCode, 200);
+  assert.match(plain.body, /named itself; Elixir has not checked it/);
+  assert.match(plain.body, /clan\.poapkings\.com/);
+});
+
+test("the consent page names where the code goes", async () => {
+  const reg = JSON.parse(
+    (
+      await register(
+        { client_name: "Friendly Name", redirect_uris: [REDIRECT] },
+        "6.6.9.1",
+      )
+    ).body,
+  );
+  const shown = await authorizeGet(reg.client_id, REDIRECT);
+  assert.equal(shown.statusCode, 200);
+  assert.match(shown.body, /sends a code to <strong>claude\.ai<\/strong>/);
+  const { emailStep } = await consentFlow({
+    redirect: "https://clan.poapkings.com/auth/callback",
+  });
+  assert.match(emailStep.body, /one of Elixir&rsquo;s own apps/);
+});
+
+test("a family client's secret: checked when sent, stamped, then required", async () => {
+  const redirect = "https://clan.poapkings.com/auth/callback";
+  const wrong = await consentFlow({
+    redirect,
+    secretHash: sha("right-secret"),
+    clientSecret: "wrong-secret",
+  });
+  assert.equal(wrong.tokenRes.statusCode, 401);
+  assert.equal(wrong.tokens.error, "invalid_client");
+
+  // Not yet required: an app that does not send it yet keeps working.
+  const missing = await consentFlow({
+    redirect,
+    secretHash: sha("right-secret"),
+  });
+  assert.equal(missing.tokenRes.statusCode, 200);
+  const app = `app-${provisioned}`;
+  await assert.rejects(
+    familyClientsOn(db, { require_secret: { app } }),
+    /has not authenticated with its secret yet/,
+  );
+
+  const right = await consentFlow({
+    redirect,
+    secretHash: sha("right-secret"),
+    clientSecret: "right-secret",
+  });
+  assert.equal(right.tokenRes.statusCode, 200, right.tokenRes.body);
+  const rightApp = `app-${provisioned}`;
+  const {
+    rows: [stamped],
+  } = await db.query(
+    `select last_authenticated_at from family_oauth_client where app = $1`,
+    [rightApp],
+  );
+  assert.ok(stamped.last_authenticated_at, "the app is sending it");
+  await familyClientsOn(db, { require_secret: { app: rightApp } });
+
+  const refresh = (secret) =>
+    handler(
+      event({
+        path: "/oauth/token",
+        form: {
+          grant_type: "refresh_token",
+          refresh_token: right.tokens.refresh_token,
+          client_id: right.client_id,
+          resource: RESOURCE,
+          ...(secret ? { client_secret: secret } : {}),
+        },
+      }),
+    );
+  const without = await refresh();
+  assert.equal(without.statusCode, 401, "required now");
+  assert.equal(JSON.parse(without.body).error, "invalid_client");
+  const withIt = await refresh("right-secret");
+  assert.equal(withIt.statusCode, 200, withIt.body);
+
+  // A public client's stray secret is ignored, as before.
+  const pub = await consentFlow({ clientSecret: "anything" });
+  assert.equal(pub.tokenRes.statusCode, 200);
+});
+
+test("RFC 7009 revocation ends the grant for the client that holds it, and only that client", async () => {
+  const { tokens, client_id } = await consentFlow();
+  const mcp = () =>
+    handler(
+      event({
+        path: "/mcp",
+        headers: { authorization: `Bearer ${tokens.access_token}` },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+      }),
+    );
+  assert.equal((await mcp()).statusCode, 200);
+
+  const other = JSON.parse(
+    (
+      await register(
+        { client_name: "Someone Else", redirect_uris: [REDIRECT] },
+        "6.6.10.1",
+      )
+    ).body,
+  );
+  const foreign = await handler(
+    event({
+      path: "/oauth/revoke",
+      form: { client_id: other.client_id, token: tokens.refresh_token },
+    }),
+  );
+  assert.equal(foreign.statusCode, 200, "RFC 7009: answered alike");
+  assert.equal((await mcp()).statusCode, 200, "but nothing was revoked");
+
+  const unknown = await handler(
+    event({
+      path: "/oauth/revoke",
+      form: { client_id: "no-such-client", token: tokens.refresh_token },
+    }),
+  );
+  assert.equal(unknown.statusCode, 401);
+
+  const done = await handler(
+    event({
+      path: "/oauth/revoke",
+      form: { client_id, token: tokens.refresh_token },
+    }),
+  );
+  assert.equal(done.statusCode, 200);
+  assert.equal((await mcp()).statusCode, 401, "the access token went too");
+  const again = await handler(
+    event({
+      path: "/oauth/token",
+      form: {
+        grant_type: "refresh_token",
+        refresh_token: tokens.refresh_token,
+        client_id,
+        resource: RESOURCE,
+      },
+    }),
+  );
+  assert.notEqual(again.statusCode, 200);
+  const { rows } = await db.query(
+    `select detail from account_event
+      where kind = 'connection_revoked' and detail->>'by' = 'client'`,
+  );
+  assert.equal(rows.length, 1);
+});
+
+test("codes to one address are capped across callers, shared with the site's sign-in", async () => {
+  const reg = JSON.parse(
+    (
+      await register(
+        { client_name: "Mail Tester", redirect_uris: [REDIRECT] },
+        "6.6.11.1",
+      )
+    ).body,
+  );
+  await db.query(`delete from rate_limit where bucket like 'auth#%'`);
+  sentEmails.length = 0;
+  for (let i = 0; i < 7; i += 1)
+    await handler(
+      event({
+        path: "/oauth/authorize",
+        ip: `7.7.7.${i}`,
+        form: {
+          step: "email",
+          email: EMAIL,
+          client_id: reg.client_id,
+          redirect_uri: REDIRECT,
+          state: "m",
+          code_challenge: "a".repeat(43),
+          code_challenge_method: "S256",
+          scope: "cr:read",
+          resource: RESOURCE,
+        },
+      }),
+    );
+  assert.equal(sentEmails.length, 5, "five an hour to one inbox");
+  assert.equal(
+    await signinMailAllowed(db, emailHash(EMAIL)),
+    false,
+    "and the site's sign-in reads the same allowance",
+  );
+  await db.query(`delete from rate_limit where bucket like 'auth#%'`);
+});
+
+test("family_clients op: provisions only family redirects, lists the audit, retires registered clients", async () => {
+  await assert.rejects(
+    familyClientsOn(db, {
+      provision: { app: "rogue", redirect_uris: [REDIRECT] },
+    }),
+    /all on family origins/,
+  );
+  const listed = await familyClientsOn(db, { list: true });
+  assert.ok(listed.provisioned.length >= 1);
+  const legacy = listed.registered_to_family_origins.find(
+    (r) => r.client_id === "legacy-family-redirect",
+  );
+  assert.ok(legacy, "the pre-0185 family-redirect client is in the audit");
+  assert.equal(legacy.all_family, true);
+  assert.ok(
+    !listed.registered_to_family_origins.some((r) =>
+      listed.provisioned.some((p) => p.client_id === r.client_id),
+    ),
+    "a provisioned client is not in the audit",
+  );
+
+  const out = await familyClientsOn(db, {
+    revoke_clients: ["legacy-family-redirect", listed.provisioned[0].client_id],
+    reason: "test",
+  });
+  assert.equal(out.revoked[0].expired, true);
+  assert.equal(out.revoked[1].refused, "provisioned");
+  const gone = await authorizeGet(
+    "legacy-family-redirect",
+    "https://clan.poapkings.com/auth/callback",
+  );
+  assert.match(gone.body, /unknown client_id/);
 });

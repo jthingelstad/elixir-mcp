@@ -460,6 +460,15 @@ export async function handler(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.family_clients) {
+    const { familyClients } = await import("./ops-family-clients.mjs");
+    const result = await familyClients(
+      process.env.DATABASE_URL,
+      event.family_clients,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.oauth_grants) {
     const { oauthGrants } = await import("./ops-grants.mjs");
     const result = await oauthGrants(

@@ -30,3 +30,29 @@ export const forbiddenOrigin = () => ({
   headers: { "content-type": "application/json" },
   body: JSON.stringify({ error: "forbidden_origin" }),
 });
+
+/**
+ * The caller's own address (review §6.5, 2026-09-27). The Lambda's
+ * requestContext.http.sourceIp is the CloudFront edge node that forwarded
+ * the request, shared by everyone behind that edge. The viewer's address arrives in cloudfront-viewer-address
+ * ("1.2.3.4:53422", IPv6 as "2001:db8::1:53422" or bracketed), forwarded
+ * by every door behavior's origin request policy and trustworthy because
+ * originAllowed proves the request came through CloudFront. The port is
+ * noise. Without the header (a direct hit in local development) this is
+ * null: a limit keys on `viewerIp(event) ?? "unknown"`, never on the edge.
+ */
+export function viewerIp(event) {
+  const headers = event?.headers ?? {};
+  const raw = String(
+    headers["cloudfront-viewer-address"] ??
+      headers["CloudFront-Viewer-Address"] ??
+      "",
+  ).trim();
+  if (!raw) return null;
+  if (raw.startsWith("[")) {
+    const end = raw.indexOf("]");
+    return end > 1 ? raw.slice(1, end) : null;
+  }
+  const colon = raw.lastIndexOf(":");
+  return (colon > 0 ? raw.slice(0, colon) : raw) || null;
+}

@@ -1005,83 +1005,35 @@ function AdminCollectors({ navigate }) {
   );
 }
 
-/** Service keys for other products. The key is shown once at issue and
- *  never again — only its hash is stored, so there is nothing to show. */
+/** The person-bound service keys issued before 2026-09-27, to watch and
+ *  revoke. None is issued any more (review §6.5): a headless caller is an
+ *  agent with its own key, or a product on Integrations. */
 function AdminServiceTokens() {
   const { day } = useClock();
   const svcTokens = useAdminServiceTokens().data?.tokens ?? [];
-  const [newToken, setNewToken] = useState(null);
-  const [svcName, setSvcName] = useState("");
   const invalidate = useInvalidate();
   const load = () => invalidate(keys.adminServiceTokens);
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "14px",
-          flexWrap: "wrap",
-          marginBottom: "18px",
-        }}
-      >
-        <div>
-          <p className="page__crumb">Admin · owner only</p>
-          <h1 className="page__title">Service tokens</h1>
-          <p className="page__lede">
-            Headless credentials you issue by hand: one per consuming service,
-            no browser and no consent screen, each acting with the entitlements
-            of the account it is bound to. Not a user&rsquo;s connection &mdash;
-            those are on <a href="/admin/connections">Connections</a>, under
-            Admin. Integration keys live on Integrations. Calls audit as{" "}
-            <code>svc:&lt;name&gt;</code>.
-          </p>
-        </div>
-        <form
-          style={{
-            marginLeft: "auto",
-            display: "flex",
-            gap: "8px",
-            alignItems: "center",
-          }}
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const r = await api.adminServiceTokenAction({ name: svcName });
-            if (r.ok) {
-              setNewToken(r.data);
-              setSvcName("");
-              load();
-            }
-          }}
-        >
-          <input
-            aria-label="Token name"
-            placeholder="elixir-bot"
-            value={svcName}
-            onChange={(e) => setSvcName(e.target.value)}
-            style={{ width: "160px" }}
-          />
-          <button className="btn btn--primary" disabled={!svcName.trim()}>
-            <Icon name="key-round" size={16} />
-            Create token
-          </button>
-        </form>
-      </div>
-      {newToken && (
-        <p className="notice">
-          <strong>{newToken.name}</strong>: <code>{newToken.token}</code>
-          <br />
-          Shown once — store it now.
+      <div>
+        <p className="page__crumb">Admin · owner only</p>
+        <h1 className="page__title">Service tokens</h1>
+        <p className="page__lede">
+          Headless keys issued by hand before 2026-09-27, each acting as the
+          account it is bound to. No new ones are issued: a bot or service gets
+          its own identity as an agent (Account &rarr; Agents) or an integration
+          (<a href="/admin/integrations">Integrations</a>). Revoke any still
+          listed here once its caller has moved. Calls audit as{" "}
+          <code>svc:&lt;name&gt;</code>.
         </p>
-      )}
+      </div>
       {svcTokens.length === 0 ? (
         <div className="empty">
           <div className="empty__title">No service tokens</div>
           <p className="empty__body" style={{ marginBottom: 0 }}>
-            A token here is the owner&rsquo;s own long-lived credential for a
-            service that acts as this account. Products with their own identity
-            belong on Integrations.
+            Every headless caller has its own identity, as an agent or an
+            integration. Nothing here to revoke.
           </p>
         </div>
       ) : (

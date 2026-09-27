@@ -37,6 +37,8 @@ function event({
     requestContext: { http: { method, sourceIp: ip } },
     headers: {
       ...(cookie ? { cookie } : {}),
+      // The caller, as CloudFront delivers it: limits key on this.
+      "cloudfront-viewer-address": `${ip}:443`,
       ...(contractHeader ? { "x-elixir-client": "web" } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -1134,31 +1136,32 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   assert.equal(loose.statusCode, 200);
 });
 
-test("service tokens: owner issues, token validates at the MCP door, revoke kills it", async () => {
-  const issued = parse(
-    await handler(
-      event({
-        path: "/api/admin/service-tokens",
-        cookie: bossCookie,
-        body: { name: "elixir-bot" },
-      }),
-    ),
+test("service tokens: Admin no longer mints one on a person (review §6.5); an existing one validates, revoke kills it", async () => {
+  const minted = await handler(
+    event({
+      path: "/api/admin/service-tokens",
+      cookie: bossCookie,
+      body: { name: "elixir-bot" },
+    }),
   );
-  assert.ok(issued.token.startsWith("svt_"));
+  assert.equal(minted.statusCode, 410);
+  assert.equal(parse(minted).error, "mint_moved");
 
-  const { validateServiceToken } = await import("../../auth/src/oauth.mjs");
-  const who = await validateServiceToken(db, issued.token);
-  assert.ok(who, "token validates");
-  assert.equal(who.serviceName, "elixir-bot");
-  assert.equal(who.isOwner, true);
-  assert.equal(who.credentialType, "service");
-  assert.deepEqual(who.scopes, [
-    "cr:read",
-    "recordings:write",
-    "collections:write",
-    "account:write",
-    "feedback:write",
+  const { issueServiceToken, validateServiceToken } =
+    await import("../../auth/src/oauth.mjs");
+  const {
+    rows: [boss],
+  } = await db.query(`select account_id from account where email_hash = $1`, [
+    emailHash(JAMIE),
   ]);
+  const token = await issueServiceToken(db, {
+    accountId: boss.account_id,
+    name: "elixir-bot",
+  });
+  const who = await validateServiceToken(db, token);
+  assert.ok(who, "a key issued before still validates");
+  assert.equal(who.serviceName, "elixir-bot");
+  assert.equal(who.credentialType, "service");
 
   const list = parse(
     await handler(
@@ -1179,7 +1182,7 @@ test("service tokens: owner issues, token validates at the MCP door, revoke kill
     }),
   );
   assert.equal(
-    await validateServiceToken(db, issued.token),
+    await validateServiceToken(db, token),
     null,
     "revoked token refuses",
   );

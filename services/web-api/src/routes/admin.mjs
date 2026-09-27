@@ -1,7 +1,6 @@
 import {
   decideAccess,
   pendingRequests,
-  issueServiceToken,
   setAccountRole,
 } from "@elixir-mcp/auth";
 import { isRole, ROLE_ORDER, ADMIN_SETTABLE } from "@elixir-mcp/contracts";
@@ -305,22 +304,15 @@ export function adminRoutes({
         );
         return json(200, { ok: true });
       }
-      const name = String(body.name ?? "")
-        .trim()
-        .toLowerCase();
-      if (!/^[a-z0-9][a-z0-9-]{1,40}$/.test(name))
-        return json(400, { error: "invalid_name" });
-      // Bound to the OWNER's account by default (elixir-bot acts with
-      // Jamie's entitlements); a different binding can come later.
-      const token = await issueServiceToken(db, {
-        accountId: account.accountId,
-        name,
-      });
-      return json(200, {
-        ok: true,
-        name,
-        token,
-        note: "Shown once — store it in the consuming service's env now.",
+      // No new key acts AS a person (review §6.5): a bot holding one
+      // read what only that person should, leaders-only facts among it.
+      // A headless caller is an agent with its own key (Account ->
+      // Agents) or a product on Integrations. Keys already issued still
+      // work, and are revoked here.
+      return json(410, {
+        error: "mint_moved",
+        message:
+          "Person-bound service keys are no longer issued. Create an agent (Account -> Agents) or an integration (Admin -> Integrations) for its own key.",
       });
     },
 

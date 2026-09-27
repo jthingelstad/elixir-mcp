@@ -48,6 +48,11 @@ import {
   redeemRefreshToken,
   validateAccessToken,
   isFirstPartyClient,
+  redirectsToFamily,
+  authenticateClient,
+  revokeToken,
+  signinMailAllowed,
+  viewerIp,
   OAUTH_SCOPES,
   resolveSession,
   createSession,
@@ -63,7 +68,36 @@ import {
   DEFAULT_OAUTH_SCOPE,
 } from "@elixir-mcp/contracts";
 
-const DCR_GLOBAL_DAILY_CAP = 200;
+/** Registrations per caller per hour, and a global backstop per UTC day.
+ *  The backstop fails closed, so it sits far above any real day (review
+ *  §6.5). */
+const DCR_PER_CALLER_HOUR = 20;
+const DCR_GLOBAL_DAILY_CAP = 5000;
+
+/** Names only the Elixir family's own apps may carry on a consent page:
+ *  a client name is self-chosen, so one that opens with Elixir's or
+ *  POAP KINGS' name is refused at registration. Folded (NFKC, case, and
+ *  everything but letters and digits) so a space or a lookalike is not a
+ *  way round. "Claude Code (elixir-mcp)" is a client naming its server,
+ *  and stays allowed. */
+const FAMILY_NAME_RE = /^(?:elixir|poapkings)/;
+function impersonatesFamily(clientName) {
+  const folded = String(clientName ?? "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, "");
+  return FAMILY_NAME_RE.test(folded);
+}
+
+/** Where a client's codes go, for the consent pages: the host, or the
+ *  loopback a local client listens on. */
+function redirectHost(uri) {
+  try {
+    return new URL(uri).host;
+  } catch {
+    return "";
+  }
+}
 
 const esc = (v) =>
   String(v ?? "").replace(
@@ -354,7 +388,13 @@ async function validatedAuthRequest(db, q, targetFor) {
   const familyOnly = [OAUTH_SCOPE.ACCOUNT_EMAIL, OAUTH_SCOPE.CLANS_ATTEST].find(
     (s) => scope.split(" ").includes(s),
   );
-  if (familyOnly && !isFirstPartyClient(client.redirectUris))
+  if (
+    familyOnly &&
+    !isFirstPartyClient({
+      redirectUris: client.redirectUris,
+      provisioned: Boolean(client.family),
+    })
+  )
     return {
       error: `invalid_scope: ${familyOnly} is offered only to the Elixir family's own apps`,
     };
@@ -416,11 +456,12 @@ export function makeOauthRoutes({
   }
 
   /** The email step's page, shared by the GET and by a session that lapsed. */
-  const emailStepPage = (q, clientName, lead = "") =>
+  const emailStepPage = (q, v, lead = "") =>
     page(
       "Connect to Elixir MCP",
-      `<h1>Connect ${esc(clientName)}</h1>
+      `<h1>Connect ${esc(v.client.clientName)}</h1>
        ${lead}
+       ${clientBlock(v)}
        <p>Enter the email on your approved Elixir MCP account and we&rsquo;ll send a sign-in code.</p>
        <form method="post" action="/oauth/authorize">
          <input type="hidden" name="step" value="email">${hiddenAuthFields(q)}
@@ -429,6 +470,16 @@ export function makeOauthRoutes({
        </form>`,
     );
 
+  /**
+   * Who is asking, in words the client did not choose (review §6.5). The
+   * name is the client's own; where the code is sent is not, and a family
+   * app is one Elixir provisioned. Shown above every consent.
+   */
+  const clientBlock = (v) =>
+    v.client.family
+      ? `<p>${esc(v.client.clientName)} is one of Elixir&rsquo;s own apps. Approving sends you back to <strong>${esc(redirectHost(v.redirectUri))}</strong>.</p>`
+      : `<p>${esc(v.client.clientName)} named itself; Elixir has not checked it. Approving sends a code to <strong>${esc(redirectHost(v.redirectUri))}</strong>. Continue only if you started this connection and you trust that address.</p>`;
+
   /** What the client will be able to do, worded for the target's kind. */
   const capabilitiesBlock = (v, verb, ticked = null) => {
     const caps = consentCapabilities(v.scope, {
@@ -436,8 +487,8 @@ export function makeOauthRoutes({
       ticked,
     });
     return v.target.kind === "person" || v.target.kind === "api"
-      ? `<p><strong>${verb} authorizes ${esc(v.client.clientName)} to:</strong></p>${caps}`
-      : `<p><strong>This connects ${esc(v.client.clientName)} as one of your ${esc(v.target.kind === "agent" ? "agents" : "integrations")}, not as you.</strong></p>
+      ? `${clientBlock(v)}<p><strong>${verb} authorizes ${esc(v.client.clientName)} to:</strong></p>${caps}`
+      : `${clientBlock(v)}<p><strong>This connects ${esc(v.client.clientName)} as one of your ${esc(v.target.kind === "agent" ? "agents" : "integrations")}, not as you.</strong></p>
          <p>It will act with that principal&rsquo;s own identity and see its data, not your players or your feed. You can only do this for a principal you own.</p>
          ${caps}`;
   };
@@ -602,8 +653,11 @@ export function makeOauthRoutes({
 
   return {
     async register(db, event) {
-      const ip = event.requestContext?.http?.sourceIp ?? "unknown";
-      const perIp = await checkRateLimit(db, { bucket: `dcr#${ip}`, max: 20 });
+      const ip = viewerIp(event) ?? "unknown";
+      const perIp = await checkRateLimit(db, {
+        bucket: `dcr#${ip}`,
+        max: DCR_PER_CALLER_HOUR,
+      });
       let globalOk = false;
       try {
         const { rows } = await db.query(
@@ -624,10 +678,22 @@ export function makeOauthRoutes({
       }
       const redirectUris = validateRedirectUris(body.redirect_uris);
       if (!redirectUris) return json(400, { error: "invalid_redirect_uri" });
-      const client = await registerClient(db, {
-        clientName: sanitizeClientName(body.client_name) || "MCP client",
-        redirectUris,
-      });
+      // The family's own clients are provisioned by Elixir, never
+      // registered (review §6.5).
+      if (redirectsToFamily(redirectUris))
+        return json(400, {
+          error: "invalid_redirect_uri",
+          error_description:
+            "Redirect URIs on an Elixir family origin belong to Elixir's own apps.",
+        });
+      const clientName = sanitizeClientName(body.client_name) || "MCP client";
+      if (impersonatesFamily(clientName))
+        return json(400, {
+          error: "invalid_client_metadata",
+          error_description:
+            "A client name may not begin with Elixir's or POAP KINGS' name.",
+        });
+      const client = await registerClient(db, { clientName, redirectUris });
       return json(201, {
         client_id: client.clientId,
         client_name: client.clientName,
@@ -665,7 +731,7 @@ export function makeOauthRoutes({
         });
         return html(200, sessionConsentPage(v, q, me));
       }
-      return html(200, emailStepPage(q, v.client.clientName));
+      return html(200, emailStepPage(q, v));
     },
 
     async authorizePost(db, event) {
@@ -679,7 +745,7 @@ export function makeOauthRoutes({
             `<h1>Can&rsquo;t authorize</h1><p>${esc(v.error)}</p>`,
           ),
         );
-      const ip = event.requestContext?.http?.sourceIp ?? "unknown";
+      const ip = viewerIp(event) ?? "unknown";
 
       if (form.step === "session") {
         // SameSite=Lax means a cross-site POST arrives without the cookie,
@@ -690,7 +756,7 @@ export function makeOauthRoutes({
             200,
             emailStepPage(
               form,
-              v.client.clientName,
+              v,
               "<p>Your Elixir sign-in has ended; sign in with a code to continue.</p>",
             ),
           );
@@ -717,10 +783,13 @@ export function makeOauthRoutes({
       const hash = emailHash(form.email);
 
       if (form.step === "email") {
-        const allowed = await checkRateLimit(db, {
-          bucket: `oauthmail#${ip}`,
-          max: 10,
-        });
+        // Per caller, and per address with the website's sign-in: codes to
+        // one inbox are capped whichever door asked (review §6.5).
+        const allowed =
+          (await checkRateLimit(db, {
+            bucket: `oauthmail#${ip}`,
+            max: 10,
+          })) && (await signinMailAllowed(db, hash));
         const account = allowed ? await approvedAccount(db, hash) : null;
         if (account) {
           authLog("oauth_code_issued", {
@@ -895,6 +964,17 @@ export function makeOauthRoutes({
       const clientId = String(form.client_id ?? "");
       const client = await getClient(db, clientId);
       if (!client) return json(400, { error: "invalid_client" });
+      // A family client authenticates (client_secret_post, 0185); every
+      // other client is public. RFC 6749 §5.2: a failed client
+      // authentication is 401 invalid_client.
+      if (!(await authenticateClient(db, client, form.client_secret))) {
+        authLog("oauth_token_rejected", {
+          reason: "client_authentication",
+          client: clientId,
+          resource: requestedResource,
+        });
+        return json(401, { error: "invalid_client" });
+      }
 
       if (form.grant_type === "authorization_code") {
         const redeemed = await redeemAuthCode(db, form.code);
@@ -967,6 +1047,27 @@ export function makeOauthRoutes({
         });
       }
       return json(400, { error: "unsupported_grant_type" });
+    },
+
+    /**
+     * RFC 7009 revocation (review §6.5): a client ends its own grant, as
+     * signing out of a family app should. Form-encoded token and client_id
+     * (plus client_secret for a family client). 200 whether or not the
+     * token was live, known or the client's: the answer says nothing.
+     */
+    async revoke(db, event) {
+      const form = parseForm(event);
+      const client = await getClient(db, String(form.client_id ?? ""));
+      if (!client) return json(401, { error: "invalid_client" });
+      if (!(await authenticateClient(db, client, form.client_secret)))
+        return json(401, { error: "invalid_client" });
+      if (!form.token) return json(400, { error: "invalid_request" });
+      const revoked = await revokeToken(db, {
+        token: form.token,
+        clientId: client.clientId,
+      });
+      if (revoked) authLog("oauth_token_revoked", { client: client.clientId });
+      return json(200, {});
     },
 
     /**
@@ -1045,10 +1146,17 @@ export function makeOauthRoutes({
           token_endpoint: `${issuer}/oauth/token`,
           registration_endpoint: `${issuer}/oauth/register`,
           userinfo_endpoint: `${issuer}/oauth/userinfo`,
+          revocation_endpoint: `${issuer}/oauth/revoke`,
           response_types_supported: ["code"],
           grant_types_supported: ["authorization_code", "refresh_token"],
           code_challenge_methods_supported: ["S256"],
-          token_endpoint_auth_methods_supported: ["none"],
+          // "none" for every registered client; the family's provisioned
+          // clients authenticate with client_secret_post.
+          token_endpoint_auth_methods_supported: ["none", "client_secret_post"],
+          revocation_endpoint_auth_methods_supported: [
+            "none",
+            "client_secret_post",
+          ],
           scopes_supported: OAUTH_SCOPES,
         },
         { "cache-control": "public, max-age=300" },

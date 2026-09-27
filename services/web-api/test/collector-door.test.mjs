@@ -128,9 +128,14 @@ test("auth: bad, missing, and revoked tokens never pass", async () => {
 });
 
 test("config: contract constants, channel, the update authority, and what doctor needs", async () => {
+  // sourceIp is the CloudFront edge that forwarded the call; the
+  // operator's own address is cloudfront-viewer-address (review §6.5).
   const r = await door.config(db, {
-    ...authed(TOKEN_BULK),
-    requestContext: { http: { sourceIp: "203.0.113.7" } },
+    headers: {
+      ...authed(TOKEN_BULK).headers,
+      "cloudfront-viewer-address": "203.0.113.7:50412",
+    },
+    requestContext: { http: { sourceIp: "130.176.0.9" } },
   });
   assert.equal(r.status, 200);
   assert.equal(r.body.pacing_ms, 1500);
@@ -144,7 +149,7 @@ test("config: contract constants, channel, the update authority, and what doctor
   assert.equal(
     r.body.observed_ip,
     "203.0.113.7",
-    "the egress IP as the door saw it",
+    "the operator's egress IP, never the edge's",
   );
   assert.equal(r.body.doctor.cr_path, "/locations?limit=1");
   assert.equal(r.body.gateway.name, "bulk-op");
