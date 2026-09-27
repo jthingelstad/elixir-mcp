@@ -3167,3 +3167,55 @@ Also recorded: #48 (RDS recovery rehearsal) closes as not planned under
 the restore decision, in the queue's first session. #46 (historical clan
 roles) waits for the lane B revisit. The relay logging item in the
 review's §8.1 was already fixed by Guard the Door (PR #56, `76f68c6`).
+
+## 2026-09-27 - Door hardening (review §6.5, #62): shipped
+
+Contract 9.12.1, JSON API 2.6.1, migration 0185; PR #75, deployed from
+`9d88c477` with `--acceptance=elixir` (188 cases, 0 failed, 12 skipped).
+The six findings were kept out of the repo until this deploy; they were:
+
+1. **First-party was inferred from redirect URIs, and registration is
+   open.** A client registered to a family origin was unmetered on
+   `/api/v1` and could ask for `account:email` and `clans:attest`; a
+   person who approved it handed those over. Now a first-party client is
+   one in `family_oauth_client` (0185; the `family_clients` op) with every
+   redirect on a family origin, registration refuses family redirects,
+   and Clan and Drop are confidential clients (`client_secret_post`,
+   secrets minted on their hosts, Elixir holds only the sha256). Both
+   sent the secret on the read-back, and `require_secret` is set for
+   both: a token request under their ids without it is 401.
+2. **The consent page showed only the self-chosen client name.** It now
+   shows the host the code goes to, and says "one of Elixir's own apps"
+   for a provisioned client; a name beginning with Elixir or POAP KINGS
+   (folded: NFKC, case, punctuation) is refused at registration.
+   `POST /oauth/revoke` (RFC 7009) is new.
+3. **IP limits keyed on the CloudFront edge node** (`sourceIp`), so
+   strangers shared buckets, and the fail-closed registration cap (200 a
+   day) was one caller away from refusing every new connection. Limits now
+   key on `viewerIp()` (`cloudfront-viewer-address`); registration is 20
+   an hour per caller with a 5,000 a day backstop; OAuth consent mail
+   shares the site's 5-an-hour-per-address bucket.
+4. **Any garbage Bearer wrote a `credential_refusal` row.** Only a
+   refusal naming a real key or account is stored now; the log line
+   still counts the rest.
+5. **An attested-fact overwrite was checked against the new fact only**,
+   so an elder could replace a leader's message by ref, and a member could
+   repoint someone's away. The ref is now locked and the writer must be
+   allowed the stored fact too.
+6. **Leaders-only facts (`member_away`) checked only the person kind**, so
+   a service key bound to a leader's account read them, and Admin could
+   mint such keys. Leaders-only facts now need an interactive credential
+   (session or the person's own OAuth grant), and Admin's mint answers
+   410 `mint_moved` (existing keys still work and revoke there).
+
+Read-back (19:48 UTC, 14:48 Central): Jamie's account signed in to Clan
+by code and to Drop by session through the new consent pages, both
+reading `/api/v1` (Clan `/api/me` 200 with the roster; Drop profile),
+then signed out of all three. Garbage Bearers are 401 at `/mcp` and
+`/api/v1`; a family redirect at `/oauth/register` is 400.
+
+Open: the audit (`family_clients {list}`) found one registered client
+named "Elixir Clan" from 2026-09-12, with a clan redirect plus a
+CloudFront fallback, so never first-party, and no live grants. Revoking it
+waits for Jamie. The committed acceptance bite
+`317-2-elixir_timeline.json` (account-section items) is #66's.
