@@ -3088,3 +3088,12 @@ PR #58 merged on a green `validate` as 952e2786 and deployed at 16:22Z
 (11:22 AM CT) with 0 migrations run and a clean smoke; acceptance was not
 run because no tool changed. `/api/public/status` reports `health.ok`
 true and `/docs/verify/` serves the Trophy Road copy.
+
+## 2026-09-27 - Verify: the proof is any mode again
+
+Jamie corrected the change above: the target should be a deck the player
+plays on Trophy Road, but the proving battle may be in any mode. The draw
+keeps the `ladder` restriction; the proof is back to any battle after the
+brief with exactly the target, and `last_battle.trophy_road` and the
+wizard's "Not Trophy Road" line are gone. The brief now says any mode
+counts (it used to say "Any 1v1").

@@ -39,16 +39,14 @@ the challenge.
    target; the swaps are redrawn until the result is new. Only a player
    with no recorded Trophy Road battles gets eight cards drawn at random
    from the recorded collection. Tower troops are never among them.
-3. Make the two changes in a slot and play one Trophy Road battle with
-   it, win or lose. Only Trophy Road counts: an event, draft or preset
-   mode can hand you a deck you did not pick, and Path of Legends, war
-   and friendly battles are not the proof either.
+3. Make the two changes in a slot and play one battle with it, in any
+   mode, win or lose. The deck comes from Trophy Road because a mode that
+   hands you a deck (an event, a draft) says nothing about the deck you
+   play; where you play the proof is up to you.
 4. Beside the brief, the page shows your latest battle since you started,
    with its deck marked card by card against the target, and its result.
-   A battle in any other mode is shown and marked as not counting.
-5. When a Trophy Road battle's deck is exactly the eight cards, the claim
-   is marked verified and the page says so, with the battle that proved
-   it. Switch your deck back; the proof is already recorded.
+5. When a battle's deck is exactly the eight cards, the claim is marked
+   verified and the page says so, with the battle that proved it. Switch your deck back; the proof is already recorded.
 
 A challenge stays open for an hour. If it runs out before a matching
 battle, starting again hands you the same eight cards for a day, so a
@@ -60,8 +58,7 @@ open challenge.
 The set of eight card ids in the deck you played, compared with the
 eight the challenge named. Order does not matter, card levels do not
 matter, and whether a card is in its evolution or hero form does not
-matter. Only a Trophy Road battle counts (type `PvP` with no event tag,
-the same `ladder` group the tools use). A battle played before the
+matter, and neither does the mode. A battle played before the
 challenge was issued never counts, even if its deck happens to match;
 the proof is a battle played after the brief.
 

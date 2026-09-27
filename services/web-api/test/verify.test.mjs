@@ -343,31 +343,21 @@ test("poll: a near-miss battle lights up what matched, a battle after the brief 
   r = JSON.parse((await poll()).body);
   assert.equal(r.state, "open", "a battle before the challenge proves nothing");
 
-  // The full target outside Trophy Road - Path of Legends, then an event
-  // that hands out decks - is shown but proves nothing.
-  for (const mode of ["ranked", "event"]) {
-    await playBattle(TAG, target, new Date(), "win", mode);
-    r = JSON.parse((await poll()).body);
-    assert.equal(r.state, "open", `a ${mode} battle proves nothing`);
-    assert.equal(r.matched, 8);
-    assert.equal(r.last_battle.trophy_road, false);
-    assert.equal(r.last_battle.proof, false);
-  }
-
-  // The full target, in a different order, played now: verified, and the
-  // proving battle is named with its result.
+  // The full target, in a different order, played now - in Path of
+  // Legends: the target comes from Trophy Road, but any mode proves it -
+  // verified, and the proving battle is named with its result.
   const proofId = await playBattle(
     TAG,
     [...target].reverse(),
     new Date(),
     "win",
+    "ranked",
   );
   r = JSON.parse((await poll()).body);
   assert.equal(r.state, "verified");
   assert.ok(r.verified_at);
   assert.equal(r.last_battle.battle_id, proofId);
   assert.equal(r.last_battle.proof, true);
-  assert.equal(r.last_battle.trophy_road, true);
   assert.equal(r.last_battle.outcome, "win");
   assert.equal(r.matched, 8);
   assert.equal(
