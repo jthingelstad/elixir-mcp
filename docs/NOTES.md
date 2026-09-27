@@ -3096,4 +3096,7 @@ plays on Trophy Road, but the proving battle may be in any mode. The draw
 keeps the `ladder` restriction; the proof is back to any battle after the
 brief with exactly the target, and `last_battle.trophy_road` and the
 wizard's "Not Trophy Road" line are gone. The brief now says any mode
-counts (it used to say "Any 1v1").
+counts (it used to say "Any 1v1"). PR #60 merged on a green `validate`
+as 5c705e2c and deployed at 17:34Z (12:34 PM CT) with 0 migrations run
+and a clean smoke; no tool changed, so acceptance was not run.
+`/api/public/status` reports `health.ok` true.
