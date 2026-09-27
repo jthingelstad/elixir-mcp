@@ -31,21 +31,24 @@ the challenge.
    Tracking, as always; Verify only proves them.
 2. Elixir names eight cards and shows them the way the game lays a deck
    out: two rows of four. The eight are **your own deck**: the one you
-   played most in your last ten recorded battles, with two cards swapped
-   for cards you own of similar elixir cost. The two swaps are marked, so
-   the brief reads as "your deck, two changes" rather than eight
-   strangers, and the deck is playable because you already play it. A
-   deck you have played in the last month is never the target; the swaps
-   are redrawn until the result is new. Only a player with no recorded
-   battles gets eight cards drawn at random from the recorded collection.
-   Tower troops are never among them.
-3. Make the two changes in a slot and play one battle with it. Any 1v1
-   counts, win or lose; Trophy Road or Path of Legends is quickest.
+   played most in your last ten recorded Trophy Road battles, with two
+   cards swapped for cards you own of similar elixir cost. The two swaps
+   are marked, so the brief reads as "your deck, two changes" rather than
+   eight strangers, and the deck is playable because you already play it.
+   A deck you have played in the last month, in any mode, is never the
+   target; the swaps are redrawn until the result is new. Only a player
+   with no recorded Trophy Road battles gets eight cards drawn at random
+   from the recorded collection. Tower troops are never among them.
+3. Make the two changes in a slot and play one Trophy Road battle with
+   it, win or lose. Only Trophy Road counts: an event, draft or preset
+   mode can hand you a deck you did not pick, and Path of Legends, war
+   and friendly battles are not the proof either.
 4. Beside the brief, the page shows your latest battle since you started,
    with its deck marked card by card against the target, and its result.
-5. When a battle's deck is exactly the eight cards, the claim is marked
-   verified and the page says so, with the battle that proved it. Switch
-   your deck back; the proof is already recorded.
+   A battle in any other mode is shown and marked as not counting.
+5. When a Trophy Road battle's deck is exactly the eight cards, the claim
+   is marked verified and the page says so, with the battle that proved
+   it. Switch your deck back; the proof is already recorded.
 
 A challenge stays open for an hour. If it runs out before a matching
 battle, starting again hands you the same eight cards for a day, so a
@@ -57,9 +60,10 @@ open challenge.
 The set of eight card ids in the deck you played, compared with the
 eight the challenge named. Order does not matter, card levels do not
 matter, and whether a card is in its evolution or hero form does not
-matter. A battle played before the challenge was issued never counts,
-even if its deck happens to match; the proof is a battle played after
-the brief.
+matter. Only a Trophy Road battle counts (type `PvP` with no event tag,
+the same `ladder` group the tools use). A battle played before the
+challenge was issued never counts, even if its deck happens to match;
+the proof is a battle played after the brief.
 
 ## Why a battle, not a deck slot
 

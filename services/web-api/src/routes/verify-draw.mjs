@@ -3,7 +3,8 @@
  * play isn't miserable"). The first draw was eight random owned cards: a
  * deck nobody would play, built from scratch under a timer. Now the
  * target is the player's OWN most-played deck from their last ten
- * recorded battles with two cards swapped for owned cards of similar
+ * recorded Trophy Road battles (2026-09-27: never a deck an event or
+ * draft handed them) with two cards swapped for owned cards of similar
  * elixir cost - playable by construction, recognisable at a glance, and
  * unmistakable as a challenge because of the two swaps. Any deck the
  * player has played in the last month is rejected as a target (a deck

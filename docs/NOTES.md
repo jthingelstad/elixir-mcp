@@ -3071,3 +3071,16 @@ post-deploy public status was healthy (zero DLQ messages; five active signed
 collectors; one 1 rps, 3,600/hour global budget with its 10% live reserve),
 and invalid MCP and JSON API Bearers remained 401 without cookies. No tool
 changed, so tool-family acceptance was not run; no production email was sent.
+
+## 2026-09-27 - Verify: Trophy Road only
+
+Jamie: the deck used to verify a player must come from a Trophy Road
+battle; it could come from a mode that assigns the player a deck. Both
+halves now use the `ladder` mode group (`PvP`, no event tag), the one
+definition the tools and rollups share: the target's base is the
+most-played deck in the last ten Trophy Road battles (the last-month
+rejection set still spans every mode), and only a Trophy Road battle
+after the brief is proof. The poll serves `last_battle.trophy_road`, and
+the wizard says "Not Trophy Road, so it does not count" of any other
+battle. Path of Legends, which the brief used to suggest, no longer
+counts. Console and web-api only: no MCP contract or JSON API change.
