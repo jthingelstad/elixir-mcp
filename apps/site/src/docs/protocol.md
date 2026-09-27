@@ -59,8 +59,8 @@ Refusals:
 | Valid credential at the wrong door | 403 | `{"error":"wrong_resource","message":"This credential is not for <resource>.","hint":"…"}` | none |
 | Tool needs a scope the token lacks | 403 | JSON-RPC error `-32003` (below) | `WWW-Authenticate: Bearer error="insufficient_scope", scope="<granted + required>", resource_metadata="…"` |
 
-Every refused credential is counted (per credential, per source address, per
-day) and shown to the owner on Account → Connections or the agent's page, so a
+Every refused credential that names a real key or account is counted (per
+credential, per source address, per day) and shown to the owner on Account → Connections or the agent's page, so a
 runtime still presenting a revoked key is visible even though it never reaches
 the call log.
 
@@ -77,10 +77,12 @@ the call log.
   "token_endpoint": "https://elixir.poapkings.com/oauth/token",
   "registration_endpoint": "https://elixir.poapkings.com/oauth/register",
   "userinfo_endpoint": "https://elixir.poapkings.com/oauth/userinfo",
+  "revocation_endpoint": "https://elixir.poapkings.com/oauth/revoke",
   "response_types_supported": ["code"],
   "grant_types_supported": ["authorization_code", "refresh_token"],
   "code_challenge_methods_supported": ["S256"],
-  "token_endpoint_auth_methods_supported": ["none"],
+  "token_endpoint_auth_methods_supported": ["none", "client_secret_post"],
+  "revocation_endpoint_auth_methods_supported": ["none", "client_secret_post"],
   "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write", "account:email", "clans:attest"]
 }
 ```
@@ -112,8 +114,9 @@ ticked asks for confirmation, naming what will not work, before the grant is
 made. What you tick is added to the grant, so a person can allow
 `feedback:write` to a client that only ever requests `cr:read`. The token response reports the scope
 actually granted (RFC 6749 §3.3), which is how the client learns it holds more
-than it asked for. Both documents are cacheable for 300 seconds. There is no revocation or introspection endpoint; a person
-revokes a connection on Account → Connections.
+than it asked for. Both documents are cacheable for 300 seconds. There is no
+introspection endpoint. A person revokes a connection on Account →
+Connections; a client revokes its own with [`POST /oauth/revoke`](#revocation).
 
 ### Dynamic client registration
 
@@ -122,15 +125,30 @@ revokes a connection on Account → Connections.
 | Field | Rule |
 |---|---|
 | `redirect_uris` | required; 1 to 5 entries; `https:` on any host, or `http:` on `localhost`, `127.0.0.1`, `[::1]`; no fragment or userinfo; max 2048 chars; duplicates collapse |
-| `client_name` | optional; control characters and `<>&"'` stripped, truncated to 100; empty becomes `MCP client` |
+| `redirect_uris` on a family origin | refused: the Elixir family's own apps are provisioned by Elixir, not registered |
+| `client_name` | optional; control characters and `<>&"'` stripped, truncated to 100; empty becomes `MCP client`; a name that begins with Elixir's or POAP KINGS' name (ignoring case, spaces and punctuation) is refused |
 | anything else | ignored |
 
 Responses: 201 with `client_id` (24 chars base64url), `client_name`,
 `redirect_uris`, `token_endpoint_auth_method: "none"`, `grant_types`,
 `response_types`; 400 `invalid_client_metadata` or `invalid_redirect_uri`;
 429 `temporarily_unavailable` past 20 registrations an hour from one address
-or 200 a day in total. Clients are public (no secret). A registration lives 365
-days from its last use.
+or 5,000 a day in total. Registered clients are public (no secret; one sent is
+ignored). A registration lives 365 days from its last use. The consent page
+shows the client's own name beside the host its codes go to.
+
+A family app's client is provisioned by Elixir and is confidential: it sends
+`client_secret` in the form at `/oauth/token` and `/oauth/revoke`
+(`client_secret_post`), and a wrong or missing secret is HTTP 401
+`{"error":"invalid_client"}`.
+
+### Revocation
+
+`POST /oauth/revoke` (RFC 7009), form-encoded: `token` (an access or refresh
+token), `client_id`, and `client_secret` for a family app. Revoking either
+token ends the whole grant it belongs to. The answer is HTTP 200 `{}` whether
+or not the token was live or the client's own; an unknown client, or a
+family app's wrong secret, is HTTP 401 `{"error":"invalid_client"}`.
 
 ### Authorization
 
@@ -248,8 +266,8 @@ as its sign-in. The grant it needs is the ordinary one plus **`account:email`**,
 the one capability that is never offered unasked: it does not appear ticked
 on the consent page, is not part of the default grant, is never widened into
 from a checkbox or from Account → Connections, and is not advertised in a 401
-challenge. It is offered only to the family's own apps: a client whose every
-registered redirect URI is on a family origin. Any other client is never
+challenge. It is offered only to the family's own apps: a client Elixir provisioned,
+whose every redirect URI is on a family origin. Any other client is never
 granted it, whatever it names in `scope`, so the address is never released
 outside the family. A family app that names it sees it listed with the rest
 on the consent page, and the person can decline the whole connection.

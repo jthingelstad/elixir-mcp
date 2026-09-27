@@ -226,8 +226,8 @@ www.supercell.com/fan-content-policy.*
 use their `svt_` integration key. People use an OAuth grant whose audience is
 `/api/v1`, which the family's own apps use (Elixir Clan reads Elixir through it,
 not through MCP). Each operation declares the callers it admits
-(`x-principals`). First-party clients (every redirect URI on a family origin)
-are not metered. Read
+(`x-principals`). First-party clients (a provisioned `family_oauth_client`, every redirect
+URI on a family origin; 0185) are not metered. Read
 [`apps/site/src/docs/integrations.md`](apps/site/src/docs/integrations.md) and
 `packages/contracts/integration-api.openapi.json` before changing this contract.
 Preserve REST/MCP credential audience separation (an MCP token never

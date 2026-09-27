@@ -58,6 +58,8 @@ export async function activityPreview(databaseUrl, spec = {}) {
       toMs,
       timezone,
       accountId: reader?.account_id ?? null,
+      // A preview of what the person sees in their own console.
+      interactive: true,
       perf,
     });
     return {

@@ -14,6 +14,18 @@ import { mintTokens, registerClient } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
 import { factItems } from "../../mcp/src/activity/entries.mjs";
 
+// A family app's client is provisioned (0185), never merely registered to
+// a family redirect: registration is open and proves nothing (review §6.5).
+let familyApps = 0;
+async function familyClient(db, spec) {
+  const c = await registerClient(db, spec);
+  await db.query(
+    `insert into family_oauth_client (client_id, app) values ($1, $2)`,
+    [c.clientId, `test-app-${++familyApps}`],
+  );
+  return c;
+}
+
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_mcp_test_facts_${process.pid}`;
@@ -84,7 +96,7 @@ before(async () => {
   await db.query("insert into clan(clan_tag,name) values ($1,'Example Clan')", [
     CLAN,
   ]);
-  clan = await registerClient(db, {
+  clan = await familyClient(db, {
     clientName: "Elixir Clan",
     redirectUris: ["https://clan.poapkings.com/auth/callback"],
   });
@@ -289,6 +301,79 @@ test("refusals say why: another app, no capability, not in the clan, the wrong r
   assert.equal(missing.statusCode, 404);
 });
 
+test("an overwrite needs the right to the fact already there, not only the one sent (review §6.5)", async () => {
+  const leader = await grant(accounts.leader, "cr:read clans:attest");
+  const elder = await grant(accounts.elder, "cr:read clans:attest");
+  const member = await grant(accounts.member, "cr:read clans:attest");
+  const letter = await request(
+    "POST",
+    facts,
+    {
+      type: "clan_message",
+      ref: "letter-overwrite",
+      detail: { channel: "leader_message", title: "Hi", body: "From the top" },
+    },
+    leader,
+  );
+  assert.equal(letter.statusCode, 201, letter.body);
+  const overwrite = await request(
+    "POST",
+    facts,
+    {
+      type: "clan_message",
+      ref: "letter-overwrite",
+      detail: { channel: "clan_chat", body: "Replaced" },
+    },
+    elder,
+  );
+  assert.equal(overwrite.statusCode, 403);
+  assert.equal(data(overwrite).code, "not_permitted");
+
+  const theirs = await request(
+    "POST",
+    facts,
+    {
+      type: "member_away",
+      ref: "away-overwrite",
+      player_tag: ELDER_TAG,
+      detail: {},
+    },
+    elder,
+  );
+  assert.equal(theirs.statusCode, 201, theirs.body);
+  const repointed = await request(
+    "POST",
+    facts,
+    {
+      type: "member_away",
+      ref: "away-overwrite",
+      player_tag: MEMBER_TAG,
+      detail: {},
+    },
+    member,
+  );
+  assert.equal(repointed.statusCode, 403);
+  assert.equal(data(repointed).code, "not_permitted");
+  const { rows } = await db.query(
+    `select player_tag, detail from attested_fact where source_ref in ('letter-overwrite', 'away-overwrite') order by source_ref`,
+  );
+  assert.equal(rows[0].player_tag, ELDER_TAG, "the away is untouched");
+  assert.equal(rows[1].detail.channel, "leader_message", "so is the letter");
+
+  // The leader may still correct their own letter.
+  const fixed = await request(
+    "POST",
+    facts,
+    {
+      type: "clan_message",
+      ref: "letter-overwrite",
+      detail: { channel: "leader_message", title: "Hi", body: "Corrected" },
+    },
+    leader,
+  );
+  assert.equal(fixed.statusCode, 200, fixed.body);
+});
+
 test("an integration records its game's fact for a player with facts:write", async () => {
   const admin = (
     await db.query(
@@ -358,8 +443,8 @@ test("the timeline shows each fact only to the reader its type allows; a departu
     },
     leader,
   );
-  const kinds = async (accountId, subjects = clanSubject) =>
-    (await factItems(db, subjects, { accountId, ...window }))
+  const kinds = async (accountId, subjects = clanSubject, interactive = true) =>
+    (await factItems(db, subjects, { accountId, interactive, ...window }))
       .map((i) => `${i.kind}${i.facts.kind ? `:${i.facts.kind}` : ""}`)
       .sort();
   // The leader sees everything the clan shares, the kick included.
@@ -367,6 +452,11 @@ test("the timeline shows each fact only to the reader its type allows; a departu
   assert.ok(seen.includes("award_granted"));
   assert.ok(seen.includes("departure_classified:kick"));
   assert.ok(seen.includes("member_away"));
+  // A leaders' fact needs the leader reading in person (review §6.5): a
+  // headless key bound to the leader's account reads what the clan shares.
+  const headless = await kinds(accounts.leader, clanSubject, false);
+  assert.ok(headless.includes("departure_classified:kick"));
+  assert.ok(!headless.includes("member_away"));
   // A member sees the award and the departure, kick and all (9.3.0: the
   // game already told the clan), never an away.
   const memberSees = await kinds(accounts.member);

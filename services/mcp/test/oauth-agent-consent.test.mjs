@@ -8,7 +8,7 @@
  * authenticates the person but carries the agent's authority (or the reverse).
  */
 
-import { test, before, after } from "node:test";
+import { test, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import path from "node:path";
@@ -47,7 +47,7 @@ const event = ({
   rawPath: p,
   requestContext: { http: { method, sourceIp: ip } },
   queryStringParameters: query,
-  headers: {},
+  headers: { "cloudfront-viewer-address": `${ip}:50412` },
   body: form ? new URLSearchParams(form).toString() : body,
 });
 
@@ -108,6 +108,14 @@ before(async () => {
     }),
   );
   clientId = JSON.parse(reg.body).client_id;
+});
+
+// Each test signs the same address in; its hourly allowance of codes
+// (shared with the site's sign-in) belongs to the tests that measure it.
+beforeEach(async () => {
+  await db?.query(
+    `delete from rate_limit where bucket like 'auth#%' or bucket like 'oauthmail#%'`,
+  );
 });
 
 after(async () => {

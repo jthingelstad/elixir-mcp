@@ -248,6 +248,8 @@ export const elixir_timeline = {
       toMs,
       timezone: tz,
       accountId: ctx.account.accountId,
+      // Leaders-only facts need the person's own consent, not a key.
+      interactive: ctx.account.credentialType === "oauth",
       memberTag,
       filter: (it) =>
         (!sections || sections.includes(it.section)) &&

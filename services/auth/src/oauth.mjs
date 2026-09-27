@@ -230,14 +230,20 @@ export async function registerClient(db, { clientName, redirectUris }) {
   return { clientId, clientName, redirectUris };
 }
 
+/** A registration slides 365 days from its last use; a provisioned family
+ *  client (0185) sits at infinity, which greatest() keeps. */
 export async function getClient(db, clientId) {
   const id = validClientId(clientId);
   if (!id) return null;
   const { rows } = await db.query(
-    `update oauth_client
-     set last_used_at = now(), expires_at = now() + make_interval(secs => $2)
-     where client_id = $1 and expires_at > now()
-     returning client_id, client_name, redirect_uris`,
+    `with used as (
+       update oauth_client
+       set last_used_at = now(),
+           expires_at = greatest(expires_at, now() + make_interval(secs => $2))
+       where client_id = $1 and expires_at > now()
+       returning client_id, client_name, redirect_uris)
+     select u.*, fc.app, fc.secret_hash, fc.secret_required
+     from used u left join family_oauth_client fc on fc.client_id = u.client_id`,
     [id, CLIENT_TTL_SECONDS],
   );
   const row = rows[0];
@@ -246,8 +252,40 @@ export async function getClient(db, clientId) {
         clientId: row.client_id,
         clientName: row.client_name,
         redirectUris: row.redirect_uris,
+        family: row.app
+          ? {
+              app: row.app,
+              secretHash: row.secret_hash,
+              secretRequired: row.secret_required === true,
+            }
+          : null,
       }
     : null;
+}
+
+/**
+ * Client authentication at /oauth/token (client_secret_post), for the
+ * family's provisioned clients only: every other client is public and a
+ * secret it sends is ignored. A family client with a secret on file must
+ * present the right one when it presents one at all, and must present one
+ * once secret_required is set. A match is stamped, which is how the
+ * operator knows the app is sending it before requiring it.
+ */
+export async function authenticateClient(db, client, presented) {
+  const family = client?.family;
+  if (!family?.secretHash) return true;
+  const value = String(presented ?? "");
+  if (!value) return !family.secretRequired;
+  const a = Buffer.from(sha256hex(value));
+  const b = Buffer.from(family.secretHash);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+  await db
+    .query(
+      `update family_oauth_client set last_authenticated_at = now() where client_id = $1`,
+      [client.clientId],
+    )
+    .catch(() => {});
+  return true;
 }
 
 // --- authorization codes ---------------------------------------------------
@@ -484,10 +522,12 @@ export async function validateAccessToken(db, token, { resource } = {}) {
             a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota,
             a.role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
             o.role as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
-            o.live_daily_quota as owner_live_daily_quota
+            o.live_daily_quota as owner_live_daily_quota,
+            fc.client_id is not null as provisioned
      from oauth_token t
      join oauth_family f on f.family_id = t.family_id
      join oauth_client c on c.client_id = f.client_id
+     left join family_oauth_client fc on fc.client_id = f.client_id
      join account a on a.account_id = f.account_id
      left join account o on o.account_id = a.owned_by_account_id
      where t.token_hash = $1 and t.kind = 'access'
@@ -514,7 +554,10 @@ export async function validateAccessToken(db, token, { resource } = {}) {
         // Carried so a call can be attributed to the CONNECTION a person can
         // revoke, and labelled with what that client calls itself.
         clientName: row.client_name,
-        firstParty: isFirstPartyClient(row.redirect_uris),
+        firstParty: isFirstPartyClient({
+          redirectUris: row.redirect_uris,
+          provisioned: row.provisioned,
+        }),
         oauthFamilyId: row.family_id,
         scope: row.scope,
         scopes: row.scope.split(" "),
@@ -528,29 +571,76 @@ export async function validateAccessToken(db, token, { resource } = {}) {
     : null;
 }
 
-/** The family's own apps (2026-09-23). A client is first-party when EVERY
- *  redirect URI it registered is on one of these origins over https: its
- *  authorization codes can only ever reach the family's servers, which is
- *  what makes it ours. Registration is open, so a stored flag keyed on a
- *  URI anyone can copy would prove nothing; this proves where the code
- *  goes. First-party clients are not metered on the JSON API (Jamie). */
+/** The family's own origins (2026-09-23). */
 export const FIRST_PARTY_ORIGINS = [
   "https://clan.poapkings.com",
   "https://drop.poapkings.com",
   "https://elixir.poapkings.com",
 ];
-export function isFirstPartyClient(redirectUris) {
+
+const originOf = (u) => {
+  try {
+    return new URL(u).origin;
+  } catch {
+    return null;
+  }
+};
+
+/** Does any of these URIs send a code to a family origin? Registration
+ *  refuses such a client: the family's clients are provisioned (0185). */
+export function redirectsToFamily(redirectUris) {
+  return (Array.isArray(redirectUris) ? redirectUris : []).some((u) =>
+    FIRST_PARTY_ORIGINS.includes(originOf(u)),
+  );
+}
+
+/** A family app's client (review §6.5, 2026-09-27): PROVISIONED by
+ *  Elixir (family_oauth_client, which only a migration or the operator's
+ *  op writes, and whose clients authenticate at /oauth/token), and every
+ *  redirect URI it holds on a family origin. First-party clients are not
+ *  metered on the JSON API (Jamie). */
+export function isFirstPartyClient({ redirectUris, provisioned } = {}) {
   const list = Array.isArray(redirectUris) ? redirectUris : [];
   return (
+    provisioned === true &&
     list.length > 0 &&
-    list.every((u) => {
-      try {
-        return FIRST_PARTY_ORIGINS.includes(new URL(u).origin);
-      } catch {
-        return false;
-      }
-    })
+    list.every((u) => FIRST_PARTY_ORIGINS.includes(originOf(u)))
   );
+}
+
+/**
+ * RFC 7009 revocation. The token (either kind) must belong to the client
+ * that presents it; revoking it revokes its whole grant (family), since a
+ * refresh token can mint another access token and an access token is
+ * short-lived anyway. Unknown, foreign or already-dead tokens answer the
+ * same as a revoked one: the caller learns nothing.
+ */
+export async function revokeToken(db, { token, clientId }) {
+  const value = String(token ?? "").trim();
+  const raw =
+    validOpaque(value, ACCESS_TOKEN_PREFIX) ||
+    validOpaque(value, REFRESH_TOKEN_PREFIX);
+  if (!raw) return false;
+  const { rows } = await db.query(
+    `update oauth_family f set revoked_at = now()
+     from oauth_token t
+     where t.token_hash = $1 and t.family_id = f.family_id
+       and f.client_id = $2 and f.revoked_at is null
+     returning f.family_id, f.account_id`,
+    [sha256hex(raw), clientId],
+  );
+  if (!rows[0]) return false;
+  await db
+    .query(
+      `insert into account_event (account_id, kind, detail)
+       values ($1, 'connection_revoked', $2)`,
+      [
+        rows[0].account_id,
+        JSON.stringify({ family_id: rows[0].family_id, by: "client" }),
+      ],
+    )
+    .catch(() => {});
+  return true;
 }
 
 const SERVICE_TOKEN_PREFIX = "svt_";

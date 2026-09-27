@@ -33,7 +33,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 
 ## Privacy and measurement
 
-- **The account's address goes only to the Elixir family's own apps** — `account:email` is refused at authorize for any client whose redirects are not all on family origins, and `/oauth/userinfo` checks again; privacy.md's "never shared" stays true. (2026-09-25; Jamie)
+- **The account's address goes only to the Elixir family's own apps** — `account:email` is refused at authorize for any client that is not a provisioned family client (0185), and `/oauth/userinfo` checks again; privacy.md's "never shared" stays true. (2026-09-25; Jamie)
 - **Four buckets, SETTLED** — game data is public and recorded; your account is first-party; measurement is aggregate with "no per-recipient open or click, ever"; money is voluntary sponsorship that buys nothing. Never re-litigate. (2026-09-19; Jamie)
 - **Product identifiers are not tracking identifiers** — a send id or call id is a pointer its holder can open, not measurement; supersedes "no per-recipient identifier in links" and the first footer pass. (2026-09-19; Jamie)
 - **What we never do** — no ads, brokers, selling or sharing, engagement scoring, automation on read state, or commercial targeting from game data. (2026-09-19; Jamie)
@@ -65,7 +65,8 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **The war family's `clan_score` is war trophies** — `clan_war_trophies` is the name (6.19.0); the aliases went at 9.1.0 (above). (2026-09-23 6.19.0, 2026-09-25; Jamie)
 - **Omit the tag to mean yourself** — the server brief names the caller at initialize; `game_clock` is subject-free. (2026-09-08; Jamie)
 - **The JSON API (`/api/v1`) is a public, versioned product beside MCP** — people call it by OAuth (audience `/api/v1`), integrations by key; a token for one door is never accepted at the other. (2026-09-23; Jamie)
-- **Elixir Clan reads Elixir through `/api/v1`, never MCP, and is not metered** — Clan is a program, not an agent; first-party clients (every redirect on a family origin) are unmetered (plan: ../elixir-family/plans/clan-app-api.md). Clan may be broken meanwhile. (2026-09-23; Jamie)
+- **Elixir Clan reads Elixir through `/api/v1`, never MCP, and is not metered** — Clan is a program, not an agent; first-party clients (provisioned family clients, every redirect on a family origin; 0185, 2026-09-27) are unmetered (plan: ../elixir-family/plans/clan-app-api.md). Clan may be broken meanwhile. (2026-09-23; Jamie)
+- **The family's own OAuth clients are provisioned and confidential** — Elixir provisions them (the `family_clients` op), registration refuses a family redirect, and they authenticate at `/oauth/token` with `client_secret_post`; the secret is minted on the app's host and Elixir holds only its digest. First-party means provisioned. (2026-09-27, review §6.5; Jamie)
 
 ## Tools and data semantics
 

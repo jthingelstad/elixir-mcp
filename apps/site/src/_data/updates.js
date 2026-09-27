@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-09-27",
+    title: "Connecting an app shows where it sends you",
+    body: "When an app asks to connect to your Elixir account, the page now shows the address it will send you back to beside the name it chose for itself, and says plainly when it is one of Elixir's own apps. Apps can now disconnect themselves with a standard revocation request, and sign-in codes to one address are limited the same way whichever page asked for them. Contract 9.12.1; JSON API 2.6.1.",
+  },
+  {
     date: "2026-09-26",
     title: "Collectors show whether they run a signed release",
     body: "The fleet page marks each collector signed when the binary it runs is exactly a release Elixir named, and says dev build, unverified or mismatch otherwise; collectors from v3.0.4 report what they run. Beside it, the release key's fingerprint is drawn as the picture ssh-keygen prints for it, so an operator can compare it with their own at a glance.",

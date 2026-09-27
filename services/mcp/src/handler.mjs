@@ -13,6 +13,7 @@ import {
   validateServiceToken,
   describeRefusedCredential,
   recordCredentialRefusal,
+  viewerIp as viewerIpOf,
   authLog,
   credentialRef,
   checkRateLimit,
@@ -159,6 +160,8 @@ export function makeHandler({
           return await oauth.authorizePost(db, event);
         if (method === "POST" && path === "/oauth/token")
           return await oauth.token(db, event);
+        if (method === "POST" && path === "/oauth/revoke")
+          return await oauth.revoke(db, event);
         if (method === "GET" && path === "/oauth/userinfo")
           return await oauth.userinfo(db, event);
         return {
@@ -187,12 +190,7 @@ export function makeHandler({
     // a direct hit in local development has neither, and null beats a lie.
     const headerOf = (name) =>
       event.headers?.[name] ?? event.headers?.[name.toLowerCase()] ?? null;
-    const viewerAddress = headerOf("cloudfront-viewer-address");
-    const viewerIp = viewerAddress
-      ? // "1.2.3.4:53422", and IPv6 is "2001:db8::1:53422" — the port is
-        // always the last colon-separated part.
-        viewerAddress.slice(0, viewerAddress.lastIndexOf(":")) || null
-      : null;
+    const viewerIp = viewerIpOf(event);
     const viewerCountry = headerOf("cloudfront-viewer-country");
 
     const unauthorizedHere = () => ({
@@ -255,16 +253,20 @@ export function makeHandler({
             reason: "undescribed",
           };
         }
-        await recordCredentialRefusal(db, {
-          presented,
-          kind: refused.kind,
-          tokenId: refused.tokenId,
-          accountId: refused.accountId,
-          reason: refused.reason,
-          resource: target.resource,
-          viewerIp,
-          viewerCountry,
-        });
+        // Only a credential that names a real key or account is written
+        // down (review §6.5): one that names nobody has nobody to tell.
+        // The log line below still counts it.
+        if (refused.tokenId || refused.accountId)
+          await recordCredentialRefusal(db, {
+            presented,
+            kind: refused.kind,
+            tokenId: refused.tokenId,
+            accountId: refused.accountId,
+            reason: refused.reason,
+            resource: target.resource,
+            viewerIp,
+            viewerCountry,
+          });
         authLog("mcp_unauthorized", {
           reason: refused.reason,
           kind: refused.kind,

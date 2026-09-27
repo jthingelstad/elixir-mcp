@@ -20,7 +20,7 @@
 
 import crypto from "node:crypto";
 import { crPathForJob, crBattleTime } from "@elixir-mcp/contracts";
-import { checkRateLimit } from "@elixir-mcp/auth";
+import { checkRateLimit, viewerIp } from "@elixir-mcp/auth";
 import { leaseJob, completeJob } from "../../scheduler/src/ledger.mjs";
 
 const TOKEN_PREFIX = "emcg_";
@@ -396,10 +396,11 @@ export function makeCollectorDoor({
             channel: gw.channel,
             status: gw.status,
           },
-          // The caller's address as the door saw it: the egress IP the
-          // operator must allowlist on their CR key, read without the
-          // collector talking to anything but this door.
-          observed_ip: event.requestContext?.http?.sourceIp ?? null,
+          // The caller's own address (cloudfront-viewer-address, not the
+          // edge's sourceIp): the egress IP the operator must allowlist on
+          // their CR key, read without the collector talking to anything
+          // but this door. Null when CloudFront did not say.
+          observed_ip: viewerIp(event),
           update: Object.fromEntries(
             rel.map((r) => [
               r.platform,

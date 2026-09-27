@@ -787,6 +787,8 @@ export function accountRoutes({
         // The reader's clock: on an agent's console, its owner's.
         timezone: account.timezone ?? rows[0]?.timezone ?? "UTC",
         accountId: account.accountId,
+        // The console is a browser session: the person, interactively.
+        interactive: true,
       });
       return json(200, {
         ...built,

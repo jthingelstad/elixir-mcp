@@ -314,6 +314,69 @@ export async function writeClanFact(db, account, clanInput, body) {
       "not_permitted",
       `Your role in this clan (${seat.role}) may not attest ${type}${type === "clan_message" && detail.channel === "leader_message" ? " as a Clan Leader Message" : ""}.`,
     );
+  // A ref that already names a fact is an overwrite, and the writer must
+  // be allowed the fact that is THERE as well as the one sent (review
+  // §6.5). The ref is locked first, so no concurrent write slips between
+  // the check and the upsert.
+  await db.query("begin");
+  try {
+    await db.query("select pg_advisory_xact_lock(hashtext($1))", [
+      `attested_fact:${source}:${ref}`,
+    ]);
+    const { rows: prior } = await db.query(
+      `select fact_type, detail, player_tag, subject_kind, clan_tag
+         from attested_fact where source = $1 and source_ref = $2
+        for update`,
+      [source, ref],
+    );
+    const was = prior[0];
+    if (was && was.subject_kind === "clan" && was.clan_tag === clanTag) {
+      const wt = ATTESTED_FACT_TYPES[was.fact_type];
+      if (
+        !wt ||
+        !mayAttest(wt, was.fact_type, was.detail, seat, was.player_tag)
+      )
+        throw new FactError(
+          403,
+          "not_permitted",
+          `Your role in this clan (${seat.role}) may not replace the ${was.fact_type} this ref already names.`,
+        );
+    }
+    const written = await upsertClanFact(db, {
+      clanTag,
+      playerTag,
+      type,
+      detail,
+      t,
+      source,
+      ref,
+      account,
+      seat,
+      occurredAt,
+    });
+    await db.query("commit");
+    return written;
+  } catch (err) {
+    await db.query("rollback");
+    throw err;
+  }
+}
+
+function upsertClanFact(
+  db,
+  {
+    clanTag,
+    playerTag,
+    type,
+    detail,
+    t,
+    source,
+    ref,
+    account,
+    seat,
+    occurredAt,
+  },
+) {
   return upsert(db, {
     subject_kind: "clan",
     clan_tag: clanTag,

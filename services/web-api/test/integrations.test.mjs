@@ -12,6 +12,18 @@ import {
   validateAccessToken,
 } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
+
+// A family app's client is provisioned (0185), never merely registered to
+// a family redirect: registration is open and proves nothing (review §6.5).
+let familyApps = 0;
+async function familyClient(db, spec) {
+  const c = await registerClient(db, spec);
+  await db.query(
+    `insert into family_oauth_client (client_id, app) values ($1, $2)`,
+    [c.clientId, `test-app-${++familyApps}`],
+  );
+  return c;
+}
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_mcp_test_integrations_${process.pid}`;
@@ -321,7 +333,7 @@ test("IAM provisioning accepts only a digest and returns no credential", async (
 });
 
 test("a person reads /api/v1/me with a grant for this door; an MCP grant is refused here, and this grant is refused at MCP (2026-09-23)", async () => {
-  const clan = await registerClient(db, {
+  const clan = await familyClient(db, {
     clientName: "Elixir Clan",
     redirectUris: ["https://clan.poapkings.com/auth/callback"],
   });
@@ -395,7 +407,7 @@ test("a person reads /api/v1/me with a grant for this door; an MCP grant is refu
 });
 
 test("a family app signs a person in through /api/v1: its address on /me with account:email, and a player tracked with recordings:write (2.1.0)", async () => {
-  const drop = await registerClient(db, {
+  const drop = await familyClient(db, {
     clientName: "Elixir Drop",
     redirectUris: ["https://drop.poapkings.com/auth/elixir/callback"],
   });
@@ -472,7 +484,7 @@ test("a family app signs a person in through /api/v1: its address on /me with ac
 });
 
 test("the person operations answer with the tools' structured results, uncapped, and refusals become problems with the tool's code (plan clan-app-api phases 2-3)", async () => {
-  const clan = await registerClient(db, {
+  const clan = await familyClient(db, {
     clientName: "Elixir Clan",
     redirectUris: ["https://clan.poapkings.com/auth/callback"],
   });

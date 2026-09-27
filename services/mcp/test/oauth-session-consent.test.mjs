@@ -24,6 +24,7 @@ import {
   resolveSession,
   SESSION_COOKIE_NAME,
 } from "../../auth/src/index.mjs";
+import { familyClientsOn } from "../../migrate/src/ops-family-clients.mjs";
 import { makeHandler } from "../src/handler.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -125,16 +126,16 @@ before(async () => {
     sessionSecret: SECRET,
     sendLoginEmail: async (mail) => sentEmails.push(mail),
   });
-  const reg = await handler(
-    event({
-      path: "/oauth/register",
-      body: JSON.stringify({
-        client_name: "Elixir Clan",
-        redirect_uris: [REDIRECT],
-      }),
-    }),
-  );
-  clientId = JSON.parse(reg.body).client_id;
+  // A family app's client is provisioned, never registered (0185).
+  ({
+    provisioned: { client_id: clientId },
+  } = await familyClientsOn(db, {
+    provision: {
+      app: "clan",
+      client_name: "Elixir Clan",
+      redirect_uris: [REDIRECT],
+    },
+  }));
 });
 
 after(async () => {

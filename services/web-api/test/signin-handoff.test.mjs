@@ -261,7 +261,12 @@ test("the sixth sign-in mail in an hour is answered plainly, approved or not", a
 test("the device list shows every live session, this one marked, and revokes the others", async () => {
   // Two screens for OTHER: a Mac (the code) and an iPhone (the link).
   await handler(
-    event({ path: "/api/auth", body: { email: OTHER }, ip: "10.0.4.1" }),
+    event({
+      path: "/api/auth",
+      body: { email: OTHER },
+      ip: "10.0.4.1",
+      viewer: "10.0.4.1:5000",
+    }),
   );
   const { code, token } = sentEmails.at(-1);
   // The code and the link burn ONE row; use the code here and a second
@@ -281,7 +286,12 @@ test("the device list shows every live session, this one marked, and revokes the
     "the link the code burned is spent",
   );
   await handler(
-    event({ path: "/api/auth", body: { email: OTHER }, ip: "10.0.4.2" }),
+    event({
+      path: "/api/auth",
+      body: { email: OTHER },
+      ip: "10.0.4.2",
+      viewer: "10.0.4.2:5000",
+    }),
   );
   const phone = await handler(
     event({
