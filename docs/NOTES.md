@@ -3100,3 +3100,31 @@ counts (it used to say "Any 1v1"). PR #60 merged on a green `validate`
 as 5c705e2c and deployed at 17:34Z (12:34 PM CT) with 0 migrations run
 and a clean smoke; no tool changed, so acceptance was not run.
 `/api/public/status` reports `health.ok` true.
+
+## 2026-09-27 - Architecture, efficiency, durability and features review (analysis only)
+
+Jamie asked for a review of the whole service for architectural,
+efficiency and durability improvements and for features that would
+materially improve it. It is written up as
+`docs/reviews/2026-09-27-ARCHITECTURE-DURABILITY-FEATURES.md`. Ten
+dimension reviewers each had an adversarial verifier, and a
+completeness critic added three gap areas. 93 findings were raised and
+91 survived (47 only in part). One conflicted with DECISIONS 41 and was
+dropped; one restated a standing position. Nothing in product code
+changed and nothing was deployed.
+
+The five findings that change the picture:
+
+- Every copy of the record sits in one account and one region, and the
+  restore path is untested.
+- Background SQL is unbounded and unnamed. This is the 09-15 and 09-18
+  mechanism.
+- The global budget is charged only at plan time, and its ceiling is
+  about 3,600 recorded players.
+- The open-beta preconditions have no owner: privacy.md's promises, the
+  brief cut at 2,048 characters in Claude Code, and mail past 900 s.
+- Owed work is lost in the NOTES rotation.
+
+Six door and auth-plane findings (one high) went to Jamie directly and
+are not described in the public file. Needs Jamie: the thirteen calls
+in the review's §9.3. The fix bundles in §9.1 need no decision.
