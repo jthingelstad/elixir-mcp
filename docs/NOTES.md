@@ -3465,3 +3465,15 @@ days yet.
 Pending (a natural event): the first captures expire about 2026-12-09.
 From about 2026-12-11, `ListObjectVersions` on `calls/dt=2026-09-10/`
 should return no versions and no delete markers.
+
+Flake filed (ship skill: a flake is a defect): PR #84's first `validate`
+(run 36356099206, notes-only) failed
+`query-budget.test.mjs` "the deadline covers work outside the database,
+such as a live-lane wait": the invoke took 650 ms against the test's
+500 ms bound, with a 100 ms deadline and a 600 ms fake tool. Locally it
+answers in 106-107 ms (five runs green); the same test passed on #83's
+run. 650 is close to the fake tool's 600 ms, so either a starved runner
+delayed the deadline timer or, on that runner, the answer waited for
+the abandoned work. Not fixed here (out of #66's scope); owner: the next
+`query-budget` change, which should log the elapsed time on failure and
+check whether the error path awaits the abandoned promise.
