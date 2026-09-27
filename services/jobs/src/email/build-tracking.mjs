@@ -40,12 +40,16 @@ export async function buildTracking({ db, account, week, season }) {
     accountId: account.accountId,
     // The mail goes to the person's own address, nowhere else.
     interactive: true,
+    // Moments only, chosen BEFORE the timeline's cap (review 2026-09-27
+    // §6.8): the cap is spent on what the mail can say, and attested
+    // facts (an away is never mail, DECISIONS) never enter the mail path.
+    filter: (it) => MOMENT_KINDS.has(it.kind),
   });
   // Each subject's newest moments, newest first: the timeline's own
   // order, a newsfeed (Jamie, 2026-09-23).
   const momentsFor = (tag) =>
     items
-      .filter((it) => it.subject_tag === tag && MOMENT_KINDS.has(it.kind))
+      .filter((it) => it.subject_tag === tag)
       .slice(0, 8)
       .map((it) => {
         const text = it.text ?? itemText(it, tz);
