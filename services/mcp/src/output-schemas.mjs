@@ -2289,7 +2289,7 @@ export const OUTPUT_SCHEMAS = {
           exhausted: {
             type: "boolean",
             description:
-              "true: the sets are proven best under the objective; false: the search stopped at its node budget with the best it found.",
+              "true: the sets are proven best under the objective; false: the search stopped at its node or time budget with the best it found.",
           },
           pool_capped: { type: "boolean" },
         },

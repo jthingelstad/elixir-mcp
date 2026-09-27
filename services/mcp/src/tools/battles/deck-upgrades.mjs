@@ -15,7 +15,12 @@ import {
   seasonCardSets,
   valueOfSet,
 } from "../../deck-sets-data.mjs";
-import { LOGIT_PER_LEVEL, SET_OBJECTIVE, packSets } from "../../deck-sets.mjs";
+import {
+  LOGIT_PER_LEVEL,
+  SET_OBJECTIVE,
+  SEARCH_TIME_MS,
+  packSets,
+} from "../../deck-sets.mjs";
 
 /** The decks re-packed per option, best first after the option. */
 const SEARCH_CAP = 600;
@@ -90,13 +95,16 @@ export const battles_deck_upgrades = {
     let baseSet = null;
     let exhausted = true;
     let widened = false;
+    // Every re-pack below shares one clock: the search is synchronous, so
+    // the invoker's deadline cannot interrupt it (review 2026-09-27 §3.2).
+    const deadline = performance.now() + SEARCH_TIME_MS;
     const pack = (values) => {
       const list = decks
         .filter((d) => values.has(d.key))
         .map((d) => ({ key: d.key, cards: d.cards, value: values.get(d.key) }))
         .sort((a, z) => z.value - a.value)
         .slice(0, SEARCH_CAP);
-      return packSets(list, { count, nodeBudget: 300_000 });
+      return packSets(list, { count, nodeBudget: 300_000, deadline });
     };
     for (const [minB, minP] of [
       [20, 3],
@@ -423,7 +431,7 @@ export const battles_deck_upgrades = {
           : `No set of ${count} decks sharing no card exists among the decks this player owns every card of this season, so there is nothing to lift yet; battles_deck_sets gives the best partial set and the cards one short of the most decks.`,
         exhausted
           ? null
-          : "A search stopped at its node budget; the values are the best it found.",
+          : "A search stopped at its node or time budget; the values are the best it found.",
         "value is an ordering, not a forecast: a deck's record is its players', and pilots differ.",
         c.win.seasonNotes,
         c.roll.note,
