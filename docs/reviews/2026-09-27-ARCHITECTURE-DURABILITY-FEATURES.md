@@ -5,6 +5,14 @@ against `c8ae040` (contract 9.12.0, JSON API 2.6.0, migration 0184),
 the morning after the Dependabot deploy, with production healthy
 (`health.ok` true, 0 dead jobs, 0 dead letters).
 
+**Outcome (2026-09-27, later):** Jamie set database restore aside
+("the one thing I'm not worried about is restoring the database … I'm
+very comfortable with its resilience"). That removes the database half
+of §2.1, all of §2.2 and all of §2.3; the line is in DECISIONS under
+"Declined". Guard the Door fixed the relay logging item (§8.1) the same
+morning (PR #56, `76f68c6`). The rest is sequenced into chunks for local
+sessions in [`2026-09-27-EXECUTION-BRIEF.md`](2026-09-27-EXECUTION-BRIEF.md).
+
 **Ask (Jamie):** "This is a complex data product and it is working well.
 Please review for architectural improvements, efficiency and durability
 improvement, and features that would materially improve the service."
@@ -1201,8 +1209,9 @@ There are 47 such markers in NOTES.md and 31 in W38, none with a
 status. Monday's rotation moves them into `docs/notes/`, which objective
 runs read only for background. Guard's 2026-09-20 finding, that all
 four email-relay failure paths log untrusted `err.message`, survives
-only in the W38 archive and is still in
-`email-relay/src/handler.mjs:52,90,112,129`. The skills keep their open
+only in the W38 archive. At `c8ae040` it
+was still in `email-relay/src/handler.mjs:52,90,112,129`; Guard the Door
+fixed it later that morning (PR #56, `76f68c6`). The skills keep their open
 items in git-ignored `reports/` folders on one machine. Answering the
 README's "What across this team needs Jamie?" means reading about 8,000
 lines.

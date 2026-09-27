@@ -3128,3 +3128,30 @@ The five findings that change the picture:
 Six door and auth-plane findings (one high) went to Jamie directly and
 are not described in the public file. Needs Jamie: the thirteen calls
 in the review's §9.3. The fix bundles in §9.1 need no decision.
+
+## 2026-09-27 - The review, sequenced; database restore set aside
+
+Jamie read the review and asked for its work to be sequenced into chunks
+that his local Claude Code can run one session at a time. He set one part
+aside: "The one thing I'm not worried about is restoring the database. …
+We're running in AWS. I'm very comfortable with its resilience." That
+removes the database half of the review's §2.1 (an off-account snapshot
+copy), all of §2.2 (restore runbook, rehearsal, `--stack-only`, longer
+retention, Multi-AZ) and all of §2.3 (the replay-parity proof). The line
+is in DECISIONS under "Declined". Archive (`payloads/`) replication is a
+separate, account-level question; it is listed as not scheduled, not
+declined.
+
+The rest is in `docs/reviews/2026-09-27-EXECUTION-BRIEF.md`: C0 (land
+the review) and 23 chunks in six waves, each with its scope, the calls
+Jamie makes before it starts, a done-when, the ship scope and a tracker
+line. The session prompt is one line naming the chunk. Wave 1 closes
+the door findings and builds the owed-work register. Wave 2 is the $0
+invariants work plus C9, which is due before the first storage
+autoscale (~10-13). Wave 3 holds the chunks that wait on Jamie's calls
+before open beta.
+
+The relay logging item in the review's §8.1 was fixed by Guard the Door
+earlier the same morning (PR #56, `76f68c6`). Follow-up owed: C3 runs
+`/consistency` on the new DECISIONS line, which reaches the Run
+objective's quarterly restore rehearsal (`run-elixir-mcp.md:179-190`).
