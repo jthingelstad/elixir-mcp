@@ -66,17 +66,6 @@ function coverageLine(b) {
   );
 }
 
-/** Every name the writer might have mangled through a broken escape. */
-export function briefNames(brief) {
-  const names = new Set([brief.card?.name]);
-  for (const p of brief.partners ?? []) names.add(p.name);
-  for (const d of [...(brief.decks ?? []), brief.best_of_five].filter(Boolean))
-    for (const c of d.cards ?? []) names.add(c.name);
-  for (const r of [brief.rank?.above, brief.rank?.below].filter(Boolean))
-    names.add(r.name);
-  return [...names].filter(Boolean);
-}
-
 export async function cardOfWeekGenerate({
   databaseUrl,
   db = null,
@@ -168,7 +157,6 @@ export async function cardOfWeekAccept({
       bucket,
       key,
       kind: KIND,
-      names: briefNames,
       factsOf: cardOfWeekFacts,
       enqueue,
     });

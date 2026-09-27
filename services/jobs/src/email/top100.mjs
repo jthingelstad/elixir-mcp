@@ -9,28 +9,21 @@
  *  writes the brief to the archive bucket and queues it for the editor
  *  Lambda, which has the internet the VPC does not. top100Accept takes
  *  the editor's answer back, lints it (every number traces to the
- *  brief, no tags, no exclamation marks, tables pair rank and rating,
- *  under the length ceiling) and stores the issue for Thursday's send;
- *  a failing issue never sends and the owner hears why. */
+ *  brief and to the name beside it, no tags, no exclamation marks,
+ *  tables pair rank and rating, under the length ceiling) and stores
+ *  the issue for Thursday's send; a failing issue never sends and the
+ *  owner hears why. Both halves run on issue-pipeline.mjs, the spine
+ *  Card of the Week shares (review 2026-09-27 §6.7). */
 import pg from "pg";
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-} from "@aws-sdk/client-s3";
-import { makeOutbox } from "../../../web-api/src/outbox.mjs";
 import { loadRecipients, accountCtx, callTool } from "./ctx.mjs";
 import { tryTool } from "./shared.mjs";
-import { upsertIssue } from "./ledger.mjs";
-import { lintIssue, repairNames } from "@elixir-mcp/mail";
+import { generateIssue, acceptIssue } from "./issue-pipeline.mjs";
 
+const KIND = "top_100";
 const MASTHEAD = "Ultimate Champions";
 const STRAP = "Elixir's weekly read of the Path of Legends top 100";
 const SITE = "https://elixir.poapkings.com";
 const DAY_MS = 86_400_000;
-
-const s3 = new S3Client({});
-const outbox = makeOutbox(process.env.OUTBOX_BUCKET, s3);
 
 async function readBoard(ctx, asOf = null) {
   const pages = [];
@@ -285,6 +278,7 @@ async function buildBrief({ db, account, now = new Date() }) {
     .filter(([, v]) => v)
     .map(([k]) => k);
   return {
+    kind: KIND,
     generated_at: now.toISOString(),
     data_as_of: dataAsOf,
     masthead: MASTHEAD,
@@ -361,156 +355,111 @@ function rangeLabel(fromIso, toIso) {
   return `${MONTHS[a.getUTCMonth()]} ${a.getUTCDate()} – ${a.getUTCMonth() === b.getUTCMonth() ? "" : `${MONTHS[b.getUTCMonth()]} `}${b.getUTCDate()}`;
 }
 
+/** The renderer's facts, from the brief and the accepted issue: every
+ *  name the body prints is linked to its tag. */
+export function top100Facts(brief, issue) {
+  const date = brief.window.issue_date;
+  const names = new Map(brief.board.top100.map((p) => [p.name, p.tag]));
+  for (const list of [
+    brief.movers.up,
+    brief.movers.down,
+    brief.movers.entered,
+    brief.movers.exited,
+    brief.podium,
+  ])
+    for (const p of list ?? []) names.set(p.name, p.tag);
+  if (brief.deep_cut?.facts?.player)
+    names.set(brief.deep_cut.facts.player, brief.deep_cut.facts.tag);
+  const index = [...names]
+    .filter(([name]) => name && issue.body_markdown.includes(name))
+    .map(([name, tag]) => ({ name, tag }));
+  return {
+    masthead: MASTHEAD,
+    strap: STRAP,
+    subject: issue.subject,
+    preheader: issue.preheader ?? "",
+    issue: {
+      date,
+      label: brief.window.label,
+      season: brief.season.id,
+      day_of_season: brief.season.day_of_season,
+      data_as_of: brief.data_as_of,
+    },
+    body_markdown: issue.body_markdown,
+    players_index: index,
+    cta: {
+      head: "Start your record",
+      text: "Everything above exists because Elixir was recording. Your history starts the day you track your tag, not the day you first ask a question. Elixir is a hand-approved beta; ask for a place.",
+      button: "Request access",
+      url: `${SITE}/`,
+    },
+    coverage: `Data from the Path of Legends board recorded at the 10:00 UTC reset, ${date}.${brief.coverage?.gaps?.length ? ` ${brief.coverage.gaps.join("; ")}.` : ""}`,
+    numbers_used: issue.numbers_used ?? [],
+    alternates: issue.subjects ?? [],
+  };
+}
+
+/** Thursday 10:30Z: the brief, handed to the editor through the shared
+ *  spine (issue-pipeline.mjs). `force` is the operator's regenerate: the
+ *  brief says so (`ops`), so a failure of it does not mail the owner and
+ *  its accept never sends on its own. */
 export async function top100Generate({
   databaseUrl,
+  db = null,
   bucket,
   now = new Date(),
+  force = false,
 }) {
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const own = !db;
+  if (own) {
+    db = new pg.Client({ connectionString: databaseUrl });
+    await db.connect();
+  }
   try {
-    const [account] = await loadRecipients(db, "top_100");
+    const [account] = await loadRecipients(db, KIND);
     if (!account) return { skipped: "no recipient to read as" };
     const brief = await buildBrief({ db, account, now });
-    const key = `mail/top100/${brief.window.issue_date}/brief.json`;
-    await s3.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: JSON.stringify(brief),
-        ContentType: "application/json",
-      }),
-    );
-    await upsertIssue(db, {
-      kind: "top_100",
+    brief.ops = Boolean(force);
+    const out = await generateIssue({
+      db,
+      bucket,
+      kind: KIND,
       periodKey: brief.window.issue_date,
-      subjectKey: "",
-      status: "composed",
-      note: `brief ${key}`,
+      brief,
     });
-    // The VPC reaches nothing but S3: the editor gets the brief through
-    // the outbox, the way mail reaches the relay.
-    if (outbox) await outbox("editor", { brief_key: key });
     return {
-      brief_key: key,
-      issue_date: brief.window.issue_date,
+      ...out,
       sections_cleared: brief.sections_cleared,
       drought_mode: brief.drought_mode,
       deep_cut: brief.deep_cut.type,
     };
   } finally {
-    await db.end();
+    if (own) await db.end();
   }
-}
-
-function briefNames(brief) {
-  const names = new Set();
-  for (const p of brief.board?.top100 ?? []) names.add(p.name);
-  for (const list of [
-    brief.movers?.up,
-    brief.movers?.down,
-    brief.movers?.entered,
-    brief.movers?.exited,
-    brief.podium,
-  ])
-    for (const p of list ?? []) names.add(p.name);
-  for (const c of brief.clans ?? []) names.add(c.clan_name);
-  if (brief.deep_cut?.facts?.player) names.add(brief.deep_cut.facts.player);
-  return [...names].filter(Boolean);
-}
-
-async function readJson(bucket, key) {
-  const out = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-  return JSON.parse(await out.Body.transformToString());
 }
 
 export async function top100Accept({
   databaseUrl,
+  db = null,
   bucket,
   key,
   enqueue = null,
 }) {
-  const issueKey = key;
-  const briefKey = key.replace(/issue\.json$/, "brief.json");
-  const [issue, brief] = await Promise.all([
-    readJson(bucket, issueKey),
-    readJson(bucket, briefKey),
-  ]);
-  // Names the model spelled through a broken JSON escape come back
-  // from the brief before anything else looks at the body.
-  issue.body_markdown = repairNames(issue.body_markdown, briefNames(brief));
-  const problems = lintIssue(issue, brief);
-  const db = new pg.Client({ connectionString: databaseUrl });
-  await db.connect();
+  const own = !db;
+  if (own) {
+    db = new pg.Client({ connectionString: databaseUrl });
+    await db.connect();
+  }
   try {
-    const date = brief.window.issue_date;
-    if (problems.length) {
-      await upsertIssue(db, {
-        kind: "top_100",
-        periodKey: date,
-        subjectKey: "",
-        status: "failed",
-        note: problems.join("; "),
-      });
-      if (enqueue)
-        await enqueue({
-          v: 1,
-          kind: "owner_notify",
-          to: process.env.OWNER_NOTIFY_EMAIL || "elixir@poapkings.com",
-          note: `Top 100 issue ${date} failed lint: ${problems.slice(0, 5).join("; ")}`,
-          link: `${SITE}/admin`,
-        });
-      return { accepted: false, problems };
-    }
-    const names = new Map(brief.board.top100.map((p) => [p.name, p.tag]));
-    for (const list of [
-      brief.movers.up,
-      brief.movers.down,
-      brief.movers.entered,
-      brief.movers.exited,
-      brief.podium,
-    ])
-      for (const p of list ?? []) names.set(p.name, p.tag);
-    if (brief.deep_cut?.facts?.player)
-      names.set(brief.deep_cut.facts.player, brief.deep_cut.facts.tag);
-    const index = [...names]
-      .filter(([name]) => name && issue.body_markdown.includes(name))
-      .map(([name, tag]) => ({ name, tag }));
-    const facts = {
-      masthead: MASTHEAD,
-      strap: STRAP,
-      subject: issue.subject,
-      preheader: issue.preheader ?? "",
-      issue: {
-        date,
-        label: brief.window.label,
-        season: brief.season.id,
-        day_of_season: brief.season.day_of_season,
-        data_as_of: brief.data_as_of,
-      },
-      body_markdown: issue.body_markdown,
-      players_index: index,
-      cta: {
-        head: "Start your record",
-        text: "Everything above exists because Elixir was recording. Your history starts the day you track your tag, not the day you first ask a question. Elixir is a hand-approved beta; ask for a place.",
-        button: "Request access",
-        url: `${SITE}/`,
-      },
-      coverage: `Data from the Path of Legends board recorded at the 10:00 UTC reset, ${date}.${brief.coverage?.gaps?.length ? ` ${brief.coverage.gaps.join("; ")}.` : ""}`,
-      numbers_used: issue.numbers_used ?? [],
-      alternates: issue.subjects ?? [],
-    };
-    await upsertIssue(db, {
-      kind: "top_100",
-      periodKey: date,
-      subjectKey: "",
-      facts,
-      subjectLine: issue.subject,
-      status: "composed",
-      note: `issue ${issueKey}`,
+    return await acceptIssue({
+      db,
+      bucket,
+      key,
+      kind: KIND,
+      factsOf: top100Facts,
+      enqueue,
     });
-    return { accepted: true, date, subject: issue.subject };
   } finally {
-    await db.end();
+    if (own) await db.end();
   }
 }

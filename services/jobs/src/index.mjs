@@ -10,16 +10,19 @@
  *  {meta_rollup_hourly: true} · {meta_rollup_equivalence: true} · {meta_rollup_season: {season_month}} ·
  *  {shape_census: true} · {email: "<kind>",
  *  account_id?, force?} (docs/EMAIL.md: the seven product mail kinds,
- *  on their EventBridge rules; account_id + force is the manual path) · {top100_generate: true} (the brief for the
- *  Top 100 issue, handed to the editor Lambda through the archive
- *  bucket) · {top100_accept: {key}} (the editor's answer, linted and
- *  stored as the issue to send). */
+ *  on their EventBridge rules; account_id + force is the manual path) ·
+ *  {top100_generate: true | {force: true}} (the brief for the Top 100
+ *  issue, handed to the editor Lambda through the outbox; force marks
+ *  it an operator's regenerate: no owner mail, no send of its own) ·
+ *  {issue_accept: {key, kind}} (the editor's answer, linted and stored
+ *  as the issue to send; one accepted after its kind's send slot is
+ *  sent at once; top100_accept is the older name). */
 
 import pg from "pg";
 import { sweepSilentCollectors } from "./fleet.mjs";
 import { loadVocabulary, stampDecks } from "../../ingest/src/card-roles.mjs";
 import { makeOutbox } from "../../web-api/src/outbox.mjs";
-import { runEmail } from "./email/index.mjs";
+import { runEmail, writtenSendDue } from "./email/index.mjs";
 import { top100Generate, top100Accept } from "./email/top100.mjs";
 import { cardOfWeekGenerate, cardOfWeekAccept } from "./email/card-of-week.mjs";
 import { cardOfWeekPreview } from "./email/card-of-week-preview.mjs";
@@ -305,6 +308,7 @@ export async function handler(event, context) {
     const result = await top100Generate({
       databaseUrl: process.env.DATABASE_URL,
       bucket: process.env.ARCHIVE_BUCKET,
+      force: Boolean(event.top100_generate?.force),
     });
     console.log(JSON.stringify({ top100_generate: result }));
     return result;
@@ -326,6 +330,33 @@ export async function handler(event, context) {
         ? await cardOfWeekAccept(common)
         : await top100Accept(common);
     console.log(JSON.stringify({ issue_accept: { kind, ...result } }));
+    // An issue the editor finished after its send slot goes out now,
+    // not a week late (review 2026-09-27 §6.7). The ledger makes this
+    // idempotent: a recipient the scheduled run reached is skipped. An
+    // operator's forced regenerate (ops) never mails on its own.
+    if (
+      result.accepted &&
+      !result.ops &&
+      writtenSendDue(kind, result.period, new Date())
+    ) {
+      const late = await runEmail({
+        databaseUrl: process.env.DATABASE_URL,
+        kind,
+        enqueue: enqueueEmail,
+        secret: process.env.SESSION_SECRET,
+        archive: await mailArchiveStore(),
+        remainingMs:
+          typeof context?.getRemainingTimeInMillis === "function"
+            ? () => context.getRemainingTimeInMillis()
+            : null,
+      });
+      console.log(JSON.stringify({ late_send: { kind, ...late } }));
+      if (late.incomplete)
+        throw new Error(
+          `email_run_incomplete: late ${kind} sent ${late.sent}, ${late.remaining} remaining after ${late.ms} ms`,
+        );
+      return { ...result, late_send: late };
+    }
     return result;
   }
   if (event?.card_of_week_generate) {

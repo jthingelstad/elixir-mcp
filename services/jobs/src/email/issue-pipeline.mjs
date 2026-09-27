@@ -3,7 +3,10 @@
  *  there an issue to send (docs/EMAIL.md, "how it stays honest").
  *
  *  The Top 100 had this inline and Card of the Week needed the same
- *  shape, so it is one module rather than two copies. What differs per
+ *  shape, so it is one module rather than two copies; since the
+ *  2026-09-27 review (§6.7) both kinds really do run on it, where the
+ *  Top 100's own copy had drifted (no ops flag, no kind in the hand-off).
+ *  What differs per
  *  kind is passed in: how to build the brief, which names the writer may
  *  have mangled, and what facts the renderer wants. What does not differ
  *  - the archive key, the editor queue, the lint gate, the owner notice
@@ -19,7 +22,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { makeOutbox } from "../../../web-api/src/outbox.mjs";
 import { upsertIssue } from "./ledger.mjs";
-import { lintIssue, repairNames } from "@elixir-mcp/mail";
+import { lintIssue, repairNames, briefNames } from "@elixir-mcp/mail";
 
 const SITE = "https://elixir.poapkings.com";
 const s3 = new S3Client({});
@@ -98,10 +101,12 @@ export async function generateIssue({
 export const shouldNotifyOwner = (brief) => !brief?.ops;
 
 /** The editor's answer, linted and stored - or refused, with the owner
- *  told why. `names` are the brief's own spellings (a name the model
- *  wrote through a broken escape comes back from the brief before
- *  anything else looks at the body); `factsOf` shapes what the renderer
- *  receives. */
+ *  told why. The brief's own spellings of its names (packages/mail's
+ *  `briefNames`) put back a name the model wrote through a broken
+ *  escape before anything else looks at the body; `factsOf` shapes what
+ *  the renderer receives. An answer the editor gave up on (a refusal,
+ *  max_tokens, the turn limit, bad JSON: `_pipeline.error`) is final,
+ *  refused here the same way. `read` is the test seam. */
 export async function acceptIssue({
   db,
   bucket,
@@ -109,36 +114,44 @@ export async function acceptIssue({
   kind,
   periodKey = null,
   subjectKey = "",
-  names = () => [],
   factsOf,
   enqueue = null,
+  read = readJson,
 }) {
   const briefK = key.replace(/issue\.json$/, "brief.json");
   const [issue, brief] = await Promise.all([
-    readJson(bucket, key),
-    readJson(bucket, briefK),
+    read(bucket, key),
+    read(bucket, briefK),
   ]);
-  issue.body_markdown = repairNames(issue.body_markdown, names(brief));
-  const problems = lintIssue(issue, brief, { kind });
   const period =
     periodKey ?? brief.period_key ?? brief.window?.issue_date ?? null;
+  const ops = Boolean(brief.ops);
+  const editorError = issue._pipeline?.error ?? null;
+  if (!editorError)
+    issue.body_markdown = repairNames(
+      issue.body_markdown,
+      briefNames(brief, kind),
+    );
+  const problems = editorError
+    ? [`editor ${editorError.kind}: ${editorError.message}`]
+    : lintIssue(issue, brief, { kind });
   if (problems.length) {
     await upsertIssue(db, {
       kind,
       periodKey: period,
       subjectKey,
       status: "failed",
-      note: `${brief.ops ? "[ops] " : ""}${problems.join("; ")}`,
+      note: `${ops ? "[ops] " : ""}${problems.join("; ")}`,
     });
     if (enqueue && shouldNotifyOwner(brief))
       await enqueue({
         v: 1,
         kind: "owner_notify",
         to: process.env.OWNER_NOTIFY_EMAIL || "elixir@poapkings.com",
-        note: `${kind} issue ${period} failed lint: ${problems.slice(0, 5).join("; ")}`,
+        note: `${kind} issue ${period} ${editorError ? "was not written" : "failed lint"}: ${problems.slice(0, 5).join("; ")}`,
         link: `${SITE}/admin`,
       });
-    return { accepted: false, problems, period };
+    return { accepted: false, problems, period, ops };
   }
   const facts = factsOf(brief, issue);
   await upsertIssue(db, {
@@ -150,5 +163,5 @@ export async function acceptIssue({
     status: "composed",
     note: `issue ${key}`,
   });
-  return { accepted: true, period, subject: issue.subject };
+  return { accepted: true, period, ops, subject: issue.subject };
 }

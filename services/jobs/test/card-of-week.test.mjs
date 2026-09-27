@@ -5,12 +5,8 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { renderMail } from "@elixir-mcp/mail";
-import {
-  issueWeek,
-  cardOfWeekFacts,
-  briefNames,
-} from "../src/email/card-of-week.mjs";
+import { renderMail, briefNames } from "@elixir-mcp/mail";
+import { issueWeek, cardOfWeekFacts } from "../src/email/card-of-week.mjs";
 import { cardAsset } from "../src/email/build-card-of-week.mjs";
 
 const brief = {
@@ -117,7 +113,7 @@ test("the coverage line names BOTH windows and the record they came from", () =>
 });
 
 test("the names the repair pass may restore are the brief's own", () => {
-  const names = briefNames(brief);
+  const names = briefNames(brief, "card_of_week");
   for (const n of [
     "Barbarian Barrel",
     "Goblinstein",
