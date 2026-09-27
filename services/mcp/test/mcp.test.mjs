@@ -17,7 +17,6 @@ import {
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { makeQuota } from "../src/quota.mjs";
-import { OUTPUT_SCHEMAS } from "../src/output-schemas.mjs";
 import { localDayRange, formatLocal } from "../src/time.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -159,11 +158,9 @@ test("initialize: cache-busting version, listChanged true, disclaimer in instruc
     serverVersion(registry.declarations(undefined)),
     result.serverInfo.version,
   );
-  // The instructions name every applied.window.source the contract has
-  // (defect 5, 2026-09-19: they named three of five).
-  for (const source of OUTPUT_SCHEMAS.players_summary.properties.applied
-    .properties.window.properties.source.enum)
-    assert.match(result.instructions, new RegExp(`\\b${source}\\b`), source);
+  // The window-source grammar moved behind the brief's manual pointer
+  // (4,500 characters did not fit a 2,048-character client; #65):
+  // brief-budget.test.mjs holds that page to every source.
 
   /* The prose in `instructions` is tuned for the model and changes often, so
    * a CLIENT cannot depend on it -- the elixir-mcp-discord author was regexing

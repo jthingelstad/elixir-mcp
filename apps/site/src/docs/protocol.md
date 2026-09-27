@@ -24,6 +24,7 @@ on [Reading a response](/docs/responses).
 | Endpoint (agent) | `POST https://elixir.poapkings.com/a/<public_id>/mcp` |
 | Endpoint (integration, legacy) | `POST https://elixir.poapkings.com/i/<public_id>/mcp`; integrations use the [REST API](/docs/integrations) |
 | MCP protocol versions | `2025-06-18` (default), `2025-03-26` accepted |
+| `MCP-Protocol-Version` header | Checked on every request after `initialize`: absent is taken as `2025-03-26`; a version not listed above is HTTP 400 with JSON-RPC `-32600` and the supported list in `error.data.supported`. Nothing the server sends differs between the two versions. |
 | Framing | Streamable HTTP, JSON only. One JSON-RPC message per POST. Every reply is `content-type: application/json`. |
 | SSE | Not used. No `text/event-stream`, no server-initiated messages. |
 | Sessions | None. No `Mcp-Session-Id` header is issued or required; every request stands alone. |
@@ -32,7 +33,7 @@ on [Reading a response](/docs/responses).
 | Any non-POST | HTTP 405 with `allow: POST` and an empty body. This includes `GET /mcp`. |
 | Malformed JSON (after auth) | HTTP 400 `{"error":"invalid_json"}` |
 | CORS | No `Access-Control-*` headers and no `OPTIONS` handling. Browser-resident clients need a proxy. |
-| Capabilities declared | `tools: { listChanged: true }`, `resources: { subscribe: false, listChanged: false }`, `prompts: { listChanged: false }`. No logging. Every `tools/call` result carries the same JSON as `structuredContent` beside the text block. |
+| Capabilities declared | `tools: { listChanged: true }`, `resources: { subscribe: false, listChanged: false }`, `prompts: { listChanged: false }`. No logging. Every successful `tools/call` result carries the same JSON as `structuredContent` beside the text block, conforming to the tool's `outputSchema`; a result with `isError: true` carries the text block alone. |
 
 `public_id` is 8 to 16 characters of `[a-z0-9]`.
 
@@ -326,10 +327,15 @@ nothing. One page per group is under [Tools](/docs/tools).
              "clan": { "tag": "#J2RGCRVG", "name": "POAP KINGS" } } } }
 ```
 
-`instructions` is prose tuned for the model (it names your primary, alts,
-friends and clan, or the clan an agent acts for, then states the argument
-conventions below once, then where to start) and changes without notice;
-never parse it. The same facts ride in `_meta` as data; see
+`instructions` is prose tuned for the model and changes without notice;
+never parse it. It is written to arrive whole in 2,048 characters, the most
+some clients (Claude Code) hand the model, and in order of value: who you
+are (your primary and your clan, or the clan an agent acts for; the other
+players and clans you track by name while they fit, otherwise counted, with
+`elixir_my_players` for the list), the one-line rules that change an answer,
+where to start, how to file feedback, and a pointer to the
+[argument conventions](#argument-conventions) below, which it no longer
+restates. The same facts ride in `_meta` as data; see
 [Reading a response](/docs/responses#knowing-who-you-are-connected-as).
 
 Resources and prompts are declared beside tools since 1.0.0, because a
@@ -374,14 +380,15 @@ ordinary semver of its own ([Integrations](/docs/integrations#versions)).
 
 Three layers, each with a closed set.
 
-**HTTP**: 401, 403, 405, 429 as above; 400 for malformed JSON or a batch; 500
+**HTTP**: 401, 403, 405, 429 as above; 400 for malformed JSON, a batch or an
+unsupported `MCP-Protocol-Version`; 500
 never carries internals.
 
 **JSON-RPC** (`error.code`):
 
 | Code | When | HTTP |
 |---|---|---|
-| `-32600` | not a JSON-RPC 2.0 object, or a batch | 400 |
+| `-32600` | not a JSON-RPC 2.0 object, a batch, or an unsupported `MCP-Protocol-Version` | 400 |
 | `-32601` | unknown method, or a tool hidden from this principal kind | 200 |
 | `-32602` | unknown tool name, or unknown prompt | 200 |
 | `-32002` | unknown resource URI | 200 |
@@ -389,7 +396,9 @@ never carries internals.
 | `-32003` | insufficient scope | 403 |
 
 **Tool result**: a failed call is a normal `tools/call` result with
-`isError: true` whose `content[0].text` is JSON:
+`isError: true` whose `content[0].text` is JSON, and no `structuredContent`
+(which is held to the tool's `outputSchema`; an error envelope is not that
+shape):
 
 ```json
 { "error": { "code": "not_recorded", "class": "subject", "message": "…", "hint": "…" },
@@ -484,7 +493,8 @@ in its hint.
   array, `collection` a collection's slug.
 - **`on_behalf_of`** (≤200 chars, opaque) selects the end user on an agent
   connection; ignored on a personal one, where the caller is always the
-  primary player. The tools that build the map, `elixir_identify` and
+  primary player. A personal connection's `tools/list` leaves it and
+  `display_name` out, and drops either if a client still sends it. The tools that build the map, `elixir_identify` and
   `elixir_my_identities`, are agent-only. An empty `player_tag` is refused as
   a caller bug, never treated as "default". See [Agents](/docs/agents).
 - **Validation is strict** since 0.39.2: arguments are checked against the
@@ -509,7 +519,7 @@ in its hint.
   `collections_browse`, `elixir_collectors`, `elixir_data_insights`, and
   `elixir_examples` without an `example`): `window` (`from`,
   `to`, `source` of `argument` | `default` | `unbounded` | `season` |
-  `fixed`, `timezone`, and on the season-grained tools `season`,
+  `fixed` (and `pointer` on `elixir_timeline`), `timezone`, and on the season-grained tools `season`,
   `crosses` and `season_age_days`), `limit`, `sort`, `mode`,
   `min_battles`, `segment`, `verbosity`, as used. There are no `filters_applied`, `window_*` or
   `limit_applied` keys.

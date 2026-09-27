@@ -454,6 +454,11 @@ export function makeHandler({
       const result = await handleMcpMessage(message, {
         registry,
         identity,
+        // Lower-cased by API Gateway and the MCP door's origin policy,
+        // which forwards it.
+        protocolVersionHeader:
+          event.headers?.["mcp-protocol-version"] ??
+          event.headers?.["MCP-Protocol-Version"],
         // resources/read for the card catalog; everything else in the
         // resource corpus is built in.
         db,

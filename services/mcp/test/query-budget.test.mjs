@@ -383,8 +383,12 @@ test("the real MCP handler shortens the budget to leave Lambda reply time", asyn
   assert.equal(res.statusCode, 200);
   const result = JSON.parse(res.body).result;
   assert.equal(result.isError, true);
-  assert.equal(result.structuredContent.error.code, "query_timeout");
-  assert.ok(result.structuredContent.meta.request_id);
+  // An error rides the text block alone: structuredContent is held to
+  // the tool's outputSchema, which a refusal does not meet (#65).
+  assert.equal(result.structuredContent, undefined);
+  const refusal = JSON.parse(result.content[0].text);
+  assert.equal(refusal.error.code, "query_timeout");
+  assert.ok(refusal.meta.request_id);
 });
 
 test("an unrecorded rival roster names the exact live retry without changing recording", async () => {

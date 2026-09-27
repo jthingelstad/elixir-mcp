@@ -3342,3 +3342,41 @@ with smoke only (40 ok, 0 failed); migrate ran 1 (0187). Read-back
 Pending: the first natural live mint showing in `charged_24h.live`
 (never manufactured), and a day of `charged_24h.bulk` tracking the
 receipts.
+
+## 2026-09-27 - #65 (A4): the whole brief, and spec-shaped error results (contract 9.12.4)
+
+Review §6.1-6.2. All five parts re-verified against `a3ee3d3a`; the line
+references held (the query-budget assertion had moved to ~386).
+
+- **The brief fits 2,048 characters** (`INSTRUCTIONS_BUDGET` in
+  `protocol.mjs`), ordered identity, one-line rules, START, feedback,
+  one manual pointer (`protocol#argument-conventions`), disclaimer. The
+  window-source grammar, verbosity, freshness and the `live` detail moved
+  behind the pointer; the brief no longer restates them. Identity renders
+  in full while the whole brief fits and compact otherwise: the primary
+  and "your clan" (an agent: its clan and leader), the rest counted
+  ("You also track 13 more players (2 alts, 2 friends, 9 you watch) and 2
+  more clans: elixir_my_players lists them"). The review said the full
+  list "already rides `_meta`"; it does not (the principal block carries
+  kind, subject and clan), so the count points at `elixir_my_players`.
+  `brief-budget.test.mjs` renders 50-player/10-clan person and agent
+  identities at the 15-character name limit and holds the whole brief,
+  disclaimer included, to 2,048 (person ~1,820, agent ~1,985).
+- **Person schemas drop `on_behalf_of` and `display_name`** (and
+  `segment.on_behalf_of`); `registry.invoke` drops them silently for a
+  person before validation, like the one-size `verbosity`. Agent and
+  integration surfaces and the whole catalogue (`/docs/tools`,
+  `tools.json`) keep them. The person fingerprint moves.
+- **No `structuredContent` on `isError`.** Checked first: the Discord
+  agent (`src/mcp.js` `callTool`) and the retired elixir-bot parse
+  `content[0].text`; the boards client throws on `isError` before reading
+  structured content; the acceptance door falls back to the text.
+- **`MCP-Protocol-Version`** is validated after `initialize` (absent =
+  2025-03-26; unsupported = HTTP 400, -32600, `data.supported`). The MCP
+  door's origin policy already forwards the header.
+- **Unknown-argument hint** names the contract version and says to
+  reconnect.
+
+Contract 9.12.4 (patch: behaviour correction; the person output of
+`tools/list` changes, the declarations' shapes do not). JSON API
+unchanged. Ship: `--acceptance` (shared protocol code).

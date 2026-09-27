@@ -124,8 +124,19 @@ async function countIdentities(db, account) {
   return rows[0].n;
 }
 
-/** The identity paragraph, or null when there is nothing true to say. */
-export function identitySentences(identity) {
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/**
+ * The identity paragraph, or null when there is nothing true to say.
+ *
+ * `compact` names only the primary and "your clan" (an agent: its clan and
+ * its leader) and counts the rest. The brief takes it when the full list
+ * would push the brief past what a client shows (protocol.mjs,
+ * INSTRUCTIONS_BUDGET; review 2026-09-27 §6.1): a heavy account's fifty
+ * players used to fill Claude Code's 2,048 characters alone.
+ * elixir_my_players lists them all.
+ */
+export function identitySentences(identity, { compact = false } = {}) {
   if (!identity) return null;
   const out = [];
 
@@ -137,18 +148,6 @@ export function identitySentences(identity) {
       );
     } else {
       out.push(`YOU ARE ${label(primary)}.`);
-      for (const rel of RELATIONSHIP_ORDER.slice(1)) {
-        const rows = identity.grouped[rel] ?? [];
-        if (rows.length === 0) continue;
-        const names = rows.map(label).join(", ");
-        out.push(
-          rel === "alt"
-            ? `Also you, under ${rows.length === 1 ? "another tag" : "other tags"}: ${names}.`
-            : rel === "friend"
-              ? `Friends you follow: ${names}.`
-              : `You are also watching: ${names}.`,
-        );
-      }
       const clan = identity.primaryClan;
       if (clan)
         out.push(
@@ -160,14 +159,49 @@ export function identitySentences(identity) {
       const others = (identity.clans ?? []).filter(
         (c) => c.clan_tag !== clan?.clan_tag,
       );
+      const named = [];
+      const counts = [];
+      let tracked = 0;
+      for (const rel of RELATIONSHIP_ORDER.slice(1)) {
+        const rows = identity.grouped[rel] ?? [];
+        if (rows.length === 0) continue;
+        tracked += rows.length;
+        const names = rows.map(label).join(", ");
+        named.push(
+          rel === "alt"
+            ? `Also you, under ${rows.length === 1 ? "another tag" : "other tags"}: ${names}.`
+            : rel === "friend"
+              ? `Friends you follow: ${names}.`
+              : `You are also watching: ${names}.`,
+        );
+        counts.push(
+          rel === "alt"
+            ? plural(rows.length, "alt")
+            : rel === "friend"
+              ? plural(rows.length, "friend")
+              : `${rows.length} you watch`,
+        );
+      }
       if (others.length > 0)
-        out.push(
+        named.push(
           `You also track ${others
             .map((c) => (c.name ? `${c.name} ${c.clan_tag}` : c.clan_tag))
             .join(", ")} - name the tag to mean those.`,
         );
+      // Counted when compact (an alt is still you, so the count says
+      // which kind each is).
+      if (!compact) out.push(...named);
+      else if (tracked || others.length) {
+        const players = counts.length
+          ? `${plural(tracked, "more player")} (${counts.join(", ")})`
+          : "";
+        const clans = others.length ? plural(others.length, "more clan") : "";
+        out.push(
+          `You also track ${[players, clans].filter(Boolean).join(" and ")}: elixir_my_players lists them; name the tag to mean those.`,
+        );
+      }
       out.push(
-        "OMIT player_tag and clan_tag to mean these — do not look yourself up first. Name a tag only when you mean somebody else.",
+        "OMIT player_tag and clan_tag to mean these; never look yourself up, and name a tag only for somebody else.",
       );
     }
     return out.join(" ");
@@ -181,32 +215,40 @@ export function identitySentences(identity) {
         clan.members ? ` (${clan.members} members)` : ""
       }.`,
     );
-    if (identity.clans.length > 1)
+    const extra = identity.clans.slice(1);
+    if (extra.length)
       out.push(
-        `Also: ${identity.clans
-          .slice(1)
-          .map((c) => `${c.name ?? ""} ${c.clan_tag}`.trim())
-          .join(", ")}.`,
+        compact
+          ? `Also ${plural(extra.length, "more clan")}: name the clan_tag to mean one.`
+          : `Also: ${extra
+              .map((c) => `${c.name ?? ""} ${c.clan_tag}`.trim())
+              .join(", ")}.`,
       );
     if (identity.leaders?.length) {
-      const say = identity.leaders
-        .map(
-          (l) =>
-            `${l.name ?? l.player_tag} (${l.role === "leader" ? "leader" : "co-leader"})`,
-        )
-        .join(", ");
-      out.push(`Leadership: ${say}.`);
+      const role = (l) => (l.role === "leader" ? "leader" : "co-leader");
+      // Compact: the leader, and the co-leaders counted (clans_roster
+      // has every role).
+      const leader = identity.leaders.filter((l) => l.role === "leader");
+      const co = identity.leaders.length - leader.length;
+      out.push(
+        compact
+          ? `Leadership: ${[
+              ...leader.map((l) => `${l.name ?? l.player_tag} (leader)`),
+              ...(co ? [plural(co, "co-leader")] : []),
+            ].join(" and ")}.`
+          : `Leadership: ${identity.leaders
+              .map((l) => `${l.name ?? l.player_tag} (${role(l)})`)
+              .join(", ")}.`,
+      );
     }
     out.push(
-      "OMIT clan_tag to mean it. Pull clans_roster ONCE and reuse it — it is not in this block because it changes daily and this text does not.",
+      "OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it (the roster is not here: it changes daily).",
     );
     out.push(
-      "You have no player of your own, so nothing defaults to 'you'. When a human asks about themselves, pass on_behalf_of with their id from your surface; if it is not mapped yet, ask which player they are and call elixir_identify once — then it is remembered.",
+      "Nothing defaults to 'you': for a human asking about themselves, pass on_behalf_of (their id on your surface); unmapped, ask who they are and call elixir_identify once.",
     );
     if (identity.identityCount)
-      out.push(
-        `You already know ${identity.identityCount} of them (elixir_my_identities).`,
-      );
+      out.push(`You already know ${identity.identityCount} of them.`);
     return out.join(" ");
   }
 
