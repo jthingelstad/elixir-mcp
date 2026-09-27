@@ -16,6 +16,7 @@ import { describeIdentity, principalBlock } from "../../mcp/src/identity.mjs";
 import { myPlayers } from "../../mcp/src/tools/elixir/my-players.mjs";
 import { makeRegistry } from "../../mcp/src/tools.mjs";
 import { makeInvoker } from "../../mcp/src/invoker.mjs";
+import { toolDeadlineMs } from "./deadline.mjs";
 import { makeLive } from "../../mcp/src/live.mjs";
 import { ERROR_CLASS } from "@elixir-mcp/contracts";
 import { normalizeTag } from "@elixir-mcp/contracts";
@@ -225,7 +226,7 @@ function personRoute(db, account, method, path, query, body) {
 }
 
 /** Run a person operation's tool; a refusal becomes the problem body. */
-async function runPersonTool(db, account, route) {
+async function runPersonTool(db, account, route, event) {
   // The tool's own capability, as the MCP door checks it (handler.mjs):
   // a read-only grant never runs a write (2.1.0 added the first one).
   const need = toolRegistry().requiredScope(route.tool);
@@ -235,12 +236,12 @@ async function runPersonTool(db, account, route) {
       "insufficient_scope",
       `This grant lacks the capability ${need}.`,
     );
-  return runTool(db, account, route);
+  return runTool(db, account, route, event);
 }
 
 /** One tool, as the caller (a person, or an integration whose permission
  *  was checked): the same registry, invoker and budget as MCP. */
-async function runTool(db, account, route) {
+async function runTool(db, account, route, event) {
   const invoke = makeInvoker({
     db,
     account,
@@ -248,6 +249,10 @@ async function runTool(db, account, route) {
     live,
     surface: "rest",
     queryBudgetMs: PERSON_TOOL_BUDGET_MS,
+    // The request's deadline reaches every read-only tool, not only the
+    // analytical ones the budget covers: clans_participation (p95 10.2 s)
+    // ran unbounded here (review 2026-09-27 §3.2).
+    deadlineMs: toolDeadlineMs(event),
   });
   const result = await invoke(route.tool, route.args);
   if (result.isError) {
@@ -489,7 +494,7 @@ export async function integrationApi(db, event, body, deps = {}) {
       }
       if (route.tool) toolAudited = true;
       const answer = route.tool
-        ? await runPersonTool(db, account, route)
+        ? await runPersonTool(db, account, route, event)
         : await route.run();
       response = json(
         route.statusOf ? route.statusOf(answer) : 200,
@@ -651,7 +656,7 @@ export async function integrationApi(db, event, body, deps = {}) {
         operation = route.operation;
         run = () => {
           toolAudited = true;
-          return runTool(db, account, route);
+          return runTool(db, account, route, event);
         };
       } else if (
         method === "POST" &&

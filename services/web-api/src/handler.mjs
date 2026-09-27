@@ -37,6 +37,7 @@ import { feedbackRoutes } from "./routes/feedback.mjs";
 import { adminRoutes } from "./routes/admin.mjs";
 import { onboardAccount } from "./onboard.mjs";
 import { resolveOwnedAgent } from "./agent-scope.mjs";
+import { deadlineMs } from "./deadline.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";
 import {
   CONTRACT_HEADER,
@@ -105,15 +106,6 @@ function findRoute(routes, method, path, event) {
   return route
     ? { route, key: `${method} ${path.slice(0, path.lastIndexOf("/"))}/*` }
     : null;
-}
-
-// The soft deadline sits under the Lambda timeout by a margin that
-// covers writing the line and ending the client. Outside Lambda (tests,
-// no context) there is no deadline unless the caller supplies one.
-const DEADLINE_MARGIN_MS = 1500;
-function deadlineMs(context) {
-  if (typeof context?.getRemainingTimeInMillis !== "function") return null;
-  return Math.max(context.getRemainingTimeInMillis() - DEADLINE_MARGIN_MS, 1);
 }
 
 async function withDeadline(ms, run, onTimeout) {
@@ -345,9 +337,14 @@ export function makeHandler({
     let connectMs = 0;
     let timedOut = false;
     const db = new pg.Client({ connectionString: databaseUrl });
+    const soft = deadlineMs(context);
+    // A route that runs a tool races the invoker's deadline inside this
+    // one (deadline.mjs), so the tool answers query_timeout with its
+    // request id before this handler has to answer 504.
+    if (soft !== null) event.softDeadlineAt = Date.now() + soft;
     try {
       const res = await withDeadline(
-        deadlineMs(context),
+        soft,
         async () => {
           await db.connect();
           connectMs = Date.now() - started;
@@ -370,8 +367,12 @@ export function makeHandler({
       status = res?.statusCode ?? 200;
       return res;
     } finally {
-      // A timed-out route may still hold a query; ending the client
-      // cancels the socket, and the query with it.
+      // A timed-out route may still hold a query. Ending the client
+      // closes the socket, but PostgreSQL notices a closed socket only
+      // when it next talks to the client, or at the database's
+      // client_connection_check_interval (0186). What bounds the query is
+      // its statement_timeout: the invoker's for a tool, and the
+      // connection's PGOPTIONS ceiling (infra/template.yaml) for the rest.
       await db.end().catch(() => {});
       console.log(
         JSON.stringify({

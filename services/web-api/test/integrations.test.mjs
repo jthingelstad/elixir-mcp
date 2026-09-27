@@ -565,3 +565,56 @@ test("an integration with clans:read reads a clan as a person's grant does, audi
     JSON.stringify(rows),
   );
 });
+
+test("a tool behind a lock answers query_timeout on Explore and /api/v1 before the handler's 504 (review 2026-09-27 §3.2)", async () => {
+  // The invoker's deadline used to reach neither door: Explore passed
+  // none, and /api/v1 only the analytical budget, so a read waiting on a
+  // lock ran on until the handler gave up with a bare 504 and no request
+  // id, and the query ran on after it.
+  const clan = await familyClient(db, {
+    clientName: "Elixir Clan (deadline)",
+    redirectUris: ["https://clan.poapkings.com/auth/callback"],
+  });
+  const grant = await mintTokens(db, {
+    clientId: clan.clientId,
+    accountId: person,
+    scope: "cr:read",
+    resource: "https://elixir.poapkings.com/api/v1",
+  });
+  // Soft deadline 2.5 s; the tool's is 1.5 s inside it.
+  const lambda = { getRemainingTimeInMillis: () => 4000 };
+  const holder = new pg.Client({ connectionString: databaseUrl });
+  await holder.connect();
+  try {
+    await holder.query("begin");
+    await holder.query("lock table player in access exclusive mode");
+    const rest = await handler(
+      {
+        rawPath: "/api/v1/players/names",
+        requestContext: { http: { method: "POST" } },
+        headers: { authorization: `Bearer ${grant.accessToken}` },
+        body: JSON.stringify({ player_tags: ["#2PP"] }),
+      },
+      lambda,
+    );
+    assert.equal(data(rest).code, "query_timeout", rest.body);
+    const explore = await handler(
+      {
+        rawPath: "/api/explore",
+        requestContext: { http: { method: "POST" } },
+        headers: { cookie, "x-elixir-client": "web" },
+        body: JSON.stringify({
+          tool: "players_names",
+          args: { player_tags: ["#2PP"] },
+        }),
+      },
+      lambda,
+    );
+    assert.equal(explore.statusCode, 200, explore.body);
+    assert.equal(data(explore).body.error.code, "query_timeout");
+    assert.ok(data(explore).body.meta.request_id);
+  } finally {
+    await holder.query("rollback").catch(() => {});
+    await holder.end();
+  }
+});
