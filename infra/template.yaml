@@ -705,6 +705,18 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
+          # Every backend is named and bounded (review 2026-09-27 §3.1):
+          # node-pg reads PGAPPNAME and PGOPTIONS at connect. The
+          # statement_timeout is a ceiling just under the Lambda kill, so a
+          # statement the Lambda abandons is cancelled rather than orphaned
+          # (0099 on 2026-09-15; two 42 and 57 minute `pop` backends on
+          # 2026-09-18); the invoker's per-call budget sets its own below
+          # it. idle_in_transaction_session_timeout releases the locks of a
+          # transaction whose Lambda is gone. The migrate ops name
+          # themselves `elixir-mcp-migrate:<op>`.
+          PGAPPNAME: elixir-mcp-web-api
+          # statement_timeout: just under the 20 s Lambda kill.
+          PGOPTIONS: "-c statement_timeout=18s -c idle_in_transaction_session_timeout=60s"
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           OUTBOX_BUCKET: !Ref OutboxBucket
@@ -739,6 +751,9 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
+          PGAPPNAME: elixir-mcp-mcp
+          # statement_timeout: just under the 25 s Lambda kill.
+          PGOPTIONS: "-c statement_timeout=23s -c idle_in_transaction_session_timeout=60s"
           OAUTH_ISSUER: https://elixir.poapkings.com
           OUTBOX_BUCKET: !Ref OutboxBucket
           ORIGIN_SECRET: !Ref OriginSecret
@@ -778,6 +793,9 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
+          PGAPPNAME: elixir-mcp-scheduler
+          # statement_timeout: under the 50 s Lambda kill.
+          PGOPTIONS: "-c statement_timeout=45s -c idle_in_transaction_session_timeout=60s"
 
   SchedulerRule:
     Type: AWS::Events::Rule
@@ -858,6 +876,10 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
+          PGAPPNAME: elixir-mcp-migrate
+          # statement_timeout: under the 300 s Lambda kill. The ops that
+          # set their own (120 s, 250 s) set it lower.
+          PGOPTIONS: "-c statement_timeout=285s -c idle_in_transaction_session_timeout=60s"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
 
   # Scheduled product jobs (review item 5): the timer-driven work —
@@ -891,6 +913,12 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=no-verify"
+          PGAPPNAME: elixir-mcp-jobs
+          # statement_timeout: a per-statement bound, not the 900 s run.
+          # The longest statement the jobs log shows over 29 days is the
+          # nightly rollup's cards aggregate, 108 s on 2026-09-22 (the
+          # retired one-statement `pop` was 228 s on 2026-09-19).
+          PGOPTIONS: "-c statement_timeout=300s -c idle_in_transaction_session_timeout=60s"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           # Product email (docs/EMAIL.md): the queue the relay drains, the
           # secret the one-click unsubscribe token is signed with (the same
