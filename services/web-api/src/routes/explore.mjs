@@ -8,6 +8,7 @@ import {
 } from "../../../mcp/src/protocol.mjs";
 
 import { json } from "../http.mjs";
+import { toolDeadlineMs } from "../deadline.mjs";
 
 /**
  * Writes the console itself performs through the bridge. The explorer is a
@@ -58,6 +59,8 @@ export function exploreRoutes({ resolveAccount, exploreRegistry }) {
         account,
         registry,
         surface: "web",
+        // Every read-only tool races the request's deadline, as at /mcp.
+        deadlineMs: toolDeadlineMs(event),
       });
       const args = body.args && typeof body.args === "object" ? body.args : {};
       const result = await invoke(tool, args);
