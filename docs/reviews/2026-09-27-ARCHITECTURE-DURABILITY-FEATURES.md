@@ -10,8 +10,11 @@ the morning after the Dependabot deploy, with production healthy
 very comfortable with its resilience"). That removes the database half
 of §2.1, all of §2.2 and all of §2.3; the line is in DECISIONS under
 "Declined". Guard the Door fixed the relay logging item (§8.1) the same
-morning (PR #56, `76f68c6`). The rest is sequenced into chunks for local
-sessions in [`2026-09-27-EXECUTION-BRIEF.md`](2026-09-27-EXECUTION-BRIEF.md).
+morning (PR #56, `76f68c6`). The rest is sorted into four lanes by who
+decides in [`2026-09-27-EXECUTION-BRIEF.md`](2026-09-27-EXECUTION-BRIEF.md):
+lane A (fixes, no decision) is GitHub issues #62-#73 under the
+`review-2026-09-27` label; features, policy and parked work are held
+there for a revisit once lane A closes.
 
 **Ask (Jamie):** "This is a complex data product and it is working well.
 Please review for architectural improvements, efficiency and durability

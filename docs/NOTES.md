@@ -3129,29 +3129,39 @@ Six door and auth-plane findings (one high) went to Jamie directly and
 are not described in the public file. Needs Jamie: the thirteen calls
 in the review's §9.3. The fix bundles in §9.1 need no decision.
 
-## 2026-09-27 - The review, sequenced; database restore set aside
+## 2026-09-27 - The review, sorted into lanes; database restore set aside
 
-Jamie read the review and asked for its work to be sequenced into chunks
-that his local Claude Code can run one session at a time. He set one part
-aside: "The one thing I'm not worried about is restoring the database. …
-We're running in AWS. I'm very comfortable with its resilience." That
-removes the database half of the review's §2.1 (an off-account snapshot
-copy), all of §2.2 (restore runbook, rehearsal, `--stack-only`, longer
-retention, Multi-AZ) and all of §2.3 (the replay-parity proof). The line
-is in DECISIONS under "Declined". Archive (`payloads/`) replication is a
-separate, account-level question; it is listed as not scheduled, not
-declined.
+Jamie read the review and set one part aside: "The one thing I'm not
+worried about is restoring the database. … We're running in AWS. I'm very
+comfortable with its resilience." That removes:
 
-The rest is in `docs/reviews/2026-09-27-EXECUTION-BRIEF.md`: C0 (land
-the review) and 23 chunks in six waves, each with its scope, the calls
-Jamie makes before it starts, a done-when, the ship scope and a tracker
-line. The session prompt is one line naming the chunk. Wave 1 closes
-the door findings and builds the owed-work register. Wave 2 is the $0
-invariants work plus C9, which is due before the first storage
-autoscale (~10-13). Wave 3 holds the chunks that wait on Jamie's calls
-before open beta.
+- the database half of the review's §2.1 (an off-account snapshot copy);
+- all of §2.2 (restore runbook, rehearsal, `--stack-only`, longer
+  retention, Multi-AZ);
+- all of §2.3 (the replay-parity proof).
 
-The relay logging item in the review's §8.1 was fixed by Guard the Door
-earlier the same morning (PR #56, `76f68c6`). Follow-up owed: C3 runs
-`/consistency` on the new DECISIONS line, which reaches the Run
-objective's quarterly restore rehearsal (`run-elixir-mcp.md:179-190`).
+The line is in DECISIONS under "Declined". Off-account replication of
+the archive (`payloads/`) is a separate, account-level question. It is
+held in lane C, not declined.
+
+A first plan cut the rest into 23 subsystem chunks. Jamie found it mixed
+three kinds of work, so it was re-sorted by who has to decide
+(`docs/reviews/2026-09-27-EXECUTION-BRIEF.md`):
+
+- **Lane A: fix and harden** (41 findings) is filed as issues #62-#73,
+  with the older bugs #44 and #43 joining the same `review-2026-09-27`
+  queue. Each issue is worked by one local Claude Code session, using
+  the prompt in the brief. An issue closes only when its fix is deployed
+  and read back. #62 (door hardening) carries no mechanics; the details
+  are Jamie's private notes.
+- **Lanes B (features), C (policy) and D (parked)** are held in the
+  brief, not filed. When the label has no open issue, Jamie and Claude
+  revisit them, starting with B.
+
+Jamie noted that he has not reviewed the policy text in `privacy.md`.
+Lane C starts there.
+
+Also recorded: #48 (RDS recovery rehearsal) closes as not planned under
+the restore decision, in the queue's first session. #46 (historical clan
+roles) waits for the lane B revisit. The relay logging item in the
+review's §8.1 was already fixed by Guard the Door (PR #56, `76f68c6`).
