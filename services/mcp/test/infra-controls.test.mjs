@@ -46,6 +46,17 @@ test("database-facing Lambda concurrency remains bounded", async () => {
   }
 });
 
+test("the jobs Lambda's async retries are stated: two, inside an hour", async () => {
+  // Review 2026-09-27 §6.7: a mail run that stops short of its
+  // recipients fails on purpose, and the retry carries on from the ledger.
+  const template = await readFile(templateUrl, "utf8");
+  const block = resource(template, "JobsInvokeConfig", "EditorLogGroup");
+  assert.match(block, /Type: AWS::Lambda::EventInvokeConfig/);
+  assert.match(block, /FunctionName: !Ref JobsFunction/);
+  assert.match(block, /^      MaximumEventAgeInSeconds: 3600$/m);
+  assert.match(block, /^      MaximumRetryAttempts: 2$/m);
+});
+
 test("every database-facing Lambda names its connections and bounds its statements under its own timeout", async () => {
   // Review 2026-09-27 §3.1: five functions connected as one user with no
   // application_name and, the invoker's budget aside, no statement bound,
