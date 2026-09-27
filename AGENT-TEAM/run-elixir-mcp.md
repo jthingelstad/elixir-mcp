@@ -143,8 +143,11 @@ Establish, with receipts:
   - `{terminate_backends}` on a migration or backfill backend that has
     held its query for more than five minutes (the 0099 incident held a
     lock for about 35). Read `{backends}` first and name that query in
-    `like`; never `true`, because every service connects as the same
-    database user and a loose pattern ends live door queries.
+    `like` (the op refuses `true` and a pattern naming no query, and
+    will not touch a backend younger than 300 s), and pass the
+    `application_name` `{backends}` shows for it, because every service
+    connects as the same database user and a loose pattern ends live
+    door queries.
   - `{gateway_drain}` for a collector submitting errors or bad data, and
     `{gateway_recover}` once its fix is confirmed.
 
