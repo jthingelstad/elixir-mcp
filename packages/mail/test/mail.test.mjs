@@ -174,6 +174,38 @@ test("a clan report subject says the war place and the churn", () => {
   assert.equal(subject, "POAP KINGS, Sep 7 – 14: 1st in war, 3 left, 3 joined");
 });
 
+test("a clan report names each day in its reader's zone; an issue stored with a day label still renders", () => {
+  // Review 2026-09-27 §6.7: composed once for everyone, the report had
+  // named days in the first tracker's zone.
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
+  );
+  facts.membership.joined = [
+    { tag: "#A", name: "Late", at: "2026-09-09T03:00:00Z" },
+    { tag: "#B", name: "Old", when: "Fri" },
+  ];
+  facts.standouts = [
+    {
+      tag: "#A",
+      name: "Late",
+      text: "9 battles in one {{day:2026-09-09T03:00:00Z}} sitting",
+    },
+  ];
+  const utc = renderMail("clan_report", facts, links).html;
+  const chicago = renderMail("clan_report", facts, {
+    ...links,
+    timezone: "America/Chicago",
+  }).html;
+  assert.match(utc, />Wed</);
+  assert.match(utc, /one Wed sitting/);
+  assert.match(chicago, />Tue</);
+  assert.match(chicago, /one Tue sitting/);
+  for (const html of [utc, chicago]) {
+    assert.match(html, />Fri</);
+    assert.ok(!html.includes("{{day:"), "every day token is filled");
+  }
+});
+
 test("renderMail refuses a kind it does not know and a send without links", () => {
   assert.throws(() => renderMail("newsletter", {}, links), /unknown kind/);
   assert.throws(() => renderMail("milestone", {}, {}), /links/);

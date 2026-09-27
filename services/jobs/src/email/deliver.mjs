@@ -40,6 +40,8 @@ export async function deliver({
     manage: MANAGE_URL,
     period,
     send_id: sendId,
+    // A mail composed once for many readers names days in each one's zone.
+    timezone: account.timezone ?? "UTC",
   };
   const { subject, html } = renderMail(kind, facts, links);
   const text = htmlToText(html);
