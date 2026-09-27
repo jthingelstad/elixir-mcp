@@ -3150,9 +3150,11 @@ three kinds of work, so it was re-sorted by who has to decide
 
 - **Lane A: fix and harden** (41 findings) is filed as issues #62-#73,
   with the older bugs #44 and #43 joining the same `review-2026-09-27`
-  queue. Each issue is worked by one local Claude Code session, using
-  the prompt in the brief. An issue closes only when its fix is deployed
-  and read back. #62 (door hardening) carries no mechanics; the details
+  queue. The queue runs one issue per interactive session, or
+  unattended through one orchestrator session that hands each issue to
+  a fresh subagent. Blocked issues get the `needs-jamie` label and the
+  loop moves on; a failed deploy stops it. An issue closes only when its
+  fix is deployed and read back. #62 (door hardening) carries no mechanics; the details
   are Jamie's private notes.
 - **Lanes B (features), C (policy) and D (parked)** are held in the
   brief, not filed. When the label has no open issue, Jamie and Claude
