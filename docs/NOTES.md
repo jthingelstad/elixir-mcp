@@ -3084,3 +3084,7 @@ after the brief is proof. The poll serves `last_battle.trophy_road`, and
 the wizard says "Not Trophy Road, so it does not count" of any other
 battle. Path of Legends, which the brief used to suggest, no longer
 counts. Console and web-api only: no MCP contract or JSON API change.
+PR #58 merged on a green `validate` as 952e2786 and deployed at 16:22Z
+(11:22 AM CT) with 0 migrations run and a clean smoke; acceptance was not
+run because no tool changed. `/api/public/status` reports `health.ok`
+true and `/docs/verify/` serves the Trophy Road copy.
