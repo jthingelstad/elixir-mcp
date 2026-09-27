@@ -107,6 +107,10 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.6.2** (2026-09-27): an operation that runs a tool (a person's
+  operations, `clans.roster`) races the request's deadline, so a slow or
+  lock-blocked read answers 503 `query_timeout` with `retry_after_s`
+  instead of the request timing out.
 - **2.6.1** (2026-09-27): `POST /clans/{tag}/facts` checks a write that
   replaces a fact against the fact already there as well as the one sent.
   A family app's OAuth client is provisioned by Elixir and authenticates

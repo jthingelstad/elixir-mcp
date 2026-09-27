@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-27",
+    title: "Slow answers say so instead of timing out",
+    body: "A read that runs long, or waits behind maintenance, now answers with a retry hint wherever you ask, in Explore and through the JSON API as well as through your agent, instead of the page or request timing out. The deck-set planners also stop at a time limit and hand back the best sets they found. Contract 9.12.2; JSON API 2.6.2.",
+  },
+  {
+    date: "2026-09-27",
     title: "Connecting an app shows where it sends you",
     body: "When an app asks to connect to your Elixir account, the page now shows the address it will send you back to beside the name it chose for itself, and says plainly when it is one of Elixir's own apps. Apps can now disconnect themselves with a standard revocation request, and sign-in codes to one address are limited the same way whichever page asked for them. Contract 9.12.1; JSON API 2.6.1.",
   },
