@@ -3256,7 +3256,7 @@ client does not cancel it, and nothing on the server bounded it.
 - **`{oauth_grants}` revoke** writes its UPDATE and account event in one
   transaction; it and `{collection}` gained tests.
 
-**Shipped** (#77, 750fa9b5; deployed 20:40Z (3:40 PM CT), 0186 ran).
+**Shipped** (#77, 750fa9b5; deployed 20:42Z (3:42 PM CT), 0186 ran).
 Acceptance (full suite): 1,188 cases, 11 failed. Verdicts:
 
 - 217.2, 285.1: counts moved between calls under live ingest; pass alone.
