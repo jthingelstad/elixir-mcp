@@ -362,6 +362,39 @@ function expectedWrittenPeriod(kind, now) {
     : lastGameWeek(now).key;
 }
 
+/** The scheduled send slot of each WRITTEN kind: UTC weekday and hour,
+ *  the EventBridge crons in infra/template.yaml (EmailTop100Rule,
+ *  EmailCardOfWeekRule; a test pins them together). */
+export const WRITTEN_SEND_SLOT = {
+  top_100: { day: 4, hour: 14 },
+  card_of_week: { day: 5, hour: 14 },
+};
+
+/** Whether an issue accepted now for `period` has missed its scheduled
+ *  send (review 2026-09-27 §6.7): the kind's slot has passed and that
+ *  slot's send was for this very period, which is still the period a
+ *  send now would take. An accept before the slot is left to the
+ *  schedule; an accept for an older period, or one landing after the
+ *  period has moved on, never sends on its own. */
+export function writtenSendDue(kind, period, now = new Date()) {
+  const slot = WRITTEN_SEND_SLOT[kind];
+  if (!slot || !period) return false;
+  const at = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      slot.hour,
+    ),
+  );
+  at.setUTCDate(at.getUTCDate() - ((at.getUTCDay() - slot.day + 7) % 7));
+  if (at > now) at.setUTCDate(at.getUTCDate() - 7);
+  return (
+    expectedWrittenPeriod(kind, at) === period &&
+    expectedWrittenPeriod(kind, now) === period
+  );
+}
+
 /** The accepted issue for a WRITTEN kind's period (the editor pipeline
  *  wrote its facts); null when there is none. An issue that failed its
  *  lint has no facts and is never picked up here, which is how a
