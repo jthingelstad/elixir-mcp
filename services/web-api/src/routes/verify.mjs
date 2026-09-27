@@ -1,6 +1,6 @@
 import { json } from "../http.mjs";
 import { checkRateLimit } from "@elixir-mcp/auth";
-import { normalizeTag, typesForModeGroup } from "@elixir-mcp/contracts";
+import { normalizeTag } from "@elixir-mcp/contracts";
 import { makeLive } from "../../../mcp/src/live.mjs";
 import { participantModeClause } from "../../../mcp/src/mode-filter.mjs";
 import { enqueueJob } from "../../../scheduler/src/ledger.mjs";
@@ -22,11 +22,11 @@ import { drawTarget, deckIds, deckKey } from "./verify-draw.mjs";
  * a fetch directly: the poll route mints at most one live read every
  * LIVE_READ_EVERY_S while the challenge is open and being watched.
  *
- * Trophy Road only (Jamie, 2026-09-27), for the proof and for the deck
- * the target is drawn from: an event, draft or preset mode hands the
- * player a deck they did not choose, which proves nothing and makes a
- * poor base. Trophy Road is the `ladder` mode group - `PvP` with no
- * event tag - the one definition the tools and rollups share.
+ * The target is drawn from Trophy Road decks only (Jamie, 2026-09-27):
+ * an event, draft or preset mode hands the player a deck they did not
+ * choose, which makes a poor base. The proof is a battle in ANY mode -
+ * the player picks where to play it. Trophy Road is the `ladder` mode
+ * group, `PvP` with no event tag, the one definition the tools share.
  */
 export const DECK_SIZE = 8;
 const TROPHY_ROAD = "ladder";
@@ -75,15 +75,13 @@ async function expireStale(db, accountId, tag) {
 }
 
 /** The battles this player has played since the brief, newest first,
- *  each with the ids of the deck they used and whether it was on Trophy
- *  Road (only those can prove). Duels (rounds) carry no single deck and
- *  never match. */
+ *  each with the ids of the deck they used. Duels (rounds) carry no
+ *  single deck and never match. */
 async function battlesSince(db, tag, since, limit = 10) {
   const { rows } = await db.query(
     `select bp.battle_id, bp.battle_time, bp.outcome, bp.crowns, bp.side,
             (select array_agg(dc.card_id) from deck_card dc where dc.deck_hash = bp.deck_hash) as card_ids,
             b.type, b.game_mode_name,
-            (b.type = any($4) and b.event_tag is null) as trophy_road,
             (select json_build_object('player_tag', o.player_tag, 'name', p.name, 'crowns', o.crowns)
                from battle_participant o join player p on p.player_tag = o.player_tag
               where o.battle_id = bp.battle_id and o.side <> bp.side
@@ -91,7 +89,7 @@ async function battlesSince(db, tag, since, limit = 10) {
        from battle_participant bp join battle b on b.battle_id = bp.battle_id
       where bp.player_tag = $1 and bp.battle_time >= $2::timestamptz
       order by bp.battle_time desc limit $3`,
-    [tag, since, limit, typesForModeGroup(TROPHY_ROAD)],
+    [tag, since, limit],
   );
   // Card ids come from the deck's identity rows (0091); a duel has no
   // deck_hash and so no ids, as before.
@@ -157,8 +155,6 @@ async function present(db, row, { livePending = false, battle = null } = {}) {
           battle_time: shown.battle_time,
           type: shown.type,
           mode: shown.game_mode_name ?? null,
-          // Only a Trophy Road battle proves; the wizard says so of any other.
-          trophy_road: shown.trophy_road === true,
           outcome: shown.outcome ?? null,
           crowns: shown.crowns ?? null,
           opponent: shown.opponent ?? null,
@@ -463,12 +459,10 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
         return json(200, await present(db, { ...row, outcome: "expired" }));
       }
 
-      // The proof: a Trophy Road battle played AFTER the brief with
+      // The proof: a battle in any mode played AFTER the brief with
       // exactly the target.
       const since = await battlesSince(db, row.player_tag, row.created_at);
-      const proof = since.find(
-        (b) => b.trophy_road && deckMatches(row.target_card_ids, b.ids),
-      );
+      const proof = since.find((b) => deckMatches(row.target_card_ids, b.ids));
       if (proof) {
         await db.query("begin");
         try {

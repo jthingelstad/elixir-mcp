@@ -233,11 +233,10 @@ export function Verify({ refresh, navigate }) {
             <div className="panel__body">
               <p className="verify__lead">
                 {challenge.target_source === "most_played"
-                  ? "This is your own recent Trophy Road deck with two cards swapped (marked). Make those two changes in a deck slot and play one Trophy Road battle with it."
-                  : "Build these 8 cards in a deck slot and play one Trophy Road battle with it."}{" "}
-                Only Trophy Road counts: other modes can hand you a deck you did
-                not pick. Win or lose, the battle is the proof, and you can
-                switch back afterwards.
+                  ? "This is your own recent Trophy Road deck with two cards swapped (marked). Make those two changes in a deck slot and play one battle with it."
+                  : "Build these 8 cards in a deck slot and play one battle with it."}{" "}
+                Any mode counts, win or lose: the battle is the proof, and you
+                can switch back afterwards.
               </p>
               <DeckGrid cards={challenge.target} label="The deck to play" />
             </div>
@@ -255,12 +254,6 @@ export function Verify({ refresh, navigate }) {
                   {verified ? (
                     <>
                       <strong>Verified</strong> · the proof:{" "}
-                      {resultLine(challenge.last_battle, zone)}
-                    </>
-                  ) : challenge.last_battle &&
-                    !challenge.last_battle.trophy_road ? (
-                    <>
-                      <strong>Not Trophy Road</strong>, so it does not count ·{" "}
                       {resultLine(challenge.last_battle, zone)}
                     </>
                   ) : challenge.last_battle ? (
