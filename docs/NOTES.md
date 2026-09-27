@@ -3255,3 +3255,38 @@ client does not cancel it, and nothing on the server bounded it.
   and names its own connection (`elixir-mcp-migrate:backends`).
 - **`{oauth_grants}` revoke** writes its UPDATE and account event in one
   transaction; it and `{collection}` gained tests.
+
+**Shipped** (#77, 750fa9b5; deployed 20:40Z (3:40 PM CT), 0186 ran).
+Acceptance (full suite): 1,188 cases, 11 failed. Verdicts:
+
+- 217.2, 285.1: counts moved between calls under live ingest; pass alone.
+- `catalogue/cards_archetype#docs`, `elixir_timeline#docs`,
+  `war_history#notes`: rare fields absent from this run; pass alone.
+- `catalogue/battles_trends#1`: 10.5 s, 10.0 s alone, the first call of
+  a fresh acceptance process: the open first-call item from 09-26, not a
+  `query_timeout` and not this change.
+- 337.1 (#GRJ20LQP no longer recorded), 343.2 (live board state): live
+  cases whose world moved, as at 9.11.1; `/gym` re-seeds them.
+- 289.3: live case; King Thing's account turned 365 days today and now
+  carries `YearsPlayed` level 1 (progress 365), so the "no YearsPlayed
+  badge" note correctly no longer fires. `/gym` re-seeds it.
+- `identities/implies:a-regular-week-at-the-line-finished-early` and
+  `…:no-finish,-no-finish-day`: season 136 week 2 is in progress and POAP
+  KINGS crossed the line at 09:38Z today, so `our_fame` 10,305 and
+  `finish_war_day` 3 sit beside `finished_early: null` (null while in
+  progress, by its note). First in-progress finish since the identities
+  were written; `war_history` is untouched here. For Keep the Record True:
+  either `finished_early` turns true once the line is crossed, or the two
+  identities skip `in_progress` weeks. They clear on their own when the
+  week closes Monday about 09:30Z.
+
+Read-back (20:58-21:01Z, 3:58-4:01 PM CT): `/api/public/status`
+`ok: true`; the five functions carry their `PGAPPNAME` and `PGOPTIONS`;
+`{backends}` answers `as: elixir-mcp-migrate:backends` and grouped a live
+MCP query under `elixir-mcp-mcp` (the doors connect per request, so most
+reads show none); `{"terminate_backends": true}` answers
+`named_query_required`; `elixir_changelog` since 9.12.1 answers 9.12.2.
+
+Pending: the next nightly jobs run under the 300 s ceiling (the meta
+rollup's longest statement was 108 s), and a week with no orphaned
+backend in `{backends}`.
