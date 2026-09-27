@@ -3446,3 +3446,22 @@ Review §6.4 and §6.8, lane A; privacy.md itself untouched (lane C).
 
 No MCP contract or JSON API change. Ship: stack and jobs only, no
 acceptance (nothing a tool serves changed); smoke.
+
+Shipped in PR #83 (56608399..cc41c5cf), deployed with no acceptance
+(nothing a tool serves changed); migrate ran 0 of 187, stack
+UPDATE_COMPLETE, smoke green. `elixir-mcp-jobs` LastModified 22:38:54Z
+(5:38 PM CT).
+
+Read-back 22:40Z (5:40 PM CT), reads only: `/api/public/status`
+`health.ok: true`; `GetBucketLifecycleConfiguration` on the archive
+bucket lists `calls-purge-expired` (`calls/`, NoncurrentDays 1,
+ExpiredObjectDeleteMarker) beside `calls-expire` (90 days), and
+`expire-superseded-versions` still 365 for the rest; `/updates` shows
+the entry. `ListObjectVersions` on `calls/dt=2026-06-27/`,
+`2026-06-19/` and `2026-05-30/` is empty, but vacuously: the oldest
+capture prefix is `calls/dt=2026-09-10/`, so no capture has reached 90
+days yet.
+
+Pending (a natural event): the first captures expire about 2026-12-09.
+From about 2026-12-11, `ListObjectVersions` on `calls/dt=2026-09-10/`
+should return no versions and no delete markers.
