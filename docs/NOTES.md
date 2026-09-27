@@ -3477,3 +3477,44 @@ delayed the deadline timer or, on that runner, the answer waited for
 the abandoned work. Not fixed here (out of #66's scope); owner: the next
 `query-budget` change, which should log the elapsed time on failure and
 check whether the error path awaits the abandoned promise.
+
+## 2026-09-27 - #67 (A6): product-mail send bugs
+
+Review §6.7, lane A. Every `path:line` in the issue re-verified against
+`d5dc74b8`: all four held (`index.mjs` 135-193, 160, 231-238; `ctx.mjs`
+21-31; `ledger.mjs` 21-23; `build-clan.mjs` 16-20, 209-211).
+
+- **Ledger before compose.** One `email_issue`/`email_send` query per
+  run drops who already has the period's mail (per account, per clan,
+  per written issue) before anything is composed; a clan issue some
+  trackers have is sent as stored. The `{email: ...}` log line now
+  carries `already_sent`, `remaining`, `incomplete` and `ms`. With 90 s
+  left the run stops taking recipients and the handler throws
+  `email_run_incomplete`, so the async retry resumes from the ledger and
+  `elixir-mcp-jobs-errors` fires. `JobsInvokeConfig`
+  (`AWS::Lambda::EventInvokeConfig`, $0): `MaximumEventAgeInSeconds`
+  3600, `MaximumRetryAttempts` 2, for every async jobs event.
+- **Milestone period** is `<UTC date>.<hash of the moments>`, so a
+  second moment the same day is a second mail (it had waited for
+  midnight); links and the pixel keep the date as the campaign period.
+- **Written kinds** send only the issue for their period (today's date
+  for `top_100`, `lastGameWeek(now).key` for `card_of_week`); with none
+  accepted, nothing sends and the owner gets one `owner_notify`. The
+  send no longer upserts the issue, so its status and `issue <key>` note
+  survive. Forced sends keep the newest accepted issue.
+- **Clan report** composes at the clan's recording scope, not
+  `members[0]`'s `account_clan.scope`; days travel as instants and the
+  renderer names them in each recipient's timezone (`links.timezone`).
+  Closes the 2026-09-26 queued item "clan reports are composed in the
+  first recipient's timezone".
+
+Tests: `services/jobs/test/email-run.test.mjs` (scratch database: the
+ledger pre-filter, the stop, two milestones in one UTC day, the period
+gate with its owner notice and kept note, `buildClan` deep-equal under
+two accounts) fails on the old code, six of six;
+`packages/mail/test/mail.test.mjs` renders a clan report's days in two
+zones and an old `when` label; `infra-controls.test.mjs` pins the invoke
+config.
+
+No MCP contract or JSON API change. Ship: stack and jobs, no acceptance
+(mail only, nothing a tool serves changed); smoke.

@@ -459,6 +459,51 @@ rank-and-rating pairing are the kind's, and `card_of_week` adds a word
 FLOOR, because an issue an editor pass cut to nothing satisfies every
 other rule.
 
+## The run asks the ledger first (2026-09-27, review §6.7, #67)
+
+Four send bugs, one fix each:
+
+- **Ledger before compose.** `runEmail` used to compose every recipient
+  and only then ask `deliver` whether the mail had gone. On a jobs
+  Lambda with a 900 s timeout, reserved concurrency 1 and default async
+  retries, a run past 900 s would restart from the oldest account on
+  every retry and die at the same place, so the newest accounts never
+  got mail, and each retry rewrote `email_issue.facts` on issues already
+  sent. Now one ledger query per run drops the recipients (and, for
+  `clan_report`, the clans) already sent for the period, and an issue
+  some trackers already have is sent as stored, never recomposed. The
+  run logs `{sent, already_sent, remaining, ms}` on its `{email: ...}`
+  line; with 90 s left (`STOP_MARGIN_MS`) it stops taking recipients,
+  and the handler fails the invocation (`email_run_incomplete`) so the
+  retry resumes from the ledger and the jobs errors alarm says a run has
+  outgrown one invocation. `JobsInvokeConfig` states the retries: two,
+  inside an hour. An outbox continuation and a per-run subject memo wait
+  until a logged run passes about 450 s.
+- **Milestones as they happen.** The period key was the UTC date, so a
+  second moment later the same day read as already sent and waited for
+  the first pass after midnight (and a ~2 h outage then lost it to the
+  26 h lookback). The key is now the date plus a hash of the moments it
+  congratulates (`milestonePeriodKey`): new moments are a new mail, a
+  retry of the same moments is the same mail. The campaign period on
+  links and the pixel stays the date. `email_milestone` is still the
+  once-ever guard; a mail found sent whose moments were never recorded
+  records them.
+- **Written issues are tied to their period.** `top_100` sends the
+  issue for today's date, `card_of_week` the one for
+  `lastGameWeek(now).key`. With none accepted, nothing sends and the
+  owner gets one `owner_notify`; last week's issue is never sent as new.
+  The send no longer upserts the issue row, so its status and `issue
+  <key>` note stay as the pipeline wrote them. The operator's forced
+  send still takes the newest accepted issue. A late accept sending on
+  its own is A7 (#68).
+- **The clan report is the clan's.** It was composed as `members[0]`,
+  with that account's own `account_clan.scope` and timezone. It now uses
+  the clan's recording scope (the widest any tracker or collection asked
+  for), carries days as instants (`membership[].at`, `{{day:<instant>}}`
+  in a standout's text), and the renderer names each day in the
+  recipient's `account.timezone` (`links.timezone`, set by `deliver`).
+  Issues stored before this carry `when` labels and still render.
+
 ## Open
 
 - The Top 100 masthead name (subjects are generated; the name is a string;

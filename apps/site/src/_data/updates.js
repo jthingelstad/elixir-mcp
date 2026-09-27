@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-27",
+    title: "Milestone notes come as the moments do",
+    body: "A second milestone on the same day used to wait until after midnight, and could be lost if the mail was down then; each new first now gets its note on the next hourly check. The Monday clan report is now the same for everyone who tracks the clan: it covers the clan at the depth it is recorded, even if you chose the lighter scope, and names each day in your own timezone. The Top 100 and Card of the Week only ever go out as that week's issue; if one is not ready, nothing is sent rather than last week's. No change to the tools.",
+  },
+  {
+    date: "2026-09-27",
     title: "Captured calls are gone at 90 days, as promised",
     body: "The request and response of a tool call are kept for 90 days, as the privacy page says. Because the storage keeps earlier versions of a file, a call's body could linger as an old version for up to a year after that; it now goes the day after its 90 days end. The weekly tracking mail also picks its moments before it trims a busy week, so a clan's messages and other facts from Elixir's family apps can no longer push your own milestones out of it, and never appear in it. No change to the tools.",
   },
