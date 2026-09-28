@@ -3757,3 +3757,79 @@ Jamie's). Two PRs: the database and alarms first, then secrets and
   `elixir-mcp-db-freeable-memory` (under 150 MB); and
   `elixir-mcp-site-certificate-expiry` (ACM `DaysToExpiry` under 30 on
   `SiteCertificateArn`). Run Elixir MCP's Doors check names them.
+- **Deployed and read back (2026-09-27, evening Central).** PR #94,
+  deploy exit 0: migrations `{"applied":188,"ran":2}`, 40 smoke checks,
+  stack UPDATE_COMPLETE. The five alarms exist, are OK, and act on
+  `elixir-mcp-alarms`; the certificate alarm watches the
+  elixir.poapkings.com certificate (`42352a61-...`). Both metric filters
+  exist on their log groups. `{statements}` answers (version 1.11; the
+  library's counters run from 2026-09-06, 10 statements evicted). By
+  total time, the top statements are the `api_payload` insert (351k calls,
+  about 44,000 s), the collector heartbeat update (1.0M calls, about
+  17,000 s) and the `player_daily_battle_rollup` upsert. By shared blocks
+  read, the top are the `deck_card` anchored synergy query (308 calls,
+  14M blocks) and the `select distinct bp.player_tag, ...::date`
+  activity scan (41 calls, 12M blocks). Those are the inputs the
+  instance and cache decisions were waiting on. Not acted on here.
+- **Week-later check (about 2026-10-04):** `{tables}` on the ten tuned
+  tables should show `all_visible_pct` above about 98 with no manual
+  `{vacuum}`.
+
+**Part 2: secrets and `/api/v1`.**
+
+- **`/api/v1` 2.6.4.** A non-ApiError exception now answers 500
+  `internal` with no Retry-After. Only a transient database failure
+  answers 503 `temporarily_unavailable` with `Retry-After: 5`: a
+  connection refused, reset or terminated, a statement or lock timeout,
+  a serialization failure or deadlock, or too many connections. The
+  clan fact operations' security blocks now name `integrationKey`.
+  `services/web-api/test/integration-routing.test.mjs` walks
+  `integrationContract.paths` and checks, for every operation and every
+  principal kind:
+  - the operation routes and is audited as itself;
+  - kinds it does not declare are refused `not_found`;
+  - the security schemes match `x-principals`.
+  Writing the test found a person's `insufficient_scope` refusal that was
+  never audited (the operation marked itself tool-audited before the
+  scope check); that is fixed. It also found, but did not fix, that the
+  invoker writes its own `request_id` on a tool's audit row, not the
+  `X-Request-ID` the `/api/v1` response carries. The docs say that
+  header ties a response to its audit row, so for tool-backed operations
+  it does not yet.
+- **Rotation without breakage.**
+  - Sessions verify against `SESSION_SECRET` and
+    `SESSION_SECRET_PREVIOUS`, and sign with the current secret only.
+  - The doors accept `ORIGIN_SECRET` or `ORIGIN_SECRET_PREVIOUS`.
+  - Unsubscribe links signed with their own key carry the key id
+    `u1.` (`unsubscribe_secret`). A link with no key id is checked
+    against the session secrets.
+  - Template switches, all PRESERVED:
+    - `SessionSecretPreviousInSecret` and `UnsubscribeKeyInSecret`,
+      both `false`, gate the references to keys the app secret does not
+      carry yet;
+    - `OriginSecretPrevious` is NoEcho, empty by default;
+    - `SecretEpoch` is on all seven functions that hold a secret
+      reference, so one `--param=SecretEpoch=<date>` makes every
+      reference, `db_password` included, be read again.
+  - `deploy.mjs --rotate-origin-secret` rotates the origin secret, and
+    CloudFront now `DependsOn` both doors.
+  - `parameters.mjs` omits a PRESERVED parameter the live stack has
+    never stored, so its first deploy takes the template default. It
+    used to send UsePreviousValue, which CloudFormation refuses.
+  - Runbook: `docs/SECRETS.md`. The rehearsal of a session rotation
+    signing nobody out is `auth.test.mjs` against a scratch database.
+- **`sslmode=verify-full`** on all five `DATABASE_URL`s. Each database
+  function's package carries the us-east-1 RDS root CAs
+  (`infra/certificates/rds-us-east-1-bundle.pem`, roots only, as RDS
+  asks) through `NODE_EXTRA_CA_CERTS=/var/task/certificates/rds.pem`,
+  which is AWS's recommendation for Node 20 and later runtimes.
+
+**For Jamie (manual, values only you handle):**
+
+1. Give unsubscribe links their own key: add `unsubscribe_secret` to
+   `elixir-mcp/app`, then deploy with
+   `--param=UnsubscribeKeyInSecret=true` (`docs/SECRETS.md`, "Unsubscribe
+   key").
+2. The live session-secret rotation, when you want one, follows
+   "Session secret" in the same file. It needs a console edit of the
+   secret value, so no agent can run it.
