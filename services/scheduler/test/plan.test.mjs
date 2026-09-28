@@ -15,8 +15,11 @@ import {
   SESSION_FOLLOWUP_MINUTES,
   eligibleNow,
   queueSummary,
+  dueAfterMs,
+  jitterFactor,
 } from "../src/plan.mjs";
 import { tickOnce } from "../src/handler.mjs";
+import { processResult } from "../../ingest/src/pipeline.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -1240,4 +1243,119 @@ test("the tick charges the bucket only for the rows it inserted (#64)", async ()
   } finally {
     await db.query("delete from job");
   }
+});
+
+// Review 2026-09-27 §2.6 (#69). last_planned_at is stamped at plan time
+// and a failed fetch left it standing, so an anchored daily read that
+// errored at the 10:05Z tick waited for the next board day. A non-404
+// error now owes a retry at 15, 30, then 60 minutes.
+test("an error at the 10:05Z tick is re-planned within the same board day (#69)", async () => {
+  const at = (iso) => new Date(iso);
+  const {
+    rows: [gw],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     values ($1, 'sched-retry-gw', '127.0.0.2', 'active') returning gateway_id`,
+    [accountId],
+  );
+  const fail = (endpoint, fetchedAt, httpStatus = 503) =>
+    processResult(db, {
+      v: 1,
+      job: { endpoint, entity_key: "GLOBAL", lane: "bulk" },
+      gateway_id: gw.gateway_id,
+      fetched_at: fetchedAt,
+      status: "error",
+      http_status: httpStatus,
+      error: { kind: "http" },
+    });
+  const tick = async (iso) => {
+    await setTokens(100);
+    const r = await planTick(db, at(iso));
+    return {
+      events: r.jobs.some((j) => j.endpoint === "events"),
+      retried: r.retried,
+    };
+  };
+  // Yesterday's board day was read; today's opens at 10:00Z.
+  await freshenCards(at("2026-09-04T09:00:00Z"));
+  assert.deepEqual(await tick("2026-09-04T10:05:00Z"), {
+    events: true,
+    retried: 0,
+  });
+  // The read the 10:05Z tick planned fails: a CR maintenance break.
+  assert.equal(
+    (await fail("events", "2026-09-04T10:05:40Z")).outcome,
+    "fetch_error",
+  );
+  assert.equal((await tick("2026-09-04T10:15:00Z")).events, false);
+  assert.deepEqual(
+    await tick("2026-09-04T10:21:00Z"),
+    { events: true, retried: 1 },
+    "retried 15 minutes after the error, not tomorrow",
+  );
+  assert.equal(
+    (await tick("2026-09-04T10:26:00Z")).events,
+    false,
+    "once per stamp",
+  );
+  // It fails again: 30 minutes, then 60, then the board day's own rule.
+  await fail("events", "2026-09-04T10:21:30Z");
+  assert.equal((await tick("2026-09-04T10:50:00Z")).events, false);
+  assert.equal((await tick("2026-09-04T10:52:00Z")).events, true);
+  await fail("events", "2026-09-04T10:52:30Z");
+  assert.equal((await tick("2026-09-04T11:50:00Z")).events, false);
+  assert.equal((await tick("2026-09-04T11:53:00Z")).events, true);
+  await fail("events", "2026-09-04T11:53:30Z");
+  assert.equal(
+    (await tick("2026-09-04T16:00:00Z")).events,
+    false,
+    "three tries, then the cadence",
+  );
+  // The next board day's read is the cadence's, so a failure there earns
+  // its own three retries.
+  await freshenCards(at("2026-09-05T09:00:00Z"));
+  assert.deepEqual(await tick("2026-09-05T10:05:00Z"), {
+    events: true,
+    retried: 0,
+  });
+  await fail("events", "2026-09-05T10:05:40Z");
+  assert.deepEqual(await tick("2026-09-05T10:21:00Z"), {
+    events: true,
+    retried: 1,
+  });
+
+  // A 404 is the not-found hold's, never a retry.
+  await fail("events", "2026-09-05T10:21:40Z", 404);
+  const {
+    rows: [row],
+  } = await db.query(
+    `select retry_at, retry_tries from poll_state
+     where subject_tag = 'GLOBAL' and endpoint = 'events'`,
+  );
+  assert.deepEqual(row, { retry_at: null, retry_tries: 1 });
+});
+
+// Review 2026-09-27 §4.5 (#69): a +15% jitter on the 120-minute ceiling
+// let a battle log wait 138 minutes against "never passes two hours".
+test("a battle log's jittered wait never passes the session ceiling (#69)", () => {
+  const tags = Array.from({ length: 400 }, (_, i) => `#P${i.toString(36)}`);
+  const up = tags.find((t) => jitterFactor(t, "player_battlelog") > 1.1);
+  const down = tags.find((t) => jitterFactor(t, "player_battlelog") < 0.9);
+  assert.ok(up && down);
+  const minutes = (tag, streak) =>
+    dueAfterMs({
+      subject_tag: tag,
+      endpoint: "player_battlelog",
+      empty_streak: streak,
+    }) / 60_000;
+  for (const tag of tags)
+    assert.ok(minutes(tag, 9) <= SESSION_CEILING_MINUTES, tag);
+  assert.equal(minutes(up, 9), SESSION_CEILING_MINUTES, "clamped");
+  assert.ok(minutes(down, 9) < SESSION_CEILING_MINUTES, "de-phased below");
+  // Below the ceiling the jitter still spreads a cohort both ways.
+  assert.ok(minutes(up, 0) > SESSION_FOLLOWUP_MINUTES);
+  assert.ok(minutes(down, 0) < SESSION_FOLLOWUP_MINUTES);
+  // Other endpoints keep their jitter unclamped.
+  const profile = dueAfterMs({ subject_tag: up, endpoint: "player" }) / 60_000;
+  assert.ok(profile > 1440);
 });

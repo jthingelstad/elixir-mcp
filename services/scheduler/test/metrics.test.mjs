@@ -60,6 +60,7 @@ test("ledgerEmf coalesces missing fields to zero", () => {
   assert.equal(emf.SessionFollowupJobs, 0);
   assert.equal(emf.ReadCappedJobs, 0);
   assert.equal(emf.RequestedProfileJobs, 0);
+  assert.equal(emf.RetryJobs, 0);
 });
 
 test("ledgerEmf carries the planner counters when the tick supplies them", () => {
@@ -69,12 +70,14 @@ test("ledgerEmf carries the planner counters when the tick supplies them", () =>
       followup: 3,
       read_capped: 1,
       requested: 2,
+      retried: 4,
     }),
   );
   assert.equal(emf.PlannedJobs, 12);
   assert.equal(emf.SessionFollowupJobs, 3);
   assert.equal(emf.ReadCappedJobs, 1);
   assert.equal(emf.RequestedProfileJobs, 2);
+  assert.equal(emf.RetryJobs, 4);
 });
 
 test("emitLedgerMetrics writes one newline-terminated line and returns synchronously", () => {
