@@ -1,4 +1,4 @@
-import { Icon, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, useClock } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { MailFrame } from "../../components/MailFrame.jsx";
 import { useEmailRecord } from "../../lib/queries.js";
@@ -38,7 +38,7 @@ export function EmailRecord({ id, navigate }) {
 
   const back = (
     <div className="page__crumb">
-      <a onClick={() => navigate("/account/activity/emails")}>‹ Emails</a>
+      <Link to="/account/activity/emails">‹ Emails</Link>
     </div>
   );
 
@@ -93,25 +93,18 @@ export function EmailRecord({ id, navigate }) {
       </p>
 
       <div className="flex items-center gap-2 flex-wrap mb-[18px]">
-        <a
+        {/* The email is a FIELD on the report (feedback.send_id), the
+            way a call is: the queue links straight back to this record. */}
+        <Link
           className="btn btn--sm"
-          onClick={() =>
-            // The email is a FIELD on the report (feedback.send_id), the
-            // way a call is: the queue links straight back to this record.
-            navigate(
-              `/account/feedback?send_id=${encodeURIComponent(send.send_id)}`,
-            )
-          }
+          to={`/account/feedback?send_id=${encodeURIComponent(send.send_id)}`}
         >
           <Icon name="message-square" size={15} />
           Report a problem with this email
-        </a>
-        <a
-          className="btn btn--sm"
-          onClick={() => navigate("/account/profile/email")}
-        >
+        </Link>
+        <Link className="btn btn--sm" to="/account/profile/email">
           Email switches
-        </a>
+        </Link>
       </div>
 
       {rec.html ? (

@@ -1,4 +1,4 @@
-import { Icon, LogTable, Markdown, ago, useClock } from "@elixir-mcp/ui";
+import { ago, Icon, Link, LogTable, Markdown, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useMyFeedback } from "../../lib/queries.js";
@@ -73,9 +73,7 @@ export function FeedbackItem({ id, navigate }) {
         <div className="empty__title">No feedback item #{id}</div>
         <p className="empty__body" style={{ marginBottom: 0 }}>
           Nothing by that number on your account.{" "}
-          <a onClick={() => navigate(path("/account/feedback"))}>
-            All feedback ›
-          </a>
+          <Link to={path("/account/feedback")}>All feedback ›</Link>
         </p>
       </div>
     );
@@ -83,7 +81,7 @@ export function FeedbackItem({ id, navigate }) {
   return (
     <>
       <p className="page__crumb" style={{ marginBottom: "14px" }}>
-        <a onClick={() => navigate(path("/account/feedback"))}>‹ Feedback</a>
+        <Link to={path("/account/feedback")}>‹ Feedback</Link>
       </p>
       <div
         style={{
@@ -131,25 +129,20 @@ export function FeedbackItem({ id, navigate }) {
       {item.request_id && (
         <p style={{ margin: "-12px 0 22px", fontSize: "13px" }}>
           About one call ·{" "}
-          <a
+          <Link
             className="mono"
-            onClick={() =>
-              navigate(path(`/account/activity/c/${item.request_id}`))
-            }
+            to={path(`/account/activity/c/${item.request_id}`)}
           >
             {item.request_id.slice(0, 8)}
-          </a>
+          </Link>
         </p>
       )}
       {item.send_id && (
         <p className="text-[13px] -mt-3 mb-[22px]">
           About one email ·{" "}
-          <a
-            className="mono"
-            onClick={() => navigate(`/account/activity/e/${item.send_id}`)}
-          >
+          <Link className="mono" to={`/account/activity/e/${item.send_id}`}>
             {item.send_id.slice(0, 8)}
-          </a>
+          </Link>
         </p>
       )}
 
@@ -293,7 +286,7 @@ function Compose({
   );
 }
 
-export function Feedback({ navigate }) {
+export function Feedback() {
   const { day, stamp } = useClock();
   const path = useConsolePath();
   // An agent's console lists what the AGENT filed (it files with
@@ -321,7 +314,7 @@ export function Feedback({ navigate }) {
   const rows = (items ?? []).map((f) => [
     {
       text: `fb_${f.feedback_id}`,
-      onClick: () => navigate(path(`/account/feedback/${f.feedback_id}`)),
+      href: path(`/account/feedback/${f.feedback_id}`),
     },
     {
       text: ago(f.created_at, now),

@@ -1,4 +1,4 @@
-import { Icon } from "@elixir-mcp/ui";
+import { Icon, Link } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../api.js";
 import {
@@ -39,7 +39,7 @@ export function RaiseCollector({ navigate }) {
   return (
     <>
       <div className="page__crumb">
-        <a onClick={() => navigate("/status/collectors")}>‹ Collectors</a>
+        <Link to="/status/collectors">‹ Collectors</Link>
       </div>
       <h1 className="page__title">
         {runsOne ? "Run another collector" : "Run a collector"}

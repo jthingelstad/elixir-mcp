@@ -1,4 +1,4 @@
-import { Fresh } from "@elixir-mcp/ui";
+import { Fresh, Link } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
@@ -48,7 +48,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
       <div className="panel">
         <div className="panel__body">
           No agent here on your account.{" "}
-          <a onClick={() => navigate("/account/agents")}>All agents ›</a>
+          <Link to="/account/agents">All agents ›</Link>
         </div>
       </div>
     );
@@ -360,10 +360,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
               <strong>What this key may do</strong> — capabilities of the
               agent&rsquo;s service key. An agent connected over OAuth instead
               carries its own grant, editable on{" "}
-              <a onClick={() => navigate(path("/account/connections"))}>
-                Connections
-              </a>
-              .
+              <Link to={path("/account/connections")}>Connections</Link>.
             </p>
             <CapabilityEditor
               // A null scope means EVERY capability: that is what keys minted
@@ -687,13 +684,9 @@ export function Agents({ navigate }) {
                             )}
                           </td>
                           <td>
-                            <a
-                              onClick={() =>
-                                navigate(`/agent/${a.public_id}/overview`)
-                              }
-                            >
+                            <Link to={`/agent/${a.public_id}/overview`}>
                               Open ›
-                            </a>
+                            </Link>
                           </td>
                         </tr>
                       );
@@ -788,7 +781,7 @@ export function AgentMoved({ id, navigate }) {
       <div className="panel">
         <div className="panel__body">
           No agent here on your account.{" "}
-          <a onClick={() => navigate("/account/agents")}>All agents ›</a>
+          <Link to="/account/agents">All agents ›</Link>
         </div>
       </div>
     );

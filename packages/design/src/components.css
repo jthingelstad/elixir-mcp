@@ -27,12 +27,31 @@ a {
 a:hover {
   color: var(--ink-link-hover);
 }
+/* An ACTION that sits where a link would (review 2026-09-27 §7.5): a
+   button, so it takes focus and says what it does, drawn in the link's
+   ink. A place to go is an <a href> (the kit's Link), never this. */
+button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-link);
+  font: inherit;
+  text-align: inherit;
+}
+button.link:hover {
+  color: var(--ink-link-hover);
+}
+button.link:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
 /* A link INSIDE PROSE is underlined (Jamie, 2026-09-13): the link ink
    against body ink is under 3:1, so colour alone did not tell a link
    from the words round it (axe: link-in-text-block). Controls that are
    links - the rail, the chrome, buttons, chips, table ids - stay as
    they were; this is only where a link sits in running text. */
 p a,
+p button.link,
 li a,
 dd a,
 .md a,

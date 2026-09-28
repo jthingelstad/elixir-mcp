@@ -1,4 +1,4 @@
-import { Icon, ago, secsSince } from "@elixir-mcp/ui";
+import { ago, Icon, Link, secsSince } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
@@ -243,27 +243,21 @@ export function Tracking({ me, refresh, navigate }) {
                           size={16}
                         />
                       </span>
-                      <a
+                      <Link
                         style={{ fontWeight: 600, fontSize: "14px" }}
-                        onClick={() =>
-                          navigate(`/account/tracking/${tagPath(r.tag)}`)
-                        }
+                        to={`/account/tracking/${tagPath(r.tag)}`}
                       >
                         {r.name}
-                      </a>
+                      </Link>
                       {r.verified && <VerifiedMark />}
                     </span>
-                    <a
+                    <Link
                       className="mono"
                       style={{ display: "inline-block", marginTop: "3px" }}
-                      onClick={() =>
-                        navigate(
-                          `/explore/${r.kind === "clan" ? "clan" : "player"}/${tagPath(r.tag)}`,
-                        )
-                      }
+                      to={`/explore/${r.kind === "clan" ? "clan" : "player"}/${tagPath(r.tag)}`}
                     >
                       {r.tag}
-                    </a>
+                    </Link>
                   </td>
                   <td>{r.rel}</td>
                   <td>
@@ -324,7 +318,9 @@ export function Tracking({ me, refresh, navigate }) {
               <span style={{ color: "var(--gold)" }}>★</span>{" "}
               {clans.home_clan.name ?? clans.home_clan.clan_tag} is your
               player&rsquo;s clan and{" "}
-              <a
+              <button
+                type="button"
+                className="link"
                 onClick={async () => {
                   if (homeBusy) return;
                   setHomeBusy(true);
@@ -347,7 +343,7 @@ export function Tracking({ me, refresh, navigate }) {
                 }}
               >
                 is not tracked yet, start tracking now!
-              </a>
+              </button>
               <span
                 style={{
                   display: "block",

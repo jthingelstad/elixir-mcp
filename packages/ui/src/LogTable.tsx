@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { Link } from "./Link.tsx";
 
 /**
  * The console's ONE log table.
@@ -16,7 +17,9 @@ import { useMemo, useState, type ReactNode } from "react";
  *
  * A cell is a string, a number, or an object:
  *   { text, tone }            a dot in that tone before the text
- *   { text, onClick }         a link (used for record ids)
+ *   { text, href }            a link (record ids): a real href, so it
+ *                             focuses, opens in a new tab and copies;
+ *                             an outside http(s) page opens in a new tab
  *   { text, action }          a button, for the last column
  *   { text, title }           a hover title, for a shortened id
  *   { text, ink }             an explicit ink, for a latency over budget
@@ -26,7 +29,7 @@ const PAGE = 25;
 export interface LogCell {
   text: string;
   tone?: string;
-  onClick?: () => void;
+  href?: string;
   action?: () => void;
   title?: string;
   ink?: string;
@@ -221,8 +224,18 @@ export function LogTable({
                             >
                               {cell.text}
                             </button>
-                          ) : cell.onClick ? (
-                            <a onClick={cell.onClick}>{cell.text}</a>
+                          ) : cell.href ? (
+                            <Link
+                              to={cell.href}
+                              {...(/^https?:/.test(cell.href)
+                                ? {
+                                    target: "_blank",
+                                    rel: "noopener noreferrer",
+                                  }
+                                : {})}
+                            >
+                              {cell.text}
+                            </Link>
                           ) : tone ? (
                             <span
                               className="inline-flex items-center gap-[7px]"

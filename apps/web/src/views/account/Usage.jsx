@@ -1,4 +1,4 @@
-import { useClock } from "@elixir-mcp/ui";
+import { Link, useClock } from "@elixir-mcp/ui";
 import { useUsage } from "../../lib/queries.js";
 import { useScope } from "../../lib/scope.js";
 import { quotaReading } from "../../lib/quota.js";
@@ -71,7 +71,7 @@ function fourteenDays(days) {
   return out;
 }
 
-export function Usage({ navigate }) {
+export function Usage() {
   const { data: usage, error } = useUsage();
   const { zone } = useClock();
   // An agent's console reads the agent's calls against YOUR budget: the
@@ -231,15 +231,7 @@ export function Usage({ navigate }) {
                   >
                     {c.public_id ? (
                       // Your agent: its row opens its console's Usage.
-                      <a
-                        href={`/agent/${c.public_id}/usage`}
-                        onClick={(ev) => {
-                          ev.preventDefault();
-                          navigate?.(`/agent/${c.public_id}/usage`);
-                        }}
-                      >
-                        {c.name}
-                      </a>
+                      <Link to={`/agent/${c.public_id}/usage`}>{c.name}</Link>
                     ) : (
                       c.name
                     )}
@@ -315,16 +307,12 @@ export function Usage({ navigate }) {
                 {/* The manual is one click further on; the question a
                     number here provokes is "which calls were those",
                     and that is MCP requests filtered to this tool. */}
-                <a
+                <Link
                   className="mono"
-                  onClick={() =>
-                    navigate(
-                      `/account/activity/requests?tool=${encodeURIComponent(t.tool)}`,
-                    )
-                  }
+                  to={`/account/activity/requests?tool=${encodeURIComponent(t.tool)}`}
                 >
                   {t.tool}
-                </a>
+                </Link>
                 <span
                   className="mono"
                   style={{ marginLeft: "auto", color: "var(--ink-body)" }}

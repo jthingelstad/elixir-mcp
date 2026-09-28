@@ -1,4 +1,4 @@
-import { Icon, secsSince, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, secsSince, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { usePublicStatus } from "../lib/queries.js";
 
@@ -346,7 +346,7 @@ function QueueGauge({ queue, now }) {
   );
 }
 
-export function Status({ navigate }) {
+export function Status() {
   const { time } = useClock();
   // Off by default and visible either way. It used to poll every 60s with
   // nothing on screen saying so, which is the worst of both: a tab left open
@@ -481,9 +481,9 @@ export function Status({ navigate }) {
         </div>
       </section>
 
-      <a
+      <Link
         className="panel"
-        onClick={() => navigate("/status/collectors")}
+        to="/status/collectors"
         style={{
           display: "flex",
           alignItems: "center",
@@ -517,7 +517,7 @@ export function Status({ navigate }) {
         >
           All collectors <Icon name="arrow-right" size={16} />
         </span>
-      </a>
+      </Link>
 
       <section className="panel" style={{ marginTop: "20px" }}>
         <div className="panel__head">

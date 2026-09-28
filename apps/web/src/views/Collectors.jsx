@@ -1,4 +1,4 @@
-import { Icon, agoExact, secsSince } from "@elixir-mcp/ui";
+import { agoExact, Icon, Link, secsSince } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMyGateways, usePublicStatus } from "../lib/queries.js";
 import {
@@ -68,7 +68,7 @@ export function Fleet({ navigate }) {
   return (
     <>
       <div className="page__crumb">
-        <a onClick={() => navigate("/status/service")}>‹ Status</a>
+        <Link to="/status/service">‹ Status</Link>
       </div>
       <div
         style={{
@@ -153,19 +153,15 @@ export function Fleet({ navigate }) {
                     {/* Ownership is the one thing gold marks in a table:
                         the name of the one that is yours, with a quiet word
                         beside it — never a tinted row. */}
-                    <a
+                    <Link
                       style={{
                         fontWeight: 600,
                         color: mineIds.has(c.name) ? "var(--gold)" : undefined,
                       }}
-                      onClick={() =>
-                        navigate(
-                          `/status/collectors/${encodeURIComponent(c.name)}`,
-                        )
-                      }
+                      to={`/status/collectors/${encodeURIComponent(c.name)}`}
                     >
                       {c.name}
-                    </a>
+                    </Link>
                     {c.signature && (
                       <SignatureBadge state={c.signature} iconOnly />
                     )}

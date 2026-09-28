@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { FAMILY_PRODUCTS, type FamilyProduct } from "./family.ts";
 import { Icon } from "./Icon.tsx";
+import { isPlainClick } from "./Link.tsx";
 
 export interface ChromeTab {
   label: string;
@@ -72,6 +73,7 @@ export function Chrome({
           onClick={
             onHome
               ? (e) => {
+                  if (!isPlainClick(e)) return;
                   e.preventDefault();
                   setOpen(false);
                   onHome();
