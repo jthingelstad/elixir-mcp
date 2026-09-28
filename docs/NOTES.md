@@ -4504,3 +4504,13 @@ service token) still read object rows: `contracts/clans_participation`
 failed (`columns.members missing`) and the eight-week full catalogue cases
 still refused at 52,121. The handler now treats `svc:*` as the MCP door
 too, and the budget test reads through a `svc:` invoker as well.
+
+Triage, the 9.16.1 deploy (`--acceptance=clans`): `contracts/clans_participation`
+and the eight-week full catalogue cases (#0, #1) now pass, so their
+known.json entries are removed. `catalogue/clans_participation#notes` and
+`#docs` failed because the catalogue compares the notes with the values
+it saw, and it saw the decoded objects, which have no
+`place_at_war_finish`; both now walk the raw table the door returned too
+(acceptance-only, no deploy). `gym/337.1` fails as before: clan
+#GRJ20LQP is no longer recorded, unrelated to #124 and already noted on
+#46.
