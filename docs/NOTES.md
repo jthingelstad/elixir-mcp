@@ -4056,3 +4056,21 @@ re-verified against d99b0e66; all six parts still held.
   `supportItems`. All five fail with the read filter removed.
 - Contract 9.12.5 (behaviour patch; `cards_catalog` is mirrored by no
   JSON API operation). Deploy scope: `--acceptance=cards`.
+- **Deployed 9.12.5** (PR #103, `115a10ff`) with `--acceptance=cards`.
+  Migration 0191 ran (190 applied, 1 ran) and smoke passed. Acceptance
+  ran 118 cases with 0 failed, so no verdicts were needed. Read back at
+  04:18Z on 09-28 (11:18 PM CT on 09-27): `tower_troops` lists the four,
+  and `29000000` is gone. The fill had already left it unlisted, which
+  confirms that only a `backfill-elixir-bot` receipt confirmed it.
+- **9.12.6: the same rule for `cards`.** The read-back found 134 cards
+  against the official 123. All 11 extra rows are battle stubs with no
+  rarity or cost: Super Witch, Super Lava Hound, Super Magic Archer,
+  Super Ice Golem, Super Archers, Terry, Super Mini P.E.K.K.A, Super
+  Knight, Barbarian Launcher, Party Hut and Party Rocket. These are
+  event-only cards that `/cards` never lists. The issue's acceptance is
+  123 and 4, so `readCatalog` now serves listed rows only for both
+  lists (and `as_of`). The site's card pages already skipped cards with
+  no cost or icon, so no page changes, and `/api/public/cards/<id>`
+  still answers any card by id. The earlier line saying `cards` keeps
+  its behaviour is superseded. A sixth test covers an event-only card.
+  Contract 9.12.6, `--acceptance=cards`.

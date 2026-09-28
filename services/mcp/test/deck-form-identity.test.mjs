@@ -230,6 +230,12 @@ test("5.0.0: containing narrows the deck meta to decks with ALL the cards; cards
 });
 
 test("5.0.0: the catalog says the type from the id range and when it last changed vs was fetched", async () => {
+  // The rows here are battle stubs (seedDeck); cards_catalog lists only
+  // what /cards lists (0191, #44), so the catalog lists these three.
+  await scratch.db.query(
+    `update card set in_catalog = true where card_id = any($1::int[])`,
+    [[26000007, 27000000, 28000001]],
+  );
   const res = await call("cards_catalog", {
     ids: [26000007, 27000000, 28000001],
   });
