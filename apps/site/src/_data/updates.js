@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-27",
+    title: "A busy moment no longer costs a collector its fetch",
+    body: "When two collectors handed in overlapping battle logs at the same moment, the database could refuse one of them, and that fetch was thrown away and made again later. The recorder now tries it once more on the spot, and the daily battle totals it keeps for each player are updated in one fixed order, which removes a likely cause of those refusals. The archive of everything the game sent is now write-once: an object in it can be added but never replaced. Operators: config's submit_retry now names retry_statuses (429), so a collector release that reads it retries a momentary throttle inside the lease instead of letting the lease expire. No change to the tools.",
+  },
+  {
+    date: "2026-09-27",
     title: "A failed read is tried again in minutes",
     body: "When a read of the game failed, the recorder used to wait for that subject's next turn: a day for a profile, and for a leaderboard or the events calendar that failed just after the 10:00 UTC reset, the whole day. It now tries again 15 minutes later, then 30, then 60, inside the same shared budget, so a short Clash Royale outage costs minutes. The battle-log schedule also keeps its promise exactly: the small per-player offset that spreads reads out can no longer stretch a wait past two hours. No change to the tools.",
   },

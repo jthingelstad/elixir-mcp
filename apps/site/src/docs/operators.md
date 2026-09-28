@@ -146,6 +146,14 @@ promoted" instead of an error; a revoked token is told so (403 `revoked`)
 on config alone. A lease expires after 90 seconds
 unsubmitted; ten expired leases in a row quarantine the collector (it moves
 to `draining`, you are notified, and lease answers 409 `quarantined`).
+So a submit that fails for a passing reason is retried on the same lease,
+inside those 90 seconds, on the budget config's `submit_retry` names: up
+to three attempts of at most 20 seconds, backing off from 500 ms, on a
+network failure, a 5xx, or a status in `retry_statuses` (429 today, the
+answer when the site's shared throttle is momentarily full). A 429 whose
+`Retry-After` is longer than the lease can wait, your hourly budget, is
+not retried. A collector release from before `retry_statuses` retries
+network failures and 5xx only.
 A collector that simply stops checking in is **silent**: after an hour
 without a check-in, `elixir_collectors` and the fleet page say `silent`
 (with `silent_since` and `last_seen`) beside the enrolment state under

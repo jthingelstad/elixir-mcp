@@ -382,7 +382,9 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
 
-  # Migrations plus the archive export/verify ops.
+  # Migrations plus the archive export/verify ops, which READ payloads/:
+  # the collector door is the archive's only writer (review 2026-09-27
+  # §2.7 dropped an s3:PutObject nothing used).
   MigrateRole:
     Type: AWS::IAM::Role
     Properties:
@@ -401,7 +403,7 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
-                Action: [s3:PutObject, s3:GetObject]
+                Action: s3:GetObject
                 Resource: !Sub
                   - ${Arn}/payloads/*
                   - Arn: !GetAtt ArchiveBucket.Arn
@@ -1373,6 +1375,37 @@ Resources:
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 7
 
+  # The payload archive is write-once (review 2026-09-27 §2.7). Versioning
+  # keeps an overwritten object for only a year, and the internet-facing
+  # web-api holds s3:PutObject on payloads/, so a put that could replace
+  # a key is refused for every principal: the door sends
+  # If-None-Match: * (services/ingest/src/handler.mjs) and reads a 412 as
+  # already archived. The ObjectCreationOperation clause leaves the
+  # multipart steps that cannot carry the header alone; a CopyObject into
+  # payloads/ is refused too, and nothing copies there. Tried first on a
+  # scratch bucket (2026-09-28): an unconditional put 403, a conditional
+  # put of a new key 200, of an existing key 412, other prefixes
+  # unaffected. After WebApiFunction so the code that sends the header
+  # is in place before the policy that demands it.
+  ArchiveBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: WebApiFunction
+    Properties:
+      Bucket: !Ref ArchiveBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PayloadsWriteOnce
+            Effect: Deny
+            Principal: "*"
+            Action: s3:PutObject
+            Resource: !Sub ${ArchiveBucket.Arn}/payloads/*
+            Condition:
+              "Null":
+                s3:if-none-match: "true"
+              Bool:
+                s3:ObjectCreationOperation: "true"
+
   GlueArchiveDatabase:
     Type: AWS::Glue::Database
     Properties:
@@ -2067,6 +2100,40 @@ Resources:
       Period: 3600
       EvaluationPeriods: 1
       Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  # A collector submit the door could not ingest (submit_ingest_error in
+  # the web-api log, after its one retry of a deadlock or racing upsert):
+  # the door answers 500, which is handled, so the Lambda Errors alarm
+  # never counts it, and the lease expires into a refetch (review
+  # 2026-09-27 §2.5). Two weeks before the retry: at most 7 in any 15
+  # minutes on an ordinary day (the 10:00Z rollover), 20 to 60 in the
+  # three incidents (connections terminated, a column missing mid-deploy).
+  # Ten in 15 minutes is an incident, not the churn.
+  SubmitIngestErrorFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref WebApiLogGroup
+      FilterPattern: '"submit_ingest_error"'
+      MetricTransformations:
+        - MetricNamespace: ElixirMCP/Collector
+          MetricName: SubmitIngestError
+          MetricValue: "1"
+          # No DefaultValue, as EmailComposeFailedFilter: the metric
+          # exists only in an hour a submit fails.
+  SubmitIngestErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-submit-ingest-error
+      AlarmDescription: Collector submits are failing to ingest (submit_ingest_error in the web-api log); each one is a 500, an expired lease and a refetch
+      Namespace: ElixirMCP/Collector
+      MetricName: SubmitIngestError
+      Statistic: Sum
+      Period: 900
+      EvaluationPeriods: 1
+      Threshold: 10
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]

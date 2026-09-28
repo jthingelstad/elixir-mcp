@@ -143,6 +143,8 @@ test("config: contract constants, channel, the update authority, and what doctor
     max_attempts: 3,
     timeout_s: 20,
     backoff_ms: 500,
+    // A throttle burst is retried inside the lease (review §6.6).
+    retry_statuses: [429],
   });
   assert.equal(r.body.gateway.channel, "bulk");
   assert.equal(r.body.update["go-darwin-arm64"].version, "2.0.0");
@@ -419,6 +421,59 @@ test("ingest exception leaves the lease held for expiry-requeue", async () => {
   await db.query(
     `update job set status = 'done', done_at = now() where job_id = $1`,
     [Number(r.body.lease)],
+  );
+});
+
+test("a deadlock or racing upsert is retried once in the door; anything else is not (review §2.5)", async () => {
+  const pgError = (code) =>
+    Object.assign(new Error(`sqlstate ${code}`), { code });
+  const run = async (failures, entity) => {
+    let calls = 0;
+    const flaky = makeCollectorDoor({
+      ingest: async () => {
+        calls += 1;
+        if (calls <= failures.length) throw pgError(failures[calls - 1]);
+        return { outcome: "admitted" };
+      },
+      notifyOwner: async () => {},
+    });
+    await enqueueJob(db, { ...JOB, entity_key: entity });
+    const r = await flaky.lease(db, authed(TOKEN_BULK), { wait_s: 0 });
+    const res = await flaky.submit(db, authed(TOKEN_BULK), {
+      lease: r.body.lease,
+      status: "ok",
+      body_gzip_b64: Buffer.from("z").toString("base64"),
+    });
+    const { rows } = await db.query(
+      `select status from job where job_id = $1`,
+      [Number(r.body.lease)],
+    );
+    await db.query(
+      `update job set status = 'done', done_at = now() where job_id = $1`,
+      [Number(r.body.lease)],
+    );
+    return { status: res.status, calls, job: rows[0].status };
+  };
+
+  const deadlock = await run(["40P01"], "#2PP");
+  assert.deepEqual(
+    deadlock,
+    { status: 200, calls: 2, job: "done" },
+    "a deadlock is retried and the job completes",
+  );
+  const race = await run(["23505"], "#2PY");
+  assert.deepEqual(race, { status: 200, calls: 2, job: "done" });
+  const twice = await run(["40P01", "40P01"], "#2PQ");
+  assert.deepEqual(
+    twice,
+    { status: 500, calls: 2, job: "leased" },
+    "once, not a loop: the second failure answers 500 and holds the lease",
+  );
+  const other = await run(["42703"], "#2PR");
+  assert.deepEqual(
+    other,
+    { status: 500, calls: 1, job: "leased" },
+    "a deterministic error is not retried",
   );
 });
 
