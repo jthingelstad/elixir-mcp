@@ -86,6 +86,7 @@ const players = Array.from({ length: CURRENT + FORMER }, (_, i) => ({
 let db;
 let mcp;
 let rest;
+let svcDoor;
 
 before(async () => {
   const admin = new pg.Client({ connectionString: ADMIN_URL });
@@ -228,6 +229,12 @@ before(async () => {
   const registry = makeRegistry();
   mcp = makeInvoker({ db, account, registry, surface: "mcp" });
   rest = makeInvoker({ db, account, registry, surface: "rest" });
+  svcDoor = makeInvoker({
+    db,
+    account,
+    registry,
+    surface: "svc:acceptance",
+  });
 });
 
 after(async () => {
@@ -286,6 +293,12 @@ for (const verbosity of ["full", "compact"]) {
       table.columns.members.length,
       "a row has one entry per column",
     );
+    // A service token's MCP door (audited svc:<name>) reads the table
+    // too: 9.16.0 first shipped keyed to "mcp" alone, and the acceptance
+    // agent, a service token, still read objects.
+    const svc = await read(svcDoor, verbosity);
+    assert.deepEqual(svc.columns, table.columns);
+    assert.ok(Array.isArray(svc.members[0]));
     // /api/v1 is unchanged: object rows, no columns.
     assert.equal(objects.columns, undefined);
     assert.ok(!Array.isArray(objects.members[0]));

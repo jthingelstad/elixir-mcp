@@ -673,8 +673,11 @@ export const clansTools = {
       const compact = args.verbosity === "compact";
       // The agent's read is a table (#124): the same rows as arrays named
       // once by `columns`, so the eight-week read of a full clan fits the
-      // MCP result cap. /api/v1 and the console keep the objects.
-      const table = ctx.surface === "mcp";
+      // MCP result cap. /api/v1 and the console keep the objects. A
+      // service token's MCP calls audit as svc:<name> (handler.mjs): the
+      // same door, so the same table.
+      const table =
+        ctx.surface === "mcp" || String(ctx.surface ?? "").startsWith("svc:");
       const weeks = Number(args.weeks ?? 5);
       if (!Number.isInteger(weeks) || weeks < 1 || weeks > 8)
         throw new ToolFailure("bad_request", "weeks must be 1-8.");
