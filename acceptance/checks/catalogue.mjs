@@ -120,6 +120,8 @@ function seenSoFar(ctx) {
     if (!r?.body || r.isError) continue;
     deepKeys(r.body, keys);
     deepValues(r.body, values);
+    // A table's column names (#124) are values of what the door sent.
+    if (r.raw) deepValues(r.raw, values);
   }
   return { keys, values };
 }
@@ -135,7 +137,7 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
           const r = await ctx.read(tool, set.args);
           const body = answered(r, `${tool} ${JSON.stringify(set.args)}`);
           if (!bodies.has(tool)) bodies.set(tool, []);
-          bodies.get(tool).push({ args: set.args, body });
+          bodies.get(tool).push({ args: set.args, body, raw: r.raw });
           const schema = ctx.tools.get(tool)?.outputSchema;
           if (schema) {
             const mismatch = validateArgs(schema, body, `${tool} result`);
@@ -169,7 +171,7 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
             // is the documented answer, and there is nothing to compare.
             if (pricedRefusal(f)) return { ms: r.ms };
             const fb = answered(f, `${tool} full`);
-            bodies.get(tool).push({ args: fullArgs, body: fb });
+            bodies.get(tool).push({ args: fullArgs, body: fb, raw: f.raw });
             // An empty answer is the same both ways but for the echo. A
             // page cut by size is the exception: compact drops what full
             // spends its budget on, so the same budget holds MORE of the
@@ -203,9 +205,12 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
         if (seen.length === 0) return;
         const union = new Set();
         const values = new Set();
-        for (const { body } of seen) {
+        for (const { body, raw } of seen) {
           deepKeys(body, union);
           deepValues(body, values);
+          // What the door sent: a table names its fields in its columns
+          // (clans_participation, #124), which the decoded rows lack.
+          if (raw) deepValues(raw, values);
         }
         const args = new Set(
           Object.keys(ctx.tools.get(tool)?.inputSchema?.properties ?? {}),
