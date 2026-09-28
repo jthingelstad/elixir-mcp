@@ -87,7 +87,7 @@ export function analyticsLocation(
   if (pathname.startsWith("/signin")) return null;
   let segments = pathname.split("/").filter(Boolean);
   // An agent's console is a place, /agent/<public_id>/... (2026-09-23):
-  // which agent is never reported, only the kind of page (privacy.md: a
+  // which agent is never reported, only the kind of page (email.md: a
   // page of your own records reports its kind, not which record).
   if (segments[0] === "agent") segments = ["agent", ...segments.slice(2)];
   const page = segments.length ? `/${segments.slice(0, 2).join("/")}` : "/";

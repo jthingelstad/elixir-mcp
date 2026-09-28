@@ -33,8 +33,8 @@ export function Profile({ me, refresh, navigate }) {
         <h1 className="page__title">Profile</h1>
         <p className="page__lede">
           Who you are signed in as, what your tier records for you, and
-          today&rsquo;s budget. Reading is universal; the tier only changes what
-          we record.
+          today&rsquo;s budget. Reading is universal; the tier changes what we
+          record and how much you can call.
         </p>
       </div>
 
@@ -93,7 +93,7 @@ export function Profile({ me, refresh, navigate }) {
             }
             note={
               tzError ??
-              "sets the times this console shows, day boundaries in your charts and local times in tool responses; storage stays UTC"
+              "sets the times this console shows, how a date in a question resolves, local times in tool responses and the days your mail names; storage stays UTC"
             }
           />
         </div>
@@ -457,8 +457,8 @@ function TierPanel({ me, entitlements: e, usage }) {
         )}
       </div>
       <div className="panel__note">
-        Tiers set what Elixir records for you and your daily call budget — never
-        what you can read.
+        Tiers set what Elixir records for you, your daily budgets, and how many
+        agents and collections you can have — never what you can read.
       </div>
     </section>
   );

@@ -99,7 +99,7 @@ export function Connections({ me, navigate }) {
         <p className="page__lede">
           {scope
             ? "Every client connected as this agent. All of it spends your daily budget."
-            : "Everything that can call Elixir with your authority. All of it spends your daily budget."}
+            : "Everything that can call Elixir with your authority. It spends your daily budget, except the Elixir family’s own apps, which are not metered."}
         </p>
       </div>
 

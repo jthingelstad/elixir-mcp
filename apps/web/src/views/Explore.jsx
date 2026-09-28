@@ -578,9 +578,9 @@ function Lookup({ me, navigate, browse }) {
               </span>
             </div>
             <div className="empty__body" style={{ textAlign: "left" }}>
-              Nothing in the corpus matches that tag or name. Elixir only
-              records players and clans someone added — it does not crawl the
-              game. Add it from{" "}
+              Nothing in the corpus matches that tag or name. Elixir records the
+              players and clans someone added, and the game&rsquo;s
+              leaderboards; it does not crawl the whole game. Add it from{" "}
               <Link to="/account/tracking">Account ▸ Tracking</Link> and
               recording starts on the next poll.
             </div>
