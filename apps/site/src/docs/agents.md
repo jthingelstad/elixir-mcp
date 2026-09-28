@@ -241,6 +241,11 @@ Facts in, judgment in your code.
 | Rename | its console → Settings | changes the name; must stay unique among your live agents |
 | Delete | – | there is no delete. Suspend is the reversible stop; revoke is the irreversible one. |
 
+An agent acts only while its owner has access. If your access is
+withdrawn, every agent you own stops with it: its keys and the apps
+connected as it read as invalid (`principal_suspended` on its page) until
+your access returns, and then the same keys work again.
+
 ## Knowing whether it is working
 
 A refused key never reaches the call log, so a runtime still presenting a

@@ -513,6 +513,17 @@ function budgetFor(row) {
   };
 }
 
+/**
+ * An owned principal (an agent or an integration) acts only while its
+ * owner may (#129). Withdrawing a person (status leaves 'approved') used
+ * to stop their own grants and leave every agent they own working, since
+ * both doors read the token's account alone and joined the owner only for
+ * its quota. Both doors now read the owner's status too, so a withdrawal
+ * is the same ordinary not-found as a suspended agent; resuming the owner
+ * restores the same keys. A person has no owner, so this is true for them.
+ */
+const OWNER_APPROVED = `(a.owned_by_account_id is null or o.status = 'approved')`;
+
 export async function validateAccessToken(db, token, { resource } = {}) {
   const raw = validOpaque(token, ACCESS_TOKEN_PREFIX);
   const audience = canonicalResource(resource);
@@ -535,7 +546,8 @@ export async function validateAccessToken(db, token, { resource } = {}) {
        and f.revoked_at is null and f.absolute_expires_at > now()
        and f.resource = $2
        and not exists (select 1 from integration i where i.account_id = a.account_id)
-       and a.status = 'approved'`,
+       and a.status = 'approved'
+       and ${OWNER_APPROVED}`,
     [sha256hex(raw), audience],
   );
   const row = rows[0];
@@ -703,6 +715,7 @@ export async function validateServiceToken(
   const { rows } = await db.query(
     `${SERVICE_ACCOUNT_SELECT}
      where t.token_hash = $1 and t.revoked_at is null and a.status = 'approved'
+       and ${OWNER_APPROVED}
        and t.audience = $2
        and ($2 <> 'mcp' or not exists (select 1 from integration i where i.account_id = a.account_id))`,
     [sha256hex(raw), audience],
@@ -727,6 +740,7 @@ export async function serviceTokenAccountByName(db, name) {
   const { rows } = await db.query(
     `${SERVICE_ACCOUNT_SELECT}
      where t.name = $1 and t.revoked_at is null and a.status = 'approved'
+       and ${OWNER_APPROVED}
        and t.audience = 'mcp'
        and not exists (select 1 from integration i where i.account_id = a.account_id)
      order by t.token_id limit 1`,
@@ -791,8 +805,10 @@ export async function describeRefusedCredential(db, presented) {
 
   if (value.startsWith("svt_")) {
     const { rows } = await db.query(
-      `select t.token_id, t.name, t.revoked_at, a.account_id, a.status, a.kind
+      `select t.token_id, t.name, t.revoked_at, a.account_id, a.status, a.kind,
+              o.status as owner_status
        from service_token t join account a on a.account_id = t.account_id
+       left join account o on o.account_id = a.owned_by_account_id
        where t.token_hash = $1`,
       [digest],
     );
@@ -805,7 +821,8 @@ export async function describeRefusedCredential(db, presented) {
       label: row.name,
       reason: row.revoked_at
         ? "revoked_key"
-        : row.status !== "approved"
+        : row.status !== "approved" ||
+            (row.owner_status && row.owner_status !== "approved")
           ? "principal_suspended"
           : "wrong_door",
     };

@@ -18,6 +18,10 @@ import {
   mintTokens,
   redeemRefreshToken,
   validateAccessToken,
+  issueServiceToken,
+  validateServiceToken,
+  serviceTokenAccountByName,
+  describeRefusedCredential,
   OAUTH_SCOPES,
 } from "../src/index.mjs";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
@@ -212,6 +216,72 @@ test("access tokens validate to account context; the gate applies here too", asy
     `update account set status = 'approved' where account_id = $1`,
     [accountId],
   );
+});
+
+test("a withdrawn owner's agents are refused at both doors (#129)", async () => {
+  // A person with one agent, the agent holding an OAuth grant and a
+  // service token. Withdrawing the PERSON used to stop only the person's
+  // own grants: both doors read the token's account alone.
+  const {
+    rows: [person],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
+     returning account_id`,
+    [emailHash("withdrawn-owner@example.com")],
+  );
+  const {
+    rows: [agent],
+  } = await db.query(
+    `insert into account (status, role, kind, owned_by_account_id, public_id)
+     values ('approved', 'member', 'agent', $1, 'wdrawnagent1')
+     returning account_id`,
+    [person.account_id],
+  );
+  const { clientId } = await registerClient(db, {
+    clientName: "agent-client",
+    redirectUris: ["https://w.example/cb"],
+  });
+  const tokens = await mintTokens(db, {
+    clientId,
+    accountId: agent.account_id,
+    scope: "cr:read",
+    resource: RESOURCE,
+  });
+  const key = await issueServiceToken(db, {
+    accountId: agent.account_id,
+    name: "withdrawn-owner-agent",
+  });
+  const oauthOk = () =>
+    validateAccessToken(db, tokens.accessToken, { resource: RESOURCE });
+  const keyOk = () => validateServiceToken(db, key);
+  const byName = () => serviceTokenAccountByName(db, "withdrawn-owner-agent");
+
+  assert.equal((await oauthOk())?.accountId, agent.account_id);
+  assert.equal((await keyOk())?.accountId, agent.account_id);
+  assert.equal((await byName())?.accountId, agent.account_id);
+
+  for (const status of ["disabled", "denied", "requested"]) {
+    await db.query(`update account set status = $2 where account_id = $1`, [
+      person.account_id,
+      status,
+    ]);
+    assert.equal(await oauthOk(), null, `OAuth refused, owner ${status}`);
+    assert.equal(await keyOk(), null, `service token refused, owner ${status}`);
+    assert.equal(await byName(), null, `profile refused, owner ${status}`);
+  }
+  // The refusal is named for the agent's page, not read as a wrong door.
+  assert.equal(
+    (await describeRefusedCredential(db, key)).reason,
+    "principal_suspended",
+  );
+
+  // Access restored: the same keys work again, as a suspended agent's do.
+  await db.query(
+    `update account set status = 'approved' where account_id = $1`,
+    [person.account_id],
+  );
+  assert.equal((await oauthOk())?.accountId, agent.account_id);
+  assert.equal((await keyOk())?.accountId, agent.account_id);
 });
 
 test("refresh rotation preserves scope/resource and replaying the old token revokes the family", async () => {
