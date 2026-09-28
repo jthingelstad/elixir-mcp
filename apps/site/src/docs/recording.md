@@ -433,7 +433,8 @@ when you ask for dates before snapshots began.
 ## Participation by week
 
 `clans_participation({ clan_tag?, weeks? })` answers, for every open
-member of a clan in one call, what they did week by week: the raw material
+member of a clan and every member who left inside the window, in one
+call, what they did week by week and where they stood at each war finish: the raw material
 for a clan's own participation rules, which Elixir does not have. It
 measures; it never rates.
 
@@ -450,6 +451,10 @@ measures; it never rates.
 | `members[].log_recorded`, `recorded_since` | whether the member's battle log is recorded at all (the clan's comprehensive scope, or a recording of their own) and their first recorded battle (3.16.0); read `log_recorded` before reading a zero |
 | `basis` | `recorded` when the clan's members' logs are recorded; `roster_and_war_only` for an activity-scope clan, where every battle count is zero by construction for a member whose `log_recorded` is false (3.16.0) |
 | `recording_active_since`, `first_roster_observed_at` | the recording horizon for the clan |
+| `members[].in_clan_at_war_finish`, `role_at_war_finish` | columns aligned to `war_weeks[]`: whether the member was in the clan at the week's finish (`finished_observed_at`), and in what role (9.13.0). Read from the clan's roster reads on either side of the finish, and served only when the two agree. `null` is unknown, never absent: the week is unfinished, no read follows the finish yet, or the member's place changed between the two reads. A role is also `null` outside the clan, at a finish before `role_history_since`, and where the member's recorded role changes do not chain (an older roster admitted after a newer one leaves an order nothing can settle) |
+| `members[].role_changes` | full verbosity: every role change observed in the window, oldest first, with `role_before`, `role_after`, and the change's bracket: it happened after `window_start` (the read before) and by `observed_at` (the read that showed it) |
+| `role_history_since` | the clan's first live roster read: role changes are recorded from it, since the roster history imported from POAP KINGS' earlier bot carries tenure, not roles |
+| `former_members[]`, `former_member_count` | who left inside the window and has not come back: `role_at_departure`, `joined_observed_at` and `left_observed_at` of the membership that ended, `last_battle_time_in_clan`, and the same columns as `members[]`, whose battles and donations count only what they played and gave in this clan |
 
 Null is unknown, never zero, throughout: a week with no snapshot has
 `donations: null`, a war week with no race row for the member has
@@ -457,9 +462,15 @@ Null is unknown, never zero, throughout: a week with no snapshot has
 a member with no recorded battle has `days_since_battle: null`. Counts
 cover recorded battles only; `elixir_coverage` per tag says how complete
 a member's log is. `weeks` is 1 to 8 (default 5). The per-member values
-are columns rather than rows so a full clan over eight weeks fits the
-response cap; should it not, the `result_too_large` hint names `weeks`
-and `verbosity: "compact"`.
+are columns rather than rows so a full clan over eight weeks usually fits
+the response cap; a large clan with many departures can pass it, and the
+`result_too_large` hint names `weeks` and `verbosity: "compact"`. The
+JSON API's `GET /clans/{tag}/participation` has no cap.
+
+To replay a clan's rules at a past finish, take the population from
+`in_clan_at_war_finish` across `members` and `former_members` together,
+and each one's role from `role_at_war_finish`; today's `role` is only
+today's.
 
 ## Reading the game live
 

@@ -11,6 +11,12 @@ export default [
   {
     date: "2026-09-28",
     title:
+      "Participation shows who was in the clan, and as what, at each war finish",
+    body: "A clan's participation read used to apply today's roster and roles to every past war week, so a member promoted last week looked like an Elder all along, and a member who had left was simply missing. Each member now carries whether they were in the clan and their role at each war finish, the role changes seen in the window, and the members who left during it are listed with the same weekly figures, counted in this clan only. Where the record cannot say, because the roster changed between two reads around a finish or the finish predates recorded roles, the entry is empty rather than guessed. Contracts 9.13.0; JSON API 2.7.0.",
+  },
+  {
+    date: "2026-09-28",
+    title:
       "Friendlies with clanmates count as casual, and each event gets its own row",
     body: "A friendly with a clanmate often runs under an event's rules, and the game tags it with that event. Elixir had filed those friendlies as event battles; they now count as casual play, like every other friendly. Battles in a timed event, such as Royale Shuffle, stay events. The \"what have I been playing\" view (performance by game mode) now gives each event its own row with the event's name, where it had lumped several events that shared a game mode into one. Contract 9.12.8.",
   },
