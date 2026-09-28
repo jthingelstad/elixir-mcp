@@ -117,6 +117,26 @@ test("a support stub from a battle is not a Tower Troop the catalog lists", asyn
   assert.deepEqual(await versions(), before, "no row version moved");
 });
 
+test("an event-only card from a battle is on the record, not in the catalog's cards", async () => {
+  // Super Archers is played in event modes and never listed by /cards.
+  await ensureCards(
+    scratch.db,
+    [{ card_id: 26000078, name: "Super Archers", kind: "card" }],
+    "2026-09-11T12:00:00Z",
+  );
+  const body = await registry.invoke(
+    "cards_catalog",
+    { db: scratch.db, account: null },
+    {},
+  );
+  assert.equal(body.cards.length, catalog.items.length, "the catalog's own");
+  assert.ok(!body.cards.some((c) => c.id === 26000078));
+  const { rows } = await scratch.db.query(
+    `select name from card where card_id = 26000078`,
+  );
+  assert.equal(rows[0].name, "Super Archers", "the row stays");
+});
+
 test("a later catalog that lists the stub confirms it", async () => {
   await admit(withSupport([...OFFICIAL, STUB.card_id]), "2026-09-12T10:00:00Z");
   const row = await inCatalog(STUB.card_id);

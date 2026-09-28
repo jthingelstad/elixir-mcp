@@ -86,7 +86,12 @@ export async function catalogItems(db) {
 
 /** The recorded catalog, shaped. Shared with the resources door. */
 export async function readCatalog(db) {
-  const rows = await catalogItems(db);
+  // Only what the current /cards lists (0191, #44). Rows are also
+  // stubbed from battles and profiles (event-only cards like Super
+  // Archers, which /cards never lists, and a tower troop, 29000000
+  // "Archer Queen", that a replayed test fixture wrote), and every row
+  // stays for the history that names it; the catalog is the list.
+  const rows = (await catalogItems(db)).filter((r) => r.in_catalog);
   if (rows.length === 0) return null;
   const asOf = rows.reduce(
     (m, r) => (r.observed_at > m ? r.observed_at : m),
@@ -118,12 +123,8 @@ export async function readCatalog(db) {
     cards: rows
       .filter((r) => r.kind === "card")
       .map((r) => shapeCatalogCard(r.item)),
-    // Only what the current /cards lists (0191, #44): a support row is
-    // also stubbed from a battle's or a profile's supportCards, and one
-    // (29000000 "Archer Queen") answered as a fifth Tower Troop the
-    // catalog never listed. The row stays for the history that names it.
     tower_troops: rows
-      .filter((r) => r.kind === "support" && r.in_catalog)
+      .filter((r) => r.kind === "support")
       .map((r) => shapeCatalogCard(r.item)),
     as_of: asOf.toISOString(),
     fetched_at: fetched ? fetched.toISOString() : null,

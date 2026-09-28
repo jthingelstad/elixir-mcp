@@ -11,7 +11,7 @@ export default [
   {
     date: "2026-09-28",
     title: "The card catalog lists four tower troops, as the game does",
-    body: "The card catalog listed a fifth tower troop, \"Archer Queen\" with an id the game has never used. It was never in the game's own catalog: a test record from the old Discord bot had been replayed into Elixir as if the game had sent it. The catalog now lists what the game's newest catalog lists: Tower Princess, Cannoneer, Dagger Duchess and Royal Chef. A tower troop first seen in a battle appears once the game's catalog lists it, and one the game stops listing leaves the list; the battles that name any of them keep their records. Contract 9.12.5.",
+    body: "The card catalog listed a fifth tower troop, \"Archer Queen\" with an id the game has never used. It was never in the game's own catalog: a test record from the old Discord bot had been replayed into Elixir as if the game had sent it. It also listed eleven cards known only from battles, such as the event-only Super Archers, which the game's catalog never lists. The catalog now lists what the game's newest catalog lists: 123 cards and four tower troops (Tower Princess, Cannoneer, Dagger Duchess and Royal Chef). A card or tower troop first seen in a battle appears once the game's catalog lists it, and one the game stops listing leaves the list; the battles that name any of them keep their records. Contracts 9.12.5 and 9.12.6.",
   },
   {
     date: "2026-09-27",
