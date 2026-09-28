@@ -123,3 +123,42 @@ test("battles_performance carries completeness_note on a measured gap, on an unk
   const summary = await call("players_summary", { player_tag: GAPPED });
   assert.match(summary.meta.completeness_note, /Capture is incomplete/);
 });
+
+test("battles_compare carries completeness_note once per incomplete side, naming its tag (#108)", async () => {
+  // One side gapped, one complete: the note names the gapped tag only.
+  const mixed = await call("battles_compare", {
+    player_tags: [GAPPED, FULL],
+    days: 7,
+  });
+  const note = mixed.meta.completeness_note;
+  assert.match(note, /Capture is incomplete for #P0G: 20 of the 30 battles/);
+  assert.doesNotMatch(note, /#P0L/, "the complete side is never named");
+  assert.equal(note.match(/elixir_coverage/g).length, 1, "one sentence");
+
+  // Both sides incomplete: one sentence each, in the order asked.
+  const both = await call("battles_compare", {
+    player_tags: [STALE, GAPPED],
+    days: 7,
+  });
+  const n = both.meta.completeness_note;
+  assert.match(n, /Completeness is unknown for #P0Q/);
+  assert.match(n, /Capture is incomplete for #P0G/);
+  assert.ok(n.indexOf("#P0Q") < n.indexOf("#P0G"));
+  assert.equal(n.match(/elixir_coverage/g).length, 2);
+
+  // Neither side incomplete (the same tag twice is still one complete
+  // subject): no note, never boilerplate.
+  const clean = await call("battles_compare", {
+    player_tags: [FULL, FULL],
+    days: 7,
+  });
+  assert.equal(clean.meta.completeness_note, undefined);
+
+  // A window that ended before the last seven days: no note.
+  const old = await call("battles_compare", {
+    player_tags: [GAPPED, STALE],
+    from: "2026-01-01",
+    to: "2026-02-01",
+  });
+  assert.equal(old.meta.completeness_note, undefined);
+});

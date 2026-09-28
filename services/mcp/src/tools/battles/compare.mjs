@@ -5,6 +5,7 @@ import {
   ToolFailure,
   WINDOW_ARGS,
   appliedBlock,
+  completenessNotes,
   docsRef,
   notes,
   resolveSeasonWindow,
@@ -106,6 +107,7 @@ export const battles_compare = {
         window: { ...window, ...(args.mode ? {} : { modes: modes ?? {} }) },
       });
     }
+    const completeness = await completenessNotes(ctx.db, tags, win.to);
     return {
       applied: appliedBlock({
         window: win.echo,
@@ -125,6 +127,10 @@ export const battles_compare = {
       meta: responseMeta({
         as_of: new Date().toISOString(),
         ...(win.timezone ? { timezone_applied: win.timezone } : {}),
+        // The same capture control battles_performance carries, read for
+        // each compared tag: a side whose recent capture is incomplete is
+        // named, a complete one is not (#108).
+        ...(completeness ? { completeness_note: completeness } : {}),
       }),
     };
   },

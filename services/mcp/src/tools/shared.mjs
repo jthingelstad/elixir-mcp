@@ -934,6 +934,28 @@ export async function pendingHints(db, account) {
   }
 }
 
+/** meta.completeness_note for player subjects: it fires for a subject
+ *  whose window ends inside the last seven days (an unbounded window ends
+ *  now) when the newest profile interval reads under 0.9 or is unknown
+ *  with a tail over 48 hours (review 2026-09-19, defect 13: promised on
+ *  every seam, set by nothing). Several subjects (battles_compare, #108)
+ *  get one sentence per incomplete side, each naming its tag, in the
+ *  order given; null when no side is incomplete, never boilerplate. */
+export async function completenessNotes(db, tags, windowTo) {
+  const recentWindow =
+    windowTo === undefined ||
+    windowTo === null ||
+    Date.now() - new Date(windowTo).getTime() < 7 * 86_400_000;
+  if (!recentWindow) return null;
+  const sentences = [];
+  for (const tag of new Set(tags)) {
+    if (!/^#[0289PYLQGRJCUV]{3,12}$/.test(tag)) continue;
+    const note = completenessNote(tag, await recentCompleteness(db, tag));
+    if (note) sentences.push(note);
+  }
+  return sentences.length ? sentences.join(" ") : null;
+}
+
 export async function buildMeta(
   db,
   account,
@@ -944,19 +966,9 @@ export async function buildMeta(
   const isPlayer = endpoints.some(
     (e) => e === "player" || e === "player_battlelog",
   );
-  // meta.completeness_note fires for a player subject whose window ends
-  // inside the last seven days (an unbounded window ends now) when the
-  // newest profile interval reads under 0.9 or is unknown with a tail
-  // over 48 hours (review 2026-09-19, defect 13: promised on every seam,
-  // set by nothing).
-  const recentWindow =
-    windowTo === undefined ||
-    windowTo === null ||
-    Date.now() - new Date(windowTo).getTime() < 7 * 86_400_000;
-  const completeness =
-    isPlayer && recentWindow && /^#[0289PYLQGRJCUV]{3,12}$/.test(tag)
-      ? completenessNote(tag, await recentCompleteness(db, tag))
-      : null;
+  const completeness = isPlayer
+    ? await completenessNotes(db, [tag], windowTo)
+    : null;
   const {
     rows: [row],
   } = await db.query(

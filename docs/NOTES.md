@@ -4183,3 +4183,20 @@ groups.
 through Elixir weak. #111 is one piece. A focused look, for example a
 Gym journey that asks an agent to tell a player's or a clan's week and
 judges the result, is a candidate after lane C.
+
+## 2026-09-28 - #108 (A13): `battles_compare` carries the completeness note
+
+`battles_compare` built its meta with bare `responseMeta`, so the capture
+control `battles_performance` and `battles_query` attach through
+`buildMeta` never reached a comparison ("Every aggregate ships its
+control"). The gate (window ends inside seven days, player tag, newest
+profile interval under 0.9 or unknown with a tail over 48 hours) moved
+out of `buildMeta` into `completenessNotes(db, tags, windowTo)` in
+`tools/shared.mjs`; `buildMeta` calls it with one tag and
+`battles_compare` with its compared tags. One sentence per incomplete
+side, each naming its tag, in the order asked, a repeated tag read once;
+no incomplete side, no note. `meta.completeness_note` stays a string, so
+no output-schema change: contract 9.12.7, a patch. `battles_compare` has
+no `/api/v1` mirror. Test: `services/mcp/test/coverage.test.mjs`
+(gapped + complete, unknown + gapped, complete twice, an old window).
+Out of scope, parked in lane D: gap intervals as a precise control.
