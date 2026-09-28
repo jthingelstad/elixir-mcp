@@ -4300,3 +4300,38 @@ fixture's tagged clanMate2v2 under `casual`.
   `event_title`, and `/updates` lists the entry.
 - **Pending natural check:** the next day's ingest writes new tagged
   clanmate friendlies to `casual` (census stays 0).
+
+## 2026-09-28 - #46: participation replays a past war finish (9.13.0)
+
+`clans_participation` now carries each member's `in_clan_at_war_finish`
+and `role_at_war_finish` aligned to `war_weeks`, `role_changes` at full
+verbosity, the clan's `role_history_since`, and `former_members`. The
+rebuild (`services/mcp/src/role-history.mjs`) reads the membership
+intervals and `role_changed` events at the clan's roster reads on either
+side of each finish and serves a value only when the two agree; imported
+tenure carries no roles, so role history starts at the first live roster
+read. JSON API 2.7.0 mirrors it. PR #118.
+
+### Deployed and read back
+
+- **Census** (`{role_history_census}`, new): 0 inverted event windows, 0
+  `role_changed` rows out of admission order, 0 memberships whose leave
+  does not follow the join; 183 per-player chain breaks and 14 flip-flops
+  inside an hour across all clans (the rebuild checks the chain per
+  membership interval and serves null where it breaks); 637 clan receipts
+  in 30 days admitted after a newer read, all in one clan.
+- **Size and time.** The recorded clan at weeks 8: compact 47,032 bytes,
+  373 ms warm (17 former members); full 52,113 characters, over the
+  48,000 cap, so it answers `result_too_large` naming `weeks` and
+  `verbosity`. Filed as known for the two catalogue sets until 2026-10-26.
+  Compact has about 1,000 characters of headroom: a few more departures in
+  the window push it over too. The JSON API operation has no cap.
+- **Acceptance (`--acceptance=clans`), 132 cases, 3 failed:** the two
+  catalogue sets above, and gym/337.1 (a live case on a clan that is no
+  longer recorded; not this change).
+- **Read-back** (weeks 3 compact): contract 9.13.0; the two members
+  promoted on 2026-09-15 read `member` at the 136/0 finish and `elder` at
+  136/1; a member who left on 09-19 and rejoined on 09-23 reads not in the
+  clan at the 136/1 finish; five departures are under `former_members`.
+- **Pending natural check:** the next finish (136/2's is still unobserved)
+  fills its column once a roster read follows it.
