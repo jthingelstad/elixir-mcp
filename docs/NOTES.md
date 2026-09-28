@@ -4222,3 +4222,41 @@ pokemon, Vijay, OllieTurtle), last seven days, carries no
 them or for six more watched players: no side is incomplete today, so
 the note showing when one is rests on the scratch test until a natural
 gap.
+
+## 2026-09-28 - #109 (A14): event classification
+
+Jamie's mode ruling (the lane B entry above) reaches the code.
+`modeGroupOf` and `modeGroupSql` checked the tag before the type, so a
+tagged `clanMate`/`clanMate2v2` battle was `event`. Now
+`isEventContent` / `eventContentSql` in `packages/contracts/src/modes.ts`
+say "tagged, and not a clanmate's", and both folds, the battle tools'
+`modeClause`, `participantModeClause` and `battles_opponents` use it. A
+tagged `unknown` was already `event` and stays so. Tests:
+`services/mcp/test/mode-groups.test.mjs` pins JS = SQL for every type
+tagged and untagged, every `mode` filter = the fold, the daily rollup,
+and the per-event rows; `record-to-wire.test.mjs` now expects the
+fixture's tagged clanMate2v2 under `casual`.
+
+- **`group_by: game_mode`** keys rows by `(game_mode, type, event_tag)`
+  with `event_tag` only on event content, and `event_title` from
+  `game_event` (null when never sighted). `EVENT_POOL_NOTE` names that
+  view and is not attached to it. Out of scope, parked in lane D:
+  `group_by: "event"` and an `event_tag` filter.
+- **Stored groups.** Only `player_daily_battle_rollup` stores a group per
+  battle. The meta tables never held a tagged battle: `META_POPULATION`
+  and `metaPopulationClause` test `event_tag is null`, not the group, so
+  a tagged clanmate friendly (casual now) stays out of the meta, as it
+  was. That keeps DECISIONS 76's reason (a deck under an event's rules
+  describes the event); it is noted in the code and in battles.md. If
+  Jamie wants tagged friendlies in the casual meta, it is one clause
+  plus a season re-derive. The rollup rows are re-derived by a new op,
+  `{rollup_regroup}` (census, then batches to `done`, then `{vacuum}`),
+  after the deploy.
+- **Docs:** battles.md's `mode_group` row, the mode-group table, the
+  event section (the note never named the pooled tags; it now points at
+  the per-event view) and the meta section; the tool-change checklist's
+  event-pool pointer named `invoker.mjs`, and the note lives in
+  `tools.mjs`.
+- Contract 9.12.8, a patch (behaviour correction; `by_mode` items
+  declared). `battles_query` is the JSON API mirror: its rows'
+  `mode_group` values change, its shape does not.

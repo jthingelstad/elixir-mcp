@@ -19,6 +19,8 @@ export const MODE_GROUP_BY_TYPE: Record<string, string> = {
   // Friendlies with a clanmate, and the API's own `unknown` (some
   // friendly and event battles): casual play, one answer in JS and SQL
   // (Jamie 2026-09-25; it was `other` here and `casual` in the rollups).
+  // A clanmate battle stays casual even when tagged; a tagged `unknown`
+  // is event content (CLANMATE_TYPES below; Jamie 2026-09-28, #109).
   clanMate: "casual",
   unknown: "casual",
   friendly: "casual",
@@ -46,8 +48,31 @@ export const MODE_GROUP_BY_TYPE: Record<string, string> = {
  */
 export const EVENT_MODE_GROUP = "event";
 
+/**
+ * A battle with a clanmate is casual play even when it carries an event
+ * tag (Jamie 2026-09-28, #109): about 62% of clanmate friendlies carry
+ * one, because friends play a friendly under an event's rules. Every
+ * other tagged battle is event content, the API's own `unknown` included
+ * (Royale Shuffle comes as `unknown` with a tag, and the game lists it
+ * under Game Modes as a timed event). An untagged `unknown` stays casual.
+ *
+ * The rule decides the mode GROUP only. The meta population still leaves
+ * out every tagged battle, a clanmate's too (META_POPULATION in
+ * services/jobs/src/meta-rollup.mjs): a deck played under an event's
+ * rules describes the event, not the meta.
+ */
+export const CLANMATE_TYPES: readonly string[] = ["clanMate", "clanMate2v2"];
+
+/** Whether a battle is event content: tagged, and not with a clanmate. */
+export function isEventContent(
+  type: string,
+  eventTag?: string | null,
+): boolean {
+  return Boolean(eventTag) && !CLANMATE_TYPES.includes(type);
+}
+
 export function modeGroupOf(type: string, eventTag?: string | null): string {
-  if (eventTag) return EVENT_MODE_GROUP;
+  if (isEventContent(type, eventTag)) return EVENT_MODE_GROUP;
   return MODE_GROUP_BY_TYPE[type] ?? "casual";
 }
 
@@ -62,15 +87,26 @@ export function typesForModeGroup(group: string): string[] {
 }
 
 /**
+ * `isEventContent` in SQL: true for a tagged battle that is not a
+ * clanmate's. `typeCol` and `tagCol` are the columns to test (the
+ * battle's own `type` or a participant row's, and battle.event_tag).
+ */
+export function eventContentSql(typeCol: string, tagCol: string): string {
+  const clanmate = CLANMATE_TYPES.map((t) => `'${t}'`).join(", ");
+  return `(${tagCol} is not null and ${typeCol} not in (${clanmate}))`;
+}
+
+/**
  * The same rule in SQL, so the rollup writers cannot drift from the
- * readers. `b` is the alias of the battle table (or of a participant row
- * carrying `type`), `tagCol` the event_tag column to test.
+ * readers. `typeCol` is the battle's `type` (or a participant row's),
+ * `tagCol` the event_tag column to test. A test pins it equal to
+ * `modeGroupOf` for every type, tagged and untagged.
  */
 export function modeGroupSql(typeCol: string, tagCol: string): string {
   const cases = Object.entries(MODE_GROUP_BY_TYPE)
     .map(([t, g]) => `when '${t}' then '${g}'`)
     .join(" ");
-  return `case when ${tagCol} is not null then '${EVENT_MODE_GROUP}'
+  return `case when ${eventContentSql(typeCol, tagCol)} then '${EVENT_MODE_GROUP}'
                else (case ${typeCol} ${cases} else 'casual' end) end`;
 }
 

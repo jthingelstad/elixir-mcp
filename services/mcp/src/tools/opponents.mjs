@@ -5,6 +5,7 @@
 import {
   EVENT_MODE_GROUP,
   MODE_GROUPS,
+  eventContentSql,
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
 import {
@@ -81,11 +82,13 @@ export const opponentsTools = {
       if (win.from) add("me.battle_time >= ?", win.from);
       if (win.to) add("me.battle_time < ?", win.to);
       requireEnum(args.mode, MODE_GROUPS, "mode");
-      // Event-aware (#148): the tag, not the type, marks event content.
-      if (args.mode === EVENT_MODE_GROUP) where.push("b.event_tag is not null");
+      // Event-aware (#148): the tag, not the type, marks event content,
+      // except on a clanmate battle, which is casual (#109).
+      if (args.mode === EVENT_MODE_GROUP)
+        where.push(eventContentSql("b.type", "b.event_tag"));
       else if (args.mode) {
         add("b.type = any(?)", typesForModeGroup(args.mode));
-        where.push("b.event_tag is null");
+        where.push(`not ${eventContentSql("b.type", "b.event_tag")}`);
       }
       requireEnum(args.sort, ["battles", "last_seen", "wins"], "sort");
       const minBattles = Math.max(1, Number(args.min_battles ?? 1));

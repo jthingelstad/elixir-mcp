@@ -158,9 +158,12 @@ test("battles_query rows carry mode_group, context and, on a boat battle, boat (
   const pvp = full.battles.find((b) => b.type === "riverRacePvP");
   assert.equal(pvp.boat, undefined, "boat only on boat battles");
 
-  // 6.17.0: an event-tagged battle is `event`, whatever its type. It used
-  // to fold into `casual`, which filed the Seasonal Trophy Road as casual
-  // play and pooled a fortnight's tournament with ordinary friendlies.
+  // 6.17.0: an event-tagged battle is `event`. It used to fold into
+  // `casual`, which filed the Seasonal Trophy Road as casual play and
+  // pooled a fortnight's tournament with ordinary friendlies. #109
+  // (Jamie 2026-09-28): except a clanmate battle, which is casual even
+  // when tagged; the fixture's tagged clanMate2v2 is one.
+  const clanmate = ["clanMate", "clanMate2v2"];
   const events = await call("battles_query", {
     player_tag: EVENTS,
     mode: "event",
@@ -171,8 +174,10 @@ test("battles_query rows carry mode_group, context and, on a boat battle, boat (
   assert.match(event.context.event_tag, /^#/);
   assert.equal(event.mode_group, "event");
   assert.ok(
-    events.battles.every((b) => b.context.event_tag !== null),
-    "mode: event selects exactly the event-tagged battles",
+    events.battles.every(
+      (b) => b.context.event_tag !== null && !clanmate.includes(b.type),
+    ),
+    "mode: event selects the event-tagged battles that are not a clanmate's",
   );
   // And the old bucket no longer claims them.
   const casual = await call("battles_query", {
@@ -181,9 +186,16 @@ test("battles_query rows carry mode_group, context and, on a boat battle, boat (
     limit: 25,
   });
   assert.ok(
-    (casual.battles ?? []).every((b) => b.context.event_tag === null),
+    (casual.battles ?? []).every(
+      (b) => b.context.event_tag === null || clanmate.includes(b.type),
+    ),
     "casual no longer carries event content",
   );
+  const friendly = (casual.battles ?? []).find(
+    (b) => b.type === "clanMate2v2" && b.context.event_tag !== null,
+  );
+  assert.ok(friendly, "a tagged clanmate 2v2 is casual");
+  assert.equal(friendly.mode_group, "casual");
   // A drafted deck is orthogonal to the event split - a draft happens in
   // a friendly too - so it is found across both groups, and it is the
   // other half of what the meta must not count.
