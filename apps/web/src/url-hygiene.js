@@ -23,15 +23,15 @@ export function takeLoginToken() {
     const url = new URL(window.location.href);
     // The link rides the FRAGMENT (#129): a fragment never leaves the
     // browser, where a query string reaches the CDN's access logs. The
-    // query form is read too until the last link minted with it expires.
-    // Only the part that carried it is rewritten.
+    // query form was read for one link lifetime while mail moved over;
+    // it is no longer redeemed, only scrubbed, so a stale one never
+    // lingers in history either. Only the part that carried it changes.
     const fragment = new URLSearchParams(url.hash.replace(/^#/, ""));
-    const fromFragment = fragment.get("login_token");
-    const fromQuery = url.searchParams.get("login_token");
-    captured = fromFragment ?? fromQuery;
-    if (!captured) return null;
-    if (fromQuery) url.searchParams.delete("login_token");
-    if (fromFragment) {
+    captured = fragment.get("login_token");
+    const inQuery = url.searchParams.has("login_token");
+    if (!captured && !inQuery) return null;
+    if (inQuery) url.searchParams.delete("login_token");
+    if (captured) {
       fragment.delete("login_token");
       url.hash = fragment.toString();
     }

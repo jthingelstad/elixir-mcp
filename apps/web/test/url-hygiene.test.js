@@ -27,7 +27,7 @@ describe("takeLoginToken", () => {
 
   test("returns the token AND removes it from the address bar", async () => {
     const { mod, replaceState } = await freshModule(
-      "https://elixir.poapkings.com/signin?login_token=abc123",
+      "https://elixir.poapkings.com/signin#login_token=abc123",
     );
     expect(mod.takeLoginToken()).toBe("abc123");
     expect(replaceState).toHaveBeenCalled();
@@ -59,7 +59,7 @@ describe("takeLoginToken", () => {
     // If the second read went back to the URL it would find nothing, which is
     // exactly the bug this replaces.
     const { mod } = await freshModule(
-      "https://elixir.poapkings.com/signin?login_token=xyz789",
+      "https://elixir.poapkings.com/signin#login_token=xyz789",
     );
     expect(mod.takeLoginToken()).toBe("xyz789");
     expect(mod.takeLoginToken()).toBe("xyz789");
@@ -73,11 +73,15 @@ describe("takeLoginToken", () => {
     expect(replaceState).not.toHaveBeenCalled();
   });
 
-  test("other query parameters survive the scrub", async () => {
+  test("the retired query form is scrubbed, never redeemed (#129)", async () => {
+    // Mail carried ?login_token= until 2026-09-28; the console read it
+    // for one link lifetime while the mail moved to the fragment.
     const { mod, replaceState } = await freshModule(
       "https://elixir.poapkings.com/signin?login_token=t&next=/explore",
     );
-    expect(mod.takeLoginToken()).toBe("t");
-    expect(String(replaceState.mock.calls[0][2])).toContain("next=%2Fexplore");
+    expect(mod.takeLoginToken()).toBe(null);
+    const rewritten = String(replaceState.mock.calls[0][2]);
+    expect(rewritten).not.toContain("login_token");
+    expect(rewritten).toContain("next=%2Fexplore");
   });
 });

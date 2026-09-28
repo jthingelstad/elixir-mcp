@@ -4619,6 +4619,10 @@ between those promises and the code.
   the owner, passes the new owner check). The live console bundle reads
   the fragment. The same PR fixed a `participation-size.test.mjs` flake
   (`days_since_battle` stepping between two reads seconds apart).
-- **Step 2:** the relay mints `/signin#login_token=` (PR below). Step 3,
-  dropping the query form from the console, waits one link lifetime
-  (15 minutes) after step 2 is live.
+- **Step 2:** the relay mints `/signin#login_token=` (PR #134).
+  Deployed ~22:10Z (5:10 PM CT) from `0af44144`: smoke green, no
+  acceptance (no tool changed); the relay function went live 22:09:15Z.
+- **Step 3:** the console redeems only `#login_token=`; a stale
+  `?login_token=` is scrubbed from the address bar and never redeemed
+  (`apps/web/test/url-hygiene.test.js`). Deployed after 22:24:15Z, one
+  link lifetime past step 2, so no query-form link was still valid.
