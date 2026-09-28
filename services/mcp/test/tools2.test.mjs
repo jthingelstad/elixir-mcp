@@ -2946,11 +2946,32 @@ test("Gym #348: a row one player carries says so, and min_players counts repeat 
 });
 
 test("Gym #329: a bucket the newest profile read no longer carried is ended, even when it is the only one", async () => {
+  // The reader keeps buckets from the last 35 days by the database's
+  // clock, so this subject's profile is read relative to now: on the
+  // fixed 2026-09-03 fixture read the bucket aged out of that window on
+  // 2026-09-28 and the test failed on every run after.
+  const tag = "#Q2RUPYC8";
+  const profile = structuredClone(await fixture("player/profile.json"));
+  profile.tag = tag;
+  const {
+    rows: [gw],
+  } = await db.query(`select gateway_id from gateway where name = 'tools2-gw'`);
+  const read = await processResult(db, {
+    v: 1,
+    job: { endpoint: "player", entity_key: tag, lane: "bulk" },
+    gateway_id: gw.gateway_id,
+    fetched_at: new Date(Date.now() - 86400_000).toISOString(),
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(profile))).toString(
+      "base64",
+    ),
+  });
+  assert.equal(read.outcome, "admitted", JSON.stringify(read));
   const {
     rows: [snap],
   } = await db.query(
     `select max(snapshot_date) as d from player_snapshot_daily where player_tag = $1`,
-    [OBSERVER],
+    [tag],
   );
   const ended = new Date(snap.d.getTime() - 10 * 86400_000);
   await db.query(
@@ -2962,10 +2983,10 @@ test("Gym #329: a bucket the newest profile read no longer carried is ended, eve
     `insert into player_progress_daily (player_tag, progress_key, day, observed_at, trophies, best_trophies)
      values ($1, 'AutoChess_2026_Season_T', $2::date, $2::timestamptz, 15, 15)
      on conflict do nothing`,
-    [OBSERVER, ended],
+    [tag, ended],
   );
   const { body, isError } = await call("players_profile", {
-    player_tag: OBSERVER,
+    player_tag: tag,
   });
   assert.equal(isError, false, JSON.stringify(body));
   const row = body.snapshot.progress.find(
