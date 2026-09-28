@@ -294,6 +294,15 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.account_remove) {
+    const { accountRemoveOp } = await import("./ops-account-remove.mjs");
+    const result = await accountRemoveOp(
+      process.env.DATABASE_URL,
+      event.account_remove,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.account_role) {
     const result = await accountRoleOp(
       process.env.DATABASE_URL,
