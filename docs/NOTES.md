@@ -3833,3 +3833,32 @@ Jamie's). Two PRs: the database and alarms first, then secrets and
 2. The live session-secret rotation, when you want one, follows
    "Session secret" in the same file. It needs a console edit of the
    secret value, so no agent can run it.
+
+**Part 2 deployed and read back (2026-09-27, 20:45 Central).**
+- PR #95 merged on a green `validate`. The deploy exited 0: migrations
+  `{"applied":190,"ran":0}`, 40 smoke checks, stack UPDATE_COMPLETE, and
+  `/api/public/status` answers `"ok":true`. No acceptance run, because
+  no tool changed.
+- `verify-full` works on every database function. From 01:46Z on, the
+  logs of web-api, mcp, scheduler, migrate and jobs hold no error, no
+  `db_connect_failed` and no certificate line. `{tables}` through the
+  migrate function answers.
+- **A rollout blip to remember.** At 01:45:36Z and 01:45:39Z, two
+  web-api invocations failed with `SELF_SIGNED_CERT_IN_CHAIN` and the
+  line "Ignoring extra certs from /var/task/certificates/rds.pem". For
+  those seconds CloudFormation had applied the new environment
+  (`NODE_EXTRA_CA_CERTS`, `verify-full`) but not yet the new code that
+  carries the file. Two lessons for next time:
+  - an environment variable that names a file in the bundle should ship
+    one deploy after the file;
+  - a rotation that only moves `SecretEpoch` changes no code and has no
+    such window.
+- `{tables}`: all ten tables carry the 0189 options. `all_visible_pct`
+  is 99.9 to 100 on `deck`, `deck_card`, `meta_season_pop`,
+  `battle_participant_card`, `card_meta_season`, `card_meta_season_band`,
+  `deck_meta_season` and `meta_season_band_totals`. It is 77.8 on
+  `deck_meta_season_band`, and 0 on `meta_season_totals`, a small table
+  rewritten nightly. The week-later check reads those two again.
+- The parameters are at their defaults: `SecretEpoch` 0,
+  `SessionSecretPreviousInSecret` false, `UnsubscribeKeyInSecret` false.
+  The origin rotation has not been run live.
