@@ -1,4 +1,12 @@
-import { ago, Icon, Link, secsSince } from "@elixir-mcp/ui";
+import { useWrite } from "@elixir-mcp/client";
+import {
+  ago,
+  Icon,
+  Link,
+  secsSince,
+  WriteError,
+  writeErrorText,
+} from "@elixir-mcp/ui";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useState } from "react";
 import { api } from "../../api.js";
@@ -26,13 +34,69 @@ import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 export function TrackedRecord({ me, refresh, navigate, tag }) {
   const { data: clans = null } = useMyClans();
   const [nick, setNick] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [refusal, setRefusal] = useState(null);
   const [now] = useState(() => Date.now());
   const invalidate = useInvalidate();
   const loadClans = () => invalidate();
 
   const wanted = tagFromPath(tag);
+  // Every write on this page, each unwrapped: a refusal is said on the
+  // page, and the record refetches only after a write that took. "Make
+  // primary" used to clear the removal refusal whatever the server
+  // answered (review 2026-09-27 §7.5).
+  const relationship = useWrite(api.setRelationship, {
+    invalidate: () => refresh(),
+  });
+  const primary = useWrite(
+    () =>
+      api.claimAction({
+        player_tag: wanted,
+        action: "add",
+        make_primary: true,
+      }),
+    { invalidate: () => refresh() },
+  );
+  const scope = useWrite(
+    (next) =>
+      api.myClanAction({ action: "add", clan_tag: wanted, scope: next }),
+    { invalidate: () => loadClans() },
+  );
+  const nickname = useWrite((next) => api.setNickname(wanted, next), {
+    invalidate: () => refresh(),
+  });
+  const notify = useWrite(
+    (clan, on) =>
+      clan
+        ? api.myClanAction({
+            clan_tag: wanted,
+            action: on ? "notify_off" : "notify_on",
+          })
+        : api.claimAction({
+            player_tag: wanted,
+            action: on ? "notify_off" : "notify_on",
+          }),
+    // The console's root: your session (a claim's switch) and your clans.
+    { invalidate: () => loadClans() },
+  );
+  const remove = useWrite(
+    (clan) =>
+      clan
+        ? api.myClanAction({ clan_tag: wanted, action: "remove" })
+        : api.claimAction({ player_tag: wanted, action: "remove" }),
+    { invalidate: () => refresh() },
+  );
+  const writes = [relationship, primary, scope, nickname, notify, remove];
+  /** One write at a time says its outcome: starting one clears the others'. */
+  const only = (write) => {
+    for (const w of writes) if (w !== write) w.reset();
+    return write.run;
+  };
+  const failed =
+    relationship.error ??
+    primary.error ??
+    scope.error ??
+    nickname.error ??
+    notify.error;
+  const busy = primary.busy || remove.busy;
   const claim = (me.claims ?? []).find((c) => c.player_tag === wanted);
   // The nightly activity row, players only: a clan has no year of its own.
   const tracked = Boolean(claim);
@@ -161,10 +225,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                   className="select"
                   aria-label="Relationship"
                   value={claim.relationship ?? "watching"}
-                  onChange={async (ev) => {
-                    await api.setRelationship(wanted, ev.target.value);
-                    refresh();
-                  }}
+                  onChange={(ev) => only(relationship)(wanted, ev.target.value)}
                 >
                   <option value="alt">alt</option>
                   <option value="friend">friend</option>
@@ -178,17 +239,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                   className="btn"
                   style={{ marginLeft: "8px" }}
                   disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    await api.claimAction({
-                      player_tag: wanted,
-                      action: "add",
-                      make_primary: true,
-                    });
-                    setBusy(false);
-                    setRefusal(null);
-                    refresh();
-                  }}
+                  onClick={() => only(primary)()}
                 >
                   Make primary
                 </button>
@@ -202,14 +253,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                   className="select"
                   aria-label="Scope"
                   value={clan.scope}
-                  onChange={async (ev) => {
-                    await api.myClanAction({
-                      action: "add",
-                      clan_tag: wanted,
-                      scope: ev.target.value,
-                    });
-                    loadClans();
-                  }}
+                  onChange={(ev) => only(scope)(ev.target.value)}
                 >
                   <option value="comprehensive">comprehensive</option>
                   <option value="activity">activity</option>
@@ -232,14 +276,10 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                     maxLength={40}
                     value={nick ?? claim.nickname ?? ""}
                     onChange={(ev) => setNick(ev.target.value)}
-                    onBlur={async () => {
+                    onBlur={() => {
                       if (nick == null || nick === (claim.nickname ?? ""))
                         return;
-                      await api.explore("elixir_nickname", {
-                        player_tag: wanted,
-                        nickname: nick.trim() || null,
-                      });
-                      refresh();
+                      only(nickname)(nick.trim() || null);
                     }}
                     style={{ width: "11rem" }}
                   />
@@ -262,21 +302,9 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                   (isClan ? clan.notify : claim.notify) ? "true" : "false"
                 }
                 aria-label="Notifications"
-                onClick={async () => {
-                  const on = isClan ? clan.notify : claim.notify;
-                  if (isClan)
-                    await api.myClanAction({
-                      clan_tag: wanted,
-                      action: on ? "notify_off" : "notify_on",
-                    });
-                  else
-                    await api.claimAction({
-                      player_tag: wanted,
-                      action: on ? "notify_off" : "notify_on",
-                    });
-                  if (isClan) loadClans();
-                  else refresh();
-                }}
+                onClick={() =>
+                  only(notify)(isClan, isClan ? clan.notify : claim.notify)
+                }
               />
               <span
                 className="footnote"
@@ -286,6 +314,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
               </span>
             </span>
           </div>
+          <WriteError error={failed} className="field-error px-4" />
           <div
             style={{
               display: "flex",
@@ -300,30 +329,11 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
               className="btn btn--danger"
               disabled={busy}
               onClick={async () => {
-                setBusy(true);
-                if (isClan)
-                  await api.myClanAction({
-                    clan_tag: wanted,
-                    action: "remove",
-                  });
-                else {
-                  const r = await api.claimAction({
-                    player_tag: wanted,
-                    action: "remove",
-                  });
-                  // Your primary cannot be removed while you track others
-                  // (409 primary_in_use): say so and stay on the page.
-                  if (!r.ok) {
-                    setBusy(false);
-                    setRefusal(
-                      r.data?.message ?? "This player could not be removed.",
-                    );
-                    return;
-                  }
-                }
-                setBusy(false);
-                await refresh();
-                navigate("/account/tracking");
+                // Your primary cannot be removed while you track others
+                // (409 primary_in_use): the refusal is said beside the
+                // button, and the page stays.
+                const r = await only(remove)(isClan);
+                if (r.ok) navigate("/account/tracking");
               }}
             >
               Stop tracking
@@ -331,7 +341,9 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             {/* The consequence beside the control: this stops new capture
                 and takes nothing away. */}
             <span className="footnote">
-              {refusal ?? "History already recorded is kept."}
+              {remove.error
+                ? writeErrorText(remove.error)
+                : "History already recorded is kept."}
             </span>
           </div>
         </section>

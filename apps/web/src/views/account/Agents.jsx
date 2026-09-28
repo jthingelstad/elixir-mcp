@@ -1,4 +1,5 @@
-import { Fresh, Link } from "@elixir-mcp/ui";
+import { useWrite } from "@elixir-mcp/client";
+import { Fresh, Link, WriteError } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
@@ -42,6 +43,17 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
 
   const invalidate = useInvalidate();
   const load = () => invalidate(keys.principals);
+  // The security writes: a refusal says so beside the button, and the
+  // record refetches only after one that took (review 2026-09-27 §7.5).
+  const revoke = useWrite(api.revokePrincipalToken, {
+    invalidate: [keys.principals],
+  });
+  const status = useWrite(api.setPrincipalStatus, {
+    invalidate: [keys.principals],
+  });
+  const unmap = useWrite(api.removePrincipalIdentity, {
+    invalidate: [keys.principals],
+  });
 
   if (missed)
     return (
@@ -393,7 +405,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
             </button>
             <button
               className="btn btn--danger"
-              disabled={busy || !key}
+              disabled={busy || revoke.busy || !key}
               onClick={async () => {
                 // The emergency path — a key that leaked. Confirmed because it
                 // is the one action here with no way back: unlike suspending,
@@ -405,25 +417,18 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
                   )
                 )
                   return;
-                setBusy(true);
-                await api.revokePrincipalToken(key.token_id);
-                setBusy(false);
-                load();
+                status.reset();
+                await revoke.run(key.token_id);
               }}
             >
               Revoke key
             </button>
             <button
               className="btn btn--quiet"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                await api.setPrincipalStatus(
-                  id,
-                  suspended ? "approved" : "disabled",
-                );
-                setBusy(false);
-                load();
+              disabled={busy || status.busy}
+              onClick={() => {
+                revoke.reset();
+                status.run(id, suspended ? "approved" : "disabled");
               }}
             >
               {suspended ? "Resume" : "Suspend"}
@@ -431,6 +436,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
             <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
               Suspend is reversible — the same key comes back. Revoke is not.
             </span>
+            <WriteError error={revoke.error ?? status.error} />
           </div>
         )}
         {minted && (
@@ -490,6 +496,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
               </p>
             </div>
           )}
+          <WriteError error={unmap.error} className="field-error px-4" />
           {identities?.length > 0 && (
             <div className="table__scroll" tabIndex={0}>
               <table className="table">
@@ -511,13 +518,8 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
                       <td>
                         <button
                           className="btn--text"
-                          onClick={async () => {
-                            await api.removePrincipalIdentity(
-                              id,
-                              m.external_id,
-                            );
-                            load();
-                          }}
+                          disabled={unmap.busy}
+                          onClick={() => unmap.run(id, m.external_id)}
                         >
                           Remove
                         </button>

@@ -275,6 +275,37 @@ test("Profile → Devices lists every device, marks this one, and signs the othe
   ).toBeNull();
 });
 
+test("a refused sign-out says so and leaves the device listed (review 2026-09-27 §7.5)", async () => {
+  // It used to await the revoke, drop the envelope and refetch: a 403 or
+  // a 503 looked exactly like a sign-out that worked, apart from the
+  // device quietly still being there.
+  let reads = 0;
+  const sessions = [
+    { id: "here", current: true, client: "Chrome on Mac" },
+    { id: "phone", current: false, client: "Safari on iPhone" },
+  ];
+  global.fetch = mockFetch({
+    "GET /api/me/sessions": () => {
+      reads += 1;
+      return [200, { sessions }];
+    },
+    "POST /api/me/sessions/revoke": () => [
+      403,
+      { error: "forbidden", message: "This session cannot sign others out." },
+    ],
+  });
+  renderWithProviders(<DevicesPage navigate={vi.fn()} />);
+  expect(await screen.findByText("Safari on iPhone")).toBeTruthy();
+  const before = reads;
+  fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+  expect((await screen.findByRole("alert")).textContent).toBe(
+    "This session cannot sign others out.",
+  );
+  expect(screen.getByText("Safari on iPhone")).toBeTruthy();
+  // Nothing changed, so nothing is refetched over the refusal.
+  expect(reads).toBe(before);
+});
+
 test("a magic link is redeemed ONCE, however many times the page re-renders while the session settles", async () => {
   // Live, 2026-09-13: four POST /api/auth/redeem in 600 ms - one 200 and
   // three 400s - because the effect depended on a fresh onAuthed arrow

@@ -39,4 +39,9 @@ export {
   stampDay,
   stampTime,
 } from "./time.ts";
+export {
+  WriteError,
+  writeErrorText,
+  type WriteFailure,
+} from "./WriteError.tsx";
 export { useClock, ZoneProvider } from "./Zone.tsx";
