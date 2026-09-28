@@ -56,7 +56,9 @@ profile interval, the two latest profile polls and the recorded battles between
 them, and the note fires when fewer than 90% of the battles the profile counted
 are recorded, or when the interval is not comparable and more than 48 hours
 have passed since the last profile poll. It names the interval, the counts and
-the `elixir_coverage` call that has the whole week. When it is there, say so in
+the `elixir_coverage` call that has the whole week. On `battles_compare` it reads
+each compared tag, and carries one sentence per incomplete side, each naming
+its tag; a complete side is not mentioned. When it is there, say so in
 the answer. It is the service admitting a gap; an agent that drops it on the
 floor is laundering that admission. (Until 3.14.0 the field was promised and
 never set.)
