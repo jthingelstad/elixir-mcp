@@ -526,6 +526,12 @@ const PROJECTORS = {
  * endpoint/entity/fetch date so Athena and DuckDB read the layout with
  * no catalog crawl. Content-addressed — the hash rides the filename.
  */
+/** Every endpoint the archive holds: each projector's payloads are
+ *  archived under payloads/endpoint=<key>/ before they are projected.
+ *  The Glue table's partition enum (infra/template.yaml) is pinned to
+ *  this list by a test (review 2026-09-27 §7.7). */
+export const ARCHIVED_ENDPOINTS = Object.freeze(Object.keys(PROJECTORS));
+
 export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
   const entity = entityKey.replace(/^#/, "");
   const dt = fetchedAt.slice(0, 10);

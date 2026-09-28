@@ -151,13 +151,11 @@ check(
   site.headers.get("strict-transport-security") ?? "absent",
 );
 
-// The public reads must actually CACHE now (#23): they run real
+// The public reads must actually CACHE now (#23, #73): they run real
 // aggregation, and under CachingDisabled every hit recomputed them.
-// Two requests, and the second has to be a hit - a cache behaviour
-// that is present but ineffective looks exactly like one that works.
-const statusOnce = await fetch(`${mcpBase}/api/public/status`);
-check("public status serves", statusOnce.ok, String(statusOnce.status));
-
+// Repeat requests, and one has to be a hit - a cache behaviour that is
+// present but ineffective looks exactly like one that works.
+//
 // Asserting a hit on exactly the SECOND request assumes both land on the same
 // edge server. CloudFront has many points of presence, and the deploy
 // invalidates the distribution immediately before smoke runs, so the first few
@@ -168,20 +166,28 @@ check("public status serves", statusOnce.ok, String(statusOnce.status));
 // The intent is "caching is EFFECTIVE, not merely configured", and a few
 // requests settling into hits proves exactly that -- a disabled cache never
 // hits, however many times you ask.
-let hit = "absent";
-let statusTwice = statusOnce;
-for (let attempt = 0; attempt < 6; attempt += 1) {
-  statusTwice = await fetch(`${mcpBase}/api/public/status`);
-  hit = (statusTwice.headers.get("x-cache") ?? "").toLowerCase();
-  if (hit.includes("hit")) break;
-  await new Promise((r) => setTimeout(r, 500));
+async function edgeCaches(label, url) {
+  const once = await fetch(url);
+  check(`${label} serves`, once.ok, String(once.status));
+  let hit = "absent";
+  let again = once;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    again = await fetch(url);
+    hit = (again.headers.get("x-cache") ?? "").toLowerCase();
+    if (hit.includes("hit")) break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  check(`${label} caches at the edge`, hit.includes("hit"), hit || "absent");
+  check(
+    `${label} still declares its own freshness`,
+    (again.headers.get("cache-control") ?? "").includes("max-age="),
+    again.headers.get("cache-control") ?? "absent",
+  );
 }
-check("public status caches at the edge", hit.includes("hit"), hit || "absent");
-check(
-  "public status still declares its own freshness",
-  (statusTwice.headers.get("cache-control") ?? "").includes("max-age="),
-  statusTwice.headers.get("cache-control") ?? "absent",
-);
+await edgeCaches("public status", `${mcpBase}/api/public/status`);
+// The card catalogue came under the one /api/public/* behaviour in #73;
+// before it, every repeat read was a Miss.
+await edgeCaches("public cards", `${mcpBase}/api/public/cards`);
 
 // The app shell is the privileged surface: it must carry the headers
 // too, and load no third-party script.
