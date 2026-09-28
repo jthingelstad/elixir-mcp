@@ -3889,3 +3889,42 @@ approval stands in for the separate dev-build soak (RELEASING-COLLECTOR.md
 
 Pending: the 429 retry is exercised only by a real throttle burst, so a
 week with no collector quarantined for `missed_streak`.
+
+## 2026-09-27 - #72 (review 7.5): console links, failed writes, Explore's reads
+
+Three console defects from the 2026-09-27 review, one PR, console and
+kit only (no tool, contract or JSON API change).
+
+- **Record links.** The kit gains `Link` (`packages/ui/src/Link.tsx`):
+  it always renders an href and routes in-app only on an unmodified
+  primary click (`isPlainClick`); the router reaches it through
+  `NavigateProvider`, which the Shell supplies, and without one it is a
+  plain anchor, so Elixir Clan keeps working before its pin bump.
+  `LogCell` is `{text, href}`. The Rail, Chrome and the rail identity
+  leave a modified click to the browser. About 65 click-only anchors are
+  Links now, and actions are `<button className="link">` (a new
+  components.css rule). `apps/web/test/links.test.js` pins anchors
+  without an href, and console anchors with their own onClick, at zero;
+  oxlint runs `jsx-a11y` with only `anchor-is-valid` on (the plugin's
+  other defaults found 39 unrelated sites and are off, out of scope).
+- **Failed writes.** `packages/client` gains `useWrite(call,
+  {invalidate})`: it unwraps, so a refusal or a transport failure is an
+  error; refetches only after a success; and hands the error to the
+  kit's `WriteError`. All 21 bare writes are converted (devices, agents,
+  admin revokes and decisions, gateway lifecycle, connections, email
+  preferences, the tracked record, the nickname, the handoff confirm,
+  sign-out); "Make primary" no longer clears its refusal whatever the
+  answer. `apps/web/test/writes.test.jsx` pins bare `await api.` writes
+  at zero.
+- **Explore.** A week reads `war_history {clan_tag, season_id,
+  section_index}` instead of searching the last 12 seasons (a week older
+  than that answered "not in the recorded log"), says the tool's own
+  note when the record does not hold it, and renders the standings, the
+  days and `member_weeks` as plain tables. A tag lookup's probe seeds the
+  record's query (`['explore', kind, id]`), so a lookup is one call.
+- Tests first for the named failures (week by name, probe seeding,
+  refused sign-out, useWrite). `npm run verify`, the site build and
+  `npm run e2e` (9) are green.
+- Deploy scope: no acceptance. Console only, so no tool family changed.
+- Sibling: Elixir Clan takes the kit through its pin. It does not use
+  `LogTable`, so nothing breaks; the pin bump is Clan's own step.
