@@ -4570,3 +4570,46 @@ change only with Jamie's word.
   `--skip-web`). A page an edge still holds from before may draw in the
   system font until it expires; nothing breaks. No tool changes, so no
   acceptance family.
+
+## 2026-09-28 - #129: a withdrawn person's agents, removal requests, the sign-in link
+
+Found while restating the policy pages: they promise access "can be
+withdrawn" and an account removed on request, and three things stood
+between those promises and the code.
+
+- **A withdrawn owner's agents are refused.** Both doors
+  (`validateAccessToken`, and the service-token select shared by
+  `validateServiceToken` and `serviceTokenAccountByName`) read the
+  token's own account and joined the owner only for its quota. Now an
+  owned principal validates only while its owner is `approved` too, so a
+  withdrawal reads as the ordinary not-found, as a suspended agent does,
+  and resuming the owner restores the same keys. `describeRefusedCredential`
+  names the refusal `principal_suspended`, not `wrong_door`. Test:
+  `services/auth/test/oauth.test.mjs`, failing before the change.
+  Integrations have owners too and follow the same rule.
+- **Collectors are NOT tied to the owner's status** (unchanged). Whether
+  a withdrawal should also drain the person's collectors, or leave them
+  to the existing collector revoke, is Jamie's call; asked on #129.
+- **`{account_remove}`** (`services/migrate/src/ops-account-remove.mjs`,
+  catalogued in the ops skill): dry run by default; by address or
+  account id; for the person and every agent they own. Deletes the
+  personal rows (listed in the op's comment and ops.md row), stops the
+  recordings nobody else wants through `reconcileRecording`, keeps the
+  game record and the clan facts the person attested (the op never names
+  `attested_fact`: `attested-readers.test.mjs` keeps that table to its
+  one reader and one writer), and leaves the account row as an anonymous
+  tombstone (`removed:<account_id>`, disabled): a recording's
+  `requested_by`, an attested fact's attester and a revoked collector's
+  history must point somewhere. Refuses the owner, a non-person, an
+  integration's owner, a live collector (revoke first), and a collection
+  an integration is granted. Returns `manual`: the Buttondown address,
+  and the sent-mail bodies under `mail/sent/` (keys returned; the
+  migrate role holds no DeleteObject, so the bodies are deleted by
+  hand); call captures expire on their 90-day rule. Running it for real
+  is Jamie's, on a person's request (DECISIONS: account-touching write
+  ops). Test: `services/migrate/test/ops-account-remove.test.mjs`, a dry
+  run and a run against a scratch database.
+- **The sign-in link moves to the fragment**, in two steps so no link in
+  flight breaks: the console reads `#login_token=` as well as
+  `?login_token=` (this PR), the relay then mints the fragment, and one
+  link lifetime (15 minutes) later the query form is dropped.

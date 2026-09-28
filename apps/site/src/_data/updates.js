@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-28",
+    title:
+      "Your agents stop when your access does, and removal requests have a way through",
+    body: "An agent acts only while its owner has access. Until now, withdrawing a person's access stopped their own sign-ins and connections but left the agents they own working; now their keys and connected apps read as invalid too, and work again if access returns. A request to remove an account, sent to admin@poapkings.com as the privacy page says, is now carried out by one reviewed step rather than by hand: your address, your players and clans, your agents and their keys, your connections, sessions, call history, feedback and the mail sent to you go, and the public game record stays. The sign-in link in the email is also moving its code to the part of the address that never leaves your browser. No change to the tools.",
+  },
+  {
+    date: "2026-09-28",
     title: "Shorter privacy and terms, and fonts served from Elixir itself",
     body: "The privacy and terms pages had grown into long documents that promised more detail than a hobby service can keep current. They are now short and plain: Elixir is a free service, built as a hobby, for folks who like the game; it keeps public game history and what your account needs, counts visits without knowing who you are, and sells nothing. Questions and removal requests go to admin@poapkings.com. Nothing about what Elixir keeps or shares has changed. The site's typeface is also served from Elixir now rather than from Google Fonts, so reading a page no longer tells a third party what you read. No change to the tools.",
   },
