@@ -4432,3 +4432,27 @@ member's session shares it; a duplicated promotion keeps the lowest row's
 id in a window holding either row; one sequence number in three ledgers
 gives three ids, none showing the number. MCP 9.15.0, additive; the JSON
 API has no timeline operation.
+
+### Deployed and read back
+
+- **Deploy:** 70f11c61 (PR #122), stack updated by 16:08Z (11:08 AM CT);
+  migrations 193 applied, 0 ran.
+- **Acceptance (`--acceptance=elixir`, the issue's scope), 188 cases: 3
+  failed, 12 skipped, 7 known (the pre-existing presence cases, until
+  10-02).** gym/302.1, 302.2 and 321.2 asserted the member-read note's old
+  wording ("same started_at"); this change is what made them wrong, since
+  the note now says a sitting returns under the same id with a higher
+  revision. Verdict: amended to match "same id", with a reason; 302.3 (the
+  control) amended the same way. All four re-run alone against live: ok.
+- **Read-back:** `/api/public/status` ok; `/tools.json` 9.15.0;
+  `elixir_changelog(since 9.14.0)` serves the 9.15.0 entry;
+  `/docs/timeline/` carries "Telling the story";
+  `/updates/2026-09-28-contract-9-15-0/` answers 200. Two overlapping dry
+  reads (`days: 1` and `days: 2`, 16:10Z) served every item of the shorter
+  window under the same id and revision in the longer one. Tyler's sitting,
+  cut at the one-day window's edge (8 battles from 15:56Z), came back whole
+  in the two-day read (11 battles from 15:49Z) under one id at revision 11.
+  A standout and its session shared an id (Vijay's 43-battle sitting:
+  standout revision 40, session 43).
+- **Pending natural check:** a live sitting that grows between two reads
+  keeps its id and raises its revision.
