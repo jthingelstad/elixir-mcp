@@ -4200,3 +4200,25 @@ no output-schema change: contract 9.12.7, a patch. `battles_compare` has
 no `/api/v1` mirror. Test: `services/mcp/test/coverage.test.mjs`
 (gapped + complete, unknown + gapped, complete twice, an old window).
 Out of scope, parked in lane D: gap intervals as a precise control.
+
+**9.12.7 shipped** (293490bc, PR #114), `--acceptance=battles` as the
+issue asked (the `buildMeta` edit only moved its gate into
+`completenessNotes`, no new query for a single subject); smoke green,
+migrations ran 0. Acceptance: 197 cases, 3 failed, every
+`battles_compare` case passed. Verdicts, each re-run alone:
+
+- `catalogue/battles_meta_cards#1` (15.4 s): 3.8 s alone, a cold read.
+- `budgets/meta-cards-corpus-week` (16.0 s, 16.0 s alone) and
+  `catalogue/battles_trends#1` (10.2 s, 4.3 s alone): the open
+  first-call slow-seed item (9.11.1, 9.12.0, 9.12.2); neither tool
+  changed.
+
+Read-back 13:28Z (8:28 AM CT), reads only: `/api/public/status` `ok:
+true`; `elixir_changelog({since: "9.12.6"})` answers 9.12.7 and
+`meta.contract_version` is 9.12.7. `battles_compare` over two sets of
+four recorded players (King Thing, thingles, King Levy, raquaza; Ditaka,
+pokemon, Vijay, OllieTurtle), last seven days, carries no
+`completeness_note`, and `battles_performance` shows none for any of
+them or for six more watched players: no side is incomplete today, so
+the note showing when one is rests on the scratch test until a natural
+gap.
