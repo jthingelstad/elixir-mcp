@@ -25,10 +25,21 @@ Establish, with receipts:
   confirmed between 10:00Z and 10:15Z today — exactly one, not several
   (`last_confirmed_at` counts: an unchanged board confirmed is a fetch
   that happened). For the 262 location boards: every enabled board
-  observed or confirmed within the last 26 hours. Read through
-  `rankings_players` (`snapshot.observed_at`, `snapshot.unchanged_until`)
-  or the migrate lambda's `{stats: true}`; never a hand SQL against
-  production. This run is scheduled AFTER 10:00Z so today's board is the
+  read and admitted within the last 26 hours. Read the migrate lambda's
+  `{stats: true}` `ranking_health` (or `rankings_players`'
+  `snapshot.observed_at`, `snapshot.unchanged_until` for one board);
+  never a hand SQL against production. `fresh_locations` counts an
+  admitted read, and `empty_locations` is the part of it the API served
+  empty: an empty board is valid and admitted but writes no snapshot, so
+  it is not a gap (until 2026-09-27 freshness was read from snapshots
+  alone, and those boards were the "90 stale" this run reported from
+  09-14; review §4.5, #69). `stale_locations` is the gap: of it,
+  `not_found_locations` last answered 404 (held to one read a day by the
+  planner, a known state, not a miss); the rest were not admitted and
+  are the thing to explain. `snapshot_fresh_locations` is the old
+  measure, kept for comparison. A failed read is retried within the
+  hour (0188), so a board still stale by this run failed more than its
+  retries. This run is scheduled AFTER 10:00Z so today's board is the
   one it reads; a run that lands before it reads yesterday's and must say
   so rather than call it late.
 - **Nothing is truncated.** `snapshot.truncated` is false on the latest

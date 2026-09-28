@@ -23,6 +23,17 @@ export async function stats(databaseUrl) {
       // SQL from an operator shell just to establish that every daily board
       // landed, that the reset tick was singular, and that ranking presence
       // is still holding its promised field.
+      //
+      // A location board is FRESH when poll_state says a read was admitted
+      // in the last 26 hours. It used to be measured from snapshots alone,
+      // but an empty board is valid and admitted and writes or confirms no
+      // snapshot (rankings.mjs), so every location the API serves empty
+      // read as stale: the "90 stale regional boards" Keep the Boards
+      // reported from 09-14 (review 2026-09-27 §4.5, #69). Of the fresh,
+      // `empty_locations` have no snapshot confirmed in the window (every
+      // admitted read was empty); of the stale, `not_found_locations` last
+      // heard a 404 after their last admission (the planner's not-found
+      // hold). `snapshot_fresh_locations` is the old measure, kept beside it.
       ranking_health: `with latest as (
          select distinct on (b.location_key) b.location_key,
                 greatest(s.observed_at, s.last_confirmed_at) as confirmed_at,
@@ -33,14 +44,28 @@ export async function stats(databaseUrl) {
          where b.board = 'pol' and b.enabled
          order by b.location_key, s.observed_at desc nulls last
        ), locations as (
-         select * from latest where location_key <> 'global'
+         select l.*,
+                coalesce(ps.last_admitted_at >= now() - interval '26 hours', false) as fresh,
+                coalesce(l.confirmed_at >= now() - interval '26 hours', false) as snapshot_fresh,
+                (select max(e.fetched_at) from collector_fetch_error e
+                  where e.endpoint = 'rankings_pol' and e.entity_key = l.location_key
+                    and e.http_status = 404)
+                  > coalesce(ps.last_admitted_at, 'epoch') as not_found
+         from latest l
+         left join poll_state ps
+           on ps.endpoint = 'rankings_pol' and ps.subject_tag = l.location_key
+         where l.location_key <> 'global'
        )
        select json_build_object(
          'enabled_locations', (select count(*)::int from locations),
-         'fresh_locations', (select count(*)::int from locations
-           where confirmed_at >= now() - interval '26 hours'),
-         'stale_locations', (select count(*)::int from locations
-           where confirmed_at is null or confirmed_at < now() - interval '26 hours'),
+         'fresh_locations', (select count(*)::int from locations where fresh),
+         'empty_locations', (select count(*)::int from locations
+           where fresh and not snapshot_fresh),
+         'stale_locations', (select count(*)::int from locations where not fresh),
+         'not_found_locations', (select count(*)::int from locations
+           where not fresh and coalesce(not_found, false)),
+         'snapshot_fresh_locations', (select count(*)::int from locations
+           where snapshot_fresh),
          'global_tick_receipts', (select count(*)::int from api_receipt
            where endpoint = 'rankings_pol' and entity_key = 'global'
              and fetched_at >= date_trunc('day', now()) + interval '10 hours'
