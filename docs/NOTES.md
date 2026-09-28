@@ -4496,3 +4496,11 @@ joiners mid-window. Its object rows are 62,791 (full) and 54,910
 
 Contract 9.16.0 (a minor: `columns` and `place_at_war_finish` are new;
 the reshaping is wire cleanup, stated in `breaking`); JSON API 2.7.1.
+
+**Fix forward, 9.16.1.** The first deploy of 9.16.0 (6b2392f0, PR #125)
+laid out the table only when the door was `mcp`; a service token's MCP
+calls audit as `svc:<name>` (`handler.mjs`), so the acceptance agent (a
+service token) still read object rows: `contracts/clans_participation`
+failed (`columns.members missing`) and the eight-week full catalogue cases
+still refused at 52,121. The handler now treats `svc:*` as the MCP door
+too, and the budget test reads through a `svc:` invoker as well.
