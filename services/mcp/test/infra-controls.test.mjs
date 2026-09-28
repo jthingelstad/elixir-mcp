@@ -276,3 +276,42 @@ test("ci gate: a run not yet created or still going is waited for, up to the dea
   assert.equal(late.ok, false);
   assert.match(late.reason, /did not finish/);
 });
+
+test("the failures the doors handle themselves are alarmed, to the ops queue (review 2026-09-27 §8.6, #71)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const filter = resource(
+    template,
+    "McpHandledFailureFilter",
+    "WebApiHandledFailureFilter",
+  );
+  assert.match(filter, /LogGroupName: !Ref McpLogGroup/);
+  assert.match(filter, /"tool_failed_unexpectedly"/);
+  assert.match(filter, /"db_connect_failed"/);
+  assert.doesNotMatch(filter, /^ *DefaultValue:/m);
+  const expected = [
+    // [logical id, next logical id, metric, threshold]
+    ["HandledFailureAlarm", "WebApiLatencyAlarm", "HandledFailure", "3"],
+    ["WebApiLatencyAlarm", "DbEbsByteBalanceAlarm", "Duration", "15000"],
+    ["DbEbsByteBalanceAlarm", "DbFreeableMemoryAlarm", "EBSByteBalance%", "25"],
+    [
+      "DbFreeableMemoryAlarm",
+      "SiteCertificateExpiryAlarm",
+      "FreeableMemory",
+      "157286400",
+    ],
+    ["SiteCertificateExpiryAlarm", "Outputs", "DaysToExpiry", "30"],
+  ];
+  for (const [logicalId, next, metric, threshold] of expected) {
+    const block =
+      next === "Outputs"
+        ? template.slice(
+            template.indexOf(`  ${logicalId}:`),
+            template.indexOf("\nOutputs:"),
+          )
+        : resource(template, logicalId, next);
+    assert.match(block, /Type: AWS::CloudWatch::Alarm/, logicalId);
+    assert.ok(block.includes(`MetricName: ${metric}\n`), logicalId);
+    assert.match(block, new RegExp(`^      Threshold: ${threshold}$`, "m"));
+    assert.match(block, /AlarmActions: \[!Ref AlarmTopic\]/, logicalId);
+  }
+});
