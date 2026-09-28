@@ -4751,3 +4751,10 @@ line while the privacy and terms pages no longer do; should a denied
 access request get a mail (the quickstart now says only an approval
 does); and `/data/growth` still promises that "a retention policy comes
 as the corpus grows" while the privacy page says game history is kept.
+
+Deployed 23:54Z (6:54 PM CT) from main at `0ec6423c` (PR #138), no
+acceptance: no MCP tool or `/api/v1` operation changed, only copy,
+comments and the `account:email` scope description. Smoke green; read
+back `/api/public/status` health ok, and `/docs/email`, `/docs/limits`,
+`/docs/quickstart`, `/data/collect` and `/family/discord` serve the new
+copy; `/family/agent` is gone.
