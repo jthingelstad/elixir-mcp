@@ -108,7 +108,11 @@ in `decided_battles` and in no tower-troop row. `cards_card` answers a tower tro
 clan's holders; its season history, top decks and partners are read for
 the eight deck cards, and `cards_synergy` pairs deck cards only.
 `players_collection` lists a player's tower troops and levels
-(`support_cards`).
+(`support_cards`). `cards_catalog`'s `tower_troops` are the ones the
+newest `/cards` fetch lists (`supportItems`): a tower troop first seen in
+a battle or a profile, or known only from a replay of old history, is on
+the record but not listed until `/cards` lists it, and one `/cards` stops
+listing leaves the list while its battles keep naming it.
 
 ## A card's own page
 

@@ -24,13 +24,23 @@ import { displayLevel } from "@elixir-mcp/contracts";
  *  moved - or when it is a stub a battle wrote ahead of the catalog
  *  (0091), which ANY catalog fetch confirms by stamping catalog_seen_at,
  *  whatever its timestamp: a stub has no catalog facts to protect.
- *  Returns how many rows were inserted or changed. */
+ *
+ *  in_catalog (0191) is what the NEWEST fetch lists, so cards_catalog
+ *  serves the current catalog (#44). Only a fetch at least as new as
+ *  the last admitted one moves it, and then only the rows whose
+ *  membership changed, so an unchanged re-fetch still writes nothing.
+ *  An older fetch (a retried submit, a replay of history) still fills
+ *  and heals rows but lists nothing: on 2026-09-15 a replayed payload
+ *  from 2026-05-28 put a tower troop into the catalog that /cards has
+ *  never listed. Returns how many rows were inserted or changed. */
 export async function projectCardCatalog(db, { payload, fetchedAt }) {
   const rows = [];
+  const listed = [];
   for (const [kind, list] of [
     ["card", payload?.items],
     ["support", payload?.supportItems],
   ]) {
+    if (Array.isArray(list)) listed.push(kind);
     for (const c of Array.isArray(list) ? list : []) {
       if (!Number.isInteger(c?.id) || typeof c?.name !== "string") continue;
       rows.push({
@@ -51,11 +61,23 @@ export async function projectCardCatalog(db, { payload, fetchedAt }) {
   }
   if (rows.length === 0) return { changed: 0 };
   rows.sort((a, b) => a.card_id - b.card_id);
+  // poll_state still holds the previous admission here: ingest advances
+  // it after the projector, in the same transaction.
+  const {
+    rows: [poll],
+  } = await db.query(
+    `select last_admitted_at from poll_state
+      where subject_tag = 'GLOBAL' and endpoint = 'cards'`,
+  );
+  const current = !(
+    poll?.last_admitted_at && poll.last_admitted_at > new Date(fetchedAt)
+  );
   const { rowCount } = await db.query(
     `insert into card (card_id, name, kind, rarity, elixir_cost, max_level, max_evolution_level,
-                       icon_medium, icon_evolution_medium, icon_hero_medium, first_seen_at, observed_at, catalog_seen_at)
+                       icon_medium, icon_evolution_medium, icon_hero_medium, first_seen_at, observed_at, catalog_seen_at,
+                       in_catalog)
      select r.card_id, r.name, r.kind, r.rarity, r.elixir_cost, r.max_level, r.max_evolution_level,
-            r.icon_medium, r.icon_evolution_medium, r.icon_hero_medium, $2, $2, $2
+            r.icon_medium, r.icon_evolution_medium, r.icon_hero_medium, $2, $2, $2, $3::boolean
      from jsonb_to_recordset($1::jsonb)
        as r(card_id int, name text, kind text, rarity text, elixir_cost int,
             max_level int, max_evolution_level int,
@@ -68,7 +90,8 @@ export async function projectCardCatalog(db, { payload, fetchedAt }) {
        icon_medium = excluded.icon_medium,
        icon_evolution_medium = excluded.icon_evolution_medium,
        icon_hero_medium = excluded.icon_hero_medium,
-       catalog_seen_at = excluded.catalog_seen_at
+       catalog_seen_at = excluded.catalog_seen_at,
+       in_catalog = card.in_catalog or excluded.in_catalog
      where card.catalog_seen_at is null
         or (card.observed_at < excluded.observed_at
             and (card.name, card.kind, card.rarity, card.elixir_cost, card.max_level,
@@ -77,9 +100,18 @@ export async function projectCardCatalog(db, { payload, fetchedAt }) {
                 (excluded.name, excluded.kind, excluded.rarity, excluded.elixir_cost,
                  excluded.max_level, excluded.max_evolution_level,
                  excluded.icon_medium, excluded.icon_evolution_medium, excluded.icon_hero_medium))`,
-    [JSON.stringify(rows), fetchedAt],
+    [JSON.stringify(rows), fetchedAt, current],
   );
-  return { changed: rowCount };
+  if (!current) return { changed: rowCount };
+  // Only the kinds this payload carried a list for: a payload without
+  // supportItems says nothing about tower troops.
+  const { rowCount: moved } = await db.query(
+    `update card set in_catalog = (card_id = any($1::int[]))
+      where kind = any($2::text[])
+        and in_catalog is distinct from (card_id = any($1::int[]))`,
+    [rows.map((r) => r.card_id), listed],
+  );
+  return { changed: rowCount + moved };
 }
 
 /** Upsert one player's collection from a profile payload; returns the
