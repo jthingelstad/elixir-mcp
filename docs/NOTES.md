@@ -3691,3 +3691,34 @@ against 0741f979: the door's submit catch (~594-605, now ~603-640),
   [429]`. The collector half (retry those statuses with the same
   backoff, not when `Retry-After` is longer than the lease can wait) is
   a collector release; naming it is Jamie's.
+
+Shipped in PR #92 (a02e8dbb, e1e17c6f), deployed with no acceptance
+(web-api, ingest and the stack; nothing a tool serves changed, as the
+issue says): migrations 188 applied, 0 ran; smoke 40 ok; stack
+UPDATE_COMPLETE 00:51:53Z, web-api LastModified 00:52:08Z 09-28
+(7:52 PM CT 09-27).
+
+Read-back, reads only: `/api/public/status` `health.ok: true`,
+`dlq_messages` 0, admissions continuing. The live archive bucket
+policy is exactly `PayloadsWriteOnce`; `elixir-mcp-migrate`'s policy
+holds `s3:GetObject` only on `payloads/`; the metric filter and
+`elixir-mcp-submit-ingest-error` (OK, 10 per 900 s, to
+`elixir-mcp-alarms`) exist. Web-api log since the flip: several hundred
+invocations, no `submit_ingest_error`, `submit_ingest_retry`,
+`AccessDenied` or `PreconditionFailed` line, so every fresh-content put
+passed the policy with the header; a POAP KINGS roster object landed
+under `payloads/endpoint=clan/` at 01:03:08Z, after the flip.
+
+Collector half: elixir-mcp-collector PR #16 (d60ce8b) retries a 4xx
+named in `retry_statuses`, honouring a short `Retry-After` and giving up
+on a long one; its release run published candidate **v3.0.6** (signed;
+`name-collector-release.mjs --dry-run v3.0.6` verifies the signature
+and lists all seven platforms, nothing written), and the release gate's
+full payload audit (`payload-field-audit.mjs`, player_battlelog, 114,110
+objects) passed: every observed field path has a disposition. v3.0.4 is named;
+v3.0.5 between them changed only CI (e5e4fb9). Owed to Jamie: the
+dev-build soak and the naming (RELEASING-COLLECTOR.md §2 and §4).
+
+Pending (natural events): the next 10:00Z rollover shows player_battlelog
+deadlocks gone from `submit_ingest_error` (they may appear, once, as
+`submit_ingest_retry`); a week with the alarm quiet outside incidents.
