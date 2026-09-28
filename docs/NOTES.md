@@ -4354,3 +4354,26 @@ than"; no earlier bound is served, because collectors skip an unchanged
 profile and the record's previous read is only a loose lower bound (the
 issue's `observed_after` names no served field; the docs say it of `at`).
 The console renders the server's text, so it needed an e2e case only.
+
+### Deployed and read back
+
+- **Deploy:** 419734fa (PR #120), stack updated 15:32Z (10:32 AM CT);
+  migrations 0192 and 0193 ran (191 already applied).
+- **Acceptance (`--acceptance=players,elixir`, the issue's scope), 342
+  cases: 316 ok, 18 skipped, 7 known, 1 failed.** gym/289.3 (players_profile
+  on #20JJJ2CCRU asserting the "no YearsPlayed badge" note): not this
+  change; the account turned one year old (YearsPlayed level 1,
+  `account_age_days` 366, profile read 13:27Z), so the note's condition no
+  longer holds. Verdict: amended with a `when` on
+  `attributes.years_played` null, and 289.5 checks the held-badge branch
+  (note absent); both re-run alone: 289.3 skipped, 289.5 ok. Also allowed
+  `card_form_unlocked` for the docs catalogue rule, a kind a run's window
+  may not hold.
+- **Read-back:** `/api/public/status` ok; `/tools.json` 9.14.0;
+  `elixir_changelog(since 9.13.0)` serves the 9.14.0 entry;
+  `elixir_timeline` accepts `kinds: ["card_form_unlocked"]` (none yet in
+  the last day) and carries the ledger-start note; `/docs/timeline/`
+  documents the kind; `/updates/2026-09-28-contract-9-14-0/` answers 200.
+- **Pending natural check:** the next form unlock on a recorded player
+  appears as a `card_form_unlocked` item (and a milestone mail when it is
+  Jamie's own or an alt's).
