@@ -46,7 +46,7 @@ export function EmailPage() {
         <h1 className="page__title">Email</h1>
         <p className="page__lede">
           The eight emails Elixir sends. All on by default; every issue carries
-          a one-click off for its kind, and turning one off here is immediate
+          a turn-off link for its kind, and turning one off here is immediate
           and yours to reverse.
         </p>
       </div>

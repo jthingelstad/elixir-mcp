@@ -171,8 +171,9 @@ export function Verify({ refresh, navigate }) {
         <section className="panel">
           <div className="panel__body">
             <p className="verify__lead">
-              That challenge timed out after twenty minutes. No harm done: start
-              again and you get a fresh deck.
+              That challenge timed out after an hour. No harm done: start again
+              today and you get the same eight cards, so a deck you built still
+              counts.
             </p>
             <div className="verify__actions">
               <button

@@ -343,8 +343,7 @@ export function SignIn({ onAuthed }) {
             color: "var(--ink-body)",
           }}
         >
-          Meanwhile, the corpus is public:{" "}
-          <a href="/data/dashboard">the data</a> and{" "}
+          Meanwhile, <a href="/data/dashboard">the data page</a> and{" "}
           <a href="/docs">the docs</a> need no account.
         </div>
       </div>
@@ -366,7 +365,8 @@ export function SignIn({ onAuthed }) {
           }}
         >
           Access is granted by hand while the recorder grows. Tell us who you
-          are in the arena.
+          are in the arena: once you are approved, that player is on your
+          account and its clan is recorded.
         </p>
         <form onSubmit={sendRequest}>
           <label className="field-label" htmlFor="request-email">
