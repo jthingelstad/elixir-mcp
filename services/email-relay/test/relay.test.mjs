@@ -16,7 +16,10 @@ test("login template leads with the code and carries link, consent, disclaimer",
   });
   assert.match(subject, /^123456 /);
   assert.match(text, /^Your Elixir MCP sign-in code is 123456/);
-  assert.match(text, /login_token=tok_abc/);
+  // The token rides the fragment, which never leaves the browser: a
+  // query string would reach the CDN's access logs (#129).
+  assert.match(text, /\/signin#login_token=tok_abc/);
+  assert.doesNotMatch(text, /\?login_token=/);
   assert.match(text, /authorizes Claude/);
   assert.match(text, /not endorsed by Supercell/);
 });

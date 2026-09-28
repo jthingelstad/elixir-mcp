@@ -106,7 +106,9 @@ export function renderEmail(msg) {
     return { subject: msg.subject, text: msg.text, html: msg.html ?? null };
   }
   if (msg.kind === "login") {
-    const link = msg.token ? `${SIGNIN_BASE}?login_token=${msg.token}` : null;
+    // A fragment never leaves the browser; a query string reaches the
+    // CDN's access logs and stays there (#129). The console reads it.
+    const link = msg.token ? `${SIGNIN_BASE}#login_token=${msg.token}` : null;
     const consent = msg.client_name
       ? `Entering this code authorizes ${msg.client_name} to read your recorded Clash Royale data.\n\n`
       : "";
