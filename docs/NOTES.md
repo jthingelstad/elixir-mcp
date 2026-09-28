@@ -4088,3 +4088,22 @@ re-verified against d99b0e66; all six parts still held.
 - Pending, for a natural event: the next daily `/cards` admission,
   about 15:37Z (10:37 AM CT), is the first live run of the membership
   update. It should move no row while the catalog is unchanged.
+
+## 2026-09-28 - #43: console journeys cover the timeline's read case
+
+- Re-verified against `c246a839`. The failure the issue names (the rail's
+  unread dot read from `signals.events_unseen`, no `GET /api/me/timeline`
+  fixture, an Activity heading of "Notifications") was repaired on
+  2026-09-14 in `b508eaf0`, and later journeys moved with the timeline
+  (`3980bb31`, its own rail item). `validate` has been green on main
+  since. The issue's `App.jsx:1035` is now `App.jsx:1388`.
+- What was still missing was the issue's second case: the journeys had
+  only the unread one. A new journey serves `timeline_pending: 0` and a
+  `read_to` at the item's time. It checks that the rail has no dot and
+  that the row says `read`, not `unread`. It then reloads onto an empty
+  week and checks the empty line and still no dot. Reverting the fixture
+  to `timeline_pending: 1` makes it fail on the dot. The fixture comment
+  now says the dot is on Timeline. Ten journeys pass locally.
+- Tests only: nothing the site, console or a tool serves changed. So
+  there is no contract bump and no deploy, because the built tree is the
+  same. The issue asked for no live read.
