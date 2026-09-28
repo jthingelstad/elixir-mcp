@@ -82,7 +82,11 @@ export const identities = [
     "war_history",
     { seasons: 3 },
     "weeks",
-    (w) => !w.is_colosseum && isInt(w.our_fame) && w.our_fame >= 10000,
+    (w) =>
+      !w.in_progress &&
+      !w.is_colosseum &&
+      isInt(w.our_fame) &&
+      w.our_fame >= 10000,
     (w) => w.finished_early === true,
   ),
   implies(
@@ -90,7 +94,7 @@ export const identities = [
     "war_history",
     { seasons: 3 },
     "weeks",
-    (w) => w.finished_early !== true,
+    (w) => w.finished_early === false,
     (w) => w.finish_war_day === null,
   ),
   bounded(

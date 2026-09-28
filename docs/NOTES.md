@@ -4107,3 +4107,30 @@ re-verified against d99b0e66; all six parts still held.
 - Tests only: nothing the site, console or a tool serves changed. So
   there is no contract bump and no deploy, because the built tree is the
   same. The issue asked for no live read.
+
+## 2026-09-28 — Run Elixir MCP: acceptance distinguishes an active war from a missed finish
+
+At 09:48Z the public status was healthy: 967 battles in the prior hour,
+37-second fetch and admission freshness, zero dead jobs and dead letters, and
+five fresh signed v3.0.6 collectors. `{stats: true}` recorded 740
+battle-log polls with zero current-hour gaps; the scheduled efficiency,
+activity, meta-rollup and archetype jobs all completed on schedule. No Elixir
+alarm was in ALARM; RDS held about 671 MiB freeable memory, 16 MiB swap and
+99.5% EBS byte balance.
+
+The day's one read-only `npm run acceptance` pass found two related identity
+failures on the current regular war week: the server correctly served
+`in_progress: true` with `finished_early: null`, while the acceptance checks
+treated its live fame and recorded finish-day detail as a closed-week result.
+The checks now exclude an active row from the line-reached implication and
+require `finished_early === false` before asserting no finish day. A local
+regression test covers the active, finished, and closed-without-finish rows.
+This is harness-only: no product contract, deployment, or second live
+acceptance run is owed.
+
+Preview check: all three Discord containers were up for 33 hours, but the POAP
+KINGS editor routine retried every five minutes after its Claude workspace API
+limit was reached (reset stated as 2026-10-01T00:00Z). The service remained up
+and its event cursor was not replayed, but the retry cadence is an operational
+gap in the Discord preview; it needs a failure-specific cooldown there, not a
+restart or an early routine run.

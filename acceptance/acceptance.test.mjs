@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { makeDoor } from "./door.mjs";
 import { shapeCatalogue } from "./catalogue.mjs";
+import { identities } from "./checks/identities.mjs";
 import { noteTokens, notesNameFields, deepKeys } from "./lib.mjs";
 import { runSuite, SUITES } from "./run.mjs";
 
@@ -108,6 +109,49 @@ test("the door turns a JSON-RPC refusal into an answer and times a call", async 
   const refused = await door.call("elixir_send_feedback", { message: "x" });
   assert.equal(refused.isError, true);
   assert.match(refused.body.error.message, /feedback:write/);
+});
+
+test("war finish identities exclude an in-progress week", async () => {
+  const weeks = [
+    {
+      season_id: 136,
+      section_index: 2,
+      is_colosseum: false,
+      in_progress: true,
+      our_fame: 10012,
+      finished_early: null,
+      finish_war_day: 3,
+    },
+    {
+      season_id: 135,
+      section_index: 3,
+      is_colosseum: false,
+      in_progress: false,
+      our_fame: 10134,
+      finished_early: true,
+      finish_war_day: 3,
+    },
+    {
+      season_id: 134,
+      section_index: 1,
+      is_colosseum: false,
+      in_progress: false,
+      our_fame: 8400,
+      finished_early: false,
+      finish_war_day: null,
+    },
+  ];
+  const ctx = {
+    read: async () => ({ isError: false, body: { weeks } }),
+  };
+  for (const id of [
+    "implies:a-regular-week-at-the-line-finished-early",
+    "implies:no-finish,-no-finish-day",
+  ]) {
+    const check = identities.find((entry) => entry.id === id);
+    assert.ok(check, `${id} is registered`);
+    await check.run(ctx);
+  }
 });
 
 test("the door bounds a stalled request", async () => {
