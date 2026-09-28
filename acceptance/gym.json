@@ -16282,9 +16282,34 @@
       "player_tag": "#20JJJ2CCRU"
     },
     "request_id": "6f16e39b-fe70-4397-bef9-d00c6d793b02",
+    "when": {
+      "eq": ["attributes.years_played", null]
+    },
     "assert": [
       {
         "notes_match": "no YearsPlayed badge"
+      },
+      {
+        "notes_not_match": "until a profile poll"
+      }
+    ],
+    "amended": "Amended 2026-09-28 (9.14.0 deploy): #20JJJ2CCRU turned one year old (YearsPlayed level 1, account_age_days 366, profile read 2026-09-28T13:27Z), so the note's condition no longer holds live; the case runs only while years_played is null, and 289.5 checks the other branch."
+  },
+  {
+    "id": "289.5",
+    "feedback": 289,
+    "stability": "live",
+    "control": true,
+    "tool": "players_profile",
+    "args": {
+      "player_tag": "#20JJJ2CCRU"
+    },
+    "when": {
+      "neq": ["attributes.years_played", null]
+    },
+    "assert": [
+      {
+        "notes_not_match": "no YearsPlayed badge"
       },
       {
         "notes_not_match": "until a profile poll"
