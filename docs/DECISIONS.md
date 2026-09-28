@@ -42,6 +42,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **Nicknames and machine labels are private** — the card name is a collector's only public name; public operator credit shows the primary player only. (2026-09-06, 2026-09-07; Jamie)
 - **Analytics stays client-side Tinylytics** — never proxied through our API (#25 was reverted: "should have asked"); `/signin` loads no analytics. (2026-09-08, 2026-09-19; Jamie)
 - **The servers send Tinylytics nothing** — tool calls first, then sign-in, signup and feedback; `mcp_call_audit` and the database already hold those facts. Page and mail counting stays client-side. (2026-09-24; Jamie)
+- **The policy pages restate what the service does, in general terms** — privacy and terms are short and plain, framed as a free service built as a hobby for folks who like the game; they name no person (contact admin@poapkings.com) and are loose enough not to need a rewrite with every change. The code is the policy and the pages follow it; they change only with Jamie's word. Supersedes the long agent-written pages. (2026-09-28; Jamie)
 - **Name-pattern studies go through `{name_census}`** — counts and means only; nothing per player leaves the database. (2026-09-20; engineering)
 
 ## Tool contract and versioning
@@ -156,6 +157,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **The web is a record browser, not a BI platform** — "the agent is the analyst; the website's job is verification"; web and agent see the same registry. (2026-09-06, 2026-09-04; Jamie)
 - **Adopt the ecosystem early** — React 19, TanStack, and Tailwind v4 in the shared kit; kit gaps are fixed in the kit, never copied; no Radix before a real dialog; no PWA ("just make it a mobile view"). (2026-09-13, 2026-09-06; Jamie)
 - **Docs ship with the change** — the tool reference is generated from the registry; docs pointers must resolve before a tool names them. (2026-09-04, 2026-09-18 Phase 4; Jamie)
+- **Fonts are self-hosted** — Inter (OFL, per-script subsets) and the Clash face ship from `/assets/fonts/`; no font CDN, so the CSP's `font-src` and `style-src` name no third party and the site test refuses a Google Fonts origin. (2026-09-28; Jamie)
 - **Activity year reads log coverage** — a rolled log never draws as zero; the 24×7 rhythm tile is removed. (2026-09-13, 2026-09-19; Jamie)
 
 ## Operations and AWS

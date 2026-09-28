@@ -572,8 +572,8 @@ test("analytics only ever comes from tinylytics.app", { skip }, () => {
       assert.ok(
         [
           "tinylytics.app",
-          "fonts.googleapis.com",
-          "fonts.gstatic.com",
+          // No font CDN: Inter is self-hosted, so a reader's page load
+          // tells no third party what they read.
           "elixir.poapkings.com",
           // The family's product buttons in the top bar: plain links,
           // not scripts, so the CSP is untouched.

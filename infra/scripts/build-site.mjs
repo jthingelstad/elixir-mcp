@@ -167,6 +167,15 @@ if (
   problems.push("assets/site.css differs from packages/design/dist/styles.css");
 }
 
+// Every file the stylesheet names (the self-hosted fonts) must ship: a
+// missing font is no error in the browser, just a silent fallback face.
+if (files.has("assets/site.css")) {
+  const css = readFileSync(path.join(outDir, "assets/site.css"), "utf8");
+  for (const m of css.matchAll(/url\("?(\/[^")]+)"?\)/g)) {
+    if (!resolves(m[1])) problems.push(`site.css references missing ${m[1]}`);
+  }
+}
+
 // Every asset the app shell references must have been merged in.
 const shell = readFileSync(path.join(outDir, "app.html"), "utf8");
 for (const m of shell.matchAll(/(?:src|href)="(\/[^"]+)"/g)) {

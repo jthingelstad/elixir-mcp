@@ -4540,3 +4540,33 @@ signed everyone out.
   `--param=SessionSecretPreviousInSecret=false`, and only after that
   succeeds remove `session_secret_previous` in the console
   (`docs/SECRETS.md`, "Session secret" step 4).
+
+## 2026-09-28 - Lane C of the 2026-09-27 review: the policy pages restate the service
+
+The privacy and terms pages were agent-written early, with little input,
+and had grown far broader than a hobby service needs: an inventory found
+about four in ten of their promises were never ratified, and several
+were stale. Jamie's direction: what the service does is right; the pages
+change, not the code. They are now short and plain, framed as a free
+service built as a hobby for folks who like the game, name no person
+(contact admin@poapkings.com), and stay general enough that they need
+not be revisited with every change. DECISIONS carries the line; they
+change only with Jamie's word.
+
+- Fonts are self-hosted: Inter's seven per-script variable subsets (OFL,
+  licence beside them) ship from `/assets/fonts/` with the Clash face,
+  declared in `packages/design/src/tokens.css`. The Google Fonts links
+  are gone from both halves; the CSP's `font-src` and `style-src` are
+  `'self'` only; the site test no longer admits a Google origin; and
+  `build-site.mjs` fails a build whose stylesheet names a file that did
+  not ship.
+- Filed: #129 (a withdrawn owner's agents still authenticate; no
+  `{account_remove}` op; the sign-in token rides the query string), #130
+  (verify challenge reads uncapped per tag; milestone mail's fixed 26 h
+  lookback; "Issue a new key" after a revoke is refused), and #131 (the
+  copy pass bringing the other pages in line, with /consistency).
+- Deploy note: the CSP is in `infra/template.yaml` and the fonts are in
+  the site, so this wants a normal deploy (stack and site together, no
+  `--skip-web`). A page an edge still holds from before may draw in the
+  system font until it expires; nothing breaks. No tool changes, so no
+  acceptance family.

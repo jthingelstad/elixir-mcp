@@ -1,39 +1,34 @@
 ---
 slug: terms
 title: "Terms"
-description: "Elixir MCP is free and unofficial. The terms covering use, the Supercell Fan Content Policy, data, availability, and account removal."
+description: "Elixir MCP is a free, unofficial hobby service for folks who like Clash Royale. Access is a courtesy, the service is best effort, and your agents are yours to answer for."
 section: policy
 order: 32
 navTitle: "Terms"
 icon: scale
-lede: "The short version: unofficial, best effort, be decent."
+lede: "The short version: free, unofficial, best effort, be decent."
 ---
 
 # Terms
 
-**Free, and staying that way.** Elixir MCP is free to use. Supercell's
-Fan Content Policy prohibits charging for fan content, and any future
-paid tier would require Supercell's express approval — none is planned.
-It is supported by voluntary [sponsorship](/support) that is not tied
-to any feature, quota, retention, priority or other benefit, as the
-same policy requires of donations.
+**Free and unofficial.** Elixir MCP is a free service, built as a
+hobby, for folks who like the game. It is not affiliated with,
+endorsed, sponsored, or specifically approved by Supercell, and
+Supercell is not responsible for it. See Supercell's Fan Content
+Policy: www.supercell.com/fan-content-policy. Voluntary
+[sponsorship](/support) helps with the running costs and buys nothing.
 
-**Unofficial.** This service is not affiliated with, endorsed,
-sponsored, or specifically approved by Supercell, and Supercell is not
-responsible for it. See the Fan Content Policy:
-www.supercell.com/fan-content-policy.
+**Access.** Access is by request and is a courtesy. It can be withdrawn,
+especially for abusing the service or using it against Supercell's
+terms.
 
-**One shared rate budget.** The collector fleet exists for resilience,
-never to multiply API quota. The whole service operates within roughly
-a single API key's rate budget, deliberately.
+**Best effort.** The service is provided as is, with no guarantees. The
+record has gaps, things break, and features change or go away.
 
-**Access is a courtesy.** Accounts are approved by the operator and can
-be revoked, particularly for abuse of the service or attempts to use it
-against Supercell's terms. Data is served best-effort with honest
-gaps — the coverage tools tell you exactly how complete your record is.
+**Your agents.** What your agents and connected apps do with your
+access is yours to answer for, and it counts against your limits.
 
-**Your agent, your responsibility.** Tool calls made by a client you
-connected, or by an agent you own, count against your quotas, and their
-conduct is yours to answer for. Feedback is attributed to the account
-that filed it: a client connected as you files as you, and an agent
-files as itself.
+**One API budget.** The whole service shares one modest slice of the
+game's API. Please don't try to get around it.
+
+**Questions.** Email [admin@poapkings.com](mailto:admin@poapkings.com).
