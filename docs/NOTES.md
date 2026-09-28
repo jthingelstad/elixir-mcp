@@ -4669,3 +4669,17 @@ contract or JSON API change; one migration (0194, a new table).
 
 Ship: stack, jobs, web-api and the site; no acceptance family (no tool
 changed).
+
+Shipped in PR #136 (fe391b0f..303a6e0f), deployed with no acceptance
+(no tool changed): migrate ran 1 of 194 (0194), stack UPDATE_COMPLETE,
+smoke green, site published. Code live 22:42:18Z (5:42 PM CT).
+Read-back, reads only: `/api/public/status` `health.ok: true`;
+`/docs/verify` states the 120-a-day ceiling, `/docs/agents` the
+`409 name_taken`, `/updates` the entry; the rotate route still answers
+401 without a session. The first milestone pass on the new code,
+23:20Z (6:20 PM CT), logged `recipients` 21, `skipped` 21, `failed` 0,
+`ms` 3124 (the look table read and stamped for every account).
+
+Pending (natural events): the first milestone mail sent after a gap
+longer than 26 hours; a verification that reaches the ceiling (the
+wizard's note), which may never happen in normal use.
