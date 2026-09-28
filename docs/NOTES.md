@@ -3862,3 +3862,27 @@ Jamie's). Two PRs: the database and alarms first, then secrets and
 - The parameters are at their defaults: `SecretEpoch` 0,
   `SessionSecretPreviousInSecret` false, `UnsubscribeKeyInSecret` false.
   The origin rotation has not been run live.
+
+## 2026-09-27 - #70 (A9): collector v3.0.6 named
+
+Jamie approved naming candidate v3.0.6 (d60ce8b, elixir-mcp-collector
+PR #16: a 4xx listed in `retry_statuses`, now 429, is retried within the
+lease) in this session: "Good to move forward with naming 3.0.6". That
+approval stands in for the separate dev-build soak (RELEASING-COLLECTOR.md
+§2); it covers naming only, so `min_client_version` (2.0.30) and
+`CollectorMinEnforce` are unchanged.
+
+- `name-collector-release.mjs --dry-run v3.0.6`, then the real run at
+  01:55Z on 09-28 (8:55 PM CT on 09-27): the signature verified against
+  the release key, all seven platform keys named (`go-linux-arm` ->
+  `collector_linux_armv7`, `go-windows-amd64` -> the `.exe`, as the
+  table requires), and v3.0.6 promoted to Latest on GitHub. The full
+  payload audit for this candidate passed earlier (entry above).
+- Before naming, `/api/public/status` showed five active collectors,
+  all on signed v3.0.4 (Hog Rider draining since 09-18).
+- Rollback, if it is needed: name v3.0.4.
+
+Pending: every active collector reports v3.0.6 on `/api/public/status`
+within the hour of its next config call (the `proven` line on a machine
+Jamie watches); the 429 retry is exercised only by a real throttle
+burst, so a week with no collector quarantined for `missed_streak`.
