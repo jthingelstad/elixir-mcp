@@ -4074,3 +4074,17 @@ re-verified against d99b0e66; all six parts still held.
   still answers any card by id. The earlier line saying `cards` keeps
   its behaviour is superseded. A sixth test covers an event-only card.
   Contract 9.12.6, `--acceptance=cards`.
+- **Deployed 9.12.6** (PR #104, `2b7f1761`) with `--acceptance=cards`.
+  No migration was pending, smoke passed, and acceptance ran 118 cases
+  with 0 failed. Read back at 04:33Z on 09-28 (11:33 PM CT on 09-27):
+  - `elixir_changelog` since 9.12.4 lists 9.12.5 and 9.12.6;
+  - `/tools.json` shows contract 9.12.6;
+  - `/api/public/cards` (a CloudFront miss after the invalidation) has
+    123 cards;
+  - `cards_catalog` lists four tower troops, and a "super" query finds
+    no card;
+  - `/updates/2026-09-28-contract-9-12-6/` returns 200;
+  - `health.ok` is true.
+- Pending, for a natural event: the next daily `/cards` admission,
+  about 15:37Z (10:37 AM CT), is the first live run of the membership
+  update. It should move no row while the catalog is unchanged.
