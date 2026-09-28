@@ -151,7 +151,7 @@ export default [
         icon: "swords",
         label: "Win your river race",
         title: "Win your river race",
-        lede: "The finished race, the one that just opened, and who has battled so far today — from a record the game's own API forgets after twenty weeks.",
+        lede: "The finished race, the one that just opened, and who has battled so far today — from a record the game's own API forgets after ten weeks.",
         reads: [
           "River races recorded weekly, corrected as they run",
           "Per-member points, decks used and boat attacks",
@@ -291,10 +291,13 @@ export default [
         lede: "Build a clan site or a bot on the record instead of on a second Clash key. Pull at build time; no scraping, no push.",
         reads: [
           "The documentation itself, served over MCP",
-          "Every recorded river race, past the API's 20-week window",
+          "Every recorded river race, past the API's ten-week window",
           "The clan's 30-day ladder table",
         ],
-        setup: ["Read the integrations doc", "Request a service key"],
+        // An agent connection: war_history and clans_standings are MCP
+        // tools, and the JSON API (/api/v1) serves neither (review
+        // 2026-09-27 §7.7).
+        setup: ["Create an agent", "Read the agents doc"],
         script: {
           tool: "elixir_docs · war_history · clans_standings",
           lines: [
@@ -304,7 +307,7 @@ export default [
             },
             {
               role: "agent",
-              text: "You can build that on the record instead of on a second Clash key. Two ways in, per the docs:\n\n1. **An agent connection** — the same tools I am using, over MCP with the agent's key. Good for a site that renders at build time.\n2. **An integration** — a platform identity with its own REST key at `https://elixir.poapkings.com/api/v1`, provisioned by an admin, with its own budgets. That is how Elixir Drop reads the hub. Keys are `svt_…`, shown once, and never belong in a browser.\n\nWhat you would be publishing that the game's own API forgets: **every recorded river race**. POAP KINGS' record runs from Season 134, Week 1 to today — nine finished races, all firsts — plus a 30-day ladder table for the clan (48 ranked members, median win rate 52.8%).\n\nI searched the documentation for “service key”: it is covered on the Protocol, Connections and Integrations pages. Start with Integrations.",
+              text: "You can build that on the record instead of on a second Clash key, through **an agent connection**: the same tools I am using, over MCP with the agent's own key and URL. It suits a site that renders at build time. The war history and the ladder table are MCP tools; the JSON API at `https://elixir.poapkings.com/api/v1`, which integrations use, serves neither. The key is shown once and never belongs in a browser.\n\nWhat you would be publishing that the game's own API forgets: **every recorded river race**. POAP KINGS' record runs from Season 134, Week 1 to today — nine finished races, all firsts — plus a 30-day ladder table for the clan (48 ranked members, median win rate 52.8%).\n\nThe Agents page of the documentation covers the setup: create one under **Connections → Agents → Create agent**, then put its key and URL in the build's environment.",
             },
           ],
         },

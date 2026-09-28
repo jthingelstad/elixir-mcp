@@ -1,0 +1,26 @@
+---
+permalink: /feed.json
+eleventyExcludeFromCollections: true
+---
+{#- JSON Feed 1.1 (https://jsonfeed.org/version/1.1): the same items as
+    feed.xml, from _data/feedItems.js. -#}
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": {{ (site.name + " updates") | dump | safe }},
+  "home_page_url": {{ (site.url + "/updates") | dump | safe }},
+  "feed_url": {{ (site.url + "/feed.json") | dump | safe }},
+  "description": {{ ("Every user-visible change to " + site.name + " and every tool contract version, newest first.") | dump | safe }},
+  "language": "en",
+  "items": [
+  {%- for u in feedItems %}
+    {
+      "id": {{ u.url | dump | safe }},
+      "url": {{ u.url | dump | safe }},
+      "title": {{ u.title | dump | safe }},
+      "content_html": {{ u.body | md | dump | safe }},
+      "date_published": {{ u.published | dump | safe }},
+      "tags": [{{ u.kind | dump | safe }}]
+    }{{ "," if not loop.last }}
+  {%- endfor %}
+  ]
+}

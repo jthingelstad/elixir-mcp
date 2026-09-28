@@ -197,7 +197,8 @@ Elixir's servers send nothing to analytics.
   it and retires superseded rows only after verifying their archived
   copy — the database holds metadata and projections, S3 holds the
   bytes. Athena (via one Glue table with
-  partition projection) and DuckDB both query the layout directly.
+  partition projection over every archived endpoint) and DuckDB both
+  query the layout directly.
 - **Snapshots and events.** Daily profile snapshots feed trophy/donation
   timelines; diffs between polls emit events with honest time semantics
   (most things are "observed between polls", and the data says so).

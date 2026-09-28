@@ -817,3 +817,49 @@ test(
     assert.ok(existsSync(path.join(out, "assets/rail-anchors.js")));
   },
 );
+
+test(
+  "the feeds' ids are each update's own page: unique, stable, never a position (#73)",
+  { skip },
+  async () => {
+    const FEED_ITEMS = 50; // _data/feedItems.js
+    const xml = read("feed.xml");
+    const guids = [
+      ...xml.matchAll(/<guid isPermaLink="true">([^<]+)<\/guid>/g),
+    ].map((m) => m[1]);
+    assert.equal(
+      guids.length,
+      [...xml.matchAll(/<item>/g)].length,
+      "every item has a permalink GUID",
+    );
+    assert.ok(guids.length > 0 && guids.length <= FEED_ITEMS);
+    assert.equal(new Set(guids).size, guids.length, "GUIDs are unique");
+    const pages = new Set(await updatePages());
+    for (const guid of guids) {
+      // Until #73 the GUID was /updates#<date>-<n>: renumbered on every
+      // ship, and a fragment that resolved to nothing.
+      assert.doesNotMatch(guid, /#/, guid);
+      const page = guid.replace("https://elixir.poapkings.com", "");
+      assert.ok(pages.has(page), `${guid} is an update's page`);
+      assert.ok(existsSync(path.join(out, page.slice(1), "index.html")), guid);
+    }
+    // Contract versions are in the stream, as on /updates.
+    assert.match(xml, /<category>contract<\/category>/);
+    // No double escaping: autoescape already escapes the title.
+    assert.doesNotMatch(xml, /&amp;amp;/);
+
+    const feed = JSON.parse(read("feed.json"));
+    assert.equal(feed.version, "https://jsonfeed.org/version/1.1");
+    assert.equal(feed.feed_url, "https://elixir.poapkings.com/feed.json");
+    assert.deepEqual(
+      feed.items.map((i) => i.id),
+      guids,
+      "feed.json carries the same items as feed.xml",
+    );
+    for (const item of feed.items) {
+      assert.equal(item.url, item.id);
+      assert.ok(item.title && item.content_html, item.id);
+      assert.ok(!Number.isNaN(Date.parse(item.date_published)), item.id);
+    }
+  },
+);

@@ -147,6 +147,7 @@ for (const required of [
   "llms-full.txt",
   "tools.json",
   "feed.xml",
+  "feed.json",
   "assets/site.css",
   "assets/og.png",
 ]) {
