@@ -3633,3 +3633,22 @@ of 7f299ea2 ran its tests after midnight). Two clock-dependent tests in
   test one): filed for Run Elixir MCP. A profile read on a Sunday game
   day after the pre-reset capture serves the capture, not the newest
   read, until Monday 10:00Z.
+
+Shipped in PR #89 (027dab5b..e1744492), deployed with no acceptance
+(scheduler, the ingest error path, a migration and an op; nothing a
+tool serves changed): migrate ran 1 (0188), smoke 40 ok. Scheduler,
+migrate and web-api LastModified 00:26:49-50Z 09-28 (7:26 PM CT 09-27).
+
+Read-back, reads only: `/api/public/status` `health.ok: true`,
+`dlq_messages` 0. `{stats}` `ranking_health`: 262 enabled, 254 fresh
+(80 of them `empty_locations`), 8 stale, all 8 `not_found_locations`,
+`snapshot_fresh_locations` 174 (the old measure). The phantom gap was
+the 80 empty boards; the 8 are the 404s the planner holds. The first
+tick on the new code (00:27:39Z) logged `RetryJobs` 0 beside
+`PlannedJobs` 78; `/updates` carries the entry.
+
+Pending (natural events; the lane B revisit confirms): the next 10:05Z
+board tick (5:05 AM CT 09-28) and any natural non-404 error show
+`RetryJobs` above 0 within 15 minutes of it; Keep the Boards' next run
+reads `stale_locations` as the 404s only; a week of `lost_battles` on
+`/api/public/efficiency` with the clamped ceiling.
