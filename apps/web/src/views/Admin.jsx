@@ -1,4 +1,13 @@
-import { ago, Icon, Link, LogTable, Markdown, useClock } from "@elixir-mcp/ui";
+import { useWrite } from "@elixir-mcp/client";
+import {
+  ago,
+  Icon,
+  Link,
+  LogTable,
+  Markdown,
+  useClock,
+  WriteError,
+} from "@elixir-mcp/ui";
 import { Integrations } from "./Integrations.jsx";
 import { useEffect, useState, Fragment } from "react";
 import { api } from "../api.js";
@@ -300,13 +309,12 @@ function AdminEmailRecord({ id }) {
 function AdminRequests() {
   const { day } = useClock();
   const requests = useAdminRequests().data?.requests ?? [];
-  const invalidate = useInvalidate();
-  const load = () => invalidate(keys.adminRequests);
-
-  const decide = async (hash, status) => {
-    await api.adminDecide(hash, status);
-    load();
-  };
+  // Approve and deny say when they did not take; the queue refetches
+  // only after one that did (review 2026-09-27 §7.5).
+  const decision = useWrite(api.adminDecide, {
+    invalidate: [keys.adminRequests],
+  });
+  const decide = (hash, status) => decision.run(hash, status);
 
   const rows = requests.map((r) => [
     day(r.created_at),
@@ -322,6 +330,7 @@ function AdminRequests() {
       crumb="Admin"
       title="Access requests"
       note="Granted by hand, oldest first."
+      above={<WriteError error={decision.error} className="field-error mb-3" />}
       cols={[
         ["ASKED", "left"],
         ["ACCOUNT", "left"],
@@ -658,8 +667,9 @@ function AdminAccountDetail({ id }) {
 function AdminConnections() {
   const { day } = useClock();
   const rows = useAdminConnections().data?.connections ?? [];
-  const invalidate = useInvalidate();
-  const load = () => invalidate(keys.adminConnections);
+  const revoke = useWrite(api.adminRevokeConnection, {
+    invalidate: [keys.adminConnections],
+  });
 
   const table = rows.map((c) => [
     {
@@ -687,8 +697,7 @@ function AdminConnections() {
           )
         )
           return;
-        await api.adminRevokeConnection(c.family_id);
-        load();
+        await revoke.run(c.family_id);
       },
     },
   ]);
@@ -698,6 +707,7 @@ function AdminConnections() {
       crumb="Admin"
       title="Connections"
       note="Every live OAuth connection, whoever holds it. Revoking one ends it on its next call and lands on that account's own event log."
+      above={<WriteError error={revoke.error} className="field-error mb-3" />}
       cols={[
         ["ACCOUNT", "left"],
         ["CLIENT", "left"],
@@ -1003,8 +1013,9 @@ function AdminCollectors() {
 function AdminServiceTokens() {
   const { day } = useClock();
   const svcTokens = useAdminServiceTokens().data?.tokens ?? [];
-  const invalidate = useInvalidate();
-  const load = () => invalidate(keys.adminServiceTokens);
+  const revokeToken = useWrite(api.adminServiceTokenAction, {
+    invalidate: [keys.adminServiceTokens],
+  });
 
   return (
     <>
@@ -1020,6 +1031,7 @@ function AdminServiceTokens() {
           <code>svc:&lt;name&gt;</code>.
         </p>
       </div>
+      <WriteError error={revokeToken.error} className="field-error mb-3" />
       {svcTokens.length === 0 ? (
         <div className="empty">
           <div className="empty__title">No service tokens</div>
@@ -1077,12 +1089,10 @@ function AdminServiceTokens() {
                     {!t.revoked_at && (
                       <button
                         className="btn btn--sm btn--danger"
-                        onClick={async () => {
-                          await api.adminServiceTokenAction({
-                            revoke_token_id: t.token_id,
-                          });
-                          load();
-                        }}
+                        disabled={revokeToken.busy}
+                        onClick={() =>
+                          revokeToken.run({ revoke_token_id: t.token_id })
+                        }
                       >
                         Revoke
                       </button>

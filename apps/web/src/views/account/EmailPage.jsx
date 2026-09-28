@@ -1,6 +1,7 @@
-import { Link, useClock } from "@elixir-mcp/ui";
+import { useWrite } from "@elixir-mcp/client";
+import { Link, useClock, WriteError } from "@elixir-mcp/ui";
 import { api } from "../../api.js";
-import { keys, useEmailPrefs, useInvalidate } from "../../lib/queries.js";
+import { keys, useEmailPrefs } from "../../lib/queries.js";
 
 const BLURB = {
   clan_report:
@@ -31,12 +32,11 @@ const BLURB = {
 export function EmailPage() {
   const { day } = useClock();
   const { data, isLoading } = useEmailPrefs();
-  const invalidate = useInvalidate();
   const kinds = data?.kinds ?? [];
-  const flip = async (kind, enabled) => {
-    await api.setEmailPref(kind, enabled);
-    await invalidate(keys.email);
-  };
+  // A switch that did not take says so; the list refetches only after
+  // one that did (review 2026-09-27 §7.5).
+  const pref = useWrite(api.setEmailPref, { invalidate: [keys.email] });
+  const flip = (kind, enabled) => pref.run(kind, enabled);
   return (
     <>
       <div className="page__crumb">
@@ -55,6 +55,7 @@ export function EmailPage() {
         <div className="panel__head">
           <span className="panel-title">Switches</span>
         </div>
+        <WriteError error={pref.error} className="field-error px-4 pt-2" />
         {isLoading && <p className="px-4 py-3 text-ink-faint">Loading…</p>}
         {kinds.map((k) => (
           <label

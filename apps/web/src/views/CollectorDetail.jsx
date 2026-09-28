@@ -1,4 +1,12 @@
-import { ago, beatCls, Icon, Link, secsSince } from "@elixir-mcp/ui";
+import { useWrite } from "@elixir-mcp/client";
+import {
+  ago,
+  beatCls,
+  Icon,
+  Link,
+  secsSince,
+  WriteError,
+} from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../api.js";
 import {
@@ -149,6 +157,12 @@ function Hours({ daily }) {
  * reveal, which is why it reports rather than silently refreshing.
  */
 function Operations({ g, staged, setStaged, reload }) {
+  // Drain, retire, revoke: a refusal says so beside the buttons, and
+  // the record refetches only after one that took (review 2026-09-27
+  // §7.5).
+  const lifecycle = useWrite(api.adminGatewayAction, {
+    invalidate: () => reload(),
+  });
   const next = {
     pending: "probation",
     probation: "activate",
@@ -207,9 +221,10 @@ function Operations({ g, staged, setStaged, reload }) {
         {next && (
           <button
             className="btn btn--sm"
-            onClick={async () => {
-              await api.adminGatewayAction(g.gateway_id, next);
-              reload();
+            disabled={lifecycle.busy}
+            onClick={() => {
+              setStaged(null);
+              lifecycle.run(g.gateway_id, next);
             }}
           >
             {label ?? next}
@@ -244,6 +259,7 @@ function Operations({ g, staged, setStaged, reload }) {
             {staged.error}
           </span>
         )}
+        <WriteError error={lifecycle.error} className="field-error m-0" />
       </div>
     </section>
   );

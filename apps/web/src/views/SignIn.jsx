@@ -1,4 +1,4 @@
-import { Icon } from "@elixir-mcp/ui";
+import { Icon, writeErrorText } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { consumeLoginToken } from "../url-hygiene.js";
@@ -245,13 +245,30 @@ export function SignIn({ onAuthed }) {
           disabled={busy}
           onClick={async () => {
             setBusy(true);
-            await api.confirmHandoff(handoff.confirm);
+            setError("");
+            const r = await api.confirmHandoff(handoff.confirm);
             setBusy(false);
+            // A confirmation that did not take says so and stays here:
+            // moving on would read as the other screen being signed in
+            // (review 2026-09-27 §7.5).
+            if (!r.ok)
+              return setError(
+                writeErrorText({
+                  status: r.status,
+                  transport: r.error,
+                  data: r.data,
+                }),
+              );
             onAuthed();
           }}
         >
           {busy ? "Signing it in…" : "Yes, that was me"}
         </button>
+        {error && (
+          <p className="field-error" role="alert">
+            {error}
+          </p>
+        )}
         <button
           className="btn"
           style={{ ...primary, marginTop: "10px" }}

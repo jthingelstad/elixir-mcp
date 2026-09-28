@@ -15,3 +15,9 @@ export {
   type SlowRequest,
 } from "./request.ts";
 export { createQueryClient } from "./query.ts";
+export {
+  useWrite,
+  type Write,
+  type WriteOptions,
+  type WriteResult,
+} from "./write.ts";

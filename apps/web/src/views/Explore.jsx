@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { agoSeconds, freshCls, Link, stamp, useClock } from "@elixir-mcp/ui";
+import { useWrite } from "@elixir-mcp/client";
+import {
+  agoSeconds,
+  freshCls,
+  Link,
+  stamp,
+  useClock,
+  WriteError,
+} from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useExploreCollections, usePublicStats } from "../lib/queries.js";
 import { tagPath, tagFromPath } from "../lib/tag-url.js";
@@ -132,16 +140,13 @@ function callString(tool, args) {
 
 function NicknameEditor({ nick, onSaved }) {
   const [value, setValue] = useState(nick.current ?? "");
-  const [busy, setBusy] = useState(false);
-  const save = async (v) => {
-    setBusy(true);
-    await api.explore("elixir_nickname", {
-      player_tag: nick.tag,
-      nickname: v,
-    });
-    setBusy(false);
-    onSaved();
-  };
+  // A refused save says so; the record refetches only after one that
+  // took (review 2026-09-27 §7.5).
+  const write = useWrite((v) => api.setNickname(nick.tag, v), {
+    invalidate: () => onSaved(),
+  });
+  const busy = write.busy;
+  const save = (v) => write.run(v);
   return (
     <div className="panel__actions">
       <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
@@ -179,6 +184,7 @@ function NicknameEditor({ nick, onSaved }) {
       >
         private to your account
       </span>
+      <WriteError error={write.error} className="field-error basis-full" />
     </div>
   );
 }

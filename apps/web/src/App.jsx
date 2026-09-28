@@ -11,6 +11,7 @@ import {
   ZoneProvider,
   familyTabs,
   isPlainClick,
+  writeErrorText,
 } from "@elixir-mcp/ui";
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -945,6 +946,7 @@ function Chrome({ navigate }) {
  *  dots attached by key; the identity block is the way to the profile
  *  and the way out. */
 function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
+  const [signOutFailed, setSignOutFailed] = useState(null);
   const rail = here.scope
     ? agentRail(here.scope)
     : RAIL.filter((r) => !r.adminOnly || me?.is_admin);
@@ -1006,7 +1008,18 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
           // next sign-in and reads "Signed in" until then.
           name={me?.email ?? "Signed in"}
           title={me?.email ?? undefined}
-          detail={[me?.role, me?.timezone].filter(Boolean).join(" · ")}
+          detail={
+            // A sign-out that did not take says so here, where the button
+            // is, instead of leaving for the home page still signed in
+            // (review 2026-09-27 §7.5).
+            signOutFailed ? (
+              <span className="text-bad" role="alert">
+                {signOutFailed}
+              </span>
+            ) : (
+              [me?.role, me?.timezone].filter(Boolean).join(" · ")
+            )
+          }
           action={
             <button
               type="button"
@@ -1016,7 +1029,12 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
               onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                await api.signOut();
+                setSignOutFailed(null);
+                const r = await api.signOut();
+                if (!r.ok)
+                  return setSignOutFailed(
+                    `Not signed out. ${writeErrorText({ status: r.status, transport: r.error, data: r.data })}`,
+                  );
                 window.location.assign(STATIC_LINKS.home);
               }}
             >

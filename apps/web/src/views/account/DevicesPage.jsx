@@ -1,7 +1,7 @@
-import { ago, Link } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useWrite } from "@elixir-mcp/client";
+import { ago, Link, WriteError } from "@elixir-mcp/ui";
 import { api } from "../../api.js";
-import { keys, useInvalidate, useSessions } from "../../lib/queries.js";
+import { keys, useSessions } from "../../lib/queries.js";
 
 /**
  * Profile → Devices: every session that can still act as you, this one marked,
@@ -20,9 +20,13 @@ export function DevicesPage() {
   // When the data was read: 0 until it is, and nothing below uses it
   // before then.
   const now = query.dataUpdatedAt;
-  const [busy, setBusy] = useState(false);
-  const invalidate = useInvalidate();
-  const load = () => invalidate(keys.sessions);
+  // A refused sign-out says so where the button is; the list refetches
+  // only after one that worked (review 2026-09-27 §7.5).
+  const everywhere = useWrite(api.revokeSessionsEverywhere, {
+    invalidate: [keys.sessions],
+  });
+  const one = useWrite(api.revokeSession, { invalidate: [keys.sessions] });
+  const busy = everywhere.busy || one.busy;
   const others = sessions?.filter((s) => !s.current) ?? [];
   const where = (s) =>
     [s.from, s.country].filter(Boolean).join(" · ") || "address not seen";
@@ -51,17 +55,19 @@ export function DevicesPage() {
               className="btn btn--sm btn--danger"
               style={{ marginLeft: "auto" }}
               disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                await api.revokeSessionsEverywhere();
-                await load();
-                setBusy(false);
+              onClick={() => {
+                one.reset();
+                everywhere.run();
               }}
             >
               {busy ? "Signing out…" : "Sign out everywhere else"}
             </button>
           )}
         </div>
+        <WriteError
+          error={everywhere.error ?? one.error}
+          className="field-error px-4 pt-2"
+        />
         <div style={{ padding: "4px 0" }}>
           {sessions?.map((s) => (
             <div
@@ -96,11 +102,9 @@ export function DevicesPage() {
                 <button
                   className="btn btn--sm"
                   disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    await api.revokeSession(s.id);
-                    await load();
-                    setBusy(false);
+                  onClick={() => {
+                    everywhere.reset();
+                    one.run(s.id);
                   }}
                 >
                   Sign out

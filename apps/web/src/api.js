@@ -55,6 +55,26 @@ export const api = {
   claimAction: (body) => request("POST", "/api/claims", body),
   usage: (agent) => request("GET", `${home(agent)}/usage`),
   explore: (tool, args) => request("POST", "/api/explore", { tool, args }),
+  // A private nickname is a WRITE through the tool bridge. The bridge
+  // answers 200 with is_error for a tool's own refusal, so that is
+  // turned into the failed envelope every other write returns, and
+  // useWrite reads it as one (review 2026-09-27 §7.5).
+  setNickname: async (player_tag, nickname) => {
+    const r = await request("POST", "/api/explore", {
+      tool: "elixir_nickname",
+      args: { player_tag, nickname },
+    });
+    if (!r.ok || !r.data?.is_error) return r;
+    const err = r.data.body?.error ?? {};
+    return {
+      ok: false,
+      status: 422,
+      data: {
+        error: err.code ?? "refused",
+        message: err.message ?? "The nickname was not saved.",
+      },
+    };
+  },
   adminCollections: () => request("GET", "/api/admin/collections"),
   adminCollectionAction: (body) =>
     request("POST", "/api/admin/collections", body),

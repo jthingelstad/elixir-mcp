@@ -1,4 +1,5 @@
-import { Fresh, Icon, Link, useClock } from "@elixir-mcp/ui";
+import { useWrite } from "@elixir-mcp/client";
+import { Fresh, Icon, Link, useClock, WriteError } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api.js";
@@ -53,6 +54,12 @@ export function Connections({ me, navigate }) {
     invalidate(scopedKey(scope, "connections"));
     invalidate(rootFor(scope));
   };
+  // Disconnecting is a security write: a refusal is said above the list,
+  // which refetches only after one that took (review 2026-09-27 §7.5).
+  const disconnect = useWrite(
+    (familyId) => api.revokeConnection(familyId, scope),
+    { invalidate: () => load() },
+  );
   // Dismissing is optimistic - the row goes as you click - and the
   // read is refetched afterwards either way, so a failed dismissal
   // brings the row back rather than leaving a lie on screen.
@@ -199,6 +206,7 @@ export function Connections({ me, navigate }) {
         </div>
       ) : (
         <div className="table__scroll" tabIndex={0}>
+          <WriteError error={disconnect.error} className="field-error mb-2" />
           <table className="table" style={{ minWidth: "760px" }}>
             <thead>
               <tr>
@@ -314,10 +322,8 @@ export function Connections({ me, navigate }) {
                     <td style={{ textAlign: "right" }}>
                       <button
                         className="btn btn--sm"
-                        onClick={async () => {
-                          await api.revokeConnection(c.family_id, scope);
-                          load();
-                        }}
+                        disabled={disconnect.busy}
+                        onClick={() => disconnect.run(c.family_id)}
                       >
                         Disconnect
                       </button>
