@@ -58,5 +58,17 @@
     "reason": "A frozen window's presence moved when members left the clan on 2026-09-25 (four by 22:13 CT: Chanco, VVSBUDGET, alex #20G0JGQLPL and Brotherinpants, the last two named by these cases): the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Keep the Record True: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
     "until": "2026-10-02",
     "filed": "2026-09-25"
+  },
+  {
+    "case": "catalogue/clans_participation#0",
+    "reason": "clans_participation at weeks 8 full for the recorded clan (44 members, 17 who left in the window) answers result_too_large at 52,113 characters since 9.13.0 (#46) added each member's place and role at every war finish and former_members. That is the designed agent answer: the refusal names weeks and verbosity, the compact eight-week read answers (47,032 bytes), and the JSON API operation Elixir Clan reads has no cap. Whether the agent read should be reshaped to fit is an open question on #46.",
+    "until": "2026-10-26",
+    "filed": "2026-09-28"
+  },
+  {
+    "case": "catalogue/clans_participation#1",
+    "reason": "clans_participation at weeks 8 full for the recorded clan (44 members, 17 who left in the window) answers result_too_large at 52,113 characters since 9.13.0 (#46) added each member's place and role at every war finish and former_members. That is the designed agent answer: the refusal names weeks and verbosity, the compact eight-week read answers (47,032 bytes), and the JSON API operation Elixir Clan reads has no cap. Whether the agent read should be reshaped to fit is an open question on #46.",
+    "until": "2026-10-26",
+    "filed": "2026-09-28"
   }
 ]
