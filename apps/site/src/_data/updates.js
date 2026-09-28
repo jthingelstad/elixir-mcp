@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-27",
+    title: "A failed read is tried again in minutes",
+    body: "When a read of the game failed, the recorder used to wait for that subject's next turn: a day for a profile, and for a leaderboard or the events calendar that failed just after the 10:00 UTC reset, the whole day. It now tries again 15 minutes later, then 30, then 60, inside the same shared budget, so a short Clash Royale outage costs minutes. The battle-log schedule also keeps its promise exactly: the small per-player offset that spreads reads out can no longer stretch a wait past two hours. No change to the tools.",
+  },
+  {
+    date: "2026-09-27",
     title: "A late Top 100 still goes out that day",
     body: "The Top 100 and Card of the Week are written by a model from a brief the program builds. If the writing finished after the issue's send time, the issue used to miss its week; it now goes out as soon as it passes its checks, while it is still the current issue, and nobody gets it twice. The checks are stricter too: a number must now belong to the player or clan named beside it, so a rating printed next to the wrong name stops the issue instead of sending. No change to the tools.",
   },

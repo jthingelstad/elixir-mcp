@@ -3579,3 +3579,57 @@ AM CT) writes under `mail/top_100/2026-10-01/`, its editor turns after
 the first log `cache_read_input_tokens` > 0, and the Top 100 sends on
 its own period at 14:00Z (9:00 AM CT) or on accept if later; the Friday
 10-02 `card_of_week` likewise.
+
+## 2026-09-27 - #69 (A8): scheduler correctness: retries, board metric, session ceiling
+
+Review §2.6 and §4.5, lane A. Line references re-verified against
+7f299ea2: `plan.mjs` stamp (now ~720), the anchored due rule (~571),
+`pipeline.mjs` error path (~581-602) and `rankings.mjs:269-276` all
+held; the ledger's dead path had moved to `settleOnce` (~130).
+
+- **Retries (0188).** `poll_state.retry_at` and `retry_tries`. A newly
+  recorded non-404 fetch error (ingest) or a dead job (the settler)
+  calls `stampRetry`: now + 15, 30, then 60 minutes; the fourth failure
+  stamps none. The planner treats a row as due once `retry_at` has
+  passed (as 0173's re-read), every plan clears it, and a cadence plan
+  resets the count, so each failed plan earns up to three retries.
+  Admission clears both. A retry is charged like any plan; the 404 hold
+  is untouched. New EMF property `RetryJobs` (plain, no metric).
+- **Board metric.** Confirmed first with one read-only `{stats}`
+  before the change: 88 of 262 location boards stale by snapshot while
+  the 24 h fetch errors held only 8 `rankings_pol` 404s and no other
+  board error, so about 80 stale boards were read without error: the
+  empty-board artefact. `ranking_health` now counts `fresh_locations`
+  by `poll_state.last_admitted_at` within 26 h, splits
+  `empty_locations` (fresh, no snapshot in 26 h) and
+  `not_found_locations` (stale, last word a 404 after admission), and
+  keeps `snapshot_fresh_locations` as the old measure. Keep the Boards
+  reads the new fields.
+- **Session ceiling.** `dueAfterMs`: for battle logs,
+  `min(cadence x jitter, SESSION_CEILING_MINUTES)`; below the ceiling
+  the jitter still spreads cohorts both ways. Roughly +700 polls a day
+  (review estimate).
+
+Tests: the plan test walks an events read failing at 10:05Z through
+retries at 10:21Z, 10:52Z and 11:53Z, then the next board day, and a
+404 that stamps nothing; ledger tests for the dead job and the doubling;
+pipeline test for redelivery and admission; migrate test for the
+ranking_health split; the ceiling over 400 tags.
+
+**main's `validate` went red at the 09-28 UTC rollover** (the 23:59Z push
+of 7f299ea2 ran its tests after midnight). Two clock-dependent tests in
+`services/mcp`, neither touched by #69:
+- `tools2` Gym #329 inserted its ended bucket 10 days before the fixed
+  2026-09-03 fixture read, and `players_profile` keeps buckets from the
+  last 35 days by the database clock, so from 2026-09-28 it aged out and
+  the test fails on every run. Fixed here, test only: the subject is a
+  fresh tag whose profile is read a day before now.
+- `live` "players_profile live:true ... serves the fresh snapshot" fails
+  only when its stale read (now - 10 min) lands in the Monday pre-reset
+  window (to 00:10Z): `readRecordedProfile` orders `snapshot_kind desc`,
+  so that game day's `pre_reset` row outranks the newer `daily` row, and
+  the tool serves the older snapshot until the game day ends. Passes
+  outside the window. Not fixed here (it is a reader question, not a
+  test one): filed for Run Elixir MCP. A profile read on a Sunday game
+  day after the pre-reset capture serves the capture, not the newest
+  read, until Monday 10:00Z.

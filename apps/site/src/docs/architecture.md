@@ -236,6 +236,11 @@ sit on the same cost-against-loss curve:
 - **A fairness floor guarantees no battle log is forgotten.** Whatever
   the clock says, every recorded player's battle log is fetched at
   least daily, even under a starved budget.
+- **A failed read is retried in minutes.** A fetch that errors (anything
+  but a 404) is planned again 15 minutes later, then 30, then 60, and
+  each retry is charged to the one budget like any other plan. Until
+  September 2026 it waited a whole cycle, so a daily board that failed
+  at the 10:00Z read lost its day.
 
 Profiles are read once a day, because the record keeps one snapshot per
 game day, and once after a session: a battle log that delivered battles

@@ -297,7 +297,17 @@ same measurement.
 | Card catalog | daily, one fetch for everyone | – |
 
 Subjects added together are de-phased by a stable per-subject offset so a
-batch does not poll in lockstep. A sitting can still, rarely, roll past a
+batch does not poll in lockstep; the offset can shorten a battle log's
+wait but never take it past the two-hour ceiling.
+
+A read that fails is tried again 15 minutes later, then 30, then 60,
+before the subject waits for its own schedule again, so an outage costs
+minutes rather than a whole cycle: a daily board or events read that
+fails just after 10:00Z is read again the same day. The retries come out
+of the same budget. A not-found answer is the exception: a subject the
+API answers 404 for is tried once a day.
+
+A sitting can still, rarely, roll past a
 read; the public status endpoint publishes how many of the last day's
 reads found that it had (`capture_audit_24h` in `/api/public/status`, with
 no sign-in; [Recording now](/data/now) is the public page), and the
