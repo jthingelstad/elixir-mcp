@@ -4626,3 +4626,46 @@ between those promises and the code.
   `?login_token=` is scrubbed from the address bar and never redeemed
   (`apps/web/test/url-hygiene.test.js`). Deployed after 22:24:15Z, one
   link lifetime past step 2, so no query-form link was still valid.
+
+## 2026-09-28 - #130: verify read ceiling, milestone lookback, a key after a revoke
+
+Three independent correctness fixes from the review follow-up. No MCP
+contract or JSON API change; one migration (0194, a new table).
+
+- **Verify reads have a per-tag daily ceiling.** An open challenge being
+  watched asked the live lane every 45 s with no quota hook (about 80
+  reads in its hour), and nothing bounded how many challenges one tag
+  could collect in a day. `LIVE_READS_PER_TAG_PER_DAY` = 120 in
+  `services/web-api/src/routes/verify.mjs`: the sum of `live_reads` over
+  every challenge for the tag created in the last 24 hours, whoever
+  opened it. Past it, the start and the poll ask nothing, the challenge
+  stays open, and the response carries `live_capped: true`, which the
+  wizard turns into a note (the check waits for the regular recording).
+  The collecting-path profile read is still bounded only by the
+  per-hour start limit (5 per tag). Test: `verify.test.mjs`, across a
+  re-opened challenge and a second account's challenge, and the reset a
+  day later. `/docs/verify` states the number.
+- **The milestone window runs from the last clean look.** It read a
+  fixed 26 hours ending now, so a failed or skipped stretch longer than
+  that lost its moments. 0194 adds `email_milestone_look` (account,
+  `looked_at`), stamped when an account's look finishes cleanly
+  (nothing new, sent, or already sent; never on a failure, a stop or a
+  forced send). The window is 26 hours back from that instant, capped
+  at seven days; no row reads the old 26 hours, so the first run after
+  the deploy behaves as before. `email_milestone` still decides what is
+  news, so the wider window never mails twice. `{account_remove}` deletes
+  the new rows. Test: `email-run.test.mjs`, a failed send then two quiet
+  days, 52 hours after the moment.
+- **Issue a new key after a revoke.** `rotateToken` read the name and
+  scope from a live key only and answered `no_active_token`, which the
+  console swallowed. It now takes the most recent key, live or revoked,
+  and locks the agent's account row so two issues cannot race. The one
+  refusal left is `409 name_taken` (a revoked key's name does not hold
+  its place, 0056, so another agent may hold it now), with a message the
+  console shows beside the button through `useWrite`. Tests:
+  `principals.test.mjs` (revoke then issue; the name taken since; a
+  stranger's 404), and the e2e journey on an agent's Settings for the
+  refused and issued paths.
+
+Ship: stack, jobs, web-api and the site; no acceptance family (no tool
+changed).
