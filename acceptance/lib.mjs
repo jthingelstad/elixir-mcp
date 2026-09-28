@@ -133,6 +133,9 @@ export const VOCABULARY = new Set([
  *  of defect (documented and named on every response, served on none). */
 export function notesNameFields(ctx, tool, body, { allow = [] } = {}) {
   const keys = deepKeys(body);
+  // A table's fields are named in its columns, not as keys (#124).
+  for (const cols of Object.values(body?.columns ?? {}))
+    if (Array.isArray(cols)) for (const c of cols) keys.add(c);
   const args = new Set(
     Object.keys(ctx.tools.get(tool)?.inputSchema?.properties ?? {}),
   );

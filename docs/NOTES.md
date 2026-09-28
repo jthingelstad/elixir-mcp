@@ -4456,3 +4456,43 @@ API has no timeline operation.
   standout revision 40, session 43).
 - **Pending natural check:** a live sitting that grows between two reads
   keeps its id and raises its revision.
+
+## 2026-09-28: the agent's participation read fits the cap (#124, 9.16.0)
+
+Jamie decided the size question #46 left open: slim the agent (MCP) read
+of `clans_participation` rather than accept the priced refusal. Before,
+measured with `{profile_tool}` on the recorded clan (44 members, 17 who
+left, 8 weeks, 9 war weeks): full **51,875** characters (refused), compact
+**47,044** (956 under the cap).
+
+**Where the characters went (compact):** member rows 30.7k, of which the
+repeated keys were 13.2k and `in_clan_at_war_finish` + `role_at_war_finish`
+6.7k; former-member rows 9.0k (keys 3.5k, place 2.5k); header, notes and
+meta 7.3k. Full adds `war_points` (about 2.9k), `role_changes` (1.3k) and
+two notes.
+
+**What changed (MCP only; lossless):** the rows of `members` and
+`former_members` are arrays named once by `columns.members` and
+`columns.former_members`; an instant on a whole second drops `.000`; and
+the two place columns are one, `place_at_war_finish` (the role where
+known, else `true`/`false` presence, else `null`), which reads back
+exactly because a role is only ever known for a member in the clan
+(`role-history.mjs`). The invoker now passes the door (`surface`) to a
+tool's context; the handler lays out the table when it is `mcp`.
+`participation-table.mjs` holds the codec both ways. `/api/v1` and the
+console keep object rows; the shared output schema admits both (rows
+`anyOf` an array or the object), which moved the JSON API pin: 2.7.1, no
+response change. The acceptance door and the replay door decode the table
+to the objects, so every Gym case reads rows by name as before, and the
+contract check reads the raw table (notes may name column names).
+
+**Budget test** (`participation-size.test.mjs`): a 50-member clan with 20
+departures, eight weeks of battles, donations and war, roles known at
+every finish, a third of the members promoted inside the window and nine
+joiners mid-window. Its object rows are 62,791 (full) and 54,910
+(compact) characters; the agent's table 38,760 and 32,783, under the
+40,000 budget the test pins, and the table decodes to exactly the
+`/api/v1` rows.
+
+Contract 9.16.0 (a minor: `columns` and `place_at_war_finish` are new;
+the reshaping is wire cleanup, stated in `breaking`); JSON API 2.7.1.

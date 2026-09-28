@@ -47,6 +47,20 @@ import {
   coverageBasisNote,
 } from "../controls.mjs";
 import { weekKey, finishWarDays } from "./war/common.mjs";
+import { tableColumns, tabulate } from "../participation-table.mjs";
+
+/** The week and war-week columns every clans_participation row carries,
+ *  current and former alike, in the order the handler builds them. */
+const PARTICIPATION_COLUMNS = (compact) => [
+  "battles",
+  "ranked_battles",
+  "donations",
+  "war_decks",
+  ...(compact ? [] : ["war_points"]),
+  "in_clan_at_war_finish",
+  "role_at_war_finish",
+  ...(compact ? [] : ["role_changes"]),
+];
 
 const CLAN_TAG_SCHEMA = {
   type: "string",
@@ -637,7 +651,7 @@ export const clansTools = {
 
   clans_participation: {
     description:
-      "Every open member's participation, week by week, for the caller's clan by default: per ISO week battles, ranked battles and the donation counter at week end; per recorded war week decks used, and the member's role and presence at each war finish. Members who left in the window are listed apart. No daily split: game counters cannot place a weekly total on a day. Per member: observed join, last recorded battle and days since it, role changes. Facts with recording horizons, never a rating. weeks 1 to 8, default 5; current week is partial. verbosity compact keeps weekly decks only.",
+      "Every open member's participation, week by week, for the caller's clan by default: per ISO week battles, ranked battles and the donation counter at week end; per recorded war week decks used, and the member's role and presence at each war finish. Members who left in the window are listed apart. Each row is an array named by columns. No daily split. Per member: observed join, last recorded battle and days since it, role changes. Facts with recording horizons, never a rating. weeks 1 to 8, default 5; current week is partial. verbosity compact keeps weekly decks only.",
     inputSchema: {
       type: "object",
       properties: {
@@ -657,6 +671,10 @@ export const clansTools = {
     async handler(ctx, args) {
       const clanTag = await entitledClan(ctx.db, ctx.account, args.clan_tag);
       const compact = args.verbosity === "compact";
+      // The agent's read is a table (#124): the same rows as arrays named
+      // once by `columns`, so the eight-week read of a full clan fits the
+      // MCP result cap. /api/v1 and the console keep the objects.
+      const table = ctx.surface === "mcp";
       const weeks = Number(args.weeks ?? 5);
       if (!Number.isInteger(weeks) || weeks < 1 || weeks > 8)
         throw new ToolFailure("bad_request", "weeks must be 1-8.");
@@ -914,6 +932,30 @@ export const clansTools = {
         last_battle_time_in_clan: m.last_battle_in_clan?.toISOString() ?? null,
         ...columns(m.player_tag),
       }));
+      const memberColumns = tableColumns([
+        "player_tag",
+        "name",
+        "role",
+        "joined_observed_at",
+        "first_joined_at",
+        "tenure_known",
+        "days_in_clan_observed",
+        "log_recorded",
+        "recorded_since",
+        "last_battle_time",
+        "last_battle_time_in_clan",
+        "days_since_battle",
+        ...PARTICIPATION_COLUMNS(compact),
+      ]);
+      const formerColumns = tableColumns([
+        "player_tag",
+        "name",
+        "role_at_departure",
+        "joined_observed_at",
+        "left_observed_at",
+        "last_battle_time_in_clan",
+        ...PARTICIPATION_COLUMNS(compact),
+      ]);
       return {
         clan_tag: clanTag,
         name: clan.name ?? null,
@@ -943,10 +985,18 @@ export const clansTools = {
           finish_war_day: finishDays.get(weekKey(w)) ?? null,
         })),
         role_history_since: roleSince?.toISOString?.() ?? null,
+        ...(table
+          ? {
+              columns: {
+                members: memberColumns,
+                former_members: formerColumns,
+              },
+            }
+          : {}),
         member_count: out.length,
-        members: out,
+        members: table ? tabulate(out, memberColumns) : out,
         former_member_count: formerMembers.rows.length,
-        former_members: formerOut,
+        former_members: table ? tabulate(formerOut, formerColumns) : formerOut,
         notes: notes(
           await joinedMidWindowNote(
             ctx.db,
@@ -971,15 +1021,15 @@ export const clansTools = {
             ? null
             : "war_points per war week is the member's period points (the war_history and war_current `points` figure, the API's periodPoints), never fame.",
           "donations is the highest value the game's weekly counter reached in that week's game days (it only climbs until the weekly reset around the start of Monday UTC, so the highest read is a lower bound on the week's total: donations after the last read before the reset are not in it); null means no snapshot fell in the week.",
-          compact
-            ? "Per-member columns align to the top-level weeks and war_weeks, one entry each in order."
-            : "Per-member columns align to the top-level weeks and war_weeks, one entry each in order. war_decks is the game's count for the race week, never split by war day: the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale.",
+          `${table ? "members and former_members are tables: each row is an array whose entries columns.members and columns.former_members name, in order; an instant on a whole second is written without .000. " : ""}Per-member columns align to the top-level weeks and war_weeks, one entry each in order.${compact ? "" : " war_decks is the game's count for the race week, never split by war day: the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale."}`,
           "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
           "joined_observed_at and days_in_clan_observed are the member's CURRENT stint: a member who left and came back counts from the rejoin, except that a rejoin within 7 days of leaving continues the stint before it. first_joined_at is the member's first recorded join here (clans_roster.first_observed_in_clan is the same instant).",
           formerMembers.rows.length
             ? "former_members lists who left in the window and has not come back, with the same columns counted in this clan only."
             : null,
-          "in_clan_at_war_finish and role_at_war_finish align to war_weeks; null means unknown, never absent: the week is unfinished or the roster reads around the finish disagree, and a role is also unknown before role_history_since.",
+          table
+            ? "place_at_war_finish aligns to war_weeks: the member's role at that finish where it is known, else true in the clan or false not in it, else null, unknown: the week is unfinished or the roster reads around the finish disagree. A role is unknown before role_history_since."
+            : "in_clan_at_war_finish and role_at_war_finish align to war_weeks; null means unknown, never absent: the week is unfinished or the roster reads around the finish disagree, and a role is also unknown before role_history_since.",
           !compact && [...out, ...formerOut].some((m) => m.role_changes?.length)
             ? "role_changes lists the role changes observed in the window: each happened after window_start and by observed_at."
             : null,

@@ -461,16 +461,33 @@ Null is unknown, never zero, throughout: a week with no snapshot has
 `war_decks: null`,
 a member with no recorded battle has `days_since_battle: null`. Counts
 cover recorded battles only; `elixir_coverage` per tag says how complete
-a member's log is. `weeks` is 1 to 8 (default 5). The per-member values
-are columns rather than rows so a full clan over eight weeks usually fits
-the response cap; a large clan with many departures can pass it, and the
-`result_too_large` hint names `weeks` and `verbosity: "compact"`. The
-JSON API's `GET /clans/{tag}/participation` has no cap.
+a member's log is. `weeks` is 1 to 8 (default 5).
+
+**An agent reads a table** (9.16.0). Over MCP the rows of `members` and
+`former_members` are arrays, and `columns.members` and
+`columns.former_members` name their entries once, in order: a list of
+fifty objects repeats every key fifty times, and on the eight-week read
+of a full clan with its departures the keys alone pushed the answer past
+the 48,000-character response cap. Two more things are written shorter,
+and nothing is dropped:
+
+- an instant on a whole second is written without its `.000`
+  (`2026-09-14T09:38:05Z`);
+- `in_clan_at_war_finish` and `role_at_war_finish` are one column,
+  `place_at_war_finish`: the role at that finish where it is known, else
+  `true` in the clan or `false` not in it, else `null`, unknown. A role is
+  only ever known for a member in the clan, so the two fields read back
+  exactly.
+
+The eight-week read of a 50-member clan with 20 departures answers in
+under 40,000 characters at either verbosity. The JSON API's
+`GET /clans/{tag}/participation` and the console serve the same rows as
+objects with the two fields above, and have no cap.
 
 To replay a clan's rules at a past finish, take the population from
-`in_clan_at_war_finish` across `members` and `former_members` together,
-and each one's role from `role_at_war_finish`; today's `role` is only
-today's.
+`place_at_war_finish` (or, from the JSON API, `in_clan_at_war_finish`)
+across `members` and `former_members` together, and each one's role from
+the same column (`role_at_war_finish`); today's `role` is only today's.
 
 ## Reading the game live
 

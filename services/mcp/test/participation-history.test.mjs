@@ -15,6 +15,7 @@ import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { atWarFinishes } from "../src/role-history.mjs";
+import { participationObjects } from "../src/participation-table.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -254,7 +255,8 @@ async function participation(args = {}) {
     ...args,
   });
   assert.equal(isError, false, JSON.stringify(body).slice(0, 400));
-  return body;
+  // The agent's table (#124), read as the objects /api/v1 serves.
+  return participationObjects(body);
 }
 
 const row = (body, tag) =>

@@ -117,8 +117,22 @@ export const contracts = [
     id: "clans_participation",
     run: async (ctx) => {
       const r = await ctx.read("clans_participation", { weeks: 2 });
-      const body = answered(r, "clans_participation");
-      notesNameFields(ctx, "clans_participation", body);
+      answered(r, "clans_participation");
+      // The notes name what the agent was sent: the table (#124), whose
+      // rows are arrays named by columns and decode to the objects.
+      const raw = r.raw ?? r.body;
+      notesNameFields(ctx, "clans_participation", raw);
+      for (const key of ["members", "former_members"]) {
+        const cols = raw.columns?.[key];
+        ok(Array.isArray(cols), `clans_participation: columns.${key} missing`);
+        const bad = raw[key].filter(
+          (row) => !Array.isArray(row) || row.length !== cols.length,
+        ).length;
+        ok(
+          bad === 0,
+          `clans_participation: ${bad} ${key} rows are not ${cols.length}-entry arrays`,
+        );
+      }
       return { ms: r.ms };
     },
   },

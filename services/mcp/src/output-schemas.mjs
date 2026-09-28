@@ -568,6 +568,15 @@ const PARTICIPATION_PLACE = {
   },
 };
 
+/** A clans_participation row in the agent's table form (9.16.0, #124):
+ *  its entries are the fields the response's columns name, in order. */
+const PARTICIPATION_TABLE_ROW = {
+  type: "array",
+  description:
+    "MCP: one row, its entries named in order by the response's columns.",
+  items: {},
+};
+
 export const OUTPUT_SCHEMAS = {
   // ---- 6.14.0: the 22 tools that rested on recorded shape baselines in the
   // acceptance suite (acceptance/shapes/). Drafted from live answers on
@@ -2569,41 +2578,56 @@ export const OUTPUT_SCHEMAS = {
           required: ["season_id", "section_index"],
         },
       },
+      columns: {
+        type: "object",
+        description:
+          "9.16.0, MCP only: the agent's read is a table. Each members and former_members row is an array whose entries these name, in order: the same fields /api/v1 and the console serve as objects.",
+        properties: {
+          members: { type: "array", items: { type: "string" } },
+          former_members: { type: "array", items: { type: "string" } },
+        },
+        required: ["members", "former_members"],
+      },
       member_count: COUNT,
       members: {
         type: "array",
         description:
-          "Per-member columns aligned to weeks[] (battles, ranked_battles, donations) and war_weeks[] (war_decks, war_points), one entry each in order; null is unknown, never zero. war_decks is the game's weekly count; nothing is split by war day, because the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale.",
+          "Per-member columns aligned to weeks[] (battles, ranked_battles, donations) and war_weeks[] (war_decks, war_points), one entry each in order; null is unknown, never zero. war_decks is the game's weekly count; nothing is split by war day, because the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale. Over MCP (9.16.0) each row is an array named by columns.members.",
         items: {
-          type: "object",
-          properties: {
-            player_tag: TAG,
-            name: { type: ["string", "null"] },
-            role: { type: ["string", "null"] },
-            joined_observed_at: { type: ["string", "null"] },
-            tenure_known: { type: "boolean" },
-            first_joined_at: { type: ["string", "null"] },
-            days_in_clan_observed: NULLABLE_INT,
-            log_recorded: { type: "boolean" },
-            recorded_since: { type: ["string", "null"] },
-            last_battle_time: { type: ["string", "null"] },
-            last_battle_time_in_clan: { type: ["string", "null"] },
-            days_since_battle: { type: ["number", "null"] },
-            battles: { type: "array", items: NULLABLE_INT },
-            ranked_battles: { type: "array", items: NULLABLE_INT },
-            donations: { type: "array", items: NULLABLE_INT },
-            war_decks: { type: "array", items: NULLABLE_INT },
-            war_points: { type: "array", items: NULLABLE_INT },
-            ...PARTICIPATION_PLACE,
-          },
-          required: [
-            "player_tag",
-            "tenure_known",
-            "log_recorded",
-            "battles",
-            "war_decks",
-            "in_clan_at_war_finish",
-            "role_at_war_finish",
+          anyOf: [
+            PARTICIPATION_TABLE_ROW,
+            {
+              type: "object",
+              properties: {
+                player_tag: TAG,
+                name: { type: ["string", "null"] },
+                role: { type: ["string", "null"] },
+                joined_observed_at: { type: ["string", "null"] },
+                tenure_known: { type: "boolean" },
+                first_joined_at: { type: ["string", "null"] },
+                days_in_clan_observed: NULLABLE_INT,
+                log_recorded: { type: "boolean" },
+                recorded_since: { type: ["string", "null"] },
+                last_battle_time: { type: ["string", "null"] },
+                last_battle_time_in_clan: { type: ["string", "null"] },
+                days_since_battle: { type: ["number", "null"] },
+                battles: { type: "array", items: NULLABLE_INT },
+                ranked_battles: { type: "array", items: NULLABLE_INT },
+                donations: { type: "array", items: NULLABLE_INT },
+                war_decks: { type: "array", items: NULLABLE_INT },
+                war_points: { type: "array", items: NULLABLE_INT },
+                ...PARTICIPATION_PLACE,
+              },
+              required: [
+                "player_tag",
+                "tenure_known",
+                "log_recorded",
+                "battles",
+                "war_decks",
+                "in_clan_at_war_finish",
+                "role_at_war_finish",
+              ],
+            },
           ],
         },
       },
@@ -2616,30 +2640,35 @@ export const OUTPUT_SCHEMAS = {
       former_members: {
         type: "array",
         description:
-          "9.13.0: members who left inside the window and are not back, one row each for their latest stint, with the same columns aligned to weeks[] and war_weeks[]; battles and donations count only this clan's.",
+          "9.13.0: members who left inside the window and are not back, one row each for their latest stint, with the same columns aligned to weeks[] and war_weeks[]; battles and donations count only this clan's. Over MCP (9.16.0) each row is an array named by columns.former_members.",
         items: {
-          type: "object",
-          properties: {
-            player_tag: TAG,
-            name: { type: ["string", "null"] },
-            role_at_departure: { type: ["string", "null"] },
-            joined_observed_at: { type: ["string", "null"] },
-            left_observed_at: { type: ["string", "null"] },
-            last_battle_time_in_clan: { type: ["string", "null"] },
-            battles: { type: "array", items: NULLABLE_INT },
-            ranked_battles: { type: "array", items: NULLABLE_INT },
-            donations: { type: "array", items: NULLABLE_INT },
-            war_decks: { type: "array", items: NULLABLE_INT },
-            war_points: { type: "array", items: NULLABLE_INT },
-            ...PARTICIPATION_PLACE,
-          },
-          required: [
-            "player_tag",
-            "left_observed_at",
-            "battles",
-            "war_decks",
-            "in_clan_at_war_finish",
-            "role_at_war_finish",
+          anyOf: [
+            PARTICIPATION_TABLE_ROW,
+            {
+              type: "object",
+              properties: {
+                player_tag: TAG,
+                name: { type: ["string", "null"] },
+                role_at_departure: { type: ["string", "null"] },
+                joined_observed_at: { type: ["string", "null"] },
+                left_observed_at: { type: ["string", "null"] },
+                last_battle_time_in_clan: { type: ["string", "null"] },
+                battles: { type: "array", items: NULLABLE_INT },
+                ranked_battles: { type: "array", items: NULLABLE_INT },
+                donations: { type: "array", items: NULLABLE_INT },
+                war_decks: { type: "array", items: NULLABLE_INT },
+                war_points: { type: "array", items: NULLABLE_INT },
+                ...PARTICIPATION_PLACE,
+              },
+              required: [
+                "player_tag",
+                "left_observed_at",
+                "battles",
+                "war_decks",
+                "in_clan_at_war_finish",
+                "role_at_war_finish",
+              ],
+            },
           ],
         },
       },
