@@ -17208,6 +17208,7 @@
   },
   {
     "id": "302.1",
+    "amended": "Amended for 9.15.0 (#111, Jamie 2026-09-28, lane B: every timeline item carries a story id and a revision): the recurring-sitting note says the sitting comes back under the same id with a higher revision, where it said the same started_at.",
     "feedback": 302,
     "stability": "frozen",
     "tool": "elixir_timeline",
@@ -17224,12 +17225,13 @@
     },
     "assert": [
       {
-        "notes_match": "same started_at"
+        "notes_match": "same id"
       }
     ]
   },
   {
     "id": "302.2",
+    "amended": "Amended for 9.15.0 (#111, Jamie 2026-09-28, lane B: every timeline item carries a story id and a revision): the recurring-sitting note says the sitting comes back under the same id with a higher revision, where it said the same started_at.",
     "feedback": 302,
     "stability": "frozen",
     "tool": "elixir_timeline",
@@ -17243,12 +17245,13 @@
     "request_id": "d7733a01-2f45-4ff0-a20b-8746488faa36",
     "assert": [
       {
-        "notes_match": "same started_at"
+        "notes_match": "same id"
       }
     ]
   },
   {
     "id": "302.3",
+    "amended": "Amended for 9.15.0 (#111, Jamie 2026-09-28, lane B: every timeline item carries a story id and a revision): the recurring-sitting note says the sitting comes back under the same id with a higher revision, where it said the same started_at.",
     "feedback": 302,
     "control": true,
     "stability": "frozen",
@@ -17262,7 +17265,7 @@
     "request_id": "3bf107f2-cc87-43b0-85a9-f58a72274e45",
     "assert": [
       {
-        "notes_not_match": "same started_at"
+        "notes_not_match": "same id"
       },
       {
         "eq": [
@@ -19420,6 +19423,7 @@
   },
   {
     "id": "321.2",
+    "amended": "Amended for 9.15.0 (#111, Jamie 2026-09-28, lane B: every timeline item carries a story id and a revision): the recurring-sitting note says the sitting comes back under the same id with a higher revision, where it said the same started_at.",
     "feedback": 321,
     "control": true,
     "stability": "frozen",
@@ -19434,7 +19438,7 @@
     "request_id": "f563afe9-1433-4741-9077-3905839047e1",
     "assert": [
       {
-        "notes_match": "same started_at"
+        "notes_match": "same id"
       },
       {
         "has": "timeline[?kind=session_standout]"
