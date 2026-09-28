@@ -4134,3 +4134,52 @@ limit was reached (reset stated as 2026-10-01T00:00Z). The service remained up
 and its event cursor was not replayed, but the retry cadence is an operational
 gap in the Discord preview; it needs a failure-specific cooldown there, not a
 restart or an early routine run.
+
+## 2026-09-28 - Lane B of the 2026-09-27 review, decided
+
+The lane A queue closed: #62-#73, #44 and #43 are deployed and read
+back. Jamie has some non-blocking follow-ups, recorded in those issues'
+closing comments. Before the revisit, each lane B feature was checked
+against current `main` (7de2000): one agent per feature built a decision
+card, and a skeptic challenged it. All six cards held. Jamie's answers:
+
+- **Yes:**
+  - **#46** (historical clan roles on `clans_participation`, for Elixir
+    Clan's replay). The build plan is in the issue's 2026-09-28 comment.
+  - **#110** (a `card_form_unlocked` moment, going forward only).
+  - **#111** (stable timeline item ids). Jamie: "meaningful to the
+    discord bots as well as Claude using the MCP … how you tell stories
+    as an agent using the MCP is weak now." The id names the story, and
+    a revision marks its growth.
+- **Fixes, joining the queue as lane A:**
+  - **#108:** `battles_compare` never attached the completeness note.
+  - **#109:** event classification.
+- **Parked in lane D, each with its trigger:** gaps as a precise
+  control; the event as a population (`group_by: "event"`, an
+  `event_tag` filter); card history `changes[]`; the supported-clients
+  matrix.
+
+**Mode ruling (Jamie, 2026-09-28).** DECISIONS 18 said `clanMate` and
+`unknown` battles are casual everywhere, while 75, and `modeGroupOf`,
+made every tagged battle event content. Two measurements forced the
+question:
+
+- 62% of clanmate friendlies carry an event tag;
+- a player's 56 Royale Shuffle battles are type `unknown` with a tag.
+
+Jamie, with a screenshot of the game's Game Modes list showing Royale
+Shuffle and the Royale Shuffle Challenge as timed events: "those shuffle
+battles are clearly events … Clan mate battles would typically be
+casual." DECISIONS 18 and 75 now say it:
+
+- a clanmate battle (`clanMate`, `clanMate2v2`) is casual even when
+  tagged;
+- an `unknown` battle is event content when tagged, and casual when not.
+
+#109 carries the code, including any re-derivation of stored mode
+groups.
+
+**Also raised: agent storytelling.** Jamie finds how agents tell stories
+through Elixir weak. #111 is one piece. A focused look, for example a
+Gym journey that asks an agent to tell a player's or a clan's week and
+judges the result, is a candidate after lane C.

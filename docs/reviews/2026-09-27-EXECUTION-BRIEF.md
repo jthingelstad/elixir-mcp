@@ -7,14 +7,18 @@ This brief takes
 **Approach (Jamie, 2026-09-27).** The review's 91 surviving findings are
 sorted by *who has to decide*, not by subsystem, into four lanes:
 
-- **Lane A** is being worked now. Its findings are GitHub issues labelled
-  `review-2026-09-27`. Each issue gets a fresh session: either one
-  interactive session per issue, or one unattended orchestrator that
-  hands each issue to a new subagent. Each issue closes only once its
-  fix is deployed and read back.
-- **Lanes B, C and D** are held in this file, not filed as issues, so
-  nothing sits open. When no labelled issue remains open, Jamie and
-  Claude revisit them, starting with lane B.
+- **Lane A** shipped on 2026-09-27 and 2026-09-28, as issues #62-#73
+  plus the older bugs #44 and #43, all labelled `review-2026-09-27`.
+  Each issue got a fresh session: either one interactive session per
+  issue, or one unattended orchestrator that hands each issue to a new
+  subagent. Each issue closed only once its fix was deployed and read
+  back.
+- **Lane B** was decided on 2026-09-28. Its three yeses and two small
+  fixes joined the same queue (rows 15-19 below). The rest of lane B
+  moved to lane D, each item with its trigger.
+- **Lanes C and D** stay in this file, not filed as issues, so nothing
+  sits open. When no labelled issue remains open, Jamie and Claude take
+  up lane C.
 
 **Set aside (Jamie):** database restore. That removes the database half
 of the review's §2.1, all of §2.2 and all of §2.3. The DECISIONS line is
@@ -27,15 +31,17 @@ not planned under it.
 | Lane | What it holds | Findings | Jamie's part |
 |---|---|---|---|
 | A. Fix and harden | Security, and code that breaks a ratified rule or a published promise | 41, in 12 issues | Reviews the outcomes |
-| B. Features | New capability | 5, plus issue #46 | Yes, no or later on each |
+| B. Features | New capability | Decided 2026-09-28: 3 yes, 2 fixes, 3 parked | Answered |
 | C. Policy | Privacy and data subjects, growth priorities, collector-fleet trust | 11, in 3 topics | A review; nothing is built first |
 | D. Parked | Efficiency, refactors, anything that should be measured first | 30 | None until its trigger |
 
 ---
 
-## Lane A: fix and harden (in progress)
+## The queue
 
-Worked in this order:
+Rows 1-14 (lane A) are closed; #62 was done interactively. Rows 15-19
+are the fixes and features from the lane B revisit. The queue runs in
+table order.
 
 | Order | Issue | Title | Review § |
 |---|---|---|---|
@@ -53,6 +59,11 @@ Worked in this order:
 | 12 | #73 | A12: Edge caching, site publishing and feed fixes | 5.4, 7.6, 7.7, 8.4 |
 | 13 | #44 | Keep non-catalog support stubs out of `cards_catalog` (older bug) | — |
 | 14 | #43 | Restore console CI coverage for the timeline contract (older; may already be fixed) | — |
+| 15 | #108 | A13: `battles_compare` carries the completeness note | 7.3 |
+| 16 | #109 | A14: Event classification: clanmate battles are casual; game-mode rows never pool events | 7.1 |
+| 17 | #46 | B1: Historical clan roles on `clans_participation` (the plan is in the issue's 2026-09-28 comment) | — |
+| 18 | #110 | B2: Record Evolution and Hero unlocks as moments | 7.2 |
+| 19 | #111 | B3: Stable timeline item ids, so agents tell a story once and update it | 7.4 |
 
 ### Working the queue
 
@@ -142,7 +153,7 @@ so the unattended loop skips it.
 
 ```
 Work the next issue in the review queue: the open GitHub issues labelled
-review-2026-09-27 in jthingelstad/elixir-mcp, in the order of the lane A
+review-2026-09-27 in jthingelstad/elixir-mcp, in the order of the queue
 table in docs/reviews/2026-09-27-EXECUTION-BRIEF.md. Follow the worker
 rules there, interactively. One issue this session.
 ```
@@ -154,7 +165,7 @@ queue state and each subagent's report.
 
 1. **Pick.**
    - Take the next open issue labelled `review-2026-09-27` and not
-     labelled `needs-jamie`, in the order of the lane A table.
+     labelled `needs-jamie`, in the order of the queue table.
    - Skip #62.
    - If none is left, go to step 6.
 2. **Check health.** `curl -s
@@ -187,28 +198,40 @@ queue state and each subagent's report.
    - the needs-jamie questions.
 
    If only #62 and needs-jamie issues remain open, say that lane A is
-   done apart from those, and that it is time for the lane B revisit.
+   done apart from those, and that it is time for the lane C review.
 
 ---
 
-## Lane B: features (held for the revisit)
+## Lane B: features (decided 2026-09-28)
 
-Each one is a yes, a no or a later. A yes goes through `/tool-change`.
+**Yes:** these joined the queue.
 
-- **Gaps as a precise control (§7.3).** Streaks and `last_n` samples stop
-  at a capture gap the record knows about, and `elixir_coverage` shows
-  the intervals.
-- **The event as a population (§7.1).** `group_by: "event"` on
-  `battles_performance`, then an `event_tag` filter.
-- **Card history (§7.2).** A `card_form_unlocked` moment, and the
-  upgrades a player made, served on `players_collection`.
-- **Stable timeline item ids (§7.4).** A per-account Atom/JSON Feed of
-  the timeline is held until someone asks for one.
-- **A supported-clients matrix for open beta (§6.2).** Claude.ai, Desktop,
-  Code and ChatGPT, measured, plus one real-client Gym journey per
-  release.
-- **#46: historical clan roles on `clans_participation`.** Filed earlier
-  by the agent team, for Elixir Clan's replay.
+- **#46: historical clan roles on `clans_participation`.** Elixir Clan's
+  promotion replay rests on current roles at past war finishes, and on
+  members who left not appearing at all. Both reproduce live.
+- **#110: the Evolution/Hero unlock moment.** This is the one part of
+  card history that matters for Jamie's own main account. It records
+  going forward only.
+- **#111: stable timeline item ids, built for storytelling.** Jamie:
+  "meaningful to the discord bots as well as Claude using the MCP … how
+  you tell stories as an agent using the MCP is weak now." The id is
+  the story, and a revision marks growth, so an agent tells a story once
+  and updates it.
+
+**Fixes found by the revisit:**
+
+- **#108:** `battles_compare` never attached the completeness note.
+- **#109:** event classification. Jamie's ruling settles the conflict
+  between DECISIONS 18 and 75: a clanmate battle is casual even when
+  tagged, and a tagged `unknown` battle such as Royale Shuffle is event
+  content. Game-mode rows also stop pooling several events into one row.
+
+**Parked:** these moved to lane D, each with its trigger.
+
+**Also raised: agent storytelling.** Jamie finds how agents tell stories
+through Elixir weak. #111 is one piece. A focused look is a candidate
+after lane C, for example a Gym journey that asks an agent to tell a
+player's or a clan's week and judges the result.
 
 ## Lane C: policy (held; Jamie's review first)
 
@@ -245,6 +268,21 @@ work.
     from database restore; the risk it covers is account-level.
 
 ## Lane D: parked (not worked until the trigger)
+
+- **Parked from lane B (2026-09-28):**
+  - **Gaps as a precise control (§7.3).** Streaks stop at a located
+    capture hole. Trigger: a consumer reports a streak or session
+    standout that spanned a hole, or capture gaps climb as the budget
+    binds.
+  - **The event as a population (§7.1).** `group_by: "event"` and an
+    `event_tag` filter. Trigger: a feedback item or Gym case asks for
+    per-event results. `args_census` records argument keys, not values,
+    so it cannot measure this on its own.
+  - **Card history `changes[]` (§7.2).** What a player upgraded, and
+    when. Trigger: a player or agent asks what they upgraded.
+  - **A supported-clients matrix (§6.2).** Trigger: lane C defines open
+    beta, or `{audit_census}` shows clients other than Claude Code. Of
+    its two halves, the real-client Gym journey is the stronger one.
 
 - **Measure with `pg_stat_statements` first** (it arrives in A10):
   - the invoker's fixed cost (§5.1);
