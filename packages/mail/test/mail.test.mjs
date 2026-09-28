@@ -7,6 +7,7 @@ import {
   renderMail,
   htmlToText,
   signUnsubscribe,
+  UNSUBSCRIBE_KEY_ID,
   verifyUnsubscribe,
   unsubscribeUrl,
   lintIssue,
@@ -424,4 +425,61 @@ test("repairNames puts a name the model's JSON mangled back from the brief", asy
   const out = repairNames(body, ["Hypno ❤️ Hans", "TR⚡️Matthew⚡️", "JTR_CR"]);
   assert.ok(out.includes("**Hypno ❤️ Hans**"), out);
   assert.ok(out.includes("TR⚡️Matthew⚡️ climbed"));
+});
+
+test("unsubscribe links have their own key, and links sent before it still work (#71)", () => {
+  const accountId = "8b6a2b6e-0c3c-4b3a-9a0e-2f1f8f2d9c11";
+  const issuedAt = 1_758_000_000_000;
+  const legacy = signUnsubscribe({
+    secret: "session-old",
+    accountId,
+    kind: "all",
+    issuedAt,
+  });
+  assert.equal(legacy.split(".").length, 2, "no key id: the older kind");
+
+  const keys = {
+    unsubscribe: "unsub-key",
+    session: ["session-new", "session-old"],
+  };
+  const keyed = signUnsubscribe({
+    secret: keys,
+    accountId,
+    kind: "all",
+    issuedAt,
+  });
+  assert.ok(keyed.startsWith(`${UNSUBSCRIBE_KEY_ID}.`));
+  assert.equal(
+    verifyUnsubscribe({ secret: keys, token: keyed })?.accountId,
+    accountId,
+  );
+  assert.equal(
+    verifyUnsubscribe({ secret: keys, token: legacy })?.accountId,
+    accountId,
+    "a link signed with the previous session secret still unsubscribes",
+  );
+  // The session secret rotates on: keyed links do not care.
+  const rotated = { unsubscribe: "unsub-key", session: ["session-newer"] };
+  assert.ok(verifyUnsubscribe({ secret: rotated, token: keyed }));
+  assert.equal(verifyUnsubscribe({ secret: rotated, token: legacy }), null);
+  // A keyed token is never checked against a session secret, nor the
+  // reverse.
+  assert.equal(verifyUnsubscribe({ secret: "unsub-key", token: keyed }), null);
+  assert.equal(
+    verifyUnsubscribe({
+      secret: { unsubscribe: "session-old", session: [] },
+      token: legacy,
+    }),
+    null,
+  );
+  assert.equal(verifyUnsubscribe({ secret: null, token: keyed }), null);
+  assert.throws(
+    () =>
+      signUnsubscribe({
+        secret: { unsubscribe: null, session: null },
+        accountId,
+        kind: "all",
+      }),
+    /no secret/,
+  );
 });

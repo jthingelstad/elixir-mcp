@@ -50,7 +50,32 @@ export const PRESERVED_PARAMETERS = [
   // wanted, never reset by a deploy.
   "EditorModel",
   "AnthropicKeyInSecret",
+  // Secret rotation (docs/SECRETS.md, #71): the switches for keys the app
+  // secret may or may not carry yet, the origin secret a rotation
+  // replaced, and the epoch that makes every function re-read its
+  // secrets. Each changes only when a rotation says so.
+  "OriginSecretPrevious",
+  "SessionSecretPreviousInSecret",
+  "UnsubscribeKeyInSecret",
+  "SecretEpoch",
 ];
+
+/**
+ * The overrides for an origin-secret rotation (deploy.mjs
+ * --rotate-origin-secret): a new OriginSecret, and the one it replaces as
+ * OriginSecretPrevious, which the doors keep accepting until a later
+ * deploy clears it. `current` is read from the deployed function inside
+ * the deploy process and never printed.
+ */
+export function originRotation(current) {
+  if (typeof current !== "string" || current.length === 0)
+    throw new Error(
+      "origin rotation: the deployed doors carry no origin secret",
+    );
+  let next = generateSecret();
+  while (next === current) next = generateSecret();
+  return { OriginSecret: next, OriginSecretPrevious: current };
+}
 
 /**
  * @param {Record<string,string>} required values for REQUIRED_PARAMETERS
@@ -101,6 +126,11 @@ export function buildParameters(
         });
       }
       // Omitted at create: the template Default applies, once, visibly.
+    } else if (existingKeys && !existingKeys.includes(key)) {
+      // A PRESERVED parameter's first deploy: CloudFormation refuses
+      // UsePreviousValue for a key it has never stored, so it is omitted
+      // and its template Default applies, once (Drop's fix, 2026-09-06).
+      continue;
     } else {
       params.push({ ParameterKey: key, UsePreviousValue: true });
     }

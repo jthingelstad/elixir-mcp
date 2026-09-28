@@ -3,6 +3,7 @@
  *  and the relay sends it (outbox.mjs). Owner notifications go to
  *  elixir@poapkings.com itself — the monitored service mailbox. */
 
+import { currentAndPrevious } from "@elixir-mcp/auth";
 import { makeHandler } from "./handler.mjs";
 import { makeCollectorDoor } from "./collector-door.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
@@ -36,8 +37,20 @@ function notifyOwner(spec) {
 
 export const handler = makeHandler({
   databaseUrl: process.env.DATABASE_URL,
-  secret: process.env.SESSION_SECRET,
-  originSecret: process.env.ORIGIN_SECRET || null,
+  // Current and previous: a rotation signs nobody out, and a request
+  // from an edge still sending the old origin header is served
+  // (docs/SECRETS.md).
+  secret: currentAndPrevious(
+    process.env.SESSION_SECRET,
+    process.env.SESSION_SECRET_PREVIOUS,
+  ),
+  originSecret: currentAndPrevious(
+    process.env.ORIGIN_SECRET,
+    process.env.ORIGIN_SECRET_PREVIOUS,
+  ),
+  // Unsubscribe links' own key, once the app secret carries it; until
+  // then they are signed with the session secret (packages/mail).
+  unsubscribeSecret: process.env.UNSUBSCRIBE_SECRET || null,
   sendLoginEmail: ({ email, code, token, newsletter }) =>
     enqueueEmail({ v: 1, kind: "login", to: email, code, token, newsletter }),
   // The template has existed since the gate shipped and nothing ever

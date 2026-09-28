@@ -136,7 +136,16 @@ export function makeHandler({
   /** { enqueue, archive } for a family app's mail on the JSON API
    *  (2.4.0): the outbox and the sent-mail archive; null = refused. */
   mail = null,
+  /** Unsubscribe links' own key (packages/mail unsubscribe.mjs); null =
+   *  links are signed and checked with the session secret. */
+  unsubscribeSecret = null,
 }) {
+  // What unsubscribe links are signed and checked with: their own key
+  // when there is one, and the session secrets for links sent before it.
+  const unsubscribeKeys =
+    secret || unsubscribeSecret
+      ? { unsubscribe: unsubscribeSecret, session: secret }
+      : null;
   async function resolveAccount(
     db,
     event,
@@ -262,7 +271,7 @@ export function makeHandler({
     ...battleActivityRoutes({ resolveAccount }),
     ...emailRoutes({
       resolveAccount,
-      secret,
+      secret: unsubscribeKeys,
       // The archive bucket store the call record reads from; sent mail
       // lives in the same bucket under mail/sent/.
       archive: capture,
@@ -281,7 +290,7 @@ export function makeHandler({
       ? {
           route: (db, event, body) =>
             integrationApi(db, event, body, {
-              mail: mail ? { ...mail, secret } : null,
+              mail: mail ? { ...mail, secret: unsubscribeKeys } : null,
             }),
           key: `${method} /api/v1/*`,
         }

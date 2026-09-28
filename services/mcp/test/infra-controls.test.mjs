@@ -4,6 +4,16 @@ import test from "node:test";
 import { API_THROTTLES } from "../../../infra/scripts/api-throttle-config.mjs";
 import { parseDeployArgs } from "../../../infra/scripts/lib/deploy-args.mjs";
 import { ciGate } from "../../../infra/scripts/lib/ci-gate.mjs";
+import {
+  LAMBDAS,
+  RDS_CA_BUNDLE,
+  RDS_CA_PATH,
+} from "../../../infra/scripts/build.mjs";
+import {
+  buildParameters,
+  originRotation,
+  PRESERVED_PARAMETERS,
+} from "../../../infra/scripts/parameters.mjs";
 
 const templateUrl = new URL("../../../infra/template.yaml", import.meta.url);
 
@@ -314,4 +324,121 @@ test("the failures the doors handle themselves are alarmed, to the ops queue (re
     assert.match(block, new RegExp(`^      Threshold: ${threshold}$`, "m"));
     assert.match(block, /AlarmActions: \[!Ref AlarmTopic\]/, logicalId);
   }
+});
+
+test("the database connections verify the server against the bundled RDS roots (#71)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const urls = template.match(/^          DATABASE_URL: .+$/gm) ?? [];
+  assert.equal(urls.length, 5);
+  for (const url of urls) assert.match(url, /\?sslmode=verify-full"$/, url);
+  assert.doesNotMatch(template, /sslmode=no-verify/);
+  // Every function with a DATABASE_URL loads the bundle its package
+  // carries, and only those packages carry it.
+  const loads = template.match(/^          NODE_EXTRA_CA_CERTS: .+$/gm) ?? [];
+  assert.equal(loads.length, 5);
+  for (const line of loads)
+    assert.ok(line.endsWith(`/var/task/${RDS_CA_PATH}`), line);
+  assert.deepEqual(
+    LAMBDAS.filter((l) => l.db).map((l) => l.name),
+    ["web-api", "mcp", "scheduler", "migrate", "jobs"],
+  );
+  const bundle = await readFile(
+    new URL(`../../../${RDS_CA_BUNDLE}`, import.meta.url),
+    "utf8",
+  );
+  assert.equal((bundle.match(/-----BEGIN CERTIFICATE-----/g) ?? []).length, 3);
+});
+
+test("secrets rotate without a sign-out: previous values and the epoch are wired (#71)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const block = (id, next) => resource(template, id, next);
+  const webApi = block("WebApiFunction", "McpLogGroup");
+  const mcp = block("McpFunction", "SchedulerLogGroup");
+  const jobs = block("JobsFunction", "EditorLogGroup");
+  for (const door of [webApi, mcp]) {
+    assert.match(
+      door,
+      /SESSION_SECRET_PREVIOUS: !If\n\s+- HasSessionSecretPrevious\n.+session_secret_previous\}\}"\n\s+- !Ref AWS::NoValue/,
+    );
+    assert.match(
+      door,
+      /ORIGIN_SECRET_PREVIOUS: !If\n\s+- HasOriginSecretPrevious\n\s+- !Ref OriginSecretPrevious\n/,
+    );
+  }
+  for (const signer of [webApi, jobs])
+    assert.match(
+      signer,
+      /UNSUBSCRIBE_SECRET: !If\n\s+- HasUnsubscribeKey\n.+unsubscribe_secret\}\}"/,
+    );
+  assert.doesNotMatch(jobs, /SESSION_SECRET_PREVIOUS/, "jobs only signs");
+  // Every function holding a secret reference re-reads it when the epoch
+  // moves: the five database functions, the relay and the editor.
+  assert.equal(
+    (template.match(/^          SECRET_EPOCH: !Ref SecretEpoch$/gm) ?? [])
+      .length,
+    7,
+  );
+  assert.match(
+    template.slice(
+      template.indexOf("  SiteDistribution:"),
+      template.indexOf(
+        "    Properties:",
+        template.indexOf("  SiteDistribution:"),
+      ),
+    ),
+    /DependsOn: \[WebApiFunction, McpFunction\]/,
+  );
+  for (const key of [
+    "OriginSecretPrevious",
+    "SessionSecretPreviousInSecret",
+    "UnsubscribeKeyInSecret",
+    "SecretEpoch",
+  ]) {
+    assert.ok(PRESERVED_PARAMETERS.includes(key), key);
+    assert.match(template, new RegExp(`^  ${key}:$`, "m"), key);
+  }
+});
+
+test("a preserved parameter's first deploy takes its default; a rotation carries the old origin secret (#71)", () => {
+  const required = Object.fromEntries(
+    [
+      "CodeBucket",
+      "WebApiCodeKey",
+      "McpCodeKey",
+      "SchedulerCodeKey",
+      "EmailRelayCodeKey",
+      "MigrateCodeKey",
+      "JobsCodeKey",
+      "EditorCodeKey",
+    ].map((k) => [k, "x"]),
+  );
+  const existing = [...Object.keys(required), ...PRESERVED_PARAMETERS].filter(
+    (k) => k !== "SecretEpoch",
+  );
+  const params = buildParameters(required, null, {}, existing);
+  assert.equal(
+    params.find((p) => p.ParameterKey === "SecretEpoch"),
+    undefined,
+    "never stored: omitted, so CloudFormation does not refuse UsePreviousValue",
+  );
+  assert.deepEqual(
+    params.find((p) => p.ParameterKey === "OriginSecretPrevious"),
+    { ParameterKey: "OriginSecretPrevious", UsePreviousValue: true },
+  );
+  const rotated = originRotation("old-origin");
+  assert.equal(rotated.OriginSecretPrevious, "old-origin");
+  assert.match(rotated.OriginSecret, /^[0-9a-f]{64}$/);
+  assert.throws(() => originRotation(""), /no origin secret/);
+  const withRotation = buildParameters(required, null, rotated, existing);
+  assert.deepEqual(
+    withRotation.find((p) => p.ParameterKey === "OriginSecret"),
+    { ParameterKey: "OriginSecret", ParameterValue: rotated.OriginSecret },
+  );
+  assert.equal(
+    parseDeployArgs(["--rotate-origin-secret"]).rotateOriginSecret,
+    true,
+  );
+  assert.deepEqual(parseDeployArgs(["--param=OriginSecretPrevious="]).params, {
+    OriginSecretPrevious: "",
+  });
 });

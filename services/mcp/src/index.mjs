@@ -1,5 +1,6 @@
 /** Lambda entrypoint for the MCP door (elixir.poapkings.com). */
 
+import { currentAndPrevious } from "@elixir-mcp/auth";
 import { makeHandler } from "./handler.mjs";
 import { makeCaptureStore } from "./capture.mjs";
 import { enqueueJob } from "../../scheduler/src/ledger.mjs";
@@ -16,11 +17,19 @@ export const handler = makeHandler({
   // 0040: live jobs go straight into the Postgres job ledger; the
   // live-channel collectors lease them at the door.
   enqueueLiveJob: (db, job) => enqueueJob(db, job),
-  originSecret: process.env.ORIGIN_SECRET || null,
+  // The previous value is accepted while a rotation settles
+  // (docs/SECRETS.md); only the current one is ever sent or signed with.
+  originSecret: currentAndPrevious(
+    process.env.ORIGIN_SECRET,
+    process.env.ORIGIN_SECRET_PREVIOUS,
+  ),
   // The site's session secret: /oauth/authorize honours a signed-in
   // browser and signs a consenting one in (0083). The only door route
   // CloudFront forwards the cookie to.
-  sessionSecret: process.env.SESSION_SECRET || null,
+  sessionSecret: currentAndPrevious(
+    process.env.SESSION_SECRET,
+    process.env.SESSION_SECRET_PREVIOUS,
+  ),
   // Call capture (review Part 5): on when ARCHIVE_BUCKET is set, off
   // otherwise. The bodies land beside the payload archive under calls/.
   capture: makeCaptureStore(process.env.ARCHIVE_BUCKET),

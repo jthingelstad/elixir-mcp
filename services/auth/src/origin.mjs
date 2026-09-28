@@ -7,6 +7,11 @@
  *
  * Unset secret = the check is off (local development and tests). Set it and
  * every request must carry it; the comparison is constant-time.
+ *
+ * `secret` may be `[current, previous]` (review 2026-09-27 §8.5, #71):
+ * CloudFront sends the current one, and during a rotation some edges
+ * still send the previous one for the minutes the distribution takes to
+ * deploy, so the doors accept either (ORIGIN_SECRET_PREVIOUS).
  */
 
 import { timingSafeEqual } from "node:crypto";
@@ -14,15 +19,20 @@ import { timingSafeEqual } from "node:crypto";
 export const ORIGIN_HEADER = "x-elixir-origin";
 
 export function originAllowed(event, secret) {
-  if (!secret) return true;
+  const secrets = [secret]
+    .flat()
+    .filter((s) => typeof s === "string" && s.length > 0);
+  if (secrets.length === 0) return true;
   const presented = String(
     event?.headers?.[ORIGIN_HEADER] ??
       event?.headers?.[ORIGIN_HEADER.toUpperCase()] ??
       "",
   );
   const a = Buffer.from(presented);
-  const b = Buffer.from(String(secret));
-  return a.length === b.length && timingSafeEqual(a, b);
+  return secrets.some((s) => {
+    const b = Buffer.from(s);
+    return a.length === b.length && timingSafeEqual(a, b);
+  });
 }
 
 export const forbiddenOrigin = () => ({
