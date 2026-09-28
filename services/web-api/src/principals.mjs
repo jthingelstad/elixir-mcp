@@ -163,6 +163,15 @@ export async function setPrincipalScope(
  *
  * The old token is revoked in the SAME transaction that inserts the new one:
  * a rotation that half-applied would either leave two live keys or none.
+ *
+ * An agent whose key was revoked is issued one the same way (#130): the
+ * console's "No live key" note and the revoke confirm both say to issue a
+ * new key, and this used to answer `no_active_token` because it read the
+ * name and scope from a LIVE key only. They come from the most recent key
+ * now, live or revoked. The one refusal left is the name: a revoked key's
+ * name does not hold its place among the owner's live agents (0056), so
+ * another agent may have taken it since, and reissuing it would make two
+ * agents answer to one name.
  */
 export async function rotateToken(db, ownerAccountId, principalAccountId) {
   const { raw, hash } = mintServiceTokenValue();
@@ -173,7 +182,8 @@ export async function rotateToken(db, ownerAccountId, principalAccountId) {
     const { rows: owned } = await db.query(
       `select a.account_id from account a
         where a.account_id = $1 and a.owned_by_account_id = $2
-          and a.kind = 'agent'`,
+          and a.kind = 'agent'
+        for update`,
       [principalAccountId, ownerAccountId],
     );
     if (owned.length === 0) {
@@ -181,16 +191,34 @@ export async function rotateToken(db, ownerAccountId, principalAccountId) {
       return { ok: false, error: "not_found" };
     }
     // Carry the name and scope forward: they are the agent's identity and its
-    // grant, and a rotation is not a re-grant.
+    // grant, and a rotation is not a re-grant. A live key first, else the
+    // newest revoked one (the order listPrincipals names an agent by).
     const { rows: prior } = await db.query(
-      `select name, scope from service_token
-        where account_id = $1 and revoked_at is null
-        order by created_at desc limit 1`,
+      `select name, scope, revoked_at is null as live from service_token
+        where account_id = $1
+        order by (revoked_at is null) desc, created_at desc limit 1`,
       [principalAccountId],
     );
     if (prior.length === 0) {
       await db.query("rollback");
       return { ok: false, error: "no_active_token" };
+    }
+    if (!prior[0].live) {
+      const { rows: dupe } = await db.query(
+        `select 1 from service_token t
+         join account a on a.account_id = t.account_id
+         where a.owned_by_account_id = $1 and t.name = $2
+           and t.revoked_at is null and t.account_id <> $3`,
+        [ownerAccountId, prior[0].name, principalAccountId],
+      );
+      if (dupe.length > 0) {
+        await db.query("rollback");
+        return {
+          ok: false,
+          error: "name_taken",
+          message: `Another of your agents is now called ${prior[0].name}. Rename that one first, then issue this agent its new key.`,
+        };
+      }
     }
     await db.query(
       `update service_token set revoked_at = now()

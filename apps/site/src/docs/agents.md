@@ -236,7 +236,7 @@ Facts in, judgment in your code.
 | Action | Where | Effect |
 |---|---|---|
 | Rotate | its console → Settings → Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
-| Revoke | its console → Settings → Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready. |
+| Revoke | its console → Settings → Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready: it takes the name and scope of the most recent key, and is refused (`409 name_taken`) only if another of your live agents has taken that name since. |
 | Suspend / Resume | its console → Settings | `status: disabled`; the same key reads as invalid until resumed. Reversible. |
 | Rename | its console → Settings | changes the name; must stay unique among your live agents |
 | Delete | – | there is no delete. Suspend is the reversible stop; revoke is the irreversible one. |

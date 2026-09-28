@@ -1012,3 +1012,143 @@ test("renaming an agent whose key was revoked says so, instead of blaming the na
   );
   assert.equal(JSON.parse(foreign.body).error, "not_found");
 });
+
+/*
+ * Revoke, then issue (#130). The console's "No live key" note and the
+ * revoke confirm both tell the owner to issue a new key, and the button
+ * calls rotate; rotate read the name and scope from a LIVE key only, so it
+ * answered no_active_token and a revoked agent could never be given a key.
+ */
+async function revokeAll(cookie, agentAccountId) {
+  const listed = parse(
+    await handler(event({ method: "GET", path: "/api/me/principals", cookie })),
+  );
+  const agent = listed.agents.find((a) => a.account_id === agentAccountId);
+  for (const t of agent.tokens.filter((k) => !k.revoked_at)) {
+    const res = await handler(
+      event({
+        path: "/api/me/principals/revoke",
+        cookie,
+        body: { token_id: t.token_id },
+      }),
+    );
+    assert.equal(res.statusCode, 200, res.body);
+  }
+}
+
+test("a revoked agent is issued a new key, with its old name and scope", async () => {
+  const cookie = bossCookie;
+  const created = await handler(
+    event({
+      path: "/api/me/agents",
+      cookie,
+      body: {
+        name: "reissued-agent",
+        clan_tag: "#J2RGCRVG",
+        scope: "cr:read",
+      },
+    }),
+  );
+  assert.equal(created.statusCode, 201, created.body);
+  const id = parse(created).agent.account_id;
+  const { rows: before } = await db.query(
+    `select name, scope from service_token where account_id = $1`,
+    [id],
+  );
+  await revokeAll(cookie, id);
+
+  const res = await handler(
+    event({
+      path: "/api/me/principals/rotate",
+      cookie,
+      body: { account_id: id },
+    }),
+  );
+  assert.equal(res.statusCode, 200, res.body);
+  assert.ok(parse(res).token, "the new key comes back once");
+
+  const { rows: live } = await db.query(
+    `select name, scope, token_hash from service_token
+      where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  assert.equal(live.length, 1, "exactly one live key");
+  assert.deepEqual(
+    { name: live[0].name, scope: live[0].scope },
+    before[0],
+    "the name and scope the revoked key carried",
+  );
+
+  // And the console names it by that key again.
+  const listed = parse(
+    await handler(event({ method: "GET", path: "/api/me/principals", cookie })),
+  );
+  assert.equal(
+    listed.agents.find((a) => a.account_id === id).name,
+    "reissued-agent",
+  );
+});
+
+test("a revoked agent whose name another agent took since is refused, and says which", async () => {
+  const cookie = bossCookie;
+  const first = await handler(
+    event({
+      path: "/api/me/agents",
+      cookie,
+      body: { name: "contested-name", clan_tag: "#J2RGCRVG" },
+    }),
+  );
+  assert.equal(first.statusCode, 201, first.body);
+  const id = parse(first).agent.account_id;
+  await revokeAll(cookie, id);
+
+  // A revoked key does not hold its name (0056), so a second agent may take it.
+  const second = await handler(
+    event({
+      path: "/api/me/agents",
+      cookie,
+      body: { name: "contested-name", clan_tag: "#J2RGCRVG" },
+    }),
+  );
+  assert.equal(second.statusCode, 201, second.body);
+
+  const res = await handler(
+    event({
+      path: "/api/me/principals/rotate",
+      cookie,
+      body: { account_id: id },
+    }),
+  );
+  assert.equal(res.statusCode, 409, res.body);
+  const body = parse(res);
+  assert.equal(body.error, "name_taken");
+  assert.match(body.message, /contested-name/);
+  const { rows } = await db.query(
+    `select count(*)::int as live from service_token
+      where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  assert.equal(rows[0].live, 0, "and no key was issued");
+});
+
+test("a stranger cannot issue a key to your revoked agent", async () => {
+  const cookie = bossCookie;
+  const created = await handler(
+    event({
+      path: "/api/me/agents",
+      cookie,
+      body: { name: "not-yours-to-issue", clan_tag: "#J2RGCRVG" },
+    }),
+  );
+  const id = parse(created).agent.account_id;
+  await revokeAll(cookie, id);
+  const res = await handler(
+    event({
+      path: "/api/me/principals/rotate",
+      cookie: partnerCookie,
+      body: { account_id: id },
+    }),
+  );
+  assert.equal(res.statusCode, 404, res.body);
+  assert.equal(parse(res).error, "not_found");
+});
