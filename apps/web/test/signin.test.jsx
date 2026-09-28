@@ -70,9 +70,12 @@ test("an expired magic link says nothing is wrong with the account", async () =>
   // in one file.
   vi.resetModules();
   const { SignIn: Fresh } = await import("../src/views/SignIn.jsx");
-  window.history.pushState({}, "", "/signin?login_token=deadbeef");
+  // The link's own form since #129: the token rides the fragment.
+  window.history.pushState({}, "", "/signin#login_token=deadbeef");
   reply(400, { error: "invalid_or_expired" });
   render(<Fresh onAuthed={vi.fn()} />);
+  expect(global.fetch.mock.calls[0][1].body).toContain("deadbeef");
+  expect(window.location.hash).toBe("");
   expect(
     await screen.findByText("That link is expired or already used"),
   ).toBeTruthy();

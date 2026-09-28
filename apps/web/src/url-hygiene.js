@@ -2,7 +2,7 @@
  * CAPTURE, then scrub — in that order, which is the whole point.
  *
  * This used to scrub only, and it ran from main.jsx before React rendered. By
- * the time the sign-in view looked for ?login_token it had already been
+ * the time the sign-in view looked for the login_token it had already been
  * deleted, so the magic link in every login email silently did nothing and
  * only the six-digit code ever worked.
  *
@@ -21,9 +21,20 @@ export function takeLoginToken() {
   captured = null;
   try {
     const url = new URL(window.location.href);
-    captured = url.searchParams.get("login_token");
+    // The link rides the FRAGMENT (#129): a fragment never leaves the
+    // browser, where a query string reaches the CDN's access logs. The
+    // query form is read too until the last link minted with it expires.
+    // Only the part that carried it is rewritten.
+    const fragment = new URLSearchParams(url.hash.replace(/^#/, ""));
+    const fromFragment = fragment.get("login_token");
+    const fromQuery = url.searchParams.get("login_token");
+    captured = fromFragment ?? fromQuery;
     if (!captured) return null;
-    url.searchParams.delete("login_token");
+    if (fromQuery) url.searchParams.delete("login_token");
+    if (fromFragment) {
+      fragment.delete("login_token");
+      url.hash = fragment.toString();
+    }
     window.history.replaceState(
       window.history.state,
       document.title,
