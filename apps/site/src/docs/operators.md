@@ -21,7 +21,8 @@ key and the bearer token Elixir MCP issues you.
 ## What you need
 
 - A machine that is usually on, with a static public IP (only because
-  Supercell binds CR API keys to an IP — we never ask for or store it).
+  Supercell binds CR API keys to an IP; we never ask you for it, and it
+  is never published).
 - A Clash Royale API key from https://developer.clashroyale.com,
   allowlisted to that IP.
 
@@ -45,8 +46,7 @@ key and the bearer token Elixir MCP issues you.
    public** in the fleet listing (`/api/public/status`, which needs no
    sign-in, and the console's Collectors page): collectors are credited
    to the player who runs them, so running one attaches your CR identity
-   to it. If you would rather not be named there, say so before you
-   enroll. Your email address and IP are never published.
+   to it. Your email address and IP are never published.
 2. When the maintainer approves, the same page offers your collector
    **token as a one-time reveal** — copy it, because it disappears
    from the server the moment you claim it. The offer is good for
@@ -145,7 +145,7 @@ config and nothing else, so `doctor` can tell you "installed, not yet
 promoted" instead of an error; a revoked token is told so (403 `revoked`)
 on config alone. A lease expires after 90 seconds
 unsubmitted; ten expired leases in a row quarantine the collector (it moves
-to `draining`, you are notified, and lease answers 409 `quarantined`).
+to `draining`, the maintainer is told, and lease answers 409 `quarantined`).
 So a submit that fails for a passing reason is retried on the same lease,
 inside those 90 seconds, on the budget config's `submit_retry` names: up
 to three attempts of at most 20 seconds, backing off from 500 ms, on a
@@ -174,15 +174,17 @@ Live reads never carry one: the agent waiting on that fetch gets the whole
 log.
 Submit answers only after the payload is admitted and committed; a rejected
 payload is still a receipt, so never fake an `ok`. Lifecycle:
-`pending → probation → active → draining → revoked`, forward only, set by
-the maintainer.
+`pending → probation → active → draining → revoked`. The maintainer
+moves a collector along it; a quarantine drains one automatically, and a
+drained collector can go back to `probation` to try again.
 
 ## Fair-use expectations
 
 Your collector shares ONE global rate budget with the fleet (that is
 Supercell ToS posture, not a suggestion). The pacing the server hands
-out is load-bearing; a client that ignores it or goes quiet holding
-leases is quarantined automatically and the maintainer notified.
+out is load-bearing. A client that goes quiet holding leases is
+quarantined automatically and the maintainer told, and one that ignores
+the pacing runs into the door's hourly limits.
 
 ---
 

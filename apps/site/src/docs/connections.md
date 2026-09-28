@@ -8,7 +8,7 @@ navTitle: "Connections"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
 console: ["Manage your clients", "/account/connections", "Console ▸ Connections"]
-reviewed: "2026-09-25 against contract 9.1.0"
+reviewed: "2026-09-28 against contract 9.16.1"
 ---
 
 # Users, agents and integrations
@@ -44,8 +44,8 @@ connection almost everybody wants.
 
 Elixir Clan (and, soon, Elixir Drop) can sign you in **with Elixir**: the
 same consent page, plus one extra line, *Know your email address*. Only the
-Elixir family's own apps (a client whose every redirect is on a family
-origin) can ask for it; any other client is never granted it, whatever it
+Elixir family's own apps (a client the maintainer has provisioned for
+the family, with every redirect on a family origin) can ask for it; any other client is never granted it, whatever it
 asks for. That is how those products know you are the same person you are
 here. It is listed on Connections like any other client, and disconnecting
 it there ends its access. The address itself is never released to any
@@ -144,10 +144,10 @@ the same pages scoped to it (below).
 | Overview | whether your agent can answer about you yet, and what each unfinished line is waiting for; your players and clans in brief; your tier's slot usage |
 | Timeline | what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`; reading it here marks nothing read |
 | Explore | the same read tools in a browser; the one write is nicknames |
-| Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and the only place these change |
+| Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
 | Your record → Activity | your calls with `request_id`, the emails Elixir sent you, and account events |
 | Your record → Usage | seven days of calls and errors, top tools, today's balance with agents broken out |
-| Access → Connections → Clients | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; and one row per agent you own, opening its console |
+| Access → Connections → Clients | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; and one row per agent you own, opening its console. A family app that reads Elixir through the JSON API shows no calls here yet |
 | Access → Connections → Agents | create an agent; per-agent spend, refusals and unread timeline subjects; each opens its console |
 | Access → Profile | your address, the timezone your date windows use and the console prints every time in (UTC until you set one), slot meters, the tier-upgrade request and today's quota |
 | Access → Feedback | what you filed and what the maintainer answered |

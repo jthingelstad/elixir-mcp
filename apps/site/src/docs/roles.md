@@ -20,6 +20,12 @@ the service something: **collection** (what Elixir promises to record for
 you) and **call volume** (your daily budgets, including the live lane that
 spends the one shared Clash Royale API budget).
 
+Two things sit outside that rule. Your own account data is private to
+you. And the few facts the Elixir family's own apps add about a clan (a
+leader's note on why a member left, an award) are shown only to the
+people each one is for; some, such as whether a departure was a kick,
+never reach an agent.
+
 ## The ladder
 
 | Quota | member | leader | family | partner | admin | owner |
@@ -50,14 +56,13 @@ partners run a collector. At this scale you should be adding capacity to
 the fleet, not only consuming it.
 
 **admin** — runs the console day-to-day: approves access requests,
-answers feedback, curates collections, manages clan recordings,
-provisions platform integrations, and sets roles up to partner. Unlimited
-quotas, exempt from every cap.
+answers feedback, curates collections, provisions platform integrations,
+revokes connections, and sets roles up to partner. Unlimited quotas,
+exempt from every cap.
 
 **owner** — the super admin; exactly one. Everything an admin can do,
-plus granting or revoking the admin role, collectors, and quota
-overrides. No admin can change the owner's account — or
-another admin's.
+plus granting or revoking the admin role and running the collector
+fleet. No admin can change the owner's account — or another admin's.
 
 ## Three kinds of principal
 
@@ -157,8 +162,9 @@ overrides exist for cases the ladder doesn't fit — just ask.
 
 - Quotas reset at midnight UTC. Recorded-data reads are only bounded by
   the daily tool-call budget — never by tier.
-- Feedback is never metered. Telling us what's wrong should always be
-  free.
+- Feedback has no limit of its own. Sent from the website it costs
+  nothing; sent by your agent it is one tool call like any other.
+  Telling us what's wrong should always be close to free.
 - Where each number is enforced and what a refusal looks like is on
   [Limits](/docs/limits). Limits may evolve during the beta; the
   [updates](/updates) and the `elixir_changelog` tool record every change.

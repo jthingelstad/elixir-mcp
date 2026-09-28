@@ -36,11 +36,12 @@ Agents use MCP. Programs use the **JSON API at
   `GET /clans/{tag}/participation` (`clans_participation`; `weeks` 1 to 8),
   `GET /clans/{tag}/roster` (`clans_roster`), `GET /clans/{tag}/live` (a
   live clan read), `POST /players/names`, `GET /players/{tag}/profile` and
-  `GET /players/{tag}/battles` (`fresh=1` asks for a live read). A family
-  app's client is first-party and is not metered; any other client is
-  limited per person per hour. A family app's client is provisioned by
-  Elixir, not registered: its every redirect URI is on a family origin, and
-  it authenticates at `/oauth/token` with `client_secret_post`. A family app
+  `GET /players/{tag}/battles` (`fresh=1` asks for a live read). A
+  first-party client, a family app's, is not held to the per-person hourly
+  limit; any other client is. A client is first-party when Elixir has
+  provisioned it for the family (it is not registered) and its every
+  redirect URI is on a family origin; it authenticates at `/oauth/token`
+  with `client_secret_post`. A family app
   whose grant holds `clans:attest` records what the person did in their
   clan with `POST /clans/{tag}/facts` (see
   [Attested facts](#attested-facts)).
@@ -62,8 +63,9 @@ by the collection's administrator. Removing a grant does not remove members.
 
 The raw `svt_…` key appears once; only its SHA-256 digest is stored. Keep it in
 the consuming platform's server configuration. Never ship it to a browser.
-Send `Authorization: Bearer <key>` on every request. Cookie sessions, personal
-MCP tokens, agent tokens and OAuth tokens do not authenticate here. A REST key
+Send `Authorization: Bearer <key>` on every request. Cookie sessions, MCP
+tokens and agent keys do not authenticate here; the only other credential
+this door takes is a person's OAuth grant for `/api/v1`, above. A REST key
 cannot authenticate to MCP. Legacy MCP integrations remain compatible during
 migration; no new integration should use that transport.
 
@@ -388,9 +390,12 @@ These allowances do not increase the collector fleet's shared upstream budget.
 | 502 | `internal` or `live_unavailable` from a person's tool |
 | 503 | `temporarily_unavailable` with `Retry-After` when the database is briefly unreachable or a query timed out; on a person's operation `live_pending` or `query_timeout`, with `retry_after_s` |
 
-Every request with a resolved key is logged with `surface: rest`, the
-operation name, duration, size, HTTP status and error code, never the
-arguments; usage rows are kept 90 days.
+Every request from a known caller goes in the call log: with `surface:
+rest`, the operation name, duration, size, HTTP status and error code,
+never the arguments. A person's operation that runs an Elixir tool is
+logged as that tool's call instead, the way an MCP call is. Daily usage
+counts are kept 90 days; the call log's own windows are on
+[Limits](/docs/limits#retention-windows).
 
 Honor `Retry-After` for throttling and temporary failures. Preserve useful cached
 data and retry through background work. Do not turn authentication failures or

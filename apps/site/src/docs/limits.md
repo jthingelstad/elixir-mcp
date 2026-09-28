@@ -8,7 +8,7 @@ navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a tier changes."
 console: ["Your budget and what spent it", "/account/usage", "Console ▸ Usage"]
-reviewed: "2026-09-25 against contract 9.1.0"
+reviewed: "2026-09-28 against contract 9.16.1"
 ---
 
 # Limits
@@ -42,7 +42,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Agents | `POST /api/me/agents` | live count | 3 / 5 / 10 / 25 | HTTP 400 `{"error":"not_entitled","reason":"agent_limit","limit":N,"role":"…"}` |
 | OAuth client registration | `POST /oauth/register` | `dcr#<ip>`, `dcr#global` | 20 per hour per address; 5,000 per day in total | HTTP 429 `{"error":"temporarily_unavailable"}` |
 | OAuth consent emails | `/oauth/authorize` step one | `oauthmail#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email, shared with the console's sign-in | silent: the page says "check your email" and no mail is sent |
-| Sign-in emails (console) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email, shared with OAuth consent | silent: HTTP 200 with the usual message |
+| Sign-in emails (console) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email, shared with OAuth consent | HTTP 200 with `limited: true` and a message saying the limit was reached; no mail is sent |
 | Sign-in code attempts | code verification | per pending code | 5, then the code is dead | HTTP 400 `{"error":"invalid_or_expired","reason":"attempts_exhausted"}` (console); the OAuth page says "Too many attempts on that code" |
 | Access requests | `POST /api/request-access` | `reqaccess#<ip>` | 5 per hour | HTTP 429 `{"error":"rate_limited"}` |
 | Role-upgrade requests | `POST /api/me/role-request` | pending state | one pending at a time | HTTP 409 |
@@ -50,14 +50,14 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Collector door, work | `/api/collector/lease` and `/submit` | `collector-work#<gateway>` | 10,000 per hour | HTTP 429 with `retry-after` and `{"error":"rate_limited","scope":"work","limit_per_hour":10000,"retry_after_s":N,"hint":"…"}` |
 | Collector door, config | `/api/collector/config` | `collector-config#<gateway>` | 120 per hour | same shape, `scope: "config"` |
 | Collector outstanding leases | `/api/collector/lease` | per gateway | 2 unsubmitted | HTTP 429 `{"error":"lease_cap","hint":"At most 2 unsubmitted leases; submit or wait 90s."}` |
-| Collector quarantine | lease expiry | `missed_streak` | 10 expired leases in a row | HTTP 409 `{"error":"quarantined"}`; the collector drains and the owner is notified |
+| Collector quarantine | lease expiry | `missed_streak` | 10 expired leases in a row | HTTP 409 `{"error":"quarantined"}`; the collector drains and the maintainer is told |
 | REST calls per hour | `/api/v1/*` | `rest-hour:<integration>` | per integration, default 2,000 | HTTP 429 problem `rate_limited`, `Retry-After` to the top of the hour |
 | REST calls per hour, a person | `/api/v1/*` by a person's OAuth grant | `rest-person-hour:<account>` | 600; a first-party client (a family app's provisioned client) is not metered | HTTP 429 problem `rate_limited`, `Retry-After` to the top of the hour |
 | REST calls per day | `/api/v1/*` | usage row | per integration, default 10,000 | HTTP 429 problem `daily_quota_exceeded`, `Retry-After` to UTC midnight |
 | REST profile refreshes per day | `POST /api/v1/profile-refreshes` | usage row | per integration, default 1,000; an idempotent replay does not spend one | HTTP 429 problem `refresh_quota_exceeded`, `Retry-After: 3600` |
 | REST batch size | `POST …/members` | per call | 1 to 500 tags | HTTP 400 problem `invalid_members` |
 | REST collection capacity | grant | per grant, default 10,000 | over the limit | HTTP 409 problem `enrollment_limit` |
-| Query budget | the analytical reads (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_card`, `cards_synergy`, `clans_standings`, `war_history`) | per call | 18 seconds of database time, shortened when the function has less time left | tool error `query_timeout` with a retry hint and `meta.request_id`; no partial aggregation (see [Protocol](/docs/protocol#errors)) |
+| Query budget | the analytical reads (`battles_meta_decks`, `battles_meta_cards`, `battles_deck_sets`, `battles_deck_upgrades`, `battles_trends`, `cards_card`, `cards_synergy`, `clans_standings`, `war_history`) | per call | up to 18 seconds of database time, shortened when the function has less time left | tool error `query_timeout` with a retry hint and `meta.request_id`; no partial aggregation (see [Protocol](/docs/protocol#errors)) |
 | Read deadline | every other read-only tool (3.14.0), on MCP, in Explore and on `/api/v1` (9.12.2) | per call | the function's remaining time less 1.5 seconds (about 23 seconds on MCP, 17 on the web door); a read waits at most 5 seconds for a lock | the same `query_timeout` (HTTP 503 with `retry_after_s` on `/api/v1`); a write is never raced, so a retry cannot double-apply it |
 | Response size | every tool result | per call | 48,000 characters | `result_too_large` "Result is N characters; the cap is 48000.", with a hint naming the arguments that narrow it (see [Protocol](/docs/protocol#the-response-cap)); `live_fetch` refuses a battle-log path with the same code before spending the lane |
 | Audit argument size | the call log | per call | 4,000 bytes | arguments are trimmed in the log only; the call is unaffected |
@@ -80,7 +80,7 @@ agents' share broken out.
 ## What is deliberately unlimited
 
 Reads of recorded game data are bounded only by the daily call quota, never by
-tier or by subject. Feedback is never metered. The daily counter fails open:
+tier or by subject. Feedback has no limit of its own. The daily counter fails open:
 if the quota store is unreachable, approved accounts keep working.
 
 ## Retention windows
@@ -89,7 +89,7 @@ if the quota store is unreachable, approved accounts keep working.
 |---|---|
 | Recorded game history, snapshots, war | indefinitely |
 | Raw API payloads | archived to S3 at admission; latest per subject stays hot |
-| Call log rows | indefinitely; `viewer_ip` cleared after 30 days; arguments cleared after 90 days |
+| Call log rows | indefinitely: the tool, when, which credential and client, the country it came from, and how the call went; the address (`viewer_ip`) cleared after 30 days; arguments cleared after 90 days |
 | Credential refusal counts | 30 days |
 | Timeline game-moment ledger | indefinitely; a timeline read covers at most 30 days |
 | Captured request and response bodies of tool calls | 90 days (S3 lifecycle expiry; the console stops offering them on the same clock) |
@@ -100,3 +100,4 @@ if the quota store is unreachable, approved accounts keep working.
 | Integration usage rows | 90 days |
 | Integration refresh requests | 24 hours (status returns 404 after) |
 | Job ledger | done 7 days, dead 30 days |
+| Database backups | about a week, rolling; something cleared above can stay in a backup for a few more days |
