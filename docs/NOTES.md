@@ -3722,3 +3722,38 @@ dev-build soak and the naming (RELEASING-COLLECTOR.md §2 and §4).
 Pending (natural events): the next 10:00Z rollover shows player_battlelog
 deadlocks gone from `submit_ingest_error` (they may appear, once, as
 `submit_ingest_retry`); a week with the alarm quiet outside incidents.
+
+## 2026-09-27 - #71 (A10): observability and hygiene
+
+Review 2026-09-27 §5.2, §5.3, §8.5, §8.6. The alarm cost (about
+$0.50/mo) was pre-authorized for this run (DECISIONS: cost calls are
+Jamie's). Two PRs: the database and alarms first, then secrets and
+`/api/v1`.
+
+**Part 1: the database and the alarms.**
+
+- **0189** sets the 0103 autovacuum settings (insert-scale 0.02,
+  vacuum-scale 0.05, analyze-scale 0.02, `lock_timeout` first) on `deck`,
+  `deck_card`, `meta_season_pop`, `battle_participant_card` and the six
+  season rollup tables (`card_meta_season`, `card_meta_season_band`,
+  `deck_meta_season`, `deck_meta_season_band`, `meta_season_totals`,
+  `meta_season_band_totals`). `{tables}` now shows each table's
+  visibility-map cover (`pages`, `all_visible_pages`, `all_visible_pct`)
+  and its `table_options`, which is what the week-later check reads.
+- **0190** creates `pg_stat_statements` (RDS preloads it:
+  `shared_preload_libraries` on elixir-mcp-enc is
+  `pg_stat_statements,pg_tle`, PostgreSQL 17.9). The read-only
+  `{statements}` op answers the top 20 (at most 50) by total execution
+  time and by shared blocks read, normalized text cut to 400 characters,
+  and when the counters were reset; `not_installed` before 0190 and
+  `not_loaded` without the library (a scratch database), rather than a
+  failure. Catalogued in `.claude/skills/ops/ops.md`.
+- **Alarms, all to `AlarmTopic`.** `elixir-mcp-door-handled-failures`
+  (a metric filter on `tool_failed_unexpectedly` and `db_connect_failed`
+  in the MCP log group, and on `tool_failed_unexpectedly` in the web-api
+  log group, whose Explore and `/api/v1` run the same invoker; 3 in 10
+  minutes; no DefaultValue); `elixir-mcp-web-api-latency-p95` (over 15 s
+  for 15 minutes); `elixir-mcp-db-ebs-byte-balance` (under 25%);
+  `elixir-mcp-db-freeable-memory` (under 150 MB); and
+  `elixir-mcp-site-certificate-expiry` (ACM `DaysToExpiry` under 30 on
+  `SiteCertificateArn`). Run Elixir MCP's Doors check names them.
