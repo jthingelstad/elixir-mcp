@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-27",
+    title: "Console links open in a new tab, and a refused change says so",
+    body: "Every record link in the console is now a real link: Cmd-click, Ctrl-click or a middle click opens it in a new tab, it can be focused from the keyboard, and its address can be copied. Buttons that do something, like Dismiss or Send another email, are buttons. When the console asks Elixir to change something (revoking a device or an agent, signing out, choosing a primary player, a nickname, an admin decision) and Elixir refuses or cannot be reached, the page now says so beside the button instead of looking as if it worked, and it keeps showing the state as it really is. In Explore, a war week opens by its season and week however old it is, and shows the race itself: every clan's standings, the race day by day, and each member's points and decks. Looking up a tag now costs one call, not two. No change to the tools.",
+  },
+  {
+    date: "2026-09-27",
     title: "The JSON API says when a retry will help",
     body: "Every unexpected fault in the JSON API used to answer 503 with Retry-After, asking a program to retry a bug that would fail again the same way. Now only a database that is briefly unreachable, or a query that ran out of time, answers 503 with Retry-After; anything else is 500 internal, with no retry invited. The clan fact operations now declare the integration key they already accepted, and a person's call refused for a missing capability shows in the usage log. JSON API 2.6.4; no change to the tools.",
   },
