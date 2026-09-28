@@ -2283,6 +2283,128 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
+  # Failures the doors handle themselves (review 2026-09-27 §8.6, issue
+  # #71). The invoker catches every tool exception and answers an
+  # `internal` result (tool_failed_unexpectedly, in the MCP door and in
+  # the web-api's Explore and /api/v1, which run the same invoker), and a
+  # refused database connection becomes a handled 503 (db_connect_failed
+  # in the MCP door). Neither is a Lambda error, so McpErrorsAlarm fired
+  # only when the door itself crashed: a deploy that broke a shared tool
+  # path paged nobody until acceptance, the Gym or feedback noticed. Three
+  # in ten minutes is a broken path, not one unlucky call.
+  McpHandledFailureFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref McpLogGroup
+      FilterPattern: '?"tool_failed_unexpectedly" ?"db_connect_failed"'
+      MetricTransformations:
+        - MetricNamespace: ElixirMCP/Door
+          MetricName: HandledFailure
+          MetricValue: "1"
+          # No DefaultValue, as EmailComposeFailedFilter: the metric
+          # exists only in an hour a door fails.
+  WebApiHandledFailureFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref WebApiLogGroup
+      FilterPattern: '"tool_failed_unexpectedly"'
+      MetricTransformations:
+        - MetricNamespace: ElixirMCP/Door
+          MetricName: HandledFailure
+          MetricValue: "1"
+  HandledFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-door-handled-failures
+      AlarmDescription: Tools are failing unexpectedly or the MCP door cannot reach the database (tool_failed_unexpectedly or db_connect_failed in the MCP or web-api log); callers get internal or 503 answers, and no Lambda error is counted
+      Namespace: ElixirMCP/Door
+      MetricName: HandledFailure
+      Statistic: Sum
+      Period: 600
+      EvaluationPeriods: 1
+      Threshold: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  # The web-api's own latency (review §8.6): its handler answers 504 at
+  # its deadline, which is handled, so the Errors alarm never sees a slow
+  # door. Duration is free, as for McpLatencyAlarm; p95 over 15 s for a
+  # quarter hour is a door mostly timing out under its 20 s kill.
+  WebApiLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-web-api-latency-p95
+      AlarmDescription: The web-api's p95 duration is over 15 s; it is answering 504 at its deadline
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions: [{ Name: FunctionName, Value: !Ref WebApiFunction }]
+      ExtendedStatistic: p95
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 15000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  # The database's two documented failure modes (review §8.6): the micro
+  # ran its EBS byte balance to 0 three times, and there were two memory
+  # recoveries on 2026-09-11. Both are free RDS metrics. Under a quarter
+  # of the burst balance left, reads are about to be held to the
+  # baseline; under about 150 MB freeable, the instance is near a
+  # recovery.
+  DbEbsByteBalanceAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-db-ebs-byte-balance
+      AlarmDescription: The database's EBS byte balance is below 25%; at 0 its reads are held to the baseline throughput
+      Namespace: AWS/RDS
+      MetricName: EBSByteBalance%
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
+      Statistic: Minimum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 25
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DbFreeableMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-db-freeable-memory
+      AlarmDescription: The database has under about 150 MB of freeable memory; two memory recoveries followed this on 2026-09-11
+      Namespace: AWS/RDS
+      MetricName: FreeableMemory
+      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
+      Statistic: Minimum
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 157286400
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  # The site certificate (review §8.6): ACM renews it only while the
+  # validation CNAME, kept by hand at Namecheap, still resolves. ACM
+  # publishes DaysToExpiry daily; 30 days is a month to fix the record.
+  SiteCertificateExpiryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasSiteCert
+    Properties:
+      AlarmName: elixir-mcp-site-certificate-expiry
+      AlarmDescription: The elixir.poapkings.com certificate expires in under 30 days; ACM has not renewed it (check the validation CNAME at Namecheap)
+      Namespace: AWS/CertificateManager
+      MetricName: DaysToExpiry
+      Dimensions: [{ Name: CertificateArn, Value: !Ref SiteCertificateArn }]
+      Statistic: Minimum
+      Period: 86400
+      EvaluationPeriods: 1
+      Threshold: 30
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
 Outputs:
   DatabaseEndpoint:
     Value: !GetAtt Database.Endpoint.Address

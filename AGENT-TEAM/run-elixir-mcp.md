@@ -79,9 +79,16 @@ Establish, with receipts:
   about five minutes when measured on the old db.t4g.micro, `hourly_ran`
   says whether the :45
   increment moved the counters meanwhile); not a routine check.
-- **Doors.** MCP and web-api error alarms quiet; p95 latency alarm
-  quiet; OAuth discovery serving (the deploy smoke checks these — a run
-  after a deploy re-verifies with reads). `elixir-mcp-migrate-duration`
+- **Doors.** MCP and web-api error alarms quiet; both p95 latency
+  alarms quiet; `elixir-mcp-door-handled-failures` quiet (it counts the
+  failures the doors answer themselves: `tool_failed_unexpectedly` and
+  `db_connect_failed`, which no Lambda error sees); OAuth discovery
+  serving (the deploy smoke checks these — a run after a deploy
+  re-verifies with reads). The database's `elixir-mcp-db-ebs-byte-balance`
+  and `elixir-mcp-db-freeable-memory` quiet, and
+  `elixir-mcp-site-certificate-expiry` (ACM renewal depends on the
+  validation CNAME at Namecheap, which only Jamie can fix). Which
+  statements spend the database's time and reads is `{statements}`. `elixir-mcp-migrate-duration`
   quiet: it fires when a migrate invocation runs past 90 s, which means
   someone ran a diagnostics op against production — find who and why.
 - **The acceptance suite, once a day.** `npm run acceptance` (read-only,
