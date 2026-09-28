@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-09-28",
+    title: "The card catalog lists four tower troops, as the game does",
+    body: "The card catalog listed a fifth tower troop, \"Archer Queen\" with an id the game has never used. It was never in the game's own catalog: a test record from the old Discord bot had been replayed into Elixir as if the game had sent it. The catalog now lists what the game's newest catalog lists: Tower Princess, Cannoneer, Dagger Duchess and Royal Chef. A tower troop first seen in a battle appears once the game's catalog lists it, and one the game stops listing leaves the list; the battles that name any of them keep their records. Contract 9.12.5.",
+  },
+  {
     date: "2026-09-27",
     title:
       "The updates feed keeps its addresses, and carries contract versions",

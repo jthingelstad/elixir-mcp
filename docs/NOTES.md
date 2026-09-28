@@ -4013,3 +4013,46 @@ re-verified against d99b0e66; all six parts still held.
 - Pending, for natural events: the next web deploy that changes a chunk
   (the old chunk must stay served, and be pruned 14 days later); a feed
   reader's one-time replay of the newest 50 items.
+
+## 2026-09-28 - #44: the catalog's tower troops are the current /cards list
+
+`cards_catalog` answered five tower troops against the official four:
+`29000000` "Archer Queen", beside the real Archer Queen `26000072`.
+
+- **Where it came from: import drift, not game truth.** Every archived
+  `/cards` payload (9, 2026-05-20 to 2026-09-16) lists the same four
+  `supportItems`. A full read of the archive's 114,947 battle logs and
+  62,062 profiles on 2026-09-28 found `29000000` in none of them. The
+  card row's first sighting, 2026-05-28 22:20:24Z, matches elixir-bot's
+  `tests/test_cr_api.py::test_get_cards_success`. That test mocks a
+  `/cards` response of `{"items": [Knight], "supportItems": [{"name":
+  "Archer Queen", "id": 29000000}]}`, and the mock leaked into the bot's
+  raw payload table the same day as the two test stubs admission
+  refused in the 2026-09-15 replay (W38 notes). The replay admitted this
+  one as a catalog fetch. Its content hash was already held from the
+  09-03 import, so it never reached the S3 archive, and the projector,
+  which heals and fills from a fetch of any age, inserted the row as
+  confirmed. Nothing goes to cr-agent-api-docs: the API never sent it.
+  elixir-bot is retired, so its test stays as it is.
+- **The fix (0191).** `card.in_catalog` is what the newest admitted
+  `/cards` fetch lists. Only a fetch at least as new as
+  `poll_state`'s last admission moves it, and only rows whose membership
+  changed are written, so an unchanged re-fetch still writes nothing. A
+  replayed or delayed older fetch still fills and heals rows but lists
+  nothing. A payload without `supportItems` says nothing about tower
+  troops. `cards_catalog.tower_troops` (and the `cards` resource) serve
+  `kind = 'support' and in_catalog`. Rows never leave: `deck_sets` still
+  pools every support id, and `cards_card` still answers `29000000` by id.
+  The fill lists every confirmed row except those confirmed only by a
+  `backfill-elixir-bot` receipt at the same instant; the next daily
+  fetch corrects any it reads wrong. The fill was checked on sample rows
+  on a scratch database.
+- The `cards` list keeps its behaviour: a release-day stub still shows
+  until the catalog heals it, which the ingest rule "Ingest never pauses
+  on catalog integrity" wants. Only tower troops were filtered.
+- Tests: `services/mcp/test/catalog-tower-troops.test.mjs`, five cases:
+  the replayed leak, a battle stub, later confirmation, removal with the
+  row kept and a stale fetch ignored, and a payload without
+  `supportItems`. All five fail with the read filter removed.
+- Contract 9.12.5 (behaviour patch; `cards_catalog` is mirrored by no
+  JSON API operation). Deploy scope: `--acceptance=cards`.

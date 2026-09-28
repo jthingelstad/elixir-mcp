@@ -62,13 +62,14 @@ export async function catalogItems(db) {
   const { rows } = await db.query(
     `select card_id, name, kind, rarity, elixir_cost, max_level, max_evolution_level,
             icon_medium, icon_evolution_medium, icon_hero_medium, observed_at,
-            catalog_seen_at
+            catalog_seen_at, in_catalog
      from card order by card_id`,
   );
   return rows.map((r) => ({
     kind: r.kind,
     observed_at: r.observed_at,
     catalog_seen_at: r.catalog_seen_at,
+    in_catalog: r.in_catalog,
     item: {
       id: r.card_id,
       name: r.name,
@@ -117,8 +118,12 @@ export async function readCatalog(db) {
     cards: rows
       .filter((r) => r.kind === "card")
       .map((r) => shapeCatalogCard(r.item)),
+    // Only what the current /cards lists (0191, #44): a support row is
+    // also stubbed from a battle's or a profile's supportCards, and one
+    // (29000000 "Archer Queen") answered as a fifth Tower Troop the
+    // catalog never listed. The row stays for the history that names it.
     tower_troops: rows
-      .filter((r) => r.kind === "support")
+      .filter((r) => r.kind === "support" && r.in_catalog)
       .map((r) => shapeCatalogCard(r.item)),
     as_of: asOf.toISOString(),
     fetched_at: fetched ? fetched.toISOString() : null,
