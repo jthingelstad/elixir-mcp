@@ -184,8 +184,9 @@ head with the same tree; a check still running is waited for (15 min).
 for a red check, and NOTES records why.
 
 **Order:** build, upload, migrations (a failure stops the deploy before
-code flips), vocabulary import, stack, site sync and CloudFront
-invalidation, smoke (`infra/scripts/smoke.mjs`), acceptance when asked. A
+code flips), vocabulary import, stack, site publish (assets first,
+never deleted; then documents; `lib/site-publish.mjs`), CloudFront
+invalidation and the prune of assets unshipped for 14 days, smoke (`infra/scripts/smoke.mjs`), acceptance when asked. A
 red smoke or acceptance means the code is already live: "a red smoke means
 fix forward now, not walk away" (WORKFLOW.md). Migrations never roll back.
 

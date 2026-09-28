@@ -5,6 +5,13 @@ import { API_THROTTLES } from "../../../infra/scripts/api-throttle-config.mjs";
 import { parseDeployArgs } from "../../../infra/scripts/lib/deploy-args.mjs";
 import { ciGate } from "../../../infra/scripts/lib/ci-gate.mjs";
 import {
+  IMMUTABLE,
+  REVALIDATE,
+  hashedAssets,
+  publishSteps,
+  pruneCandidates,
+} from "../../../infra/scripts/lib/site-publish.mjs";
+import {
   LAMBDAS,
   RDS_CA_BUNDLE,
   RDS_CA_PATH,
@@ -441,4 +448,182 @@ test("a preserved parameter's first deploy takes its default; a rotation carries
   assert.deepEqual(parseDeployArgs(["--param=OriginSecretPrevious="]).params, {
     OriginSecretPrevious: "",
   });
+});
+
+/** The distribution's ordered cache behaviours, as [path, block] pairs. */
+function cacheBehaviours(template) {
+  const start = template.indexOf("        CacheBehaviors:");
+  const end = template.indexOf("\n  SpaRouter:", start);
+  return template
+    .slice(start, end)
+    .split("\n          - PathPattern: ")
+    .slice(1)
+    .map((block) => [block.slice(0, block.indexOf("\n")).trim(), block]);
+}
+
+const CACHING_OPTIMIZED = "658327ea-f89d-4fab-a63d-7e88639e58f6";
+
+test("every public read is cached at the edge by one /api/public/* behaviour (review 2026-09-27 §5.4, #73)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const behaviours = cacheBehaviours(template);
+  const paths = behaviours.map(([p]) => p);
+  // CloudFront takes the FIRST pattern that matches, so the public
+  // behaviour must come before the CachingDisabled /api/v1/* and /api/*.
+  assert.equal(paths[0], "/api/public/*");
+  assert.ok(paths.indexOf("/api/public/*") < paths.indexOf("/api/v1/*"));
+  assert.ok(paths.indexOf("/api/v1/*") < paths.indexOf("/api/*"));
+  // It replaces the two specific behaviours (#23): nothing else under it.
+  assert.deepEqual(
+    paths.filter((p) => p.startsWith("/api/public")),
+    ["/api/public/*"],
+  );
+  const [, block] = behaviours[0];
+  assert.match(block, /TargetOriginId: api\n/);
+  assert.match(block, /AllowedMethods: \[GET, HEAD\]\n/);
+  assert.ok(block.includes(`CachePolicyId: ${CACHING_OPTIMIZED}\n`));
+  // No origin request policy: no cookie, header or query string reaches
+  // the origin, so one cached object serves every caller.
+  assert.doesNotMatch(block, /OriginRequestPolicyId/);
+});
+
+test("every /api/public route is a GET that states its own freshness (#73)", async () => {
+  // Cached under CachingOptimized, a response without Cache-Control
+  // would live a DAY at the edge (the policy's default TTL), and a
+  // write under /api/public would be refused by the GET/HEAD behaviour.
+  const source = await readFile(
+    new URL("../../web-api/src/routes/public.mjs", import.meta.url),
+    "utf8",
+  );
+  const routes = [
+    ...source.matchAll(/^ {4}"([A-Z]+) (\/api\/public[^"]*)":/gm),
+  ];
+  assert.ok(routes.length >= 5, "the public routes are found");
+  for (let i = 0; i < routes.length; i += 1) {
+    const [, method, route] = routes[i];
+    assert.equal(method, "GET", route);
+    const handler = source.slice(routes[i].index, routes[i + 1]?.index);
+    assert.match(
+      handler,
+      /"cache-control": "public, max-age=\d+"/,
+      `${route} states its max-age`,
+    );
+  }
+});
+
+// Publishing the site (review 2026-09-27 §8.4, #73). One `s3 sync
+// --delete` with no Cache-Control removed the old build's lazy chunks
+// while an open console, or an edge still holding the old app.html,
+// could ask for them: a blank page mid-session.
+const VITE_OUT = [
+  "AccountPage-C3FTy2qB.js",
+  "index-BTm8TzAt.js",
+  "index-DQxSyd3a.css",
+  "tag-url-DSiL-xl4.js",
+];
+
+test("publish: only Vite's content-hashed chunks are immutable (#73)", () => {
+  const hashed = hashedAssets(
+    [
+      ...VITE_OUT.map((f) => `assets/${f}`),
+      // The site's own assets keep one name and are busted by ?v=, which
+      // the edge's cache key ignores: they must revalidate.
+      "assets/site.css",
+      "assets/chrome-menu.js",
+      "assets/rail-anchors.js",
+      "assets/updates-filter.js",
+      "assets/fonts/Clash_Regular.otf",
+      "assets/cards/26000000_evo-128.png",
+      "index.html",
+    ],
+    [...VITE_OUT, "fonts"],
+  );
+  assert.deepEqual(
+    [...hashed].sort(),
+    VITE_OUT.map((f) => `assets/${f}`).sort(),
+  );
+  // A name that merely looks hashed but did not come from Vite is not.
+  assert.deepEqual([...hashedAssets(["assets/some-abcdefgh.js"], [])], []);
+});
+
+test("publish: assets first without --delete, then documents, each with Cache-Control (#73)", () => {
+  const steps = publishSteps({
+    dir: "/tmp/site",
+    bucket: "b",
+    hashed: new Set(["assets/index-BTm8TzAt.js", "assets/index-DQxSyd3a.css"]),
+  });
+  const joined = steps.map((s) => s.join(" "));
+  // 1. the hashed chunks, immutable, never deleting
+  assert.deepEqual(steps[0].slice(0, 4), [
+    "s3",
+    "sync",
+    "/tmp/site/assets",
+    "s3://b/assets",
+  ]);
+  assert.ok(joined[0].includes("--include index-BTm8TzAt.js"));
+  assert.ok(steps[0].includes(IMMUTABLE));
+  // 2. every other asset, revalidated, never deleting
+  assert.ok(joined[1].includes("--exclude index-BTm8TzAt.js"));
+  assert.ok(steps[1].includes(REVALIDATE));
+  for (const step of steps.slice(0, 2)) {
+    assert.ok(!step.includes("--delete"), step.join(" "));
+  }
+  // 3. the documents: revalidated, deleting, and never touching assets/
+  assert.deepEqual(steps[2].slice(0, 4), ["s3", "sync", "/tmp/site", "s3://b"]);
+  assert.ok(steps[2].includes("--delete"));
+  assert.ok(joined[2].includes("--exclude assets/*"));
+  assert.ok(steps[2].includes(REVALIDATE));
+  // 4. the .txt charset rewrite keeps the Cache-Control it replaces
+  assert.ok(joined[3].includes("--content-type text/plain; charset=utf-8"));
+  assert.ok(steps[3].includes("--metadata-directive"));
+  assert.ok(steps[3].includes(REVALIDATE));
+  assert.ok(joined[3].includes("--exclude assets/*"));
+  assert.equal(steps.length, 4);
+  // Every sync and copy states a Cache-Control.
+  for (const step of steps) assert.ok(step.includes("--cache-control"));
+});
+
+test("publish: prune only assets the build no longer ships, after they have been gone long enough (#73)", () => {
+  const now = Date.parse("2026-09-28T00:00:00Z");
+  const day = 86_400_000;
+  const objects = [
+    // shipped by this build: kept however old
+    { Key: "assets/index-NEW00000.js", LastModified: new Date(now - 90 * day) },
+    // last shipped 20 days ago: an open tab from then is long gone
+    { Key: "assets/index-OLD00000.js", LastModified: new Date(now - 20 * day) },
+    // last shipped yesterday: an open console may still ask for it
+    { Key: "assets/index-RECENT00.js", LastModified: new Date(now - day) },
+    // never under assets/: not the prune's business
+    { Key: "index.html", LastModified: new Date(now - 90 * day) },
+  ];
+  const current = new Set(["assets/index-NEW00000.js"]);
+  assert.deepEqual(pruneCandidates({ objects, current, now, days: 14 }), [
+    "assets/index-OLD00000.js",
+  ]);
+  // An empty build prunes nothing: it is a broken build, not a new one.
+  assert.deepEqual(
+    pruneCandidates({ objects, current: new Set(), now, days: 14 }),
+    [],
+  );
+});
+
+test("CI builds the site once (review 2026-09-27 §8.4, #73)", async () => {
+  // The site workspace's test builds the merged tree inside `npm run
+  // verify`; validate.yml and the Playwright webServer reuse it.
+  const workflow = await readFile(
+    new URL("../../../.github/workflows/validate.yml", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(workflow, /^\s*- run: .*build-site\.mjs/m);
+  const playwright = await readFile(
+    new URL("../../../apps/web/playwright.config.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(playwright, /process\.env\.CI\s*\?\s*serve/);
+  const site = JSON.parse(
+    await readFile(
+      new URL("../../../apps/site/package.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  assert.match(site.scripts.test, /build-site\.mjs/);
 });

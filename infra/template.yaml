@@ -1507,7 +1507,10 @@ Resources:
           classification: json
           projection.enabled: "true"
           projection.endpoint.type: enum
-          projection.endpoint.values: player_battlelog,player,clan,currentriverrace,riverracelog,cards
+          # Every archived endpoint; a test pins this to the ingest
+          # projector keys (ARCHIVED_ENDPOINTS), because an endpoint
+          # missing here is invisible to every Athena query.
+          projection.endpoint.values: player_battlelog,clan,player,currentriverrace,riverracelog,rankings_players,rankings_pol,rankings_pol_season,rankings_clans_loc,rankings_clanwars,leaderboards,leaderboard,events,globaltournaments,cards
           projection.entity.type: injected
           projection.dt.type: date
           projection.dt.range: 2026-02-01,NOW
@@ -1812,14 +1815,18 @@ Resources:
             - EventType: viewer-request
               FunctionARN: !GetAtt SpaRouter.FunctionMetadata.FunctionARN
         CacheBehaviors:
-          # The two public read endpoints, CACHED (#23). Both run real
-          # aggregation - status does several time-series queries,
-          # stats groups the whole corpus - and both already emit
-          # Cache-Control (60s and 3600s). They were being served under
-          # the /api/* CachingDisabled behaviour, so every hit recomputed
-          # them and x-cache said Miss every time. These behaviours are
-          # listed FIRST because CloudFront takes the first pattern that
-          # matches, not the most specific one.
+          # The public reads, CACHED (#23, #73). Every /api/public route
+          # runs real aggregation (status several time-series queries,
+          # stats the whole corpus, efficiency two api_receipt x
+          # capture_audit scans, the card pages the nightly rollup) and
+          # states its own freshness in Cache-Control. Under the /api/*
+          # CachingDisabled behaviour every hit recomputed them and
+          # x-cache said Miss every time; #23 cached status and stats by
+          # name, and the card pages and efficiency kept missing. One
+          # prefix covers every public read, present and future; a test
+          # holds each route to GET with its own max-age. Listed FIRST
+          # because CloudFront takes the first pattern that matches, not
+          # the most specific one.
           #
           # GET/HEAD only, and no origin request policy: no cookie, no
           # header and no query string reaches the origin, so one cached
@@ -1827,19 +1834,12 @@ Resources:
           # because these responses are identical for every caller -
           # the same property that makes them safe to cache is what
           # makes them public.
-          - PathPattern: /api/public/status
+          - PathPattern: /api/public/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
             AllowedMethods: [GET, HEAD]
             # AWS managed CachingOptimized: honours the origin's own
             # Cache-Control, forwards nothing.
-            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            Compress: true
-          - PathPattern: /api/public/stats
-            TargetOriginId: api
-            ViewerProtocolPolicy: https-only
-            AllowedMethods: [GET, HEAD]
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             Compress: true

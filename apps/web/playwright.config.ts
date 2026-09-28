@@ -7,6 +7,9 @@ import { defineConfig, devices } from "@playwright/test";
  * without a database and exercises the real bundle, the real router,
  * the real chunks. `npm run e2e` from the repo root.
  */
+const build = "node ../../infra/scripts/build-site.mjs --skip-stats";
+const serve = "node ../../infra/scripts/serve-site.mjs --port 4321";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -34,8 +37,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command:
-      "node ../../infra/scripts/build-site.mjs --skip-stats && node ../../infra/scripts/serve-site.mjs --port 4321",
+    // CI serves the tree `npm run verify` already built (the site
+    // workspace's test builds it; one build per run, #73). Locally the
+    // journeys build first, so they never run against a stale tree.
+    command: process.env.CI ? serve : `${build} && ${serve}`,
     url: "http://127.0.0.1:4321/",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

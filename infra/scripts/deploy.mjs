@@ -14,6 +14,7 @@
 
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { readdirSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,7 +32,12 @@ import {
   waitUntilStackCreateComplete,
   waitUntilStackUpdateComplete,
 } from "@aws-sdk/client-cloudformation";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
+} from "@aws-sdk/client-s3";
 import {
   LambdaClient,
   GetFunctionConfigurationCommand,
@@ -44,8 +50,25 @@ import { buildAll } from "./build.mjs";
 import { buildParameters, originRotation } from "./parameters.mjs";
 import { DEPLOY_USAGE, parseDeployArgs } from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
+import {
+  PRUNE_AFTER_DAYS,
+  hashedAssets,
+  publishSteps,
+  pruneCandidates,
+} from "./lib/site-publish.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+
+/** Every file under a directory, as paths relative to it. */
+function walkFiles(root, base = root) {
+  const out = [];
+  for (const entry of readdirSync(root)) {
+    const full = path.join(root, entry);
+    if (statSync(full).isDirectory()) out.push(...walkFiles(full, base));
+    else out.push(path.relative(base, full));
+  }
+  return out;
+}
 const repoRoot = path.resolve(here, "../..");
 const REGION = process.env.AWS_REGION ?? "us-east-1";
 const STACK = "elixir-mcp";
@@ -333,43 +356,25 @@ if (!skipWeb) {
     cwd: repoRoot,
     stdio: "inherit",
   });
-  execFileSync(
-    "aws",
-    [
-      "s3",
-      "sync",
-      path.join(repoRoot, "dist/site"),
-      `s3://${outputs.SiteBucketName}`,
-      "--delete",
-    ],
-    { stdio: "inherit" },
+  // Assets first and never deleted, then the documents, each with its
+  // Cache-Control; the old build's chunks are pruned below, after the
+  // invalidation, once nothing can ask for them (#73; site-publish.mjs).
+  const siteDir = path.join(repoRoot, "dist/site");
+  const shipped = walkFiles(siteDir);
+  const hashed = hashedAssets(
+    shipped,
+    readdirSync(path.join(repoRoot, "apps/web/dist/assets")),
   );
-  // `s3 sync` types an object by extension and never names a charset,
-  // and a `text/plain` with no charset is read as Latin-1 by browsers
-  // and most agents: llms.txt showed "adding â€¦" for a UTF-8 ellipsis.
-  // HTML carries <meta charset>, JSON and XML are UTF-8 by their specs;
-  // the .txt surfaces are the ones that need it said in the header.
-  execFileSync(
-    "aws",
-    [
-      "s3",
-      "cp",
-      `s3://${outputs.SiteBucketName}`,
-      `s3://${outputs.SiteBucketName}`,
-      "--recursive",
-      "--exclude",
-      "*",
-      "--include",
-      "*.txt",
-      "--content-type",
-      "text/plain; charset=utf-8",
-      "--metadata-directive",
-      "REPLACE",
-    ],
-    { stdio: "inherit" },
-  );
-  // A synced site with a cached index.html pointing at deleted hashed
-  // assets is a silent blank page; every web deploy flushes the edge.
+  for (const step of publishSteps({
+    dir: siteDir,
+    bucket: outputs.SiteBucketName,
+    hashed,
+  })) {
+    execFileSync("aws", step, { stdio: "inherit" });
+  }
+  // Every web deploy still flushes the edge: objects published before
+  // #73 carry no Cache-Control and sit at the edge for the policy's day,
+  // and the site's own ?v= assets share one cache key per name.
   const cloudfront = new CloudFrontClient({ region: REGION });
   const { DistributionList } = await cloudfront.send(
     new ListDistributionsCommand({}),
@@ -389,6 +394,45 @@ if (!skipWeb) {
     );
     console.error(`invalidated ${dist.Id}`);
   }
+  // Prune: an asset this build no longer ships, and no deploy has
+  // shipped for PRUNE_AFTER_DAYS, can no longer be asked for by a page
+  // that is still open.
+  const current = new Set(shipped.filter((rel) => rel.startsWith("assets/")));
+  const objects = [];
+  let ContinuationToken;
+  do {
+    const page = await s3.send(
+      new ListObjectsV2Command({
+        Bucket: outputs.SiteBucketName,
+        Prefix: "assets/",
+        ContinuationToken,
+      }),
+    );
+    objects.push(...(page.Contents ?? []));
+    ContinuationToken = page.IsTruncated
+      ? page.NextContinuationToken
+      : undefined;
+  } while (ContinuationToken);
+  const prune = pruneCandidates({
+    objects,
+    current,
+    now: Date.now(),
+    days: PRUNE_AFTER_DAYS,
+  });
+  for (let i = 0; i < prune.length; i += 1000) {
+    await s3.send(
+      new DeleteObjectsCommand({
+        Bucket: outputs.SiteBucketName,
+        Delete: {
+          Objects: prune.slice(i, i + 1000).map((Key) => ({ Key })),
+          Quiet: true,
+        },
+      }),
+    );
+  }
+  console.error(
+    `pruned ${prune.length} asset(s) unshipped for ${PRUNE_AFTER_DAYS}+ days`,
+  );
 }
 
 // Smoke gate (review 2026-09-05): a deploy is not done until the
