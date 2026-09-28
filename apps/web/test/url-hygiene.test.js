@@ -35,6 +35,25 @@ describe("takeLoginToken", () => {
     expect(String(replaceState.mock.calls[0][2])).not.toContain("abc123");
   });
 
+  test("the fragment form is read and scrubbed: it never reaches a log (#129)", async () => {
+    const { mod, replaceState } = await freshModule(
+      "https://elixir.poapkings.com/signin#login_token=frag456",
+    );
+    expect(mod.takeLoginToken()).toBe("frag456");
+    const rewritten = String(replaceState.mock.calls[0][2]);
+    expect(rewritten).toBe("/signin");
+    expect(rewritten).not.toContain("frag456");
+  });
+
+  test("a fragment keeps whatever else it carried", async () => {
+    const { mod, replaceState } = await freshModule(
+      "https://elixir.poapkings.com/signin?next=/explore#login_token=f&x=1",
+    );
+    expect(mod.takeLoginToken()).toBe("f");
+    const rewritten = String(replaceState.mock.calls[0][2]);
+    expect(rewritten).toBe("/signin?next=/explore#x=1");
+  });
+
   test("is memoised, because two callers read it at different times", async () => {
     // main.jsx lifts it before render; the sign-in view asks for it after.
     // If the second read went back to the URL it would find nothing, which is
