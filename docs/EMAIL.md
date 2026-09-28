@@ -353,7 +353,9 @@ same named moments the timeline serves (`buildPlayerEntry` items):
 (`arena:<id>`, `league:<id>`, `band:<n>`, `badge:<name>:<level>`…) mails
 once per account and subject, ever (`email_milestone`), so a season's
 re-climb is silent and a higher rung is news; a move down never keys.
-Hourly, 26-hour lookback, everything new bundled with the biggest moment
+Hourly, reading 26 hours back from the account's last clean look
+(`email_milestone_look`, 0194; capped at seven days, so a failed run
+leaves no gap), everything new bundled with the biggest moment
 as the subject. Friends' and watchers' moments are the Tracking report's.
 
 ## As built (2026-09-18)

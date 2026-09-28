@@ -12,7 +12,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { runEmail, milestonePeriodKey } from "../src/email/index.mjs";
+import {
+  runEmail,
+  milestoneFromMs,
+  milestonePeriodKey,
+} from "../src/email/index.mjs";
 import { buildClan } from "../src/email/build-clan.mjs";
 import { lastGameWeek } from "../src/email/week.mjs";
 
@@ -288,4 +292,80 @@ test("a clan report is the clan's, not its first tracker's: the same facts under
   const joined = asOld.membership.joined.find((m) => m.tag === NEW_TAG);
   assert.equal(joined?.at, "2026-09-08T03:00:00.000Z");
   assert.equal(joined.when, undefined);
+});
+
+// Last: the account it adds would be one more recipient for the tests above.
+test("a moment from a day the milestone job failed is mailed by the next run that works (#130)", async () => {
+  const TAG = "#9GGQ9QQ9";
+  const id = await person("gap", TAG, "2026-09-01T00:00:00Z", null);
+  const step = (n, from, to) =>
+    db.query(
+      `insert into player_event
+         (player_tag, event_type, timing, window_start, window_end, value_after, step)
+       values ($1, 'career_wins_step', 'estimated', $2, $3, $4, $4)`,
+      [TAG, from, to, n],
+    );
+  const run = (at, enqueue = sink().enqueue) =>
+    runEmail({
+      db,
+      kind: "milestone",
+      now: new Date(at),
+      enqueue,
+      secret: "s",
+      accountId: id,
+    });
+  const lookedAt = async () =>
+    (
+      await db.query(
+        `select looked_at from email_milestone_look where account_id = $1`,
+        [id],
+      )
+    ).rows[0]?.looked_at?.toISOString() ?? null;
+
+  // A clean look with nothing new: the window's anchor moves.
+  const quiet = await run("2026-09-19T09:20:00Z");
+  assert.equal(quiet.sent, 0);
+  assert.equal(await lookedAt(), "2026-09-19T09:20:00.000Z");
+
+  await step(7000, "2026-09-19T10:00:00Z", "2026-09-19T11:00:00Z");
+  // The next run fails at the send: nothing recorded, the anchor stays.
+  const broken = await run("2026-09-19T11:20:00Z", async () => {
+    throw new Error("queue down");
+  });
+  assert.equal(broken.failed, 1, JSON.stringify(broken));
+  assert.equal(await lookedAt(), "2026-09-19T09:20:00.000Z");
+
+  // Two days of nothing, then a run that works: 52 hours after the
+  // moment, past the old fixed 26 hours, and it is mailed.
+  const { enqueue, out } = sink();
+  const back = await run("2026-09-21T15:20:00Z", enqueue);
+  assert.equal(back.sent, 1, JSON.stringify(back));
+  assert.match(out[0].subject, /7,000/);
+  assert.equal(await lookedAt(), "2026-09-21T15:20:00.000Z");
+
+  // Mailed once: the next look is quiet.
+  const again = await run("2026-09-21T16:20:00Z");
+  assert.equal(again.sent, 0);
+});
+
+test("the milestone window reaches back to the last clean look, never more than seven days", () => {
+  const now = new Date("2026-09-21T15:20:00Z");
+  const h = 3600_000;
+  // No look on record: the 26 hours it always read.
+  assert.equal(milestoneFromMs(now, null), now.getTime() - 26 * h);
+  // An hour since the last look: 26 hours before it.
+  assert.equal(
+    milestoneFromMs(now, new Date(now.getTime() - h)),
+    now.getTime() - 27 * h,
+  );
+  // Ten days since: capped at seven.
+  assert.equal(
+    milestoneFromMs(now, new Date(now.getTime() - 240 * h)),
+    now.getTime() - 168 * h,
+  );
+  // A look stamped after now (a clock step) reads as now.
+  assert.equal(
+    milestoneFromMs(now, new Date(now.getTime() + h)),
+    now.getTime() - 26 * h,
+  );
 });
