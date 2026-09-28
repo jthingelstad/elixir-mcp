@@ -147,7 +147,14 @@ export async function tables(databaseUrl) {
              s.n_tup_ins as inserted, s.n_tup_upd as updated, s.n_tup_del as deleted,
              s.n_tup_hot_upd as hot_updated,
              s.seq_scan, s.seq_tup_read, s.idx_scan,
-             s.last_autovacuum, s.last_autoanalyze
+             s.last_autovacuum, s.last_autoanalyze,
+             -- The visibility map's cover: index-only scans fetch the
+             -- heap for every page it does not mark (0103, 0189).
+             c.relpages as pages, c.relallvisible as all_visible_pages,
+             case when c.relpages > 0
+                  then round(100.0 * c.relallvisible / c.relpages, 1)
+             end as all_visible_pct,
+             c.reloptions as table_options
       from pg_stat_user_tables s
       join pg_class c on c.oid = s.relid
       order by pg_total_relation_size(s.relid) desc`);
@@ -179,10 +186,96 @@ export async function tables(databaseUrl) {
         Object.fromEntries(
           Object.entries(r).map(([k, v]) => [
             k,
-            typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v,
+            typeof v === "string" && /^\d+(\.\d+)?$/.test(v) ? Number(v) : v,
           ]),
         ),
       ),
+    };
+  } finally {
+    await db.end();
+  }
+}
+
+/** How many statements {statements} ranks per order, by default and at most. */
+const STATEMENTS_DEFAULT = 20;
+const STATEMENTS_MAX = 50;
+/** Normalized text is cut here: the ranking needs the statement's shape,
+ *  not a 40-line meta CTE. */
+const STATEMENT_TEXT_CHARS = 400;
+
+/**
+ * {statements: true | {limit}} - which statements spend the database's
+ * time and reads (0190; review 2026-09-27 §5.3, issue #71): the top
+ * `limit` (20, at most 50) from pg_stat_statements by total execution
+ * time and by shared blocks read from disk, for this database only, with
+ * the view's own normalized text (constants are $n placeholders; the view
+ * never holds parameter values) cut to 400 characters, and when the
+ * counters were last reset. Read only. Answers `not_installed` before
+ * 0190 has run and `not_loaded` on a server that does not preload the
+ * library (a scratch database), rather than failing.
+ */
+export async function statements(databaseUrl, spec = {}) {
+  const limit = Math.min(
+    Math.max(Math.trunc(Number(spec.limit)) || STATEMENTS_DEFAULT, 1),
+    STATEMENTS_MAX,
+  );
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    const { rows: ext } = await db.query(
+      `select extversion from pg_extension where extname = 'pg_stat_statements'`,
+    );
+    if (!ext[0]) return { error: "not_installed" };
+    const top = async (order) =>
+      (
+        await db.query(
+          `select queryid::text as queryid, calls::bigint as calls,
+                  round(total_exec_time::numeric)::bigint as total_ms,
+                  round(mean_exec_time::numeric, 1) as mean_ms,
+                  round(max_exec_time::numeric)::bigint as max_ms,
+                  rows::bigint as rows,
+                  shared_blks_hit::bigint as shared_blks_hit,
+                  shared_blks_read::bigint as shared_blks_read,
+                  temp_blks_written::bigint as temp_blks_written,
+                  left(regexp_replace(query, '\\s+', ' ', 'g'), $2) as query
+             from pg_stat_statements
+            where dbid = (select oid from pg_database where datname = current_database())
+            order by ${order} desc
+            limit $1`,
+          [limit, STATEMENT_TEXT_CHARS],
+        )
+      ).rows.map((r) =>
+        Object.fromEntries(
+          Object.entries(r).map(([k, v]) => [
+            k,
+            k !== "queryid" && typeof v === "string" && /^\d+(\.\d+)?$/.test(v)
+              ? Number(v)
+              : v,
+          ]),
+        ),
+      );
+    let byTime, byRead, info;
+    try {
+      byTime = await top("total_exec_time");
+      byRead = await top("shared_blks_read");
+      info = (
+        await db.query(
+          `select dealloc::bigint as dealloc, stats_reset from pg_stat_statements_info`,
+        )
+      ).rows[0];
+    } catch (err) {
+      // 55000: "pg_stat_statements must be loaded via
+      // shared_preload_libraries".
+      if (err?.code === "55000") return { error: "not_loaded" };
+      throw err;
+    }
+    return {
+      version: ext[0].extversion,
+      limit,
+      stats_since: info?.stats_reset ?? null,
+      evicted: info ? Number(info.dealloc) : null,
+      by_total_time: byTime,
+      by_shared_blks_read: byRead,
     };
   } finally {
     await db.end();

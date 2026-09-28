@@ -36,6 +36,7 @@ import {
 import {
   stats,
   tables,
+  statements,
   ledger,
   warDrift,
   battleFidelityCensus,
@@ -141,6 +142,16 @@ async function dispatch(event) {
   if (event?.tables) {
     // Sizes only - no payloads - so the whole answer is loggable.
     const result = await tables(process.env.DATABASE_URL);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.statements) {
+    // Normalized statement text and counters only, no parameter values,
+    // so the whole answer is loggable.
+    const result = await statements(
+      process.env.DATABASE_URL,
+      event.statements === true ? {} : event.statements,
+    );
     console.log(JSON.stringify(result));
     return result;
   }
