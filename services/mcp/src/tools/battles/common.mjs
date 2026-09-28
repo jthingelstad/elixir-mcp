@@ -7,6 +7,7 @@ import {
   EVENT_MODE_GROUP,
   MODE_GROUPS,
   cardDisplayName,
+  eventContentSql,
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
 import {
@@ -403,10 +404,10 @@ export const DENOMINATOR_DOCS = docsRef(
 /** Shared: the mode filter as a WHERE clause.
  *
  *  `event` is not a set of types - it is the API's own eventTag, which
- *  rides a battle played inside a time-bound event and nothing else
- *  (6.17.0). The permanent groups must therefore also exclude tagged
- *  battles, or `casual` would keep collecting the events that used to
- *  fold into it. */
+ *  rides a battle played inside a time-bound event (6.17.0), except on a
+ *  clanmate battle, which is casual even when tagged (#109). The
+ *  permanent groups must therefore also exclude event content, or
+ *  `casual` would keep collecting the events that used to fold into it. */
 /** A member's own battles only: boat defenses are not theirs (0171). */
 export function ownBattlesClause(add) {
   add(notBoatDefense(), undefined);
@@ -416,11 +417,11 @@ export function modeClause(args, add) {
   requireEnum(args.mode, MODE_GROUPS, "mode");
   if (!args.mode) return;
   if (args.mode === EVENT_MODE_GROUP) {
-    add("b.event_tag is not null", undefined);
+    add(eventContentSql("b.type", "b.event_tag"), undefined);
     return;
   }
   add("b.type = any(?)", typesForModeGroup(args.mode));
-  add("b.event_tag is null", undefined);
+  add(`not ${eventContentSql("b.type", "b.event_tag")}`, undefined);
 }
 
 /** compact on the meta tools (feedback #80): a weekly routine comparing

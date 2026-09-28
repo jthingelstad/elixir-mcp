@@ -4,15 +4,22 @@
  * `event` is the API's eventTag on the battle row, not a set of types:
  * event battles come as `trail` and as `unknown` (a live read,
  * 2026-09-23), so `bp.type = any(typesForModeGroup(mode))` matched
- * nothing for event and let event-tagged battles into casual. The tag
- * is read through a semi-join, only when a mode is named, so the
- * unfiltered scans keep their shape.
+ * nothing for event and let event-tagged battles into casual. A
+ * clanmate battle is casual even when tagged (#109), so the event test
+ * is `eventContentSql` over the participant's own type. The tag is read
+ * through a semi-join, only when a mode is named, so the unfiltered
+ * scans keep their shape.
  */
 
-import { EVENT_MODE_GROUP, typesForModeGroup } from "@elixir-mcp/contracts";
+import {
+  EVENT_MODE_GROUP,
+  eventContentSql,
+  typesForModeGroup,
+} from "@elixir-mcp/contracts";
 
 const eventExists = (alias) =>
-  `exists (select 1 from battle mb where mb.battle_id = ${alias}.battle_id and mb.event_tag is not null)`;
+  `exists (select 1 from battle mb where mb.battle_id = ${alias}.battle_id
+             and ${eventContentSql(`${alias}.type`, "mb.event_tag")})`;
 
 /** SQL for "this participant row's battle is in mode group `mode`",
  *  pushing the types onto `params` when it needs them. */
@@ -22,8 +29,10 @@ export function participantModeClause(mode, params, alias = "bp") {
   return `${alias}.type = any($${params.length}) and not ${eventExists(alias)}`;
 }
 
-/** The meta population (6.17.0, Jamie): no event content, and only a deck
- *  the player chose (a null deck_selection is kept). The season rollup
+/** The meta population (6.17.0, Jamie): no event-tagged battle, and only
+ *  a deck the player chose (a null deck_selection is kept). The tag test
+ *  is deliberately wider than the event mode group: a clanmate friendly
+ *  under an event's rules is casual (#109) but stays out of the meta. The season rollup
  *  applies it at write (META_POPULATION in jobs/meta-rollup.mjs); a raw
  *  window read applies it here, or a custom window answered a different
  *  population than the season it sits in. */
@@ -59,6 +68,6 @@ export async function outsideMetaCount(db, scope, params) {
 /** The disclosure beside a raw meta read that left battles out (#188). */
 export function outsideMetaNote(n) {
   return n > 0
-    ? `${n} battle${n === 1 ? "" : "s"} in this window ${n === 1 ? "is" : "are"} outside the meta population and not counted anywhere above (excluded.outside_meta): event battles and decks the player did not choose (6.17.0). battles_query and battles_decks read them.`
+    ? `${n} battle${n === 1 ? "" : "s"} in this window ${n === 1 ? "is" : "are"} outside the meta population and not counted anywhere above (excluded.outside_meta): battles carrying an event tag (event content, and clanmate friendlies played under an event's rules) and decks the player did not choose (6.17.0). battles_query and battles_decks read them.`
     : null;
 }

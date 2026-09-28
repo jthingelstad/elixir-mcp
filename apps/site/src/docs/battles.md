@@ -35,7 +35,7 @@ answers from the perspective of the tag you asked about:
 | `game_mode` | `{ id, name }` of the game mode, in the game's own naming, event modes included |
 | `arena` | `{ id, name }`, the higher side's arena stamped at battle time (4.0.0: the one arena shape, as on `trophy_floor.arena`); `id` is `null` on a row the id never reached |
 | `league_number` | the API's own `leagueNumber` on the battle, passed through unchanged (`null` only when the payload omitted it). The API sends it on battles that are not ranked too (a Trophy Road battle can carry `1`), so it names a Path of Legends league only on a `pathOfLegend` battle, where it is the league the battle started in; elsewhere the record assigns it no meaning |
-| `mode_group` | the contract's fold of `type` (`ladder`, `ranked`, `war`, `casual`, `challenge`, `event` or `tournament`; friendlies, clanmate battles, the API's rare `unknown` type and any type the fold does not know yet are `casual`, and there is no `other`), the same word `mode` takes as an argument, so no consumer keeps its own copy of the table |
+| `mode_group` | the contract's fold of `type` and the event tag (`ladder`, `ranked`, `war`, `casual`, `challenge`, `event` or `tournament`): a battle carrying an event tag is `event`, except a clanmate battle (`clanMate`, `clanMate2v2`), which is `casual` even when tagged; otherwise friendlies, clanmate battles, an untagged `unknown` battle and any type the fold does not know yet are `casual`, and there is no `other`. It is the same word `mode` takes as an argument, so no consumer keeps its own copy of the table |
 | `context` | full verbosity: the battle's own facts as the log carried them. `event_tag` names the event a challenge or event battle belongs to (joins `game_events` by tag; a battle can name an event the daily events read never sighted); `tournament_tag` the tournament; `ladder_tournament` and `hosted` the API's own flags; `deck_selection` how the deck was chosen. Compact carries `deck_selection` alone, at the top level |
 | `deck_selection` | `collection` for the player's own deck, `warDeckPick` for a river-race duel deck picked from the player's own war decks (both chosen by the player, and both kept by the meta); `draft`, `draftCompetitive`, `pick`, `predefined`, `eventDeck` and the like for a deck handed out or drafted on the spot, which has no identity a player will play again. Read it before treating a `deck_hash` as a deck the player owns |
 | `boat` | full verbosity, `boatBattle` rows only: `side` (`attacker` or `defender`), `towers_before` and `towers_after` (the clan's towers destroyed on this boat before and after the attack) and `remaining` (the boat's towers still standing) |
@@ -101,14 +101,18 @@ This table is generated from the contract, so it is what the tools accept.
 | Group | In the game | API battle types folded |
 |---|---|---|
 {%- for m in tools.modes %}
-| `{{ m.group }}` | {% if m.group == "ladder" %}Trophy Road{% elif m.group == "ranked" %}Path of Legends{% elif m.group == "war" %}river race battles, duels and boat battles{% elif m.group == "casual" %}2v2, friendly and clanmate battles, and the API's rare `unknown` type{% elif m.group == "challenge" %}challenges{% elif m.group == "event" %}event content: every battle the API marks with an event tag{% elif m.group == "tournament" %}tournaments{% else %}{{ m.group }}{% endif %} | {% if m.group == "event" %}any type with an `eventTag`; in practice `trail`{% else %}{% for t in m.types | reject("equalto", "trail") %}`{{ t }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %} |
+| `{{ m.group }}` | {% if m.group == "ladder" %}Trophy Road{% elif m.group == "ranked" %}Path of Legends{% elif m.group == "war" %}river race battles, duels and boat battles{% elif m.group == "casual" %}2v2, friendly and clanmate battles (a clanmate battle even when it carries an event tag), and the API's rare `unknown` type when it carries none{% elif m.group == "challenge" %}challenges{% elif m.group == "event" %}event content: every battle the API marks with an event tag, except a clanmate battle{% elif m.group == "tournament" %}tournaments{% else %}{{ m.group }}{% endif %} | {% if m.group == "event" %}any type with an `eventTag` but `clanMate` and `clanMate2v2`; in practice `trail`, and `unknown` for events such as Royale Shuffle{% else %}{% for t in m.types | reject("equalto", "trail") %}`{{ t }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %} |
 {%- endfor %}
 
 `game_mode.name` is finer than the group: an event mode such as a Chaos or
 Crazy Mode battle carries an event tag, so it is an `event`-group battle
 (6.17.0) with its own mode name, which `battles_query({ game_mode })` can
 filter by substring and `battles_performance({ group_by: "game_mode" })`
-lists.
+lists. That view is keyed by `(game_mode, type, event_tag)` (9.12.8), so
+each event is its own row, with its `event_tag` and `event_title` (the
+title the events read listed; `null` when that read never sighted the
+event). `event_tag` is `null` on a row that is not event content,
+clanmate battles included.
 
 ## Events are their own group, and they do not inform the meta
 
@@ -124,12 +128,20 @@ carries one on 100% of 123,562 recorded battles, while `pathOfLegend`, `PvP`,
 `riverRacePvP`, `boatBattle`, `friendly` and the duels carry one on 0%. So
 `trail` is not a game mode: it is the marker for event content, and the
 `gameMode` underneath it says which format the event was running. `tournament`
-is the same shape with `tournamentTag`.
+is the same shape with `tournamentTag`. Some events come as the API's own
+`unknown` type with a tag: Royale Shuffle does, and the game lists it under
+Game Modes as a timed event.
 
 Event content is the `event` mode group (6.17.0). `mode: "event"` selects it and
 every other `mode` excludes it. Before this it folded into `casual`, which filed
 the reworked Seasonal Trophy Road as casual play and pooled the September 2026
 2v2 League with ordinary friendlies.
+
+**A clanmate battle is casual, even when it carries an event tag** (9.12.8).
+About 62% of recorded clanmate friendlies (`clanMate`, `clanMate2v2`) carry
+one, because friends play a friendly under an event's rules; it is still a
+friendly, so its mode group is `casual`. An `unknown` battle is `event` when it
+carries a tag and `casual` when it does not.
 
 **`event` is a filter, not a population.** One event is not another: `trail`
 with `gameMode: TeamVsTeam` alone has carried ten distinct event tags, because
@@ -137,14 +149,19 @@ Supercell slots an event into a mode for a date window and reuses the slot
 later. Recurring formats are re-tagged every season - one tag ran exactly
 2026-08-03 to 2026-09-07, which is season 135 to the day. A rate over event
 content must key on `context.event_tag` itself, never on the mode's name.
-`mode: "event"` still pools every event in the window, so a response to it
-carries a note naming the event tags it pooled: split by tag (read
-`context.event_tag` on `battles_query` rows) before quoting one rate.
+`mode: "event"` still pools every event in the window, so an aggregate read
+with it carries a note saying so: split by event before quoting one rate, with
+`battles_performance({ group_by: "game_mode" })`, which gives one row per event
+(9.12.8), or by reading `context.event_tag` on `battles_query` rows. One event
+spread over several game modes is one row per mode there; a per-event row
+across modes is not served yet.
 
 **What the meta counts.** `battles_meta_decks`, `battles_meta_cards` and the
 deck and card statistics are built from a population that excludes:
 
-- **event content** (`event_tag` present). Seasonal Arena II bans the player's
+- **every battle carrying an event tag** (`event_tag` present): event content,
+  and a clanmate friendly played under an event's rules, which is `casual` but
+  still played under those rules. Seasonal Arena II bans the player's
   eight most-won-with cards and floors the rest at Level 15 - its recorded decks
   average 15.87 against 13.67 on Trophy Road - and every event bends the rules
   its own way, so a win rate over them measures the event.
@@ -162,7 +179,7 @@ window or segment read raw (6.31.0: the raw reads had kept both), and
 Everywhere else `event` is the event tag, not a battle type, so
 `battles_trends`, `battles_cards`, `cards_synergy`, the card profile and
 `battles_opponents` filter and label event battles as `event`, never
-`casual` (6.31.0).
+`casual` (6.31.0), and a tagged clanmate battle as `casual` (9.12.8).
 
 ## Duels and boat battles
 

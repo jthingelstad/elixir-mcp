@@ -2920,7 +2920,28 @@ export const OUTPUT_SCHEMAS = {
       before: PERF_WINDOW,
       after: PERF_WINDOW,
       split_at: ISO,
-      by_mode: { type: "array" },
+      by_mode: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            game_mode: { type: ["string", "null"] },
+            type: { type: ["string", "null"] },
+            event_tag: {
+              type: ["string", "null"],
+              description:
+                "9.12.8: the event this row's battles belong to; one row per event, never pooled. null when the row is not event content (clanmate battles are casual even when tagged).",
+            },
+            event_title: {
+              type: ["string", "null"],
+              description:
+                "9.12.8: the event's title as the events read listed it (game_events); null when that read never sighted the event, or event_tag is null.",
+            },
+            ...RECORD,
+            last_played: { type: ["string", "null"] },
+          },
+        },
+      },
       weekly: {
         type: "array",
         items: {

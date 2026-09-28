@@ -34,7 +34,7 @@ import { ToolFailure } from "./tools/shared.mjs";
 export { ToolFailure, ensureClanRecording } from "./tools/shared.mjs";
 
 const EVENT_POOL_NOTE =
-  "mode 'event' pools every event read in the window: one event is not another (a tournament, a seasonal Trophy Road and a 2v2 weekend are different games), so a rate here mixes them; key on context.event_tag (battles_query lists it per battle) for one event.";
+  "mode 'event' pools every event in the window: one event is not another (a tournament, a seasonal Trophy Road and a 2v2 weekend are different games), so a rate here mixes them. For one event's record, battles_performance group_by game_mode gives one row per event (event_tag, event_title); battles_query lists context.event_tag per battle. Clanmate battles are casual even when tagged, so they are not here.";
 
 const TOOLS = {
   ...elixirTools,
@@ -261,8 +261,14 @@ export function makeRegistry() {
         if (typeof body.docs !== "string") body.docs = "choosing-a-tool";
         // `event` is a coarse filter, never a population (DECISIONS:
         // never pool across events): every aggregate read with it says so.
-        // battles_query lists battles, each with its own event_tag.
-        if (args?.mode === "event" && name !== "battles_query")
+        // battles_query lists battles, each with its own event_tag, and
+        // battles_performance group_by game_mode serves a row per event
+        // (#109), so neither pools.
+        if (
+          args?.mode === "event" &&
+          name !== "battles_query" &&
+          !(name === "battles_performance" && args.group_by === "game_mode")
+        )
           body.notes.push(EVENT_POOL_NOTE);
       }
       if (oneSize !== null && body && typeof body === "object") {

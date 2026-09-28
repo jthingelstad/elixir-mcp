@@ -74,7 +74,10 @@ const MODE_GROUP_CASE = modeGroupSql("bp.type", "b.event_tag");
  *    are drafted, restricted or level-boosted - Seasonal Arena II floors
  *    cards at 15, so its recorded decks average 15.87 against 13.67 on
  *    Trophy Road - and the rules differ per event. A win rate over them
- *    measures the event.
+ *    measures the event. The test is the tag, not the mode group: a
+ *    clanmate friendly played under an event's rules is `casual` (#109,
+ *    Jamie 2026-09-28) but is still played under those rules, so it
+ *    stays out, and meta_season_pop never holds a tagged row.
  *  - A DECK THE PLAYER DID NOT CHOOSE (`deck_selection` outside
  *    collection and warDeckPick: eventDeck, draft, draftCompetitive,
  *    pick, quadDeckPick, predefined and the API's own unknown).

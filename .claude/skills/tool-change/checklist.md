@@ -60,8 +60,9 @@ only when it does not apply, and say why in the commit message.
   `ERROR_CODES` and their classes.
 - `services/mcp/src/protocol.mjs` holds `instructionsFor` (the brief),
   `MCP_RESULT_MAX_CHARS` and `renderToolResultText()`. `invoker.mjs`
-  holds `BUDGETED_TOOLS`, the deadline race, the event-pool note and the
-  audit row.
+  holds `BUDGETED_TOOLS`, the deadline race and the audit row;
+  `tools.mjs` holds the registry's `invoke`, which attaches the
+  event-pool note (`EVENT_POOL_NOTE`).
 
 ## The declaration
 

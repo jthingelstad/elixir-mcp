@@ -1,4 +1,4 @@
-import { modeGroupSql } from "@elixir-mcp/contracts";
+import { eventContentSql, modeGroupSql } from "@elixir-mcp/contracts";
 import { resolveInstant } from "../../time.mjs";
 import {
   DISPLAY_NAME_SCHEMA,
@@ -56,7 +56,7 @@ export const battles_performance = {
         type: "string",
         enum: ["week", "game_mode"],
         description:
-          "week: weekly series (ISO weeks). game_mode: per named game mode (the row's game_mode, not the mode group; event modes included). Overrides before_after and compare_*.",
+          "week: weekly series (ISO weeks). game_mode: per named game mode (the row's game_mode, not the mode group), one row per event within it (event_tag, event_title). Overrides before_after and compare_*.",
       },
       before_after: {
         type: "string",
@@ -204,23 +204,36 @@ export const battles_performance = {
       ownBattlesClause(add);
       modeClause(args, add);
       if (args.deck_hash) add("bp.deck_hash = ?", args.deck_hash);
+      // One row per (game_mode, type, event_tag) (#109): Supercell reuses
+      // a (game_mode, type) slot across events (trail + TeamVsTeam has
+      // carried ten tags), and a row keyed on the slot alone pooled them,
+      // which DECISIONS forbids ("never pool across" events). A clanmate
+      // battle is casual even when tagged, so its tag does not split it:
+      // only event content keys on the tag. The title is the /events
+      // read's, null when that read never sighted the event.
+      const eventKey = `case when ${eventContentSql("b.type", "b.event_tag")} then b.event_tag end`;
       const { rows } = await ctx.db.query(
-        `select b.game_mode_name as game_mode, b.type,
-                  count(*)::int as battles,
-                  count(*) filter (where bp.outcome = 'win')::int as wins,
-                  count(*) filter (where bp.outcome = 'loss')::int as losses,
-                  count(*) filter (where bp.outcome = 'draw')::int as draws,
-                  max(b.battle_time) as last_played
-           from battle_participant bp join battle b on b.battle_id = bp.battle_id
-           where ${where.join(" and ")}
-           group by b.game_mode_name, b.type
-           order by count(*) desc`,
+        `select m.*, e.title as event_title
+           from (select b.game_mode_name as game_mode, b.type,
+                        ${eventKey} as event_tag,
+                        count(*)::int as battles,
+                        count(*) filter (where bp.outcome = 'win')::int as wins,
+                        count(*) filter (where bp.outcome = 'loss')::int as losses,
+                        count(*) filter (where bp.outcome = 'draw')::int as draws,
+                        max(b.battle_time) as last_played
+                   from battle_participant bp join battle b on b.battle_id = bp.battle_id
+                  where ${where.join(" and ")}
+                  group by b.game_mode_name, b.type, ${eventKey}) m
+           left join game_event e on e.event_tag = m.event_tag
+          order by m.battles desc, m.last_played desc`,
         params,
       );
       result = {
         by_mode: rows.map((r) => ({
           game_mode: r.game_mode,
           type: r.type,
+          event_tag: r.event_tag,
+          event_title: r.event_title,
           battles: r.battles,
           wins: r.wins,
           losses: r.losses,
@@ -233,7 +246,7 @@ export const battles_performance = {
         })),
       };
       caveats.push(
-        "Rows are keyed by the pair (game_mode, type): the same mode name recurs under different API types, and 'unknown' is the API's own value for some friendly and event battles.",
+        "Rows are keyed by (game_mode, type, event_tag): the same mode name recurs under different API types, and Supercell reuses one (game_mode, type) slot for several events, so each event is its own row, named by event_tag and event_title (null when the events read never sighted it). event_tag is null on a row that is not event content, clanmate battles included (casual even when the game tagged them). 'unknown' is the API's own type for some friendly and event battles.",
         "Per-row win_rate is wins/(wins+losses) within that row, boat rows included; filter battles_query by game_mode to drill in.",
       );
       if (args.before_after || args.compare_from || args.compare_to)

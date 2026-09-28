@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-28",
+    title:
+      "Friendlies with clanmates count as casual, and each event gets its own row",
+    body: "A friendly with a clanmate often runs under an event's rules, and the game tags it with that event. Elixir had filed those friendlies as event battles; they now count as casual play, like every other friendly. Battles in a timed event, such as Royale Shuffle, stay events. The \"what have I been playing\" view (performance by game mode) now gives each event its own row with the event's name, where it had lumped several events that shared a game mode into one. Contract 9.12.8.",
+  },
+  {
+    date: "2026-09-28",
     title: "A comparison says when one side's record has a gap",
     body: "Comparing two to four players now warns when Elixir knows one of them is missing recent battles, the same warning a single player's performance read already carried. It names each player whose latest stretch is under 90% recorded, or whose record cannot be checked because the game has not been read for two days, and says nothing about a player whose record is complete. Contract 9.12.7.",
   },
