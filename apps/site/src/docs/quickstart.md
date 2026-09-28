@@ -19,7 +19,7 @@ connected client. Most of the elapsed time is waiting for two emails.
 
 Accounts are approved by hand. Ask on the sign-in card, at
 [/signin?request](/signin?request), with your email and your Clash Royale
-player tag. You will hear back either way. Once approved, sign in at the same
+player tag. You will get an email when you are approved. Then sign in at the same
 place: enter your email, then the
 six-digit code from the mail (15 minutes, five attempts). The mail also
 carries a one-click link; either works.

@@ -1430,7 +1430,7 @@ Resources:
           # marker: without this rule the body would sit on as a
           # noncurrent version under expire-superseded-versions for
           # another 365 days, about 455 in all, against the 90 that
-          # privacy.md and limits.md promise (review 2026-09-27 6.4).
+          # limits.md promises (review 2026-09-27 6.4).
           # The noncurrent body goes a day after the marker, then the
           # marker itself. ExpiredObjectDeleteMarker cannot share a rule
           # with ExpirationInDays, hence a rule of its own.
