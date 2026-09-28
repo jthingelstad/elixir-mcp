@@ -34,13 +34,14 @@ import {
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import {
   LambdaClient,
+  GetFunctionConfigurationCommand,
   InvokeCommand,
   UpdateFunctionCodeCommand,
   waitUntilFunctionUpdatedV2,
 } from "@aws-sdk/client-lambda";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { buildAll } from "./build.mjs";
-import { buildParameters } from "./parameters.mjs";
+import { buildParameters, originRotation } from "./parameters.mjs";
 import { DEPLOY_USAGE, parseDeployArgs } from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
 
@@ -84,6 +85,17 @@ if (args.unknown.length > 0) {
 }
 const isCreate = args.create;
 const skipWeb = args.skipWeb;
+if (
+  args.rotateOriginSecret &&
+  (isCreate ||
+    args.params.OriginSecret !== undefined ||
+    args.params.OriginSecretPrevious !== undefined)
+) {
+  console.error(
+    "deploy: --rotate-origin-secret sets OriginSecret and OriginSecretPrevious itself, on an update only; nothing was deployed.",
+  );
+  process.exit(2);
+}
 
 // Deploy what is committed (DECISIONS "Lease first": deploy from a clean
 // worktree). The build bundles the working tree as it is, so an edit that
@@ -213,7 +225,26 @@ await cfn.send(new ValidateTemplateCommand({ TemplateURL: templateUrl }));
 
 // --param=Key=Value: one-time explicit values for PRESERVED parameters
 // (a parameter's first deploy cannot UsePreviousValue).
-const paramOverrides = args.params;
+const paramOverrides = { ...args.params };
+
+// --rotate-origin-secret (docs/SECRETS.md): the current value is read
+// from the deployed web door, since the stack masks NoEcho parameters,
+// and held in this process only. The template makes CloudFront wait for
+// both doors, so they accept the new value before any edge sends it.
+if (args.rotateOriginSecret) {
+  const { Environment } = await lambda.send(
+    new GetFunctionConfigurationCommand({ FunctionName: "elixir-mcp-web-api" }),
+  );
+  const vars = Environment?.Variables ?? {};
+  if (vars.ORIGIN_SECRET_PREVIOUS) {
+    console.error(
+      "deploy: the last origin rotation has not been cleared; deploy with --param=OriginSecretPrevious= first. The code is uploaded and migrated; the stack is unchanged.",
+    );
+    process.exit(2);
+  }
+  Object.assign(paramOverrides, originRotation(vars.ORIGIN_SECRET));
+  console.error("rotating the origin secret (values not shown)...");
+}
 
 const required = {
   CodeBucket: codeBucket,

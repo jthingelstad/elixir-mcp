@@ -168,6 +168,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 - **DNS stays at Namecheap** — Jamie applies records by hand. (2026-09-03; Jamie)
 - **Collector-door cost is judged by route attribution** — no fixed baseline. Supersedes the check-in-era rule. (2026-09-22; engineering)
 - **The database is db.t4g.small** — the micro ran out of EBS byte balance and memory under ordinary pre-launch load; the micro reservation still applies (size-flexible). (2026-09-23; Jamie)
+- **A secret rotates without a sign-out** — every signing secret has a previous value that verifies only (sessions, the origin header), unsubscribe links carry their own key id, the database connection verifies the RDS certificate, and `docs/SECRETS.md` is the runbook; values are Jamie's, in the console. (2026-09-27, #71; engineering)
 
 ## Agent team and process
 

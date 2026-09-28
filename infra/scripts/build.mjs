@@ -17,15 +17,27 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(here, "../..");
 const distRoot = path.join(repoRoot, "infra/dist");
 
+// `db`: the function connects to PostgreSQL, so its bundle carries the
+// RDS root certificates and its DATABASE_URL says sslmode=verify-full
+// (#71; infra/template.yaml sets NODE_EXTRA_CA_CERTS to this file).
 export const LAMBDAS = [
-  { name: "web-api", entry: "services/web-api/src/index.mjs" },
-  { name: "mcp", entry: "services/mcp/src/index.mjs" },
-  { name: "scheduler", entry: "services/scheduler/src/index.mjs" },
+  { name: "web-api", entry: "services/web-api/src/index.mjs", db: true },
+  { name: "mcp", entry: "services/mcp/src/index.mjs", db: true },
+  { name: "scheduler", entry: "services/scheduler/src/index.mjs", db: true },
   { name: "email-relay", entry: "services/email-relay/src/index.mjs" },
-  { name: "migrate", entry: "services/migrate/src/lambda.mjs" },
-  { name: "jobs", entry: "services/jobs/src/index.mjs" },
+  { name: "migrate", entry: "services/migrate/src/lambda.mjs", db: true },
+  { name: "jobs", entry: "services/jobs/src/index.mjs", db: true },
   { name: "editor", entry: "services/editor/src/index.mjs" },
 ];
+
+/** The us-east-1 RDS root CAs (rsa2048, rsa4096 and ecc384 G1), from
+ *  https://truststore.pki.rds.amazonaws.com/us-east-1/us-east-1-bundle.pem.
+ *  Roots only, as RDS asks: the server sends its intermediate, and a
+ *  pinned intermediate breaks when RDS rotates the server certificate.
+ *  The roots expire in 2061 and later. */
+export const RDS_CA_BUNDLE = "infra/certificates/rds-us-east-1-bundle.pem";
+/** Where the bundle sits in a DB function's package: /var/task/... */
+export const RDS_CA_PATH = "certificates/rds.pem";
 
 export async function buildAll() {
   // The contract (dist/*.js) and the docs corpus (dist/corpus.json) are
@@ -33,7 +45,7 @@ export async function buildAll() {
   execFileSync("npm", ["run", "build"], { cwd: repoRoot, stdio: "inherit" });
   await rm(distRoot, { recursive: true, force: true });
   const artifacts = [];
-  for (const { name, entry } of LAMBDAS) {
+  for (const { name, entry, db } of LAMBDAS) {
     const outDir = path.join(distRoot, name);
     await mkdir(outDir, { recursive: true });
     await build({
@@ -59,6 +71,15 @@ export async function buildAll() {
         ["docs/card-of-week/generator-prompt.md", "card-of-week-prompt.md"],
       ])
         await cp(path.join(repoRoot, doc), path.join(outDir, file));
+    }
+    if (db) {
+      await mkdir(path.join(outDir, path.dirname(RDS_CA_PATH)), {
+        recursive: true,
+      });
+      await cp(
+        path.join(repoRoot, RDS_CA_BUNDLE),
+        path.join(outDir, RDS_CA_PATH),
+      );
     }
     if (name === "migrate") {
       await cp(

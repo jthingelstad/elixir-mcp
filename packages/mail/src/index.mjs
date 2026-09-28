@@ -21,4 +21,5 @@ export {
   signUnsubscribe,
   verifyUnsubscribe,
   unsubscribeUrl,
+  UNSUBSCRIBE_KEY_ID,
 } from "./unsubscribe.mjs";

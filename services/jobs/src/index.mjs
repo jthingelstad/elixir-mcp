@@ -277,6 +277,16 @@ async function mailArchiveStore() {
   return (mailArchive = { s3: new S3Client({}), bucket });
 }
 
+/** What a sent mail's unsubscribe link is signed with (packages/mail
+ *  unsubscribe.mjs): its own key once the app secret carries one, else
+ *  the session secret, as every link before it was. */
+function unsubscribeKeys() {
+  return {
+    unsubscribe: process.env.UNSUBSCRIBE_SECRET || null,
+    session: process.env.SESSION_SECRET,
+  };
+}
+
 export async function handler(event, context) {
   if (typeof event?.email === "string") {
     const result = await runEmail({
@@ -286,7 +296,7 @@ export async function handler(event, context) {
       accountEmail: event.account_email ?? null,
       force: Boolean(event.force),
       enqueue: enqueueEmail,
-      secret: process.env.SESSION_SECRET,
+      secret: unsubscribeKeys(),
       archive: await mailArchiveStore(),
       remainingMs:
         typeof context?.getRemainingTimeInMillis === "function"
@@ -343,7 +353,7 @@ export async function handler(event, context) {
         databaseUrl: process.env.DATABASE_URL,
         kind,
         enqueue: enqueueEmail,
-        secret: process.env.SESSION_SECRET,
+        secret: unsubscribeKeys(),
         archive: await mailArchiveStore(),
         remainingMs:
           typeof context?.getRemainingTimeInMillis === "function"
@@ -389,7 +399,7 @@ export async function handler(event, context) {
       databaseUrl: process.env.DATABASE_URL,
       bucket: process.env.ARCHIVE_BUCKET,
       period: event.card_of_week_preview.period ?? null,
-      secret: process.env.SESSION_SECRET,
+      secret: unsubscribeKeys(),
     });
     console.log(JSON.stringify({ card_of_week_preview: result }));
     return result;

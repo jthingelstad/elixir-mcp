@@ -11,6 +11,9 @@ export const DEPLOY_USAGE = `usage: AWS_PROFILE=cloud-engineer node infra/script
   --create               first deploy (GATED)
   --skip-web             code and infrastructure only; no site sync
   --param=Key=Value      a one-time value for a PRESERVED parameter
+  --rotate-origin-secret a new CloudFront origin secret; the doors keep
+                         the old one as OriginSecretPrevious until
+                         --param=OriginSecretPrevious= (docs/SECRETS.md)
   --acceptance           run the whole acceptance suite after the smoke
   --acceptance=<family>  run one family's acceptance cases (a,b for several)
   --break-glass          skip the CI gate (HEAD must be origin/main with a
@@ -28,6 +31,7 @@ export function parseDeployArgs(argv) {
     acceptance: false,
     acceptanceFamily: null,
     breakGlass: false,
+    rotateOriginSecret: false,
     unknown: [],
   };
   for (const arg of argv) {
@@ -36,6 +40,7 @@ export function parseDeployArgs(argv) {
     else if (arg === "--skip-web") out.skipWeb = true;
     else if (arg === "--acceptance") out.acceptance = true;
     else if (arg === "--break-glass") out.breakGlass = true;
+    else if (arg === "--rotate-origin-secret") out.rotateOriginSecret = true;
     else if (/^--acceptance=[\w,-]+$/.test(arg)) {
       out.acceptance = true;
       out.acceptanceFamily = arg.slice("--acceptance=".length);

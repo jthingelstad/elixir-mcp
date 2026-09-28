@@ -22,6 +22,8 @@ import {
   approvedAccount,
   pendingRequests,
   setAccountRole,
+  currentAndPrevious,
+  originAllowed,
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -275,6 +277,77 @@ test("session tokens: sign/verify round-trip, tamper and expiry rejected", () =>
     verifySessionToken({ secret: SECRET, token: expired.token }),
     null,
   );
+});
+
+test("a session-secret rotation signs nobody out (rehearsal, #71)", async () => {
+  // Before: SESSION_SECRET is the old value, nothing previous.
+  const OLD = "old-session-secret";
+  const NEW = "new-session-secret";
+  const account = await approvedAccount(db, JAMIE);
+  const before = currentAndPrevious(OLD, undefined);
+  assert.deepEqual(before, [OLD]);
+  const minted = await createSession(db, {
+    secret: before,
+    accountId: account.account_id,
+    emailHash: JAMIE,
+  });
+
+  // The rotation: SESSION_SECRET_PREVIOUS takes the old value and
+  // SESSION_SECRET a new one (docs/SECRETS.md).
+  const during = currentAndPrevious(NEW, OLD);
+  assert.deepEqual(during, [NEW, OLD]);
+  const kept = await resolveSession(db, {
+    secret: during,
+    token: minted.token,
+  });
+  assert.equal(kept?.accountId, account.account_id, "still signed in");
+
+  // A new sign-in is signed with the new secret only.
+  const fresh = await createSession(db, {
+    secret: during,
+    accountId: account.account_id,
+    emailHash: JAMIE,
+  });
+  assert.ok(verifySessionToken({ secret: NEW, token: fresh.token }));
+  assert.equal(verifySessionToken({ secret: OLD, token: fresh.token }), null);
+
+  // Once the previous value is dropped, a token signed with it is gone,
+  // which is what a rotation after a leak wants.
+  const after = currentAndPrevious(NEW, "");
+  assert.deepEqual(after, [NEW]);
+  assert.equal(
+    await resolveSession(db, { secret: after, token: minted.token }),
+    null,
+  );
+  assert.ok(await resolveSession(db, { secret: after, token: fresh.token }));
+
+  // A previous value alone never turns the check on; an unchanged one is
+  // not listed twice.
+  assert.equal(currentAndPrevious("", OLD), null);
+  assert.deepEqual(currentAndPrevious(NEW, NEW), [NEW]);
+  await revokeSession(db, minted.sessionId);
+  await revokeSession(db, fresh.sessionId);
+});
+
+test("the origin header: current or previous accepted, nothing else (#71)", () => {
+  const withHeader = (v) => ({ headers: { "x-elixir-origin": v } });
+  const both = currentAndPrevious("origin-new", "origin-old");
+  assert.ok(originAllowed(withHeader("origin-new"), both));
+  assert.ok(
+    originAllowed(withHeader("origin-old"), both),
+    "edges still sending the old one",
+  );
+  assert.equal(originAllowed(withHeader("origin-other"), both), false);
+  assert.equal(originAllowed({ headers: {} }, both), false);
+  assert.equal(
+    originAllowed(
+      withHeader("origin-old"),
+      currentAndPrevious("origin-new", ""),
+    ),
+    false,
+    "the old value stops working once previous is cleared",
+  );
+  assert.ok(originAllowed({ headers: {} }, null), "unset: the check is off");
 });
 
 test("session rows: resolve enforces the access gate and revocation", async () => {

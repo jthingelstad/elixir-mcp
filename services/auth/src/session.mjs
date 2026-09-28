@@ -104,13 +104,42 @@ function b64urlDecode(value) {
   return Buffer.from(value + padding, "base64url");
 }
 
+/**
+ * The session secret, or the secrets (review 2026-09-27 §8.5, #71): an
+ * array is `[current, ...previous]`. Tokens are signed with the current
+ * one only and verified against every one, so SESSION_SECRET can rotate
+ * with SESSION_SECRET_PREVIOUS holding the old value and nobody is signed
+ * out. docs/SECRETS.md has the rotation.
+ */
+export function sessionSecrets(secret) {
+  return [secret].flat().filter((s) => typeof s === "string" && s.length > 0);
+}
+
+/**
+ * A secret and the one it replaced, as the environment holds them
+ * (SESSION_SECRET and SESSION_SECRET_PREVIOUS, ORIGIN_SECRET and
+ * ORIGIN_SECRET_PREVIOUS): `[current, previous]`, `[current]`, or null
+ * when there is no current secret (the check is then off, as before).
+ * A previous secret alone never counts.
+ */
+export function currentAndPrevious(current, previous) {
+  if (typeof current !== "string" || current.length === 0) return null;
+  return typeof previous === "string" &&
+    previous.length > 0 &&
+    previous !== current
+    ? [current, previous]
+    : [current];
+}
+
 export function signPayload(secret, payload) {
+  const [signing] = sessionSecrets(secret);
+  if (!signing) throw new Error("session: no secret");
   const canonical = Object.fromEntries(
     Object.entries(payload).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
   );
   const encoded = b64url(JSON.stringify(canonical));
   const signature = crypto
-    .createHmac("sha256", secret)
+    .createHmac("sha256", signing)
     .update(encoded)
     .digest("base64url");
   return `${encoded}.${signature}`;
@@ -137,16 +166,18 @@ export function verifySessionToken({ secret, token, now = Date.now() }) {
   try {
     const [encoded, signature] = String(token ?? "").split(".", 2);
     if (!encoded || !signature) return null;
-    const expected = crypto
-      .createHmac("sha256", secret)
-      .update(encoded)
-      .digest();
     const supplied = b64urlDecode(signature);
-    if (
-      expected.length !== supplied.length ||
-      !crypto.timingSafeEqual(expected, supplied)
-    )
-      return null;
+    const signedBy = (key) => {
+      const expected = crypto
+        .createHmac("sha256", key)
+        .update(encoded)
+        .digest();
+      return (
+        expected.length === supplied.length &&
+        crypto.timingSafeEqual(expected, supplied)
+      );
+    };
+    if (!sessionSecrets(secret).some(signedBy)) return null;
     const payload = JSON.parse(b64urlDecode(encoded).toString("utf8"));
     if (!payload || typeof payload !== "object" || Array.isArray(payload))
       return null;
