@@ -11,6 +11,7 @@ import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
 import { periodAt } from "../src/war-period.mjs";
+import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
 
 /** The (player, UTC day) pairs of hand-seeded battles, as ingest would
  *  hand them to the rollup. */
@@ -58,6 +59,13 @@ before(async () => {
   });
   db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
+  // The calendar covers today the way production's does: the migrations
+  // seed only the seasons that existed when they were written, and the
+  // scheduler writes the running and next season every tick. Without
+  // this step every test that asks the calendar about Date.now() fails
+  // the day the last seeded season ends (tools2 and daily-series do the
+  // same).
+  await ensureSeasonsAround(db);
   await db.query(`insert into clan (clan_tag) values ($1)`, [CLAN]);
 
   // Owner + clan recording; roster from the real fixture; war history from
@@ -1511,10 +1519,22 @@ test("clans_participation: every open member, per ISO week and per war week, fac
   assert.equal(refused, true, "weeks above the maximum is refused");
 });
 
-test("war_current: race_finished_at is set once our boat has crossed the line", async () => {
+test("war_current: race_finished_at is set once our boat has crossed the line", async (t) => {
   // POAP KINGS finished on day 4 at 09:38Z (2026-09-13) with 40 members still
   // "untouched": the lists stay facts, but the instant sits beside them so a
   // reader does not nudge toward nothing.
+  //
+  // The clock is pinned after that finish, to war day 4 on the policy
+  // grid (2026-09-13 12:00Z, as the game_clock test reads it): decks_today
+  // is the war-day picture only on a war day, and on a training day it is
+  // the training picture, whose race_finished_at is null by construction.
+  // Read from the real clock, this test failed every Monday 10:00Z to
+  // Thursday 10:00Z (first on 2026-09-28, the first training day after
+  // 7.1.21 gave training days a decks_today).
+  t.mock.timers.enable({
+    apis: ["Date"],
+    now: new Date("2026-09-13T12:00:00Z"),
+  });
   const wk = (
     await db.query(
       `select season_id, section_index from war_week where clan_tag = $1
@@ -1533,10 +1553,11 @@ test("war_current: race_finished_at is set once our boat has crossed the line", 
     const { body, isError } = await call(invoke, "war_current", {});
     assert.equal(isError, false, JSON.stringify(body));
     assert.equal(body.race_finished_at, "2026-09-13T09:38:04.000Z");
-    if (body.decks_today) {
-      assert.equal(body.decks_today.race_finished_at, body.race_finished_at);
-      assert.match(body.notes.join(" "), /crossed the finish line/);
-    }
+    assert.equal(body.war_day, 4);
+    assert.ok(body.decks_today, "a war day still open carries decks_today");
+    assert.equal(body.decks_today.day_kind, "war");
+    assert.equal(body.decks_today.race_finished_at, body.race_finished_at);
+    assert.match(body.notes.join(" "), /crossed the finish line/);
   } finally {
     await db.query(
       `update war_week_clan set finish_time = null
