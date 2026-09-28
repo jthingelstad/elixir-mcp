@@ -4613,3 +4613,12 @@ between those promises and the code.
   flight breaks: the console reads `#login_token=` as well as
   `?login_token=` (this PR), the relay then mints the fragment, and one
   link lifetime (15 minutes) later the query form is dropped.
+- **Step 1 deployed** 2026-09-28 ~22:02Z (5:02 PM CT) from `00158ef0`
+  (PR #133): migrations 193, none new; smoke green; `--acceptance=game`
+  87 cases, 0 failed (the acceptance agent's service token, owned by
+  the owner, passes the new owner check). The live console bundle reads
+  the fragment. The same PR fixed a `participation-size.test.mjs` flake
+  (`days_since_battle` stepping between two reads seconds apart).
+- **Step 2:** the relay mints `/signin#login_token=` (PR below). Step 3,
+  dropping the query form from the console, waits one link lifetime
+  (15 minutes) after step 2 is live.
