@@ -39,6 +39,7 @@ import {
   statements,
   ledger,
   warDrift,
+  roleHistoryCensus,
   battleFidelityCensus,
   modeShapeCensus,
   enumCensus,
@@ -345,6 +346,11 @@ async function dispatch(event) {
       process.env.DATABASE_URL,
       event.feedback_respond,
     );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.role_history_census) {
+    const result = await roleHistoryCensus(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
     return result;
   }
