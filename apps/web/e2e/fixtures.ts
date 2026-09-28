@@ -2,8 +2,9 @@ import type { Page, Route } from "@playwright/test";
 import { STATUS } from "./status-fixture.ts";
 
 /** A signed-in person with one claimed player and the signals the rail
- *  reads: a count on Tracking, an unread dot on Activity, two
- *  connections. */
+ *  reads: a count on Tracking, an unread dot on Timeline (one item
+ *  pending, and the fixture timeline's one item past a null read_to),
+ *  two connections. */
 export const ME = {
   authenticated: true,
   is_admin: false,

@@ -152,6 +152,66 @@ test.describe("signed in", () => {
     await accessible(page, "requests log");
   });
 
+  test("a read timeline has no unread dot and its rows say read; an empty week says so", async ({
+    page,
+  }) => {
+    // Every item is at or before the read pointer and nothing is pending:
+    // the timeline contract's read case (me.signals.timeline_pending and
+    // GET /api/me/timeline's read_to).
+    let items: Record<string, unknown>[] = [
+      {
+        at: "2026-09-12T15:00:00Z",
+        subject_tag: "#20JJJ2CCRU",
+        subject_name: "King Thing",
+        kind: "battle_session",
+        section: "battles",
+        text: "Played a battle session.",
+        facts: { battles: 3 },
+      },
+    ];
+    await mockApi(page, {
+      ...signedIn(),
+      "GET /api/me": [
+        200,
+        { ...ME, signals: { ...ME.signals, timeline_pending: 0 } },
+      ],
+      "GET /api/me/timeline": () => [
+        200,
+        { timeline: items, read_to: "2026-09-12T15:00:00Z" },
+      ],
+    });
+    await page.goto("/account/timeline");
+    const rail = page.locator(".rail");
+    await expect(rail).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Timeline",
+    );
+    const session = page.getByRole("row").filter({
+      hasText: "Played a battle session.",
+    });
+    await expect(session).toContainText("read");
+    await expect(session).not.toContainText("unread");
+    await expect(
+      rail.getByRole("img", { name: "Unread notifications" }),
+    ).toHaveCount(0);
+    await rendered(page);
+    await accessible(page, "timeline, read");
+
+    // A quiet week: no rows, the empty line, and still no dot.
+    items = [];
+    await page.reload();
+    await expect(
+      page.getByText(/^Nothing in the last seven days/),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("row").filter({ hasText: "unread" }),
+    ).toHaveCount(0);
+    await expect(
+      rail.getByRole("img", { name: "Unread notifications" }),
+    ).toHaveCount(0);
+    await rendered(page);
+  });
+
   test("Status: the service page draws the capture charts and auto-refresh is off and visible", async ({
     page,
   }) => {
