@@ -3940,3 +3940,53 @@ kit only (no tool, contract or JSON API change).
   - a signed-in walk: a Cmd-click on a record link opens a new tab, and
     a live war-week page shows all five clans' standings;
   - Elixir Clan's kit pin bump (its own PR; merging Clan deploys it).
+
+## 2026-09-27 - #73 (A12): edge caching, site publishing and feed fixes
+
+Review 2026-09-27 §5.4, §7.6, §7.7 and §8.4. Every line reference
+re-verified against d99b0e66; all six parts still held.
+
+- **Edge cache.** One `/api/public/*` behaviour (CachingOptimized,
+  GET/HEAD, no origin request policy), first in the list, replaces the
+  `/status` and `/stats` behaviours of #23. `/cards`, `/cards/*` and
+  `/efficiency` sent `max-age` but missed every time under `/api/*`.
+  A test holds every `/api/public` route to GET with its own `max-age`:
+  CachingOptimized keeps a response with no Cache-Control for a day.
+  Smoke now requires an edge Hit on `/api/public/cards` as well as status.
+- **Publishing** (`infra/scripts/lib/site-publish.mjs`). The steps run in
+  order: assets without `--delete`, documents with `--delete` but
+  excluding `assets/`, the `.txt` charset rewrite (which now restates
+  Cache-Control), the invalidation, then a prune. The prune removes an
+  asset once no deploy has shipped it for 14 days.
+  One deviation from the issue text: only Vite's content-hashed chunks
+  are `immutable`. The site's own assets (`site.css`, the rail scripts,
+  card art, fonts) keep one name and are busted by `?v=`, and
+  CachingOptimized leaves the query string out of the cache key. Marked
+  immutable, a browser could hold old bytes under a new `?v=` for a
+  year. They get `max-age=0, must-revalidate`, as the documents do.
+- **CI builds the site once.** It is built in the site workspace's test,
+  inside `npm run verify`. validate.yml no longer builds it again, and
+  in CI the Playwright webServer only serves the tree; locally it still
+  builds first.
+- **Feeds.** `_data/feedItems.js` takes the newest 50 of `updatesView`,
+  so contract versions are included. Each GUID is the entry's
+  `/updates/<slug>` page (`isPermaLink="true"`), and there is a new
+  `/feed.json` (JSON Feed 1.1). A site test checks for unique,
+  index-free GUIDs that resolve to pages, and for the same items in both
+  feeds. Dropping the redundant `| esc` also fixed titles that were
+  escaped twice (`&amp;amp;`). What's new announces the one-time replay.
+- **Consistency.** The river-race log window is "ten weeks"
+  (cr-agent-api-docs `bc6be0f`) on the four surfaces. The builders'
+  "Publish your own stats" example now sets up an agent connection,
+  because `/api/v1` serves neither `war_history` nor `clans_standings`.
+  A trace found no other surface stating the window or pointing
+  builders at a service key for those reads. The acceptance bite
+  `167-2-elixir_examples.json` keeps the old wording because it
+  captures a past answer. Widening `clans:read` is still Jamie's call
+  (§7.7), and nothing was added for it.
+- **Glue.** The endpoint enum lists all 15 archived endpoints, which
+  match the live `payloads/endpoint=` prefixes (read 03:40Z). It is
+  pinned to `ARCHIVED_ENDPOINTS` (the ingest projector keys) by
+  `services/ingest/test/archive.test.mjs`.
+- Deploy scope: no acceptance. The changes are stack, site and CI only,
+  and no tool family changed.

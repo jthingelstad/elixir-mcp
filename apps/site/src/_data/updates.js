@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-09-27",
+    title:
+      "The updates feed keeps its addresses, and carries contract versions",
+    body: 'Each item in the updates feed now has a permanent address: its own page under /updates. It used to carry a number that shifted every time something new shipped, so feed readers showed old items as new again, and the links went nowhere. Because every address changed this once, your reader may show the newest 50 items as new one last time. The feed now includes the tool contract versions beside the product updates, holds the newest 50, and has a JSON Feed twin at /feed.json. Also in this release: the public card pages and the collection-efficiency numbers are served from the edge cache instead of being worked out again on every visit; a deploy no longer removes files that an open console still needs; the "Publish your own stats" example points at an agent connection, since war history and standings are MCP tools the JSON API does not serve; and the game\'s river-race log is described as ten weeks, not twenty. No change to the tools.',
+  },
+  {
+    date: "2026-09-27",
     title: "Console links open in a new tab, and a refused change says so",
     body: "Every record link in the console is now a real link: Cmd-click, Ctrl-click or a middle click opens it in a new tab, it can be focused from the keyboard, and its address can be copied. Buttons that do something, like Dismiss or Send another email, are buttons. When the console asks Elixir to change something (revoking a device or an agent, signing out, choosing a primary player, a nickname, an admin decision) and Elixir refuses or cannot be reached, the page now says so beside the button instead of looking as if it worked, and it keeps showing the state as it really is. In Explore, a war week opens by its season and week however old it is, and shows the race itself: every clan's standings, the race day by day, and each member's points and decks. Looking up a tag now costs one call, not two. No change to the tools.",
   },
