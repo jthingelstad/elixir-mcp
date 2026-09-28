@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWrite } from "@elixir-mcp/client";
 import {
   agoSeconds,
@@ -89,12 +89,25 @@ async function fetchRecord(kind, id) {
     case "collection":
       return call("collections_get", { collection: id });
     case "week": {
+      // The exact week, by name (review 2026-09-27 §7.5). This read the
+      // last 12 seasons and searched them, so an older week answered
+      // "not in the recorded log" although the record held it, and the
+      // page could show none of the week's own tables.
       const [clan, season, section] = id.split("~");
       const res = await call("war_history", {
         clan_tag: decTag(clan),
-        seasons: 12,
+        season_id: Number(season),
+        section_index: Number(section),
       });
-      return { ...res, weekKey: { season, section } };
+      if ((res.body.weeks ?? []).length === 0) {
+        // The tool says which side of the record the week is on.
+        const e = new Error(
+          res.body.notes?.[0] ?? "That war week is not in the recorded log.",
+        );
+        e.code = "not_found";
+        throw e;
+      }
+      return res;
     }
     case "list": {
       const [what, key] = id.split(":");
@@ -270,6 +283,13 @@ function Lookup({ me, navigate, browse }) {
   const [busy, setBusy] = useState(false);
   const collections = useExploreCollections().data ?? [];
   const corpus = usePublicStats().data?.totals ?? null;
+  const queryClient = useQueryClient();
+
+  // The probe that resolved a tag IS the record's call (review 2026-09-27
+  // §7.5): seed the record page's cache with it, under the key and args
+  // fetchRecord uses, so a lookup costs one call and not two.
+  const seed = (kind, id, tool, args, body) =>
+    queryClient.setQueryData(["explore", kind, id], { tool, args, body });
 
   const go = useCallback(
     (kind, recId) => {
@@ -359,12 +379,22 @@ function Lookup({ me, navigate, browse }) {
           return;
         }
         if (p.ok && !p.data.is_error) {
-          go("player", encTag(tag));
+          const id = encTag(tag);
+          seed(
+            "player",
+            id,
+            "players_summary",
+            { player_tag: id },
+            p.data.body,
+          );
+          go("player", id);
           return;
         }
         const c = await api.explore("clans_roster", { clan_tag: tag });
         if (c.ok && !c.data.is_error) {
-          go("clan", encTag(tag));
+          const id = encTag(tag);
+          seed("clan", id, "clans_roster", { clan_tag: id }, c.data.body);
+          go("clan", id);
           return;
         }
         // Not a recorded tag - maybe it was a NAME all along ("tyler").
@@ -696,6 +726,59 @@ function saveTrail(t) {
   sessionStorage.setItem("elixir-trail", JSON.stringify(t));
 }
 
+/** A record's table: plain rows, and a reference cell is a Link. */
+function RecordTable({ table }) {
+  return (
+    <div className="table__scroll" tabIndex={0}>
+      <table className="table" style={{ minWidth: "640px" }}>
+        <thead>
+          <tr>
+            {table.cols.map((c) => (
+              <th key={c.label} className={c.num ? "num" : undefined}>
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, i) => (
+            <tr key={i}>
+              {row.map((cell, j) => (
+                <td key={j} className={table.cols[j].num ? "num" : undefined}>
+                  {cell.href ? (
+                    <Link
+                      className={cell.mono ? "tag" : undefined}
+                      to={cell.href}
+                      style={cell.style}
+                    >
+                      {cell.text}
+                    </Link>
+                  ) : (
+                    <span
+                      className={
+                        cell.outcome
+                          ? `outcome outcome--${cell.outcome}`
+                          : cell.mono
+                            ? "tag"
+                            : cell.nil
+                              ? "nil"
+                              : undefined
+                      }
+                      style={cell.style}
+                    >
+                      {cell.text}
+                    </span>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function RecordPage({ me, kind, rawId }) {
   const [raw, setRaw] = useState(false);
   const href = `/explore/${kind}/${rawId}`;
@@ -810,56 +893,7 @@ function RecordPage({ me, kind, rawId }) {
         <section>
           {/* Bare on the page: a record's table is interface, and a card
               around it makes the page read as a report. */}
-          <div className="table__scroll" tabIndex={0}>
-            <table className="table" style={{ minWidth: "640px" }}>
-              <thead>
-                <tr>
-                  {view.table.cols.map((c) => (
-                    <th key={c.label} className={c.num ? "num" : undefined}>
-                      {c.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {view.table.rows.map((row, i) => (
-                  <tr key={i}>
-                    {row.map((cell, j) => (
-                      <td
-                        key={j}
-                        className={view.table.cols[j].num ? "num" : undefined}
-                      >
-                        {cell.href ? (
-                          <Link
-                            className={cell.mono ? "tag" : undefined}
-                            to={cell.href}
-                            style={cell.style}
-                          >
-                            {cell.text}
-                          </Link>
-                        ) : (
-                          <span
-                            className={
-                              cell.outcome
-                                ? `outcome outcome--${cell.outcome}`
-                                : cell.mono
-                                  ? "tag"
-                                  : cell.nil
-                                    ? "nil"
-                                    : undefined
-                            }
-                            style={cell.style}
-                          >
-                            {cell.text}
-                          </span>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <RecordTable table={view.table} />
           {view.note && <div className="panel__note">{view.note}</div>}
         </section>
       )}
@@ -957,6 +991,13 @@ function RecordPage({ me, kind, rawId }) {
           )}
         </div>
       )}
+
+      {view.tables?.map((t) => (
+        <section key={t.title} className="mt-5">
+          <h2 className="panel-title mb-2">{t.title}</h2>
+          <RecordTable table={t} />
+        </section>
+      ))}
 
       {/* Every record shows the call that produced it. The parity claim
           is the point: this is the same call your agent makes, with your
@@ -1261,31 +1302,51 @@ function buildView(kind, rawId, res, me, zone) {
   }
 
   if (kind === "week") {
-    const wk = (b.weeks ?? []).find(
-      (w) =>
-        String(w.season_id) === res.weekKey?.season &&
-        String(w.section_index) === res.weekKey?.section,
+    // fetchRecord asked for this exact week and refuses an empty answer.
+    const wk = b.weeks[0];
+    const week = Number(wk.section_index) + 1;
+    const n = (v) =>
+      v === null || v === undefined
+        ? { text: "—", nil: true }
+        : { text: String(v) };
+    const clan = (c) => ({
+      text: c.name ?? c.clan_tag,
+      href: c.clan_tag ? `/explore/clan/${encTag(c.clan_tag)}` : undefined,
+    });
+    const standings = b.standings ?? [];
+    const days = (b.days ?? []).flatMap((d) =>
+      (d.standings ?? []).map((c) => [
+        { text: `Day ${d.war_day}` },
+        n(c.rank),
+        clan(c),
+        n(c.points_earned),
+        n(c.progress_end),
+        n(c.defenses_remaining),
+      ]),
     );
-    if (!wk) {
-      const e = new Error("war week not in the recorded log");
-      e.code = "not_found";
-      throw e;
-    }
+    const members = b.member_weeks ?? [];
     return {
       kindLabel: "WAR WEEK",
-      crumb: `S${wk.season_id} W${Number(wk.section_index) + 1}`,
-      title: `Season ${wk.season_id}, week ${Number(wk.section_index) + 1}`,
+      crumb: `S${wk.season_id} W${week}`,
+      title: `Season ${wk.season_id}, week ${week}`,
       tag: b.clan_tag,
-      chip: wk.is_colosseum ? { label: "colosseum", cls: "chip--warn" } : null,
-      sub: "One recorded river-race week for this clan.",
+      chip: wk.is_colosseum
+        ? { label: "colosseum", cls: "chip--warn" }
+        : wk.in_progress
+          ? { label: "in progress" }
+          : null,
+      sub: "One recorded river race: the clans in it, day by day, and who fought.",
       fields: [
         { label: "season", value: String(wk.season_id) },
-        { label: "week", value: String(Number(wk.section_index) + 1) },
-        ...((wk.our_rank ?? wk.rank)
-          ? [{ label: "final rank", value: String(wk.our_rank ?? wk.rank) }]
+        { label: "week", value: String(week) },
+        ...(wk.our_rank !== null && wk.our_rank !== undefined
+          ? [{ label: "final rank", value: String(wk.our_rank) }]
           : []),
-        ...((wk.our_fame ?? wk.fame) !== undefined
-          ? [{ label: "boat fame", value: String(wk.our_fame ?? wk.fame) }]
+        ...(wk.our_fame !== null && wk.our_fame !== undefined
+          ? [{ label: "boat fame", value: String(wk.our_fame) }]
+          : []),
+        ...(wk.closed_at
+          ? [{ label: "closed", value: fmt(wk.closed_at) }]
           : []),
         {
           label: "clan_tag",
@@ -1296,7 +1357,71 @@ function buildView(kind, rawId, res, me, zone) {
         },
       ],
       tiles: [],
-      note: b.note,
+      // The week's own tables, plain: every clan in the race, the race's
+      // closed days, and every recorded participant (review §7.5).
+      tables: [
+        {
+          title: "Standings",
+          cols: [
+            { label: "RANK", num: true },
+            { label: "CLAN" },
+            { label: "TAG" },
+            { label: "FAME", num: true },
+            { label: "WAR TROPHIES", num: true },
+            { label: "TROPHY CHANGE", num: true },
+            { label: "FINISHED" },
+          ],
+          rows: standings.map((c) => [
+            n(c.rank),
+            clan(c),
+            { text: c.clan_tag, mono: true },
+            n(c.fame),
+            n(c.clan_war_trophies),
+            n(c.trophy_change),
+            c.finish_time
+              ? { text: fmt(c.finish_time), mono: true }
+              : { text: "—", nil: true },
+          ]),
+        },
+        ...(days.length > 0
+          ? [
+              {
+                title: "Day by day",
+                cols: [
+                  { label: "DAY" },
+                  { label: "RANK", num: true },
+                  { label: "CLAN" },
+                  { label: "POINTS", num: true },
+                  { label: "PROGRESS", num: true },
+                  { label: "DEFENSES LEFT", num: true },
+                ],
+                rows: days,
+              },
+            ]
+          : []),
+        {
+          title: "Members",
+          cols: [
+            { label: "MEMBER" },
+            { label: "TAG" },
+            { label: "POINTS", num: true },
+            { label: "DECKS USED", num: true },
+            { label: "BOAT ATTACKS", num: true },
+            { label: "REPAIR", num: true },
+          ],
+          rows: members.map((m) => [
+            {
+              text: m.name ?? m.player_tag,
+              href: `/explore/player/${encTag(m.player_tag)}`,
+            },
+            { text: m.player_tag, mono: true },
+            n(m.points),
+            n(m.decks_used),
+            n(m.boat_attacks),
+            n(m.repair_points),
+          ]),
+        },
+      ],
     };
   }
 
