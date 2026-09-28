@@ -13,6 +13,7 @@ import { emitEvent } from "../../ingest/src/events.mjs";
 import { fixture, scratchDb, seedReceipt } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
+import { storyId } from "../src/activity/entries.mjs";
 
 /** A crossing battle as ROWS (0124: an event names its battle by id and
  *  the timeline describes it from the record): the observer on side 0
@@ -880,4 +881,210 @@ test("player_tag keeps one member's items, before the cap; a bad tag is refused 
     player_tag: "#NOPE!!",
   });
   assert.equal(bad.isError, true);
+});
+
+/** One battle of a sitting, as rows: learned at `createdAt`. */
+async function seedSittingBattle(
+  db,
+  { id, player, at, createdAt, outcome = "win", clanTag = null },
+) {
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, created_at)
+     values ($1, $2, 'PvP', 'pvp', $3)`,
+    [id, at, createdAt],
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change, clan_tag, type, type_class)
+     values ($1, $2, $3, 0, $4, 0, $5, 'PvP', 'pvp')`,
+    [id, player, at, outcome, clanTag],
+  );
+}
+
+test("9.15.0: one sitting read through overlapping windows is one story, its revision the battles so far (#111)", async () => {
+  // Six battles four minutes apart; the first three learned at 12:10,
+  // the rest at 12:30. The player path builds a session from the battles
+  // a window learned, so the later window's session starts at battle 3.
+  const base = Date.parse("2026-09-07T12:00:00Z");
+  for (let i = 0; i < 6; i++)
+    await seedSittingBattle(ctx.db, {
+      id: `sit-${i}`,
+      player: PROFILE,
+      at: new Date(base + i * 4 * 60_000).toISOString(),
+      createdAt: i < 3 ? "2026-09-07T12:10:00Z" : "2026-09-07T12:30:00Z",
+    });
+  const read = async (from, to) => {
+    const { body, isError } = await call("elixir_timeline", {
+      from,
+      to,
+      kinds: ["battle_session"],
+      mark_read: false,
+    });
+    assert.equal(isError, false, JSON.stringify(body));
+    const mine = body.timeline.filter((it) => it.subject_tag === PROFILE);
+    assert.equal(mine.length, 1, JSON.stringify(body.timeline));
+    return mine[0];
+  };
+  const early = await read("2026-09-07T12:05:00Z", "2026-09-07T12:15:00Z");
+  const late = await read("2026-09-07T12:20:00Z", "2026-09-07T12:35:00Z");
+  const whole = await read("2026-09-07T12:05:00Z", "2026-09-07T12:35:00Z");
+  assert.match(early.id, /^tl_[0-9a-f]{20}$/);
+  assert.equal(early.facts.battles, 3);
+  assert.equal(
+    late.facts.started_at,
+    new Date(base + 3 * 4 * 60_000).toISOString(),
+    "the late window's session starts inside the sitting",
+  );
+  assert.equal(late.id, early.id, "the same sitting, the same story");
+  assert.equal(whole.id, early.id);
+  assert.equal(early.revision, 3);
+  assert.equal(late.revision, 6, "grown: every battle from the first");
+  assert.equal(whole.revision, 6);
+  assert.equal(
+    early.id,
+    storyId("sitting", PROFILE, new Date(base).toISOString()),
+    "anchored at the sitting's first battle",
+  );
+});
+
+test("9.15.0: a standout crossing 20 then 40 battles keeps its id and raises its revision; the member's session shares it (#111)", async () => {
+  const { rows: mem } = await ctx.db.query(
+    `select cm.player_tag from clan_membership cm join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null
+      order by cm.player_tag offset 1 limit 1`,
+    [CLAN],
+  );
+  const member = mem[0].player_tag;
+  // Forty battles a minute apart, alternating, so only the battles rung
+  // is crossed: 0-19 learned at 13:25, 20-39 at 13:45.
+  const base = Date.parse("2026-09-08T13:00:00Z");
+  for (let i = 0; i < 40; i++)
+    await seedSittingBattle(ctx.db, {
+      id: `rung-${i}`,
+      player: member,
+      at: new Date(base + i * 60_000).toISOString(),
+      createdAt: i < 20 ? "2026-09-08T13:25:00Z" : "2026-09-08T13:45:00Z",
+      outcome: i % 2 ? "loss" : "win",
+      clanTag: CLAN,
+    });
+  const standout = async (from, to) => {
+    const { body } = await call("elixir_timeline", {
+      from,
+      to,
+      kinds: ["session_standout"],
+      mark_read: false,
+    });
+    const found = body.timeline.filter((it) => it.facts.player_tag === member);
+    assert.equal(found.length, 1, JSON.stringify(body.timeline));
+    return found[0];
+  };
+  const twenty = await standout("2026-09-08T13:20:00Z", "2026-09-08T13:30:00Z");
+  const forty = await standout("2026-09-08T13:40:00Z", "2026-09-08T13:50:00Z");
+  assert.deepEqual(twenty.facts.newly, ["battles>=20"]);
+  assert.deepEqual(forty.facts.newly, ["battles>=40"]);
+  assert.equal(forty.id, twenty.id, "the same sitting, grown");
+  assert.equal(twenty.revision, 20);
+  assert.equal(forty.revision, 40);
+  // A wider window that holds both crossings is the same story at 40.
+  const both = await standout("2026-09-08T13:20:00Z", "2026-09-08T13:50:00Z");
+  assert.equal(both.id, twenty.id);
+  assert.equal(both.revision, 40);
+  // The member's own session of that sitting is the same story.
+  const { body } = await call("elixir_timeline", {
+    from: "2026-09-08T13:40:00Z",
+    to: "2026-09-08T13:50:00Z",
+    kinds: ["battle_session", "session_standout"],
+    player_tag: member,
+    mark_read: false,
+  });
+  const kinds = Object.fromEntries(body.timeline.map((it) => [it.kind, it]));
+  assert.equal(kinds.battle_session?.id, twenty.id, JSON.stringify(body));
+  assert.equal(kinds.battle_session.revision, 40);
+  assert.equal(kinds.session_standout.id, twenty.id);
+});
+
+test("9.15.0: a duplicated ledger moment keeps one id whichever row a window holds; ledgers never collide (#111)", async () => {
+  // The same promotion written by two polls of one day (feedback #48).
+  for (const windowEnd of ["2026-09-09T07:22:00Z", "2026-09-09T16:22:00Z"])
+    await emitEvent(ctx.db, "ranked_promotion", {
+      tag: PROFILE,
+      payload: { from: 1, to: 2 },
+      windowEnd,
+    });
+  const promo = async (from, to) => {
+    const { body } = await call("elixir_timeline", {
+      from,
+      to,
+      kinds: ["ranked_promotion"],
+      mark_read: false,
+    });
+    // On the clan's timeline, as the member's moment (a player whose
+    // only news is a ledger moment is quiet on its own).
+    const found = body.timeline.filter(
+      (it) => it.subject_tag === PROFILE || it.facts.player_tag === PROFILE,
+    );
+    assert.equal(found.length, 1, JSON.stringify(body.timeline));
+    return found[0];
+  };
+  const both = await promo("2026-09-09T00:00:00Z", "2026-09-10T00:00:00Z");
+  const first = await promo("2026-09-09T07:00:00Z", "2026-09-09T08:00:00Z");
+  const second = await promo("2026-09-09T16:00:00Z", "2026-09-09T17:00:00Z");
+  const { rows: ids } = await ctx.db.query(
+    `select min(event_id)::text as id from player_event
+      where player_tag = $1 and event_type = 'ranked_promotion'
+        and window_end::date = '2026-09-09'`,
+    [PROFILE],
+  );
+  assert.equal(both.id, storyId("player_event", ids[0].id), "the lowest row");
+  assert.equal(first.id, both.id);
+  assert.equal(second.id, both.id, "the later row alone: the same story");
+  assert.equal(both.revision, 1, "a moment never grows");
+
+  // One sequence number in three ledgers: three stories.
+  const n = 910_001;
+  await ctx.db.query(
+    `insert into player_event (event_id, player_tag, event_type, timing, window_start, window_end, league_from, league_to)
+     overriding system value values ($1, $2, 'ranked_promotion', 'estimated', $3, $3, 2, 3)`,
+    [n, PROFILE, "2026-09-11T10:00:00Z"],
+  );
+  await ctx.db.query(
+    `insert into clan_event (event_id, clan_tag, event_type, timing, window_start, window_end, player_tag, role_before, role_after)
+     overriding system value values ($1, $2, 'role_changed', 'estimated', $3, $3, $4, 'member', 'elder')`,
+    [n, CLAN, "2026-09-11T10:00:00Z", PROFILE],
+  );
+  await ctx.db.query(
+    `insert into account_event (event_id, account_id, kind, detail, created_at)
+     overriding system value values ($1, $2, 'feedback_responded', '{}', $3)`,
+    [n, owner, "2026-09-11T10:00:00Z"],
+  );
+  const { body } = await call("elixir_timeline", {
+    from: "2026-09-11T09:00:00Z",
+    to: "2026-09-11T11:00:00Z",
+    kinds: [
+      "ranked_promotion",
+      "member_role_changed",
+      "account_feedback_responded",
+    ],
+    mark_read: false,
+  });
+  const byKind = Object.fromEntries(body.timeline.map((it) => [it.kind, it]));
+  assert.equal(
+    byKind.ranked_promotion?.id,
+    storyId("player_event", String(n)),
+    JSON.stringify(body.timeline),
+  );
+  assert.equal(
+    byKind.member_role_changed?.id,
+    storyId("clan_event", String(n)),
+  );
+  assert.equal(
+    byKind.account_feedback_responded?.id,
+    storyId("account_event", String(n)),
+  );
+  assert.equal(
+    new Set(body.timeline.map((it) => it.id)).size,
+    body.timeline.length,
+    "no two ledgers' rows share an id",
+  );
+  for (const it of body.timeline)
+    assert.ok(!JSON.stringify(it).includes(String(n)), "no raw sequence");
 });

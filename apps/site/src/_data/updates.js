@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-28",
+    title: "Every timeline item says which story it tells",
+    body: 'An agent reading your timeline had no way to know it had already told a story: the same sitting read at two different times came back as two different items, and a sitting that grew from 20 battles to 40 looked like news or a repeat depending on the read. Each item now carries an id for the story, the same in every read, and a revision that goes up when the story grows. An agent, or a Discord bot, can post a story once, stay quiet when it sees it again, and say "and now..." when a sitting keeps going or crosses a new rung. The timeline guide has a short section on telling the story. Contract 9.15.0.',
+  },
+  {
+    date: "2026-09-28",
     title: "Unlocking an Evolution or Hero form is a moment",
     body: "Unlocking a card's Evolution or its Hero is the collection change players care about most, and the one the upgrade advice points at, but Elixir only kept which forms a card has and let the unlock pass without a word. From today it is a named moment: the timeline says \"unlocked Hero Valkyrie\", the week's summary lists it, the tracking report carries it, and your own or an alt's first unlock of each form gets a milestone mail. It starts now: a form unlocked before today still shows in the collection, but was never seen happen, so it has no moment. Contract 9.14.0.",
   },
