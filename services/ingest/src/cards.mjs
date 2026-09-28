@@ -10,14 +10,15 @@
  * Collection events follow the badge rule: the upsert reports what it
  * changed, the first observation of a player is silent (a newly added
  * player arrives with a whole collection, and that is history, not
- * news), and the two things worth a nod get two topics - card_unlocked
- * (a card the player did not have) and card_leveled (a level went up).
+ * news), and the things worth a nod get three topics - card_unlocked
+ * (a card the player did not have), card_leveled (a level went up) and
+ * card_form_unlocked (an Evolution or Hero form newly unlocked, #110).
  * Counts ticking toward the next level are recorded, never announced.
  */
 
 import { emitEvent } from "./events.mjs";
 import { ensureCards } from "./deck-cards.mjs";
-import { displayLevel } from "@elixir-mcp/contracts";
+import { CARD_FORM_BITS, displayLevel } from "@elixir-mcp/contracts";
 
 /** Upsert the catalog: items are cards, supportItems tower troops. A
  *  card never leaves the table; a row is touched only when a field
@@ -150,7 +151,7 @@ export async function projectPlayerCards(
   await ensureCards(db, seen, fetchedAt);
   const { rows: changed } = await db.query(
     `with prior as (
-       select card_id, level from player_card where player_tag = $1
+       select card_id, level, evolution_level from player_card where player_tag = $1
      ),
      upserted as (
        insert into player_card (player_tag, card_id, level, count, evolution_level, star_level, first_seen_at, observed_at)
@@ -165,48 +166,74 @@ export async function projectPlayerCards(
          and (player_card.level, player_card.count, player_card.evolution_level, player_card.star_level)
              is distinct from
              (excluded.level, excluded.count, excluded.evolution_level, excluded.star_level)
-       returning card_id, level
+       returning card_id, level, evolution_level
      )
      select u.card_id, u.level as new_level, p.level as prior_level,
+            u.evolution_level as new_forms, p.evolution_level as prior_forms,
             (p.card_id is null) as is_new,
             (select count(*) from prior) as prior_count
        from upserted u left join prior p on p.card_id = u.card_id`,
     [playerTag, JSON.stringify(rows), fetchedAt],
   );
   // Ledger rows for the collection's moments (review 2026-09-13 Part IV):
-  // a card the player did not have, named; a level that went up, named.
-  // The timeline shows unlocks and keeps level-ups as a count; the first
+  // a card the player did not have, named; a level that went up, named;
+  // a form newly unlocked, named with its form (#110). The timeline shows
+  // unlocks and forms and keeps level-ups as a count; the first
   // observation writes nothing.
   const firstObservation = Number(changed[0]?.prior_count ?? 0) === 0;
   if (!firstObservation) {
+    const leveled = (row) =>
+      row.is_new ||
+      (typeof row.new_level === "number" &&
+        typeof row.prior_level === "number" &&
+        row.new_level > row.prior_level);
+    // evolutionLevel is a bit field (1 Evolution, 2 Hero; 3 both): each
+    // bit set now and not before is one unlock. A form never goes away,
+    // so a bit that clears is not news.
+    const newForms = (row) =>
+      Object.entries(CARD_FORM_BITS)
+        .filter(
+          ([, bit]) =>
+            ((row.new_forms ?? 0) & bit) !== 0 &&
+            ((row.prior_forms ?? 0) & bit) === 0,
+        )
+        .map(([form]) => form);
     const moved = changed.filter(
-      (row) =>
-        row.is_new ||
-        (typeof row.new_level === "number" &&
-          typeof row.prior_level === "number" &&
-          row.new_level > row.prior_level),
+      (row) => leveled(row) || newForms(row).length > 0,
     );
-    if (moved.length > 0) {
+    if (moved.length > 0 && moments) {
       const { rows: named } = await db.query(
         `select card_id, name, rarity from card where card_id = any($1::int[])`,
         [moved.map((r) => r.card_id)],
       );
       const nameOf = new Map(named.map((r) => [r.card_id, r]));
       for (const row of moved) {
-        if (!moments) break;
         const card = nameOf.get(row.card_id);
-        await emitEvent(db, row.is_new ? "card_unlocked" : "card_leveled", {
-          tag: playerTag,
-          windowEnd: fetchedAt,
-          payload: {
-            card_id: row.card_id,
-            name: card?.name ?? null,
-            rarity: card?.rarity ?? null,
-            ...(row.is_new
-              ? {}
-              : { level: row.new_level, prior_level: row.prior_level }),
-          },
-        });
+        const named = {
+          card_id: row.card_id,
+          name: card?.name ?? null,
+          rarity: card?.rarity ?? null,
+        };
+        if (leveled(row))
+          await emitEvent(db, row.is_new ? "card_unlocked" : "card_leveled", {
+            tag: playerTag,
+            windowEnd: fetchedAt,
+            payload: {
+              ...named,
+              ...(row.is_new
+                ? {}
+                : { level: row.new_level, prior_level: row.prior_level }),
+            },
+          });
+        // Stamped at the read that saw it: the unlock happened no later
+        // than this, after a read the record may not hold (collectors
+        // skip an unchanged profile), so no earlier bound is written.
+        for (const form of newForms(row))
+          await emitEvent(db, "card_form_unlocked", {
+            tag: playerTag,
+            windowEnd: fetchedAt,
+            payload: { ...named, form },
+          });
       }
     }
   }

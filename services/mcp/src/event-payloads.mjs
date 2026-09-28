@@ -11,7 +11,13 @@
  * looked up that the keys do not name.
  */
 
+import { CARD_FORM_BITS } from "@elixir-mcp/contracts";
 import { finishInstant } from "./time.mjs";
+
+/** A form's bit (0192: step on card_form_unlocked) back to its name. */
+const FORM_OF_BIT = new Map(
+  Object.entries(CARD_FORM_BITS).map(([form, bit]) => [bit, form]),
+);
 
 const ROLE_RANK = { member: 0, elder: 1, coLeader: 2, leader: 3 };
 
@@ -119,6 +125,14 @@ export async function hydratePlayerEvents(db, rows) {
           card_id: r.card_id,
           name: card?.name ?? null,
           rarity: card?.rarity ?? null,
+        });
+        break;
+      case "card_form_unlocked":
+        r.payload = pick({
+          card_id: r.card_id,
+          name: card?.name ?? null,
+          rarity: card?.rarity ?? null,
+          form: FORM_OF_BIT.get(r.step) ?? null,
         });
         break;
       case "badge_earned":
