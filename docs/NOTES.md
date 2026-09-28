@@ -4683,3 +4683,59 @@ Read-back, reads only: `/api/public/status` `health.ok: true`;
 Pending (natural events): the first milestone mail sent after a gap
 longer than 26 hours; a verification that reaches the ceiling (the
 wizard's note), which may never happen in normal use.
+
+## 2026-09-28 - #131: the copy pass after the policy pages were restated
+
+Copy only, no behaviour change: the pages and console copy that still
+carried policy-grade promises written against the old privacy and terms
+pages now say what the code does, in general terms, and link to
+`/docs/privacy` rather than restating it. Each claim below was checked
+against the code first. No MCP contract or JSON API change; no What's
+new entry (nothing a user would notice as a change in the service).
+
+- **Email** (`email.md`, `EmailPage.jsx`): the footer link is a *turn
+  off* link that opens a page with one button (`GET
+  /api/email/unsubscribe`); only the mail client's own unsubscribe is one
+  click. The written issues' lint checks the numbers against the brief
+  (it skips single digits, years and structural numbers), not "every
+  number". The counting section is general and no longer points at a
+  privacy "bucket two". Elixir Clan's note: the app needs no address to
+  mail you (a family app may still be allowed the address at sign-in).
+- **Support**: the roster is read often while members play, not every
+  15 minutes (`recording.md`'s cadence table); the AI and backups lines
+  match the privacy page.
+- **Family**: the retired Elixir Agent entry is gone (`/family/agent`
+  with it); the Discord bot entry describes the self-hosted
+  elixir-mcp-discord; "each reads the hub" is now "where one of ours
+  needs the record, it reads the hub". `about.md`'s family line matches.
+- **Operators**: the credit opt-out promise is dropped (nothing
+  implements it); a quarantine tells the maintainer, not the operator;
+  the lifecycle can go back from draining to probation, and a
+  quarantine drains automatically.
+- **Limits**: the console sign-in limit answers `limited: true` with a
+  message (not silent); the query budget lists all nine budgeted tools;
+  retention adds what a call-log row keeps for its life and a database
+  backups row (7-day RDS retention).
+- **Connections, integrations, roles, verify**: the family-client
+  definition after 0185; tracking also changes from an agent's tools; a
+  JSON API family app shows no calls on Clients (its rows carry no
+  `oauth_family_id`); a person's `/api/v1` grant is the other credential
+  that door takes; a person's tool operation is logged as the tool call;
+  roles' read rule names the attested-fact and account-data exceptions,
+  feedback has no limit of its own (an agent's is one tool call), and
+  the admin and owner lines match the routes; verify's start limit is per
+  account and per player, and verification also gates a family app's
+  clan mail.
+- **Console**: Explore's "does not crawl" names the leaderboards;
+  Profile's timezone and tier notes; Verify's expiry says an hour and the
+  same eight cards (it said twenty minutes and a fresh deck);
+  SignIn's "the corpus is public" and what approval does with the tag;
+  Connections' "all of it spends your daily budget" excepts the family
+  apps.
+- **Sign-in mail**: the consent line says the client may "act for you as
+  you approve on the next page".
+- **DECISIONS**: "Four buckets, SETTLED" is renamed for its substance,
+  and the address line no longer cites privacy.md's wording.
+
+Left for Jamie (#131): `about.md` names a person in its "Who runs it"
+line while the privacy and terms pages no longer do.

@@ -33,8 +33,8 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 
 ## Privacy and measurement
 
-- **The account's address goes only to the Elixir family's own apps** — `account:email` is refused at authorize for any client that is not a provisioned family client (0185), and `/oauth/userinfo` checks again; privacy.md's "never shared" stays true. (2026-09-25; Jamie)
-- **Four buckets, SETTLED** — game data is public and recorded; your account is first-party; measurement is aggregate with "no per-recipient open or click, ever"; money is voluntary sponsorship that buys nothing. Never re-litigate. (2026-09-19; Jamie)
+- **The account's address goes only to the Elixir family's own apps** — `account:email` is refused at authorize for any client that is not a provisioned family client (0185), and `/oauth/userinfo` checks again, so an address is never shared outside the family. (2026-09-25; Jamie)
+- **What is kept and counted, SETTLED** — game data is public and recorded; your account is first-party; measurement is aggregate with "no per-recipient open or click, ever"; money is voluntary sponsorship that buys nothing. Never re-litigate. (2026-09-19; Jamie)
 - **Product identifiers are not tracking identifiers** — a send id or call id is a pointer its holder can open, not measurement; supersedes "no per-recipient identifier in links" and the first footer pass. (2026-09-19; Jamie)
 - **What we never do** — no ads, brokers, selling or sharing, engagement scoring, automation on read state, or commercial targeting from game data. (2026-09-19; Jamie)
 - **Universal reads** — all recorded game data is readable by every approved account; account data stays private; supersedes the terms-review "own context only" rule. (2026-09-05; Jamie)
