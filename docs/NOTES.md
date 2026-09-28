@@ -4250,8 +4250,7 @@ fixture's tagged clanMate2v2 under `casual`.
   describes the event); it is noted in the code and in battles.md. If
   Jamie wants tagged friendlies in the casual meta, it is one clause
   plus a season re-derive. The rollup rows are re-derived by a new op,
-  `{rollup_regroup}` (census, then batches to `done`, then `{vacuum}`),
-  after the deploy.
+  `{rollup_regroup}` (census, then batches to `done`), after the deploy.
 - **Docs:** battles.md's `mode_group` row, the mode-group table, the
   event section (the note never named the pooled tags; it now points at
   the per-event view) and the meta section; the tool-change checklist's
@@ -4260,3 +4259,44 @@ fixture's tagged clanMate2v2 under `casual`.
 - Contract 9.12.8, a patch (behaviour correction; `by_mode` items
   declared). `battles_query` is the JSON API mirror: its rows'
   `mode_group` values change, its shape does not.
+
+### Deployed and read back
+
+- **Deploy.** PR #116 (`80db167e`, `cd40e3ac`), stack updated
+  13:58Z (8:58 AM CT), full acceptance (`modes.ts` is shared);
+  migrations applied 191, ran 0.
+- **`{rollup_regroup}`.** Census: 3,094 tagged clanmate battles, 2,374
+  event pairs misfiled. Two runs to `done` (282 + 93 batches), 2,374
+  pairs recomputed, 6,844 participant-battles refiled from `event` to
+  `casual`; census after: 0. `{vacuum}` refused the table (not on its
+  allowlist); at this size autovacuum absorbs it, and ops.md and the op's
+  comment now say so. The op is ready to retire with the next migrate
+  change.
+- **Acceptance, 1188 cases, 17 failed**, each triaged:
+  - gym/157.3 (standings casual 11 vs `battles_query` 15 for #VGC22YGP):
+    the rollup had not been regrouped yet; passes after the op.
+  - gym/187.4 (event 283 vs 287): amended for the ruling, the week's
+    four tagged clanMate2v2 friendlies are casual now.
+  - gym/188.1, 188.2 (`/[Ee]vent battles/`): amended to `/[Ee]vent tag/`;
+    the outside-meta disclosure names the tag, because the meta leaves
+    out every tagged battle and that is no longer "event battles". The
+    bites carry no such note, so both still fail on them.
+  - gym/285.2, 304.1: live cases; pass alone.
+  - gym/289.3, 337.1, 343.2: live cases whose world moved, as at 9.12.2
+    and 9.12.7; not this change's tools.
+  - budgets/meta-cards-corpus-week, catalogue/battles_meta_cards#1,
+    catalogue/battles_trends#1, catalogue/badges_rarity#1: the open
+    timing items (badges_rarity 4.6 s alone, trends 9.6 s alone, as at
+    9.12.7).
+  - catalogue/cards_archetype#docs, elixir_collectors#docs,
+    elixir_timeline#docs, war_history#notes: rare fields absent from this
+    run.
+- **Read-back.** `elixir_changelog` since 9.12.7 lists 9.12.8 and
+  `contract_version` is 9.12.8. #VGC22YGP, 2026-09-07 to 09-21, `group_by:
+  game_mode`: 2v2 League and Seasonal Trophy Road are separate titled
+  rows, and the clanMate2v2 rows carry no event tag. #C920YGLC2, from
+  09-21, `mode: event`: Royale Shuffle (`unknown`, #2C9J8QUU) rows under
+  event, one per mode, each holding one event tag. `/tools.json` carries
+  `event_title`, and `/updates` lists the entry.
+- **Pending natural check:** the next day's ingest writes new tagged
+  clanmate friendlies to `casual` (census stays 0).

@@ -20,7 +20,8 @@
  * until `done`, a deadlock retried. Rows only: no event, no moment.
  * `{"rollup_regroup": {"census": true}}` counts instead: the tagged
  * clanmate battles, and the event rollup pairs still misfiled.
- * Finish with `{vacuum: {table: "player_daily_battle_rollup"}}`.
+ * No `{vacuum}` after: the table is not on its allowlist, and the one
+ * run (2026-09-28, about 2,400 pairs) is small enough for autovacuum.
  */
 
 import pg from "pg";

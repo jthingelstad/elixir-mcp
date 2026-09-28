@@ -8491,12 +8491,13 @@
     "request_id": "4bd3c007-8211-4a32-92dc-985819394ca9",
     "assert": [
       {
-        "eq": ["modes_in_window.event.battles", 287]
+        "eq": ["modes_in_window.event.battles", 283]
       },
       {
         "absent": "modes_in_window.casual"
       }
-    ]
+    ],
+    "amended": "Amended for 9.12.8 (Jamie 2026-09-28, #109: a clanmate battle is casual even when it carries an event tag): four of the week's 287 tagged battles were clanMate2v2 friendlies, so event content is 283."
   },
   {
     "id": "188.1",
@@ -8515,9 +8516,10 @@
     "request_id": "44ae4b3b-5ecf-4c0e-9258-c23ce19cc36a",
     "assert": [
       {
-        "notes_match": "[Ee]vent battles"
+        "notes_match": "[Ee]vent tag"
       }
-    ]
+    ],
+    "amended": "Amended for 9.12.8 (Jamie 2026-09-28, #109: a clanmate battle is casual even when it carries an event tag): the meta still leaves out every tagged battle, which is no longer the same as event battles, so the disclosure names the event tag."
   },
   {
     "id": "188.2",
@@ -8536,9 +8538,10 @@
     "request_id": "57dfb084-5126-4278-86d9-3c6e87456106",
     "assert": [
       {
-        "notes_match": "[Ee]vent battles"
+        "notes_match": "[Ee]vent tag"
       }
-    ]
+    ],
+    "amended": "Amended for 9.12.8 (Jamie 2026-09-28, #109: a clanmate battle is casual even when it carries an event tag): the meta still leaves out every tagged battle, which is no longer the same as event battles, so the disclosure names the event tag."
   },
   {
     "id": "188.3",
