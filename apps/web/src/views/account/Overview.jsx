@@ -1,3 +1,4 @@
+import { Link } from "@elixir-mcp/ui";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useState } from "react";
 import { useBattleActivity, useMyClans } from "../../lib/queries.js";
@@ -21,10 +22,10 @@ import { ActivityGraph } from "../../components/ActivityGraph.jsx";
  */
 /** One row of the compact Players/Clans lists. A link, because the whole
  *  point of these lists is that they go to Tracking. */
-function CompactRow({ primary, secondary, note, onClick }) {
+function CompactRow({ primary, secondary, note, to }) {
   return (
-    <a
-      onClick={onClick}
+    <Link
+      to={to}
       style={{
         display: "flex",
         alignItems: "center",
@@ -51,11 +52,11 @@ function CompactRow({ primary, secondary, note, onClick }) {
       >
         {note}
       </span>
-    </a>
+    </Link>
   );
 }
 
-function ListHead({ title, navigate }) {
+function ListHead({ title }) {
   return (
     <div
       style={{
@@ -66,12 +67,12 @@ function ListHead({ title, navigate }) {
       }}
     >
       <span style={{ fontSize: "14px", fontWeight: 600 }}>{title}</span>
-      <a
+      <Link
         style={{ marginLeft: "auto", fontSize: "13px" }}
-        onClick={() => navigate("/account/tracking")}
+        to="/account/tracking"
       >
         Manage ›
-      </a>
+      </Link>
     </div>
   );
 }
@@ -83,7 +84,7 @@ function ListHead({ title, navigate }) {
  * the graphic without leaving the page. Each player's own record page
  * carries the same graphic beside its capture details.
  */
-function OverviewActivity({ players, navigate }) {
+function OverviewActivity({ players }) {
   const first = players.find((p) => p.is_primary) ?? players[0];
   const [tag, setTag] = useState(first?.player_tag ?? null);
   // Keyed on the tag, so switching players shows that player's loading
@@ -122,14 +123,12 @@ function OverviewActivity({ players, navigate }) {
             </span>
           )}
         </span>
-        <a
+        <Link
           style={{ marginLeft: "auto", fontSize: "13px" }}
-          onClick={() =>
-            navigate(`/account/tracking/${tagPath(chosen.player_tag)}`)
-          }
+          to={`/account/tracking/${tagPath(chosen.player_tag)}`}
         >
           Record ›
-        </a>
+        </Link>
       </div>
       {data === null ? (
         <p className="activity__empty">Loading…</p>
@@ -213,9 +212,7 @@ export function Overview({ me, navigate }) {
                 }
                 secondary={p.player_tag}
                 note={p.is_primary ? "you" : (p.relationship ?? "watching")}
-                onClick={() =>
-                  navigate(`/account/tracking/${tagPath(p.player_tag)}`)
-                }
+                to={`/account/tracking/${tagPath(p.player_tag)}`}
               />
             ))
           )}
@@ -246,9 +243,7 @@ export function Overview({ me, navigate }) {
                     ? `${c.scope} · ${c.member_count} members`
                     : c.scope
                 }
-                onClick={() =>
-                  navigate(`/account/tracking/${tagPath(c.clan_tag)}`)
-                }
+                to={`/account/tracking/${tagPath(c.clan_tag)}`}
               />
             ))
           )}
@@ -281,12 +276,12 @@ export function Overview({ me, navigate }) {
           >
             <span style={{ fontSize: "14px", fontWeight: 600 }}>Your tier</span>
             <span className="chip chip--tier">{me.role}</span>
-            <a
+            <Link
               style={{ marginLeft: "auto", fontSize: "13px" }}
-              onClick={() => navigate("/account/profile")}
+              to="/account/profile"
             >
               Profile ›
-            </a>
+            </Link>
           </div>
           <SlotMeters entitlements={e} />
           {(me.agents ?? []).length > 0 && (

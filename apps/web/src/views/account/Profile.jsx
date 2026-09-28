@@ -1,4 +1,4 @@
-import { Icon, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { useUsage } from "../../lib/queries.js";
@@ -129,16 +129,12 @@ export function Profile({ me, refresh, navigate }) {
               {quota.resets}
             </span>
           )}
-          <a
+          <Link
             style={{ marginLeft: "auto", fontSize: "13px" }}
-            href="/account/usage"
-            onClick={(ev) => {
-              ev.preventDefault();
-              navigate("/account/usage");
-            }}
+            to="/account/usage"
           >
             Where it went ›
-          </a>
+          </Link>
         </div>
         <div
           className="panel__body"
@@ -221,15 +217,11 @@ export function Profile({ me, refresh, navigate }) {
   );
 }
 
-function SubpageLink({ navigate, to, icon, title, note }) {
+function SubpageLink({ to, icon, title, note }) {
   return (
-    <a
-      href={to}
+    <Link
       className="flex items-center gap-3 px-4 py-[13px] border-t border-line-soft first:border-t-0 text-inherit"
-      onClick={(ev) => {
-        ev.preventDefault();
-        navigate(to);
-      }}
+      to={to}
     >
       <span className="flex text-accent-bright">
         <Icon name={icon} size={17} />
@@ -241,7 +233,7 @@ function SubpageLink({ navigate, to, icon, title, note }) {
       <span className="ml-auto flex items-center text-ink-link">
         <Icon name="arrow-right" size={15} />
       </span>
-    </a>
+    </Link>
   );
 }
 

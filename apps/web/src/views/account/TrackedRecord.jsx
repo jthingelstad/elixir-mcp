@@ -1,4 +1,4 @@
-import { Icon, ago, secsSince } from "@elixir-mcp/ui";
+import { ago, Icon, Link, secsSince } from "@elixir-mcp/ui";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useState } from "react";
 import { api } from "../../api.js";
@@ -45,7 +45,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
 
   const crumb = (
     <div className="page__crumb">
-      <a onClick={() => navigate("/account/tracking")}>‹ Tracking</a>
+      <Link to="/account/tracking">‹ Tracking</Link>
     </div>
   );
 
@@ -93,16 +93,12 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             )}
           </h1>
           <p className="page__lede">
-            <a
+            <Link
               className="mono"
-              onClick={() =>
-                navigate(
-                  `/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`,
-                )
-              }
+              to={`/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`}
             >
               {wanted}
-            </a>
+            </Link>
             <span>
               {" · "}
               {isClan ? "clan" : "player"}

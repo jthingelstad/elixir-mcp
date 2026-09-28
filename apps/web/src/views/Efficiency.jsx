@@ -1,3 +1,4 @@
+import { Link } from "@elixir-mcp/ui";
 import { usePublicEfficiency } from "../lib/queries.js";
 
 /**
@@ -41,7 +42,7 @@ function Row({ d, today = false }) {
   );
 }
 
-export function Efficiency({ navigate }) {
+export function Efficiency() {
   const query = usePublicEfficiency();
   const data = query.data ?? null;
   // A failed read is said, not left loading (console audit M2).
@@ -64,7 +65,7 @@ export function Efficiency({ navigate }) {
   return (
     <>
       <div className="page__crumb">
-        <a onClick={() => navigate("/status/service")}>‹ Status</a>
+        <Link to="/status/service">‹ Status</Link>
       </div>
       <h1 className="page__title">Efficiency</h1>
       <p className="page__lede">

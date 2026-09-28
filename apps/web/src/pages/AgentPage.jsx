@@ -1,3 +1,4 @@
+import { Link } from "@elixir-mcp/ui";
 import { Activity } from "../views/Activity.jsx";
 import { AgentRecord } from "../views/account/Agents.jsx";
 import { AgentTracking } from "../views/account/AgentTracking.jsx";
@@ -52,15 +53,7 @@ function AgentConsole({ agentId, page, sub, itemId, recordId, navigate }) {
           {res.data.status === 404 || res.data.status === 403
             ? "No agent here on your account. "
             : "Elixir could not read this agent just now; try again in a moment. "}
-          <a
-            href="/account/agents"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/account/agents");
-            }}
-          >
-            All agents ›
-          </a>
+          <Link to="/account/agents">All agents ›</Link>
         </div>
       </div>
     );

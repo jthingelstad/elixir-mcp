@@ -400,14 +400,16 @@ export function SignIn({ onAuthed }) {
         </form>
         <p className="footnote" style={{ margin: "16px 0 0" }}>
           Already approved?{" "}
-          <a
+          <button
+            type="button"
+            className="link"
             onClick={() => {
               setError("");
               setStep("email");
             }}
           >
             Sign in instead
-          </a>
+          </button>
           .
         </p>
       </div>
@@ -493,7 +495,9 @@ export function SignIn({ onAuthed }) {
             fontSize: "13px",
           }}
         >
-          <a
+          <button
+            type="button"
+            className="link"
             onClick={() => {
               setError("");
               setCode("");
@@ -501,8 +505,10 @@ export function SignIn({ onAuthed }) {
             }}
           >
             Use a different address
-          </a>
-          <a onClick={sendEmail}>Send another email</a>
+          </button>
+          <button type="button" className="link" onClick={sendEmail}>
+            Send another email
+          </button>
         </div>
         <p className="footnote" style={{ margin: "14px 0 0" }}>
           Five tries, then the code is spent. The link expires either way.
@@ -560,14 +566,16 @@ export function SignIn({ onAuthed }) {
         style={{ margin: "16px 0 0", textWrap: "pretty" }}
       >
         No account yet?{" "}
-        <a
+        <button
+          type="button"
+          className="link"
           onClick={() => {
             setError("");
             setStep("request");
           }}
         >
           Request access
-        </a>{" "}
+        </button>{" "}
         — it is granted by hand while the corpus grows, on what you can bring to
         the beta: playing actively, running a collector, connecting an agent and
         telling us where it struggles.

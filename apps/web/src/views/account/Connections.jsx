@@ -1,4 +1,4 @@
-import { Fresh, Icon, useClock } from "@elixir-mcp/ui";
+import { Fresh, Icon, Link, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api.js";
@@ -128,20 +128,26 @@ export function Connections({ me, navigate }) {
               alerts. Dismissing is per row — one credential, one source,
               one day — so it says "I have seen today's", and a refusal
               that is still happening tomorrow says so again. */}
-          <a
+          <button
+            type="button"
+            className="link"
             style={{ marginLeft: "auto", flex: "none", fontSize: "13px" }}
             title="Dismiss. It returns if the credential is presented again another day."
             onClick={() => dismiss.mutate({ refusal_id: r.refusal_id })}
           >
             Dismiss
-          </a>
+          </button>
         </div>
       ))}
       {refusals.length > 1 && (
         <p style={{ margin: "-6px 0 14px", fontSize: "13px" }}>
-          <a onClick={() => dismiss.mutate({ all: true })}>
+          <button
+            type="button"
+            className="link"
+            onClick={() => dismiss.mutate({ all: true })}
+          >
             Dismiss all {refusals.length}
-          </a>
+          </button>
         </p>
       )}
 
@@ -340,14 +346,12 @@ export function Connections({ me, navigate }) {
                       >
                         <Icon name="shield-check" size={16} />
                       </span>
-                      <a
+                      <Link
                         style={{ fontWeight: 600, fontSize: "14px" }}
-                        onClick={() =>
-                          navigate(`/agent/${a.public_id}/overview`)
-                        }
+                        to={`/agent/${a.public_id}/overview`}
                       >
                         {a.name ?? a.public_id}
-                      </a>
+                      </Link>
                     </span>
                     <span
                       style={{

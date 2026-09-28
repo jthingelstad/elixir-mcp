@@ -1,4 +1,4 @@
-import { Icon, ago, beatCls, secsSince } from "@elixir-mcp/ui";
+import { ago, beatCls, Icon, Link, secsSince } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../api.js";
 import {
@@ -374,7 +374,7 @@ export function CollectorPage({ id, navigate, me }) {
     return (
       <>
         <div className="page__crumb">
-          <a onClick={() => navigate("/status/collectors")}>‹ Collectors</a>
+          <Link to="/status/collectors">‹ Collectors</Link>
         </div>
         <div className="empty">
           <div className="empty__title">No collector by that name</div>
@@ -400,7 +400,7 @@ export function CollectorPage({ id, navigate, me }) {
   return (
     <>
       <div className="page__crumb">
-        <a onClick={() => navigate("/status/collectors")}>‹ Collectors</a>
+        <Link to="/status/collectors">‹ Collectors</Link>
       </div>
       <div
         style={{

@@ -1,4 +1,4 @@
-import { Icon, LogTable, Markdown, ago, useClock } from "@elixir-mcp/ui";
+import { ago, Icon, Link, LogTable, Markdown, useClock } from "@elixir-mcp/ui";
 import { Integrations } from "./Integrations.jsx";
 import { useEffect, useState, Fragment } from "react";
 import { api } from "../api.js";
@@ -140,10 +140,8 @@ function AdminCards() {
       ? {
           text: "source",
           title: c.role.source,
-          onClick: () => {
-            const url = c.role.source.match(/https?:\/\/\S+/)?.[0];
-            if (url) window.open(url, "_blank", "noopener");
-          },
+          // An outside page: LogTable opens it in a new tab.
+          href: c.role.source.match(/https?:\/\/\S+/)?.[0],
         }
       : "—",
   ]);
@@ -199,7 +197,7 @@ function AdminCards() {
  *  what we send without user feedback"). The same table the person's
  *  Activity → Emails is, with the recipient named by player and public
  *  id and the reports filed about each send counted. */
-function AdminEmails({ navigate }) {
+function AdminEmails() {
   const { stamp: when } = useClock();
   const sends = useAdminEmailSends().data?.sends ?? [];
   const rows = sends.map((m) => [
@@ -209,14 +207,14 @@ function AdminEmails({ navigate }) {
     {
       text: m.subject ?? "—",
       title: m.subject ?? "",
-      onClick: () => navigate(`/admin/emails/${m.send_id}`),
+      href: `/admin/emails/${m.send_id}`,
     },
     m.archived ? "kept" : { text: "not kept", tone: "warn" },
     m.reports > 0 ? { text: String(m.reports), tone: "warn" } : "—",
     {
       text: m.send_id.slice(0, 8),
       title: m.send_id,
-      onClick: () => navigate(`/admin/emails/${m.send_id}`),
+      href: `/admin/emails/${m.send_id}`,
     },
   ]);
   return (
@@ -247,13 +245,13 @@ function AdminEmails({ navigate }) {
 }
 
 /** One sent email, the maintainer's read: the row and the body. */
-function AdminEmailRecord({ id, navigate }) {
+function AdminEmailRecord({ id }) {
   const { stamp: when } = useClock();
   const record = useAdminEmail(id);
   const rec = record.data ?? null;
   const back = (
     <div className="page__crumb">
-      <a onClick={() => navigate("/admin/emails")}>‹ Emails sent</a>
+      <Link to="/admin/emails">‹ Emails sent</Link>
     </div>
   );
   if (record.isError || (record.isSuccess && !rec?.send))
@@ -343,7 +341,7 @@ function AdminRequests() {
 /** Accounts and tiers. The three override columns are read-only and say
  *  so: they are set in the ops lane, and a control here would be a
  *  second way to write them. */
-function AdminAccounts({ navigate }) {
+function AdminAccounts() {
   // settable_roles is read by the record page, which is where a tier is
   // now changed; the list only has to find an account.
   const accounts = useAdminAccounts().data?.accounts ?? [];
@@ -364,7 +362,7 @@ function AdminAccounts({ navigate }) {
       {
         text: a.email ?? principalLabel(a),
         title: a.account_id,
-        onClick: () => navigate(`/admin/accounts/${a.account_id}`),
+        href: `/admin/accounts/${a.account_id}`,
       },
       a.status,
       {
@@ -450,7 +448,7 @@ function AdminUsage() {
  *  list — a control with no context, on a row you had to count columns
  *  to read. Facts first, then the change, on a page that shows what you
  *  are changing. */
-function AdminAccountDetail({ id, navigate }) {
+function AdminAccountDetail({ id }) {
   const { day } = useClock();
   const query = useAdminAccounts();
   const accounts = query.data?.accounts ?? null;
@@ -471,8 +469,7 @@ function AdminAccountDetail({ id, navigate }) {
     return (
       <div className="panel">
         <div className="panel__body">
-          No account {id}.{" "}
-          <a onClick={() => navigate("/admin/accounts")}>All accounts ›</a>
+          No account {id}. <Link to="/admin/accounts">All accounts ›</Link>
         </div>
       </div>
     );
@@ -515,13 +512,13 @@ function AdminAccountDetail({ id, navigate }) {
   return (
     <>
       <p style={{ margin: "0 0 10px" }}>
-        <a
+        <Link
           className="mono"
           style={{ fontSize: "12px" }}
-          onClick={() => navigate("/admin/accounts")}
+          to="/admin/accounts"
         >
           ‹ All accounts
-        </a>
+        </Link>
       </p>
       <section className="panel" style={{ maxWidth: "680px" }}>
         <div className="panel__head">
@@ -618,13 +615,11 @@ function AdminAccountDetail({ id, navigate }) {
               <Fragment key={c.account_id}>
                 <dt>{c.kind ?? "principal"}</dt>
                 <dd>
-                  <a
-                    onClick={() => navigate(`/admin/accounts/${c.account_id}`)}
-                  >
+                  <Link to={`/admin/accounts/${c.account_id}`}>
                     {c.principal_name ??
                       c.public_id ??
                       c.account_id.slice(0, 8)}
-                  </a>
+                  </Link>
                   <span style={{ color: "var(--ink-faint)" }}>
                     {" · "}
                     {c.status}
@@ -640,9 +635,9 @@ function AdminAccountDetail({ id, navigate }) {
       {parent && (
         <p className="footnote" style={{ margin: "14px 0 0" }}>
           This {a.kind ?? "principal"} belongs to{" "}
-          <a onClick={() => navigate(`/admin/accounts/${parent.account_id}`)}>
+          <Link to={`/admin/accounts/${parent.account_id}`}>
             {parent.email ?? principalLabel(parent)}
-          </a>{" "}
+          </Link>{" "}
           — it spends their entitlements and their daily budget.
         </p>
       )}
@@ -724,7 +719,7 @@ function AdminConnections() {
 /** The feedback queue. Unread first is the API's order; the status
  *  control is on the item, because deciding what to do about a piece of
  *  feedback means reading it. */
-function AdminFeedback({ navigate }) {
+function AdminFeedback() {
   const { day } = useClock();
   const feedback = useAdminFeedback().data?.feedback ?? [];
 
@@ -735,7 +730,7 @@ function AdminFeedback({ navigate }) {
     f.category ?? "",
     {
       text: f.message.length > 80 ? f.message.slice(0, 80) + "…" : f.message,
-      onClick: () => navigate(`/admin/feedback/${f.feedback_id}`),
+      href: `/admin/feedback/${f.feedback_id}`,
     },
     {
       text: f.status + (f.response ? " · answered" : ""),
@@ -788,7 +783,7 @@ function AdminCollections({ navigate }) {
   const rows = cols.map((c) => [
     {
       text: c.slug,
-      onClick: () => navigate(`/admin/collections/${c.slug}`),
+      href: `/admin/collections/${c.slug}`,
     },
     c.title,
     c.kind,
@@ -898,7 +893,7 @@ const SIGNATURE_LABEL = {
 };
 const SIGNATURE_TONE = { signed: "ok", mismatch: "bad", dev_build: "accent" };
 
-function AdminCollectors({ navigate }) {
+function AdminCollectors() {
   const { stamp } = useClock();
   const gateways = useAdminGateways().data?.gateways ?? [];
 
@@ -906,10 +901,7 @@ function AdminCollectors({ navigate }) {
     {
       text: g.card_name ?? g.name ?? "unnamed",
       title: g.name,
-      onClick: () =>
-        navigate(
-          `/status/collectors/${encodeURIComponent(g.card_name ?? g.name)}`,
-        ),
+      href: `/status/collectors/${encodeURIComponent(g.card_name ?? g.name)}`,
     },
     g.owner_account_id
       ? (g.owner_player_name ?? g.owner_email_hash?.slice(0, 10) ?? "claimed")
@@ -1174,7 +1166,7 @@ function AttachedCall({ requestId }) {
  *  maintainer reads what the filer was sent — the mail itself, not a
  *  description of it. Attached by the record's and the footer's
  *  "report a problem with this email". */
-function AttachedEmail({ sendId, navigate }) {
+function AttachedEmail({ sendId }) {
   const { stamp: when } = useClock();
   const mail = useAdminEmail(sendId);
   const rec = mail.data ?? null;
@@ -1184,8 +1176,7 @@ function AttachedEmail({ sendId, navigate }) {
       style={{ borderTop: "1px solid var(--line-soft)" }}
     >
       <div className="mono text-[11px] text-ink-faint mb-[6px]">
-        THE EMAIL ·{" "}
-        <a onClick={() => navigate(`/admin/emails/${sendId}`)}>{sendId}</a>
+        THE EMAIL · <Link to={`/admin/emails/${sendId}`}>{sendId}</Link>
       </div>
       {mail.isError && (
         <p className="caveat m-0">That send is no longer in the ledger.</p>
@@ -1234,7 +1225,7 @@ function AdminFeedbackItem({ id, navigate }) {
       <div className="panel">
         <div className="panel__body">
           No feedback item #{id}.{" "}
-          <a onClick={() => navigate("/admin/feedback")}>All feedback ›</a>
+          <Link to="/admin/feedback">All feedback ›</Link>
         </div>
       </div>
     );
@@ -1254,13 +1245,13 @@ function AdminFeedbackItem({ id, navigate }) {
   return (
     <>
       <p style={{ margin: "0 0 10px" }}>
-        <a
+        <Link
           className="mono"
           style={{ fontSize: "12px" }}
-          onClick={() => navigate("/admin/feedback")}
+          to="/admin/feedback"
         >
           ‹ All feedback
-        </a>
+        </Link>
       </p>
       <section className="panel" style={{ maxWidth: "680px" }}>
         <div className="panel__head">
@@ -1388,7 +1379,7 @@ function AdminFeedbackItem({ id, navigate }) {
  *  there should be a way to just open the collection and edit it
  *  there"). Members are rows with their own remove; the meta form
  *  edits in place; Explore shows the same collection as users see it. */
-function CollectionEditor({ slug, navigate }) {
+function CollectionEditor({ slug }) {
   const query = useAdminCollections();
   const col =
     (query.data?.collections ?? []).find((c) => c.slug === slug) ?? null;
@@ -1425,7 +1416,7 @@ function CollectionEditor({ slug, navigate }) {
       <div className="panel">
         <div className="panel__body">
           No collection “{slug}”.{" "}
-          <a onClick={() => navigate("/admin/collections")}>Collections ›</a>
+          <Link to="/admin/collections">Collections ›</Link>
         </div>
       </div>
     );
@@ -1440,13 +1431,13 @@ function CollectionEditor({ slug, navigate }) {
   return (
     <>
       <p style={{ margin: "0 0 10px" }}>
-        <a
+        <Link
           className="mono"
           style={{ fontSize: "12px" }}
-          onClick={() => navigate("/admin/collections")}
+          to="/admin/collections"
         >
           ‹ Collections
-        </a>
+        </Link>
       </p>
       {err && <p className="field-error">{err}</p>}
       <div className="cols">
@@ -1456,13 +1447,13 @@ function CollectionEditor({ slug, navigate }) {
               <span className="panel-title">
                 <code>{col.slug}</code> · {col.kind}s
               </span>
-              <a
+              <Link
                 className="mono"
                 style={{ marginLeft: "auto", fontSize: "11.5px" }}
-                onClick={() => navigate(`/explore/collection/${col.slug}`)}
+                to={`/explore/collection/${col.slug}`}
               >
                 view in Explore ›
-              </a>
+              </Link>
             </div>
             {/* One textarea, one tag per line, saved as a SET (Jamie,
                 2026-09-06). Editing a list by adding one box at a time

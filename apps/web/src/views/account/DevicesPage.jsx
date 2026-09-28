@@ -1,4 +1,4 @@
-import { ago } from "@elixir-mcp/ui";
+import { ago, Link } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useSessions } from "../../lib/queries.js";
@@ -14,7 +14,7 @@ import { keys, useInvalidate, useSessions } from "../../lib/queries.js";
  * expiry shown is the sliding one, which every use of that device
  * moves.
  */
-export function DevicesPage({ navigate }) {
+export function DevicesPage() {
   const query = useSessions();
   const sessions = query.data?.sessions ?? null;
   // When the data was read: 0 until it is, and nothing below uses it
@@ -29,7 +29,7 @@ export function DevicesPage({ navigate }) {
   return (
     <>
       <div className="page__crumb">
-        <a onClick={() => navigate("/account/profile")}>‹ Profile</a>
+        <Link to="/account/profile">‹ Profile</Link>
       </div>
       <div className="mb-[18px]">
         <h1 className="page__title">Devices</h1>

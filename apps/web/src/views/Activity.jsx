@@ -33,7 +33,7 @@ function initialToolFilter() {
   return tool ? { tool } : null;
 }
 
-export function Activity({ sub, navigate }) {
+export function Activity({ sub }) {
   const { stamp } = useClock();
   const path = useConsolePath();
   // An agent's console has no Emails: an agent has no address, and the
@@ -70,8 +70,7 @@ export function Activity({ sub, navigate }) {
         ? {
             text: r.request_id.slice(0, 8),
             title: r.request_id,
-            onClick: () =>
-              navigate?.(path(`/account/activity/c/${r.request_id}`)),
+            href: path(`/account/activity/c/${r.request_id}`),
           }
         : "—",
     ]);
@@ -118,13 +117,13 @@ export function Activity({ sub, navigate }) {
       {
         text: m.subject ?? "—",
         title: m.subject ?? "",
-        onClick: () => navigate?.(`/account/activity/e/${m.send_id}`),
+        href: `/account/activity/e/${m.send_id}`,
       },
       m.archived ? "kept" : { text: "not kept", tone: "warn" },
       {
         text: m.send_id.slice(0, 8),
         title: m.send_id,
-        onClick: () => navigate?.(`/account/activity/e/${m.send_id}`),
+        href: `/account/activity/e/${m.send_id}`,
       },
     ]);
     return (

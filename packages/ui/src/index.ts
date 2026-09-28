@@ -18,6 +18,7 @@ export {
   type LogFilter,
   type LogRow,
 } from "./LogTable.tsx";
+export { isPlainClick, Link, NavigateProvider } from "./Link.tsx";
 export { Markdown, renderMarkdown } from "./Markdown.tsx";
 export {
   Rail,

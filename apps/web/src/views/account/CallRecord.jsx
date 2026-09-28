@@ -1,4 +1,4 @@
-import { Icon, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useCallRecord } from "../../lib/queries.js";
 import { useConsolePath } from "../../lib/scope.js";
@@ -177,9 +177,7 @@ export function CallRecord({ id, navigate }) {
 
   const back = (
     <div className="page__crumb">
-      <a onClick={() => navigate(path("/account/activity/requests"))}>
-        ‹ MCP requests
-      </a>
+      <Link to={path("/account/activity/requests")}>‹ MCP requests</Link>
     </div>
   );
 
@@ -342,21 +340,17 @@ export function CallRecord({ id, navigate }) {
         <span className="footnote" style={{ marginLeft: "4px" }}>
           by the same connection
         </span>
-        <a
+        {/* The call is a FIELD on the report now, not a line pasted
+            into the message: it is stored as feedback.request_id, so
+            the queue can link straight back to this record. */}
+        <Link
           className="btn btn--sm"
           style={{ marginLeft: "auto" }}
-          onClick={() =>
-            // The call is a FIELD on the report now, not a line pasted
-            // into the message: it is stored as feedback.request_id, so
-            // the queue can link straight back to this record.
-            navigate(
-              `/account/feedback?request_id=${encodeURIComponent(call.request_id)}`,
-            )
-          }
+          to={`/account/feedback?request_id=${encodeURIComponent(call.request_id)}`}
         >
           <Icon name="message-square" size={15} />
           Report this call
-        </a>
+        </Link>
       </div>
 
       <JsonSection

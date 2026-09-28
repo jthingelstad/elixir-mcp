@@ -1,4 +1,4 @@
-import { Icon } from "@elixir-mcp/ui";
+import { Icon, Link } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useMyCollections } from "../../lib/queries.js";
@@ -251,12 +251,9 @@ export function Collections({ me, navigate }) {
               >
                 Request the family tier <Icon name="arrow-right" size={15} />
               </button>
-              <a
-                className="btn btn--quiet"
-                onClick={() => navigate("/explore")}
-              >
+              <Link className="btn btn--quiet" to="/explore">
                 Browse public collections
-              </a>
+              </Link>
             </div>
             {sent && (
               <p className="footnote" style={{ margin: "12px 0 0" }}>
@@ -300,16 +297,12 @@ export function Collections({ me, navigate }) {
               {items.map((c) => (
                 <tr key={c.slug}>
                   <td>
-                    <a
+                    <Link
                       style={{ fontWeight: 600 }}
-                      onClick={() =>
-                        navigate(
-                          `/explore/collection/${encodeURIComponent(c.slug)}`,
-                        )
-                      }
+                      to={`/explore/collection/${encodeURIComponent(c.slug)}`}
                     >
                       {c.title}
-                    </a>
+                    </Link>
                   </td>
                   <td>{c.kind}</td>
                   <td>

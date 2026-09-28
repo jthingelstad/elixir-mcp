@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { agoSeconds, freshCls, stamp, useClock } from "@elixir-mcp/ui";
+import { agoSeconds, freshCls, Link, stamp, useClock } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useExploreCollections, usePublicStats } from "../lib/queries.js";
 import { tagPath, tagFromPath } from "../lib/tag-url.js";
@@ -250,6 +250,12 @@ export function Explore({ me, navigate, path }) {
 
 /* ── Lookup ──────────────────────────────────────────────── */
 
+/** The trail restarts from the lookup: a record reached from here is the
+ *  first crumb, whether by a lookup or a link in the lists below. */
+function restartTrail() {
+  sessionStorage.removeItem("elixir-trail");
+}
+
 function Lookup({ me, navigate, browse }) {
   const [q, setQ] = useState("");
   const [miss, setMiss] = useState(null);
@@ -261,8 +267,7 @@ function Lookup({ me, navigate, browse }) {
 
   const go = useCallback(
     (kind, recId) => {
-      // trail restarts from the lookup
-      sessionStorage.removeItem("elixir-trail");
+      restartTrail();
       navigate(`/explore/${kind}/${recId}`);
     },
     [navigate],
@@ -435,9 +440,14 @@ function Lookup({ me, navigate, browse }) {
           >
             <span>try:</span>
             {tryChips.map((t) => (
-              <a key={t.label} onClick={() => resolve(t.q)}>
+              <button
+                type="button"
+                className="link"
+                key={t.label}
+                onClick={() => resolve(t.q)}
+              >
                 {t.label}
-              </a>
+              </button>
             ))}
           </div>
         )}
@@ -462,9 +472,10 @@ function Lookup({ me, navigate, browse }) {
               </span>
             </div>
             {matches.found.map((m) => (
-              <a
+              <Link
                 key={m.player_tag}
-                onClick={() => go("player", encTag(m.player_tag))}
+                to={`/explore/player/${encTag(m.player_tag)}`}
+                onClick={restartTrail}
                 style={{
                   display: "flex",
                   gap: "10px",
@@ -494,7 +505,7 @@ function Lookup({ me, navigate, browse }) {
                     <span className="mono">{m.clan_tag}</span>
                   </span>
                 )}
-              </a>
+              </Link>
             ))}
           </div>
         )}
@@ -534,16 +545,8 @@ function Lookup({ me, navigate, browse }) {
               Nothing in the corpus matches that tag or name. Elixir only
               records players and clans someone added — it does not crawl the
               game. Add it from{" "}
-              <a
-                href="/account/tracking"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/account/tracking");
-                }}
-              >
-                Account ▸ Tracking
-              </a>{" "}
-              and recording starts on the next poll.
+              <Link to="/account/tracking">Account ▸ Tracking</Link> and
+              recording starts on the next poll.
             </div>
           </div>
         )}
@@ -570,9 +573,9 @@ function Lookup({ me, navigate, browse }) {
             </div>
           )}
           {recent().map((r) => (
-            <a
+            <Link
               key={r.href}
-              onClick={() => navigate(r.href)}
+              to={r.href}
               style={{
                 display: "flex",
                 gap: "10px",
@@ -586,7 +589,7 @@ function Lookup({ me, navigate, browse }) {
               <span className="tag">{r.tag}</span>
               <span style={{ color: "var(--ink-faint)" }}>{r.name}</span>
               <span className="kind-chip">{r.kind}</span>
-            </a>
+            </Link>
           ))}
         </section>
 
@@ -605,9 +608,10 @@ function Lookup({ me, navigate, browse }) {
             </span>
           </div>
           {collections.map((c) => (
-            <a
+            <Link
               key={c.slug}
-              onClick={() => go("collection", c.slug)}
+              to={`/explore/collection/${c.slug}`}
+              onClick={restartTrail}
               style={{
                 display: "flex",
                 gap: "10px",
@@ -629,20 +633,20 @@ function Lookup({ me, navigate, browse }) {
               >
                 {c.member_count} members
               </span>
-            </a>
+            </Link>
           ))}
         </section>
 
         <section className="panel" style={{ flex: "1 1 340px", minWidth: 0 }}>
           <div className="panel__head">
             <span className="panel-title">What the corpus holds</span>
-            <a
-              onClick={() => navigate("/data/dashboard")}
+            <Link
+              to="/data/dashboard"
               className="mono"
               style={{ marginLeft: "auto", fontSize: "11px" }}
             >
               Data ›
-            </a>
+            </Link>
           </div>
           <div className="panel__body">
             {corpus && (
@@ -686,7 +690,7 @@ function saveTrail(t) {
   sessionStorage.setItem("elixir-trail", JSON.stringify(t));
 }
 
-function RecordPage({ me, navigate, kind, rawId }) {
+function RecordPage({ me, kind, rawId }) {
   const [raw, setRaw] = useState(false);
   const href = `/explore/${kind}/${rawId}`;
 
@@ -737,28 +741,25 @@ function RecordPage({ me, navigate, kind, rawId }) {
             : "Could not load this record"}
         </div>
         <div className="empty__body">
-          {record.error.message}{" "}
-          <a onClick={() => navigate("/explore")}>Back to lookup</a>
+          {record.error.message} <Link to="/explore">Back to lookup</Link>
         </div>
       </div>
     );
   }
 
-  const goRef = (to) => navigate(to);
-
   return (
     <>
       <div className="trail">
-        <a onClick={() => navigate("/explore")}>corpus</a>
+        <Link to="/explore">corpus</Link>
         {trail.map((c, i) => (
           <span key={c.href} style={{ display: "contents" }}>
             <span className="trail__sep">/</span>
-            <a
+            <Link
               aria-current={i === trail.length - 1 ? "page" : undefined}
-              onClick={() => (i === trail.length - 1 ? null : navigate(c.href))}
+              to={c.href}
             >
               {c.label}
-            </a>
+            </Link>
           </span>
         ))}
       </div>
@@ -790,16 +791,9 @@ function RecordPage({ me, navigate, kind, rawId }) {
           }}
         >
           {view.action && (
-            <a
-              className="btn btn--sm"
-              href={view.action.href}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(view.action.href);
-              }}
-            >
+            <Link className="btn btn--sm" to={view.action.href}>
               {view.action.label}
-            </a>
+            </Link>
           )}
           <Freshness meta={res.body.meta} derived={view.kindLabel === "DECK"} />
         </span>
@@ -830,13 +824,13 @@ function RecordPage({ me, navigate, kind, rawId }) {
                         className={view.table.cols[j].num ? "num" : undefined}
                       >
                         {cell.href ? (
-                          <a
+                          <Link
                             className={cell.mono ? "tag" : undefined}
-                            onClick={() => goRef(cell.href)}
+                            to={cell.href}
                             style={cell.style}
                           >
                             {cell.text}
-                          </a>
+                          </Link>
                         ) : (
                           <span
                             className={
@@ -886,12 +880,9 @@ function RecordPage({ me, navigate, kind, rawId }) {
                   <dt>{f.label}</dt>
                   <dd>
                     {f.href ? (
-                      <a
-                        className={f.mono ? "tag" : undefined}
-                        onClick={() => goRef(f.href)}
-                      >
+                      <Link className={f.mono ? "tag" : undefined} to={f.href}>
                         {f.value}
-                      </a>
+                      </Link>
                     ) : (
                       <span className={f.mono ? "tag" : undefined}>
                         {f.value}
@@ -923,15 +914,7 @@ function RecordPage({ me, navigate, kind, rawId }) {
               <div className="tiles">
                 {view.tiles.map((t) =>
                   t.href ? (
-                    <a
-                      key={t.label}
-                      className="tile"
-                      href={t.href}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        goRef(t.href);
-                      }}
-                    >
+                    <Link key={t.label} className="tile" to={t.href}>
                       <span
                         className={
                           typeof t.value === "number"
@@ -948,7 +931,7 @@ function RecordPage({ me, navigate, kind, rawId }) {
                           : t.value}
                       </span>
                       <span className="tile__label">{t.label} ›</span>
-                    </a>
+                    </Link>
                   ) : (
                     <div key={t.label} className="tile">
                       <span

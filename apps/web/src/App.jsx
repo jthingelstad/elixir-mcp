@@ -5,10 +5,12 @@ import {
   FAMILY_PRODUCTS,
   FAMILY_WORDMARK,
   Icon,
+  NavigateProvider,
   Rail as RailList,
   RailIdentity,
   ZoneProvider,
   familyTabs,
+  isPlainClick,
 } from "@elixir-mcp/ui";
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -918,6 +920,7 @@ function Chrome({ navigate }) {
       ? {
           ...p,
           onClick: (e) => {
+            if (!isPlainClick(e)) return;
             e.preventDefault();
             navigate("/account/overview");
           },
@@ -994,6 +997,7 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
         <RailIdentity
           href="/account/profile"
           onClick={(e) => {
+            if (!isPlainClick(e)) return;
             e.preventDefault();
             navigate("/account/profile");
           }}
@@ -1384,47 +1388,49 @@ function Shell() {
   // set on Profile, or UTC when none is (Jamie, 2026-09-23).
   return (
     <ZoneProvider zone={me?.timezone}>
-      <div className="shell">
-        <Chrome navigate={navigate} />
+      <NavigateProvider navigate={navigate}>
+        <div className="shell">
+          <Chrome navigate={navigate} />
 
-        <div
-          className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
-        >
-          {showRail && (
-            <Rail
-              me={me}
-              agent={agent}
-              here={here}
-              navigate={navigate}
-              narrow={narrow}
-              counts={counts}
-              dots={dots}
-            />
-          )}
+          <div
+            className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
+          >
+            {showRail && (
+              <Rail
+                me={me}
+                agent={agent}
+                here={here}
+                navigate={navigate}
+                narrow={narrow}
+                counts={counts}
+                dots={dots}
+              />
+            )}
 
-          <main className="page">
-            <div
-              className={`page__inner${showRail ? "" : " page__inner--solo"}`}
-            >
-              {/* Keyed on the route: a boundary that has caught stays caught, so
+            <main className="page">
+              <div
+                className={`page__inner${showRail ? "" : " page__inner--solo"}`}
+              >
+                {/* Keyed on the route: a boundary that has caught stays caught, so
                 without this a single bad page would keep showing its error after
                 you navigated away from it. */}
-              <ErrorBoundary key={effectivePath}>
-                {showUnavailable ? (
-                  <Unavailable busy={retrying} onRetry={refresh} />
-                ) : needsAuth ? (
-                  <SignInWall navigate={navigate} />
-                ) : (
-                  <Outlet />
-                )}
-              </ErrorBoundary>
-              {showRail && <DocsStrip here={here} />}
-            </div>
-          </main>
-        </div>
+                <ErrorBoundary key={effectivePath}>
+                  {showUnavailable ? (
+                    <Unavailable busy={retrying} onRetry={refresh} />
+                  ) : needsAuth ? (
+                    <SignInWall navigate={navigate} />
+                  ) : (
+                    <Outlet />
+                  )}
+                </ErrorBoundary>
+                {showRail && <DocsStrip here={here} />}
+              </div>
+            </main>
+          </div>
 
-        <Disclaimer />
-      </div>
+          <Disclaimer />
+        </div>
+      </NavigateProvider>
     </ZoneProvider>
   );
 }

@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { Icon } from "./Icon.tsx";
+import { isPlainClick } from "./Link.tsx";
 
 export interface RailDot {
   tone: "unread" | "alert" | string;
@@ -114,7 +115,10 @@ export function Rail({
   const [open, setOpen] = useState(false);
   const active = items.find((r) => r.key === current);
 
-  const go = (to: string) => (e: MouseEvent) => {
+  // A modified or middle click is the browser's (a new tab, a copied
+  // link); only a plain one routes in-app (review 2026-09-27 §7.5).
+  const go = (to: string) => (e: MouseEvent<HTMLElement>) => {
+    if (!isPlainClick(e)) return;
     e.preventDefault();
     setOpen(false);
     navigate(to);
@@ -267,7 +271,10 @@ function AccountSwitcher({
     };
   }, [open]);
 
-  const go = (to: string) => (e: MouseEvent) => {
+  // A modified or middle click is the browser's (a new tab, a copied
+  // link); only a plain one routes in-app (review 2026-09-27 §7.5).
+  const go = (to: string) => (e: MouseEvent<HTMLElement>) => {
+    if (!isPlainClick(e)) return;
     e.preventDefault();
     setOpen(false);
     navigate(to);
