@@ -8,7 +8,7 @@ navTitle: "Verify"
 icon: shield-check
 lede: "Play one battle with a deck we name, and the claim on your player becomes a fact rather than a promise."
 console: ["Verify a player you have added", "/account/verify", "Console ▸ Verify"]
-reviewed: "2026-09-25 against contract 9.1.0"
+reviewed: "2026-09-28 against contract 9.16.1"
 ---
 
 # Verify: proving a player is yours
@@ -82,16 +82,16 @@ account from adding the same player unverified, and it is not a
 Supercell feature: nothing here uses their account system.
 
 A tag has one verified owner. If another account has already verified a
-player you try to verify, the page says so; if that player is yours,
-contact us through the feedback form and we will look.
+player you try to verify, the page says so; if that player is yours, sign
+in to the account that verified it, or tell us through the feedback form.
 
 ## Privacy and cost
 
 Verify reads only your public battle log and profile, the same documents
 any Clash Royale app can fetch with your tag. The reads it asks for are
-not charged to your daily live-fetch allowance, and a start is limited
-to a few an hour so the wizard cannot be used to make the collectors
-read somebody else's log on a loop. A player's log is read for
+not charged to your daily live-fetch allowance. Starts are limited to a
+few an hour, for each account and for each player, so the wizard cannot
+be used to make the collectors read somebody's log on a loop. A player's log is read for
 verification at most 120 times a day, across every challenge for that
 tag, whoever opened it: about one and a half hours of a watched
 challenge. Past that the challenge stays open, the page says so, and the
@@ -106,9 +106,10 @@ needs "is this claim proven" can read it without a second lookup.
 [Elixir Clan](https://clan.poapkings.com) is the first consumer: signing in
 with Elixir there requires a verified player, and the clan it acts for is
 chosen from your verified claims only. No data tool changes its answers on
-it; the record is the same for everyone. The one thing it opens is what a
-clan says about itself: an [attested fact](/docs/integrations#attested-facts)
+it; the record is the same for everyone. What it opens is what a clan
+says to its own members: an [attested fact](/docs/integrations#attested-facts)
 a clan's leaders recorded through a family app reaches the timeline of
 readers whose **verified** player is in that clan (and a departure's kind
 only those whose verified player leads it), because it is the clan's own
-word, not the game's.
+word, not the game's; and a family app's mail about a clan goes only to
+the account that verified the player it is for.

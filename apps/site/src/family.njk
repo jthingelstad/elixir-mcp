@@ -42,7 +42,7 @@ eleventyComputed:
       {%- endfor %}
     </nav>
     <div class="siterail__foot">
-      Each one reads from the hub. None of them reaches into another.
+      Where one of ours needs the record, it reads the hub. None reaches into another.
     </div>
   </aside>
 
@@ -86,7 +86,7 @@ eleventyComputed:
         <div class="panel__head">{% if p.theirs %}Where it stands{% else %}How it fits{% endif %}</div>
         <div class="panel__body" style="font-size: 13.5px; line-height: 1.65; color: var(--ink-body)">{{ p.uses }}</div>
         {%- if not p.theirs %}
-        <div class="panel__foot">Hub-and-spoke: the hub records, each product pulls what it needs with its own credential.</div>
+        <div class="panel__foot">Hub-and-spoke: the hub records, and a product that needs the record pulls it with its own credential.</div>
         {%- endif %}
       </section>
     </div>

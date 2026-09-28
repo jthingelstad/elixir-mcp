@@ -1,12 +1,12 @@
 ---
 slug: email
 title: "Email"
-description: "The eight emails Elixir sends: four weekly reports built from your record with no model in the loop, two written weekly pieces, a milestone note when something you did is a first, and Elixir Clan's note when something new in your clan is yours to do. Every one is a switch on your account page; every issue carries a one-click off; opens and clicks are counted per issue, never per reader."
+description: "The eight emails Elixir sends: four weekly reports built from your record with no model in the loop, two written weekly pieces, a milestone note when something you did is a first, and Elixir Clan's note when something new in your clan is yours to do. Every one is a switch on your account page; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
 section: using
 order: 17
 navTitle: "Email"
 icon: mail
-lede: "Eight kinds, each a switch, each one click from off. Six are weekly; one arrives when something you did is a first; one when something in your clan is yours to do."
+lede: "Eight kinds, each a switch, each with a turn-off link in every issue. Six are weekly; one arrives when something you did is a first; one when something in your clan is yours to do."
 ---
 
 # Email
@@ -14,8 +14,8 @@ lede: "Eight kinds, each a switch, each one click from off. Six are weekly; one 
 Elixir sends eight kinds of email. All eight are **on by default** for
 every approved account, because taking part in the beta includes the
 product's mail, and all eight are **a switch on your account page**
-([Profile → Email](/account/profile/email)) with a one-click *turn off* link in every
-issue. Sign-in codes and account notices are service mail and arrive
+([Profile → Email](/account/profile/email)), with a *turn off* link in every
+issue and one-click unsubscribe in mail clients that support it. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
 Five of the eight are **reports**: structured, built from your record
@@ -45,7 +45,7 @@ notes are exempt: they come as the moments do.
 | Thursday | **Top 100** | One issue for everyone: a read of the global Path of Legends top 100 over the week that ended at that morning's board. Forward it to anyone who would enjoy it. |
 | Friday | **Card of the Week** | One card the record has something to say about, read in full: how much it is played and how often it wins, where it gets played, who plays it best, what it travels with, and the decks carrying it. One issue for everyone. Forward it to someone who runs that card. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): what your collectors fetched, how much the edge filter saved, quiet stretches, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
-| Mornings | **Clan actions waiting** | From [Elixir Clan](https://clan.poapkings.com), one of the Elixir family's apps: after its morning run, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Elixir Clan writes the words; Elixir sends them, so the app never sees your address. |
+| Mornings | **Clan actions waiting** | From [Elixir Clan](https://clan.poapkings.com), one of the Elixir family's apps: after its morning run, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Elixir Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
 | As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked, an Evolution or Hero form unlocked. Checked hourly; everything new since the last note rides together. |
 
 ## Milestones are firsts
@@ -76,7 +76,7 @@ what the global Path of Legends top 100 do with it; the cards it travels
 with; and the most-played decks carrying it. The writer may print a
 number only after reading it from the brief through a tool, an editor
 pass corrects the draft, and before the issue sends a program checks
-every number in it against the brief, refuses bare tags and exclamation
+the numbers in it against the brief, refuses bare tags and exclamation
 marks, and holds the length. An issue that fails does not send.
 
 Three things about that issue are worth knowing. **The headline covers
@@ -107,8 +107,8 @@ program for being the week's most counterintuitive fact. Every delta is
 in the brief. The writer may print a number only after reading it from
 the brief through a tool, so the record of what it read is the audit; an
 editor pass then corrects the draft against the program's findings.
-Before an issue sends, the program checks every number in it against
-the brief, and against the player or clan named beside it, so a rating
+Before an issue sends, the program checks the numbers in it against
+the brief, and against the player or clan named beside them, so a rating
 printed next to the wrong name fails; it refuses bare tags and
 exclamation marks, and holds the length. An issue that fails does not
 send that week. One that passes but was finished after its usual send
@@ -120,9 +120,10 @@ leaderboard entries, written about neutrally, and linked to their record.
 
 Each kind has its own switch on [Profile → Email](/account/profile/email),
 beside the list of what was sent to you. Every issue's footer has a
-one-click link for that kind; mail clients that support one-click
-unsubscribe show it as their own button. Turning a kind off is
-immediate and yours to reverse.
+*turn off* link for that kind, which opens a page with one button to
+confirm; mail clients that support one-click unsubscribe show their own
+button, which needs no confirming. Turning a kind off is immediate and
+yours to reverse.
 
 ## Every email, on the record
 
@@ -144,21 +145,19 @@ audited without waiting for anyone to report it.
 
 ## What the mail counts
 
-Two things, both through [Tinylytics](https://tinylytics.app), the same
-cookieless analytics the site runs, hosted in Europe, keeping nothing
-about a person. A 1×1 image in each mail records an **open** as a page
-hit at a path that names the mail, never the reader (`/mail/clan_report/2026-W37`,
-`/mail/login`) — an undercount, since image blocking and caching both cut
-against it, and Tinylytics says so itself. Links into the site carry a
-**campaign tag** (`utm_source=email`, the kind, the issue), so the site's
-own numbers can say which mail brought people to which page. There is no
-redirector: a link goes where it says. The one-click *turn off* link
-carries no tag. Nothing counted is tied to you: the count is per issue
-and per campaign, never per reader, and no open or click is attributed
-to a recipient. The footer's links to this email's own record and to
-feedback about it carry the email's id, because they open one of your
-own records (see [Privacy](/docs/privacy), bucket two); the console
-reports those pages to analytics as "an email record", never which one.
+Mail is counted by issue, never by reader, through
+[Tinylytics](https://tinylytics.app), the same cookie-free analytics the
+site uses. A small image in each mail counts an **open** at a path that
+names the mail, not the reader (`/mail/clan_report/2026-W37`); it is an
+estimate, and a low one, since image blocking and caching both cut
+against it. Links into the site carry a **campaign tag** (the mail's
+kind and issue), so the site's own counts can say which mail brought
+people to which page. There is no redirector: a link goes where it
+says, and the *turn off* link carries no tag. The footer's links to the
+email's own record and to feedback about it carry the email's id,
+because they open one of your own records; the console counts those
+pages as "an email record", never which one. [Privacy](/docs/privacy)
+covers the rest.
 
 Every product email's footer also carries the same line for everyone:
 Elixir is free and sponsor-supported, with a link to

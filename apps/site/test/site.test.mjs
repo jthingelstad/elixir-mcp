@@ -68,7 +68,6 @@ const STATIC_PAGES = [
   "/examples/publish",
   "/examples/collector",
   "/family/drop",
-  "/family/agent",
   "/family/discord",
   "/family/crdocs",
   "/family/mcp",
@@ -789,7 +788,7 @@ test("every family project has somewhere to go", { skip }, () => {
   for (const [rel, href] of [
     ["family/index.html", "https://poapkings.com"],
     ["family/drop/index.html", "https://drop.poapkings.com"],
-    ["family/agent/index.html", "/docs/agents"],
+    ["family/discord/index.html", "/docs/agents"],
     ["family/royaledle/index.html", "https://royaledle.org"],
     ["family/royaleapi/index.html", "https://royaleapi.com"],
   ])
