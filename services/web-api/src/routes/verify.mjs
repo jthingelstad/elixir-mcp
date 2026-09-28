@@ -17,6 +17,8 @@ import { drawTarget, deckIds, deckKey } from "./verify-draw.mjs";
  *
  * Reads go through the live lane like `live: true` on battles_query, but
  * with NO quota hook: a person proving who they are may hold no tier.
+ * What bounds them instead is per tag: LIVE_READS_PER_TAG_PER_DAY across
+ * every challenge for it (#130).
  * The challenge row carries the job it asked for, and api_receipt.job_id
  * (0041) says a fetch was a verification read. The browser never causes
  * a fetch directly: the poll route mints at most one live read every
@@ -39,6 +41,15 @@ const POLL_EVERY_S = 15;
 /** Challenge starts per hour, per account and per tag: the wizard must
  *  not become a way to make the fleet read a stranger every 15 s. */
 export const STARTS_PER_HOUR = 5;
+/** Live battle-log reads for verification, per tag, over the last 24
+ *  hours, whoever's challenges asked (#130). An open challenge being
+ *  watched asks every LIVE_READ_EVERY_S, about 80 in its hour, charged to
+ *  nobody's quota; without a ceiling, anyone signed in could keep a tag
+ *  that need not be theirs on that cadence all day, out of the one global
+ *  budget. 120 is one whole challenge and half of another. Past it the
+ *  challenge stays open and the wizard says the check now waits for the
+ *  player's regular recording. */
+export const LIVE_READS_PER_TAG_PER_DAY = 120;
 
 const TARGET_SQL = `select c.card_id, c.name, c.icon_medium as icon
                     from card c where c.card_id = any($1::int[])`;
@@ -110,10 +121,25 @@ async function battlelogReadAt(db, tag) {
   return rows[0]?.fetched_at ?? null;
 }
 
+/** Whether this tag has had its day's verification reads, across every
+ *  challenge any account opened for it. */
+async function liveReadsSpent(db, tag) {
+  const { rows } = await db.query(
+    `select coalesce(sum(live_reads), 0)::int as n from claim_challenge
+      where player_tag = $1 and created_at > now() - interval '24 hours'`,
+    [tag],
+  );
+  return rows[0].n >= LIVE_READS_PER_TAG_PER_DAY;
+}
+
 /** What the wizard sees: the target with art, the latest battle since
  *  the brief with its deck marked card by card and its result, how many
  *  battles have been seen since, and the outcome. */
-async function present(db, row, { livePending = false, battle = null } = {}) {
+async function present(
+  db,
+  row,
+  { livePending = false, liveCapped = false, battle = null } = {},
+) {
   const targetIds = row.target_card_ids.map(Number);
   const targetSet = new Set(targetIds);
   const swappedSet = new Set((row.swapped_card_ids ?? []).map(Number));
@@ -179,6 +205,9 @@ async function present(db, row, { livePending = false, battle = null } = {}) {
     matched: targetIds.filter((id) => shownSet.has(id)).length,
     of: DECK_SIZE,
     live_pending: livePending,
+    // The tag's verification reads for the day are spent: the record
+    // moves only with the player's regular recording until they reset.
+    live_capped: liveCapped,
     retry_after_s: POLL_EVERY_S,
   };
 }
@@ -359,7 +388,13 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
           where ch.account_id = $1 and ch.player_tag = $2 and ch.outcome = 'open'`,
         [account.accountId, tag],
       );
-      if (open[0]) return json(200, await present(db, open[0]));
+      if (open[0])
+        return json(
+          200,
+          await present(db, open[0], {
+            liveCapped: await liveReadsSpent(db, tag),
+          }),
+        );
 
       // The target is drawn from the recorded collection, plain cards only
       // (tower troops are kind = 'support'). A player recorded a moment
@@ -417,7 +452,10 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
          returning *`,
         [account.accountId, tag, target, CHALLENGE_MINUTES, source, swapped],
       );
-      const read = await requestRead(db, tag);
+      const capped = await liveReadsSpent(db, tag);
+      const read = capped
+        ? { pending: false, jobId: null }
+        : await requestRead(db, tag);
       if (read.pending)
         await db.query(
           `update claim_challenge set live_job_id = $2, live_requested_at = now(), live_reads = 1
@@ -432,7 +470,7 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
         await present(
           db,
           { ...created[0], name: claim.name },
-          { livePending: read.pending },
+          { livePending: read.pending, liveCapped: capped },
         ),
       );
     },
@@ -511,7 +549,10 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
         ? new Date(row.live_requested_at).getTime()
         : 0;
       let livePending = false;
-      if (Date.now() - lastAsk >= LIVE_READ_EVERY_S * 1000) {
+      const due = Date.now() - lastAsk >= LIVE_READ_EVERY_S * 1000;
+      // Asked on every poll, so the wizard's note holds between asks.
+      const liveCapped = await liveReadsSpent(db, row.player_tag);
+      if (due && !liveCapped) {
         const read = await requestRead(db, row.player_tag);
         livePending = read.pending;
         await db.query(
@@ -530,7 +571,7 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
         );
         livePending = Boolean(openJob[0]);
       }
-      return json(200, await present(db, row, { livePending }));
+      return json(200, await present(db, row, { livePending, liveCapped }));
     },
   };
 }

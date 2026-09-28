@@ -277,11 +277,20 @@ export function Verify({ refresh, navigate }) {
                 label="The deck in your latest battle"
                 dimUnmatched
               />
-              {!verified && (
+              {!verified && !challenge.live_capped && (
                 <p className="verify__hint">
                   A finished battle reaches the game's log within about a
                   minute. Keep this page open; it checks every 15 seconds, and
                   the challenge stays open for an hour.
+                </p>
+              )}
+              {!verified && challenge.live_capped && (
+                <p className="verify__hint" role="note">
+                  Elixir has read this player&rsquo;s battle log as often as it
+                  will for verification today. The check now waits for the
+                  player&rsquo;s regular recording, which is slower, so a battle
+                  may not show before the challenge closes. The reads come back
+                  within a day.
                 </p>
               )}
             </div>
