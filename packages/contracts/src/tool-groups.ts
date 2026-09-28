@@ -81,7 +81,7 @@ export const OAUTH_SCOPE_DETAILS: ReadonlyArray<{
     scope: OAUTH_SCOPE.ACCOUNT_EMAIL,
     title: "Know your email address",
     description:
-      "Read the email on your Elixir account, so this app can sign you in as the same person. Offered only to an app that asks for it.",
+      "Read the email on your Elixir account, so this app can sign you in as the same person. Offered only to the Elixir family's own apps, when they ask for it.",
     standard: false,
   },
   {

@@ -323,8 +323,7 @@ alarms route to an operations queue drained daily; performance is
 censused continuously (every ingest message logs phase timings). The
 database is audited periodically and raw payloads live in an S3
 archive, content-addressed and queryable with SQL over S3. Site visits
-are counted anonymously with Tinylytics — see [Privacy](/docs/privacy)
-for exactly what that means.
+are counted anonymously with Tinylytics; see [Privacy](/docs/privacy).
 
 The web API assembles feature-specific route modules behind shared session
 resolution. The account application separates overview, agents, connections,

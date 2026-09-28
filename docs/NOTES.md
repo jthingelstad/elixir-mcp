@@ -4734,8 +4734,20 @@ new entry (nothing a user would notice as a change in the service).
   apps.
 - **Sign-in mail**: the consent line says the client may "act for you as
   you approve on the next page".
+- **The trace** (`/consistency` on the new DECISIONS line, one read-only
+  reviewer over the pages the issue did not name): `/data/collect` said
+  raw payloads are kept about 60 days and only owners request recording
+  (payloads are archived and kept; any account, a collection or a ranked
+  board records); `architecture.md` pointed at privacy "for exactly what
+  that means"; the `account:email` scope text read as if any app could
+  ask (it is family-only, 0185); `quickstart.md` promised "you will hear
+  back either way" (only an approval mails); a template comment cited
+  privacy.md for the 90 days. All fixed as copy.
 - **DECISIONS**: "Four buckets, SETTLED" is renamed for its substance,
   and the address line no longer cites privacy.md's wording.
 
 Left for Jamie (#131): `about.md` names a person in its "Who runs it"
-line while the privacy and terms pages no longer do.
+line while the privacy and terms pages no longer do; should a denied
+access request get a mail (the quickstart now says only an approval
+does); and `/data/growth` still promises that "a retention policy comes
+as the corpus grows" while the privacy page says game history is kept.
