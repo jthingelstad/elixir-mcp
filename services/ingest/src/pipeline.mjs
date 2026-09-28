@@ -534,12 +534,15 @@ export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
 }
 
 /**
- * Process one results-queue message. Owns its transaction.
- * `deps.archive` (optional) is the S3 payload archive: NEW payload
- * content is put before commit, so a committed row always has its S3
- * twin (an orphan object from a rolled-back txn is harmless; the
- * reverse is not). Put failure fails the message -> SQS retry — the
- * archive is part of admission, not best-effort (docs/archive/DATA-TOOLS-2026-09-04.md §1).
+ * Process one result envelope, which the collector door builds and
+ * ingests inline since 0040 (there is no results queue). Owns its
+ * transaction and rolls it back before rethrowing, so the door may run
+ * the same envelope again. `deps.archive` (optional) is the S3 payload
+ * archive: NEW payload content is put before commit, so a committed row
+ * always has its S3 twin (an orphan object from a rolled-back txn is
+ * harmless; the reverse is not). A put failure throws: the door answers
+ * 500, the lease expires and the job is refetched. The archive is part
+ * of admission, not best-effort (docs/archive/DATA-TOOLS-2026-09-04.md §1).
  * @returns {{outcome: string, [k: string]: unknown}}
  */
 // Bound on the DECOMPRESSED body (issue #4). The largest legitimate CR

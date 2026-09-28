@@ -3652,3 +3652,42 @@ board tick (5:05 AM CT 09-28) and any natural non-404 error show
 `RetryJobs` above 0 within 15 minutes of it; Keep the Boards' next run
 reads `stale_locations` as the 404s only; a week of `lost_battles` on
 `/api/public/efficiency` with the clamped ceiling.
+
+## 2026-09-27 - #70 (A9): ingest and collector-door hardening
+
+Review §2.5, §2.7 and §6.6, lane A. Line references re-verified
+against 0741f979: the door's submit catch (~594-605, now ~603-640),
+`pipeline.mjs` (~536-541, the processResult doc now ~535-545),
+`ingest/src/handler.mjs` (~10-27), `rollups.mjs` (~23-66) and
+`collector-door.mjs` ~29 and ~108-111 all held.
+
+- **Submit retry.** The door runs `processResult` once more on SQLSTATE
+  40P01 or 23505 (processResult has already rolled back), logging
+  `submit_ingest_retry`; a second failure or any other error logs
+  `submit_ingest_error` with its SQLSTATE and answers 500 as before.
+- **Alarm.** `SubmitIngestErrorFilter` on the web-api log group
+  (`ElixirMCP/Collector SubmitIngestError`, no DefaultValue) and
+  `elixir-mcp-submit-ingest-error` at 10 in 15 minutes, about $0.10/mo.
+  Measured over the 14 days before (Logs Insights): 279 errors, at most
+  7 in any 15 minutes outside three incidents (09-15 60, 09-17 20, 09-23
+  26); by message, 109 `Connection terminated`, 120 deadlocks (clan 58,
+  player_battlelog 47, player 15), 45 missing-column errors mid-deploy.
+- **Rollups.** `refreshDailyRollups` is one statement: the (tag, day)
+  keys sorted and deduplicated, an upsert in key order guarded with
+  `IS DISTINCT FROM`, and one DELETE of the rows the recomputation no
+  longer produces for those keys. Check afterwards: player_battlelog
+  deadlocks in `submit_ingest_retry` / `submit_ingest_error`.
+- **Write-once archive.** Every `payloads/` put sends `If-None-Match: *`;
+  a 412 is already archived (a retried submit re-puts the same key).
+  `ArchiveBucketPolicy` denies a `payloads/` PutObject without the
+  header to every principal (after `WebApiFunction`, so the header is
+  sent before it is demanded). Scratch bucket first, 2026-09-28 00:43Z:
+  unconditional put 403, conditional new key 200, conditional existing
+  key 412, `calls/` unaffected; bucket and objects deleted. The live
+  bucket had no policy before. `MigrateRole` loses `s3:PutObject` on
+  `payloads/` (nothing used it), which closes that item in the
+  2026-09-25 consistency pass's "Queued, not done" list.
+- **429 on submit.** Config's `submit_retry` gains `retry_statuses:
+  [429]`. The collector half (retry those statuses with the same
+  backoff, not when `Retry-After` is longer than the lease can wait) is
+  a collector release; naming it is Jamie's.

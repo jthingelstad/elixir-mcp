@@ -27,6 +27,9 @@ const TOKEN_PREFIX = "emcg_";
 const LEASE_TTL_S = 90;
 const MAX_OUTSTANDING = 2;
 const MISSED_STREAK_QUARANTINE = 10;
+/** SQLSTATEs a submit retries once in the door: deadlock_detected and
+ *  unique_violation (two observers upserting the same battle or row). */
+const TRANSIENT_SQLSTATES = new Set(["40P01", "23505"]);
 
 /**
  * Per-token request budgets (issue #11), the thing
@@ -106,9 +109,20 @@ const CONFIG = {
   // arrived together after every scheduler tick.
   check_in: { idle_s: 15, capped_s: 5 },
   // A failed ingestion must not make the collector abandon a valid lease
-  // immediately. Keep this bounded below the 90-second lease TTL: clients
-  // retry only transport failures and 5xx responses with this same envelope.
-  submit_retry: { max_attempts: 3, timeout_s: 20, backoff_ms: 500 },
+  // immediately. Keep this bounded below the 90-second lease TTL (three
+  // attempts of at most 20 s, backoff 500 ms then 1 s). Clients retry
+  // transport failures and 5xx, and from the release that reads it,
+  // every status in retry_statuses: a 429 from the site API's shared
+  // throttle used to expire the lease unsubmitted and charge
+  // missed_streak, and ten of those quarantine a collector (review
+  // 2026-09-27 §6.6). A 429 whose Retry-After is longer than the lease
+  // can wait (this door's hourly budget) is not retried.
+  submit_retry: {
+    max_attempts: 3,
+    timeout_s: 20,
+    backoff_ms: 500,
+    retry_statuses: [429],
+  },
   // The one CR read `collector doctor` makes to prove the operator's key
   // works from the operator's IP. Server-designated like every other
   // path, so the probe can change without a client release.
@@ -592,17 +606,38 @@ export function makeCollectorDoor({
       // are recorded receipts (job done, structured feedback to the
       // collector); an exception leaves the lease held so expiry
       // requeues a bounded refetch.
+      //
+      // A deadlock or a racing upsert is the database's transient answer,
+      // not the payload's: processResult has rolled its transaction back,
+      // so the same envelope runs once more before the door gives up
+      // (review 2026-09-27 §2.5). The archive put is write-once, so the
+      // second pass re-putting the same key is already archived.
       let outcome;
-      try {
-        outcome = await ingest(db, envelope);
-      } catch (err) {
-        console.error(
-          "submit_ingest_error",
-          job.endpoint,
-          job.entity_key,
-          err?.message,
-        );
-        return { status: 500, body: { error: "ingest_failed" } };
+      for (let attempt = 1; ; attempt++) {
+        try {
+          outcome = await ingest(db, envelope);
+          break;
+        } catch (err) {
+          if (attempt === 1 && TRANSIENT_SQLSTATES.has(err?.code)) {
+            console.warn(
+              "submit_ingest_retry",
+              job.endpoint,
+              job.entity_key,
+              err.code,
+            );
+            continue;
+          }
+          // The one line the SubmitIngestError metric filter counts
+          // (infra/template.yaml): a submit the door could not ingest.
+          console.error(
+            "submit_ingest_error",
+            job.endpoint,
+            job.entity_key,
+            err?.code ?? "",
+            err?.message,
+          );
+          return { status: 500, body: { error: "ingest_failed" } };
+        }
       }
       await completeJob(db, { jobId, gatewayId: gw.gateway_id });
       // Contact, not success: last_success_at is owned by ingest and

@@ -564,7 +564,7 @@ test("S3 archive: new content is put once, dedup refetch adds no object, put fai
   assert.equal(r2.outcome, "admitted");
   assert.equal(puts.length, 1, "content-identical refetch adds no object");
 
-  // Put failure: the whole message fails (SQS will retry) and nothing commits.
+  // Put failure: the whole envelope fails (the door answers 500) and nothing commits.
   const before = (await ctx.db.query(`select count(*)::int n from api_payload`))
     .rows[0].n;
   const broken = { ...profile, trophies: (profile.trophies ?? 0) + 8 };
