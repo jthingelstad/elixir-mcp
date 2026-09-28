@@ -3882,7 +3882,10 @@ approval stands in for the separate dev-build soak (RELEASING-COLLECTOR.md
   all on signed v3.0.4 (Hog Rider draining since 09-18).
 - Rollback, if it is needed: name v3.0.4.
 
-Pending: every active collector reports v3.0.6 on `/api/public/status`
-within the hour of its next config call (the `proven` line on a machine
-Jamie watches); the 429 retry is exercised only by a real throttle
-burst, so a week with no collector quarantined for `missed_streak`.
+- The fleet moved within the hour, read on `/api/public/status`: Royal
+  Hogs by 02:13Z, Mini P.E.K.K.A and Witch by 02:18Z, Skeleton Army by
+  02:23Z, Cannon by 02:43Z (9:43 PM CT). All five report signed v3.0.6,
+  active and fetching; `ok: true`, `dlq_messages` 0.
+
+Pending: the 429 retry is exercised only by a real throttle burst, so a
+week with no collector quarantined for `missed_streak`.
