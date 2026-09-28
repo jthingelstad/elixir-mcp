@@ -117,7 +117,7 @@ export function SignIn({ onAuthed }) {
     onAuthedRef.current = onAuthed;
   });
 
-  // A magic link lands here as /signin?login_token=... — read from the value
+  // A magic link lands here as /signin#login_token=... — read from the value
   // lifted out of the URL at boot, not from the URL itself, which by now has
   // deliberately had the credential removed.
   //

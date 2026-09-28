@@ -172,7 +172,7 @@ test("the sixth email in an hour says so, on the code step, without saying wheth
 test("a link opened from elsewhere asks before signing in the screen that started", async () => {
   vi.resetModules();
   const { SignIn: Fresh } = await import("../src/views/SignIn.jsx");
-  window.history.pushState({}, "", "/signin?login_token=" + "t".repeat(40));
+  window.history.pushState({}, "", "/signin#login_token=" + "t".repeat(40));
   const confirmed = [];
   global.fetch = mockFetch({
     "POST /api/auth/redeem": [
@@ -210,7 +210,7 @@ test("a link opened from elsewhere asks before signing in the screen that starte
 test("a link opened from the same address just signs in", async () => {
   vi.resetModules();
   const { SignIn: Fresh } = await import("../src/views/SignIn.jsx");
-  window.history.pushState({}, "", "/signin?login_token=" + "u".repeat(40));
+  window.history.pushState({}, "", "/signin#login_token=" + "u".repeat(40));
   global.fetch = mockFetch({
     "POST /api/auth/redeem": [
       200,
@@ -312,7 +312,7 @@ test("a magic link is redeemed ONCE, however many times the page re-renders whil
   // and takeLoginToken() returns the same captured token every call.
   vi.resetModules();
   const { App: FreshApp } = await import("../src/App.jsx");
-  window.history.pushState({}, "", "/signin?login_token=" + "v".repeat(40));
+  window.history.pushState({}, "", "/signin#login_token=" + "v".repeat(40));
   let redeems = 0;
   let authed = false;
   global.fetch = mockFetch({
