@@ -11,6 +11,12 @@ export default [
   {
     date: "2026-09-28",
     title:
+      "A missed milestone check no longer loses the moment, a revoked agent can be given a key, and verification reads have a daily ceiling",
+    body: "Three fixes. The milestone mail looked back a fixed 26 hours, so if its hourly check failed for longer than that, a first from the gap was never mailed; it now reads back to the last check that went through, up to a week, so a first can be late but not lost. An agent whose key you revoked could not be given a new one from its Settings page, although the page said to issue one; now it can, with the name and capabilities it had, unless another of your agents has taken that name since, which the page now says. And verification reads a player's battle log on your behalf while you wait: those reads now stop at 120 a day for any one player, across every challenge, and the page says when the check is waiting for the player's regular recording instead. No change to the tools.",
+  },
+  {
+    date: "2026-09-28",
+    title:
       "Your agents stop when your access does, and removal requests have a way through",
     body: "An agent acts only while its owner has access. Until now, withdrawing a person's access stopped their own sign-ins and connections but left the agents they own working; now their keys and connected apps read as invalid too, and work again if access returns. A request to remove an account, sent to admin@poapkings.com as the privacy page says, is now carried out by one reviewed step rather than by hand: your address, your players and clans, your agents and their keys, your connections, sessions, call history, feedback and the mail sent to you go, and the public game record stays. The sign-in link in the email is also moving its code to the part of the address that never leaves your browser. No change to the tools.",
   },
