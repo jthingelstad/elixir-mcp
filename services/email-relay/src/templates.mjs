@@ -110,11 +110,11 @@ export function renderEmail(msg) {
     // CDN's access logs and stays there (#129). The console reads it.
     const link = msg.token ? `${SIGNIN_BASE}#login_token=${msg.token}` : null;
     const consent = msg.client_name
-      ? `Entering this code authorizes ${msg.client_name} to read your recorded Clash Royale data.\n\n`
+      ? `Entering this code authorizes ${msg.client_name} to act for you as you approve on the next page.\n\n`
       : "";
     const consentHtml = msg.client_name
       ? p(
-          `Entering this code authorizes <strong style="color:${C.ink};">${esc(msg.client_name)}</strong> to read your recorded Clash Royale data.`,
+          `Entering this code authorizes <strong style="color:${C.ink};">${esc(msg.client_name)}</strong> to act for you as you approve on the next page.`,
         )
       : "";
     return {

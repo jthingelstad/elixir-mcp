@@ -190,7 +190,7 @@ export async function sweepOperational(databaseUrl) {
       )
     ).rowCount;
     // A console session's address is kept no longer than a connection's
-    // (privacy.md: IP addresses are cleared after 30 days). An active
+    // (limits.md: addresses are cleared after 30 days). An active
     // session rewrites it on every request; an idle one used to keep it
     // until the row itself went, 30 days after its sliding expiry.
     out.session_ip_scrubbed = (
