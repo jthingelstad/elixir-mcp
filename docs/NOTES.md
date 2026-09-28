@@ -4514,3 +4514,29 @@ it saw, and it saw the decoded objects, which have no
 (acceptance-only, no deploy). `gym/337.1` fails as before: clan
 #GRJ20LQP is no longer recorded, unrelated to #124 and already noted on
 #46.
+
+## 2026-09-28 - #71's queued secret steps: unsubscribe key and session rotation
+
+Jamie added `unsubscribe_secret` and rotated the session secret
+(`session_secret_previous` holds the old value) in the console, then
+approved the deploy. Both switches went in ONE deploy, because the new
+`session_secret` was already in the secret: a deploy with only the
+unsubscribe switch would have re-read it without the previous value and
+signed everyone out.
+
+- Deployed from main fc66965d at 18:17Z (1:17 PM CT) with
+  `--skip-web --param=UnsubscribeKeyInSecret=true
+  --param=SessionSecretPreviousInSecret=true --param=SecretEpoch=2026-09-28`.
+  Exit 0, migrations ran 0 of 193, stack UPDATE_COMPLETE, smoke green.
+- Read-back (names only, no values): the stack holds the three
+  parameters; web-api carries `SESSION_SECRET`, `SESSION_SECRET_PREVIOUS`,
+  `UNSUBSCRIBE_SECRET` and `SECRET_EPOCH`; mcp carries the two session
+  keys; jobs carries `SESSION_SECRET` and `UNSUBSCRIBE_SECRET`. No errors
+  on web-api, mcp or jobs since the flip; `/api/public/status` `ok: true`.
+- Pending: Jamie's browser signed in before the rotation stays signed in;
+  the first mail after the flip carries an unsubscribe link starting
+  `t=u1.`.
+- **Due on or after 2026-12-27** (90 days, the token cap): deploy with
+  `--param=SessionSecretPreviousInSecret=false`, and only after that
+  succeeds remove `session_secret_previous` in the console
+  (`docs/SECRETS.md`, "Session secret" step 4).
