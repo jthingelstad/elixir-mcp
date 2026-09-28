@@ -283,9 +283,22 @@ for (const verbosity of ["full", "compact"]) {
       `the agent's ${verbosity} read is ${text.length} characters, over the ${BUDGET} budget`,
     );
     // Nothing lost: every row decodes to the object /api/v1 serves.
+    // days_since_battle is measured from the moment of each read, to two
+    // decimals (about 14 minutes), and the two reads are seconds apart,
+    // so it may step once between them (a CI flake on 2026-09-28, 0.05
+    // against 0.04): compared within that step, everything else exactly.
     const decoded = participationObjects(table);
-    assert.deepEqual(decoded.members, objects.members);
-    assert.deepEqual(decoded.former_members, objects.former_members);
+    for (const key of ["members", "former_members"]) {
+      const steady = (rows) =>
+        rows.map(({ days_since_battle: _moving, ...rest }) => rest);
+      assert.deepEqual(steady(decoded[key]), steady(objects[key]));
+      decoded[key].forEach((row, i) => {
+        const other = objects[key][i].days_since_battle;
+        if (row.days_since_battle == null || other == null)
+          assert.equal(row.days_since_battle, other);
+        else assert.ok(Math.abs(row.days_since_battle - other) <= 0.011);
+      });
+    }
     for (const row of [...table.members, ...table.former_members])
       assert.ok(Array.isArray(row));
     assert.deepEqual(
