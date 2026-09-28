@@ -18,6 +18,7 @@ const MOMENT_KINDS = new Set([
   "collection_level_step",
   "career_wins_step",
   "card_unlocked",
+  "card_form_unlocked",
   "clan_joined",
   "clan_left",
   "returned",

@@ -806,6 +806,56 @@ test("3.9.0: a badge or card moment keeps the member's name; the badge's is unde
   assert.equal(counted.count, 3);
 });
 
+// #110: an Evolution or Hero unlock is a named moment in the collection
+// section, and on its own it is news: the player has an entry, not a line
+// in quiet.
+test("9.14.0: a form unlock is an item and the only news a player needs", async () => {
+  await ctx.db.query(
+    `insert into card (card_id, name, kind, rarity) values (26000011, 'Valkyrie', 'card', 'rare')
+     on conflict (card_id) do nothing`,
+  );
+  await emitEvent(ctx.db, "card_form_unlocked", {
+    tag: PROFILE,
+    windowEnd: "2026-09-20T10:05:00Z",
+    payload: { card_id: 26000011, name: "Valkyrie", form: "hero" },
+  });
+  const { body, isError } = await call("elixir_timeline", {
+    from: "2026-09-20T10:00:00Z",
+    to: "2026-09-20T11:00:00Z",
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const item = body.timeline.find(
+    (it) => it.kind === "card_form_unlocked" && it.subject_tag === PROFILE,
+  );
+  assert.ok(item, JSON.stringify(body.timeline));
+  assert.equal(item.section, "collection");
+  assert.deepEqual(
+    [item.facts.card, item.facts.card_id, item.facts.form],
+    ["Valkyrie", 26000011, "hero"],
+  );
+  assert.equal(item.observed_at, "2026-09-20T10:05:00.000Z");
+  assert.match(item.text, /unlocked Hero Valkyrie\.$/);
+  const entry = body.entries.find((e) => e.subject_tag === PROFILE);
+  assert.ok(entry, "a form unlock alone is not a quiet window");
+  assert.deepEqual(entry.collection.forms_unlocked.items, ["Hero Valkyrie"]);
+  assert.match(entry.summary, /unlocked Hero Valkyrie/);
+  assert.ok(!body.quiet.some((q) => q.tag === PROFILE));
+  // The ledger's start for this kind is said, pointing at the collection.
+  assert.ok(
+    body.notes.some((n) => n.includes("players_collection.forms_unlocked")),
+  );
+  // kinds filters to it.
+  const only = await call("elixir_timeline", {
+    from: "2026-09-20T10:00:00Z",
+    to: "2026-09-20T11:00:00Z",
+    kinds: ["card_form_unlocked"],
+    mark_read: false,
+  });
+  assert.ok(only.body.timeline.length > 0);
+  assert.ok(only.body.timeline.every((it) => it.kind === "card_form_unlocked"));
+});
+
 test("player_tag keeps one member's items, before the cap; a bad tag is refused (7.1.5, Gym #253)", async () => {
   const all = await call("elixir_timeline", {
     from: "2026-09-01",

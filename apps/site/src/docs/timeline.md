@@ -115,6 +115,7 @@ belongs to, so `sections` filters items and entries together.
 | `best_trophies_band` | player, or a clan's member | a new personal best crossing a 500 band; `facts.band` is the band, `facts.crossed_by` the Trophy Road win whose result first reached it, `at` at that battle |
 | `collection_level_step`, `career_wins_step` | player, or a clan's member | collection level at a step that widens with the level (every 5 below 100, every 50 to 1,000, every 100 above; `facts.step` says which); career wins at a multiple of 1,000. `career_wins_step` carries `facts.step` and, when every win between the two snapshots is on the record (the window's wins reconcile with the lifetime counter), `facts.crossed_by` is the 1,000th win itself, `at` at that battle |
 | `card_unlocked` | player, or a clan's member | a card the player did not have: `facts.card` is the card, `facts.name` the member on a clan's timeline (level-ups are a count in the entry, never items) |
+| `card_form_unlocked` | player, or a clan's member | an Evolution or Hero form the player newly unlocked (9.14.0): `facts.card` is the card, `facts.form` is `evolution` or `hero`, and the text says it as a player does ("unlocked Hero Valkyrie"). One item per form, so a card that gains both at once is two. `at` is the profile read that saw it: the unlock happened **no later than** that, after some earlier read the record may not hold (collectors skip a profile that has not changed), so no earlier bound is served. Recorded from 9.14.0 (2026-09-28) and never backfilled: a form unlocked before then is in `players_collection`'s `forms_unlocked`, never here |
 | `clan_joined`, `clan_left` | player | the player moved clans |
 | `member_joined`, `member_left`, `member_role_changed` | clan | who, with the role; a departure is raw, the game cannot tell a leave from a kick (a clan's leaders can, through Elixir Clan: `departure_classified`) |
 | `bracket_observed` | clan | the record's first sight of a new war week: `season_id`, `section_index`, `is_colosseum`, and `rivals[]` - the other four clans with `tag`, `name` and `recorded` (whether the hub records that clan, so a scout knows what it can drill). The week's start *time* is not here; `game_clock` has it |
@@ -185,6 +186,7 @@ member) to the keys below; a clan's own item carries the clan's keys only.
 | `career_wins_step` | `wins`, `step`, and `crossed_by` when every win between the two snapshots is on the record |
 | `collection_level_step` | `level`, `step` |
 | `card_unlocked` | `card`, `card_id`, `rarity` |
+| `card_form_unlocked` | `card`, `card_id`, `rarity`, `form` (`evolution` or `hero`) |
 | `clan_joined`, `clan_left` | `clan_tag`, `clan_name`, `at` |
 | `member_joined` | `player_tag`, `name`, `role`, `roster_size_before`, `roster_size_after` |
 | `member_left` | `player_tag`, `name`, `role_at_departure`, `joined_observed_at`, `roster_size_before`, `roster_size_after` |
@@ -202,7 +204,7 @@ A `promoted_by` or `crossed_by` battle is the one shape described above
 arena moment).
 
 A profile-derived moment (arena, ranked league, best band, collection
-level, badges, cards) is written once, by the first profile poll that
+level, badges, cards and their forms) is written once, by the first profile poll that
 sees it; later polls the same day rewrite the day's snapshot and never
 the moment. An arena move is polled for as soon as the player's own
 battles vouch for it (see [Recording](/docs/recording/), the profile
@@ -230,8 +232,9 @@ entry carries its named standouts under `standouts`. Its sections are
 keeps player `notables` and drops clan `standouts` with the other sections.
 
 A player's entry: `battles` (played, record, sessions, by mode, ladder
-trophy net, late captures), `trophies`, `arena`, `ranked`, `collection`,
-`badges`, `clan` (current clan and moves), `war` (`battles`: the war
+trophy net, late captures), `trophies`, `arena`, `ranked`, `collection`
+(the level's move, `unlocked` cards, `forms_unlocked` as a player says
+them, "Hero Valkyrie", and a count of level-ups), `badges`, `clan` (current clan and moves), `war` (`battles`: the war
 battles the player played in the window, boat defenses excluded, with no
 split by war day), `presence` (`last_battle_at`, `days_quiet`,
 `days_since_poll`, `returned_after_days`).

@@ -4335,3 +4335,22 @@ read. JSON API 2.7.0 mirrors it. PR #118.
   clan at the 136/1 finish; five departures are under `former_members`.
 - **Pending natural check:** the next finish (136/2's is still unobserved)
   fills its column once a roster read follows it.
+
+## 2026-09-28 - #110: Evolution and Hero unlocks are moments (9.14.0)
+
+Lane B, approved in the revisit: only the form-unlock moment; card history
+`changes[]` stays parked (lane D). The collection projector's prior CTE now
+reads `evolution_level`, and each form bit newly set (new & ~prior; 1
+Evolution, 2 Hero) emits `card_form_unlocked` `{card_id, form}`, behind the
+`moments` flag and silent on a player's first observation. The form rides
+as its bit in `player_event.step` (no new column); 0192 replaces
+`player_event_type_check` NOT VALID and 0193 validates it. Going forward
+only, no backfill (Jamie, 2026-09-11). Surfaces: a `collection` item on
+`elixir_timeline` ("unlocked Hero Valkyrie") and in `kinds`, a player
+entry's `collection.forms_unlocked` (a form unlock alone makes an entry,
+not a `quiet` line), the milestone mail (key `form:<card_id>:<form>`, rank
+2) and the tracking mail. Timing: `at` is the read that saw it, "no later
+than"; no earlier bound is served, because collectors skip an unchanged
+profile and the record's previous read is only a loose lower bound (the
+issue's `observed_after` names no served field; the docs say it of `at`).
+The console renders the server's text, so it needed an e2e case only.
