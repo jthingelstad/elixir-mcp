@@ -24,6 +24,7 @@
  * narrated. State facts are a diff of the latest snapshot at each end.
  */
 
+import { createHash } from "node:crypto";
 import { badgeLabel } from "../badge-names.mjs";
 import {
   ATTESTED_FACT_KINDS,
@@ -151,6 +152,175 @@ function badgeItemWorthy(payload) {
 }
 
 const iso = (v) => (v ? new Date(v).toISOString() : null);
+
+/* ------------------------------------------------------------------ */
+/* Stories: an item's id and revision (#111)                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Every item carries `id`, the story it tells, and `revision`, how far
+ * that story has grown, so an agent tells a story once, recognises it in
+ * the next read and says "and now..." when it grows (Jamie, 2026-09-28:
+ * "how you tell stories as an agent using the MCP is weak now").
+ *
+ * The id is opaque: a hash of a namespace and the parts that name the
+ * happening, never a raw ledger sequence number (it would leak volume and
+ * ordering, and the ledgers' sequences collide). It names the HAPPENING,
+ * not the reader, so a member's moment on a clan's timeline and on the
+ * player's own carries one id. The builders attach the parts under this
+ * symbol, which JSON never serializes; buildTimeline turns them into the
+ * two fields after its dedupe.
+ */
+const STORY = Symbol("story");
+/** "tl_" and 20 hex characters: 80 bits, about 25 characters on the wire. */
+export function storyId(namespace, ...parts) {
+  return `tl_${createHash("sha256")
+    .update([namespace, ...parts].map(String).join("|"))
+    .digest("hex")
+    .slice(0, 20)}`;
+}
+/** The namespaces whose part is a ledger row's id. */
+const LEDGERS = new Set([
+  "player_event",
+  "clan_event",
+  "account_event",
+  "attested_fact",
+]);
+/** A moment that never grows: one story, revision 1. */
+const moment = (namespace, ...parts) => ({ key: [namespace, ...parts] });
+
+/**
+ * The ledger row a moment's id comes from: the lowest event_id of the
+ * rows that say the same thing, so the read-time dedupe's collapsed
+ * duplicate (feedback #48, Gym #121: a moment re-emitted by a later poll
+ * the same day) keeps one id whichever of its rows a window holds.
+ * "The same thing" is every typed column the moment is rendered from
+ * (event-payloads.mjs), within the day before the row; a roster move
+ * also at the same instant, as the dedupe keys it.
+ */
+const SAME_PLAYER_EVENT = [
+  "card_id",
+  "badge_name",
+  "level",
+  "prior_level",
+  "max_level",
+  "arena_from",
+  "arena_to",
+  "arena_to_name",
+  "league_from",
+  "league_to",
+  "value_before",
+  "value_after",
+  "step",
+  "battle_id",
+  "floor",
+];
+const SAME_CLAN_EVENT = [
+  "player_tag",
+  "role_before",
+  "role_after",
+  "joined_observed_at",
+  "roster_size_before",
+  "roster_size_after",
+  "war_season_id",
+  "section_index",
+  "fame",
+  "rank",
+  "trophy_change",
+  "finish_time",
+];
+const sameRow = (cols) =>
+  `(${cols.map((c) => `e.${c}`).join(", ")}) is not distinct from (${cols.map((c) => `w.${c}`).join(", ")})`;
+async function firstEventIds(db, ledger, rows) {
+  if (rows.length === 0) return new Map();
+  const text =
+    ledger === "player_event"
+      ? `select w.event_id::text as event_id,
+                (select min(e.event_id) from player_event e
+                  where e.player_tag = w.player_tag and e.event_type = w.event_type
+                    and e.window_end between w.window_end - interval '1 day' and w.window_end
+                    and e.event_id <= w.event_id
+                    and ${sameRow(SAME_PLAYER_EVENT)})::text as first_id
+           from player_event w where w.event_id = any($1::bigint[])`
+      : `select w.event_id::text as event_id,
+                (select min(e.event_id) from clan_event e
+                  where e.clan_tag = w.clan_tag and e.event_type = w.event_type
+                    and e.window_end between w.window_end - interval '1 day' and w.window_end
+                    and e.event_id <= w.event_id
+                    and ${sameRow(SAME_CLAN_EVENT)}
+                    and (w.event_type not in ('member_joined', 'member_left', 'role_changed')
+                         or coalesce(e.occurred_at, e.window_end) = coalesce(w.occurred_at, w.window_end)))::text as first_id
+           from clan_event w where w.event_id = any($1::bigint[])`;
+  const { rows: found } = await db.query(text, [
+    rows.map((r) => String(r.event_id)),
+  ]);
+  return new Map(found.map((r) => [r.event_id, r.first_id ?? r.event_id]));
+}
+const ledgerStory = (ledger, firstIds, row) =>
+  moment(ledger, firstIds.get(String(row.event_id)) ?? String(row.event_id));
+
+/**
+ * A sitting's story (battle_session and session_standout are one story):
+ * anchored at its first battle, found by walking back past the battles a
+ * window holds while the gap stays under the session split, so the same
+ * sitting read through two windows has one start (the player path builds
+ * sessions from the battles a window learned). The walk and the count
+ * read the player's own battles as the timeline counts them: never a boat
+ * defense (0171), never a late capture (Gym #211). Bounded at 200 steps.
+ *
+ * `battles` counts the sitting from that first battle through `upToMs`:
+ * the revision, so a sitting told at 20 battles and read again at 40 is
+ * the same story, grown.
+ */
+const SITTING_WALK_STEPS = 200;
+const OWN_BATTLE_SQL = `b.battle_time >= b.created_at - interval '1 day'
+         and not (b.boat_battle_side is not null
+                  and (b.boat_battle_side = 'defender') = (bp.side = 0))`;
+async function sittingAnchors(db, sittings) {
+  if (sittings.length === 0) return [];
+  const { rows } = await db.query(
+    `with recursive s as (
+       select t.i, t.p, to_timestamp(t.st / 1000.0) as start, to_timestamp(t.up / 1000.0) as upto
+         from unnest($1::int[], $2::text[], $3::float8[], $4::float8[]) as t(i, p, st, up)
+     ), walk as (
+       select s.i, s.p, s.start as cur, 0 as steps from s
+       union all
+       select w.i, w.p, prev.battle_time, w.steps + 1
+         from walk w
+         cross join lateral (
+           select bp.battle_time
+             from battle_participant bp join battle b on b.battle_id = bp.battle_id
+            where bp.player_tag = w.p
+              and bp.battle_time < w.cur
+              and bp.battle_time > w.cur - interval '${SESSION_GAP_MS / MIN_MS} minutes'
+              and ${OWN_BATTLE_SQL}
+            order by bp.battle_time desc limit 1) prev
+        where w.steps < ${SITTING_WALK_STEPS}
+     ), anchor as (select i, min(cur) as anchor from walk group by i)
+     select s.i, a.anchor,
+            (select count(distinct bp.battle_id)::int
+               from battle_participant bp join battle b on b.battle_id = bp.battle_id
+              where bp.player_tag = s.p
+                and bp.battle_time >= a.anchor and bp.battle_time <= s.upto
+                and ${OWN_BATTLE_SQL}) as battles
+       from s join anchor a on a.i = s.i`,
+    [
+      sittings.map((_, i) => i),
+      sittings.map((x) => x.player_tag),
+      sittings.map((x) => x.startMs),
+      sittings.map((x) => x.upToMs),
+    ],
+  );
+  const out = new Array(sittings.length);
+  for (const r of rows)
+    out[r.i] = { anchor: iso(r.anchor), battles: r.battles };
+  return out;
+}
+/** The story of one sitting: its id from the anchor, its revision. */
+const sittingStory = (playerTag, anchored, fallbackStart) => ({
+  key: ["sitting", playerTag, anchored?.anchor ?? fallbackStart],
+  revision: Math.max(1, anchored?.battles ?? 1),
+});
 /** Optional per-query timings for the ops preview (perf is a plain object). */
 async function timed(perf, name, fn) {
   if (!perf) return fn();
@@ -743,7 +913,17 @@ export async function buildPlayerEntry(
   // What the timeline needs from this build, without a second read.
   const items = [];
   const subject = { subject_tag: tag, subject_name: nickname ?? name };
-  for (const s of sessions)
+  const anchored = await timed(perf, "player.sittings", () =>
+    sittingAnchors(
+      db,
+      sessions.map((s) => ({
+        player_tag: tag,
+        startMs: Date.parse(s.started_at),
+        upToMs: Date.parse(s.ended_at),
+      })),
+    ),
+  );
+  for (const [i, s] of sessions.entries())
     items.push({
       ...subject,
       at: s.started_at,
@@ -751,11 +931,17 @@ export async function buildPlayerEntry(
       kind: "battle_session",
       section: "battles",
       facts: sessionFacts(s),
+      [STORY]: sittingStory(tag, anchored[i], s.started_at),
     });
-  for (const r of ledger) {
-    if (!PLAYER_MOMENT_KINDS.includes(r.event_type)) continue;
-    if (r.event_type === "badge_earned" && !badgeItemWorthy(r.payload))
-      continue;
+  const momentRows = ledger.filter(
+    (r) =>
+      PLAYER_MOMENT_KINDS.includes(r.event_type) &&
+      (r.event_type !== "badge_earned" || badgeItemWorthy(r.payload)),
+  );
+  const firstIds = await timed(perf, "player.story_ids", () =>
+    firstEventIds(db, "player_event", momentRows),
+  );
+  for (const r of momentRows)
     items.push({
       ...subject,
       at: iso(r.occurred_at ?? r.window_end),
@@ -765,16 +951,21 @@ export async function buildPlayerEntry(
       kind: r.event_type,
       section: sectionOfKind(r.event_type),
       facts: decorate(r.event_type, r.payload, arenaNames),
+      [STORY]: ledgerStory("player_event", firstIds, r),
     });
-  }
-  for (const c of clanChanges)
+  for (const c of clanChanges) {
+    const kind = c.kind === "joined" ? "clan_joined" : "clan_left";
     items.push({
       ...subject,
       at: c.at,
-      kind: c.kind === "joined" ? "clan_joined" : "clan_left",
+      kind,
       section: "clan",
       facts: c,
+      [STORY]: moment(kind, tag, c.clan_tag, c.at),
     });
+  }
+  // A return and a quiet crossing name the player, so the same one on a
+  // clan's timeline (the member's) is the same story.
   if (presence.returned)
     items.push({
       ...subject,
@@ -782,6 +973,7 @@ export async function buildPlayerEntry(
       kind: "returned",
       section: "presence",
       facts: { after_days: presence.returned.after_days },
+      [STORY]: moment("returned", tag, presence.returned.at),
     });
   if (presence.rungCrossed)
     items.push({
@@ -789,6 +981,12 @@ export async function buildPlayerEntry(
       at: presence.rungCrossed.at,
       kind: "quiet_crossed",
       section: "presence",
+      [STORY]: moment(
+        "quiet_crossed",
+        tag,
+        presence.rungCrossed.rung,
+        presence.rungCrossed.at,
+      ),
       // As of the crossing, not the window's end (Gym #119): quiet for
       // exactly the rung's days at `at`.
       facts: {
@@ -1594,8 +1792,38 @@ export async function buildClanEntry(
   // and the derived presence moments.
   const items = [];
   const subject = { subject_tag: tag, subject_name: name };
-  for (const e of ledger) {
-    if (!CLAN_LEDGER_KINDS.includes(e.event_type)) continue;
+  const clanLedgerRows = ledger.filter((e) =>
+    CLAN_LEDGER_KINDS.includes(e.event_type),
+  );
+  const memberRows = moments.filter(
+    (m) => m.event_type !== "badge_earned" || badgeItemWorthy(m.payload),
+  );
+  const clanFirstIds = await timed(perf, "clan.story_ids", () =>
+    firstEventIds(db, "clan_event", clanLedgerRows),
+  );
+  const memberFirstIds = await timed(perf, "clan.story_ids", () =>
+    firstEventIds(db, "player_event", memberRows),
+  );
+  // Every sitting this read tells, anchored in one statement: the member
+  // read's sessions, then the standouts (revision at the last rung this
+  // window learned, so a new rung is the same story grown).
+  const anchored = await timed(perf, "clan.sittings", () =>
+    sittingAnchors(db, [
+      ...memberSessions.map((s) => ({
+        player_tag: memberTag,
+        startMs: Date.parse(s.started_at),
+        upToMs: Date.parse(s.ended_at),
+      })),
+      ...standoutSessions.map((s) => ({
+        player_tag: s.player_tag,
+        startMs: Date.parse(s.started_at),
+        upToMs: Math.max(...s.newly.map((n) => n.at)),
+      })),
+    ]),
+  );
+  const memberAnchored = anchored.slice(0, memberSessions.length);
+  const standoutAnchored = anchored.slice(memberSessions.length);
+  for (const e of clanLedgerRows) {
     const warKind =
       e.event_type === "race_finished" ||
       e.event_type === "week_resolved" ||
@@ -1607,24 +1835,22 @@ export async function buildClanEntry(
         e.event_type === "role_changed" ? "member_role_changed" : e.event_type,
       section: warKind ? "war" : "roster",
       facts: e.payload,
+      [STORY]: ledgerStory("clan_event", clanFirstIds, e),
     });
   }
-  const memberItems = moments
-    .filter(
-      (m) => m.event_type !== "badge_earned" || badgeItemWorthy(m.payload),
-    )
-    .map((m) => ({
-      ...subject,
-      at: iso(m.occurred_at ?? m.window_end),
-      observed_at: iso(m.window_end),
-      kind: m.event_type,
-      section: "standouts",
-      facts: {
-        player_tag: m.player_tag,
-        name: m.name,
-        ...decorate(m.event_type, m.payload, arenaNames),
-      },
-    }));
+  const memberItems = memberRows.map((m) => ({
+    ...subject,
+    at: iso(m.occurred_at ?? m.window_end),
+    observed_at: iso(m.window_end),
+    kind: m.event_type,
+    section: "standouts",
+    facts: {
+      player_tag: m.player_tag,
+      name: m.name,
+      ...decorate(m.event_type, m.payload, arenaNames),
+    },
+    [STORY]: ledgerStory("player_event", memberFirstIds, m),
+  }));
   // Newest first before the cap (Jamie, 2026-09-23: the timeline is a
   // stream of what is new), so what a busy window drops is the oldest,
   // counted in `more`.
@@ -1634,7 +1860,7 @@ export async function buildClanEntry(
   // window learned, observed when the record learned that battle. Every
   // standout is an item (Gym #164: five were served and the rest dropped
   // with has_more false); the timeline's own cap and cursor bound them.
-  for (const sess of memberSessions)
+  for (const [i, sess] of memberSessions.entries())
     items.push({
       ...subject,
       // The member is who played it; the item stays on the clan's
@@ -1649,8 +1875,9 @@ export async function buildClanEntry(
         name: memberName.get(memberTag) ?? null,
         ...sessionFacts(sess),
       },
+      [STORY]: sittingStory(memberTag, memberAnchored[i], sess.started_at),
     });
-  for (const sess of standoutSessions)
+  for (const [i, sess] of standoutSessions.entries())
     items.push({
       ...subject,
       at: iso(sess.newly[0].at),
@@ -1664,6 +1891,11 @@ export async function buildClanEntry(
         crossed: sess.crossed,
         newly: sess.newly.map((n) => n.label),
       },
+      [STORY]: sittingStory(
+        sess.player_tag,
+        standoutAnchored[i],
+        sess.started_at,
+      ),
     });
   if (comprehensive) {
     for (const q of crossings)
@@ -1681,6 +1913,7 @@ export async function buildClanEntry(
           days_quiet: q.rung,
           days_since_poll: q.days_since_poll,
         },
+        [STORY]: moment("quiet_crossed", q.tag, q.rung, q.at),
       });
     for (const r of returns)
       items.push({
@@ -1694,6 +1927,7 @@ export async function buildClanEntry(
           name: r.name,
           after_days: r.after_days,
         },
+        [STORY]: moment("returned", r.tag, r.at),
       });
   }
   return {
@@ -1711,7 +1945,7 @@ export async function buildClanEntry(
 async function accountItems(db, accountId, fromMs, toMs) {
   if (!accountId) return [];
   const { rows } = await db.query(
-    `select kind, detail, created_at from account_event
+    `select event_id, kind, detail, created_at from account_event
       where account_id = $1 and created_at >= ${ts(fromMs + 1)} and created_at < ${ts(toMs + 1)}
       order by event_id`,
     [accountId],
@@ -1723,6 +1957,7 @@ async function accountItems(db, accountId, fromMs, toMs) {
     kind: `account_${r.kind}`,
     section: "account",
     facts: r.detail ?? {},
+    [STORY]: moment("account_event", String(r.event_id)),
   }));
 }
 
@@ -1853,6 +2088,7 @@ export async function factItems(
         visibility:
           ATTESTED_FACT_TYPES[f.fact_type]?.visibility ?? f.visibility,
       },
+      [STORY]: moment("attested_fact", String(f.fact_id)),
     };
   });
 }
@@ -1976,13 +2212,41 @@ export async function buildTimeline(
     "quiet_crossed",
     "returned",
   ]);
-  const seen = new Set();
+  const dedupeKey = (it) =>
+    `${it.subject_tag}|${it.kind}|${ROSTER_KINDS.has(it.kind) ? it.at : ""}|${JSON.stringify(it.facts ?? null)}`;
+  const seen = new Map();
   items = items.filter((it) => {
-    const key = `${it.subject_tag}|${it.kind}|${ROSTER_KINDS.has(it.kind) ? it.at : ""}|${JSON.stringify(it.facts ?? null)}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    const key = dedupeKey(it);
+    const kept = seen.get(key);
+    if (kept) {
+      // The collapsed row's story is the lower ledger row's, whichever
+      // of the two came first by instant (#111).
+      const [a, b] = [kept[STORY]?.key, it[STORY]?.key];
+      if (
+        a &&
+        b &&
+        a[0] === b[0] &&
+        LEDGERS.has(a[0]) &&
+        BigInt(b[1]) < BigInt(a[1])
+      )
+        kept[STORY] = it[STORY];
+      return false;
+    }
+    seen.set(key, it);
     return true;
   });
+  // The story fields, after the dedupe (#111), first on each item. An
+  // item no builder named (none today) is the story its dedupe key says.
+  const told = (it) => {
+    const { [STORY]: named, ...rest } = it;
+    const story = named ?? moment("item", dedupeKey(it));
+    return {
+      id: storyId(...story.key),
+      revision: story.revision ?? 1,
+      ...rest,
+    };
+  };
+  items = items.map(told);
   // The caller's filter (kinds, sections, a member) applies BEFORE the
   // cap (Gym #244: the cap counted items the filter then removed, so a
   // filtered reader got 18 of 50 items and a busy-window note).
@@ -2008,7 +2272,9 @@ export async function buildTimeline(
     window: { from: iso(fromMs), to: iso(toMs) },
     timeline: items,
     timeline_more: more,
-    timeline_dropped: dropped,
+    timeline_dropped: dropped.map((it) =>
+      it.id === undefined ? told(it) : it,
+    ),
     entries,
     quiet,
   };

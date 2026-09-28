@@ -3825,6 +3825,17 @@ export const OUTPUT_SCHEMAS = {
         items: {
           type: "object",
           properties: {
+            id: {
+              type: "string",
+              description:
+                "9.15.0: the story this item tells, opaque and stable across reads and windows; a member's moment carries one id on the clan's timeline and the player's own, and battle_session and session_standout of one sitting share it. Tell a story once per id.",
+            },
+            revision: {
+              type: "integer",
+              minimum: 1,
+              description:
+                "9.15.0: how far the story has grown; 1 for a moment that never grows. A sitting's is its battles counted from its first (a standout's, up to the last rung this window learned), so a higher revision under a told id is the same story grown: update it, never retell it.",
+            },
             at: ISO,
             observed_at: {
               ...ISO,
@@ -3838,7 +3849,15 @@ export const OUTPUT_SCHEMAS = {
             text: { type: "string" },
             facts: { type: "object" },
           },
-          required: ["at", "kind", "section", "text", "facts"],
+          required: [
+            "id",
+            "revision",
+            "at",
+            "kind",
+            "section",
+            "text",
+            "facts",
+          ],
         },
       },
       timeline_more: COUNT,

@@ -4377,3 +4377,58 @@ The console renders the server's text, so it needed an e2e case only.
 - **Pending natural check:** the next form unlock on a recorded player
   appears as a `card_form_unlocked` item (and a milestone mail when it is
   Jamie's own or an alt's).
+
+## 2026-09-28 - #111: every timeline item is a story, with an id and a revision (9.15.0)
+
+Lane B, approved in the revisit for storytelling, not only dedupe (Jamie:
+"how you tell stories as an agent using the MCP is weak now"). Every
+`elixir_timeline` item (and `/api/me/timeline`, which spreads the same
+build) carries `id`, the story, and `revision`, how far it has grown,
+assigned in `buildTimeline` after the dedupe. The id is `tl_` plus 20 hex
+of a sha256 over a namespace and the parts that name the happening; it
+names the happening, not the reader, so a member's moment has one id on
+the clan's timeline and on the player's own.
+
+- **Ledger moments and attested facts:** the ledger's name plus the row
+  id (`player_event`, `clan_event`, `account_event`, `attested_fact`), so
+  sequences never collide and none is served raw. A duplicated row (the
+  09-14 re-emits, feedback #48) takes the lowest identical row's id:
+  `firstEventIds` looks back one day on the window index for a row with
+  every typed column equal (a roster move also at the same instant), and
+  the in-read collapse keeps the lower of the two. `accountItems` selects
+  `event_id` now. Revision 1.
+- **Sittings** (`battle_session`, `session_standout` are one story): the
+  player's tag and the sitting's first battle, found by a bounded
+  recursive walk back (200 steps) while the gap stays under 30 minutes,
+  over the player's own battles as the timeline counts them (no boat
+  defense, no late capture). Revision: the sitting's battles counted from
+  that first battle through the item's last battle; a standout's, through
+  the last rung the window learned, so a new rung raises it and a wider
+  read of the same rungs does not. Both are in battles, so the two kinds
+  of one id compare.
+- **Derived items:** `returned` (player, instant), `quiet_crossed`
+  (player, rung, instant), `clan_joined`/`clan_left` (player, clan,
+  instant); anything unnamed falls back to a hash of its dedupe key (none
+  today).
+- The member-read note says update on a higher revision, where it said
+  keep the newest per kind and `started_at`; the general note states the
+  rule; `timeline.md` has the item field table (with `observed_at`, which
+  was missing) and "Telling the story". Output schema: `id`, `revision`
+  required on items. The tool description is at 599 of 600 characters,
+  so the rule rides the notes and the schema.
+- **Limits, stated:** an id hashes public parts without a secret, so a
+  reader who knows a subject could test guesses at a ledger row id; it
+  hides volume and order from a casual reader, which is what the issue
+  asked. A genuine repeat of an identical ledger moment within a day (an
+  arena bounce with no crossing battle on record) shares the first's id,
+  as the read-time dedupe already serves it once. Seen while here, not
+  changed: the clan path's member battle fetch does not exclude boat
+  defenses, which the player path does (0171).
+
+Tests (scratch database, `timeline-tool.test.mjs`): one sitting through
+two overlapping windows has one id (revision 3, then 6); a standout
+crossing 20 then 40 battles keeps its id at revision 20 then 40, and the
+member's session shares it; a duplicated promotion keeps the lowest row's
+id in a window holding either row; one sequence number in three ledgers
+gives three ids, none showing the number. MCP 9.15.0, additive; the JSON
+API has no timeline operation.

@@ -100,15 +100,24 @@ silences it without touching its recording.
 
 ## Items
 
-Every item is `{ at, subject_tag, subject_name, kind, section, text,
-facts }`. `text` is a sentence a person can read; `facts` are the numbers
-and names it was written from; `section` is the entry section the item
-belongs to, so `sections` filters items and entries together.
+Every item is `{ id, revision, at, observed_at, subject_tag,
+subject_name, kind, section, text, facts }`:
+
+| field | what it is |
+|---|---|
+| `id` | the story the item tells (9.15.0): opaque (`tl_` and 20 hex characters), the same in every read and every window. It names the happening, not the reader, so a member's moment has one id on the clan's timeline and on the player's own, and a sitting's `battle_session` and `session_standout` share one. Never a ledger sequence number |
+| `revision` | how far the story has grown (9.15.0): 1 for a moment that never grows. A sitting's is its battles counted from its first battle, which a window can start after (a `session_standout`'s, up to the last rung this window learned), so a sitting told at 20 battles and read again at 40 is the same `id` at a higher `revision` |
+| `at` | when it happened |
+| `observed_at` | when the record observed it, which is what selects it into a window (6.25.0); a polled moment can be observed well after `at` |
+| `subject_tag`, `subject_name` | whose timeline it is on: a player or a clan (a member's moment is on the clan's); `subject_tag` is null on your account's items |
+| `kind`, `section` | what it is (below); `section` is the entry section it belongs to, so `sections` filters items and entries together |
+| `text` | a sentence a person can read |
+| `facts` | the numbers and names `text` was written from |
 
 | kind | subject | what it is |
 |---|---|---|
-| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `won_in_a_row`, `open` while it may still be going. On a player's own timeline every sitting is an item, a single battle included; a clan's members' ordinary sessions are not items there (see `session_standout`, and `player_tag` below). A reader that moves its pointer sees each sitting once; a member read (`player_tag`) keeps no pointer, so a sitting still being learned can come back with a running total under the same `started_at`: keep the newest. |
-| `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500, `battles` 20 / 40 in one sitting. The session shape plus `crossed` (every rung so far) and `newly` (the rungs this window learned); `at` is the battle that crossed the first new rung. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
+| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `won_in_a_row`, `open` while it may still be going. On a player's own timeline every sitting is an item, a single battle included; a clan's members' ordinary sessions are not items there (see `session_standout`, and `player_tag` below). A reader that moves its pointer sees each sitting once; a member read (`player_tag`) keeps no pointer, so a sitting still being learned can come back with a running total under the same `id` at a higher `revision`: update, never retell. |
+| `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500, `battles` 20 / 40 in one sitting. The session shape plus `crossed` (every rung so far) and `newly` (the rungs this window learned); `at` is the battle that crossed the first new rung. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing; a new rung is the sitting's `id` at a higher `revision`. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
 | `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge's API identifier (`MasterySkeletonWarriors`), `facts.badge_label` the badge as a player says it (`Guards Mastery`, 4.2.0), `facts.name` the member on a clan's timeline. A level-up is an item only at the badge's final level or a multiple of five (`max_level` rides on rows written since 3.9.0); the entry's `badges` counts every level-up |
 | `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor and `at` is that battle's instant rather than the poll's; absent means a capture gap, never a guess |
 | `ranked_promotion` | player, or a clan's member | Path of Legends league went up, by name. `facts.promoted_by` names the promoting battle when the record holds it: the last win played in the league below (a ranked battle is stamped with the league it started in), with `at` at that battle |
@@ -167,6 +176,15 @@ clanmates.
 A battle the record learned more than a day after it was played (a history
 backfill, a log polled late) is a late capture: counted in the entry's
 `battles.late_captures` and never narrated, whatever the window (7.1.2).
+
+### Telling the story
+
+Post once per `id`. When a later read serves an `id` you have told at a
+higher `revision`, the story grew: update it, or say "and now...", and
+never retell it. The same `id` at the same or a lower `revision` is a
+story you have told; say nothing. Keep the ids you have told, with the
+revision you told each at, and a timeline read through overlapping
+windows, a member read, or a read after a restart never repeats itself.
 
 ### The `facts` keys, by kind
 

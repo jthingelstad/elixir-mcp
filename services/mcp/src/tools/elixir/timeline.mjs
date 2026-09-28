@@ -450,7 +450,7 @@ export const elixir_timeline = {
         seasonFields.seasonNotes,
         entries.length === 0 && built.quiet.length === 0
           ? "No subjects: track a player or clan (notify defaults on) and it appears here."
-          : "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+          : "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Each item's id is the story it tells, the same in every read, and revision is how far it has grown: tell a story once per id, and update it (never retell it) when a read serves a higher revision. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
         built.quiet.length > 0
           ? "quiet lists tracked players with nothing in the window; read days_since_poll beside days_quiet before calling the silence theirs."
           : null,
@@ -493,7 +493,7 @@ export const elixir_timeline = {
           : null,
         memberNote,
         memberTag && !memberNote
-          ? `A member read: the items are ${memberTag}'s sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full.${sittingCut ? " A member read keeps no pointer, and a sitting here is cut by the window (still open at its end, or begun before its start): the next read that learns more of it serves it again under the same started_at with a running total. Keep the newest item per kind and started_at (Gym #302, #321)." : ""}`
+          ? `A member read: the items are ${memberTag}'s sessions and moments on the timelines this reader follows. battles_query and battles_performance read that player's battles in full.${sittingCut ? " A member read keeps no pointer, and a sitting here is cut by the window (still open at its end, or begun before its start): the next read that learns more of it serves it again under the same id with a higher revision. Tell a story once per id and update it on a higher revision (Gym #302, #321; 9.15.0)." : ""}`
           : null,
         pointerKept
           ? `The read pointer stays at ${iso(storedMs)}: it only moves forward, and this window ends before it (read_to reports it). Pass mark_read false to read a past window without asking to move it.`
