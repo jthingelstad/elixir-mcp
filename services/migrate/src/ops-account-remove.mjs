@@ -203,6 +203,10 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     ["email_send", `email_send where account_id = any($1::uuid[])`],
     ["email_milestone", `email_milestone where account_id = any($1::uuid[])`],
     [
+      "email_milestone_look",
+      `email_milestone_look where account_id = any($1::uuid[])`,
+    ],
+    [
       "account_email_pref",
       `account_email_pref where account_id = any($1::uuid[])`,
     ],

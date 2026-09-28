@@ -54,7 +54,9 @@ A milestone mails once, ever, per account and subject, keyed by the
 moment's own identity: the arena, the league, the band, the badge, the
 card's form. A season's re-climb of an arena you have already been
 congratulated for is silent; a higher one is news. A move down never mails. Friends' and
-watchers' moments belong to the Tracking report, not here.
+watchers' moments belong to the Tracking report, not here. If a check is
+missed (an outage, a failed send), the next one reads back to the last
+check that went through, up to a week, so a first is late rather than lost.
 
 ## Card of the Week, and how it stays honest
 

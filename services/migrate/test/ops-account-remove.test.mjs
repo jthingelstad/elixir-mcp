@@ -249,6 +249,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     feedback: 1,
     email_send: 1,
     email_milestone: 0,
+    email_milestone_look: 0,
     account_email_pref: 0,
     account_event: 2, // signed_in, and the grant's agent_connected
   });

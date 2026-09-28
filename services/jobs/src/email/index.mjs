@@ -31,7 +31,39 @@ import { buildMilestone, recordMilestones } from "./build-milestone.mjs";
 import { recordFeaturedSent } from "./card-of-week-select.mjs";
 import { tryTool } from "./shared.mjs";
 
+/** The milestone window: 26 hours back from the account's last look that
+ *  finished cleanly (email_milestone_look, 0194), so a failed or skipped
+ *  run leaves no gap (#130); never more than seven days back. With no
+ *  look on record it is the 26 hours ending now. */
 const MILESTONE_LOOKBACK_MS = 26 * 3600_000;
+const MILESTONE_MAX_LOOKBACK_MS = 7 * 86400_000;
+
+export function milestoneFromMs(now, lookedAt) {
+  const nowMs = now.getTime();
+  const anchor = lookedAt ? Math.min(lookedAt.getTime(), nowMs) : nowMs;
+  return Math.max(
+    anchor - MILESTONE_LOOKBACK_MS,
+    nowMs - MILESTONE_MAX_LOOKBACK_MS,
+  );
+}
+
+async function lastMilestoneLooks(db, accountIds) {
+  const { rows } = await db.query(
+    `select account_id, looked_at from email_milestone_look
+      where account_id = any($1::uuid[])`,
+    [accountIds],
+  );
+  return new Map(rows.map((r) => [r.account_id, r.looked_at]));
+}
+
+async function recordMilestoneLook(db, accountId, now) {
+  await db.query(
+    `insert into email_milestone_look (account_id, looked_at) values ($1, $2)
+     on conflict (account_id) do update set looked_at = excluded.looked_at
+       where email_milestone_look.looked_at < excluded.looked_at`,
+    [accountId, now],
+  );
+}
 /** Stop taking recipients with this much of the invocation left: the
  *  longest single compose is well under it. */
 const STOP_MARGIN_MS = 90_000;
@@ -284,6 +316,19 @@ async function runPerAccount(run, recipients, season) {
     todo = recipients.filter((a) => !sent.get(a.accountId)?.has(a.accountId));
     result.already_sent += recipients.length - todo.length;
   }
+  const looks =
+    kind === "milestone"
+      ? await lastMilestoneLooks(
+          db,
+          todo.map((a) => a.accountId),
+        )
+      : null;
+  // A look that finished cleanly moves the account's window; a forced
+  // (ops) send never does, and neither does a failure or a stop.
+  const looked = async (account) => {
+    if (kind === "milestone" && !run.force)
+      await recordMilestoneLook(db, account.accountId, now);
+  };
   for (let i = 0; i < todo.length; i++) {
     const account = todo[i];
     if (run.outOfTime()) {
@@ -306,7 +351,7 @@ async function runPerAccount(run, recipients, season) {
         facts = await buildMilestone({
           db,
           account,
-          fromMs: now.getTime() - MILESTONE_LOOKBACK_MS,
+          fromMs: milestoneFromMs(now, looks.get(account.accountId)),
           toMs: now.getTime(),
         });
         if (facts) {
@@ -316,6 +361,7 @@ async function runPerAccount(run, recipients, season) {
       }
       if (!facts) {
         result.skipped += 1;
+        await looked(account);
         continue;
       }
       const subjectKey = account.accountId;
@@ -327,6 +373,7 @@ async function runPerAccount(run, recipients, season) {
           // between the two): record them now so the next pass is quiet.
           await recordMilestones(db, account.accountId, _moments ?? []);
           result.already_sent += 1;
+          await looked(account);
           continue;
         }
       }
@@ -347,6 +394,7 @@ async function runPerAccount(run, recipients, season) {
       });
       if (kind === "milestone" && r.sent)
         await recordMilestones(db, account.accountId, _moments ?? []);
+      if (r.sent || r.reason === "already_sent") await looked(account);
     } catch (err) {
       failed(run, { account: account.accountId }, err);
     }
