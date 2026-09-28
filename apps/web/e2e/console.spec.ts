@@ -309,6 +309,84 @@ test.describe("signed in", () => {
     ).toContainText("2");
   });
 
+  test("an agent whose key was revoked is issued a new one, and a refusal says why (#130)", async ({
+    page,
+  }) => {
+    const PUBLIC_ID = "a1b2c3d4e5f6";
+    const agent = {
+      account_id: "00000000-0000-4000-8000-000000000001",
+      kind: "agent",
+      public_id: PUBLIC_ID,
+      role: "member",
+      status: "approved",
+      name: "clan-bot",
+      created_at: "2026-09-01T00:00:00Z",
+      calls_7d: 0,
+      last_call_at: null,
+      timeline_pending: 0,
+      clans: [],
+      last_seen: null,
+      refusals_7d: [],
+      tokens: [
+        {
+          token_id: "t1",
+          name: "clan-bot",
+          scope: "cr:read",
+          created_at: "2026-09-01T00:00:00Z",
+          last_used_at: "2026-09-20T00:00:00Z",
+          revoked_at: "2026-09-27T00:00:00Z",
+        },
+      ],
+    };
+    let answer: [number, unknown] = [
+      409,
+      {
+        ok: false,
+        error: "name_taken",
+        message:
+          "Another of your agents is now called clan-bot. Rename that one first, then issue this agent its new key.",
+      },
+    ];
+    await mockApi(page, {
+      ...signedIn(),
+      "GET /api/me": [
+        200,
+        {
+          ...ME,
+          agents: [{ account_id: agent.account_id, public_id: PUBLIC_ID }],
+        },
+      ],
+      "GET /api/me/principals": [200, { agents: [agent], addable_clans: [] }],
+      [`GET /api/agent/${PUBLIC_ID}`]: [
+        200,
+        { ...ME, email: null, claims: [], recordings: [] },
+      ],
+      "POST /api/me/principals/rotate": () => answer,
+    });
+    await page.goto(`/agent/${PUBLIC_ID}/overview`);
+    await expect(page.getByText("No live key.")).toBeVisible();
+
+    await page.goto(`/agent/${PUBLIC_ID}/settings`);
+    const issue = page.getByRole("button", { name: "Issue a new key" });
+    await expect(issue).toBeEnabled();
+
+    // Refused: the name moved to another agent since the revoke.
+    await issue.click();
+    await expect(page.getByRole("alert")).toContainText(
+      "Another of your agents is now called clan-bot",
+    );
+    await expect(page.getByText("Copy this key now.")).toHaveCount(0);
+    await rendered(page);
+    await accessible(page, "agent settings, issue refused");
+
+    // Issued: the key is handed over once.
+    answer = [200, { ok: true, token: "svt_fixture_not_a_real_key" }];
+    await issue.click();
+    await expect(page.getByText("Copy this key now.")).toBeVisible();
+    await expect(page.getByText("svt_fixture_not_a_real_key")).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+  });
+
   test("@narrow the rail is a disclosure above the content, naming where you are", async ({
     page,
   }) => {

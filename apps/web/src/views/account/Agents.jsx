@@ -54,6 +54,11 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
   const unmap = useWrite(api.removePrincipalIdentity, {
     invalidate: [keys.principals],
   });
+  // Issuing a key works after a revoke too (#130); a name another agent
+  // took since is the one refusal, and it says so beside the button.
+  const rotate = useWrite(api.rotatePrincipalToken, {
+    invalidate: [keys.principals],
+  });
 
   if (missed)
     return (
@@ -392,13 +397,12 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
           <div className="panel__actions">
             <button
               className="btn btn--quiet"
-              disabled={busy}
+              disabled={busy || rotate.busy}
               onClick={async () => {
-                setBusy(true);
-                const r = await api.rotatePrincipalToken(id);
-                setBusy(false);
+                revoke.reset();
+                status.reset();
+                const r = await rotate.run(id);
                 if (r.ok) setMinted(r.data.token);
-                load();
               }}
             >
               Issue a new key
@@ -418,6 +422,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
                 )
                   return;
                 status.reset();
+                rotate.reset();
                 await revoke.run(key.token_id);
               }}
             >
@@ -428,6 +433,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
               disabled={busy || status.busy}
               onClick={() => {
                 revoke.reset();
+                rotate.reset();
                 status.run(id, suspended ? "approved" : "disabled");
               }}
             >
@@ -436,7 +442,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
             <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
               Suspend is reversible — the same key comes back. Revoke is not.
             </span>
-            <WriteError error={revoke.error ?? status.error} />
+            <WriteError error={rotate.error ?? revoke.error ?? status.error} />
           </div>
         )}
         {minted && (

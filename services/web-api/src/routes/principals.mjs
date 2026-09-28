@@ -104,7 +104,10 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
       if (!UUID_RE.test(String(body.account_id ?? "")))
         return json(400, { error: "invalid_account_id" });
       const result = await rotateToken(db, account.accountId, body.account_id);
-      if (!result.ok) return json(404, result);
+      // A name another agent took since the revoke is a conflict the owner
+      // can resolve; anything else is an agent that is not theirs.
+      if (!result.ok)
+        return json(result.error === "name_taken" ? 409 : 404, result);
       // Handed over once, exactly like creation. There is no second chance
       // and no support path that ends in recovering it.
       return json(200, { ok: true, token: result.token });
