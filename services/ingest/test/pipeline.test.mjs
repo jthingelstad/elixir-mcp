@@ -309,6 +309,57 @@ test("fetch_error records its bounded non-payload outcome without moving freshne
   ]);
 });
 
+// Review 2026-09-27 §2.6 (#69): a failed fetch owes its subject a retry
+// in minutes (0188); a 404 does not, and an admission settles it.
+test("a non-404 fetch error owes a retry; a redelivery does not spend another; admission clears it", async () => {
+  const profile = await fixture("player/profile.json");
+  const tag = meta["player/profile.json"].entity_key;
+  await ctx.db.query(
+    `insert into poll_state (subject_tag, endpoint) values ($1, 'player')
+     on conflict do nothing`,
+    [tag],
+  );
+  const read = async () =>
+    (
+      await ctx.db.query(
+        `select retry_at, retry_tries from poll_state
+         where subject_tag = $1 and endpoint = 'player'`,
+        [tag],
+      )
+    ).rows[0];
+  const error = (fetchedAt, httpStatus) => ({
+    v: 1,
+    job: { endpoint: "player", entity_key: tag, lane: "bulk" },
+    gateway_id: gatewayId,
+    fetched_at: fetchedAt,
+    status: "error",
+    ...(httpStatus ? { http_status: httpStatus } : {}),
+    error: { kind: httpStatus ? "http" : "transport" },
+  });
+
+  await processResult(ctx.db, error("2026-09-03T16:00:00Z", 404));
+  assert.deepEqual(await read(), { retry_at: null, retry_tries: 0 });
+
+  await processResult(ctx.db, error("2026-09-03T16:05:00Z", 503));
+  await processResult(ctx.db, error("2026-09-03T16:05:00Z", 503));
+  assert.deepEqual(await read(), {
+    retry_at: new Date("2026-09-03T16:20:00Z"),
+    retry_tries: 1,
+  });
+
+  const admitted = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: profile,
+      fetchedAt: "2026-09-03T16:21:00Z",
+    }),
+  );
+  assert.equal(admitted.outcome, "admitted");
+  assert.deepEqual(await read(), { retry_at: null, retry_tries: 0 });
+});
+
 test("malformed message is bad_message (handler routes it to the DLQ path)", async () => {
   const result = await processResult(ctx.db, { v: 1, status: "ok" });
   assert.equal(result.outcome, "bad_message");

@@ -56,6 +56,9 @@ export function ledgerEmf(stats, now = Date.now(), plan = {}) {
     SessionFollowupJobs: plan.followup ?? 0,
     ReadCappedJobs: plan.read_capped ?? 0,
     RequestedProfileJobs: plan.requested ?? 0,
+    // Planned only because a failed fetch owed a retry (0188; review
+    // 2026-09-27 §2.6): the minutes-not-a-cadence retries. A property.
+    RetryJobs: plan.retried ?? 0,
     // Subjects held back because the API's last word was 404
     // (2026-09-19): the fetches the backoff is not spending. A log
     // property, not a metric: no panel, alarm or runbook read it.

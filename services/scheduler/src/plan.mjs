@@ -80,7 +80,8 @@ export const CADENCE = {
   rankings_players: { every: 1440, floor: 2880 },
   // 0069. A season's final board is fetched ONCE (see selectEligible: due
   // while no snapshot for that season exists), so its cadence is moot but
-  // the floor keeps a failed fetch retried daily rather than every tick.
+  // the floor keeps a failed fetch retried daily, after its three quick
+  // retries (0188), rather than every tick.
   rankings_pol_season: { every: 1440, floor: 1440 },
   rankings_clans_loc: { every: 1440, floor: 2880 },
   rankings_clanwars: { every: 1440, floor: 2880 },
@@ -257,6 +258,22 @@ export function jitterFactor(subjectTag, endpoint) {
   }
   const frac = (h >>> 0) / 4294967296;
   return 1 + (frac - 0.5) * JITTER_SPREAD;
+}
+
+/**
+ * How long after its reference a row on an elapsed cadence is due: the
+ * cadence times the subject's jitter. For a battle log the product is
+ * clamped at the session ceiling, because "never passes two hours" is a
+ * published promise (recording.md) and a +15% jitter on the 120-minute
+ * ceiling allowed 138 minutes (review 2026-09-27 §4.5). Below the
+ * ceiling the jitter still de-phases cohorts in both directions.
+ */
+export function dueAfterMs(row, now = new Date()) {
+  let minutes =
+    yieldCadenceMinutes(row, now) * jitterFactor(row.subject_tag, row.endpoint);
+  if (row.endpoint === "player_battlelog")
+    minutes = Math.min(minutes, SESSION_CEILING_MINUTES);
+  return minutes * MINUTE;
 }
 
 const IN_FLIGHT_SUPPRESSION_MINUTES = 15;
@@ -469,7 +486,7 @@ async function selectEligible(db, now) {
     with state as (
       select ps.subject_tag, ps.endpoint, ps.last_planned_at, ps.last_admitted_at,
              ps.yield_bph, ps.hint, ps.period_type, ps.last_read_at,
-             ps.refresh_requested_at, ps.empty_streak,
+             ps.refresh_requested_at, ps.empty_streak, ps.retry_at,
              exists (select 1 from claim c
                      where c.player_tag = ps.subject_tag) as directly_tracked,
              -- A clan someone asked us to record, as opposed to one we read
@@ -530,7 +547,8 @@ async function selectEligible(db, now) {
     )
     select subject_tag, endpoint, last_planned_at, last_admitted_at, reference,
            yield_bph, hint, period_type, last_read_at, refresh_requested_at, empty_streak,
-           directly_tracked, clan_tracked, board_every, reread_at, last_not_found_at
+           directly_tracked, clan_tracked, board_every, reread_at, last_not_found_at,
+           retry_at
     from state`,
   );
 
@@ -559,7 +577,6 @@ async function selectEligible(db, now) {
     const requested = refreshRequested(r, now);
     const referenceMs = r.reference.getTime();
     const row = r;
-    const jitter = jitterFactor(r.subject_tag, r.endpoint) * MINUTE;
     // A daily board is due once per board-day, anchored, not once per
     // elapsed day: every daily board reads in the tick after 10:00Z.
     const dailyBoard =
@@ -568,16 +585,21 @@ async function selectEligible(db, now) {
         r.board_every != null &&
         Number(r.board_every) >= 1440);
     const rereadMs = r.reread_at ? r.reread_at.getTime() : null;
-    const due = dailyBoard
+    // A failed fetch owes a retry at retry_at (0188), as an incomplete
+    // board owes its re-read (0173); the next plan clears it.
+    const retryMs = r.retry_at ? r.retry_at.getTime() : null;
+    const retry = retryMs !== null && retryMs <= nowMs && referenceMs < retryMs;
+    const cadenceDue = dailyBoard
       ? referenceMs < boardDayStartMs(nowMs) ||
         (rereadMs !== null && rereadMs <= nowMs && referenceMs < rereadMs)
-      : nowMs - referenceMs >= yieldCadenceMinutes(row, now) * jitter;
+      : nowMs - referenceMs >= dueAfterMs(row, now);
+    const due = cadenceDue || retry;
     // Would the rule without the reader cap have made it due? Only the
     // difference is attributable to the cap (the metric that proves it).
     const dueUncapped = dailyBoard
       ? due
-      : nowMs - referenceMs >=
-        yieldCadenceMinutes({ ...row, last_read_at: null }, now) * jitter;
+      : retry ||
+        nowMs - referenceMs >= dueAfterMs({ ...row, last_read_at: null }, now);
     const admittedMs = r.last_admitted_at ? r.last_admitted_at.getTime() : 0;
     const plannedMs = r.last_planned_at ? r.last_planned_at.getTime() : 0;
     const forcedPreReset =
@@ -614,8 +636,10 @@ async function selectEligible(db, now) {
       // at the last read. The share of these is the session clock's work.
       followup:
         r.endpoint === "player_battlelog" &&
-        due &&
+        cadenceDue &&
         sessionWaitMinutes(r) === SESSION_FOLLOWUP_MINUTES,
+      // Due only because a failed fetch owed a retry (0188).
+      retry: retry && !cadenceDue && !starved,
       readCapped: due && !dueUncapped && !starved && readCapApplies(row, now),
       overdueMs,
       expectedYield:
@@ -691,15 +715,21 @@ export async function planTick(db, now = new Date()) {
       followup: 0,
       readCapped: 0,
       requested: 0,
+      retried: 0,
     };
 
   const eligible = await selectEligible(db, now);
   const selected = eligible.slice(0, bulkBudget);
 
+  // A plan settles any retry owed (0188). A retry keeps its count, so the
+  // next failure waits twice as long; a plan the cadence made starts the
+  // count again, so each failed plan earns up to three retries.
   for (const job of selected) {
     await db.query(
-      `update poll_state set last_planned_at = $3 where subject_tag = $1 and endpoint = $2`,
-      [job.subject_tag, job.endpoint, now],
+      `update poll_state set last_planned_at = $3, retry_at = null,
+              retry_tries = case when $4 then retry_tries else 0 end
+       where subject_tag = $1 and endpoint = $2`,
+      [job.subject_tag, job.endpoint, now, job.retry],
     );
   }
 
@@ -715,6 +745,7 @@ export async function planTick(db, now = new Date()) {
     followup: selected.filter((j) => j.followup).length,
     readCapped: selected.filter((j) => j.readCapped).length,
     requested: selected.filter((j) => j.requested).length,
+    retried: selected.filter((j) => j.retry).length,
     notFoundHeld: eligible.notFoundHeld ?? 0,
   };
 }

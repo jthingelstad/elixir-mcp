@@ -16,6 +16,7 @@ import { gunzipSync } from "node:zlib";
 import { polSeasonMonth } from "./war-clock.mjs";
 import { validateResultMessage, normalizeTag } from "@elixir-mcp/contracts";
 import { payloadHash } from "./hash.mjs";
+import { stampRetry } from "../../scheduler/src/ledger.mjs";
 import { admit } from "./admission.mjs";
 import { ingestBattlelog } from "./battles.mjs";
 import { ingestClanRoster } from "./roster.mjs";
@@ -584,7 +585,7 @@ export async function processResult(db, rawMessage, deps = {}) {
     // board that never admits is indistinguishable from a collector that
     // never received the work. Freshness still does not move.
     const kind = msg.error?.kind ?? "unknown";
-    await db.query(
+    const { rowCount: recorded } = await db.query(
       `insert into collector_fetch_error
          (job_id, gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
        values ($1, $2, $3, $4, $5, $6, $7)
@@ -599,6 +600,22 @@ export async function processResult(db, rawMessage, deps = {}) {
         kind,
       ],
     );
+    // Owe the subject a retry in minutes rather than a cadence (0188;
+    // review 2026-09-27 §2.6). Not for a 404: the planner's not-found
+    // hold owns that answer. Only for a newly recorded error, so a
+    // redelivered message does not spend a second try.
+    if (recorded === 1 && msg.http_status !== 404) {
+      const subject =
+        msg.job.entity_key === "GLOBAL"
+          ? "GLOBAL"
+          : subjectTag(msg.job.endpoint, msg.job.entity_key);
+      if (subject)
+        await stampRetry(
+          db,
+          [{ endpoint: msg.job.endpoint, subject_tag: subject }],
+          msg.fetched_at,
+        );
+    }
     return { outcome: "fetch_error", kind };
   }
 
@@ -751,7 +768,8 @@ export async function processResult(db, rawMessage, deps = {}) {
 
       // Freshness advances on admission only. GLOBAL (the card catalog)
       // is a subject too — without this it replans on cadence alone and
-      // a failed fetch waits a full day.
+      // a failed fetch waits a full day. An admission also settles any
+      // retry a failed fetch was owed (0188).
       const subject =
         msg.job.entity_key === "GLOBAL"
           ? "GLOBAL"
@@ -762,7 +780,8 @@ export async function processResult(db, rawMessage, deps = {}) {
            values ($1, $2, $3)
            on conflict (subject_tag, endpoint)
              do update set last_admitted_at =
-               greatest(coalesce(poll_state.last_admitted_at, 'epoch'), excluded.last_admitted_at)`,
+               greatest(coalesce(poll_state.last_admitted_at, 'epoch'), excluded.last_admitted_at),
+               retry_at = null, retry_tries = 0`,
           [subject, endpoint, msg.fetched_at],
         );
       }

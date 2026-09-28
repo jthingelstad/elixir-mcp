@@ -10,6 +10,48 @@
 const LEASE_TTL_S = 90;
 const MAX_ATTEMPTS = 5;
 
+/** A failed fetch is retried RETRY_BASE_MINUTES later, doubling for up to
+ *  RETRY_MAX_TRIES tries (15, 30, 60 minutes), then the subject waits for
+ *  its own cadence; the next cadence plan or an admission resets the count
+ *  (0188; review 2026-09-27 §2.6). */
+const RETRY_BASE_MINUTES = 15;
+const RETRY_MAX_TRIES = 3;
+
+/**
+ * Owe a retry to each poll subject whose fetch failed: a non-404 fetch
+ * error (ingest) or a job that died (the settler). Until 0188 the failed
+ * plan's last_planned_at stood, so the retry waited a whole cadence: a
+ * profile a day, and a daily board that errored at the 10:05Z tick the
+ * next board day. The planner treats the row as due once retry_at has
+ * passed and the next plan clears it; the retry is planned and charged
+ * like any other plan, and freshness still moves only on admission, which
+ * clears both columns. A key with no poll_state row (a live-only fetch)
+ * changes nothing.
+ * @param {{ endpoint: string, subject_tag: string }[]} keys
+ * @param {Date|string|null} at when the failure happened; null for now()
+ */
+export async function stampRetry(db, keys, at = null) {
+  if (!keys.length) return 0;
+  const { rowCount } = await db.query(
+    `update poll_state ps set
+       retry_at = case when ps.retry_tries < $4
+         then coalesce($3::timestamptz, now())
+              + make_interval(mins => $5 * power(2, ps.retry_tries)::int)
+         end,
+       retry_tries = least(ps.retry_tries + 1, $4)
+     from unnest($1::text[], $2::text[]) as k(subject_tag, endpoint)
+     where ps.subject_tag = k.subject_tag and ps.endpoint = k.endpoint`,
+    [
+      keys.map((k) => k.subject_tag),
+      keys.map((k) => k.endpoint),
+      at,
+      RETRY_MAX_TRIES,
+      RETRY_BASE_MINUTES,
+    ],
+  );
+  return rowCount ?? 0;
+}
+
 /** Insert or upgrade a job. Live beats bulk; nothing downgrades. */
 export async function enqueueJob(db, { endpoint, entity_key, lane }) {
   const { rows } = await db.query(
@@ -134,8 +176,17 @@ async function settleOnce(db) {
                          where q.endpoint = job.endpoint
                            and q.entity_key = job.entity_key
                            and q.status = 'queued')
-       returning leased_by`,
+       returning leased_by, endpoint, entity_key`,
       [LEASE_TTL_S, MAX_ATTEMPTS],
+    );
+    // A dead job is a failed fetch: owe its subject a retry (0188). The
+    // planner's jobs carry the poll_state key as their entity_key.
+    await stampRetry(
+      db,
+      diedRows.map((r) => ({
+        endpoint: r.endpoint,
+        subject_tag: r.entity_key,
+      })),
     );
     // Whatever is still expired-and-leased is redundant (a queued twin
     // exists, or it lost the one-per-subject pick): it just closes.

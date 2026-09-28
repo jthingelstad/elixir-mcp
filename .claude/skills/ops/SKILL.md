@@ -129,6 +129,7 @@ Stamps are UTC; Jamie reads US Central.
   metrics behind the ledger alarms, `OldestQueuedAgeSeconds` and
   `DeadJobs`, and plain properties: `QueuedJobs`, `PlannedJobs`,
   `SessionFollowupJobs`, `ReadCappedJobs`, `RequestedProfileJobs`,
+  `RetryJobs` (planned only because a failed fetch owed a retry, 0188),
   `NotFoundHeld`, `FetchesHour`, `FetchErrorsHour`, `CeilingHour`,
   `Tokens`, `CollectorsActive`, `CollectorsDraining`. For example:
   `fields @timestamp, QueuedJobs, FetchesHour, CeilingHour | filter ispresent(DeadJobs) | sort @timestamp desc | limit 48`.

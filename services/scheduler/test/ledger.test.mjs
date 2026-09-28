@@ -10,6 +10,7 @@ import {
   settleLeases,
   completeJob,
   ledgerStats,
+  stampRetry,
 } from "../src/ledger.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -148,6 +149,73 @@ test("expiry requeues with attempt cap; exhaustion goes dead; twins fold", async
   const stats = await ledgerStats(db);
   assert.equal(stats.dead, 1);
   assert.ok(stats.queued_bulk >= 1);
+});
+
+// Review 2026-09-27 §2.6 (#69): a dead job left the failed plan's
+// last_planned_at standing, so its subject waited a whole cadence.
+test("a dead job owes its subject a retry in 15 minutes (0188)", async () => {
+  const tag = "#2QUR9PQ8";
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint, last_planned_at)
+     values ($1, 'player', now() - interval '10 minutes')`,
+    [tag],
+  );
+  // Close what earlier tests left queued, so the lease is this job.
+  await db.query(
+    "update job set status = 'done', done_at = now() where status = 'queued'",
+  );
+  await enqueueJob(db, { endpoint: "player", entity_key: tag, lane: "bulk" });
+  const j = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  assert.equal(j.entity_key, tag);
+  await db.query(
+    `update job set leased_at = now() - interval '5 minutes', attempts = 5 where job_id = $1`,
+    [j.job_id],
+  );
+  const s = await settleLeases(db);
+  assert.equal(s.died, 1);
+  const {
+    rows: [row],
+  } = await db.query(
+    `select retry_tries, round(extract(epoch from retry_at - now()) / 60)::int as in_min
+     from poll_state where subject_tag = $1 and endpoint = 'player'`,
+    [tag],
+  );
+  assert.deepEqual(row, { retry_tries: 1, in_min: 15 });
+});
+
+test("stampRetry doubles for three tries, then stops until an admission", async () => {
+  const tag = "#8YQ0RUGL";
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint) values ($1, 'player_battlelog')`,
+    [tag],
+  );
+  const at = "2026-09-04T10:05:00Z";
+  const key = [{ endpoint: "player_battlelog", subject_tag: tag }];
+  const read = async () =>
+    (
+      await db.query(
+        `select retry_tries, retry_at from poll_state
+         where subject_tag = $1 and endpoint = 'player_battlelog'`,
+        [tag],
+      )
+    ).rows[0];
+  const seen = [];
+  for (let i = 0; i < 4; i++) {
+    await stampRetry(db, key, at);
+    const r = await read();
+    seen.push([r.retry_tries, r.retry_at?.toISOString() ?? null]);
+  }
+  assert.deepEqual(seen, [
+    [1, "2026-09-04T10:20:00.000Z"],
+    [2, "2026-09-04T10:35:00.000Z"],
+    [3, "2026-09-04T11:05:00.000Z"],
+    [3, null],
+  ]);
+  assert.equal(
+    await stampRetry(db, [{ endpoint: "player", subject_tag: "#NOROW" }], at),
+    0,
+    "a key with no poll_state row changes nothing",
+  );
 });
 
 test("two expired leases for one subject settle to at most one queued row (issue #2)", async () => {
