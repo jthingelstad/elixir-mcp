@@ -9,7 +9,13 @@ import {
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
 import { isoWeekLabel, isoWeekStart } from "../time.mjs";
-import { MEMBERS_SQL, participationQueries } from "../participation-sql.mjs";
+import {
+  MEMBERS_SQL,
+  FORMER_MEMBERS_SQL,
+  participationQueries,
+  rosterHistoryQueries,
+} from "../participation-sql.mjs";
+import { atWarFinishes, roleChangesSince } from "../role-history.mjs";
 import { standingsQuery } from "../standings-sql.mjs";
 import { hydrateClanEvents, CLAN_EVENT_COLUMNS } from "../event-payloads.mjs";
 import { formatLocal } from "../time.mjs";
@@ -92,7 +98,13 @@ async function stintStarts(db, clanTag, tags) {
   return out;
 }
 
-async function joinedMidWindowNote(db, clanTag, fromMs, toMs) {
+async function joinedMidWindowNote(
+  db,
+  clanTag,
+  fromMs,
+  toMs,
+  departed = "Members who left since the window began are not listed.",
+) {
   if (fromMs === null || fromMs === undefined) return null;
   const { rows: open } = await db.query(
     `select cm.player_tag, p.name
@@ -141,7 +153,7 @@ async function joinedMidWindowNote(db, clanTag, fromMs, toMs) {
         `${name.get(r.tag) ?? r.tag} ${r.tag} joined ${r.start.toISOString().slice(0, 10)} with ${r.before_join} of ${r.in_window} recorded battles in the window played for another clan before joining`,
     )
     .join("; ");
-  return `Rows are today's members, and ${hit.length} of them began their current stint (clans_participation.joined_observed_at) after the window began, so their counts include battles played for another clan: ${list}${hit.length > 8 ? `; and ${hit.length - 8} more` : ""}. Members who left since the window began are not listed.`;
+  return `Rows are today's members, and ${hit.length} of them began their current stint (clans_participation.joined_observed_at) after the window began, so their counts include battles played for another clan: ${list}${hit.length > 8 ? `; and ${hit.length - 8} more` : ""}. ${departed}`;
 }
 
 /** Members whose battles are mostly not captured, said (Gym #196). */
@@ -625,7 +637,7 @@ export const clansTools = {
 
   clans_participation: {
     description:
-      "Every open member's participation, week by week, for the caller's clan by default: per ISO week battles, ranked battles and the donation counter at week end; per recorded war week decks used. Daily deck and battle allocations are not served: the game counters cannot reliably assign a weekly total to a day. Per member: observed join, whether it predates recording, last recorded battle and days since it. Facts with windows and recording horizon, never a rating. weeks 1 to 8, default 5; current week is partial. verbosity compact keeps weekly decks only.",
+      "Every open member's participation, week by week, for the caller's clan by default: per ISO week battles, ranked battles and the donation counter at week end; per recorded war week decks used, and the member's role and presence at each war finish. Members who left in the window are listed apart. No daily split: game counters cannot place a weekly total on a day. Per member: observed join, last recorded battle and days since it, role changes. Facts with recording horizons, never a rating. weeks 1 to 8, default 5; current week is partial. verbosity compact keeps weekly decks only.",
     inputSchema: {
       type: "object",
       properties: {
@@ -691,6 +703,13 @@ export const clansTools = {
       });
       const members = await ctx.db.query(MEMBERS_SQL, [clanTag]);
       const tags = members.rows.map((m) => m.player_tag);
+      // Members who left inside the window (issue #46), so a replay of
+      // any past finish has the population that was there.
+      const formerMembers = await ctx.db.query(FORMER_MEMBERS_SQL, [
+        clanTag,
+        from,
+      ]);
+      const formerTags = formerMembers.rows.map((m) => m.player_tag);
       // Whether the members' logs are recorded at all (3.16.0): for an
       // activity-scope clan every count below is zero by construction.
       const coverage = await coverageBasis(ctx.db, clanTag);
@@ -700,6 +719,7 @@ export const clansTools = {
       const reads = participationQueries({
         clanTag,
         tags,
+        formerTags,
         from,
         rankedTypes: typesForModeGroup("ranked"),
       });
@@ -719,6 +739,76 @@ export const clansTools = {
           ? null
           : finishDays.has(weekKey(w));
       const participation = await run("war_participation");
+      const formerBattles = await run("former_battles_by_week");
+      const formerDonations = await run("former_donations_by_week");
+
+      // Each player's place at every war finish (issue #46): the roster
+      // reads around the finish, the membership intervals and the role
+      // changes, rebuilt in role-history.mjs.
+      const finishInstants = warWeeks.rows.map(
+        (w) => w.finished_observed_at ?? null,
+      );
+      const allTags = [...tags, ...formerTags];
+      const historyReads = (since) =>
+        rosterHistoryQueries({
+          clanTag,
+          tags: allTags,
+          finishes: finishInstants.filter(Boolean),
+          since,
+        });
+      const runHistory = (name, since = from) => {
+        const q = historyReads(since).find((r) => r.name === name);
+        return ctx.db.query(q.text, q.values);
+      };
+      const finishReads = finishInstants.some(Boolean)
+        ? (await runHistory("finish_reads")).rows
+        : [];
+      // finish_reads numbers the finishes that exist, in order.
+      const readByNo = new Map(finishReads.map((x) => [x.i, x]));
+      let finishNo = 0;
+      const readsAround = finishInstants.map((finish) => {
+        const r = finish ? readByNo.get((finishNo += 1)) : null;
+        return {
+          finish,
+          prev: r?.prev_read ?? null,
+          next: r?.next_read ?? null,
+        };
+      });
+      // Events from the earliest read the rebuild walks back to.
+      const earliestRead = readsAround
+        .map((r) => r.prev)
+        .filter(Boolean)
+        .reduce((a, b) => (a < b ? a : b), from);
+      const roleEvents = (await runHistory("role_events", earliestRead)).rows;
+      const memberships = (await runHistory("memberships")).rows;
+      const roleSinceRow = (await runHistory("role_history_since")).rows[0];
+      const roleSince = roleSinceRow?.role_history_since ?? null;
+      const groupBy = (rows) => {
+        const out = new Map();
+        for (const r of rows) {
+          if (!out.has(r.player_tag)) out.set(r.player_tag, []);
+          out.get(r.player_tag).push(r);
+        }
+        return out;
+      };
+      const membershipsByTag = groupBy(memberships);
+      const roleEventsByTag = groupBy(roleEvents);
+      const placeOf = (tag) => {
+        const events = roleEventsByTag.get(tag) ?? [];
+        const place = atWarFinishes({
+          memberships: membershipsByTag.get(tag) ?? [],
+          roleEvents: events,
+          finishes: readsAround,
+          roleSince,
+        });
+        return {
+          in_clan_at_war_finish: place.in_clan,
+          role_at_war_finish: place.role,
+          ...(compact
+            ? {}
+            : { role_changes: roleChangesSince(events, from.getTime()) }),
+        };
+      };
 
       const keyWeek = (d) => new Date(d).toISOString();
       const byMemberWeek = new Map();
@@ -727,9 +817,43 @@ export const clansTools = {
       const donationByWeek = new Map();
       for (const r of donations.rows)
         donationByWeek.set(`${r.player_tag}|${keyWeek(r.week_start)}`, r);
+      for (const r of formerBattles.rows)
+        byMemberWeek.set(`${r.player_tag}|${keyWeek(r.week_start)}`, r);
+      for (const r of formerDonations.rows)
+        donationByWeek.set(`${r.player_tag}|${keyWeek(r.week_start)}`, r);
       const partByKey = new Map();
       for (const r of participation.rows)
         partByKey.set(`${r.player_tag}|${r.season_id}|${r.section_index}`, r);
+      // The week and war-week columns every row carries, current and
+      // former alike, aligned to weeks[] and war_weeks[].
+      const columns = (tag) => ({
+        battles: weekBounds.map(
+          (w) => byMemberWeek.get(`${tag}|${w.from}`)?.battles ?? 0,
+        ),
+        ranked_battles: weekBounds.map(
+          (w) => byMemberWeek.get(`${tag}|${w.from}`)?.ranked_battles ?? 0,
+        ),
+        donations: weekBounds.map(
+          (w) => donationByWeek.get(`${tag}|${w.from}`)?.donations ?? null,
+        ),
+        // The game's weekly count, null where the member has no race
+        // row for the week (Jamie 2026-09-25: weekly aggregates only).
+        war_decks: warWeeks.rows.map(
+          (w) =>
+            partByKey.get(`${tag}|${w.season_id}|${w.section_index}`)
+              ?.decks_used ?? null,
+        ),
+        ...(compact
+          ? {}
+          : {
+              war_points: warWeeks.rows.map(
+                (w) =>
+                  partByKey.get(`${tag}|${w.season_id}|${w.section_index}`)
+                    ?.points ?? null,
+              ),
+            }),
+        ...placeOf(tag),
+      });
       const firstRoster = clan.first_roster_observed_at
         ? new Date(clan.first_roster_observed_at)
         : null;
@@ -778,38 +902,18 @@ export const clansTools = {
           // Columns aligned to the top-level `weeks` and `war_weeks` (one
           // entry each, in order): a full clan over eight weeks stays under
           // the response cap this way and not as rows.
-          battles: weekBounds.map(
-            (w) => byMemberWeek.get(`${m.player_tag}|${w.from}`)?.battles ?? 0,
-          ),
-          ranked_battles: weekBounds.map(
-            (w) =>
-              byMemberWeek.get(`${m.player_tag}|${w.from}`)?.ranked_battles ??
-              0,
-          ),
-          donations: weekBounds.map(
-            (w) =>
-              donationByWeek.get(`${m.player_tag}|${w.from}`)?.donations ??
-              null,
-          ),
-          // The game's weekly count, null where the member has no race
-          // row for the week (Jamie 2026-09-25: weekly aggregates only).
-          war_decks: warWeeks.rows.map(
-            (w) =>
-              partByKey.get(`${m.player_tag}|${w.season_id}|${w.section_index}`)
-                ?.decks_used ?? null,
-          ),
-          ...(compact
-            ? {}
-            : {
-                war_points: warWeeks.rows.map(
-                  (w) =>
-                    partByKey.get(
-                      `${m.player_tag}|${w.season_id}|${w.section_index}`,
-                    )?.points ?? null,
-                ),
-              }),
+          ...columns(m.player_tag),
         };
       });
+      const formerOut = formerMembers.rows.map((m) => ({
+        player_tag: m.player_tag,
+        name: m.name,
+        role_at_departure: m.role_at_departure ?? null,
+        joined_observed_at: m.joined_observed_at?.toISOString() ?? null,
+        left_observed_at: m.left_observed_at?.toISOString() ?? null,
+        last_battle_time_in_clan: m.last_battle_in_clan?.toISOString() ?? null,
+        ...columns(m.player_tag),
+      }));
       return {
         clan_tag: clanTag,
         name: clan.name ?? null,
@@ -838,14 +942,18 @@ export const clansTools = {
           finished_early: finishedEarly(w),
           finish_war_day: finishDays.get(weekKey(w)) ?? null,
         })),
+        role_history_since: roleSince?.toISOString?.() ?? null,
         member_count: out.length,
         members: out,
+        former_member_count: formerMembers.rows.length,
+        former_members: formerOut,
         notes: notes(
           await joinedMidWindowNote(
             ctx.db,
             clanTag,
             from.getTime(),
             Date.now(),
+            "Members who left since the window began are under former_members, counted in this clan only.",
           ),
           await memberCaptureNote(ctx.db, out, from.getTime(), Date.now()),
           seasonFields.seasonNotes,
@@ -868,6 +976,13 @@ export const clansTools = {
             : "Per-member columns align to the top-level weeks and war_weeks, one entry each in order. war_decks is the game's count for the race week, never split by war day: the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale.",
           "tenure_known is false for a member already present at the first roster poll: days_in_clan_observed is then a lower bound.",
           "joined_observed_at and days_in_clan_observed are the member's CURRENT stint: a member who left and came back counts from the rejoin, except that a rejoin within 7 days of leaving continues the stint before it. first_joined_at is the member's first recorded join here (clans_roster.first_observed_in_clan is the same instant).",
+          formerMembers.rows.length
+            ? "former_members lists who left in the window and has not come back, with the same columns counted in this clan only."
+            : null,
+          "in_clan_at_war_finish and role_at_war_finish align to war_weeks; null means unknown, never absent: the week is unfinished or the roster reads around the finish disagree, and a role is also unknown before role_history_since.",
+          !compact && [...out, ...formerOut].some((m) => m.role_changes?.length)
+            ? "role_changes lists the role changes observed in the window: each happened after window_start and by observed_at."
+            : null,
           coverageBasisNote(coverage.basis),
           "Counts cover RECORDED battles only (log_recorded and recorded_since per member say whose log is recorded and since when; elixir_coverage per tag says how complete it is); last_battle_time_in_clan is the last recorded battle played as a member of this clan.",
         ),

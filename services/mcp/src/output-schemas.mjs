@@ -536,6 +536,38 @@ const DECK_FIT = {
   },
 };
 
+/** Each clans_participation row's place at every war finish (9.13.0,
+ *  issue #46), aligned to war_weeks[]. */
+const PARTICIPATION_PLACE = {
+  in_clan_at_war_finish: {
+    type: "array",
+    items: { type: ["boolean", "null"] },
+    description:
+      "In the clan at each war finish, as the roster reads either side of it show; null when unknown.",
+  },
+  role_at_war_finish: {
+    type: "array",
+    items: { type: ["string", "null"] },
+    description:
+      "The member's role at each war finish; null when unknown or not in the clan.",
+  },
+  role_changes: {
+    type: "array",
+    description:
+      "Each role change observed inside the window, oldest first; full verbosity only.",
+    items: {
+      type: "object",
+      properties: {
+        role_before: { type: ["string", "null"] },
+        role_after: { type: ["string", "null"] },
+        window_start: ISO,
+        observed_at: ISO,
+      },
+      required: ["role_before", "role_after", "window_start", "observed_at"],
+    },
+  },
+};
+
 export const OUTPUT_SCHEMAS = {
   // ---- 6.14.0: the 22 tools that rested on recorded shape baselines in the
   // acceptance suite (acceptance/shapes/). Drafted from live answers on
@@ -2562,6 +2594,7 @@ export const OUTPUT_SCHEMAS = {
             donations: { type: "array", items: NULLABLE_INT },
             war_decks: { type: "array", items: NULLABLE_INT },
             war_points: { type: "array", items: NULLABLE_INT },
+            ...PARTICIPATION_PLACE,
           },
           required: [
             "player_tag",
@@ -2569,6 +2602,44 @@ export const OUTPUT_SCHEMAS = {
             "log_recorded",
             "battles",
             "war_decks",
+            "in_clan_at_war_finish",
+            "role_at_war_finish",
+          ],
+        },
+      },
+      role_history_since: {
+        type: ["string", "null"],
+        description:
+          "9.13.0: role changes are recorded from this instant, the record's own first live roster read of the clan; role_at_war_finish is null for a finish before it.",
+      },
+      former_member_count: COUNT,
+      former_members: {
+        type: "array",
+        description:
+          "9.13.0: members who left inside the window and are not back, one row each for their latest stint, with the same columns aligned to weeks[] and war_weeks[]; battles and donations count only this clan's.",
+        items: {
+          type: "object",
+          properties: {
+            player_tag: TAG,
+            name: { type: ["string", "null"] },
+            role_at_departure: { type: ["string", "null"] },
+            joined_observed_at: { type: ["string", "null"] },
+            left_observed_at: { type: ["string", "null"] },
+            last_battle_time_in_clan: { type: ["string", "null"] },
+            battles: { type: "array", items: NULLABLE_INT },
+            ranked_battles: { type: "array", items: NULLABLE_INT },
+            donations: { type: "array", items: NULLABLE_INT },
+            war_decks: { type: "array", items: NULLABLE_INT },
+            war_points: { type: "array", items: NULLABLE_INT },
+            ...PARTICIPATION_PLACE,
+          },
+          required: [
+            "player_tag",
+            "left_observed_at",
+            "battles",
+            "war_decks",
+            "in_clan_at_war_finish",
+            "role_at_war_finish",
           ],
         },
       },

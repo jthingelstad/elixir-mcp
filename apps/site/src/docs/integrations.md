@@ -107,6 +107,12 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.7.0** (2026-09-28): `GET /clans/{tag}/participation` carries
+  each member's place at every war finish (`in_clan_at_war_finish`,
+  `role_at_war_finish`), their `role_changes` in the window, the clan's
+  `role_history_since`, and `former_members` with `former_member_count`:
+  who left inside the window, with the same columns, so a past finish can
+  be replayed with the roster and roles it had. Additive.
 - **2.6.4** (2026-09-27): an unexpected fault answers 500 `internal`
   with no `Retry-After`; only a database that is briefly unreachable, or
   a query that timed out, still answers 503 `temporarily_unavailable`
