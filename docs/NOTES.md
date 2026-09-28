@@ -3928,3 +3928,15 @@ kit only (no tool, contract or JSON API change).
 - Deploy scope: no acceptance. Console only, so no tool family changed.
 - Sibling: Elixir Clan takes the kit through its pin. It does not use
   `LogTable`, so nothing breaks; the pin bump is Clan's own step.
+
+- Merged as PR #99 (a45c07af..c94c887c) on a green `validate`.
+  Deployed from main with no acceptance: console only, so no tool family
+  changed. Smoke passed, 40 of 40. Read back at 03:17Z on 09-28 (10:17 PM
+  CT on 09-27):
+  - the app bundle carries the kit's `WriteError` text;
+  - /updates shows the entry;
+  - `/api/public/status` has `health.ok` true and `dlq_messages` 0.
+- Pending, for a natural visit:
+  - a signed-in walk: a Cmd-click on a record link opens a new tab, and
+    a live war-week page shows all five clans' standings;
+  - Elixir Clan's kit pin bump (its own PR; merging Clan deploys it).
