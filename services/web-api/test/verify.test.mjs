@@ -18,6 +18,7 @@ import {
   verifyRoutes,
   deckMatches,
   DECK_SIZE,
+  LIVE_READS_PER_TAG_PER_DAY,
   STARTS_PER_HOUR,
 } from "../src/routes/verify.mjs";
 
@@ -651,4 +652,97 @@ test("the target is drawn from the player's Trophy Road decks, never a deck anot
     DECK_SIZE - 2,
     "the Trophy Road deck with two swaps",
   );
+});
+
+test("a tag's verification reads are capped per day across re-opened challenges and other accounts, and the wizard is told (#130)", async () => {
+  const CAP_TAG = "#9PJ2QGUC";
+  await seedCollection(CAP_TAG);
+  const accountFor = async (hash) => {
+    const id = (
+      await db.query(
+        "insert into account(email_hash,status,role) values ($1,'approved','member') returning account_id",
+        [hash],
+      )
+    ).rows[0].account_id;
+    await db.query(
+      `insert into claim (account_id, player_tag, status, is_primary, relationship)
+       values ($1, $2, 'unverified', true, 'primary')`,
+      [id, CAP_TAG],
+    );
+    return id;
+  };
+  const first = await accountFor("verify-cap-first");
+  const second = await accountFor("verify-cap-second");
+  let asks = 0;
+  const routesFor = (accountId) =>
+    verifyRoutes({
+      resolveAccount: async () => ({
+        accountId,
+        role: "member",
+        kind: "person",
+      }),
+      logEvent: async () => {},
+      live: async () => {
+        asks += 1;
+        return { ok: false, reason: "pending", job_id: 100 + asks };
+      },
+    });
+  const mine = routesFor(first);
+  const start = async (routes) =>
+    JSON.parse(
+      (await routes["POST /api/me/verify"](db, {}, { player_tag: CAP_TAG }))
+        .body,
+    );
+  const poll = async (routes, id) => {
+    // Due for a read: the last ask was over a cadence ago.
+    await db.query(
+      `update claim_challenge set live_requested_at = now() - interval '1 minute'
+        where challenge_id = $1`,
+      [id],
+    );
+    return JSON.parse(
+      (await routes["GET /api/me/verify/*"](db, { pathParam: id })).body,
+    );
+  };
+
+  // An hour of watching, spent almost to the ceiling, then it runs out.
+  const one = await start(mine);
+  assert.equal(one.live_capped, false);
+  assert.equal(asks, 1);
+  await db.query(
+    `update claim_challenge set live_reads = $2, expires_at = now() - interval '1 minute'
+      where challenge_id = $1`,
+    [one.challenge_id, LIVE_READS_PER_TAG_PER_DAY - 1],
+  );
+  assert.equal((await poll(mine, one.challenge_id)).state, "expired");
+
+  // Re-opened: its start takes the last read, and then there are none.
+  const two = await start(mine);
+  assert.equal(two.state, "open");
+  assert.notEqual(two.challenge_id, one.challenge_id);
+  assert.equal(asks, 2);
+  const polled = await poll(mine, two.challenge_id);
+  assert.equal(asks, 2, "a poll past the ceiling asks the live lane nothing");
+  assert.equal(polled.live_capped, true);
+  assert.equal(polled.state, "open", "the challenge stays open");
+
+  // Another account's challenge for the same tag shares the ceiling.
+  const theirs = await start(routesFor(second));
+  assert.equal(theirs.state, "open");
+  assert.equal(theirs.live_capped, true);
+  assert.equal(asks, 2, "and its start reads nothing");
+
+  // A day later the reads are back.
+  await db.query(
+    `update claim_challenge set created_at = created_at - interval '25 hours'
+      where player_tag = $1 and challenge_id <> $2`,
+    [CAP_TAG, two.challenge_id],
+  );
+  await db.query(
+    `update claim_challenge set live_reads = 0 where challenge_id = $1`,
+    [two.challenge_id],
+  );
+  const fresh = await poll(mine, two.challenge_id);
+  assert.equal(fresh.live_capped, false);
+  assert.equal(asks, 3);
 });

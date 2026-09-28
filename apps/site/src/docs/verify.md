@@ -91,7 +91,12 @@ Verify reads only your public battle log and profile, the same documents
 any Clash Royale app can fetch with your tag. The reads it asks for are
 not charged to your daily live-fetch allowance, and a start is limited
 to a few an hour so the wizard cannot be used to make the collectors
-read somebody else's log on a loop.
+read somebody else's log on a loop. A player's log is read for
+verification at most 120 times a day, across every challenge for that
+tag, whoever opened it: about one and a half hours of a watched
+challenge. Past that the challenge stays open, the page says so, and the
+check waits for the player's regular recording until the reads come
+back within a day.
 
 Verification is recorded on the claim itself (`status`, method and
 time), with the proving battle on the challenge, so anything that later
