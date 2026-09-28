@@ -4757,4 +4757,6 @@ acceptance: no MCP tool or `/api/v1` operation changed, only copy,
 comments and the `account:email` scope description. Smoke green; read
 back `/api/public/status` health ok, and `/docs/email`, `/docs/limits`,
 `/docs/quickstart`, `/data/collect` and `/family/discord` serve the new
-copy; `/family/agent` is gone.
+copy; `/family/agent` is gone. The deploy moved the card-roles
+snapshot's `source_commit` to the reference's f72062c (roles unchanged),
+which this PR commits.
