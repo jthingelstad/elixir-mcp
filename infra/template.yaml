@@ -1693,10 +1693,10 @@ Resources:
   #
   # img-src needs Supercell's asset CDN: collector avatars are the
   # cards' own iconUrls, served straight from api-assets.clashroyale.com.
-  # fonts.googleapis.com/fonts.gstatic.com are the site's webfont, which
-  # both halves link. Every origin here was taken from the BUILT output,
-  # not from memory - a CSP written from what you think the page loads
-  # is a CSP that breaks the page.
+  # Fonts are self-hosted under /assets/fonts/ (no font CDN, so no
+  # third party learns who read which page). Every origin here was taken
+  # from the BUILT output, not from memory - a CSP written from what you
+  # think the page loads is a CSP that breaks the page.
   SecurityHeadersPolicy:
     Type: AWS::CloudFront::ResponseHeadersPolicy
     Properties:
@@ -1725,8 +1725,8 @@ Resources:
               script-src 'self' https://tinylytics.app;
               connect-src 'self' https://tinylytics.app;
               img-src 'self' data: https://api-assets.clashroyale.com https://tinylytics.app;
-              font-src 'self' https://fonts.gstatic.com;
-              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com
+              font-src 'self';
+              style-src 'self' 'unsafe-inline'
           ContentTypeOptions:
             Override: true
           FrameOptions:

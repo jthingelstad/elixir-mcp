@@ -1,4 +1,15 @@
-# Font — Supercell Fan Content
+# Fonts
+
+## Inter
+
+The `Inter-*.woff2` files are **Inter** (© 2016 The Inter Project Authors,
+<https://github.com/rsms/inter>), licensed under the SIL Open Font License 1.1;
+the licence is `Inter-OFL.txt`, beside them. One variable file per script subset,
+as Google Fonts splits it, wired up by the `Inter` `@font-face` rules in
+`packages/design/src/tokens.css`. They are served from this site rather than a font
+CDN so a page load tells no third party what a reader read.
+
+## Clash — Supercell Fan Content
 
 The `.otf` files here are **Supercell's official "Clash" display font**, obtained from
 the Supercell Fan Kit and used as fan kit assets under Supercell's Fan Content Policy.
