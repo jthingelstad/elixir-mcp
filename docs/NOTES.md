@@ -3985,8 +3985,31 @@ re-verified against d99b0e66; all six parts still held.
   captures a past answer. Widening `clans:read` is still Jamie's call
   (§7.7), and nothing was added for it.
 - **Glue.** The endpoint enum lists all 15 archived endpoints, which
-  match the live `payloads/endpoint=` prefixes (read 03:40Z). It is
+  match the live `payloads/endpoint=` prefixes (listed before the change). It is
   pinned to `ARCHIVED_ENDPOINTS` (the ingest projector keys) by
   `services/ingest/test/archive.test.mjs`.
 - Deploy scope: no acceptance. The changes are stack, site and CI only,
   and no tool family changed.
+
+- Merged as PR #101 (da7102fb..b2947c1a) on a green `validate`; CI
+  built the site once (in verify) and the journeys (9) served that tree.
+  Deployed from main with no acceptance: stack, site and CI only. Smoke
+  passed, including the new edge Hit on `/api/public/cards`; the first
+  prune removed 0 assets. Read back at 03:44Z on 09-28 (10:44 PM CT on
+  09-27):
+  - `/api/public/efficiency` and `/api/public/cards/26000000`: Miss,
+    then Hit, Hit;
+  - a Vite chunk carries `public, max-age=31536000, immutable`, and
+    `site.css`, `index.html`, `/updates`, `feed.xml`, `feed.json` and
+    `llms.txt` carry `public, max-age=0, must-revalidate` (llms.txt
+    keeps its charset);
+  - `feed.xml` has 50 items with unique permalink GUIDs and no
+    fragments, 22 of them contract versions, and a GUID page answers
+    200; `feed.json` is JSON Feed 1.1 with the same 50;
+  - the Glue table's live enum lists the 15 endpoints;
+  - `/support`, `/data` and `/examples/publish` say ten weeks, and the
+    publish example links `/account/agents`;
+  - `/api/public/status` has `health.ok` true and `dlq_messages` 0.
+- Pending, for natural events: the next web deploy that changes a chunk
+  (the old chunk must stay served, and be pruned 14 days later); a feed
+  reader's one-time replay of the newest 50 items.
