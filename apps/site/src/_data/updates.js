@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-28",
+    title: "Unlocking an Evolution or Hero form is a moment",
+    body: "Unlocking a card's Evolution or its Hero is the collection change players care about most, and the one the upgrade advice points at, but Elixir only kept which forms a card has and let the unlock pass without a word. From today it is a named moment: the timeline says \"unlocked Hero Valkyrie\", the week's summary lists it, the tracking report carries it, and your own or an alt's first unlock of each form gets a milestone mail. It starts now: a form unlocked before today still shows in the collection, but was never seen happen, so it has no moment. Contract 9.14.0.",
+  },
+  {
+    date: "2026-09-28",
     title:
       "Participation shows who was in the clan, and as what, at each war finish",
     body: "A clan's participation read used to apply today's roster and roles to every past war week, so a member promoted last week looked like an Elder all along, and a member who had left was simply missing. Each member now carries whether they were in the clan and their role at each war finish, the role changes seen in the window, and the members who left during it are listed with the same weekly figures, counted in this clan only. Where the record cannot say, because the roster changed between two reads around a finish or the finish predates recorded roles, the entry is empty rather than guessed. Contracts 9.13.0; JSON API 2.7.0.",

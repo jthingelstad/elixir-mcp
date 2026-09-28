@@ -70,6 +70,19 @@ test("milestone keys are firsts: up only, by the moment's own identity", () => {
     momentKey("card_unlocked", { card: "Witch", evolution: 1 }),
     "card:Witch:1",
   );
+  // #110: a form is its own first, by card id and form.
+  assert.equal(
+    momentKey("card_form_unlocked", {
+      card: "Valkyrie",
+      card_id: 26000011,
+      form: "hero",
+    }),
+    "form:26000011:hero",
+  );
+  assert.equal(
+    momentKey("card_form_unlocked", { card: "Valkyrie", card_id: 26000011 }),
+    null,
+  );
   assert.equal(momentKey("battle_session", {}), null);
 });
 

@@ -46,14 +46,14 @@ notes are exempt: they come as the moments do.
 | Friday | **Card of the Week** | One card the record has something to say about, read in full: how much it is played and how often it wins, where it gets played, who plays it best, what it travels with, and the decks carrying it. One issue for everyone. Forward it to someone who runs that card. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): what your collectors fetched, how much the edge filter saved, quiet stretches, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
 | Mornings | **Clan actions waiting** | From [Elixir Clan](https://clan.poapkings.com), one of the Elixir family's apps: after its morning run, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Elixir Clan writes the words; Elixir sends them, so the app never sees your address. |
-| As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked. Checked hourly; everything new since the last note rides together. |
+| As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked, an Evolution or Hero form unlocked. Checked hourly; everything new since the last note rides together. |
 
 ## Milestones are firsts
 
 A milestone mails once, ever, per account and subject, keyed by the
-moment's own identity: the arena, the league, the band, the badge. A
-season's re-climb of an arena you have already been congratulated for
-is silent; a higher one is news. A move down never mails. Friends' and
+moment's own identity: the arena, the league, the band, the badge, the
+card's form. A season's re-climb of an arena you have already been
+congratulated for is silent; a higher one is news. A move down never mails. Friends' and
 watchers' moments belong to the Tracking report, not here.
 
 ## Card of the Week, and how it stays honest

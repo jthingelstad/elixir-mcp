@@ -127,6 +127,11 @@ export function summarizePlayer(e, timeZone = "UTC") {
     parts.push(
       `unlocked ${e.collection.unlocked.items.slice(0, 3).join(", ")}${e.collection.unlocked.more ? ` +${e.collection.unlocked.more}` : ""}`,
     );
+  const forms = e.collection.forms_unlocked;
+  if (forms?.items.length > 0)
+    parts.push(
+      `unlocked ${forms.items.slice(0, 3).join(", ")}${forms.more ? ` +${forms.more}` : ""}`,
+    );
   if (e.war.battles > 0) parts.push(`${plural(e.war.battles, "war battle")}`);
   if (
     b.played === 0 &&
@@ -313,6 +318,15 @@ const said = (f) =>
   `${attester(f) ?? "A leader"} said${f.attested_by?.app ? ` (in ${f.attested_by.app})` : ""}`;
 const via = (f) => (f.attested_by?.app ? ` (via ${f.attested_by.app})` : "");
 
+/** A card's form as a player says it (#110): "Evolution Valkyrie",
+ *  "Hero Knight". Reads a ledger payload (`name`) or an item's facts
+ *  (`card`). */
+export function formLabel(f) {
+  const card = f.card ?? f.name ?? `card ${f.card_id}`;
+  const form = { evolution: "Evolution", hero: "Hero" }[f.form];
+  return form ? `${form} ${card}` : `a new form of ${card}`;
+}
+
 /** One timeline item as a sentence. */
 export function itemText(it, timeZone = "UTC") {
   const f = it.facts ?? {};
@@ -356,6 +370,8 @@ export function itemText(it, timeZone = "UTC") {
       return `${at} ${member || subj} passed ${num(f.wins)} career wins${f.crossed_by ? `, the ${num(f.step)}th${onBattle(f.crossed_by)}` : ""}.`;
     case "card_unlocked":
       return `${at} ${member || subj} unlocked ${f.card ?? f.name ?? `card ${f.card_id}`}.`;
+    case "card_form_unlocked":
+      return `${at} ${member || subj} unlocked ${formLabel(f)}.`;
     case "member_joined":
       return `${at} ${f.name ?? f.player_tag} joined ${subj}${f.role && f.role !== "member" ? ` as ${f.role}` : ""}.`;
     case "member_left":

@@ -24,6 +24,9 @@ import { FEED_DOCS } from "./common.mjs";
 
 /** When the profile-derived moment ledger begins (Gym #121). */
 const PROFILE_MOMENTS_FROM_MS = Date.parse("2026-09-14T04:27:51Z");
+/** Form unlocks are items from 9.14.0, deployed 2026-09-28 (#110); a
+ *  window from before the next day may predate them. */
+const FORM_MOMENTS_FROM_MS = Date.parse("2026-09-29T00:00:00Z");
 
 /** Characters a timeline page may spend on entries and items, under the
  *  48,000-character result cap with room for notes, applied and meta. */
@@ -31,7 +34,7 @@ const PAGE_CHAR_BUDGET = 40_000;
 
 export const elixir_timeline = {
   description:
-    "Your timeline: what happened to the players and clans you track since your read pointer, as ITEMS newest first plus one summary ENTRY per subject (a person's: the players and clans they track; an agent's: its clan). Items are named moments with an instant: battle sessions, badges, arena and ranked moves, new bests, cards unlocked, joins, departures, role changes, war milestones, quiet rungs, returns. Facts, never advice; nothing announces the time (game_clock does). Omit from to read from your pointer (none: 24 hours; cap 30 days); mark_read moves it to the window end, false is a dry run.",
+    "Your timeline: what happened to the players and clans you track since your read pointer, as ITEMS newest first plus one summary ENTRY per subject (a person's: the players and clans they track; an agent's: its clan). Items are named moments with an instant: battle sessions, badges, arena and ranked moves, new bests, card and form unlocks, joins, departures, role changes, war moments, quiet rungs, returns. Facts, never advice; nothing announces the time (game_clock does). Omit from to read from your pointer (none: 24 hours; cap 30 days); mark_read moves it to the window end, false is a dry run.",
   inputSchema: {
     type: "object",
     properties: {
@@ -67,7 +70,7 @@ export const elixir_timeline = {
         items: { type: "string" },
         maxItems: 32,
         description:
-          "Keep only timeline items of these kinds (entries are untouched): battle_session, session_standout, badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, clan_joined, clan_left, member_joined, member_left, member_role_changed, bracket_observed, race_finished, week_resolved, quiet_crossed, returned, the attested facts (departure_classified, role_change_made, award_granted, award_standing, member_away, clan_message, personal_record; each shown only to the reader its type allows), or an account_* kind. A consumer that wakes on a few kinds reads only those.",
+          "Keep only timeline items of these kinds (entries are untouched): battle_session, session_standout, badge_earned, legendary_badge_earned, arena_changed, ranked_promotion, best_trophies_band, collection_level_step, career_wins_step, card_unlocked, card_form_unlocked, clan_joined, clan_left, member_joined, member_left, member_role_changed, bracket_observed, race_finished, week_resolved, quiet_crossed, returned, the attested facts (departure_classified, role_change_made, award_granted, award_standing, member_away, clan_message, personal_record; each shown only to the reader its type allows), or an account_* kind. A consumer that wakes on a few kinds reads only those.",
       },
       player_tag: {
         type: "string",
@@ -462,6 +465,9 @@ export const elixir_timeline = {
           : null,
         fromMs < PROFILE_MOMENTS_FROM_MS
           ? "Profile-derived moments (badges, collection level, new bests, cards unlocked, arena and ranked moves) are recorded from 2026-09-14T04:27Z: a window before that has none of them, which is the ledger's start, not a quiet week. collection_level_step items before 2026-09-18 predate the step rule and carry no facts.step."
+          : null,
+        fromMs < FORM_MOMENTS_FROM_MS
+          ? "Evolution and Hero form unlocks are timeline items from contract 9.14.0, deployed 2026-09-28: a form unlocked before then is in players_collection.forms_unlocked and never here."
           : null,
         timeline.some((it) => Date.parse(it.at) < fromMs)
           ? `A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): ${timeline.filter((it) => Date.parse(it.at) < fromMs).length} item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For "what happened on a day", widen to by the record's lag (the longest here is ${lagHours} h, observed_at minus at) and filter on at.`

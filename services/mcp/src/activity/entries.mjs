@@ -40,7 +40,12 @@ import {
   CLAN_EVENT_COLUMNS,
 } from "../event-payloads.mjs";
 import { collectionLevelStep } from "../../../ingest/src/snapshots.mjs";
-import { summarizePlayer, summarizeClan, itemText } from "./summary.mjs";
+import {
+  summarizePlayer,
+  summarizeClan,
+  itemText,
+  formLabel,
+} from "./summary.mjs";
 
 const DAY_MS = 86_400_000;
 const MIN_MS = 60_000;
@@ -97,6 +102,8 @@ const PLAYER_MOMENT_KINDS = [
   "collection_level_step",
   "career_wins_step",
   "card_unlocked",
+  // An Evolution or Hero form newly unlocked (#110, 0192).
+  "card_form_unlocked",
 ];
 const CLAN_LEDGER_KINDS = [
   "member_joined",
@@ -451,6 +458,7 @@ function sectionOfKind(kind) {
       return "ranked";
     case "collection_level_step":
     case "card_unlocked":
+    case "card_form_unlocked":
       return "collection";
     case "career_wins_step":
       return "battles";
@@ -469,7 +477,7 @@ function decorate(kind, payload, arenaNames) {
     const { name, ...rest } = payload;
     return { badge: name, badge_label: badgeLabel(name), ...rest };
   }
-  if (kind === "card_unlocked") {
+  if (kind === "card_unlocked" || kind === "card_form_unlocked") {
     const { name, ...rest } = payload;
     return { card: name, ...rest };
   }
@@ -649,6 +657,10 @@ export async function buildPlayerEntry(
   const unlocked = ofKind("card_unlocked").map(
     (r) => r.payload.name ?? `card ${r.payload.card_id}`,
   );
+  // A form as a player says it: "Evolution Valkyrie", "Hero Knight".
+  const formsUnlocked = ofKind("card_form_unlocked").map((r) =>
+    formLabel(r.payload),
+  );
 
   const entry = {
     kind: "player_activity",
@@ -695,6 +707,7 @@ export async function buildPlayerEntry(
         ? { from: collectionLevel.from, to: collectionLevel.to }
         : null,
       unlocked: capList(unlocked, STANDOUT_CAP),
+      forms_unlocked: capList(formsUnlocked, STANDOUT_CAP),
       leveled: ofKind("card_leveled").length,
     },
     badges: {
@@ -1917,7 +1930,8 @@ export async function buildTimeline(
       e.battles.played > 0 ||
       e.notables.length > 0 ||
       e.clan.changes.length > 0 ||
-      e.collection.unlocked.items.length > 0;
+      e.collection.unlocked.items.length > 0 ||
+      e.collection.forms_unlocked.items.length > 0;
     if (said) {
       entries.push(e);
       items.push(...built.items);

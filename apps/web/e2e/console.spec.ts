@@ -212,6 +212,52 @@ test.describe("signed in", () => {
     await rendered(page);
   });
 
+  test("a form unlock reads as its sentence, the item's time lead dropped (9.14.0, #110)", async ({
+    page,
+  }) => {
+    // The server writes the text (itemText); the console shows it after
+    // its own WHEN column, so the "Sun 05:05" lead is stripped.
+    await mockApi(page, {
+      ...signedIn(),
+      "GET /api/me/timeline": [
+        200,
+        {
+          timeline: [
+            {
+              at: "2026-09-20T10:05:00Z",
+              observed_at: "2026-09-20T10:05:00Z",
+              subject_tag: "#20JJJ2CCRU",
+              subject_name: "King Thing",
+              kind: "card_form_unlocked",
+              section: "collection",
+              text: "Sun 05:05 King Thing unlocked Hero Valkyrie.",
+              facts: {
+                card: "Valkyrie",
+                card_id: 26000011,
+                rarity: "rare",
+                form: "hero",
+              },
+            },
+          ],
+          read_to: null,
+        },
+      ],
+    });
+    await page.goto("/account/timeline");
+    const row = page.getByRole("row").filter({
+      hasText: "King Thing unlocked Hero Valkyrie.",
+    });
+    await expect(row).toHaveCount(1);
+    await expect(
+      row.getByRole("cell", {
+        name: "King Thing unlocked Hero Valkyrie.",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await rendered(page);
+    await accessible(page, "timeline, form unlock");
+  });
+
   test("Status: the service page draws the capture charts and auto-refresh is off and visible", async ({
     page,
   }) => {

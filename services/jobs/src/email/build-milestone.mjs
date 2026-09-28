@@ -7,7 +7,7 @@
  *  Bundled: everything new since the last look goes in one mail. */
 import { buildPlayerEntry } from "../../../mcp/src/activity/entries.mjs";
 import { badgeLabel } from "../../../mcp/src/badge-names.mjs";
-import { itemText } from "../../../mcp/src/activity/summary.mjs";
+import { formLabel, itemText } from "../../../mcp/src/activity/summary.mjs";
 import { myPlayers } from "./shared.mjs";
 import { whenLabel } from "./week.mjs";
 
@@ -18,6 +18,7 @@ const KINDS = new Set([
   "career_wins_step",
   "collection_level_step",
   "card_unlocked",
+  "card_form_unlocked",
   "badge_earned",
   "legendary_badge_earned",
 ]);
@@ -43,6 +44,9 @@ export function momentKey(kind, f) {
       return f.card
         ? `card:${f.card}${f.evolution ? `:${f.evolution}` : ""}`
         : null;
+    // An Evolution and a Hero of one card are two firsts (#110).
+    case "card_form_unlocked":
+      return f.card_id != null && f.form ? `form:${f.card_id}:${f.form}` : null;
     case "badge_earned":
     case "legendary_badge_earned":
       return f.badge
@@ -109,6 +113,12 @@ function card(kind, f, subject, at, tz) {
     case "card_unlocked":
       return {
         headline: `${who} unlocked ${f.card}${f.evolution === 2 ? " (Hero)" : f.evolution === 1 ? " (Evolution)" : ""}`,
+        big: null,
+        lines: [],
+      };
+    case "card_form_unlocked":
+      return {
+        headline: `${who} unlocked ${formLabel(f)}`,
         big: null,
         lines: [],
       };
@@ -190,6 +200,8 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
     collection_level_step: 2,
     badge_earned: 3,
     card_unlocked: 3,
+    // The collection change players care about most (#110).
+    card_form_unlocked: 2,
   };
   news.sort((a, b) => rank[a.kind] - rank[b.kind] || b.at.localeCompare(a.at));
   const lead = news.filter((m) => rank[m.kind] <= 1).slice(0, 4);
