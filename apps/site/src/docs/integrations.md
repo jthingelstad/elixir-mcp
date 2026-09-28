@@ -107,6 +107,14 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.6.4** (2026-09-27): an unexpected fault answers 500 `internal`
+  with no `Retry-After`; only a database that is briefly unreachable, or
+  a query that timed out, still answers 503 `temporarily_unavailable`
+  with `Retry-After`. Before, every fault was a 503 that invited a retry
+  which could not succeed. The clan fact operations
+  (`POST /clans/{tag}/facts`, `DELETE /clans/{tag}/facts/{ref}`) now declare the
+  `integrationKey` scheme they already accepted, and a person's refusal
+  for a missing scope is now in the usage log like every other call.
 - **2.6.3** (2026-09-27): `POST /profile-refreshes` charges the
   collector fleet's one global budget when it mints a live fetch. When
   that budget has no room, it answers 429 `rate_limited` with
@@ -365,8 +373,9 @@ These allowances do not increase the collector fleet's shared upstream budget.
 | 404 | Unknown or inaccessible resource (`not_found`); `not_recorded` for missing profile data; `no_subject` on a person's operation with nothing to answer about |
 | 409 | `enrollment_limit` or `idempotency_conflict`; `ref_conflict` when a fact's `ref` already names another type or subject |
 | 429 | `rate_limited` (also a refresh when the shared CR budget is spent until the next tick), `daily_quota_exceeded` or `refresh_quota_exceeded`; `quota_exceeded` from a person's tool |
+| 500 | `internal`: a fault on Elixir's side that a retry will not fix; no `Retry-After` |
 | 502 | `internal` or `live_unavailable` from a person's tool |
-| 503 | `temporarily_unavailable`; on a person's operation `live_pending` or `query_timeout`, with `retry_after_s` |
+| 503 | `temporarily_unavailable` with `Retry-After` when the database is briefly unreachable or a query timed out; on a person's operation `live_pending` or `query_timeout`, with `retry_after_s` |
 
 Every request with a resolved key is logged with `surface: rest`, the
 operation name, duration, size, HTTP status and error code, never the

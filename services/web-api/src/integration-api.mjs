@@ -225,18 +225,51 @@ function personRoute(db, account, method, path, query, body) {
   return null;
 }
 
-/** Run a person operation's tool; a refusal becomes the problem body. */
-async function runPersonTool(db, account, route, event) {
-  // The tool's own capability, as the MCP door checks it (handler.mjs):
-  // a read-only grant never runs a write (2.1.0 added the first one).
-  const need = toolRegistry().requiredScope(route.tool);
+/** A person operation's tool needs its own capability, as the MCP door
+ *  checks it (handler.mjs): a read-only grant never runs a write (2.1.0
+ *  added the first one). Checked before the tool runs, so the refusal is
+ *  audited as the operation (the tool never ran to audit itself). */
+function requirePersonToolScope(account, tool) {
+  const need = toolRegistry().requiredScope(tool);
   if (need && !(account.scopes ?? []).includes(need))
     throw new ApiError(
       403,
       "insufficient_scope",
       `This grant lacks the capability ${need}.`,
     );
-  return runTool(db, account, route, event);
+}
+
+/** A failure the caller should retry: the database refused or dropped the
+ *  connection, or a statement ran out of time or into a lock or deadlock.
+ *  Anything else unexpected is a defect, answered 500 with no Retry-After
+ *  (review 2026-09-27 §8.5): a deterministic bug used to answer 503 with
+ *  `Retry-After: 5`, asking every caller to retry it forever. */
+const TRANSIENT_SQLSTATES = new Set([
+  "57014", // statement_timeout
+  "55P03", // lock_not_available (lock_timeout)
+  "40001", // serialization_failure
+  "40P01", // deadlock_detected
+  "53300", // too_many_connections
+  "57P01", // admin_shutdown
+  "57P02", // crash_shutdown
+  "57P03", // cannot_connect_now
+]);
+const TRANSIENT_NODE_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "EPIPE",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+]);
+function isTransientDbError(error) {
+  const code = String(error?.code ?? "");
+  if (TRANSIENT_SQLSTATES.has(code) || code.startsWith("08")) return true;
+  if (TRANSIENT_NODE_CODES.has(code)) return true;
+  // node-postgres raises these without a code.
+  return /Connection terminated|timeout exceeded when trying to connect|Client has encountered a connection error|Connection terminated due to connection timeout/i.test(
+    String(error?.message ?? ""),
+  );
 }
 
 /** One tool, as the caller (a person, or an integration whose permission
@@ -509,9 +542,13 @@ export async function integrationApi(db, event, body, deps = {}) {
             3600 - new Date().getUTCMinutes() * 60,
           );
       }
-      if (route.tool) toolAudited = true;
+      if (route.tool) {
+        requirePersonToolScope(account, route.tool);
+        // From here the invoker audits the call as the tool.
+        toolAudited = true;
+      }
       const answer = route.tool
-        ? await runPersonTool(db, account, route, event)
+        ? await runTool(db, account, route, event)
         : await route.run();
       response = json(
         route.statusOf ? route.statusOf(answer) : 200,
@@ -762,14 +799,18 @@ export async function integrationApi(db, event, body, deps = {}) {
         ? 409
         : error instanceof URIError
           ? 400
-          : 503);
+          : isTransientDbError(error)
+            ? 503
+            : 500);
     response = integrationProblem(
       status,
       error.status || error.code === "enrollment_limit"
         ? error.code
         : status === 400
           ? "bad_request"
-          : "temporarily_unavailable",
+          : status === 503
+            ? "temporarily_unavailable"
+            : "internal",
       requestId,
       error.status ? error.message : undefined,
       error.retryAfter ?? (status === 503 ? 5 : undefined),
