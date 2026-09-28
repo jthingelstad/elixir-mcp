@@ -436,6 +436,7 @@ export function makeInvoker({
                 account,
                 live: live ? timedLive(live, timings) : null,
                 notifyOwner,
+                surface,
               },
               args,
             )
@@ -457,6 +458,10 @@ export function makeInvoker({
             account,
             live: live ? timedLive(live, timings) : null,
             notifyOwner,
+            // The door the call came through: a tool may lay out its
+            // answer for the door's reader (clans_participation's table
+            // for MCP, #124), never change what it says.
+            surface,
           },
           args,
         );

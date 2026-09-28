@@ -9,6 +9,7 @@ import { projectRiverRaceLog } from "../../ingest/src/war.mjs";
 import { ingestClanRoster } from "../../ingest/src/roster.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
+import { participationObjects } from "../src/participation-table.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
 import { periodAt } from "../src/war-period.mjs";
 import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
@@ -44,7 +45,9 @@ async function fixture(rel) {
 
 async function call(fn, name, args = {}) {
   const { body, isError } = await fn(name, args);
-  return { body, isError };
+  // clans_participation answers MCP as a table (#124); these tests read
+  // the rows as the objects /api/v1 serves, which the table decodes to.
+  return { body: participationObjects(body), isError };
 }
 
 before(async () => {

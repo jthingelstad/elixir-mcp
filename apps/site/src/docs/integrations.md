@@ -107,6 +107,11 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.7.1** (2026-09-28): no change to any response.
+  `GET /clans/{tag}/participation` still answers member rows as objects;
+  the `clans_participation` schema it shares with MCP now also describes
+  the agent's table form (MCP 9.16.0), where the rows are arrays named by
+  `columns`.
 - **2.7.0** (2026-09-28): `GET /clans/{tag}/participation` carries
   each member's place at every war finish (`in_clan_at_war_finish`,
   `role_at_war_finish`), their `role_changes` in the window, the clan's

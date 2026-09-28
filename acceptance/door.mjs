@@ -9,6 +9,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { participationObjects } from "../services/mcp/src/participation-table.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -90,7 +91,15 @@ export function makeDoor({
         body = { text };
       }
     }
-    return { body, isError: result?.isError === true, ms };
+    // clans_participation answers an agent as a table (#124). The cases
+    // read its rows as the objects /api/v1 serves, which it decodes to
+    // exactly; `raw` keeps what the door sent.
+    return {
+      body: participationObjects(body),
+      raw: body,
+      isError: result?.isError === true,
+      ms,
+    };
   }
   async function toolsList() {
     const { result } = await rpc("tools/list", {});

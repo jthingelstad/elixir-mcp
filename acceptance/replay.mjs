@@ -8,6 +8,8 @@
  * which fails the case for the right reason.
  */
 
+import { participationObjects } from "../services/mcp/src/participation-table.mjs";
+
 export function replayDoor(captures, { tools = [] } = {}) {
   const key = (tool, args) => `${tool}:${canonical(args ?? {})}`;
   const index = new Map(
@@ -31,7 +33,13 @@ export function replayDoor(captures, { tools = [] } = {}) {
           ms: null,
         };
       const isError = Boolean(c.response?.error && !c.response?.notes);
-      return { body: c.response, isError, ms: c.timings?.db_ms ?? 0 };
+      // As the live door does (door.mjs): a table reads as its objects.
+      return {
+        body: participationObjects(c.response),
+        raw: c.response,
+        isError,
+        ms: c.timings?.db_ms ?? 0,
+      };
     },
   };
 }
