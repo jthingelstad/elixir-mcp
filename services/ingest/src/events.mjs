@@ -31,6 +31,8 @@ const EVENT_TYPES = {
   career_wins_step: { stream: "player", timing: "estimated" },
   card_unlocked: { stream: "player", timing: "estimated" },
   card_leveled: { stream: "player", timing: "estimated" },
+  // An Evolution or Hero form newly unlocked (#110, 0192): one per bit.
+  card_form_unlocked: { stream: "player", timing: "estimated" },
 };
 
 const TABLE_BY_STREAM = {

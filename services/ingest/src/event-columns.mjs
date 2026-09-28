@@ -7,6 +7,8 @@
  * battle row and the player row hold today.
  */
 
+import { CARD_FORM_BITS } from "@elixir-mcp/contracts";
+
 const int = (v) => (Number.isInteger(v) ? v : null);
 const text = (v) => (typeof v === "string" ? v : null);
 
@@ -39,6 +41,13 @@ export function playerEventColumns(type, p = {}) {
       };
     case "card_unlocked":
       return { ...out, card_id: int(p.card_id) };
+    // The form rides as its bit in step (0192): 1 Evolution, 2 Hero.
+    case "card_form_unlocked":
+      return {
+        ...out,
+        card_id: int(p.card_id),
+        step: CARD_FORM_BITS[p.form] ?? null,
+      };
     case "badge_earned":
       return {
         ...out,
