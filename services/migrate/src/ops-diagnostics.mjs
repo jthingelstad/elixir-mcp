@@ -707,11 +707,18 @@ export async function sessions(databaseUrl) {
  * week, 20 s for eight) and there was no other way to see why.
  */
 export async function explainParticipation(databaseUrl, spec = {}) {
-  const [{ MEMBERS_SQL, participationQueries }, { typesForModeGroup }] =
-    await Promise.all([
-      import("../../mcp/src/participation-sql.mjs"),
-      import("@elixir-mcp/contracts"),
-    ]);
+  const [
+    {
+      MEMBERS_SQL,
+      FORMER_MEMBERS_SQL,
+      participationQueries,
+      rosterHistoryQueries,
+    },
+    { typesForModeGroup },
+  ] = await Promise.all([
+    import("../../mcp/src/participation-sql.mjs"),
+    import("@elixir-mcp/contracts"),
+  ]);
   const clanTag = String(spec.clan_tag ?? "#J2RGCRVG").toUpperCase();
   const weeks = Math.min(8, Math.max(1, Number(spec.weeks ?? 8)));
   const db = new pg.Client({ connectionString: databaseUrl });
@@ -744,13 +751,30 @@ export async function explainParticipation(databaseUrl, spec = {}) {
       ),
     );
     const from = new Date(monday.getTime() - (weeks - 1) * 7 * 86400_000);
+    await explain("former_members", FORMER_MEMBERS_SQL, [clanTag, from]);
+    const former = await db.query(FORMER_MEMBERS_SQL, [clanTag, from]);
+    const formerTags = former.rows.map((m) => m.player_tag);
     const queries = participationQueries({
       clanTag,
       tags,
+      formerTags,
       from,
       rankedTypes: typesForModeGroup("ranked"),
     });
     for (const q of queries) await explain(q.name, q.text, q.values);
+    // The war-finish rebuild's reads (issue #46), on this window's finishes.
+    const warWeeksQuery = queries.find((q) => q.name === "war_weeks");
+    const { rows: warWeeks } = await db.query(
+      warWeeksQuery.text,
+      warWeeksQuery.values,
+    );
+    const history = rosterHistoryQueries({
+      clanTag,
+      tags: [...tags, ...formerTags],
+      finishes: warWeeks.map((w) => w.finished_observed_at).filter(Boolean),
+      since: from,
+    });
+    for (const q of history) await explain(q.name, q.text, q.values);
     // Why the planner may decline the covering index (2026-09-16, Clan
     // pages at 8 s): the fraction of participant pages the visibility
     // map calls all-visible, which is what prices an index-only scan,
@@ -1242,6 +1266,86 @@ export async function modeShapeCensus(databaseUrl) {
       meta_pop_by_type: metaPop,
       rounds: rounds[0],
       global_rank: ranks[0],
+    };
+  } finally {
+    await db.end();
+  }
+}
+
+/**
+ * Role history census ({role_history_census: true}) — read-only (issue
+ * #46). clans_participation rebuilds each member's role at every war
+ * finish by walking back from the membership's role through the clan's
+ * role_changed events, and it refuses (null) across events that do not
+ * chain. This counts how often the record gives it reason to: roster
+ * reads admitted out of order (an older payload after a newer one writes
+ * an event whose window runs backwards), role events whose order by
+ * observation disagrees with their order of admission, flip-flop pairs
+ * (a change and its reverse within an hour), and membership rows whose
+ * leave does not follow their join. Counts and event ids only.
+ */
+export async function roleHistoryCensus(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("set statement_timeout = 120000");
+    await db.query("set default_transaction_read_only = on");
+    const { rows: events } = await db.query(
+      `select event_type, count(*)::int as events,
+              count(*) filter (where window_start > window_end)::int as inverted,
+              count(distinct clan_tag)::int as clans,
+              min(window_end) as first_at
+         from clan_event
+        where event_type in ('role_changed', 'member_joined', 'member_left')
+        group by event_type order by event_type`,
+    );
+    const { rows: order } = await db.query(
+      `with e as (
+         select event_id, clan_tag, player_tag, window_start, window_end,
+                role_before, role_after,
+                lag(event_id) over w as prev_id,
+                lag(window_end) over w as prev_end,
+                lag(role_before) over w as prev_before,
+                lag(role_after) over w as prev_after
+           from clan_event
+          where event_type = 'role_changed' and player_tag is not null
+         window w as (partition by clan_tag, player_tag order by window_end, event_id))
+       select count(*) filter (where prev_id > event_id)::int as out_of_admission_order,
+              count(*) filter (where prev_after is distinct from role_before
+                                 and prev_id is not null)::int as chain_breaks,
+              count(*) filter (where prev_before = role_after and prev_after = role_before
+                                 and window_end - prev_end < interval '1 hour')::int as flip_flops_within_hour,
+              (array_agg(event_id order by event_id desc)
+                 filter (where prev_id > event_id
+                            or (prev_after is distinct from role_before and prev_id is not null)))[1:10]
+                as example_event_ids
+         from e`,
+    );
+    const { rows: memberships } = await db.query(
+      `select count(*)::int as rows,
+              count(*) filter (where left_observed_at is not null
+                                 and left_observed_at <= joined_observed_at)::int as leave_not_after_join
+         from clan_membership`,
+    );
+    const { rows: receipts } = await db.query(
+      `with r as (
+         select entity_key, fetched_at,
+                max(fetched_at) over (partition by entity_key order by receipt_id
+                                      rows between unbounded preceding and 1 preceding) as newest_before
+           from api_receipt
+          where endpoint = 'clan' and admission = 'admitted'
+            and fetched_at > now() - interval '30 days')
+       select count(*)::int as clan_reads_30d,
+              count(*) filter (where fetched_at < newest_before)::int as admitted_after_a_newer_read,
+              count(distinct entity_key) filter (where fetched_at < newest_before)::int as clans_affected
+         from r`,
+    );
+    return {
+      note: "Counts only. inverted = window_start after window_end (an older roster admitted after a newer one). out_of_admission_order and chain_breaks are role_changed events, per clan and player, in window_end order.",
+      events,
+      role_changed_order: order[0],
+      memberships: memberships[0],
+      receipts: receipts[0],
     };
   } finally {
     await db.end();
