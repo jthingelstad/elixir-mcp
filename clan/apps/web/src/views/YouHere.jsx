@@ -1,4 +1,4 @@
-import { Fresh } from "elixir-mcp/packages/ui/src/index.ts";
+import { Fresh } from "@elixir-mcp/ui";
 import { useMemberView } from "../lib/queries.js";
 import { RoleChip } from "../components/RoleChip.jsx";
 

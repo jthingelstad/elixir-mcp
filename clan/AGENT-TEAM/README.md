@@ -1,5 +1,13 @@
 # AGENT-TEAM — objective owners for Elixir Clan
 
+> **Paused, and moved (2026-09-28).** Elixir Clan's code now lives in
+> elixir-mcp's repository as `clan/`. These objectives are not installed
+> and stay so until Jamie picks which resume; when one does, its prompt,
+> schedule and lease name are rewritten for this checkout first. Until then
+> there is one lease on the checkout, the repository's
+> (`AGENT-TEAM/scripts/objective-lease.mjs` at the root), and an
+> interactive session claims `session` in it.
+
 Four objective owners maintain Elixir Clan. Each owns a durable outcome, not
 a task type, and follows evidence through diagnosis, implementation,
 verification, deployment and acceptance itself. There is no dispatcher and
@@ -38,8 +46,7 @@ Start with the outcome instead of choosing a role or preparing a ticket:
 - `Show me team status only; make no changes.`
 - `What across this team needs Jamie?`
 
-Choose **Run Elixir Clan** for deploys, alarms, cost, the Elixir dependency
-pin or the OAuth client; **Judge Fairly** for a verdict, action, standing line
+Choose **Run Elixir Clan** for deploys, alarms, cost or the OAuth client; **Judge Fairly** for a verdict, action, standing line
 or award grant that looks wrong, or a season that closed without grants;
 **Close the Loop** when feedback sits unanswered or the docs lie; **Guard
 the Door** for scopes, cookies, secrets, the public repo, or the public
@@ -48,7 +55,7 @@ acceptance.
 
 ## Boundaries with the neighbors
 
-- **Elixir (`../elixir-mcp`)** records facts and has no opinions. A fact this
+- **Elixir (the rest of this repository)** records facts and has no opinions. A fact this
   product needs and Elixir lacks is a request to Elixir's team (its
   `elixir_feedback` tool or its AGENT-TEAM), never a judgment moved
   upstream. Never touch Elixir's database; every seam is a public door.
@@ -63,7 +70,7 @@ acceptance.
   `elixir-clan-api-errors` fired, Run Elixir Clan owns why and the fix.
 - **Interactive Claude sessions** (Jamie-directed feature work) share this
   checkout. Every mutating actor serializes through the checkout lease
-  (`scripts/objective-lease.mjs`). The daily feedback duty belongs to
+  (the repository's `AGENT-TEAM/scripts/objective-lease.mjs`). The daily feedback duty belongs to
   Close the Loop; interactive sessions stop draining it once the team's
   first runs are confirmed.
 

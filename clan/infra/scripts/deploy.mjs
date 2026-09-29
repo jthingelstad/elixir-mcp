@@ -6,11 +6,11 @@
  * ELIXIR_CLAN_CFN_ROLE_ARN. Order is
  * build -> upload -> stack create/update -> web -> smoke.
  *
- *   node infra/scripts/deploy.mjs --create              first deploy
- *   node infra/scripts/deploy.mjs                       update
- *   node infra/scripts/deploy.mjs --skip-web            code/infra only
- *   node infra/scripts/deploy.mjs --param=AppUrl=...    set a PRESERVED parameter once
- *   node infra/scripts/deploy.mjs --break-glass         skip the CI gate (GitHub down only)
+ *   node clan/infra/scripts/deploy.mjs --create              first deploy
+ *   node clan/infra/scripts/deploy.mjs                       update
+ *   node clan/infra/scripts/deploy.mjs --skip-web            code/infra only
+ *   node clan/infra/scripts/deploy.mjs --param=AppUrl=...    set a PRESERVED parameter once
+ *   node clan/infra/scripts/deploy.mjs --break-glass         skip the CI gate (GitHub down only)
  *
  * On --create the app's own URL is not known until CloudFront exists, so
  * the create is followed by one update that sets AppUrl to the

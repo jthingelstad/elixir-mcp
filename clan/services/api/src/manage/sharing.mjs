@@ -28,7 +28,7 @@ import { leaderMessage } from "@elixir-clan/engine";
 import { ManageError } from "./service.mjs";
 
 /** What each kind records in Elixir, when, and who sees it there. */
-export const SHARE_TYPES = {
+const SHARE_TYPES = {
   departure_classified: {
     label: "Kicks and leaves",
     why: "When a leader answers a departure (kicked or left), or completes a removal.",

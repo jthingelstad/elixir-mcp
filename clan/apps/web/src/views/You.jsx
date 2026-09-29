@@ -1,4 +1,4 @@
-import { ago } from "elixir-mcp/packages/ui/src/index.ts";
+import { ago } from "@elixir-mcp/ui";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
 

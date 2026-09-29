@@ -1,4 +1,4 @@
-import { Fresh, Icon, ago } from "elixir-mcp/packages/ui/src/index.ts";
+import { Fresh, Icon, ago } from "@elixir-mcp/ui";
 import { LEADER_MESSAGE, chatWarnings } from "@elixir-clan/engine";
 import { useState } from "react";
 import { manageApi } from "../api.js";
@@ -42,11 +42,7 @@ const CLASSIFIED = {
 const when = (ts) => (ts ? ts.slice(0, 16).replace("T", " ") : "");
 
 /** A person's word on a decision, kept in the action's log. */
-export function NoteInput({
-  value,
-  onChange,
-  placeholder = "note (optional)",
-}) {
+function NoteInput({ value, onChange, placeholder = "note (optional)" }) {
   return (
     <input
       className="input basis-full"
@@ -149,7 +145,7 @@ function MessageField({ label, value, onChange, max, rows = 1 }) {
  *  each within the game's limit, edited before copying. The card holds
  *  the words (`value`/`onChange`) so completing the action can say what
  *  was sent; on its own it keeps them itself. */
-export function LeaderMessage({
+function LeaderMessage({
   message,
   value = null,
   onChange = null,

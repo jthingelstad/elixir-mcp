@@ -16,11 +16,7 @@
  */
 import { useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  answered,
-  transportFailed,
-  unwrap,
-} from "elixir-mcp/packages/client/src/index.ts";
+import { answered, transportFailed, unwrap } from "@elixir-mcp/client";
 import { api, feedbackApi, manageApi } from "../api.js";
 
 export const keys = {
@@ -67,11 +63,7 @@ function gate(env) {
 /** A gated read with a server-side refresh. `read(refresh)` is the
  *  api call; `state` is the shape the views read; `load(true)` asks the
  *  Lambda to re-read Elixir and puts the answer in the cache. */
-export function useGated(
-  queryKey,
-  read,
-  { enabled = true, refetchInterval } = {},
-) {
+function useGated(queryKey, read, { enabled = true, refetchInterval } = {}) {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey,

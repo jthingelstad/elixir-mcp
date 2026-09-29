@@ -1,4 +1,4 @@
-import { Fresh, ago } from "elixir-mcp/packages/ui/src/index.ts";
+import { Fresh, ago } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useHistory, useManage } from "../lib/queries.js";
 import { MemberSheet } from "../components/MemberSheet.jsx";

@@ -10,7 +10,7 @@ import { renderWithProviders } from "./helpers.jsx";
 import { RosterTable, ClanHeader } from "../src/views/Clan.jsx";
 import { Refused, REFUSALS } from "../src/views/Refused.jsx";
 import { Landing } from "../src/views/Landing.jsx";
-import { Disclaimer } from "elixir-mcp/packages/ui/src/index.ts";
+import { Disclaimer } from "@elixir-mcp/ui";
 import { Clans } from "../src/views/Clans.jsx";
 import { VerifyNotice } from "../src/views/VerifyNotice.jsx";
 import { clanFromPath, clanPath } from "../src/App.jsx";
@@ -177,7 +177,9 @@ describe("the gate pages", () => {
   test("the three refusals point at three different Elixir places; an unverified player is not one", () => {
     const hrefs = Object.values(REFUSALS).map((p) => p.link[0]);
     expect(new Set(hrefs).size).toBe(3);
-    expect(REFUSALS.no_primary_player.link[0]).toContain("/account/tracking");
+    expect(REFUSALS.no_primary_player.link[0]).toContain(
+      "/console/account/tracking",
+    );
     expect(REFUSALS.unverified).toBeUndefined();
   });
 
@@ -300,7 +302,7 @@ describe("choosing a clan", () => {
       screen
         .getByRole("link", { name: /Verify in Elixir/ })
         .getAttribute("href"),
-    ).toContain("/account/verify");
+    ).toContain("/console/account/verify");
     expect(screen.queryByText("#RRR", { exact: false })).toBeTruthy();
   });
 
@@ -379,7 +381,7 @@ describe("an unverified player", () => {
       screen
         .getByRole("link", { name: /Verify in Elixir/ })
         .getAttribute("href"),
-    ).toContain("/account/verify");
+    ).toContain("/console/account/verify");
     fireEvent.click(
       screen.getByRole("button", { name: /I understand, continue/ }),
     );

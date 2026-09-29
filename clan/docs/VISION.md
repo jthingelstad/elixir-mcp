@@ -4,8 +4,8 @@
 2026-09-25**
 
 This is the page every proposal is weighed against. It draws on the family
-map (`../elixir-family/MAP.md` §5), the goals plan
-(`../elixir-family/plans/clan-goals.md`, 2026-09-13, partly overtaken by the
+map (`../../elixir-family/MAP.md` §5), the goals plan
+(`../../elixir-family/plans/clan-goals.md`, 2026-09-13, partly overtaken by the
 decisions below) and the decisions of 2026-09-25 in `docs/NOTES.md`. When
 this page and a plan disagree, this page wins; when Jamie changes it, the
 change is a commit here.

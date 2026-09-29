@@ -33,8 +33,8 @@ follow, or a client registration that quietly expired.
   `AGENTS.md` §Elixir tools this app depends on names. A minor bump with a
   changed shape of `clans_participation`, `clans_roster` or
   `elixir_my_players` is a gap: read the changelog entry, adapt, test, ship.
-  Re-pin `apps/web/package.json`'s `elixir-mcp` SHA when Elixir's design
-  changed (`packages/design/styles.css`); never copy the file.
+  The kit comes from the workspace (2026-09-28), so a design change
+  reaches Clan in the pull request that makes it; never copy a file.
 - **The OAuth client.** A registration lives 365 days from last use. Read
   the stack's `OAuthClientId` and the date of the last successful sign-in
   (the sessions in the table, read-only); within 30 days of expiry, warn
@@ -48,7 +48,7 @@ follow, or a client registration that quietly expired.
 ## Action
 
 - A failed deploy, a broken smoke, an alarm with a cause in our code, a
-  contract adaptation, a re-pin: fix in the run, with the test, as a PR
+  contract adaptation: fix in the run, with the test, as a PR
   that merges on a green `validate`; watch the merge SHA's deploy, read the
   smoke.
 - A parameter change (`--param=Key=Value`) is a local deploy and is said so.

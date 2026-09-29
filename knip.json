@@ -1,11 +1,10 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignoreBinaries": ["ssh-keygen"],
-  "ignore": ["clan/**"],
   "workspaces": {
     ".": {
-      "entry": ["infra/scripts/*.mjs"],
-      "project": ["infra/scripts/**/*.mjs"]
+      "entry": ["infra/scripts/*.mjs", "clan/scripts/*.mjs"],
+      "project": ["infra/scripts/**/*.mjs", "clan/scripts/**/*.mjs"]
     },
     "apps/site": {
       "entry": ["src/_data/*.js", "test/**/*.test.mjs"],
@@ -70,6 +69,28 @@
     "services/web-api": {
       "entry": ["src/index.mjs", "test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "clan/apps/web": {
+      "entry": ["scripts/*.mjs", "test/**/*.test.{js,jsx}", "e2e/*.spec.ts"],
+      "project": [
+        "src/**/*.{js,jsx}",
+        "scripts/**/*.mjs",
+        "test/**/*.{js,jsx}",
+        "e2e/**/*.ts"
+      ],
+      "ignoreDependencies": ["tailwindcss", "@elixir-mcp/design"]
+    },
+    "clan/services/api": {
+      "entry": ["src/index.mjs", "test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "clan/services/engine": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "clan/infra": {
+      "entry": ["scripts/*.mjs", "tests/**/*.test.mjs"],
+      "project": ["scripts/**/*.mjs", "tests/**/*.mjs"]
     }
   }
 }

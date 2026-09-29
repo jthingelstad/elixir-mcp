@@ -1,5 +1,13 @@
 # AGENT-TEAM operating model
 
+> **Paused, and moved (2026-09-28).** Elixir Clan's code now lives in
+> elixir-mcp's repository as `clan/`. These objectives are not installed
+> and stay so until Jamie picks which resume; when one does, its prompt,
+> schedule and lease name are rewritten for this checkout first. Until then
+> there is one lease on the checkout, the repository's
+> (`AGENT-TEAM/scripts/objective-lease.mjs` at the root), and an
+> interactive session claims `session` in it.
+
 Elixir Clan is maintained by four objective owners. An owner is accountable
 for an outcome, not a job type or a directory, and follows evidence through
 diagnosis, code, tests, deployment and natural acceptance instead of handing
@@ -11,17 +19,19 @@ the product docs it points at.
 
 ## Operating loop
 
-1. Run `AGENT-TEAM/scripts/preflight.sh`. A dirty, behind, diverged,
+1. Run the repository's `AGENT-TEAM/scripts/preflight.sh` (at the root). A dirty, behind, diverged,
    detached or unexpectedly-ahead checkout makes the run read-only. Never
    publish a pre-existing commit.
 2. Measure current state: the live site and API (`/api/health`, the smoke
    script's reads), CI (`gh run list`), the
    stack and its alarms (`--profile cloud-engineer`, read-only), the ledger through
    the host scripts, `docs/NOTES.md` since the last reviewed revision, and
-   Elixir's contract version against the pinned dependency.
+   Elixir's JSON API contract version against what
+   `services/api/src/elixir-api.mjs` expects.
 3. Decide whether a real objective gap exists. Healthy is a complete result.
 4. Only when a safe, authorized gap requires mutation, claim the checkout:
-   `node AGENT-TEAM/scripts/objective-lease.mjs claim <run|judge|loop|guard>`.
+   `node AGENT-TEAM/scripts/objective-lease.mjs claim <objective>` from the
+   repository root (the one lease on this checkout).
    Keep the returned `leaseId`. A held lease leaves the run read-only;
    never clear one merely because it looks old (`clear-stale` records the
    proof), and use `abort` with a reason when a run cannot finish.
@@ -37,10 +47,10 @@ the product docs it points at.
    `gh pr create --fill`, `gh pr merge --auto --rebase --delete-branch`,
    `gh pr checks --watch --fail-fast`. `main` refuses a direct push (GH013);
    never work around it. Once merged, `git switch main && git pull
-   --ff-only`. CI deploys `main` after its `validate`; the smoke script runs
+   --ff-only`. `clan-deploy` deploys `main` after its `validate`; the smoke script runs
    after every deploy. Work that cannot merge in the run stays an open PR,
    recorded in the report, and the checkout goes back to `main`.
-   `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs` is for a
+   `AWS_PROFILE=cloud-engineer node clan/infra/scripts/deploy.mjs` is for a
    deploy CI cannot make (a parameter change), from the up-to-date `main`,
    and is said so in the run's report.
 8. Verify the deploy (`gh run list`, the smoke output, one live read of the
@@ -82,7 +92,7 @@ question with the evidence and the smallest useful version.
 
 Autonomous when they preserve that boundary: bug and reliability fixes, a
 misleading label or help text, a docs gap, test coverage, observability, the
-Elixir dependency re-pin when Elixir's design changes, and answering feedback
+kit change Clan needs (in `packages/`, in the same pull request), and answering feedback
 whose answer is already decided.
 
 Leaders decide their own clan's policy and awards through the product.

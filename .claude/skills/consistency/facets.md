@@ -91,11 +91,11 @@ is where the war-days gap lived.
 | Catalogue | `acceptance/catalogue*.json`, `catalogue-allow.json` | seeds that fit the result cap; allowed tokens carry reasons |
 | Contract checks | `acceptance/checks/*.mjs` | current field names |
 
-## 8. Connected repos
+## 8. Connected repos (and Clan, in this one)
 
 | Repo | Where it touches the hub | Must agree with |
 |---|---|---|
-| `../clan.poapkings.com` | `services/api/src/elixir-api.mjs`, AGENTS.md, `docs/NOTES.md` | `/api/v1` operations and versions |
+| `clan/` (in this repo since 2026-09-28) | `clan/services/api/src/elixir-api.mjs`, `clan/AGENTS.md`, `clan/docs/NOTES.md` | `/api/v1` operations and versions |
 | `../drop.poapkings.com` | `services/api/src/elixir-oauth.ts` (sign-in, `/api/v1`), `elixir-mcp.ts` and `elixir-collection.ts` (integration key), `seasons.ts` (policy clock), SPEC.md, AGENTS.md | `/api/v1`, the OAuth door, the clock |
 | `../elixir-bot` | RETIRED (stopped 2026-09-26) | nothing; do not sweep it |
 | `../elixir-mcp-discord` | `src/events.js`, `src/prompt.js`, `src/feedback.js`, AGENTS.md | `elixir_timeline` paging and order, tool names |

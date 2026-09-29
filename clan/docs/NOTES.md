@@ -1226,3 +1226,17 @@ Choices made here, for Jamie to confirm:
 - Checked against POAP KINGS' live participation (read-only, 2026-09-27):
   the shapes match the fixture (ISO weeks at 00:00 UTC; war weeks
   finishing Mondays about 09:38 UTC, early finishes at war day 3).
+
+## 2026-09-28 — Moved into elixir-mcp as `clan/`
+
+Jamie's one-origin decision (elixir-mcp `docs/DECISIONS.md`, "One origin,
+paths not hostnames"): Clan's code lives in elixir-mcp's repository with
+its history and keeps its own Lambdas, table and stack. The kit comes from
+the workspace instead of the pinned git dependency; the gate, the lease
+and the ruleset are the repository's; CI deploys through the root
+`clan-deploy.yml` in the `clan-production` environment, and the OIDC
+trust names that environment. The four objectives stay paused. The record
+of the move is elixir-mcp's `docs/NOTES.md` entry of the same date; this
+file stays Clan's decision ledger, newest last. Next: Clan at
+`elixir.poapkings.com/clan` (`../../elixir-family/plans/one-origin.md`,
+step 4).

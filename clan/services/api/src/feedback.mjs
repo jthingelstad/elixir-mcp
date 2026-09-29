@@ -19,7 +19,7 @@
 
 import { randomBytes } from "node:crypto";
 
-export const CATEGORIES = [
+const CATEGORIES = [
   "general",
   "bug",
   "judgment",
@@ -27,10 +27,10 @@ export const CATEGORIES = [
   "feature",
   "praise",
 ];
-export const STATUSES = ["new", "seen", "planned", "done", "declined"];
+const STATUSES = ["new", "seen", "planned", "done", "declined"];
 const MESSAGE_MAX = 4000;
 
-export class FeedbackError extends Error {
+class FeedbackError extends Error {
   constructor(status, code) {
     super(code);
     this.status = status;

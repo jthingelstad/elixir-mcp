@@ -3,7 +3,7 @@
  *  The envelope, timeout and failure accounting are the family's, in
  *  Elixir's client package; this file is only this app's route map. */
 
-import { createClient } from "elixir-mcp/packages/client/src/index.ts";
+import { createClient } from "@elixir-mcp/client";
 import { routeLabel, trackEvent } from "./analytics.js";
 
 const client = createClient({

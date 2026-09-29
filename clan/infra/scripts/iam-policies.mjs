@@ -2,6 +2,7 @@
 import {
   CFN_ROLE,
   DEPLOY_ROLE,
+  GITHUB_ENVIRONMENT,
   GITHUB_REPO,
   REGION,
   SECRET_NAME,
@@ -243,14 +244,14 @@ export const trustFor = (service) => ({
     },
   ],
 });
-/** Who may be the deploy role: a GitHub Actions job of this repository
- *  running in its `production` environment, which only `main` may use. The
+/** Who may be the deploy role: a GitHub Actions job of the repository
+ *  running in its Clan deploy environment, which only `main` may use. The
  *  repo's OIDC subject is the immutable form (owner and repo ids); the
  *  name form is kept beside it so a settings change does not lock CI out. */
 const GITHUB_OIDC = "token.actions.githubusercontent.com";
 export const GITHUB_SUBJECTS = [
-  `repo:${GITHUB_REPO}:environment:production`,
-  "repo:jthingelstad@5351/clan.poapkings.com@1367593151:environment:production",
+  `repo:${GITHUB_REPO}:environment:${GITHUB_ENVIRONMENT}`,
+  `repo:jthingelstad@5351/elixir-mcp@1356061557:environment:${GITHUB_ENVIRONMENT}`,
 ];
 export const githubDeployTrustFor = (accountId) => ({
   Version: "2012-10-17",

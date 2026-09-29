@@ -1,4 +1,4 @@
-import { Fresh, Icon, ago } from "elixir-mcp/packages/ui/src/index.ts";
+import { Fresh, Icon, ago } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { keys, useAction, useActions, useInvalidate } from "../lib/queries.js";
 import { ActionCard, STATUS } from "../components/ActionCard.jsx";
@@ -17,7 +17,7 @@ const ORDER = [
 ];
 
 /** An action's own address: the one people send each other. */
-export const actionPath = (clan, number) =>
+const actionPath = (clan, number) =>
   `/clan/${clan.clan_tag.slice(1)}/actions/${number}`;
 
 /** Who an action is about, in a word or a name. */
@@ -192,7 +192,7 @@ export function Actions({ clan, navigate }) {
       <p className="page-head__note mt-0 mb-4">
         On a morning when something new here is yours to do, Elixir emails you
         what is waiting.{" "}
-        <a href="https://elixir.poapkings.com/account/profile/email">
+        <a href="https://elixir.poapkings.com/console/account/profile/email">
           Change that in Elixir
         </a>
         .

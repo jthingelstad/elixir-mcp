@@ -276,7 +276,7 @@ test("fresh bootstrap creates the boundary while the application role is absent"
   ]);
 });
 
-test("CI's role trusts only this repository's production environment", async () => {
+test("CI's role trusts only the repository's Clan deploy environment", async () => {
   const [statement, ...rest] = githubDeployTrustFor(account).Statement;
   assert.deepEqual(rest, []);
   assert.equal(statement.Action, "sts:AssumeRoleWithWebIdentity");
@@ -298,15 +298,15 @@ test("CI's role trusts only this repository's production environment", async () 
   for (const subject of GITHUB_SUBJECTS) {
     assert.match(
       subject,
-      /^repo:jthingelstad(@5351)?\/clan\.poapkings\.com(@\d+)?:environment:production$/,
+      /^repo:jthingelstad(@5351)?\/elixir-mcp(@\d+)?:environment:clan-production$/,
     );
   }
   // The job that assumes it runs in that environment.
   const workflow = await readFile(
-    new URL("../../.github/workflows/deploy.yml", import.meta.url),
+    new URL("../../../.github/workflows/clan-deploy.yml", import.meta.url),
     "utf8",
   );
-  assert.match(workflow, /^    environment: production$/m);
+  assert.match(workflow, /^    environment: clan-production$/m);
   assert.match(
     workflow,
     /role-to-assume: \$\{\{ vars\.ELIXIR_CLAN_DEPLOY_ROLE_ARN \}\}/,

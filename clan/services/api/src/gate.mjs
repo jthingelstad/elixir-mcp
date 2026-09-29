@@ -25,7 +25,7 @@
 
 import { roleLabel, roleRank } from "./roles.mjs";
 
-export const REFUSALS = {
+const REFUSALS = {
   not_a_person: "not_a_person",
   no_primary_player: "no_primary_player",
   no_clan: "no_clan",
@@ -48,7 +48,7 @@ const isSelf = (id) => !id.relationship || SELF.has(id.relationship);
 
 /** The role a claim acts as here: its in-game role once verified, a
  *  member's until then. */
-export const actingRole = (id) =>
+const actingRole = (id) =>
   id.claim_status === "verified" ? id.role : "member";
 
 /** The clan set from the identity set. Exported for the tests. */

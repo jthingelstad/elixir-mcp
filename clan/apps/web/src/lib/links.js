@@ -1,15 +1,15 @@
-/** Every link into Elixir, in one place. The console paths are the ones
- *  Elixir's own docs front-matter names (`console:` on recording.md and
- *  verify.md). */
+/** Every link into Elixir, in one place. The console paths (under
+ *  /console since 2026-09-28) are the ones Elixir's own docs front-matter
+ *  names (`console:` on recording.md and verify.md). */
 
-export const ELIXIR = "https://elixir.poapkings.com";
+const ELIXIR = "https://elixir.poapkings.com";
 export const ELIXIR_LINKS = {
   home: ELIXIR,
   requestAccess: `${ELIXIR}/`,
-  tracking: `${ELIXIR}/account/tracking`,
-  verify: `${ELIXIR}/account/verify`,
-  overview: `${ELIXIR}/account/overview`,
-  connections: `${ELIXIR}/account/connections`,
+  tracking: `${ELIXIR}/console/account/tracking`,
+  verify: `${ELIXIR}/console/account/verify`,
+  overview: `${ELIXIR}/console/account/overview`,
+  connections: `${ELIXIR}/console/account/connections`,
   verifyDocs: `${ELIXIR}/docs/verify`,
   connectionsDocs: `${ELIXIR}/docs/connections`,
 };

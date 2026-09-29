@@ -5,7 +5,8 @@ the roster with every member's role, trophies, donations and activity, shown
 to you as who you are in the game, and your clan's own policy run against
 the record: Elder by participation in what your clan counts or by hand, an
 inactivity clock, cards your leaders decide, awards, recruiting copy and
-scouting. Live at <https://clan.poapkings.com>.
+scouting. Live at <https://clan.poapkings.com>, moving to
+<https://elixir.poapkings.com/clan>.
 
 - Sign in with Elixir only (OAuth 2.1, PKCE, `cr:read`). No accounts here.
 - Requires a verified player; in-game role is the app role.
@@ -17,17 +18,21 @@ scouting. Live at <https://clan.poapkings.com>.
 
 ## Develop
 
+Elixir Clan lives in Elixir's repository as `clan/`, with its own Lambdas,
+table and stack. From the repository root:
+
 ```
 npm install
-npm run verify        # format, lint, tests (no network)
-npm run build         # the SPA
+npm run verify                        # format, lint, typecheck, every workspace's tests (no network)
+npm run build -w @elixir-clan/web     # the SPA
+npm run e2e                           # the browser journeys, the Console's then Clan's
 ```
 
 Deploying and the AWS shape: [AGENTS.md](AGENTS.md). Decisions:
 [docs/NOTES.md](docs/NOTES.md).
 
-Part of the Elixir family with [Elixir](https://github.com/jthingelstad/elixir-mcp)
-and [Elixir Drop](https://github.com/jthingelstad/drop.poapkings.com). MIT.
+Part of the Elixir family with [Elixir](../README.md) and
+[Elixir Drop](https://github.com/jthingelstad/drop.poapkings.com). MIT.
 
 ---
 

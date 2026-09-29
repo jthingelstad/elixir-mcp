@@ -1,4 +1,4 @@
-import { Markdown, ago } from "elixir-mcp/packages/ui/src/index.ts";
+import { Markdown, ago } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { feedbackApi } from "../api.js";
 import { keys, useInvalidate, useMaintainQueue } from "../lib/queries.js";

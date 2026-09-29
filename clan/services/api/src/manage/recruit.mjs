@@ -28,7 +28,7 @@ import { ManageError, fetchRoster } from "./service.mjs";
 
 export const FACTS_TTL_MS = 6 * 3600_000;
 /** A leader's refresh is floored: live reads are quota. */
-export const REFRESH_FLOOR_MS = 10 * 60_000;
+const REFRESH_FLOOR_MS = 10 * 60_000;
 const LEADERS = new Set(["leader", "coLeader"]);
 
 export function createRecruitService({

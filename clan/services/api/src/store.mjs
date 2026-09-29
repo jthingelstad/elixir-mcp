@@ -27,7 +27,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { timedStore } from "./trace.mjs";
 
-export const LOGIN_TTL_S = 600;
+const LOGIN_TTL_S = 600;
 
 const seconds = (ms) => Math.floor(ms / 1000);
 

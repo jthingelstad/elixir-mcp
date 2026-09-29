@@ -67,7 +67,7 @@ export const ME = {
   },
 };
 
-export const ROSTER = {
+const ROSTER = {
   clan_tag: "#2PQRJ8LV",
   member_count: 3,
   cached_at: "2026-09-12T17:55:00Z",
