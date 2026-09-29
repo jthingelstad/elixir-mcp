@@ -1061,3 +1061,30 @@ checkout lease stalled the runs queued behind it.
 `DECISIONS.md`: "Lease first" becomes "One worktree per run; the lease
 guards production".
 
+---
+
+## 2026-09-29 - Phase 0 of the structural assessment: descriptions that had drifted
+
+The 2026-09-28 assessment's Phase 0 ("decide and clean up") listed
+descriptions that no longer matched the code or the decisions. Fixed:
+
+- **The public architecture page** drew elixir-bot as a client and linked
+  it as "the POAP KINGS clan agent". It retired on 2026-09-26; the diagram
+  and the links now name the Discord agent (elixir-mcp-discord) and say
+  Elixir Clan lives in this repository.
+- **Clan's README** said it "requires a verified player". Since 2026-09-26
+  (Jamie) an unverified claim makes someone a member and a role's powers
+  wait for Verify (`clan/services/api/src/gate.mjs`).
+- **Clan's VISION** called Elixir Ladder "a concept only, with no plans to
+  build it". Ladder is a section of Elixir at `/ladder` (2026-09-28).
+- **Clan's `oauth.mjs` and `store.mjs` headers** described a public client
+  and a table holding only sessions.
+- **DECISIONS** gains ranking-origin recording as a dial that stays on, and
+  the one budget's reaffirmation, both Jamie's on 2026-09-28.
+
+Left for Jamie: the collector door's `min_client_version` is still
+`2.0.30`. Enforcement is on (`CollectorMinEnforce` read `1` from the
+stack on 2026-09-29), but every retired Python twin reports a 2.0.3x
+version, so one would still be served work. Raising the minimum past
+2.x retires the pre-signing rollback lever, which is why it moves only
+on Jamie's call (`docs/RELEASING-COLLECTOR.md`).

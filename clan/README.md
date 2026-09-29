@@ -9,7 +9,9 @@ scouting. Live at <https://elixir.poapkings.com/clan>, on Elixir's own
 origin.
 
 - Sign in with Elixir only (OAuth 2.1, PKCE, `cr:read`). No accounts here.
-- Requires a verified player; in-game role is the app role.
+- Any player on your Elixir account makes you a member of its clan here;
+  a Leader's, Co-leader's or Elder's powers wait until that player is
+  verified in Elixir. In-game role is the app role.
 - Nothing in clan management runs until a leader sets your clan's policy.
 - An app for a clan's members: nothing is published outside it.
 - Stores sessions, your remembered clan, and each clan's policy, cards,

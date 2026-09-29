@@ -1,5 +1,5 @@
 /**
- * The one table. Two item kinds, both short-lived by TTL:
+ * The person's side of the one table, three item kinds:
  *
  *   login#<state>    the pending sign-in: PKCE verifier + redirect URI,
  *                    10 minutes, deleted on use
@@ -11,10 +11,12 @@
  *                    clan this person last chose to work in, keyed by their
  *                    primary tag. No TTL. One small string.
  *
- * This is everything Elixir Clan stores. No player, no clan, no member
- * data survives past a session's cache window; the record lives in
- * Elixir. The table is encrypted with its KMS key (infra/template.yaml)
- * because a session item holds a refresh token.
+ * What Clan stores about a clan (policy versions, verdicts, actions,
+ * holds, notes, the pitch, award standings, the sealed model key) is in
+ * the same table under the clan's own keys: manage/ledger.mjs. Neither
+ * side keeps Elixir's payloads; the record lives in Elixir. The table is
+ * encrypted with its KMS key (infra/template.yaml) because a session item
+ * holds a refresh token.
  */
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";

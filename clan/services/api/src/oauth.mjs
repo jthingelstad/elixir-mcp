@@ -1,8 +1,11 @@
 /**
  * OAuth 2.1 against Elixir: discovery, PKCE, the
- * authorization URL, the code exchange and the refresh. Nothing here is
- * privileged; it is the same door any third-party MCP client uses
- * (elixir.poapkings.com/docs/protocol, "OAuth 2.1").
+ * authorization URL, the code exchange and the refresh, for the resource
+ * `/api/v1`. The flow is the one any client follows
+ * (elixir.poapkings.com/docs/protocol, "OAuth 2.1"). What makes Clan
+ * first-party (unmetered, and allowed `clans:attest`) is that Elixir
+ * provisioned its confidential family client, `clan`; nothing in this
+ * file is privileged.
  *
  * Two facts from that page shape this file: `resource` is REQUIRED at
  * both the authorize and token steps and must be the exact door URL the
