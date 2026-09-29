@@ -2,9 +2,13 @@
 /**
  * Build the SPA, upload it to the private web bucket, delete what is no
  * longer built, invalidate CloudFront: this stack's distribution, and
- * /clan on Elixir's, which serves the app there too (2026-09-28). Hashed
- * assets are immutable for a year; index.html is never cached past the
- * edge's five minutes.
+ * /clan on Elixir's, which serves the app. Elixir serves it at /clan
+ * (one origin, 2026-09-28) and hands the bucket the viewer's path as it
+ * stands, so every file goes under the clan/ prefix: dist/index.html is
+ * clan/index.html, dist/assets/x.js is clan/assets/x.js. Anything else
+ * in the bucket is stale, the keys at its root that clan.poapkings.com
+ * served included. Hashed assets are immutable for a year; index.html is
+ * never cached past the edge's five minutes.
  */
 
 import {
@@ -48,6 +52,10 @@ const CONTENT_TYPES = new Map([
 export const contentTypeFor = (key) =>
   CONTENT_TYPES.get(extname(key).toLowerCase()) ?? "application/octet-stream";
 
+/** The bucket key a built file goes to: under Elixir's /clan. */
+const PREFIX = "clan/";
+
+/** By the file's path in the build (assets/x.js), not its bucket key. */
 export function cacheControlFor(key) {
   if (key.endsWith(".html")) return "public, max-age=0, s-maxage=300";
   if (/^assets\/[^/]+-[A-Za-z0-9_-]{8,}\.(?:css|js)$/.test(key))
@@ -97,14 +105,14 @@ async function main() {
     await s3.send(
       new PutObjectCommand({
         Bucket: bucket,
-        Key: key,
+        Key: `${PREFIX}${key}`,
         Body: await readFile(path),
         CacheControl: cacheControlFor(key),
         ContentType: contentTypeFor(key),
       }),
     );
   }
-  const wanted = new Set(files.map((f) => f.key));
+  const wanted = new Set(files.map((f) => `${PREFIX}${f.key}`));
   const existing = [];
   let token;
   do {

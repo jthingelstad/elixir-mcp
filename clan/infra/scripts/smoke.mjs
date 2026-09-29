@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * Read-only checks against the deployed site. Runs after every deploy;
- * no sign-in, no spend, no writes. /auth/login is deliberately excluded:
- * even its GET creates a pending-login item. The injected handler tests
- * cover the OAuth redirect, cr:read, PKCE and login cookie offline.
+ * Read-only checks against the deployed app where Elixir serves it: the
+ * app at ElixirUrl/clan, this API at ElixirUrl/api/clan (one origin,
+ * 2026-09-28). Runs after every deploy; no sign-in, no spend, no writes.
+ * /api/clan/auth/login is deliberately excluded: even its GET creates a
+ * pending-login item. The injected handler tests cover the OAuth
+ * redirect, cr:read, PKCE and login cookie offline.
  *
- *   node infra/scripts/smoke.mjs            the stack's AppUrl (or its CloudFront hostname)
+ *   node infra/scripts/smoke.mjs            the stack's ElixirUrl
  *   SMOKE_ORIGIN=https://... node infra/scripts/smoke.mjs
  */
 
@@ -22,16 +24,11 @@ async function origin() {
   const { Stacks } = await cfn.send(
     new DescribeStacksCommand({ StackName: STACK }),
   );
-  // The app's own origin decides the OAuth redirect_uri, so that is where
-  // the login check has to run; before AppUrl is set, the distribution.
-  const appUrl = Stacks[0].Parameters?.find(
-    (p) => p.ParameterKey === "AppUrl",
+  const elixirUrl = Stacks[0].Parameters?.find(
+    (p) => p.ParameterKey === "ElixirUrl",
   )?.ParameterValue;
-  if (appUrl) return appUrl.replace(/\/$/, "");
-  const domain = Stacks[0].Outputs.find(
-    (o) => o.OutputKey === "DistributionDomainName",
-  ).OutputValue;
-  return `https://${domain}`;
+  if (!elixirUrl) throw new Error("the stack carries no ElixirUrl");
+  return elixirUrl.replace(/\/$/, "");
 }
 
 async function fetchRetry(url, init, attempts = 6) {
@@ -52,6 +49,8 @@ async function fetchRetry(url, init, attempts = 6) {
 }
 
 const base = await origin();
+const app = `${base}/clan`;
+const api = `${base}/api/clan`;
 const checks = [];
 const check = (name, ok, detail = "") => {
   checks.push(ok);
@@ -70,10 +69,10 @@ const timed = async (url, init) => {
   return res;
 };
 
-const home = await timed(`${base}/`);
+const home = await timed(`${app}/`);
 const homeText = await home.text();
 check(
-  "GET / is the app shell",
+  "GET /clan/ is the app shell",
   home.status === 200 && homeText.includes("Elixir Clan"),
   String(home.status),
 );
@@ -82,46 +81,44 @@ check(
   Boolean(home.headers.get("content-security-policy")) &&
     Boolean(home.headers.get("strict-transport-security")),
 );
+// Elixir's CSP, which this app now runs under: script from the origin
+// and the analytics embed, nothing else.
 const csp = home.headers.get("content-security-policy") ?? "";
 const scriptSrc = /script-src ([^;]+)/.exec(csp)?.[1] ?? "";
 check(
-  "app shell CSP allows only tinylytics as third-party script",
-  scriptSrc
-    .split(/\s+/)
-    .filter((s) => s.startsWith("http"))
-    .every((s) => s === "https://tinylytics.app"),
+  "app shell CSP allows script only from 'self' and tinylytics",
+  scriptSrc.includes("'self'") &&
+    scriptSrc
+      .trim()
+      .split(/\s+/)
+      .every((s) => ["'self'", "https://tinylytics.app"].includes(s)),
   scriptSrc,
 );
 
-// Images from a third party: the analytics pixel and, for the clan map
-// (Social, 2026-09-26), OpenStreetMap's tiles. Nothing else.
+// The clan map (Social, 2026-09-26) draws OpenStreetMap's tiles. Card
+// art and the analytics pixel are Elixir's to allow too.
 const imgSrc = /img-src ([^;]+)/.exec(csp)?.[1] ?? "";
 check(
-  "app shell CSP allows images only from tinylytics and OpenStreetMap's tiles",
-  imgSrc
-    .split(/\s+/)
-    .filter((s) => s.startsWith("http"))
-    .every((s) =>
-      ["https://tinylytics.app", "https://tile.openstreetmap.org"].includes(s),
-    ),
+  "app shell CSP allows OpenStreetMap's tiles",
+  imgSrc.split(/\s+/).includes("https://tile.openstreetmap.org"),
   imgSrc,
 );
 
-const route = await timed(`${base}/clan`);
+const route = await timed(`${app}/clans`);
 check(
-  "GET /clan serves the app shell (SPA router)",
+  "GET /clan/clans serves the app shell (SPA router)",
   route.status === 200 && (await route.text()).includes("Elixir Clan"),
   String(route.status),
 );
 
-const missing = await timed(`${base}/nope.txt`);
+const missing = await timed(`${app}/assets/nope.js`);
 check(
-  "a missing file is honestly a miss",
+  "a missing /clan/assets/ file is honestly a miss",
   missing.status === 403 || missing.status === 404,
   String(missing.status),
 );
 
-const health = await timed(`${base}/api/health`);
+const health = await timed(`${api}/health`);
 let healthBody = {};
 try {
   healthBody = await health.json();
@@ -129,12 +126,12 @@ try {
   healthBody = {};
 }
 check(
-  "GET /api/health",
+  "GET /api/clan/health",
   health.status === 200 && healthBody.ok === true,
   String(health.status),
 );
 
-const me = await timed(`${base}/api/me`);
+const me = await timed(`${api}/me`);
 let meBody = {};
 try {
   meBody = await me.json();
@@ -142,14 +139,14 @@ try {
   meBody = {};
 }
 check(
-  "GET /api/me signed out is 401 JSON",
+  "GET /api/clan/me signed out is 401 JSON",
   me.status === 401 && meBody.signed_in === false,
   String(me.status),
 );
 
 // Nothing under a clan answers without a session: Elixir Clan publishes
 // no public pages or documents (Jamie, 2026-09-25). The tag is invented.
-const clanRead = await timed(`${base}/api/clans/2PPQQRRV/awards`);
+const clanRead = await timed(`${api}/clans/2PPQQRRV/awards`);
 check(
   "a clan route with no session is 401",
   clanRead.status === 401,
