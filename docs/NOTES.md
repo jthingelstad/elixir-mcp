@@ -1362,3 +1362,19 @@ Read-back, reads only:
   are green.
 
 Nothing owed.
+
+---
+
+## 2026-09-29 - elixir_examples output schema correction queued
+
+The Operator's bounded door-log read found twelve
+`output_schema_mismatch elixir_examples result.examples is required` entries
+in the trailing 24 hours, including two at 09:23Z after the 9.17.0 deploy.
+The index correctly returns `examples`; a selected example correctly returns
+its transcript and supporting details instead. The published output schema
+incorrectly required `examples` for both shapes, so the door logged a false
+mismatch without changing the response.
+
+9.17.1 makes `examples` conditional, adds a registry-level regression over
+both shapes, and will deploy with `--acceptance=elixir`. The JSON API has no
+`elixir_examples` operation and is unchanged.

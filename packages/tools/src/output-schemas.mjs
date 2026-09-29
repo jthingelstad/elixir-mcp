@@ -1439,7 +1439,9 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
       notes: NOTES,
     },
-    required: ["corpus_built_at", "examples", "meta", "notes", "docs"],
+    // The index has examples; a selected example returns its transcript
+    // instead. Both are documented shapes of this one tool.
+    required: ["corpus_built_at", "meta", "notes", "docs"],
   },
 
   elixir_updates: {
