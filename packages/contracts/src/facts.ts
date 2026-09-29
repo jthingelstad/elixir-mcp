@@ -177,7 +177,9 @@ export const ATTESTED_FACT_KINDS: readonly string[] =
 /** Only this role may send a Clan Leader Message in the game. */
 export const LEADER_MESSAGE_ROLES: readonly string[] = LEADERS;
 
-/** The family's apps as a person reads their names. */
+/** The family's apps as a person reads their names, by the source key
+ *  their facts carry: identifiers, not addresses, so Clan keeps its key
+ *  at elixir.poapkings.com/clan (0195). */
 export const FAMILY_APP_NAMES: Readonly<Record<string, string>> = {
   "clan.poapkings.com": "Elixir Clan",
   "drop.poapkings.com": "Elixir Drop",

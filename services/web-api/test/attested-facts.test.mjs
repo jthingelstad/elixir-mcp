@@ -16,12 +16,11 @@ import { factItems } from "../../mcp/src/activity/entries.mjs";
 
 // A family app's client is provisioned (0185), never merely registered to
 // a family redirect: registration is open and proves nothing (review §6.5).
-let familyApps = 0;
-async function familyClient(db, spec) {
+async function familyClient(db, spec, app) {
   const c = await registerClient(db, spec);
   await db.query(
     `insert into family_oauth_client (client_id, app) values ($1, $2)`,
-    [c.clientId, `test-app-${++familyApps}`],
+    [c.clientId, app],
   );
   return c;
 }
@@ -96,10 +95,14 @@ before(async () => {
   await db.query("insert into clan(clan_tag,name) values ($1,'Example Clan')", [
     CLAN,
   ]);
-  clan = await familyClient(db, {
-    clientName: "Elixir Clan",
-    redirectUris: ["https://clan.poapkings.com/auth/callback"],
-  });
+  clan = await familyClient(
+    db,
+    {
+      clientName: "Elixir Clan",
+      redirectUris: ["https://clan.poapkings.com/auth/callback"],
+    },
+    "clan",
+  );
   other = await registerClient(db, {
     clientName: "Someone's app",
     redirectUris: ["https://example.org/callback"],
@@ -173,6 +176,22 @@ test("a leader records a departure as a kick; a retry is the same fact and a cor
   );
   assert.equal(jump.statusCode, 409);
   assert.equal(data(jump).code, "ref_conflict");
+  // Clan moves to elixir.poapkings.com/clan (2026-09-28). Its facts are
+  // keyed by the app its client was provisioned for, not the host its
+  // codes go to, so a retry after the move is still the same fact.
+  await db.query(
+    `update oauth_client set redirect_uris = $2 where client_id = $1`,
+    [clan.clientId, ["https://elixir.poapkings.com/api/clan/auth/callback"]],
+  );
+  const moved = await request(
+    "POST",
+    facts,
+    { ...body, detail: { kind: "leave" } },
+    token,
+  );
+  assert.equal(moved.statusCode, 200, moved.body);
+  assert.equal(data(moved).data.id, f.id);
+  assert.equal(data(moved).data.attested_by.app, "Elixir Clan");
 });
 
 test("refusals say why: another app, no capability, not in the clan, the wrong role, a bad detail", async () => {

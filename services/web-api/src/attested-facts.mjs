@@ -164,17 +164,25 @@ async function seatIn(db, accountId, clanTag) {
   );
 }
 
-/** The family app a person's grant came through, by its redirect origin. */
+/** The key a family app's facts carry, by the app its client was
+ *  provisioned for (0185). Clan's and Drop's are the hosts they were
+ *  written under before either moved: identifiers now, not addresses, so
+ *  Clan at elixir.poapkings.com/clan (2026-09-28) still writes, corrects
+ *  and removes the facts it wrote at clan.poapkings.com. A later app's
+ *  key is its name. */
+const SOURCE_OF_APP = {
+  clan: "clan.poapkings.com",
+  drop: "drop.poapkings.com",
+};
+
+/** The family app a person's grant came through, or null. */
 async function appOf(db, account) {
   const { rows } = await db.query(
-    `select redirect_uris from oauth_client where client_id = $1`,
+    `select app from family_oauth_client where client_id = $1`,
     [account.clientId],
   );
-  try {
-    return new URL(rows[0]?.redirect_uris?.[0]).host;
-  } catch {
-    return null;
-  }
+  const app = rows[0]?.app;
+  return app ? (SOURCE_OF_APP[app] ?? app) : null;
 }
 
 function mayAttest(t, type, detail, seat, playerTag) {
