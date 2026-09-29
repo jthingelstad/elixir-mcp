@@ -577,6 +577,11 @@ const PARTICIPATION_TABLE_ROW = {
   items: {},
 };
 
+/** clans_roster's per-member roster figures (9.17.0) are served where
+ *  no result cap applies: a full clan's agent read would not fit them. */
+const ROSTER_REST_ONLY =
+  "On /api/v1 and the console only (9.17.0): a full clan's agent read would pass the result cap with it.";
+
 export const OUTPUT_SCHEMAS = {
   // ---- 6.14.0: the 22 tools that rested on recorded shape baselines in the
   // acceptance suite (acceptance/shapes/). Drafted from live answers on
@@ -3551,6 +3556,16 @@ export const OUTPUT_SCHEMAS = {
       description: { type: ["string", "null"] },
       clan_score: NULLABLE_INT,
       clan_war_trophies: NULLABLE_INT,
+      required_trophies: {
+        ...NULLABLE_INT,
+        description:
+          "The trophies the clan asks of a joiner, as of scores_observed_at (9.17.0).",
+      },
+      donations_per_week: {
+        ...NULLABLE_INT,
+        description:
+          "The game's clan donations-per-week figure, as of scores_observed_at (9.17.0).",
+      },
       scores_observed_at: { type: ["string", "null"] },
       member_count: COUNT,
       role_counts: { type: "object" },
@@ -3580,6 +3595,27 @@ export const OUTPUT_SCHEMAS = {
             years_played: NULLABLE_INT,
             account_age_days: NULLABLE_INT,
             badge_count: NULLABLE_INT,
+            donations_received_this_week: {
+              ...NULLABLE_INT,
+              description: ROSTER_REST_ONLY,
+            },
+            clan_rank: { ...NULLABLE_INT, description: ROSTER_REST_ONLY },
+            previous_clan_rank: {
+              ...NULLABLE_INT,
+              description: ROSTER_REST_ONLY,
+            },
+            arena: {
+              type: ["object", "null"],
+              description: ROSTER_REST_ONLY,
+              properties: {
+                id: { type: "integer" },
+                name: { type: ["string", "null"] },
+              },
+            },
+            favorite_card_id: {
+              ...NULLABLE_INT,
+              description: `${ROSTER_REST_ONLY} An id only; cards_catalog names it.`,
+            },
             lifetime: {
               type: ["object", "null"],
               description:

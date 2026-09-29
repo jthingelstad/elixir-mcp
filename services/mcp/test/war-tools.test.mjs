@@ -7,6 +7,7 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { projectRiverRaceLog } from "../../ingest/src/war.mjs";
 import { ingestClanRoster } from "../../ingest/src/roster.mjs";
+import { projectClanSeries } from "../../ingest/src/series.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { participationObjects } from "../src/participation-table.mjs";
@@ -35,6 +36,7 @@ const CLAN = "#J2RGCRVG";
 
 let db;
 let invoke; // as alice, a plain member
+let aliceAccount;
 let invokeOutsider;
 
 async function fixture(rel) {
@@ -102,15 +104,12 @@ before(async () => {
     [alice.account_id, aliceTag],
   );
   const registry = makeRegistry();
-  invoke = makeInvoker({
-    db,
-    account: {
-      accountId: alice.account_id,
-      isOwner: false,
-      timezone: "America/Chicago",
-    },
-    registry,
-  });
+  aliceAccount = {
+    accountId: alice.account_id,
+    isOwner: false,
+    timezone: "America/Chicago",
+  };
+  invoke = makeInvoker({ db, account: aliceAccount, registry });
   const {
     rows: [out],
   } = await db.query(
@@ -2277,4 +2276,72 @@ test("clans_participation tenure is the current stint; a rejoin within 7 days co
     90,
   );
   assert.equal(mb.days_in_clan_observed, 45, "back within 7 days: one stint");
+});
+
+// Last in the file: it writes the roster's series rows, which the tests
+// above read the record without.
+test("clans_roster: the clan's joiner bar on every surface; each member's roster figures only where no cap applies (9.17.0)", async () => {
+  const roster = await fixture("clan/roster.json");
+  await projectClanSeries(db, {
+    payload: roster,
+    observedAt: "2026-09-03T14:40:34Z",
+  });
+  const MEMBER_FIGURES = [
+    "donations_received_this_week",
+    "clan_rank",
+    "previous_clan_rank",
+    "arena",
+    "favorite_card_id",
+  ];
+  for (const surface of ["mcp", "svc:test"]) {
+    const agent = await call(
+      makeInvoker({
+        db,
+        account: aliceAccount,
+        registry: makeRegistry(),
+        surface,
+      }),
+      "clans_roster",
+      {},
+    );
+    assert.equal(agent.isError, false);
+    assert.equal(agent.body.required_trophies, roster.requiredTrophies);
+    assert.equal(agent.body.donations_per_week, roster.donationsPerWeek);
+    for (const key of MEMBER_FIGURES)
+      assert.ok(
+        agent.body.members.every((m) => !Object.hasOwn(m, key)),
+        `${key} stays off the ${surface} read`,
+      );
+  }
+  const compact = await call(invoke, "clans_roster", {
+    verbosity: "compact",
+  });
+  assert.equal(compact.body.required_trophies, roster.requiredTrophies);
+
+  const rest = await call(
+    makeInvoker({
+      db,
+      account: aliceAccount,
+      registry: makeRegistry(),
+      surface: "rest",
+    }),
+    "clans_roster",
+    {},
+  );
+  assert.equal(rest.isError, false);
+  assert.equal(rest.body.required_trophies, roster.requiredTrophies);
+  const byTag = new Map(rest.body.members.map((m) => [m.player_tag, m]));
+  // Tests above add and remove members; every fixture member still here
+  // carries the roster's figures.
+  const still = roster.memberList.filter((m) => byTag.has(m.tag));
+  assert.ok(still.length >= 45, `${still.length} fixture members served`);
+  for (const m of still) {
+    const served = byTag.get(m.tag);
+    assert.equal(served.clan_rank, m.clanRank, m.tag);
+    assert.equal(served.previous_clan_rank, m.previousClanRank, m.tag);
+    assert.equal(served.donations_received_this_week, m.donationsReceived);
+    assert.deepEqual(served.arena, { id: m.arena.id, name: m.arena.name });
+    // No profile read yet: unknown, not none.
+    assert.equal(served.favorite_card_id, null);
+  }
 });

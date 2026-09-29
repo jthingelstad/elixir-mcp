@@ -89,6 +89,21 @@ const STATUS_OF_CLASS = {
 
 const flag = (v) => v === "1" || v === "true";
 
+/** A clan's recorded war weeks (2.8.0), for either caller: the
+ *  war_history tool over a number of seasons, never one member's. */
+function warHistoryRoute(clanTag, query) {
+  const seasons =
+    query.seasons === undefined ? undefined : Number(query.seasons);
+  return {
+    operation: "clans.war_history",
+    tool: "war_history",
+    args: {
+      clan_tag: clanTag,
+      ...(seasons === undefined ? {} : { seasons }),
+    },
+  };
+}
+
 /** The operations a person may call, by method and path: each is one
  *  read the family's apps make, answered with the tool's structured
  *  result (Elixir Clan's reads, plan clan-app-api phases 1-3). */
@@ -142,9 +157,13 @@ function personRoute(db, account, method, path, query, body) {
   }
   if (
     method === "GET" &&
-    (m = /^\/api\/v1\/clans\/([^/]+)\/(participation|roster|live)$/.exec(path))
+    (m =
+      /^\/api\/v1\/clans\/([^/]+)\/(participation|roster|war-history|live)$/.exec(
+        path,
+      ))
   ) {
     const clanTag = tag(decodeURIComponent(m[1]));
+    if (m[2] === "war-history") return warHistoryRoute(clanTag, query);
     if (m[2] === "participation") {
       const weeks = query.weeks === undefined ? undefined : Number(query.weeks);
       return {
@@ -680,9 +699,10 @@ export async function integrationApi(db, event, body, deps = {}) {
         };
       } else if (
         method === "GET" &&
-        (match = /^\/api\/v1\/clans\/([^/]+)\/(participation|roster)$/.exec(
-          path,
-        ))
+        (match =
+          /^\/api\/v1\/clans\/([^/]+)\/(participation|roster|war-history)$/.exec(
+            path,
+          ))
       ) {
         // A family app's scheduled read of a clan (2.3.0, clans:read):
         // Elixir Clan evaluating a clan's policy with nobody signed in.
@@ -693,20 +713,22 @@ export async function integrationApi(db, event, body, deps = {}) {
         const weeks =
           query.weeks === undefined ? undefined : Number(query.weeks);
         const route =
-          match[2] === "participation"
-            ? {
-                operation: "clans.participation",
-                tool: "clans_participation",
-                args: {
-                  clan_tag: clanTag,
-                  ...(weeks === undefined ? {} : { weeks }),
-                },
-              }
-            : {
-                operation: "clans.roster",
-                tool: "clans_roster",
-                args: { clan_tag: clanTag },
-              };
+          match[2] === "war-history"
+            ? warHistoryRoute(clanTag, query)
+            : match[2] === "participation"
+              ? {
+                  operation: "clans.participation",
+                  tool: "clans_participation",
+                  args: {
+                    clan_tag: clanTag,
+                    ...(weeks === undefined ? {} : { weeks }),
+                  },
+                }
+              : {
+                  operation: "clans.roster",
+                  tool: "clans_roster",
+                  args: { clan_tag: clanTag },
+                };
         operation = route.operation;
         run = () => {
           toolAudited = true;
