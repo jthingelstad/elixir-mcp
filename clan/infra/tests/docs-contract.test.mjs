@@ -21,3 +21,19 @@ test("the weekly clan report has one status across the product contract", async 
   assert.match(notes, /The week: the weekly clan report, as a page/);
   assert.doesNotMatch(agents, /weekly digest/);
 });
+
+test("unverified claimers have one membership contract", async () => {
+  const [agents, vision, chooser] = await Promise.all([
+    read("AGENTS.md"),
+    read("docs/VISION.md"),
+    read("apps/web/src/views/Clans.jsx"),
+  ]);
+
+  assert.match(agents, /\*\*Unverified players are members/);
+  assert.match(vision, /claimed players is in it, verified or not/);
+  assert.match(
+    chooser,
+    /An unverified player is a member here whatever its role in the game/,
+  );
+  assert.doesNotMatch(vision, /only when their verified player is in it/);
+});

@@ -74,12 +74,14 @@ what the clan is *for* and letting the policy follow, is a theme below.
 ## How a clan arrives
 
 Through Elixir, and member-first. A person signs in with Elixir, and a clan
-is here only when their verified player is in it: there is no Elixir Clan
-without Elixir, and no adding a clan that is not associated there. No leader
-has to act first: any member can use Elixir Clan on their own (the roster,
-every member's numbers, Recruit) and suggest it to their leaders; when a
-leader sets a policy (and the clan has 10 members), the rest turns on. A
-clan Elixir only watches rather than records works with less.
+is here when one of their own claimed players is in it, verified or not:
+there is no Elixir Clan without Elixir, and no adding a clan that is not
+associated there. Until the player is verified, the person reads as a member;
+verification unlocks the player's in-game role and the actions that role may
+take. No leader has to act first: any member can use Elixir Clan on their own
+(the roster, every member's numbers, Recruit) and suggest it to their leaders;
+when a leader sets a policy (and the clan has 10 members), the rest turns on.
+A clan Elixir only watches rather than records works with less.
 
 ## Principles
 
