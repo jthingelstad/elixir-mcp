@@ -1,15 +1,15 @@
-import { ledgerStats } from "../../../scheduler/src/ledger.mjs";
+import { ledgerStats } from "@elixir-mcp/ledger";
 import {
   eligibleNow,
   queueSummary,
   bulkAllowance,
   BUCKET_CAP_SECONDS,
-} from "../../../scheduler/src/plan.mjs";
+} from "@elixir-mcp/ledger/plan";
 
 import { json } from "../http.mjs";
 import { RELEASE_SIGNED_SQL, signatureState } from "../collector-signature.mjs";
 import { DISCLAIMER, cardForms, cardType } from "@elixir-mcp/contracts";
-import { RECORDED_PLAYERS_SQL } from "../../../mcp/src/tools/shared.mjs";
+import { RECORDED_PLAYERS_SQL } from "@elixir-mcp/tools/shared";
 
 export function publicRoutes({ deadLetters }) {
   return {
@@ -333,7 +333,7 @@ export function publicRoutes({ deadLetters }) {
     // of the Week lands, and what the art mirror reads. The same
     // numbers the tools give, refreshed by the nightly rollup.
     "GET /api/public/cards": async (db) => {
-      const { readCatalog } = await import("../../../mcp/src/tools/cards.mjs");
+      const { readCatalog } = await import("@elixir-mcp/tools/cards");
       const catalog = await readCatalog(db);
       if (!catalog) return json(503, { error: "catalog_empty" });
       return json(

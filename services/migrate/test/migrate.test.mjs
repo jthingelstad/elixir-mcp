@@ -457,7 +457,8 @@ test("probe op: hourly census counts live fetches, excludes the backfill gateway
   // volume.
   process.env.DATABASE_URL = SCRATCH_URL;
   const { handler } = await import("../src/lambda.mjs");
-  const { ingestBattlelog } = await import("../../ingest/src/battles.mjs");
+  const { ingestBattlelog } =
+    await import("../../../packages/ingest/src/battles.mjs");
   const metaJson = JSON.parse(
     await readFile(path.join(repoRoot, "fixtures/meta.json"), "utf8"),
   );
@@ -574,7 +575,8 @@ test("capture-audit op: reports only gap subjects with their scheduler evidence"
 test("payload sweep: only superseded rows with an S3 twin leave Postgres", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
   process.env.ARCHIVE_BUCKET = "test-archive";
-  const { archiveKey } = await import("../../ingest/src/pipeline.mjs");
+  const { archiveKey } =
+    await import("../../../packages/ingest/src/pipeline.mjs");
   const { sweepPayloads } = await import("../../jobs/src/index.mjs");
 
   const db = new pg.Client({ connectionString: SCRATCH_URL });
@@ -864,7 +866,8 @@ test("poll_replay reads an empty week as zero counts with every section present"
 // remains testable is the census and the closing-FK gate.
 test("0091 census: ingest leaves no participant without its deck or played rows, and the closing FKs would validate", async () => {
   await migrate({ databaseUrl: SCRATCH_URL, migrationsDir: MIGRATIONS_DIR });
-  const { ingestBattlelog } = await import("../../ingest/src/battles.mjs");
+  const { ingestBattlelog } =
+    await import("../../../packages/ingest/src/battles.mjs");
   const { deckCensus } = await import("../src/deck-backfill.mjs");
   const metaJson = JSON.parse(
     await readFile(path.join(repoRoot, "fixtures/meta.json"), "utf8"),

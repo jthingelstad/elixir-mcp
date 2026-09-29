@@ -18,7 +18,7 @@ samples real values against game reality (the Observatory rule).
   Since 2026-09-19 battle logs run the SESSION CLOCK (30 min after a
   read that delivered battles, doubling to a 2 h ceiling after empty
   ones; `SESSION_FOLLOWUP_MINUTES` / `SESSION_CEILING_MINUTES` in
-  `services/scheduler/src/plan.mjs`), chosen because the recorder was
+  `packages/ledger/src/plan.mjs`), chosen because the recorder was
   losing ~7,150 battles a week (4.3%) to sittings that began inside a
   long wait. The number to read is now on **Status ▸ Efficiency**
   (`/api/public/efficiency`, nightly `capture_efficiency_daily`):

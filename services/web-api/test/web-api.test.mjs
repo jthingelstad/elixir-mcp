@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import crypto from "node:crypto";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { emailHash } from "../../auth/src/index.mjs";
+import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -621,7 +621,8 @@ test("call record: own rows and owned agents' rows open; others 404; admin opens
   // With a store, the captured body comes back through the same route,
   // gunzipped, under the same session check.
   const { gzipSync } = await import("node:zlib");
-  const { captureKey } = await import("../../mcp/src/capture.mjs");
+  const { captureKey } =
+    await import("../../../packages/tools/src/capture.mjs");
   const stored = {
     request: { tool: "war_current", arguments: { clan_tag: "#ABC" } },
     response: { war: { day: 2 }, meta: { request_id: ids.mine } },
@@ -942,7 +943,7 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
   assert.ok(list.feedback.length >= 2);
   assert.ok(list.feedback.every((f) => f.surface === "web"));
   // The MCP-surface path (elixir_send_feedback at the MCP door) is covered in
-  // services/mcp/test/tools2 "feedback loop closes".
+  // packages/tools/test/tools2 "feedback loop closes".
   assert.equal(list.feedback[0].from_player, "#2PP0V90Y");
 
   const triage = await handler(
@@ -1019,7 +1020,8 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
 
   // With a store: the archived body comes back with the pixel stripped.
   const { gzipSync } = await import("node:zlib");
-  const { sentMailKey } = await import("../../jobs/src/email/archive.mjs");
+  const { sentMailKey } =
+    await import("../../../packages/mail/src/archive.mjs");
   const { pixelTag } = await import("@elixir-mcp/mail");
   const stored = {
     send_id: mine[0].send_id,
@@ -1150,7 +1152,7 @@ test("service tokens: Admin no longer mints one on a person (review §6.5); an e
   assert.equal(parse(minted).error, "mint_moved");
 
   const { issueServiceToken, validateServiceToken } =
-    await import("../../auth/src/oauth.mjs");
+    await import("../../../packages/auth/src/oauth.mjs");
   const {
     rows: [boss],
   } = await db.query(`select account_id from account where email_hash = $1`, [
@@ -2796,9 +2798,12 @@ test("the explorer is metered and capped like the MCP door, and read-only", asyn
 });
 
 test("an oversized explorer result is the same bounded failure the MCP door returns", async () => {
-  const { MCP_RESULT_MAX_CHARS } = await import("../../mcp/src/protocol.mjs");
-  const { renderToolResultText } = await import("../../mcp/src/protocol.mjs");
-  const { makeRegistry } = await import("../../mcp/src/tools.mjs");
+  const { MCP_RESULT_MAX_CHARS } =
+    await import("../../../packages/tools/src/result-text.mjs");
+  const { renderToolResultText } =
+    await import("../../../packages/tools/src/result-text.mjs");
+  const { makeRegistry } =
+    await import("../../../packages/tools/src/tools.mjs");
   const huge = {
     battles: "x".repeat(MCP_RESULT_MAX_CHARS + 1),
     meta: { as_of: new Date().toISOString() },
@@ -2868,7 +2873,8 @@ test("feedback and upgrade requests notify the owner; the owner's own feedback d
     "an 8-hex hash prefix, never an address",
   );
   assert.ok(note.feedbackId);
-  const { ownerNotifyMessage } = await import("../src/notify.mjs");
+  const { ownerNotifyMessage } =
+    await import("../../../packages/outbox/src/notify.mjs");
   const msg = ownerNotifyMessage(note);
   assert.equal(msg.kind, "owner_notify");
   assert.equal(msg.notify_kind, "feedback");

@@ -6,7 +6,7 @@ import {
 import { isRole, ROLE_ORDER, ADMIN_SETTABLE } from "@elixir-mcp/contracts";
 
 import { UUID_RE, ID_RE, json } from "../http.mjs";
-import { onboardAccount } from "../onboard.mjs";
+import { onboardAccount } from "@elixir-mcp/tools/onboard";
 import { loadCallRecord } from "../call-record.mjs";
 import {
   SENDS_COLS,

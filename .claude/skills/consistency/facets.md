@@ -29,10 +29,10 @@ The source of truth for what stands, and the files that point agents at it.
 |---|---|---|
 | Versions | `packages/contracts/src/version.ts`, `changelog.ts` (`breaking` field, not prose) | the change's semver class (AGENTS.md rule 5) |
 | Shared vocabulary | `packages/contracts/src/{modes,principals,roles,queue,tool-groups}.ts` | JS and SQL readers (one answer in both), docs tables |
-| Tool registry | `services/mcp/src/tools.mjs`, `services/mcp/src/tools/**` | declarations, `output-schemas.mjs`, the brief |
-| Output schemas | `services/mcp/src/output-schemas.mjs` | every field the tool serves; nothing it does not |
+| Tool registry | `packages/tools/src/tools.mjs`, `packages/tools/src/tools/**` | declarations, `output-schemas.mjs`, the brief |
+| Output schemas | `packages/tools/src/output-schemas.mjs` | every field the tool serves; nothing it does not |
 | The brief | `services/mcp/src/protocol.mjs` (`instructionsFor`) | the registry (segment tools, windows, conventions) |
-| Entitlements and identity | `services/mcp/src/entitlements.mjs`, `identity.mjs` | DECISIONS on defaults, refusals, principals |
+| Entitlements and identity | `packages/tools/src/entitlements.mjs`, `identity.mjs` | DECISIONS on defaults, refusals, principals |
 | Notes and docs pointers | the invoker and each tool's `notes()` / `docsRef()` | fields actually served (acceptance checks this live) |
 
 ## 3. Second derivations
@@ -43,13 +43,13 @@ is where the war-days gap lived.
 
 | Surface | Path | Must agree with |
 |---|---|---|
-| Timeline entries | `services/mcp/src/activity/entries.mjs`, `summary.mjs` | the tools for the same fact (war, battles, donations) |
-| Participation SQL | `services/mcp/src/participation-sql.mjs` | `clans_participation`, `clans_standings`, war tools |
+| Timeline entries | `packages/tools/src/activity/entries.mjs`, `summary.mjs` | the tools for the same fact (war, battles, donations) |
+| Participation SQL | `packages/record/src/participation-sql.mjs` | `clans_participation`, `clans_standings`, war tools |
 | Product mail | `services/jobs/src/email/build-*.mjs`, `packages/mail/src/render.mjs`, `packages/mail/fixtures/` | the tools the builder should call; wording in docs |
 | Rollups | `services/jobs/src/meta-rollup.mjs` | live SQL for the same population and mode map |
 | Console | `apps/web/src/views/**`, `apps/web/src/pages/**` | tool semantics, docs wording, privacy (analytics.js) |
 | Web API routes | `services/web-api/src/routes/*.mjs`, `notify.mjs` | the tools, the docs, runtime strings that point at docs |
-| Collector quota | `services/mcp/src/quota.mjs`, ingest points | mail, console and docs wording for credits |
+| Collector quota | `packages/tools/src/quota.mjs`, ingest points | mail, console and docs wording for credits |
 
 ## 4. The JSON API
 
@@ -64,7 +64,7 @@ is where the war-days gap lived.
 
 | Surface | Path | Must agree with |
 |---|---|---|
-| Ingest | `services/ingest/src/*.mjs` | DECISIONS on what is recorded and how (no per-day war guesses) |
+| Ingest | `packages/ingest/src/*.mjs` | DECISIONS on what is recorded and how (no per-day war guesses) |
 | Scheduler | `services/scheduler/src/*.mjs` | the rate budget, the session clock |
 | Migrations | `db/migrations/NNNN_*.sql` | the migration rules (`services/migrate/test/migration-rules.test.mjs`) |
 | Migrate ops | `services/migrate/src/ops-*.mjs` | retired designs removed; each op named by a runbook, skill or CI |

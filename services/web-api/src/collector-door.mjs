@@ -21,7 +21,7 @@
 import crypto from "node:crypto";
 import { crPathForJob, crBattleTime } from "@elixir-mcp/contracts";
 import { checkRateLimit, viewerIp } from "@elixir-mcp/auth";
-import { leaseJob, completeJob } from "../../scheduler/src/ledger.mjs";
+import { leaseJob, completeJob } from "@elixir-mcp/ledger";
 
 const TOKEN_PREFIX = "emcg_";
 const LEASE_TTL_S = 90;

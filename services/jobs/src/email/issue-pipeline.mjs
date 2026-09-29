@@ -20,8 +20,8 @@ import {
   PutObjectCommand,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
-import { makeOutbox } from "../../../web-api/src/outbox.mjs";
-import { upsertIssue } from "./ledger.mjs";
+import { makeOutbox } from "@elixir-mcp/outbox";
+import { upsertIssue } from "@elixir-mcp/mail/ledger";
 import { lintIssue, repairNames, briefNames } from "@elixir-mcp/mail";
 
 const SITE = "https://elixir.poapkings.com";

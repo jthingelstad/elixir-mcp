@@ -53,7 +53,7 @@
   {
     "id": "81.3",
     "control": true,
-    "needs_fixture": "a regular (is_colosseum false) war week whose our_fame stayed below 10000. #J2RGCRVG has none across seasons 134-136 - every recorded regular week finished. Without this the fix is satisfied by returning true unconditionally. (services/mcp/test/war-tools.test.mjs seeds 133/0 at 8400 and pins false.)",
+    "needs_fixture": "a regular (is_colosseum false) war week whose our_fame stayed below 10000. #J2RGCRVG has none across seasons 134-136 - every recorded regular week finished. Without this the fix is satisfied by returning true unconditionally. (packages/tools/test/war-tools.test.mjs seeds 133/0 at 8400 and pins false.)",
     "assert": [
       {
         "eq": ["weeks[0].finished_early", false]

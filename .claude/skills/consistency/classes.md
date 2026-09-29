@@ -92,7 +92,7 @@ superseded.
   `docs/reviews/`.
 - Fix: repoint; when the pointer is in a checksum-immutable migration,
   add the old-to-new row to `docs/archive/README.md` instead.
-- Guard: `services/mcp/test/docs-pointers.test.mjs` for `docsRef()`; a
+- Guard: `packages/tools/test/docs-pointers.test.mjs` for `docsRef()`; a
   grep for the old path in the round that moves a file.
 
 ## retired-plumbing

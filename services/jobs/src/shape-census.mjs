@@ -4,7 +4,7 @@
  * decided by Jamie 2026-09-17). Out of band from ingestion: it reads a
  * sample of the day's archived objects per endpoint (twenty, the newest
  * first, by the api_payload rows fetched in the last day) and compares
- * their field sets to the manifest (services/ingest/src/payload-keys.mjs).
+ * their field sets to the manifest (packages/ingest/src/payload-keys.mjs).
  * Two findings per endpoint: a field present in the sample and absent
  * from the manifest (the API added something), and a manifest field
  * absent from every sampled payload for seven days (the API retired
@@ -23,8 +23,8 @@ import {
   payloadPaths,
   dispositionOf,
   expectedPaths,
-} from "../../ingest/src/payload-keys.mjs";
-import { archiveKey } from "../../ingest/src/pipeline.mjs";
+} from "@elixir-mcp/ingest/payload-keys";
+import { archiveKey } from "@elixir-mcp/ingest/pipeline";
 
 const SAMPLE = 20;
 const ABSENT_DAYS = 7;

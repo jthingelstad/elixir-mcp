@@ -1,0 +1,20 @@
+{
+  "name": "@elixir-mcp/ledger",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The recording job ledger (PostgreSQL): what is due, who holds a lease, what each fetch recorded, and the plan that fills it. The scheduler Lambda runs it; the collector door and the JSON API enqueue through it.",
+  "type": "module",
+  "main": "src/ledger.mjs",
+  "exports": {
+    ".": "./src/ledger.mjs",
+    "./plan": "./src/plan.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@elixir-mcp/contracts": "0.1.0",
+    "@elixir-mcp/record": "0.1.0",
+    "pg": "^8.13.0"
+  }
+}

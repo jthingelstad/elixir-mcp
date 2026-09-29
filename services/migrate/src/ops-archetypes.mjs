@@ -29,7 +29,7 @@ import {
   rowToRole,
   loadVocabulary,
   stampDecks,
-} from "../../ingest/src/card-roles.mjs";
+} from "@elixir-mcp/ingest/card-roles";
 
 const FAMILY_SET = new Set(FAMILIES.filter((f) => f !== "unclassified"));
 const isUrl = (s) => typeof s === "string" && /https?:\/\//.test(s);

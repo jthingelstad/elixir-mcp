@@ -4,9 +4,13 @@ import pg from "pg";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { makeInvoker } from "../src/invoker.mjs";
-import { makeRegistry } from "../src/tools.mjs";
-import { seedPlayedDeck, seedDeck, hashFor } from "./deck-rows.mjs";
+import { makeInvoker } from "../../../packages/tools/src/invoker.mjs";
+import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
+import {
+  seedPlayedDeck,
+  seedDeck,
+  hashFor,
+} from "../../../packages/tools/test/deck-rows.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { createHash } from "node:crypto";
 

@@ -525,7 +525,7 @@ test(
   async () => {
     const llms = read("llms.txt");
     const { makeRegistry } = await import(
-      path.join(repoRoot, "services/mcp/src/tools.mjs")
+      path.join(repoRoot, "packages/tools/src/tools.mjs")
     );
     const names = makeRegistry()
       .declarations()
@@ -558,7 +558,7 @@ test(
     const html = read("docs/tools/index.html");
     const json = JSON.parse(read("tools.json"));
     const { makeRegistry } = await import(
-      path.join(repoRoot, "services/mcp/src/tools.mjs")
+      path.join(repoRoot, "packages/tools/src/tools.mjs")
     );
     const declarations = makeRegistry().declarations();
 
@@ -625,7 +625,7 @@ test(
   async () => {
     const full = read("llms-full.txt");
     const { makeRegistry } = await import(
-      path.join(repoRoot, "services/mcp/src/tools.mjs")
+      path.join(repoRoot, "packages/tools/src/tools.mjs")
     );
     for (const d of makeRegistry().declarations()) {
       assert.ok(
@@ -822,7 +822,7 @@ test(
     // The meta floors and the corpus prior are published from the same
     // declaration the SQL readers use (0.39.0).
     const { META_METHODOLOGY } =
-      await import("../../../services/mcp/src/tools/shared.mjs");
+      await import("../../../packages/tools/src/tools/shared.mjs");
     assert.ok(
       page.includes(
         `${META_METHODOLOGY.segment_min_decided} decided observations`,
@@ -908,7 +908,7 @@ test(
     // a transcript window is real. Eight of the design's placeholder
     // names were not (2026-09-10); the copy claimed they were anyway.
     const { makeRegistry } = await import(
-      path.join(repoRoot, "services/mcp/src/tools.mjs")
+      path.join(repoRoot, "packages/tools/src/tools.mjs")
     );
     const names = new Set(
       makeRegistry()

@@ -96,7 +96,7 @@ test("mode labels say what a player calls the mode", () => {
 });
 
 test("deliver: the send has its own id, in the footer, in the queue message, in the archive and on the row (0139); the campaign period reaches the render", async () => {
-  const { deliver } = await import("../src/email/deliver.mjs");
+  const { deliver } = await import("../../../packages/mail/src/deliver.mjs");
   const queries = [];
   const db = {
     query: async (sql, params) => {
@@ -170,7 +170,7 @@ test("deliver: the send has its own id, in the footer, in the queue message, in 
 });
 
 test("deliver: a failed archive write still sends, and the row says so", async () => {
-  const { deliver } = await import("../src/email/deliver.mjs");
+  const { deliver } = await import("../../../packages/mail/src/deliver.mjs");
   const queries = [];
   const db = {
     query: async (sql, params) => {

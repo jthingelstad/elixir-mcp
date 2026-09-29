@@ -23,8 +23,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { TOOL_GROUPS } from "@elixir-mcp/contracts";
-import { makeRegistry } from "../services/mcp/src/tools.mjs";
-import { validateArgs } from "../services/mcp/src/validate.mjs";
+import { makeRegistry } from "../packages/tools/src/tools.mjs";
+import { validateArgs } from "../packages/tools/src/validate.mjs";
 import { JAMIE } from "./lib.mjs";
 import { canonical } from "./replay.mjs";
 

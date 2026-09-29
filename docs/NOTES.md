@@ -1211,3 +1211,52 @@ inlines the JSON into the MCP Lambda (checked by bundling it and reading
 the corpus from the bundle alone, 26 pages, 11 examples, 283 updates).
 A test loads the module with no `dist/` beside it. No response changes;
 no contract or JSON API version.
+
+---
+
+## 2026-09-29 - Services import packages, never each other
+
+Phase 4 of the structural assessment, "zero relative imports between
+services". 74 imports from one service's `src` into another's remained
+after `packages/record` took the clocks; there are none now, and
+`packages/record/test/boundary.test.mjs` holds zero with three rules (no
+package imports a service; no service's `src` leaves its directory by a
+relative path; no service imports another by name). Tests stay exempt.
+
+What moved, with history (`git mv`):
+
+- `services/auth` and `services/ingest` were libraries, not Lambdas: now
+  `packages/auth` and `packages/ingest`, same package names.
+- The job ledger and its plan: `packages/ledger` (`@elixir-mcp/ledger`,
+  `/plan`). The scheduler keeps its handler and metrics.
+- The outbox and owner notices: `packages/outbox`.
+- The send ledger, archive and delivery from `services/jobs/src/email`:
+  `packages/mail`.
+- The SQL a tool and a job both read (`daily-sql`, `standings-sql`,
+  `participation-sql`, `boat-defense-sql`, `mode-filter`,
+  `gateway-cards`): `packages/record`.
+- Everything else in `services/mcp/src` but the door (`index`, `handler`,
+  `oauth-routes`, `protocol`, `resources`), plus web-api's `onboard.mjs`:
+  `packages/tools` (`@elixir-mcp/tools`, `/shared`, `/cards`, `/<file>`).
+
+Two seams were cut rather than moved. The result cap
+(`renderToolResultText`, `MCP_RESULT_MAX_CHARS`) left `protocol.mjs` for
+`packages/tools/src/result-text.mjs`, so web-api's Explore and the
+invoker stop importing the MCP door. Integration administration
+(create, configure, rotate, revoke, suspend, resume, list) moved from
+web-api's admin route into `@elixir-mcp/auth/integrations`, answering
+`{ status, body }`; the route and the migrate `integration` op both call
+it, and the migrate op no longer imports a web-api route.
+
+Tests moved with their code where they test only moved code (37); door
+tests stay with their service. The deck seed helper is
+`packages/tools/test/deck-rows.mjs`. Each package names its exports and
+dependencies, knip checks both, and the docs, skills and role files that
+named the old paths were updated (notes and reviews left as written).
+
+Checked: `npm run verify` green; all seven Lambdas bundle and import.
+Against main, every bundle holds the same modules under their new paths
+except where a seam was cut: web-api no longer bundles the MCP protocol
+and resources, and migrate drops the `/api/v1` door it pulled in through
+the integrations route (about 5 KB smaller). No response changes; no
+contract or JSON API version.

@@ -22,7 +22,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { validateArgs } from "../../services/mcp/src/validate.mjs";
+import { validateArgs } from "../../packages/tools/src/validate.mjs";
 import { loadCatalogue } from "../catalogue.mjs";
 import { compareShape } from "../shapes.mjs";
 import {

@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { seriesStats } from "../src/series-metrics.mjs";
-import { scratchDb } from "../../ingest/test/helpers.mjs";
+import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 
 let ctx;
 before(async () => {

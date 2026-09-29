@@ -8,7 +8,7 @@
  * learns whether the id exists. A suspended agent still resolves: its
  * owner opens its console to resume it.
  *
- * The object mirrors a session's (services/auth sessions-store) so a route
+ * The object mirrors a session's (packages/auth sessions-store) so a route
  * reads it the same way, with two differences a route can rely on. `owner`
  * is the person: the one budget both of them spend, and the viewer. And
  * `timezone` is the person's, because the console prints times on the

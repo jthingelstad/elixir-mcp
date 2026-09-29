@@ -13,14 +13,14 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
 import { accountRemoveOp } from "../src/ops-account-remove.mjs";
-import { emailHash } from "../../auth/src/crypto.mjs";
+import { emailHash } from "../../../packages/auth/src/crypto.mjs";
 import {
   issueServiceToken,
   validateServiceToken,
   registerClient,
   mintTokens,
   validateAccessToken,
-} from "../../auth/src/index.mjs";
+} from "../../../packages/auth/src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");

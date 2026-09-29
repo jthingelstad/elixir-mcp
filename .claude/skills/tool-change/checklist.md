@@ -20,18 +20,18 @@ only when it does not apply, and say why in the commit message.
 
 ## The code map
 
-- `services/mcp/src/tools.mjs`, the registry. It assembles the family
+- `packages/tools/src/tools.mjs`, the registry. It assembles the family
   modules, and `declarations(kind)` filters by `toolsHiddenFrom(kind)`
   and sorts by `GROUP_ORDER`, then by title. It publishes `verbosity` on
   one-size tools and validates arguments against the published schema.
   It validates every result against `OUTPUT_SCHEMAS[name]`, which throws
   under `node --test` and logs `output_schema_mismatch` in production.
-- `services/mcp/src/tools/<family>.mjs`, the declaration and handler. A
+- `packages/tools/src/tools/<family>.mjs`, the declaration and handler. A
   split family (`battles/`, `elixir/`, `rankings/`, `war/`) keeps one
   file per tool and a `common.mjs`. For example, `battles/common.mjs`
   has `ownBattlesClause`, `modeClause`, `COMPACT_DESC` and the family's
   `*_DOCS` pointers.
-- `services/mcp/src/tools/shared.mjs`:
+- `packages/tools/src/tools/shared.mjs`:
   - schemas: `TAG_SCHEMA`, `ON_BEHALF_OF_SCHEMA`, `WINDOW_ARGS`,
     `SEASON_ARG_SCHEMA`, `TIMEZONE_SCHEMA`, `MODE_SCHEMA`,
     `SEGMENT_SCHEMA`, `VERBOSITY(compactDesc)`, `ARCHETYPE_ARG`, and the
@@ -44,14 +44,14 @@ only when it does not apply, and say why in the commit message.
   - prose and shape: `appliedBlock()`, `notes()`, `docsRef()`,
     `ToolFailure`, `SEGMENT_NOTES` and `SEGMENT_DOCS`;
   - SQL: `RECORDED_PLAYERS_SQL`.
-- `services/mcp/src/controls.mjs`: `modeSplit()`, `pooledModesNote()`,
+- `packages/tools/src/controls.mjs`: `modeSplit()`, `pooledModesNote()`,
   `trophyFloor()`, `markPartialWeeks()` and the other controls.
 - The SQL seams are `boat-defense-sql.mjs` (`notBoatDefense`),
   `mode-filter.mjs` (`participantModeClause`, `metaPopulationClause`),
   `participation-sql.mjs`, `standings-sql.mjs` and `daily-sql.mjs`
   (`war-battles-sql.mjs`, which placed war battles on a policy day, went
   in 9.1.2 with the last per-day reader).
-- `services/mcp/src/output-schemas.mjs`: the shared blocks are
+- `packages/tools/src/output-schemas.mjs`: the shared blocks are
   `WINDOW_ECHO`, `NOTES`, `DOCS`, `META`, `MODE_SPLIT`, `NAME`, `RATE`
   and `COUNT`.
 - `packages/contracts/src/tool-groups.ts` holds `TOOL_GROUPS` and
@@ -259,19 +259,19 @@ only when it does not apply, and say why in the commit message.
   Score appear in no declaration, and in the docs only in a history
   paragraph.
 
-`services/mcp/test/tool-schema-lint.test.mjs`:
+`packages/tools/test/tool-schema-lint.test.mjs`:
 - Every window argument has a description.
 - Each description uses one of the shared descriptions.
 - The exclusive end and the whole-day rule are stated.
 
-`services/mcp/test/docs-pointers.test.mjs`:
+`packages/tools/test/docs-pointers.test.mjs`:
 - The source has at least 30 pointers, and every tool module emits one
   (a split family counts as one module).
 - Every `docsRef("page", "section")` and `const X_DOCS = "page#section"`
   resolves to a page and an H2 section in the built corpus.
 - `SEGMENT_DOCS` resolves.
 
-`services/mcp/test/docs-tools.test.mjs`:
+`packages/tools/test/docs-tools.test.mjs`:
 - The `limits` live-quota row names every live-flag tool.
 - The `choosing-a-tool` live count equals the registry's.
 

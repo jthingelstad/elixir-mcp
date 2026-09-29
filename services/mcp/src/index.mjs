@@ -2,12 +2,12 @@
 
 import { currentAndPrevious } from "@elixir-mcp/auth";
 import { makeHandler } from "./handler.mjs";
-import { makeCaptureStore } from "./capture.mjs";
-import { enqueueJob } from "../../scheduler/src/ledger.mjs";
-import { ownerNotifyMessage } from "../../web-api/src/notify.mjs";
-import { makeOutbox } from "../../web-api/src/outbox.mjs";
+import { makeCaptureStore } from "@elixir-mcp/tools/capture";
+import { enqueueJob } from "@elixir-mcp/ledger";
+import { ownerNotifyMessage } from "@elixir-mcp/outbox/notify";
+import { makeOutbox } from "@elixir-mcp/outbox";
 
-// Mail leaves through the outbox (web-api/src/outbox.mjs), as it does
+// Mail leaves through the outbox (packages/outbox/src/outbox.mjs), as it does
 // from the site API.
 const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 

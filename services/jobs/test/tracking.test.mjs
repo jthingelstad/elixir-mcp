@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { ATTESTED_FACT_KINDS } from "@elixir-mcp/contracts";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { buildTimeline } from "../../mcp/src/activity/entries.mjs";
+import { buildTimeline } from "../../../packages/tools/src/activity/entries.mjs";
 import { buildTracking } from "../src/email/build-tracking.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));

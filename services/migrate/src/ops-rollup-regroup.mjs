@@ -26,7 +26,7 @@
 
 import pg from "pg";
 import { CLANMATE_TYPES, eventContentSql } from "@elixir-mcp/contracts";
-import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
+import { refreshDailyRollups } from "@elixir-mcp/ingest/rollups";
 
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 

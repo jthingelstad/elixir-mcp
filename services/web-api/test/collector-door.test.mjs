@@ -19,7 +19,7 @@ import {
   enqueueJob,
   ledgerStats,
   settleLeases,
-} from "../../scheduler/src/ledger.mjs";
+} from "../../../packages/ledger/src/ledger.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");

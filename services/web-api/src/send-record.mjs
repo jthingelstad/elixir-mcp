@@ -8,7 +8,7 @@
  * (Jamie, 2026-09-19: "then the maintainer team has all info").
  */
 import { KIND_LABELS } from "@elixir-mcp/mail";
-import { readSentMail } from "../../jobs/src/email/archive.mjs";
+import { readSentMail } from "@elixir-mcp/mail/archive";
 
 /** The Tinylytics pixel, removed from an archived body before the
  *  console shows it: opens are counted per mail, and a person reading

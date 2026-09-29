@@ -13,9 +13,9 @@ import {
   within,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
-import { scratchDb } from "../../../services/ingest/test/helpers.mjs";
+import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { makeHandler } from "../../../services/web-api/src/handler.mjs";
-import { createSession, emailHash } from "../../../services/auth/src/index.mjs";
+import { createSession, emailHash } from "../../../packages/auth/src/index.mjs";
 
 // These assertions include real PostgreSQL round trips, not resolved mocks.
 // Bound the wait, but do not turn Testing Library's unit-test default (1s)

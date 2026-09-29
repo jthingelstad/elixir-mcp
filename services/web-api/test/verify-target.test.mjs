@@ -14,7 +14,7 @@ import {
   seedPlayedDeck,
   seedDeck,
   hashFor,
-} from "../../mcp/test/deck-rows.mjs";
+} from "../../../packages/tools/test/deck-rows.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";

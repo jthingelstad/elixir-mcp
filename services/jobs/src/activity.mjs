@@ -16,7 +16,7 @@
  *  rolled past the high-water mark before it was read), and every UTC
  *  day inside a profile-snapshot interval whose lifetime battle counter
  *  moved more than the battles captured (elixir_coverage's own rule,
- *  services/mcp/src/coverage.mjs, applied over the last SNAPSHOT_DAYS
+ *  packages/tools/src/coverage.mjs, applied over the last SNAPSHOT_DAYS
  *  rather than seven). Days before recording began are the reader's to
  *  mark from recorded_from; storing them would make the row a copy of the
  *  recording table. Marks already stored are carried forward, so an

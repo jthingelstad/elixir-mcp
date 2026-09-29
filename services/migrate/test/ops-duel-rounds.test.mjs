@@ -6,13 +6,13 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { ingestBattlelog } from "../../ingest/src/battles.mjs";
+import { ingestBattlelog } from "../../../packages/ingest/src/battles.mjs";
 import {
   fixture,
   fixtureMeta,
   scratchDb,
   seedReceipt,
-} from "../../ingest/test/helpers.mjs";
+} from "../../../packages/ingest/test/helpers.mjs";
 import { duelRoundDecks } from "../src/ops-duel-rounds.mjs";
 
 let ctx;

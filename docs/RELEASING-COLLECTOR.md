@@ -110,7 +110,7 @@ The full audit gates a release (`docs/DECISIONS.md`: every payload field
 needs a manifest disposition). The nightly shape census samples twenty
 archived objects per endpoint a day and cannot see a rare field; this
 reads every archived object for one endpoint and exits 1 when any field
-path arrives with no disposition in `services/ingest/src/payload-keys.mjs`:
+path arrives with no disposition in `packages/ingest/src/payload-keys.mjs`:
 
 ```sh
 cd ~/Projects/clash-royale/elixir-mcp

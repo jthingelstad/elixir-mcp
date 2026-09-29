@@ -16,7 +16,7 @@
 
 import pg from "pg";
 import { deckHash } from "@elixir-mcp/contracts";
-import { loadVocabulary, stampDecks } from "../../ingest/src/card-roles.mjs";
+import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
 
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 

@@ -43,13 +43,13 @@
 
 import pg from "pg";
 import { reconcileRecording } from "@elixir-mcp/claims";
-import { sentMailKey } from "../../jobs/src/email/archive.mjs";
+import { sentMailKey } from "@elixir-mcp/mail/archive";
 
 export async function accountRemoveOp(databaseUrl, spec = {}) {
   const dryRun = spec?.dry_run !== false;
   let hash = null;
   if (spec?.email) {
-    const { emailHash } = await import("../../auth/src/crypto.mjs");
+    const { emailHash } = await import("@elixir-mcp/auth/crypto");
     hash = emailHash(String(spec.email));
   }
   const accountId = spec?.account_id ? String(spec.account_id) : null;

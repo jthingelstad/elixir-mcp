@@ -2,7 +2,7 @@
  * Attested facts are the one viewer-dependent read in a universal-reads
  * system (review 2026-09-27 §6.8): who sees a fact is decided per reader
  * in one place. So only two runtime modules may name the table: the read
- * (`services/mcp/src/activity/entries.mjs`, factItems) and the write
+ * (`packages/tools/src/activity/entries.mjs`, factItems) and the write
  * (`services/web-api/src/attested-facts.mjs`). A third reader would carry
  * the facts past the visibility rule, into a mail, a cache or a report.
  * Migrations, tests and docs may name it.
@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
 const ALLOWED = new Set([
-  "services/mcp/src/activity/entries.mjs",
+  "packages/tools/src/activity/entries.mjs",
   "services/web-api/src/attested-facts.mjs",
 ]);
 

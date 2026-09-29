@@ -38,7 +38,7 @@ already queued is not charged twice) and plans against
 through a fleet outage cannot stack past what the bucket allows. Every
 new live row - the live lane, a JSON API profile refresh, a card first
 seen in a deck - takes one token atomically
-(`takeLiveToken` in `services/scheduler/src/ledger.mjs`); with none left it
+(`takeLiveToken` in `packages/ledger/src/ledger.mjs`); with none left it
 queues nothing, charges nothing (not even the account's live quota) and
 answers at the next tick. `budget_charge` (0187) records the charges by
 hour and lane, and the public status reports them as `charged_24h`. The
@@ -114,7 +114,7 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
   the byte-true capture is the payload archive in S3. Ingest writes all
   three in the battle's transaction; `{deck_census}` proves nothing is
   missing. Tests that seed a battle by hand write the rows through
-  `services/mcp/test/deck-rows.mjs` (`hashFor` + `seedPlayedDeck`).
+  `packages/tools/test/deck-rows.mjs` (`hashFor` + `seedPlayedDeck`).
   A card seen in a battle before the daily catalog poll gets a stub
   `card` row (`catalog_seen_at` null) and queues a live catalog fetch -
   ingest never waits on catalog integrity (Jamie, 2026-09-15). New
@@ -222,9 +222,9 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   reference (`TAG_SCHEMA`, `ON_BEHALF_OF_SCHEMA`, `WINDOW_ARGS`,
   `MODE_SCHEMA`, `SEGMENT_SCHEMA`, `TIMEZONE_SCHEMA`), never re-typed;
   `limit` carries a `maximum`; every tool declares an `outputSchema`
-  (`services/mcp/src/output-schemas.mjs`) that the registry validates
+  (`packages/tools/src/output-schemas.mjs`) that the registry validates
   responses against, and a test fails on a tool without one.
-- **Every docs pointer resolves.** `services/mcp/test/docs-pointers.test.mjs`
+- **Every docs pointer resolves.** `packages/tools/test/docs-pointers.test.mjs`
   scans the tool modules for `docsRef(...)` and `*_DOCS` literals and fails
   when the page or H2 section is not in the built corpus. Add the section to
   the page before adding the pointer; never bend a pointer to a heading
@@ -281,10 +281,10 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   same cached copy), else one priority job is minted (charged once, at the
   mint; a second ask while it is open is the same ask) and the record
   answers now with `live_status.pending`. Nothing polls Postgres inside an
-  MCP call (`services/mcp/src/live.mjs`).
+  MCP call (`packages/tools/src/live.mjs`).
 - **The shape of every admitted payload is known, and a change is a work
   item** (time-series review 2.7; Jamie, 2026-09-17). Every endpoint's
-  projector carries a field manifest (`services/ingest/src/payload-keys.mjs`):
+  projector carries a field manifest (`packages/ingest/src/payload-keys.mjs`):
   for each field the API sends, at the top level and inside each array's
   elements, either the table and column it lands in, or `derived: <from>`,
   or `dropped: <reason>`. A test walks every fixture payload and fails on a
@@ -390,25 +390,37 @@ tie sponsorship (`/support`) to anything on an account.
 
 ## Services share through packages, never each other
 
-Each service is its own Lambda, but until 2026-09-29 they shared code by
-reaching into each other's `src` with relative paths: web-api answered
+A service is a Lambda's door: its entry, its handler, its routes, and
+nothing another Lambda needs. Until 2026-09-29 the services shared code
+by reaching into each other's `src` with relative paths: web-api answered
 `/api/v1` from ingest's clock and profile modules and MCP's registry, and
 89 such imports tied the services together where no tool could see them.
-What more than one service reads now lives in a package: `packages/record`
-holds the record's data functions and its clock (the war calendar, the
-season table, the game clock, the recorded profile, a person's players,
-badge names), and a service imports it as `@elixir-mcp/record/<name>`.
-A package is bundled into each Lambda by esbuild like any dependency, so
-adding one needs no infrastructure.
+Now there are none. What more than one Lambda runs is a package, imported
+by name:
 
-`packages/record/test/boundary.test.mjs` holds the line two ways. The
-package imports no service, in either form. And the count of relative
-imports from one service's `src` into another's has a ceiling that only
-goes down: moving a shared module into a package lowers it, and a new
-crossing fails the gate. Tests are not counted, since a test may borrow
-another service's scratch database or registry. Two doors over one fact
-read one function, and a parity test says so, rather than each deriving
-its own.
+- `@elixir-mcp/tools`: the tool registry and everything around a call
+  (invoker, quota, identity, live fetch, timeline entries, capture). MCP
+  and web-api are its two doors; jobs and migrate read parts of it.
+- `@elixir-mcp/record`: the record's data functions, its clocks, and the
+  SQL both a tool and a job read (`daily-sql`, `standings-sql`,
+  `participation-sql`, `mode-filter`, `gateway-cards`).
+- `@elixir-mcp/ingest`: the admission boundary, from a fetched payload to
+  rows. `@elixir-mcp/ledger`: the job ledger and its plan, which the
+  scheduler runs and the collector door and the JSON API enqueue through.
+- `@elixir-mcp/auth`: sessions, OAuth, tokens, and integration accounts.
+  `@elixir-mcp/outbox`: the mail outbox. `@elixir-mcp/mail`: rendering,
+  the send ledger, the archive, delivery.
+
+A package is bundled into each Lambda by esbuild like any dependency, so
+adding one needs no infrastructure; its `package.json` names what it
+exports and what it depends on, and knip holds both honest.
+
+`packages/record/test/boundary.test.mjs` holds the line, over `src`: no
+package imports a service, by path or by name; no service's `src` leaves
+its own directory by a relative path; no service imports another by name.
+Tests are exempt, since a test may borrow another workspace's scratch
+database or seed helper. Two doors over one fact read one function, and a
+parity test says so, rather than each deriving its own.
 
 ## Where the patterns live
 

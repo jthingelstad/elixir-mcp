@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
 import { accountEnrollOp, accountTrackOp } from "../src/ops-accounts.mjs";
-import { emailHash } from "../../auth/src/crypto.mjs";
+import { emailHash } from "../../../packages/auth/src/crypto.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");

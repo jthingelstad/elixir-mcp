@@ -12,7 +12,7 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { mintTokens, registerClient } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
-import { factItems } from "../../mcp/src/activity/entries.mjs";
+import { factItems } from "../../../packages/tools/src/activity/entries.mjs";
 
 // A family app's client is provisioned (0185), never merely registered to
 // a family redirect: registration is open and proves nothing (review §6.5).

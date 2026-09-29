@@ -141,7 +141,7 @@ Stamps are UTC; Jamie reads US Central.
 response, gzipped JSON, to the archive bucket (`ArchiveBucket`,
 `elixir-mcp-archive-<account id>`) at
 `calls/dt=<YYYY-MM-DD>/request_id=<id>.json.gz`, keyed by the call's UTC
-day (`services/mcp/src/capture.mjs`). They expire after 90 days (the
+day (`packages/tools/src/capture.mjs`). They expire after 90 days (the
 body a day after its delete marker, `calls-purge-expired`), and
 `mcp_call_audit.captured` says whether one was written. Take the request
 id from the response's meta, the audit row or the door's log line; read

@@ -15,7 +15,7 @@ import { gunzip } from "node:zlib";
 
 const gunzipAsync = promisify(gunzip);
 
-/** The capture key, as services/mcp/src/capture.mjs writes it. */
+/** The capture key, as packages/tools/src/capture.mjs writes it. */
 function captureKey(at, requestId) {
   const dt = new Date(at).toISOString().slice(0, 10);
   return `calls/dt=${dt}/request_id=${requestId}.json.gz`;

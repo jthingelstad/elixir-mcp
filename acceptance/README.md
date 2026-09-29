@@ -104,7 +104,7 @@ the sha256 goes to the cloud; the raw value is written to
 
 ```sh
 node --input-type=module -e '
-  import { mintServiceTokenValue } from "./services/auth/src/oauth.mjs";
+  import { mintServiceTokenValue } from "./packages/auth/src/oauth.mjs";
   import { writeFileSync } from "node:fs";
   const { raw, hash } = mintServiceTokenValue();
   writeFileSync("/tmp/acc-hash.txt", hash);

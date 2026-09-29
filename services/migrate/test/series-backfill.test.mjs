@@ -12,8 +12,11 @@ import { readFile } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
-import { archiveKey, processResult } from "../../ingest/src/pipeline.mjs";
-import { payloadHash } from "../../ingest/src/hash.mjs";
+import {
+  archiveKey,
+  processResult,
+} from "../../../packages/ingest/src/pipeline.mjs";
+import { payloadHash } from "../../../packages/ingest/src/hash.mjs";
 import { seriesBackfill, seriesCensusSelf } from "../src/ops-series.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));

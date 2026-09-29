@@ -1,0 +1,175 @@
+import { participantModeClause } from "@elixir-mcp/record/mode-filter";
+import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
+import { MODE_GROUPS, modeGroupSql, responseMeta } from "@elixir-mcp/contracts";
+import {
+  MODE_SCHEMA,
+  SEASON_ARG_SCHEMA,
+  SEGMENT_SCHEMA,
+  WINDOW_ARGS,
+  appliedBlock,
+  docsRef,
+  notes,
+  RECORDED_PLAYERS_SQL,
+  populationBlock,
+  requireEnum,
+  resolveSeasonWindow,
+  segmentFilter,
+  collectionSegmentNote,
+} from "../shared.mjs";
+import {
+  TROPHY_MODE_TYPES,
+  markPartialWeeks,
+  modeSplit,
+  partialWeeksNote,
+  trophyBattlesNote,
+} from "../../controls.mjs";
+
+export const battles_trends = {
+  description:
+    "Weekly time series for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag | collection}. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies, the season the week starts in. Default 12 weeks; weeks, from/to or season set the window; applied.window.crosses marks each season roll inside it. Single-player weekly detail also lives in battles_performance group_by 'week'.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      segment: SEGMENT_SCHEMA,
+      ...WINDOW_ARGS,
+      weeks: {
+        type: "integer",
+        minimum: 1,
+        maximum: 52,
+        description: "How many ISO weeks back (default 12); or use from/to.",
+      },
+      season: SEASON_ARG_SCHEMA,
+      mode: MODE_SCHEMA,
+    },
+    required: ["segment"],
+    additionalProperties: false,
+  },
+  async handler(ctx, args) {
+    const params = [];
+    const seg = await segmentFilter(ctx, args, params);
+    // A member's own battles (boat defenses are not theirs, 0171); on the
+    // corpus, the recorded players' side only: every battle has two
+    // sides, so counting both makes every win rate 0.500 by construction
+    // (Jamie 2026-09-25).
+    const where = ["bp.outcome is not null", notBoatDefense()];
+    if (seg.where) where.push(seg.where);
+    else where.push(`bp.player_tag in (${RECORDED_PLAYERS_SQL})`);
+    const win = await resolveSeasonWindow(ctx, args, {
+      defaultDays: 12 * 7,
+    });
+    // The window starts where it was asked to (Gym #186): it used to
+    // snap back to the ISO Monday, pulling in days before `from` (and
+    // the end of the season before, on a season read) while echoing the
+    // `from` given. The first week is marked partial instead.
+    params.push(win.from);
+    where.push(`${seg.timeColumn} >= $${params.length}::timestamptz`);
+    if (win.to) {
+      params.push(win.to);
+      where.push(`${seg.timeColumn} < $${params.length}`);
+    }
+    requireEnum(args.mode, MODE_GROUPS, "mode");
+    if (args.mode) where.push(participantModeClause(args.mode, params));
+    const { rows } = await ctx.db.query(
+      `select w.*,
+                (select s.season_month from season s
+                  where s.starts_at <= w.week_start + interval '1 day'
+                    and s.ends_at > w.week_start + interval '1 day') as season_month
+         from (
+           select date_trunc('week', bp.battle_time) as week_start,
+                  to_char(date_trunc('week', bp.battle_time), 'IYYY-"W"IW') as iso_week,
+                  date_trunc('week', bp.battle_time)::date::text as week_of,
+                  count(*)::int as battles,
+                  count(*) filter (where bp.outcome = 'win')::int as wins,
+                  count(*) filter (where bp.outcome = 'loss')::int as losses,
+                  count(distinct bp.player_tag)::int as players,
+                  count(*) filter (where bp.type = any($${params.length + 1}) or bp.trophy_change is not null)::int as trophy_mode_battles,
+                  count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
+                  coalesce(sum(bp.trophy_change), 0)::int as net_trophies
+           from battle_participant bp
+           where ${where.join(" and ")}
+           group by date_trunc('week', bp.battle_time)) w
+         order by w.week_start`,
+      [...params, TROPHY_MODE_TYPES],
+    );
+    // The control next to the number (3.16.0): the week's mode split
+    // (one more group-by over the same rows), and the buckets the
+    // window clips marked with the span they hold.
+    const { rows: byType } = await ctx.db.query(
+      // Event-aware (Gym #187): the tag, not the type, marks event battles.
+      `select date_trunc('week', bp.battle_time)::date::text as week_of,
+                ${modeGroupSql("bp.type", "b.event_tag")} as mode_group,
+                count(*)::int as battles,
+                count(*) filter (where bp.outcome = 'win')::int as wins,
+                count(*) filter (where bp.outcome = 'loss')::int as losses,
+                (select count(distinct bp2.player_tag)::int
+                   from battle_participant bp2
+                  where ${where.join(" and ").replaceAll("bp.", "bp2.")}) as window_players
+           from battle_participant bp
+           join battle b on b.battle_id = bp.battle_id
+          where ${where.join(" and ")}
+          group by 1, 2`,
+      params,
+    );
+    const typesByWeek = new Map();
+    for (const t of byType) {
+      if (!typesByWeek.has(t.week_of)) typesByWeek.set(t.week_of, []);
+      typesByWeek.get(t.week_of).push(t);
+    }
+    const shaped = rows.map((r) => ({
+      iso_week: r.iso_week,
+      week_of: r.week_of,
+      battles: r.battles,
+      wins: r.wins,
+      losses: r.losses,
+      players: r.players,
+      win_rate:
+        r.wins + r.losses > 0
+          ? Number((r.wins / (r.wins + r.losses)).toFixed(3))
+          : null,
+      trophy_mode_battles: r.trophy_mode_battles,
+      trophy_battles: r.trophy_battles,
+      net_trophies: r.net_trophies,
+      season_month: r.season_month,
+      modes: modeSplit(typesByWeek.get(r.week_of) ?? []),
+    }));
+    const { rows: weeks, partial } = markPartialWeeks(shaped, {
+      from: new Date(win.from),
+      to: win.to ? new Date(win.to) : null,
+    });
+    const population = seg.where
+      ? null
+      : await populationBlock(ctx.db, {
+          playersInWindow: byType[0]?.window_players ?? 0,
+        });
+    return {
+      applied: appliedBlock({
+        segment: seg.echo,
+        window: win.echo,
+        weeks: args.weeks,
+        mode: args.mode,
+      }),
+      ...(population ? { population } : {}),
+      weeks,
+      notes: notes(
+        collectionSegmentNote(seg),
+        seg.where
+          ? null
+          : "On the corpus every count reads the recorded players' side of each battle (their opponents are not counted: the two sides of a battle always sum to a 0.500 win rate), so players_in_window is recorded players who played in the window.",
+        partialWeeksNote(partial),
+        trophyBattlesNote(weeks),
+        "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",
+        !args.mode && weeks.some((w) => Object.keys(w.modes).length > 1)
+          ? "Weeks pool every mode group (modes says which); matchmaking differs by mode, so pass mode before reading win_rate as a trend of strength."
+          : null,
+        "season_month is the season the week's Tuesday to Sunday fall in; a season rolls on Monday at 10:00 UTC, so a roll week's first hours belong to the season before (applied.window.crosses says where).",
+        win.seasonNotes,
+        "Recording start dates differ per player, so early weeks may be thin because capture was, not because play was.",
+      ),
+      docs: docsRef("recording", "completeness"),
+      meta: responseMeta({
+        as_of: new Date().toISOString(),
+        ...(win.timezone ? { timezone_applied: win.timezone } : {}),
+      }),
+    };
+  },
+};

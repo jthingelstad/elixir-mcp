@@ -129,8 +129,8 @@ export async function profileTool(databaseUrl, spec = {}) {
     { TOOL_GROUPS },
     { serviceTokenAccountByName },
   ] = await Promise.all([
-    import("../../mcp/src/tools.mjs"),
-    import("../../mcp/src/invoker.mjs"),
+    import("@elixir-mcp/tools"),
+    import("@elixir-mcp/tools/invoker"),
     import("@elixir-mcp/contracts"),
     import("@elixir-mcp/auth"),
   ]);

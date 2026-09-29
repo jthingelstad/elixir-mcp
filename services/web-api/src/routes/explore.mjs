@@ -1,11 +1,11 @@
 import { TOOL_GROUPS } from "@elixir-mcp/contracts";
 import { checkRateLimit } from "@elixir-mcp/auth";
-import { makeInvoker } from "../../../mcp/src/invoker.mjs";
-import { makeQuota, HOURLY_RATE_LIMIT } from "../../../mcp/src/quota.mjs";
+import { makeInvoker } from "@elixir-mcp/tools/invoker";
+import { makeQuota, HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import {
   renderToolResultText,
   MCP_RESULT_MAX_CHARS,
-} from "../../../mcp/src/protocol.mjs";
+} from "@elixir-mcp/tools/result-text";
 
 import { json } from "../http.mjs";
 import { toolDeadlineMs } from "../deadline.mjs";

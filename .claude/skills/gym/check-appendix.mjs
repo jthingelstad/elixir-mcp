@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { gymCases } from "../../../acceptance/gym-interp.mjs";
-import { makeRegistry } from "../../../services/mcp/src/tools.mjs";
+import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const file = process.argv[2];

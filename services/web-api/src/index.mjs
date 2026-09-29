@@ -6,10 +6,10 @@
 import { currentAndPrevious } from "@elixir-mcp/auth";
 import { makeHandler } from "./handler.mjs";
 import { makeCollectorDoor } from "./collector-door.mjs";
-import { processResult } from "../../ingest/src/pipeline.mjs";
-import { makeArchive } from "../../ingest/src/handler.mjs";
-import { makeCaptureStore } from "../../mcp/src/capture.mjs";
-import { makeOutbox, countStuck } from "./outbox.mjs";
+import { processResult } from "@elixir-mcp/ingest/pipeline";
+import { makeArchive } from "@elixir-mcp/ingest";
+import { makeCaptureStore } from "@elixir-mcp/tools/capture";
+import { makeOutbox, countStuck } from "@elixir-mcp/outbox";
 
 const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 
@@ -29,7 +29,7 @@ async function deadLetters() {
   }
 }
 
-import { ownerNotifyMessage } from "./notify.mjs";
+import { ownerNotifyMessage } from "@elixir-mcp/outbox/notify";
 
 function notifyOwner(spec) {
   return enqueueEmail(ownerNotifyMessage(spec));

@@ -198,10 +198,10 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
   const batch = Math.min(Math.max(Number(spec.batch ?? 50), 1), 2000);
   const { getObject, listKeys } = await archiveReads(deps);
   const { projectClanSeries, projectProfileSeries } =
-    await import("../../ingest/src/series.mjs");
+    await import("@elixir-mcp/ingest/series");
   const { projectRaceSeries, raceSeasonFor } =
-    await import("../../ingest/src/war.mjs");
-  const { canonicalizeBattle } = await import("../../ingest/src/battles.mjs");
+    await import("@elixir-mcp/ingest/war");
+  const { canonicalizeBattle } = await import("@elixir-mcp/ingest/battles");
   const { gunzipSync } = await import("node:zlib");
 
   const db = new pg.Client({ connectionString: databaseUrl });

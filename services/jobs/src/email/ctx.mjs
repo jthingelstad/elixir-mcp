@@ -9,7 +9,7 @@
  *  that person. Arguments are validated against the declared schema by
  *  the registry, so a builder that drifts from the contract fails here,
  *  not in a reader. */
-import { makeRegistry } from "../../../mcp/src/tools.mjs";
+import { makeRegistry } from "@elixir-mcp/tools";
 
 let registry = null;
 function reg() {

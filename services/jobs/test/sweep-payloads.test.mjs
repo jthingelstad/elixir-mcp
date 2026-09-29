@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { sweepPayloads } from "../src/index.mjs";
-import { archiveKey } from "../../ingest/src/pipeline.mjs";
+import { archiveKey } from "../../../packages/ingest/src/pipeline.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
