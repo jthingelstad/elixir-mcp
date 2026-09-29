@@ -1147,3 +1147,45 @@ key of its own (`clans:read`).
 
 Not in Elixir, and so not served: a clan's location name, card and badge
 art (the site reads card art from `/api/public/cards`), and `expLevel`.
+
+---
+
+## 2026-09-29 - 9.17.0 deployed, and poapkings.com reads it
+
+d6a4b8a5 (PRs #149, #150 and #151) is deployed with `--acceptance`
+in full because #150 moved shared code into `packages/record`; smoke green, stack `UPDATE_COMPLETE`, migrations ran
+0. Acceptance finished 07:10Z (2:10 AM CT): 1,189 cases, 12 failed, 57
+skipped. Verdicts, the new ones re-run alone:
+
+- gym/185.3 (1,141 vs 1,143 players): passes alone, two live counts read
+  a moment apart.
+- gym/196.2: the live case's world moved. Its `when` reads
+  `elixir_coverage`'s intervals ending in the last seven days, which
+  still hold kiruba's five uncaptured battles of 2026-09-21; the
+  standings window now starts after that interval, so no note names
+  them. `clans_standings` did not change.
+- gym/337.1 (#GRJ20LQP no longer recorded), gym/343.2: live cases whose
+  world moved, as at 9.12.2, 9.12.7 and 9.12.8.
+- budgets/meta-cards-corpus-week (16.3 s; 16.7 s alone),
+  catalogue/battles_meta_cards#1, battles_trends#1, badges_rarity#1: the
+  open timing items; none of these tools changed.
+- catalogue/cards_archetype#docs, elixir_collectors#docs,
+  elixir_timeline#docs, war_history#notes: rare fields absent from this
+  run, as at 9.12.8.
+
+Read-back, reads only: `/api/public/status` `ok: true`; `/tools.json`
+9.17.0 and `/docs/integration-api.json` 2.8.0 with `clanWarHistory`;
+`/api/v1/clans/%23J2RGCRVG/war-history` refuses an unauthenticated read
+(401); `/updates` lists the entry; `clans_roster` compact on MCP carries
+`required_trophies` (Ship It! 1,000).
+
+**poapkings.com's integration** is `poapkings-com` (public id
+064a3a7dc196, `clans:read` only), created by the migrate
+`{integration: create}` op with a locally minted `token_hash`; the raw
+key went straight into the site's `.env` as `ELIXIR_API_KEY` and was
+never printed. Its first reads were the change's live read-back: the
+site's updater read POAP KINGS' roster (44 of 44 with a recorded
+profile, clan facts equal to the game's), 13 war weeks, and both sister
+clans' rosters. poapkings.com #30 made Elixir its source and is live
+(the `--source cr` rollback stays until 2026-10-06).
+
