@@ -21,7 +21,6 @@
 export const REQUIRED_PARAMETERS = ["CodeBucket", "ApiCodeKey"];
 
 export const PRESERVED_PARAMETERS = [
-  "AppUrl",
   "ElixirUrl",
   "OAuthClientId",
   "OAuthClientSecret",

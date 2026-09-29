@@ -3,8 +3,9 @@
  * product source names a clan, a real player, one clan's awards or its
  * website, or the bot a clan's process was first ported from. A clan's
  * own rules, awards and words live in its saved policy, awards and pitch,
- * never in code. The family's hostnames (elixir.poapkings.com,
- * clan.poapkings.com) are where the product lives, not a clan, and pass.
+ * never in code. The family's hostnames (elixir.poapkings.com, where
+ * Clan is served at /clan, and clan.poapkings.com, where it was) are
+ * where the product lives, not a clan, and pass.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";

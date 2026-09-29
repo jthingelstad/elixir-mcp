@@ -28,13 +28,13 @@ test("on create, preserved parameters are omitted so the template Default applie
 test("an override is sent as a value and never as UsePreviousValue", () => {
   const params = buildParameters(required, {
     stackExists: true,
-    overrides: { AppUrl: "https://clan.poapkings.com" },
+    overrides: { ElixirUrl: "https://elixir.poapkings.com" },
   });
   assert.deepEqual(
-    params.find((p) => p.ParameterKey === "AppUrl"),
+    params.find((p) => p.ParameterKey === "ElixirUrl"),
     {
-      ParameterKey: "AppUrl",
-      ParameterValue: "https://clan.poapkings.com",
+      ParameterKey: "ElixirUrl",
+      ParameterValue: "https://elixir.poapkings.com",
     },
   );
 });
@@ -42,9 +42,9 @@ test("an override is sent as a value and never as UsePreviousValue", () => {
 test("a parameter the live stack never carried is omitted rather than UsePreviousValue", () => {
   const params = buildParameters(required, {
     stackExists: true,
-    existingKeys: ["CodeBucket", "ApiCodeKey", "AppUrl"],
+    existingKeys: ["CodeBucket", "ApiCodeKey", "ElixirUrl"],
   });
-  assert.ok(params.find((p) => p.ParameterKey === "AppUrl"));
+  assert.ok(params.find((p) => p.ParameterKey === "ElixirUrl"));
   assert.equal(
     params.find((p) => p.ParameterKey === "OAuthClientId"),
     undefined,
@@ -68,9 +68,9 @@ test("a missing required parameter and an unknown override both refuse", () => {
 
 test("parseOverrides keeps '=' inside a value", () => {
   assert.deepEqual(
-    parseOverrides(["--param=AppUrl=https://x/?a=b", "--other"]),
+    parseOverrides(["--param=ElixirUrl=https://x/?a=b", "--other"]),
     {
-      AppUrl: "https://x/?a=b",
+      ElixirUrl: "https://x/?a=b",
     },
   );
 });

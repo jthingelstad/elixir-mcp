@@ -9,13 +9,12 @@
  *   node clan/infra/scripts/deploy.mjs --create              first deploy
  *   node clan/infra/scripts/deploy.mjs                       update
  *   node clan/infra/scripts/deploy.mjs --skip-web            code/infra only
- *   node clan/infra/scripts/deploy.mjs --param=AppUrl=...    set a PRESERVED parameter once
+ *   node clan/infra/scripts/deploy.mjs --param=Key=Value     set a PRESERVED parameter once
  *   node clan/infra/scripts/deploy.mjs --break-glass         skip the CI gate (GitHub down only)
  *
- * On --create the app's own URL is not known until CloudFront exists, so
- * the create is followed by one update that sets AppUrl to the
- * distribution's default hostname. Flip it to https://clan.poapkings.com
- * with --param=AppUrl=... once DNS lands (docs/NOTES.md).
+ * The app is served on Elixir's origin, at ElixirUrl/clan (one origin,
+ * 2026-09-28), so its address is known before the stack exists: the
+ * template derives APP_URL from ElixirUrl.
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
@@ -163,22 +162,6 @@ if (isCreate) {
   );
   if (wait.state !== "SUCCESS")
     throw new Error(`stack creation ended in ${wait.state}`);
-  if (!overrides.AppUrl) {
-    // The app must know its own origin, and that origin did not exist
-    // until just now. One follow-up update, then AppUrl is PRESERVED.
-    const created = await describe();
-    const domain = created.Outputs.find(
-      (o) => o.OutputKey === "DistributionDomainName",
-    ).OutputValue;
-    console.error(`setting AppUrl to https://${domain} ...`);
-    await update(
-      buildParameters(required, {
-        stackExists: true,
-        overrides: { AppUrl: `https://${domain}` },
-        existingKeys: created.Parameters.map((p) => p.ParameterKey),
-      }),
-    );
-  }
 } else {
   console.error("updating stack...");
   const current = await describe();
@@ -215,7 +198,8 @@ if (smoke.status !== 0) {
 }
 
 console.log("\ndeploy complete.");
-console.log(
-  `site: https://${outputs.DistributionDomainName}  (CNAME clan.poapkings.com here)`,
-);
+const elixirUrl = stack.Parameters.find(
+  (p) => p.ParameterKey === "ElixirUrl",
+)?.ParameterValue;
+console.log(`site: ${elixirUrl}/clan`);
 console.log(`alarm topic: ${outputs.AlarmTopicArn}`);

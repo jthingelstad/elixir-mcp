@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: elixir-clan - Elixir Clan at clan.poapkings.com, a vertical on Elixir (unofficial, not endorsed by Supercell)
+Description: elixir-clan - Elixir Clan at elixir.poapkings.com/clan, a vertical on Elixir (unofficial, not endorsed by Supercell)
 
 # One stack, one bucket, one function (docs/NOTES.md). No VPC, no NAT, no
 # extra roles: the Lambda talks to Elixir over the public internet the way
@@ -14,25 +14,21 @@ Parameters:
   ApiCodeKey:
     Type: String
     Description: Content-addressed key of the API bundle in CodeBucket
-  AppUrl:
-    Type: String
-    Default: ""
-    Description: >-
-      The origin the app is served from, no trailing slash. The CloudFront
-      default hostname until DNS lands, then https://clan.poapkings.com.
-      Decides the OAuth redirect_uri and every redirect back to the app.
-      PRESERVED across deploys.
   ElixirUrl:
     Type: String
     Default: https://elixir.poapkings.com
-    Description: Elixir's issuer and site; Clan reads its JSON API at ElixirUrl/api/v1. PRESERVED.
+    Description: >-
+      Elixir's issuer and origin, no trailing slash. Clan reads its JSON API
+      at ElixirUrl/api/v1, and is served on it: the app at ElixirUrl/clan,
+      this API at ElixirUrl/api/clan, the OAuth redirect_uri
+      ElixirUrl/api/clan/auth/callback. PRESERVED.
   OAuthClientId:
     Type: String
     Default: ""
     Description: >-
-      The client_id Elixir issued at /oauth/register (infra/scripts/register-client.mjs).
-      A registration lives 365 days from last use; re-register and set
-      this again if Elixir reports it unknown. PRESERVED.
+      The client_id of Clan's family client, which Elixir provisions (its
+      family_clients op; it never expires) with the redirect_uri
+      ElixirUrl/api/clan/auth/callback. PRESERVED.
   OAuthClientSecret:
     Type: String
     Default: ""
@@ -207,7 +203,7 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Ref SessionTable
-          APP_URL: !Ref AppUrl
+          APP_URL: !Sub ${ElixirUrl}/clan
           ELIXIR_URL: !Ref ElixirUrl
           OAUTH_CLIENT_ID: !Ref OAuthClientId
           OAUTH_CLIENT_SECRET: !Ref OAuthClientSecret
@@ -311,7 +307,7 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Ref SessionTable
-          APP_URL: !Ref AppUrl
+          APP_URL: !Sub ${ElixirUrl}/clan
           ELIXIR_URL: !Ref ElixirUrl
           OAUTH_CLIENT_ID: !Ref OAuthClientId
           OAUTH_CLIENT_SECRET: !Ref OAuthClientSecret
