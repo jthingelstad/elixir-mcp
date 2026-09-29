@@ -13,13 +13,7 @@
  * Generated, never committed: dist/ is ignored, and the root build runs
  * this before anything bundles or tests.
  */
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  mkdirSync,
-  writeFileSync,
-} from "node:fs";
+import { readFileSync, readdirSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,38 +22,10 @@ const site = path.resolve(here, "../../apps/site/src");
 const SITE_URL = "https://elixir.poapkings.com";
 const OUT = path.join(here, "dist/corpus.json");
 
-/**
- * THIS BUILD DEPENDS ON ITS OWN OUTPUT, and the dependency is real:
- * rendering a doc needs the site's `_data/tools.js`, which reads the MCP
- * registry, which imports `@elixir-mcp/docs` — this package — whose
- * `src/index.mjs` imports the corpus at MODULE SCOPE. On a clean
- * checkout that file does not exist yet and the build dies resolving it.
- *
- * It never failed locally, because a previous build always left the file
- * there; it failed on every CI run from a fresh clone (red from 77656e1,
- * 2026-09-10). A stale artifact was standing in for a missing step.
- *
- * The stub breaks the deadlock and is overwritten with the real corpus
- * at the foot of this file, in this same run. Written only when the file
- * is ABSENT, so a crash mid-build cannot replace a good corpus with an
- * empty one. Nothing read during the render depends on its CONTENTS:
- * every use of DOCS/EXAMPLES/UPDATES in services/mcp is inside a handler
- * body, so only the import has to resolve.
- *
- * THE REAL FIX IS ON THE OTHER SIDE: make `src/index.mjs` read the
- * corpus lazily, and this package stops needing to exist before it is
- * built. That is ~20 mechanical call sites in services/mcp plus
- * CORPUS_BUILT_AT becoming a call, and it is the change to make when
- * that file is next open. This comment is here so the cycle is visible
- * rather than papered over.
- */
-if (!existsSync(OUT)) {
-  mkdirSync(path.dirname(OUT), { recursive: true });
-  writeFileSync(
-    OUT,
-    JSON.stringify({ docs: [], examples: [], updates: [], built_at: null }),
-  );
-}
+// Rendering a doc loads the site's `_data/tools.js`, which loads the MCP
+// registry, which imports this package: that import reads nothing, and
+// the corpus is read on first use (src/index.mjs, `corpus`), so this
+// build does not need its own output.
 
 // The same renderer the site's text bundle uses: a doc's Nunjucks
 // variables resolve against the same data, so an agent reads the

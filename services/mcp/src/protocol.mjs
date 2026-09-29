@@ -349,7 +349,7 @@ export async function handleMcpMessage(message, context) {
   if (method === "resources/list") {
     return {
       statusCode: 200,
-      payload: rpcResult(id, { resources: listResources() }),
+      payload: rpcResult(id, { resources: await listResources() }),
     };
   }
   if (method === "resources/templates/list") {
@@ -377,11 +377,11 @@ export async function handleMcpMessage(message, context) {
   if (method === "prompts/list") {
     return {
       statusCode: 200,
-      payload: rpcResult(id, { prompts: listPrompts() }),
+      payload: rpcResult(id, { prompts: await listPrompts() }),
     };
   }
   if (method === "prompts/get") {
-    const prompt = getPrompt(params.name);
+    const prompt = await getPrompt(params.name);
     await context.auditRead?.(
       "prompts/get",
       { name: String(params.name ?? "") },

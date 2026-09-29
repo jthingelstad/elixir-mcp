@@ -1,5 +1,5 @@
 import { responseMeta } from "@elixir-mcp/contracts";
-import { CORPUS_BUILT_AT, UPDATES } from "@elixir-mcp/docs";
+import { corpus } from "@elixir-mcp/docs";
 import { ToolFailure, appliedBlock, docsRef, notes } from "../shared.mjs";
 
 export const elixir_updates = {
@@ -22,11 +22,12 @@ export const elixir_updates = {
     additionalProperties: false,
   },
   async handler(ctx, args) {
+    const { updates, built_at } = await corpus();
     const since = args.since ? String(args.since).slice(0, 10) : null;
     if (since && !/^\d{4}-\d{2}-\d{2}$/.test(since))
       throw new ToolFailure("bad_request", "since must be YYYY-MM-DD.");
     const limit = Math.min(50, Math.max(1, Number(args.limit ?? 10)));
-    const all = since ? UPDATES.filter((u) => u.date >= since) : UPDATES;
+    const all = since ? updates.filter((u) => u.date >= since) : updates;
     return {
       applied: appliedBlock({ since: since ?? undefined, limit }),
       total: all.length,
@@ -34,7 +35,7 @@ export const elixir_updates = {
       notes: notes("The tool contract's own history is elixir_changelog."),
       // Every answer points at a page (Gym #123, #167).
       docs: docsRef("about"),
-      corpus_built_at: CORPUS_BUILT_AT,
+      corpus_built_at: built_at,
       meta: responseMeta({ as_of: new Date().toISOString() }),
     };
   },

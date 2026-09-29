@@ -1,5 +1,5 @@
 import { responseMeta } from "@elixir-mcp/contracts";
-import { CORPUS_BUILT_AT, EXAMPLES } from "@elixir-mcp/docs";
+import { corpus } from "@elixir-mcp/docs";
 import { ToolFailure, appliedBlock, docsRef, notes } from "../shared.mjs";
 
 export const elixir_examples = {
@@ -17,15 +17,16 @@ export const elixir_examples = {
     additionalProperties: false,
   },
   async handler(ctx, args) {
+    const { examples, built_at } = await corpus();
     const meta = responseMeta({ as_of: new Date().toISOString() });
     if (args.example) {
       const slug = String(args.example).toLowerCase().trim();
-      const ex = EXAMPLES.find((e) => e.slug === slug);
+      const ex = examples.find((e) => e.slug === slug);
       if (!ex)
         throw new ToolFailure(
           "not_found",
           `No example "${slug}".`,
-          `Slugs are: ${EXAMPLES.map((e) => e.slug).join(", ")}.`,
+          `Slugs are: ${examples.map((e) => e.slug).join(", ")}.`,
         );
       return {
         ...ex,
@@ -35,12 +36,12 @@ export const elixir_examples = {
           `A worked example, not a live answer: the transcript was recorded when the page was built (corpus_built_at). Run the same calls (${ex.tools.join(", ")}) for today's data; the full page is ${ex.url}.`,
         ),
         docs: docsRef("choosing-a-tool"),
-        corpus_built_at: CORPUS_BUILT_AT,
+        corpus_built_at: built_at,
         meta,
       };
     }
     return {
-      examples: EXAMPLES.map((e) => ({
+      examples: examples.map((e) => ({
         slug: e.slug,
         group: e.group,
         title: e.title,
@@ -50,7 +51,7 @@ export const elixir_examples = {
       })),
       notes: notes("Read one with example: <slug>."),
       docs: docsRef("choosing-a-tool"),
-      corpus_built_at: CORPUS_BUILT_AT,
+      corpus_built_at: built_at,
       meta,
     };
   },

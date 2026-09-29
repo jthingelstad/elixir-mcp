@@ -4,12 +4,30 @@
  * updates), so what an agent reads here is what a person reads on the
  * site — one source, never a second copy.
  */
-import corpus from "../dist/corpus.json" with { type: "json" };
 
-export const DOCS = corpus.docs;
-export const EXAMPLES = corpus.examples;
-export const UPDATES = corpus.updates;
-export const CORPUS_BUILT_AT = corpus.built_at;
+let loaded;
+
+/**
+ * The corpus: `{ docs, examples, updates, built_at }`, read on first use
+ * and never at import.
+ *
+ * The site's build loads the MCP registry for its tool reference, the
+ * registry imports this package, and the corpus is built from the site.
+ * Read at module scope, the corpus made its own build depend on its
+ * output: every fresh clone failed resolving a file that did not exist
+ * yet (red on CI from 77656e1, 2026-09-10), and a stub the build wrote
+ * first (578c764) stood in for it. Read here, importing the package
+ * costs nothing, and only a handler that answers from the corpus needs
+ * it built.
+ *
+ * The literal specifier keeps it in the Lambda: esbuild inlines the JSON
+ * into the bundle and evaluates it on the first call.
+ */
+export async function corpus() {
+  loaded ??= (await import("../dist/corpus.json", { with: { type: "json" } }))
+    .default;
+  return loaded;
+}
 
 /** Query terms: lower-case words of two or more characters. A plural's
  *  trailing "s" is dropped so "quotas" finds "quota" the way "quota"
@@ -48,11 +66,12 @@ function positions(hay, needle) {
  * not the first one, so a term that heads a section shows its formula
  * rather than the lede.
  */
-export function searchDocs(query, limit = 5) {
+export async function searchDocs(query, limit = 5) {
   const words = terms(query);
   if (words.length === 0) return { matches: [], fallback: false };
+  const { docs } = await corpus();
   const scored = [];
-  for (const d of DOCS) {
+  for (const d of docs) {
     const hay = `${d.title}\n${d.lede}\n${d.markdown}`;
     const lower = hay.toLowerCase();
     const hitsPerWord = words.map((w) => positions(lower, w));

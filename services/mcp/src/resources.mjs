@@ -24,22 +24,23 @@
  */
 
 import { CHANGELOG, CONTRACT_VERSION, DISCLAIMER } from "@elixir-mcp/contracts";
-import { DOCS, EXAMPLES, UPDATES, CORPUS_BUILT_AT } from "@elixir-mcp/docs";
+import { corpus } from "@elixir-mcp/docs";
 import { readCatalog } from "./tools/cards.mjs";
 
 const SCHEME = "elixir://";
 const MD = "text/markdown";
 const JSON_T = "application/json";
 
-export function listResources() {
-  const docs = DOCS.map((d) => ({
+export async function listResources() {
+  const c = await corpus();
+  const docs = c.docs.map((d) => ({
     uri: `${SCHEME}docs/${d.slug}`,
     name: d.title,
     title: d.title,
     description: d.lede || d.description,
     mimeType: MD,
   }));
-  const examples = EXAMPLES.map((e) => ({
+  const examples = c.examples.map((e) => ({
     uri: `${SCHEME}examples/${e.slug}`,
     name: e.title,
     title: e.title,
@@ -152,10 +153,11 @@ export async function readResource(uri, { db } = {}) {
   const path = raw.slice(SCHEME.length);
   const [pathNoHash, fragment] = path.split("#");
   const parts = pathNoHash.split("/").filter(Boolean);
+  const c = await corpus();
 
   if (parts[0] === "docs" && parts.length === 1)
     return json(raw, {
-      pages: DOCS.map((d) => ({
+      pages: c.docs.map((d) => ({
         slug: d.slug,
         uri: `${SCHEME}docs/${d.slug}`,
         group: d.section,
@@ -164,11 +166,11 @@ export async function readResource(uri, { db } = {}) {
         sections: d.sections.map((x) => x.slug),
         url: d.url,
       })),
-      corpus_built_at: CORPUS_BUILT_AT,
+      corpus_built_at: c.built_at,
       disclaimer: DISCLAIMER,
     });
   if (parts[0] === "docs" && parts.length === 2) {
-    const doc = DOCS.find((d) => d.slug === parts[1].toLowerCase());
+    const doc = c.docs.find((d) => d.slug === parts[1].toLowerCase());
     if (!doc) return null;
     if (fragment) {
       const want = fragment.toLowerCase();
@@ -185,7 +187,7 @@ export async function readResource(uri, { db } = {}) {
   }
   if (parts[0] === "examples" && parts.length === 1)
     return json(raw, {
-      examples: EXAMPLES.map((e) => ({
+      examples: c.examples.map((e) => ({
         slug: e.slug,
         uri: `${SCHEME}examples/${e.slug}`,
         group: e.group,
@@ -194,17 +196,17 @@ export async function readResource(uri, { db } = {}) {
         tools: e.tools,
         url: e.url,
       })),
-      corpus_built_at: CORPUS_BUILT_AT,
+      corpus_built_at: c.built_at,
     });
   if (parts[0] === "examples" && parts.length === 2) {
-    const ex = EXAMPLES.find((e) => e.slug === parts[1].toLowerCase());
+    const ex = c.examples.find((e) => e.slug === parts[1].toLowerCase());
     if (!ex) return null;
     return text(raw, exampleMarkdown(ex));
   }
   if (parts[0] === "changelog" && parts.length === 1)
     return json(raw, { current: CONTRACT_VERSION, entries: CHANGELOG });
   if (parts[0] === "updates" && parts.length === 1)
-    return json(raw, { entries: UPDATES, corpus_built_at: CORPUS_BUILT_AT });
+    return json(raw, { entries: c.updates, corpus_built_at: c.built_at });
   if (parts[0] === "cards" && parts.length === 1) {
     if (!db) return null;
     const catalog = await readCatalog(db);
@@ -223,8 +225,9 @@ export async function readResource(uri, { db } = {}) {
 /** The eleven examples as prompts: a client that surfaces prompts as
  *  quick actions shows "Win your river race" to somebody who just
  *  connected and has read nothing. */
-export function listPrompts() {
-  return EXAMPLES.map((e) => ({
+export async function listPrompts() {
+  const { examples } = await corpus();
+  return examples.map((e) => ({
     name: e.slug,
     title: e.title,
     description: `${e.lede} Uses ${e.tools.join(", ")}.`,
@@ -232,8 +235,9 @@ export function listPrompts() {
   }));
 }
 
-export function getPrompt(name) {
-  const ex = EXAMPLES.find((e) => e.slug === String(name ?? "").toLowerCase());
+export async function getPrompt(name) {
+  const { examples } = await corpus();
+  const ex = examples.find((e) => e.slug === String(name ?? "").toLowerCase());
   if (!ex) return null;
   const question =
     ex.transcript.find((l) => l.role === "user")?.text ?? ex.title;
