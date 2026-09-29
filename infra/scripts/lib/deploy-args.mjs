@@ -10,6 +10,9 @@ export const DEPLOY_USAGE = `usage: AWS_PROFILE=cloud-engineer node infra/script
   (no flags)             update the production stack
   --create               first deploy (GATED)
   --skip-web             code and infrastructure only; no site sync
+  --platform             migrations and the stack update even when no
+                         Lambda bundle and not the template changed
+                         (deploy-lane.mjs; otherwise that is the site lane)
   --param=Key=Value      a one-time value for a PRESERVED parameter
   --rotate-origin-secret a new CloudFront origin secret; the doors keep
                          the old one as OriginSecretPrevious until
@@ -27,6 +30,7 @@ export function parseDeployArgs(argv) {
     help: false,
     create: false,
     skipWeb: false,
+    platform: false,
     params: {},
     acceptance: false,
     acceptanceFamily: null,
@@ -38,6 +42,7 @@ export function parseDeployArgs(argv) {
     if (arg === "--help" || arg === "-h") out.help = true;
     else if (arg === "--create") out.create = true;
     else if (arg === "--skip-web") out.skipWeb = true;
+    else if (arg === "--platform") out.platform = true;
     else if (arg === "--acceptance") out.acceptance = true;
     else if (arg === "--break-glass") out.breakGlass = true;
     else if (arg === "--rotate-origin-secret") out.rotateOriginSecret = true;
