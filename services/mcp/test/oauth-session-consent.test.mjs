@@ -23,7 +23,7 @@ import {
   createSession,
   resolveSession,
   SESSION_COOKIE_NAME,
-} from "../../auth/src/index.mjs";
+} from "../../../packages/auth/src/index.mjs";
 import { familyClientsOn } from "../../migrate/src/ops-family-clients.mjs";
 import { makeHandler } from "../src/handler.mjs";
 

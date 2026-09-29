@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { makeRegistry } from "../services/mcp/src/tools.mjs";
+import { makeRegistry } from "../packages/tools/src/tools.mjs";
 import { replayDoor } from "./replay.mjs";
 import { runSuite } from "./run.mjs";
 import * as lib from "./lib.mjs";

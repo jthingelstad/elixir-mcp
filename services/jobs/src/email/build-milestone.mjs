@@ -5,9 +5,9 @@
  *  account and subject, ever (email_milestone), so a season's re-climb
  *  of an arena already celebrated is silent and a higher one is news.
  *  Bundled: everything new since the last look goes in one mail. */
-import { buildPlayerEntry } from "../../../mcp/src/activity/entries.mjs";
+import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
-import { formLabel, itemText } from "../../../mcp/src/activity/summary.mjs";
+import { formLabel, itemText } from "@elixir-mcp/tools/activity/summary";
 import { myPlayers } from "./shared.mjs";
 import { whenLabel } from "./week.mjs";
 

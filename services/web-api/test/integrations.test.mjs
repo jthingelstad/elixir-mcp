@@ -13,7 +13,7 @@ import {
   validateAccessToken,
 } from "@elixir-mcp/auth";
 import { ensureSeasonsAround } from "@elixir-mcp/record/season";
-import { projectRiverRaceLog } from "../../ingest/src/war.mjs";
+import { projectRiverRaceLog } from "../../../packages/ingest/src/war.mjs";
 import { makeHandler } from "../src/handler.mjs";
 
 // A family app's client is provisioned (0185), never merely registered to

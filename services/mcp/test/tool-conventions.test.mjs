@@ -13,11 +13,11 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { makeRegistry } from "../src/tools.mjs";
+import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
 import { GROUP_ORDER, TOOL_GROUPS } from "@elixir-mcp/contracts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const toolsDir = path.join(here, "../src/tools");
+const toolsDir = path.join(here, "../../../packages/tools/src/tools");
 const declarations = makeRegistry().declarations();
 const byName = new Map(declarations.map((d) => [d.name, d]));
 

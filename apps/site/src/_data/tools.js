@@ -3,7 +3,7 @@
  *
  * This page used to be hand-written markdown, and it drifted: it
  * documented 31 tools while the server declared 36. The registry in
- * services/mcp/src/tools.mjs and the taxonomy in packages/contracts are
+ * packages/tools/src/tools.mjs and the taxonomy in packages/contracts are
  * the source of truth for what an agent actually sees, so the docs are
  * built from exactly the declarations tools/list returns - same
  * descriptions, same group order, same titles.
@@ -12,7 +12,7 @@
  * per-group modules keep declarations next to handlers, and only the
  * handlers touch a connection.
  */
-import { makeRegistry } from "../../../../services/mcp/src/tools.mjs";
+import { makeRegistry } from "@elixir-mcp/tools";
 import {
   CONTRACT_VERSION,
   TOOL_GROUPS,

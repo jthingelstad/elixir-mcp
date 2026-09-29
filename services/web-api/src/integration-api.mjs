@@ -1,4 +1,3 @@
-import integrationContract from "@elixir-mcp/contracts/integration-api.openapi.json" with { type: "json" };
 /** The versioned JSON API (/api/v1): Elixir's public product beside MCP
  *  (Jamie, 2026-09-23). Two kinds of caller: an integration, by its `svt_`
  *  key (identity is the integration, never its human sponsor), and a person,
@@ -12,18 +11,18 @@ import {
   validateAccessToken,
   checkRateLimit,
 } from "@elixir-mcp/auth";
-import { describeIdentity, principalBlock } from "../../mcp/src/identity.mjs";
+import { describeIdentity, principalBlock } from "@elixir-mcp/tools/identity";
 import { myPlayers } from "@elixir-mcp/record/players";
-import { makeRegistry } from "../../mcp/src/tools.mjs";
-import { makeInvoker } from "../../mcp/src/invoker.mjs";
+import { makeRegistry } from "@elixir-mcp/tools";
+import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { toolDeadlineMs } from "./deadline.mjs";
-import { makeLive } from "../../mcp/src/live.mjs";
+import { makeLive } from "@elixir-mcp/tools/live";
 import { ERROR_CLASS } from "@elixir-mcp/contracts";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { setCollectionMembers } from "@elixir-mcp/claims";
 import { gameClock } from "@elixir-mcp/record/game-clock";
 import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
-import { enqueueJob, takeLiveToken } from "../../scheduler/src/ledger.mjs";
+import { enqueueJob, takeLiveToken } from "@elixir-mcp/ledger";
 import { json, bearer, UUID_RE } from "./http.mjs";
 import {
   removeClanFact,
@@ -33,34 +32,6 @@ import {
   writePlayerFact,
 } from "./attested-facts.mjs";
 import { sendClanMail } from "./clan-mail.mjs";
-
-/** Who an operation admits; an operation that says nothing is the
- *  integration API it was before people could call v1. */
-const principalsOf = (operation) =>
-  operation["x-principals"] ?? ["integration"];
-
-/** An operation both kinds may call names the integration's permission
- *  apart from the person's scope (2.3.0: `clans:read`). */
-export const INTEGRATION_SCOPES = [
-  ...new Set(
-    Object.values(integrationContract.paths).flatMap((methods) =>
-      Object.values(methods)
-        .filter((operation) => principalsOf(operation).includes("integration"))
-        .map(
-          (operation) =>
-            operation["x-integration-permission"] ?? operation["x-permission"],
-        ),
-    ),
-  ),
-];
-
-/** Permissions that act on people (write facts about them, send them
- *  mail) are granted only when an admin names them; an integration
- *  created without a list gets the rest (2026-09-25). */
-const EXPLICIT_INTEGRATION_SCOPES = ["facts:write", "mail:send"];
-export const DEFAULT_INTEGRATION_SCOPES = INTEGRATION_SCOPES.filter(
-  (s) => !EXPLICIT_INTEGRATION_SCOPES.includes(s),
-);
 
 /** The audience a person's grant for this door carries (0160). */
 const API_RESOURCE = "https://elixir.poapkings.com/api/v1";

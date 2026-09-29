@@ -1,4 +1,4 @@
-import { dailySql } from "../../mcp/src/daily-sql.mjs";
+import { dailySql } from "@elixir-mcp/record/daily-sql";
 
 // Readiness is derived from the record, never a second onboarding state to
 // reconcile. Keep this separate from the HTTP/auth routing layer.

@@ -3,13 +3,15 @@
   "version": "0.1.0",
   "description": "The planning tick: the session clock, fairness floors, the global budget and job selection into the ledger. Runs as the EventBridge-scheduled Lambda, reserved concurrency 1.",
   "type": "module",
-  "main": "src/plan.mjs",
+  "main": "src/handler.mjs",
   "scripts": {
     "test": "node --test"
   },
   "dependencies": {
-    "@elixir-mcp/contracts": "0.1.0",
-    "@elixir-mcp/record": "0.1.0",
+    "@elixir-mcp/ledger": "0.1.0",
     "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@elixir-mcp/record": "0.1.0"
   }
 }

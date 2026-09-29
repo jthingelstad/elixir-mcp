@@ -17,9 +17,9 @@ import {
   queueSummary,
   dueAfterMs,
   jitterFactor,
-} from "../src/plan.mjs";
+} from "../../../packages/ledger/src/plan.mjs";
 import { tickOnce } from "../src/handler.mjs";
-import { processResult } from "../../ingest/src/pipeline.mjs";
+import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");

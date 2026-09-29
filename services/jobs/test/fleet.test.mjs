@@ -6,10 +6,10 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { scratchDb } from "../../ingest/test/helpers.mjs";
-import { silentSince } from "../../ingest/src/fleet.mjs";
+import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import { silentSince } from "../../../packages/ingest/src/fleet.mjs";
 import { sweepSilentCollectors } from "../src/fleet.mjs";
-import { makeRegistry } from "../../mcp/src/tools.mjs";
+import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
 
 let ctx;
 let account;

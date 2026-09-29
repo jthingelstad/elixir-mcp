@@ -15,7 +15,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { emailHash } from "../../auth/src/index.mjs";
+import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { createPrincipal } from "@elixir-mcp/claims";
 import { makeHandler } from "../src/handler.mjs";
 

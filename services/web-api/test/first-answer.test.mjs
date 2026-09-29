@@ -1,9 +1,9 @@
 import { test, before, after } from "node:test";
-import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
+import { refreshDailyRollups } from "../../../packages/ingest/src/rollups.mjs";
 import assert from "node:assert/strict";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { createSession, emailHash } from "../../auth/src/index.mjs";
+import { createSession, emailHash } from "../../../packages/auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
 
 const adminUrl =

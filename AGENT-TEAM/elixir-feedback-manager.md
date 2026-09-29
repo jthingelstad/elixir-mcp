@@ -31,7 +31,7 @@ item gets a response, and the response lands in the filer's event feed.
   by the nightly payload shape census (jobs Lambda `{shape_census}`,
   ENGINEERING.md "Ingest invariants"), not by a person: its context names
   an endpoint and a field path the API now sends that the manifest
-  (`services/ingest/src/payload-keys.mjs`) has no disposition for, or a
+  (`packages/ingest/src/payload-keys.mjs`) has no disposition for, or a
   manifest field absent from every sampled payload for seven days. It is
   product work, never an incident, and it becomes a change: the manifest
   entry and the projection (a column, a row, or a written reason), the

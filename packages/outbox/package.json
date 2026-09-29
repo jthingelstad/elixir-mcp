@@ -1,0 +1,19 @@
+{
+  "name": "@elixir-mcp/outbox",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The S3 outbox the web door writes for mail it cannot send in the request, and the owner notices it carries.",
+  "type": "module",
+  "main": "src/outbox.mjs",
+  "exports": {
+    ".": "./src/outbox.mjs",
+    "./notify": "./src/notify.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1140.0",
+    "@elixir-mcp/contracts": "0.1.0"
+  }
+}

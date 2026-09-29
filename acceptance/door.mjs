@@ -9,7 +9,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { participationObjects } from "../services/mcp/src/participation-table.mjs";
+import { participationObjects } from "../packages/tools/src/participation-table.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 

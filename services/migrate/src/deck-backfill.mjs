@@ -21,7 +21,7 @@
  *
  * The one-time backfill from the deck JSON (deck_backfill, deck_forms)
  * ran on 2026-09-15 (454,654 participants, 90 batches) and left with the
- * column in 0097; tests seed the rows directly (mcp/test/deck-rows.mjs).
+ * column in 0097; tests seed the rows directly (packages/tools/test/deck-rows.mjs).
  */
 
 import pg from "pg";
@@ -114,8 +114,7 @@ export async function explainMeta(databaseUrl, spec = {}) {
     const scope = `bp.player_tag in (select cm.player_tag from clan_membership cm
                      where cm.clan_tag = $1 and cm.left_observed_at is null)
                    and bp.battle_time >= $2`;
-    const { excludedBreakdown } =
-      await import("../../mcp/src/tools/shared.mjs");
+    const { excludedBreakdown } = await import("@elixir-mcp/tools/shared");
     await explain(
       "prior (window index)",
       `select count(*)::int as decided, count(*) filter (where bp.outcome = 'win')::int as wins

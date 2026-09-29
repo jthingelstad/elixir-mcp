@@ -6,18 +6,21 @@ import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { processResult } from "../../ingest/src/pipeline.mjs";
-import { emailHash } from "../../auth/src/index.mjs";
+import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
+import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { CONTRACT_VERSION } from "@elixir-mcp/contracts";
 import {
   handleMcpMessage,
   serverVersion,
   MCP_QUOTA_ERROR_CODE,
 } from "../src/protocol.mjs";
-import { makeRegistry } from "../src/tools.mjs";
-import { makeInvoker } from "../src/invoker.mjs";
-import { makeQuota } from "../src/quota.mjs";
-import { localDayRange, formatLocal } from "../src/time.mjs";
+import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
+import { makeInvoker } from "../../../packages/tools/src/invoker.mjs";
+import { makeQuota } from "../../../packages/tools/src/quota.mjs";
+import {
+  localDayRange,
+  formatLocal,
+} from "../../../packages/tools/src/time.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");

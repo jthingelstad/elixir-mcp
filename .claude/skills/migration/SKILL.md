@@ -183,7 +183,7 @@ constraint is written on its column (0108). Comments move no pin.
 Scratch databases per run on brew `postgresql@17`, no Docker locally
 (AGENTS.md rule 9; CI uses a `postgres:17` service). Every database
 suite builds its own through the whole ladder (`scratchDb()` in
-`services/ingest/test/helpers.mjs`, or `migrate()`), so all run the file.
+`packages/ingest/test/helpers.mjs`, or `migrate()`), so all run the file.
 
 ```sh
 node --test services/migrate/test/migration-rules.test.mjs services/migrate/test/migration-lock.test.mjs

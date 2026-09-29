@@ -1,5 +1,5 @@
 import pg from "pg";
-import { buildTimeline, subjectsFor } from "../../mcp/src/activity/entries.mjs";
+import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 
 /**
  * Read-only preview of the timeline ({activity_preview: spec}) —
@@ -91,7 +91,7 @@ export async function activityPreview(databaseUrl, spec = {}) {
  */
 export async function explainTimeline(databaseUrl, spec = {}) {
   const { clanLearnedQuery, clanMemberBattlesQuery } =
-    await import("../../mcp/src/activity/entries.mjs");
+    await import("@elixir-mcp/tools/activity/entries");
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {

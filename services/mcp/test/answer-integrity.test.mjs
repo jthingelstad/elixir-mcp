@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { scratchDb } from "../../ingest/test/helpers.mjs";
-import { makeRegistry } from "../src/tools.mjs";
+import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
 import { handleMcpMessage } from "../src/protocol.mjs";
 
 let scratch;
@@ -285,7 +285,8 @@ test("unknown snapshot times and incompatible lifetime counters do not assert co
 });
 
 test("real successes and refusals remain parseable through the MCP protocol boundary", async () => {
-  const { makeInvoker } = await import("../src/invoker.mjs");
+  const { makeInvoker } =
+    await import("../../../packages/tools/src/invoker.mjs");
   const { assertResponseMeta } = await import("@elixir-mcp/contracts");
   for (const [name, args, fails] of [
     ["players_summary", { player_tag: TAG }, false],

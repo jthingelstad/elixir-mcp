@@ -30,14 +30,14 @@ import {
   ERROR_CLASS,
 } from "@elixir-mcp/contracts";
 import { handleMcpMessage } from "./protocol.mjs";
-import { makeRegistry } from "./tools.mjs";
-import { makeInvoker, auditRow, onBehalfOfOf } from "./invoker.mjs";
-import { makeQuota } from "./quota.mjs";
+import { makeRegistry } from "@elixir-mcp/tools";
+import { makeInvoker, auditRow, onBehalfOfOf } from "@elixir-mcp/tools/invoker";
+import { makeQuota } from "@elixir-mcp/tools/quota";
 import { makeOauthRoutes, rawBody } from "./oauth-routes.mjs";
-import { describeIdentity } from "./identity.mjs";
-import { makeLive } from "./live.mjs";
+import { describeIdentity } from "@elixir-mcp/tools/identity";
+import { makeLive } from "@elixir-mcp/tools/live";
 
-import { HOURLY_RATE_LIMIT } from "./quota.mjs";
+import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 export { HOURLY_RATE_LIMIT };
 
 export function makeHandler({

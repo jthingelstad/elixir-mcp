@@ -61,7 +61,7 @@ authority throughout.
    `--param=SessionSecretPreviousInSecret=false`. Only after that deploy
    succeeds, remove `session_secret_previous` in the console.
 
-`services/auth/test/auth.test.mjs` rehearses the whole sequence against
+`packages/auth/test/auth.test.mjs` rehearses the whole sequence against
 a scratch database ("a session-secret rotation signs nobody out").
 
 ## Origin secret

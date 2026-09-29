@@ -20,8 +20,8 @@
 
 import pg from "pg";
 import { sweepSilentCollectors } from "./fleet.mjs";
-import { loadVocabulary, stampDecks } from "../../ingest/src/card-roles.mjs";
-import { makeOutbox } from "../../web-api/src/outbox.mjs";
+import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
+import { makeOutbox } from "@elixir-mcp/outbox";
 import { runEmail, writtenSendDue } from "./email/index.mjs";
 import { top100Generate, top100Accept } from "./email/top100.mjs";
 import { cardOfWeekGenerate, cardOfWeekAccept } from "./email/card-of-week.mjs";
@@ -48,7 +48,7 @@ import { seriesMetrics } from "./series-metrics.mjs";
 export async function sweepPayloads(databaseUrl, s3override) {
   const bucket = process.env.ARCHIVE_BUCKET;
   if (!bucket) throw new Error("ARCHIVE_BUCKET not configured");
-  const { archiveKey } = await import("../../ingest/src/pipeline.mjs");
+  const { archiveKey } = await import("@elixir-mcp/ingest/pipeline");
   const { S3Client, HeadObjectCommand } = await import("@aws-sdk/client-s3");
   const s3 = s3override ?? new S3Client({});
   const db = new pg.Client({ connectionString: databaseUrl });
@@ -259,7 +259,7 @@ export async function sweepOperational(databaseUrl) {
   }
 }
 
-// Mail leaves through the outbox for the relay (web-api/src/outbox.mjs).
+// Mail leaves through the outbox for the relay (packages/outbox/src/outbox.mjs).
 const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 async function enqueueEmail(msg) {
   if (!outbox) throw new Error("OUTBOX_BUCKET is not set");

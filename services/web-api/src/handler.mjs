@@ -23,7 +23,7 @@ import {
   originAllowed,
   forbiddenOrigin,
 } from "@elixir-mcp/auth";
-import { makeRegistry } from "../../mcp/src/tools.mjs";
+import { makeRegistry } from "@elixir-mcp/tools";
 
 import { collectorRoutes } from "./routes/collector.mjs";
 import { authRoutes } from "./routes/auth.mjs";
@@ -35,7 +35,7 @@ import { gatewaysRoutes } from "./routes/gateways.mjs";
 import { exploreRoutes } from "./routes/explore.mjs";
 import { feedbackRoutes } from "./routes/feedback.mjs";
 import { adminRoutes } from "./routes/admin.mjs";
-import { onboardAccount } from "./onboard.mjs";
+import { onboardAccount } from "@elixir-mcp/tools/onboard";
 import { resolveOwnedAgent } from "./agent-scope.mjs";
 import { deadlineMs } from "./deadline.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";

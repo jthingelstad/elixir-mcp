@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import contract from "@elixir-mcp/contracts/integration-api.openapi.json" with { type: "json" };
-import { makeRegistry } from "../../mcp/src/tools.mjs";
+import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
 
 const strip = (v) =>
   Array.isArray(v)

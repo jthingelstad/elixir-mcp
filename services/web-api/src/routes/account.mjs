@@ -14,15 +14,12 @@ import {
   OAUTH_SCOPES,
   OAUTH_SCOPE_DETAILS,
 } from "@elixir-mcp/contracts";
-import { normalizeScope } from "../../../auth/src/index.mjs";
+import { normalizeScope } from "@elixir-mcp/auth";
 import { firstAnswer } from "../first-answer.mjs";
-import {
-  buildTimeline,
-  subjectsFor,
-} from "../../../mcp/src/activity/entries.mjs";
+import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
 
 import { json, UUID_RE, ID_RE } from "../http.mjs";
-import { senderRef } from "../notify.mjs";
+import { senderRef } from "@elixir-mcp/outbox/notify";
 import { loadCallRecord } from "../call-record.mjs";
 
 export function accountRoutes({

@@ -1,4 +1,7 @@
-import { integrationsRoutes } from "../../web-api/src/routes/integrations.mjs";
+import {
+  administerIntegration,
+  listIntegrations,
+} from "@elixir-mcp/auth/integrations";
 import pg from "pg";
 import { createPrincipal, addPlayer } from "@elixir-mcp/claims";
 
@@ -63,7 +66,7 @@ export async function accountEmailOp(databaseUrl, spec) {
     .trim()
     .toLowerCase();
   if (!email.includes("@")) return { error: "email required" };
-  const { emailHash } = await import("../../auth/src/crypto.mjs");
+  const { emailHash } = await import("@elixir-mcp/auth/crypto");
   const hash = emailHash(email);
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
@@ -270,27 +273,21 @@ export async function integrationOp(databaseUrl, spec) {
       !/^[a-f0-9]{64}$/.test(spec?.token_hash ?? "")
     )
       return { error: "token_hash_required" };
-    const routes = integrationsRoutes({
-      resolveAccount: async () => ({
-        accountId: owner.account_id,
-        kind: owner.kind,
-        isAdmin: true,
-      }),
-      logEvent: async (db, id, kind, detail) => {
-        await db.query(
-          "insert into account_event(account_id,kind,detail) values($1,$2,$3)",
-          [id, kind, JSON.stringify({ ...detail, via: "ops" })],
-        );
-      },
-      mintToken: () => ({ hash: spec.token_hash }),
-    });
-    const method = action === "list" ? "GET" : "POST";
-    const r = await routes[`${method} /api/admin/integrations`](
-      db,
-      { requestContext: { http: { method } } },
-      spec,
-    );
-    const result = { status: r.statusCode, ...JSON.parse(r.body) };
+    const logEvent = async (db, id, kind, detail) => {
+      await db.query(
+        "insert into account_event(account_id,kind,detail) values($1,$2,$3)",
+        [id, kind, JSON.stringify({ ...detail, via: "ops" })],
+      );
+    };
+    const r =
+      action === "list"
+        ? { status: 200, body: { integrations: await listIntegrations(db) } }
+        : await administerIntegration(db, owner.account_id, spec, {
+            mintToken: () => ({ hash: spec.token_hash }),
+            logEvent,
+          });
+    // As the admin route answers it, dates as ISO strings.
+    const result = { status: r.status, ...JSON.parse(JSON.stringify(r.body)) };
     if (action === "list")
       result.available_collections = (
         await db.query(
@@ -336,11 +333,10 @@ export async function accountEnrollOp(databaseUrl, spec) {
   const dryRun = spec.dry_run !== false;
   const fillEmpty = spec.fill_empty === true;
   const source = String(spec.source ?? "ops");
-  const { emailHash, normalizeEmail } =
-    await import("../../auth/src/crypto.mjs");
+  const { emailHash, normalizeEmail } = await import("@elixir-mcp/auth/crypto");
   const { normalizeTag } = await import("@elixir-mcp/contracts");
-  const { clanOf } = await import("../../web-api/src/onboard.mjs");
-  const { ensureClanRecording } = await import("../../mcp/src/tools.mjs");
+  const { clanOf } = await import("@elixir-mcp/tools/onboard");
+  const { ensureClanRecording } = await import("@elixir-mcp/tools");
 
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();

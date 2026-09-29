@@ -701,7 +701,7 @@ export async function sessions(databaseUrl) {
 /**
  * EXPLAIN ANALYZE the clans_participation reads for one clan
  * ({explain_participation: {clan_tag, weeks}}), read-only. The SQL is
- * the tool's own (services/mcp/src/participation-sql.mjs), so the
+ * the tool's own (packages/record/src/participation-sql.mjs), so the
  * plan read here is the plan being served. Added 2026-09-13 when every
  * slow page in Elixir Clan turned out to be this one call (8.7 s for a
  * week, 20 s for eight) and there was no other way to see why.
@@ -716,7 +716,7 @@ export async function explainParticipation(databaseUrl, spec = {}) {
     },
     { typesForModeGroup },
   ] = await Promise.all([
-    import("../../mcp/src/participation-sql.mjs"),
+    import("@elixir-mcp/record/participation-sql"),
     import("@elixir-mcp/contracts"),
   ]);
   const clanTag = String(spec.clan_tag ?? "#J2RGCRVG").toUpperCase();
@@ -943,7 +943,7 @@ export async function enumCensus(databaseUrl) {
 /** {explain_standings: {clan_tag?, days?, mode?}} - EXPLAIN ANALYZE of
  *  the one query behind clans_standings, as the tool builds it. */
 export async function explainStandings(databaseUrl, spec = {}) {
-  const { standingsQuery } = await import("../../mcp/src/standings-sql.mjs");
+  const { standingsQuery } = await import("@elixir-mcp/record/standings-sql");
   const clanTag = String(spec.clan_tag ?? "#J2RGCRVG").toUpperCase();
   const days = Math.min(90, Math.max(1, Number(spec.days ?? 30)));
   const q = standingsQuery({
@@ -1015,7 +1015,7 @@ export async function pollStateOp(databaseUrl, spec = {}) {
 
 /** {battle_fidelity_census}: for every column on the battle tables, how
  *  many rows actually carry a value. The payload manifest
- *  (services/ingest/src/payload-keys.mjs) says where each API field
+ *  (packages/ingest/src/payload-keys.mjs) says where each API field
  *  LANDS; the nightly shape census catches a field the API adds. Neither
  *  checks the other direction - a column the manifest promises but the
  *  projector never fills reads as faithful and is empty. Split by

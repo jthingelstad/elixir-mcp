@@ -1,0 +1,274 @@
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import pg from "pg";
+import { migrate } from "../../../services/migrate/src/migrate.mjs";
+import {
+  enqueueJob,
+  leaseJob,
+  settleLeases,
+  completeJob,
+  ledgerStats,
+  stampRetry,
+} from "../src/ledger.mjs";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(here, "../../..");
+const ADMIN_URL =
+  process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
+const NAME = `elixir_mcp_test_ledger_${process.pid}`;
+const DB_URL = ADMIN_URL.replace(/\/postgres$/, `/${NAME}`);
+
+let db;
+let gw;
+
+before(async () => {
+  const admin = new pg.Client({ connectionString: ADMIN_URL });
+  await admin.connect();
+  await admin.query(`drop database if exists ${NAME} with (force)`);
+  await admin.query(`create database ${NAME}`);
+  await admin.end();
+  await migrate({
+    databaseUrl: DB_URL,
+    migrationsDir: path.join(repoRoot, "db/migrations"),
+  });
+  db = new pg.Client({ connectionString: DB_URL });
+  await db.connect();
+  const {
+    rows: [acct],
+  } = await db.query(
+    `insert into account (email_hash, status) values ('ledger', 'approved') returning account_id`,
+  );
+  const {
+    rows: [g],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, status) values ($1, 'ledger-gw', 'active')
+     returning gateway_id`,
+    [acct.account_id],
+  );
+  gw = g.gateway_id;
+});
+
+after(async () => {
+  await db.end();
+  const admin = new pg.Client({ connectionString: ADMIN_URL });
+  await admin.connect();
+  await admin.query(`drop database if exists ${NAME} with (force)`);
+  await admin.end();
+});
+
+test("lease order: live first, then oldest bulk; lanes gate operators", async () => {
+  await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: "#20JJJ2CCRU",
+    lane: "bulk",
+  });
+  await enqueueJob(db, {
+    endpoint: "clan",
+    entity_key: "#J2RGCRVG",
+    lane: "bulk",
+  });
+  await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: "#2YG98VVQ",
+    lane: "live",
+  });
+
+  const bulkOnly = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  assert.equal(bulkOnly.lane, "bulk");
+  assert.equal(bulkOnly.entity_key, "#20JJJ2CCRU", "oldest bulk first");
+
+  const liveFirst = await leaseJob(db, {
+    gatewayId: gw,
+    lanes: ["live", "bulk"],
+  });
+  assert.equal(liveFirst.lane, "live", "live beats older bulk");
+
+  const rest = await leaseJob(db, { gatewayId: gw, lanes: ["live", "bulk"] });
+  assert.equal(rest.entity_key, "#J2RGCRVG");
+  assert.equal(
+    await leaseJob(db, { gatewayId: gw, lanes: ["live", "bulk"] }),
+    null,
+  );
+
+  for (const j of [bulkOnly, liveFirst, rest]) {
+    assert.equal(
+      await completeJob(db, { jobId: j.job_id, gatewayId: gw }),
+      true,
+    );
+  }
+});
+
+test("expiry requeues with attempt cap; exhaustion goes dead; twins fold", async () => {
+  await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: "#PLCCYUQL",
+    lane: "bulk",
+  });
+  const j = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  await db.query(
+    `update job set leased_at = now() - interval '5 minutes' where job_id = $1`,
+    [j.job_id],
+  );
+  const s1 = await settleLeases(db);
+  assert.equal(s1.requeued, 1);
+
+  // Exhaust the attempts: it dies instead of looping forever.
+  await db.query(`update job set attempts = 5 where job_id = $1`, [j.job_id]);
+  const j2 = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  assert.equal(j2.job_id, j.job_id);
+  await db.query(
+    `update job set leased_at = now() - interval '5 minutes', attempts = 5 where job_id = $1`,
+    [j.job_id],
+  );
+  const s2 = await settleLeases(db);
+  assert.equal(s2.died, 1);
+
+  // A stale lease whose subject ALREADY has a fresh queued row folds
+  // to done instead of violating one-queued-per-subject.
+  await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: "#U08P889Y0",
+    lane: "bulk",
+  });
+  const j3 = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  await db.query(
+    `update job set leased_at = now() - interval '5 minutes', attempts = 5 where job_id = $1`,
+    [j3.job_id],
+  );
+  await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: "#U08P889Y0",
+    lane: "bulk",
+  });
+  const s3 = await settleLeases(db);
+  assert.equal(s3.died, 0, "an exhausted redundant lease is not a dead job");
+  assert.equal(s3.folded, 1, "redundant stale lease closes quietly");
+
+  const stats = await ledgerStats(db);
+  assert.equal(stats.dead, 1);
+  assert.ok(stats.queued_bulk >= 1);
+});
+
+// Review 2026-09-27 §2.6 (#69): a dead job left the failed plan's
+// last_planned_at standing, so its subject waited a whole cadence.
+test("a dead job owes its subject a retry in 15 minutes (0188)", async () => {
+  const tag = "#2QUR9PQ8";
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint, last_planned_at)
+     values ($1, 'player', now() - interval '10 minutes')`,
+    [tag],
+  );
+  // Close what earlier tests left queued, so the lease is this job.
+  await db.query(
+    "update job set status = 'done', done_at = now() where status = 'queued'",
+  );
+  await enqueueJob(db, { endpoint: "player", entity_key: tag, lane: "bulk" });
+  const j = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  assert.equal(j.entity_key, tag);
+  await db.query(
+    `update job set leased_at = now() - interval '5 minutes', attempts = 5 where job_id = $1`,
+    [j.job_id],
+  );
+  const s = await settleLeases(db);
+  assert.equal(s.died, 1);
+  const {
+    rows: [row],
+  } = await db.query(
+    `select retry_tries, round(extract(epoch from retry_at - now()) / 60)::int as in_min
+     from poll_state where subject_tag = $1 and endpoint = 'player'`,
+    [tag],
+  );
+  assert.deepEqual(row, { retry_tries: 1, in_min: 15 });
+});
+
+test("stampRetry doubles for three tries, then stops until an admission", async () => {
+  const tag = "#8YQ0RUGL";
+  await db.query(
+    `insert into poll_state (subject_tag, endpoint) values ($1, 'player_battlelog')`,
+    [tag],
+  );
+  const at = "2026-09-04T10:05:00Z";
+  const key = [{ endpoint: "player_battlelog", subject_tag: tag }];
+  const read = async () =>
+    (
+      await db.query(
+        `select retry_tries, retry_at from poll_state
+         where subject_tag = $1 and endpoint = 'player_battlelog'`,
+        [tag],
+      )
+    ).rows[0];
+  const seen = [];
+  for (let i = 0; i < 4; i++) {
+    await stampRetry(db, key, at);
+    const r = await read();
+    seen.push([r.retry_tries, r.retry_at?.toISOString() ?? null]);
+  }
+  assert.deepEqual(seen, [
+    [1, "2026-09-04T10:20:00.000Z"],
+    [2, "2026-09-04T10:35:00.000Z"],
+    [3, "2026-09-04T11:05:00.000Z"],
+    [3, null],
+  ]);
+  assert.equal(
+    await stampRetry(db, [{ endpoint: "player", subject_tag: "#NOROW" }], at),
+    0,
+    "a key with no poll_state row changes nothing",
+  );
+});
+
+test("two expired leases for one subject settle to at most one queued row (issue #2)", async () => {
+  const subject = { endpoint: "player", entity_key: "#DUPSUBJ1", lane: "bulk" };
+  await db.query(`delete from job`);
+  await enqueueJob(db, subject);
+  const a = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  // A is leased, not queued, so the partial index lets a second row in.
+  await enqueueJob(db, subject);
+  const b = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  assert.notEqual(a.job_id, b.job_id, "two leases for one subject");
+  await db.query(
+    `update job set leased_at = now() - interval '5 minutes' where job_id = any($1::bigint[])`,
+    [[a.job_id, b.job_id]],
+  );
+  // Pre-fix this threw a unique violation and blocked fleet-wide leasing.
+  const s = await settleLeases(db);
+  const { rows } = await db.query(
+    `select count(*)::int n from job where status = 'queued' and entity_key = $1`,
+    ["#DUPSUBJ1"],
+  );
+  assert.equal(rows[0].n, 1, "exactly one queued row for the subject");
+  assert.equal(s.requeued, 1);
+  assert.equal(s.folded, 1, "the redundant expired lease folds");
+  // Leasing keeps working afterwards.
+  const next = await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  assert.ok(next, "fleet leasing is not blocked");
+  await completeJob(db, { jobId: next.job_id, gatewayId: gw });
+});
+
+test("settlement charges every abandoned lease to its gateway exactly once, whichever actor settles (issue #6)", async () => {
+  await db.query(`delete from job`);
+  const streak = async () =>
+    (
+      await db.query(
+        `select missed_streak from gateway where gateway_id = $1`,
+        [gw],
+      )
+    ).rows[0].missed_streak;
+  const before = await streak();
+  for (const t of ["#ABND1", "#ABND2", "#ABND3"]) {
+    await enqueueJob(db, { endpoint: "player", entity_key: t, lane: "bulk" });
+    await leaseJob(db, { gatewayId: gw, lanes: ["bulk"] });
+  }
+  await db.query(
+    `update job set leased_at = now() - interval '5 minutes' where status = 'leased'`,
+  );
+  // Two actors settle concurrently on separate connections (scheduler +
+  // another collector): the three expiries are attributed once in total.
+  const db2 = new pg.Client({ connectionString: DB_URL });
+  await db2.connect();
+  const [s1, s2] = await Promise.all([settleLeases(db), settleLeases(db2)]);
+  await db2.end();
+  assert.equal(s1.missed + s2.missed, 3, "three abandonments, counted once");
+  assert.equal((await streak()) - before, 3, "streak charged exactly once");
+});

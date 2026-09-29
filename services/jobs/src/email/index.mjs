@@ -18,11 +18,11 @@
  *  and dying at the same place. */
 import { createHash } from "node:crypto";
 import pg from "pg";
-import { emailHash } from "../../../auth/src/crypto.mjs";
+import { emailHash } from "@elixir-mcp/auth/crypto";
 import { loadRecipients, accountCtx, callTool } from "./ctx.mjs";
 import { lastGameWeek, lastCollectorWeek } from "./week.mjs";
-import { upsertIssue } from "./ledger.mjs";
-import { deliver } from "./deliver.mjs";
+import { upsertIssue } from "@elixir-mcp/mail/ledger";
+import { deliver } from "@elixir-mcp/mail/deliver";
 import { buildArena } from "./build-arena.mjs";
 import { buildTracking } from "./build-tracking.mjs";
 import { buildClan } from "./build-clan.mjs";

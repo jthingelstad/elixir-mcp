@@ -829,7 +829,7 @@ Resources:
             - HasOriginSecretPrevious
             - !Ref OriginSecretPrevious
             - !Ref AWS::NoValue
-          # Call capture is on when this is set (services/mcp/src/capture.mjs).
+          # Call capture is on when this is set (packages/tools/src/capture.mjs).
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           # The Status page's "work waiting" gauge re-runs the scheduler's
           # eligibility query, so it must know the tick cadence.
@@ -1465,7 +1465,7 @@ Resources:
   # keeps an overwritten object for only a year, and the internet-facing
   # web-api holds s3:PutObject on payloads/, so a put that could replace
   # a key is refused for every principal: the door sends
-  # If-None-Match: * (services/ingest/src/handler.mjs) and reads a 412 as
+  # If-None-Match: * (packages/ingest/src/handler.mjs) and reads a 412 as
   # already archived. The ObjectCreationOperation clause leaves the
   # multipart steps that cannot carry the header alone; a CopyObject into
   # payloads/ is refused too, and nothing copies there. Tried first on a

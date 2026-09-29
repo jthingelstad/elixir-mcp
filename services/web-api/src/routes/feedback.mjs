@@ -1,5 +1,5 @@
 import { json, ID_RE, UUID_RE } from "../http.mjs";
-import { senderRef } from "../notify.mjs";
+import { senderRef } from "@elixir-mcp/outbox/notify";
 
 export function feedbackRoutes({
   resolveAccount,

@@ -5,12 +5,16 @@
   "type": "module",
   "main": "src/index.mjs",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./archive": "./src/archive.mjs",
+    "./deliver": "./src/deliver.mjs",
+    "./ledger": "./src/ledger.mjs"
   },
   "scripts": {
     "test": "node --test"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1140.0",
     "@elixir-mcp/contracts": "0.1.0",
     "@elixir-mcp/ui": "0.1.0"
   }

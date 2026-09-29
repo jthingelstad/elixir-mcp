@@ -7,7 +7,7 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { scratchDb } from "../../ingest/test/helpers.mjs";
+import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { rollupRegroup } from "../src/ops-rollup-regroup.mjs";
 
 let ctx;

@@ -2,7 +2,7 @@
  *  and alts, from battles_performance / battles_decks /
  *  battles_opponents. Skipped when no tag of theirs battled. */
 import { accountCtx, callTool } from "./ctx.mjs";
-import { buildPlayerEntry } from "../../../mcp/src/activity/entries.mjs";
+import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
 import {
   modeLabel,
   cardLabel,

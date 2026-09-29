@@ -2,11 +2,8 @@
  *  ordered by relationship depth: you in full, alts shorter, friends a
  *  paragraph, watchers a line. It IS elixir_timeline's window, built
  *  in-process (buildTimeline) so the 48 KB door cap never applies. */
-import {
-  buildTimeline,
-  subjectsFor,
-} from "../../../mcp/src/activity/entries.mjs";
-import { itemText } from "../../../mcp/src/activity/summary.mjs";
+import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
+import { itemText } from "@elixir-mcp/tools/activity/summary";
 import { modeLabel } from "./shared.mjs";
 
 const MOMENT_KINDS = new Set([

@@ -12,8 +12,8 @@ import { readFile } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { archiveKey } from "../../ingest/src/pipeline.mjs";
-import { payloadHash } from "../../ingest/src/hash.mjs";
+import { archiveKey } from "../../../packages/ingest/src/pipeline.mjs";
+import { payloadHash } from "../../../packages/ingest/src/hash.mjs";
 import { shapeCensus } from "../src/shape-census.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));

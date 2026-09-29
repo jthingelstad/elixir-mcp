@@ -28,7 +28,7 @@
  * (RELEASING-COLLECTOR.md step 3). With --per-entity it is a sample and
  * says so; a release gate runs without it.
  *
- * --json writes the same sweep as evidence (services/ingest/src/
+ * --json writes the same sweep as evidence (packages/ingest/src/
  * payload-evidence.mjs): per path its counts, JSON types, empties and
  * first and last archive day, and the values of the game-vocabulary paths
  * on its allowlist. Aggregates only: no tag or name of a player or clan
@@ -47,8 +47,8 @@ import { crPathForJob } from "@elixir-mcp/contracts";
 import {
   PAYLOAD_KEYS,
   payloadPaths,
-} from "../../services/ingest/src/payload-keys.mjs";
-import { createEvidence } from "../../services/ingest/src/payload-evidence.mjs";
+} from "../../packages/ingest/src/payload-keys.mjs";
+import { createEvidence } from "../../packages/ingest/src/payload-evidence.mjs";
 
 const USAGE =
   "usage: payload-field-audit.mjs [endpoint|all] [--json <dir>] [--per-entity <n>]";

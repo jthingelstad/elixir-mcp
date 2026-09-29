@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { ensureSeasonsAround, seasonAt } from "@elixir-mcp/record/season";
-import { seedDeck, hashFor } from "../../mcp/test/deck-rows.mjs";
+import { seedDeck, hashFor } from "../../../packages/tools/test/deck-rows.mjs";
 import {
   metaRollupNightly,
   metaRollupHourly,

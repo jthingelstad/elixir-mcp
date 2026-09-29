@@ -12,6 +12,7 @@
   "dependencies": {
     "@elixir-mcp/contracts": "*",
     "@elixir-mcp/design": "*",
+    "@elixir-mcp/tools": "*",
     "@elixir-mcp/ui": "*",
     "marked": "^18.0.14"
   },

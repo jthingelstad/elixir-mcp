@@ -4,7 +4,7 @@ import {
   gatewayCardCatalog,
   isCardTakenError,
   resolveGatewayCard,
-} from "../../../mcp/src/gateway-cards.mjs";
+} from "@elixir-mcp/record/gateway-cards";
 
 import { UUID_RE, json } from "../http.mjs";
 import { RELEASE_SIGNED_SQL, signatureState } from "../collector-signature.mjs";

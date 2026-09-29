@@ -56,16 +56,16 @@ the lease is for the deploy (`/ship`).
 
 ## 2. Where the code lives
 
-- `services/mcp/src/tools/<family>.mjs` holds the declaration and the
+- `packages/tools/src/tools/<family>.mjs` holds the declaration and the
   handler together, so they cannot drift. The large families (`battles`,
   `elixir`, `rankings`, `war`) are split into one file per tool under
   `tools/<family>/`, with a `common.mjs`.
-- `services/mcp/src/tools/shared.mjs` holds the shared schemas, which
+- `packages/tools/src/tools/shared.mjs` holds the shared schemas, which
   are used by reference and never retyped, plus `notes()` and
   `docsRef()`. `output-schemas.mjs` holds `OUTPUT_SCHEMAS[name]`.
 - `packages/contracts/src/tool-groups.ts` holds the group, title and
   annotations for each tool; `principals.ts` says who never sees it.
-- `services/mcp/src/tools.mjs` is the registry. `protocol.mjs` holds the
+- `packages/tools/src/tools.mjs` is the registry. `protocol.mjs` holds the
   brief and the result cap, and `invoker.mjs` the deadline and budget.
 
 `checklist.md` has the full map, with each shared export. When a fact
@@ -82,7 +82,7 @@ most of it is checked only by review:
 
 - **Mode discipline.** "game modes are really played as a different
   game". A rate over several modes carries its per-mode split
-  (`modeSplit()` in `services/mcp/src/controls.mjs`) and a note naming
+  (`modeSplit()` in `packages/tools/src/controls.mjs`) and a note naming
   the pooled modes. Never pool modes
   silently.
 - **Booleans are always emitted**, "never only when true". The one
@@ -118,14 +118,14 @@ the timeline, the ingest carry-back and a docs page still split war by
 day. Walk `../consistency/facets.md` section 3, and grep the field and
 its column across `services/`, `apps/web/src/` and `packages/mail/`:
 
-- **Timeline entries** (`services/mcp/src/activity/entries.mjs`,
+- **Timeline entries** (`packages/tools/src/activity/entries.mjs`,
   `summary.mjs`), which the milestone, arena and clan mail import too.
 - **Mail builders** (`services/jobs/src/email/build-*.mjs`). They call
   tools through `callTool` and read fields by name, so a rename breaks
   them. Some also run SQL of their own. Fixtures are in
   `packages/mail/fixtures/`.
 - **Rollups** (`services/jobs/src/meta-rollup.mjs`,
-  `services/ingest/src/rollups.mjs`), which must agree with the live SQL.
+  `packages/ingest/src/rollups.mjs`), which must agree with the live SQL.
 - **The console** (`apps/web/src/`) and **web-api routes**
   (`services/web-api/src/routes/`).
 
@@ -164,7 +164,7 @@ pin (facets.md section 8 names the files).
   `makeInvoker({ db, account, registry: makeRegistry() })`. Under
   `node --test` a result that breaks its `outputSchema` throws, so every
   call also tests the schema.
-- Hand-seeded battles go through `services/mcp/test/deck-rows.mjs`,
+- Hand-seeded battles go through `packages/tools/test/deck-rows.mjs`,
   because "Cards are rows, not JSON".
 - Run one file with
   `npm run build && node --test services/mcp/test/<file>.test.mjs`.

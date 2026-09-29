@@ -25,7 +25,7 @@
 
 import { CHANGELOG, CONTRACT_VERSION, DISCLAIMER } from "@elixir-mcp/contracts";
 import { corpus } from "@elixir-mcp/docs";
-import { readCatalog } from "./tools/cards.mjs";
+import { readCatalog } from "@elixir-mcp/tools/cards";
 
 const SCHEME = "elixir://";
 const MD = "text/markdown";

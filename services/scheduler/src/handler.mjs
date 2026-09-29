@@ -6,8 +6,8 @@
  */
 
 import pg from "pg";
-import { planTick, chargeBudget } from "./plan.mjs";
-import { enqueueJob, settleLeases, ledgerStats } from "./ledger.mjs";
+import { planTick, chargeBudget } from "@elixir-mcp/ledger/plan";
+import { enqueueJob, settleLeases, ledgerStats } from "@elixir-mcp/ledger";
 
 /**
  * One tick's work inside the caller's transaction: plan, enqueue, and

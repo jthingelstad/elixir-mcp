@@ -18,8 +18,8 @@
 
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { FIRST_PARTY_ORIGINS } from "@elixir-mcp/auth";
-import { upsertIssue } from "../../jobs/src/email/ledger.mjs";
-import { deliver } from "../../jobs/src/email/deliver.mjs";
+import { upsertIssue } from "@elixir-mcp/mail/ledger";
+import { deliver } from "@elixir-mcp/mail/deliver";
 
 /** The kinds a family app may send through this door. */
 const CLAN_MAIL_KINDS = ["clan_actions_waiting"];

@@ -15,13 +15,13 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTRACT_VERSION } from "@elixir-mcp/contracts";
-import { makeRegistry } from "../src/tools.mjs";
+import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
 import {
   handleMcpMessage,
   INSTRUCTIONS_BUDGET,
   requestProtocolVersion,
 } from "../src/protocol.mjs";
-import { OUTPUT_SCHEMAS } from "../src/output-schemas.mjs";
+import { OUTPUT_SCHEMAS } from "../../../packages/tools/src/output-schemas.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const registry = makeRegistry();

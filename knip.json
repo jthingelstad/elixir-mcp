@@ -37,16 +37,28 @@
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
-    "services/auth": {
+    "packages/auth": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "packages/ingest": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "packages/ledger": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "packages/outbox": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "packages/tools": {
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
     "services/email-relay": {
       "entry": ["src/index.mjs", "test/**/*.test.mjs"],
-      "project": ["src/**/*.mjs", "test/**/*.mjs"]
-    },
-    "services/ingest": {
-      "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
     "services/jobs": {

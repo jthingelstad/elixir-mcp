@@ -11,7 +11,7 @@
  * `draining` and `revoked` are intentional stops and never silent.
  */
 import pg from "pg";
-import { silentSince } from "../../ingest/src/fleet.mjs";
+import { silentSince } from "@elixir-mcp/ingest/fleet";
 
 /** Tell the owner about every collector that went silent since it was
  *  last told; stamp the row so it is said once. Returns what was said. */

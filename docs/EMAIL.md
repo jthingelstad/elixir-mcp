@@ -436,7 +436,7 @@ submit feedback from one." Built the same day, contract 4.2.0:
   email shows the mail itself (`send-record.mjs`, shared with the
   person's routes the way `call-record.mjs` is).
 - Badge names: the API's identifiers read as code in mail
-  (`MasterySkeletonWarriors`), so `services/mcp/src/badge-names.mjs`
+  (`MasterySkeletonWarriors`), so `packages/record/src/badge-names.mjs`
   serves the badge as a player says it beside the identifier everywhere
   (timeline `badge_label`, tool `label`, the mails' text).
 - Incident, same day: the 09-18 pixel commit passed `period` to

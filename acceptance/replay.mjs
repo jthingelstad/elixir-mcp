@@ -2,13 +2,13 @@
  * A door that answers from captured calls, so a case can be run against
  * what the product answered on a day it was wrong ("prove it bites",
  * acceptance/README.md). Captures are the archive bucket's objects
- * (services/mcp/src/capture.mjs): `{ request: { tool, arguments },
+ * (packages/tools/src/capture.mjs): `{ request: { tool, arguments },
  * response }`, the response being the tool body - or the error body the
  * caller saw. A read the captures do not hold answers `not_captured`,
  * which fails the case for the right reason.
  */
 
-import { participationObjects } from "../services/mcp/src/participation-table.mjs";
+import { participationObjects } from "../packages/tools/src/participation-table.mjs";
 
 export function replayDoor(captures, { tools = [] } = {}) {
   const key = (tool, args) => `${tool}:${canonical(args ?? {})}`;

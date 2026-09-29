@@ -12,7 +12,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { makeRegistry } from "../src/tools.mjs";
+import { makeRegistry } from "../../../packages/tools/src/tools.mjs";
 import { handleMcpMessage } from "../src/protocol.mjs";
 
 const registry = makeRegistry();

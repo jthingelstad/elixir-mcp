@@ -8,7 +8,7 @@ import {
   seedPlayedDeck,
   seedDeck,
   hashFor,
-} from "../../mcp/test/deck-rows.mjs";
+} from "../../../packages/tools/test/deck-rows.mjs";
 import assert from "node:assert/strict";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";

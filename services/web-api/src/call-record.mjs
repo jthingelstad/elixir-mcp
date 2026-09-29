@@ -11,7 +11,7 @@
  * never a public URL.
  */
 
-import { readCapture } from "../../mcp/src/capture.mjs";
+import { readCapture } from "@elixir-mcp/tools/capture";
 
 const COLUMNS = `a.audit_id, a.account_id, a.token_id, a.request_id, a.surface, a.tool,
   a.args, a.duration_ms, a.result_bytes, a.truncated, a.error_code,
