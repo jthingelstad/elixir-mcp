@@ -4,12 +4,13 @@ Own the outcome: **the product is up, deployed from `main`, cheap, and
 still speaking Elixir's current contract.** One Lambda, one table, one
 distribution, one dependency that matters. Most of what can go wrong here
 is a deploy that did not land, an Elixir change this product did not
-follow, or a client registration that quietly expired.
+follow, or a sign-in that no longer comes back to where Clan is served.
 
 ## Every run
 
-- **Alive.** `GET https://clan.poapkings.com/api/health` is `{ ok: true }`;
-  the app shell serves; `/api/me` signed out is a 401 JSON. The smoke
+- **Alive.** `GET https://elixir.poapkings.com/api/clan/health` is
+  `{ ok: true }`; the app shell serves at `/clan/`; `/api/clan/me` signed
+  out is a 401 JSON. The smoke
   script's reads (`node infra/scripts/smoke.mjs`) are the checklist; run
   them, do not re-derive them.
 - **Deployed.** `gh run list --limit 5`: the latest `validate` and
@@ -35,10 +36,12 @@ follow, or a client registration that quietly expired.
   `elixir_my_players` is a gap: read the changelog entry, adapt, test, ship.
   The kit comes from the workspace (2026-09-28), so a design change
   reaches Clan in the pull request that makes it; never copy a file.
-- **The OAuth client.** A registration lives 365 days from last use. Read
-  the stack's `OAuthClientId` and the date of the last successful sign-in
-  (the sessions in the table, read-only); within 30 days of expiry, warn
-  Jamie with the re-register command from `AGENTS.md`.
+- **The OAuth client.** Clan's is Elixir's provisioned family client (app
+  `clan`), which never expires; its redirect URI is
+  `https://elixir.poapkings.com/api/clan/auth/callback`. Sign-ins stopping
+  (the sessions in the table, read-only) with a redirect Elixir refuses go
+  to Jamie, whose `family_clients` op sets the URI (`AGENTS.md`, "The
+  seams to Elixir").
 - **The table.** Sessions and logins carry TTLs; the ledger items do not.
   An item count that grows without a matching product reason is a leak.
 - **Secrets.** Only through `{{resolve:secretsmanager}}` in the template;
@@ -58,5 +61,5 @@ follow, or a client registration that quietly expired.
 ## Success
 
 The site answers, CI is green on `origin/main`, no alarm is unexplained,
-the Elixir contract this product reads is the one Elixir serves, and the
-client registration has months left.
+the Elixir contract this product reads is the one Elixir serves, and
+sign-in comes back to Clan.

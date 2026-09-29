@@ -1,6 +1,6 @@
 # Elixir Clan: vision
 
-`clan.poapkings.com` · a vertical on Elixir · **agreed with Jamie,
+`elixir.poapkings.com/clan` · a vertical on Elixir · **agreed with Jamie,
 2026-09-25**
 
 This is the page every proposal is weighed against. It draws on the family
