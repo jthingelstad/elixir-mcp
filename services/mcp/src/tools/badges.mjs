@@ -4,7 +4,7 @@
  *  one. The corpus is the players recorded now (6.30.1), or a segment
  *  (clan / collection / one player) is named. */
 
-import { badgeLabel } from "../badge-names.mjs";
+import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import { responseMeta } from "@elixir-mcp/contracts";
 import {
   ToolFailure,

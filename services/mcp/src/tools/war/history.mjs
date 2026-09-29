@@ -1,5 +1,5 @@
 import { responseMeta } from "@elixir-mcp/contracts";
-import { sectionsInSeason } from "../../../../ingest/src/war-clock.mjs";
+import { sectionsInSeason } from "@elixir-mcp/record/war-clock";
 import { finishInstant } from "../../time.mjs";
 import {
   DISPLAY_NAME_SCHEMA,

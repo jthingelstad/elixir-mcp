@@ -45,7 +45,7 @@ import {
   seasonAt,
   seasonByKey,
   seasonCrossings,
-} from "../../../ingest/src/season.mjs";
+} from "@elixir-mcp/record/season";
 
 /** The live lane spends real CR budget: tight per-account daily cap,
  *  defaulted by role (contracts roles.ts), beaten by the per-account

@@ -33,6 +33,10 @@
       "entry": ["*.test.mjs"],
       "project": ["*.mjs", "src/**/*.mjs"]
     },
+    "packages/record": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
     "services/auth": {
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]

@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { settledPolMonths } from "../../ingest/src/war-clock.mjs";
+import { settledPolMonths } from "@elixir-mcp/record/war-clock";
 import {
   planTick,
   CADENCE,

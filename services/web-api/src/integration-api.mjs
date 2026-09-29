@@ -13,7 +13,7 @@ import {
   checkRateLimit,
 } from "@elixir-mcp/auth";
 import { describeIdentity, principalBlock } from "../../mcp/src/identity.mjs";
-import { myPlayers } from "../../mcp/src/tools/elixir/my-players.mjs";
+import { myPlayers } from "@elixir-mcp/record/players";
 import { makeRegistry } from "../../mcp/src/tools.mjs";
 import { makeInvoker } from "../../mcp/src/invoker.mjs";
 import { toolDeadlineMs } from "./deadline.mjs";
@@ -21,8 +21,8 @@ import { makeLive } from "../../mcp/src/live.mjs";
 import { ERROR_CLASS } from "@elixir-mcp/contracts";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { setCollectionMembers } from "@elixir-mcp/claims";
-import { gameClock } from "../../ingest/src/game-clock.mjs";
-import { readRecordedProfile } from "../../ingest/src/recorded-profile.mjs";
+import { gameClock } from "@elixir-mcp/record/game-clock";
+import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
 import { enqueueJob, takeLiveToken } from "../../scheduler/src/ledger.mjs";
 import { json, bearer, UUID_RE } from "./http.mjs";
 import {

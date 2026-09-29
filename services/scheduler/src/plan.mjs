@@ -41,8 +41,8 @@ import {
   settledPolMonths,
   inSeasonRollWindow,
   seasonRollWindowStartMs,
-} from "../../ingest/src/war-clock.mjs";
-import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
+} from "@elixir-mcp/record/war-clock";
+import { ensureSeasonsAround } from "@elixir-mcp/record/season";
 import { recordCharge } from "./ledger.mjs";
 
 const MINUTE = 60_000;

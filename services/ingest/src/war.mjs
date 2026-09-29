@@ -18,9 +18,9 @@
 
 import { emitEvent } from "./events.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
-import { raceWeekFor, warClock } from "./war-clock.mjs";
+import { raceWeekFor, warClock } from "@elixir-mcp/record/war-clock";
 import { crTimeToIso } from "./battle-time.mjs";
-import { verifyWarSeason } from "./season.mjs";
+import { verifyWarSeason } from "@elixir-mcp/record/season";
 
 async function latestLoggedWeek(db, clanTag) {
   const { rows } = await db.query(

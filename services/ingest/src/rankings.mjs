@@ -29,7 +29,11 @@
 import { createHash } from "node:crypto";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { reconcileRecording } from "@elixir-mcp/claims";
-import { seasonFromDate, nextSeasonStartMs, monthKey } from "./war-clock.mjs";
+import {
+  seasonFromDate,
+  nextSeasonStartMs,
+  monthKey,
+} from "@elixir-mcp/record/war-clock";
 
 /** How long after the roll a presence keeps recording. Long enough that
  *  the first day of the new season — when the board is empty and nobody

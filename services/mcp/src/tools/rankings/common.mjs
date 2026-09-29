@@ -8,7 +8,7 @@ import {
   nextSeasonStartMs,
   seasonFromDate,
   seasonIdForMonth,
-} from "../../../../ingest/src/war-clock.mjs";
+} from "@elixir-mcp/record/war-clock";
 import { ToolFailure, liveRead, zoneFor } from "../shared.mjs";
 
 export const BOARD_SCHEMA = {

@@ -12,7 +12,7 @@ import {
   seasonIdForMonth,
   settledPolMonths,
 } from "../src/war-clock.mjs";
-import { fixture } from "./helpers.mjs";
+import { fixture } from "./fixture.mjs";
 
 test("period grid: the three REAL captured payloads sit where the math says", async () => {
   // warDay periodIndex 27 / section 3 -> day 6 of section -> warDay 4

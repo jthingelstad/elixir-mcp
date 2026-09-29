@@ -27,7 +27,7 @@ import {
   GRAMMAR_VERSION,
   cardDisplayName,
 } from "@elixir-mcp/contracts";
-import { seasonFromDate, monthKey } from "../../../ingest/src/war-clock.mjs";
+import { seasonFromDate, monthKey } from "@elixir-mcp/record/war-clock";
 import { cachedVocabulary } from "../../../ingest/src/card-roles.mjs";
 import {
   ToolFailure,

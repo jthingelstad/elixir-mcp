@@ -1088,3 +1088,31 @@ stack on 2026-09-29), but every retired Python twin reports a 2.0.3x
 version, so one would still be served work. Raising the minimum past
 2.x retires the pre-signing rollback lever, which is why it moves only
 on Jamie's call (`docs/RELEASING-COLLECTOR.md`).
+
+---
+
+## 2026-09-29 - `packages/record`: services share through a package
+
+Phase 4 of the structural assessment, first slice. The services shared
+code by relative imports into each other's `src` (89 at origin/main);
+web-api answered `/api/v1` from ingest's clock and profile modules and a
+tool file of MCP's. The shared ones are now `@elixir-mcp/record`:
+
+- **Moved, unchanged:** `war-clock`, `season`, `game-clock`,
+  `recorded-profile` and `snapshot-columns` from ingest, `badge-names`
+  from MCP, and `myPlayers` out of the `elixir_my_players` tool file into
+  `record/players`. Thirty importers now name the package; the war-clock
+  and badge-name tests moved with their modules.
+- **The ceiling:** `packages/record/test/boundary.test.mjs` refuses a
+  service import from the package and caps the cross-service imports in
+  services' `src` at 74, a number that only goes down.
+- **Parity:** `services/web-api/test/record-parity.test.mjs` pins that
+  `/api/v1/me` and `elixir_my_players`, `/api/v1/game/clock` and
+  `game_clock`, and `/api/v1/players/{tag}` and `players_profile` give the
+  same facts. No response changed; no contract moved.
+
+Next slices, not started: the mail's own `myPlayers` in
+`services/jobs/src/email/shared.mjs` is a second derivation of the same
+list, in another shape and order. Of the remaining 74 crossings, the
+largest groups are web-api into MCP (18), the migrate Lambda's operations
+into MCP and ingest (14), and jobs into MCP and ingest (12).
