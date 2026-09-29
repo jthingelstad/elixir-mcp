@@ -14,3 +14,8 @@ package-lock.json
 
 # Local agent settings: untracked (global gitignore), not ours to format.
 .claude/
+
+# Elixir Clan, arriving with its history in two pull requests (GitHub
+# rebase-merges at most 100 commits): not yet a workspace, so not yet
+# checked here. The second pull request wires it in and removes this.
+clan/
