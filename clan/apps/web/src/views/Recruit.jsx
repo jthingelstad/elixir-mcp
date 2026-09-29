@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { manageApi } from "../api.js";
 import { useRecruit } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
+import { CLAN, clanPath } from "../lib/base.js";
 
 /**
  * Recruit: a page every member can use. The clan's pitch (a leader's
@@ -34,7 +35,7 @@ export function Recruit({ clan, navigate }) {
   const { state, load, updatedAt: now } = useRecruit(clan.clan_tag);
 
   if (state.signedOut) {
-    window.location.assign("/?error=session_expired");
+    window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
   if (state.error)
@@ -292,7 +293,7 @@ function DraftWithModel({ clan, model, navigate, current, onDraft }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [previous, setPrevious] = useState(null);
-  const modelPath = `/clan/${clan.clan_tag.slice(1)}/manage/settings`;
+  const modelPath = `${clanPath(clan.clan_tag)}/manage/settings`;
   const toModel = (e) => {
     e.preventDefault();
     navigate?.(modelPath);

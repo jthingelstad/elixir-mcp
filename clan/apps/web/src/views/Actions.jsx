@@ -4,6 +4,7 @@ import { keys, useAction, useActions, useInvalidate } from "../lib/queries.js";
 import { ActionCard, STATUS } from "../components/ActionCard.jsx";
 import { TooFew } from "../components/TooFew.jsx";
 import { trackEvent } from "../analytics.js";
+import { CLAN, clanPath } from "../lib/base.js";
 
 const ORDER = [
   "departure",
@@ -18,7 +19,7 @@ const ORDER = [
 
 /** An action's own address: the one people send each other. */
 const actionPath = (clan, number) =>
-  `/clan/${clan.clan_tag.slice(1)}/actions/${number}`;
+  `${clanPath(clan.clan_tag)}/actions/${number}`;
 
 /** Who an action is about, in a word or a name. */
 const about = (a) =>
@@ -157,7 +158,7 @@ function ActionList({ title, actions, clan, navigate }) {
 export function Actions({ clan, navigate }) {
   const { state, query } = useActions(clan.clan_tag);
   if (state.signedOut) {
-    window.location.assign("/?error=session_expired");
+    window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
   const d = state.data;
@@ -266,10 +267,10 @@ export function ActionDetail({ clan, who, number, navigate }) {
     invalidate(keys.me);
   };
   if (state.signedOut) {
-    window.location.assign("/?error=session_expired");
+    window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
-  const list = `/clan/${clan.clan_tag.slice(1)}/actions`;
+  const list = `${clanPath(clan.clan_tag)}/actions`;
   const head = (
     <>
       <div className="page__crumb">

@@ -3,6 +3,7 @@ import { LEADER_MESSAGE, chatWarnings } from "@elixir-clan/engine";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";
+import { CLAN } from "../lib/base.js";
 import { MemberSheet } from "./MemberSheet.jsx";
 import { RoleChip } from "./RoleChip.jsx";
 
@@ -589,10 +590,10 @@ export function ActionCard({
             <div className="flex flex-wrap gap-2">
               <a
                 className="btn btn--primary"
-                href="/you/away"
+                href={`${CLAN}/you/away`}
                 onClick={(e) => {
                   e.preventDefault();
-                  navigate?.("/you/away");
+                  navigate?.(`${CLAN}/you/away`);
                 }}
               >
                 Mark me away

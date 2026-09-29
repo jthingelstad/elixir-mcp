@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { feedbackApi } from "../api.js";
 import { keys, useInvalidate, useMaintainQueue } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
+import { CLAN } from "../lib/base.js";
 
 /**
  * The maintainer's lane: the feedback queue, unread first, and one item
@@ -83,10 +84,10 @@ export function MaintainQueue({ navigate }) {
                   <td>{f.category.replaceAll("_", " ")}</td>
                   <td>
                     <a
-                      href={`/maintain/feedback/${f.feedback_id}`}
+                      href={`${CLAN}/maintain/feedback/${f.feedback_id}`}
                       onClick={(e) => {
                         e.preventDefault();
-                        navigate(`/maintain/feedback/${f.feedback_id}`);
+                        navigate(`${CLAN}/maintain/feedback/${f.feedback_id}`);
                       }}
                     >
                       {f.message.length > 80
@@ -134,10 +135,10 @@ export function MaintainItem({ id, navigate }) {
         <span>
           No feedback item {id}.{" "}
           <a
-            href="/maintain/feedback"
+            href={`${CLAN}/maintain/feedback`}
             onClick={(e) => (
               e.preventDefault(),
-              navigate("/maintain/feedback")
+              navigate(`${CLAN}/maintain/feedback`)
             )}
           >
             All feedback ›
@@ -163,8 +164,11 @@ export function MaintainItem({ id, navigate }) {
     <div style={{ maxWidth: "70ch" }}>
       <p className="page-head__note" style={{ margin: "0 0 10px" }}>
         <a
-          href="/maintain/feedback"
-          onClick={(e) => (e.preventDefault(), navigate("/maintain/feedback"))}
+          href={`${CLAN}/maintain/feedback`}
+          onClick={(e) => (
+            e.preventDefault(),
+            navigate(`${CLAN}/maintain/feedback`)
+          )}
         >
           ‹ All feedback
         </a>

@@ -1,6 +1,7 @@
 import { Fresh } from "@elixir-mcp/ui";
 import { CATEGORY_LABELS } from "@elixir-clan/engine";
 import { useWeek } from "../lib/queries.js";
+import { CLAN, clanPath } from "../lib/base.js";
 
 const ROLE = {
   member: "Member",
@@ -120,7 +121,7 @@ function basisLine(d) {
 export function Week({ clan, week, navigate }) {
   const { state } = useWeek(clan.clan_tag, week);
   const d = state.data;
-  const base = `/clan/${clan.clan_tag.slice(1)}/week`;
+  const base = `${clanPath(clan.clan_tag)}/week`;
   const go = (path) => (e) => {
     e.preventDefault();
     navigate?.(path);
@@ -142,7 +143,7 @@ export function Week({ clan, week, navigate }) {
     </div>
   );
   if (state.signedOut) {
-    window.location.assign("/?error=session_expired");
+    window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
   if (state.error)

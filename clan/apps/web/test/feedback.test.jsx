@@ -143,7 +143,7 @@ describe("feedback", () => {
 
   test("the rail marks unseen replies and shows Maintain only to the maintainer", () => {
     renderWithProviders(
-      <Rail me={me} navigate={vi.fn()} path="/you" narrow={false} />,
+      <Rail me={me} navigate={vi.fn()} path="/clan/you" narrow={false} />,
     );
     expect(screen.getByLabelText("2 new replies")).toBeTruthy();
     expect(screen.queryByText("Feedback queue")).toBeNull();
@@ -152,7 +152,7 @@ describe("feedback", () => {
       <Rail
         me={{ ...me, maintainer: true, feedback_unseen: 0 }}
         navigate={vi.fn()}
-        path="/maintain/feedback"
+        path="/clan/maintain/feedback"
         narrow={false}
       />,
     );
@@ -295,7 +295,29 @@ describe("feedback", () => {
     expect(railKey("/clan/2PQRJ8LV/manage/awards")).toBe("awards");
     expect(railKey("/clan/2PQRJ8LV/trophies")).toBe("trophies");
     expect(railKey("/clan/2PQRJ8LV/me")).toBe("me");
-    expect(railKey("/you/away")).toBe("away");
-    expect(railKey("/feedback/abc")).toBe("feedback");
+    expect(railKey("/clan/you/away")).toBe("away");
+    expect(railKey("/clan/feedback/abc")).toBe("feedback");
+    // The app's own pages come before a tag, and are never a clan.
+    expect(railKey("/clan/clans")).toBe("clans");
+    expect(railKey("/clan/you")).toBe("you");
+    expect(railKey("/clan/maintain/feedback")).toBe("maintain");
+    expect(railKey("/clan/verify")).toBeNull();
+    expect(railKey("/clan")).toBeNull();
+    // Every item is an address under the prefix.
+    const all = railItems({
+      ...me,
+      maintainer: true,
+      policy: { ...withPolicy, active: true },
+      social: { enabled: true },
+      selected: { ...me.selected, role: "leader" },
+      clans: [me.selected, {}],
+    });
+    expect(
+      all.map((r) => r.to).filter((to) => !to.startsWith("/clan/")),
+    ).toEqual([]);
+    expect(all.find((r) => r.key === "board").to).toBe(
+      "/clan/2PQRJ8LV/manage/board",
+    );
+    expect(all.find((r) => r.key === "you").to).toBe("/clan/you");
   });
 });

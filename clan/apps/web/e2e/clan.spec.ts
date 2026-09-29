@@ -67,12 +67,12 @@ async function rendered(page: Page) {
 test("signed out: the landing, the way in on the bar, and a clan path sent home", async ({
   page,
 }) => {
-  await mockApi(page, { "GET /api/me": [401, { error: "signed_out" }] });
+  await mockApi(page, { "GET /api/clan/me": [401, { error: "signed_out" }] });
   await page.goto("/clan/2PQRJ8LV");
-  await expect(page).toHaveURL(/\/$/);
-  await expect(
-    page.getByRole("link", { name: "Sign in with Elixir" }).first(),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/clan$/);
+  const signIn = page.getByRole("link", { name: "Sign in with Elixir" });
+  await expect(signIn.first()).toBeVisible();
+  await expect(signIn.first()).toHaveAttribute("href", "/api/clan/auth/login");
   await expect(page.locator(".rail")).toHaveCount(0);
   await accessible(page, "landing");
 });
@@ -114,8 +114,8 @@ test("an unverified Leader: the notice first, then the clan as a member with the
   await mockApi(
     page,
     signedIn({
-      "GET /api/me": () => [200, me],
-      "POST /api/verify-notice": () => {
+      "GET /api/clan/me": () => [200, me],
+      "POST /api/clan/verify-notice": () => {
         me = { ...me, verify_notice: { ...notice, acknowledged: true } };
         return [200, me];
       },
@@ -154,9 +154,11 @@ test.describe("signed in", () => {
   test("choose a clan, read its roster, walk the rail, file feedback", async ({
     page,
   }) => {
-    await page.goto("/");
+    // `vite preview` answers the prefix only with its slash; the edge
+    // serves /clan too.
+    await page.goto("/clan/");
     // Nothing selected: the chooser.
-    await expect(page).toHaveURL(/\/clans$/);
+    await expect(page).toHaveURL(/\/clan\/clans$/);
     await expect(
       page.getByRole("heading", { name: "Your clans" }),
     ).toBeVisible();
@@ -232,7 +234,7 @@ test.describe("signed in", () => {
       page,
       signedIn(
         {
-          "GET /api/clans/2PQRJ8LV/policy": [
+          "GET /api/clan/clans/2PQRJ8LV/policy": [
             200,
             {
               can_edit: true,
@@ -267,7 +269,7 @@ test.describe("signed in", () => {
   }) => {
     await mockApi(
       page,
-      signedIn({ "GET /api/clans/2PQRJ8LV/policy": [200, POLICY_VIEW] }),
+      signedIn({ "GET /api/clan/clans/2PQRJ8LV/policy": [200, POLICY_VIEW] }),
     );
     await page.goto("/clan/2PQRJ8LV");
     await page
@@ -306,7 +308,7 @@ test.describe("signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clans/2PQRJ8LV/model": [
+        "GET /api/clan/clans/2PQRJ8LV/model": [
           200,
           {
             clan_tag: "#2PQRJ8LV",
@@ -321,7 +323,7 @@ test.describe("signed in", () => {
             set: false,
           },
         ],
-        "GET /api/clans/2PQRJ8LV/sharing": [
+        "GET /api/clan/clans/2PQRJ8LV/sharing": [
           200,
           {
             clan_tag: "#2PQRJ8LV",
@@ -400,7 +402,7 @@ test.describe("signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clans/2PQRJ8LV/actions": [
+        "GET /api/clan/clans/2PQRJ8LV/actions": [
           200,
           {
             clan_tag: "#2PQRJ8LV",
@@ -410,7 +412,7 @@ test.describe("signed in", () => {
             decline_reasons: ["not_now", "other"],
           },
         ],
-        "GET /api/clans/2PQRJ8LV/actions/37": [
+        "GET /api/clan/clans/2PQRJ8LV/actions/37": [
           200,
           {
             clan_tag: "#2PQRJ8LV",
@@ -418,7 +420,10 @@ test.describe("signed in", () => {
             decline_reasons: ["not_now", "other"],
           },
         ],
-        "GET /api/clans/2PQRJ8LV/actions/99": [404, { error: "no_action" }],
+        "GET /api/clan/clans/2PQRJ8LV/actions/99": [
+          404,
+          { error: "no_action" },
+        ],
       }),
     );
     await page.goto("/clan/2PQRJ8LV");
@@ -477,7 +482,7 @@ test.describe("signed in", () => {
     await mockApi(
       page,
       signedIn({
-        "GET /api/clans/2PQRJ8LV/week": (route) => {
+        "GET /api/clan/clans/2PQRJ8LV/week": (route) => {
           const week = new URL(route.request().url()).searchParams.get("week");
           return [
             200,

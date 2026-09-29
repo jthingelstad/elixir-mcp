@@ -78,7 +78,7 @@ export function Landing({ error }) {
 
       <a
         className="btn btn--primary"
-        href="/auth/login"
+        href="/api/clan/auth/login"
         data-tinylytics-event="clan.signin_started"
         data-tinylytics-event-value="landing"
       >

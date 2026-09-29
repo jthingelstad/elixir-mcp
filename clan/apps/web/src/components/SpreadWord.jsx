@@ -1,5 +1,6 @@
 import { inviteCopy } from "@elixir-clan/engine";
 import { CopyLine } from "./ActionCard.jsx";
+import { CLAN, clanPath } from "../lib/base.js";
 
 const LEADERS = new Set(["leader", "coLeader"]);
 const MIN_MEMBERS = 10;
@@ -22,8 +23,10 @@ const TURNS_ON = [
 export function SpreadWord({ me, clan, roster, navigate }) {
   const members = roster?.member_count ?? roster?.members?.length ?? null;
   const policy = me?.policy ?? null;
-  const base = `/clan/${clan.clan_tag.slice(1)}`;
-  const link = typeof window !== "undefined" ? window.location.origin : "";
+  const base = clanPath(clan.clan_tag);
+  // The app's own address to share: Clan's landing on Elixir's origin.
+  const link =
+    typeof window !== "undefined" ? `${window.location.origin}${CLAN}` : "";
   const go = (path) => (e) => {
     e.preventDefault();
     navigate?.(path);

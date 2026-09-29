@@ -13,7 +13,8 @@ import { Landing } from "../src/views/Landing.jsx";
 import { Disclaimer } from "@elixir-mcp/ui";
 import { Clans } from "../src/views/Clans.jsx";
 import { VerifyNotice } from "../src/views/VerifyNotice.jsx";
-import { clanFromPath, clanPath } from "../src/App.jsx";
+import { clanFromPath, parseClanPath } from "../src/App.jsx";
+import { clanPath } from "../src/lib/base.js";
 
 afterEach(cleanup);
 
@@ -189,7 +190,7 @@ describe("the gate pages", () => {
     );
     expect(
       screen.getByRole("link", { name: "Sign in again" }).getAttribute("href"),
-    ).toBe("/auth/login");
+    ).toBe("/api/clan/auth/login");
     cleanup();
     renderWithProviders(
       <Refused reason="no_clan" me={me} onRecheck={() => {}} />,
@@ -210,7 +211,7 @@ describe("the landing page", () => {
       screen
         .getByRole("link", { name: "Sign in with Elixir" })
         .getAttribute("href"),
-    ).toBe("/auth/login");
+    ).toBe("/api/clan/auth/login");
     expect(screen.getByText("cr:read")).toBeTruthy();
   });
 
@@ -246,7 +247,7 @@ describe("choosing a clan", () => {
       screen
         .getByRole("menuitem", { name: /All your clans/ })
         .getAttribute("href"),
-    ).toBe("/clans");
+    ).toBe("/clan/clans");
   });
 
   test("one clan: a plain chip, no menu", () => {
@@ -312,7 +313,29 @@ describe("choosing a clan", () => {
     expect(clanFromPath("/clan/2pqrj8lv/", [poap])).toBe(poap);
     expect(clanFromPath("/clan/PYLQ2", [poap])).toBeNull();
     expect(clanFromPath("/clan", [poap])).toBeNull();
-    expect(clanFromPath("/clans", [poap])).toBeNull();
+    expect(clanFromPath("/clan/", [poap])).toBeNull();
+    expect(clanFromPath("/clan/clans", [poap])).toBeNull();
+  });
+
+  test("the app's own pages win over a tag, and a tag is the game's alphabet", () => {
+    for (const page of [
+      "clans",
+      "you",
+      "you/away",
+      "verify",
+      "refused/no_clan",
+      "feedback",
+      "feedback/abc",
+      "maintain/feedback",
+    ])
+      expect(parseClanPath(`/clan/${page}`)).toBeNull();
+    // "you" is Y, 0 and U once O reads as 0, and still not a clan.
+    expect(parseClanPath("/clan/you/me")).toBeNull();
+    expect(parseClanPath("/clan/ABCDEF")).toBeNull();
+    expect(parseClanPath("/clan/2PQRJ8L0")?.tag).toBe("#2PQRJ8L0");
+    expect(parseClanPath("/clan/2PQRJ8LO")?.tag).toBe("#2PQRJ8L0");
+    // Only under the prefix: the root is Elixir's.
+    expect(parseClanPath("/2PQRJ8LV")).toBeNull();
   });
 
   test("the roster marks every one of your tags in a clan", () => {

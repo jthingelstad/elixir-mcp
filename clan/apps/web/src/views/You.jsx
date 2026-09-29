@@ -1,6 +1,7 @@
 import { ago } from "@elixir-mcp/ui";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
+import { CLAN } from "../lib/base.js";
 
 function Row({ label, children }) {
   return (
@@ -68,7 +69,7 @@ export function You({ me }) {
                 />
               </>
             ) : (me.clans ?? []).length > 0 ? (
-              <a href="/clans">choose a clan</a>
+              <a href={`${CLAN}/clans`}>choose a clan</a>
             ) : (
               "no verified clan yet"
             )}

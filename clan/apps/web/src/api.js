@@ -1,7 +1,9 @@
-/** Same-origin /api/*, cookie-authed. Every answer is `{ ok, status, data }`;
- *  a non-JSON body (an edge error page) is a failure whatever its status.
- *  The envelope, timeout and failure accounting are the family's, in
- *  Elixir's client package; this file is only this app's route map. */
+/** Same-origin /api/clan/*, cookie-authed: Elixir's edge sends it to
+ *  Clan's Lambda, which reads /api/clan/<route> as /api/<route>. Every
+ *  answer is `{ ok, status, data }`; a non-JSON body (an edge error page)
+ *  is a failure whatever its status. The envelope, timeout and failure
+ *  accounting are the family's, in Elixir's client package; this file is
+ *  only this app's route map. */
 
 import { createClient } from "@elixir-mcp/client";
 import { routeLabel, trackEvent } from "./analytics.js";
@@ -20,7 +22,10 @@ const post = (path, body) => client.post(path, body);
 const put = (path, body) => client.request("PUT", path, body);
 const del = (path) => client.request("DELETE", path);
 
-const clanBase = (tag) => `/api/clans/${String(tag).replace(/^#/, "")}`;
+/** Where Clan's API answers on Elixir's origin. */
+const API = "/api/clan";
+
+const clanBase = (tag) => `${API}/clans/${String(tag).replace(/^#/, "")}`;
 
 export const manageApi = {
   manage: (tag, refresh = false) =>
@@ -106,27 +111,27 @@ export const manageApi = {
 };
 
 export const feedbackApi = {
-  list: () => get("/api/feedback"),
-  file: (body) => post("/api/feedback", body),
-  item: (id) => get(`/api/feedback/${id}`),
-  queue: () => get("/api/maintain/feedback"),
-  decide: (id, body) => post(`/api/maintain/feedback/${id}`, body),
+  list: () => get(`${API}/feedback`),
+  file: (body) => post(`${API}/feedback`, body),
+  item: (id) => get(`${API}/feedback/${id}`),
+  queue: () => get(`${API}/maintain/feedback`),
+  decide: (id, body) => post(`${API}/maintain/feedback/${id}`, body),
 };
 
 export const api = {
-  me: (refresh = false) => get(refresh ? "/api/me?refresh=1" : "/api/me"),
+  me: (refresh = false) => get(`${API}/me${refresh ? "?refresh=1" : ""}`),
   roster: (clanTag, refresh = false) => {
     const q = new URLSearchParams();
     if (clanTag) q.set("clan", clanTag);
     if (refresh) q.set("refresh", "1");
     const qs = q.toString();
-    return get(qs ? `/api/roster?${qs}` : "/api/roster");
+    return get(`${API}/roster${qs ? `?${qs}` : ""}`);
   },
-  select: (clanTag) => post("/api/select", { clan_tag: clanTag }),
+  select: (clanTag) => post(`${API}/select`, { clan_tag: clanTag }),
   /** "I understand" on the notice after sign-in. */
-  acknowledgeVerify: () => post("/api/verify-notice", {}),
+  acknowledgeVerify: () => post(`${API}/verify-notice`, {}),
   // Where you play from, for every clan map you are on (one per person).
-  myPlace: () => get("/api/me/place"),
-  setMyPlace: (place) => put("/api/me/place", place),
-  clearMyPlace: () => del("/api/me/place"),
+  myPlace: () => get(`${API}/me/place`),
+  setMyPlace: (place) => put(`${API}/me/place`, place),
+  clearMyPlace: () => del(`${API}/me/place`),
 };
