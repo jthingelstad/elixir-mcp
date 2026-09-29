@@ -1306,3 +1306,59 @@ the same to the local file (`sameTemplate`).
 
 The first deploy after this merges is a platform deploy whatever it
 carries: no live key is content-named yet.
+
+---
+
+## 2026-09-29 - 860c6c66 deployed, and the site lane proven on it
+
+860c6c66 (#154, #155, #156, #157) is deployed with `--acceptance` in
+full, because #156 moved shared code into packages. As the first deploy
+with content-named keys it took the platform lane: all seven code keys
+changed, and the template changed (#156's two lines). Migrations: 195
+applied, 0 ran. Stack `UPDATE_COMPLETE` at 09:15Z, smoke green. It ran
+09:14 to 09:31Z (4:14 to 4:31 AM CT). Acceptance: 1,189 cases, 13
+failed, 57 skipped. Verdicts:
+
+- budgets/clans_participation and catalogue/clans_participation#2 are
+  one call, `clans_participation {"weeks":2}`, whose 15.3 s the run
+  reused for four cases (also contracts and gym/334.3). The ceilings
+  are 8 s and 15 s. Alone it passes twice, in 1,048 ms and 869 ms. The
+  tool's p95 this week is 10.2 s, so it slows in heavy company; #156
+  moved its SQL without changing it. Watch it.
+- gym/196.2, gym/337.1, gym/343.2: live cases whose world moved, as at
+  9.17.0.
+- budgets/meta-cards-corpus-week (16.5 s),
+  catalogue/battles_meta_cards#1 (15.8 s), battles_trends#1 (14.1 s),
+  badges_rarity#1 (4.6 s): the open timing items; none of these tools
+  changed.
+- catalogue/cards_archetype#docs, elixir_collectors#docs,
+  elixir_timeline#docs, war_history#notes: rare fields absent from this
+  run, as at 9.12.8 and 9.17.0.
+- gym/185.3, failing at 9.17.0, passed.
+
+**The site lane, live.** The same commit, deployed again at 09:32Z
+without acceptance (no code changed; this run is the lane's own test):
+
+- `lane: site`, with the same seven keys uploaded;
+- no migrate push, no migrations, no stack update (the stack's last
+  event is still 09:15:24Z);
+- then the vocabulary import, site publish, invalidation and 43 smoke
+  checks, all green.
+
+It took 37 seconds end to end. So the live template matched once
+CloudFormation's `?` was allowed for, and the keys held from one build
+to the next. The scheduler, email-relay and editor bundles kept the
+keys a local build of dd5d54c0 gave them. The four bundles that carry
+the corpus moved only because #157 touched a corpus source.
+
+Read-back, reads only:
+
+- `/api/public/status` is `ok: true`, and `/tools.json` is 9.17.0 (no
+  contract change).
+- `elixir_docs` over MCP reports `corpus_built_at`
+  2026-09-29T09:13:23Z, which is 860c6c66's commit time, and the limits
+  page's example resets 2026-09-30.
+- Elixir Clan's CI deploys of d4a5cc0b, e4eb7035, dd5d54c0 and 860c6c66
+  are green.
+
+Nothing owed.
