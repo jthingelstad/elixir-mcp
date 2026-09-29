@@ -10,9 +10,10 @@ import { Usage } from "../views/account/Usage.jsx";
 import { useHere, useNav } from "../App.jsx";
 import { useAgentMe } from "../lib/queries.js";
 import { ScopeProvider } from "../lib/scope.js";
+import { CONSOLE } from "../lib/console.js";
 
 /**
- * /agent/{public_id}/{page}/{itemId}/{recordId}: an agent's console
+ * /console/agent/{public_id}/{page}/{itemId}/{recordId}: an agent's console
  * (docs/reviews/2026-09-23-CONSOLE-ACCOUNT-SWITCHER.md). The scope comes
  * from the address and nowhere else; every page below is the same view
  * your console uses, reading through the scoped hooks.
@@ -53,7 +54,7 @@ function AgentConsole({ agentId, page, sub, itemId, recordId, navigate }) {
           {res.data.status === 404 || res.data.status === 403
             ? "No agent here on your account. "
             : "Elixir could not read this agent just now; try again in a moment. "}
-          <Link to="/account/agents">All agents ›</Link>
+          <Link to={`${CONSOLE}/account/agents`}>All agents ›</Link>
         </div>
       </div>
     );

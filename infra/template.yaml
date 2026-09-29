@@ -1930,8 +1930,10 @@ Resources:
   # returned byte-identical HTML and no crawler or agent could read the
   # docs at all.
   #
-  # STATIC_PAGES below must stay in step with what apps/site emits and
-  # with STATIC_LINKS in apps/web/src/App.jsx. A test pins all three.
+  # One origin, paths not hostnames (2026-09-28): the Console lives
+  # under /console and everything else is the site's, so the rule is a
+  # prefix, not a list of pages to keep in step. The MCP, OAuth and API
+  # paths never reach this function: they are their own behaviours.
   SpaRouter:
     Type: AWS::CloudFront::Function
     Properties:
@@ -1945,23 +1947,6 @@ Resources:
         Comment: Route content paths to the static site and app paths to the app shell
         Runtime: cloudfront-js-2.0
       FunctionCode: |
-        // The Data section is five static pages; /data/dashboard is the
-        // app's charts and must NOT match, which is why these are listed
-        // rather than prefixed. /updates/ is prefixed: every update is
-        // its own page and there is no app route under it.
-        var STATIC_PAGES = {
-          '/data': 1,
-          '/data/growth': 1,
-          '/data/collect': 1,
-          '/data/now': 1,
-          '/data/machines': 1,
-          '/docs': 1,
-          '/family': 1,
-          '/updates': 1,
-          '/support': 1
-        };
-        var STATIC_PREFIXES = ['/cards/', '/docs/', '/examples/', '/family/', '/updates/'];
-
         function handler(event) {
           var request = event.request;
           var uri = request.uri;
@@ -1985,15 +1970,17 @@ Resources:
             ? uri.substring(0, uri.length - 1)
             : uri;
 
-          var isStatic = STATIC_PAGES[key] === 1;
-          for (var i = 0; i < STATIC_PREFIXES.length && !isStatic; i++) {
-            if (key.indexOf(STATIC_PREFIXES[i]) === 0) isStatic = true;
+          // The Console owns /console and everything under it; the app
+          // resolves its own paths (and sends a stale one home).
+          if (key === '/console' || key.indexOf('/console/') === 0) {
+            request.uri = '/app.html';
+            return request;
           }
 
-          // A static page that does not exist is an honest miss, the
-          // same as a missing asset. Everything else is an application
-          // route and gets the app shell.
-          request.uri = isStatic ? key + '/index.html' : '/app.html';
+          // Every other path is a site document. One the site does not
+          // build is an honest miss, the same as a missing asset: the
+          // Console's old addresses at the root are not aliased.
+          request.uri = key + '/index.html';
           return request;
         }
 

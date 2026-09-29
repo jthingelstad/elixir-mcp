@@ -2,6 +2,7 @@ import { useWrite } from "@elixir-mcp/client";
 import { ago, Link, WriteError } from "@elixir-mcp/ui";
 import { api } from "../../api.js";
 import { keys, useSessions } from "../../lib/queries.js";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * Profile → Devices: every session that can still act as you, this one marked,
@@ -33,7 +34,7 @@ export function DevicesPage() {
   return (
     <>
       <div className="page__crumb">
-        <Link to="/account/profile">‹ Profile</Link>
+        <Link to={`${CONSOLE}/account/profile`}>‹ Profile</Link>
       </div>
       <div className="mb-[18px]">
         <h1 className="page__title">Devices</h1>

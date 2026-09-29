@@ -1,5 +1,6 @@
 import { Link } from "@elixir-mcp/ui";
 import { usePublicEfficiency } from "../lib/queries.js";
+import { CONSOLE } from "../lib/console.js";
 
 /**
  * Service ▸ Status ▸ Efficiency — what the battlelog schedule costs and
@@ -65,7 +66,7 @@ export function Efficiency() {
   return (
     <>
       <div className="page__crumb">
-        <Link to="/status/service">‹ Status</Link>
+        <Link to={`${CONSOLE}/status/service`}>‹ Status</Link>
       </div>
       <h1 className="page__title">Efficiency</h1>
       <p className="page__lede">

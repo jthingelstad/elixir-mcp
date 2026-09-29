@@ -2,6 +2,7 @@ import { Icon, writeErrorText } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { consumeLoginToken } from "../url-hygiene.js";
+import { CONSOLE } from "../lib/console.js";
 
 /**
  * Sign in, or ask to — one card, six states.
@@ -343,7 +344,7 @@ export function SignIn({ onAuthed }) {
             color: "var(--ink-body)",
           }}
         >
-          Meanwhile, <a href="/data/dashboard">the data page</a> and{" "}
+          Meanwhile, <a href={`${CONSOLE}/data/dashboard`}>the data page</a> and{" "}
           <a href="/docs">the docs</a> need no account.
         </div>
       </div>

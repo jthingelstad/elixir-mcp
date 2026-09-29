@@ -4,6 +4,7 @@ import { api } from "../../api.js";
 import { keys, useInvalidate, useVerifyList } from "../../lib/queries.js";
 import { DeckGrid } from "../../components/DeckGrid.jsx";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * Verify — prove that this account controls a player.
@@ -325,7 +326,7 @@ export function Verify({ refresh, navigate }) {
                 <button
                   type="button"
                   className="btn btn--quiet"
-                  onClick={() => navigate?.("/account/tracking")}
+                  onClick={() => navigate?.(`${CONSOLE}/account/tracking`)}
                 >
                   Go to Tracking
                 </button>

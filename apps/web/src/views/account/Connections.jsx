@@ -14,6 +14,7 @@ import { useScope } from "../../lib/scope.js";
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
 import { ClanRefs } from "../../components/ClanRefs.jsx";
 import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * Connections — everything that can call Elixir with your authority.
@@ -174,7 +175,7 @@ export function Connections({ me, navigate }) {
           <button
             className="btn"
             style={{ marginLeft: "auto" }}
-            onClick={() => navigate("/account/agents")}
+            onClick={() => navigate(`${CONSOLE}/account/agents`)}
           >
             <Icon name="plus" size={16} />
             New agent
@@ -354,7 +355,7 @@ export function Connections({ me, navigate }) {
                       </span>
                       <Link
                         style={{ fontWeight: 600, fontSize: "14px" }}
-                        to={`/agent/${a.public_id}/overview`}
+                        to={`${CONSOLE}/agent/${a.public_id}/overview`}
                       >
                         {a.name ?? a.public_id}
                       </Link>
@@ -420,7 +421,9 @@ export function Connections({ me, navigate }) {
                   <td style={{ textAlign: "right" }}>
                     <button
                       className="btn btn--sm"
-                      onClick={() => navigate(`/agent/${a.public_id}/overview`)}
+                      onClick={() =>
+                        navigate(`${CONSOLE}/agent/${a.public_id}/overview`)
+                      }
                     >
                       Open
                     </button>

@@ -32,7 +32,7 @@ beforeEach(() => {
       text: async () => JSON.stringify(body),
     };
   });
-  window.history.pushState({}, "", "/data/dashboard");
+  window.history.pushState({}, "", "/console/data/dashboard");
 });
 afterEach(() => vi.restoreAllMocks());
 

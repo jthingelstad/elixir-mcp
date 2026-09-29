@@ -88,7 +88,11 @@ test("a war week is read by name and shows the race: five clans, the days, who f
     .spyOn(api, "explore")
     .mockImplementation(async () => answer(WEEK));
   renderWithProviders(
-    <Explore me={{}} navigate={vi.fn()} path="/explore/week/J2RGCRVG~120~2" />,
+    <Explore
+      me={{}}
+      navigate={vi.fn()}
+      path="/console/explore/week/J2RGCRVG~120~2"
+    />,
   );
   await screen.findByRole("heading", { name: "Season 120, week 3" });
 
@@ -108,7 +112,7 @@ test("a war week is read by name and shows the race: five clans, the days, who f
   // Every clan in the race, each a real link to its record.
   const links = [...standings.querySelectorAll("a")];
   expect(links.map((a) => a.textContent)).toEqual(CLANS.map((c) => c[1]));
-  expect(links[1].getAttribute("href")).toBe("/explore/clan/GCYQR9VY");
+  expect(links[1].getAttribute("href")).toBe("/console/explore/clan/GCYQR9VY");
 
   const days = screen
     .getByRole("heading", { name: "Day by day" })
@@ -120,7 +124,9 @@ test("a war week is read by name and shows the race: five clans, the days, who f
     .closest("section");
   const member = screen.getByRole("link", { name: "King Thing" });
   expect(members.contains(member)).toBe(true);
-  expect(member.getAttribute("href")).toBe("/explore/player/20JJJ2CCRU");
+  expect(member.getAttribute("href")).toBe(
+    "/console/explore/player/20JJJ2CCRU",
+  );
 });
 
 test("a week the record does not hold says why, in the tool's own words", async () => {
@@ -130,7 +136,11 @@ test("a week the record does not hold says why, in the tool's own words", async 
     answer({ clan_tag: "#J2RGCRVG", weeks: [], notes: [note] }),
   );
   renderWithProviders(
-    <Explore me={{}} navigate={vi.fn()} path="/explore/week/J2RGCRVG~90~1" />,
+    <Explore
+      me={{}}
+      navigate={vi.fn()}
+      path="/console/explore/week/J2RGCRVG~90~1"
+    />,
   );
   await screen.findByText("No records");
   expect(screen.getByText(new RegExp("before the horizon"))).toBeTruthy();
@@ -154,18 +164,22 @@ test("a tag lookup's probe seeds the record, so the lookup costs one call", asyn
     );
   const navigate = vi.fn();
   const { rerender } = renderWithProviders(
-    <Explore me={{}} navigate={navigate} path="/explore" />,
+    <Explore me={{}} navigate={navigate} path="/console/explore" />,
   );
   fireEvent.change(screen.getByLabelText("Look up a record"), {
     target: { value: "20JJJ2CCRU" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Look up" }));
   await waitFor(() =>
-    expect(navigate).toHaveBeenCalledWith("/explore/player/20JJJ2CCRU"),
+    expect(navigate).toHaveBeenCalledWith("/console/explore/player/20JJJ2CCRU"),
   );
 
   rerender(
-    <Explore me={{}} navigate={navigate} path="/explore/player/20JJJ2CCRU" />,
+    <Explore
+      me={{}}
+      navigate={navigate}
+      path="/console/explore/player/20JJJ2CCRU"
+    />,
   );
   await screen.findByRole("heading", { name: "King Thing" });
   const summaries = explore.mock.calls.filter(

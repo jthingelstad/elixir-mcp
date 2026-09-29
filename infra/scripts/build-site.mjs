@@ -135,6 +135,8 @@ function resolves(urlPath) {
   const rel = clean.replace(/^\//, "");
   if (rel === "") return files.has("index.html");
   if (path.basename(rel).includes(".")) return files.has(rel);
+  if (rel === "console" || rel.startsWith("console/"))
+    return files.has("app.html");
   return files.has(path.join(rel, "index.html"));
 }
 

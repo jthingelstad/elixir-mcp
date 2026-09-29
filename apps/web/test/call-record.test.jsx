@@ -125,9 +125,9 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
 
   // Previous and next by the same connection.
   fireEvent.click(screen.getByRole("button", { name: "‹ Previous call" }));
-  expect(navigate).toHaveBeenCalledWith(`/account/activity/c/${PREV}`);
+  expect(navigate).toHaveBeenCalledWith(`/console/account/activity/c/${PREV}`);
   fireEvent.click(screen.getByRole("button", { name: "Next call ›" }));
-  expect(navigate).toHaveBeenCalledWith(`/account/activity/c/${NEXT}`);
+  expect(navigate).toHaveBeenCalledWith(`/console/account/activity/c/${NEXT}`);
 
   // Feedback, carrying the call as a FIELD. It used to arrive as
   // ?context=request_id:<id> and be pasted into the message, where
@@ -135,7 +135,7 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
   // queue links to this record and an agent can attach one too.
   fireEvent.click(screen.getByText("Report this call"));
   expect(navigate).toHaveBeenCalledWith(
-    `/account/feedback?request_id=${encodeURIComponent(ID)}`,
+    `/console/account/feedback?request_id=${encodeURIComponent(ID)}`,
   );
   expect(screen.getByText(/kept 90 days/)).toBeTruthy();
 });
@@ -200,11 +200,11 @@ test("the Activity log links each request id to its record", async () => {
   renderWithProviders(<Activity sub="requests" navigate={navigate} />);
   await waitFor(() => screen.getByText(ID.slice(0, 8)));
   fireEvent.click(screen.getByText(ID.slice(0, 8)));
-  expect(navigate).toHaveBeenCalledWith(`/account/activity/c/${ID}`);
+  expect(navigate).toHaveBeenCalledWith(`/console/account/activity/c/${ID}`);
 });
 
 test("the record belongs to MCP requests in the rail and has its own docs strip", () => {
-  const at = railPosition(`/account/activity/c/${ID}`);
+  const at = railPosition(`/console/account/activity/c/${ID}`);
   expect(at).toEqual({
     key: "activity",
     sub: "requests",

@@ -56,7 +56,7 @@ test("the list is a table: one line per note, id links to the record", async () 
   expect(table.textContent).not.toContain("Two cases");
   expect(table.textContent).toContain("replied");
   screen.getByText("fb_14").click();
-  expect(navigate).toHaveBeenCalledWith("/account/feedback/14");
+  expect(navigate).toHaveBeenCalledWith("/console/account/feedback/14");
 });
 
 test("the record renders the note and the reply as Markdown, safely", async () => {

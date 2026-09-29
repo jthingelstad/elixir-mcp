@@ -1,7 +1,7 @@
 import { Admin } from "../views/Admin.jsx";
 import { SignInWall, useHere, useMe, useNav } from "../App.jsx";
 
-/** /admin/{page}/{itemId}: admins only; anyone else meets the wall. */
+/** /console/admin/{page}/{itemId}: admins only; anyone else meets the wall. */
 export function AdminPage() {
   const navigate = useNav();
   const { me } = useMe();

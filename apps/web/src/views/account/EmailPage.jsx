@@ -2,6 +2,7 @@ import { useWrite } from "@elixir-mcp/client";
 import { Link, useClock, WriteError } from "@elixir-mcp/ui";
 import { api } from "../../api.js";
 import { keys, useEmailPrefs } from "../../lib/queries.js";
+import { CONSOLE } from "../../lib/console.js";
 
 const BLURB = {
   clan_report:
@@ -40,7 +41,7 @@ export function EmailPage() {
   return (
     <>
       <div className="page__crumb">
-        <Link to="/account/profile">‹ Profile</Link>
+        <Link to={`${CONSOLE}/account/profile`}>‹ Profile</Link>
       </div>
       <div className="mb-[18px]">
         <h1 className="page__title">Email</h1>
@@ -84,7 +85,10 @@ export function EmailPage() {
       <section className="panel mb-[14px]">
         <div className="panel__head">
           <span className="panel-title">Sent to you</span>
-          <Link className="ml-auto text-[13px]" to="/account/activity/emails">
+          <Link
+            className="ml-auto text-[13px]"
+            to={`${CONSOLE}/account/activity/emails`}
+          >
             Every email sent to you ›
           </Link>
         </div>
@@ -94,7 +98,7 @@ export function EmailPage() {
               <Link
                 key={r.send_id}
                 className="flex items-baseline gap-3 px-4 py-2 border-t border-line-soft text-[13.5px]"
-                to={`/account/activity/e/${r.send_id}`}
+                to={`${CONSOLE}/account/activity/e/${r.send_id}`}
               >
                 <span className="mono text-[12px] text-ink-faint shrink-0">
                   {day(r.sent_at)}

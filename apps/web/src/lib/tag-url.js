@@ -4,7 +4,7 @@
  * A tag is canonical WITH the hash everywhere else in the system — the
  * database, the API, the contract's normalizeTag. A URL is the one place
  * it must not be: `#` starts a fragment, so it has to travel as `%23`,
- * and `/explore/player/%2320JJJ2CCRU` is what a person then copies out
+ * and `/console/explore/player/%2320JJJ2CCRU` is what a person copies out
  * of the address bar and pastes into a message.
  *
  * The two halves used to be written per call site, and they disagreed.

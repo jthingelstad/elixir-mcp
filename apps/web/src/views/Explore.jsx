@@ -12,6 +12,7 @@ import {
 import { api } from "../api.js";
 import { useExploreCollections, usePublicStats } from "../lib/queries.js";
 import { tagPath, tagFromPath } from "../lib/tag-url.js";
+import { CONSOLE, appPath } from "../lib/console.js";
 
 /**
  * Explore — the record browser (design handoff 2026-09-05). Not a
@@ -252,8 +253,8 @@ const BROWSE = {
 };
 
 export function Explore({ me, navigate, path }) {
-  // /explore | /explore/<browse> | /explore/:kind/:id(+)
-  const segs = path.split("/").filter(Boolean).slice(1); // after 'explore'
+  // /explore | /explore/<browse> | /explore/:kind/:id(+), under the prefix
+  const segs = (appPath(path) ?? "").split("/").filter(Boolean).slice(1); // after 'explore'
   const kind = segs[0] ?? null;
   const id = segs.slice(1).join("/") ?? null;
 
@@ -294,7 +295,7 @@ function Lookup({ me, navigate, browse }) {
   const go = useCallback(
     (kind, recId) => {
       restartTrail();
-      navigate(`/explore/${kind}/${recId}`);
+      navigate(`${CONSOLE}/explore/${kind}/${recId}`);
     },
     [navigate],
   );
@@ -510,7 +511,7 @@ function Lookup({ me, navigate, browse }) {
             {matches.found.map((m) => (
               <Link
                 key={m.player_tag}
-                to={`/explore/player/${encTag(m.player_tag)}`}
+                to={`${CONSOLE}/explore/player/${encTag(m.player_tag)}`}
                 onClick={restartTrail}
                 style={{
                   display: "flex",
@@ -581,8 +582,8 @@ function Lookup({ me, navigate, browse }) {
               Nothing in the corpus matches that tag or name. Elixir records the
               players and clans someone added, and the game&rsquo;s
               leaderboards; it does not crawl the whole game. Add it from{" "}
-              <Link to="/account/tracking">Account ▸ Tracking</Link> and
-              recording starts on the next poll.
+              <Link to={`${CONSOLE}/account/tracking`}>Account ▸ Tracking</Link>{" "}
+              and recording starts on the next poll.
             </div>
           </div>
         )}
@@ -646,7 +647,7 @@ function Lookup({ me, navigate, browse }) {
           {collections.map((c) => (
             <Link
               key={c.slug}
-              to={`/explore/collection/${c.slug}`}
+              to={`${CONSOLE}/explore/collection/${c.slug}`}
               onClick={restartTrail}
               style={{
                 display: "flex",
@@ -677,7 +678,7 @@ function Lookup({ me, navigate, browse }) {
           <div className="panel__head">
             <span className="panel-title">What the corpus holds</span>
             <Link
-              to="/data/dashboard"
+              to={`${CONSOLE}/data/dashboard`}
               className="mono"
               style={{ marginLeft: "auto", fontSize: "11px" }}
             >
@@ -781,7 +782,7 @@ function RecordTable({ table }) {
 
 function RecordPage({ me, kind, rawId }) {
   const [raw, setRaw] = useState(false);
-  const href = `/explore/${kind}/${rawId}`;
+  const href = `${CONSOLE}/explore/${kind}/${rawId}`;
 
   // One record, one bridge call, cached by its address: Back to a record
   // you just left is served from the cache, and a saved nickname
@@ -830,7 +831,8 @@ function RecordPage({ me, kind, rawId }) {
             : "Could not load this record"}
         </div>
         <div className="empty__body">
-          {record.error.message} <Link to="/explore">Back to lookup</Link>
+          {record.error.message}{" "}
+          <Link to={`${CONSOLE}/explore`}>Back to lookup</Link>
         </div>
       </div>
     );
@@ -839,7 +841,7 @@ function RecordPage({ me, kind, rawId }) {
   return (
     <>
       <div className="trail">
-        <Link to="/explore">corpus</Link>
+        <Link to={`${CONSOLE}/explore`}>corpus</Link>
         {trail.map((c, i) => (
           <span key={c.href} style={{ display: "contents" }}>
             <span className="trail__sep">/</span>
@@ -1048,7 +1050,7 @@ function buildView(kind, rawId, res, me, zone) {
         label: "clan_tag",
         value: b.clan?.tag ?? b.clan_tag,
         mono: true,
-        href: `/explore/clan/${encTag(b.clan?.tag ?? b.clan_tag)}`,
+        href: `${CONSOLE}/explore/clan/${encTag(b.clan?.tag ?? b.clan_tag)}`,
         hint: b.clan?.name,
       });
     if (b.trophies !== undefined)
@@ -1069,7 +1071,7 @@ function buildView(kind, rawId, res, me, zone) {
         label: "top deck",
         value: b.most_played_deck.deck_hash.slice(0, 12) + "…",
         mono: true,
-        href: `/explore/deck/${b.most_played_deck.deck_hash}`,
+        href: `${CONSOLE}/explore/deck/${b.most_played_deck.deck_hash}`,
       });
     return {
       kindLabel: "PLAYER",
@@ -1085,7 +1087,10 @@ function buildView(kind, rawId, res, me, zone) {
       // The record you own has its controls one click away, on the page
       // that holds them; nothing here edits.
       action: yours
-        ? { label: "Manage tracking", href: `/account/tracking/${encTag(tag)}` }
+        ? {
+            label: "Manage tracking",
+            href: `${CONSOLE}/account/tracking/${encTag(tag)}`,
+          }
         : null,
       sub: "What the recorder holds for this player. Coverage tiles open the underlying records.",
       fields,
@@ -1093,12 +1098,12 @@ function buildView(kind, rawId, res, me, zone) {
         {
           label: "battles",
           value: "browse",
-          href: `/explore/list/battles:${encTag(tag)}`,
+          href: `${CONSOLE}/explore/list/battles:${encTag(tag)}`,
         },
         {
           label: "decks",
           value: "browse",
-          href: `/explore/list/decks:${encTag(tag)}`,
+          href: `${CONSOLE}/explore/list/decks:${encTag(tag)}`,
         },
       ],
       note: b.note,
@@ -1124,12 +1129,12 @@ function buildView(kind, rawId, res, me, zone) {
         {
           label: "members",
           value: members.length,
-          href: `/explore/list/members:${encTag(tag)}`,
+          href: `${CONSOLE}/explore/list/members:${encTag(tag)}`,
         },
         {
           label: "war weeks",
           value: "browse",
-          href: `/explore/list/weeks:${encTag(tag)}`,
+          href: `${CONSOLE}/explore/list/weeks:${encTag(tag)}`,
         },
       ],
       note: b.note,
@@ -1167,7 +1172,7 @@ function buildView(kind, rawId, res, me, zone) {
         label: "player",
         value: myTag,
         mono: true,
-        href: `/explore/player/${encTag(myTag)}`,
+        href: `${CONSOLE}/explore/player/${encTag(myTag)}`,
         hint: myName,
       },
       ...(opp
@@ -1176,7 +1181,7 @@ function buildView(kind, rawId, res, me, zone) {
               label: "opponent_tag",
               value: opp.player_tag,
               mono: true,
-              href: `/explore/player/${encTag(opp.player_tag)}`,
+              href: `${CONSOLE}/explore/player/${encTag(opp.player_tag)}`,
               hint: opp.name,
             },
           ]
@@ -1191,7 +1196,7 @@ function buildView(kind, rawId, res, me, zone) {
               label: "deck_hash",
               value: bt.me.deck_hash.slice(0, 16) + "…",
               mono: true,
-              href: `/explore/deck/${bt.me.deck_hash}`,
+              href: `${CONSOLE}/explore/deck/${bt.me.deck_hash}`,
             },
           ]
         : []),
@@ -1201,7 +1206,7 @@ function buildView(kind, rawId, res, me, zone) {
               label: "opp deck_hash",
               value: opp.deck_hash.slice(0, 16) + "…",
               mono: true,
-              href: `/explore/deck/${opp.deck_hash}`,
+              href: `${CONSOLE}/explore/deck/${opp.deck_hash}`,
             },
           ]
         : []),
@@ -1253,7 +1258,7 @@ function buildView(kind, rawId, res, me, zone) {
         {
           label: "battles with this deck",
           value: ds.battles ?? 0,
-          href: `/explore/list/deckbattles:${rawId}`,
+          href: `${CONSOLE}/explore/list/deckbattles:${rawId}`,
         },
       ],
       note: b.deck_note,
@@ -1282,7 +1287,7 @@ function buildView(kind, rawId, res, me, zone) {
           {
             text: m.name ?? "—",
             href: m.player_tag
-              ? `/explore/player/${encTag(m.player_tag)}`
+              ? `${CONSOLE}/explore/player/${encTag(m.player_tag)}`
               : undefined,
           },
           { text: m.player_tag ?? m.clan_tag, mono: true },
@@ -1311,7 +1316,9 @@ function buildView(kind, rawId, res, me, zone) {
         : { text: String(v) };
     const clan = (c) => ({
       text: c.name ?? c.clan_tag,
-      href: c.clan_tag ? `/explore/clan/${encTag(c.clan_tag)}` : undefined,
+      href: c.clan_tag
+        ? `${CONSOLE}/explore/clan/${encTag(c.clan_tag)}`
+        : undefined,
     });
     const standings = b.standings ?? [];
     const days = (b.days ?? []).flatMap((d) =>
@@ -1352,7 +1359,7 @@ function buildView(kind, rawId, res, me, zone) {
           label: "clan_tag",
           value: b.clan_tag,
           mono: true,
-          href: `/explore/clan/${encTag(b.clan_tag)}`,
+          href: `${CONSOLE}/explore/clan/${encTag(b.clan_tag)}`,
           hint: b.name,
         },
       ],
@@ -1412,7 +1419,7 @@ function buildView(kind, rawId, res, me, zone) {
           rows: members.map((m) => [
             {
               text: m.name ?? m.player_tag,
-              href: `/explore/player/${encTag(m.player_tag)}`,
+              href: `${CONSOLE}/explore/player/${encTag(m.player_tag)}`,
             },
             { text: m.player_tag, mono: true },
             n(m.points),
@@ -1442,26 +1449,28 @@ function buildListView(rawId, res, zone) {
         {
           text: fmt(bt.battle_time),
           mono: true,
-          href: bt.battle_id ? `/explore/battle/${bt.battle_id}` : undefined,
+          href: bt.battle_id
+            ? `${CONSOLE}/explore/battle/${bt.battle_id}`
+            : undefined,
         },
         ...(what === "deckbattles"
           ? [
               bt.me.name
                 ? {
                     text: bt.me.name,
-                    href: `/explore/player/${encTag(myTag)}`,
+                    href: `${CONSOLE}/explore/player/${encTag(myTag)}`,
                   }
                 : {
                     text: myTag,
                     mono: true,
-                    href: `/explore/player/${encTag(myTag)}`,
+                    href: `${CONSOLE}/explore/player/${encTag(myTag)}`,
                   },
             ]
           : [
               opp
                 ? {
                     text: `${opp.name ?? opp.player_tag}`,
-                    href: `/explore/player/${encTag(opp.player_tag)}`,
+                    href: `${CONSOLE}/explore/player/${encTag(opp.player_tag)}`,
                   }
                 : { text: "—", nil: true },
             ]),
@@ -1471,7 +1480,7 @@ function buildListView(rawId, res, zone) {
           ? {
               text: bt.me.deck_hash.slice(0, 10) + "…",
               mono: true,
-              href: `/explore/deck/${bt.me.deck_hash}`,
+              href: `${CONSOLE}/explore/deck/${bt.me.deck_hash}`,
             }
           : { text: "—", nil: true },
         bt.me.trophy_change !== null && bt.me.trophy_change !== undefined
@@ -1527,7 +1536,7 @@ function buildListView(rawId, res, zone) {
             text:
               d.cards?.map((c) => c.name).join(", ") ||
               d.deck_hash.slice(0, 12),
-            href: `/explore/deck/${d.deck_hash}`,
+            href: `${CONSOLE}/explore/deck/${d.deck_hash}`,
           },
           { text: String(d.battles) },
           { text: String(d.wins) },
@@ -1563,7 +1572,7 @@ function buildListView(rawId, res, zone) {
         rows: (b.members ?? []).map((m) => [
           {
             text: m.name ?? "—",
-            href: `/explore/player/${encTag(m.player_tag)}`,
+            href: `${CONSOLE}/explore/player/${encTag(m.player_tag)}`,
           },
           { text: m.player_tag, mono: true },
           { text: m.role ?? "—" },
@@ -1597,7 +1606,7 @@ function buildListView(rawId, res, zone) {
           {
             text: `S${w.season_id} W${Number(w.section_index) + 1}${w.is_colosseum ? " · colosseum" : ""}`,
             mono: true,
-            href: `/explore/week/${encTag(decTag(key))}~${w.season_id}~${w.section_index}`,
+            href: `${CONSOLE}/explore/week/${encTag(decTag(key))}~${w.season_id}~${w.section_index}`,
           },
           // our_rank / our_fame since the contract named the clan's own
           // (console walk 2: every week read "—").

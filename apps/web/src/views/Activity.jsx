@@ -5,6 +5,7 @@ import {
   useMyRequests,
 } from "../lib/queries.js";
 import { useConsolePath, useScope } from "../lib/scope.js";
+import { CONSOLE } from "../lib/console.js";
 
 /**
  * Activity's three views: MCP requests, emails, account events.
@@ -70,7 +71,7 @@ export function Activity({ sub }) {
         ? {
             text: r.request_id.slice(0, 8),
             title: r.request_id,
-            href: path(`/account/activity/c/${r.request_id}`),
+            href: path(`${CONSOLE}/account/activity/c/${r.request_id}`),
           }
         : "—",
     ]);
@@ -117,13 +118,13 @@ export function Activity({ sub }) {
       {
         text: m.subject ?? "—",
         title: m.subject ?? "",
-        href: `/account/activity/e/${m.send_id}`,
+        href: `${CONSOLE}/account/activity/e/${m.send_id}`,
       },
       m.archived ? "kept" : { text: "not kept", tone: "warn" },
       {
         text: m.send_id.slice(0, 8),
         title: m.send_id,
-        href: `/account/activity/e/${m.send_id}`,
+        href: `${CONSOLE}/account/activity/e/${m.send_id}`,
       },
     ]);
     return (

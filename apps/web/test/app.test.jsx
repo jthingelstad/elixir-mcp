@@ -43,27 +43,36 @@ test("a path the app does not own leaves for the static site", async () => {
   vi.unstubAllGlobals();
 });
 
-test("the app owns its own sections and disowns the static ones", async () => {
+test("the app owns /console and disowns everything else", async () => {
   const { legalRoute, STATIC_LINKS } = await import("../src/App.jsx");
   // Owned: resolved to a real app page.
-  expect(legalRoute("/data/dashboard")).toBe("/data/dashboard");
-  expect(legalRoute("/data/nonsense")).toBe("/data/dashboard");
-  expect(legalRoute("/signin")).toBe("/signin");
-  expect(legalRoute("/explore/player/%2320JJJ2CCRU")).toBe(
-    "/explore/player/%2320JJJ2CCRU",
+  expect(legalRoute("/console/data/dashboard")).toBe("/console/data/dashboard");
+  expect(legalRoute("/console/data/nonsense")).toBe("/console/data/dashboard");
+  // /data is the site's corpus page; under the prefix the paths no
+  // longer collide, so the bare section is the app's own first page.
+  expect(legalRoute("/console/data")).toBe("/console/data/dashboard");
+  expect(legalRoute("/console/signin")).toBe("/console/signin");
+  expect(legalRoute("/console/explore/player/%2320JJJ2CCRU")).toBe(
+    "/console/explore/player/%2320JJJ2CCRU",
   );
-  // Disowned: every static path, and anything unrecognised.
+  expect(legalRoute("/console/bogus")).toBe(null);
+  // Disowned: every static path, and every path outside the prefix,
+  // the Console's old addresses at the root included (2026-09-28: no
+  // aliases, nobody was using them yet).
   for (const path of Object.values(STATIC_LINKS)) {
     expect(legalRoute(path)).toBe(null);
   }
-  expect(legalRoute("/")).toBe(null);
-  expect(legalRoute("/bogus")).toBe(null);
-  // The changelog sits inside an app section but is a static page, so
-  // it must never be chosen as the section's default page. /data itself
-  // is a static page too now — the corpus proof — so the bare path goes
-  // back to the site rather than resolving to the app's dashboard.
-  expect(legalRoute("/data")).toBe(null);
-  expect(legalRoute("/data/nonsense")).toBe("/data/dashboard");
+  for (const path of [
+    "/",
+    "/bogus",
+    "/signin",
+    "/account/overview",
+    "/explore/player/%2320JJJ2CCRU",
+    "/data/dashboard",
+    "/consoles/account/overview",
+  ]) {
+    expect(legalRoute(path)).toBe(null);
+  }
 });
 
 test("sign-in flow: email step then code step authenticates", async () => {
@@ -118,7 +127,7 @@ test("sign-in flow: email step then code step authenticates", async () => {
 test("tracking renders claims, recording state, and notify switches", async () => {
   // The table moved off Overview with the 2026-09-09 split: Overview
   // reports these, Tracking is where they can be changed.
-  window.history.pushState({}, "", "/account/tracking");
+  window.history.pushState({}, "", "/console/account/tracking");
   global.fetch = mockFetch({
     "GET /api/me": [
       200,
@@ -215,7 +224,7 @@ test("the tracked record holds the controls, and says what stopping costs", asyn
   window.history.pushState(
     {},
     "",
-    `/account/tracking/${encodeURIComponent("#20JJJ2CCRU")}`,
+    `/console/account/tracking/${encodeURIComponent("#20JJJ2CCRU")}`,
   );
   global.fetch = mockFetch({
     "GET /api/me": [
@@ -255,7 +264,7 @@ test("the tracked record holds the controls, and says what stopping costs", asyn
 });
 
 test("admin view is admin-gated in the UI", async () => {
-  window.history.pushState({}, "", "/admin");
+  window.history.pushState({}, "", "/console/admin");
   global.fetch = mockFetch({
     "GET /api/me": [
       200,
@@ -271,17 +280,21 @@ test("the tab title names the page, most specific part first", async () => {
   // has to lead or every Elixir MCP tab looks identical.
   const { titleFor, SECTIONS } = await import("../src/App.jsx");
   const t = (path) => {
-    const section = path.split("/")[1];
+    const section = path.split("/")[2];
     return titleFor(section, SECTIONS[section], path);
   };
   expect(t("/")).toBe("Elixir MCP");
-  expect(t("/status/service")).toBe("Status - Elixir MCP");
-  expect(t("/data/dashboard")).toBe("Charts - Data - Elixir MCP");
-  expect(t("/admin/collectors")).toBe("Collectors - Admin - Elixir MCP");
-  expect(t("/status/collectors")).toBe("Collectors - Status - Elixir MCP");
+  expect(t("/console/status/service")).toBe("Status - Elixir MCP");
+  expect(t("/console/data/dashboard")).toBe("Charts - Data - Elixir MCP");
+  expect(t("/console/admin/collectors")).toBe(
+    "Collectors - Admin - Elixir MCP",
+  );
+  expect(t("/console/status/collectors")).toBe(
+    "Collectors - Status - Elixir MCP",
+  );
   // Explore owns its sub-pages, so a record beats the page slug: it is
   // the most specific thing shown.
-  expect(t("/explore/player/%2320JJJ2CCRU")).toBe(
+  expect(t("/console/explore/player/%2320JJJ2CCRU")).toBe(
     "#20JJJ2CCRU - Explore - Elixir MCP",
   );
 });
@@ -320,7 +333,7 @@ test("an empty body is still a success", async () => {
 });
 
 test("the Overview opens on the battle-activity graphic, with a chip per tracked player and a link to the record", async () => {
-  window.history.pushState({}, "", "/account");
+  window.history.pushState({}, "", "/console/account");
   const days = [];
   const end = Date.parse("2026-09-13T00:00:00Z");
   for (let i = 364; i >= 0; i -= 1) {
@@ -381,55 +394,72 @@ test("the Overview opens on the battle-activity graphic, with a chip per tracked
   expect(screen.getByText("Record ›")).toBeTruthy();
 });
 
-test("a legacy path is redirected and the ADDRESS BAR follows it", async () => {
+test("a partial path is redirected and the ADDRESS BAR follows it", async () => {
   // The old REDIRECTS rendered the new page under the old address, so a
-  // bookmark to /data/status credited the old path in the report and
+  // link to /status credited the old path in the report and
   // /status/service looked unvisited. The router replaces the entry.
-  window.history.pushState({}, "", "/data/status");
+  window.history.pushState({}, "", "/console/status");
   global.fetch = mockFetch({
     "GET /api/me": [200, { authenticated: false }],
   });
   render(<App />);
-  await waitFor(() => expect(window.location.pathname).toBe("/status/service"));
+  await waitFor(() =>
+    expect(window.location.pathname).toBe("/console/status/service"),
+  );
+  // The bare Console is Overview, with or without the trailing slash.
+  for (const bare of ["/console", "/console/"]) {
+    cleanup();
+    window.history.pushState({}, "", bare);
+    render(<App />);
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/console/account/overview"),
+    );
+  }
   // A partial path lands on the section's first page the same way.
   cleanup();
-  window.history.pushState({}, "", "/account");
+  window.history.pushState({}, "", "/console/account");
   render(<App />);
   await waitFor(() =>
-    expect(window.location.pathname).toBe("/account/overview"),
+    expect(window.location.pathname).toBe("/console/account/overview"),
   );
   // And the query string rides along.
   cleanup();
-  window.history.pushState({}, "", "/admin?x=1");
+  window.history.pushState({}, "", "/console/admin?x=1");
   render(<App />);
-  await waitFor(() => expect(window.location.pathname).toBe("/admin/requests"));
+  await waitFor(() =>
+    expect(window.location.pathname).toBe("/console/admin/requests"),
+  );
   expect(window.location.search).toBe("?x=1");
 });
 
 test("the bare Activity path was the timeline's address, and still opens it", async () => {
   // The timeline left Activity for its own rail item (2026-09-23); a
   // bookmark or a docs link to /account/activity meant the timeline.
-  window.history.pushState({}, "", "/account/activity");
+  window.history.pushState({}, "", "/console/account/activity");
   global.fetch = mockFetch({
     "GET /api/me": [200, { authenticated: false }],
   });
   render(<App />);
   await waitFor(() =>
-    expect(window.location.pathname).toBe("/account/timeline"),
+    expect(window.location.pathname).toBe("/console/account/timeline"),
   );
   // Activity's own pages keep their addresses.
   cleanup();
-  window.history.pushState({}, "", "/account/activity/requests");
+  window.history.pushState({}, "", "/console/account/activity/requests");
   render(<App />);
   await waitFor(() => expect(document.querySelector(".page")).toBeTruthy());
-  expect(window.location.pathname).toBe("/account/activity/requests");
+  expect(window.location.pathname).toBe("/console/account/activity/requests");
 });
 
-test("every app section in the route table has a route, and nothing else does", async () => {
+test("every app section in the route table has a route under /console, and nothing else does", async () => {
   const { routeTree, SECTIONS } = await import("../src/App.jsx");
-  const routed = new Set(
-    routeTree.children.map((r) => r.path.split("/").filter(Boolean)[0]),
+  const segments = routeTree.children.map((r) =>
+    r.path.split("/").filter(Boolean),
   );
+  // Explicit, not a router basepath: the kit's Link renders `to` as the
+  // href, so every route and every link carries the prefix itself.
+  for (const s of segments) expect(s[0]).toBe("console");
+  const routed = new Set(segments.map((s) => s[1]));
   for (const section of Object.keys(SECTIONS))
     expect(routed.has(section), `${section} has no route`).toBe(true);
   expect(routed.has("signin")).toBe(true);
@@ -465,14 +495,14 @@ test("the console prints times on the account's clock, and UTC when none is set"
       "GET /api/me/timeline": [200, timeline],
     });
 
-  window.history.pushState({}, "", "/account/timeline");
+  window.history.pushState({}, "", "/console/account/timeline");
   global.fetch = signedIn("America/Chicago");
   render(<App />);
   // The evening before, in Chicago, and named as Chicago's clock.
   expect(await screen.findByText("09-12 21:30 CDT")).toBeTruthy();
 
   cleanup();
-  window.history.pushState({}, "", "/account/timeline");
+  window.history.pushState({}, "", "/console/account/timeline");
   global.fetch = signedIn(null);
   render(<App />);
   expect(await screen.findByText("09-13 02:30Z")).toBeTruthy();
@@ -490,7 +520,7 @@ test("the timeline lists newest first, and says when a busy week was cut", async
     text,
     facts: {},
   });
-  window.history.pushState({}, "", "/account/timeline");
+  window.history.pushState({}, "", "/console/account/timeline");
   global.fetch = mockFetch({
     "GET /api/me": [200, { authenticated: true, claims: [], recordings: [] }],
     "GET /api/me/timeline": [
@@ -582,7 +612,7 @@ describe("an agent's console (2026-09-23)", () => {
       "GET /api/agent/abcd1234/timeline": [200, timeline("The agent's.")],
     });
     global.fetch = fetch;
-    window.history.pushState({}, "", "/account/timeline");
+    window.history.pushState({}, "", "/console/account/timeline");
     render(<App />);
     await screen.findByText("Yours.");
     // Your console: the head names you, and offers the agent.
@@ -590,7 +620,7 @@ describe("an agent's console (2026-09-23)", () => {
     fireEvent.click(head);
     fireEvent.click(await screen.findByRole("link", { name: /poap-bot/ }));
     await waitFor(() =>
-      expect(window.location.pathname).toBe("/agent/abcd1234/overview"),
+      expect(window.location.pathname).toBe("/console/agent/abcd1234/overview"),
     );
     // On the agent's console the head names the agent, tinted, and its
     // rail has no person's pages.
@@ -662,7 +692,7 @@ describe("an agent's console (2026-09-23)", () => {
         return [200, { ok: true }];
       },
     });
-    window.history.pushState({}, "", "/agent/abcd1234/tracking");
+    window.history.pushState({}, "", "/console/agent/abcd1234/tracking");
     render(<App />);
     await screen.findByText("Rivals");
     expect(screen.getByText("acts for")).toBeTruthy();
@@ -683,7 +713,7 @@ describe("an agent's console (2026-09-23)", () => {
       "GET /api/me": [200, PERSON],
       "GET /api/agent/zzzz9999": [404, { error: "not_found" }],
     });
-    window.history.pushState({}, "", "/agent/zzzz9999/timeline");
+    window.history.pushState({}, "", "/console/agent/zzzz9999/timeline");
     render(<App />);
     expect(
       await screen.findByText(/No agent here on your account/),

@@ -13,6 +13,7 @@ import {
   usePrincipalIdentities,
 } from "../../lib/queries.js";
 import { useConsolePath } from "../../lib/scope.js";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * An agent, on its own console (2026-09-23): `part` is the page. Overview
@@ -65,7 +66,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
       <div className="panel">
         <div className="panel__body">
           No agent here on your account.{" "}
-          <Link to="/account/agents">All agents ›</Link>
+          <Link to={`${CONSOLE}/account/agents`}>All agents ›</Link>
         </div>
       </div>
     );
@@ -377,7 +378,10 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
               <strong>What this key may do</strong> — capabilities of the
               agent&rsquo;s service key. An agent connected over OAuth instead
               carries its own grant, editable on{" "}
-              <Link to={path("/account/connections")}>Connections</Link>.
+              <Link to={path(`${CONSOLE}/account/connections`)}>
+                Connections
+              </Link>
+              .
             </p>
             <CapabilityEditor
               // A null scope means EVERY capability: that is what keys minted
@@ -692,7 +696,9 @@ export function Agents({ navigate }) {
                             )}
                           </td>
                           <td>
-                            <Link to={`/agent/${a.public_id}/overview`}>
+                            <Link
+                              to={`${CONSOLE}/agent/${a.public_id}/overview`}
+                            >
                               Open ›
                             </Link>
                           </td>
@@ -782,14 +788,14 @@ export function AgentMoved({ id, navigate }) {
   const agent =
     (principals.data?.agents ?? []).find((a) => a.account_id === id) ?? null;
   useEffect(() => {
-    if (agent) navigate(`/agent/${agent.public_id}/overview`);
+    if (agent) navigate(`${CONSOLE}/agent/${agent.public_id}/overview`);
   }, [agent, navigate]);
   if (principals.isFetched && !agent)
     return (
       <div className="panel">
         <div className="panel__body">
           No agent here on your account.{" "}
-          <Link to="/account/agents">All agents ›</Link>
+          <Link to={`${CONSOLE}/account/agents`}>All agents ›</Link>
         </div>
       </div>
     );

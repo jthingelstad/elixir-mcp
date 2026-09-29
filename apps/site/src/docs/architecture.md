@@ -95,7 +95,7 @@ at a cabin. What makes the fleet interesting:
 
 - **Card identities.** Every collector is named after a Clash Royale
   card — the operator's pick, and one collector per card — and appears
-  publicly only by that card name; machine labels and IPs stay private. The console's [Status](/status/service) page shows
+  publicly only by that card name; machine labels and IPs stay private. The console's [Status](/console/status/service) page shows
   each card's heartbeat and hourly fetch rate, and `/api/public/status`
   publishes the same fleet without a session.
 - **Credits.** A fetch that added something new to the record earns a
@@ -248,7 +248,7 @@ game day, and once after a session: a battle log that delivered battles
 asks for the profile unless one was read in the last eight hours. The
 one time-critical profile read, the pre-reset capture of the weekly
 donation counter, is forced separately. The console's signed-in
-[Efficiency](/status/efficiency) page shows what the schedule costs
+[Efficiency](/console/status/efficiency) page shows what the schedule costs
 and what it loses, per day. Clan rosters follow the clan's own day — every 15
 minutes while members of a tracked clan are in the game, coasting to
 hourly and then four-hourly as the roster's `lastSeen` stamps go quiet,
@@ -268,7 +268,7 @@ observation interval and says so when they disagree, and the public
 health views report how many of the last day's polls found the log had
 already rolled: `capture_audit_24h` in `/api/public/status`, with no
 sign-in, and [Recording now](/data/now) for the live strip. The console's
-[Status](/status/service) page shows the same to a signed-in account. When you need the state of play right
+[Status](/console/status/service) page shows the same to a signed-in account. When you need the state of play right
 now rather than the recorded history, `live_fetch` spends your live
 allowance on a fresh read instead of waiting for the schedule.
 

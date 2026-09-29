@@ -2,6 +2,7 @@ import { Link, useClock } from "@elixir-mcp/ui";
 import { useUsage } from "../../lib/queries.js";
 import { useScope } from "../../lib/scope.js";
 import { quotaReading } from "../../lib/quota.js";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * Usage — your daily budget and where it went.
@@ -231,7 +232,9 @@ export function Usage() {
                   >
                     {c.public_id ? (
                       // Your agent: its row opens its console's Usage.
-                      <Link to={`/agent/${c.public_id}/usage`}>{c.name}</Link>
+                      <Link to={`${CONSOLE}/agent/${c.public_id}/usage`}>
+                        {c.name}
+                      </Link>
                     ) : (
                       c.name
                     )}
@@ -309,7 +312,7 @@ export function Usage() {
                     and that is MCP requests filtered to this tool. */}
                 <Link
                   className="mono"
-                  to={`/account/activity/requests?tool=${encodeURIComponent(t.tool)}`}
+                  to={`${CONSOLE}/account/activity/requests?tool=${encodeURIComponent(t.tool)}`}
                 >
                   {t.tool}
                 </Link>

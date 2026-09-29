@@ -7,7 +7,7 @@ order: 3
 navTitle: "Recording"
 icon: radar
 lede: "What Elixir captures, how often, and why an answer is never a live scrape."
-console: ["Your tracked players and clans, and their freshness", "/account/tracking", "Console ▸ Tracking"]
+console: ["Your tracked players and clans, and their freshness", "/console/account/tracking", "Console ▸ Tracking"]
 ---
 
 # Recording and coverage
@@ -279,7 +279,7 @@ recorder estimated each player's pace and waited up to a day for the
 quiet ones; measured against the game's own lifetime battle counter, that
 lost about 4% of all battles, almost all of them from long sittings that
 started inside a long wait. The console's signed-in
-[Efficiency](/status/efficiency) page shows that loss, per day, from the
+[Efficiency](/console/status/efficiency) page shows that loss, per day, from the
 same measurement.
 
 | Subject | Rule | Bounds |
@@ -311,8 +311,8 @@ A sitting can still, rarely, roll past a
 read; the public status endpoint publishes how many of the last day's
 reads found that it had (`capture_audit_24h` in `/api/public/status`, with
 no sign-in; [Recording now](/data/now) is the public page), and the
-console's signed-in [Status](/status/service) and
-[Efficiency](/status/efficiency) pages turn that into battles lost per day.
+console's signed-in [Status](/console/status/service) and
+[Efficiency](/console/status/efficiency) pages turn that into battles lost per day.
 
 ## Freshness, as the envelope reports it
 

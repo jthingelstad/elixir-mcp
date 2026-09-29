@@ -7,7 +7,7 @@ order: 14
 navTitle: "Connections"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
-console: ["Manage your clients", "/account/connections", "Console ▸ Connections"]
+console: ["Manage your clients", "/console/account/connections", "Console ▸ Connections"]
 reviewed: "2026-09-28 against contract 9.16.1"
 ---
 

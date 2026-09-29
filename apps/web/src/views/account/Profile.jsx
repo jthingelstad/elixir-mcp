@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "../../api.js";
 import { useUsage } from "../../lib/queries.js";
 import { quotaReading } from "../../lib/quota.js";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * Profile — the account you are signed in as, all on one page.
@@ -105,14 +106,14 @@ export function Profile({ me, refresh, navigate }) {
       <section className="panel mb-[14px]">
         <SubpageLink
           navigate={navigate}
-          to="/account/profile/email"
+          to={`${CONSOLE}/account/profile/email`}
           icon="mail"
           title="Email"
           note="the emails Elixir sends you, each a switch, and what was sent"
         />
         <SubpageLink
           navigate={navigate}
-          to="/account/profile/devices"
+          to={`${CONSOLE}/account/profile/devices`}
           icon="monitor-smartphone"
           title="Devices"
           note="every session that can act as you, with a sign-out for each"
@@ -131,7 +132,7 @@ export function Profile({ me, refresh, navigate }) {
           )}
           <Link
             style={{ marginLeft: "auto", fontSize: "13px" }}
-            to="/account/usage"
+            to={`${CONSOLE}/account/usage`}
           >
             Where it went ›
           </Link>

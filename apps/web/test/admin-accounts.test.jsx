@@ -109,7 +109,7 @@ test("the record names the children and navigates to each", async () => {
   expect(screen.getByText("integration")).toBeTruthy();
 
   fireEvent.click(screen.getByText("elixir-mcp-discord"));
-  expect(navigate).toHaveBeenCalledWith("/admin/accounts/acct-2");
+  expect(navigate).toHaveBeenCalledWith("/console/admin/accounts/acct-2");
 });
 
 test("a child's record says whose it is, and leads back", async () => {
@@ -124,5 +124,5 @@ test("a child's record says whose it is, and leads back", async () => {
   );
   await waitFor(() => expect(screen.getByText(/belongs to/)).toBeTruthy());
   fireEvent.click(screen.getByText("jamie@example.com"));
-  expect(navigate).toHaveBeenCalledWith("/admin/accounts/acct-1");
+  expect(navigate).toHaveBeenCalledWith("/console/admin/accounts/acct-1");
 });

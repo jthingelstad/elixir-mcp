@@ -4,6 +4,7 @@ import { api } from "../../api.js";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
 import { tagPath } from "../../lib/tag-url.js";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * Tracking — ONE table over both kinds, and a record per tracked thing.
@@ -245,7 +246,7 @@ export function Tracking({ me, refresh, navigate }) {
                       </span>
                       <Link
                         style={{ fontWeight: 600, fontSize: "14px" }}
-                        to={`/account/tracking/${tagPath(r.tag)}`}
+                        to={`${CONSOLE}/account/tracking/${tagPath(r.tag)}`}
                       >
                         {r.name}
                       </Link>
@@ -254,7 +255,7 @@ export function Tracking({ me, refresh, navigate }) {
                     <Link
                       className="mono"
                       style={{ display: "inline-block", marginTop: "3px" }}
-                      to={`/explore/${r.kind === "clan" ? "clan" : "player"}/${tagPath(r.tag)}`}
+                      to={`${CONSOLE}/explore/${r.kind === "clan" ? "clan" : "player"}/${tagPath(r.tag)}`}
                     >
                       {r.tag}
                     </Link>
@@ -288,7 +289,9 @@ export function Tracking({ me, refresh, navigate }) {
                     <button
                       className="btn btn--sm"
                       onClick={() =>
-                        navigate(`/account/tracking/${tagPath(r.tag)}`)
+                        navigate(
+                          `${CONSOLE}/account/tracking/${tagPath(r.tag)}`,
+                        )
                       }
                     >
                       Manage

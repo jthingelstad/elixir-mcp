@@ -96,7 +96,7 @@ test(
   async () => {
     // Overview reports; Tracking manages. The empty state's one action
     // is the way across, and the field lives on the other side of it.
-    open("/account/overview");
+    open("/console/account/overview");
     expect(await screen.findByText("0 of 5")).toBeTruthy();
     fireEvent.click(
       await screen.findByRole("button", {
@@ -170,7 +170,7 @@ test(
       "insert into account_clan (account_id,clan_tag,scope) values ($1,'#P0G','comprehensive')",
       [accountId],
     );
-    open("/account/agents");
+    open("/console/account/agents");
     fireEvent.change(await screen.findByPlaceholderText("agent name"), {
       target: { value: "journey-agent" },
     });
@@ -179,8 +179,10 @@ test(
     // Open is the agent's own console, at its public id (2026-09-23).
     fireEvent.click(await screen.findByText("Open ›"));
     await screen.findByText("Subjects with news");
-    const publicId = window.location.pathname.split("/")[2];
-    expect(window.location.pathname).toBe(`/agent/${publicId}/overview`);
+    const publicId = window.location.pathname.split("/")[3];
+    expect(window.location.pathname).toBe(
+      `/console/agent/${publicId}/overview`,
+    );
     const {
       rows: [agent],
     } = await scratch.db.query(
@@ -242,7 +244,7 @@ test(
         [accountId],
       )
     ).rows[0];
-    open("/admin/integrations");
+    open("/console/admin/integrations");
     fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: "ui-platform" },
     });
@@ -290,7 +292,7 @@ test("a connection's capabilities can be widened and narrowed in place", async (
     [accountId],
   );
 
-  open("/account/connections");
+  open("/console/account/connections");
   // It starts read-only, showing exactly what the client was granted. The
   // page names scopes in more than one place, so assert on the row itself.
   // Other journeys in this file leave their own connections behind, so every

@@ -182,7 +182,7 @@ afterEach(() => {
 });
 
 test("the picker lists the account's players and a start shows the eight-card brief", async () => {
-  window.history.pushState({}, "", "/account/verify");
+  window.history.pushState({}, "", "/console/account/verify");
   render(<App />);
   await waitFor(() => screen.getByRole("heading", { name: "Verify" }));
   await waitFor(() => screen.getByText("King Thing"));
@@ -219,7 +219,7 @@ test("the picker lists the account's players and a start shows the eight-card br
 
 test("the live half polls every 15 s, lights matched cards up, then unlocks and says to switch back", async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  window.history.pushState({}, "", "/account/verify");
+  window.history.pushState({}, "", "/console/account/verify");
   render(<App />);
   await waitFor(() => screen.getByText("King Thing"));
   fireEvent.click(screen.getByRole("button", { name: "Verify" }));
@@ -281,7 +281,7 @@ test("reduced motion: the badge lands without sparks", async () => {
   }));
   statusQueue = [VERIFIED];
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  window.history.pushState({}, "", "/account/verify");
+  window.history.pushState({}, "", "/console/account/verify");
   render(<App />);
   await waitFor(() => screen.getByText("King Thing"));
   fireEvent.click(screen.getByRole("button", { name: "Verify" }));
@@ -326,7 +326,7 @@ test("a start that finds no collection yet says so and retries", async () => {
     return base(path, init);
   });
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  window.history.pushState({}, "", "/account/verify");
+  window.history.pushState({}, "", "/console/account/verify");
   render(<App />);
   await waitFor(() => screen.getByText("King Thing"));
   fireEvent.click(screen.getByRole("button", { name: "Verify" }));

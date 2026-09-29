@@ -21,7 +21,7 @@ function reply(status, body) {
 
 beforeEach(() => {
   cleanup();
-  window.history.pushState({}, "", "/signin");
+  window.history.pushState({}, "", "/console/signin");
   reply(200, { ok: true });
 });
 afterEach(() => vi.restoreAllMocks());
@@ -71,7 +71,7 @@ test("an expired magic link says nothing is wrong with the account", async () =>
   vi.resetModules();
   const { SignIn: Fresh } = await import("../src/views/SignIn.jsx");
   // The link's own form since #129: the token rides the fragment.
-  window.history.pushState({}, "", "/signin#login_token=deadbeef");
+  window.history.pushState({}, "", "/console/signin#login_token=deadbeef");
   reply(400, { error: "invalid_or_expired" });
   render(<Fresh onAuthed={vi.fn()} />);
   expect(global.fetch.mock.calls[0][1].body).toContain("deadbeef");
@@ -110,7 +110,7 @@ function fillRequest(tag = "#20JJJ2CCRU") {
 }
 
 test("the home page's deep link opens the asking half, not the signing-in half", () => {
-  window.history.pushState({}, "", "/signin?request");
+  window.history.pushState({}, "", "/console/signin?request");
   render(<SignIn onAuthed={vi.fn()} />);
   expect(screen.getByLabelText("Your player tag")).toBeTruthy();
   expect(
@@ -131,7 +131,7 @@ test("sign in and request access are two steps of one card", () => {
 });
 
 test("a sent request SAYS SO — the screen moves", async () => {
-  window.history.pushState({}, "", "/signin?request");
+  window.history.pushState({}, "", "/console/signin?request");
   render(<SignIn onAuthed={vi.fn()} />);
   fillRequest();
   expect(await screen.findByText("Your request is in")).toBeTruthy();
@@ -140,7 +140,7 @@ test("a sent request SAYS SO — the screen moves", async () => {
 });
 
 test("a refused tag is reported on the form, and the form stays fillable", async () => {
-  window.history.pushState({}, "", "/signin?request");
+  window.history.pushState({}, "", "/console/signin?request");
   render(<SignIn onAuthed={vi.fn()} />);
   reply(400, { error: "invalid_tag" });
   fillRequest("not a tag");
@@ -152,7 +152,7 @@ test("a refused tag is reported on the form, and the form stays fillable", async
 });
 
 test("the request carries the fields the API requires", async () => {
-  window.history.pushState({}, "", "/signin?request");
+  window.history.pushState({}, "", "/console/signin?request");
   render(<SignIn onAuthed={vi.fn()} />);
   fillRequest();
   await screen.findByText("Your request is in");

@@ -7,7 +7,7 @@ order: 23
 navTitle: "Run a collector"
 icon: server
 lede: "Volunteer a machine that fetches for the corpus, and what it earns you."
-console: ["Your collector", "/status/collectors", "Console ▸ Collectors"]
+console: ["Your collector", "/console/status/collectors", "Console ▸ Collectors"]
 ---
 
 # Running a collector

@@ -35,6 +35,7 @@ import {
 import { answered, createQueryClient } from "@elixir-mcp/client";
 import { api } from "./api.js";
 import { useAgentMe } from "./lib/queries.js";
+import { CONSOLE, appPath } from "./lib/console.js";
 import { SignIn } from "./views/SignIn.jsx";
 
 /**
@@ -57,18 +58,19 @@ import { SignIn } from "./views/SignIn.jsx";
  * grow when the data does. A count of the reader's own things is the one
  * exception, because it is a number and not a list.
  *
- * This app is the site's DYNAMIC half (2026-09-07 split). Home, docs,
- * updates (each one its own page) are real documents built by apps/site
- * and served from the same hostname; they are reached with plain hrefs
- * (STATIC_LINKS below), which are full page loads on purpose. Anything
- * the app does not recognise leaves for the static home rather than
- * rendering an empty main.
+ * This app is the site's DYNAMIC half (2026-09-07 split), and since
+ * 2026-09-28 it lives under /console (CONSOLE): the root is the site's.
+ * Home, docs, updates (each one its own page) are real documents built
+ * by apps/site and served from the same hostname; they are reached with
+ * plain hrefs (STATIC_LINKS below), which are full page loads on
+ * purpose. Anything the app does not recognise leaves for the static
+ * home rather than rendering an empty main.
  */
 
 /** Paths owned by the static site. The edge router in infra/template.yaml
- *  holds the same list; a test pins the two together, because a path in
- *  one and not the other is either a dead link or an app shell served
- *  where a document was expected. */
+ *  sends everything outside /console to a document; a test pins these to
+ *  pages apps/site builds, because a link to a page it does not build is
+ *  a dead link. */
 export const STATIC_LINKS = {
   home: "/",
   data: "/data",
@@ -139,7 +141,7 @@ export const SECTIONS = {
   },
   // An agent's console (2026-09-23, docs/reviews/2026-09-23-CONSOLE-
   // ACCOUNT-SWITCHER.md): the pages that make sense for an agent, scoped
-  // to one you own, at /agent/<public_id>/<page>. Verify, Collections,
+  // to one you own, at /console/agent/<public_id>/<page>. Verify, Collections,
   // Profile and Admin are a person's; Explore and Status are the same for
   // everyone and stay in your console. `scoped` marks the id segment
   // before the page.
@@ -158,13 +160,11 @@ export const SECTIONS = {
       { slug: "feedback", label: "Feedback" },
     ],
   },
+  // The in-app charts. /data is the site's corpus page; under /console
+  // the paths no longer collide, so the bare section is just its page.
   data: {
     label: "Data",
     authed: false,
-    // /data itself is the site's corpus page now, not this section's
-    // index: it is a real document, crawlable and readable with no
-    // session, so the app must hand the bare path back.
-    staticIndex: true,
     pages: [{ slug: "dashboard", label: "Charts" }],
   },
 };
@@ -179,8 +179,8 @@ export const SECTIONS = {
  * reader can see at the same moment share one.
  */
 const ADMIN_SUBS = [
-  ["requests", "Requests", "/admin/requests"],
-  ["accounts", "Accounts", "/admin/accounts"],
+  ["requests", "Requests", `${CONSOLE}/admin/requests`],
+  ["accounts", "Accounts", `${CONSOLE}/admin/accounts`],
   // Bare "Connections" and "Collections" here, though Account has items
   // by those names too (Jamie, 2026-09-10: "crazy long and odd"). The
   // house rule against two identical labels on screen at once is about
@@ -188,25 +188,30 @@ const ADMIN_SUBS = [
   // indented under the Admin row that is one line above them, so the
   // qualifier the long label was carrying is already on screen. The
   // page's own crumb says Admin as well.
-  ["connections", "Connections", "/admin/connections"],
-  ["collectors", "Collectors", "/admin/collectors", "owner"],
-  ["service-tokens", "Service tokens", "/admin/service-tokens", "owner"],
-  ["integrations", "Integrations", "/admin/integrations"],
-  ["collections", "Collections", "/admin/collections"],
+  ["connections", "Connections", `${CONSOLE}/admin/connections`],
+  ["collectors", "Collectors", `${CONSOLE}/admin/collectors`, "owner"],
+  [
+    "service-tokens",
+    "Service tokens",
+    `${CONSOLE}/admin/service-tokens`,
+    "owner",
+  ],
+  ["integrations", "Integrations", `${CONSOLE}/admin/integrations`],
+  ["collections", "Collections", `${CONSOLE}/admin/collections`],
   // "Feedback queue", not "Feedback": Access > Feedback is a top-level
   // item and stays visible while Admin is open, so the bare word would
   // put two identical labels on screen at once — the thing that broke
   // navigation twice during design. The design's own remedy for the
   // same clash on Usage was to name whose it is ("Across accounts"),
   // and its docs map already calls this page the feedback queue.
-  ["feedback", "Feedback queue", "/admin/feedback"],
+  ["feedback", "Feedback queue", `${CONSOLE}/admin/feedback`],
   // "Emails sent", not "Emails": Account > Activity > Emails is on the
   // rail too, and the qualifier says whose these are (everyone's).
-  ["emails", "Emails sent", "/admin/emails"],
-  ["usage", "Across accounts", "/admin/usage"],
+  ["emails", "Emails sent", `${CONSOLE}/admin/emails`],
+  ["usage", "Across accounts", `${CONSOLE}/admin/usage`],
   // "Cards", read-only: the archetype vocabulary in force and the
   // unattested queue; the file is edited in cr-agent-api-docs.
-  ["cards", "Cards", "/admin/cards"],
+  ["cards", "Cards", `${CONSOLE}/admin/cards`],
 ];
 
 export const RAIL = [
@@ -214,7 +219,7 @@ export const RAIL = [
     key: "overview",
     label: "Overview",
     icon: "layout-dashboard",
-    to: "/account/overview",
+    to: `${CONSOLE}/account/overview`,
   },
   // What happened to what you track, the same items your connections
   // read with elixir_timeline. Its own item beside Overview since
@@ -223,18 +228,18 @@ export const RAIL = [
     key: "timeline",
     label: "Timeline",
     icon: "bell",
-    to: "/account/timeline",
+    to: `${CONSOLE}/account/timeline`,
   },
   {
     key: "explore",
     label: "Explore",
     icon: "search",
-    to: "/explore",
+    to: `${CONSOLE}/explore`,
     subs: [
-      ["players", "Players", "/explore/players"],
-      ["clans", "Clans & wars", "/explore/clans"],
-      ["meta", "Meta & decks", "/explore/meta"],
-      ["weeks", "War weeks", "/explore/weeks"],
+      ["players", "Players", `${CONSOLE}/explore/players`],
+      ["clans", "Clans & wars", `${CONSOLE}/explore/clans`],
+      ["meta", "Meta & decks", `${CONSOLE}/explore/meta`],
+      ["weeks", "War weeks", `${CONSOLE}/explore/weeks`],
     ],
   },
   {
@@ -242,77 +247,82 @@ export const RAIL = [
     key: "tracking",
     label: "Tracking",
     icon: "radar",
-    to: "/account/tracking",
+    to: `${CONSOLE}/account/tracking`,
   },
   // Proving a claim is a step in your record, next to what you track.
   {
     key: "verify",
     label: "Verify",
     icon: "shield-check",
-    to: "/account/verify",
+    to: `${CONSOLE}/account/verify`,
   },
   {
     key: "collections",
     label: "Collections",
     icon: "bookmark",
-    to: "/account/collections",
+    to: `${CONSOLE}/account/collections`,
   },
   {
     key: "activity",
     label: "Activity",
     icon: "activity",
-    to: "/account/activity/requests",
+    to: `${CONSOLE}/account/activity/requests`,
     subs: [
-      ["requests", "MCP requests", "/account/activity/requests"],
-      ["emails", "Emails", "/account/activity/emails"],
-      ["events", "Account events", "/account/activity/events"],
+      ["requests", "MCP requests", `${CONSOLE}/account/activity/requests`],
+      ["emails", "Emails", `${CONSOLE}/account/activity/emails`],
+      ["events", "Account events", `${CONSOLE}/account/activity/events`],
     ],
   },
-  { key: "usage", label: "Usage", icon: "chart-column", to: "/account/usage" },
+  {
+    key: "usage",
+    label: "Usage",
+    icon: "chart-column",
+    to: `${CONSOLE}/account/usage`,
+  },
   {
     group: "Access",
     key: "connections",
     label: "Connections",
     icon: "plug",
-    to: "/account/connections",
+    to: `${CONSOLE}/account/connections`,
     subs: [
-      ["clients", "Clients", "/account/connections"],
-      ["agents", "Agents", "/account/agents"],
+      ["clients", "Clients", `${CONSOLE}/account/connections`],
+      ["agents", "Agents", `${CONSOLE}/account/agents`],
     ],
   },
   {
     key: "profile",
     label: "Profile",
     icon: "user-round",
-    to: "/account/profile",
+    to: `${CONSOLE}/account/profile`,
     subs: [
-      ["profile", "Profile", "/account/profile"],
-      ["email", "Email", "/account/profile/email"],
-      ["devices", "Devices", "/account/profile/devices"],
+      ["profile", "Profile", `${CONSOLE}/account/profile`],
+      ["email", "Email", `${CONSOLE}/account/profile/email`],
+      ["devices", "Devices", `${CONSOLE}/account/profile/devices`],
     ],
   },
   {
     key: "feedback",
     label: "Feedback",
     icon: "message-square",
-    to: "/account/feedback",
+    to: `${CONSOLE}/account/feedback`,
   },
   {
     group: "Service",
     key: "status",
     label: "Status",
     icon: "heart-pulse",
-    to: "/status/service",
+    to: `${CONSOLE}/status/service`,
     subs: [
-      ["collectors", "Collectors", "/status/collectors"],
-      ["efficiency", "Efficiency", "/status/efficiency"],
+      ["collectors", "Collectors", `${CONSOLE}/status/collectors`],
+      ["efficiency", "Efficiency", `${CONSOLE}/status/efficiency`],
     ],
   },
   {
     key: "admin",
     label: "Admin",
     icon: "shield-check",
-    to: "/admin/requests",
+    to: `${CONSOLE}/admin/requests`,
     meta: "owner",
     adminOnly: true,
     subs: ADMIN_SUBS,
@@ -325,7 +335,7 @@ const AGENT_ID = /^[a-z0-9]{8,16}$/;
  *  Same keys as yours where the page is the same page, so the docs strip
  *  and the rail tests read both consoles one way. */
 export function agentRail(id) {
-  const at = (page) => `/agent/${id}/${page}`;
+  const at = (page) => `${CONSOLE}/agent/${id}/${page}`;
   return [
     {
       key: "overview",
@@ -376,13 +386,15 @@ export function agentRail(id) {
 
 /** Which rail item and sub-item a path belongs to. One function, so the
  *  mark in the rail and the docs strip's key can never disagree about
- *  where the reader is. */
+ *  where the reader is. Read on the app path (the prefix off), so the
+ *  segments below keep their indexes. */
 export function railPosition(path) {
-  const [, section, page, rest] = path.split("/");
+  const app = appPath(path) ?? "";
+  const [, section, page, rest] = app.split("/");
   if (section === "agent") {
     // /agent/<public_id>/<page>/<rest>: the same positions as yours, one
     // segment along, with the agent's own strip where the page is its.
-    const [, , id, agentPage, agentRest] = path.split("/");
+    const [, , id, agentPage, agentRest] = app.split("/");
     const scope = { scope: id };
     if (agentPage === "activity")
       return {
@@ -790,36 +802,33 @@ export const DOC_LINKS = {
   ],
 };
 
+/** Structural redirects: a bare section to its first page, a partial
+ *  record path to the lookup. The old addresses at the root are not
+ *  aliased (Jamie, 2026-09-28: nobody was using them yet). */
 const REDIRECTS = {
-  "/dashboard": "/account/overview",
-  "/clan": "/explore",
-  "/account": "/account/overview",
-  // Settings & tier folded into the profile (2026-09-10).
-  "/account/settings": "/account/profile",
-  "/admin": "/admin/requests",
-  "/explore/player": "/explore",
-  "/explore/clan": "/explore",
-  "/explore/collections": "/explore",
-  // Moved by the 2026-09-09 IA: Status left the Data section for its own
-  // Service group, the collector record left Account for the fleet, and
-  // two Admin pages took their product names.
-  "/status": "/status/service",
-  "/data/status": "/status/service",
-  "/account/collector": "/status/collectors",
-  "/admin/gateways": "/admin/collectors",
-  "/admin/tokens": "/admin/service-tokens",
+  [CONSOLE]: `${CONSOLE}/account/overview`,
+  [`${CONSOLE}/`]: `${CONSOLE}/account/overview`,
+  [`${CONSOLE}/account`]: `${CONSOLE}/account/overview`,
+  [`${CONSOLE}/admin`]: `${CONSOLE}/admin/requests`,
+  [`${CONSOLE}/explore/player`]: `${CONSOLE}/explore`,
+  [`${CONSOLE}/explore/clan`]: `${CONSOLE}/explore`,
+  [`${CONSOLE}/explore/collections`]: `${CONSOLE}/explore`,
+  [`${CONSOLE}/status`]: `${CONSOLE}/status/service`,
   // The bare Activity path WAS the timeline until the timeline became
-  // its own rail item (2026-09-23), so a bookmark to it still means that.
-  "/account/activity": "/account/timeline",
+  // its own rail item (2026-09-23), so a link to it still means that.
+  [`${CONSOLE}/account/activity`]: `${CONSOLE}/account/timeline`,
 };
 
 /** Guard restored/bookmarked routes: a stale path to a removed section
  *  must fall back to a known-good route, never an empty main. Anything
- *  this app no longer owns returns null, and the caller leaves for the
- *  static home with a real navigation. */
+ *  this app does not own (every path outside /console among them)
+ *  returns null, and the caller leaves for the static home with a real
+ *  navigation. */
 export function legalRoute(path) {
-  const [, section, page] = path.split("/");
-  if (path === "/signin") return path;
+  const app = appPath(path);
+  if (app === null) return null;
+  const [, section, page] = app.split("/");
+  if (app === "/signin") return path;
   const sec = SECTIONS[section];
   if (!sec) return null;
   // Explore's records are addressable, so it resolves its own paths.
@@ -828,20 +837,14 @@ export function legalRoute(path) {
   // agent is yours is the server's answer (a 404 the page says), not a
   // routing question.
   if (sec.scoped) {
-    const [, , id, agentPage] = path.split("/");
+    const [, , id, agentPage] = app.split("/");
     if (!AGENT_ID.test(id ?? "")) return null;
     if (sec.pages.some((p) => p.slug === agentPage)) return path;
-    return `/${section}/${id}/${sec.pages[0].slug}`;
+    return `${CONSOLE}/${section}/${id}/${sec.pages[0].slug}`;
   }
-  // A static page can sit inside an app section (Data > Changelog). It
-  // belongs to the other half, so hand it back rather than quietly
-  // substituting the section's default page.
-  if (sec.pages.some((p) => p.slug === page && p.static)) return null;
-  if (!page && sec.staticIndex) return null;
-  const appPages = sec.pages.filter((p) => !p.static);
-  if (appPages.length === 0) return `/${section}`;
-  if (appPages.some((p) => p.slug === page)) return path;
-  return `/${section}/${appPages[0].slug}`;
+  if (sec.pages.length === 0) return `${CONSOLE}/${section}`;
+  if (sec.pages.some((p) => p.slug === page)) return path;
+  return `${CONSOLE}/${section}/${sec.pages[0].slug}`;
 }
 
 /** Tab titles. The distinguishing word goes FIRST, because a browser
@@ -857,7 +860,7 @@ const prettify = (seg) =>
         .replace(/^./, (c) => c.toUpperCase());
 
 export function titleFor(section, sec, path) {
-  const parts = path.split("/").filter(Boolean);
+  const parts = (appPath(path) ?? "").split("/").filter(Boolean);
   if (parts.length === 0) return SITE;
   if (!sec) return SITE;
   if (sec.scoped) {
@@ -913,7 +916,7 @@ function useNarrow() {
  *  at any width: burying it behind a button costs a tap on the one
  *  thing most people came for. */
 const PRODUCTS = FAMILY_PRODUCTS.map((p) =>
-  p.key === "console" ? { ...p, href: "/account/overview" } : p,
+  p.key === "console" ? { ...p, href: CONSOLE } : p,
 );
 function Chrome({ navigate }) {
   const products = PRODUCTS.map((p) =>
@@ -923,7 +926,7 @@ function Chrome({ navigate }) {
           onClick: (e) => {
             if (!isPlainClick(e)) return;
             e.preventDefault();
-            navigate("/account/overview");
+            navigate(CONSOLE);
           },
         }
       : p,
@@ -972,14 +975,14 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
       label: primary?.nickname ?? primary?.name ?? "Console",
       detail: me?.email ?? undefined,
       aside: me?.role ?? "",
-      to: "/account/overview",
+      to: `${CONSOLE}/account/overview`,
     },
     ...(me?.agents ?? []).map((a) => ({
       key: a.public_id,
       label: a.name,
       detail: a.clan?.name ?? a.clan?.clan_tag ?? undefined,
       aside: `agent · ${a.role}`,
-      to: `/agent/${a.public_id}/overview`,
+      to: `${CONSOLE}/agent/${a.public_id}/overview`,
     })),
   ];
   return (
@@ -994,14 +997,14 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
       aside={here.scope ? `agent · ${agent?.role ?? ""}` : (me?.role ?? "")}
       accounts={accounts}
       account={here.scope ?? "me"}
-      manage={{ label: "Manage agents…", to: "/account/agents" }}
+      manage={{ label: "Manage agents…", to: `${CONSOLE}/account/agents` }}
       identity={
         <RailIdentity
-          href="/account/profile"
+          href={`${CONSOLE}/account/profile`}
           onClick={(e) => {
             if (!isPlainClick(e)) return;
             e.preventDefault();
-            navigate("/account/profile");
+            navigate(`${CONSOLE}/account/profile`);
           }}
           // The address, as the design draws it: account.email has held
           // it since 0046. An account from before that fills in at its
@@ -1083,10 +1086,11 @@ function DocsStrip({ here }) {
  *  signed out). localStorage, not sessionStorage: a magic link opens in
  *  a new tab. Console paths only, read once and cleared. */
 const AFTER_SIGN_IN = "elixir.after_sign_in";
+const signedInPath = (path) =>
+  /^\/(account|admin|agent)\//.test(appPath(path) ?? "");
 export function rememberAfterSignIn(path) {
   try {
-    if (/^\/(account|admin|agent)\//.test(path))
-      window.localStorage.setItem(AFTER_SIGN_IN, path);
+    if (signedInPath(path)) window.localStorage.setItem(AFTER_SIGN_IN, path);
   } catch {
     // Storage denied: the sign-in lands on Overview, as before.
   }
@@ -1095,7 +1099,7 @@ export function takeAfterSignIn() {
   try {
     const path = window.localStorage.getItem(AFTER_SIGN_IN);
     window.localStorage.removeItem(AFTER_SIGN_IN);
-    return path && /^\/(account|admin|agent)\//.test(path) ? path : null;
+    return path && signedInPath(path) ? path : null;
   } catch {
     return null;
   }
@@ -1112,7 +1116,10 @@ export function SignInWall({ navigate }) {
           This part of Elixir MCP shows your recorded history. Sign in with the
           email on your access request.
         </p>
-        <button className="btn mt-2" onClick={() => navigate("/signin")}>
+        <button
+          className="btn mt-2"
+          onClick={() => navigate(`${CONSOLE}/signin`)}
+        >
           Sign in
         </button>
       </div>
@@ -1149,9 +1156,9 @@ function Unavailable({ onRetry, busy }) {
  * The route tree. The root's beforeLoad is the old route guard as a
  * real one: a path this app does not own leaves for the static site
  * (Back never bounces between the halves because the entry is
- * replaced), and a legacy or partial path is REDIRECTED - the address
- * bar changes with it, which the render-only REDIRECTS never did, so a
- * bookmark to /data/status now credits /status/service in the report.
+ * replaced), and a partial path is REDIRECTED - the address bar
+ * changes with it, which the render-only REDIRECTS never did, so a link
+ * to /console/status credits /console/status/service in the report.
  *
  * Sections are split by route: Admin, Explore, Status and the Account
  * pages each arrive as their own chunk, so the sign-in wall does not
@@ -1174,7 +1181,7 @@ const rootRoute = createRootRoute({
 
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/signin",
+  path: `${CONSOLE}/signin`,
   component: function SignInPage() {
     const navigate = useNav();
     const { refresh } = useMe();
@@ -1182,7 +1189,7 @@ const signInRoute = createRoute({
       <SignIn
         onAuthed={async () => {
           await refresh();
-          navigate(takeAfterSignIn() ?? "/account/overview");
+          navigate(takeAfterSignIn() ?? `${CONSOLE}/account/overview`);
         }}
       />
     );
@@ -1191,7 +1198,7 @@ const signInRoute = createRoute({
 
 const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/account/{-$page}/{-$itemId}/{-$recordId}",
+  path: `${CONSOLE}/account/{-$page}/{-$itemId}/{-$recordId}`,
   component: lazyRouteComponent(
     () => import("./pages/AccountPage.jsx"),
     "AccountPage",
@@ -1200,7 +1207,7 @@ const accountRoute = createRoute({
 
 const agentRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/agent/$agent/{-$page}/{-$itemId}/{-$recordId}",
+  path: `${CONSOLE}/agent/$agent/{-$page}/{-$itemId}/{-$recordId}`,
   component: lazyRouteComponent(
     () => import("./pages/AgentPage.jsx"),
     "AgentPage",
@@ -1209,7 +1216,7 @@ const agentRoute = createRoute({
 
 const exploreRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/explore/$",
+  path: `${CONSOLE}/explore/$`,
   component: lazyRouteComponent(
     () => import("./pages/ExplorePage.jsx"),
     "ExplorePage",
@@ -1218,7 +1225,7 @@ const exploreRoute = createRoute({
 
 const statusRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/status/{-$page}/{-$itemId}",
+  path: `${CONSOLE}/status/{-$page}/{-$itemId}`,
   component: lazyRouteComponent(
     () => import("./pages/StatusPage.jsx"),
     "StatusPage",
@@ -1227,7 +1234,7 @@ const statusRoute = createRoute({
 
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/admin/{-$page}/{-$itemId}",
+  path: `${CONSOLE}/admin/{-$page}/{-$itemId}`,
   component: lazyRouteComponent(
     () => import("./pages/AdminPage.jsx"),
     "AdminPage",
@@ -1236,7 +1243,7 @@ const adminRoute = createRoute({
 
 const dataRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/data/{-$page}",
+  path: `${CONSOLE}/data/{-$page}`,
   component: lazyRouteComponent(() => import("./views/Data.jsx"), "Data"),
 });
 
@@ -1256,11 +1263,14 @@ export const routeTree = rootRoute.addChildren([
  *  ids. Route components read this rather than re-deriving it. */
 export function useHere() {
   const { pathname } = useLocation();
-  const [, section, page, itemId, recordId] = pathname.split("/");
+  // Segments are read on the app path (the prefix off); `path` stays the
+  // real one, since it is what the page keys and titles on.
+  const app = appPath(pathname) ?? "";
+  const [, section, page, itemId, recordId] = app.split("/");
   const sec = SECTIONS[section];
   if (sec?.scoped) {
     // /agent/<public_id>/<page>/<itemId>/<recordId>: one segment along.
-    const [, , scope, agentPage, agentItem, agentRecord] = pathname.split("/");
+    const [, , scope, agentPage, agentItem, agentRecord] = app.split("/");
     return {
       path: pathname,
       section,
@@ -1400,7 +1410,10 @@ function Shell() {
   const needsAuth = sec?.authed && !authed && me !== null && !unreachable;
   const showUnavailable = sec?.authed && !authed && unreachable;
   const showRail =
-    authed && !needsAuth && effectivePath !== "/signin" && Boolean(here.key);
+    authed &&
+    !needsAuth &&
+    effectivePath !== `${CONSOLE}/signin` &&
+    Boolean(here.key);
 
   // Every time the console prints is on the account's clock: the zone
   // set on Profile, or UTC when none is (Jamie, 2026-09-23).
