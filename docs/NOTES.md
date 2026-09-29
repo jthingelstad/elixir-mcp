@@ -4760,3 +4760,15 @@ back `/api/public/status` health ok, and `/docs/email`, `/docs/limits`,
 copy; `/family/agent` is gone. The deploy moved the card-roles
 snapshot's `source_commit` to the reference's f72062c (roles unchanged),
 which this PR commits.
+
+## 2026-09-28 - Dependabot dev-toolchain group (PR #91) deployed
+
+PR #91 bumped 14 packages, all patch or minor: the AWS SDK clients
+(3.1137 to 3.1140), `@anthropic-ai/sdk` 0.128.0, vite 8.3.1, TanStack
+Router 1.170.39, lucide 1.48.0, knip and prettier. It waited while a
+session held the checkout lease, then was rebased onto main
+(`gh pr update-branch --rebase`) and merged on a green `validate` as
+dfa39844. Deployed at 00:42Z on 2026-09-29 (7:42 PM CT on 2026-09-28)
+with 0 migrations run and all 43 smoke checks green. No tool changed, so
+acceptance was not run. `/api/public/status` reports `health.ok` true.
+The card-roles snapshot stayed at the reference's f72062c.
