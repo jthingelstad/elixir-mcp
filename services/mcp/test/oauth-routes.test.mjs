@@ -1394,7 +1394,7 @@ test("codes to one address are capped across callers, shared with the site's sig
   await db.query(`delete from rate_limit where bucket like 'auth#%'`);
 });
 
-test("family_clients op: provisions only family redirects, lists the audit, retires registered clients", async () => {
+test("family_clients op: provisions only family redirects, lists the audit, retires registered clients, moves an app", async () => {
   await assert.rejects(
     familyClientsOn(db, {
       provision: { app: "rogue", redirect_uris: [REDIRECT] },
@@ -1426,4 +1426,40 @@ test("family_clients op: provisions only family redirects, lists the audit, reti
     "https://clan.poapkings.com/auth/callback",
   );
   assert.match(gone.body, /unknown client_id/);
+
+  // An app that moves address (Clan to /clan, 2026-09-28): its URIs are
+  // replaced, never with one off the family's origins, and from then on
+  // the door takes only the new ones.
+  const OLD = "https://clan.poapkings.com/auth/callback";
+  const NEW = "https://elixir.poapkings.com/api/clan/auth/callback";
+  const moving = (
+    await familyClientsOn(db, {
+      provision: { app: "moving", client_name: "Moving", redirect_uris: [OLD] },
+    })
+  ).provisioned.client_id;
+  await assert.rejects(
+    familyClientsOn(db, {
+      set_redirect_uris: { app: "moving", redirect_uris: [NEW, REDIRECT] },
+    }),
+    /all on family origins/,
+  );
+  await assert.rejects(
+    familyClientsOn(db, {
+      set_redirect_uris: { app: "nobody", redirect_uris: [NEW] },
+    }),
+    /no family client nobody/,
+  );
+  const moved = await familyClientsOn(db, {
+    set_redirect_uris: { app: "moving", redirect_uris: [NEW] },
+  });
+  assert.deepEqual(moved.redirect_uris_set, {
+    app: "moving",
+    client_id: moving,
+    redirect_uris: [NEW],
+  });
+  assert.match(
+    (await authorizeGet(moving, OLD)).body,
+    /redirect_uri not registered/,
+  );
+  assert.equal((await authorizeGet(moving, NEW)).statusCode, 200);
 });

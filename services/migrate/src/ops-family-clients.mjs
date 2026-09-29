@@ -14,6 +14,10 @@
  *     cannot lock out an app that is not sending it yet.
  *   {family_clients: {provision: {app, client_name, redirect_uris}}}  a new
  *     family app's client, never expiring; answers its client_id.
+ *   {family_clients: {set_redirect_uris: {app, redirect_uris}}}  replace a
+ *     provisioned client's redirect URIs, all on family origins: an app
+ *     that moves address (Clan to elixir.poapkings.com/clan, 2026-09-28).
+ *     Live grants are untouched; the next authorization names a new one.
  *   {family_clients: {revoke_clients: ["<client_id>", ...], reason}}  retire
  *     registered clients: the registration expires now and every live grant
  *     under it is revoked, with a connection_revoked event for its account.
@@ -28,6 +32,16 @@ import { FIRST_PARTY_ORIGINS, validateRedirectUris } from "@elixir-mcp/auth";
 
 const HASH_RE = /^[0-9a-f]{64}$/;
 const APP_RE = /^[a-z][a-z0-9-]{1,30}$/;
+
+/** The URIs as the door stores them, or null unless every one is on a
+ *  family origin. */
+function familyRedirects(uris) {
+  const redirectUris = validateRedirectUris(uris);
+  return redirectUris &&
+    redirectUris.every((u) => FIRST_PARTY_ORIGINS.includes(new URL(u).origin))
+    ? redirectUris
+    : null;
+}
 
 export async function familyClients(databaseUrl, spec = {}) {
   const db = new pg.Client({ connectionString: databaseUrl });
@@ -75,13 +89,8 @@ export async function familyClientsOn(db, spec = {}) {
     const { app, client_name: name, redirect_uris: uris } = spec.provision;
     if (!APP_RE.test(String(app ?? "")))
       throw new Error("provision needs app: lowercase letters, digits, -");
-    const redirectUris = validateRedirectUris(uris);
-    if (
-      !redirectUris ||
-      !redirectUris.every((u) =>
-        FIRST_PARTY_ORIGINS.includes(new URL(u).origin),
-      )
-    )
+    const redirectUris = familyRedirects(uris);
+    if (!redirectUris)
       throw new Error("provision needs redirect_uris, all on family origins");
     const clientId = crypto.randomBytes(18).toString("base64url");
     await db.query("begin");
@@ -101,6 +110,24 @@ export async function familyClientsOn(db, spec = {}) {
       throw err;
     }
     return { provisioned: { app, client_id: clientId } };
+  }
+
+  if (spec.set_redirect_uris) {
+    const { app, redirect_uris: uris } = spec.set_redirect_uris;
+    const redirectUris = familyRedirects(uris);
+    if (!redirectUris)
+      throw new Error(
+        "set_redirect_uris needs redirect_uris, all on family origins",
+      );
+    const { rows } = await db.query(
+      `update oauth_client c set redirect_uris = $2
+         from family_oauth_client fc
+        where fc.client_id = c.client_id and fc.app = $1
+        returning fc.app, c.client_id, c.redirect_uris`,
+      [String(app ?? ""), redirectUris],
+    );
+    if (!rows[0]) throw new Error(`no family client ${app}`);
+    return { redirect_uris_set: rows[0] };
   }
 
   if (Array.isArray(spec.revoke_clients) && spec.revoke_clients.length) {
@@ -188,6 +215,6 @@ export async function familyClientsOn(db, spec = {}) {
   }
 
   throw new Error(
-    "family_clients needs list, set_secret, require_secret, provision or revoke_clients",
+    "family_clients needs list, set_secret, require_secret, provision, set_redirect_uris or revoke_clients",
   );
 }
