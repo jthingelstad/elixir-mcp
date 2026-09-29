@@ -232,7 +232,7 @@ function edgeRouter() {
 }
 
 test(
-  "the edge router sends /console to the app and every other page to its document",
+  "the edge router sends /console and /clan to their apps and every other page to its document",
   { skip },
   async () => {
     const route = edgeRouter();
@@ -260,6 +260,23 @@ test(
       assert.equal(route(uri), "/app.html", `${uri} is not the app`);
     assert.ok(!existsSync(path.join(out, "console")));
     assert.equal(route("/consoles"), "/consoles/index.html");
+
+    // Elixir Clan owns /clan the same way, from its own bucket, where its
+    // build sits under clan/ (2026-09-28).
+    for (const uri of [
+      "/clan",
+      "/clan/",
+      "/clan/J2RGCRVG",
+      "/clan/J2RGCRVG/actions",
+      "/clan/verify",
+    ])
+      assert.equal(route(uri), "/clan/index.html", `${uri} is not Clan`);
+    assert.equal(
+      route("/clan/assets/index-a1b2c3d4.js"),
+      "/clan/assets/index-a1b2c3d4.js",
+    );
+    assert.ok(!existsSync(path.join(out, "clan")));
+    assert.equal(route("/clans"), "/clans/index.html");
 
     // A file is itself, found or honestly missing.
     for (const uri of ["/llms.txt", "/assets/site.css", "/app.html"])

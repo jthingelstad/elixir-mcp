@@ -105,6 +105,14 @@ Parameters:
       Secrets Manager references on the next deploy: CloudFormation reads
       a secret again only when the resource holding the reference changes
       (docs/SECRETS.md).
+  ClanApiDomain:
+    Type: String
+    AllowedPattern: "^[a-z0-9]+\\.execute-api\\.[a-z0-9-]+\\.amazonaws\\.com$"
+    ConstraintDescription: the host of the elixir-clan stack's ApiUrl output
+    Description: >-
+      Elixir Clan's HTTP API, which answers /api/clan/* on this origin
+      (clan/, its own stack; the host of that stack's ApiUrl output). Set
+      once with --param. PRESERVED.
 
 Conditions:
   HasSiteCert: !Not [!Equals [!Ref SiteCertificateArn, ""]]
@@ -1669,6 +1677,23 @@ Resources:
             ]
         QueryStringsConfig: { QueryStringBehavior: all }
 
+  # Elixir Clan's API under /api/clan/* (2026-09-28): its own two
+  # cookies and nothing of Elixir's, so __Host-elixir_session never
+  # reaches Clan's Lambda. Clan's cookies are Path=/ and the browser sends
+  # them under /api/* too, where the door reads only its own.
+  ClanApiOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: elixir-mcp-clan-api
+        CookiesConfig:
+          CookieBehavior: whitelist
+          Cookies: [__Host-elixir_clan_session, __Host-elixir_clan_login]
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          Headers: [accept, content-type, cloudfront-viewer-country]
+        QueryStringsConfig: { QueryStringBehavior: all }
+
   # Browser security headers on every response (#25). Before this, the
   # site shipped no CSP, no frame-ancestors, no nosniff, no
   # Referrer-Policy and no Permissions-Policy.
@@ -1693,6 +1718,8 @@ Resources:
   #
   # img-src needs Supercell's asset CDN: collector avatars are the
   # cards' own iconUrls, served straight from api-assets.clashroyale.com.
+  # Elixir Clan, served here under /clan, draws its map from OpenStreetMap
+  # tiles.
   # Fonts are self-hosted under /assets/fonts/ (no font CDN, so no
   # third party learns who read which page). Every origin here was taken
   # from the BUILT output, not from memory - a CSP written from what you
@@ -1724,7 +1751,7 @@ Resources:
               form-action 'self';
               script-src 'self' https://tinylytics.app;
               connect-src 'self' https://tinylytics.app;
-              img-src 'self' data: https://api-assets.clashroyale.com https://tinylytics.app;
+              img-src 'self' data: https://api-assets.clashroyale.com https://tinylytics.app https://tile.openstreetmap.org;
               font-src 'self';
               style-src 'self' 'unsafe-inline'
           ContentTypeOptions:
@@ -1802,6 +1829,19 @@ Resources:
             CustomOriginConfig:
               OriginProtocolPolicy: https-only
               OriginSSLProtocols: [TLSv1.2]
+          # Elixir Clan (clan/, stack elixir-clan): its app from its own
+          # bucket, whose name its template fixes and whose policy admits
+          # this distribution, and its HTTP API. Nothing of Elixir's is
+          # sent to either.
+          - Id: clanweb
+            DomainName: !Sub elixir-clan-web-${AWS::AccountId}.s3.${AWS::Region}.amazonaws.com
+            OriginAccessControlId: !Ref SiteOac
+            S3OriginConfig: { OriginAccessIdentity: "" }
+          - Id: clanapi
+            DomainName: !Ref ClanApiDomain
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
         DefaultCacheBehavior:
           TargetOriginId: site
           ViewerProtocolPolicy: redirect-to-https
@@ -1809,8 +1849,9 @@ Resources:
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
           ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
           Compress: true
-          # Site routing lives HERE, on the site behavior only, so it
-          # cannot reach the API, MCP or OAuth behaviors below.
+          # Site routing lives HERE, on the site behavior and Clan's two
+          # app behaviors only, so it cannot reach the API, MCP or OAuth
+          # behaviors below.
           FunctionAssociations:
             - EventType: viewer-request
               FunctionARN: !GetAtt SpaRouter.FunctionMetadata.FunctionARN
@@ -1850,6 +1891,14 @@ Resources:
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+          # Elixir Clan's API, listed before /api/*, which would take it.
+          - PathPattern: /api/clan/*
+            TargetOriginId: clanapi
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            OriginRequestPolicyId: !Ref ClanApiOriginRequestPolicy
           - PathPattern: /api/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
@@ -1913,6 +1962,27 @@ Resources:
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+          # Elixir Clan's app (2026-09-28): its own bucket, routed by the
+          # same function as the site. Two patterns, because /clan* would
+          # also take /clans.
+          - PathPattern: /clan
+            TargetOriginId: clanweb
+            ViewerProtocolPolicy: redirect-to-https
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt SpaRouter.FunctionMetadata.FunctionARN
+          - PathPattern: /clan/*
+            TargetOriginId: clanweb
+            ViewerProtocolPolicy: redirect-to-https
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt SpaRouter.FunctionMetadata.FunctionARN
         # No CustomErrorResponses: those are DISTRIBUTION-wide, so
         # rewriting 403/404 to a 200 app shell also rewrote the API's
         # own refusals. An unauthenticated /api/admin/requests came back
@@ -1931,9 +2001,11 @@ Resources:
   # docs at all.
   #
   # One origin, paths not hostnames (2026-09-28): the Console lives
-  # under /console and everything else is the site's, so the rule is a
-  # prefix, not a list of pages to keep in step. The MCP, OAuth and API
-  # paths never reach this function: they are their own behaviours.
+  # under /console, Elixir Clan under /clan, and everything else is the
+  # site's, so the rule is a prefix, not a list of pages to keep in step.
+  # The MCP, OAuth and API paths never reach this function: they are
+  # their own behaviours. Clan's two behaviours share it; each origin
+  # sees only its own paths, because the behaviours split them first.
   SpaRouter:
     Type: AWS::CloudFront::Function
     Properties:
@@ -1944,7 +2016,7 @@ Resources:
       Name: elixir-mcp-spa-router
       AutoPublish: true
       FunctionConfig:
-        Comment: Route content paths to the static site and app paths to the app shell
+        Comment: Route content paths to the static site and app paths to their app shell
         Runtime: cloudfront-js-2.0
       FunctionCode: |
         function handler(event) {
@@ -1974,6 +2046,13 @@ Resources:
           // resolves its own paths (and sends a stale one home).
           if (key === '/console' || key.indexOf('/console/') === 0) {
             request.uri = '/app.html';
+            return request;
+          }
+
+          // Elixir Clan owns /clan: its files sit under clan/ in its own
+          // bucket, and every other path there is its app.
+          if (key === '/clan' || key.indexOf('/clan/') === 0) {
+            request.uri = '/clan/index.html';
             return request;
           }
 
