@@ -1,7 +1,8 @@
 /**
  * The token requests: a configured client secret rides both grants as
  * client_secret in the form (client_secret_post), none rides without
- * one, and no log line ever carries the form.
+ * one, and no log line ever carries the form. The revocation at sign-out
+ * authenticates the same way and never throws.
  */
 import { test, mock } from "node:test";
 import assert from "node:assert/strict";
@@ -11,14 +12,30 @@ import { SLOW_CALL_MS, current, summarize, withTrace } from "../src/trace.mjs";
 const ISSUER = "https://elixir.test";
 const SECRET = "ecs_test-secret-never-logged";
 
-function fakeFetch({ tokenStatus = 200, slow = false } = {}) {
+function fakeFetch({
+  tokenStatus = 200,
+  slow = false,
+  revocation = true,
+  revokeStatus = 200,
+  revokeThrows = false,
+} = {}) {
   const tokenForms = [];
+  const revokeForms = [];
   async function fetchImpl(url, init = {}) {
     if (url === `${ISSUER}/.well-known/oauth-authorization-server`) {
       return Response.json({
         authorization_endpoint: `${ISSUER}/oauth/authorize`,
         token_endpoint: `${ISSUER}/oauth/token`,
+        ...(revocation
+          ? { revocation_endpoint: `${ISSUER}/oauth/revoke` }
+          : {}),
       });
+    }
+    if (url === `${ISSUER}/oauth/revoke`) {
+      assert.equal(init.method, "POST");
+      revokeForms.push(Object.fromEntries(new URLSearchParams(init.body)));
+      if (revokeThrows) throw new Error("connect ETIMEDOUT");
+      return Response.json({}, { status: revokeStatus });
     }
     assert.equal(url, `${ISSUER}/oauth/token`);
     assert.equal(init.method, "POST");
@@ -36,7 +53,7 @@ function fakeFetch({ tokenStatus = 200, slow = false } = {}) {
       scope: "cr:read",
     });
   }
-  return { fetchImpl, tokenForms };
+  return { fetchImpl, tokenForms, revokeForms };
 }
 
 function client(fetchImpl, clientSecret) {
@@ -108,4 +125,47 @@ test("no log line carries the form: not the secret, the code, the verifier or a 
   const everything = [...printed, ...lines].join("\n");
   for (const needle of [SECRET, "verifier", "rt-old", "code_verifier"])
     assert.equal(everything.includes(needle), false, needle);
+});
+
+test("revoke: the token and client authenticate as the token requests do", async () => {
+  const withSecret = fakeFetch();
+  assert.deepEqual(
+    await client(withSecret.fetchImpl, SECRET).revoke({ token: "ert_9" }),
+    { ok: true },
+  );
+  assert.deepEqual(withSecret.revokeForms, [
+    { token: "ert_9", client_id: "cid", client_secret: SECRET },
+  ]);
+
+  const without = fakeFetch();
+  await client(without.fetchImpl, "").revoke({ token: "ert_9" });
+  assert.deepEqual(without.revokeForms, [{ token: "ert_9", client_id: "cid" }]);
+});
+
+test("revoke: a refusal, a transport failure or no endpoint is an answer, never a throw", async () => {
+  const cases = [
+    [{ revokeStatus: 401 }, { ok: false, status: 401, error: "http 401" }],
+    [
+      { revokeThrows: true },
+      { ok: false, error: "transport: connect ETIMEDOUT" },
+    ],
+    [
+      { revocation: false },
+      { ok: false, error: "discovery lacks revocation_endpoint" },
+    ],
+  ];
+  for (const [options, expected] of cases) {
+    const { fetchImpl } = fakeFetch(options);
+    assert.deepEqual(
+      await client(fetchImpl, SECRET).revoke({ token: "ert_9" }),
+      expected,
+    );
+  }
+  const down = async () => {
+    throw new Error("getaddrinfo ENOTFOUND");
+  };
+  assert.deepEqual(await client(down, SECRET).revoke({ token: "ert_9" }), {
+    ok: false,
+    error: "transport: getaddrinfo ENOTFOUND",
+  });
 });

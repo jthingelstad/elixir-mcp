@@ -1350,3 +1350,16 @@ each run in a worktree of its own (elixir-mcp's `docs/NOTES.md`,
   Policy Auditor no longer waits for a Monday: each run confirms grants
   for every season closed since the last one.
 
+
+## 2026-09-29 — Signing out ends the grant at Elixir
+
+`POST /auth/logout` now revokes the session's grant at Elixir
+(`oauth.revoke`, RFC 7009, by the refresh token and the client secret)
+after deleting the session. Best effort: Elixir unreachable or refusing
+is logged `revoke_failed`, and the sign-out holds.
+
+The same change on Elixir's side (elixir-mcp's `docs/NOTES.md`,
+2026-09-29) skips the consent page when a signed-in person already holds
+a standing Clan grant covering the request. So **Sign in** is one click
+for someone signed in to Elixir, and the revoke here is what makes an
+explicit sign-out ask again next time.

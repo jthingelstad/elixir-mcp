@@ -433,9 +433,27 @@ export function createHandler({
     ]);
   }
 
+  /**
+   * Signing out of Clan ends Clan's grant at Elixir too (2026-09-29).
+   * Elixir skips its consent page for a grant that still stands, so
+   * without this the next "Sign in" would be back in with no question
+   * asked. The session goes first: the sign-out holds here whatever
+   * Elixir says, and a revoke that fails is logged, not shown.
+   */
   async function logout(event) {
     const session = await loadSession(event);
-    if (session) await store.deleteSession(session.id);
+    if (session) {
+      await store.deleteSession(session.id);
+      const token = session.refreshToken ?? session.accessToken;
+      if (token) {
+        const revoked = await oauth.revoke({ token });
+        if (!revoked.ok)
+          log.warn?.("revoke_failed", {
+            error: revoked.error,
+            status: revoked.status ?? null,
+          });
+      }
+    }
     return redirect(`${appUrl}/`, [clearSessionCookie()]);
   }
 

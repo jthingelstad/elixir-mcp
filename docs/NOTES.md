@@ -1453,3 +1453,40 @@ Read-back, reads only, to 12:08Z:
 Owed: the follow-up that takes the collector routes, the `payloads/*`
 grant and the submit-ingest filter off the web-api. It changes a role,
 so it waits for Jamie's go.
+
+---
+
+## 2026-09-29 - Clan's sign-in: a standing grant is not asked again
+
+Jamie's call, from the structural assessment ("Clan reads Elixir
+session"): Clan keeps its own session and OAuth, and two changes make it
+feel like one sign-in with Elixir.
+
+- **Remembered consent** (`services/mcp/src/oauth-routes.mjs`,
+  `consentRemembered`). A signed-in GET of `/oauth/authorize` redirects
+  with a code at once, logged `oauth_consent_remembered`, when all of
+  these hold: the client is a provisioned family client whose every
+  redirect is on a family origin, and this request's redirect is on
+  Elixir's own origin (Clan yes, Drop no); the door is the person's own
+  or the JSON API (never an agent's or integration's); and the person
+  holds a grant (`oauth_family`) to that client for that door that is
+  unrevoked, inside its 90 days, and carries every scope requested. The
+  code carries exactly what was asked, and there are no boxes to widen
+  it (`widen: false`). Anything less shows the page as before;
+  `switch=1` still forces the email step.
+- **Sign-out revokes** (`clan/services/api`). `POST /auth/logout`
+  deletes the session, then calls `/oauth/revoke` with the refresh
+  token and Clan's secret, best effort with 5 s: a failure is logged
+  `revoke_failed` and the sign-out holds.
+
+Why a GET may issue a code here: the code goes to a redirect Elixir
+registered on its own origin, Clan's callback refuses one whose state
+does not match the browser's login cookie, and PKCE binds it to the
+verifier Clan holds server-side. A page that sends someone's browser to
+the authorize URL gets a failed callback in that browser and no code.
+
+What a person sees: signed in to Elixir, **Sign in** on Clan comes
+straight back signed in. After signing out of Clan, the next sign-in
+shows **Authorize** once. Every Clan sign-in still mints a grant of its
+own, so a grant left standing by another browser also counts; the
+Connections page lists each.

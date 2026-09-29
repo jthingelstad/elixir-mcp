@@ -197,6 +197,11 @@ export function fakeOAuth({ now }) {
         return { ok: false, status: 400, error: state.failRefresh };
       return { ok: true, tokens: tokens() };
     },
+    async revoke(args) {
+      calls.push(["revoke", args]);
+      if (state.revokeDown) return { ok: false, error: "transport: timeout" };
+      return { ok: true };
+    },
   };
 }
 

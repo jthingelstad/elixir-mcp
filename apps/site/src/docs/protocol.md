@@ -190,6 +190,15 @@ signs the browser in to the site as well, so the next consent, and the
 console, do not ask again. Nothing about the grant differs between the two
 paths.
 
+One of Elixir's own apps that takes its code back to elixir.poapkings.com
+(Elixir Clan) is not asked twice. When the signed-in person already holds a
+grant to it for the same door, unrevoked, inside its 90 days, and carrying
+every capability the request asks for, the authorize request redirects with a
+code at once, for exactly what was asked. Revoking that grant (Account →
+Connections, or the app's own sign-out, which calls
+[`/oauth/revoke`](#revocation)) or narrowing it brings the page back. No other
+client skips the page.
+
 For an agent door (`/a/<public_id>/mcp`), only the agent's owner may consent,
 and the resulting grant is for the agent, not the person. An agent that does
 not exist and an agent you do not own get the same refusal.

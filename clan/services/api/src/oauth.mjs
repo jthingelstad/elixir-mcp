@@ -160,5 +160,38 @@ export function createOAuthClient({
         resource,
       });
     },
+
+    /**
+     * End this grant at Elixir (RFC 7009), as signing out does. Either
+     * token revokes the whole grant there. Elixir answers 200 whether or
+     * not the token was live, so `ok` says only that it was heard. Never
+     * throws: a sign-out does not wait on the answer.
+     */
+    async revoke({ token }) {
+      try {
+        const { revocation_endpoint } = await discovery();
+        if (typeof revocation_endpoint !== "string")
+          return { ok: false, error: "discovery lacks revocation_endpoint" };
+        const form = { token, client_id: clientId };
+        if (clientSecret) form.client_secret = clientSecret;
+        const response = await timedElixir("oauth:revoke", () =>
+          fetchImpl(revocation_endpoint, {
+            method: "POST",
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams(form).toString(),
+            signal: AbortSignal.timeout(5_000),
+          }),
+        );
+        return response.ok
+          ? { ok: true }
+          : {
+              ok: false,
+              status: response.status,
+              error: `http ${response.status}`,
+            };
+      } catch (error) {
+        return { ok: false, error: `transport: ${error.message}` };
+      }
+    },
   };
 }

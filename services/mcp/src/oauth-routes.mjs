@@ -456,6 +456,39 @@ export function makeOauthRoutes({
       : null;
   }
 
+  /**
+   * Has this person already said yes to exactly this (Jamie 2026-09-29)?
+   * Only a family app that sends the code back to Elixir's own origin
+   * (Elixir Clan, at /clan), for the person's own door or the JSON API,
+   * and only while a grant the person made to it stands, unrevoked and
+   * inside its 90 days, holding every capability asked for now. Signing
+   * out of Clan revokes its grant, as does a revoke on the Connections
+   * page; a grant narrowed there no longer covers the request. Each
+   * brings the consent page back.
+   */
+  async function consentRemembered(db, v, me) {
+    if (v.target.kind !== "person" && v.target.kind !== "api") return false;
+    if (new URL(v.redirectUri).origin !== new URL(issuer).origin) return false;
+    if (
+      !isFirstPartyClient({
+        redirectUris: v.client.redirectUris,
+        provisioned: Boolean(v.client.family),
+      })
+    )
+      return false;
+    const { rows } = await db.query(
+      `select scope from oauth_family
+        where client_id = $1 and account_id = $2 and resource = $3
+          and revoked_at is null and absolute_expires_at > now()`,
+      [v.client.clientId, me.account_id, v.resource],
+    );
+    const wanted = v.scope.split(" ");
+    return rows.some((r) => {
+      const granted = r.scope.split(" ");
+      return wanted.every((s) => granted.includes(s));
+    });
+  }
+
   /** The email step's page, shared by the GET and by a session that lapsed. */
   const emailStepPage = (q, v, lead = "") =>
     page(
@@ -572,12 +605,13 @@ export function makeOauthRoutes({
    * The consent act itself, once the person is known: the principal
    * check, the widening checkboxes, the auth code, the redirect. The
    * same whether the person proved themselves with a code just now or
-   * was already signed in; only the log line names which.
+   * was already signed in; only the log line names which. A remembered
+   * consent had no page, so it has no boxes: `widen: false`.
    */
   async function completeConsent(
     db,
     event,
-    { v, account, hash, boundScope, how },
+    { v, account, hash, boundScope, how, widen = true },
   ) {
     // The person proved who they are. If the audience names a principal,
     // the grant belongs to THAT account -- so every token minted from this
@@ -609,7 +643,7 @@ export function makeOauthRoutes({
     // ?scope=, so nothing can move the grant behind the checkboxes.
     // ...and only to a STANDARD capability: account:email is never
     // widened into, whatever the form posts.
-    const added = formValues(event, "grant").filter(
+    const added = (widen ? formValues(event, "grant") : []).filter(
       (value) =>
         STANDARD_OAUTH_SCOPES.includes(value) && !boundScope.includes(value),
     );
@@ -723,6 +757,23 @@ export function makeOauthRoutes({
       // the address gets recorded.
       const me = q.switch ? null : await signedIn(db, event);
       if (me && !(v.scope.includes(OAUTH_SCOPE.ACCOUNT_EMAIL) && !me.email)) {
+        if (await consentRemembered(db, v, me)) {
+          authLog("oauth_consent_remembered", {
+            email: emailRef(me.email_hash),
+            request: requestRef(v.codeChallenge),
+            client: v.client.clientName,
+            resource: v.resource,
+            kind: v.target.kind,
+          });
+          return completeConsent(db, event, {
+            v,
+            account: me,
+            hash: me.email_hash,
+            boundScope: v.scope,
+            how: "remembered",
+            widen: false,
+          });
+        }
         authLog("oauth_consent_from_session", {
           email: emailRef(me.email_hash),
           request: requestRef(v.codeChallenge),

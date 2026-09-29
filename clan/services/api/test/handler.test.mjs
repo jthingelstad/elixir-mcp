@@ -343,16 +343,40 @@ test("session: the 90-day family ends without asking Elixir", async () => {
   assert.equal(h.oauth.calls.filter((c) => c[0] === "refresh").length, 0);
 });
 
-test("logout: POST only; deletes the session and clears the cookie", async () => {
+const revokes = (h) =>
+  h.oauth.calls.filter((c) => c[0] === "revoke").map((c) => c[1]);
+
+test("logout: POST only; deletes the session, revokes the grant, clears the cookie", async () => {
   const h = harness();
   const { sessionCookie } = await signIn(h);
   const cookies = cookieHeader(sessionCookie);
   const nope = await h.handler(req("GET", "/auth/logout", { cookies }));
   assert.equal(nope.statusCode, 404);
+  assert.deepEqual(revokes(h), [], "a GET revokes nothing");
   const out = await h.handler(req("POST", "/auth/logout", { cookies }));
   assert.equal(out.statusCode, 303);
   assert.equal(out.headers.location, "https://elixir.test/clan/");
   assert.ok(out.cookies[0].startsWith("__Host-elixir_clan_session=; "));
+  // The session's own grant ends at Elixir, by its refresh token.
+  assert.deepEqual(revokes(h), [{ token: "ert_1" }]);
+  const me = await h.handler(req("GET", "/api/me", { cookies }));
+  assert.equal(me.statusCode, 401);
+
+  // Signed out already: nothing to revoke, and still a clean sign-out.
+  const again = await h.handler(req("POST", "/auth/logout", { cookies }));
+  assert.equal(again.statusCode, 303);
+  assert.equal(revokes(h).length, 1);
+});
+
+test("logout: Elixir unreachable, the sign-out still holds", async () => {
+  const h = harness();
+  const { sessionCookie } = await signIn(h);
+  const cookies = cookieHeader(sessionCookie);
+  h.oauth.state.revokeDown = true;
+  const out = await h.handler(req("POST", "/auth/logout", { cookies }));
+  assert.equal(out.statusCode, 303);
+  assert.ok(out.cookies[0].startsWith("__Host-elixir_clan_session=; "));
+  assert.equal(revokes(h).length, 1, "it was tried");
   const me = await h.handler(req("GET", "/api/me", { cookies }));
   assert.equal(me.statusCode, 401);
 });
