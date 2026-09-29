@@ -1082,7 +1082,7 @@ test("clans:attest is the family's too: refused to any other app, shown to a fam
   );
   const { emailStep, tokens } = await consentFlow({
     scope: "cr:read clans:attest",
-    redirect: "https://clan.poapkings.com/auth/callback",
+    redirect: "https://elixir.poapkings.com/api/clan/auth/callback",
   });
   assert.match(emailStep.body, /Record what you do in your clan/);
   assert.equal(tokens.scope, "cr:read clans:attest");
@@ -1158,7 +1158,7 @@ const authorizeGet = (client_id, redirect, scope = "cr:read") =>
 
 test("registration refuses a family redirect and a name that borrows the family's", async () => {
   for (const [i, uris] of [
-    ["https://clan.poapkings.com/auth/callback"],
+    ["https://elixir.poapkings.com/api/clan/auth/callback"],
     [REDIRECT, "https://drop.poapkings.com/auth/elixir/callback"],
     ["https://elixir.poapkings.com/cb"],
   ].entries()) {
@@ -1194,22 +1194,22 @@ test("a client registered to family origins before provisioning is not first-par
   await db.query(
     `insert into oauth_client (client_id, client_name, redirect_uris, expires_at)
      values ('legacy-family-redirect', 'Old Clan', $1, now() + interval '1 day')`,
-    [["https://clan.poapkings.com/auth/callback"]],
+    [["https://drop.poapkings.com/auth/callback"]],
   );
   const refused = await authorizeGet(
     "legacy-family-redirect",
-    "https://clan.poapkings.com/auth/callback",
+    "https://drop.poapkings.com/auth/callback",
     "cr:read account:email",
   );
   assert.equal(refused.statusCode, 400);
   assert.match(refused.body, /offered only to the Elixir family/);
   const plain = await authorizeGet(
     "legacy-family-redirect",
-    "https://clan.poapkings.com/auth/callback",
+    "https://drop.poapkings.com/auth/callback",
   );
   assert.equal(plain.statusCode, 200);
   assert.match(plain.body, /named itself; Elixir has not checked it/);
-  assert.match(plain.body, /clan\.poapkings\.com/);
+  assert.match(plain.body, /drop\.poapkings\.com/);
 });
 
 test("the consent page names where the code goes", async () => {
@@ -1225,13 +1225,13 @@ test("the consent page names where the code goes", async () => {
   assert.equal(shown.statusCode, 200);
   assert.match(shown.body, /sends a code to <strong>claude\.ai<\/strong>/);
   const { emailStep } = await consentFlow({
-    redirect: "https://clan.poapkings.com/auth/callback",
+    redirect: "https://elixir.poapkings.com/api/clan/auth/callback",
   });
   assert.match(emailStep.body, /one of Elixir&rsquo;s own apps/);
 });
 
 test("a family client's secret: checked when sent, stamped, then required", async () => {
-  const redirect = "https://clan.poapkings.com/auth/callback";
+  const redirect = "https://elixir.poapkings.com/api/clan/auth/callback";
   const wrong = await consentFlow({
     redirect,
     secretHash: sha("right-secret"),
@@ -1423,14 +1423,14 @@ test("family_clients op: provisions only family redirects, lists the audit, reti
   assert.equal(out.revoked[1].refused, "provisioned");
   const gone = await authorizeGet(
     "legacy-family-redirect",
-    "https://clan.poapkings.com/auth/callback",
+    "https://drop.poapkings.com/auth/callback",
   );
   assert.match(gone.body, /unknown client_id/);
 
-  // An app that moves address (Clan to /clan, 2026-09-28): its URIs are
-  // replaced, never with one off the family's origins, and from then on
-  // the door takes only the new ones.
-  const OLD = "https://clan.poapkings.com/auth/callback";
+  // An app that moves address (as Clan did, to /clan, 2026-09-28): its
+  // URIs are replaced, never with one off the family's origins, and from
+  // then on the door takes only the new ones.
+  const OLD = "https://drop.poapkings.com/auth/old-callback";
   const NEW = "https://elixir.poapkings.com/api/clan/auth/callback";
   const moving = (
     await familyClientsOn(db, {

@@ -25,7 +25,6 @@ export const PRESERVED_PARAMETERS = [
   "OAuthClientId",
   "OAuthClientSecret",
   "AppSecretName",
-  "SiteCertificateArn",
   "MaintainerTags",
   "FeedbackNotifyEmail",
   "ElixirIntegrationKey",

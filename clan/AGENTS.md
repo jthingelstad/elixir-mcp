@@ -4,9 +4,8 @@ Elixir Clan: being in a clan, on top of Elixir. One of the Elixir family's
 verticals (`../../elixir-family/MAP.md`), served on Elixir's origin: the
 app at `elixir.poapkings.com/clan`, its API at `/api/clan`, both through
 Elixir's CloudFront distribution (one origin, 2026-09-28:
-`../../elixir-family/plans/one-origin.md`, step 4). The `clan.poapkings.com`
-distribution stands until step 5 retires it, but no longer serves the
-app ("Served through Elixir", below). Its code lives in
+`../../elixir-family/plans/one-origin.md`). `clan.poapkings.com` is
+retired: its DNS record and its distribution are gone (step 5). Its code lives in
 elixir-mcp's repository as `clan/` (2026-09-28, with its history) and keeps
 its own Lambdas, table and stack: one repository, two runtimes. It signs people
 in with Elixir's OAuth, takes anyone with a player in a clan as a member
@@ -92,13 +91,13 @@ docs/NOTES.md      decisions, newest last; what is waiting on Jamie
 
 ## The seams to Elixir
 
-| Seam | Where | What |
-|---|---|---|
-| Discovery | `GET {ElixirUrl}/.well-known/oauth-authorization-server` | endpoints, cached 300 s (`services/api/src/oauth.mjs`) |
-| The client | provisioned by Elixir | Clan's is a family client (app `clan`, Elixir's `family_clients` op, 0185), never expiring; `/oauth/register` refuses a redirect URI on a family origin, so `infra/scripts/register-client.mjs` only says it is superseded. Its redirect URI is `https://elixir.poapkings.com/api/clan/auth/callback` (the handler's, from `APP_URL`'s origin), changed with the op's `set_redirect_uris`. The `client_id` is the stack parameter `OAuthClientId`. PKCE, and the client secret: the NoEcho stack parameter `OAuthClientSecret` (PRESERVED, env `OAUTH_CLIENT_SECRET`, staged once with `--param`, never printed), sent as `client_secret` in the form of both token requests when set. |
-| Authorize | `/oauth/authorize` | `scope=cr:read clans:attest` (`clans:attest` since 2026-09-25: only the family's own apps may ask for it), `resource=https://elixir.poapkings.com/api/v1` (required, RFC 8707), S256. An `/mcp` grant is refused at `/api/v1`. A session signed in before the change holds `cr:read` alone: its shares are logged as not shared, and every page asks the person to sign in again (`canShare` in `App.jsx`, from `/api/me`'s `scope`). |
-| Tokens | `/oauth/token` | access 1 h, refresh 30 d rotating, family 90 d. Refreshed server-side; a rotated refresh token is STORED before any reuse (presenting it twice revokes the grant). One request spends it: `store.claimRefresh` is a conditional write on the stored token, and a request that loses waits for the pair the winner stores (2026-09-26; parallel page calls revoked a grant on 2026-09-13). Elixir refusing the refresh (400) ends the session; Elixir not answering is a 502 that keeps the session and the cookie. |
-| The door | `/api/v1/*` | Elixir's JSON API (`services/api/src/elixir-api.mjs`). It keeps the old MCP client's `initialize`/`callTool` interface: each tool name maps to one operation, answered with that tool's structured result, and a refusal comes back as problem+json carrying the tool's code. Plan: `../../elixir-family/plans/clan-app-api.md` |
+| Seam       | Where                                                    | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Discovery  | `GET {ElixirUrl}/.well-known/oauth-authorization-server` | endpoints, cached 300 s (`services/api/src/oauth.mjs`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| The client | provisioned by Elixir                                    | Clan's is a family client (app `clan`, Elixir's `family_clients` op, 0185), never expiring; `/oauth/register` refuses a redirect URI on a family origin, so `infra/scripts/register-client.mjs` only says it is superseded. Its redirect URI is `https://elixir.poapkings.com/api/clan/auth/callback` (the handler's, from `APP_URL`'s origin), changed with the op's `set_redirect_uris`. The `client_id` is the stack parameter `OAuthClientId`. PKCE, and the client secret: the NoEcho stack parameter `OAuthClientSecret` (PRESERVED, env `OAUTH_CLIENT_SECRET`, staged once with `--param`, never printed), sent as `client_secret` in the form of both token requests when set. |
+| Authorize  | `/oauth/authorize`                                       | `scope=cr:read clans:attest` (`clans:attest` since 2026-09-25: only the family's own apps may ask for it), `resource=https://elixir.poapkings.com/api/v1` (required, RFC 8707), S256. An `/mcp` grant is refused at `/api/v1`. A session signed in before the change holds `cr:read` alone: its shares are logged as not shared, and every page asks the person to sign in again (`canShare` in `App.jsx`, from `/api/me`'s `scope`).                                                                                                                                                                                                                                                  |
+| Tokens     | `/oauth/token`                                           | access 1 h, refresh 30 d rotating, family 90 d. Refreshed server-side; a rotated refresh token is STORED before any reuse (presenting it twice revokes the grant). One request spends it: `store.claimRefresh` is a conditional write on the stored token, and a request that loses waits for the pair the winner stores (2026-09-26; parallel page calls revoked a grant on 2026-09-13). Elixir refusing the refresh (400) ends the session; Elixir not answering is a 502 that keeps the session and the cookie.                                                                                                                                                                     |
+| The door   | `/api/v1/*`                                              | Elixir's JSON API (`services/api/src/elixir-api.mjs`). It keeps the old MCP client's `initialize`/`callTool` interface: each tool name maps to one operation, answered with that tool's structured result, and a refusal comes back as problem+json carrying the tool's code. Plan: `../../elixir-family/plans/clan-app-api.md`                                                                                                                                                                                                                                                                                                                                                        |
 
 Elixir's contract is documented at <https://elixir.poapkings.com/docs>
 (`integrations` for the JSON API Clan reads, `protocol` for OAuth discovery
@@ -418,7 +417,7 @@ model may write **words, never judgments**:
   round (2026-09-25), `leader_message`: on an open action that ends in a
   Clan Leader Message (promotion, demotion, the season's awards, how the
   clan runs), a leader asks for it in the clan's voice (`POST
-  /api/clans/<TAG>/actions/<id>/draft`, `manage/drafts.mjs`, "Draft in our
+/api/clans/<TAG>/actions/<id>/draft`, `manage/drafts.mjs`, "Draft in our
   voice" in the editor). The model writes `{name}` and `{winners}`, never a
   name; Clan puts the names back and applies the chat filter and the
   game's limits (`leaderMessageFromDraft`); the action's log says
@@ -736,14 +735,14 @@ Each answers with the named Elixir tool's structured result, at the hub's
 current JSON API version (see `packages/contracts/integration-api.openapi.json`
 `info.version` in elixir-mcp; a removed or renamed field is a major there).
 
-| Operation | Tool result | Used for |
-|---|---|---|
-| `GET /api/v1/me` | principal + `elixir_my_players` | the gate |
-| `GET /api/v1/clans/{tag}/roster` | `clans_roster` | the clan page, departures, history, the week's comings and goings, today's trophies when the policy counts trophy road |
-| `GET /api/v1/clans/{tag}/participation?weeks=8` | `clans_participation` | every evaluation, You here and the week: one call, eight weeks, no agent-sized cap |
-| `POST /api/v1/players/names` | `players_names` | name legacy departure cards whose roster event carried only a tag |
-| `GET /api/v1/players/{tag}/profile?fresh=1`, `GET /api/v1/players/{tag}/battles?limit=25&fresh=1` | `players_profile`, `battles_query` | scouting an applicant; `live_pending` is passed through with `retry_after_s` |
-| `GET /api/v1/clans/{tag}/live` | `live_fetch /clans/{tag}` | recruit facts |
+| Operation                                                                                         | Tool result                        | Used for                                                                                                               |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/me`                                                                                  | principal + `elixir_my_players`    | the gate                                                                                                               |
+| `GET /api/v1/clans/{tag}/roster`                                                                  | `clans_roster`                     | the clan page, departures, history, the week's comings and goings, today's trophies when the policy counts trophy road |
+| `GET /api/v1/clans/{tag}/participation?weeks=8`                                                   | `clans_participation`              | every evaluation, You here and the week: one call, eight weeks, no agent-sized cap                                     |
+| `POST /api/v1/players/names`                                                                      | `players_names`                    | name legacy departure cards whose roster event carried only a tag                                                      |
+| `GET /api/v1/players/{tag}/profile?fresh=1`, `GET /api/v1/players/{tag}/battles?limit=25&fresh=1` | `players_profile`, `battles_query` | scouting an applicant; `live_pending` is passed through with `retry_after_s`                                           |
+| `GET /api/v1/clans/{tag}/live`                                                                    | `live_fetch /clans/{tag}`          | recruit facts                                                                                                          |
 
 Elixir returns facts; every threshold, score and verdict is here.
 
@@ -771,7 +770,7 @@ included; the agents push as it.
   Clan's vitest and its journeys all run in that one gate.
 - A rebase merge gives the commit a new SHA on `main`. The deploy that
   carries it is the `clan-deploy` run for the merge SHA from `gh pr view
-  <n> --json mergeCommit`, never the branch's SHA.
+<n> --json mergeCommit`, never the branch's SHA.
 - A check that fails and then passes on a re-run is a flake, and a flake
   is a defect: fix it in the PR or record it the same day.
 - Unfinished work stays an open PR; the checkout goes back to `main`.
@@ -784,14 +783,14 @@ included; the agents push as it.
 - One stack `elixir-clan` (`infra/template.yaml`): 35-day PITR and deletion
   protection on the retained table, function, HTTP API
   (spelled out: integration, `$default` route and stage with an access log),
-  private bucket + CloudFront, SNS `elixir-clan-alarms`, three alarms (Lambda
+  private bucket (Elixir's distribution serves it; this stack has none),
+  SNS `elixir-clan-alarms`, three alarms (Lambda
   errors, API 5xx, slow requests p90 > 8 s on Lambda Duration), 30-day logs.
   No billing alarm: an account-wide guard is not one product's to carry
   (removed 2026-09-24, Jamie).
 - `infra/scripts/parameters.mjs` carries Drop's discipline: REQUIRED (code
   key) is always sent; PRESERVED (`ElixirUrl`, `OAuthClientId`,
-  `OAuthClientSecret`, `AppSecretName`, `SiteCertificateArn`,
-  `MaintainerTags`, `FeedbackNotifyEmail`, `ElixirIntegrationKey`,
+  `OAuthClientSecret`, `AppSecretName`, `MaintainerTags`, `FeedbackNotifyEmail`, `ElixirIntegrationKey`,
   `ScheduleEnabled`, `ElixirDistributionId`) rides `UsePreviousValue`. Set
   one with `--param=Key=Value`; omitting is never a reset. A test pins the
   template's parameter list to that set. There is no `AppUrl` (removed
@@ -806,12 +805,14 @@ included; the agents push as it.
   file's path as it stands and any other `/clan` path as
   `/clan/index.html`, so `infra/scripts/deploy-web.mjs` writes every built
   file under `clan/` (`clan/index.html`, `clan/assets/...`) and deletes
-  any other key, the bucket-root copy `clan.poapkings.com` served
-  included. The bucket admits Elixir's distribution (`ElixirDistributionId`,
-  set once with `--param`), and the web deploy flushes `/clan*` there as
-  well as `/*` on this stack's own distribution.
+  any other key. The bucket admits only Elixir's distribution
+  (`ElixirDistributionId`, required since step 5: a create passes it with
+  `--param`), and the web deploy flushes `/clan*` there. The stack's own
+  distribution, router function and header policies were removed with
+  `clan.poapkings.com` (2026-09-28); Elixir's security headers are the
+  only ones.
 - Local, from the repository root: `AWS_PROFILE=cloud-engineer node
-  clan/infra/scripts/deploy.mjs` (build → upload → stack → web → smoke).
+clan/infra/scripts/deploy.mjs` (build → upload → stack → web → smoke).
   `--create` for a first deploy, `--skip-web` for code only. It deploys
   only an up-to-date `main` whose `validate` check is green and a clean
   worktree (`infra/scripts/ci-gate.mjs`); `--break-glass` is for GitHub
@@ -919,23 +920,23 @@ Events are counted the Tinylytics way, a hidden `data-tinylytics-event`
 node clicked once (`trackEvent`), or the attribute on a real link. The
 taxonomy, and it is REAL (add here when adding there):
 
-| Event | Value |
-|---|---|
-| `clan.signin_started` | `landing` \| `chrome` (the link clicked) |
-| `clan.action_decided`, `clan.action_commented` | `<type>:<status or classification>` e.g. `removal:done`, `departure:leave`; the type |
-| `clan.hold_set`, `clan.note_added` | `until` \| `open`; `leader` \| `elder` |
-| `clan.policy_previewed`, `clan.policy_saved`, `clan.policy_preset` | (none); `v<n>`; the preset key or `goals` |
-| `clan.awards_saved`, `clan.award_granted` | `v<n>`; the award kind |
-| `clan.scout` | `answered` \| `pending` |
-| `clan.away_set`, `clan.away_cleared` | (none) |
-| `clan.feedback_sent`, `clan.feedback_answered` | the category; the status |
-| `clan.copy_in_game` | (none), or `leader_message` for a Leader Message field |
-| `clan.action_link_copied` | (none) |
-| `clan.invite_copied` | `leaders` \| `clanmates` \| `link` |
-| `clan.recruit_copied`, `clan.recruit_saved` | `personal` \| `post`; `v<n>` |
-| `clan.place_set`, `clan.place_cleared` | `city` \| `region` \| `country`; (none) |
-| `clan.social_set` | `on` \| `off` |
-| `clan.model_key_set`, `clan.model_key_removed`, `clan.model_drafted` | (none); (none); the purpose (`recruit_pitch` \| `leader_message`) |
+| Event                                                                                   | Value                                                                                                                               |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `clan.signin_started`                                                                   | `landing` \| `chrome` (the link clicked)                                                                                            |
+| `clan.action_decided`, `clan.action_commented`                                          | `<type>:<status or classification>` e.g. `removal:done`, `departure:leave`; the type                                                |
+| `clan.hold_set`, `clan.note_added`                                                      | `until` \| `open`; `leader` \| `elder`                                                                                              |
+| `clan.policy_previewed`, `clan.policy_saved`, `clan.policy_preset`                      | (none); `v<n>`; the preset key or `goals`                                                                                           |
+| `clan.awards_saved`, `clan.award_granted`                                               | `v<n>`; the award kind                                                                                                              |
+| `clan.scout`                                                                            | `answered` \| `pending`                                                                                                             |
+| `clan.away_set`, `clan.away_cleared`                                                    | (none)                                                                                                                              |
+| `clan.feedback_sent`, `clan.feedback_answered`                                          | the category; the status                                                                                                            |
+| `clan.copy_in_game`                                                                     | (none), or `leader_message` for a Leader Message field                                                                              |
+| `clan.action_link_copied`                                                               | (none)                                                                                                                              |
+| `clan.invite_copied`                                                                    | `leaders` \| `clanmates` \| `link`                                                                                                  |
+| `clan.recruit_copied`, `clan.recruit_saved`                                             | `personal` \| `post`; `v<n>`                                                                                                        |
+| `clan.place_set`, `clan.place_cleared`                                                  | `city` \| `region` \| `country`; (none)                                                                                             |
+| `clan.social_set`                                                                       | `on` \| `off`                                                                                                                       |
+| `clan.model_key_set`, `clan.model_key_removed`, `clan.model_drafted`                    | (none); (none); the purpose (`recruit_pitch` \| `leader_message`)                                                                   |
 | `web.api_timeout`, `web.api_network`, `web.api_bad_response`, `web.api_slow` (over 3 s) | the route key as the browser called it, `/api/clan/...` with ids as `*`, so Clan's stay apart from the Console's on the shared site |
 
 No server-side events: Elixir's go through its email relay with an API
@@ -1046,6 +1047,6 @@ needs the execution role's `events:*` statement on `rule/elixir-clan-*`
 
 ---
 
-*This material is unofficial and is not endorsed by Supercell. For more
+_This material is unofficial and is not endorsed by Supercell. For more
 information see Supercell's Fan Content Policy:
-www.supercell.com/fan-content-policy.*
+www.supercell.com/fan-content-policy._

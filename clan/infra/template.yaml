@@ -41,12 +41,6 @@ Parameters:
     Type: String
     Default: elixir-clan/app
     Description: Secrets Manager secret with session_secret (created by bootstrap). PRESERVED.
-  SiteCertificateArn:
-    Type: String
-    Default: ""
-    Description: >-
-      ACM certificate in us-east-1 covering clan.poapkings.com (the account's
-      *.poapkings.com wildcard). Empty deploys without the alias. PRESERVED.
   MaintainerTags:
     Type: String
     Default: ""
@@ -82,16 +76,15 @@ Parameters:
 
   ElixirDistributionId:
     Type: String
-    Default: ""
+    AllowedPattern: "^E[A-Z0-9]{8,20}$"
+    ConstraintDescription: a CloudFront distribution id
     Description: >-
-      Elixir's CloudFront distribution, which serves this app at
-      elixir.poapkings.com/clan and its API at /api/clan (2026-09-28): the
-      web bucket admits it, and the web deploy flushes /clan there. Empty
-      until set once with --param. PRESERVED.
+      Elixir's CloudFront distribution, the only one that serves this app
+      (at elixir.poapkings.com/clan) and its API (at /api/clan) since
+      clan.poapkings.com was retired (2026-09-28): the web bucket admits
+      it, and the web deploy flushes /clan there. PRESERVED.
 
 Conditions:
-  HasSiteCert: !Not [!Equals [!Ref SiteCertificateArn, ""]]
-  HasElixirDistribution: !Not [!Equals [!Ref ElixirDistributionId, ""]]
   HasFeedbackEmail: !Not [!Equals [!Ref FeedbackNotifyEmail, ""]]
   HasSchedule: !Equals [!Ref ScheduleEnabled, "true"]
 
@@ -363,160 +356,12 @@ Resources:
             Principal: { Service: cloudfront.amazonaws.com }
             Action: s3:GetObject
             Resource: !Sub ${WebBucket.Arn}/*
-            # This stack's own distribution, and Elixir's, which serves
-            # the app under /clan (one origin, 2026-09-28).
+            # Elixir's distribution, which serves the app under /clan
+            # (one origin, 2026-09-28), through its own origin access
+            # control. This stack has no distribution of its own.
             Condition:
               StringEquals:
-                AWS:SourceArn:
-                  - !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}
-                  - !If
-                    - HasElixirDistribution
-                    - !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ElixirDistributionId}
-                    - !Ref AWS::NoValue
-
-  WebOac:
-    Type: AWS::CloudFront::OriginAccessControl
-    Properties:
-      OriginAccessControlConfig:
-        Name: elixir-clan-web-oac
-        OriginAccessControlOriginType: s3
-        SigningBehavior: always
-        SigningProtocol: sigv4
-
-  # Cookies and the query string flow to the API; nothing is cached.
-  ApiOriginRequestPolicy:
-    Type: AWS::CloudFront::OriginRequestPolicy
-    Properties:
-      OriginRequestPolicyConfig:
-        Name: elixir-clan-api
-        CookiesConfig: { CookieBehavior: all }
-        HeadersConfig:
-          HeaderBehavior: whitelist
-          Headers: [accept, content-type, cloudfront-viewer-country]
-        QueryStringsConfig: { QueryStringBehavior: all }
-
-  # Elixir's headers, minus what this site does not load. Every origin
-  # here comes from the built output: Inter from Google Fonts (index.html)
-  # and nothing else off-site. form-action stays 'self': sign-in is a
-  # link that redirects, and the browser does not apply form-action to a
-  # redirect that follows a navigation.
-  SecurityHeadersPolicy:
-    Type: AWS::CloudFront::ResponseHeadersPolicy
-    Properties:
-      ResponseHeadersPolicyConfig:
-        Name: elixir-clan-security-headers
-        Comment: CSP, HSTS, nosniff, referrer and permissions policy
-        SecurityHeadersConfig:
-          ContentSecurityPolicy:
-            Override: true
-            ContentSecurityPolicy: >-
-              default-src 'self';
-              base-uri 'self';
-              object-src 'none';
-              frame-ancestors 'none';
-              form-action 'self';
-              script-src 'self' https://tinylytics.app;
-              connect-src 'self' https://tinylytics.app;
-              img-src 'self' data: https://tinylytics.app https://tile.openstreetmap.org;
-              font-src 'self' https://fonts.gstatic.com;
-              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com
-          ContentTypeOptions:
-            Override: true
-          FrameOptions:
-            Override: true
-            FrameOption: DENY
-          ReferrerPolicy:
-            Override: true
-            ReferrerPolicy: strict-origin-when-cross-origin
-          StrictTransportSecurity:
-            Override: true
-            AccessControlMaxAgeSec: 63072000
-            IncludeSubdomains: true
-            Preload: false
-        CustomHeadersConfig:
-          Items:
-            - Header: Permissions-Policy
-              Override: true
-              Value: >-
-                accelerometer=(), camera=(), display-capture=(),
-                geolocation=(), gyroscope=(), magnetometer=(),
-                microphone=(), payment=(), usb=()
-
-  Distribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      DistributionConfig:
-        Enabled: true
-        Comment: clan.poapkings.com
-        HttpVersion: http2and3
-        Aliases: !If [HasSiteCert, [clan.poapkings.com], !Ref "AWS::NoValue"]
-        ViewerCertificate: !If
-          - HasSiteCert
-          - AcmCertificateArn: !Ref SiteCertificateArn
-            SslSupportMethod: sni-only
-            MinimumProtocolVersion: TLSv1.2_2021
-          - CloudFrontDefaultCertificate: true
-        DefaultRootObject: index.html
-        Origins:
-          - Id: web
-            DomainName: !GetAtt WebBucket.RegionalDomainName
-            OriginAccessControlId: !Ref WebOac
-            S3OriginConfig: { OriginAccessIdentity: "" }
-          - Id: api
-            DomainName: !Sub ${Api}.execute-api.${AWS::Region}.amazonaws.com
-            CustomOriginConfig:
-              OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [TLSv1.2]
-        DefaultCacheBehavior:
-          TargetOriginId: web
-          ViewerProtocolPolicy: redirect-to-https
-          # AWS managed CachingOptimized
-          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
-          ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-          Compress: true
-          FunctionAssociations:
-            - EventType: viewer-request
-              FunctionARN: !GetAtt SpaRouter.FunctionMetadata.FunctionARN
-        CacheBehaviors:
-          - PathPattern: /auth/*
-            TargetOriginId: api
-            ViewerProtocolPolicy: https-only
-            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
-            # AWS managed CachingDisabled
-            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            OriginRequestPolicyId: !Ref ApiOriginRequestPolicy
-          - PathPattern: /api/*
-            TargetOriginId: api
-            ViewerProtocolPolicy: https-only
-            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
-            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
-            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            OriginRequestPolicyId: !Ref ApiOriginRequestPolicy
-        # No CustomErrorResponses: they are distribution-wide and would
-        # rewrite the API's own refusals into a 200 app shell (Elixir
-        # learned this the hard way). The router below owns the SPA.
-
-  # Every extension-less path is the app; a path with an extension is a
-  # file and a missing one stays a 404.
-  SpaRouter:
-    Type: AWS::CloudFront::Function
-    Properties:
-      Name: elixir-clan-spa-router
-      AutoPublish: true
-      FunctionConfig:
-        Comment: Serve the app shell for every application route
-        Runtime: cloudfront-js-2.0
-      FunctionCode: |
-        function handler(event) {
-          var request = event.request;
-          var uri = request.uri;
-          if (uri.substring(uri.lastIndexOf('/') + 1).indexOf('.') !== -1) {
-            return request;
-          }
-          request.uri = '/index.html';
-          return request;
-        }
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ElixirDistributionId}
 
   # ------------------------------------------------------------ feedback
   # New feedback, one message each (services/api/src/notify.mjs). The
@@ -618,15 +463,9 @@ Resources:
       AlarmActions: [!Ref AlarmTopic]
 
 Outputs:
-  DistributionDomainName:
-    Value: !GetAtt Distribution.DomainName
-    Description: CNAME target for clan.poapkings.com at Namecheap
-  DistributionId:
-    Value: !Ref Distribution
   WebBucketName:
     Value: !Ref WebBucket
   ElixirDistributionId:
-    Condition: HasElixirDistribution
     Value: !Ref ElixirDistributionId
     Description: Elixir's distribution, which serves this app under /clan
   ApiUrl:

@@ -1306,3 +1306,24 @@ Before deploying (the plan's order): Elixir's `family_clients:
 `https://elixir.poapkings.com/api/clan/auth/callback` beside the old URI,
 and `ElixirDistributionId` is set on this stack; the old URI goes after
 the deploy. The live sign-in check is Jamie's.
+
+## 2026-09-28 — clan.poapkings.com retired (one origin, step 5)
+
+Jamie deleted the `clan.poapkings.com` record at Namecheap first (the
+zone changed at 23:09 Central), so the name never pointed at a
+distribution that was gone. Then:
+
+- **The stack has no distribution.** Removed: `Distribution`,
+  `SpaRouter`, `SecurityHeadersPolicy`, `ApiOriginRequestPolicy`,
+  `WebOac`, the `SiteCertificateArn` parameter and the
+  `DistributionDomainName`/`DistributionId` outputs. The certificate is the
+  account's `*.poapkings.com` wildcard and stays. Elixir's distribution is
+  the only way in, under Elixir's security headers.
+- **The bucket admits only Elixir's distribution**, and
+  `ElixirDistributionId` is now required (a create passes it with
+  `--param`). The web deploy flushes `/clan*` there and nowhere else.
+- **Sign-in:** Clan's family client keeps only
+  `https://elixir.poapkings.com/api/clan/auth/callback`.
+- The execution role still carries the CloudFront grants it needed to
+  delete these; trimming them is an IAM change, left for a bootstrap run
+  that needs one anyway.

@@ -397,7 +397,7 @@ test("IAM provisioning accepts only a digest and returns no credential", async (
 test("a person reads /api/v1/me with a grant for this door; an MCP grant is refused here, and this grant is refused at MCP (2026-09-23)", async () => {
   const clan = await familyClient(db, {
     clientName: "Elixir Clan",
-    redirectUris: ["https://clan.poapkings.com/auth/callback"],
+    redirectUris: ["https://elixir.poapkings.com/api/clan/auth/callback"],
   });
   const other = await registerClient(db, {
     clientName: "Someone's app",
@@ -548,7 +548,7 @@ test("a family app signs a person in through /api/v1: its address on /me with ac
 test("the person operations answer with the tools' structured results, uncapped, and refusals become problems with the tool's code (plan clan-app-api phases 2-3)", async () => {
   const clan = await familyClient(db, {
     clientName: "Elixir Clan",
-    redirectUris: ["https://clan.poapkings.com/auth/callback"],
+    redirectUris: ["https://elixir.poapkings.com/api/clan/auth/callback"],
   });
   const grant = await mintTokens(db, {
     clientId: clan.clientId,
@@ -635,7 +635,7 @@ test("a tool behind a lock answers query_timeout on Explore and /api/v1 before t
   // id, and the query ran on after it.
   const clan = await familyClient(db, {
     clientName: "Elixir Clan (deadline)",
-    redirectUris: ["https://clan.poapkings.com/auth/callback"],
+    redirectUris: ["https://elixir.poapkings.com/api/clan/auth/callback"],
   });
   const grant = await mintTokens(db, {
     clientId: clan.clientId,

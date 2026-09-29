@@ -1,7 +1,7 @@
 /**
  * OAuth consent grants, for the operator ({oauth_grants: {...}}).
  *
- *   {oauth_grants: {redirect_host: "clan.poapkings.com"}}  list live grants
+ *   {oauth_grants: {redirect_host: "drop.poapkings.com"}}  list live grants
  *     whose client redirects to that host: family, client, audience,
  *     scope, owner kind, created, and the last MCP call made under it.
  *   {oauth_grants: {revoke: ["<family_id>", ...], reason}}  revoke those,
