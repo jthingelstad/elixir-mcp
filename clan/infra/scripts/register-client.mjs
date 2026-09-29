@@ -1,38 +1,19 @@
 #!/usr/bin/env node
 /**
- * Register Elixir Clan as a public OAuth client with Elixir (dynamic
- * client registration, no authentication, elixir.poapkings.com/docs/
- * protocol). Prints the client_id; set it on the stack with
+ * SUPERSEDED. Elixir Clan's OAuth client is no longer registered here:
+ * Elixir's /oauth/register refuses a client whose redirect URI is on a
+ * family origin, and the family's own clients are provisioned by Elixir
+ * (0185), never expiring. Clan's is app "clan", with the redirect URI
+ * https://elixir.poapkings.com/api/clan/auth/callback, changed with
+ * Elixir's operator op
  *
- *   node infra/scripts/deploy.mjs --param=OAuthClientId=<id>
+ *   {"family_clients": {"set_redirect_uris": {"app": "clan", "redirect_uris": [...]}}}
  *
- * A registration lives 365 days from its last use. Re-run this and set
- * the parameter again when Elixir reports the client unknown.
- *
- *   node infra/scripts/register-client.mjs https://clan.poapkings.com [https://dxxxx.cloudfront.net]
+ * (Elixir's ops skill; authority Jamie). The client_id stays the stack
+ * parameter OAuthClientId. This file only says so.
  */
 
-const elixir = (
-  process.env.ELIXIR_URL ?? "https://elixir.poapkings.com"
-).replace(/\/$/, "");
-const origins = process.argv.slice(2);
-if (origins.length === 0) {
-  console.error("usage: register-client.mjs <origin> [<origin> ...]");
-  process.exit(2);
-}
-const response = await fetch(`${elixir}/oauth/register`, {
-  method: "POST",
-  headers: { "content-type": "application/json", accept: "application/json" },
-  body: JSON.stringify({
-    client_name: "Elixir Clan",
-    redirect_uris: origins.map((o) => `${o.replace(/\/$/, "")}/auth/callback`),
-  }),
-});
-const body = await response.json();
-if (response.status !== 201) {
-  console.error(
-    `registration failed: ${response.status} ${JSON.stringify(body)}`,
-  );
-  process.exit(1);
-}
-console.log(JSON.stringify(body, null, 2));
+console.error(
+  "register-client.mjs is superseded: Clan's OAuth client is Elixir's provisioned family client (app 'clan'); see this file's header.",
+);
+process.exit(2);

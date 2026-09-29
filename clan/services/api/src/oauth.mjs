@@ -117,7 +117,8 @@ export function createOAuthClient({
   }
 
   return {
-    /** False until Elixir has issued a client_id (register-client.mjs). */
+    /** False until the stack carries the client_id of Clan's family
+     *  client, which Elixir provisions (OAuthClientId). */
     configured: Boolean(clientId),
     discovery,
 
