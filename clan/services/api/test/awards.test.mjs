@@ -62,7 +62,7 @@ function harness({
     }),
     scout: createScout({ mcp, now }),
     sessionSecret: "s",
-    appUrl: "https://clan.test",
+    appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,
     log: { warn() {}, error() {} },

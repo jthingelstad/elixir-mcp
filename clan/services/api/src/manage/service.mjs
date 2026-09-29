@@ -155,8 +155,8 @@ export function createManageService({
   ledger,
   mcp,
   now = () => Date.now(),
-  /** Elixir Clan's origin, for the links in its email */
-  appUrl = "https://clan.poapkings.com",
+  /** Where Elixir Clan's app is, for the links in its email */
+  appUrl = "https://elixir.poapkings.com/clan",
 }) {
   const isLeader = (who) => LEADERS.has(who.role);
   const requireLeader = (who) => {

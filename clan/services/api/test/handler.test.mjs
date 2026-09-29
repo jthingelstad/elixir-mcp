@@ -36,20 +36,23 @@ test("login: sets the login cookie, stores PKCE, sends the browser to Elixir wit
   );
   const login = h.store.items.get(`login#${state}`);
   assert.ok(login.verifier);
-  assert.equal(login.redirectUri, "https://clan.test/auth/callback");
+  assert.equal(login.redirectUri, "https://elixir.test/api/clan/auth/callback");
   const [, args] = h.oauth.calls[0];
-  assert.equal(args.redirectUri, "https://clan.test/auth/callback");
+  assert.equal(args.redirectUri, "https://elixir.test/api/clan/auth/callback");
 });
 
 test("callback: happy path exchanges with the stored verifier, runs the gate once, lands on /clan", async () => {
   const h = harness();
   const { cb, sessionCookie } = await signIn(h);
   assert.equal(cb.statusCode, 303);
-  assert.equal(cb.headers.location, "https://clan.test/clan/2PQRJ8LV");
+  assert.equal(cb.headers.location, "https://elixir.test/clan/2PQRJ8LV");
   assert.ok(sessionCookie);
   const exchange = h.oauth.calls.find((c) => c[0] === "exchange")[1];
   assert.equal(exchange.code, "eac_x");
-  assert.equal(exchange.redirectUri, "https://clan.test/auth/callback");
+  assert.equal(
+    exchange.redirectUri,
+    "https://elixir.test/api/clan/auth/callback",
+  );
   assert.ok(exchange.codeVerifier);
   // One request to Elixir: /me carries the principal and the players.
   assert.deepEqual(
@@ -85,7 +88,10 @@ test("callback: a state that does not match the login cookie is refused", async 
       cookies: { "__Host-elixir_clan_login": "pylq2" },
     }),
   );
-  assert.equal(cb.headers.location, "https://clan.test/?error=state_mismatch");
+  assert.equal(
+    cb.headers.location,
+    "https://elixir.test/clan/?error=state_mismatch",
+  );
   assert.ok(
     !cb.cookies.some((c) => c.startsWith("__Host-elixir_clan_session=")),
   );
@@ -99,14 +105,20 @@ test("callback: an expired or replayed login is refused", async () => {
       cookies: { "__Host-elixir_clan_login": "gone" },
     }),
   );
-  assert.equal(cb.headers.location, "https://clan.test/?error=login_expired");
+  assert.equal(
+    cb.headers.location,
+    "https://elixir.test/clan/?error=login_expired",
+  );
 });
 
 test("callback: a failed exchange lands on the landing page with the reason", async () => {
   const h = harness();
   h.oauth.state.failExchange = "invalid_grant";
   const { cb, sessionCookie } = await signIn(h);
-  assert.equal(cb.headers.location, "https://clan.test/?error=exchange_failed");
+  assert.equal(
+    cb.headers.location,
+    "https://elixir.test/clan/?error=exchange_failed",
+  );
   assert.equal(sessionCookie, null);
 });
 
@@ -142,7 +154,7 @@ test("callback: the refusal pages, in gate order, each with a session except the
     const { cb, sessionCookie } = await signIn(h);
     assert.equal(
       cb.headers.location,
-      `https://clan.test/refused/${reason}`,
+      `https://elixir.test/clan/refused/${reason}`,
       reason,
     );
     assert.equal(Boolean(sessionCookie), keepsSession, `${reason} session`);
@@ -339,7 +351,7 @@ test("logout: POST only; deletes the session and clears the cookie", async () =>
   assert.equal(nope.statusCode, 404);
   const out = await h.handler(req("POST", "/auth/logout", { cookies }));
   assert.equal(out.statusCode, 303);
-  assert.equal(out.headers.location, "https://clan.test/");
+  assert.equal(out.headers.location, "https://elixir.test/clan/");
   assert.ok(out.cookies[0].startsWith("__Host-elixir_clan_session=; "));
   const me = await h.handler(req("GET", "/api/me", { cookies }));
   assert.equal(me.statusCode, 401);
@@ -533,7 +545,7 @@ const twoClans = () => ({
 test("two clans, nothing remembered: sign-in lands on the chooser and the roster needs a clan", async () => {
   const h = harness({ door: twoClans() });
   const { cb, sessionCookie } = await signIn(h);
-  assert.equal(cb.headers.location, "https://clan.test/clans");
+  assert.equal(cb.headers.location, "https://elixir.test/clan/clans");
   const cookies = cookieHeader(sessionCookie);
   const me = JSON.parse(
     (await h.handler(req("GET", "/api/me", { cookies }))).body,
@@ -578,14 +590,14 @@ test("select: picks a clan in the set, is remembered across a fresh sign-in, ref
   // Sign out, sign in again: the remembered clan is where the callback lands.
   await h.handler(req("POST", "/auth/logout", { cookies }));
   const again = await signIn(h);
-  assert.equal(again.cb.headers.location, "https://clan.test/clan/PYLQ2");
+  assert.equal(again.cb.headers.location, "https://elixir.test/clan/PYLQ2");
 });
 
 test("a remembered clan the person is no longer in is ignored", async () => {
   const h = harness({ door: twoClans() });
   h.store.items.set("pref##20QQL8CCRU", { clan_tag: "#GONE" });
   const { cb } = await signIn(h);
-  assert.equal(cb.headers.location, "https://clan.test/clans");
+  assert.equal(cb.headers.location, "https://elixir.test/clan/clans");
 });
 
 test("roster by clan: ?clan= names any clan in the set, caches per clan, refuses others", async () => {
@@ -645,7 +657,7 @@ test("two verified tags in one clan: both rows are yours", async () => {
     },
   });
   const { cb, sessionCookie } = await signIn(h);
-  assert.equal(cb.headers.location, "https://clan.test/clan/2PQRJ8LV");
+  assert.equal(cb.headers.location, "https://elixir.test/clan/2PQRJ8LV");
   const body = JSON.parse(
     (
       await h.handler(

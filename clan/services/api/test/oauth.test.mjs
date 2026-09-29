@@ -53,7 +53,7 @@ async function bothGrants(oauth) {
   const exchanged = await oauth.exchange({
     code: "code",
     codeVerifier: "verifier",
-    redirectUri: "https://clan.test/auth/callback",
+    redirectUri: "https://elixir.test/api/clan/auth/callback",
   });
   const refreshed = await oauth.refresh({ refreshToken: "rt-old" });
   return [exchanged, refreshed];

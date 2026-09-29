@@ -21,7 +21,7 @@ const card = (id, type, extra = {}) => ({
 const base = {
   clanTag: "#2PQRJ8LV",
   clanName: "Example Clan",
-  appUrl: "https://clan.test/",
+  appUrl: "https://elixir.test/clan/",
 };
 
 test("only people who can act on an action are sent it", () => {
@@ -47,7 +47,7 @@ test("only people who can act on an action are sent it", () => {
   assert.equal(to["#L"].subject, "2 actions waiting for you in Example Clan");
   assert.equal(to["#E"].subject, "Welcome a newcomer: Newbie (Example Clan)");
   assert.equal(to["#Q"].lines[0], "Going to be away? (new)");
-  assert.equal(to["#L"].link, "https://clan.test/clan/2PQRJ8LV/actions");
+  assert.equal(to["#L"].link, "https://elixir.test/clan/2PQRJ8LV/actions");
 });
 
 test("a person is emailed only when something became theirs since their last email; the email lists all of it", () => {
@@ -117,10 +117,10 @@ test("each line carries the action's number, and one action waiting links to its
     "#37 Remove from the clan: Quiet (new)",
     "#38 Welcome a newcomer: Newbie (new)",
   ]);
-  assert.equal(to["#L"].link, "https://clan.test/clan/2PQRJ8LV/actions");
+  assert.equal(to["#L"].link, "https://elixir.test/clan/2PQRJ8LV/actions");
   assert.equal(
     to["#E"].subject,
     "#38 Welcome a newcomer: Newbie (Example Clan)",
   );
-  assert.equal(to["#E"].link, "https://clan.test/clan/2PQRJ8LV/actions/38");
+  assert.equal(to["#E"].link, "https://elixir.test/clan/2PQRJ8LV/actions/38");
 });

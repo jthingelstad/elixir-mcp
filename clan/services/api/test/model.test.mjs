@@ -131,7 +131,7 @@ function harness({ players = [player()] } = {}) {
     model,
     drafts: createDrafts({ ledger, model, now }),
     sessionSecret: "test-secret",
-    appUrl: "https://clan.test",
+    appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,
     log: {

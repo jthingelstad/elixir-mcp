@@ -123,7 +123,7 @@ describe("the week in the clan", () => {
     expect(railKey("/clan/2PQRJ8LV/week")).toBe("week");
     expect(railKey("/clan/2PQRJ8LV/week/2026-w36")).toBe("week");
     expect(
-      analyticsLocation("/clan/2PQRJ8LV/week/2026-w36", "https://clan.test")
+      analyticsLocation("/clan/2PQRJ8LV/week/2026-w36", "https://elixir.test")
         .path,
     ).toBe("/clan/week");
   });
