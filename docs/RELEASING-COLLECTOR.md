@@ -215,11 +215,11 @@ self-rolling-back updater and signed releases; the `config`/`lease`/
 local build reports `dev`.
 
 The minimum is `CONFIG.min_client_version` in
-`services/web-api/src/collector-door.mjs` (2.0.30). Raising it retires
+`packages/collector-door/src/door.mjs` (2.0.30). Raising it retires
 the pre-signing rollback lever, so it moves only on Jamie's call.
 Enforcement is server-side and switched by the stack parameter
 `CollectorMinEnforce` (`"0"` or `"1"`, template default `"0"`), which
-reaches the web-api Lambda as `COLLECTOR_MIN_ENFORCE`. It is a PRESERVED
+reaches the collector Lambda as `COLLECTOR_MIN_ENFORCE`. It is a PRESERVED
 parameter (`infra/scripts/parameters.mjs`), so an ordinary deploy never
 flips it either way; changing it is a parameter-only update,
 `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --param=CollectorMinEnforce=<0|1>`. The last

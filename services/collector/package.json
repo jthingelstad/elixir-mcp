@@ -1,0 +1,18 @@
+{
+  "name": "@elixir-mcp/collector",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The collector door's Lambda: config, lease and submit at /api/collector/*, on a function, role, log and concurrency of its own. The contract is @elixir-mcp/collector-door; submissions ingest inline through @elixir-mcp/ingest.",
+  "type": "module",
+  "main": "src/index.mjs",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@elixir-mcp/auth": "0.1.0",
+    "@elixir-mcp/collector-door": "0.1.0",
+    "@elixir-mcp/ingest": "0.1.0",
+    "@elixir-mcp/outbox": "0.1.0",
+    "pg": "^8.13.0"
+  }
+}

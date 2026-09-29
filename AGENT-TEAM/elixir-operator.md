@@ -40,8 +40,9 @@ Establish, with receipts:
   filter (share of battle-log entries dropped before the wire; ~85–90%),
   and calls/fetch (door calls per admitted fetch's lease-and-submit pair
   this hour; 1.0 is perfect, idle check-ins raise it). Attribute
-  collector-door pressure with the web-api route
-  logs, not a fixed calls/fetch target: a productive fetch produces a submit
+  collector-door pressure with the collector Lambda's route
+  logs (`/aws/lambda/elixir-mcp-collector` since 2026-09-29; the web-api's
+  before), not a fixed calls/fetch target: a productive fetch produces a submit
   and normally another lease, while an idle collector produces leases without
   submits on its phased check-in. Escalate a sustained lease surplus that
   cannot be explained by submissions and the active fleet's idle cadence.
@@ -112,8 +113,8 @@ Establish, with receipts:
   Elixir Feedback Manager owns the resulting tool-friction and answer-quality findings.
 - **Cost.** No billing alarm (the account-wide one was removed
   2026-09-24; Jamie reads spend himself). RDS storage headroom
-  (autoscaling floor 20GB, max 100GB); the web-api Lambda's billed
-  seconds per day, attributed in Logs Insights by `http` route. Productive
+  (autoscaling floor 20GB, max 100GB); the web-api and collector Lambdas'
+  billed seconds per day, attributed in Logs Insights by `http` route. Productive
   collector throughput legitimately scales both `POST /api/collector/lease`
   and `POST /api/collector/submit`; idle check-ins add leases. A fixed
   daily Lambda-seconds target is not a polling detector. Investigate an

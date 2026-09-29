@@ -4,22 +4,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 import pg from "pg";
-import { migrate } from "../../migrate/src/migrate.mjs";
+import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import {
   makeCollectorDoor,
   parseClientVersion,
   clientMeetsMinimum,
   phasedCheckIn,
-} from "../src/collector-door.mjs";
-import {
-  RELEASE_SIGNED_SQL,
-  signatureState,
-} from "../src/collector-signature.mjs";
+} from "../src/door.mjs";
+import { RELEASE_SIGNED_SQL, signatureState } from "../src/signature.mjs";
 import {
   enqueueJob,
   ledgerStats,
   settleLeases,
-} from "../../../packages/ledger/src/ledger.mjs";
+} from "../../ledger/src/ledger.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");

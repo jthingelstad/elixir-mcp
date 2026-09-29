@@ -26,6 +26,8 @@ Parameters:
     Type: String
   EditorCodeKey:
     Type: String
+  CollectorCodeKey:
+    Type: String
   EditorModel:
     Type: String
     Default: claude-opus-5
@@ -331,9 +333,9 @@ Resources:
   # GRANT/REVOKE, which is a larger and riskier change than an IAM
   # rewrite and wants its own pass.
 
-  # Public web + collector door: mails through the outbox, counts what
-  # is stuck there for the status page, and archives collector
-  # submissions at admission.
+  # Public web: mails through the outbox, counts what is stuck there for
+  # the status page, and, until the collector routes leave it (they moved
+  # to CollectorFunction on 2026-09-29), archives collector submissions.
   WebApiRole:
     Type: AWS::IAM::Role
     Properties:
@@ -383,6 +385,36 @@ Resources:
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn
+
+  # The collector door (services/collector): archives each submission at
+  # admission, write-once (ArchiveBucketPolicy; a put with If-None-Match
+  # needs s3:PutObject alone, per the S3 guide), and mails the owner when
+  # a collector is quarantined. No read, no listing, no other prefix.
+  CollectorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: elixir-mcp-collector
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: elixir-mcp-collector
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub
+                  - ${Arn}/payloads/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
 
   # The MCP/OAuth door sends login mail and, since 0063, writes the
   # request/response of every tool call under calls/ (nothing else on
@@ -780,6 +812,55 @@ Resources:
             - HasUnsubscribeKey
             - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:unsubscribe_secret}}"
             - !Ref AWS::NoValue
+          ARCHIVE_BUCKET: !Ref ArchiveBucket
+          OUTBOX_BUCKET: !Ref OutboxBucket
+          COLLECTOR_MIN_ENFORCE: !Ref CollectorMinEnforce
+          ORIGIN_SECRET: !Ref OriginSecret
+          ORIGIN_SECRET_PREVIOUS: !If
+            - HasOriginSecretPrevious
+            - !Ref OriginSecretPrevious
+            - !Ref AWS::NoValue
+          OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
+
+  CollectorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/elixir-mcp-collector
+      RetentionInDays: 30
+
+  # The collector door (services/collector), on a function of its own
+  # since 2026-09-29: it was 99% of the web-api's requests, so a fleet
+  # burst took the console's concurrency. The site API routes
+  # /api/collector/* here (CollectorRoute).
+  CollectorFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: CollectorLogGroup
+    Properties:
+      FunctionName: elixir-mcp-collector
+      # The fleet's own ceiling, apart from the console's (#23: each
+      # invocation is a PostgreSQL client). Measured over the three days
+      # to 2026-09-29: at most 402 requests a minute, lease p95 61 ms,
+      # submit p95 388 ms, so a handful in flight. Ten is room for a
+      # burst and a hard stop on a runaway fleet.
+      ReservedConcurrentExecutions: 10
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 512
+      Timeout: 20
+      Role: !GetAtt CollectorRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref CollectorCodeKey }
+      VpcConfig:
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=verify-full"
+          NODE_EXTRA_CA_CERTS: /var/task/certificates/rds.pem
+          SECRET_EPOCH: !Ref SecretEpoch
+          PGAPPNAME: elixir-mcp-collector
+          # statement_timeout: just under the 20 s Lambda kill.
+          PGOPTIONS: "-c statement_timeout=18s -c idle_in_transaction_session_timeout=60s"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           OUTBOX_BUCKET: !Ref OutboxBucket
           COLLECTOR_MIN_ENFORCE: !Ref CollectorMinEnforce
@@ -1374,6 +1455,37 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SiteApi}/*
 
+  # The collector door's route. The quick-create API's $default route
+  # still sends everything else to the web-api: a route with a path is
+  # matched before $default, and the $default stage auto-deploys it. The
+  # same API, so the same CloudFront behaviour, origin secret and
+  # forwarded collector headers, and the stage's default route throttle
+  # (api-throttle-config.mjs) covers it as every route. The route waits
+  # for the permission, so the first request it takes can invoke.
+  CollectorIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref SiteApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt CollectorFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  CollectorRoute:
+    Type: AWS::ApiGatewayV2::Route
+    DependsOn: CollectorApiPermission
+    Properties:
+      ApiId: !Ref SiteApi
+      RouteKey: ANY /api/collector/{proxy+}
+      Target: !Sub integrations/${CollectorIntegration}
+
+  CollectorApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CollectorFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SiteApi}/*
+
   McpApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -1471,11 +1583,11 @@ Resources:
   # payloads/ is refused too, and nothing copies there. Tried first on a
   # scratch bucket (2026-09-28): an unconditional put 403, a conditional
   # put of a new key 200, of an existing key 412, other prefixes
-  # unaffected. After WebApiFunction so the code that sends the header
-  # is in place before the policy that demands it.
+  # unaffected. After both writers so the code that sends the header is
+  # in place before the policy that demands it.
   ArchiveBucketPolicy:
     Type: AWS::S3::BucketPolicy
-    DependsOn: WebApiFunction
+    DependsOn: [WebApiFunction, CollectorFunction]
     Properties:
       Bucket: !Ref ArchiveBucket
       PolicyDocument:
@@ -1786,7 +1898,7 @@ Resources:
     Type: AWS::CloudFront::Distribution
     # The doors take a rotated origin secret (and keep the previous one)
     # before CloudFront starts sending it (docs/SECRETS.md).
-    DependsOn: [WebApiFunction, McpFunction]
+    DependsOn: [WebApiFunction, McpFunction, CollectorFunction]
     Properties:
       DistributionConfig:
         Enabled: true
@@ -2252,7 +2364,8 @@ Resources:
       AlarmActions: [!Ref AlarmTopic]
 
   # A collector submit the door could not ingest (submit_ingest_error in
-  # the web-api log, after its one retry of a deadlock or racing upsert):
+  # the collector's log, or the web-api's while it still serves the door,
+  # after its one retry of a deadlock or racing upsert):
   # the door answers 500, which is handled, so the Lambda Errors alarm
   # never counts it, and the lease expires into a refetch (review
   # 2026-09-27 §2.5). Two weeks before the retry: at most 7 in any 15
@@ -2270,11 +2383,20 @@ Resources:
           MetricValue: "1"
           # No DefaultValue, as EmailComposeFailedFilter: the metric
           # exists only in an hour a submit fails.
+  CollectorSubmitIngestErrorFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CollectorLogGroup
+      FilterPattern: '"submit_ingest_error"'
+      MetricTransformations:
+        - MetricNamespace: ElixirMCP/Collector
+          MetricName: SubmitIngestError
+          MetricValue: "1"
   SubmitIngestErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: elixir-mcp-submit-ingest-error
-      AlarmDescription: Collector submits are failing to ingest (submit_ingest_error in the web-api log); each one is a 500, an expired lease and a refetch
+      AlarmDescription: Collector submits are failing to ingest (submit_ingest_error in the collector or web-api log); each one is a 500, an expired lease and a refetch
       Namespace: ElixirMCP/Collector
       MetricName: SubmitIngestError
       Statistic: Sum
@@ -2362,6 +2484,21 @@ Resources:
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions: [{ Name: FunctionName, Value: !Ref WebApiFunction }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  CollectorErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-collector-errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: !Ref CollectorFunction }]
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 2
@@ -2490,6 +2627,26 @@ Resources:
       Period: 300
       EvaluationPeriods: 3
       Threshold: 15000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  # The collector door's latency, for the same reason: it answers 504 at
+  # its deadline. Its calls are short (lease p95 61 ms, submit p95 388 ms
+  # over the three days to 2026-09-29), so 5 s at p95 for a quarter hour
+  # is a door in trouble long before its 20 s kill.
+  CollectorLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-collector-latency-p95
+      AlarmDescription: The collector door's p95 duration is over 5 s; leases and submits are slow or answering 504
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions: [{ Name: FunctionName, Value: !Ref CollectorFunction }]
+      ExtendedStatistic: p95
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 5000
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]

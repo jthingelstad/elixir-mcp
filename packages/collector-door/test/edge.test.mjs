@@ -23,7 +23,7 @@ function forwardedHeaders(template) {
 test("every collector header the door reads is forwarded by the edge", () => {
   const forwarded = forwardedHeaders(read("../../../infra/template.yaml"));
   const read_ = new Set(
-    read("../src/collector-door.mjs").match(/x-collector-[a-z0-9-]+/g),
+    read("../src/door.mjs").match(/x-collector-[a-z0-9-]+/g),
   );
   assert.ok(read_.size >= 3, [...read_].join(", "));
   for (const header of read_)

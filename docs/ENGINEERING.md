@@ -410,6 +410,10 @@ by name:
 - `@elixir-mcp/auth`: sessions, OAuth, tokens, and integration accounts.
   `@elixir-mcp/outbox`: the mail outbox. `@elixir-mcp/mail`: rendering,
   the send ledger, the archive, delivery.
+- `@elixir-mcp/collector-door`: the collectors' `config`, `lease` and
+  `submit` (docs/COLLECTOR-ZERO-TRUST.md) and the release-signature state.
+  The collector Lambda (`services/collector`) serves the door; web-api
+  reads the signature state for the console and the status page.
 
 A package is bundled into each Lambda by esbuild like any dependency, so
 adding one needs no infrastructure; its `package.json` names what it
