@@ -1490,3 +1490,25 @@ straight back signed in. After signing out of Clan, the next sign-in
 shows **Authorize** once. Every Clan sign-in still mints a grant of its
 own, so a grant left standing by another browser also counts; the
 Connections page lists each.
+
+---
+
+## 2026-09-29 - 6ce63925 deployed: Clan's sign-in, both halves
+
+6ce63925 (#163) is live on both sides.
+
+- **Elixir**, by `deploy.mjs` at 12:23Z (7:23 AM CT): lane platform
+  (web-api, mcp, migrate and jobs keys, because the protocol page rides
+  the corpus bundles; no template change), migrations 195 applied, 0
+  ran, stack `UPDATE_COMPLETE`, 43 smoke checks green. No acceptance: no
+  tool family changed.
+- **Clan**, by `clan-deploy` after `validate` on main: `elixir-clan-api`
+  updated at 12:26:59Z (7:26 AM CT).
+
+Read-back, reads only: discovery still names `/oauth/revoke` with
+`client_secret_post`; the published protocol page carries the
+remembered-consent paragraph; no errors or `revoke_failed` on either
+function's log since; public status `ok`, five collectors; no
+`elixir-` alarm out of OK. The first `oauth_consent_remembered` line
+waits for a real sign-in: a GET of the authorize door, or of Clan's
+`/auth/login`, is a write, so none was made to prove it.
