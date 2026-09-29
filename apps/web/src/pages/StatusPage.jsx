@@ -5,7 +5,7 @@ import { CollectorPage } from "../views/CollectorDetail.jsx";
 import { RaiseCollector } from "../views/RaiseCollector.jsx";
 import { useHere, useMe, useNav } from "../App.jsx";
 
-/** /status/{page}/{itemId}: the service page, the fleet, a collector's
+/** /console/status/{page}/{itemId}: the service page, the fleet, a collector's
  *  record, or the raise form. */
 export function StatusPage() {
   const navigate = useNav();

@@ -14,7 +14,7 @@ lede: "Eight kinds, each a switch, each with a turn-off link in every issue. Six
 Elixir sends eight kinds of email. All eight are **on by default** for
 every approved account, because taking part in the beta includes the
 product's mail, and all eight are **a switch on your account page**
-([Profile → Email](/account/profile/email)), with a *turn off* link in every
+([Profile → Email](/console/account/profile/email)), with a *turn off* link in every
 issue and one-click unsubscribe in mail clients that support it. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
@@ -118,7 +118,7 @@ leaderboard entries, written about neutrally, and linked to their record.
 
 ## Turning one off
 
-Each kind has its own switch on [Profile → Email](/account/profile/email),
+Each kind has its own switch on [Profile → Email](/console/account/profile/email),
 beside the list of what was sent to you. Every issue's footer has a
 *turn off* link for that kind, which opens a page with one button to
 confirm; mail clients that support one-click unsubscribe show their own
@@ -131,7 +131,7 @@ Every email Elixir sends you has its own id, printed in its footer
 ("This email is …"); the id opens that email's record in your account,
 and **Something not right? Send feedback about this email** beside it
 opens the feedback form with that email attached, one click from your
-inbox. [Activity → Emails](/account/activity/emails) lists every
+inbox. [Activity → Emails](/console/account/activity/emails) lists every
 product email sent to your account, newest first, the way MCP requests
 lists every call; open one to see the mail as it went out. A report
 about an email carries the mail itself, so nobody has to describe it,

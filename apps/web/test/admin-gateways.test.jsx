@@ -126,7 +126,9 @@ test("the name opens the collector's own record — the one the status page open
   const navigate = vi.fn();
   await paint(navigate);
   fireEvent.click(screen.getByText("Ram Rider"));
-  expect(navigate).toHaveBeenCalledWith("/status/collectors/Ram%20Rider");
+  expect(navigate).toHaveBeenCalledWith(
+    "/console/status/collectors/Ram%20Rider",
+  );
 });
 
 test("every row has a cell for every header", async () => {

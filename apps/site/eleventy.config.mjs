@@ -294,25 +294,25 @@ export default function (eleventyConfig) {
    *  pages that actually do each thing, so a step is never a dead
    *  button. An unmapped label falls back to the quickstart. */
   const SETUP_HREF = {
-    "Track your player": "/account/tracking",
+    "Track your player": "/console/account/tracking",
     "Connect a client": "/docs/quickstart",
     "Read the methodology": "/docs/methodology",
-    "Set your timezone": "/account/profile",
-    "Track a friend's tag": "/account/tracking",
+    "Set your timezone": "/console/account/profile",
+    "Track a friend's tag": "/console/account/tracking",
     "Turn on notifications": "/docs/timeline",
-    "Track your clan": "/account/tracking",
+    "Track your clan": "/console/account/tracking",
     "Choose a recording scope": "/docs/recording#scope-what-is-actually-polled",
-    "Track your clan, comprehensive": "/account/tracking",
+    "Track your clan, comprehensive": "/console/account/tracking",
     "Read about scopes": "/docs/recording#scope-what-is-actually-polled",
-    "Look up a clan tag": "/explore/clans",
+    "Look up a clan tag": "/console/explore/clans",
     "Read the privacy posture": "/docs/privacy",
-    "Create an agent": "/account/agents",
+    "Create an agent": "/console/account/agents",
     "Read the agents doc": "/docs/agents",
     "Read the integrations doc": "/docs/integrations",
     "Request a service key":
       "/docs/integrations#provisioning-and-administration",
     "Read the operators guide": "/docs/operators",
-    "Raise your hand": "/status/collectors/new",
+    "Raise your hand": "/console/status/collectors/new",
   };
   eleventyConfig.addFilter(
     "setupHref",

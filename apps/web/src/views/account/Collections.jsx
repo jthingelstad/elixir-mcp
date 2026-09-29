@@ -2,6 +2,7 @@ import { Icon, Link } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useMyCollections } from "../../lib/queries.js";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * Your collections — a set of players or clans you want recorded
@@ -182,7 +183,9 @@ export function Collections({ me, navigate }) {
           onSaved={(slug) => {
             setCreating(false);
             load();
-            navigate(`/explore/collection/${encodeURIComponent(slug)}`);
+            navigate(
+              `${CONSOLE}/explore/collection/${encodeURIComponent(slug)}`,
+            );
           }}
         />
       )}
@@ -251,7 +254,7 @@ export function Collections({ me, navigate }) {
               >
                 Request the family tier <Icon name="arrow-right" size={15} />
               </button>
-              <Link className="btn btn--quiet" to="/explore">
+              <Link className="btn btn--quiet" to={`${CONSOLE}/explore`}>
                 Browse public collections
               </Link>
             </div>
@@ -299,7 +302,7 @@ export function Collections({ me, navigate }) {
                   <td>
                     <Link
                       style={{ fontWeight: 600 }}
-                      to={`/explore/collection/${encodeURIComponent(c.slug)}`}
+                      to={`${CONSOLE}/explore/collection/${encodeURIComponent(c.slug)}`}
                     >
                       {c.title}
                     </Link>

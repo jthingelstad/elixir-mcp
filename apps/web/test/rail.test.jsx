@@ -140,13 +140,15 @@ test("Timeline sits between Overview and Explore, in the ungrouped top", () => {
     RAIL.findIndex((r) => r.group),
   );
   expect(top.map((r) => r.key)).toEqual(["overview", "timeline", "explore"]);
-  expect(railPosition("/account/timeline")).toEqual({ key: "timeline" });
+  expect(railPosition("/console/account/timeline")).toEqual({
+    key: "timeline",
+  });
   const activity = RAIL.find((r) => r.key === "activity");
   expect(activity.subs.map(([slug]) => slug)).not.toContain("timeline");
 });
 
 test("wide: the rail is a list, with no disclosure to open", async () => {
-  window.history.pushState({}, "", "/account/overview");
+  window.history.pushState({}, "", "/console/account/overview");
   render(<App />);
   await waitFor(() =>
     expect(screen.getByRole("navigation", { name: "Console sections" })),
@@ -165,7 +167,7 @@ test("narrow: the rail is a disclosure above the content, not a drawer", async (
     addEventListener: () => {},
     removeEventListener: () => {},
   }));
-  window.history.pushState({}, "", "/account/overview");
+  window.history.pushState({}, "", "/console/account/overview");
   render(<App />);
 
   // Closed, it names the section and hides the list — and it is a
@@ -193,7 +195,7 @@ test("narrow: the rail is a disclosure above the content, not a drawer", async (
 });
 
 test("the docs strip is on the page, and it is the page's own entry", async () => {
-  window.history.pushState({}, "", "/account/usage");
+  window.history.pushState({}, "", "/console/account/usage");
   render(<App />);
   // Usage is about budgets; the strip must say so rather than "docs".
   expect(await screen.findByText(/Docs · Budgets/)).toBeTruthy();
@@ -211,18 +213,22 @@ test("an agent's console: its pages and nothing of a person's, one segment along
     "settings",
     "feedback",
   ]);
-  expect(railPosition("/agent/abcd1234/timeline")).toEqual({
+  expect(railPosition("/console/agent/abcd1234/timeline")).toEqual({
     scope: "abcd1234",
     key: "timeline",
   });
-  expect(railPosition("/agent/abcd1234/activity/c/x")).toMatchObject({
+  expect(railPosition("/console/agent/abcd1234/activity/c/x")).toMatchObject({
     key: "activity",
     sub: "requests",
     doc: "activity:call",
   });
   // A page an agent does not have lands on its Overview; an id that is not
   // a public id's shape is not an app route at all.
-  expect(legalRoute("/agent/abcd1234/verify")).toBe("/agent/abcd1234/overview");
-  expect(legalRoute("/agent/abcd1234")).toBe("/agent/abcd1234/overview");
-  expect(legalRoute("/agent/NOPE/timeline")).toBe(null);
+  expect(legalRoute("/console/agent/abcd1234/verify")).toBe(
+    "/console/agent/abcd1234/overview",
+  );
+  expect(legalRoute("/console/agent/abcd1234")).toBe(
+    "/console/agent/abcd1234/overview",
+  );
+  expect(legalRoute("/console/agent/NOPE/timeline")).toBe(null);
 });

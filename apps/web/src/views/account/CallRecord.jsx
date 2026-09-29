@@ -2,6 +2,7 @@ import { Icon, Link, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useCallRecord } from "../../lib/queries.js";
 import { useConsolePath } from "../../lib/scope.js";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * One tool call: the request as sent, the response as received, and
@@ -177,7 +178,9 @@ export function CallRecord({ id, navigate }) {
 
   const back = (
     <div className="page__crumb">
-      <Link to={path("/account/activity/requests")}>‹ MCP requests</Link>
+      <Link to={path(`${CONSOLE}/account/activity/requests`)}>
+        ‹ MCP requests
+      </Link>
     </div>
   );
 
@@ -319,7 +322,9 @@ export function CallRecord({ id, navigate }) {
           }
           onClick={() =>
             rec.prev &&
-            navigate(path(`/account/activity/c/${rec.prev.request_id}`))
+            navigate(
+              path(`${CONSOLE}/account/activity/c/${rec.prev.request_id}`),
+            )
           }
         >
           ‹ Previous call
@@ -332,7 +337,9 @@ export function CallRecord({ id, navigate }) {
           }
           onClick={() =>
             rec.next &&
-            navigate(path(`/account/activity/c/${rec.next.request_id}`))
+            navigate(
+              path(`${CONSOLE}/account/activity/c/${rec.next.request_id}`),
+            )
           }
         >
           Next call ›
@@ -346,7 +353,7 @@ export function CallRecord({ id, navigate }) {
         <Link
           className="btn btn--sm"
           style={{ marginLeft: "auto" }}
-          to={`/account/feedback?request_id=${encodeURIComponent(call.request_id)}`}
+          to={`${CONSOLE}/account/feedback?request_id=${encodeURIComponent(call.request_id)}`}
         >
           <Icon name="message-square" size={15} />
           Report this call

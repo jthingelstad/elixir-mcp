@@ -8,6 +8,7 @@ import {
   useMyGateways,
 } from "../lib/queries.js";
 import { CardPicker } from "../components/CardPicker.jsx";
+import { CONSOLE } from "../lib/console.js";
 
 /**
  * Status ▸ Collectors ▸ Run a collector — raising a hand, on a page of
@@ -39,7 +40,7 @@ export function RaiseCollector({ navigate }) {
   return (
     <>
       <div className="page__crumb">
-        <Link to="/status/collectors">‹ Collectors</Link>
+        <Link to={`${CONSOLE}/status/collectors`}>‹ Collectors</Link>
       </div>
       <h1 className="page__title">
         {runsOne ? "Run another collector" : "Run a collector"}
@@ -99,7 +100,7 @@ export function RaiseCollector({ navigate }) {
             setBusy(false);
             if (r.ok) {
               navigate(
-                `/status/collectors/${encodeURIComponent(r.data.card ?? name.trim())}`,
+                `${CONSOLE}/status/collectors/${encodeURIComponent(r.data.card ?? name.trim())}`,
               );
               return;
             }

@@ -28,7 +28,7 @@ test.describe("signed out", () => {
     page,
   }) => {
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-    await page.goto("/account/overview");
+    await page.goto("/console/account/overview");
     await expect(
       page.getByRole("heading", { name: "Sign in first" }),
     ).toBeVisible();
@@ -39,25 +39,45 @@ test.describe("signed out", () => {
     await accessible(page, "sign-in wall");
   });
 
-  test("a legacy path is redirected and the ADDRESS BAR follows", async ({
+  test("a partial path is redirected and the ADDRESS BAR follows", async ({
     page,
   }) => {
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-    await page.goto("/data/status");
-    await expect(page).toHaveURL(/\/status\/service$/);
-    await page.goto("/account");
-    await expect(page).toHaveURL(/\/account\/overview$/);
+    await page.goto("/console/status");
+    await expect(page).toHaveURL(/\/console\/status\/service$/);
+    await page.goto("/console/account");
+    await expect(page).toHaveURL(/\/console\/account\/overview$/);
+    // The bare Console is Overview (signed out, its sign-in wall).
+    await page.goto("/console");
+    await expect(page).toHaveURL(/\/console\/account\/overview$/);
+    await expect(
+      page.getByRole("heading", { name: "Sign in first" }),
+    ).toBeVisible();
   });
 
-  test("a path the app does not own leaves for the static home", async ({
+  test("a console path the app does not own leaves for the static home", async ({
     page,
   }) => {
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-    await page.goto("/not-a-place");
-    await expect(page).toHaveURL(/\/$/);
+    await page.goto("/console/not-a-place");
+    await expect(page).toHaveURL(/127\.0\.0\.1:4321\/$/);
     await expect(page).toHaveTitle(/Elixir/);
     // The static home is a real document: the app shell is not in it.
     await expect(page.locator("#root")).toHaveCount(0);
+  });
+
+  test("the Console's old root addresses are not aliased: a miss is a miss", async ({
+    page,
+  }) => {
+    // Jamie, 2026-09-28: one origin, the Console under /console, and no
+    // redirects from where it was. Outside the prefix every path is a
+    // site document, so a page the site does not build is an honest 404,
+    // never the app shell.
+    for (const old of ["/account/overview", "/signin", "/not-a-place"]) {
+      const res = await page.goto(old);
+      expect(res?.status(), old).toBe(404);
+      await expect(page.locator("#root")).toHaveCount(0);
+    }
   });
 
   test("sign in: email, then the six-digit code, then the console", async ({
@@ -75,12 +95,12 @@ test.describe("signed out", () => {
         Object.entries(signedIn()).filter(([k]) => k !== "GET /api/me"),
       ),
     });
-    await page.goto("/signin");
+    await page.goto("/console/signin");
     await page.getByLabel("Email").fill("jamie@example.com");
     await page.getByRole("button", { name: "Send sign-in email" }).click();
     await page.getByLabel("6-digit code").fill("123456");
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/account\/overview$/);
+    await expect(page).toHaveURL(/\/console\/account\/overview$/);
     await expect(page.locator(".rail")).toBeVisible();
     await rendered(page);
   });
@@ -94,7 +114,7 @@ test.describe("signed in", () => {
   test("the rail: counts, the unread dot, the identity block, and every section renders its chunk", async ({
     page,
   }) => {
-    await page.goto("/account/overview");
+    await page.goto("/console/account/overview");
     const rail = page.locator(".rail");
     await expect(rail).toBeVisible();
     // Counts are the reader's own things; the dot is the unread timeline.
@@ -111,13 +131,13 @@ test.describe("signed in", () => {
 
     // Every section is its own lazy chunk: each must arrive and render.
     const sections: [string, RegExp, string][] = [
-      ["Timeline", /\/account\/timeline$/, "Timeline"],
-      ["Usage", /\/account\/usage$/, "Usage"],
-      ["Activity", /\/account\/activity\/requests$/, "MCP requests"],
-      ["Connections", /\/account\/connections$/, "Connections"],
-      ["Profile", /\/account\/profile$/, "Profile"],
-      ["Status", /\/status\/service$/, "Status"],
-      ["Explore", /\/explore$/, "Explore"],
+      ["Timeline", /\/console\/account\/timeline$/, "Timeline"],
+      ["Usage", /\/console\/account\/usage$/, "Usage"],
+      ["Activity", /\/console\/account\/activity\/requests$/, "MCP requests"],
+      ["Connections", /\/console\/account\/connections$/, "Connections"],
+      ["Profile", /\/console\/account\/profile$/, "Profile"],
+      ["Status", /\/console\/status\/service$/, "Status"],
+      ["Explore", /\/console\/explore$/, "Explore"],
     ];
     for (const [label, url, heading] of sections) {
       await rail
@@ -145,7 +165,7 @@ test.describe("signed in", () => {
       rail.getByRole("link", { name: "MCP requests" }),
     ).toBeVisible();
     await rail.getByRole("link", { name: "MCP requests" }).click();
-    await expect(page).toHaveURL(/\/account\/activity\/requests$/);
+    await expect(page).toHaveURL(/\/console\/account\/activity\/requests$/);
     await expect(
       rail.getByRole("link", { name: "MCP requests" }),
     ).toHaveAttribute("aria-current", "page");
@@ -180,7 +200,7 @@ test.describe("signed in", () => {
         { timeline: items, read_to: "2026-09-12T15:00:00Z" },
       ],
     });
-    await page.goto("/account/timeline");
+    await page.goto("/console/account/timeline");
     const rail = page.locator(".rail");
     await expect(rail).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
@@ -243,7 +263,7 @@ test.describe("signed in", () => {
         },
       ],
     });
-    await page.goto("/account/timeline");
+    await page.goto("/console/account/timeline");
     const row = page.getByRole("row").filter({
       hasText: "King Thing unlocked Hero Valkyrie.",
     });
@@ -261,7 +281,7 @@ test.describe("signed in", () => {
   test("Status: the service page draws the capture charts and auto-refresh is off and visible", async ({
     page,
   }) => {
-    await page.goto("/status/service");
+    await page.goto("/console/status/service");
     await expect(page.getByRole("heading", { name: "Status" })).toBeVisible();
     await expect(
       page.getByRole("group", { name: /fetches per 5 minutes/ }),
@@ -297,7 +317,7 @@ test.describe("signed in", () => {
         return [200, { ok: true }];
       },
     });
-    await page.goto("/account/tracking");
+    await page.goto("/console/account/tracking");
     await expect(
       page.locator(".rail").getByRole("link", { name: /Tracking/ }),
     ).toContainText("1");
@@ -363,10 +383,10 @@ test.describe("signed in", () => {
       ],
       "POST /api/me/principals/rotate": () => answer,
     });
-    await page.goto(`/agent/${PUBLIC_ID}/overview`);
+    await page.goto(`/console/agent/${PUBLIC_ID}/overview`);
     await expect(page.getByText("No live key.")).toBeVisible();
 
-    await page.goto(`/agent/${PUBLIC_ID}/settings`);
+    await page.goto(`/console/agent/${PUBLIC_ID}/settings`);
     const issue = page.getByRole("button", { name: "Issue a new key" });
     await expect(issue).toBeEnabled();
 
@@ -390,7 +410,7 @@ test.describe("signed in", () => {
   test("@narrow the rail is a disclosure above the content, naming where you are", async ({
     page,
   }) => {
-    await page.goto("/account/usage");
+    await page.goto("/console/account/usage");
     const toggle = page.locator(".rail__toggle");
     await expect(toggle).toBeVisible();
     await expect(toggle).toContainText("Usage");
@@ -405,7 +425,7 @@ test.describe("signed in", () => {
       .getByRole("navigation", { name: "Console sections" })
       .getByRole("link", { name: /^Profile/ })
       .click();
-    await expect(page).toHaveURL(/\/account\/profile$/);
+    await expect(page).toHaveURL(/\/console\/account\/profile$/);
     // Following a link closes it.
     await expect(
       page.getByRole("navigation", { name: "Console sections" }),
@@ -416,7 +436,7 @@ test.describe("signed in", () => {
   test("@narrow the top bar's menu opens a sheet with every tab, and Escape closes it", async ({
     page,
   }) => {
-    await page.goto("/account/overview");
+    await page.goto("/console/account/overview");
     const menu = page.getByRole("button", { name: "Menu" });
     await expect(menu).toBeVisible();
     await menu.click();

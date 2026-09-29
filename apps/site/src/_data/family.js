@@ -40,7 +40,7 @@ export default [
         uses: "Recorded comprehensively by Elixir MCP — it is the most complete clan in the corpus.",
         links: [
           ["Visit the clan page", "external", "https://poapkings.com"],
-          ["Open the clan record", "record", "/explore/clan/J2RGCRVG"],
+          ["Open the clan record", "record", "/console/explore/clan/J2RGCRVG"],
         ],
       },
     ],

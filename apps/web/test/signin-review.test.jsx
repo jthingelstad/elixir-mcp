@@ -67,7 +67,7 @@ afterEach(() => {
 });
 
 test("a transport failure on /api/me is 'Elixir didn't answer', retried once, never the sign-in wall", async () => {
-  window.history.pushState({}, "", "/account/overview");
+  window.history.pushState({}, "", "/console/account/overview");
   let calls = 0;
   const err = new TypeError("Failed to fetch");
   global.fetch = mockFetch({
@@ -90,7 +90,7 @@ test("a transport failure on /api/me is 'Elixir didn't answer', retried once, ne
 
 test("an edge error page on /api/me is the same answer, and Try again recovers", async () => {
   vi.useFakeTimers(FAKE_TIMERS);
-  window.history.pushState({}, "", "/account/overview");
+  window.history.pushState({}, "", "/console/account/overview");
   let answers = 0;
   global.fetch = mockFetch({
     "GET /api/me": () => {
@@ -172,7 +172,11 @@ test("the sixth email in an hour says so, on the code step, without saying wheth
 test("a link opened from elsewhere asks before signing in the screen that started", async () => {
   vi.resetModules();
   const { SignIn: Fresh } = await import("../src/views/SignIn.jsx");
-  window.history.pushState({}, "", "/signin#login_token=" + "t".repeat(40));
+  window.history.pushState(
+    {},
+    "",
+    "/console/signin#login_token=" + "t".repeat(40),
+  );
   const confirmed = [];
   global.fetch = mockFetch({
     "POST /api/auth/redeem": [
@@ -210,7 +214,11 @@ test("a link opened from elsewhere asks before signing in the screen that starte
 test("a link opened from the same address just signs in", async () => {
   vi.resetModules();
   const { SignIn: Fresh } = await import("../src/views/SignIn.jsx");
-  window.history.pushState({}, "", "/signin#login_token=" + "u".repeat(40));
+  window.history.pushState(
+    {},
+    "",
+    "/console/signin#login_token=" + "u".repeat(40),
+  );
   global.fetch = mockFetch({
     "POST /api/auth/redeem": [
       200,
@@ -312,7 +320,11 @@ test("a magic link is redeemed ONCE, however many times the page re-renders whil
   // and takeLoginToken() returns the same captured token every call.
   vi.resetModules();
   const { App: FreshApp } = await import("../src/App.jsx");
-  window.history.pushState({}, "", "/signin#login_token=" + "v".repeat(40));
+  window.history.pushState(
+    {},
+    "",
+    "/console/signin#login_token=" + "v".repeat(40),
+  );
   let redeems = 0;
   let authed = false;
   global.fetch = mockFetch({
@@ -334,7 +346,7 @@ test("a magic link is redeemed ONCE, however many times the page re-renders whil
   });
   render(<FreshApp />);
   await waitFor(() =>
-    expect(window.location.pathname).toBe("/account/overview"),
+    expect(window.location.pathname).toBe("/console/account/overview"),
   );
   // Let any straggling re-render fire its effect, then count.
   await new Promise((r) => setTimeout(r, 200));

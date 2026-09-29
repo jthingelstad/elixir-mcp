@@ -42,7 +42,7 @@ export const FAMILY_PRODUCTS: ReadonlyArray<FamilyProduct> = [
   {
     key: "console",
     label: "Console",
-    href: `${FAMILY_ORIGIN}/account/overview`,
+    href: `${FAMILY_ORIGIN}/console`,
     icon: "gauge",
   },
   {

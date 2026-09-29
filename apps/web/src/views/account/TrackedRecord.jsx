@@ -17,6 +17,7 @@ import {
 } from "../../lib/queries.js";
 import { tagFromPath, tagPath } from "../../lib/tag-url.js";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * One tracked player or clan: how you track it, and what that is
@@ -109,7 +110,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
 
   const crumb = (
     <div className="page__crumb">
-      <Link to="/account/tracking">‹ Tracking</Link>
+      <Link to={`${CONSOLE}/account/tracking`}>‹ Tracking</Link>
     </div>
   );
 
@@ -159,7 +160,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
           <p className="page__lede">
             <Link
               className="mono"
-              to={`/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`}
+              to={`${CONSOLE}/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`}
             >
               {wanted}
             </Link>
@@ -178,7 +179,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
           style={{ marginLeft: "auto" }}
           onClick={() =>
             navigate(
-              `/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`,
+              `${CONSOLE}/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`,
             )
           }
         >
@@ -333,7 +334,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                 // (409 primary_in_use): the refusal is said beside the
                 // button, and the page stays.
                 const r = await only(remove)(isClan);
-                if (r.ok) navigate("/account/tracking");
+                if (r.ok) navigate(`${CONSOLE}/account/tracking`);
               }}
             >
               Stop tracking

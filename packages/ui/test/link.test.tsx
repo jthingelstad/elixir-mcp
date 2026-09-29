@@ -18,14 +18,14 @@ afterEach(cleanup);
 const inApp = (navigate: (to: string) => void) =>
   render(
     <NavigateProvider navigate={navigate}>
-      <Link to="/explore/player/20JJJ2CCRU">King Thing</Link>
+      <Link to="/console/explore/player/20JJJ2CCRU">King Thing</Link>
     </NavigateProvider>,
   );
 
 test("a Link always carries its href, so it focuses and copies", () => {
   inApp(vi.fn());
   const a = screen.getByRole("link", { name: "King Thing" });
-  expect(a.getAttribute("href")).toBe("/explore/player/20JJJ2CCRU");
+  expect(a.getAttribute("href")).toBe("/console/explore/player/20JJJ2CCRU");
 });
 
 test("a plain primary click routes in-app and cancels the page load", () => {
@@ -33,7 +33,7 @@ test("a plain primary click routes in-app and cancels the page load", () => {
   inApp(navigate);
   const a = screen.getByRole("link", { name: "King Thing" });
   const followed = fireEvent.click(a, { button: 0 });
-  expect(navigate).toHaveBeenCalledWith("/explore/player/20JJJ2CCRU");
+  expect(navigate).toHaveBeenCalledWith("/console/explore/player/20JJJ2CCRU");
   expect(followed).toBe(false); // preventDefault
 });
 
@@ -53,9 +53,9 @@ test.each([
 });
 
 test("without a provider a Link is a plain anchor", () => {
-  render(<Link to="/explore">Explore</Link>);
+  render(<Link to="/console/explore">Explore</Link>);
   const a = screen.getByRole("link", { name: "Explore" });
-  expect(a.getAttribute("href")).toBe("/explore");
+  expect(a.getAttribute("href")).toBe("/console/explore");
   expect(fireEvent.click(a)).toBe(true);
 });
 
@@ -82,7 +82,7 @@ test("a LogTable cell link is a Link; an outside one opens a new tab", () => {
         ]}
         rows={[
           [
-            { text: "abc123", href: "/account/activity/c/abc123" },
+            { text: "abc123", href: "/console/account/activity/c/abc123" },
             { text: "source", href: "https://example.com/card" },
           ],
         ]}
@@ -90,11 +90,11 @@ test("a LogTable cell link is a Link; an outside one opens a new tab", () => {
     </NavigateProvider>,
   );
   const id = screen.getByRole("link", { name: "abc123" });
-  expect(id.getAttribute("href")).toBe("/account/activity/c/abc123");
+  expect(id.getAttribute("href")).toBe("/console/account/activity/c/abc123");
   fireEvent.click(id, { metaKey: true });
   expect(navigate).not.toHaveBeenCalled();
   fireEvent.click(id);
-  expect(navigate).toHaveBeenCalledWith("/account/activity/c/abc123");
+  expect(navigate).toHaveBeenCalledWith("/console/account/activity/c/abc123");
   const out = screen.getByRole("link", { name: "source" });
   expect(out.getAttribute("target")).toBe("_blank");
   expect(out.getAttribute("rel")).toContain("noopener");

@@ -20,6 +20,7 @@ import {
 } from "../lib/queries.js";
 import { SignatureBadge } from "../components/ReleaseSignature.jsx";
 import { CardPicker } from "../components/CardPicker.jsx";
+import { CONSOLE } from "../lib/console.js";
 
 /**
  * One collector.
@@ -340,7 +341,7 @@ function YourCard({ own, navigate }) {
                   const r = await api.pickGatewayCard(own.gateway_id, pick);
                   if (r.ok) {
                     navigate(
-                      `/status/collectors/${encodeURIComponent(r.data.card)}`,
+                      `${CONSOLE}/status/collectors/${encodeURIComponent(r.data.card)}`,
                     );
                   } else {
                     setNote(r.data?.message ?? "Could not change that.");
@@ -390,7 +391,7 @@ export function CollectorPage({ id, navigate, me }) {
     return (
       <>
         <div className="page__crumb">
-          <Link to="/status/collectors">‹ Collectors</Link>
+          <Link to={`${CONSOLE}/status/collectors`}>‹ Collectors</Link>
         </div>
         <div className="empty">
           <div className="empty__title">No collector by that name</div>
@@ -416,7 +417,7 @@ export function CollectorPage({ id, navigate, me }) {
   return (
     <>
       <div className="page__crumb">
-        <Link to="/status/collectors">‹ Collectors</Link>
+        <Link to={`${CONSOLE}/status/collectors`}>‹ Collectors</Link>
       </div>
       <div
         style={{

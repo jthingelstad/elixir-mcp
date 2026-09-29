@@ -6,6 +6,7 @@ import { tagPath } from "../../lib/tag-url.js";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { SlotMeters } from "../../components/SlotMeter.jsx";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * Overview REPORTS; Tracking manages.
@@ -69,7 +70,7 @@ function ListHead({ title }) {
       <span style={{ fontSize: "14px", fontWeight: 600 }}>{title}</span>
       <Link
         style={{ marginLeft: "auto", fontSize: "13px" }}
-        to="/account/tracking"
+        to={`${CONSOLE}/account/tracking`}
       >
         Manage ›
       </Link>
@@ -125,7 +126,7 @@ function OverviewActivity({ players }) {
         </span>
         <Link
           style={{ marginLeft: "auto", fontSize: "13px" }}
-          to={`/account/tracking/${tagPath(chosen.player_tag)}`}
+          to={`${CONSOLE}/account/tracking/${tagPath(chosen.player_tag)}`}
         >
           Record ›
         </Link>
@@ -195,7 +196,7 @@ export function Overview({ me, navigate }) {
               </p>
               <button
                 className="btn btn--primary"
-                onClick={() => navigate("/account/tracking")}
+                onClick={() => navigate(`${CONSOLE}/account/tracking`)}
               >
                 Add your player
               </button>
@@ -212,7 +213,7 @@ export function Overview({ me, navigate }) {
                 }
                 secondary={p.player_tag}
                 note={p.is_primary ? "you" : (p.relationship ?? "watching")}
-                to={`/account/tracking/${tagPath(p.player_tag)}`}
+                to={`${CONSOLE}/account/tracking/${tagPath(p.player_tag)}`}
               />
             ))
           )}
@@ -243,7 +244,7 @@ export function Overview({ me, navigate }) {
                     ? `${c.scope} · ${c.member_count} members`
                     : c.scope
                 }
-                to={`/account/tracking/${tagPath(c.clan_tag)}`}
+                to={`${CONSOLE}/account/tracking/${tagPath(c.clan_tag)}`}
               />
             ))
           )}
@@ -278,7 +279,7 @@ export function Overview({ me, navigate }) {
             <span className="chip chip--tier">{me.role}</span>
             <Link
               style={{ marginLeft: "auto", fontSize: "13px" }}
-              to="/account/profile"
+              to={`${CONSOLE}/account/profile`}
             >
               Profile ›
             </Link>

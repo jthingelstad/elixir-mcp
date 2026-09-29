@@ -7,7 +7,7 @@ order: 13
 navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a tier changes."
-console: ["Your budget and what spent it", "/account/usage", "Console ▸ Usage"]
+console: ["Your budget and what spent it", "/console/account/usage", "Console ▸ Usage"]
 reviewed: "2026-09-28 against contract 9.16.1"
 ---
 

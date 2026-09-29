@@ -106,7 +106,7 @@ test("account journey: add a player, capture arrives, copy a question, open pers
     }
     return { ok: true, text: async () => JSON.stringify(data) };
   });
-  window.history.pushState({}, "", "/account/overview");
+  window.history.pushState({}, "", "/console/account/overview");
   render(<App />);
 
   // Overview reports and sends you to Tracking; it no longer carries the
@@ -116,14 +116,14 @@ test("account journey: add a player, capture arrives, copy a question, open pers
     await screen.findByRole("button", { name: "Add your player", exact: true }),
   );
   await waitFor(() =>
-    expect(window.location.pathname).toBe("/account/tracking"),
+    expect(window.location.pathname).toBe("/console/account/tracking"),
   );
   const input = document.getElementById("add-player-tag");
   fireEvent.change(input, { target: { value: player.player_tag } });
   fireEvent.click(input.parentElement.querySelector("button"));
 
   captured = true;
-  window.history.pushState({}, "", "/account/connections");
+  window.history.pushState({}, "", "/console/account/connections");
   render(<App />);
   fireEvent.click(
     await screen.findByRole("button", {
@@ -145,7 +145,7 @@ test("no player: Overview says so and offers one action, and asks nothing", asyn
     return { ok: true, text: async () => JSON.stringify(data) };
   });
   const navigate = vi.fn();
-  window.history.pushState({}, "", "/account/overview");
+  window.history.pushState({}, "", "/console/account/overview");
   render(<App />);
   expect(
     await screen.findByText("No players yet — nothing here defaults to you."),

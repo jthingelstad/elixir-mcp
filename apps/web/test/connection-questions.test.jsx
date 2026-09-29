@@ -101,7 +101,7 @@ test("no player links to setup; pending capture can be refreshed into questions"
   fireEvent.click(
     await screen.findByRole("button", { name: "Add your player" }),
   );
-  expect(navigate).toHaveBeenCalledWith("/account/overview");
+  expect(navigate).toHaveBeenCalledWith("/console/account/overview");
   expect(screen.queryByRole("button", { name: /^Copy question:/ })).toBeNull();
   respond({
     ...player,

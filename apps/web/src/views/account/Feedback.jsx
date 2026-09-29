@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useMyFeedback } from "../../lib/queries.js";
 import { useConsolePath, useScope } from "../../lib/scope.js";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * Feedback — what you have told us, and what we did about it.
@@ -73,7 +74,7 @@ export function FeedbackItem({ id, navigate }) {
         <div className="empty__title">No feedback item #{id}</div>
         <p className="empty__body" style={{ marginBottom: 0 }}>
           Nothing by that number on your account.{" "}
-          <Link to={path("/account/feedback")}>All feedback ›</Link>
+          <Link to={path(`${CONSOLE}/account/feedback`)}>All feedback ›</Link>
         </p>
       </div>
     );
@@ -81,7 +82,7 @@ export function FeedbackItem({ id, navigate }) {
   return (
     <>
       <p className="page__crumb" style={{ marginBottom: "14px" }}>
-        <Link to={path("/account/feedback")}>‹ Feedback</Link>
+        <Link to={path(`${CONSOLE}/account/feedback`)}>‹ Feedback</Link>
       </p>
       <div
         style={{
@@ -131,7 +132,7 @@ export function FeedbackItem({ id, navigate }) {
           About one call ·{" "}
           <Link
             className="mono"
-            to={path(`/account/activity/c/${item.request_id}`)}
+            to={path(`${CONSOLE}/account/activity/c/${item.request_id}`)}
           >
             {item.request_id.slice(0, 8)}
           </Link>
@@ -140,7 +141,10 @@ export function FeedbackItem({ id, navigate }) {
       {item.send_id && (
         <p className="text-[13px] -mt-3 mb-[22px]">
           About one email ·{" "}
-          <Link className="mono" to={`/account/activity/e/${item.send_id}`}>
+          <Link
+            className="mono"
+            to={`${CONSOLE}/account/activity/e/${item.send_id}`}
+          >
             {item.send_id.slice(0, 8)}
           </Link>
         </p>
@@ -314,7 +318,7 @@ export function Feedback() {
   const rows = (items ?? []).map((f) => [
     {
       text: `fb_${f.feedback_id}`,
-      href: path(`/account/feedback/${f.feedback_id}`),
+      href: path(`${CONSOLE}/account/feedback/${f.feedback_id}`),
     },
     {
       text: ago(f.created_at, now),

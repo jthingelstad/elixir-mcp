@@ -10,23 +10,25 @@ beforeEach(() => window.localStorage.clear());
 
 test("a console path is kept across sign-in and consumed once", () => {
   rememberAfterSignIn(
-    "/account/activity/e/5c1c5dbf-0000-4000-8000-000000000001?report=1",
+    "/console/account/activity/e/5c1c5dbf-0000-4000-8000-000000000001?report=1",
   );
   expect(takeAfterSignIn()).toBe(
-    "/account/activity/e/5c1c5dbf-0000-4000-8000-000000000001?report=1",
+    "/console/account/activity/e/5c1c5dbf-0000-4000-8000-000000000001?report=1",
   );
   expect(takeAfterSignIn()).toBeNull();
 });
 
 test("only console paths are remembered; anything else lands on Overview", () => {
-  rememberAfterSignIn("/signin?login_token=abc");
+  rememberAfterSignIn("/console/signin?login_token=abc");
   expect(takeAfterSignIn()).toBeNull();
   rememberAfterSignIn("https://evil.example/account/x");
   expect(takeAfterSignIn()).toBeNull();
-  rememberAfterSignIn("/explore/player/2ABC");
+  rememberAfterSignIn("/console/explore/player/2ABC");
   expect(takeAfterSignIn()).toBeNull();
-  rememberAfterSignIn("/admin/emails/5c1c5dbf-0000-4000-8000-000000000001");
+  rememberAfterSignIn(
+    "/console/admin/emails/5c1c5dbf-0000-4000-8000-000000000001",
+  );
   expect(takeAfterSignIn()).toBe(
-    "/admin/emails/5c1c5dbf-0000-4000-8000-000000000001",
+    "/console/admin/emails/5c1c5dbf-0000-4000-8000-000000000001",
   );
 });

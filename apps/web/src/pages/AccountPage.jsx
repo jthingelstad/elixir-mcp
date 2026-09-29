@@ -1,7 +1,7 @@
 import { Dashboard } from "../views/Dashboard.jsx";
 import { useHere, useMe, useNav } from "../App.jsx";
 
-/** /account/{page}/{itemId}/{recordId}: the Account section's pages,
+/** /console/account/{page}/{itemId}/{recordId}: the Account section's pages,
  *  through the Dashboard switch, with the props they always took. */
 export function AccountPage() {
   const navigate = useNav();

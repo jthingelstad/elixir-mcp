@@ -7,7 +7,7 @@ order: 15
 navTitle: "Agents"
 icon: bot
 lede: "A runtime that acts for one clan, with its own door, key, identity map and feed."
-console: ["Create and manage agents", "/account/agents", "Console ▸ Connections"]
+console: ["Create and manage agents", "/console/account/agents", "Console ▸ Connections"]
 ---
 
 # Building an agent
@@ -25,7 +25,7 @@ do never shows up as its. If you have not read
 Every agent you own has **its own console**: the account selector at the top
 of the console's menu switches between you and each of your agents, and an
 agent's console is the same pages scoped to it, at
-`/agent/<public_id>/…`: its Overview (key, last call, what is refusing it,
+`/console/agent/<public_id>/…`: its Overview (key, last call, what is refusing it,
 the address to connect it at), its Timeline, its MCP requests and account
 events, its share of your budget, the clients connected as it, its Settings
 and the feedback it has filed. Pages that belong to a person (Verify,

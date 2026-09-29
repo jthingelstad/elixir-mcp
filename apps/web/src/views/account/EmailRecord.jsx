@@ -2,6 +2,7 @@ import { Icon, Link, useClock } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { MailFrame } from "../../components/MailFrame.jsx";
 import { useEmailRecord } from "../../lib/queries.js";
+import { CONSOLE } from "../../lib/console.js";
 
 /**
  * One sent email: the mail as it went out, and the way to say something
@@ -29,7 +30,7 @@ export function EmailRecord({ id, navigate }) {
   const [report] = useState(wantsReport);
   useEffect(() => {
     if (report && id)
-      navigate(`/account/feedback?send_id=${encodeURIComponent(id)}`);
+      navigate(`${CONSOLE}/account/feedback?send_id=${encodeURIComponent(id)}`);
   }, [report, id, navigate]);
   // The envelope, because 404 is an answer this page reads.
   const record = useEmailRecord(id);
@@ -38,7 +39,7 @@ export function EmailRecord({ id, navigate }) {
 
   const back = (
     <div className="page__crumb">
-      <Link to="/account/activity/emails">‹ Emails</Link>
+      <Link to={`${CONSOLE}/account/activity/emails`}>‹ Emails</Link>
     </div>
   );
 
@@ -97,12 +98,12 @@ export function EmailRecord({ id, navigate }) {
             way a call is: the queue links straight back to this record. */}
         <Link
           className="btn btn--sm"
-          to={`/account/feedback?send_id=${encodeURIComponent(send.send_id)}`}
+          to={`${CONSOLE}/account/feedback?send_id=${encodeURIComponent(send.send_id)}`}
         >
           <Icon name="message-square" size={15} />
           Report a problem with this email
         </Link>
-        <Link className="btn btn--sm" to="/account/profile/email">
+        <Link className="btn btn--sm" to={`${CONSOLE}/account/profile/email`}>
           Email switches
         </Link>
       </div>

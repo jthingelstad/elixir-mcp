@@ -6,6 +6,7 @@ import {
   SignatureBadge,
   signatureCounts,
 } from "../components/ReleaseSignature.jsx";
+import { CONSOLE } from "../lib/console.js";
 
 /**
  * Service ▸ Status ▸ Collectors — the whole fleet, and one machine.
@@ -68,7 +69,7 @@ export function Fleet({ navigate }) {
   return (
     <>
       <div className="page__crumb">
-        <Link to="/status/service">‹ Status</Link>
+        <Link to={`${CONSOLE}/status/service`}>‹ Status</Link>
       </div>
       <div
         style={{
@@ -93,7 +94,7 @@ export function Fleet({ navigate }) {
           <button
             className="btn btn--primary"
             style={{ marginLeft: "auto" }}
-            onClick={() => navigate("/status/collectors/new")}
+            onClick={() => navigate(`${CONSOLE}/status/collectors/new`)}
           >
             <Icon name="plus" size={16} />
             {runsOne ? "Run another" : "Run a collector"}
@@ -158,7 +159,7 @@ export function Fleet({ navigate }) {
                         fontWeight: 600,
                         color: mineIds.has(c.name) ? "var(--gold)" : undefined,
                       }}
-                      to={`/status/collectors/${encodeURIComponent(c.name)}`}
+                      to={`${CONSOLE}/status/collectors/${encodeURIComponent(c.name)}`}
                     >
                       {c.name}
                     </Link>

@@ -42,8 +42,8 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 {% for t in g.tools %}- `{{ t.name }}` ({{ t.title | safe }}): {{ t.description | clamp(240) | safe }}
 {% endfor %}{% endfor %}
 ## Interactive pages (JavaScript application, not in this index)
-- {{ site.url }}/data/dashboard: full-history charts over the public stats endpoint
-- {{ site.url }}/signin, /account, /explore, /status: require a session
+- {{ site.url }}/console/data/dashboard: full-history charts over the public stats endpoint
+- {{ site.url }}/console/signin, /console/account, /console/explore, /console/status: require a session
 
 ## Optional
 - [Source repository]({{ site.repo }}): the recorder, MCP server, web app, and infrastructure are public code

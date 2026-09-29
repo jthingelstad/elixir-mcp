@@ -211,45 +211,75 @@ test("Limits states the enforced console-session lifetime", { skip }, () => {
   );
 });
 
+/** The edge router's function, evaluated from the template: the rule is
+ *  tested as the edge runs it, not as a copy of it here. */
+function edgeRouter() {
+  const template = readFileSync(
+    path.join(repoRoot, "infra/template.yaml"),
+    "utf8",
+  );
+  const from = template.indexOf(
+    "FunctionCode: |",
+    template.indexOf("\n  SpaRouter:"),
+  );
+  const code = [];
+  for (const line of template.slice(from).split("\n").slice(1)) {
+    if (line.trim() && !line.startsWith("        ")) break;
+    code.push(line);
+  }
+  const handler = new Function(`${code.join("\n")}\nreturn handler;`)();
+  return (uri) => handler({ request: { uri } }).uri;
+}
+
 test(
-  "the edge router and the app agree on who owns which path",
+  "the edge router sends /console to the app and every other page to its document",
   { skip },
-  () => {
-    const template = readFileSync(
-      path.join(repoRoot, "infra/template.yaml"),
-      "utf8",
-    );
-    const routerBlock = /var STATIC_PAGES = \{([^}]*)\}/.exec(template)[1];
-    const routerPages = [...routerBlock.matchAll(/'([^']+)'/g)].map(
-      (m) => m[1],
-    );
-    const prefixes = [
-      .../var STATIC_PREFIXES = \[([^\]]*)\]/
-        .exec(template)[1]
-        .matchAll(/'([^']+)'/g),
-    ].map((m) => m[1]);
+  async () => {
+    const route = edgeRouter();
+    const doc = (page) => (page === "/" ? "/index.html" : `${page}/index.html`);
 
-    // Every page the site builds must be routed to the site. "/" is
-    // handled by the router's own root case.
-    for (const page of STATIC_PAGES) {
-      if (page === "/") continue;
-      const routed =
-        routerPages.includes(page) || prefixes.some((p) => page.startsWith(p));
-      assert.ok(routed, `the edge router sends ${page} to the app shell`);
-    }
-    // Every update page is routed by the /updates/ prefix, not listed.
-    assert.ok(
-      prefixes.includes("/updates/"),
-      "the edge router sends /updates/<slug> to the app shell",
-    );
-    // And nothing routed to the site should be missing from the build.
-    for (const page of routerPages) {
-      assert.ok(
-        STATIC_PAGES.includes(page),
-        `the edge router routes ${page} to the site, which does not build it`,
-      );
+    // Every page the site builds is its own document, with or without
+    // the trailing slash; the update pages are routed the same way.
+    for (const page of [...STATIC_PAGES, ...(await updatePages())]) {
+      assert.equal(route(page), doc(page), `${page} is not its document`);
+      if (page !== "/")
+        assert.equal(route(`${page}/`), doc(page), `${page}/ differs`);
     }
 
+    // The Console owns its prefix, and nothing else: the app resolves
+    // its own paths under it. A document the site built under /console
+    // could never be reached.
+    for (const uri of [
+      "/console",
+      "/console/",
+      "/console/signin",
+      "/console/account/overview",
+      "/console/explore/player/%2320JJJ2CCRU",
+      "/console/data/dashboard",
+    ])
+      assert.equal(route(uri), "/app.html", `${uri} is not the app`);
+    assert.ok(!existsSync(path.join(out, "console")));
+    assert.equal(route("/consoles"), "/consoles/index.html");
+
+    // A file is itself, found or honestly missing.
+    for (const uri of ["/llms.txt", "/assets/site.css", "/app.html"])
+      assert.equal(route(uri), uri);
+
+    // The Console's old addresses at the root are not aliased (Jamie,
+    // 2026-09-28): each is a site document the site does not build, so
+    // the edge answers it with a miss, never the app shell.
+    for (const old of ["/account/overview", "/signin", "/explore", "/admin"]) {
+      const target = route(old);
+      assert.equal(target, doc(old));
+      assert.ok(!existsSync(path.join(out, target)), `${old} resolves`);
+    }
+  },
+);
+
+test(
+  "every link the app and the bar give to the site is a page the site builds",
+  { skip },
+  async () => {
     const app = readFileSync(
       path.join(repoRoot, "apps/web/src/App.jsx"),
       "utf8",
@@ -259,12 +289,20 @@ test(
         .exec(app)[1]
         .matchAll(/"([^"]+)"/g),
     ].map((m) => m[1]);
-    for (const link of links) {
+    assert.ok(links.length > 0, "STATIC_LINKS was found");
+    const { FAMILY_ORIGIN, FAMILY_PRODUCTS, FAMILY_TABS } = await import(
+      path.join(repoRoot, "packages/ui/src/family.ts")
+    );
+    for (const link of [...links, ...FAMILY_TABS.map(([, p]) => p)]) {
       assert.ok(
         STATIC_PAGES.includes(link),
         `the app links to ${link}, which the site does not build`,
       );
     }
+    // The Console's own button is the app, on this origin.
+    const product = FAMILY_PRODUCTS.find((p) => p.key === "console");
+    assert.equal(product.href, `${FAMILY_ORIGIN}/console`);
+    assert.equal(edgeRouter()("/console"), "/app.html");
   },
 );
 
@@ -336,7 +374,7 @@ test(
     );
     for (const [i, p] of FAMILY_PRODUCTS.entries()) {
       // The console's own button is a bare path on this host.
-      const href = p.key === "console" ? "/account/overview" : p.href;
+      const href = p.key === "console" ? "/console" : p.href;
       assert.equal(products[i].getAttribute("href"), href, `${p.label} href`);
       assert.equal(
         products[i].getAttribute("target"),
@@ -541,17 +579,16 @@ test("asking for access is one door, and it is in the app", { skip }, () => {
 
   // Every call to action goes to the one door, deep-linked to the
   // asking half of it.
-  const TARGET = 'href="/signin?request"';
+  const TARGET = 'href="/console/signin?request"';
   for (const page of ["index.html", "examples/play/index.html"]) {
     assert.ok(read(page).includes(TARGET), `${page} has no way to ask`);
   }
   // Two on the home page: the hero and the panel that explains the gate.
   assert.equal(home.split(TARGET).length - 1, 2);
 
-  // /signin is the app's, and the app is what answers there — if this
-  // ever became a static page the query would land on a document with
-  // no form in it.
-  assert.ok(!existsSync(path.join(out, "signin/index.html")));
+  // /console/signin is the app's, and the app is what answers there;
+  // the edge sends the whole prefix to it (the router test above).
+  assert.ok(!existsSync(path.join(out, "console/signin/index.html")));
 });
 
 // --------------------------------------------------------------- #25
@@ -615,7 +652,7 @@ test("every built page counts its own visit", { skip }, () => {
   }
   // app.html is the exception and not an omission: the application
   // loads the embed from its bundle, because it also has to bridge
-  // pushState and skip /signin.
+  // pushState and skip /console/signin.
   assert.ok(!read("app.html").includes("tinylytics.app/embed/"));
 });
 

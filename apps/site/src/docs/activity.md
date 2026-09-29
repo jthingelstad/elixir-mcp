@@ -7,7 +7,7 @@ order: 18
 navTitle: "Battle activity"
 icon: calendar-days
 lede: "Every player you track shows a year of days, drawn from what Elixir recorded, with the days it was not watching marked as exactly that."
-console: ["See yours on the Overview", "/account", "Console ▸ Overview"]
+console: ["See yours on the Overview", "/console/account", "Console ▸ Overview"]
 ---
 
 # Battle activity: a year of days

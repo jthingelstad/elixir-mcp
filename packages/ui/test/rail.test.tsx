@@ -132,13 +132,18 @@ test("the identity block: who you are, the way to the profile, and the way out a
 });
 
 const ACCOUNTS: [RailAccount, RailAccount] = [
-  { key: "me", label: "Jamie", aside: "owner", to: "/account/overview" },
+  {
+    key: "me",
+    label: "Jamie",
+    aside: "owner",
+    to: "/console/account/overview",
+  },
   {
     key: "abc12345",
     label: "poap-bot",
     detail: "POAP KINGS",
     aside: "agent · leader",
-    to: "/agent/abc12345/overview",
+    to: "/console/agent/abc12345/overview",
   },
 ];
 
@@ -153,7 +158,7 @@ test("accounts: the head is the selector, and choosing one goes to its console",
       title="Console"
       accounts={ACCOUNTS}
       account="me"
-      manage={{ label: "Manage agents…", to: "/account/agents" }}
+      manage={{ label: "Manage agents…", to: "/console/account/agents" }}
     />,
   );
   const head = screen.getByRole("button", { name: /Jamie/ });
@@ -166,7 +171,7 @@ test("accounts: the head is the selector, and choosing one goes to its console",
   expect(screen.getByRole("link", { name: /poap-bot/ })).toBeTruthy();
   expect(screen.getByRole("link", { name: /Manage agents/ })).toBeTruthy();
   fireEvent.click(screen.getByRole("link", { name: /poap-bot/ }));
-  expect(navigate).toHaveBeenCalledWith("/agent/abc12345/overview");
+  expect(navigate).toHaveBeenCalledWith("/console/agent/abc12345/overview");
   expect(screen.queryByRole("link", { name: /Manage agents/ })).toBeNull();
   // Escape closes it too.
   fireEvent.click(head);

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-28",
+    title: "The console lives at /console",
+    body: "The console has moved under one address of its own: your account overview is now /console/account/overview, and every other console page sits under /console the same way. The old addresses at the root no longer open it, so update any bookmark. The site, the docs, the MCP address and the API are where they were. No change to the tools.",
+  },
+  {
+    date: "2026-09-28",
     title:
       "A missed milestone check no longer loses the moment, a revoked agent can be given a key, and verification reads have a daily ceiling",
     body: "Three fixes. The milestone mail looked back a fixed 26 hours, so if its hourly check failed for longer than that, a first from the gap was never mailed; it now reads back to the last check that went through, up to a week, so a first can be late but not lost. An agent whose key you revoked could not be given a new one from its Settings page, although the page said to issue one; now it can, with the name and capabilities it had, unless another of your agents has taken that name since, which the page now says. And verification reads a player's battle log on your behalf while you wait: those reads now stop at 120 a day for any one player, across every challenge, and the page says when the check is waiting for the player's regular recording instead. No change to the tools.",

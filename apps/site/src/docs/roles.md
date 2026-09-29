@@ -7,7 +7,7 @@ order: 30
 navTitle: "Roles & tiers"
 icon: shield-check
 lede: "What each tier records for you — never what you may read."
-console: ["Your tier", "/account/profile", "Console ▸ Profile"]
+console: ["Your tier", "/console/account/profile", "Console ▸ Profile"]
 ---
 
 # Roles and quotas
@@ -47,7 +47,7 @@ a clan's own agent needs.
 
 **family** — you run a clan family: a main plus feeders. Multiple
 comprehensive watches, and the first tier that creates
-[collections](/explore/collections) — curated groupings everyone can
+[collections](/console/explore/collections) — curated groupings everyone can
 browse.
 
 **partner** — you run serious tooling (a clan bot, a community service)

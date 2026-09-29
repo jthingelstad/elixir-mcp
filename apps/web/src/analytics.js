@@ -14,7 +14,7 @@
  * What actually holds the line is the CSP (script-src 'self'
  * https://tinylytics.app), which is enforced on every behaviour.
  *
- * The one carve-out that IS real: /signin never loads it, because the magic
+ * The one carve-out that IS real: sign-in never loads it, because the magic
  * token rides that URL. localhost never tracks. The login_token scrub lives in
  * url-hygiene.js — first-party hygiene, and main.jsx runs it before this.
  *
@@ -27,11 +27,14 @@
  * the document load and is the part /signin skips; the bridge records
  * navigation and is installed always.
  */
+import { CONSOLE, appPath } from "./lib/console.js";
+
 const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
 
 /**
  * A record of one call or one sent email: /account/activity/c/<request_id>,
- * /account/activity/e/<send_id>, /admin/emails/<send_id>. Report hygiene,
+ * /account/activity/e/<send_id>, /admin/emails/<send_id> (under /console;
+ * matched on the app path). Report hygiene,
  * the same reason Explore ids ride as ?id= rather than as a path: every
  * record as its own page shreds the report into one-hit rows, and a
  * record page is worth one row per KIND ("email records opened"), not
@@ -57,8 +60,9 @@ export function loadTinylytics() {
   // skipping it: the document hit it would have recorded is the /signin view
   // we deliberately do not keep, and every hit after this one is a beacon
   // built from the ROUTE (analyticsLocation), never from the raw URL.
-  if (window.location.pathname.startsWith("/signin")) return;
-  if (PRIVATE_RECORD.test(window.location.pathname)) {
+  const app = appPath(window.location.pathname) ?? "";
+  if (app.startsWith("/signin")) return;
+  if (PRIVATE_RECORD.test(app)) {
     landing();
     return;
   }
@@ -84,13 +88,20 @@ export function analyticsLocation(
   pathname = window.location.pathname,
   origin = window.location.origin,
 ) {
-  if (pathname.startsWith("/signin")) return null;
-  let segments = pathname.split("/").filter(Boolean);
+  // Segments are read on the app path and the page is reported under the
+  // prefix. The app only runs under /console; any other path is read as
+  // it stands.
+  const app = appPath(pathname);
+  const base = app === null ? "" : CONSOLE;
+  if (app?.startsWith("/signin")) return null;
+  let segments = (app ?? pathname).split("/").filter(Boolean);
   // An agent's console is a place, /agent/<public_id>/... (2026-09-23):
   // which agent is never reported, only the kind of page (email.md: a
   // page of your own records reports its kind, not which record).
   if (segments[0] === "agent") segments = ["agent", ...segments.slice(2)];
-  const page = segments.length ? `/${segments.slice(0, 2).join("/")}` : "/";
+  const page = segments.length
+    ? `${base}/${segments.slice(0, 2).join("/")}`
+    : base || "/";
   const url = new URL(page, origin);
   // A record page under the console (a call, an email, feedback, a
   // tracked subject, an admin's account or email) reports as its kind,

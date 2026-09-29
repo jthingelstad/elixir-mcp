@@ -1,6 +1,7 @@
 import { Icon, Link, secsSince, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { usePublicStatus } from "../lib/queries.js";
+import { CONSOLE } from "../lib/console.js";
 
 /** Data ▸ Status (Jamie, 2026-09-06): the operational dashboard,
  *  mobile-first, behind sign-in since 2026-09-09 (the public health
@@ -483,7 +484,7 @@ export function Status() {
 
       <Link
         className="panel"
-        to="/status/collectors"
+        to={`${CONSOLE}/status/collectors`}
         style={{
           display: "flex",
           alignItems: "center",

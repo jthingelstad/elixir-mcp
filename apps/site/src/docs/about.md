@@ -28,7 +28,7 @@ answerable question here.
 **How you use it:** request access, add your player tag — adding *is*
 recording, there is no separate opt-in — and connect
 `https://elixir.poapkings.com/mcp` to Claude or any MCP client. The
-[Quickstart](/docs/quickstart) walks it through; the [Explore](/explore)
+[Quickstart](/docs/quickstart) walks it through; the [Explore](/console/explore)
 page shows you exactly what your agent sees.
 
 **Who runs it:** this is a hobby service operated by Jamie Thingelstad

@@ -267,7 +267,7 @@ test("a reader who runs no collector is told what one is and what it earns, and 
   expect(screen.getByText(/You don.t run one yet/)).toBeTruthy();
   expect(screen.getByText(/10 points buy one extra daily call/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: /Run a collector/ }));
-  expect(navigate).toHaveBeenCalledWith("/status/collectors/new");
+  expect(navigate).toHaveBeenCalledWith("/console/status/collectors/new");
 });
 
 test("an operator picks the card their collector wears, and a taken card cannot be picked", async () => {
@@ -304,7 +304,7 @@ test("an operator picks the card their collector wears, and a taken card cannot 
   // A raise lands on the new collector's own record.
   fireEvent.click(raise);
   await waitFor(() =>
-    expect(navigate).toHaveBeenCalledWith("/status/collectors/Golem"),
+    expect(navigate).toHaveBeenCalledWith("/console/status/collectors/Golem"),
   );
   const post = fetchMock.mock.calls.find(
     ([p, init]) =>
@@ -404,7 +404,7 @@ test("an operator can re-pick their own collector's card, and the record follows
     within(panel).getByRole("button", { name: "Make it Knight" }),
   );
   await waitFor(() =>
-    expect(navigate).toHaveBeenCalledWith("/status/collectors/Knight"),
+    expect(navigate).toHaveBeenCalledWith("/console/status/collectors/Knight"),
   );
   const post = fetchMock.mock.calls.find(([p]) =>
     String(p).includes("me/gateway-card"),

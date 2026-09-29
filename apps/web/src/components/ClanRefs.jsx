@@ -1,5 +1,6 @@
 import { Link } from "@elixir-mcp/ui";
 import { tagPath } from "../lib/tag-url.js";
+import { CONSOLE } from "../lib/console.js";
 
 /**
  * A principal's clans, each named with its tag beside it and linked to
@@ -11,7 +12,7 @@ export function ClanRefs({ clans, empty = "—" }) {
   return clans.map((c, i) => (
     <span key={c.clan_tag}>
       {i > 0 ? ", " : ""}
-      <Link to={`/explore/clan/${tagPath(c.clan_tag)}`}>
+      <Link to={`${CONSOLE}/explore/clan/${tagPath(c.clan_tag)}`}>
         {c.name ?? c.clan_tag}
       </Link>
       {c.name ? (

@@ -32,6 +32,7 @@ import {
   useAdminUsage,
   useInvalidate,
 } from "../lib/queries.js";
+import { CONSOLE } from "../lib/console.js";
 
 /**
  * Admin, eight pages.
@@ -216,14 +217,14 @@ function AdminEmails() {
     {
       text: m.subject ?? "—",
       title: m.subject ?? "",
-      href: `/admin/emails/${m.send_id}`,
+      href: `${CONSOLE}/admin/emails/${m.send_id}`,
     },
     m.archived ? "kept" : { text: "not kept", tone: "warn" },
     m.reports > 0 ? { text: String(m.reports), tone: "warn" } : "—",
     {
       text: m.send_id.slice(0, 8),
       title: m.send_id,
-      href: `/admin/emails/${m.send_id}`,
+      href: `${CONSOLE}/admin/emails/${m.send_id}`,
     },
   ]);
   return (
@@ -260,7 +261,7 @@ function AdminEmailRecord({ id }) {
   const rec = record.data ?? null;
   const back = (
     <div className="page__crumb">
-      <Link to="/admin/emails">‹ Emails sent</Link>
+      <Link to={`${CONSOLE}/admin/emails`}>‹ Emails sent</Link>
     </div>
   );
   if (record.isError || (record.isSuccess && !rec?.send))
@@ -371,7 +372,7 @@ function AdminAccounts() {
       {
         text: a.email ?? principalLabel(a),
         title: a.account_id,
-        href: `/admin/accounts/${a.account_id}`,
+        href: `${CONSOLE}/admin/accounts/${a.account_id}`,
       },
       a.status,
       {
@@ -478,7 +479,8 @@ function AdminAccountDetail({ id }) {
     return (
       <div className="panel">
         <div className="panel__body">
-          No account {id}. <Link to="/admin/accounts">All accounts ›</Link>
+          No account {id}.{" "}
+          <Link to={`${CONSOLE}/admin/accounts`}>All accounts ›</Link>
         </div>
       </div>
     );
@@ -524,7 +526,7 @@ function AdminAccountDetail({ id }) {
         <Link
           className="mono"
           style={{ fontSize: "12px" }}
-          to="/admin/accounts"
+          to={`${CONSOLE}/admin/accounts`}
         >
           ‹ All accounts
         </Link>
@@ -624,7 +626,7 @@ function AdminAccountDetail({ id }) {
               <Fragment key={c.account_id}>
                 <dt>{c.kind ?? "principal"}</dt>
                 <dd>
-                  <Link to={`/admin/accounts/${c.account_id}`}>
+                  <Link to={`${CONSOLE}/admin/accounts/${c.account_id}`}>
                     {c.principal_name ??
                       c.public_id ??
                       c.account_id.slice(0, 8)}
@@ -644,7 +646,7 @@ function AdminAccountDetail({ id }) {
       {parent && (
         <p className="footnote" style={{ margin: "14px 0 0" }}>
           This {a.kind ?? "principal"} belongs to{" "}
-          <Link to={`/admin/accounts/${parent.account_id}`}>
+          <Link to={`${CONSOLE}/admin/accounts/${parent.account_id}`}>
             {parent.email ?? principalLabel(parent)}
           </Link>{" "}
           — it spends their entitlements and their daily budget.
@@ -740,7 +742,7 @@ function AdminFeedback() {
     f.category ?? "",
     {
       text: f.message.length > 80 ? f.message.slice(0, 80) + "…" : f.message,
-      href: `/admin/feedback/${f.feedback_id}`,
+      href: `${CONSOLE}/admin/feedback/${f.feedback_id}`,
     },
     {
       text: f.status + (f.response ? " · answered" : ""),
@@ -793,7 +795,7 @@ function AdminCollections({ navigate }) {
   const rows = cols.map((c) => [
     {
       text: c.slug,
-      href: `/admin/collections/${c.slug}`,
+      href: `${CONSOLE}/admin/collections/${c.slug}`,
     },
     c.title,
     c.kind,
@@ -847,7 +849,7 @@ function AdminCollections({ navigate }) {
           // The editor reads the same list from the cache: refetch it
           // before landing there, or the new collection is "missing".
           await load();
-          navigate(`/admin/collections/${slug}`);
+          navigate(`${CONSOLE}/admin/collections/${slug}`);
         }}
       >
         <span className="label">New collection</span>
@@ -911,7 +913,7 @@ function AdminCollectors() {
     {
       text: g.card_name ?? g.name ?? "unnamed",
       title: g.name,
-      href: `/status/collectors/${encodeURIComponent(g.card_name ?? g.name)}`,
+      href: `${CONSOLE}/status/collectors/${encodeURIComponent(g.card_name ?? g.name)}`,
     },
     g.owner_account_id
       ? (g.owner_player_name ?? g.owner_email_hash?.slice(0, 10) ?? "claimed")
@@ -1026,8 +1028,8 @@ function AdminServiceTokens() {
           Headless keys issued by hand before 2026-09-27, each acting as the
           account it is bound to. No new ones are issued: a bot or service gets
           its own identity as an agent (Account &rarr; Agents) or an integration
-          (<a href="/admin/integrations">Integrations</a>). Revoke any still
-          listed here once its caller has moved. Calls audit as{" "}
+          (<a href={`${CONSOLE}/admin/integrations`}>Integrations</a>). Revoke
+          any still listed here once its caller has moved. Calls audit as{" "}
           <code>svc:&lt;name&gt;</code>.
         </p>
       </div>
@@ -1186,7 +1188,8 @@ function AttachedEmail({ sendId }) {
       style={{ borderTop: "1px solid var(--line-soft)" }}
     >
       <div className="mono text-[11px] text-ink-faint mb-[6px]">
-        THE EMAIL · <Link to={`/admin/emails/${sendId}`}>{sendId}</Link>
+        THE EMAIL ·{" "}
+        <Link to={`${CONSOLE}/admin/emails/${sendId}`}>{sendId}</Link>
       </div>
       {mail.isError && (
         <p className="caveat m-0">That send is no longer in the ledger.</p>
@@ -1235,7 +1238,7 @@ function AdminFeedbackItem({ id, navigate }) {
       <div className="panel">
         <div className="panel__body">
           No feedback item #{id}.{" "}
-          <Link to="/admin/feedback">All feedback ›</Link>
+          <Link to={`${CONSOLE}/admin/feedback`}>All feedback ›</Link>
         </div>
       </div>
     );
@@ -1258,7 +1261,7 @@ function AdminFeedbackItem({ id, navigate }) {
         <Link
           className="mono"
           style={{ fontSize: "12px" }}
-          to="/admin/feedback"
+          to={`${CONSOLE}/admin/feedback`}
         >
           ‹ All feedback
         </Link>
@@ -1426,7 +1429,7 @@ function CollectionEditor({ slug }) {
       <div className="panel">
         <div className="panel__body">
           No collection “{slug}”.{" "}
-          <Link to="/admin/collections">Collections ›</Link>
+          <Link to={`${CONSOLE}/admin/collections`}>Collections ›</Link>
         </div>
       </div>
     );
@@ -1444,7 +1447,7 @@ function CollectionEditor({ slug }) {
         <Link
           className="mono"
           style={{ fontSize: "12px" }}
-          to="/admin/collections"
+          to={`${CONSOLE}/admin/collections`}
         >
           ‹ Collections
         </Link>
@@ -1460,7 +1463,7 @@ function CollectionEditor({ slug }) {
               <Link
                 className="mono"
                 style={{ marginLeft: "auto", fontSize: "11.5px" }}
-                to={`/explore/collection/${col.slug}`}
+                to={`${CONSOLE}/explore/collection/${col.slug}`}
               >
                 view in Explore ›
               </Link>

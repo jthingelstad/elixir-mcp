@@ -50,7 +50,9 @@ afterEach(() => vi.restoreAllMocks());
 const routes = [];
 for (const [section, def] of Object.entries(SECTIONS)) {
   // An agent's console carries the agent's public id before its page.
-  const base = def.scoped ? `/${section}/abcd1234` : `/${section}`;
+  const base = def.scoped
+    ? `/console/${section}/abcd1234`
+    : `/console/${section}`;
   if (def.pages.length === 0) routes.push(base);
   for (const page of def.pages)
     if (!page.static) routes.push(`${base}/${page.slug}`);
@@ -65,10 +67,10 @@ for (const [section, def] of Object.entries(SECTIONS)) {
  * tests.
  */
 routes.push(
-  "/account/agents/00000000-0000-0000-0000-0000000000ag",
-  "/account/feedback/1",
-  "/admin/accounts/00000000-0000-0000-0000-000000000001",
-  "/explore/player/2ABC",
+  "/console/account/agents/00000000-0000-0000-0000-0000000000ag",
+  "/console/account/feedback/1",
+  "/console/admin/accounts/00000000-0000-0000-0000-000000000001",
+  "/console/explore/player/2ABC",
 );
 
 for (const route of routes) {
@@ -132,7 +134,7 @@ test("an agent account does not blank the admin pages", async () => {
     };
   });
 
-  window.history.pushState({}, "", "/admin/accounts");
+  window.history.pushState({}, "", "/console/admin/accounts");
   render(<App />);
   // Named, not dashed: a table that says who did what must say who.
   await waitFor(() =>
@@ -171,7 +173,11 @@ test("the agent detail page offers its connect URL and a rename", async () => {
   });
 
   // The old address of the agent page opens the agent's own console.
-  window.history.pushState({}, "", `/account/agents/${AGENT.account_id}`);
+  window.history.pushState(
+    {},
+    "",
+    `/console/account/agents/${AGENT.account_id}`,
+  );
   render(<App />);
 
   // The agent's own door, not the personal /mcp. Asserting the whole path
@@ -180,7 +186,7 @@ test("the agent detail page offers its connect URL and a rename", async () => {
     `${window.location.origin}/a/272bd891a21d/mcp`,
   );
   expect(url).toBeTruthy();
-  expect(window.location.pathname).toBe("/agent/272bd891a21d/overview");
+  expect(window.location.pathname).toBe("/console/agent/272bd891a21d/overview");
   // The clan it acts for is named, with the tag beside the name - never
   // the tag alone (the lede and the Clan row both render it).
   expect(screen.getAllByText("POAP KINGS").length).toBeGreaterThanOrEqual(2);
@@ -188,7 +194,7 @@ test("the agent detail page offers its connect URL and a rename", async () => {
 
   // What you change is its Settings.
   cleanup();
-  window.history.pushState({}, "", "/agent/272bd891a21d/settings");
+  window.history.pushState({}, "", "/console/agent/272bd891a21d/settings");
   render(<App />);
   expect(await screen.findByText("rename")).toBeTruthy();
   // The documented emergency path. /docs/agents has promised "Account →
@@ -237,7 +243,11 @@ test("an agent whose new key has never been used says so, rather than looking id
     };
   });
 
-  window.history.pushState({}, "", `/account/agents/${AGENT.account_id}`);
+  window.history.pushState(
+    {},
+    "",
+    `/console/account/agents/${AGENT.account_id}`,
+  );
   render(<App />);
   expect(
     await screen.findByText(/current key has never been used/i),

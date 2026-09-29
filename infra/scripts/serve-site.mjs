@@ -1,10 +1,10 @@
 /**
- * Serve the merged tree (dist/site) the way the edge does: a path with a
- * document of its own is served as that document, anything else is the
- * app shell (app.html) - which is what the CloudFront function in
- * infra/template.yaml does for the app's paths. No API: the Playwright
- * journeys answer /api/* themselves, with fixtures, so the built app is
- * tested end to end without a database.
+ * Serve the merged tree (dist/site) the way the edge does - the same rule
+ * as the CloudFront function in infra/template.yaml: a file is itself,
+ * /console and everything under it is the app shell (app.html), and any
+ * other path is the site's document or an honest 404. No API: the
+ * Playwright journeys answer /api/* themselves, with fixtures, so the
+ * built app is tested end to end without a database.
  *
  *   node infra/scripts/serve-site.mjs [--port 4321] [--root dist/site]
  */
@@ -36,6 +36,17 @@ const TYPES = {
   ".txt": "text/plain; charset=utf-8",
 };
 
+/** The edge's rule (SpaRouter in infra/template.yaml): path to object. */
+function route(pathname) {
+  // A last segment with an extension asks for a real file.
+  if (pathname.slice(pathname.lastIndexOf("/") + 1).includes("."))
+    return pathname;
+  if (pathname === "/") return "/index.html";
+  const key = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  if (key === "/console" || key.startsWith("/console/")) return "/app.html";
+  return `${key}/index.html`;
+}
+
 http
   .createServer((req, res) => {
     const { pathname } = new URL(req.url, "http://localhost");
@@ -46,10 +57,16 @@ http
       res.end("unrouted api call in e2e");
       return;
     }
-    let file = path.join(root, decodeURIComponent(pathname));
-    if (existsSync(file) && statSync(file).isDirectory())
-      file = path.join(file, "index.html");
-    if (!existsSync(file)) file = path.join(root, "app.html");
+    const file = path.join(root, decodeURIComponent(route(pathname)));
+    if (
+      !file.startsWith(root) ||
+      !existsSync(file) ||
+      statSync(file).isDirectory()
+    ) {
+      res.statusCode = 404;
+      res.end("not found");
+      return;
+    }
     res.setHeader(
       "content-type",
       TYPES[path.extname(file)] ?? "application/octet-stream",

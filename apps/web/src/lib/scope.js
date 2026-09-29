@@ -1,10 +1,11 @@
 import { createContext, useContext } from "react";
+import { CONSOLE } from "./console.js";
 
 /**
  * Whose console this is: null for yours, an agent's public id for its
  * (docs/reviews/2026-09-23-CONSOLE-ACCOUNT-SWITCHER.md).
  *
- * Set from the ADDRESS by the agent route (`/agent/<public_id>/...`), never
+ * Set from the ADDRESS by the agent route (`/console/agent/<public_id>/...`), never
  * remembered: two tabs can show two consoles, and a write can only land
  * where the address says. The scoped query hooks read it, so a view that
  * serves both consoles does not have to thread it through its props.
@@ -15,11 +16,12 @@ export const ScopeProvider = ScopeContext.Provider;
 
 export const useScope = () => useContext(ScopeContext);
 
-/** A console path in a scope: `/account/<rest>` for you, the same page
- *  under `/agent/<public_id>/<rest>` for an agent. */
+/** A console path in a scope: `/console/account/<rest>` for you, the
+ *  same page under `/console/agent/<public_id>/<rest>` for an agent. */
+const MINE = `${CONSOLE}/account/`;
 function consolePath(agent, path) {
-  if (!agent || !path.startsWith("/account/")) return path;
-  return `/agent/${agent}/${path.slice("/account/".length)}`;
+  if (!agent || !path.startsWith(MINE)) return path;
+  return `${CONSOLE}/agent/${agent}/${path.slice(MINE.length)}`;
 }
 
 /** consolePath bound to the console being read. */

@@ -35,7 +35,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 test("the rail names the address and the profile shows it with the timezone", async () => {
-  window.history.pushState({}, "", "/account/profile");
+  window.history.pushState({}, "", "/console/account/profile");
   render(<App />);
   await waitFor(() => screen.getByRole("heading", { name: "Profile" }));
   // The identity block, and the page, both carry the address.
