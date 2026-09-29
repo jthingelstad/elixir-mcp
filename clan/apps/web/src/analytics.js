@@ -1,8 +1,10 @@
 /**
  * Tinylytics, loaded client-side, the way Elixir's console loads it
  * (apps/web/src/analytics.js there; this file is that one, adapted).
- * Site J4GMM7Mti-Quk1gfx6zQ (Jamie, 2026-09-12). The CSP allows
- * tinylytics.app for script, connect and img and nothing else third-party.
+ * Elixir's own site, Yzx8dUUvUPn9AEJpTMeU: on one origin (2026-09-28)
+ * Clan's pages report beside the Console's, as /clan/...; site
+ * J4GMM7Mti-Quk1gfx6zQ was clan.poapkings.com's. Elixir's CSP allows
+ * tinylytics.app for script, connect and img.
  *
  * Two jobs, kept separate as Elixir learned to: the EMBED records the
  * document load; the ROUTE BRIDGE records pushState navigation as virtual
@@ -14,7 +16,7 @@
  */
 import { CLAN, appPath, tagOf } from "./lib/base.js";
 
-const SITE_ID = "J4GMM7Mti-Quk1gfx6zQ";
+const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
 const LOCAL = ["localhost", "127.0.0.1", "::1"];
 
 export function loadTinylytics() {
