@@ -102,7 +102,7 @@ Cross-cutting work keeps one originating owner through acceptance.
   (`mcp_call_audit`, the job ledger, `capture_efficiency_daily`), and the
   alarms that fired. There is no CloudWatch dashboard, and a custom metric
   exists only to back an alarm (`docs/DECISIONS.md`); anything else rides
-  the EMF log line, which Logs Insights reads. The console `/status` page is
+  the EMF log line, which Logs Insights reads. The console's `/console/status` page is
   signed-in; the public health reads are `/data/now` and
   `/api/public/status`.
 - Gates: `npm run verify` before push; the `validate` check before
