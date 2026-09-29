@@ -885,3 +885,53 @@ configs, workflows and team scripts went: the root's are used.
 Clan still serves at `clan.poapkings.com`; nothing a person sees changes,
 except that Clan's links into the Console follow it to `/console`. Next
 is step 4, Clan at `/clan` on this distribution.
+
+## 2026-09-28 - Elixir's edge learns Clan (one origin, step 4a)
+
+Step 3 landed: #144 and #143 merged, and the first `clan-deploy` from
+here deployed at 22:06 Central (stack, 262 web files, smoke green at
+clan.poapkings.com, marker written). `jthingelstad/clan.poapkings.com`
+is archived, with a description pointing here.
+
+Step 4a is the compatible half of Clan at `/clan`: everything that lets
+this distribution serve Clan, with nothing a person sees changing yet.
+
+- **The edge.** Three behaviours: `/api/clan/*` (before `/api/*`) to
+  Clan's HTTP API, and `/clan` and `/clan/*` to Clan's own bucket (two
+  patterns, since `/clan*` would take `/clans`). The Clan API's origin
+  request policy forwards Clan's two cookies and nothing of Elixir's,
+  so `__Host-elixir_session` never reaches Clan's Lambda. Clan's cookies
+  stay `__Host-` and `Path=/` (the strongest prefix; scoping them to
+  `/api/clan` would have meant `__Secure-`); the browser also sends them
+  under `/api/*`, where the door reads only its own. `SpaRouter` routes
+  `/clan` too (to `/clan/index.html`: Clan's build moves under `clan/`
+  in its bucket in 4b) and is shared by Clan's two app behaviours. The
+  CSP gains OpenStreetMap's tiles for Clan's map. `ClanApiDomain` is a
+  new PRESERVED parameter with no default, so a deploy without it fails
+  before anything changes.
+- **Clan.** Its bucket admits this distribution (`ElixirDistributionId`,
+  PRESERVED, empty until set), its web deploy also flushes `/clan*`
+  here, and its Lambda reads `/api/clan/auth/*` as `/auth/*` and any
+  other `/api/clan/*` as `/api/*`, so both addresses work until
+  clan.poapkings.com goes.
+- **Facts keep their app.** A person's attested fact was keyed by the
+  host of its client's first redirect URI, so Clan's move would have
+  relabelled its facts and broken the retry of one written before. The
+  key is now the provisioned app (`family_oauth_client.app`), mapped to
+  the keys the rows already carry (`clan.poapkings.com`,
+  `drop.poapkings.com`); 0195 says so in the column's comment.
+- **`{family_clients: {set_redirect_uris}}`** replaces a provisioned
+  app's redirect URIs, all on family origins, for an app that moves.
+
+Deploy order: this merge (Clan deploys itself, with the new parameter
+empty), then Clan once by hand with
+`--param=ElixirDistributionId=E1KBSTIXY6Q5OS`, then Elixir with
+`--param=ClanApiDomain=bblx6sbg6d.execute-api.us-east-1.amazonaws.com`.
+
+**Queued for Jamie** (the auto-mode classifier refused it to an agent):
+remove the old repository's two subjects from the trust of
+`elixir-clan-github-deploy`, leaving the two this repository's code
+names (`githubDeployTrustFor` in `clan/infra/scripts/iam-policies.mjs`):
+`repo:jthingelstad/elixir-mcp:environment:clan-production` and
+`repo:jthingelstad@5351/elixir-mcp@1356061557:environment:clan-production`.
+The old repository is archived, so they can no longer be used.
