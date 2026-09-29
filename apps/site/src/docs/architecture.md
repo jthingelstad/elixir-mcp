@@ -37,7 +37,7 @@ been replaced.
   <text class="lbl" x="440" y="60" text-anchor="middle">Web interface</text>
   <text class="sub" x="440" y="82" text-anchor="middle">explorer speaks the same tools</text>
   <rect class="box" x="630" y="20" width="230" height="90"/>
-  <text class="lbl" x="745" y="70" text-anchor="middle">elixir-bot</text>
+  <text class="lbl" x="745" y="70" text-anchor="middle">Discord agents</text>
   <!-- auth edges -->
   <line class="edge" x1="135" y1="110" x2="330" y2="200"/>
   <text class="note" x="175" y="165">MCP / OAuth</text>
@@ -342,12 +342,14 @@ Elixir MCP is built in the open:
 - [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp)
   — this service: recorder, MCP door, web app, and these pages
   (the docs you are reading are the source of record; `docs/ENGINEERING.md`
-  holds the build invariants).
+  holds the build invariants). Elixir Clan lives there too, under `clan/`,
+  and reads this service at `/api/v1` with the person's own grant.
 - [jthingelstad/elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector)
   — the collector binary operators run.
-- [jthingelstad/elixir-bot](https://github.com/jthingelstad/elixir-bot)
-  — Elixir Agent, the POAP KINGS clan agent; it consumes this service
-  over a service token.
+- [jthingelstad/elixir-mcp-discord](https://github.com/jthingelstad/elixir-mcp-discord)
+  — the Discord agent any clan can run, and POAP KINGS' own since
+  elixir-bot retired on 2026-09-26; each bot is an agent here, reading
+  this service over MCP with its agent token.
 - [jthingelstad/drop.poapkings.com](https://github.com/jthingelstad/drop.poapkings.com)
   — Elixir Drop, the elixir-cost learning game; its collector-bridge
   and mailing-list patterns are this service's direct ancestors.

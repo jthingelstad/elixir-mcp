@@ -122,12 +122,13 @@ clan Elixir only watches rather than records works with less.
 ## What it is not
 
 - Not a Discord bot or a narrator: elixir-mcp-discord and the open-source
-  elixir-agent narrate from Elixir's record (elixir-bot is being retired),
+  elixir-agent narrate from Elixir's record (elixir-bot retired on 2026-09-26),
   and in-game chat is not in the API.
 - Not a clan's public website. A clan may keep one; Elixir Clan does not
   publish.
 - Not a ladder or deck coach: one player's season and matchups are not a
-  clan's (an Elixir Ladder is a concept only, with no plans to build it).
+  clan's. They are Elixir Ladder's, a section of Elixir itself at `/ladder`
+  (decided 2026-09-28, not built yet), never a part of Clan.
 - Not an account system: Elixir is.
 - Not a rules language: policies are a fixed catalog of settings, on
   purpose.
