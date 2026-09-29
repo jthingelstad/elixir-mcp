@@ -1422,3 +1422,34 @@ Not verified before the deploy: whether the stage's default route
 throttle (20/s, burst 40) is a bucket per route or one for the stage.
 The docs say it applies to all routes; either way the collector is no
 looser than today.
+
+---
+
+## 2026-09-29 - e5fbcb79 deployed: the fleet is on its own Lambda
+
+e5fbcb79 (#161) is deployed, after Jamie's go for the new role. Lane
+platform (web-api and collector keys, and the template); migrations 195
+applied, 0 ran; stack `UPDATE_COMPLETE`, 43 smoke checks green. No
+acceptance: no tool family changed, and the suite does not exercise the
+collector door. The route `ANY /api/collector/{proxy+}` was created at
+12:03:26Z (7:03 AM CT).
+
+Read-back, reads only, to 12:08Z:
+
+- `elixir-mcp-collector` has the template's settings, and its role's
+  one inline policy is the two `s3:PutObject` statements, nothing else.
+- The site API has two routes: `$default` and the collector's.
+- The collector log: 162 leases at 200 (p95 62 ms), 74 submits at 200
+  (p95 371 ms, max 662 ms), nothing else. The submits are the proof of
+  the archive write under the new role. No `submit_ingest_error`, no
+  `AccessDenied`, no timeouts.
+- Lambda metrics: 139 invocations, 0 errors, 0 throttles, peak
+  concurrency 3 of 10.
+- The web-api logged no collector route after 12:03:40Z; its last
+  submits were at 12:03:07-08Z, before the flip reached the edge.
+- `elixir_collectors`: five active, heartbeats current. Public status
+  `ok`. No `elixir-mcp-` alarm out of OK.
+
+Owed: the follow-up that takes the collector routes, the `payloads/*`
+grant and the submit-ingest filter off the web-api. It changes a role,
+so it waits for Jamie's go.
