@@ -84,8 +84,18 @@ Parameters:
       execution role may manage an EventBridge rule (infra/IAM.md);
       then set true once. PRESERVED.
 
+  ElixirDistributionId:
+    Type: String
+    Default: ""
+    Description: >-
+      Elixir's CloudFront distribution, which serves this app at
+      elixir.poapkings.com/clan and its API at /api/clan (2026-09-28): the
+      web bucket admits it, and the web deploy flushes /clan there. Empty
+      until set once with --param. PRESERVED.
+
 Conditions:
   HasSiteCert: !Not [!Equals [!Ref SiteCertificateArn, ""]]
+  HasElixirDistribution: !Not [!Equals [!Ref ElixirDistributionId, ""]]
   HasFeedbackEmail: !Not [!Equals [!Ref FeedbackNotifyEmail, ""]]
   HasSchedule: !Equals [!Ref ScheduleEnabled, "true"]
 
@@ -357,9 +367,16 @@ Resources:
             Principal: { Service: cloudfront.amazonaws.com }
             Action: s3:GetObject
             Resource: !Sub ${WebBucket.Arn}/*
+            # This stack's own distribution, and Elixir's, which serves
+            # the app under /clan (one origin, 2026-09-28).
             Condition:
               StringEquals:
-                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}
+                AWS:SourceArn:
+                  - !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}
+                  - !If
+                    - HasElixirDistribution
+                    - !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${ElixirDistributionId}
+                    - !Ref AWS::NoValue
 
   WebOac:
     Type: AWS::CloudFront::OriginAccessControl
@@ -612,6 +629,10 @@ Outputs:
     Value: !Ref Distribution
   WebBucketName:
     Value: !Ref WebBucket
+  ElixirDistributionId:
+    Condition: HasElixirDistribution
+    Value: !Ref ElixirDistributionId
+    Description: Elixir's distribution, which serves this app under /clan
   ApiUrl:
     Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com
   ApiFunctionName:

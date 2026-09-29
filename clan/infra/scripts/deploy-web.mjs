@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
  * Build the SPA, upload it to the private web bucket, delete what is no
- * longer built, invalidate CloudFront. Hashed assets are immutable for a
- * year; index.html is never cached past the edge's five minutes.
+ * longer built, invalidate CloudFront: this stack's distribution, and
+ * /clan on Elixir's, which serves the app there too (2026-09-28). Hashed
+ * assets are immutable for a year; index.html is never cached past the
+ * edge's five minutes.
  */
 
 import {
@@ -78,13 +80,17 @@ async function main() {
   const { Stacks } = await cfn.send(
     new DescribeStacksCommand({ StackName: STACK }),
   );
+  const optional = (k) =>
+    Stacks[0].Outputs.find((o) => o.OutputKey === k)?.OutputValue;
   const out = (k) => {
-    const v = Stacks[0].Outputs.find((o) => o.OutputKey === k)?.OutputValue;
+    const v = optional(k);
     if (!v) throw new Error(`stack did not return ${k}`);
     return v;
   };
   const bucket = out("WebBucketName");
-  const distributionId = out("DistributionId");
+  const flushes = [[out("DistributionId"), "/*"]];
+  const elixir = optional("ElixirDistributionId");
+  if (elixir) flushes.push([elixir, "/clan*"]);
 
   const s3 = new S3Client({ region: REGION });
   for (const { key, path } of files) {
@@ -118,23 +124,27 @@ async function main() {
     );
 
   const cloudfront = new CloudFrontClient({ region: "us-east-1" });
-  const inv = await cloudfront.send(
-    new CreateInvalidationCommand({
-      DistributionId: distributionId,
-      InvalidationBatch: {
-        CallerReference: `${process.env.GITHUB_SHA ?? "local"}-${randomUUID()}`,
-        Paths: { Quantity: 1, Items: ["/*"] },
-      },
+  await Promise.all(
+    flushes.map(async ([distributionId, path]) => {
+      const inv = await cloudfront.send(
+        new CreateInvalidationCommand({
+          DistributionId: distributionId,
+          InvalidationBatch: {
+            CallerReference: `${process.env.GITHUB_SHA ?? "local"}-${randomUUID()}`,
+            Paths: { Quantity: 1, Items: [path] },
+          },
+        }),
+      );
+      const wait = await waitUntilInvalidationCompleted(
+        { client: cloudfront, maxWaitTime: 600 },
+        { DistributionId: distributionId, Id: inv.Invalidation.Id },
+      );
+      if (wait.state !== "SUCCESS")
+        throw new Error(`invalidation of ${path} ended in ${wait.state}`);
     }),
   );
-  const wait = await waitUntilInvalidationCompleted(
-    { client: cloudfront, maxWaitTime: 600 },
-    { DistributionId: distributionId, Id: inv.Invalidation.Id },
-  );
-  if (wait.state !== "SUCCESS")
-    throw new Error(`invalidation ended in ${wait.state}`);
   console.log(
-    `uploaded ${files.length} files to ${bucket}; removed ${stale.length} stale; edge flushed`,
+    `uploaded ${files.length} files to ${bucket}; removed ${stale.length} stale; ${flushes.length === 1 ? "edge" : "both edges"} flushed`,
   );
 }
 
