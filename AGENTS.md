@@ -241,3 +241,20 @@ authenticates at `/api/v1`, and a `/api/v1` token never at MCP), integration-own
 principal-bound asynchronous refreshes and narrow collection-add grants. Drop's
 automatic membership is deliberate; supplied tags are unverified, enrollment is
 not capture, and canonical game facts still enter only through collectors.
+
+### Elixir Clan lives in `clan/`
+
+Elixir Clan's code moved into this repository on 2026-09-28 with its
+history (`git log -- clan`): one repository, two runtimes. Clan keeps its
+own Lambdas, DynamoDB table and CloudFormation stack (`elixir-clan`),
+deploys from CI through `.github/workflows/clan-deploy.yml` after a green
+`validate` (it skips a merge that changed nothing it builds from), and
+reads Elixir only over HTTP, at `/api/v1` with the person's own grant.
+`clan/AGENTS.md` governs work inside `clan/`; read it before editing there.
+
+Shared: the kit (`packages/ui`, `packages/client`, `packages/design`,
+taken from the workspace, so a kit change is checked against Clan in the
+same gate), the root `npm run verify` and `npm run e2e`, the ruleset and
+the one checkout lease. Not shared: `clan/infra/tests/boundary.test.mjs`
+refuses a Clan import of anything of Elixir's but the kit, and an Elixir
+import of anything of Clan's. Facts stay here and judgment stays in Clan.
