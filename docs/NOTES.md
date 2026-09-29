@@ -849,3 +849,39 @@ deploy and are fixed in their own repositories: Drop's "verify your
 player" link (`ElixirConnection.tsx`), poapkings.com's two
 `/data/dashboard` links, and Clan's `lib/links.js` and email link, which
 land with Clan's move into this repository.
+
+## 2026-09-28 - Elixir Clan moves in as `clan/` (one origin, step 3)
+
+Clan's repository came in with its history, rewritten under `clan/` with
+`git filter-repo` and replayed linearly (the ruleset refuses a merge
+commit, so not `git subtree`); `git log -- clan` reads as it did there. Its
+workspaces joined the root's (`clan/apps/*`, `clan/services/*`,
+`clan/infra`), and its own `package.json`, lockfile, lint and prettier
+configs, workflows and team scripts went: the root's are used.
+
+- **The kit from the workspace.** `@elixir-mcp/ui`, `client` and `design`
+  replace the git dependency pinned 136 commits behind; `lucide-react`
+  and `marked` left Clan's manifest (the kit brings them). The fonts are
+  the Console's self-hosted files, copied at build time, so Clan no
+  longer loads Google Fonts.
+- **One gate.** The root verify covers Clan (typecheck gains
+  `tsc -p clan/apps/web`; knip learned Clan's workspaces and found 33
+  unused exports, now module-private), `validate` builds Clan's web and
+  Lambda, and `npm run e2e` runs Clan's journeys after the Console's.
+- **The boundary.** `clan/infra/tests/boundary.test.mjs` refuses a Clan
+  import of anything of Elixir's but the kit, and an Elixir import of
+  anything of Clan's.
+- **Deploy.** `clan-deploy.yml` replaces Clan's `deploy.yml`: after a
+  green `validate` on main, in a new `clan-production` environment here,
+  assuming `elixir-clan-github-deploy` through OIDC. Most merges do not
+  touch Clan, so it keeps the SHA it last deployed in Clan's code bucket
+  and deploys nothing when `clan/`, the kit, the fonts and the lockfile
+  are unchanged since. The role's trust names this repository's
+  `clan-production` environment (both subject forms) beside the old
+  repository's until that one is archived.
+- **The team.** Clan's four objectives stay paused and uninstalled until
+  Jamie picks which resume; the checkout has one lease, this repository's.
+
+Clan still serves at `clan.poapkings.com`; nothing a person sees changes,
+except that Clan's links into the Console follow it to `/console`. Next
+is step 4, Clan at `/clan` on this distribution.
