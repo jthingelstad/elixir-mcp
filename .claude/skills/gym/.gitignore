@@ -1,1 +1,3 @@
-reports/
+# No trailing slash: in a run's worktree this is a link to the main
+# checkout's reports (AGENT-TEAM/scripts/worktree-setup.sh), not a directory.
+/reports

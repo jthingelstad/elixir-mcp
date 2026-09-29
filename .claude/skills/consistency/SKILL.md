@@ -14,8 +14,8 @@ aligned with what they're connected with", and "identify docs or artifacts
 that are no longer relevant".
 
 **The unit of work is a DECISIONS line and every surface it touches.** You
-orchestrate; read-only subagents trace. You are the only writer, under the
-lease.
+orchestrate; read-only subagents trace. You are the only writer, in your own
+checkout.
 
 The files beside this one:
 
@@ -42,10 +42,11 @@ public milestone, after a burst of decisions, or about monthly. On
 
 ## Preflight
 
-1. Claim the checkout lease before any write: interactively
+1. Work in your own checkout (`AGENT-TEAM/WORKFLOW.md`, "One worktree
+   per run"); edits take no lease. Claim the lease (interactively
    `node AGENT-TEAM/scripts/objective-lease.mjs claim session`; from an
-   objective run, that objective's lease. The trace and verify phases are
-   reads and may start before the lease frees; the fix phase may not.
+   objective run, that objective's key) only for a deploy or an
+   ops-lambda write, and release it after.
 2. Read `docs/DECISIONS.md` in full, `facets.md`, `classes.md`, and the
    previous report of this mode in `reports/`.
 3. Note HEAD, the contract version (`packages/contracts/src/version.ts`)
@@ -106,8 +107,8 @@ Every verified finding is one of:
   or touch a declined idea. A review bullet is not a decision: when a
   finding carries a policy half, ask about the policy.
 - **Sibling repo.** The fix belongs to Clan, Drop, the Discord preview or
-  cr-agent-api-docs (elixir-bot is retired, 2026-09-26). Fix it there under that repo's rules and
-  lease, in the domain lease order (`../AGENT-TEAM/WORKFLOW.md`).
+  cr-agent-api-docs (elixir-bot is retired, 2026-09-26). Fix it there under that repo's rules, in
+  its own worktree (`../AGENT-TEAM/WORKFLOW.md`).
   poapkings.com is report-only (Jamie, 2026-09-25: "leave poapkings.com
   website as is for now even if it is wrong").
 
@@ -179,7 +180,7 @@ consistency round:
 
 ## Standing rules
 
-- Read-only until the lease is held; subagents are always read-only.
+- Subagents are always read-only.
 - Never read `.env` files or secret values; the public repos hold none.
 - DECISIONS.md is the ledger agents read. When a finding is "the ledger
   says X, the agents were never told", the fix is the reading path

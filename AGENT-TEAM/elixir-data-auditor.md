@@ -1,4 +1,6 @@
-# Keep the Record True
+# Elixir Data Auditor
+
+_Formerly Keep the Record True (renamed 2026-09-29)._
 
 Own the outcome: **what Elixir MCP recorded is what actually happened in
 the game, and our model of the Clash Royale API stays current.** The
@@ -68,7 +70,7 @@ samples real values against game reality (the Observatory rule).
 - **Never run a backfill and a deploy together.** The migrate and jobs
   Lambdas run at reserved concurrency 1, so a batch looping invocations
   makes the deploy's migration step fail with a 429 after the code has
-  already updated (Run Elixir MCP, "A long batch against a Lambda").
+  already updated (Elixir Operator, "A long batch against a Lambda").
   Say in `docs/NOTES.md` when a long batch is running and roughly when
   it ends.
 - New game content (cards, modes, mechanics) that the record handles
@@ -78,5 +80,5 @@ samples real values against game reality (the Observatory rule).
 
 Sampled values match the game. The capture-audit trend is understood,
 not just green. cr-agent-api-docs would let a stranger predict every
-payload we receive. When Keep the Record True finds nothing, the record
+payload we receive. When Elixir Data Auditor finds nothing, the record
 has earned the "no gaps is a measurement" claim the Status page makes.

@@ -68,11 +68,8 @@ brief forbids them from using it, and your assignment header repeats that.
    - Check that `acceptance/gym.json` parses.
    - The run itself needs no lease: the subagent writes only its report,
      under `reports/` (ignored by git). Recording the result in
-     `coverage.md` (tracked) is a checkout write, so it is made under the
-     `loop` lease, the same lease a fix round holds
-     (`AGENT-TEAM/scripts/objective-lease.mjs claim loop`). If another
-     actor holds the lease, the report waits and the grid is updated once
-     it frees.
+     `coverage.md` (tracked) is an edit in your own checkout, landed by
+     PR (`AGENT-TEAM/WORKFLOW.md`, "One worktree per run").
 2. **Build the legacy list.** Findings #1–#89 were filed from Jamie's
    account, before the Gym had its own.
    - Read them with Jamie's connection (`mcp__elixir-mcp__elixir_my_feedback`,
@@ -101,7 +98,7 @@ brief forbids them from using it, and your assignment header repeats that.
    `node .claude/skills/gym/check-appendix.mjs <report>`. If it fails, send
    the problems back to the same subagent (SendMessage) to fix. Never fix
    the Gym's cases yourself: nothing is hand-translated.
-5. **Record the result** in `coverage.md`, under the `loop` lease. The
+5. **Record the result** in `coverage.md` (a PR). The
    run is **clean** when:
    - it filed no new findings (`praise` does not count),
    - every regression it checked was CONFIRMED FIXED.
@@ -135,9 +132,11 @@ Gym runs are read-only, so they may run while you fix another family.
 2. **If the run is clean,** mark the family clean in the grid, noting
    contract version and date, and move on.
 3. **If the run has findings, fix them. Jamie's standing authority for the
-   sweep: fix and deploy without asking.** Work it the Close the Loop way
-   (`AGENT-TEAM/close-the-loop.md`):
-   - Claim the `loop` lease: `AGENT-TEAM/scripts/objective-lease.mjs claim loop`.
+   sweep: fix and deploy without asking.** Work it the Elixir Feedback Manager way
+   (`AGENT-TEAM/elixir-feedback-manager.md`):
+   - Edit in your own checkout. Claim the `loop` lease
+     (`AGENT-TEAM/scripts/objective-lease.mjs claim loop`) for the deploy
+     and the `{feedback_respond}` writes, and release it after them.
    - Verify every finding against the record before touching code. The Gym
      is evidence, not authority. A finding you refute gets an answer with
      the evidence, not a fix. Its case still joins `gym.json` as filed, with
@@ -182,9 +181,9 @@ Gym runs are read-only, so they may run while you fix another family.
      runs, drained the database's EBS byte balance in one afternoon.
      A change to a tool follows `/tool-change`.
    - Answer each item with `{feedback_respond}`, `done` naming the version,
-     following close-the-loop.md's write rules. Add a short `docs/NOTES.md`
+     following elixir-feedback-manager.md's write rules. Add a short `docs/NOTES.md`
      entry for the round. Commit, merge through a PR (`/ship`'s Merge
-     step), and release the lease.
+     step), deploy, answer, and release the lease.
 4. **Re-run** the family (round N+1). The header says what shipped since.
 5. **Stop the family after three rounds without a clean run.** Park it as
    `needs Jamie` with the reason and keep sweeping the others.
@@ -215,7 +214,7 @@ correct answers" finding, or the sweep finishing.
 
 - Never read the token and never run `call.mjs` with output that could
   include it. It prints bodies, never headers.
-- Gym subagents never edit the repo. You are the only writer, under the lease.
+- Gym subagents never edit the repo. You are the only writer.
 - The daily Claude Cloud Gym routine is retired (Jamie, 2026-09-25); this
   skill replaces it. Do not re-create it: it ran on Jamie's connector and
   budget and double-filed against a sweep.

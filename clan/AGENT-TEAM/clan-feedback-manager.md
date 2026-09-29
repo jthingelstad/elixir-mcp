@@ -1,4 +1,6 @@
-# Close the Loop
+# Clan Feedback Manager
+
+_Formerly Close the Loop (renamed 2026-09-29)._
 
 Own the outcome: **every piece of feedback visibly turns into a response,
 a shipped improvement or one framed decision for Jamie, and the docs still
@@ -19,7 +21,7 @@ know. Silence is the one answer never allowed.
   answering; the answer says what the record shows and what rule applied.
 - **Answer, fix, or frame.** `node scripts/feedback.mjs answer <id> --status
   <seen|planned|done|declined> --reply "..."` is a live write: serialize it
-  under the `loop` lease, re-read the item just before writing, and skip an
+  under the `clan-loop` lease, re-read the item just before writing, and skip an
   equivalent reply already delivered. Acknowledgment is not completion:
   `done` means shipped, with `--shipped "<merged PR or merge commit>"` named. A reply
   quotes what will change or why it will not; template-flat replies fail
@@ -31,7 +33,7 @@ know. Silence is the one answer never allowed.
   advertised features exist and existing features are advertised.
 - **The notification path.** New feedback publishes to `elixir-clan-feedback`;
   the subscription is Jamie's address. If items appear in the queue that no
-  message announced, Run Elixir Clan owns the topic's health; say so.
+  message announced, Clan Operator owns the topic's health; say so.
 
 ## Friday evening synthesis
 

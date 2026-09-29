@@ -35,7 +35,7 @@ test("clean synchronized main is eligible; unavailable health is a separate find
   assert.equal(r.mutation, "eligible");
 });
 
-test("held lease and dirty helper block mutation while observation continues without executing helper", async (t) => {
+test("a held deploy lease is reported, not a block; a dirty helper blocks without executing", async (t) => {
   const { root } = fixture(t);
   mkdirSync(path.join(root, "AGENT-TEAM/scripts"), { recursive: true });
   writeFileSync(
@@ -44,7 +44,7 @@ test("held lease and dirty helper block mutation while observation continues wit
   );
   writeFileSync(
     path.join(root, ".git/agent-team-objective-lease.json"),
-    JSON.stringify({ objective: "record" }),
+    JSON.stringify({ objective: "record", claimedAt: "2026-09-29T11:00:00Z" }),
   );
   let observed = false;
   const r = await preflight(root, async () => {
@@ -54,9 +54,60 @@ test("held lease and dirty helper block mutation while observation continues wit
   assert.equal(observed, true);
   assert.equal(r.observation, "available");
   assert.equal(r.mutation, "blocked");
-  assert.ok(r.reasons.includes("dirty worktree"));
-  assert.ok(r.reasons.includes("checkout lease held"));
+  assert.deepEqual(r.reasons, ["dirty worktree"]);
+  assert.equal(r.deployLease.objective, "record");
 });
+
+function linked(t, git) {
+  const tree = mkdtempSync(path.join(tmpdir(), "mcp-preflight-wt-"));
+  t.after(() => rmSync(tree, { recursive: true, force: true }));
+  const wt = path.join(tree, "work");
+  git("worktree", "add", "--quiet", "--detach", wt, "origin/main");
+  return wt;
+}
+
+test("a run's own worktree, detached at origin/main, is eligible and sees the shared deploy lease", async (t) => {
+  const { root, git } = fixture(t);
+  writeFileSync(
+    path.join(root, ".git/agent-team-objective-lease.json"),
+    JSON.stringify({ objective: "run", claimedAt: "2026-09-29T11:00:00Z" }),
+  );
+  writeFileSync(
+    path.join(root, ".git/agent-team-queued-notes.jsonl"),
+    `${JSON.stringify({ objective: "record", reason: "ExpiredToken" })}\n`,
+  );
+  const wt = linked(t, git);
+  const r = await preflight(wt, healthy);
+  assert.equal(r.worktree, "linked");
+  assert.equal(r.mutation, "eligible");
+  assert.equal(r.deployLease.objective, "run");
+  assert.equal(r.queuedNotes, 1);
+  // A fresh branch for the run's PR is still eligible.
+  execFileSync("git", ["switch", "--quiet", "-c", "record/fix"], { cwd: wt });
+  assert.equal((await preflight(wt, healthy)).mutation, "eligible");
+});
+
+for (const state of ["dirty", "ahead", "behind"]) {
+  test(`a run's own worktree that is ${state} is blocked`, async (t) => {
+    const { root, git } = fixture(t);
+    const wt = linked(t, git);
+    const inWt = (...args) =>
+      execFileSync("git", args, { cwd: wt, encoding: "utf8", stdio: "pipe" });
+    if (state === "dirty") writeFileSync(path.join(wt, "README.md"), "x\n");
+    if (state === "ahead") {
+      writeFileSync(path.join(wt, "README.md"), "x\n");
+      inWt("commit", "-qam", "earlier run's work");
+    }
+    if (state === "behind") {
+      writeFileSync(path.join(root, "README.md"), "moved\n");
+      git("commit", "-qam", "main moved");
+      git("push", "-q");
+    }
+    const r = await preflight(wt, healthy);
+    assert.equal(r.worktree, "linked");
+    assert.equal(r.mutation, "blocked");
+  });
+}
 
 for (const state of [
   "ahead",

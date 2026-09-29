@@ -1,12 +1,12 @@
 # AGENT-TEAM operating model
 
-> **Paused, and moved (2026-09-28).** Elixir Clan's code now lives in
-> elixir-mcp's repository as `clan/`. These objectives are not installed
-> and stay so until Jamie picks which resume; when one does, its prompt,
-> schedule and lease name are rewritten for this checkout first. Until then
-> there is one lease on the checkout, the repository's
-> (`AGENT-TEAM/scripts/objective-lease.mjs` at the root), and an
-> interactive session claims `session` in it.
+> **Moved (2026-09-28), renamed and resumed (2026-09-29).** Elixir Clan's
+> code lives in elixir-mcp's repository as `clan/`. Its four objectives
+> run from that repository's Codex environment, each in its own worktree
+> (the root `AGENT-TEAM/WORKFLOW.md`, "One worktree per run"), and share
+> the repository's one lease (`AGENT-TEAM/scripts/objective-lease.mjs` at
+> the root) under the keys `clan-run`, `clan-judge`, `clan-loop` and
+> `clan-guard`.
 
 Elixir Clan is maintained by four objective owners. An owner is accountable
 for an outcome, not a job type or a directory, and follows evidence through
@@ -19,9 +19,11 @@ the product docs it points at.
 
 ## Operating loop
 
-1. Run the repository's `AGENT-TEAM/scripts/preflight.sh` (at the root). A dirty, behind, diverged,
-   detached or unexpectedly-ahead checkout makes the run read-only. Never
-   publish a pre-existing commit.
+1. Run the repository's `AGENT-TEAM/scripts/preflight.sh` (at the root)
+   from this run's own worktree (the root `AGENT-TEAM/WORKFLOW.md`, "One
+   worktree per run"). A dirty, diverged or unexpectedly-ahead worktree
+   makes the run read-only; one that is only behind moves with
+   `git checkout --detach origin/main`. Never publish a pre-existing commit.
 2. Measure current state: the live site and API (`/api/clan/health`, the smoke
    script's reads), CI (`gh run list`), the
    stack and its alarms (`--profile cloud-engineer`, read-only), the ledger through
@@ -29,47 +31,47 @@ the product docs it points at.
    Elixir's JSON API contract version against what
    `services/api/src/elixir-api.mjs` expects.
 3. Decide whether a real objective gap exists. Healthy is a complete result.
-4. Only when a safe, authorized gap requires mutation, claim the checkout:
-   `node AGENT-TEAM/scripts/objective-lease.mjs claim <objective>` from the
-   repository root (the one lease on this checkout).
-   Keep the returned `leaseId`. A held lease leaves the run read-only;
-   never clear one merely because it looks old (`clear-stale` records the
-   proof), and use `abort` with a reason when a run cannot finish.
+4. Only when a safe, authorized gap requires a change, branch before the
+   first edit: `git switch -c <key>/<slug>` (`clan-run/`, `clan-judge/`,
+   `clan-loop/`, `clan-guard/`). Edits take no lease. A live write (a
+   feedback answer) or a local deploy claims the repository's one lease
+   first: `node AGENT-TEAM/scripts/objective-lease.mjs claim <key>` from
+   the worktree root; keep the returned `leaseId` and release it once the
+   write is verified. A held lease is a wait; never clear one merely
+   because it looks old (`clear-stale` records the proof). A run that
+   cannot finish queues a note for Jamie (`note <key> --reason "<text>"`,
+   or `abort` when holding the lease).
 5. Fix the gap at the source in the same run, with the regression test that
    would have caught it. A warning, a guard or a ticket chain is not a fix.
-6. Recheck the lease (`check <objective> --lease-id <id>`), then
-   `git switch -c <objective>/<slug>` from the clean, synced `main` before
-   the first edit. Recheck the lease and the worktree before push. Stop if
-   the state changed.
-7. `npm run verify` before every commit. Commit only this run's work on
+6. `npm run verify` before every commit. Commit only this run's work on
    its branch and land it as a pull request on a green `validate`
    (AGENTS.md, "Landing changes"): `git push -u origin HEAD`,
    `gh pr create --fill`, `gh pr merge --auto --rebase --delete-branch`,
    `gh pr checks --watch --fail-fast`. `main` refuses a direct push (GH013);
-   never work around it. Once merged, `git switch main && git pull
-   --ff-only`. `clan-deploy` deploys `main` after its `validate`; the smoke script runs
-   after every deploy. Work that cannot merge in the run stays an open PR,
-   recorded in the report, and the checkout goes back to `main`.
+   never work around it. `clan-deploy` deploys `main` after its
+   `validate`; the smoke script runs after every deploy. Work that cannot
+   merge in the run stays an open PR, recorded in the report; the worktree
+   is discarded when the run ends, so nothing may live only in it.
    `AWS_PROFILE=cloud-engineer node clan/infra/scripts/deploy.mjs` is for a
-   deploy CI cannot make (a parameter change), from the up-to-date `main`,
-   and is said so in the run's report.
-8. Verify the deploy (`gh run list`, the smoke output, one live read of the
+   deploy CI cannot make (a parameter change), from a fetched, detached
+   `origin/main` under the lease, and is said so in the run's report.
+7. Verify the deploy (`gh run list`, the smoke output, one live read of the
    changed surface). Verify semantic success from natural evidence: a
    verdict on the real roster, a real feedback item answered, a real grant.
    Never manufacture an action decision, a comment, a hold, a note, a grant or a feedback
    item for acceptance; never write to Elixir; reads only against live data.
-9. Release only this run's lease after the repository is clean. If safe
-   cleanup is impossible, leave the lease and report it.
+8. Release the lease if this run claimed one, and end with nothing in the
+   worktree that is not merged or in a pull request.
 
 ## Ownership and acceptance
 
 - The originating objective verifies CI and the live surface for its own
-  commit; Run Elixir Clan owns failed-pipeline recovery and continuing
+  commit; Clan Operator owns failed-pipeline recovery and continuing
   health. A failure that spans runs becomes an `objective:run` issue.
-- Judge Fairly owns semantic acceptance of anything that judges: a changed
+- Clan Policy Auditor owns semantic acceptance of anything that judges: a changed
   rule is accepted against the golden tests AND one real evaluation read
   back from the ledger.
-- Close the Loop owns the response to every feedback item and the truth of
+- Clan Feedback Manager owns the response to every feedback item and the truth of
   the docs; `done` means shipped, with the merged PR or its merge commit named.
 - A clean deploy never substitutes for natural evidence.
 

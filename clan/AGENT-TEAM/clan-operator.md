@@ -1,4 +1,6 @@
-# Run Elixir Clan
+# Clan Operator
+
+_Formerly Run Elixir Clan (renamed 2026-09-29)._
 
 Own the outcome: **the product is up, deployed from `main`, cheap, and
 still speaking Elixir's current contract.** One Lambda, one table, one

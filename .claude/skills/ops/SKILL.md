@@ -19,7 +19,7 @@ named about a dozen ops and the rest could be found only by reading
   is holding the database"): choose the read from "Choosing the read" and
   `ops.md`, run it, and answer with the numbers and where each came from.
 - `/ops <op>` (`/ops capture_audit`): read the op's row in `ops.md`, then
-  run it with the payload the question needs. Reads need no checkout
+  run it with the payload the question needs. Reads need no
   lease; a write op is a proposal until its owner says go (rule 2).
 
 ## Rules
@@ -50,7 +50,7 @@ named about a dozen ops and the rest could be found only by reading
    the job ran twice. Never retry a heavy op on a 429.
 6. **Heavy reads run once, on purpose.** Rows marked heavy scan a battle
    table or the corpus on a db.t4g.small. Past 90 s an invocation fires
-   `elixir-mcp-migrate-duration` and Run Elixir MCP asks who and why, so
+   `elixir-mcp-migrate-duration` and Elixir Operator asks who and why, so
    name the run in your report. Thirteen `{probe}` runs in 25 minutes
    preceded the 2026-09-11 RDS memory recovery.
 7. **A backfill is not finished until it is vacuumed, and never runs with
@@ -161,7 +161,7 @@ Firing now: `aws cloudwatch describe-alarms --alarm-name-prefix elixir-mcp- --st
 
 **The jobs Lambda** (`elixir-mcp-jobs`) has its own payload keys, such as
 `{capture_efficiency}` and `{shape_census}`: scheduled product work,
-outside this catalogue; Run Elixir MCP names the ones worth reading.
+outside this catalogue; Elixir Operator names the ones worth reading.
 
 ## Choosing the read
 

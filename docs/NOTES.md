@@ -1013,3 +1013,51 @@ Order: `{family_clients: {set_redirect_uris}}` for `clan` with only the
 new callback, before this deploys, so Clan's client never has a URI off
 the family's origins; then the merge (Clan's CI deploy removes the
 distribution); then Elixir.
+
+## 2026-09-29 - The agent team: new names, one worktree per run
+
+Jamie approved new names for the objectives (the old ones did not say what
+each does) and asked that runs stop sharing a directory, which "has
+happened a lot": scheduled runs collided in the one checkout, and a held
+checkout lease stalled the runs queued behind it.
+
+- **Names.** Elixir Operator (was Run Elixir MCP), Elixir Data Auditor
+  (Keep the Record True), Elixir Feedback Manager (Close the Loop), Elixir
+  Security Reviewer (Guard the Door), Elixir Rankings Analyst (Keep the
+  Boards); Clan's four are in `clan/docs/NOTES.md`. The objective files
+  are renamed to match. Keys, automation ids and automation memory are
+  unchanged; notes, summaries and dated entries keep the names they were
+  written with.
+- **One worktree per run.** Every automation installs with
+  `execution_environment = "worktree"` and
+  `.codex/environments/environment.toml`, whose setup
+  (`AGENT-TEAM/scripts/worktree-setup.sh`) refuses the main checkout,
+  detaches at a freshly fetched origin/main (Codex starts a worktree from
+  the last-fetched ref), links the gitignored `.env` files and the skills'
+  reports from the main checkout (links, never copies: a copy of a secrets
+  file is a secret), clones the card-art cache, links the sibling
+  repositories into the run's own parent directory so `../elixir-bot/.env`
+  and `../cr-agent-api-docs` resolve, and runs `npm ci` (about 4 s). The
+  skills' `reports/` ignores lost their trailing slash: a link is not a
+  directory to git, so every fresh worktree read dirty.
+- **The lease guards production, not the checkout.** `objective-lease.mjs`
+  keeps the lease and the notes queue in the clone's common git directory,
+  so every worktree sees one of each. It is claimed for a deploy, a
+  migration run or an ops-lambda write, never for an edit. New keys:
+  `clan-run`, `clan-judge`, `clan-loop`, `clan-guard`, and the domain
+  team's `clock` and `game`. `note <key> --reason` queues a blocked run's
+  note without a lease; a claim records its worktree, and `clear-stale`
+  judges that worktree rather than its own. Preflight is worktree-aware: a
+  linked worktree clean at origin/main is eligible, and the lease is
+  reported (`DEPLOY_LEASE=`), no longer a block. A long ops-lambda batch
+  now holds the lease for its whole run (`elixir-operator.md`).
+- **Cadences** are the ones installed in Codex, lightened in the app since
+  the 2026-09-09 manifest; the manifests now record them. The schedule
+  renderer learned "one weekday of each month" for Clan's monthly runs
+  (projects-sysadmin 8c0d129).
+- **Clan's four objectives resumed**, retargeted from the archived
+  clan.poapkings.com Codex project to this repository.
+
+`DECISIONS.md`: "Lease first" becomes "One worktree per run; the lease
+guards production".
+

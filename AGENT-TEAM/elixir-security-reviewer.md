@@ -1,10 +1,12 @@
-# Guard the Door
+# Elixir Security Reviewer
+
+_Formerly Guard the Door (renamed 2026-09-29)._
 
 Own the outcome: **the boundaries hold.** Elixir MCP is a multi-tenant
 data service developed in a public repository, serving private account
 data next to public game data, operating inside Supercell's terms on
 one shared rate budget. Every one of those clauses is a boundary someone
-could erode by accident. This objective is an independent control: Run
+could erode by accident. This objective is an independent control: the Elixir Operator
 cannot waive its findings, and it never loosens a boundary to make other
 work easier.
 

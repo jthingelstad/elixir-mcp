@@ -1,12 +1,12 @@
 # AGENT-TEAM — objective owners for Elixir Clan
 
-> **Paused, and moved (2026-09-28).** Elixir Clan's code now lives in
-> elixir-mcp's repository as `clan/`. These objectives are not installed
-> and stay so until Jamie picks which resume; when one does, its prompt,
-> schedule and lease name are rewritten for this checkout first. Until then
-> there is one lease on the checkout, the repository's
-> (`AGENT-TEAM/scripts/objective-lease.mjs` at the root), and an
-> interactive session claims `session` in it.
+> **Moved (2026-09-28), renamed and resumed (2026-09-29).** Elixir Clan's
+> code lives in elixir-mcp's repository as `clan/`. Its four objectives
+> run from that repository's Codex environment, each in its own worktree
+> (the root `AGENT-TEAM/WORKFLOW.md`, "One worktree per run"), and share
+> the repository's one lease (`AGENT-TEAM/scripts/objective-lease.mjs` at
+> the root) under the keys `clan-run`, `clan-judge`, `clan-loop` and
+> `clan-guard`.
 
 Four objective owners maintain Elixir Clan. Each owns a durable outcome, not
 a task type, and follows evidence through diagnosis, implementation,
@@ -21,21 +21,25 @@ is wrong about me" must be answered.
 
 ## The team
 
-| Objective | File | Primary question |
-|---|---|---|
-| **Run Elixir Clan** | `run-elixir-clan.md` | Is the product up, deployed from `main`, cheap, and still speaking Elixir's current contract? |
-| **Judge Fairly** | `judge-fairly.md` | Do the verdicts, actions, standing and awards follow the clan's policy and the record — and does the record cover what they claim? |
-| **Close the Loop** | `close-the-loop.md` | Is every piece of feedback answered, acted on or framed for Jamie, and do the docs still describe the shipped product? |
-| **Guard the Door** | `guard-the-door.md` | Are the seams to Elixir, the public repo and the session cookies holding to their boundaries, with nothing published? |
+| Objective | Key | File | Primary question |
+|---|---|---|---|
+| **Clan Operator** | `clan-run` | `clan-operator.md` | Is the product up, deployed from `main`, cheap, and still speaking Elixir's current contract? |
+| **Clan Policy Auditor** | `clan-judge` | `clan-policy-auditor.md` | Do the verdicts, actions, standing and awards follow the clan's policy and the record — and does the record cover what they claim? |
+| **Clan Feedback Manager** | `clan-loop` | `clan-feedback-manager.md` | Is every piece of feedback answered, acted on or framed for Jamie, and do the docs still describe the shipped product? |
+| **Clan Security Reviewer** | `clan-guard` | `clan-security-reviewer.md` | Are the seams to Elixir, the public repo and the session cookies holding to their boundaries, with nothing published? |
 
 Calendar cadence: [generated schedule](SCHEDULE.md), sourced from
 `automations.toml`.
 
-Guard the Door is an independent control: Run cannot waive its findings,
-and it never widens a scope, a cookie or a public route to make another
-objective's work easier. Do not add a Growth, Analyst or Cost role: cost
-belongs to Run, judgment quality to Judge Fairly, product signal to Close
-the Loop.
+Renamed 2026-09-29, for names that say what each does: Run Elixir Clan,
+Judge Fairly, Close the Loop and Guard the Door. Notes and summaries
+written before then use the old names.
+
+The Clan Security Reviewer is an independent control: the Operator
+cannot waive its findings, and it never widens a scope, a cookie or a
+public route to make another objective's work easier. Do not add a
+Growth, Analyst or Cost role: cost belongs to the Operator, judgment
+quality to the Policy Auditor, product signal to the Feedback Manager.
 
 ## How Jamie engages the team
 
@@ -46,10 +50,10 @@ Start with the outcome instead of choosing a role or preparing a ticket:
 - `Show me team status only; make no changes.`
 - `What across this team needs Jamie?`
 
-Choose **Run Elixir Clan** for deploys, alarms, cost or the OAuth client; **Judge Fairly** for a verdict, action, standing line
+Choose **Clan Operator** for deploys, alarms, cost or the OAuth client; **Clan Policy Auditor** for a verdict, action, standing line
 or award grant that looks wrong, or a season that closed without grants;
-**Close the Loop** when feedback sits unanswered or the docs lie; **Guard
-the Door** for scopes, cookies, secrets, the public repo, or the public
+**Clan Feedback Manager** when feedback sits unanswered or the docs lie; **Clan
+Security Reviewer** for scopes, cookies, secrets, the public repo, or the public
 documents. Cross-cutting work keeps one originating owner through
 acceptance.
 
@@ -67,12 +71,13 @@ acceptance.
   no other site reads a document from this product.
 - **projects-sysadmin AGENT-TEAM** drains the shared alarm queue daily.
   This team owns *this stack's* operational truth: the Operator sees that
-  `elixir-clan-api-errors` fired, Run Elixir Clan owns why and the fix.
-- **Interactive Claude sessions** (Jamie-directed feature work) share this
-  checkout. Every mutating actor serializes through the checkout lease
-  (the repository's `AGENT-TEAM/scripts/objective-lease.mjs`). The daily feedback duty belongs to
-  Close the Loop; interactive sessions stop draining it once the team's
-  first runs are confirmed.
+  `elixir-clan-api-errors` fired, Clan Operator owns why and the fix.
+- **Interactive Claude sessions** (Jamie-directed feature work) use the
+  main checkout, which scheduled runs never edit; a second concurrent
+  session makes its own worktree. A local deploy or a live write claims
+  the repository's one lease first (`AGENT-TEAM/scripts/objective-lease.mjs`
+  at the root). The daily feedback duty belongs to the Clan Feedback
+  Manager; interactive sessions do not drain it.
 
 ## Project map
 

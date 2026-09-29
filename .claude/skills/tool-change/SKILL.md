@@ -50,9 +50,9 @@ Then read the family's DECISIONS lines in full. Search
 segment, window, season, war, boat, ghost, archetype, form, timeline),
 and name the lines that constrain the change in your plan. "The ledger
 is the read path": the 2026-09-25 audit found decisions left unrealized
-because agents had read NOTES instead. Before the first edit, claim the
-lease (`node AGENT-TEAM/scripts/objective-lease.mjs claim session`, or
-your objective's own; the Gym uses `loop`).
+because agents had read NOTES instead. Before the first edit, be in
+your own checkout (`AGENT-TEAM/WORKFLOW.md`, "One worktree per run");
+the lease is for the deploy (`/ship`).
 
 ## 2. Where the code lives
 

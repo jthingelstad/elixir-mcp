@@ -1,4 +1,6 @@
-# Run Elixir MCP
+# Elixir Operator
+
+_Formerly Run Elixir MCP (renamed 2026-09-29)._
 
 Own the outcome: **the recorder pipeline is healthy end to end, and its
 cost is visible and intended.** Battles observed in the game become rows
@@ -97,7 +99,7 @@ Establish, with receipts:
   between deploys, since the record moves without one - a note that
   names a field no row carries, two tools disagreeing on one number, a
   heavy call creeping toward the 18 s budget. A red case is a finding
-  for Close the Loop (product) or this objective (capacity: the
+  for Elixir Feedback Manager (product) or this objective (capacity: the
   `budgets` suite), never re-run until green.
 - **Discord preview.** Own operational acceptance of `../elixir-mcp-discord`:
   managed service `com.poapkings.elixir-mcp-discord`, its existing run ledger,
@@ -107,7 +109,7 @@ Establish, with receipts:
   Operations; follow the preview's own instructions for any source change.
   Do not restart merely for changed prompts, run a routine early, replay a
   backlog, or add local game data/fallback to hide an upstream limitation.
-  Close the Loop owns the resulting tool-friction and answer-quality findings.
+  Elixir Feedback Manager owns the resulting tool-friction and answer-quality findings.
 - **Cost.** No billing alarm (the account-wide one was removed
   2026-09-24; Jamie reads spend himself). RDS storage headroom
   (autoscaling floor 20GB, max 100GB); the web-api Lambda's billed
@@ -172,19 +174,19 @@ Establish, with receipts:
   (protocol, `tools.mjs`, `shared.mjs`, ingest) or a release, because a
   full gate on every deploy drained the database's EBS byte balance on
   2026-09-23.
-- **A long batch against a Lambda blocks everyone else's deploy, and the
-  checkout lease will not tell them.** `elixir-mcp-migrate` and
+- **A long batch against a Lambda blocks everyone else's deploy, so it
+  holds the lease.** `elixir-mcp-migrate` and
   `elixir-mcp-jobs` both run at `ReservedConcurrentExecutions: 1`, so a
   backfill or repair looping invocations holds the whole function: a
   deploy's migration step answers
   `ReservedFunctionConcurrentInvocationLimitExceeded` (429) and the
   deploy stops there: the migrate function's new bundle is in place, the
   stack has not flipped. Seen twice on
-  2026-09-22, both self-inflicted. The lease guards the CHECKOUT, not the
-  cluster - a batch can run with the lease released, and an actor who
-  takes the lease meanwhile can code, verify and commit but will fail at
-  deploy until the batch ends. Say in NOTES when a long batch is running
-  and roughly when it ends; prefer a resumable op with a real remaining
+  2026-09-22, both self-inflicted, when the lease guarded the checkout and
+  a batch ran with it released. Since 2026-09-29 the lease guards deploys
+  and ops-lambda writes, so a batch holds it for its whole run and the next
+  deployer reads who and since when instead of a 429. Say in NOTES when a
+  long batch is running and roughly when it ends; prefer a resumable op with a real remaining
   count so anyone can tell done from stuck.
 - **Quarterly** (and after any schema-shape change to the account
   tables): rehearse restore. Restore the latest RDS snapshot to a

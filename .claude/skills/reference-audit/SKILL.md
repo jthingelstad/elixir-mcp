@@ -22,7 +22,7 @@ its own evidence tool (`tools/cr-probe`) for live calls.
 
 | Question | Owner |
 |---|---|
-| Does Elixir's ingest know every field the API sends? | the hub's manifest (`services/ingest/src/payload-keys.mjs`), the nightly shape census and the full audit's UNCATALOGUED list; Close the Loop turns a finding into the change |
+| Does Elixir's ingest know every field the API sends? | the hub's manifest (`services/ingest/src/payload-keys.mjs`), the nightly shape census and the full audit's UNCATALOGUED list; Elixir Feedback Manager turns a finding into the change |
 | Does the reference document what the API sends? | **this skill** |
 | What is happening in the game, and what is coming? | the domain objective Understand Clash Royale (`../AGENT-TEAM/understand-clash-royale.md`), which runs this skill for its evidence step |
 
@@ -38,7 +38,8 @@ its own evidence tool (`tools/cr-probe`) for live calls.
    carried as proposed or declined is not re-proposed without new evidence.
 
 Evidence and the diff are reads and need no lease. Writing the reference
-follows its rules; a hub change (a manifest entry) takes the hub lease.
+follows its rules; a hub change (a manifest entry) is a hub PR from your
+own worktree, and its deploy takes the hub lease.
 
 ## Step 1: evidence
 
@@ -175,8 +176,9 @@ In `../cr-agent-api-docs`, under its AGENTS.md:
   AGENTS.md (its `main` takes only pull requests from 2026-09-26).
 
 A patch that also changes the hub (a manifest entry, a mode map, a docs
-page that quotes the reference) is a hub change: take the hub lease, fix
-it there with its own gates, and say so in the report.
+page that quotes the reference) is a hub change: fix it there in your own
+worktree with its own gates, deploy under the hub lease, and say so in
+the report.
 
 ## Close
 

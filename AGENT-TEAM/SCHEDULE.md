@@ -11,8 +11,8 @@ Event follow-ups are explicit starts. Due subtasks use completion receipts.
 
 | Activity | Status | Schedule | Primary owner |
 |---|---|---|---|
-| Run Elixir MCP | ACTIVE | Daily at 00:40, 04:40, 08:40, 12:40, 16:40, 20:40 | `run-elixir-mcp` |
-| Keep the Record True | ACTIVE | Daily at 05:30, 17:30 | `keep-the-record-true` |
-| Close the Loop | ACTIVE | Daily at 06:45, 18:45; Friday evening synthesis once per Chicago ISO week; catch up if blocked | `close-the-loop` |
-| Guard the Door | ACTIVE | Daily at 02:15; Full weekly sweep on Sunday; retain required boundary checks every run | `guard-the-door` |
-| Keep the Boards | ACTIVE | Daily at 05:20 | `keep-the-boards` |
+| Elixir Operator | ACTIVE | Daily at 04:45 | `run-elixir-mcp` |
+| Elixir Data Auditor | ACTIVE | Monday at 18:15 | `keep-the-record-true` |
+| Elixir Feedback Manager | ACTIVE | Tuesday, Friday at 18:15; Friday evening synthesis once per Chicago ISO week; catch up if blocked | `close-the-loop` |
+| Elixir Security Reviewer | ACTIVE | Sunday at 05:15; Every run is the full weekly sweep | `guard-the-door` |
+| Elixir Rankings Analyst | ACTIVE | Wednesday, Saturday at 06:00 | `keep-the-boards` |

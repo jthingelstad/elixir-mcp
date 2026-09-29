@@ -300,7 +300,7 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   into `feedback` under the owner account with `category: data_quality`,
   `surface: recorder` and a context of `{endpoint, path, first_seen,
   sample_type, seen_in}`, deduplicated on `(endpoint, path)` while an item
-  is open; Close the Loop reads the queue on its schedule and turns the
+  is open; the Elixir Feedback Manager reads the queue on its schedule and turns the
   item into the change (the manifest entry and projection, the contract
   bump, the docs, the `cr-agent-api-docs` entry). The run returns the
   count; nothing mails anyone. Collectors stay dumb: they gzip bytes

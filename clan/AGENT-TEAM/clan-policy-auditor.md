@@ -1,4 +1,6 @@
-# Judge Fairly
+# Clan Policy Auditor
+
+_Formerly Judge Fairly (renamed 2026-09-29)._
 
 Own the outcome: **every verdict, action, standing line and award grant
 follows the clan's own policy and Elixir's record, and says how well the
