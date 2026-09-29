@@ -10,9 +10,9 @@ the steps that need a value are Jamie's, in the Secrets Manager console.
 | `session_secret` | app secret `elixir-mcp/app` | web-api, mcp (sessions); jobs (older unsubscribe links) | Session secret |
 | `session_secret_previous` | app secret, only during a rotation | web-api, mcp, when `SessionSecretPreviousInSecret=true` | Session secret |
 | `unsubscribe_secret` | app secret | web-api, jobs, when `UnsubscribeKeyInSecret=true` | Unsubscribe key |
-| `db_password` | app secret; the RDS master password | the five database functions and the `Database` resource | Database password |
+| `db_password` | app secret; the RDS master password | the six database functions and the `Database` resource | Database password |
 | `buttondown_api_token`, `anthropic_api_key` | app secret | email-relay, editor | Any other app-secret key |
-| `OriginSecret` | a NoEcho stack parameter | CloudFront sends it; web-api and mcp require it | Origin secret |
+| `OriginSecret` | a NoEcho stack parameter | CloudFront sends it; web-api, mcp and collector require it | Origin secret |
 
 **CloudFormation reads a secret only when the resource holding the
 reference changes.** Editing a value in Secrets Manager changes nothing
@@ -71,7 +71,7 @@ The deploy owns this value; nobody types it.
 1. Deploy with `--rotate-origin-secret`. The deploy reads the current value
    from the deployed web door, mints a new one, and sets both
    `OriginSecret` and `OriginSecretPrevious`. The template makes
-   CloudFront wait for both doors, so the doors accept the new value
+   CloudFront wait for all three doors (web-api, mcp, collector), so they accept the new value
    before any edge sends it. The edges that still send the old value are
    served while the distribution deploys.
 2. Once that deploy has finished, deploy with `--param=OriginSecretPrevious=`
@@ -86,8 +86,8 @@ database disagree. Choose a quiet hour.
    new URL-safe value (`openssl rand -hex 24`). Nothing changes live yet.
 2. Deploy with `--param=SecretEpoch=<YYYY-MM-DD>`. The deploy's migration
    step still runs on the old password, which is still the database's.
-   The stack update then re-reads `db_password` into all five database
-   functions (web-api, mcp, scheduler, migrate, jobs). From here until
+   The stack update then re-reads `db_password` into all six database
+   functions (web-api, mcp, collector, scheduler, migrate, jobs). From here until
    step 3 they cannot connect, so the deploy's smoke fails. That failure
    is expected.
 3. Jamie, in the RDS console: `elixir-mcp-enc`, Modify, set the master

@@ -7,7 +7,10 @@ import {
 } from "@elixir-mcp/ledger/plan";
 
 import { json } from "../http.mjs";
-import { RELEASE_SIGNED_SQL, signatureState } from "../collector-signature.mjs";
+import {
+  RELEASE_SIGNED_SQL,
+  signatureState,
+} from "@elixir-mcp/collector-door/signature";
 import { DISCLAIMER, cardForms, cardType } from "@elixir-mcp/contracts";
 import { RECORDED_PLAYERS_SQL } from "@elixir-mcp/tools/shared";
 

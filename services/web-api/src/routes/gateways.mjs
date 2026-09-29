@@ -7,7 +7,10 @@ import {
 } from "@elixir-mcp/record/gateway-cards";
 
 import { UUID_RE, json } from "../http.mjs";
-import { RELEASE_SIGNED_SQL, signatureState } from "../collector-signature.mjs";
+import {
+  RELEASE_SIGNED_SQL,
+  signatureState,
+} from "@elixir-mcp/collector-door/signature";
 
 // The two ways a pick is refused, worded for the form that shows them.
 const cardRefusal = (error) =>

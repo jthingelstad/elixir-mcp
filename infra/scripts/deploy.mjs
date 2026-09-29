@@ -199,6 +199,7 @@ const required = {
   MigrateCodeKey: codeKeys.migrate,
   JobsCodeKey: codeKeys.jobs,
   EditorCodeKey: codeKeys.editor,
+  CollectorCodeKey: codeKeys.collector,
 };
 const templateBody = await readFile(
   path.join(repoRoot, "infra/template.yaml"),
@@ -304,7 +305,7 @@ if (lane === "platform") {
   // --rotate-origin-secret (docs/SECRETS.md): the current value is read
   // from the deployed web door, since the stack masks NoEcho parameters,
   // and held in this process only. The template makes CloudFront wait for
-  // both doors, so they accept the new value before any edge sends it.
+  // every door, so they accept the new value before any edge sends it.
   if (args.rotateOriginSecret) {
     const { Environment } = await lambda.send(
       new GetFunctionConfigurationCommand({

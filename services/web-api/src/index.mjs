@@ -5,7 +5,7 @@
 
 import { currentAndPrevious } from "@elixir-mcp/auth";
 import { makeHandler } from "./handler.mjs";
-import { makeCollectorDoor } from "./collector-door.mjs";
+import { makeCollectorDoor } from "@elixir-mcp/collector-door";
 import { processResult } from "@elixir-mcp/ingest/pipeline";
 import { makeArchive } from "@elixir-mcp/ingest";
 import { makeCaptureStore } from "@elixir-mcp/tools/capture";

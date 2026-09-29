@@ -92,7 +92,8 @@ Cross-cutting work keeps one originating owner through acceptance.
   and `docs/DECISIONS.md`: the MCP contract's majors track domain shifts
   (removing an unreliable field is a patch), while the `/api/v1` JSON API
   keeps ordinary semver in its own `info.version`.
-- `services/` — mcp (door + tools), web-api (site API + collector door),
+- `services/` — mcp (door + tools), web-api (site API), collector (the
+  collector door, its own Lambda since 2026-09-29),
   auth (the shared credential core), ingest, scheduler (plans the job
   ledger), migrate (deploy plumbing + break-glass ops), jobs (scheduled
   product work), and the two non-VPC Lambdas that are the only internet

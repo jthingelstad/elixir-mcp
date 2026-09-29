@@ -1,0 +1,23 @@
+{
+  "name": "@elixir-mcp/collector-door",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The collector door's contract (COLLECTOR-ZERO-TRUST.md): config, lease and submit for issued tokens, per-token budgets, quarantine, and the release-signature state the console shows. The collector Lambda serves it.",
+  "type": "module",
+  "main": "src/door.mjs",
+  "exports": {
+    ".": "./src/door.mjs",
+    "./signature": "./src/signature.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@elixir-mcp/auth": "0.1.0",
+    "@elixir-mcp/contracts": "0.1.0",
+    "@elixir-mcp/ledger": "0.1.0"
+  },
+  "devDependencies": {
+    "pg": "^8.13.0"
+  }
+}

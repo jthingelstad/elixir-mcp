@@ -59,7 +59,8 @@ test("SQS visibility outlasts each Lambda timeout by six times", async () => {
 test("database-facing Lambda concurrency remains bounded", async () => {
   const template = await readFile(templateUrl, "utf8");
   const expected = [
-    ["WebApiFunction", "McpLogGroup", 20],
+    ["WebApiFunction", "CollectorLogGroup", 20],
+    ["CollectorFunction", "McpLogGroup", 10],
     ["McpFunction", "SchedulerLogGroup", 20],
     ["SchedulerFunction", "SchedulerRule", 1],
     ["MigrateFunction", "JobsLogGroup", 1],
@@ -93,7 +94,8 @@ test("every database-facing Lambda names its connections and bounds its statemen
   // backends of 42 and 57 minutes, 2026-09-18).
   const template = await readFile(templateUrl, "utf8");
   const functions = [
-    ["WebApiFunction", "McpLogGroup", "elixir-mcp-web-api"],
+    ["WebApiFunction", "CollectorLogGroup", "elixir-mcp-web-api"],
+    ["CollectorFunction", "McpLogGroup", "elixir-mcp-collector"],
     ["McpFunction", "SchedulerLogGroup", "elixir-mcp-mcp"],
     ["SchedulerFunction", "SchedulerRule", "elixir-mcp-scheduler"],
     ["MigrateFunction", "JobsLogGroup", "elixir-mcp-migrate"],
@@ -127,7 +129,58 @@ test("every database-facing Lambda names its connections and bounds its statemen
     );
   }
   // No other function reaches the database.
-  assert.equal((template.match(/^          DATABASE_URL:/gm) ?? []).length, 5);
+  assert.equal((template.match(/^          DATABASE_URL:/gm) ?? []).length, 6);
+});
+
+test("the collector door is its own function, role and route on the site API (2026-09-29)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  // The role puts payloads and mail and nothing else: a write-once put
+  // needs no read, and the door lists nothing.
+  const role = resource(template, "CollectorRole", "McpRole");
+  assert.match(role, /RoleName: elixir-mcp-collector\n/);
+  assert.deepEqual(
+    [...role.matchAll(/^ {16}Action: (.+)$/gm)].map((m) => m[1]),
+    ["s3:PutObject", "s3:PutObject"],
+  );
+  assert.match(
+    role,
+    /- \$\{Arn\}\/payloads\/\*\n\s+- Arn: !GetAtt ArchiveBucket\.Arn/,
+  );
+  assert.match(role, /elixir-mcp-outbox-\$\{AWS::AccountId\}\/email\/\*\n/);
+  assert.match(
+    resource(template, "CollectorFunction", "McpLogGroup"),
+    /Role: !GetAtt CollectorRole\.Arn/,
+  );
+  // One API, one CloudFront behaviour: a route with a path beats
+  // $default, and the route waits for the permission it invokes with.
+  const route = resource(template, "CollectorRoute", "CollectorApiPermission");
+  assert.match(route, /DependsOn: CollectorApiPermission/);
+  assert.match(route, /ApiId: !Ref SiteApi/);
+  assert.match(route, /RouteKey: ANY \/api\/collector\/\{proxy\+\}/);
+  assert.match(route, /Target: !Sub integrations\/\$\{CollectorIntegration\}/);
+  const integration = resource(
+    template,
+    "CollectorIntegration",
+    "CollectorRoute",
+  );
+  assert.match(integration, /IntegrationUri: !GetAtt CollectorFunction\.Arn/);
+  assert.match(integration, /PayloadFormatVersion: "2\.0"/);
+  // Its ingest failures and its crashes page as the web-api's did.
+  const filter = resource(
+    template,
+    "CollectorSubmitIngestErrorFilter",
+    "SubmitIngestErrorAlarm",
+  );
+  assert.match(filter, /LogGroupName: !Ref CollectorLogGroup/);
+  assert.match(filter, /MetricName: SubmitIngestError\n/);
+  const errors = resource(template, "CollectorErrorsAlarm", "McpLatencyAlarm");
+  assert.match(errors, /Value: !Ref CollectorFunction/);
+  assert.match(errors, /AlarmActions: \[!Ref AlarmTopic\]/);
+  // Both writers send If-None-Match before the policy demands it.
+  assert.match(
+    resource(template, "ArchiveBucketPolicy", "GlueArchiveDatabase"),
+    /DependsOn: \[WebApiFunction, CollectorFunction\]/,
+  );
 });
 
 test("API throttles preserve measured production bursts", () => {
@@ -439,7 +492,8 @@ test("the failures the doors handle themselves are alarmed, to the ops queue (re
   const expected = [
     // [logical id, next logical id, metric, threshold]
     ["HandledFailureAlarm", "WebApiLatencyAlarm", "HandledFailure", "3"],
-    ["WebApiLatencyAlarm", "DbEbsByteBalanceAlarm", "Duration", "15000"],
+    ["WebApiLatencyAlarm", "CollectorLatencyAlarm", "Duration", "15000"],
+    ["CollectorLatencyAlarm", "DbEbsByteBalanceAlarm", "Duration", "5000"],
     ["DbEbsByteBalanceAlarm", "DbFreeableMemoryAlarm", "EBSByteBalance%", "25"],
     [
       "DbFreeableMemoryAlarm",
@@ -467,18 +521,18 @@ test("the failures the doors handle themselves are alarmed, to the ops queue (re
 test("the database connections verify the server against the bundled RDS roots (#71)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const urls = template.match(/^          DATABASE_URL: .+$/gm) ?? [];
-  assert.equal(urls.length, 5);
+  assert.equal(urls.length, 6);
   for (const url of urls) assert.match(url, /\?sslmode=verify-full"$/, url);
   assert.doesNotMatch(template, /sslmode=no-verify/);
   // Every function with a DATABASE_URL loads the bundle its package
   // carries, and only those packages carry it.
   const loads = template.match(/^          NODE_EXTRA_CA_CERTS: .+$/gm) ?? [];
-  assert.equal(loads.length, 5);
+  assert.equal(loads.length, 6);
   for (const line of loads)
     assert.ok(line.endsWith(`/var/task/${RDS_CA_PATH}`), line);
   assert.deepEqual(
     LAMBDAS.filter((l) => l.db).map((l) => l.name),
-    ["web-api", "mcp", "scheduler", "migrate", "jobs"],
+    ["web-api", "mcp", "scheduler", "migrate", "jobs", "collector"],
   );
   const bundle = await readFile(
     new URL(`../../../${RDS_CA_BUNDLE}`, import.meta.url),
@@ -490,7 +544,8 @@ test("the database connections verify the server against the bundled RDS roots (
 test("secrets rotate without a sign-out: previous values and the epoch are wired (#71)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const block = (id, next) => resource(template, id, next);
-  const webApi = block("WebApiFunction", "McpLogGroup");
+  const webApi = block("WebApiFunction", "CollectorLogGroup");
+  const collector = block("CollectorFunction", "McpLogGroup");
   const mcp = block("McpFunction", "SchedulerLogGroup");
   const jobs = block("JobsFunction", "EditorLogGroup");
   for (const door of [webApi, mcp]) {
@@ -509,12 +564,19 @@ test("secrets rotate without a sign-out: previous values and the epoch are wired
       /UNSUBSCRIBE_SECRET: !If\n\s+- HasUnsubscribeKey\n.+unsubscribe_secret\}\}"/,
     );
   assert.doesNotMatch(jobs, /SESSION_SECRET_PREVIOUS/, "jobs only signs");
+  // The collector door checks the origin as every door, and holds no
+  // session or unsubscribe secret: it authenticates collector tokens.
+  assert.match(
+    collector,
+    /ORIGIN_SECRET_PREVIOUS: !If\n\s+- HasOriginSecretPrevious\n\s+- !Ref OriginSecretPrevious\n/,
+  );
+  assert.doesNotMatch(collector, /SESSION_SECRET|UNSUBSCRIBE_SECRET/);
   // Every function holding a secret reference re-reads it when the epoch
-  // moves: the five database functions, the relay and the editor.
+  // moves: the six database functions, the relay and the editor.
   assert.equal(
     (template.match(/^          SECRET_EPOCH: !Ref SecretEpoch$/gm) ?? [])
       .length,
-    7,
+    8,
   );
   assert.match(
     template.slice(
@@ -524,7 +586,7 @@ test("secrets rotate without a sign-out: previous values and the epoch are wired
         template.indexOf("  SiteDistribution:"),
       ),
     ),
-    /DependsOn: \[WebApiFunction, McpFunction\]/,
+    /DependsOn: \[WebApiFunction, McpFunction, CollectorFunction\]/,
   );
   for (const key of [
     "OriginSecretPrevious",
@@ -548,6 +610,7 @@ test("a preserved parameter's first deploy takes its default; a rotation carries
       "MigrateCodeKey",
       "JobsCodeKey",
       "EditorCodeKey",
+      "CollectorCodeKey",
     ].map((k) => [k, "x"]),
   );
   const existing = [...Object.keys(required), ...PRESERVED_PARAMETERS].filter(

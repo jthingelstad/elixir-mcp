@@ -49,12 +49,20 @@
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
+    "packages/collector-door": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
     "packages/outbox": {
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
     "packages/tools": {
       "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "services/collector": {
+      "entry": ["src/index.mjs", "test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
     "services/email-relay": {

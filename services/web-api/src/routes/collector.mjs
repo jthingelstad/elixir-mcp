@@ -1,5 +1,10 @@
 import { json } from "../http.mjs";
 
+// The collector door has its own Lambda (services/collector) since
+// 2026-09-29, and the site API routes /api/collector/* to it. These stay
+// only until that route has carried the fleet through a deploy, so no
+// request falls between the two; then they and the web-api role's
+// payloads/ grant go.
 export function collectorRoutes({ collectorDoor }) {
   return {
     "GET /api/collector/config": async (db, event) => {

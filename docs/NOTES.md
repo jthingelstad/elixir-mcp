@@ -1388,3 +1388,37 @@ requirement is gone. The post-deploy MCP log window had no
 `output_schema_mismatch` event. Public status remained healthy with five
 active collectors, no dead jobs or dead letters, and one-second admission and
 fetch freshness. The `run` lease was released after that read-back.
+
+---
+
+## 2026-09-29 - The collector door gets its own Lambda
+
+The structural assessment's CollectorFunction item, which Jamie chose to
+do now. The door was three routes in the web-api and 99% of that
+Lambda's requests: 235k of 237k over the three days to 06:00Z, peaking
+at 402 a minute (lease p95 61 ms, submit p95 388 ms). A fleet burst
+shared the console's 20 reserved slots, its throttle bucket and its log.
+
+- `@elixir-mcp/collector-door` (packages): the door and the
+  release-signature state, moved from web-api's `src` unchanged, with
+  their tests. web-api imports the signature state for the console.
+- `services/collector`: the Lambda, in the web-api's shape (origin
+  check, a client per request, a soft deadline, the same timing line).
+- The stack: `elixir-mcp-collector` with 10 reserved slots, its own
+  role (`s3:PutObject` on archive `payloads/*` and outbox `email/*`,
+  nothing else; a write-once put needs no read), a log group, errors
+  and p95 latency alarms, and the submit-ingest filter on its log. A
+  route `ANY /api/collector/{proxy+}` on the site API sends the fleet
+  there; `$default` still goes to the web-api. No CloudFront change: the
+  same behaviour, origin secret and forwarded collector headers. The
+  database ceiling across the six functions goes from 43 to 53.
+- The web-api keeps its collector routes and `payloads/` grant for this
+  deploy, so nothing falls between the old route and the new. A
+  follow-up removes both once the route has carried the fleet.
+
+Decided with it: `family.json` stays in `packages/ui` (Jamie, "Leave it").
+
+Not verified before the deploy: whether the stage's default route
+throttle (20/s, burst 40) is a bucket per route or one for the stage.
+The docs say it applies to all routes; either way the collector is no
+looser than today.

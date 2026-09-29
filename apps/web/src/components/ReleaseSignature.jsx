@@ -15,7 +15,7 @@ import {
 /**
  * Does a collector run a signed release, and which key signs them.
  *
- * The state is the hub's (0184, services/web-api/src/collector-signature.mjs):
+ * The state is the hub's (0184, packages/collector-door/src/signature.mjs):
  * the binary hash a collector reports against the signed hash named for
  * its version. A collector that sends no hash (an older client) reads
  * `unverified` or, on an older hub, has no state at all; both render.
