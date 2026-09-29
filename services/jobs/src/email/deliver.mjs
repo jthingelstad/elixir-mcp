@@ -4,7 +4,7 @@
  *  render so the mail's footer can carry it: the id is what a person
  *  quotes and what the relay logs beside SES's message id, so one sent
  *  email can be found in the log, opened in the console
- *  (/account/activity/emails) and reported on (Jamie, 2026-09-19). */
+ *  (/console/account/activity/emails) and reported on (Jamie, 2026-09-19). */
 import { randomUUID } from "node:crypto";
 import {
   renderMail,
@@ -15,7 +15,7 @@ import {
 import { alreadySent, recordSend } from "./ledger.mjs";
 import { archiveSentMail } from "./archive.mjs";
 
-const MANAGE_URL = "https://elixir.poapkings.com/account/profile/email";
+const MANAGE_URL = "https://elixir.poapkings.com/console/account/profile/email";
 
 export async function deliver({
   db,

@@ -84,8 +84,8 @@ const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 // views/Explore.jsx, tagPath). Names in mail are always these links.
 const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
-const playerUrl = (tag) => `${SITE}/explore/player/${tagPath(tag)}`;
-const clanUrl = (tag) => `${SITE}/explore/clan/${tagPath(tag)}`;
+const playerUrl = (tag) => `${SITE}/console/explore/player/${tagPath(tag)}`;
+const clanUrl = (tag) => `${SITE}/console/explore/clan/${tagPath(tag)}`;
 // The console's record of one sent email (apps/web views/account/
 // EmailRecord.jsx) and its list (views/Activity.jsx, Emails). The
 // footer links the record by its id, and with ?report=1 the record
@@ -95,12 +95,12 @@ const clanUrl = (tag) => `${SITE}/explore/clan/${tagPath(tag)}`;
 // "Product identifiers versus measurement"), so these links are tagged
 // like every other link into the site; the console reports the record
 // page to analytics as its kind, never which record.
-const SENT_MAIL_LIST_URL = `${SITE}/account/activity/emails`;
+const SENT_MAIL_LIST_URL = `${SITE}/console/account/activity/emails`;
 // The same line to everyone, in every product email (Jamie, 2026-09-19,
 // the settled policy): free, sponsor-supported, sponsorship buys nothing.
 const SUPPORT_URL = `${SITE}/support`;
 const sentMailUrl = (sendId, { report = false } = {}) =>
-  `${SITE}/account/activity/e/${encodeURIComponent(sendId)}${report ? "?report=1" : ""}`;
+  `${SITE}/console/account/activity/e/${encodeURIComponent(sendId)}${report ? "?report=1" : ""}`;
 
 /** Links into the site carry the campaign tag Tinylytics reads
  *  (utm_source=email, utm_medium=<kind>, utm_campaign=<kind>-<period>),

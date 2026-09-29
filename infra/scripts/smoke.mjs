@@ -191,7 +191,7 @@ await edgeCaches("public cards", `${mcpBase}/api/public/cards`);
 
 // The app shell is the privileged surface: it must carry the headers
 // too, and load no third-party script.
-const appShell = await fetch(`${mcpBase}/account/overview`);
+const appShell = await fetch(`${mcpBase}/console/account/overview`);
 check(
   "app shell carries CSP",
   (appShell.headers.get("content-security-policy") ?? "").includes(
@@ -221,7 +221,7 @@ check(
   /<title>Tools - Elixir MCP<\/title>/.test(docsHtml),
 );
 
-const appRoute = await fetch(`${mcpBase}/account/overview`);
+const appRoute = await fetch(`${mcpBase}/console/account/overview`);
 const appHtml = appRoute.ok ? await appRoute.text() : "";
 check(
   "an app route gets the app shell",
@@ -273,7 +273,7 @@ check("api 404 stays a 404", missing.status === 404, String(missing.status));
 
 // SPA deep links still land on the shell, which is what the removed
 // error mapping was actually there for.
-const deep = await fetch(`${mcpBase}/account/overview`);
+const deep = await fetch(`${mcpBase}/console/account/overview`);
 const deepHtml = deep.ok ? await deep.text() : "";
 check(
   "spa deep link serves the shell",

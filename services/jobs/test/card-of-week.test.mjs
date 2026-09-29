@@ -128,7 +128,7 @@ test("what accept produces renders as mail", () => {
   const facts = cardOfWeekFacts(brief, issue);
   const { subject, html } = renderMail("card_of_week", facts, {
     unsubscribe: "https://elixir.poapkings.com/api/email/unsubscribe?t=x",
-    manage: "https://elixir.poapkings.com/account/profile/email",
+    manage: "https://elixir.poapkings.com/console/account/profile/email",
     period: "2026-W38",
   });
   assert.equal(subject, "Card of the Week: Barbarian Barrel");

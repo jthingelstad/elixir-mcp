@@ -43,7 +43,7 @@ export function ownerNotifyMessage(spec) {
       return {
         ...base,
         note: `New access request${spec.playerTag ? ` from ${spec.playerTag}` : ""}.`,
-        link: `${SITE}/admin`,
+        link: `${SITE}/console/admin`,
       };
     case "feedback":
       return {
@@ -55,7 +55,7 @@ export function ownerNotifyMessage(spec) {
           from: spec.from ?? "an account",
           ...(spec.feedbackId ? { feedback_id: String(spec.feedbackId) } : {}),
         },
-        link: `${SITE}/admin`,
+        link: `${SITE}/console/admin`,
       };
     case "role_upgrade_request":
       return {
@@ -66,25 +66,25 @@ export function ownerNotifyMessage(spec) {
           current_role: String(spec.currentRole ?? "member"),
           from: spec.from ?? "an account",
         },
-        link: `${SITE}/admin`,
+        link: `${SITE}/console/admin`,
       };
     case "gateway_request":
       return {
         ...base,
         note: `Gateway raise-hand: "${spec.playerTag}". Approve it and issue its collector token in Admin (${SITE}/docs/operators).`,
-        link: `${SITE}/admin`,
+        link: `${SITE}/console/admin`,
       };
     case "gateway_quarantined":
       return {
         ...base,
         note: `Collector "${spec.playerTag}" QUARANTINED: too many leases expired unsubmitted; now draining.`,
-        link: `${SITE}/admin`,
+        link: `${SITE}/console/admin`,
       };
     case "approved_welcome":
       return {
         ...base,
         note: `Account approved (${String(spec.emailHash ?? "").slice(0, 8)}).`,
-        link: `${SITE}/admin`,
+        link: `${SITE}/console/admin`,
       };
     default:
       return {

@@ -18,7 +18,7 @@ test("login template leads with the code and carries link, consent, disclaimer",
   assert.match(text, /^Your Elixir MCP sign-in code is 123456/);
   // The token rides the fragment, which never leaves the browser: a
   // query string would reach the CDN's access logs (#129).
-  assert.match(text, /\/signin#login_token=tok_abc/);
+  assert.match(text, /\/console\/signin#login_token=tok_abc/);
   assert.doesNotMatch(text, /\?login_token=/);
   assert.match(text, /authorizes Claude/);
   assert.match(text, /not endorsed by Supercell/);
@@ -289,13 +289,16 @@ test("owner_notify subjects and bodies are per kind", () => {
       from: "agent 272bd891a21d",
       feedback_id: "25",
     },
-    link: "https://elixir.poapkings.com/admin",
+    link: "https://elixir.poapkings.com/console/admin",
   });
   assert.match(fb.text, /A beta user said something\./);
   assert.match(fb.text, /battles_query pagination took five calls/);
   assert.match(fb.text, /category: feature/);
   assert.match(fb.text, /from: agent 272bd891a21d/);
-  assert.match(fb.text, /Act on it: https:\/\/elixir\.poapkings\.com\/admin/);
+  assert.match(
+    fb.text,
+    /Act on it: https:\/\/elixir\.poapkings\.com\/console\/admin/,
+  );
   assert.ok(
     !/@/.test(fb.text.replace("o@x.com", "")),
     "no address in the body",

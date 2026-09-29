@@ -22,7 +22,7 @@
 import { DISCLAIMER, isProductEmailKind } from "@elixir-mcp/contracts";
 import { pixelPath, pixelTag } from "@elixir-mcp/mail";
 
-const SIGNIN_BASE = "https://elixir.poapkings.com/signin";
+const SIGNIN_BASE = "https://elixir.poapkings.com/console/signin";
 const SITE = "https://elixir.poapkings.com";
 
 const esc = (value) =>
@@ -220,7 +220,7 @@ export function renderEmail(msg) {
     const facts = Object.entries(msg.detail ?? {})
       .map(([k, v]) => `${k}: ${v}`)
       .join("\n");
-    const link = msg.link ?? `${SITE}/admin`;
+    const link = msg.link ?? `${SITE}/console/admin`;
     const lead = leads[kind] ?? "Something happened on Elixir MCP.";
     return {
       subject,
