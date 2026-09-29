@@ -1041,7 +1041,7 @@ export function createHandler({
 
   return function handler(event) {
     const method = event.requestContext?.http?.method ?? event.httpMethod;
-    const path = event.rawPath ?? event.path ?? "/";
+    const path = mountedPath(event.rawPath ?? event.path ?? "/");
     return withTrace(
       {
         http: routeKey(method, path),
@@ -1102,6 +1102,19 @@ export function createHandler({
       return json(500, { error: "internal" });
     }
   }
+}
+
+/**
+ * This API as Elixir serves it, under /api/clan (2026-09-28), read in the
+ * form the routes name: /api/clan/auth/* is /auth/*, and any other
+ * /api/clan/* is /api/*. A path already in that form is itself, which is
+ * how the clan.poapkings.com distribution reaches it until it is removed.
+ */
+export function mountedPath(path) {
+  if (path.startsWith("/api/clan/auth/")) return path.slice("/api/clan".length);
+  if (path.startsWith("/api/clan/"))
+    return `/api/${path.slice("/api/clan/".length)}`;
+  return path;
 }
 
 /**

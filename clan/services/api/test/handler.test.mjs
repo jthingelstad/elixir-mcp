@@ -9,7 +9,12 @@ import {
   player,
   rosterBody,
 } from "./fakes.mjs";
-import { GATE_TTL_MS, ROSTER_TTL_MS, shapeRoster } from "../src/handler.mjs";
+import {
+  GATE_TTL_MS,
+  ROSTER_TTL_MS,
+  mountedPath,
+  shapeRoster,
+} from "../src/handler.mjs";
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
@@ -480,6 +485,35 @@ test("unknown routes are 404 JSON; health is open", async () => {
     JSON.parse((await h.handler(req("GET", "/api/health"))).body).ok,
     true,
   );
+});
+
+test("Elixir serves this API under /api/clan: the same routes, in either form (2026-09-28)", async () => {
+  assert.equal(mountedPath("/api/clan/auth/callback"), "/auth/callback");
+  assert.equal(mountedPath("/api/clan/me"), "/api/me");
+  assert.equal(
+    mountedPath("/api/clan/clans/2PQRJ8LV/actions"),
+    "/api/clans/2PQRJ8LV/actions",
+  );
+  for (const path of ["/auth/login", "/api/clans/2PQRJ8LV", "/api/clanx/me"])
+    assert.equal(mountedPath(path), path);
+
+  const h = harness();
+  assert.equal(
+    JSON.parse((await h.handler(req("GET", "/api/clan/health"))).body).ok,
+    true,
+  );
+  assert.equal(
+    (await h.handler(req("GET", "/api/clanx/health"))).statusCode,
+    404,
+  );
+  const start = await h.handler(req("GET", "/api/clan/auth/login"));
+  assert.equal(start.statusCode, 303);
+  const { sessionCookie } = await signIn(h);
+  const me = await h.handler(
+    req("GET", "/api/clan/me", { cookies: cookieHeader(sessionCookie) }),
+  );
+  assert.equal(me.statusCode, 200);
+  assert.equal(JSON.parse(me.body).selected.name, "Example Clan");
 });
 
 const twoClans = () => ({
