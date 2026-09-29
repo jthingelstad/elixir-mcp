@@ -388,7 +388,8 @@ as the subject. Friends' and watchers' moments are the Tracking report's.
 - Console: the Email panel on Profile (one switch per kind, the Collector
   switch only for an account with a collector; recent sends; the
   send-me-this-now button was removed 2026-09-19). Names link to the
-  Explore record pages (`/explore/player/<tag>`, `/explore/clan/<tag>`),
+  Explore record pages (`/console/explore/player/<tag>`,
+  `/console/explore/clan/<tag>`),
   and a card links to its public page, `/cards/<id>` (see
   `card_of_week`).
 - EventBridge rules and migrations 0137 + 0138 (nine rules since
@@ -413,7 +414,7 @@ submit feedback from one." Built the same day, contract 4.2.0:
 - Web: `GET /api/me/email/sends` and `/api/me/email/sends/<id>` (own
   sends only; the body comes back with the pixel stripped, so the
   console never counts as an open). Console: Activity → Emails, the
-  record at `/account/activity/e/<id>` in a sandboxed no-script frame,
+  record at `/console/account/activity/e/<id>` in a sandboxed no-script frame,
   and "Report a problem with this email" which files feedback with
   `feedback.send_id` (a column, like `request_id`; the queue shows the
   kind and subject beside the report).
@@ -425,7 +426,8 @@ submit feedback from one." Built the same day, contract 4.2.0:
   tracking identifier (`docs/DECISIONS.md`, which superseded the first
   footer pass's "no campaign tag"), and
   `apps/web/src/analytics.js` reports a record page without its id: the
-  bridge normalizes `/account/activity/{c,e}/<id>` and `/admin/emails/<id>`
+  bridge normalizes `/console/account/activity/{c,e}/<id>` and
+  `/console/admin/emails/<id>`
   to the page, and a document that LANDS on one skips the embed's raw
   hit and beacons the normalized page instead.
 - Maintainer side: `GET /api/admin/email/sends` (every send, recipient

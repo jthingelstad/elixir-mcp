@@ -2,9 +2,11 @@
 
 Elixir MCP: records Clash Royale history (the official API is current-state
 only) and serves it to players' own agents through an authenticated remote MCP
-server. One hostname, `elixir.poapkings.com`: the site at /, the MCP/OAuth
-door path-split at /mcp, /oauth/*, /.well-known/* behind a no-cookie
-CloudFront behavior (consolidated from two hostnames 2026-09-03).
+server. One hostname, `elixir.poapkings.com`: the site at /, the Console
+at /console (2026-09-28: one origin, paths not hostnames; Elixir Clan and
+Ladder take /clan and /ladder later), the MCP/OAuth door path-split at
+/mcp, /oauth/*, /.well-known/* behind a no-cookie CloudFront behavior
+(consolidated from two hostnames 2026-09-03).
 
 **The site is two builds in one bucket** (split 2026-09-07). `apps/site`
 is an Eleventy build that emits real documents for everything that is
@@ -13,10 +15,14 @@ CONTENT - home, `/docs/*`, `/updates` (which holds the changelog since
 machine-readable surfaces (`llms.txt`, `llms-full.txt`, `tools.json`,
 `sitemap.xml`, `feed.xml`). `apps/web` is the React application for
 everything behind a session or drawn live at read time, served from
-`/app.html`. A CloudFront function routes each path to its owner; that
-list lives in three places (the function in `infra/template.yaml`,
-`STATIC_LINKS` in `apps/web/src/App.jsx`, and the pages `apps/site`
-builds) and a test pins them together. Build both with
+`/app.html`. A CloudFront function in `infra/template.yaml` routes by
+prefix: `/console` and everything under it gets the app shell, any other
+path its site document (a page the site does not build is a miss). Every
+Console path is written with the `CONSOLE` prefix
+(`apps/web/src/lib/console.js`), not a router basepath, because the kit's
+`Link` renders `to` verbatim as the href. A site test evaluates the
+function and pins it, `STATIC_LINKS` in `apps/web/src/App.jsx` and the
+family tabs to the pages `apps/site` builds. Build both with
 `node infra/scripts/build-site.mjs`, which validates the merged tree
 before a deploy can upload it.
 

@@ -382,9 +382,9 @@ identifiers, so nothing about them needs hiding from a URL.
 *Measurement* is Tinylytics: per page, per mail issue, per campaign,
 never per account, never per recipient. The analytics bridge
 (`apps/web/src/analytics.js`) reports a record page as its kind
-(`/account/activity/e`) for REPORT HYGIENE - one row per page - not as
+(`/console/account/activity/e`) for REPORT HYGIENE - one row per page - not as
 a privacy device. The one URL that skips analytics entirely is one
-carrying a credential (`/signin`). Do not add per-recipient open or
+carrying a credential (`/console/signin`). Do not add per-recipient open or
 click tracking, engagement scoring, or automation on read state; do not
 tie sponsorship (`/support`) to anything on an account.
 

@@ -11,7 +11,7 @@ does fail, this owner finds it before a user or the capture audit does.
 Establish, with receipts:
 
 - **Pipeline verdict.** `GET https://elixir.poapkings.com/api/public/status`
-  (the console `/status` page is signed-in; this endpoint and `/data/now`
+  (the console's `/console/status` page is signed-in; this endpoint and `/data/now`
   are the public health reads) — health verdict, last admission age,
   battles last hour, the job ledger (`queue`: due, queued, leased, done
   this hour; `jobs.dead`), `health.dlq_messages`, and capture-audit 24h
