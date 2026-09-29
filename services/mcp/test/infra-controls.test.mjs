@@ -176,10 +176,21 @@ test("the collector door is its own function, role and route on the site API (20
   const errors = resource(template, "CollectorErrorsAlarm", "McpLatencyAlarm");
   assert.match(errors, /Value: !Ref CollectorFunction/);
   assert.match(errors, /AlarmActions: \[!Ref AlarmTopic\]/);
-  // Both writers send If-None-Match before the policy demands it.
+  // The writer sends If-None-Match before the policy demands it.
   assert.match(
     resource(template, "ArchiveBucketPolicy", "GlueArchiveDatabase"),
-    /DependsOn: \[WebApiFunction, CollectorFunction\]/,
+    /DependsOn: CollectorFunction\n/,
+  );
+  // The web-api no longer serves the door (2026-09-29): no payloads/
+  // grant on its role, and no ingest filter on its log.
+  assert.doesNotMatch(
+    resource(template, "WebApiRole", "CollectorRole"),
+    /\$\{Arn\}\/payloads\//,
+  );
+  assert.doesNotMatch(template, /^  SubmitIngestErrorFilter:/m);
+  assert.doesNotMatch(
+    template,
+    /LogGroupName: !Ref WebApiLogGroup\n\s+FilterPattern: '"submit_ingest_error"'/,
   );
 });
 

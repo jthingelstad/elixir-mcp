@@ -25,7 +25,6 @@ import {
 } from "@elixir-mcp/auth";
 import { makeRegistry } from "@elixir-mcp/tools";
 
-import { collectorRoutes } from "./routes/collector.mjs";
 import { authRoutes } from "./routes/auth.mjs";
 import { accountRoutes } from "./routes/account.mjs";
 import { emailRoutes } from "./routes/email.mjs";
@@ -128,7 +127,6 @@ export function makeHandler({
   notifyOwner = async () => {},
   sendWelcomeEmail = async () => {},
   deadLetters = async () => null,
-  collectorDoor = null,
   originSecret = null,
   /** { s3, bucket } for reading captured tool calls (capture.mjs
    *  makeCaptureStore); null = the call record carries the row only. */
@@ -245,7 +243,6 @@ export function makeHandler({
   }
 
   const routes = {
-    ...collectorRoutes({ collectorDoor }),
     ...authRoutes({
       resolveAccount,
       mintSessionResponse,

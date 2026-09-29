@@ -5,9 +5,6 @@
 
 import { currentAndPrevious } from "@elixir-mcp/auth";
 import { makeHandler } from "./handler.mjs";
-import { makeCollectorDoor } from "@elixir-mcp/collector-door";
-import { processResult } from "@elixir-mcp/ingest/pipeline";
-import { makeArchive } from "@elixir-mcp/ingest";
 import { makeCaptureStore } from "@elixir-mcp/tools/capture";
 import { makeOutbox, countStuck } from "@elixir-mcp/outbox";
 
@@ -68,11 +65,4 @@ export const handler = makeHandler({
     enqueue: enqueueEmail,
     archive: makeCaptureStore(process.env.ARCHIVE_BUCKET),
   },
-  collectorDoor: makeCollectorDoor({
-    ingest: async (db, envelope) => {
-      const archive = makeArchive(process.env.ARCHIVE_BUCKET);
-      return processResult(db, envelope, archive ? { archive } : {});
-    },
-    notifyOwner,
-  }),
 });

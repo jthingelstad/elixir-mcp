@@ -361,11 +361,8 @@ Resources:
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
-              - Effect: Allow
-                Action: [s3:PutObject, s3:GetObject]
-                Resource: !Sub
-                  - ${Arn}/payloads/*
-                  - Arn: !GetAtt ArchiveBucket.Arn
+              # No payloads/: the collector door, the one writer there,
+              # has its own Lambda and role since 2026-09-29.
               # Captured tool calls (review 2026-09-10 Part 5): the
               # console's call record reads one body at a time through
               # the session check. Read only; the MCP door writes them.
@@ -814,7 +811,6 @@ Resources:
             - !Ref AWS::NoValue
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           OUTBOX_BUCKET: !Ref OutboxBucket
-          COLLECTOR_MIN_ENFORCE: !Ref CollectorMinEnforce
           ORIGIN_SECRET: !Ref OriginSecret
           ORIGIN_SECRET_PREVIOUS: !If
             - HasOriginSecretPrevious
@@ -1575,7 +1571,7 @@ Resources:
 
   # The payload archive is write-once (review 2026-09-27 §2.7). Versioning
   # keeps an overwritten object for only a year, and the internet-facing
-  # web-api holds s3:PutObject on payloads/, so a put that could replace
+  # collector door holds s3:PutObject on payloads/, so a put that could replace
   # a key is refused for every principal: the door sends
   # If-None-Match: * (packages/ingest/src/handler.mjs) and reads a 412 as
   # already archived. The ObjectCreationOperation clause leaves the
@@ -1583,11 +1579,11 @@ Resources:
   # payloads/ is refused too, and nothing copies there. Tried first on a
   # scratch bucket (2026-09-28): an unconditional put 403, a conditional
   # put of a new key 200, of an existing key 412, other prefixes
-  # unaffected. After both writers so the code that sends the header is
-  # in place before the policy that demands it.
+  # unaffected. After the writer so the code that sends the header is in
+  # place before the policy that demands it.
   ArchiveBucketPolicy:
     Type: AWS::S3::BucketPolicy
-    DependsOn: [WebApiFunction, CollectorFunction]
+    DependsOn: CollectorFunction
     Properties:
       Bucket: !Ref ArchiveBucket
       PolicyDocument:
@@ -2364,25 +2360,14 @@ Resources:
       AlarmActions: [!Ref AlarmTopic]
 
   # A collector submit the door could not ingest (submit_ingest_error in
-  # the collector's log, or the web-api's while it still serves the door,
-  # after its one retry of a deadlock or racing upsert):
+  # the collector's log, after its one retry of a deadlock or racing
+  # upsert; the web-api's log carried it until 2026-09-29):
   # the door answers 500, which is handled, so the Lambda Errors alarm
   # never counts it, and the lease expires into a refetch (review
   # 2026-09-27 §2.5). Two weeks before the retry: at most 7 in any 15
   # minutes on an ordinary day (the 10:00Z rollover), 20 to 60 in the
   # three incidents (connections terminated, a column missing mid-deploy).
   # Ten in 15 minutes is an incident, not the churn.
-  SubmitIngestErrorFilter:
-    Type: AWS::Logs::MetricFilter
-    Properties:
-      LogGroupName: !Ref WebApiLogGroup
-      FilterPattern: '"submit_ingest_error"'
-      MetricTransformations:
-        - MetricNamespace: ElixirMCP/Collector
-          MetricName: SubmitIngestError
-          MetricValue: "1"
-          # No DefaultValue, as EmailComposeFailedFilter: the metric
-          # exists only in an hour a submit fails.
   CollectorSubmitIngestErrorFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
@@ -2392,11 +2377,13 @@ Resources:
         - MetricNamespace: ElixirMCP/Collector
           MetricName: SubmitIngestError
           MetricValue: "1"
+          # No DefaultValue, as EmailComposeFailedFilter: the metric
+          # exists only in an hour a submit fails.
   SubmitIngestErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: elixir-mcp-submit-ingest-error
-      AlarmDescription: Collector submits are failing to ingest (submit_ingest_error in the collector or web-api log); each one is a 500, an expired lease and a refetch
+      AlarmDescription: Collector submits are failing to ingest (submit_ingest_error in the collector log); each one is a 500, an expired lease and a refetch
       Namespace: ElixirMCP/Collector
       MetricName: SubmitIngestError
       Statistic: Sum
