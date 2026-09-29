@@ -1512,3 +1512,33 @@ function's log since; public status `ok`, five collectors; no
 `elixir-` alarm out of OK. The first `oauth_consent_remembered` line
 waits for a real sign-in: a GET of the authorize door, or of Clan's
 `/auth/login`, is a write, so none was made to prove it.
+
+---
+
+## 2026-09-29 - The web-api stops serving the collector door
+
+The follow-up the collector Lambda's entry owed, with Jamie's go (it
+narrows a role). From the route's creation at 12:03:26Z to 12:35Z the
+collector Lambda served 1,120 leases, 519 submits and 4 config reads,
+all 200, with no `SubmitIngestError`; the web-api logged no collector
+route in that time, through its own redeploy at 12:23Z.
+
+- **Code.** `services/web-api/src/routes/collector.mjs` is gone, and
+  with it the web-api's door wiring and its `@elixir-mcp/ingest`
+  dependency. It still imports the release-signature state from
+  `@elixir-mcp/collector-door` for the console and the status page.
+- **Role.** `elixir-mcp-web-api` loses `s3:PutObject` and
+  `s3:GetObject` on the archive's `payloads/*`. Nothing else it runs
+  touches that prefix: payload reads are migrate's (`ops-series`) and
+  jobs' (`shape-census`), under their own roles. Its `calls/*`,
+  `mail/sent/*` and outbox grants stay.
+- **Environment.** `COLLECTOR_MIN_ENFORCE` comes off the web-api; only
+  the door reads it. The parameter still reaches the collector Lambda.
+- **Alarms.** The web-api log's `SubmitIngestErrorFilter` goes;
+  `CollectorSubmitIngestErrorFilter` feeds the same metric and alarm.
+- **Archive policy.** `ArchiveBucketPolicy` now depends on the one
+  writer, `CollectorFunction`.
+
+A collector request can no longer reach the web-api: the site API's
+`ANY /api/collector/{proxy+}` route sends every one to the collector,
+and the web-api answers any stray one 404.
