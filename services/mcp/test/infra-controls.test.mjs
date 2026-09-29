@@ -486,6 +486,32 @@ test("every public read is cached at the edge by one /api/public/* behaviour (re
   assert.doesNotMatch(block, /OriginRequestPolicyId/);
 });
 
+test("Elixir Clan's API is its own behaviour before /api/*, and no cookie of Elixir's reaches it (2026-09-28)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const behaviours = cacheBehaviours(template);
+  const paths = behaviours.map(([p]) => p);
+  assert.ok(paths.includes("/api/clan/*"));
+  assert.ok(paths.indexOf("/api/clan/*") < paths.indexOf("/api/*"));
+  const [, block] = behaviours.find(([p]) => p === "/api/clan/*");
+  assert.match(block, /TargetOriginId: clanapi\n/);
+  assert.match(
+    block,
+    /OriginRequestPolicyId: !Ref ClanApiOriginRequestPolicy$/,
+  );
+  const start = template.indexOf("  ClanApiOriginRequestPolicy:");
+  const policy = template.slice(start, template.indexOf("\n\n", start));
+  assert.match(
+    policy,
+    /Cookies: \[__Host-elixir_clan_session, __Host-elixir_clan_login\]/,
+  );
+  assert.doesNotMatch(policy, /elixir_session|CookieBehavior: all/);
+  // The app takes two patterns, never /clan*, which would take /clans.
+  assert.deepEqual(
+    paths.filter((p) => p.startsWith("/clan")),
+    ["/clan", "/clan/*"],
+  );
+});
+
 test("every /api/public route is a GET that states its own freshness (#73)", async () => {
   // Cached under CachingOptimized, a response without Cache-Control
   // would live a DAY at the edge (the policy's default TTL), and a
