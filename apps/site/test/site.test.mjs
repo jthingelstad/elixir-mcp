@@ -363,9 +363,8 @@ test(
     // carries the same wordmark, the same tabs in the same order, and the
     // same product buttons with the same hrefs, or the two bars have
     // drifted into two bars.
-    const { FAMILY_PRODUCTS, FAMILY_TABS, FAMILY_WORDMARK } = await import(
-      path.join(repoRoot, "packages/ui/src/family.ts")
-    );
+    const { FAMILY_ORIGIN, FAMILY_PRODUCTS, FAMILY_TABS, FAMILY_WORDMARK } =
+      await import(path.join(repoRoot, "packages/ui/src/family.ts"));
     const { JSDOM } = await import("jsdom");
     const { document } = new JSDOM(read("index.html")).window;
 
@@ -390,8 +389,10 @@ test(
       FAMILY_PRODUCTS.map((p) => p.label),
     );
     for (const [i, p] of FAMILY_PRODUCTS.entries()) {
-      // The console's own button is a bare path on this host.
-      const href = p.key === "console" ? "/console" : p.href;
+      // A product on this origin (the Console, Clan) is a bare path here.
+      const href = p.href.startsWith(`${FAMILY_ORIGIN}/`)
+        ? p.href.slice(FAMILY_ORIGIN.length)
+        : p.href;
       assert.equal(products[i].getAttribute("href"), href, `${p.label} href`);
       assert.equal(
         products[i].getAttribute("target"),
@@ -628,9 +629,8 @@ test("analytics only ever comes from tinylytics.app", { skip }, () => {
           // No font CDN: Inter is self-hosted, so a reader's page load
           // tells no third party what they read.
           "elixir.poapkings.com",
-          // The family's product buttons in the top bar: plain links,
-          // not scripts, so the CSP is untouched.
-          "clan.poapkings.com",
+          // The family's product button in the top bar that lives
+          // elsewhere: a plain link, not a script, so the CSP is untouched.
           "drop.poapkings.com",
           "www.supercell.com",
         ].includes(origin),

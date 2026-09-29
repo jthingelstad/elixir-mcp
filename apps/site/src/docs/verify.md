@@ -103,7 +103,7 @@ time), with the proving battle on the challenge, so anything that later
 needs "is this claim proven" can read it without a second lookup.
 `elixir_my_players` carries it as `claim_status` (`verified` or
 `unverified`) beside each player you track, and
-[Elixir Clan](https://clan.poapkings.com) is the first consumer: signing in
+[Elixir Clan](https://elixir.poapkings.com/clan) is the first consumer: signing in
 with Elixir there requires a verified player, and the clan it acts for is
 chosen from your verified claims only. No data tool changes its answers on
 it; the record is the same for everyone. What it opens is what a clan

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-09-28",
+    title: "Elixir Clan lives at /clan",
+    body: "Elixir Clan, where a clan's leaders run their own policy against the record, has moved from its own address to elixir.poapkings.com/clan, beside the site and the console. A clan's page is /clan/ followed by its tag, and the Clan button in the bar at the top goes there. The old clan.poapkings.com address is being retired, so update any bookmark. Nothing about a clan's policy, standing or actions has changed, and no change to the tools.",
+  },
+  {
+    date: "2026-09-28",
     title: "The console lives at /console",
     body: "The console has moved under one address of its own: your account overview is now /console/account/overview, and every other console page sits under /console the same way. The old addresses at the root no longer open it, so update any bookmark. The site, the docs, the MCP address and the API are where they were. No change to the tools.",
   },

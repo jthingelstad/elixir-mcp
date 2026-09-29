@@ -3,9 +3,10 @@
 Elixir MCP: records Clash Royale history (the official API is current-state
 only) and serves it to players' own agents through an authenticated remote MCP
 server. One hostname, `elixir.poapkings.com`: the site at /, the Console
-at /console (2026-09-28: one origin, paths not hostnames; Elixir Clan and
-Ladder take /clan and /ladder later), the MCP/OAuth door path-split at
-/mcp, /oauth/*, /.well-known/* behind a no-cookie CloudFront behavior
+at /console and Elixir Clan at /clan with its API at /api/clan (2026-09-28:
+one origin, paths not hostnames; Ladder takes /ladder later), the
+MCP/OAuth door path-split at /mcp, /oauth/*, /.well-known/* behind a
+no-cookie CloudFront behavior
 (consolidated from two hostnames 2026-09-03).
 
 **The site is two builds in one bucket** (split 2026-09-07). `apps/site`
@@ -250,7 +251,11 @@ own Lambdas, DynamoDB table and CloudFormation stack (`elixir-clan`),
 deploys from CI through `.github/workflows/clan-deploy.yml` after a green
 `validate` (it skips a merge that changed nothing it builds from), and
 reads Elixir only over HTTP, at `/api/v1` with the person's own grant.
-`clan/AGENTS.md` governs work inside `clan/`; read it before editing there.
+Elixir's distribution serves it: `/clan` and `/clan/*` from Clan's bucket
+(the SpaRouter sends every app path to `/clan/index.html`), `/api/clan/*`
+to Clan's HTTP API with only Clan's two cookies forwarded, so Elixir's
+session never reaches Clan's Lambda. `clan/AGENTS.md` governs work inside
+`clan/`; read it before editing there.
 
 Shared: the kit (`packages/ui`, `packages/client`, `packages/design`,
 taken from the workspace, so a kit change is checked against Clan in the

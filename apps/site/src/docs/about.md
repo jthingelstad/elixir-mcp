@@ -39,7 +39,7 @@ unsubscribe link, and unsubscribing sticks).
 
 **The family:** Elixir MCP is the record under the Elixir family, alongside
 [Elixir Drop](https://drop.poapkings.com) (the elixir-cost learning
-game) and [Elixir Clan](https://clan.poapkings.com) (being in a clan:
+game) and [Elixir Clan](https://elixir.poapkings.com/clan) (being in a clan:
 standing, the Elder band and the actions leaders decide, run against this
 record with your clan's own policy). A clan can also run its own
 [Discord bot](/family/discord), an agent that reads its game facts from
