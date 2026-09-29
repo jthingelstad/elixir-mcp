@@ -153,6 +153,7 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 
 ## Web and site
 
+- **One origin, paths not hostnames** — Elixir is an application the POAP KINGS clan runs, and it keeps `elixir.poapkings.com`: the site and docs at `/`, the Console at `/console`, Elixir Clan at `/clan` (its API at `/api/clan`), Ladder at `/ladder`; `/mcp`, `/a/*`, `/i/*`, `/oauth/*`, `/.well-known/*`, `/api/v1`, `/api/public/*` and `/api/collector/*` stay where they are. No Elixir subdomain and no redirect from a moved path (nobody depends on one yet). Clan's code lives in this repo as a directory with its own Lambdas, table and stack; Drop stays at `drop.poapkings.com` as its own product; poapkings.com is the clan's website. (2026-09-28; Jamie)
 - **The console /status page is signed-in** — the public health views are /data/now and `/api/public/status`. (2026-09-09, 2026-09-25; Jamie)
 - **The web is a record browser, not a BI platform** — "the agent is the analyst; the website's job is verification"; web and agent see the same registry. (2026-09-06, 2026-09-04; Jamie)
 - **Adopt the ecosystem early** — React 19, TanStack, and Tailwind v4 in the shared kit; kit gaps are fixed in the kit, never copied; no Radix before a real dialog; no PWA ("just make it a mobile view"). (2026-09-13, 2026-09-06; Jamie)
