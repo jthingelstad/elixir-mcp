@@ -149,7 +149,7 @@ export async function acceptIssue({
         kind: "owner_notify",
         to: process.env.OWNER_NOTIFY_EMAIL || "elixir@poapkings.com",
         note: `${kind} issue ${period} ${editorError ? "was not written" : "failed lint"}: ${problems.slice(0, 5).join("; ")}`,
-        link: `${SITE}/admin`,
+        link: `${SITE}/console/admin`,
       });
     return { accepted: false, problems, period, ops };
   }

@@ -477,7 +477,7 @@ async function runWritten(run, recipients) {
         kind: "owner_notify",
         to: process.env.OWNER_NOTIFY_EMAIL || "elixir@poapkings.com",
         note: `${kind} ${expected}: no accepted issue at send time, so nothing was sent. The period's row in email_issue says why (failed lint, or the editor has not answered).`,
-        link: `${SITE}/admin`,
+        link: `${SITE}/console/admin`,
       });
     return;
   }

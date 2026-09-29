@@ -62,7 +62,7 @@ export async function sweepSilentCollectors(
               ? new Date(g.last_success_at).toISOString()
               : null,
           },
-          link: "https://elixir.poapkings.com/admin",
+          link: "https://elixir.poapkings.com/console/admin",
         });
       await db.query(
         `update gateway set silent_notified_at = $2 where gateway_id = $1`,

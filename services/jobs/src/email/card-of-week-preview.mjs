@@ -42,8 +42,8 @@ export async function cardOfWeekPreview({
       // A preview is not a send: there is no recipient, so there is no
       // signed one-click token. The renderer demands both links, so the
       // preview names the page that would carry them.
-      unsubscribe: `${SITE}/account/profile/email`,
-      manage: `${SITE}/account/profile/email`,
+      unsubscribe: `${SITE}/console/account/profile/email`,
+      manage: `${SITE}/console/account/profile/email`,
       period: row.period_key,
       pixel: false,
     };

@@ -19,7 +19,7 @@ const SITE = "https://elixir.poapkings.com";
 const fixtures = path.join(here, "../fixtures");
 const links = {
   unsubscribe: "https://elixir.poapkings.com/api/email/unsubscribe?t=x",
-  manage: "https://elixir.poapkings.com/account/profile/email",
+  manage: "https://elixir.poapkings.com/console/account/profile/email",
   period: "2026-W37",
 };
 
@@ -83,7 +83,7 @@ test("names are links into Browse carrying the campaign tag, tags only in the ti
   const { html } = renderMail("arena_week", facts, links);
   assert.ok(
     html.includes(
-      'href="https://elixir.poapkings.com/explore/player/20JJJ2CCRU?utm_source=email&utm_medium=arena_week&utm_campaign=arena_week-2026-W37"',
+      'href="https://elixir.poapkings.com/console/explore/player/20JJJ2CCRU?utm_source=email&utm_medium=arena_week&utm_campaign=arena_week-2026-W37"',
     ),
     html.match(/explore\/player\/20JJJ2CCRU[^"]*/)?.[0],
   );
@@ -120,20 +120,20 @@ test("links.send_id puts the send's id and its console link in the footer; a pag
   // identifiers versus measurement").
   assert.ok(
     html.includes(
-      `href="https://elixir.poapkings.com/account/activity/e/${id}?utm_source=email`,
+      `href="https://elixir.poapkings.com/console/account/activity/e/${id}?utm_source=email`,
     ),
   );
   assert.ok(
     html.includes(
-      `href="https://elixir.poapkings.com/account/activity/e/${id}?report=1&amp;utm_source=email`,
+      `href="https://elixir.poapkings.com/console/account/activity/e/${id}?report=1&amp;utm_source=email`,
     ) ||
       html.includes(
-        `href="https://elixir.poapkings.com/account/activity/e/${id}?report=1&utm_source=email`,
+        `href="https://elixir.poapkings.com/console/account/activity/e/${id}?report=1&utm_source=email`,
       ),
   );
   assert.ok(
     html.includes(
-      "https://elixir.poapkings.com/account/activity/emails?utm_source=email",
+      "https://elixir.poapkings.com/console/account/activity/emails?utm_source=email",
     ),
   );
   // Every product email carries the same support line, tagged by kind.
