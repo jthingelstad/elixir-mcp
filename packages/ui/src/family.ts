@@ -48,7 +48,7 @@ export const FAMILY_PRODUCTS: ReadonlyArray<FamilyProduct> = [
   {
     key: "clan",
     label: "Clan",
-    href: "https://clan.poapkings.com/",
+    href: `${FAMILY_ORIGIN}/clan`,
     icon: "users",
   },
   {

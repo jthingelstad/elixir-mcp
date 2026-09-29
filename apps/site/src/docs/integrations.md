@@ -273,7 +273,7 @@ address, the switch and the unsubscribe. The first is Elixir Clan's
       "player_tag": "#2PPGY0Q8",
       "subject": "2 actions waiting for you in Example Clan",
       "lines": ["Promote to Elder: Ada (new)", "Welcome a newcomer: Newbie"],
-      "link": "https://clan.poapkings.com/clan/2PQRJ8LV/actions"
+      "link": "https://elixir.poapkings.com/clan/2PQRJ8LV/actions"
     }
   ]
 }

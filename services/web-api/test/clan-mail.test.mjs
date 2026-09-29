@@ -110,7 +110,7 @@ const message = (player_tag, extra = {}) => ({
   player_tag,
   subject: "2 actions waiting for you in Example Clan",
   lines: ["Promote to Elder: <b>Ada</b> (new)", "Remove from the clan: Quiet"],
-  link: "https://clan.poapkings.com/clan/2PQRJ8LV/actions",
+  link: "https://elixir.poapkings.com/clan/2PQRJ8LV/actions",
   ...extra,
 });
 
@@ -160,7 +160,7 @@ test("only the account that verified a player in the clan, with the kind on, is 
   assert.ok(!msg.html.includes("<b>Ada</b>"));
   assert.match(
     msg.html,
-    /clan\.poapkings\.com\/clan\/2PQRJ8LV\/actions\?utm_source=email/,
+    /elixir\.poapkings\.com\/clan\/2PQRJ8LV\/actions\?utm_source=email/,
   );
   const { rows } = await db.query(
     "select s.account_id, i.kind, i.subject_key from email_send s join email_issue i using(issue_id)",
