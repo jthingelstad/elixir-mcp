@@ -818,3 +818,34 @@ Also unchanged, for the record: the collector fleet keeps one rate
 budget with no per-key pooling (Jamie, to revisit in about a month as
 use grows), and ranking-origin recording stays on as a dial Jamie can
 turn off.
+
+## 2026-09-28 - The Console moves to /console (one origin, step 2)
+
+Every Console path now starts with `/console` (`CONSOLE` and `appPath()` in
+`apps/web/src/lib/console.js`), written out rather than set as a router
+basepath, because the kit's `Link` renders `to` verbatim as the href and a
+basepath would break copied and middle-clicked links. `SpaRouter` is one
+rule now: a file passes, `/` is the home page, `/console` and everything
+under it is the app shell, and any other path is its site document or an
+honest miss. That deleted `STATIC_PAGES`/`STATIC_PREFIXES`, the list that
+the function, `STATIC_LINKS` and the Eleventy pages had to keep equal; the
+site test still evaluates the function from the template and pins
+`STATIC_LINKS` and the family tabs to pages the site builds.
+`serve-site.mjs` and `build-site.mjs` follow the same rule.
+
+No aliases, as decided: the Console's `REDIRECTS` lost `/dashboard`,
+`/clan`, `/data/status`, `/account/collector`, `/admin/gateways`,
+`/admin/tokens` and `/account/settings`, and a root Console address is a
+404. `/console` goes to `/console/account/overview`; `/console/data`, no
+longer shadowed by the site's `/data`, goes to its one page. Mail
+(`MANAGE_URL`, notifications, the email routes) and the magic-link
+sign-in (`/console/signin`) link under the prefix. What is left behind:
+a sign-in link mailed before the deploy lands on a 404 (it lives minutes),
+and older mails' manage links point at the root; one-click unsubscribe is
+under `/api` and unaffected.
+
+Outside this repository, three links to Console pages break with the
+deploy and are fixed in their own repositories: Drop's "verify your
+player" link (`ElixirConnection.tsx`), poapkings.com's two
+`/data/dashboard` links, and Clan's `lib/links.js` and email link, which
+land with Clan's move into this repository.
