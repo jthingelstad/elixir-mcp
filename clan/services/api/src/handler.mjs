@@ -37,7 +37,7 @@ import { roleLabel, roleRank } from "./roles.mjs";
 
 export const GATE_TTL_MS = 2 * 60_000;
 export const ROSTER_TTL_MS = 3 * 60_000;
-export const REFRESH_FLOOR_MS = 30_000;
+const REFRESH_FLOOR_MS = 30_000;
 const ACCESS_SKEW_MS = 60_000;
 const FAMILY_MS = 90 * 24 * 3600_000;
 const REFRESH_MS = 30 * 24 * 3600_000;

@@ -1,4 +1,4 @@
-import { Fresh } from "elixir-mcp/packages/ui/src/index.ts";
+import { Fresh } from "@elixir-mcp/ui";
 import { useStanding } from "../lib/queries.js";
 import { TooFew } from "../components/TooFew.jsx";
 

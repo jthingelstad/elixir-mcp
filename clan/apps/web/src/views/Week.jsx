@@ -1,4 +1,4 @@
-import { Fresh } from "elixir-mcp/packages/ui/src/index.ts";
+import { Fresh } from "@elixir-mcp/ui";
 import { CATEGORY_LABELS } from "@elixir-clan/engine";
 import { useWeek } from "../lib/queries.js";
 

@@ -14,7 +14,6 @@
  */
 
 import {
-  CARD_TYPES,
   DEPARTURE_CLASSIFICATIONS,
   cardFacts,
   cardRationale,
@@ -55,8 +54,8 @@ import { createActionStore } from "./actions.mjs";
 import { createSharing } from "./sharing.mjs";
 
 export const EVALUATION_TTL_MS = 5 * 60_000;
-export const PARTICIPATION_WEEKS = 8;
-export const DECLINE_REASONS = [
+const PARTICIPATION_WEEKS = 8;
+const DECLINE_REASONS = [
   "not_now",
   "knows_the_member",
   "evidence_wrong",
@@ -103,7 +102,7 @@ export async function noteClanSize(ledger, clanTag, members, t) {
 }
 
 /** The roster's member count, as the roster states it. */
-export const rosterSize = (roster) =>
+const rosterSize = (roster) =>
   roster ? (roster.member_count ?? roster.members?.length ?? null) : null;
 
 /** One call, eight weeks: the record every evaluation reads. */
@@ -137,7 +136,7 @@ export async function fetchRoster(mcp, token, clanTag) {
 /** Tag → last-observed name for the tags Elixir's corpus knows, from one
  *  bulk players_names read (nothing from the live lane); an empty map
  *  when Elixir cannot answer. */
-export async function fetchNames(mcp, token, tags) {
+async function fetchNames(mcp, token, tags) {
   const names = new Map();
   if (tags.length === 0) return names;
   const r = await mcp.callTool(token, "players_names", {
@@ -1663,5 +1662,3 @@ function bucketFor(m) {
   if (heldJ) return "held";
   return "clear";
 }
-
-export { CARD_TYPES };

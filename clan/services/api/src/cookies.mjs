@@ -12,8 +12,8 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 export const SESSION_COOKIE = "__Host-elixir_clan_session";
 export const LOGIN_COOKIE = "__Host-elixir_clan_login";
-export const SESSION_COOKIE_MAX_AGE_S = 90 * 24 * 3600;
-export const LOGIN_COOKIE_MAX_AGE_S = 600;
+const SESSION_COOKIE_MAX_AGE_S = 90 * 24 * 3600;
+const LOGIN_COOKIE_MAX_AGE_S = 600;
 
 const attrs = "Path=/; Secure; HttpOnly; SameSite=Lax";
 

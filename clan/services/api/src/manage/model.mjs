@@ -32,7 +32,7 @@ import { PURPOSES, chooseModel } from "@elixir-clan/engine";
 import { ManageError } from "./service.mjs";
 
 export const USES_PER_DAY = 20;
-export const USE_KEEP_DAYS = 90;
+const USE_KEEP_DAYS = 90;
 const LEADERS = new Set(["leader", "coLeader"]);
 const KEY_SHAPE = /^sk-ant-[A-Za-z0-9_-]{20,200}$/;
 

@@ -1,7 +1,11 @@
 # AGENTS.md
 
-Elixir Clan: being in a clan, on top of Elixir. `clan.poapkings.com`, one of
-the Elixir family's verticals (`../elixir-family/MAP.md`). It signs people
+Elixir Clan: being in a clan, on top of Elixir. One of the Elixir family's
+verticals (`../../elixir-family/MAP.md`), served at `clan.poapkings.com`
+until it moves to `elixir.poapkings.com/clan` (one origin, 2026-09-28:
+`../../elixir-family/plans/one-origin.md`, step 4). Its code lives in
+elixir-mcp's repository as `clan/` (2026-09-28, with its history) and keeps
+its own Lambdas, table and stack: one repository, two runtimes. It signs people
 in with Elixir's OAuth, takes anyone with a player in a clan as a member
 (an Elder's, Co-leader's or Leader's tools wait for a verified player),
 shows them their clan with their own role, and runs each clan's own policy against the record:
@@ -33,10 +37,13 @@ chosen: `docs/VISION.md`. Read it before proposing a feature.
    action cards. Facts in, judgment in our code.
 5. **Design is Elixir's, and so is the kit.** Same tokens, chrome, rail,
    chips and cards, and the same React components, data layer and clock
-   vocabulary, imported from the pinned `elixir-mcp` dependency, never
-   copied. Anything this app needs that the kit lacks is a kit addition
-   there, then a pin bump here - never a local copy. The unofficial
-   disclaimer is on every page.
+   vocabulary, imported from the workspace's kit (`@elixir-mcp/ui`,
+   `@elixir-mcp/client`, `@elixir-mcp/design`), never copied. Anything
+   this app needs that the kit lacks is a kit addition in `packages/`,
+   in the same pull request if need be - never a local copy. The kit is
+   all Clan imports of Elixir's code: it reaches Elixir over HTTP only
+   (`infra/tests/boundary.test.mjs`). The unofficial disclaimer is on
+   every page.
 6. **Any clan, and nothing until its policy.** No code, default, help text
    or copy is shaped by one clan: a clan's rules, awards and words live in
    its saved policy, awards and pitch. Until a leader or co-leader saves a
@@ -51,6 +58,9 @@ chosen: `docs/VISION.md`. Read it before proposing a feature.
    members should see, they see signed in.
 
 ## Layout
+
+Paths in this file are relative to `clan/`; commands run from the
+repository root.
 
 ```
 apps/web/          React 19 + Vite SPA on Elixir's kit (TanStack Router + Query,
@@ -79,7 +89,7 @@ docs/NOTES.md      decisions, newest last; what is waiting on Jamie
 | Client registration | `POST /oauth/register` | once, by `infra/scripts/register-client.mjs`; the `client_id` is the stack parameter `OAuthClientId`. PKCE, and the client secret: the NoEcho stack parameter `OAuthClientSecret` (PRESERVED, env `OAUTH_CLIENT_SECRET`, staged once with `--param`, never printed), sent as `client_secret` in the form of both token requests when set. Lives 365 days from last use. |
 | Authorize | `/oauth/authorize` | `scope=cr:read clans:attest` (`clans:attest` since 2026-09-25: only the family's own apps may ask for it), `resource=https://elixir.poapkings.com/api/v1` (required, RFC 8707), S256. An `/mcp` grant is refused at `/api/v1`. A session signed in before the change holds `cr:read` alone: its shares are logged as not shared, and every page asks the person to sign in again (`canShare` in `App.jsx`, from `/api/me`'s `scope`). |
 | Tokens | `/oauth/token` | access 1 h, refresh 30 d rotating, family 90 d. Refreshed server-side; a rotated refresh token is STORED before any reuse (presenting it twice revokes the grant). One request spends it: `store.claimRefresh` is a conditional write on the stored token, and a request that loses waits for the pair the winner stores (2026-09-26; parallel page calls revoked a grant on 2026-09-13). Elixir refusing the refresh (400) ends the session; Elixir not answering is a 502 that keeps the session and the cookie. |
-| The door | `/api/v1/*` | Elixir's JSON API (`services/api/src/elixir-api.mjs`). It keeps the old MCP client's `initialize`/`callTool` interface: each tool name maps to one operation, answered with that tool's structured result, and a refusal comes back as problem+json carrying the tool's code. Plan: `../elixir-family/plans/clan-app-api.md` |
+| The door | `/api/v1/*` | Elixir's JSON API (`services/api/src/elixir-api.mjs`). It keeps the old MCP client's `initialize`/`callTool` interface: each tool name maps to one operation, answered with that tool's structured result, and a refusal comes back as problem+json carrying the tool's code. Plan: `../../elixir-family/plans/clan-app-api.md` |
 
 Elixir's contract is documented at <https://elixir.poapkings.com/docs>
 (`integrations` for the JSON API Clan reads, `protocol` for OAuth discovery
@@ -739,20 +749,20 @@ Elixir's requested interval (Scout stops after six attempts). The page shows
 
 ## Landing changes
 
-Since 2026-09-26, `main` takes only pull requests, merged on a green
-`validate` check (`.github/workflows/validate.yml`: the workflow lint,
-`npm run verify`, both builds and the browser journeys). There is no bypass,
-Jamie's account included; the agents push as it.
+Clan lands the way the rest of elixir-mcp does (its `AGENTS.md`, "Working
+style"): a branch, `gh pr create --fill`, `gh pr merge --auto --rebase
+--delete-branch`, merged on the repository's one `validate` check
+(`.github/workflows/validate.yml` at the root: the workflow lint, the root
+`npm run verify`, which runs Clan's workspaces with Elixir's, both builds of
+each, and both apps' browser journeys). There is no bypass, Jamie's account
+included; the agents push as it.
 
-- `git switch -c <objective>/<slug>` before the first edit (`session/<slug>`
-  for an interactive session), commit, `git push -u origin HEAD`,
-  `gh pr create --fill`, `gh pr merge --auto --rebase --delete-branch`,
-  `gh pr checks --watch --fail-fast`; once merged, `git switch main && git
-  pull --ff-only`. If `main` moves under an open PR: `gh pr update-branch
-  --rebase`.
+- A kit change (`packages/ui`, `packages/client`, `packages/design`) is
+  checked against Clan in the same pull request: `tsc -p clan/apps/web`,
+  Clan's vitest and its journeys all run in that one gate.
 - A rebase merge gives the commit a new SHA on `main`. The deploy that
-  carries it is the `deploy` run for the merge SHA from `gh pr view <n>
-  --json mergeCommit`, never the branch's SHA.
+  carries it is the `clan-deploy` run for the merge SHA from `gh pr view
+  <n> --json mergeCommit`, never the branch's SHA.
 - A check that fails and then passes on a re-run is a flake, and a flake
   is a defect: fix it in the PR or record it the same day.
 - Unfinished work stays an open PR; the checkout goes back to `main`.
@@ -774,22 +784,32 @@ Jamie's account included; the agents push as it.
   `OAuthClientSecret`, `AppSecretName`, `SiteCertificateArn`) rides
   `UsePreviousValue`. Set one with `--param=Key=Value`; omitting is never a
   reset. A test pins the template's parameter list to that set.
-- Local: `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs` (build → upload →
-  stack → web → smoke). `--create` for a first deploy, `--skip-web` for code
-  only. It deploys only an up-to-date `main` whose `validate` check is green
-  and a clean worktree (`infra/scripts/ci-gate.mjs`); `--break-glass` is
-  for GitHub being down, never for a red check, and is recorded in
-  `docs/NOTES.md`.
-- CI: `validate` on every PR and push to main (no network, no spend);
-  `deploy` on main after green, in the GitHub `production` environment (main
-  only, no admin bypass). It holds no AWS key: it assumes
-  `elixir-clan-github-deploy` with GitHub's OIDC token (the role's trust
-  names this repo's `production` environment and nothing else; its ARN is
-  the environment variable `ELIXIR_CLAN_DEPLOY_ROLE_ARN`) and passes the
-  `elixir-clan-cloudformation-execution` role to the stack. Both roles come
-  from `infra/scripts/bootstrap.mjs` (2026-09-26: the `elixir-clan-deploy`
-  user and its static keys are gone). A manual `deploy` run refuses a SHA
-  whose `validate` is not green.
+- Local, from the repository root: `AWS_PROFILE=cloud-engineer node
+  clan/infra/scripts/deploy.mjs` (build → upload → stack → web → smoke).
+  `--create` for a first deploy, `--skip-web` for code only. It deploys
+  only an up-to-date `main` whose `validate` check is green and a clean
+  worktree (`infra/scripts/ci-gate.mjs`); `--break-glass` is for GitHub
+  being down, never for a red check, and is recorded in `docs/NOTES.md`.
+  It reads a `clan/.env` if there is one; nothing needs one (the OAuth
+  client secret is a NoEcho stack parameter).
+- CI: `clan-deploy` (`.github/workflows/clan-deploy.yml` at the root) runs
+  on `main` after a green `validate`, in elixir-mcp's GitHub
+  `clan-production` environment (main only, no admin bypass). Most merges
+  do not touch Clan: it keeps the SHA it last deployed in the code bucket
+  (`deployed/main-sha`) and deploys nothing when `clan/`, the kit, the
+  fonts it copies and the lockfile are unchanged since then. It holds no
+  AWS key: it assumes `elixir-clan-github-deploy` with GitHub's OIDC token
+  (the role's trust names elixir-mcp's `clan-production` environment, by
+  name and by immutable id, and nothing else: `infra/scripts/iam-policies.mjs`;
+  its ARN is the environment variable `ELIXIR_CLAN_DEPLOY_ROLE_ARN`) and
+  passes the `elixir-clan-cloudformation-execution` role
+  (`ELIXIR_CLAN_CFN_ROLE_ARN`, the environment's other variable) to the
+  stack. Both
+  roles come from `infra/scripts/bootstrap.mjs` (2026-09-26: the
+  `elixir-clan-deploy` user and its static keys are gone). A manual run
+  refuses a SHA whose `validate` is not green. Elixir's own stack still
+  deploys locally with the root `infra/scripts/deploy.mjs`; the two never
+  deploy together.
 - Deployment IAM is defined in `infra/scripts/iam-policies.mjs`. The existing
   execution role may edit only the application role, whose administrator-owned
   boundary is retained by the template. IAM repairs use the dedicated approved
@@ -799,12 +819,14 @@ Jamie's account included; the agents push as it.
   `infra/scripts/wire-alarms.mjs` (queue policy + raw subscription). No email.
 - Secrets: load the `aws-secrets-manager` skill before touching any; never
   `get-secret-value`.
-- Tests: `npm run verify` (prettier, oxlint, node:test + vitest). Every seam
-  is injected; no test reaches the network.
+- Tests: the root `npm run verify` (prettier, oxlint, knip, typecheck and
+  every workspace's node:test and vitest, Clan's among them). Every seam is
+  injected; no test reaches the network.
 - There is no local API runner (`services/api/local.mjs` was never
-  written). The pre-deploy lane is `npm run e2e`: Playwright against the
-  built app under `vite preview`, with route fixtures and axe; the live
-  sign-in check waits for the deploy.
+  written). The pre-deploy lane is the root `npm run e2e`, which runs
+  Clan's journeys (`apps/web/playwright.config.ts`) after the Console's:
+  Playwright against the built app under `vite preview`, with route
+  fixtures and axe; the live sign-in check waits for the deploy.
 - Deployment smoke uses only reads that cannot change live state. It never
   visits `/auth/login`, which creates a pending login even on GET; the
   handler tests cover the OAuth redirect and PKCE offline.
@@ -883,45 +905,46 @@ token; this product has no relay and sends nothing from the Lambda.
 
 ## Design dependency
 
-`apps/web` depends on `elixir-mcp` as a **pinned git dependency** (a commit
-SHA in `apps/web/package.json`) and imports from it as SOURCE - no build
-step in either repo:
+`apps/web` takes Elixir's kit from the workspace (2026-09-28; before the
+move it was a git dependency pinned to a commit, 136 behind when it was
+dropped) and imports it as SOURCE, with no build step:
 
-- `elixir-mcp/packages/design/src/{tokens,components}.css` into
+- `@elixir-mcp/design`'s `tokens.css` and `components.css` into
   `apps/web/src/styles.css`, this app's Tailwind entry, which adds its own
-  `@source` (this app and the kit) and compiles its own file through
+  `@source` (this app and `packages/ui`) and compiles its own file through
   `@tailwindcss/vite`. Tailwind's palette, type scale and radii are reset
   there; the utility vocabulary is Elixir's tokens (`bg-ground`,
   `text-ink-faint`, `rounded-panel`, `wide:`/`max-wide:` at 900px).
-- `elixir-mcp/packages/ui/src/index.ts` - Chrome, Rail, RailIdentity,
-  Fresh, Markdown, Icon, ErrorBoundary, Disclaimer, and the clock
-  (`ago`, `agoSeconds`, `freshCls`). What goes ON the rail is
-  `src/lib/rail.js`; the rail itself is the kit's.
-- `elixir-mcp/packages/client/src/index.ts` - the `{ ok, status, data }`
-  envelope, `createClient()` (this app passes its route-aware label so no
-  clan tag reaches analytics), `answered()`/`unwrap()`, and the query
-  client. `src/lib/queries.js` is this app's keys and hooks; `useGated()`
-  keeps the `{ loading, signedOut, forbidden, error, data }` shape the
-  views read and owns the server-side `?refresh=1` re-read.
+- `@elixir-mcp/ui` - Chrome, Rail, RailIdentity, Fresh, Markdown, Icon,
+  ErrorBoundary, Disclaimer, and the clock (`ago`, `agoSeconds`,
+  `freshCls`). What goes ON the rail is `src/lib/rail.js`; the rail itself
+  is the kit's.
+- `@elixir-mcp/client` - the `{ ok, status, data }` envelope,
+  `createClient()` (this app passes its route-aware label so no clan tag
+  reaches analytics), `answered()`/`unwrap()`, and the query client.
+  `src/lib/queries.js` is this app's keys and hooks; `useGated()` keeps the
+  `{ loading, signedOut, forbidden, error, data }` shape the views read and
+  owns the server-side `?refresh=1` re-read.
 
-The kit's runtime dependencies (`react`, `@tanstack/*`, `lucide-react`,
-`marked`, `tailwindcss`) are declared HERE, because a git dependency's
-workspace packages bring none of their own. The Clash display font is
-copied from the dependency at build time (`apps/web/scripts/fonts.mjs`,
-gitignored). Bump the SHA to take a change; never copy a file.
-Publishing the packages to npm is the durable answer and needs Jamie's
-npm org (docs/NOTES.md). Foundation plan and rationale:
-`../elixir-family/plans/console-clan-foundation.md`.
+The kit's runtime dependencies come from the root install. The fonts, the
+Clash display face and the text faces, are the Console's self-hosted files,
+copied from `../apps/web/public/assets/fonts` at build time
+(`apps/web/scripts/fonts.mjs`, gitignored), so no page loads a third-party
+font. Never copy a kit file. Foundation plan and rationale:
+`../../elixir-family/plans/console-clan-foundation.md`.
 
 ## The team
 
 `AGENT-TEAM/` holds four objective owners (Run Elixir Clan, Judge Fairly,
 Close the Loop, Guard the Door), the operating loop (`WORKFLOW.md`), the
-reading map, the calendar (`automations.toml` → `SCHEDULE.md`) and the
-checkout lease (`scripts/objective-lease.mjs`). Every mutating actor on
-this checkout, an objective run or an interactive session, claims the
-lease before the first edit and releases it clean. Feedback is Close the
-Loop's daily duty.
+reading map and the calendar (`automations.toml` → `SCHEDULE.md`). All
+four are paused, and stay paused after the move until Jamie picks which
+objectives resume. One checkout has one lease: the repository's
+(`AGENT-TEAM/scripts/objective-lease.mjs` at the root; Clan's own copy
+went with the move). Every mutating actor on the checkout, an objective
+run or an interactive session (`claim session`), claims it before the
+first edit and releases it clean. Feedback is Close the Loop's daily duty;
+while it is paused, the queue waits for an interactive session.
 
 ## The morning evaluation (2026-09-25, door 1)
 

@@ -6,7 +6,10 @@
   "workspaces": [
     "apps/*",
     "services/*",
-    "packages/*"
+    "packages/*",
+    "clan/apps/*",
+    "clan/services/*",
+    "clan/infra"
   ],
   "engines": {
     "node": ">=24"
@@ -14,6 +17,7 @@
   "devDependencies": {
     "@aws-sdk/client-cloudformation": "^3.1140.0",
     "@aws-sdk/client-cloudfront": "^3.1140.0",
+    "@aws-sdk/client-dynamodb": "^3.1140.0",
     "@aws-sdk/client-lambda": "^3.1140.0",
     "@aws-sdk/client-s3": "^3.1140.0",
     "@aws-sdk/client-secrets-manager": "^3.1140.0",
@@ -35,10 +39,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip",
-    "typecheck": "tsc -p apps/web && tsc -p packages/client && tsc -p packages/ui",
+    "typecheck": "tsc -p apps/web && tsc -p packages/client && tsc -p packages/ui && tsc -p clan/apps/web",
     "verify": "npm run format:check && npm run lint && npm run knip && npm run typecheck && npm run test",
     "acceptance": "node acceptance/run.mjs",
     "cr": "node infra/scripts/cr-api.mjs",
-    "e2e": "playwright test -c apps/web/playwright.config.ts"
+    "e2e": "playwright test -c apps/web/playwright.config.ts && playwright test -c clan/apps/web/playwright.config.ts"
   }
 }

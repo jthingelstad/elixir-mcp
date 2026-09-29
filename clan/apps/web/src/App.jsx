@@ -18,7 +18,7 @@ import {
   useLocation,
   useNavigate,
 } from "@tanstack/react-router";
-import { createQueryClient } from "elixir-mcp/packages/client/src/index.ts";
+import { createQueryClient } from "@elixir-mcp/client";
 import {
   Chrome as ChromeBar,
   FAMILY_ORIGIN,
@@ -30,7 +30,7 @@ import {
   Icon,
   Rail as RailList,
   RailIdentity,
-} from "elixir-mcp/packages/ui/src/index.ts";
+} from "@elixir-mcp/ui";
 import { api } from "./api.js";
 import { keys, useMeQuery } from "./lib/queries.js";
 import { railItems, railKey } from "./lib/rail.js";
@@ -96,7 +96,7 @@ export function clanFromPath(path, clans = []) {
 
 /** `navigate(to)` for the views: a path, with a query string riding
  *  along (`/?error=session_expired`). */
-export function useNav() {
+function useNav() {
   const nav = useNavigate();
   return useCallback(
     (to) => {
@@ -168,7 +168,7 @@ function useMe() {
 
 const SessionContext = createContext(null);
 /** The session and the clan chooser, for the pages. */
-export const useSession = () => useContext(SessionContext);
+const useSession = () => useContext(SessionContext);
 
 const rootRoute = createRootRoute({
   component: Shell,
@@ -371,7 +371,7 @@ const maintainRoute = createRoute({
   },
 });
 
-export const routeTree = rootRoute.addChildren([
+const routeTree = rootRoute.addChildren([
   landingRoute,
   clansRoute,
   clanRoute,

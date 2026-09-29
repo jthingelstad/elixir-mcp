@@ -23,7 +23,7 @@ const storage = new AsyncLocalStorage();
 /** A single upstream call slower than this gets its own warning line. */
 export const SLOW_CALL_MS = 5_000;
 /** A request slower than this is logged at warn level, not info. */
-export const SLOW_REQUEST_MS = 8_000;
+const SLOW_REQUEST_MS = 8_000;
 
 let coldStart = true;
 

@@ -1,4 +1,4 @@
-import { Fresh, ago } from "elixir-mcp/packages/ui/src/index.ts";
+import { Fresh, ago } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useRoster } from "../lib/queries.js";
 import { RoleChip } from "../components/RoleChip.jsx";

@@ -1,4 +1,4 @@
-import { Markdown, ago } from "elixir-mcp/packages/ui/src/index.ts";
+import { Markdown, ago } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { feedbackApi } from "../api.js";
 import {
@@ -15,7 +15,7 @@ import { trackEvent } from "../analytics.js";
  * maintainer's reply rendered as the Markdown they were written in.
  * Opening a record marks its reply seen.
  */
-export const CATEGORIES = [
+const CATEGORIES = [
   "general",
   "bug",
   "judgment",
@@ -36,7 +36,7 @@ const firstLine = (text, max = 72) => {
 
 /** Where the note is written from, attached so a report about a page
  *  need not name the page. */
-export function contextFrom(me, path) {
+function contextFrom(me, path) {
   return {
     path,
     clan_tag: me?.selected?.clan_tag ?? null,

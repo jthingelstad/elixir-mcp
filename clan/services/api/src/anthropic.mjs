@@ -13,10 +13,10 @@
 
 import { timedModel } from "./trace.mjs";
 
-export const ANTHROPIC_URL = "https://api.anthropic.com";
+const ANTHROPIC_URL = "https://api.anthropic.com";
 export const ANTHROPIC_VERSION = "2023-06-01";
 /** Under the Lambda's 25 s and the gateway's 29 s, with room to answer. */
-export const MODEL_TIMEOUT_MS = 20_000;
+const MODEL_TIMEOUT_MS = 20_000;
 
 export function createAnthropicClient({
   fetch = globalThis.fetch,

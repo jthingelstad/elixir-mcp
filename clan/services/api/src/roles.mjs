@@ -5,7 +5,7 @@
  * answer so the browser never has to know the API spelling.
  */
 
-export const ROLE_ORDER = ["leader", "coLeader", "elder", "member"];
+const ROLE_ORDER = ["leader", "coLeader", "elder", "member"];
 
 const LABELS = {
   leader: "Leader",

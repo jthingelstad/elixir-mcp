@@ -1,4 +1,4 @@
-import { Fresh, Icon } from "elixir-mcp/packages/ui/src/index.ts";
+import { Fresh, Icon } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { manageApi } from "../api.js";
 import { useRecruit } from "../lib/queries.js";

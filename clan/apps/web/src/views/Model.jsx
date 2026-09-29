@@ -1,4 +1,4 @@
-import { ago } from "elixir-mcp/packages/ui/src/index.ts";
+import { ago } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { useModel } from "../lib/queries.js";

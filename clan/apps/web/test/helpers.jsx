@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createQueryClient } from "elixir-mcp/packages/client/src/index.ts";
+import { createQueryClient } from "@elixir-mcp/client";
 
 /**
  * Render a view the way the app renders it: inside a query provider.
