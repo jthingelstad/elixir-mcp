@@ -44,6 +44,7 @@ const AUDITED = {
   me: "me.read",
   clanParticipation: "clans.participation",
   clanRoster: "clans.roster",
+  clanWarHistory: "clans.war_history",
   clanLive: "clans.live",
   playerNames: "players.names",
   playerRecordedProfile: "players.profile",

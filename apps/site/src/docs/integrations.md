@@ -34,8 +34,9 @@ Agents use MCP. Programs use the **JSON API at
   the Elixir tool they mirror, the same fields as its outputSchema on the
   [tools page](/docs/tools), without the agent response cap:
   `GET /clans/{tag}/participation` (`clans_participation`; `weeks` 1 to 8),
-  `GET /clans/{tag}/roster` (`clans_roster`), `GET /clans/{tag}/live` (a
-  live clan read), `POST /players/names`, `GET /players/{tag}/profile` and
+  `GET /clans/{tag}/roster` (`clans_roster`),
+  `GET /clans/{tag}/war-history` (`war_history`; `seasons` 1 to 12),
+  `GET /clans/{tag}/live` (a live clan read), `POST /players/names`, `GET /players/{tag}/profile` and
   `GET /players/{tag}/battles` (`fresh=1` asks for a live read). A
   first-party client, a family app's, is not held to the per-person hourly
   limit; any other client is. A client is first-party when Elixir has
@@ -84,7 +85,7 @@ accountable for the integration but contributes no admin authority or quota.
 | `GET /profile-refreshes/{id}` | `profiles:refresh` | Pending, complete or failed refresh |
 | `PUT /collections/{id}/members/{tag}` | `collections:members:add` plus collection grant | Idempotent addition and recording enrollment |
 | `POST /collections/{id}/members` | Same | Bounded add-only batch |
-| `GET /clans/{tag}/participation`, `GET /clans/{tag}/roster` | `clans:read` | Any recorded clan, answered as a person's grant is (the `clans_participation` and `clans_roster` results): a family app evaluating a clan with nobody signed in |
+| `GET /clans/{tag}/participation`, `GET /clans/{tag}/roster`, `GET /clans/{tag}/war-history` | `clans:read` | Any recorded clan, answered as a person's grant is (the `clans_participation`, `clans_roster` and `war_history` results): a family app evaluating a clan with nobody signed in, or a clan's website |
 | `POST /clans/{tag}/mail` | `mail:send` | A family app's own mail, sent through Elixir by player tag, never by address ([below](#a-family-apps-mail)) |
 | `POST /players/{tag}/facts` | `facts:write` | A fact the platform's own game produced for a player ([attested facts](#attested-facts)) |
 
@@ -109,6 +110,14 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.8.0** (2026-09-29): `GET /clans/{tag}/war-history` reads a clan's
+  recorded war weeks, the `war_history` result over `seasons` (1 to 12,
+  default 3), for a person's grant or an integration holding `clans:read`.
+  `GET /clans/{tag}/roster` adds `required_trophies` and
+  `donations_per_week` to the clan, and to each member
+  `donations_received_this_week`, `clan_rank`, `previous_clan_rank`,
+  `arena` (`{id, name}`) and `favorite_card_id` (MCP 9.17.0; the agent's
+  roster leaves the member fields out to fit its result cap). Additive.
 - **2.7.1** (2026-09-28): no change to any response.
   `GET /clans/{tag}/participation` still answers member rows as objects;
   the `clans_participation` schema it shares with MCP now also describes

@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-09-29",
+    title: "A clan's war history over the JSON API, and more of its roster",
+    body: "Programs reading Elixir's JSON API can now read a clan's recorded war weeks, the same record war_history gives an agent: each week's final rank, boat fame, war trophies and trophy change, over up to twelve seasons. The roster adds what the clan asks of a joiner and its donations per week, and gives each member this week's cards received, their place in the clan's list, their arena and their favorite card. clans_roster adds the clan's two figures for agents too; the member figures stay off the agent's roster, which a full clan already fills close to its size limit.",
+  },
+  {
     date: "2026-09-28",
     title: "Elixir Clan lives at /clan",
     body: "Elixir Clan, where a clan's leaders run their own policy against the record, has moved from its own address to elixir.poapkings.com/clan, beside the site and the console. A clan's page is /clan/ followed by its tag, and the Clan button in the bar at the top goes there. The old clan.poapkings.com address is being retired, so update any bookmark. Nothing about a clan's policy, standing or actions has changed, and no change to the tools.",

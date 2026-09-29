@@ -1,5 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import {
@@ -11,6 +12,8 @@ import {
   registerClient,
   validateAccessToken,
 } from "@elixir-mcp/auth";
+import { ensureSeasonsAround } from "@elixir-mcp/record/season";
+import { projectRiverRaceLog } from "../../ingest/src/war.mjs";
 import { makeHandler } from "../src/handler.mjs";
 
 // A family app's client is provisioned (0185), never merely registered to
@@ -626,6 +629,86 @@ test("an integration with clans:read reads a clan as a person's grant does, audi
     rows.some((r) => r.tool === "clans_roster"),
     JSON.stringify(rows),
   );
+});
+
+test("a clan's war history reads the same for an integration with clans:read and a person's grant; seasons passes through (2.8.0)", async () => {
+  const CLAN = "#J2RGCRVG"; // fixtures/riverracelog/log.json
+  await ensureSeasonsAround(db);
+  await db.query(
+    "insert into clan (clan_tag) values ($1) on conflict do nothing",
+    [CLAN],
+  );
+  await db.query(
+    "insert into recording (subject_type, subject_tag, requested_by) values ('clan', $1, $2)",
+    [CLAN, person],
+  );
+  await projectRiverRaceLog(db, {
+    clanTag: CLAN,
+    payload: JSON.parse(
+      await readFile(
+        new URL("../../../fixtures/riverracelog/log.json", import.meta.url),
+        "utf8",
+      ),
+    ),
+  });
+  const site = data(
+    await request("POST", "/api/admin/integrations", {
+      name: "clan-website",
+      scopes: ["clans:read"],
+    }),
+  );
+  const other = data(
+    await request("POST", "/api/admin/integrations", {
+      name: "no-clans-war",
+      scopes: ["players:read"],
+    }),
+  );
+  const grant = await mintTokens(db, {
+    clientId: (
+      await familyClient(db, {
+        clientName: "Elixir Clan (war history)",
+        redirectUris: ["https://elixir.poapkings.com/api/clan/auth/callback"],
+      })
+    ).clientId,
+    accountId: person,
+    scope: "cr:read",
+    resource: "https://elixir.poapkings.com/api/v1",
+  });
+  const read = (token, query) =>
+    handler({
+      rawPath: `/api/v1/clans/${encodeURIComponent(CLAN)}/war-history`,
+      requestContext: { http: { method: "GET" } },
+      headers: { authorization: `Bearer ${token}` },
+      queryStringParameters: query,
+    });
+  const r = await read(site.token);
+  assert.equal(r.statusCode, 200, r.body);
+  const history = data(r).data;
+  assert.equal(history.clan_tag, CLAN);
+  assert.ok(history.weeks.length > 0);
+  assert.ok(
+    history.weeks.every(
+      (w) =>
+        Number.isInteger(w.season_id) &&
+        Number.isInteger(w.section_index) &&
+        Object.hasOwn(w, "our_rank") &&
+        Object.hasOwn(w, "trophy_change"),
+    ),
+  );
+  assert.equal(history.applied.seasons, 3, "the tool's default");
+  const one = data(await read(site.token, { seasons: "1" })).data;
+  assert.equal(one.applied.seasons, 1);
+  assert.ok(one.weeks.length <= history.weeks.length);
+  // A person's grant reads the same weeks.
+  const person_ = data(await read(grant.accessToken)).data;
+  assert.deepEqual(person_.weeks, history.weeks);
+  const refused = await read(other.token);
+  assert.equal(refused.statusCode, 403);
+  assert.equal(data(refused).code, "insufficient_scope");
+  const { rows } = await db.query(
+    "select 1 from mcp_call_audit where surface = 'rest' and tool = 'war_history' limit 1",
+  );
+  assert.equal(rows.length, 1, "audited as a REST call of the tool");
 });
 
 test("a tool behind a lock answers query_timeout on Explore and /api/v1 before the handler's 504 (review 2026-09-27 §3.2)", async () => {

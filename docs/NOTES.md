@@ -1116,3 +1116,34 @@ Next slices, not started: the mail's own `myPlayers` in
 list, in another shape and order. Of the remaining 74 crossings, the
 largest groups are web-api into MCP (18), the migrate Lambda's operations
 into MCP and ingest (14), and jobs into MCP and ingest (12).
+
+---
+
+## 2026-09-29 - A clan's website reads Elixir: war history on `/api/v1`, more of the roster
+
+Phase 8 of the structural assessment, data half. poapkings.com fetched
+the game API itself for its roster, profiles and river races, with a
+key borrowed from the retired elixir-bot's `.env`, and only for POAP
+KINGS; its two sister clans had no live numbers. Elixir records all
+three clans, so the site now reads from `/api/v1` with an integration
+key of its own (`clans:read`).
+
+- **`GET /api/v1/clans/{tag}/war-history`** (2.8.0) is the `war_history`
+  tool, `seasons` 1 to 12, for a person's grant or an integration with
+  `clans:read`, on any actively recorded clan like its siblings.
+- **`clans_roster` (9.17.0)** adds what the site showed that Elixir
+  already recorded: the clan's `required_trophies` and
+  `donations_per_week` everywhere, and per member `clan_rank`,
+  `previous_clan_rank`, `donations_received_this_week`, `arena` and
+  `favorite_card_id`.
+- **Why the member extras skip agents:** measured on the live POAP KINGS
+  roster, a 44-member full read is about 36k characters; a 50-member clan
+  at today's widest would be about 46k, and the extras add about 150 a
+  member, which passes `MCP_RESULT_MAX_CHARS` (48,000). So they are
+  served where no cap applies (`/api/v1`, Explore) and never on the MCP
+  or service-token surfaces, the precedent `clans_participation` set.
+  Reversible: dropping the `agent` test in `clans.mjs` serves them
+  everywhere once the roster is paged or trimmed.
+
+Not in Elixir, and so not served: a clan's location name, card and badge
+art (the site reads card art from `/api/public/cards`), and `expLevel`.

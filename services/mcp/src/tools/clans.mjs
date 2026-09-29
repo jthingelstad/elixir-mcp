@@ -196,13 +196,18 @@ async function clanScores(db, clanTag) {
   const {
     rows: [r],
   } = await db.query(
-    `select clan_score, clan_war_trophies, observed_at from clan_snapshot_daily
+    `select clan_score, clan_war_trophies, required_trophies, donations_per_week,
+            observed_at from clan_snapshot_daily
       where clan_tag = $1 order by observed_at desc limit 1`,
     [clanTag],
   );
   return {
     clan_score: r?.clan_score ?? null,
     clan_war_trophies: r?.clan_war_trophies ?? null,
+    // What the clan asks of a joiner and gives each week (9.17.0), from
+    // the same newest roster read as the scores.
+    required_trophies: r?.required_trophies ?? null,
+    donations_per_week: r?.donations_per_week ?? null,
     scores_observed_at: r?.observed_at?.toISOString() ?? null,
   };
 }
@@ -502,7 +507,9 @@ export const clansTools = {
                 p.game_last_seen_at, p.years_played, p.account_age_days,
                   p.war_day_wins, p.clan_cards_collected, p.legacy_trophy_road_high_score,
                   nn.nickname,
-                  s.trophies, s.donations,
+                  s.trophies, s.donations, s.donations_received,
+                  s.arena_id, a.name as arena_name,
+                  r.clan_rank, r.previous_clan_rank, l.favorite_card_id,
                   l.best_trophies, l.battle_count, l.wins, l.losses, l.three_crown_wins,
                   l.collection_level, l.king_tower_level, l.total_donations,
                   -- The newest profile read, from the snapshot or the poll
@@ -521,12 +528,21 @@ export const clansTools = {
            left join player_nickname nn on nn.account_id = $2
              and nn.player_tag = cm.player_tag
            left join lateral (
-             select trophies, donations from player_snapshot_daily
+             select trophies, donations, donations_received, arena_id from player_snapshot_daily
              where player_tag = cm.player_tag order by snapshot_date desc, snapshot_kind desc limit 1
            ) s on true
+           left join arena a on a.arena_id = s.arena_id
+           -- The roster's own columns, from its newest read of THIS clan
+           -- (0133): a day row a profile poll opened first has none yet.
+           left join lateral (
+             select clan_rank, previous_clan_rank from player_snapshot_daily
+             where player_tag = cm.player_tag and clan_tag = cm.clan_tag
+               and roster_observed_at is not null
+             order by snapshot_date desc, snapshot_kind desc limit 1
+           ) r on true
            left join lateral (
              select best_trophies, battle_count, wins, losses, three_crown_wins, collection_level,
-                    king_tower_level, total_donations, profile_observed_at
+                    king_tower_level, total_donations, favorite_card_id, profile_observed_at
              from player_snapshot_daily
              where player_tag = cm.player_tag and profile_observed_at is not null
              order by snapshot_date desc, snapshot_kind desc limit 1
@@ -548,6 +564,9 @@ export const clansTools = {
       events.rows = events.rows.slice(0, RECENT_EVENTS);
       await hydrateClanEvents(ctx.db, events.rows);
       const tz = ctx.account.timezone;
+      // An agent's read (MCP, or a service token's MCP call) is capped.
+      const agent =
+        ctx.surface === "mcp" || String(ctx.surface ?? "").startsWith("svc:");
       return {
         clan_tag: clanTag,
         applied,
@@ -575,6 +594,24 @@ export const clansTools = {
           role: m.role,
           trophies: m.trophies,
           donations_this_week: m.donations,
+          // The roster's own figures (9.17.0): this week's cards received
+          // beside the cards given, the game's clanRank and
+          // previousClanRank as its newest read of this clan carried them,
+          // and the arena. /api/v1 and the console only: a full clan's
+          // agent read is already near the result cap, and these would
+          // turn it into result_too_large (the same reason
+          // clans_participation gives agents a table).
+          ...(agent
+            ? {}
+            : {
+                donations_received_this_week: m.donations_received ?? null,
+                clan_rank: m.clan_rank ?? null,
+                previous_clan_rank: m.previous_clan_rank ?? null,
+                arena:
+                  m.arena_id == null
+                    ? null
+                    : { id: m.arena_id, name: m.arena_name ?? null },
+              }),
           // When the record FIRST saw them in the clan, across stints; a
           // member who left and came back is not a new recruit (Gym #264).
           first_observed_in_clan:
@@ -595,6 +632,15 @@ export const clansTools = {
           // Unknown for a member whose profile was never read, not 0 (Gym
           // #337: 44 of 49 in a newly tracked clan read "0 badges").
           badge_count: m.profile_observed_at ? (m.badge_count ?? 0) : null,
+          // An id only, as players_profile serves it: cards_catalog names
+          // it. Off the agent's read for the same reason as the above.
+          ...(agent
+            ? {}
+            : {
+                favorite_card_id: m.profile_observed_at
+                  ? (m.favorite_card_id ?? null)
+                  : null,
+              }),
           // The lifetime block as of the latest profile poll; null for a
           // member whose profile is not recorded.
           lifetime: m.profile_observed_at
