@@ -145,8 +145,15 @@ const { default: examples } = await import(
 );
 const { default: updates } = await import(path.join(site, "_data/updates.js"));
 
+// SOURCE_DATE_EPOCH stands in for the clock when a build sets it: the
+// deploy pins it to the corpus's sources, so the same docs build the
+// same corpus (infra/scripts/build.mjs, sourceDateEpoch).
+const builtAt = process.env.SOURCE_DATE_EPOCH
+  ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000)
+  : new Date();
+
 const corpus = {
-  built_at: new Date().toISOString(),
+  built_at: builtAt.toISOString(),
   docs,
   examples: examples.flatMap((g) =>
     g.cases.map((c) => ({

@@ -168,6 +168,7 @@ satisfy the SDK's provider chain" (ENGINEERING). The only flags
 | `--acceptance=<family>` | that family's cases; `a,b` for several |
 | `--acceptance` (or `ACCEPTANCE=1`) | the whole suite |
 | `--skip-web` | no site build or sync |
+| `--platform` | migrations and the stack update even in the site lane |
 | `--param=Key=Value` | a PRESERVED parameter's first value |
 | `--help`, `-h` | print the flags; deploys nothing |
 | `--create` | first deploy only; GATED, never from here |
@@ -177,7 +178,7 @@ deploy" (DECISIONS). A tool changed: `--acceptance=<family>`, the tool
 name's prefix (`badges`, `battles`, `cards`, `clans`, `collections`,
 `elixir`, `game`, `players`, `rankings`, `war`); 9.0.1 ran
 `--acceptance=war,clans`. Shared code (`services/mcp/src/protocol.mjs`,
-`tools.mjs`, `tools/shared.mjs`, ingest) or a release: `--acceptance`;
+`packages/tools`, ingest) or a release: `--acceptance`;
 family runs skip the `#docs` cases. Nothing a tool serves changed
 (console, site copy, infrastructure, mail, an op): none, and NOTES says
 why. Never the whole suite by habit: about four and a half minutes of
@@ -195,7 +196,15 @@ head with the same tree; a check still running is waited for (15 min).
 `--break-glass` skips it only when GitHub itself is unreachable, never
 for a red check, and NOTES records why.
 
-**Order:** build, upload, migrations (a failure stops the deploy before
+**Lanes** (`infra/scripts/lib/deploy-lane.mjs`). Each bundle's key is
+the hash of its content. When every key and the template match the live
+stack (and no `--param` or rotation), the deploy takes the **site
+lane**: no migrate push, no migrations, no stack update; everything else
+below still runs. The log names the lane and, for the platform lane,
+what changed. A docs page is always platform: the corpus rides four
+bundles.
+
+**Order:** build, upload, lane, migrations (a failure stops the deploy before
 code flips), vocabulary import, stack, site publish (assets first,
 never deleted; then documents; `lib/site-publish.mjs`), CloudFront
 invalidation and the prune of assets unshipped for 14 days, smoke (`infra/scripts/smoke.mjs`), acceptance when asked. A

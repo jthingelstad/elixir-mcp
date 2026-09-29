@@ -39,10 +39,47 @@ export const RDS_CA_BUNDLE = "infra/certificates/rds-us-east-1-bundle.pem";
 /** Where the bundle sits in a DB function's package: /var/task/... */
 export const RDS_CA_PATH = "certificates/rds.pem";
 
+/** What the docs corpus is made from: its pages, the site data and
+ *  renderer they resolve against, and the packages that data reads. */
+export const CORPUS_SOURCES = [
+  "apps/site/src/docs",
+  "apps/site/src/_data",
+  "apps/site/src/_lib",
+  "packages/docs",
+  "packages/tools",
+  "packages/contracts",
+];
+
+/** The corpus stamps its build time and renders the site's `build`
+ *  dates (docs/limits.md's reset example), so left to the clock every
+ *  build of unchanged docs differed, and so did the four bundles that
+ *  carry the corpus (deploy-lane.mjs names a bundle by its content).
+ *  SOURCE_DATE_EPOCH (reproducible-builds.org) pins both to the last
+ *  commit that touched the corpus's sources; a caller's own value wins,
+ *  and without git the clock stands. */
+export function sourceDateEpoch() {
+  if (process.env.SOURCE_DATE_EPOCH) return process.env.SOURCE_DATE_EPOCH;
+  try {
+    const at = execFileSync(
+      "git",
+      ["log", "-1", "--format=%ct", "--", ...CORPUS_SOURCES],
+      { cwd: repoRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+    return /^\d+$/.test(at) ? at : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function buildAll() {
   // The contract (dist/*.js) and the docs corpus (dist/corpus.json) are
   // generated; the MCP bundle imports both, so they are built first.
-  execFileSync("npm", ["run", "build"], { cwd: repoRoot, stdio: "inherit" });
+  const epoch = sourceDateEpoch();
+  execFileSync("npm", ["run", "build"], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    env: epoch ? { ...process.env, SOURCE_DATE_EPOCH: epoch } : process.env,
+  });
   await rm(distRoot, { recursive: true, force: true });
   const artifacts = [];
   for (const { name, entry, db } of LAMBDAS) {
@@ -50,6 +87,9 @@ export async function buildAll() {
     await mkdir(outDir, { recursive: true });
     await build({
       entryPoints: [path.join(repoRoot, entry)],
+      // Paths in the bundle's comments are relative to this, so a build
+      // from another directory or worktree gives the same bytes.
+      absWorkingDir: repoRoot,
       bundle: true,
       platform: "node",
       target: "node24",
@@ -92,7 +132,7 @@ export async function buildAll() {
     }
     const zipPath = path.join(distRoot, `${name}.zip`);
     execFileSync("zip", ["-qr", zipPath, "."], { cwd: outDir });
-    artifacts.push({ name, zipPath });
+    artifacts.push({ name, zipPath, dir: outDir });
   }
   return artifacts;
 }

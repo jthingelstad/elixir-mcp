@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { statSync } from "node:fs";
+import { cp, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 import { API_THROTTLES } from "../../../infra/scripts/api-throttle-config.mjs";
 import { parseDeployArgs } from "../../../infra/scripts/lib/deploy-args.mjs";
 import { ciGate } from "../../../infra/scripts/lib/ci-gate.mjs";
+import {
+  bundleFingerprint,
+  chooseLane,
+  codeKey,
+  sameTemplate,
+} from "../../../infra/scripts/lib/deploy-lane.mjs";
 import {
   IMMUTABLE,
   REVALIDATE,
@@ -12,9 +21,12 @@ import {
   pruneCandidates,
 } from "../../../infra/scripts/lib/site-publish.mjs";
 import {
+  CORPUS_SOURCES,
   LAMBDAS,
   RDS_CA_BUNDLE,
   RDS_CA_PATH,
+  repoRoot,
+  sourceDateEpoch,
 } from "../../../infra/scripts/build.mjs";
 import {
   buildParameters,
@@ -148,7 +160,9 @@ test("deploy flags: every known flag parses, anything else is refused", () => {
   assert.equal(parsed.acceptanceFamily, "cards,war");
   assert.deepEqual(parsed.unknown, []);
   assert.equal(parsed.breakGlass, false);
+  assert.equal(parsed.platform, false);
   assert.equal(parseDeployArgs(["--break-glass"]).breakGlass, true);
+  assert.equal(parseDeployArgs(["--platform"]).platform, true);
   assert.equal(parseDeployArgs(["--help"]).help, true);
   assert.equal(parseDeployArgs(["-h"]).help, true);
   // 2026-09-25: `--help` was not a flag and an unknown flag was ignored,
@@ -173,6 +187,123 @@ test("deploy.mjs refuses its arguments before the first AWS call", async () => {
   for (const first of ["new STSClient(", "buildAll(", ".send("])
     assert.ok(gate < source.indexOf(first), first);
   assert.doesNotMatch(source, /process\.argv\.(includes|find)\(/);
+});
+
+// Deploy lanes (structural assessment, Phase 4, 2026-09-29).
+test("deploy lanes: a bundle is named by its content, never its zip or its mtimes", async () => {
+  const a = await mkdtemp(path.join(tmpdir(), "lane-a-"));
+  const b = await mkdtemp(path.join(tmpdir(), "lane-b-"));
+  try {
+    await writeFile(path.join(a, "index.mjs"), "export const x = 1;\n");
+    await cp(path.join(a, "index.mjs"), path.join(a, "certificates-rds.pem"));
+    const first = bundleFingerprint(a);
+    assert.match(first, /^[0-9a-f]{16}$/);
+    // The same files elsewhere, written later: the same name.
+    await cp(a, b, { recursive: true });
+    await utimes(path.join(b, "index.mjs"), 1, 1);
+    assert.equal(bundleFingerprint(b), first);
+    // One byte, or one file's name, is a different bundle.
+    await writeFile(path.join(b, "index.mjs"), "export const x = 2;\n");
+    assert.notEqual(bundleFingerprint(b), first);
+    await rm(b, { recursive: true });
+    await cp(a, b, { recursive: true });
+    await cp(path.join(b, "index.mjs"), path.join(b, "other.mjs"));
+    await rm(path.join(b, "index.mjs"));
+    assert.notEqual(bundleFingerprint(b), first);
+    assert.equal(codeKey("mcp", first), `code/mcp/${first}.zip`);
+  } finally {
+    await rm(a, { recursive: true, force: true });
+    await rm(b, { recursive: true, force: true });
+  }
+});
+
+test("deploy lanes: the live template matches with its non-ASCII stored as ?", () => {
+  // Measured 2026-09-29: GetTemplate (Original) hands back every
+  // section sign and dash of template.yaml as "?".
+  assert.equal(sameTemplate("a \u00a7 b \u2014 c", "a ? b ? c"), true);
+  assert.equal(sameTemplate("a \u00a7 b", "a \u00a7 b"), false);
+  assert.equal(sameTemplate("a: 1", "a: 2"), false);
+  assert.equal(sameTemplate("a: 1", undefined), false);
+});
+
+test("deploy lanes: the site lane only when nothing CloudFormation holds would change", () => {
+  const codeKeys = { CodeBucket: "bucket", McpCodeKey: "code/mcp/1.zip" };
+  const liveParameters = [
+    { ParameterKey: "CodeBucket", ParameterValue: "bucket" },
+    { ParameterKey: "McpCodeKey", ParameterValue: "code/mcp/1.zip" },
+    { ParameterKey: "OpsQueueArn", ParameterValue: "arn" },
+  ];
+  const same = { codeKeys, liveParameters, template: "t", liveTemplate: "t" };
+  assert.deepEqual(chooseLane(same), { lane: "site", changed: [] });
+  assert.deepEqual(
+    chooseLane({
+      ...same,
+      codeKeys: { ...codeKeys, McpCodeKey: "code/mcp/2.zip" },
+    }),
+    { lane: "platform", changed: ["McpCodeKey"] },
+  );
+  assert.deepEqual(chooseLane({ ...same, liveTemplate: "u" }).changed, [
+    "template",
+  ]);
+  assert.deepEqual(chooseLane({ ...same, parameterChange: true }).changed, [
+    "parameters",
+  ]);
+  assert.deepEqual(chooseLane({ ...same, platform: true }).changed, [
+    "--platform",
+  ]);
+  // A stack that does not carry a key yet is a change, not a match.
+  assert.equal(
+    chooseLane({ ...same, liveParameters: liveParameters.slice(0, 1) }).lane,
+    "platform",
+  );
+});
+
+test("deploy lanes: migrations and the stack update run only in the platform lane", async () => {
+  const source = await readFile(
+    new URL("../../../infra/scripts/deploy.mjs", import.meta.url),
+    "utf8",
+  );
+  const lane = source.indexOf("chooseLane({");
+  const migrate = source.indexOf('if (!isCreate && lane === "platform")');
+  const stack = source.indexOf('if (lane === "platform") {');
+  assert.ok(lane > 0 && migrate > lane && stack > migrate);
+  assert.ok(
+    migrate < source.indexOf('await runMigrations("elixir-mcp-migrate")'),
+  );
+  assert.ok(stack < source.indexOf("new UpdateStackCommand("));
+  assert.ok(stack < source.indexOf("new ValidateTemplateCommand("));
+  // The vocabulary rides every deploy, site lane included.
+  const vocabulary = source.indexOf("import-card-roles.mjs");
+  assert.ok(vocabulary > migrate && vocabulary < stack);
+  // Both lanes name a bundle by its content.
+  assert.match(source, /codeKey\(name, bundleFingerprint\(dir\)\)/);
+});
+
+test("deploy lanes: the corpus's build time follows its sources, not the clock", async () => {
+  const saved = process.env.SOURCE_DATE_EPOCH;
+  try {
+    process.env.SOURCE_DATE_EPOCH = "1790000000";
+    assert.equal(sourceDateEpoch(), "1790000000");
+    delete process.env.SOURCE_DATE_EPOCH;
+    assert.match(sourceDateEpoch() ?? "0", /^\d+$/);
+  } finally {
+    if (saved === undefined) delete process.env.SOURCE_DATE_EPOCH;
+    else process.env.SOURCE_DATE_EPOCH = saved;
+  }
+  // Every source named is a directory that exists: a renamed one would
+  // quietly stop moving the date.
+  for (const dir of CORPUS_SOURCES)
+    assert.ok(statSync(path.join(repoRoot, dir)).isDirectory(), dir);
+  const docs = await readFile(
+    new URL("../../../packages/docs/build.mjs", import.meta.url),
+    "utf8",
+  );
+  assert.match(docs, /built_at: builtAt\.toISOString\(\)/);
+  const site = await readFile(
+    new URL("../../../apps/site/src/_data/build.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(site, /process\.env\.SOURCE_DATE_EPOCH/);
 });
 
 // The CI gate (the PR workflow, 2026-09-26): a fake git and GitHub.

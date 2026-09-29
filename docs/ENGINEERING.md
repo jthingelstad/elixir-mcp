@@ -445,7 +445,14 @@ build and ship them), an unknown flag, and a HEAD that is not
 `infra/scripts/lib/ci-gate.mjs`: production runs only what main holds
 and CI passed, including the site build and the browser journeys that
 run only there), and prints a WARNING when acceptance is skipped. Order is
-build → upload → migrate → vocabulary import → stack → web. It is smoke-gated,
+build → upload → lane → migrate → vocabulary import → stack → web. A
+bundle is named by its content, so a build that changes no Lambda and
+not the template takes the site lane and skips the migrations and the
+stack (`infra/scripts/lib/deploy-lane.mjs`; `--platform` overrides).
+That holds only while the same source builds the same bytes: nothing a
+Lambda carries may read the clock at build time (the docs corpus takes
+`SOURCE_DATE_EPOCH` from its sources' last commit,
+`infra/scripts/build.mjs`). It is smoke-gated,
 and acceptance-gated when asked (`--acceptance`; below), and deploys are cumulative: never deploy past a commit whose infrastructure
 change is blocked. The vocabulary import reads `../cr-agent-api-docs` and
 refuses a checkout whose `data/card-roles.json` or `data/deck-aliases.json`

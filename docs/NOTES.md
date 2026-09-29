@@ -1260,3 +1260,49 @@ except where a seam was cut: web-api no longer bundles the MCP protocol
 and resources, and migrate drops the `/api/v1` door it pulled in through
 the integrations route (about 5 KB smaller). No response changes; no
 contract or JSON API version.
+
+---
+
+## 2026-09-29 - Deploy lanes: a site-only deploy leaves the stack alone
+
+Structural assessment, Phase 4 (WS3). Every deploy ran the whole path:
+the migrate push, the migrations, a template upload and UpdateStack,
+even when only a page's CSS had changed. Two things kept a quieter path
+from existing.
+
+A bundle's S3 key was the hash of its zip, and `zip` stamps each
+entry's mtime, so the same code built twice got two keys and
+CloudFormation flipped all seven Lambdas on every deploy. The key is now
+the hash of the bundle directory, each file's path and bytes in path
+order (`infra/scripts/lib/deploy-lane.mjs`, `bundleFingerprint`).
+
+The docs corpus, which four Lambdas carry (mcp, web-api, jobs, migrate,
+through the registry), read the clock twice: its `built_at`, and the
+site's `build` data it renders (`docs/limits.md`'s example `resets_at`
+is "the next reset after this build"). Both now follow
+`SOURCE_DATE_EPOCH`, which `buildAll` sets to the last commit touching
+the corpus's sources (`CORPUS_SOURCES`: the site's `docs`, `_data` and
+`_lib`, and `packages/docs`, `tools` and `contracts`). So
+`corpus_built_at` now reads "when its sources last changed", and the
+MCP copy of the reset example names the day after that commit; the
+published pages build without the variable and keep today's date.
+Measured: two builds of dd5d54c0 from different directories gave the
+same seven keys.
+
+The deploy then compares this build's code keys and the template with
+the live stack (DescribeStacks, GetTemplate). All equal, no `--param`
+and no `--rotate-origin-secret`: the **site lane**, which skips the
+migrate push, the migrations and the stack update, and still imports
+the archetype vocabulary, publishes the site and runs smoke and
+acceptance. Anything else is the **platform lane**, the deploy as it
+was; the log names what changed (`lane: platform - changed: McpCodeKey,
+template.`). `--platform` forces it. A docs page is a platform deploy by
+construction: it rides the corpus into four bundles.
+
+Found on the way: CloudFormation hands back the template it was given
+(GetTemplate, stage Original) with every non-ASCII character as `?`;
+our section signs and dashes came back that way. The comparison does
+the same to the local file (`sameTemplate`).
+
+The first deploy after this merges is a platform deploy whatever it
+carries: no live key is content-named yet.

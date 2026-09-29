@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 /**
  * Deploy (run with AWS_PROFILE=cloud-engineer). Order: build -> upload ->
- * MIGRATE (the migrate bundle is pushed ahead of the flip, so a failed
- * migration stops the deploy before any code changes) -> vocabulary import
- * -> stack update -> web sync and invalidation -> smoke -> acceptance when
- * asked. On --create the stack comes first and migrations run after it.
+ * lane -> MIGRATE (the migrate bundle is pushed ahead of the flip, so a
+ * failed migration stops the deploy before any code changes) -> vocabulary
+ * import -> stack update -> web sync and invalidation -> smoke ->
+ * acceptance when asked. On --create the stack comes first and migrations
+ * run after it. When no Lambda bundle and not the template changed, the
+ * SITE lane skips the migrate push, the migrations and the stack update
+ * (lib/deploy-lane.mjs); --platform takes the whole path anyway.
  *
  *   node infra/scripts/deploy.mjs --create   # first deploy (GATED)
  *   node infra/scripts/deploy.mjs            # update
@@ -28,6 +31,7 @@ import {
   CreateStackCommand,
   UpdateStackCommand,
   DescribeStacksCommand,
+  GetTemplateCommand,
   ValidateTemplateCommand,
   waitUntilStackCreateComplete,
   waitUntilStackUpdateComplete,
@@ -50,6 +54,7 @@ import { buildAll } from "./build.mjs";
 import { buildParameters, originRotation } from "./parameters.mjs";
 import { DEPLOY_USAGE, parseDeployArgs } from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
+import { bundleFingerprint, chooseLane, codeKey } from "./lib/deploy-lane.mjs";
 import {
   PRUNE_AFTER_DAYS,
   hashedAssets,
@@ -171,18 +176,65 @@ const s3 = new S3Client({ region: REGION });
 console.error("building lambda bundles...");
 const artifacts = await buildAll();
 const codeKeys = {};
-for (const { name, zipPath } of artifacts) {
-  const body = await readFile(zipPath);
-  const sha = createHash("sha256").update(body).digest("hex").slice(0, 16);
-  const key = `code/${name}/${sha}.zip`;
+for (const { name, zipPath, dir } of artifacts) {
+  // Named by content, not by the zip's bytes (zip stamps mtimes): the
+  // same code keeps its key and the stack sees no change for it.
+  const key = codeKey(name, bundleFingerprint(dir));
   await s3.send(
-    new PutObjectCommand({ Bucket: codeBucket, Key: key, Body: body }),
+    new PutObjectCommand({
+      Bucket: codeBucket,
+      Key: key,
+      Body: await readFile(zipPath),
+    }),
   );
   codeKeys[name] = key;
   console.error(`uploaded ${key}`);
 }
+const required = {
+  CodeBucket: codeBucket,
+  WebApiCodeKey: codeKeys["web-api"],
+  McpCodeKey: codeKeys.mcp,
+  SchedulerCodeKey: codeKeys.scheduler,
+  EmailRelayCodeKey: codeKeys["email-relay"],
+  MigrateCodeKey: codeKeys.migrate,
+  JobsCodeKey: codeKeys.jobs,
+  EditorCodeKey: codeKeys.editor,
+};
+const templateBody = await readFile(
+  path.join(repoRoot, "infra/template.yaml"),
+  "utf8",
+);
 
-// 2. Migrate BEFORE the flip (sol-6 F2) -------------------------------------
+// 2. Lane (lib/deploy-lane.mjs) -----------------------------------------------
+// The live stack's code keys and template against this build's. A deploy
+// that changes neither ships the site alone: nothing to migrate, nothing
+// for CloudFormation to do.
+let lane = "platform";
+if (!isCreate) {
+  const { Stacks: live } = await cfn.send(
+    new DescribeStacksCommand({ StackName: STACK }),
+  );
+  const { TemplateBody: liveTemplate } = await cfn.send(
+    new GetTemplateCommand({ StackName: STACK, TemplateStage: "Original" }),
+  );
+  const choice = chooseLane({
+    codeKeys: required,
+    liveParameters: live[0].Parameters,
+    template: templateBody,
+    liveTemplate,
+    platform: args.platform,
+    parameterChange:
+      Object.keys(args.params).length > 0 || args.rotateOriginSecret,
+  });
+  lane = choice.lane;
+  console.error(
+    lane === "site"
+      ? "lane: site - no Lambda bundle and not the template changed; no migrations, no stack update."
+      : `lane: platform - changed: ${choice.changed.join(", ")}.`,
+  );
+}
+
+// 3. Migrate BEFORE the flip (sol-6 F2) -------------------------------------
 // Migrations are expand-and-contract by policy: applying them first
 // means the currently-serving code (which tolerates the expanded
 // schema by construction) never races a schema it predates, and a
@@ -203,7 +255,7 @@ async function runMigrations(functionName) {
   }
   console.error(`migrations: ${JSON.stringify(migrateResult)}`);
 }
-if (!isCreate) {
+if (!isCreate && lane === "platform") {
   console.error("pushing migrate bundle ahead of the stack flip...");
   await lambda.send(
     new UpdateFunctionCodeCommand({
@@ -217,116 +269,111 @@ if (!isCreate) {
     { FunctionName: "elixir-mcp-migrate" },
   );
   await runMigrations("elixir-mcp-migrate");
-  // The archetype vocabulary rides every deploy (0147): the Lambdas have
-  // no internet, so this checkout's sibling cr-agent-api-docs is the
-  // source, and its commit is the version.
+}
+if (!isCreate) {
+  // The archetype vocabulary rides every deploy, site lane included
+  // (0147): the Lambdas have no internet, so this checkout's sibling
+  // cr-agent-api-docs is the source, and its commit is the version.
   console.error(
     "importing the archetype vocabulary from ../cr-agent-api-docs...",
   );
   await import("./import-card-roles.mjs");
 }
 
-// 3. Stack ------------------------------------------------------------------
-const templateBody = await readFile(
-  path.join(repoRoot, "infra/template.yaml"),
-  "utf8",
-);
-// Inline TemplateBody caps at 51,200 bytes and the template passed it on
-// 2026-09-09; by URL the cap is 1 MB. The object rides the code bucket
-// under its content hash, like the bundles.
-const templateKey = `templates/${createHash("sha256").update(templateBody).digest("hex").slice(0, 16)}.yaml`;
-await s3.send(
-  new PutObjectCommand({
-    Bucket: codeBucket,
-    Key: templateKey,
-    Body: templateBody,
-    ContentType: "application/x-yaml",
-  }),
-);
-const templateUrl = `https://${codeBucket}.s3.${REGION}.amazonaws.com/${templateKey}`;
-await cfn.send(new ValidateTemplateCommand({ TemplateURL: templateUrl }));
-
-// --param=Key=Value: one-time explicit values for PRESERVED parameters
-// (a parameter's first deploy cannot UsePreviousValue).
-const paramOverrides = { ...args.params };
-
-// --rotate-origin-secret (docs/SECRETS.md): the current value is read
-// from the deployed web door, since the stack masks NoEcho parameters,
-// and held in this process only. The template makes CloudFront wait for
-// both doors, so they accept the new value before any edge sends it.
-if (args.rotateOriginSecret) {
-  const { Environment } = await lambda.send(
-    new GetFunctionConfigurationCommand({ FunctionName: "elixir-mcp-web-api" }),
-  );
-  const vars = Environment?.Variables ?? {};
-  if (vars.ORIGIN_SECRET_PREVIOUS) {
-    console.error(
-      "deploy: the last origin rotation has not been cleared; deploy with --param=OriginSecretPrevious= first. The code is uploaded and migrated; the stack is unchanged.",
-    );
-    process.exit(2);
-  }
-  Object.assign(paramOverrides, originRotation(vars.ORIGIN_SECRET));
-  console.error("rotating the origin secret (values not shown)...");
-}
-
-const required = {
-  CodeBucket: codeBucket,
-  WebApiCodeKey: codeKeys["web-api"],
-  McpCodeKey: codeKeys.mcp,
-  SchedulerCodeKey: codeKeys.scheduler,
-  EmailRelayCodeKey: codeKeys["email-relay"],
-  MigrateCodeKey: codeKeys.migrate,
-  JobsCodeKey: codeKeys.jobs,
-  EditorCodeKey: codeKeys.editor,
-};
-
-if (isCreate) {
-  console.error("creating stack (this starts billing: RDS ~$15/mo)...");
-  await cfn.send(
-    new CreateStackCommand({
-      StackName: STACK,
-      TemplateURL: templateUrl,
-      Parameters: buildParameters(required, {}),
-      Capabilities: ["CAPABILITY_NAMED_IAM"],
-      Tags: stackTags(accountId),
+// 4. Stack (the platform lane) ----------------------------------------------
+if (lane === "platform") {
+  // Inline TemplateBody caps at 51,200 bytes and the template passed it on
+  // 2026-09-09; by URL the cap is 1 MB. The object rides the code bucket
+  // under its content hash, like the bundles.
+  const templateKey = `templates/${createHash("sha256").update(templateBody).digest("hex").slice(0, 16)}.yaml`;
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: codeBucket,
+      Key: templateKey,
+      Body: templateBody,
+      ContentType: "application/x-yaml",
     }),
   );
-  await waitUntilStackCreateComplete(
-    { client: cfn, maxWaitTime: 2400 },
-    { StackName: STACK },
-  );
-} else {
-  console.error("updating stack...");
-  // Which parameters the live stack already carries: a SECRET parameter
-  // absent here is on its first deploy and gets minted, never reset.
-  const { Stacks: current } = await cfn.send(
-    new DescribeStacksCommand({ StackName: STACK }),
-  );
-  const existingKeys = (current[0].Parameters ?? []).map((p) => p.ParameterKey);
-  try {
+  const templateUrl = `https://${codeBucket}.s3.${REGION}.amazonaws.com/${templateKey}`;
+  await cfn.send(new ValidateTemplateCommand({ TemplateURL: templateUrl }));
+
+  // --param=Key=Value: one-time explicit values for PRESERVED parameters
+  // (a parameter's first deploy cannot UsePreviousValue).
+  const paramOverrides = { ...args.params };
+
+  // --rotate-origin-secret (docs/SECRETS.md): the current value is read
+  // from the deployed web door, since the stack masks NoEcho parameters,
+  // and held in this process only. The template makes CloudFront wait for
+  // both doors, so they accept the new value before any edge sends it.
+  if (args.rotateOriginSecret) {
+    const { Environment } = await lambda.send(
+      new GetFunctionConfigurationCommand({
+        FunctionName: "elixir-mcp-web-api",
+      }),
+    );
+    const vars = Environment?.Variables ?? {};
+    if (vars.ORIGIN_SECRET_PREVIOUS) {
+      console.error(
+        "deploy: the last origin rotation has not been cleared; deploy with --param=OriginSecretPrevious= first. The code is uploaded and migrated; the stack is unchanged.",
+      );
+      process.exit(2);
+    }
+    Object.assign(paramOverrides, originRotation(vars.ORIGIN_SECRET));
+    console.error("rotating the origin secret (values not shown)...");
+  }
+
+  if (isCreate) {
+    console.error("creating stack (this starts billing: RDS ~$15/mo)...");
     await cfn.send(
-      new UpdateStackCommand({
+      new CreateStackCommand({
         StackName: STACK,
         TemplateURL: templateUrl,
-        Parameters: buildParameters(
-          required,
-          null,
-          paramOverrides,
-          existingKeys,
-        ),
+        Parameters: buildParameters(required, {}),
         Capabilities: ["CAPABILITY_NAMED_IAM"],
         Tags: stackTags(accountId),
       }),
     );
-    await waitUntilStackUpdateComplete(
+    await waitUntilStackCreateComplete(
       { client: cfn, maxWaitTime: 2400 },
       { StackName: STACK },
     );
-  } catch (err) {
-    if (String(err.message ?? "").includes("No updates are to be performed")) {
-      console.error("stack unchanged");
-    } else {
-      throw err;
+  } else {
+    console.error("updating stack...");
+    // Which parameters the live stack already carries: a SECRET parameter
+    // absent here is on its first deploy and gets minted, never reset.
+    const { Stacks: current } = await cfn.send(
+      new DescribeStacksCommand({ StackName: STACK }),
+    );
+    const existingKeys = (current[0].Parameters ?? []).map(
+      (p) => p.ParameterKey,
+    );
+    try {
+      await cfn.send(
+        new UpdateStackCommand({
+          StackName: STACK,
+          TemplateURL: templateUrl,
+          Parameters: buildParameters(
+            required,
+            null,
+            paramOverrides,
+            existingKeys,
+          ),
+          Capabilities: ["CAPABILITY_NAMED_IAM"],
+          Tags: stackTags(accountId),
+        }),
+      );
+      await waitUntilStackUpdateComplete(
+        { client: cfn, maxWaitTime: 2400 },
+        { StackName: STACK },
+      );
+    } catch (err) {
+      if (
+        String(err.message ?? "").includes("No updates are to be performed")
+      ) {
+        console.error("stack unchanged");
+      } else {
+        throw err;
+      }
     }
   }
 }
@@ -338,12 +385,12 @@ const outputs = Object.fromEntries(
   Stacks[0].Outputs.map((o) => [o.OutputKey, o.OutputValue]),
 );
 
-// 4. First-create migrations (the update path migrated pre-flip) -----------
+// 5. First-create migrations (the update path migrated pre-flip) -----------
 if (isCreate) {
   await runMigrations(outputs.MigrateFunctionName);
 }
 
-// 4. Web --------------------------------------------------------------------
+// 6. Web --------------------------------------------------------------------
 if (!skipWeb) {
   console.error("building the site (app + static)...");
   // Two builds merged into one tree, validated before anything is
