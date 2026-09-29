@@ -1,5 +1,5 @@
 import { responseMeta } from "@elixir-mcp/contracts";
-import { CORPUS_BUILT_AT, DOCS, searchDocs } from "@elixir-mcp/docs";
+import { corpus, searchDocs } from "@elixir-mcp/docs";
 import { ToolFailure, appliedBlock, notes, docsRef } from "../shared.mjs";
 
 export const elixir_docs = {
@@ -29,17 +29,18 @@ export const elixir_docs = {
     additionalProperties: false,
   },
   async handler(ctx, args) {
+    const { docs: pages, built_at } = await corpus();
     // The envelope is closed (assertResponseMeta), so when the corpus
     // was built rides in the body, not in meta.
     const meta = responseMeta({ as_of: new Date().toISOString() });
     if (args.page) {
       const slug = String(args.page).toLowerCase().trim();
-      const doc = DOCS.find((d) => d.slug === slug);
+      const doc = pages.find((d) => d.slug === slug);
       if (!doc)
         throw new ToolFailure(
           "not_found",
           `No documentation page "${slug}".`,
-          `Call elixir_docs with no arguments for the index; slugs are: ${DOCS.map((d) => d.slug).join(", ")}.`,
+          `Call elixir_docs with no arguments for the index; slugs are: ${pages.map((d) => d.slug).join(", ")}.`,
         );
       if (args.section) {
         const want = String(args.section).toLowerCase().trim();
@@ -60,7 +61,7 @@ export const elixir_docs = {
           url: `${doc.url}#${sec.slug}`,
           applied: appliedBlock({ page: slug, section: sec.slug }),
           markdown: sec.markdown,
-          corpus_built_at: CORPUS_BUILT_AT,
+          corpus_built_at: built_at,
           notes: notes(
             "One section of the page; page alone reads all of it, and url is the same section on the site.",
           ),
@@ -76,7 +77,7 @@ export const elixir_docs = {
         applied: appliedBlock({ page: slug }),
         sections: doc.sections.map((x) => ({ slug: x.slug, title: x.title })),
         markdown: doc.markdown,
-        corpus_built_at: CORPUS_BUILT_AT,
+        corpus_built_at: built_at,
         notes: notes(
           "The whole page; page + section reads one of the sections listed, and url is the same page on the site.",
         ),
@@ -85,7 +86,7 @@ export const elixir_docs = {
       };
     }
     if (args.query) {
-      const { matches, fallback } = searchDocs(args.query, 8);
+      const { matches, fallback } = await searchDocs(args.query, 8);
       return {
         query: String(args.query),
         applied: appliedBlock({ query: String(args.query) }),
@@ -100,12 +101,12 @@ export const elixir_docs = {
         ),
         // The best match's page, or the index (journey r3: none served).
         docs: docsRef(matches[0]?.slug ?? "about"),
-        corpus_built_at: CORPUS_BUILT_AT,
+        corpus_built_at: built_at,
         meta,
       };
     }
     return {
-      pages: DOCS.map((d) => ({
+      pages: pages.map((d) => ({
         slug: d.slug,
         group: d.section,
         title: d.title,
@@ -117,7 +118,7 @@ export const elixir_docs = {
         "Read one with page, one section with page + section, or search with query. The tool reference is tools/list itself (also at https://elixir.poapkings.com/docs/tools); elixir_changelog says what changed in it.",
       ),
       docs: docsRef("about"),
-      corpus_built_at: CORPUS_BUILT_AT,
+      corpus_built_at: built_at,
       meta,
     };
   },

@@ -1190,3 +1190,24 @@ profile, clan facts equal to the game's), 13 war weeks, and both sister
 clans' rosters. poapkings.com #30 made Elixir its source and is live
 (the `--source cr` rollback stays until 2026-10-06).
 
+
+---
+
+## 2026-09-29 - The docs corpus is read on first use; its build no longer needs itself
+
+Phase 4 of the structural assessment, "break the circular docs build".
+`@elixir-mcp/docs` read `dist/corpus.json` at module scope, and the
+site's build loads the MCP registry, which imports that package, while
+the corpus is built from the site. A fresh clone failed resolving a file
+that did not exist yet (red on CI from 77656e1, 2026-09-10), and a stub
+the build wrote first (578c764) stood in for it since.
+
+The package now exports `corpus()`, which loads the file on its first
+call and keeps it; `searchDocs` is async. `elixir_docs`,
+`elixir_examples`, `elixir_updates` and the resources and prompts read
+it inside their handlers, so importing the registry reads nothing, and
+the stub is gone. The literal dynamic import still bundles: esbuild
+inlines the JSON into the MCP Lambda (checked by bundling it and reading
+the corpus from the bundle alone, 26 pages, 11 examples, 283 updates).
+A test loads the module with no `dist/` beside it. No response changes;
+no contract or JSON API version.

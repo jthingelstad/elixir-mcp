@@ -1,6 +1,41 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DOCS, EXAMPLES, UPDATES, searchDocs } from "./src/index.mjs";
+import { copyFile, mkdtemp, mkdir, rm } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { corpus, searchDocs } from "./src/index.mjs";
+
+const { docs: DOCS, examples: EXAMPLES, updates: UPDATES } = await corpus();
+
+test("importing the package does not need the corpus built (the site's build imports it)", async () => {
+  // The site renders its tool reference from the MCP registry, which
+  // imports this package, and the corpus is built from the site: a
+  // module-scope read of dist/corpus.json made the docs build depend on
+  // its own output. The module alone, with no dist/ beside it, must load.
+  const dir = await mkdtemp(path.join(tmpdir(), "elixir-docs-"));
+  try {
+    await mkdir(path.join(dir, "src"));
+    await copyFile(
+      new URL("./src/index.mjs", import.meta.url),
+      path.join(dir, "src/index.mjs"),
+    );
+    const out = execFileSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "-e",
+        `const m = await import(${JSON.stringify(path.join(dir, "src/index.mjs"))});
+         const read = await m.corpus().then(() => "read", () => "missing");
+         console.log(typeof m.corpus, read);`,
+      ],
+      { encoding: "utf8" },
+    );
+    assert.equal(out.trim(), "function missing");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 
 test("the corpus carries every docs page, all eleven examples and the updates", () => {
   assert.ok(DOCS.length >= 20, `only ${DOCS.length} docs pages`);
@@ -87,22 +122,24 @@ test("the index lede is never shorter than 40 characters, and description rides 
   }
 });
 
-test("search matches by word, prefers pages with every word, and says when it fell back", () => {
-  const r = searchDocs("shrunk win rate prior strength");
+test("search matches by word, prefers pages with every word, and says when it fell back", async () => {
+  const r = await searchDocs("shrunk win rate prior strength");
   assert.ok(
     r.matches.length > 0,
     "the phrase no page contains still finds pages by word",
   );
   assert.equal(r.matches[0].slug, "methodology");
   assert.ok(r.matches[0].in_section, "the match names the section it is in");
-  const exact = searchDocs("Shrunk win rate");
+  const exact = await searchDocs("Shrunk win rate");
   assert.equal(exact.fallback, false);
   assert.match(exact.matches[0].excerpt, /Shrunk win rate/);
-  assert.deepEqual(searchDocs(""), { matches: [], fallback: false });
+  assert.deepEqual(await searchDocs(""), { matches: [], fallback: false });
   // Plurals: "quotas" finds the page that says "quota", and vice versa.
-  const plural = searchDocs("quotas");
+  const plural = await searchDocs("quotas");
   assert.equal(plural.fallback, false);
   assert.ok(plural.matches.some((m) => m.slug === "limits"));
-  assert.ok(searchDocs("quota").matches.some((m) => m.slug === "limits"));
-  assert.ok(searchDocs("policy day").matches[0].slug === "clocks");
+  assert.ok(
+    (await searchDocs("quota")).matches.some((m) => m.slug === "limits"),
+  );
+  assert.ok((await searchDocs("policy day")).matches[0].slug === "clocks");
 });

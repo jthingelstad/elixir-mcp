@@ -14,8 +14,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { DOCS } from "@elixir-mcp/docs";
+import { corpus } from "@elixir-mcp/docs";
 
+const { docs: DOCS } = await corpus();
 const here = path.dirname(fileURLToPath(import.meta.url));
 const src = path.resolve(here, "../src");
 
