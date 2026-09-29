@@ -37,8 +37,11 @@
           that varies by session, so this carries no signed-in state at
           all — same markup, same classes, same tabs, same product
           buttons as the kit's Chrome (packages/ui/src/Chrome.tsx)
-          renders from packages/ui/src/family.ts. Session identity lives
-          at the foot of the console's rail, which only the app draws.
+          renders. Both read ONE list, the kit's product manifest
+          (packages/ui/src/family.json, here as `familyBar`), and this
+          template loops over it: it holds no tab, product or link of its
+          own. Session identity lives at the foot of the console's rail,
+          which only the app draws.
 
           It used to show "Sign in" here and swap it to "Account" once
           /api/me answered, which is the reshaping-nav clunk that whole
@@ -47,38 +50,34 @@
           wall that offers sign-in. -#}
       <header class="chrome">
         <div class="chrome__inner">
-          <a class="wordmark" href="/">{{ site.wordmark }}</a>
+          <a class="wordmark" href="/">{{ familyBar.wordmark }}</a>
           {#- The SAME markup as apps/web renders, at every width: which
               one is showing is a media query's decision, not this
               template's and not the app's. That is what keeps the two
-              bars one bar. -#}
-          <nav class="chrome__nav" aria-label="{{ site.wordmark }}">
-            <a class="chrome__tab{% if navActive == "home" %} chrome__tab--on{% endif %}" href="/">Home</a>
-            <a class="chrome__tab{% if navActive == "data" %} chrome__tab--on{% endif %}" href="/data">Data</a>
-            <a class="chrome__tab{% if navActive == "examples" %} chrome__tab--on{% endif %}" href="/examples/play">Examples</a>
-            <a class="chrome__tab{% if navActive == "updates" %} chrome__tab--on{% endif %}" href="/updates">Updates</a>
-            <a class="chrome__tab{% if navActive == "docs" %} chrome__tab--on{% endif %}" href="/docs">Docs</a>
-            <a class="chrome__tab{% if navActive == "family" %} chrome__tab--on{% endif %}" href="/family">Family</a>
-            <a class="chrome__tab{% if navActive == "support" %} chrome__tab--on{% endif %}" href="/support">Support</a>
+              bars one bar. A page lights its tab by naming the tab's
+              key as `navActive`. -#}
+          <nav class="chrome__nav" aria-label="{{ familyBar.wordmark }}">
+            {%- for tab in familyBar.tabs %}
+            <a class="chrome__tab{% if navActive == tab.key %} chrome__tab--on{% endif %}" href="{{ tab.path }}">{{ tab.label }}</a>
+            {%- endfor %}
           </nav>
           {#- The family's products, never inside the menu, at any width.
               A document is inside none of them, so no button is current
               here; the console app marks Console, the Clan app marks Clan.
-              Glyphs are Lucide's gauge, users, droplet, external-link. -#}
+              A product on this origin links its bare path; one elsewhere
+              its href, in a new window, and says so with a glyph. Glyphs
+              are the Lucide icons the manifest names, drawn the way the
+              kit's Icon draws them (the chromeIcon shortcode). -#}
           <div class="chrome__products">
-            <a class="chrome__product" href="/console">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
-              <span class="chrome__product-label">Console</span>
+            {%- for product in familyBar.products %}
+            <a class="chrome__product" href="{{ product.href or product.path }}"{% if product.external %} target="_blank" rel="noopener" aria-label="{{ product.label }} (opens in a new window)"{% endif %}>
+              {% chromeIcon product.icon, 17 %}
+              <span class="chrome__product-label">{{ product.label }}</span>
+              {%- if product.external %}
+              {% chromeIcon "external-link", 13 %}
+              {%- endif %}
             </a>
-            <a class="chrome__product" href="/clan">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg>
-              <span class="chrome__product-label">Clan</span>
-            </a>
-            <a class="chrome__product" href="https://drop.poapkings.com/" target="_blank" rel="noopener" aria-label="Drop (opens in a new window)">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
-              <span class="chrome__product-label">Drop</span>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-            </a>
+            {%- endfor %}
           </div>
           <button type="button" class="chrome__menu" aria-label="Menu" aria-expanded="false" aria-controls="chrome-sheet" data-chrome-menu>
             <svg data-menu-open width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
@@ -86,14 +85,10 @@
           </button>
         </div>
 
-        <nav class="chrome__sheet" id="chrome-sheet" aria-label="{{ site.wordmark }} menu" data-open="false">
-          <a href="/"{% if navActive == "home" %} aria-current="page"{% endif %}>Home</a>
-          <a href="/data"{% if navActive == "data" %} aria-current="page"{% endif %}>Data</a>
-          <a href="/examples/play"{% if navActive == "examples" %} aria-current="page"{% endif %}>Examples</a>
-          <a href="/updates"{% if navActive == "updates" %} aria-current="page"{% endif %}>Updates</a>
-          <a href="/docs"{% if navActive == "docs" %} aria-current="page"{% endif %}>Docs</a>
-          <a href="/family"{% if navActive == "family" %} aria-current="page"{% endif %}>Family</a>
-          <a href="/support"{% if navActive == "support" %} aria-current="page"{% endif %}>Support</a>
+        <nav class="chrome__sheet" id="chrome-sheet" aria-label="{{ familyBar.wordmark }} menu" data-open="false">
+          {%- for tab in familyBar.tabs %}
+          <a href="{{ tab.path }}"{% if navActive == tab.key %} aria-current="page"{% endif %}>{{ tab.label }}</a>
+          {%- endfor %}
         </nav>
       </header>
 

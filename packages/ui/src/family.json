@@ -1,0 +1,29 @@
+{
+  "wordmark": "Elixir",
+  "origin": "https://elixir.poapkings.com",
+  "tabs": [
+    { "key": "home", "label": "Home", "path": "/" },
+    { "key": "data", "label": "Data", "path": "/data" },
+    { "key": "examples", "label": "Examples", "path": "/examples/play" },
+    { "key": "updates", "label": "Updates", "path": "/updates" },
+    { "key": "docs", "label": "Docs", "path": "/docs" },
+    { "key": "family", "label": "Family", "path": "/family" },
+    { "key": "support", "label": "Support", "path": "/support" }
+  ],
+  "products": [
+    {
+      "key": "console",
+      "label": "Console",
+      "path": "/console",
+      "icon": "gauge"
+    },
+    { "key": "clan", "label": "Clan", "path": "/clan", "icon": "users" },
+    {
+      "key": "drop",
+      "label": "Drop",
+      "href": "https://drop.poapkings.com/",
+      "icon": "droplet",
+      "external": true
+    }
+  ]
+}

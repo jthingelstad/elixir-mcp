@@ -4,7 +4,8 @@
   "description": "The family's React kit on Elixir's design: the chrome, the rail and its identity block, the one log table, freshness, Markdown, icons, the error boundary, the disclaimer. Sources are TypeScript; the console consumes them through the workspace, verticals through the pinned dependency. Styles are the design package's - nothing here restyles them.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./family.json": "./src/family.json"
   },
   "scripts": {
     "test": "vitest run"

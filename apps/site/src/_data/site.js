@@ -2,9 +2,8 @@
  *  template, an llms.txt entry, and a sitemap and drift between them. */
 export default {
   name: "Elixir MCP",
-  /** The top bar's wordmark: the family, not the service. Mirrors
-   *  FAMILY_WORDMARK in packages/ui/src/family.ts. */
-  wordmark: "Elixir",
+  // The top bar's wordmark (the family, not the service) is the kit's
+  // manifest's: familyBar.wordmark, from packages/ui/src/family.json.
   url: "https://elixir.poapkings.com",
   mcpUrl: "https://elixir.poapkings.com/mcp",
   tagline: "Clash Royale history, recorded.",
