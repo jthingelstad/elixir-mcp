@@ -1240,3 +1240,69 @@ of the move is elixir-mcp's `docs/NOTES.md` entry of the same date; this
 file stays Clan's decision ledger, newest last. Next: Clan at
 `elixir.poapkings.com/clan` (`../../elixir-family/plans/one-origin.md`,
 step 4).
+
+## 2026-09-28 — Served at elixir.poapkings.com/clan (one origin, step 4b)
+
+Elixir's edge learned Clan in step 4a (`/clan*` to this stack's bucket,
+`/api/clan/*` to its HTTP API, `mountedPath` in the handler). This step
+moves the app and its sign-in onto that address.
+
+What moved:
+
+- **The web app** is built with Vite `base: "/clan/"` and writes every
+  path with the prefix explicitly (`apps/web/src/lib/base.js`, the
+  Console's pattern; no router basepath, because the kit's links render
+  `to` verbatim). Its API client calls `/api/clan/...`, sign-in is
+  `/api/clan/auth/login`, sign-out a POST to `/api/clan/auth/logout`.
+  Clan's product button and the invite link point at `/clan`; the Elixir
+  wordmark goes to Elixir's front page, as it does in the Console.
+- **Sign-in** comes back at `https://elixir.poapkings.com/api/clan/auth/callback`
+  (the handler builds it from `APP_URL`'s origin), and every redirect
+  lands under `APP_URL`: `/refused/<reason>`, `/verify`, `/<TAG>`,
+  `/clans`, `/?error=...`, and `/` after sign-out. The cookies do not
+  change (`__Host-`, `Path=/`).
+- **Links out**: the actions email links `APP_URL/<TAG>/actions[/<n>]`,
+  the feedback notice `APP_URL/maintain/feedback/<id>`.
+
+The route map:
+
+| Path | Page |
+|---|---|
+| `/clan`, `/clan/` | the landing; signed in, your selected clan or the chooser |
+| `/clan/clans` | the chooser |
+| `/clan/<TAG>[/<section>[/<tab>]]` | a clan (me, week, actions, standing, trophies, recruit, map, manage) |
+| `/clan/you`, `/clan/you/away` | you |
+| `/clan/refused/<reason>`, `/clan/verify` | the gate's pages |
+| `/clan/feedback[/<id>]`, `/clan/maintain[/<lane>[/<id>]]` | feedback, the maintainer's lane |
+
+The page names win over a tag (`/clan/verify` is never clan #VERIFY),
+and a tag is read the gate's way: any case, O as 0, the game's alphabet
+`0289PYLQGRJCUV`, 3 to 12 characters. What the bare prefix does is what
+`/` did before: a signed-in person goes on to their clan or the chooser.
+
+- **`AppUrl` is removed.** The app's address is `ElixirUrl/clan`, known
+  before the stack exists, so the template gives both functions `APP_URL`
+  from `ElixirUrl` and `deploy.mjs` no longer follows a create with an
+  update to set it. The parameter left `parameters.mjs` and its test.
+- **The web deploy** uploads every file under `clan/` in the bucket
+  (Elixir's edge asks for `clan/index.html` and `clan/assets/...`) and
+  deletes everything else, so the first deploy of this removes the
+  bucket-root keys `clan.poapkings.com` served: that host no longer serves
+  the app. Its distribution stays until step 5.
+- **The smoke** reads `ElixirUrl/clan/` and `/clan/clans` (the shell,
+  Elixir's security headers, script from `'self'` and `tinylytics.app`
+  only, OpenStreetMap's tiles in `img-src`), a missing `/clan/assets/`
+  file, `/api/clan/health`, `/api/clan/me` and a clan route signed out.
+- **Analytics** report to Elixir's own Tinylytics site
+  (`Yzx8dUUvUPn9AEJpTMeU`), beside the Console, as `/clan/...` pages. The
+  browser's `web.api_*` route keys keep the `/api/clan` prefix so Clan's
+  stay apart from the Console's.
+- **`register-client.mjs` is superseded**: `/oauth/register` refuses a
+  redirect URI on a family origin, and Clan's client is Elixir's
+  provisioned family client (app `clan`). The file now only says so.
+
+Before deploying (the plan's order): Elixir's `family_clients:
+{set_redirect_uris}` op for app `clan` adds
+`https://elixir.poapkings.com/api/clan/auth/callback` beside the old URI,
+and `ElixirDistributionId` is set on this stack; the old URI goes after
+the deploy. The live sign-in check is Jamie's.

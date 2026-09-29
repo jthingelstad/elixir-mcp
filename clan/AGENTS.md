@@ -1,9 +1,12 @@
 # AGENTS.md
 
 Elixir Clan: being in a clan, on top of Elixir. One of the Elixir family's
-verticals (`../../elixir-family/MAP.md`), served at `clan.poapkings.com`
-until it moves to `elixir.poapkings.com/clan` (one origin, 2026-09-28:
-`../../elixir-family/plans/one-origin.md`, step 4). Its code lives in
+verticals (`../../elixir-family/MAP.md`), served on Elixir's origin: the
+app at `elixir.poapkings.com/clan`, its API at `/api/clan`, both through
+Elixir's CloudFront distribution (one origin, 2026-09-28:
+`../../elixir-family/plans/one-origin.md`, step 4). The `clan.poapkings.com`
+distribution stands until step 5 retires it, but no longer serves the
+app ("Served through Elixir", below). Its code lives in
 elixir-mcp's repository as `clan/` (2026-09-28, with its history) and keeps
 its own Lambdas, table and stack: one repository, two runtimes. It signs people
 in with Elixir's OAuth, takes anyone with a player in a clan as a member
@@ -64,17 +67,23 @@ repository root.
 
 ```
 apps/web/          React 19 + Vite SPA on Elixir's kit (TanStack Router + Query,
-                   Tailwind v4 over Elixir's tokens): /, /clans, /clan/<TAG>,
+                   Tailwind v4 over Elixir's tokens), every path under /clan
+                   (Vite base /clan/, src/lib/base.js): /clan, /clan/clans, /clan/<TAG>,
                    /clan/<TAG>/me, /clan/<TAG>/week[/<iso week>],
                    /clan/<TAG>/actions[/<number>], /clan/<TAG>/standing, /clan/<TAG>/trophies,
                    /clan/<TAG>/recruit, /clan/<TAG>/map, /clan/<TAG>/manage/{board,history,policy,awards,scout,settings},
-                   /you, /you/away, /feedback, /maintain/feedback, /refused/<reason>, /verify
+                   /clan/you, /clan/you/away, /clan/feedback, /clan/maintain/feedback,
+                   /clan/refused/<reason>, /clan/verify. The app's page names win
+                   over a tag; a tag is read the gate's way (0289PYLQGRJCUV).
 services/engine/   the management engine, PURE: policy schema, facts, standing,
                    evaluate, render, awards, recruit, chat, words. No I/O, no clock.
                    Golden tests in test/.
 services/api/      Node 24 arm64 Lambda behind one HTTP API: /auth/*, /api/*,
                    /api/clans/<TAG>/* (manage/ = ledger, service, awards, recruit,
-                   scout, model); anthropic.mjs (a clan's own key, never ours)
+                   scout, model); anthropic.mjs (a clan's own key, never ours).
+                   The browser reaches it as /api/clan/*: mountedPath() reads
+                   /api/clan/auth/* as /auth/* and any other /api/clan/* as
+                   /api/*, the form routes are named in throughout this file.
 scripts/           feedback.mjs (the Close-the-Loop owner's read of the queue),
                    actions.mjs (actions and their logs, read-only, for review)
 infra/             one CloudFormation stack + scripts (bootstrap, deploy, smoke)
@@ -86,7 +95,7 @@ docs/NOTES.md      decisions, newest last; what is waiting on Jamie
 | Seam | Where | What |
 |---|---|---|
 | Discovery | `GET {ElixirUrl}/.well-known/oauth-authorization-server` | endpoints, cached 300 s (`services/api/src/oauth.mjs`) |
-| Client registration | `POST /oauth/register` | once, by `infra/scripts/register-client.mjs`; the `client_id` is the stack parameter `OAuthClientId`. PKCE, and the client secret: the NoEcho stack parameter `OAuthClientSecret` (PRESERVED, env `OAUTH_CLIENT_SECRET`, staged once with `--param`, never printed), sent as `client_secret` in the form of both token requests when set. Lives 365 days from last use. |
+| The client | provisioned by Elixir | Clan's is a family client (app `clan`, Elixir's `family_clients` op, 0185), never expiring; `/oauth/register` refuses a redirect URI on a family origin, so `infra/scripts/register-client.mjs` only says it is superseded. Its redirect URI is `https://elixir.poapkings.com/api/clan/auth/callback` (the handler's, from `APP_URL`'s origin), changed with the op's `set_redirect_uris`. The `client_id` is the stack parameter `OAuthClientId`. PKCE, and the client secret: the NoEcho stack parameter `OAuthClientSecret` (PRESERVED, env `OAUTH_CLIENT_SECRET`, staged once with `--param`, never printed), sent as `client_secret` in the form of both token requests when set. |
 | Authorize | `/oauth/authorize` | `scope=cr:read clans:attest` (`clans:attest` since 2026-09-25: only the family's own apps may ask for it), `resource=https://elixir.poapkings.com/api/v1` (required, RFC 8707), S256. An `/mcp` grant is refused at `/api/v1`. A session signed in before the change holds `cr:read` alone: its shares are logged as not shared, and every page asks the person to sign in again (`canShare` in `App.jsx`, from `/api/me`'s `scope`). |
 | Tokens | `/oauth/token` | access 1 h, refresh 30 d rotating, family 90 d. Refreshed server-side; a rotated refresh token is STORED before any reuse (presenting it twice revokes the grant). One request spends it: `store.claimRefresh` is a conditional write on the stored token, and a request that loses waits for the pair the winner stores (2026-09-26; parallel page calls revoked a grant on 2026-09-13). Elixir refusing the refresh (400) ends the session; Elixir not answering is a 502 that keeps the session and the cookie. |
 | The door | `/api/v1/*` | Elixir's JSON API (`services/api/src/elixir-api.mjs`). It keeps the old MCP client's `initialize`/`callTool` interface: each tool name maps to one operation, answered with that tool's structured result, and a refusal comes back as problem+json carrying the tool's code. Plan: `../../elixir-family/plans/clan-app-api.md` |
@@ -119,7 +128,7 @@ is a member here who reads: no away notice, no comments, no decisions, no
 place on or view of the clan map. Every Manage write and the map answer
 `403 unverified` (`manageRoute`), and each clan carries `verified` and,
 when the game role is bigger than the one used, `unlock` (the player to
-verify). After sign-in such a person lands on `/verify` (`verifyNotice`):
+verify). After sign-in such a person lands on `/clan/verify` (`verifyNotice`):
 the clans and players waiting on Elixir → Verify, and a link there. They
 say they have read it (`POST /api/verify-notice`, stored on the session as
 `verifyAck`) before going on; a fresh sign-in, or a changed list, asks
@@ -133,7 +142,7 @@ clan are one clan acting as the higher role, verified before unverified,
 Friends and watching never act. **Selection** is `{ clan_tag, player_tag }`
 on the session: a remembered preference (`pref#<primary tag>`, the ONE
 non-session item this app stores) wins, then a lone clan, else the chooser
-at `/clans`. `POST /api/select` picks and remembers; `/api/roster?clan=<TAG>`
+at `/clan/clans`. `POST /api/select` picks and remembers; `/api/roster?clan=<TAG>`
 refuses any clan outside the set (`not_your_clan`); a session with no
 selection and no `?clan=` gets `409 no_selection`. Arriving at
 `/clan/<TAG>` for another of your clans selects it.
@@ -451,7 +460,7 @@ Elixir's feedback system, carried nearly verbatim (`services/api/src/feedback.mj
 a Markdown note from anywhere (the page, clan and role ride along as
 `context`), sees their own list with every status and reply, and opening a
 reply marks it seen (`feedback_unseen` on `/api/me` drives the chrome's
-mark). The MAINTAINER answers from `/maintain/feedback` with a status
+mark). The MAINTAINER answers from `/clan/maintain/feedback` with a status
 (`seen | planned | done | declined`), a Markdown reply and a free-text
 `shipped_in`. **The maintainer is not a clan role**: it is the product's,
 a verified player tag in the stack parameter `MaintainerTags`. People only:
@@ -474,7 +483,7 @@ open card; a leader answers Kicked / Left / Ignore, never declines; the
 classification is the ledger's leave-vs-kick record and the timeline shows
 it. Switched off, open departure cards are withdrawn. **Away** (when the
 policy tracks inactivity and `away_max_days` > 0): a member marks themselves
-away on `/you/away`; it is a hold of kind `away`, the clock pauses, leaders
+away on `/clan/you/away`; it is a hold of kind `away`, the clock pauses, leaders
 see it on the board and can clear it, a leader's own hold is not the
 member's to move. The **membership timeline** in History (joins, leaves,
 role changes from `clans_roster.recent_events`). **Paste-ready in-game
@@ -780,10 +789,27 @@ included; the agents push as it.
   No billing alarm: an account-wide guard is not one product's to carry
   (removed 2026-09-24, Jamie).
 - `infra/scripts/parameters.mjs` carries Drop's discipline: REQUIRED (code
-  key) is always sent; PRESERVED (`AppUrl`, `ElixirUrl`, `OAuthClientId`,
-  `OAuthClientSecret`, `AppSecretName`, `SiteCertificateArn`) rides
-  `UsePreviousValue`. Set one with `--param=Key=Value`; omitting is never a
-  reset. A test pins the template's parameter list to that set.
+  key) is always sent; PRESERVED (`ElixirUrl`, `OAuthClientId`,
+  `OAuthClientSecret`, `AppSecretName`, `SiteCertificateArn`,
+  `MaintainerTags`, `FeedbackNotifyEmail`, `ElixirIntegrationKey`,
+  `ScheduleEnabled`, `ElixirDistributionId`) rides `UsePreviousValue`. Set
+  one with `--param=Key=Value`; omitting is never a reset. A test pins the
+  template's parameter list to that set. There is no `AppUrl` (removed
+  2026-09-28): the app is at `ElixirUrl/clan`, and the template gives both
+  functions `APP_URL` from `ElixirUrl`, so a create needs no follow-up
+  update.
+- **Served through Elixir** (one origin, step 4, 2026-09-28). Elixir's
+  template sends `/clan` and `/clan/*` to this stack's web bucket and
+  `/api/clan/*` to its HTTP API, under Elixir's security headers (its CSP:
+  script from `'self'` and `tinylytics.app`, images from OpenStreetMap's
+  tiles among others). Its viewer-request function hands the bucket a
+  file's path as it stands and any other `/clan` path as
+  `/clan/index.html`, so `infra/scripts/deploy-web.mjs` writes every built
+  file under `clan/` (`clan/index.html`, `clan/assets/...`) and deletes
+  any other key, the bucket-root copy `clan.poapkings.com` served
+  included. The bucket admits Elixir's distribution (`ElixirDistributionId`,
+  set once with `--param`), and the web deploy flushes `/clan*` there as
+  well as `/*` on this stack's own distribution.
 - Local, from the repository root: `AWS_PROFILE=cloud-engineer node
   clan/infra/scripts/deploy.mjs` (build → upload → stack → web → smoke).
   `--create` for a first deploy, `--skip-web` for code only. It deploys
@@ -791,7 +817,8 @@ included; the agents push as it.
   worktree (`infra/scripts/ci-gate.mjs`); `--break-glass` is for GitHub
   being down, never for a red check, and is recorded in `docs/NOTES.md`.
   It reads a `clan/.env` if there is one; nothing needs one (the OAuth
-  client secret is a NoEcho stack parameter).
+  client secret is a NoEcho stack parameter). It ends by printing the
+  app's address, `ElixirUrl/clan`.
 - CI: `clan-deploy` (`.github/workflows/clan-deploy.yml` at the root) runs
   on `main` after a green `validate`, in elixir-mcp's GitHub
   `clan-production` environment (main only, no admin bypass). Most merges
@@ -827,9 +854,16 @@ included; the agents push as it.
   Clan's journeys (`apps/web/playwright.config.ts`) after the Console's:
   Playwright against the built app under `vite preview`, with route
   fixtures and axe; the live sign-in check waits for the deploy.
-- Deployment smoke uses only reads that cannot change live state. It never
-  visits `/auth/login`, which creates a pending login even on GET; the
-  handler tests cover the OAuth redirect and PKCE offline.
+- Deployment smoke (`infra/scripts/smoke.mjs`) reads the app where Elixir
+  serves it, at the stack's `ElixirUrl` (or `SMOKE_ORIGIN`): `/clan/` is
+  the shell, with security headers, script only from `'self'` and
+  `tinylytics.app`, and OpenStreetMap's tiles in `img-src`; `/clan/clans`
+  is the shell; a missing `/clan/assets/` file is a 403 or 404;
+  `/api/clan/health` is 200; `/api/clan/me` signed out and a clan route
+  without a session are 401. It uses only reads that cannot change live
+  state and never visits `/api/clan/auth/login`, which creates a pending
+  login even on GET; the handler tests cover the OAuth redirect and PKCE
+  offline.
 
 ## Logging: one story per request
 
@@ -869,13 +903,17 @@ report: gateway `integration_ms` ≈ Lambda `ms`? then the time is Elixir's
 
 ## Analytics: Tinylytics, the way Elixir loads it
 
-`apps/web/src/analytics.js` (2026-09-12; site `J4GMM7Mti-Quk1gfx6zQ`). The
-embed records the document load; the route bridge records pushState
-navigation as virtual hits with the page collapsed (`/clan/<TAG>/manage/board`
-reports as `/clan/manage/board?clan=#TAG`; `/feedback/<id>` as
-`/feedback?id=`). localhost never tracks. The CSP allows `tinylytics.app` for
-script, connect and img, and OpenStreetMap's tiles (`tile.openstreetmap.org`,
-img only, for the clan map; Jamie, 2026-09-26), and no other third party
+`apps/web/src/analytics.js` (2026-09-12), on Elixir's own site
+`Yzx8dUUvUPn9AEJpTMeU` since the move to one origin (2026-09-28; before it,
+`J4GMM7Mti-Quk1gfx6zQ`, clan.poapkings.com's): Clan's pages report beside
+the Console's, every one under `/clan`. The embed records the document
+load; the route bridge records pushState navigation as virtual hits with
+the page collapsed (`/clan/<TAG>/manage/board` reports as
+`/clan/manage/board?clan=#TAG`; `/clan/feedback/<id>` as
+`/clan/feedback?id=`; a clan's roster, `/clan/<TAG>`, as `/clan?clan=#TAG`,
+and the landing as `/clan`). localhost never tracks. Elixir's CSP allows
+`tinylytics.app` for script, connect and img, and OpenStreetMap's tiles
+(`tile.openstreetmap.org`, img only, for the clan map; Jamie, 2026-09-26)
 (the smoke pins both).
 Events are counted the Tinylytics way, a hidden `data-tinylytics-event`
 node clicked once (`trackEvent`), or the attribute on a real link. The
@@ -898,7 +936,7 @@ taxonomy, and it is REAL (add here when adding there):
 | `clan.place_set`, `clan.place_cleared` | `city` \| `region` \| `country`; (none) |
 | `clan.social_set` | `on` \| `off` |
 | `clan.model_key_set`, `clan.model_key_removed`, `clan.model_drafted` | (none); (none); the purpose (`recruit_pitch` \| `leader_message`) |
-| `web.api_timeout`, `web.api_network`, `web.api_bad_response`, `web.api_slow` (over 3 s) | the route key, ids as `*` |
+| `web.api_timeout`, `web.api_network`, `web.api_bad_response`, `web.api_slow` (over 3 s) | the route key as the browser called it, `/api/clan/...` with ids as `*`, so Clan's stay apart from the Console's on the shared site |
 
 No server-side events: Elixir's go through its email relay with an API
 token; this product has no relay and sends nothing from the Lambda.

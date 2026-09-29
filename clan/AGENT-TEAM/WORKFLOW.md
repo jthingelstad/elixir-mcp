@@ -22,7 +22,7 @@ the product docs it points at.
 1. Run the repository's `AGENT-TEAM/scripts/preflight.sh` (at the root). A dirty, behind, diverged,
    detached or unexpectedly-ahead checkout makes the run read-only. Never
    publish a pre-existing commit.
-2. Measure current state: the live site and API (`/api/health`, the smoke
+2. Measure current state: the live site and API (`/api/clan/health`, the smoke
    script's reads), CI (`gh run list`), the
    stack and its alarms (`--profile cloud-engineer`, read-only), the ledger through
    the host scripts, `docs/NOTES.md` since the last reviewed revision, and

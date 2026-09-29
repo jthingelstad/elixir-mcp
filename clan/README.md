@@ -5,8 +5,8 @@ the roster with every member's role, trophies, donations and activity, shown
 to you as who you are in the game, and your clan's own policy run against
 the record: Elder by participation in what your clan counts or by hand, an
 inactivity clock, cards your leaders decide, awards, recruiting copy and
-scouting. Live at <https://clan.poapkings.com>, moving to
-<https://elixir.poapkings.com/clan>.
+scouting. Live at <https://elixir.poapkings.com/clan>, on Elixir's own
+origin.
 
 - Sign in with Elixir only (OAuth 2.1, PKCE, `cr:read`). No accounts here.
 - Requires a verified player; in-game role is the app role.
