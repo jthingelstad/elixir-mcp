@@ -388,6 +388,28 @@ carrying a credential (`/console/signin`). Do not add per-recipient open or
 click tracking, engagement scoring, or automation on read state; do not
 tie sponsorship (`/support`) to anything on an account.
 
+## Services share through packages, never each other
+
+Each service is its own Lambda, but until 2026-09-29 they shared code by
+reaching into each other's `src` with relative paths: web-api answered
+`/api/v1` from ingest's clock and profile modules and MCP's registry, and
+89 such imports tied the services together where no tool could see them.
+What more than one service reads now lives in a package: `packages/record`
+holds the record's data functions and its clock (the war calendar, the
+season table, the game clock, the recorded profile, a person's players,
+badge names), and a service imports it as `@elixir-mcp/record/<name>`.
+A package is bundled into each Lambda by esbuild like any dependency, so
+adding one needs no infrastructure.
+
+`packages/record/test/boundary.test.mjs` holds the line two ways. The
+package imports no service, in either form. And the count of relative
+imports from one service's `src` into another's has a ceiling that only
+goes down: moving a shared module into a package lowers it, and a new
+crossing fails the gate. Tests are not counted, since a test may borrow
+another service's scratch database or registry. Two doors over one fact
+read one function, and a parity test says so, rather than each deriving
+its own.
+
 ## Where the patterns live
 
 - **CR API truth:** `cr-agent-api-docs` — a standalone repo, deliberately NOT
@@ -472,8 +494,10 @@ capacity independently of the sponsoring person. Admin management lives in
 `services/web-api/src/routes/integrations.mjs`; personal principal routes cannot
 manage these identities. Legacy MCP credentials are unchanged by migration 0058.
 
-The data seam is `services/ingest/src/{game-clock,recorded-profile}.mjs`, shared
-with MCP. Async requests bind integration, idempotency key and ledger job;
+The data seam is `packages/record` (`@elixir-mcp/record`): `gameClock`,
+`readRecordedProfile` and `myPlayers` are the functions both the operations
+here and the MCP tools beside them read, and
+`services/web-api/test/record-parity.test.mjs` pins that the two doors agree. Async requests bind integration, idempotency key and ledger job;
 completion requires admitted receipt plus projected data. The existing scheduler
 still owns global pacing. Operational cleanup expires refresh records and keeps
 90 days of integration usage. REST operations use the existing call audit with

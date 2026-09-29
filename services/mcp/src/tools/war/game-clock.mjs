@@ -1,4 +1,4 @@
-import { gameClock } from "../../../../ingest/src/game-clock.mjs";
+import { gameClock } from "@elixir-mcp/record/game-clock";
 import { responseMeta } from "@elixir-mcp/contracts";
 import { ToolFailure, appliedBlock } from "../shared.mjs";
 import { CLOCK_DOCS } from "./common.mjs";

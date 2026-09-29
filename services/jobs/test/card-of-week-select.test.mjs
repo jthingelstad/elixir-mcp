@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { ensureSeasonsAround, seasonAt } from "../../ingest/src/season.mjs";
+import { ensureSeasonsAround, seasonAt } from "@elixir-mcp/record/season";
 import {
   selectCard,
   recordFeatured,

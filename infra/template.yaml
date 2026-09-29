@@ -2190,7 +2190,7 @@ Resources:
       AlarmActions: [!Ref AlarmTopic]
 
   # The season row's derived war number disagreed with a riverracelog
-  # entry (0104; services/ingest/src/season.mjs): the calendar the record
+  # entry (0104; packages/record/src/season.mjs): the calendar the record
   # files everything under is wrong for that month. Nothing relabels
   # itself; a human reads the season table and the log entry.
   SeasonMismatchAlarm:

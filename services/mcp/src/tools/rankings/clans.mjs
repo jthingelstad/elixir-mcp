@@ -1,4 +1,4 @@
-import { seasonIdForMonth } from "../../../../ingest/src/war-clock.mjs";
+import { seasonIdForMonth } from "@elixir-mcp/record/war-clock";
 import {
   TIMEZONE_SCHEMA,
   ToolFailure,

@@ -1,5 +1,5 @@
-import { badgeLabel } from "../badge-names.mjs";
-import { readRecordedProfile } from "../../../ingest/src/recorded-profile.mjs";
+import { badgeLabel } from "@elixir-mcp/record/badge-names";
+import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
 /** players_summary · players_profile · players_timeline ·
  *  players_collection · players_names · players_search. Conventions
  *  (1.0.0): `applied`, `notes[]` + `docs`, `verbosity`. */

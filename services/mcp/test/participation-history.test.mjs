@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { ingestClanRoster } from "../../ingest/src/roster.mjs";
-import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
+import { ensureSeasonsAround } from "@elixir-mcp/record/season";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { atWarFinishes } from "../src/role-history.mjs";

@@ -25,7 +25,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { badgeLabel } from "../badge-names.mjs";
+import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import {
   ATTESTED_FACT_KINDS,
   ATTESTED_FACT_TYPES,

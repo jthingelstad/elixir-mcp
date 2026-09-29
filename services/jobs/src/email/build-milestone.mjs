@@ -6,7 +6,7 @@
  *  of an arena already celebrated is silent and a higher one is news.
  *  Bundled: everything new since the last look goes in one mail. */
 import { buildPlayerEntry } from "../../../mcp/src/activity/entries.mjs";
-import { badgeLabel } from "../../../mcp/src/badge-names.mjs";
+import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import { formLabel, itemText } from "../../../mcp/src/activity/summary.mjs";
 import { myPlayers } from "./shared.mjs";
 import { whenLabel } from "./week.mjs";

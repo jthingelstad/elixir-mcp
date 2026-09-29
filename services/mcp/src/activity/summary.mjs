@@ -7,7 +7,7 @@
  * agent's tokens either.
  */
 
-import { badgeLabel } from "../badge-names.mjs";
+import { badgeLabel } from "@elixir-mcp/record/badge-names";
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const num = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "?");

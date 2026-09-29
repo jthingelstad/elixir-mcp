@@ -1,0 +1,19 @@
+{
+  "name": "@elixir-mcp/record",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The record's data functions over Postgres and its clock, shared by every service: MCP tools and /api/v1 operations are adapters over these.",
+  "exports": {
+    "./badge-names": "./src/badge-names.mjs",
+    "./game-clock": "./src/game-clock.mjs",
+    "./players": "./src/players.mjs",
+    "./recorded-profile": "./src/recorded-profile.mjs",
+    "./season": "./src/season.mjs",
+    "./snapshot-columns": "./src/snapshot-columns.mjs",
+    "./war-clock": "./src/war-clock.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

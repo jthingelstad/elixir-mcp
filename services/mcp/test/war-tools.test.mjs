@@ -12,7 +12,7 @@ import { makeInvoker } from "../src/invoker.mjs";
 import { participationObjects } from "../src/participation-table.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
 import { periodAt } from "../src/war-period.mjs";
-import { ensureSeasonsAround } from "../../ingest/src/season.mjs";
+import { ensureSeasonsAround } from "@elixir-mcp/record/season";
 
 /** The (player, UTC day) pairs of hand-seeded battles, as ingest would
  *  hand them to the rollup. */

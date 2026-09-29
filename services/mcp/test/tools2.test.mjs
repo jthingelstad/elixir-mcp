@@ -11,13 +11,13 @@ import { emailHash } from "../../auth/src/index.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { seedPlayedDeck, seedDeck, hashFor } from "./deck-rows.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
-import { ensureSeasonsAround, ensureSeason } from "../../ingest/src/season.mjs";
+import { ensureSeasonsAround, ensureSeason } from "@elixir-mcp/record/season";
 import { rebuildSeason } from "../../jobs/src/meta-rollup.mjs";
 import { dailySql } from "../src/daily-sql.mjs";
 import { notBoatDefense } from "../src/boat-defense-sql.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
 import { typesForModeGroup } from "@elixir-mcp/contracts";
-import { seasonFromDate, monthKey } from "../../ingest/src/war-clock.mjs";
+import { seasonFromDate, monthKey } from "@elixir-mcp/record/war-clock";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");

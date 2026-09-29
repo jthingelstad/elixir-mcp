@@ -13,7 +13,7 @@ import {
   seasonMismatchEmf,
   parseProgressKey,
   projectModeSeasons,
-} from "../src/season.mjs";
+} from "@elixir-mcp/record/season";
 import { projectRiverRaceLog } from "../src/war.mjs";
 import { processResult } from "../src/pipeline.mjs";
 import { fixture, scratchDb } from "./helpers.mjs";

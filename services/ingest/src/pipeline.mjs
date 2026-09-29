@@ -13,7 +13,7 @@
  */
 
 import { gunzipSync } from "node:zlib";
-import { polSeasonMonth } from "./war-clock.mjs";
+import { polSeasonMonth } from "@elixir-mcp/record/war-clock";
 import { validateResultMessage, normalizeTag } from "@elixir-mcp/contracts";
 import { payloadHash } from "./hash.mjs";
 import { stampRetry } from "../../scheduler/src/ledger.mjs";
@@ -28,7 +28,10 @@ import {
 import { refreshDailyRollups } from "./rollups.mjs";
 import { projectCardCatalog, projectPlayerCards } from "./cards.mjs";
 import { projectRiverRace, projectRiverRaceLog } from "./war.mjs";
-import { projectModeSeasons, seasonMismatchEmf } from "./season.mjs";
+import {
+  projectModeSeasons,
+  seasonMismatchEmf,
+} from "@elixir-mcp/record/season";
 import { projectClanSeries, projectPlayerProgress } from "./series.mjs";
 import {
   projectRankingBoard,
