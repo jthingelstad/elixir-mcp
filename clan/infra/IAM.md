@@ -11,7 +11,7 @@ stack-wide tag change.
 
 CI's identity is the `elixir-clan-github-deploy` role (2026-09-26, replacing
 the `elixir-clan-deploy` user's static keys): GitHub Actions assumes it with
-its OIDC token, and its trust names only this repository's `production`
+its OIDC token, and its trust names only this repository's `clan-production`
 environment, which admits only `main`. Its one inline policy is
 `elixir-clan-deployment` (`deploymentPolicyFor`). `secure-iam.mjs` verifies
 its trust and policy beside the other two roles.
@@ -68,6 +68,17 @@ AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --skip-web \
 
 Until then `ScheduleEnabled` stays `false` and the template creates no
 rule, so nothing needs the new permission.
+
+## The retired host's grants (2026-09-29)
+
+With `clan.poapkings.com` gone (2026-09-28) the stack owns no CloudFront
+distribution, function, policy or certificate, so the execution policy
+lost its `cloudfront:*` statement and `acm:DescribeCertificate`. The CI
+role keeps `cloudfront:CreateInvalidation`: the web deploy still flushes
+`/clan*` on Elixir's distribution. The deploy role's trust lost the two
+`clan.poapkings.com` subjects it kept after the move. Both were applied
+from this source as `cloud-engineer`, after a private snapshot of the
+live documents and an Access Analyzer check.
 
 ## Rollback and recovery
 

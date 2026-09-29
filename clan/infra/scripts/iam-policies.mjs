@@ -24,55 +24,12 @@ export function executionPolicyFor(accountId) {
   const policy = {
     Version: "2012-10-17",
     Statement: [
-      // API Gateway control-plane ARNs are not name-scoped; CloudFront
-      // create/list are account-global. Everything regional is pinned
-      // to elixir-clan-* names.
+      // API Gateway control-plane ARNs are not name-scoped. Everything
+      // regional is pinned to elixir-clan-* names. No CloudFront or ACM:
+      // the stack owns no distribution or certificate since
+      // clan.poapkings.com was retired (2026-09-28); its bucket policy
+      // names Elixir's distribution, which needs no CloudFront call.
       { Effect: "Allow", Action: ["apigateway:*"], Resource: "*" },
-      {
-        Effect: "Allow",
-        Action: [
-          "cloudfront:CreateDistribution",
-          "cloudfront:CreateFunction",
-          "cloudfront:CreateOriginAccessControl",
-          "cloudfront:CreateOriginRequestPolicy",
-          "cloudfront:CreateResponseHeadersPolicy",
-          "cloudfront:DeleteDistribution",
-          "cloudfront:DeleteFunction",
-          "cloudfront:DeleteOriginAccessControl",
-          "cloudfront:DeleteOriginRequestPolicy",
-          "cloudfront:DeleteResponseHeadersPolicy",
-          "cloudfront:DescribeFunction",
-          "cloudfront:GetDistribution",
-          "cloudfront:GetDistributionConfig",
-          "cloudfront:GetFunction",
-          "cloudfront:GetOriginAccessControl",
-          "cloudfront:GetOriginAccessControlConfig",
-          "cloudfront:GetOriginRequestPolicy",
-          "cloudfront:GetOriginRequestPolicyConfig",
-          "cloudfront:GetResponseHeadersPolicy",
-          "cloudfront:GetResponseHeadersPolicyConfig",
-          "cloudfront:ListDistributions",
-          "cloudfront:ListFunctions",
-          "cloudfront:ListOriginAccessControls",
-          "cloudfront:ListOriginRequestPolicies",
-          "cloudfront:ListResponseHeadersPolicies",
-          "cloudfront:ListTagsForResource",
-          "cloudfront:PublishFunction",
-          "cloudfront:TagResource",
-          "cloudfront:UntagResource",
-          "cloudfront:UpdateDistribution",
-          "cloudfront:UpdateFunction",
-          "cloudfront:UpdateOriginAccessControl",
-          "cloudfront:UpdateOriginRequestPolicy",
-          "cloudfront:UpdateResponseHeadersPolicy",
-        ],
-        Resource: "*",
-      },
-      {
-        Effect: "Allow",
-        Action: ["acm:DescribeCertificate"],
-        Resource: `arn:aws:acm:us-east-1:${accountId}:certificate/*`,
-      },
       {
         Effect: "Allow",
         Action: ["cloudwatch:*"],

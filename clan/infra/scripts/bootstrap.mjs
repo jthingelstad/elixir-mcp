@@ -12,10 +12,11 @@
  *     scoped to elixir-clan-* resources
  *  4. CI role elixir-clan-github-deploy: the stack, the two buckets,
  *     CloudFront invalidations, PassRole of the execution role. GitHub
- *     Actions assumes it with its OIDC token from this repo's `production`
- *     environment; there is no key to store, print or rotate (2026-09-26,
- *     replacing the elixir-clan-deploy user's static keys). The account's
- *     GitHub OIDC provider is shared and administrator-owned.
+ *     Actions assumes it with its OIDC token from this repo's
+ *     `clan-production` environment; there is no key to store, print or
+ *     rotate (2026-09-26, replacing the elixir-clan-deploy user's static
+ *     keys). The account's GitHub OIDC provider is shared and
+ *     administrator-owned.
  *
  * The alarm topic is a stack resource, so wiring it to the sysadmin ops
  * queue is a separate step: scripts/wire-alarms.mjs, after the first deploy.
@@ -52,6 +53,7 @@ import {
 import {
   CFN_ROLE,
   DEPLOY_ROLE,
+  GITHUB_REPO,
   REGION,
   SECRET_NAME,
   codeBucketFor,
@@ -165,7 +167,7 @@ try {
     new CreateRoleCommand({
       RoleName: DEPLOY_ROLE,
       AssumeRolePolicyDocument: JSON.stringify(githubDeployTrustFor(accountId)),
-      Description: "GitHub Actions deploys of jthingelstad/clan.poapkings.com",
+      Description: `GitHub Actions deploys of Elixir Clan from ${GITHUB_REPO}`,
       MaxSessionDuration: 3600,
       Tags: TAGS,
     }),
