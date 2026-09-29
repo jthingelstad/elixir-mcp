@@ -1378,3 +1378,13 @@ mismatch without changing the response.
 9.17.1 makes `examples` conditional, adds a registry-level regression over
 both shapes, and will deploy with `--acceptance=elixir`. The JSON API has no
 `elixir_examples` operation and is unchanged.
+
+**Deployed.** e419f409 (PR #159) passed `validate` and deployed at 09:57Z
+(4:57 AM CT) with `--acceptance=elixir`: 195 migrations were already applied,
+so none ran. CloudFormation reached `UPDATE_COMPLETE`. Read-back found
+`/tools.json` on 9.17.1 with `corpus_built_at`, `meta`, `notes`, and `docs` as
+the shared required fields for `elixir_examples`; the false `examples`
+requirement is gone. The post-deploy MCP log window had no
+`output_schema_mismatch` event. Public status remained healthy with five
+active collectors, no dead jobs or dead letters, and one-second admission and
+fetch freshness. The `run` lease was released after that read-back.
