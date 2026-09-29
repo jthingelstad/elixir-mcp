@@ -37,7 +37,7 @@ const ISSUER = "https://elixir.poapkings.com";
 const SECRET = "site-session-secret";
 const EMAIL = "signed-in@example.com";
 const NO_ADDRESS = "no-address@example.com";
-const REDIRECT = "https://clan.poapkings.com/auth/callback";
+const REDIRECT = "https://elixir.poapkings.com/api/clan/auth/callback";
 const RESOURCE = `${ISSUER}/mcp`;
 
 let db;

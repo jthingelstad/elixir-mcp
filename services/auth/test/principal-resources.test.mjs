@@ -136,25 +136,29 @@ test("a credential belongs at exactly one door", () => {
 test("a first-party client is provisioned by Elixir, and its codes can only reach the family's servers", () => {
   const fp = (redirectUris, provisioned = true) =>
     isFirstPartyClient({ redirectUris, provisioned });
-  assert.ok(fp(["https://clan.poapkings.com/auth/callback"]));
+  assert.ok(fp(["https://elixir.poapkings.com/api/clan/auth/callback"]));
   assert.ok(
     fp([
-      "https://clan.poapkings.com/auth/callback",
+      "https://elixir.poapkings.com/api/clan/auth/callback",
       "https://drop.poapkings.com/auth/callback",
     ]),
   );
   // Family redirects prove nothing about who holds the client: registration
   // is open (review §6.5). Only a provisioned client is the family's.
-  assert.ok(!fp(["https://clan.poapkings.com/auth/callback"], false));
+  assert.ok(
+    !fp(["https://elixir.poapkings.com/api/clan/auth/callback"], false),
+  );
   // One foreign redirect makes the whole client third-party.
   assert.ok(
     !fp([
-      "https://clan.poapkings.com/auth/callback",
+      "https://elixir.poapkings.com/api/clan/auth/callback",
       "https://evil.example/cb",
     ]),
   );
-  assert.ok(!fp(["http://clan.poapkings.com/auth/callback"]));
-  assert.ok(!fp(["https://clan.poapkings.com.evil.example/cb"]));
+  assert.ok(!fp(["http://elixir.poapkings.com/api/clan/auth/callback"]));
+  assert.ok(!fp(["https://elixir.poapkings.com.evil.example/cb"]));
+  // Retired with Clan's move to /clan (2026-09-28): no longer the family's.
+  assert.ok(!fp(["https://clan.poapkings.com/auth/callback"]));
   assert.ok(!fp([]));
   assert.ok(!fp(null));
   assert.ok(!isFirstPartyClient({}));

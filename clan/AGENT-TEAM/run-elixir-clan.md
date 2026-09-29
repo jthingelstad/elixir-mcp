@@ -2,7 +2,7 @@
 
 Own the outcome: **the product is up, deployed from `main`, cheap, and
 still speaking Elixir's current contract.** One Lambda, one table, one
-distribution, one dependency that matters. Most of what can go wrong here
+bucket behind Elixir's distribution, one dependency that matters. Most of what can go wrong here
 is a deploy that did not land, an Elixir change this product did not
 follow, or a sign-in that no longer comes back to where Clan is served.
 
@@ -22,7 +22,7 @@ follow, or a sign-in that no longer comes back to where Clan is served.
   smoke output, not just the status.
 - **Alarms.** `elixir-clan-api-errors`, `elixir-clan-api-5xx`,
   `elixir-clan-slow-requests` state and history (`aws cloudwatch describe-alarms
-  --profile cloud-engineer`). An alarm the Operator saw is one this objective
+--profile cloud-engineer`). An alarm the Operator saw is one this objective
   explains: read the Lambda log group for the window, name the cause.
 - **Cost.** The stack's estimated charges stay near zero; the reserved
   concurrency of 10 and the 30-day log retention are the ceilings. Clan is

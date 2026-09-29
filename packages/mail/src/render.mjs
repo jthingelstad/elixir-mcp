@@ -63,12 +63,9 @@ export const KIND_LABELS = {
 };
 
 /** The family's apps: a family app's own mail links back to it, and
- *  those links carry the campaign tag too (2026-09-25). */
-const FAMILY_ORIGINS = [
-  SITE,
-  "https://clan.poapkings.com",
-  "https://drop.poapkings.com",
-];
+ *  those links carry the campaign tag too (2026-09-25). Elixir Clan's
+ *  are on SITE (/clan) since 2026-09-28. */
+const FAMILY_ORIGINS = [SITE, "https://drop.poapkings.com"];
 
 const esc = (v) =>
   String(v ?? "")

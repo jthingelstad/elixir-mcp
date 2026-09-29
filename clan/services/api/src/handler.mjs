@@ -1109,8 +1109,8 @@ export function createHandler({
 /**
  * This API as Elixir serves it, under /api/clan (2026-09-28), read in the
  * form the routes name: /api/clan/auth/* is /auth/*, and any other
- * /api/clan/* is /api/*. A path already in that form is itself, which is
- * how the clan.poapkings.com distribution reaches it until it is removed.
+ * /api/clan/* is /api/*. A path already in that form is itself, as the
+ * tests and the HTTP API's own execute-api address call it.
  */
 export function mountedPath(path) {
   if (path.startsWith("/api/clan/auth/")) return path.slice("/api/clan".length);

@@ -583,9 +583,9 @@ export async function validateAccessToken(db, token, { resource } = {}) {
     : null;
 }
 
-/** The family's own origins (2026-09-23). */
+/** The family's own origins (2026-09-23). Elixir Clan is on Elixir's
+ *  since 2026-09-28 (/clan), and clan.poapkings.com is retired. */
 export const FIRST_PARTY_ORIGINS = [
-  "https://clan.poapkings.com",
   "https://drop.poapkings.com",
   "https://elixir.poapkings.com",
 ];

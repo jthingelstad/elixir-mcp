@@ -988,3 +988,28 @@ sign-in is Jamie's to try.
 `elixir-family/plans/one-origin.md` said the edge would strip `/clan`
 so Clan's bucket kept its layout; 4a passes the path through and 4b
 moves the files, so the plan is corrected there.
+
+## 2026-09-28 - clan.poapkings.com retired (one origin, step 5)
+
+Jamie deleted the DNS record first (Namecheap's zone changed at 23:09
+Central). Clan's stack then drops its distribution, router function and
+header policies; the bucket admits only this distribution (Clan's
+`docs/NOTES.md` has the stack side).
+
+- **`FIRST_PARTY_ORIGINS` loses `https://clan.poapkings.com`.** A client
+  with a redirect there is no longer the family's: the principal test
+  says so, and every test that provisioned Clan at the old callback now
+  uses `https://elixir.poapkings.com/api/clan/auth/callback`. The tests
+  that need a second family host (the unprovisioned legacy client, an app
+  that moves) use drop.poapkings.com.
+- **The mail campaign origins** are `SITE` and Drop; Clan's links are on
+  `SITE`.
+- The OpenAPI wording of a family link and the `{oauth_grants}` example
+  follow. Attested facts keep their stored source key
+  (`clan.poapkings.com` maps to "Elixir Clan"), which names the app, not a
+  host.
+
+Order: `{family_clients: {set_redirect_uris}}` for `clan` with only the
+new callback, before this deploys, so Clan's client never has a URI off
+the family's origins; then the merge (Clan's CI deploy removes the
+distribution); then Elixir.

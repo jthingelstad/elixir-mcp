@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 /**
  * Build the SPA, upload it to the private web bucket, delete what is no
- * longer built, invalidate CloudFront: this stack's distribution, and
- * /clan on Elixir's, which serves the app. Elixir serves it at /clan
- * (one origin, 2026-09-28) and hands the bucket the viewer's path as it
- * stands, so every file goes under the clan/ prefix: dist/index.html is
- * clan/index.html, dist/assets/x.js is clan/assets/x.js. Anything else
- * in the bucket is stale, the keys at its root that clan.poapkings.com
- * served included. Hashed assets are immutable for a year; index.html is
- * never cached past the edge's five minutes.
+ * longer built, invalidate /clan on Elixir's distribution, the only one
+ * that serves the app (one origin, 2026-09-28). Elixir hands the bucket
+ * the viewer's path as it stands, so every file goes under the clan/
+ * prefix: dist/index.html is clan/index.html, dist/assets/x.js is
+ * clan/assets/x.js. Anything else in the bucket is stale. Hashed assets
+ * are immutable for a year; index.html is never cached past the edge's
+ * five minutes.
  */
 
 import {
@@ -88,17 +87,13 @@ async function main() {
   const { Stacks } = await cfn.send(
     new DescribeStacksCommand({ StackName: STACK }),
   );
-  const optional = (k) =>
-    Stacks[0].Outputs.find((o) => o.OutputKey === k)?.OutputValue;
   const out = (k) => {
-    const v = optional(k);
+    const v = Stacks[0].Outputs.find((o) => o.OutputKey === k)?.OutputValue;
     if (!v) throw new Error(`stack did not return ${k}`);
     return v;
   };
   const bucket = out("WebBucketName");
-  const flushes = [[out("DistributionId"), "/*"]];
-  const elixir = optional("ElixirDistributionId");
-  if (elixir) flushes.push([elixir, "/clan*"]);
+  const distributionId = out("ElixirDistributionId");
 
   const s3 = new S3Client({ region: REGION });
   for (const { key, path } of files) {
@@ -132,27 +127,23 @@ async function main() {
     );
 
   const cloudfront = new CloudFrontClient({ region: "us-east-1" });
-  await Promise.all(
-    flushes.map(async ([distributionId, path]) => {
-      const inv = await cloudfront.send(
-        new CreateInvalidationCommand({
-          DistributionId: distributionId,
-          InvalidationBatch: {
-            CallerReference: `${process.env.GITHUB_SHA ?? "local"}-${randomUUID()}`,
-            Paths: { Quantity: 1, Items: [path] },
-          },
-        }),
-      );
-      const wait = await waitUntilInvalidationCompleted(
-        { client: cloudfront, maxWaitTime: 600 },
-        { DistributionId: distributionId, Id: inv.Invalidation.Id },
-      );
-      if (wait.state !== "SUCCESS")
-        throw new Error(`invalidation of ${path} ended in ${wait.state}`);
+  const inv = await cloudfront.send(
+    new CreateInvalidationCommand({
+      DistributionId: distributionId,
+      InvalidationBatch: {
+        CallerReference: `${process.env.GITHUB_SHA ?? "local"}-${randomUUID()}`,
+        Paths: { Quantity: 1, Items: ["/clan*"] },
+      },
     }),
   );
+  const wait = await waitUntilInvalidationCompleted(
+    { client: cloudfront, maxWaitTime: 600 },
+    { DistributionId: distributionId, Id: inv.Invalidation.Id },
+  );
+  if (wait.state !== "SUCCESS")
+    throw new Error(`invalidation ended in ${wait.state}`);
   console.log(
-    `uploaded ${files.length} files to ${bucket}; removed ${stale.length} stale; ${flushes.length === 1 ? "edge" : "both edges"} flushed`,
+    `uploaded ${files.length} files to ${bucket}; removed ${stale.length} stale; /clan* flushed`,
   );
 }
 

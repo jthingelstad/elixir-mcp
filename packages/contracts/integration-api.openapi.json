@@ -1983,7 +1983,7 @@
                 "link": {
                   "type": "string",
                   "format": "uri",
-                  "description": "Into a family app (https://clan.poapkings.com, https://drop.poapkings.com or https://elixir.poapkings.com)."
+                  "description": "Into a family app (https://elixir.poapkings.com, Elixir Clan's included, or https://drop.poapkings.com)."
                 }
               }
             }
