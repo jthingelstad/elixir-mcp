@@ -1152,10 +1152,11 @@ art (the site reads card art from `/api/public/cards`), and `expLevel`.
 
 ## 2026-09-29 - 9.17.0 deployed, and poapkings.com reads it
 
-d6a4b8a5 (PRs #149, #150 and #151) is deployed with `--acceptance`
-in full because #150 moved shared code into `packages/record`; smoke green, stack `UPDATE_COMPLETE`, migrations ran
-0. Acceptance finished 07:10Z (2:10 AM CT): 1,189 cases, 12 failed, 57
-skipped. Verdicts, the new ones re-run alone:
+d6a4b8a5 (PRs #149, #150 and #151) is deployed with `--acceptance` in
+full because #150 moved shared code into `packages/record`; smoke green,
+stack `UPDATE_COMPLETE`, migrations ran 0. Acceptance finished 07:10Z
+(2:10 AM CT): 1,189 cases, 12 failed, 57 skipped. Verdicts, the new ones
+re-run alone:
 
 - gym/185.3 (1,141 vs 1,143 players): passes alone, two live counts read
   a moment apart.
