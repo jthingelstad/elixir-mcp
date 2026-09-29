@@ -935,3 +935,56 @@ names (`githubDeployTrustFor` in `clan/infra/scripts/iam-policies.mjs`):
 `repo:jthingelstad/elixir-mcp:environment:clan-production` and
 `repo:jthingelstad@5351/elixir-mcp@1356061557:environment:clan-production`.
 The old repository is archived, so they can no longer be used.
+
+## 2026-09-28 - Elixir Clan answers at /clan (one origin, step 4b)
+
+Step 4a is deployed in the order its entry gives: Clan by CI, Clan by
+hand with `ElixirDistributionId`, then Elixir with `ClanApiDomain`
+(0195 ran). Read back through this distribution: `/api/clan/health`
+is 200 `{ok: true}`, `/api/clan/me` is Clan's own signed-out 401, and
+`/api/clanx/...` stays Elixir's 404. That Elixir's session cookie is not
+forwarded is the origin request policy's whitelist, pinned in
+`infra-controls.test.mjs`, not something a read can show.
+
+Step 4b moves the app itself; everything of it is in `clan/` but the
+links.
+
+- **Clan's app is under /clan.** Vite's `base` is `/clan/`, and every
+  path is written with an explicit prefix (`clan/apps/web/src/lib/base.js`),
+  as the Console's is, because the kit's `Link` renders `to` verbatim.
+  The chooser is `/clan/clans`, a clan `/clan/<tag>`, and the app's
+  own pages (`you`, `refused`, `verify`, `feedback`, `maintain`) win
+  over a tag of the same name. The API client calls `/api/clan/*`.
+- **Sign-in comes back to /api/clan.** The redirect URI is
+  `ElixirUrl/api/clan/auth/callback`, and `APP_URL` is derived
+  (`${ElixirUrl}/clan`), so the `AppUrl` parameter is gone and nothing
+  has to be set by hand when the app moves. Mail links are
+  `ElixirUrl/clan/<tag>/actions`.
+- **Its web deploy uploads under `clan/`** and deletes what it did not
+  build, the old root keys included: **clan.poapkings.com serves only
+  403s from this deploy on** (no redirects, as decided). Its API there
+  still answers until the distribution goes in step 5.
+- **Clan counts visits on Elixir's Tinylytics site**, with pages under
+  `/clan` and its API events kept apart by their `/api/clan` label.
+  This reverses the 2026-09-12 choice of a site of its own, which was
+  bound to clan.poapkings.com; Clan's old site keeps its history.
+- **Elixir's links.** The family bar's Clan button (kit and the static
+  bar's mirror), the docs and the worked examples go to `/clan`. The
+  static bar pin now treats any product on this origin as a bare path,
+  and the page-origin allowlist no longer admits clan.poapkings.com.
+  `FIRST_PARTY_ORIGINS`, the mail campaign origins, the OpenAPI wording
+  and the grants example keep the old host until step 5.
+- **`register-client.mjs` is superseded:** `/oauth/register` refuses a
+  family origin, and Clan's client is Elixir's provisioned family client,
+  which never expires. It exits with a pointer to `set_redirect_uris`.
+
+Deploy order: before the merge, add the new redirect URI beside the
+old one (migrate Lambda, `{family_clients: {set_redirect_uris: {app:
+"clan", redirect_uris: ["https://elixir.poapkings.com/api/clan/auth/callback",
+"https://clan.poapkings.com/auth/callback"]}}}`); merge (Clan deploys
+itself and flushes `/clan*` here); deploy Elixir for the links. A live
+sign-in is Jamie's to try.
+
+`elixir-family/plans/one-origin.md` said the edge would strip `/clan`
+so Clan's bucket kept its layout; 4a passes the path through and 4b
+moves the files, so the plan is corrected there.
