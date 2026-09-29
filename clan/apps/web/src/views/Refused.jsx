@@ -1,4 +1,5 @@
 import { ELIXIR_LINKS } from "../lib/links.js";
+import { CLAN } from "../lib/base.js";
 
 /**
  * One page per gate refusal, in gate order. Each says exactly what to do
@@ -10,7 +11,7 @@ export const REFUSALS = {
     body: "Elixir Clan signs people in. The consent you gave was for an agent or integration door, and an agent has no player to be here as.",
     action: "Sign in again and consent as yourself, on the personal door.",
     link: [ELIXIR_LINKS.connectionsDocs, "Users, agents and integrations"],
-    retry: "/auth/login",
+    retry: "/api/clan/auth/login",
   },
   no_primary_player: {
     title: "Add your player in Elixir",
@@ -35,7 +36,7 @@ export function Refused({ reason, me, onRecheck, checking }) {
       <div className="empty" style={{ margin: "40px auto 0" }}>
         <div className="empty__title">Nothing to refuse</div>
         <p className="empty__body">There is no such gate page.</p>
-        <a className="btn" href="/">
+        <a className="btn" href={CLAN}>
           Home
         </a>
       </div>

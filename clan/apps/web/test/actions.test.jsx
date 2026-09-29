@@ -160,7 +160,7 @@ describe("actions", () => {
       expect(screen.getByText(/You have not played in 6 days/)).toBeTruthy(),
     );
     fireEvent.click(screen.getByRole("link", { name: "Mark me away" }));
-    expect(navigate).toHaveBeenCalledWith("/you/away");
+    expect(navigate).toHaveBeenCalledWith("/clan/you/away");
     expect(screen.getByRole("button", { name: "I’m not away" })).toBeTruthy();
   });
 

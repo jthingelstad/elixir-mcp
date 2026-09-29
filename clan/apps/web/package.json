@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "clan.poapkings.com - the browser half: sign in with Elixir, the gate pages, the clan page, you.",
+  "description": "Elixir Clan at elixir.poapkings.com/clan - the browser half: sign in with Elixir, the gate pages, the clan page, you.",
   "scripts": {
     "prebuild": "node scripts/fonts.mjs",
     "predev": "node scripts/fonts.mjs",

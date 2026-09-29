@@ -113,10 +113,11 @@ const ROSTER = {
 type Answer =
   [status: number, body: unknown] | ((route: Route) => [number, unknown]);
 
-/** Route every /api/* and /auth/* call to a fixture. An unlisted call
- *  answers 404 JSON so a page can say "could not load" rather than hang. */
+/** Route every /api/* call (Clan's are /api/clan/*, sign-in included)
+ *  to a fixture. An unlisted call answers 404 JSON so a page can say
+ *  "could not load" rather than hang. */
 export async function mockApi(page: Page, routes: Record<string, Answer>) {
-  await page.route("**/{api,auth}/**", async (route) => {
+  await page.route("**/api/**", async (route) => {
     const req = route.request();
     const url = new URL(req.url());
     const key = `${req.method()} ${url.pathname}`;
@@ -135,15 +136,15 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
 }
 
 /** Signed in, with the reads the rail's pages make. `select` is stateful:
- *  picking a clan changes what /api/me answers, as the Lambda does. */
+ *  picking a clan changes what /api/clan/me answers, as the Lambda does. */
 export function signedIn(
   overrides: Record<string, Answer> = {},
   { policy = ME.policy }: { policy?: Record<string, unknown> } = {},
 ): Record<string, Answer> {
   let me = { ...ME, policy };
   return {
-    "GET /api/me": () => [200, me],
-    "POST /api/select": (route) => {
+    "GET /api/clan/me": () => [200, me],
+    "POST /api/clan/select": (route) => {
       const { clan_tag } = route.request().postDataJSON();
       me = {
         ...me,
@@ -151,8 +152,8 @@ export function signedIn(
       };
       return [200, me];
     },
-    "GET /api/roster": [200, ROSTER],
-    "GET /api/clans/2PQRJ8LV/standing": [
+    "GET /api/clan/roster": [200, ROSTER],
+    "GET /api/clan/clans/2PQRJ8LV/standing": [
       200,
       {
         as_of: "2026-09-12T17:55:00Z",
@@ -182,9 +183,9 @@ export function signedIn(
         },
       },
     ],
-    "GET /api/feedback": [200, { feedback: [] }],
-    "POST /api/feedback": [200, { feedback_id: "abc123" }],
-    "GET /api/clans/2PQRJ8LV/me/away": [200, { away: null }],
+    "GET /api/clan/feedback": [200, { feedback: [] }],
+    "POST /api/clan/feedback": [200, { feedback_id: "abc123" }],
+    "GET /api/clan/clans/2PQRJ8LV/me/away": [200, { away: null }],
     ...overrides,
   };
 }

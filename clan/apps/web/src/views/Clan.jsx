@@ -4,6 +4,7 @@ import { useRoster } from "../lib/queries.js";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
 import { SpreadWord } from "../components/SpreadWord.jsx";
+import { CLAN, clanPath } from "../lib/base.js";
 
 const ROLE_ORDER = ["leader", "coLeader", "elder", "member"];
 const GROUP = {
@@ -145,11 +146,11 @@ export function ClanHeader({ clan, roster, others = [], navigate }) {
                 <a
                   key={c.clan_tag}
                   role="menuitem"
-                  href={`/clan/${c.clan_tag.slice(1)}`}
+                  href={clanPath(c.clan_tag)}
                   onClick={(e) => {
                     e.preventDefault();
                     setOpen(false);
-                    navigate(`/clan/${c.clan_tag.slice(1)}`);
+                    navigate(clanPath(c.clan_tag));
                   }}
                   style={{
                     display: "flex",
@@ -165,11 +166,11 @@ export function ClanHeader({ clan, roster, others = [], navigate }) {
               ))}
               <a
                 role="menuitem"
-                href="/clans"
+                href={`${CLAN}/clans`}
                 onClick={(e) => {
                   e.preventDefault();
                   setOpen(false);
-                  navigate("/clans");
+                  navigate(`${CLAN}/clans`);
                 }}
                 style={{
                   display: "block",
@@ -208,7 +209,7 @@ export function Clan({ me, clan, navigate }) {
   const load = gated.load;
 
   if (state.signedOut) {
-    window.location.assign("/?error=session_expired");
+    window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
 

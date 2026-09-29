@@ -4,6 +4,7 @@ import { manageApi } from "../api.js";
 import { useAwards } from "../lib/queries.js";
 import { TooFew } from "../components/TooFew.jsx";
 import { trackEvent } from "../analytics.js";
+import { CLAN } from "../lib/base.js";
 
 /**
  * Manage ▸ Awards: the open season's races (provisional, tie-aware), each
@@ -17,7 +18,7 @@ export function Awards({ clan }) {
   const { state, load, query } = useAwards(clan.clan_tag);
 
   if (state.signedOut) {
-    window.location.assign("/?error=session_expired");
+    window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
   if (state.forbidden)

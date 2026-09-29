@@ -1,9 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Journeys against the BUILT app served by `vite preview` (which falls
- * back to index.html the way the edge's SPA router does). /api/* is
- * answered by each journey's fixtures (e2e/fixtures.ts), so this runs
+ * Journeys against the BUILT app served by `vite preview` under /clan/
+ * (its `base`; the preview falls back to index.html the way the edge's
+ * SPA router does). /api/clan/* is answered by each journey's fixtures
+ * (e2e/fixtures.ts), so this runs
  * without the Lambda and exercises the real bundle, the real router,
  * the kit from the pinned dependency. `npm run e2e` from the repo root.
  */
@@ -36,7 +37,7 @@ export default defineConfig({
   webServer: {
     command:
       "npm run build && npx vite preview --host 127.0.0.1 --port 4322 --strictPort",
-    url: "http://127.0.0.1:4322/",
+    url: "http://127.0.0.1:4322/clan/",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

@@ -9,6 +9,7 @@ import { Scout } from "./Scout.jsx";
 import { Awards } from "./Awards.jsx";
 import { Settings } from "./Settings.jsx";
 import { TooFew } from "../components/TooFew.jsx";
+import { CLAN, clanPath } from "../lib/base.js";
 
 const TITLES = {
   board: "Board",
@@ -38,7 +39,7 @@ export function Manage({ clan, tab, navigate, who }) {
   );
 
   if (state.signedOut) {
-    window.location.assign("/?error=session_expired");
+    window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
   const head = (
@@ -122,10 +123,10 @@ export function Manage({ clan, tab, navigate, who }) {
             Nothing in clan management runs until a leader or co-leader sets
             this clan&rsquo;s policy.{" "}
             <a
-              href={`/clan/${clan.clan_tag.slice(1)}/manage/policy`}
+              href={`${clanPath(clan.clan_tag)}/manage/policy`}
               onClick={(e) => {
                 e.preventDefault();
-                navigate(`/clan/${clan.clan_tag.slice(1)}/manage/policy`);
+                navigate(`${clanPath(clan.clan_tag)}/manage/policy`);
               }}
             >
               Set up the policy
@@ -469,12 +470,12 @@ function History({ clan, navigate }) {
                     {Number.isInteger(c.number) &&
                     c.audience?.kind !== "member" ? (
                       <a
-                        href={`/clan/${clan.clan_tag.slice(1)}/actions/${c.number}`}
+                        href={`${clanPath(clan.clan_tag)}/actions/${c.number}`}
                         onClick={(e) => {
                           if (!navigate) return;
                           e.preventDefault();
                           navigate(
-                            `/clan/${clan.clan_tag.slice(1)}/actions/${c.number}`,
+                            `${clanPath(clan.clan_tag)}/actions/${c.number}`,
                           );
                         }}
                       >

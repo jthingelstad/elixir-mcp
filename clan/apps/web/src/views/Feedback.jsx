@@ -7,6 +7,7 @@ import {
   useInvalidate,
 } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
+import { CLAN } from "../lib/base.js";
 
 /**
  * Feedback: what you have told us, and what we did about it. Elixir's
@@ -135,8 +136,8 @@ export function FeedbackItem({ id, navigate }) {
         <span>
           No feedback item {id} on your account.{" "}
           <a
-            href="/feedback"
-            onClick={(e) => (e.preventDefault(), navigate("/feedback"))}
+            href={`${CLAN}/feedback`}
+            onClick={(e) => (e.preventDefault(), navigate(`${CLAN}/feedback`))}
           >
             All feedback ›
           </a>
@@ -148,8 +149,8 @@ export function FeedbackItem({ id, navigate }) {
     <div style={{ maxWidth: "70ch" }}>
       <p className="page-head__note" style={{ margin: "0 0 10px" }}>
         <a
-          href="/feedback"
-          onClick={(e) => (e.preventDefault(), navigate("/feedback"))}
+          href={`${CLAN}/feedback`}
+          onClick={(e) => (e.preventDefault(), navigate(`${CLAN}/feedback`))}
         >
           ‹ Feedback
         </a>
@@ -217,7 +218,7 @@ export function Feedback({ me, navigate, from }) {
       </div>
       {composing ? (
         <Compose
-          context={contextFrom(me, from ?? "/feedback")}
+          context={contextFrom(me, from ?? `${CLAN}/feedback`)}
           onSent={load}
           onClose={() => setComposing(false)}
         />
@@ -244,10 +245,10 @@ export function Feedback({ me, navigate, from }) {
                 <tr key={f.feedback_id}>
                   <td className="mono">
                     <a
-                      href={`/feedback/${f.feedback_id}`}
+                      href={`${CLAN}/feedback/${f.feedback_id}`}
                       onClick={(e) => {
                         e.preventDefault();
-                        navigate(`/feedback/${f.feedback_id}`);
+                        navigate(`${CLAN}/feedback/${f.feedback_id}`);
                       }}
                     >
                       fb_{f.feedback_id}

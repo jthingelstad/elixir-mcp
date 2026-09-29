@@ -9,15 +9,22 @@
  * The rail itself is Elixir's (the kit's Rail); this is only what goes
  * on it and which item a path is on.
  */
+import { CLAN, appPath, clanPath, tagOf } from "./base.js";
+
 const LEADERS = new Set(["leader", "coLeader"]);
 const ELDER_PLUS = new Set(["leader", "coLeader", "elder"]);
 
 export function railItems(me) {
   const clan = me?.selected ?? null;
-  const base = clan ? `/clan/${clan.clan_tag.slice(1)}` : null;
+  const base = clan ? clanPath(clan.clan_tag) : null;
   const items = [];
   if (me?.ok && me.clans?.length > 1)
-    items.push({ key: "clans", label: "Clans", icon: "layers", to: "/clans" });
+    items.push({
+      key: "clans",
+      label: "Clans",
+      icon: "layers",
+      to: `${CLAN}/clans`,
+    });
   const policy = me?.policy ?? null;
   // Active: a saved policy on a clan of at least 10 (an older /api/me
   // without the flag reads as its `set`).
@@ -138,15 +145,20 @@ export function railItems(me) {
     key: "you",
     label: "Players",
     icon: "user-round",
-    to: "/you",
+    to: `${CLAN}/you`,
   });
   if (clan && policy?.away)
-    items.push({ key: "away", label: "Away", icon: "plane", to: "/you/away" });
+    items.push({
+      key: "away",
+      label: "Away",
+      icon: "plane",
+      to: `${CLAN}/you/away`,
+    });
   items.push({
     key: "feedback",
     label: "Feedback",
     icon: "message-square",
-    to: "/feedback",
+    to: `${CLAN}/feedback`,
     dot: me?.feedback_unseen
       ? {
           tone: "unread",
@@ -160,24 +172,27 @@ export function railItems(me) {
       key: "maintain",
       label: "Feedback queue",
       icon: "inbox",
-      to: "/maintain/feedback",
+      to: `${CLAN}/maintain/feedback`,
     });
   return items;
 }
 
-/** Which rail item a path is on. */
+/** Which rail item a path is on: read under the prefix, where the app's
+ *  own pages come before a clan's tag. */
 export function railKey(path) {
-  if (path === "/clans") return "clans";
-  if (path === "/you") return "you";
-  if (path.startsWith("/you/away")) return "away";
-  if (path.startsWith("/feedback")) return "feedback";
-  if (path.startsWith("/maintain")) return "maintain";
+  const app = appPath(path) ?? "";
+  if (app === "/clans") return "clans";
+  if (app === "/you") return "you";
+  if (app.startsWith("/you/away")) return "away";
+  if (app.startsWith("/feedback")) return "feedback";
+  if (app.startsWith("/maintain")) return "maintain";
   const m =
-    /^\/clan\/[0-9A-Za-z]+(?:\/(me|week|actions|standing|trophies|recruit|map|manage)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
-      path,
+    /^\/([^/]+)(?:\/(me|week|actions|standing|trophies|recruit|map|manage)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
+      app,
     );
-  if (!m) return null;
-  if (!m[1]) return "clan";
+  if (!m || !tagOf(m[1])) return null;
+  const [, , section, tab] = m;
+  if (!section) return "clan";
   if (
     [
       "me",
@@ -187,9 +202,9 @@ export function railKey(path) {
       "trophies",
       "recruit",
       "map",
-    ].includes(m[1])
+    ].includes(section)
   )
-    return m[1];
-  if (m[2] === "model") return "settings";
-  return !m[2] || m[2] === "inbox" ? "actions" : m[2];
+    return section;
+  if (tab === "model") return "settings";
+  return !tab || tab === "inbox" ? "actions" : tab;
 }

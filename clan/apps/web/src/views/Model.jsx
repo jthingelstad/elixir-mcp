@@ -3,6 +3,7 @@ import { useState } from "react";
 import { manageApi } from "../api.js";
 import { useModel } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
+import { CLAN } from "../lib/base.js";
 
 const day = (ts) => (ts ? ts.slice(0, 10) : "");
 const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
@@ -22,7 +23,7 @@ export function Model({ clan }) {
   const [message, setMessage] = useState("");
 
   if (state.signedOut) {
-    window.location.assign("/?error=session_expired");
+    window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
   if (state.forbidden)

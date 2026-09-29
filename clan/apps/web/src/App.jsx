@@ -34,6 +34,7 @@ import {
 import { api } from "./api.js";
 import { keys, useMeQuery } from "./lib/queries.js";
 import { railItems, railKey } from "./lib/rail.js";
+import { CLAN, appPath, clanPath, isClanSegment, tagOf } from "./lib/base.js";
 import { RoleChip } from "./components/RoleChip.jsx";
 import { Clan } from "./views/Clan.jsx";
 import { Clans } from "./views/Clans.jsx";
@@ -59,32 +60,29 @@ import { Feedback, FeedbackItem } from "./views/Feedback.jsx";
 import { MaintainItem, MaintainQueue } from "./views/Maintain.jsx";
 
 /**
- * Routes: `/` (landing, signed out), `/clans` (the chooser), `/clan/<TAG>`
- * (a clan page; the tag without its #) with its sections and Manage tabs,
- * `/you` and `/you/away`, `/verify` (the notice after sign-in),
- * `/refused/<reason>`, `/feedback[/<id>]`,
- * `/maintain/feedback[/<id>]`. The router owns history and params; the
- * GATE - where a signed-in person belongs, whatever address they arrived
- * at - is the Shell's effect below, because it is a session state
- * machine (a refresh, a select) and not a per-route loader.
+ * Routes, all under Elixir's /clan (CLAN, lib/base.js): `/clan` (landing,
+ * signed out), `/clan/clans` (the chooser), `/clan/<TAG>` (a clan page;
+ * the tag without its #) with its sections and Manage tabs, `/clan/you`
+ * and `/clan/you/away`, `/clan/verify` (the notice after sign-in),
+ * `/clan/refused/<reason>`, `/clan/feedback[/<id>]`,
+ * `/clan/maintain/feedback[/<id>]`. The app's own pages win over a tag.
+ * The router owns history and params; the GATE - where a signed-in
+ * person belongs, whatever address they arrived at - is the Shell's
+ * effect below, because it is a session state machine (a refresh, a
+ * select) and not a per-route loader.
  */
-
-export const clanPath = (tag) => `/clan/${String(tag).replace(/^#/, "")}`;
 
 /** `/clan/<TAG>[/<section>[/<tab>]]` parsed: the tag with its #, the
  *  section (roster by default) and the Manage tab or, under actions, the
  *  action's number (`/clan/<TAG>/actions/37`). */
 export function parseClanPath(path) {
   const m =
-    /^\/clan\/([0-9A-Za-z]{3,12})(?:\/(manage|me|week|actions|standing|trophies|recruit|map)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
-      path,
+    /^\/([^/]+)(?:\/(manage|me|week|actions|standing|trophies|recruit|map)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
+      appPath(path) ?? "",
     );
-  if (!m) return null;
-  return {
-    tag: `#${m[1].toUpperCase().replace(/O/g, "0")}`,
-    section: m[2] ?? "roster",
-    tab: m[3] ?? null,
-  };
+  const tag = m ? tagOf(m[1]) : null;
+  if (!tag) return null;
+  return { tag, section: m[2] ?? "roster", tab: m[3] ?? null };
 }
 
 /** The clan a `/clan/<TAG>...` path names, if it is one of the person's. */
@@ -95,7 +93,7 @@ export function clanFromPath(path, clans = []) {
 }
 
 /** `navigate(to)` for the views: a path, with a query string riding
- *  along (`/?error=session_expired`). */
+ *  along (`/clan?error=session_expired`). */
 function useNav() {
   const nav = useNavigate();
   return useCallback(
@@ -177,7 +175,7 @@ const rootRoute = createRootRoute({
 
 const landingRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/",
+  path: CLAN,
   component: function LandingPage() {
     const { me } = useSession();
     const error = new URLSearchParams(window.location.search).get("error");
@@ -188,7 +186,7 @@ const landingRoute = createRoute({
 
 const clansRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/clans",
+  path: `${CLAN}/clans`,
   component: function ClansPage() {
     const { me, select, selecting } = useSession();
     if (!me?.ok) return null;
@@ -198,7 +196,7 @@ const clansRoute = createRoute({
 
 const clanRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/clan/{-$tag}/{-$section}/{-$tab}",
+  path: `${CLAN}/$tag/{-$section}/{-$tab}`,
   component: function ClanPage() {
     const { me } = useSession();
     const navigate = useNav();
@@ -276,7 +274,7 @@ const clanRoute = createRoute({
 
 const youRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/you/{-$sub}",
+  path: `${CLAN}/you/{-$sub}`,
   component: function YouPage() {
     const { me } = useSession();
     const { sub } = youRoute.useParams();
@@ -287,7 +285,7 @@ const youRoute = createRoute({
 
 const refusedRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/refused/$reason",
+  path: `${CLAN}/refused/$reason`,
   component: function RefusedPage() {
     const { me, checking, refresh } = useSession();
     const navigate = useNav();
@@ -302,9 +300,11 @@ const refusedRoute = createRoute({
           const next = await refresh(true);
           if (next?.ok)
             navigate(
-              next.selected ? clanPath(next.selected.clan_tag) : "/clans",
+              next.selected
+                ? clanPath(next.selected.clan_tag)
+                : `${CLAN}/clans`,
             );
-          else if (next?.reason) navigate(`/refused/${next.reason}`);
+          else if (next?.reason) navigate(`${CLAN}/refused/${next.reason}`);
         }}
       />
     );
@@ -315,7 +315,7 @@ const refusedRoute = createRoute({
  *  Leader role waits for Elixir → Verify. "I understand" goes on. */
 const verifyRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/verify",
+  path: `${CLAN}/verify`,
   component: function VerifyPage() {
     const { me, setMe } = useSession();
     const navigate = useNav();
@@ -328,7 +328,9 @@ const verifyRoute = createRoute({
           if (r.ok) {
             setMe(r.data);
             navigate(
-              r.data.selected ? clanPath(r.data.selected.clan_tag) : "/clans",
+              r.data.selected
+                ? clanPath(r.data.selected.clan_tag)
+                : `${CLAN}/clans`,
             );
           } else if (r.status === 401) {
             setMe({ signed_in: false, expired: true });
@@ -341,7 +343,7 @@ const verifyRoute = createRoute({
 
 const feedbackRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/feedback/{-$id}",
+  path: `${CLAN}/feedback/{-$id}`,
   component: function FeedbackPage() {
     const { me } = useSession();
     const navigate = useNav();
@@ -357,7 +359,7 @@ const feedbackRoute = createRoute({
 
 const maintainRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/maintain/{-$lane}/{-$id}",
+  path: `${CLAN}/maintain/{-$lane}/{-$id}`,
   component: function MaintainPage() {
     const { me } = useSession();
     const navigate = useNav();
@@ -403,13 +405,14 @@ export function App() {
 
 /**
  * The top bar: the family's, exactly as elixir.poapkings.com draws it -
- * the Elixir wordmark, the same tabs (absolute, back to the family
- * home), and the product buttons on the right with Clan lit green
- * because this is Clan. Sign-in is on the landing page, not here: the
- * bar carries no session state, so it never reshapes as you sign in.
+ * the Elixir wordmark home to Elixir's front page (this origin's root),
+ * the same tabs (absolute, back to the family home), and the product
+ * buttons on the right with Clan lit green because this is Clan, routed
+ * in-app. Sign-in is on the landing page, not here: the bar carries no
+ * session state, so it never reshapes as you sign in.
  */
 const PRODUCTS = FAMILY_PRODUCTS.map((p) =>
-  p.key === "clan" ? { ...p, href: "/" } : p,
+  p.key === "clan" ? { ...p, href: CLAN } : p,
 );
 const TABS = familyTabs(FAMILY_ORIGIN);
 function Chrome({ navigate }) {
@@ -419,7 +422,7 @@ function Chrome({ navigate }) {
           ...p,
           onClick: (e) => {
             e.preventDefault();
-            navigate("/");
+            navigate(CLAN);
           },
         }
       : p,
@@ -428,7 +431,6 @@ function Chrome({ navigate }) {
     <ChromeBar
       wordmark={FAMILY_WORDMARK}
       home="/"
-      onHome={() => navigate("/")}
       tabs={TABS}
       products={products}
       current="clan"
@@ -454,10 +456,10 @@ export function Rail({ me, path, navigate, narrow }) {
       subtitle={clan?.name ?? ""}
       identity={
         <RailIdentity
-          href="/you"
+          href={`${CLAN}/you`}
           onClick={(e) => {
             e.preventDefault();
-            navigate("/you");
+            navigate(`${CLAN}/you`);
           }}
           name={
             <>
@@ -480,7 +482,7 @@ export function Rail({ me, path, navigate, narrow }) {
           action={
             // Signing out is a form post, as it always was here: an
             // action with no destination of its own.
-            <form method="post" action="/auth/logout">
+            <form method="post" action="/api/clan/auth/logout">
               <button
                 type="submit"
                 aria-label="Sign out"
@@ -509,6 +511,8 @@ export const canShare = (me) =>
 
 function Shell() {
   const { pathname: path } = useLocation();
+  // The path under the prefix: "/" is the landing, "/you" your page.
+  const app = appPath(path) ?? "";
   const navigate = useNav();
   const narrow = useNarrow();
   const { me, checking, refresh, setMe } = useMe();
@@ -533,17 +537,18 @@ function Shell() {
   useEffect(() => {
     if (!me) return;
     if (!me.signed_in) {
-      if (path !== "/") navigate(me.expired ? "/?error=session_expired" : "/");
+      if (app !== "/")
+        navigate(me.expired ? `${CLAN}?error=session_expired` : CLAN);
       return;
     }
     if (me.unavailable) return;
     if (!me.ok) {
       if (
-        !path.startsWith("/refused/") &&
-        !path.startsWith("/you") &&
-        !path.startsWith("/feedback")
+        !app.startsWith("/refused/") &&
+        !app.startsWith("/you") &&
+        !app.startsWith("/feedback")
       )
-        navigate(`/refused/${me.reason}`);
+        navigate(`${CLAN}/refused/${me.reason}`);
       return;
     }
     // The notice after sign-in comes first, once, until acknowledged; a
@@ -551,23 +556,20 @@ function Shell() {
     const notice = me.verify_notice;
     if (notice && !notice.acknowledged) {
       if (
-        path !== "/verify" &&
-        !path.startsWith("/you") &&
-        !path.startsWith("/feedback")
+        app !== "/verify" &&
+        !app.startsWith("/you") &&
+        !app.startsWith("/feedback")
       )
-        navigate("/verify");
+        navigate(`${CLAN}/verify`);
       return;
     }
     const atClan = clanFromPath(path, me.clans);
-    if (
-      path === "/" ||
-      path === "/verify" ||
-      path.startsWith("/refused") ||
-      path === "/clan"
-    ) {
-      navigate(me.selected ? clanPath(me.selected.clan_tag) : "/clans");
-    } else if (path.startsWith("/clan/") && !atClan) {
-      navigate("/clans");
+    // The landing is no page for a signed-in person: their clan, or the
+    // chooser when none is selected.
+    if (app === "/" || app === "/verify" || app.startsWith("/refused")) {
+      navigate(me.selected ? clanPath(me.selected.clan_tag) : `${CLAN}/clans`);
+    } else if (isClanSegment(app.split("/")[1]) && !atClan) {
+      navigate(`${CLAN}/clans`);
     } else if (
       atClan &&
       me.selected?.clan_tag !== atClan.clan_tag &&
@@ -577,14 +579,14 @@ function Shell() {
       // remembered clan follows where you actually went.
       select(atClan.clan_tag);
     }
-  }, [me, path, navigate, select, selecting]);
+  }, [me, path, app, navigate, select, selecting]);
 
   // The rail belongs to a signed-in person with somewhere to go: their
   // clan pages, or their own pages while the gate still refuses them.
   const showRail =
     Boolean(me?.signed_in) &&
     !me.unavailable &&
-    (me.ok || path.startsWith("/you") || path.startsWith("/feedback"));
+    (me.ok || app.startsWith("/you") || app.startsWith("/feedback"));
 
   return (
     <SessionContext.Provider
@@ -610,7 +612,7 @@ function Shell() {
                     promotions, awards and aways in Elixir, so what you complete
                     now stays here.
                   </span>
-                  <form method="post" action="/auth/logout">
+                  <form method="post" action="/api/clan/auth/logout">
                     <button type="submit" className="btn btn--sm">
                       Sign out, then sign in again
                     </button>
@@ -620,7 +622,7 @@ function Shell() {
               {me?.signed_in &&
               me.ok &&
               (me.selected?.verified === false || me.selected?.unlock) &&
-              path.startsWith("/clan/") ? (
+              parseClanPath(path) ? (
                 <div className="callout callout--info mb-4" role="status">
                   <span>
                     {me.selected.unlock

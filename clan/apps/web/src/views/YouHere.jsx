@@ -1,6 +1,7 @@
 import { Fresh } from "@elixir-mcp/ui";
 import { useMemberView } from "../lib/queries.js";
 import { RoleChip } from "../components/RoleChip.jsx";
+import { CLAN, clanPath } from "../lib/base.js";
 
 const STATUS = {
   holding: ["Holding Elder", "chip--ok"],
@@ -45,7 +46,7 @@ export function YouHere({ clan, navigate }) {
     </div>
   );
   if (state.signedOut) {
-    window.location.assign("/?error=session_expired");
+    window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
   if (state.error)
@@ -77,7 +78,7 @@ export function YouHere({ clan, navigate }) {
     e.preventDefault();
     navigate?.(path);
   };
-  const base = `/clan/${clan.clan_tag.slice(1)}`;
+  const base = clanPath(clan.clan_tag);
   return (
     <>
       {head}
