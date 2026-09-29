@@ -211,7 +211,7 @@ export function harness(opts = {}) {
     oauth,
     store,
     sessionSecret: "test-secret",
-    appUrl: "https://clan.test",
+    appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,
     // Waiting on another request's refresh yields a turn, never real time.

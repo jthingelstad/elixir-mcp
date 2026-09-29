@@ -36,7 +36,7 @@ function harness({ players = [player()], ledger = createMemoryLedger() } = {}) {
     }),
     maintainerTags: ["#20QQL8CCRU"],
     sessionSecret: "s",
-    appUrl: "https://clan.test",
+    appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,
     log: { warn() {}, error() {} },

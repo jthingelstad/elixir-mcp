@@ -184,7 +184,7 @@ test("scheduled: after evaluating, the people who can act on something new are e
     mcp,
     now: () => clock.t,
     log: quiet,
-    appUrl: "https://clan.test",
+    appUrl: "https://elixir.test/clan",
   });
   const run = createScheduledRun({
     ledger: {
@@ -212,7 +212,7 @@ test("scheduled: after evaluating, the people who can act on something new are e
   );
   assert.equal(
     sent.messages[0].link,
-    "https://clan.test/clan/2PQRJ8LV/actions",
+    "https://elixir.test/clan/2PQRJ8LV/actions",
   );
   assert.ok(
     mcp.calls.some(([n, key]) => n === "sendMail" && key === "svt_test"),
@@ -260,7 +260,7 @@ test("scheduled: actions raised before numbers existed are numbered before the e
     mcp,
     now: () => NOW.getTime(),
     log: quiet,
-    appUrl: "https://clan.test",
+    appUrl: "https://elixir.test/clan",
   });
   const r = await manage.mailActionsWaiting("#2PQRJ8LV", "svt_test");
   assert.equal(r.mailed, 1, JSON.stringify(r));
@@ -270,7 +270,7 @@ test("scheduled: actions raised before numbers existed are numbered before the e
   ]);
   assert.equal(
     sent.messages[0].link,
-    "https://clan.test/clan/2PQRJ8LV/actions/1",
+    "https://elixir.test/clan/2PQRJ8LV/actions/1",
   );
   assert.equal((await ledger.card("#2PQRJ8LV", "old")).number, 1);
 });

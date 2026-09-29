@@ -102,7 +102,9 @@ export function createHandler({
   })) {
     if (!v) throw new Error(`handler needs ${k}`);
   }
-  const redirectUri = `${appUrl}/auth/callback`;
+  // appUrl is where the app is (Elixir's origin, under /clan); this API
+  // is on the same origin under /api/clan, so the code comes back there.
+  const redirectUri = `${new URL(appUrl).origin}/api/clan/auth/callback`;
 
   // ---- sessions ---------------------------------------------------------
 
@@ -423,7 +425,7 @@ export function createHandler({
       : verifyNotice(gate)
         ? "/verify"
         : selected
-          ? `/clan/${selected.clan_tag.slice(1)}`
+          ? `/${selected.clan_tag.slice(1)}`
           : "/clans";
     return redirect(`${appUrl}${to}`, [
       ...cleared,

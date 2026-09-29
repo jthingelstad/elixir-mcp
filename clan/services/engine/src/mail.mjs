@@ -36,7 +36,8 @@ const lineOf = (c) =>
  *   everyone in the clan today, with their in-game role
  * @param {Record<string,string>} [p.lastMailed] tag -> instant of their
  *   last actions email for this clan
- * @param {string} p.appUrl Elixir Clan's origin
+ * @param {string} p.appUrl where Elixir Clan's app is
+ *   (https://elixir.poapkings.com/clan); a clan's pages are under it
  * @returns {Array<{player_tag, subject, lines, link, card_ids, new_card_ids}>}
  */
 export function actionsWaitingMail({
@@ -51,7 +52,7 @@ export function actionsWaitingMail({
   const open = cards
     .filter((c) => c.status === "proposed")
     .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1));
-  const link = `${appUrl.replace(/\/$/, "")}/clan/${clanTag.slice(1)}/actions`;
+  const link = `${appUrl.replace(/\/$/, "")}/${clanTag.slice(1)}/actions`;
   const out = [];
   for (const who of people) {
     const mine = open.filter((c) => canAct(c, who));

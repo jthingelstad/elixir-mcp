@@ -89,7 +89,7 @@ function harness({
     manage,
     scout: createScout({ mcp, now }),
     sessionSecret: "s",
-    appUrl: "https://clan.test",
+    appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,
     log: { warn() {}, error() {} },
@@ -1922,7 +1922,7 @@ test("unverified: a Leader in the game is a member here who reads, told once aft
   });
   const { cb, sessionCookie } = await signIn(h);
   // Straight to the notice, not the clan page.
-  assert.equal(cb.headers.location, "https://clan.test/verify");
+  assert.equal(cb.headers.location, "https://elixir.test/clan/verify");
   const cookies = cookieHeader(sessionCookie);
   const me = (await api(h, cookies, "GET", "/api/me")).body;
   assert.equal(me.ok, true);
@@ -1986,7 +1986,7 @@ test("unverified: a Leader in the game is a member here who reads, told once aft
 test("unverified: a verified Leader sees no notice; an unverified member has nothing to unlock", async () => {
   const verified = harness({ part: partClan() });
   const v = await signIn(verified);
-  assert.equal(v.cb.headers.location, "https://clan.test/clan/2PQRJ8LV");
+  assert.equal(v.cb.headers.location, "https://elixir.test/clan/2PQRJ8LV");
   const vme = (
     await api(verified, cookieHeader(v.sessionCookie), "GET", "/api/me")
   ).body;
@@ -2005,7 +2005,7 @@ test("unverified: a verified Leader sees no notice; an unverified member has not
     part: partClan(),
   });
   const p = await signIn(plain);
-  assert.equal(p.cb.headers.location, "https://clan.test/clan/2PQRJ8LV");
+  assert.equal(p.cb.headers.location, "https://elixir.test/clan/2PQRJ8LV");
   const pme = (
     await api(plain, cookieHeader(p.sessionCookie), "GET", "/api/me")
   ).body;

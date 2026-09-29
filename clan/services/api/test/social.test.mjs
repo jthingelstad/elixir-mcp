@@ -47,7 +47,7 @@ function harness() {
     store: createMemoryStore(),
     social: createSocialService({ ledger, geo: diskGeo(), now }),
     sessionSecret: "s",
-    appUrl: "https://clan.test",
+    appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,
     log: { warn() {}, error() {} },
