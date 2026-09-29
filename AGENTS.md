@@ -148,8 +148,8 @@ decisions there as they happen and add the line to `DECISIONS.md`.
 ## AGENT-TEAM
 
 Standing maintenance is objective-owned: five owners defined in
-`AGENT-TEAM/` (Run Elixir MCP, Keep the Record True, Close the Loop,
-Guard the Door, Keep the Boards) run on the `automations.toml` schedules.
+`AGENT-TEAM/` (Elixir Operator, Elixir Data Auditor, Elixir Feedback Manager,
+Elixir Security Reviewer, Elixir Rankings Analyst) run on the `automations.toml` schedules.
 Read order for any objective run: this file and `docs/DECISIONS.md` ->
 `AGENT-TEAM/WORKFLOW.md` -> `AGENT-TEAM/README.md` -> the objective file.
 The repo skills (`.claude/skills/`) are the procedures for recurring work;
@@ -167,9 +167,15 @@ read the one that fits before starting:
 - `consistency`: a decision reaching every surface that depends on it
   (`/consistency <decision>` the day a DECISIONS line lands or changes,
   `/consistency sweep` before a milestone).
-- `reference-audit`: the S3 payload archive against cr-agent-api-docs. EVERY mutating actor on
-this checkout - objective run or interactive session - claims the
-checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
+- `reference-audit`: the S3 payload archive against cr-agent-api-docs.
+
+Every actor edits in a checkout that is its own (`AGENT-TEAM/WORKFLOW.md`,
+"One worktree per run"): a scheduled run in the worktree Codex makes for
+it and `.codex/environments/environment.toml` prepares; an interactive
+session in the main checkout when no other session is there, otherwise in
+its own worktree. A deploy, a migration run or an ops-lambda write claims
+the lease first (`AGENT-TEAM/scripts/objective-lease.mjs`), which every
+worktree of this clone shares.
 
 ## Working style
 
@@ -178,8 +184,8 @@ checkout lease first (`AGENT-TEAM/scripts/objective-lease.mjs`).
   --delete-branch`, merged when the `validate` check is green on a branch
   up to date with main. No review is required and nobody bypasses the
   ruleset, Jamie's account included (the agents push as it). The steps
-  are the `ship` skill's Merge step; the lease covers the whole loop,
-  branch to merge to deploy, in this one checkout.
+  are the `ship` skill's Merge step; the edit happens in the actor's own
+  checkout, and the lease covers only the deploy.
 - **Docs ship with the change**: anything altering architecture or
   user-facing behavior updates the site docs (`apps/site/src/docs/`) and
   the What's-new list (`apps/site/src/_data/updates.js`) in the same
@@ -260,6 +266,6 @@ session never reaches Clan's Lambda. `clan/AGENTS.md` governs work inside
 Shared: the kit (`packages/ui`, `packages/client`, `packages/design`,
 taken from the workspace, so a kit change is checked against Clan in the
 same gate), the root `npm run verify` and `npm run e2e`, the ruleset and
-the one checkout lease. Not shared: `clan/infra/tests/boundary.test.mjs`
+the one lease. Not shared: `clan/infra/tests/boundary.test.mjs`
 refuses a Clan import of anything of Elixir's but the kit, and an Elixir
 import of anything of Clan's. Facts stay here and judgment stays in Clan.

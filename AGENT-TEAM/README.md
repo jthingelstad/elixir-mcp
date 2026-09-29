@@ -14,21 +14,29 @@ defect somewhere.
 
 ## The team
 
-| Objective | File | Primary question |
-|---|---|---|
-| **Run Elixir MCP** | `run-elixir-mcp.md` | Is the recorder pipeline healthy end to end — the job ledger draining, collectors heartbeating, doors serving, cost visible and intended? |
-| **Keep the Record True** | `keep-the-record-true.md` | Is what we recorded actually what happened in the game — and do our docs and projections still match the live API? |
-| **Close the Loop** | `close-the-loop.md` | Is feedback (human AND agent) plus call-audit signal turning into responses, shipped improvements, and honest docs? |
-| **Guard the Door** | `guard-the-door.md` | Are entitlements, privacy boundaries, the public repo, secrets, and the one-key rate-budget posture actually holding? |
-| **Keep the Boards** | `keep-the-boards.md` | Did every leaderboard snapshot land, is a top-200 appearance recording the player for the season, and do the board-driven collections equal today's board? |
+| Objective | Key | File | Primary question |
+|---|---|---|---|
+| **Elixir Operator** | `run` | `elixir-operator.md` | Is the recorder pipeline healthy end to end — the job ledger draining, collectors heartbeating, doors serving, cost visible and intended? |
+| **Elixir Data Auditor** | `record` | `elixir-data-auditor.md` | Is what we recorded actually what happened in the game — and do our docs and projections still match the live API? |
+| **Elixir Feedback Manager** | `loop` | `elixir-feedback-manager.md` | Is feedback (human AND agent) plus call-audit signal turning into responses, shipped improvements, and honest docs? |
+| **Elixir Security Reviewer** | `guard` | `elixir-security-reviewer.md` | Are entitlements, privacy boundaries, the public repo, secrets, and the one-key rate-budget posture actually holding? |
+| **Elixir Rankings Analyst** | `boards` | `elixir-rankings-analyst.md` | Did every leaderboard snapshot land, is a top-200 appearance recording the player for the season, and do the board-driven collections equal today's board? |
 
 Calendar cadence: [generated schedule](SCHEDULE.md), sourced from `automations.toml`.
+Each run works in its own worktree ([WORKFLOW](WORKFLOW.md), "One
+worktree per run").
 
-Guard the Door is an independent control: Run cannot waive its findings,
-and it never weakens an entitlement or privacy boundary to make another
-objective's work easier. Do not add an Analyst, Evaluator, or Cost
-Optimizer role — those outcomes already have owners (cost → Run,
-data meaning → Keep True, quality judgment → Close the Loop).
+Renamed 2026-09-29, for names that say what each does: Run Elixir MCP,
+Keep the Record True, Close the Loop, Guard the Door and Keep the Boards.
+The keys, the automation ids and each objective's memory did not change;
+notes and summaries written before then use the old names.
+
+The Elixir Security Reviewer is an independent control: the Operator
+cannot waive its findings, and it never weakens an entitlement or
+privacy boundary to make another objective's work easier. Do not add an
+Analyst, Evaluator, or Cost Optimizer role — those outcomes already have
+owners (cost → the Operator, data meaning → the Data Auditor, quality
+judgment → the Feedback Manager).
 
 ## How Jamie engages the team
 
@@ -40,13 +48,13 @@ Start with the outcome instead of choosing a role or preparing a ticket:
 - `What across this team needs Jamie?`
 - `Resume the active watch for <objective or issue>.`
 
-Choose **Run Elixir MCP** for pipeline health, queues, collectors,
-deploys, recovery, or cost; **Keep the Record True** for game facts,
-payload meaning, projection correctness, or CR API drift; **Close the
-Loop** when the machinery works but feedback sits unanswered, agents
-stumble on tool ergonomics, or docs have gone stale; **Guard the Door**
-for secrets, entitlements, privacy, or ToS-posture questions; **Keep the
-Boards** for leaderboard snapshots, ranking presence and the
+Choose **Elixir Operator** for pipeline health, queues, collectors,
+deploys, recovery, or cost; **Elixir Data Auditor** for game facts,
+payload meaning, projection correctness, or CR API drift; **Elixir
+Feedback Manager** when the machinery works but feedback sits unanswered, agents
+stumble on tool ergonomics, or docs have gone stale; **Elixir Security Reviewer**
+for secrets, entitlements, privacy, or ToS-posture questions; **Elixir
+Rankings Analyst** for leaderboard snapshots, ranking presence and the
 board-driven collections.
 Cross-cutting work keeps one originating owner through acceptance.
 
@@ -55,20 +63,21 @@ Cross-cutting work keeps one originating owner through acceptance.
 - **projects-sysadmin AGENT-TEAM** audits the whole AWS account and host
   weekly and drains the shared alarm queue daily. This team owns *this
   stack's* operational truth — the Operator sees that an alarm fired;
-  Run Elixir MCP owns why, and the fix.
+  Elixir Operator owns why, and the fix.
 - **elixir-bot** is retired (stopped 2026-09-26): no boundary to keep,
   and nothing here waits on it. Contract changes still land server-side
   here first, for every consumer.
-- **elixir-mcp-discord preview** has operational ownership in Run Elixir MCP
-  and tool-friction/quality ownership in Close the Loop. Its own repository
+- **elixir-mcp-discord preview** has operational ownership in Elixir Operator
+  and tool-friction/quality ownership in Elixir Feedback Manager. Its own repository
   rules govern fixes; host signal triage remains with Run Operations. The
   preview has no local game-data fallback and must never replay old activity.
-- **Interactive Claude sessions** (Jamie-directed feature work) share
-  this checkout. Every mutating actor — objective run or interactive
-  session — serializes through the checkout lease
-  (`scripts/objective-lease.mjs`). Once this team's first runs are
-  confirmed, the daily feedback-response duty belongs to Close the
-  Loop; interactive sessions stop draining it.
+- **Interactive Claude sessions** (Jamie-directed feature work) use the
+  main checkout, which scheduled runs never edit; a second concurrent
+  session makes its own worktree. Every actor that changes production (a
+  deploy, a migration run, an ops-lambda write) claims the one lease
+  first (`scripts/objective-lease.mjs`), shared by every worktree of this
+  clone. The daily feedback-response duty belongs to the Elixir Feedback
+  Manager; interactive sessions do not drain it.
 
 ## Project map
 
@@ -97,7 +106,7 @@ Cross-cutting work keeps one originating owner through acceptance.
 - Live evidence: `https://elixir.poapkings.com/api/public/status` (including
   DB-backed collector heartbeat, admission, and recent-fetch signals), the
   migrate lambda ops (`{stats}`, `{tables}`, `{feedback_pending}`…; `{probe}`
-  is an on-demand census, never a routine read — see Run Elixir MCP), the jobs
+  is an on-demand census, never a routine read — see Elixir Operator), the jobs
   lambda (sweeps, the activity row, the efficiency row), Postgres itself
   (`mcp_call_audit`, the job ledger, `capture_efficiency_daily`), and the
   alarms that fired. There is no CloudWatch dashboard, and a custom metric

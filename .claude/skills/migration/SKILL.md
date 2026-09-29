@@ -24,10 +24,11 @@ migration not yet on `origin/main`, against this file, before `/ship`.
 
 ## Preflight
 
-1. Claim the checkout lease before writing:
-   `node AGENT-TEAM/scripts/objective-lease.mjs claim session`. Ids are
-   dense (`loadMigrations` refuses a gap or a repeat); the lease stops
-   two sessions writing the same next number.
+1. Work in your own checkout (`AGENT-TEAM/WORKFLOW.md`, "One worktree
+   per run"); the edit takes no lease. Ids are dense (`loadMigrations`
+   refuses a gap or a repeat), so two worktrees can pick the same next
+   number: `validate` on a branch rebased onto main refuses the second,
+   which renumbers.
 2. Read DECISIONS "Schema and migrations" and the last three migrations;
    size each table you will touch with the read-only `{tables}` op
    (`/ops`); check docs/NOTES.md for a backfill in progress.
@@ -138,9 +139,10 @@ transactions, write only rows that change, return a cursor and a real
 not finished - never run a backfill and a deploy together (migrate has
 reserved concurrency 1)." A looping op holds the function, so the
 deploy's migrate step gets a 429 and the deploy fails (twice on
-2026-09-22; Run Elixir MCP, "A long batch against a Lambda"). The lease
-guards the checkout, not the cluster: note in docs/NOTES.md when a batch
-starts and roughly when it ends. When the op is done, retire it with its
+2026-09-22; Elixir Operator, "A long batch against a Lambda"). Hold the
+lease for the batch's whole run (it is an ops-lambda write), so the next
+deployer reads who and since when instead of a 429, and note in
+docs/NOTES.md when a batch starts and roughly when it ends. When the op is done, retire it with its
 test and driver (b01fc4bb); migrations that name it keep naming it.
 
 ## Vacuum after every big write

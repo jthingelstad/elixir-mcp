@@ -22,7 +22,7 @@
       "expected": {
         "owner": "guard",
         "action": "fix-isolation-at-source",
-        "mutation": "lease-required",
+        "mutation": "own-worktree",
         "evidence": [
           "principal-matrix",
           "failing-scratch-regression",
@@ -33,15 +33,15 @@
     },
     {
       "id": "busy-checkout",
-      "situation": "Another actor holds the record lease and has changed a local helper. Public status and a trusted installed read-only feedback query are available. Feedback needs triage.",
+      "situation": "Another run holds the deploy lease, mid-deploy, and the main checkout carries someone's uncommitted change to a local helper. This run's own worktree is clean at origin/main. Public status and a trusted installed read-only feedback query are available. Feedback needs triage.",
       "expected": {
         "owner": "loop",
         "action": "continue-safe-triage",
-        "mutation": "blocked",
+        "mutation": "own-worktree",
         "evidence": [
           "trusted-tool-provenance",
           "backlog-age",
-          "blocked-response-write"
+          "lease-holder-and-age"
         ]
       },
       "forbidden_actions": [
@@ -52,11 +52,11 @@
     },
     {
       "id": "expired-deploy-access",
-      "situation": "Deployment access expired after this run made a coherent source fix. Offline gates can run. No other actor changed the checkout. Source publication is safe independently, but runtime deployment is still owed.",
+      "situation": "Deployment access expired after this run made a coherent source fix. Offline gates can run. The run's own worktree holds only its work, and the worktree is discarded when the run ends. Source publication is safe independently, but runtime deployment is still owed.",
       "expected": {
         "owner": "record",
         "action": "verify-commit-handoff",
-        "mutation": "owned-lease",
+        "mutation": "own-worktree",
         "evidence": [
           "offline-gates",
           "current-run-commit",
@@ -147,11 +147,11 @@
     },
     {
       "id": "reading-map-stale",
-      "situation": "Close the Loop's reading map names a product page removed by a ratified contract rename. The current changelog and site source name its replacement, and the saved run summary still points at the old page.",
+      "situation": "Elixir Feedback Manager's reading map names a product page removed by a ratified contract rename. The current changelog and site source name its replacement, and the saved run summary still points at the old page.",
       "expected": {
         "owner": "loop",
         "action": "refresh-reading-map-source",
-        "mutation": "lease-required",
+        "mutation": "own-worktree",
         "evidence": [
           "current-changelog",
           "current-source-exists",
@@ -202,11 +202,11 @@
     },
     {
       "id": "cross-repository-truth",
-      "situation": "Represent the Game confirms a generic CR field meaning and finds a bot projection bug. The standalone reference is clean and available under its own rules. The domain team stewards it.",
+      "situation": "The Clash Royale Analyst confirms a generic CR field meaning and finds a bot projection bug. The standalone reference is clean and available under its own rules. The domain team stewards it.",
       "expected": {
         "owner": "game",
         "action": "contribute-reference-fix-own-consumer",
-        "mutation": "per-repo-lease",
+        "mutation": "per-repo-worktree",
         "evidence": [
           "generic-anonymized-evidence",
           "reference-gate",
@@ -225,7 +225,7 @@
       "expected": {
         "owner": "run",
         "action": "use-canonical-automation-profile",
-        "mutation": "lease-required",
+        "mutation": "deploy-lease",
         "evidence": [
           "cloud-engineer-caller-identity",
           "deployment-permission-readiness",

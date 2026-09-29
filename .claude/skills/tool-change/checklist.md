@@ -16,7 +16,7 @@ only when it does not apply, and say why in the commit message.
 - [ ] For a new tool, the measured walk comes from the call audit, and
       Jamie's answer is recorded as a DECISIONS line and a NOTES entry.
       DECISIONS "New indexes or tools must collapse a measured walk".
-- [ ] The lease is claimed before the first edit.
+- [ ] The edit is in this session's own checkout or worktree.
 
 ## The code map
 

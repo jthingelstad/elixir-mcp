@@ -120,7 +120,7 @@ if (
   process.exit(2);
 }
 
-// Deploy what is committed (DECISIONS "Lease first": deploy from a clean
+// Deploy what is committed (DECISIONS "One worktree per run": deploy from a clean
 // worktree). The build bundles the working tree as it is, so an edit that
 // was never committed would ship with no trace in git. Untracked files
 // (local progress files, caches) are not the build's and do not count.

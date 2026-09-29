@@ -1,28 +1,38 @@
 #!/usr/bin/env node
 /**
- * Checkout lease: serializes every mutating actor on this clone —
- * objective runs AND interactive sessions. The lease is an exclusive-
- * create JSON file inside .git (never committed, survives nothing but
- * this checkout). Claim before the first mutation, check before edit
- * and before push, release only with a clean worktree.
+ * Deploy lease: serializes the actors that change production from this
+ * clone. Edits need no lease (WORKFLOW.md, "One worktree per run": every
+ * run edits in its own worktree and lands a pull request); a deploy, a
+ * migration or a write through an ops lambda does. The lease is an
+ * exclusive-create JSON file in the clone's COMMON git directory, so the
+ * main checkout and every linked worktree see the same one (it lived in
+ * each checkout's own .git until 2026-09-29, when runs shared a checkout).
+ * Claim before the production change, check before it, release once it
+ * is verified.
  *
- *   node AGENT-TEAM/scripts/objective-lease.mjs claim <run|record|loop|guard|boards|session>
- *   node AGENT-TEAM/scripts/objective-lease.mjs check <objective> --lease-id <id>
- *   node AGENT-TEAM/scripts/objective-lease.mjs release <objective> --lease-id <id>
- *   node AGENT-TEAM/scripts/objective-lease.mjs abort <objective> --lease-id <id> --reason "<text>"
+ *   node AGENT-TEAM/scripts/objective-lease.mjs claim <key>
+ *   node AGENT-TEAM/scripts/objective-lease.mjs check <key> --lease-id <id>
+ *   node AGENT-TEAM/scripts/objective-lease.mjs release <key> --lease-id <id>
+ *   node AGENT-TEAM/scripts/objective-lease.mjs abort <key> --lease-id <id> --reason "<text>"
+ *   node AGENT-TEAM/scripts/objective-lease.mjs note <key> --reason "<text>"
  *   node AGENT-TEAM/scripts/objective-lease.mjs status
  *   node AGENT-TEAM/scripts/objective-lease.mjs notes [--clear]
  *   node AGENT-TEAM/scripts/objective-lease.mjs clear-stale --hours <n>
  *
- * abort is the blocked-run exit: it releases the lease AND queues a note
- * for Jamie. Keep the Record True stalled on an ExpiredToken for
- * --profile cloud-engineer (2026-09-08), held the `record` lease, and blocked
- * Close the Loop the same morning — a run that cannot do its job must
- * not keep the checkout hostage.
+ * Keys are the objectives' (README.md): run, record, loop, guard, boards;
+ * Clan's clan-run, clan-judge, clan-loop, clan-guard; the domain team's
+ * clock and game; session for an interactive session.
  *
- * clear-stale refuses dirty worktrees and young leases; never infer
- * staleness from age plus a clean tree by hand — use this command so
- * the clear is recorded with proof.
+ * abort is the blocked-run exit: it releases the lease AND queues a note
+ * for Jamie; note queues one without a lease. The Elixir Data Auditor
+ * (then Keep the Record True) stalled on an ExpiredToken (2026-09-08),
+ * held the lease, and blocked the next run the same morning: a run that
+ * cannot do its job must not keep the lease hostage. Notes live beside
+ * the lease in the common directory, so they outlive the run's worktree.
+ *
+ * clear-stale refuses young leases and a holder's worktree that still has
+ * uncommitted changes; never infer staleness from age by hand, use this
+ * command so the clear is recorded with proof.
  */
 
 import { execFileSync } from "node:child_process";
@@ -32,6 +42,7 @@ import {
   appendFileSync,
   closeSync,
   constants,
+  existsSync,
   openSync,
   readFileSync,
   unlinkSync,
@@ -46,39 +57,36 @@ const OBJECTIVES = new Set([
   "loop",
   "guard",
   "boards",
+  "clan-run",
+  "clan-judge",
+  "clan-loop",
+  "clan-guard",
+  "clock",
+  "game",
   "session",
 ]);
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
-const NOTES_PATH_SEGMENT = "agent-team-queued-notes.jsonl";
-const LEASE_PATH = path.resolve(
+const COMMON_DIR = path.resolve(
   REPO_ROOT,
-  execFileSync("git", ["rev-parse", "--git-dir"], {
+  execFileSync("git", ["rev-parse", "--git-common-dir"], {
     cwd: REPO_ROOT,
     encoding: "utf8",
   }).trim(),
-  "agent-team-objective-lease.json",
 );
+const LEASE_PATH = path.join(COMMON_DIR, "agent-team-objective-lease.json");
+const NOTES_PATH = path.join(COMMON_DIR, "agent-team-queued-notes.jsonl");
 
-const NOTES_PATH = path.resolve(
-  REPO_ROOT,
-  execFileSync("git", ["rev-parse", "--git-dir"], {
-    cwd: REPO_ROOT,
-    encoding: "utf8",
-  }).trim(),
-  NOTES_PATH_SEGMENT,
-);
-
-function git(args) {
-  return execFileSync("git", args, { cwd: REPO_ROOT, encoding: "utf8" }).trim();
+function git(args, cwd = REPO_ROOT) {
+  return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 }
 
 function assertObjective(objective) {
   if (!OBJECTIVES.has(objective)) {
     throw new Error(
-      `unknown objective ${JSON.stringify(objective)}; choose run, record, loop, guard, or session`,
+      `unknown lease key ${JSON.stringify(objective)}; choose one of ${[...OBJECTIVES].join(", ")}`,
     );
   }
 }
@@ -104,6 +112,7 @@ function claim(objective) {
       "untracked-manual-holder",
     holderPid: process.ppid,
     hostname: hostname(),
+    worktree: git(["rev-parse", "--show-toplevel"]),
     startingHead: git(["rev-parse", "HEAD"]),
   };
   let fd;
@@ -116,7 +125,7 @@ function claim(objective) {
   } catch (error) {
     if (error?.code === "EEXIST") {
       throw new Error(
-        `checkout lease is already held: ${JSON.stringify(readLease())}`,
+        `deploy lease is already held: ${JSON.stringify(readLease())}`,
       );
     }
     throw error;
@@ -133,10 +142,10 @@ function assertOwner(objective, leaseId) {
   assertObjective(objective);
   if (!leaseId) throw new Error("--lease-id is required");
   const current = readLease();
-  if (!current) throw new Error("checkout lease is not held");
+  if (!current) throw new Error("deploy lease is not held");
   if (current.objective !== objective || current.leaseId !== leaseId) {
     throw new Error(
-      `checkout lease belongs to another run: ${JSON.stringify({
+      `deploy lease belongs to another run: ${JSON.stringify({
         objective: current.objective,
         claimedAt: current.claimedAt,
         holderId: current.holderId,
@@ -155,37 +164,50 @@ function release(objective, leaseId) {
 }
 
 /**
- * A blocked run's exit: hand the checkout back and leave a note.
+ * A blocked run's exit: hand the lease back and leave a note.
  *
- * Queued notes live OUTSIDE git (beside the lease, in .git) on purpose. An
- * aborting run cannot commit — it has no credentials and may be mid-anything
- * — and writing into the tree would dirty the checkout it is trying to hand
- * over clean. preflight prints them, so the next run and Jamie both see it.
+ * Queued notes live OUTSIDE git (beside the lease, in the common git
+ * directory) on purpose. A blocked run may have no credentials and be
+ * mid-anything, and its worktree is discarded when it ends; preflight
+ * prints the notes, so the next run and Jamie both see them.
  */
-function abort(objective, leaseId, reason) {
-  const current = assertOwner(objective, leaseId);
+function queue(objective, reason, heldSince) {
   if (!reason)
     throw new Error("--reason is required: say what blocked the run");
-  if (git(["status", "--porcelain"])) {
-    throw new Error(
-      "worktree is DIRTY: an aborting run must not abandon uncommitted work. " +
-        "Report to Jamie with the reason and leave the lease held.",
-    );
-  }
   const note = {
     at: new Date().toISOString(),
     objective,
     reason: String(reason).slice(0, 500),
-    heldSince: current.claimedAt,
-    hostname: current.hostname,
+    ...(heldSince ? { heldSince } : {}),
+    hostname: hostname(),
     needs: "Jamie",
   };
   appendFileSync(NOTES_PATH, `${JSON.stringify(note)}\n`, {
     encoding: "utf8",
     mode: 0o600,
   });
+  return note;
+}
+
+function abort(objective, leaseId, reason) {
+  const current = assertOwner(objective, leaseId);
+  if (!reason)
+    throw new Error("--reason is required: say what blocked the run");
+  if (git(["status", "--porcelain"])) {
+    throw new Error(
+      "worktree is DIRTY: an aborting run must not abandon uncommitted work " +
+        "(its worktree is discarded when it ends). Push it to a PR branch first, " +
+        "or Report to Jamie with the reason and leave the lease held.",
+    );
+  }
+  const note = queue(objective, reason, current.claimedAt);
   unlinkSync(LEASE_PATH);
   return { released: current.leaseId, note };
+}
+
+function note(objective, reason) {
+  assertObjective(objective);
+  return queue(objective, reason);
 }
 
 /** Queued notes, newest last. --clear consumes them (a run that has
@@ -208,14 +230,17 @@ function clearStale(hours) {
   if (!Number.isFinite(hours) || hours <= 0)
     throw new Error("--hours must be a positive number");
   const current = readLease();
-  if (!current) throw new Error("no checkout lease exists");
+  if (!current) throw new Error("no deploy lease exists");
   const ageMs = Date.now() - Date.parse(current.claimedAt);
   if (!Number.isFinite(ageMs)) throw new Error("lease has no valid claimedAt");
   if (ageMs < hours * 3600_000)
     throw new Error(`lease is not yet ${hours} hours old`);
-  if (git(["status", "--porcelain"]))
+  // The holder's worktree, when it still exists; a lease from before
+  // 2026-09-29 names none and was claimed in this checkout.
+  const tree = current.worktree ?? REPO_ROOT;
+  if (existsSync(tree) && git(["status", "--porcelain"], tree))
     throw new Error(
-      "worktree is dirty; a stale-looking lease over uncommitted work needs the manual inspected clear (see README)",
+      `the holder's worktree ${tree} is dirty; a stale-looking lease over uncommitted work needs the manual inspected clear (see README)`,
     );
   unlinkSync(LEASE_PATH);
   return current;
@@ -243,6 +268,9 @@ try {
         JSON.stringify(abort(objective, arg("--lease-id"), arg("--reason"))),
       );
       break;
+    case "note":
+      console.log(JSON.stringify(note(objective, arg("--reason"))));
+      break;
     case "notes":
       console.log(JSON.stringify(notes(process.argv.includes("--clear"))));
       break;
@@ -254,7 +282,7 @@ try {
       break;
     default:
       console.error(
-        "usage: objective-lease.mjs <claim|check|release|abort|status|notes|clear-stale> [objective] [--lease-id id] [--reason text] [--hours n] [--clear]",
+        "usage: objective-lease.mjs <claim|check|release|abort|note|status|notes|clear-stale> [key] [--lease-id id] [--reason text] [--hours n] [--clear]",
       );
       process.exit(2);
   }

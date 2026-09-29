@@ -1327,3 +1327,26 @@ distribution that was gone. Then:
 - The execution role still carries the CloudFront grants it needed to
   delete these; trimming them is an IAM change, left for a bootstrap run
   that needs one anyway.
+
+## 2026-09-29 — The team renamed and resumed
+
+Jamie approved new names and asked for the objectives back in operation,
+each run in a worktree of its own (elixir-mcp's `docs/NOTES.md`,
+2026-09-29, has the mechanics).
+
+- **Names.** Clan Operator (was Run Elixir Clan), Clan Policy Auditor
+  (Judge Fairly), Clan Feedback Manager (Close the Loop), Clan Security
+  Reviewer (Guard the Door). Objective files renamed to match; earlier
+  entries keep the old names.
+- **Keys** are `clan-run`, `clan-judge`, `clan-loop` and `clan-guard` in
+  the repository's one lease, which guards a local deploy or a live write
+  (a feedback answer), never an edit.
+- **Installed** from the elixir-mcp Codex project at the cadences Jamie
+  had set in the app: the Operator Tuesday and Friday 05:15, the Policy
+  Auditor the third Saturday of each month, the Feedback Manager daily
+  07:40 and 19:40, the Security Reviewer the third Sunday of each month.
+  The manifest's feedback and security ids are the installed
+  `elixir-clan-close-the-loop` and `elixir-clan-guard-the-door`. The
+  Policy Auditor no longer waits for a Monday: each run confirms grants
+  for every season closed since the last one.
+

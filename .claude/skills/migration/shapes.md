@@ -135,7 +135,7 @@ The anatomy:
   the 90 s `elixir-mcp-migrate-duration` alarm (`{series_backfill}` and its
   driver default to 45 s since 2026-09-25; they defaulted to 240 s and
   tripped it). A real `remaining` lets anyone tell done from
-  stuck (Run Elixir MCP).
+  stuck (Elixir Operator).
 - **Deadlocks retry.** A batch Postgres picks as the victim (`40P01`) is
   replayed after a beat. Smaller batches overlap ingest less: the series
   backfill went from 200 receipts a transaction to 50 after its first

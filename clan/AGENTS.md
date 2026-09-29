@@ -974,16 +974,17 @@ font. Never copy a kit file. Foundation plan and rationale:
 
 ## The team
 
-`AGENT-TEAM/` holds four objective owners (Run Elixir Clan, Judge Fairly,
-Close the Loop, Guard the Door), the operating loop (`WORKFLOW.md`), the
-reading map and the calendar (`automations.toml` → `SCHEDULE.md`). All
-four are paused, and stay paused after the move until Jamie picks which
-objectives resume. One checkout has one lease: the repository's
-(`AGENT-TEAM/scripts/objective-lease.mjs` at the root; Clan's own copy
-went with the move). Every mutating actor on the checkout, an objective
-run or an interactive session (`claim session`), claims it before the
-first edit and releases it clean. Feedback is Close the Loop's daily duty;
-while it is paused, the queue waits for an interactive session.
+`AGENT-TEAM/` holds four objective owners (Clan Operator, Clan Policy
+Auditor, Clan Feedback Manager, Clan Security Reviewer; renamed
+2026-09-29), the operating loop (`WORKFLOW.md`), the reading map and the
+calendar (`automations.toml` → `SCHEDULE.md`). They resumed on 2026-09-29
+in the repository's Codex environment, each run in its own worktree (the
+root `AGENT-TEAM/WORKFLOW.md`, "One worktree per run"). The repository
+has one lease (`AGENT-TEAM/scripts/objective-lease.mjs` at the root;
+Clan's own copy went with the move), under the keys `clan-run`,
+`clan-judge`, `clan-loop` and `clan-guard` (`session` interactively). It
+guards a local deploy and a live write such as a feedback answer; edits
+and PRs take none. Feedback is the Clan Feedback Manager's daily duty.
 
 ## The morning evaluation (2026-09-25, door 1)
 

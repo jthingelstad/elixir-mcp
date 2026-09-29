@@ -1,4 +1,6 @@
-# Keep the Boards
+# Elixir Rankings Analyst
+
+_Formerly Keep the Boards (renamed 2026-09-29)._
 
 Own the outcome: **the leaderboards are recorded as promised, and the
 collections drawn from them say something true.** Every board lands once a
@@ -71,8 +73,8 @@ Establish, with receipts:
   the scheduler planned it
   (`poll_state` for `rankings_pol`/`global`), a collector leased it, or
   ingest rejected it — the same three places every other missed fetch
-  hides in. Fix at the seam. A board that was not planned is a Run Elixir
-  MCP pipeline question first; coordinate rather than duplicate.
+  hides in. Fix at the seam. A board that was not planned is an Elixir
+  Operator pipeline question first; coordinate rather than duplicate.
 - A `skipped: collapsed` outside a season boundary is a real board
   collapse or an API stub; read the raw payload in the archive before
   deciding which.
@@ -81,10 +83,10 @@ Establish, with receipts:
   plus the collection created by hand in the console. Retiring one is the
   reverse. Every added board is fetches, and every recording board is up
   to N more recorded players — say the cost in the note.
-- A session holding the checkout lease across the 10:20Z run makes this
-  objective stand down, and the day's collections are not synced. Whoever
-  held the lease runs `node clients/boards/boards.mjs` by hand after
-  releasing it.
+- The sync takes no lease: it is this objective's own write through the
+  collections tools, and nobody else writes those collections. (Until
+  2026-09-29 a session holding the then checkout lease made this objective
+  stand down, and the day's collections went unsynced.)
 - Deploys are part of this objective when a fix needs one:
   `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`, adding
   `--acceptance=<family>` (`rankings`, `collections`) whenever a tool in
@@ -93,9 +95,9 @@ Establish, with receipts:
 
 ## Not this owner's
 
-The meaning of a rank or a rating (Keep the Record True); whether the
-rankings tools are pleasant to call (Close the Loop); whether recording the
-whole field is a fair use of one key's budget (Guard the Door — this owner
+The meaning of a rank or a rating (Elixir Data Auditor); whether the
+rankings tools are pleasant to call (Elixir Feedback Manager); whether recording the
+whole field is a fair use of one key's budget (Elixir Security Reviewer — this owner
 reports the number, never argues it).
 
 ## Success

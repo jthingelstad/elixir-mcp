@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Take a finished Elixir MCP change to production and prove it there. Preflight (checkout lease, AWS caller), release bookkeeping (MCP contract and changelog, JSON API version and pin, What's new, site docs, NOTES), `npm run verify`, commits, a pull request merged on a green `validate` check, the deploy with the right acceptance scope, triage of every acceptance failure, the live read-back, then sibling repos and the close. `/ship` runs every step; `/ship from <step>` resumes at one (`/ship from triage` after Jamie ran a deploy the session was refused). Use whenever work in this checkout is ready for production, including at the end of `/tool-change`, `/migration`, a Gym round or a consistency round.
+description: Take a finished Elixir MCP change to production and prove it there. Preflight (your own checkout, AWS caller), release bookkeeping (MCP contract and changelog, JSON API version and pin, What's new, site docs, NOTES), `npm run verify`, commits, a pull request merged on a green `validate` check, the deploy under the lease with the right acceptance scope, triage of every acceptance failure, the live read-back, then sibling repos and the close. `/ship` runs every step; `/ship from <step>` resumes at one (`/ship from triage` after Jamie ran a deploy the session was refused). Use whenever work in this checkout is ready for production, including at the end of `/tool-change`, `/migration`, a Gym round or a consistency round.
 ---
 
 # Ship
@@ -11,7 +11,7 @@ step: a deploy time written from memory, a note naming a field its
 response does not serve, a catalogue seed pushed past the response cap.
 
 **Deploying is part of done:** "a fix that is committed but not deployed
-is not shipped" (`AGENT-TEAM/run-elixir-mcp.md`). Never stop to ask
+is not shipped" (`AGENT-TEAM/elixir-operator.md`). Never stop to ask
 whether to deploy. Product questions (a new tool, an MCP or JSON API
 major, anything a DECISIONS line covers) are asked before building.
 
@@ -21,22 +21,26 @@ op `/ops`; they end here. Steps, in order: `preflight`, `bookkeeping`,
 
 ## Preflight
 
-1. **The lease is yours:** `node AGENT-TEAM/scripts/objective-lease.mjs
-   check <objective> --lease-id <id>` before the first commit and before
-   push; with none, claim one (`session` interactively). A lease another
-   actor holds is a stop, not a wait.
+1. **The checkout is yours alone** (`AGENT-TEAM/WORKFLOW.md`, "One
+   worktree per run"). A scheduled run is already in its own worktree. An
+   interactive session works in the main checkout only when no other
+   session is there; otherwise in its own: `git worktree add --detach
+   <dir>/elixir-mcp origin/main`, then `AGENT-TEAM/scripts/worktree-setup.sh`
+   from it with `CODEX_SOURCE_TREE_PATH` (the main checkout) and
+   `CODEX_WORKTREE_PATH` set. Edits, commits and PRs take no lease; the
+   deploy does (Deploy, below).
 2. **The caller is cloud-engineer:** `AWS_PROFILE=cloud-engineer aws sts
    get-caller-identity` answers account 999153317627, ARN containing
    `assumed-role/ProjectsCloudEngineer/projects-cloud-engineer`, as
    `infra/scripts/configure-api-throttles.mjs` checks (`deploy.mjs` checks
    no role). Never the `jamie` profile.
-3. **main is current:** after `git fetch`, `git status -sb` is not behind
+3. **origin/main is current:** after `git fetch`, HEAD is not behind
    `origin/main`. Behind means another actor shipped: find out who first.
-   Then branch before the first edit: `git switch -c <objective>/<slug>`
-   (`session/`, `loop/`, `run/`...). main takes nothing but merged PRs.
+   Then branch before the first edit: `git switch -c <key>/<slug>`
+   (`session/`, `loop/`, `run/`, `clan-run/`...). main takes nothing but merged PRs.
 4. **Nothing holds migrate:** `elixir-mcp-migrate` runs at reserved
    concurrency 1, so a deploy behind a running backfill fails at its
-   migration step with a 429 (twice on 2026-09-22, `run-elixir-mcp.md`).
+   migration step with a 429 (twice on 2026-09-22, `elixir-operator.md`).
    Read NOTES for a batch that says it is running.
 5. **The reference is committed:** `git -C ../cr-agent-api-docs status
    --porcelain -- data/card-roles.json data/deck-aliases.json` is empty.
@@ -112,7 +116,7 @@ the test summaries, not the last line.
   trailer the session's instructions require, if any.
 - Assert HEAD moved (`git log --oneline -1`). Never pipe commit output
   through `tail`: the pipe's status is tail's, so a failed commit passes.
-- `&&`, never `;`, before push or deploy (DECISIONS, "Lease first").
+- `&&`, never `;`, before push or deploy (DECISIONS, "One worktree per run; the lease guards production").
 
 ## Merge
 
@@ -121,7 +125,7 @@ branch up to date with main (the ruleset on `main`, 2026-09-26; no
 bypass, for Jamie's account either, which is the account agents push
 as). No review is required: the check is the gate, the PR is the record.
 
-1. Check the lease, then `git push -u origin HEAD`.
+1. `git push -u origin HEAD`.
 2. `gh pr create --fill` (title and body from the commits; a
    multi-commit PR gets a title that says what the whole ships), then
    `gh pr merge --auto --rebase --delete-branch`. Rebase keeps each
@@ -132,19 +136,27 @@ as). No review is required: the check is the gate, the PR is the record.
    defect: fix it in this PR or file it in NOTES the same day.
 4. main moved while it ran (another actor, or Dependabot): `gh pr update-branch
    --rebase`, which re-runs the check.
-5. `gh pr view --json state -q .state` is `MERGED`, then `git switch main
-   && git pull --ff-only`, and `git branch -d` the local branch. Deploy
-   from there.
+5. `gh pr view --json state -q .state` is `MERGED`, then `git fetch
+   origin && git checkout --detach origin/main` (in the main checkout,
+   `git switch main && git pull --ff-only`), and `git branch -D` the
+   local branch. Deploy from there.
 
 Work that stops before the merge (credentials, a red check you cannot
-fix now) leaves the PR open with its state in NOTES and the checkout on
-main; the next preflight refuses a checkout left on a branch.
+fix now) leaves the PR open with its state in NOTES. A run's worktree is
+discarded when the run ends: anything not merged or in an open PR is lost.
 
 ## Deploy
 
+Claim the lease first; it lives in the clone's common git directory, so
+every worktree sees the one lease. Release it after the read-back.
+
 ```sh
+node AGENT-TEAM/scripts/objective-lease.mjs claim <key>   # session interactively
 AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --acceptance=<family>
 ```
+
+A lease another actor holds is a wait, never a workaround: their deploy
+ships origin/main, and yours may find nothing left to do.
 
 The profile goes in the environment: "the CLI profile flag alone does not
 satisfy the SDK's provider chain" (ENGINEERING). The only flags
@@ -252,9 +264,9 @@ The smoke read the doors; read what this change moved, reads only:
 - elixir-bot is retired (stopped 2026-09-26): no sibling step, never in
   scope.
 - Each repo keeps its own lease tool, objectives and gate (Clan `npm run
-  verify`, Drop the one its `CONTRIBUTING.md` names); leases in
-  directory-alphabetical order, released in reverse
-  (`../AGENT-TEAM/WORKFLOW.md`). Collectors: `docs/RELEASING-COLLECTOR.md`.
+  verify`, Drop the one its `CONTRIBUTING.md` names). A sibling change is
+  made in that repo's own worktree, and its lease is claimed only for its
+  deploy, one repo's lease at a time (`../AGENT-TEAM/WORKFLOW.md`). Collectors: `docs/RELEASING-COLLECTOR.md`.
 
 ## Close
 
@@ -263,13 +275,13 @@ The smoke read the doors; read what this change moved, reads only:
   time only if you read it: on 2026-09-25 an unverified one had to come
   out (dd546ed4). Write it `13:14Z (8:14 AM CT)`.
 - Answer the feedback the change closes after the read-back, `done` naming
-  the version, by `AGENT-TEAM/close-the-loop.md`'s write rules.
+  the version, by `AGENT-TEAM/elixir-feedback-manager.md`'s write rules.
 - A DECISIONS line added or changed: `/consistency <decision>` that day.
 - The NOTES entry and anything else written after the deploy go through
   their own PR (branch, `/ship from merge`); no deploy follows a
   notes-only merge.
-- On main, `git status --porcelain` empty (untracked files count), then
-  `objective-lease.mjs release <objective> --lease-id <id>`.
+- `git status --porcelain` empty (untracked files count), then
+  `objective-lease.mjs release <key> --lease-id <id>`.
 - Tell Jamie what shipped (versions, commits), what acceptance caught, and
   **Needs you** (a refused deploy's command, a live check only he can
   make). Times in US Central.

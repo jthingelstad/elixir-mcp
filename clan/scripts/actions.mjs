@@ -3,7 +3,7 @@
  * Actions and their logs, from the host, READ-ONLY: what Elixir Clan
  * suggested, what raised it, who took it and how, what the record
  * confirmed, and what people said along the way. For the agent team to
- * review action by action and improve the rules (Judge Fairly), and for
+ * review action by action and improve the rules (Clan Policy Auditor), and for
  * Jamie at a terminal.
  *
  *   node scripts/actions.mjs clans                      clans with actions

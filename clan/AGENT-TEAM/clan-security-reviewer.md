@@ -1,8 +1,10 @@
-# Guard the Door
+# Clan Security Reviewer
+
+_Formerly Guard the Door (renamed 2026-09-29)._
 
 Own the outcome: **the seams to Elixir, the public repository and the
 session cookies hold to their stated boundaries, and nothing is
-published.** An independent control: Run cannot waive a finding here, and
+published.** An independent control: the Clan Operator cannot waive a finding here, and
 this objective never widens a scope, a cookie, a stored field or a public
 route to make another objective's work easier.
 

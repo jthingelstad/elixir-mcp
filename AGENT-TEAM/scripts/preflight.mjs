@@ -13,6 +13,14 @@ function metadata(filename, fallback) {
   }
 }
 
+/**
+ * Edit eligibility for THIS checkout (WORKFLOW.md, "One worktree per
+ * run"). A run's own linked worktree is eligible clean and at
+ * origin/main, detached or on a fresh branch; the main checkout keeps the
+ * older rule (clean, on main, in sync). The deploy lease no longer blocks
+ * edits: it is reported, for the run that intends to deploy, from the
+ * common git directory every worktree shares.
+ */
 export function inspectCheckout(root) {
   const git = (...args) =>
     execFileSync("git", args, {
@@ -31,24 +39,37 @@ export function inspectCheckout(root) {
     }
   };
   attempt("remote synchronization unknown", "fetch", "origin", "--prune");
-  const branch = attempt(
-    "detached HEAD",
-    "symbolic-ref",
-    "--quiet",
-    "--short",
-    "HEAD",
-  );
-  if (branch && branch !== "main") reasons.push("not on main");
+  let gitDir = null;
+  let commonDir = null;
+  try {
+    gitDir = path.resolve(root, git("rev-parse", "--git-dir"));
+    commonDir = path.resolve(root, git("rev-parse", "--git-common-dir"));
+  } catch {
+    reasons.push("git metadata unknown");
+  }
+  const worktree = gitDir && gitDir !== commonDir ? "linked" : "main";
+  let branch = null;
+  try {
+    branch = git("symbolic-ref", "--quiet", "--short", "HEAD");
+  } catch {
+    if (worktree === "main") reasons.push("detached HEAD");
+  }
+  if (worktree === "main" && branch && branch !== "main")
+    reasons.push("not on main");
+  if (worktree === "linked" && branch === "main")
+    reasons.push("main is the main checkout's branch");
   const status = attempt("worktree state unknown", "status", "--porcelain");
   if (status) reasons.push("dirty worktree");
-  const upstream = attempt(
-    "upstream unknown",
-    "rev-parse",
-    "--abbrev-ref",
-    "--symbolic-full-name",
-    "@{u}",
-  );
-  if (upstream && upstream !== "origin/main") reasons.push("wrong upstream");
+  if (worktree === "main") {
+    const upstream = attempt(
+      "upstream unknown",
+      "rev-parse",
+      "--abbrev-ref",
+      "--symbolic-full-name",
+      "@{u}",
+    );
+    if (upstream && upstream !== "origin/main") reasons.push("wrong upstream");
+  }
   const counts = attempt(
     "upstream comparison unknown",
     "rev-list",
@@ -61,26 +82,36 @@ export function inspectCheckout(root) {
     if (ahead) reasons.push("pre-existing commits ahead");
     if (behind) reasons.push("behind origin/main");
   }
+  let deployLease = null;
   let queuedNotes = 0;
-  try {
-    const gitDir = path.resolve(root, git("rev-parse", "--git-dir"));
-    const lease = JSON.parse(
-      metadata(path.join(gitDir, "agent-team-objective-lease.json"), "null"),
-    );
-    if (lease !== null) reasons.push("checkout lease held");
-    const notes = metadata(
-      path.join(gitDir, "agent-team-queued-notes.jsonl"),
-      "",
-    ).trim();
-    queuedNotes = notes
-      ? notes.split("\n").map((line) => JSON.parse(line)).length
-      : 0;
-  } catch {
-    reasons.push("lease or queued-note metadata unreadable");
+  if (commonDir) {
+    try {
+      deployLease = JSON.parse(
+        metadata(
+          path.join(commonDir, "agent-team-objective-lease.json"),
+          "null",
+        ),
+      );
+      const notes = metadata(
+        path.join(commonDir, "agent-team-queued-notes.jsonl"),
+        "",
+      ).trim();
+      queuedNotes = notes
+        ? notes.split("\n").map((line) => JSON.parse(line)).length
+        : 0;
+    } catch {
+      reasons.push("lease or queued-note metadata unreadable");
+    }
   }
   return {
+    worktree,
     mutation: reasons.length ? "blocked" : "eligible",
     reasons,
+    deployLease: deployLease && {
+      objective: deployLease.objective,
+      claimedAt: deployLease.claimedAt,
+      worktree: deployLease.worktree ?? null,
+    },
     queuedNotes,
   };
 }
@@ -120,16 +151,23 @@ if (
       `OBSERVATION=${result.observation} (public status only; other authorized reads may remain available)`,
     );
     console.log(
-      `MUTATION=${result.mutation} (checkout eligibility only; authority and deployment readiness are separate)`,
+      `MUTATION=${result.mutation} (edit eligibility of this ${result.worktree === "linked" ? "run's worktree" : "main checkout"}; authority and deployment readiness are separate)`,
+    );
+    console.log(
+      result.deployLease
+        ? `DEPLOY_LEASE=held by ${result.deployLease.objective} since ${result.deployLease.claimedAt} (edits and PRs proceed; a deploy waits)`
+        : "DEPLOY_LEASE=free",
     );
     console.log(JSON.stringify(result));
     if (result.queuedNotes)
       console.log(
-        "Queued notes need review; transcribe and clear only under your own lease.",
+        "Queued notes need review; transcribe them into docs/NOTES.md in a PR, then clear them.",
       );
     if (result.mutation === "blocked")
       console.log(
-        "Continue safe read-only review with trusted tools; do not mutate or publish pre-existing work.",
+        result.worktree === "linked"
+          ? "Continue safe read-only review with trusted tools; a clean worktree behind origin/main may `git checkout --detach origin/main` and preflight again. Never publish pre-existing work."
+          : "Continue safe read-only review with trusted tools; do not mutate or publish pre-existing work. Scheduled runs edit in their own worktree, never here.",
       );
     process.exitCode = result.mutation === "blocked" ? 1 : 0;
   } catch {
