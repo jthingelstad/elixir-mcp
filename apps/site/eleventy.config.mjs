@@ -163,7 +163,8 @@ export default function (eleventyConfig) {
     "icons",
   );
   const iconCache = new Map();
-  eleventyConfig.addShortcode("icon", (name, size = 18) => {
+  /** A glyph's inner markup on one line, straight from the package. */
+  const iconBody = (name) => {
     if (!iconCache.has(name)) {
       const file = path.join(iconDir, `${name}.svg`);
       if (!existsSync(file)) throw new Error(`icon "${name}" is not in Lucide`);
@@ -175,8 +176,26 @@ export default function (eleventyConfig) {
         .trim();
       iconCache.set(name, body);
     }
-    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto">${iconCache.get(name)}</svg>`;
-  });
+    return iconCache.get(name);
+  };
+  eleventyConfig.addShortcode(
+    "icon",
+    (name, size = 18) =>
+      `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto">${iconBody(name)}</svg>`,
+  );
+  /** The same glyph as the kit's Icon draws it in the top bar
+   *  (packages/ui/src/Icon.tsx: stroke 1.9, `shrink-0`), for the
+   *  product buttons base.njk renders from the family manifest. The
+   *  manifest names an icon; this is how a name becomes the glyph. */
+  eleventyConfig.addShortcode(
+    "chromeIcon",
+    (name, size) =>
+      `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0">${iconBody(
+        name,
+      )
+        .replace(/\s*\/>/g, "/>")
+        .replace(/>\s+</g, "><")}</svg>`,
+  );
 
   /** The H2 headings of a rendered page, for the docs rail's children
    *  and the "On this page" outline: [{ id, text }]. */

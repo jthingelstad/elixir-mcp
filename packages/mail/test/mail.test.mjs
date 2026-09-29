@@ -167,6 +167,26 @@ test("tagLink leaves foreign URLs alone and keeps an existing query string", asy
   );
 });
 
+test("tagLink tags a link into every product the family's bar names", async () => {
+  // The origins come from the kit's product manifest, the list the top
+  // bar draws, so a product added there is tagged here with no edit.
+  const { tagLink } = await import("../src/index.mjs");
+  const { default: family } = await import("@elixir-mcp/ui/family.json", {
+    with: { type: "json" },
+  });
+  const campaign = { kind: "milestone", period: "2026-09-19" };
+  assert.ok(family.products.length > 0);
+  for (const p of family.products) {
+    const url = new URL(p.href ?? p.path, family.origin).href;
+    assert.match(tagLink(url, campaign), /[?&]utm_source=email&/, p.key);
+  }
+  // Drop is on a host of its own, and its links are still ours.
+  assert.equal(
+    tagLink("https://drop.poapkings.com/play", campaign),
+    "https://drop.poapkings.com/play?utm_source=email&utm_medium=milestone&utm_campaign=milestone-2026-09-19",
+  );
+});
+
 test("a clan report subject says the war place and the churn", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),

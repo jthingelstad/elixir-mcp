@@ -7,6 +7,7 @@
  *  the coverage note last, the switch and the disclaimer in the footer.
  *  Dark only, by decision (Jamie, 2026-09-18, from the gallery). */
 import { DISCLAIMER } from "@elixir-mcp/contracts";
+import family from "@elixir-mcp/ui/family.json" with { type: "json" };
 import { pixelPath, pixelTag } from "./pixel.mjs";
 
 /** A mode group's reader-facing name (contracts MODE_GROUPS). */
@@ -63,9 +64,18 @@ export const KIND_LABELS = {
 };
 
 /** The family's apps: a family app's own mail links back to it, and
- *  those links carry the campaign tag too (2026-09-25). Elixir Clan's
- *  are on SITE (/clan) since 2026-09-28. */
-const FAMILY_ORIGINS = [SITE, "https://drop.poapkings.com"];
+ *  those links carry the campaign tag too (2026-09-25). Read from the
+ *  kit's product manifest, the list the top bar draws: the family origin
+ *  (the Console, and Elixir Clan at /clan since 2026-09-28) and every
+ *  product's own, so a product added there is tagged here too. */
+const FAMILY_ORIGINS = [
+  ...new Set([
+    family.origin,
+    ...family.products.map(
+      (p) => new URL(p.href ?? p.path, family.origin).origin,
+    ),
+  ]),
+];
 
 const esc = (v) =>
   String(v ?? "")

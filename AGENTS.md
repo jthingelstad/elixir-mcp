@@ -41,7 +41,11 @@ component rules (`src/components.css`), compiled ONCE by Tailwind v4 over
 both halves' and the kit's sources into `dist/styles.css`, which both
 halves serve; `packages/ui` - Chrome, Rail, LogTable, Fresh, Markdown,
 Icon, ErrorBoundary, Disclaimer and the one clock vocabulary, TypeScript,
-written on utilities; `packages/client` - the `{ ok, status, data }`
+written on utilities, plus the family's product manifest
+(`src/family.json`: the top bar's wordmark, tabs and product buttons),
+which the kit's `family.ts`, the site's `base.njk` (through
+`_data/familyBar.js`) and product mail all read, so adding a product is
+one edit there; `packages/client` - the `{ ok, status, data }`
 envelope, `createClient()`, `answered()`/`unwrap()` and the query client
 with its one retry rule. Anything a vertical needs that the kit lacks is
 a kit addition here, never a local copy there. An inline-style ratchet

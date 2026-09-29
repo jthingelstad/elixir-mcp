@@ -354,17 +354,88 @@ test(
   },
 );
 
+test("the bar has one source: the kit's product manifest", async () => {
+  // packages/ui/src/family.json is the family's product manifest. The
+  // kit's family.ts reads it for the React Chrome (the console, Clan),
+  // and _data/familyBar.js hands it to base.njk, which loops over it.
+  // Both must read the file itself, never a copy: base.njk used to
+  // hand-mirror family.ts, and a copy is how two bars drift into two.
+  // Needs no built tree: this is about where the bar comes from.
+  const { default: manifest } = await import(
+    path.join(repoRoot, "packages/ui/src/family.json"),
+    { with: { type: "json" } }
+  );
+  const { default: familyBar } = await import(
+    path.join(repoRoot, "apps/site/src/_data/familyBar.js")
+  );
+  // The same module, not an equal object: the data file IS the manifest.
+  assert.equal(familyBar, manifest, "the site's bar is not the kit's file");
+
+  const kit = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
+  assert.equal(kit.FAMILY_WORDMARK, manifest.wordmark);
+  assert.equal(kit.FAMILY_ORIGIN, manifest.origin);
+  assert.deepEqual(
+    kit.FAMILY_TABS.map((t) => [...t]),
+    manifest.tabs.map((t) => [t.label, t.path]),
+  );
+  assert.deepEqual(
+    kit.FAMILY_PRODUCTS.map((p) => p.key),
+    manifest.products.map((p) => p.key),
+  );
+  for (const [i, p] of manifest.products.entries()) {
+    // On the family origin a product is a path; elsewhere, an href.
+    assert.ok(
+      Boolean(p.path) !== Boolean(p.href),
+      `${p.key} needs a path or an href, not both`,
+    );
+    assert.deepEqual(kit.FAMILY_PRODUCTS[i], {
+      key: p.key,
+      label: p.label,
+      href: p.href ?? `${manifest.origin}${p.path}`,
+      icon: p.icon,
+      ...(p.external ? { external: true } : {}),
+    });
+  }
+
+  // And the template keeps nothing of its own: no label, key, path or
+  // href from the manifest is spelled out in it. (The wordmark's home
+  // link is "/" in its own right, so the Home tab's path is not a tell.)
+  const njk = readFileSync(
+    path.join(repoRoot, "apps/site/src/_includes/base.njk"),
+    "utf8",
+  );
+  const spelled = [
+    `>${manifest.wordmark}<`,
+    ...manifest.tabs.flatMap((t) => [
+      `>${t.label}<`,
+      `"${t.key}"`,
+      ...(t.path === "/" ? [] : [`"${t.path}"`]),
+    ]),
+    ...manifest.products.flatMap((p) => [
+      `>${p.label}<`,
+      `"${p.key}"`,
+      `"${p.path ?? p.href}"`,
+      `"${p.icon}"`,
+    ]),
+  ];
+  for (const s of spelled)
+    assert.ok(!njk.includes(s), `base.njk hand-writes ${s} again`);
+});
+
 test(
   "the static bar is the kit's bar: wordmark, tabs, product buttons",
   { skip },
   async () => {
-    // base.njk hand-mirrors packages/ui/src/family.ts because Nunjucks
-    // cannot import TypeScript. This is the pin: the built home page
-    // carries the same wordmark, the same tabs in the same order, and the
-    // same product buttons with the same hrefs, or the two bars have
+    // What base.njk renders from the manifest, built: the same wordmark,
+    // the same tabs in the same order, and the same product buttons with
+    // the same hrefs as the kit's Chrome draws, or the two bars have
     // drifted into two bars.
     const { FAMILY_ORIGIN, FAMILY_PRODUCTS, FAMILY_TABS, FAMILY_WORDMARK } =
       await import(path.join(repoRoot, "packages/ui/src/family.ts"));
+    const { default: manifest } = await import(
+      path.join(repoRoot, "packages/ui/src/family.json"),
+      { with: { type: "json" } }
+    );
     const { JSDOM } = await import("jsdom");
     const { document } = new JSDOM(read("index.html")).window;
 
@@ -378,6 +449,14 @@ test(
     ]);
     assert.deepEqual(
       tabs,
+      FAMILY_TABS.map((t) => [...t]),
+    );
+    // The narrow menu's sheet is the same tabs, in the same order.
+    assert.deepEqual(
+      [...document.querySelectorAll("#chrome-sheet a")].map((a) => [
+        a.textContent.trim(),
+        a.getAttribute("href"),
+      ]),
       FAMILY_TABS.map((t) => [...t]),
     );
 
@@ -399,8 +478,43 @@ test(
         p.external ? "_blank" : null,
         `${p.label} target`,
       );
+      assert.equal(
+        products[i].getAttribute("aria-label"),
+        p.external ? `${p.label} (opens in a new window)` : null,
+        `${p.label} aria-label`,
+      );
+      // Its glyph, and a second one saying "new window" when it is one.
+      assert.equal(
+        products[i].querySelectorAll("svg").length,
+        p.external ? 2 : 1,
+        `${p.label} glyphs`,
+      );
       // A document is inside no product: nothing is current here.
       assert.equal(products[i].getAttribute("aria-current"), null);
+    }
+
+    // A page lights its own tab, by the manifest's key, in the bar and
+    // in the sheet alike: home on the front page, docs on a doc.
+    for (const [page, key] of [
+      ["index.html", "home"],
+      ["docs/index.html", "docs"],
+    ]) {
+      const doc = new JSDOM(read(page)).window.document;
+      const tab = manifest.tabs.find((t) => t.key === key);
+      assert.deepEqual(
+        [...doc.querySelectorAll(".chrome__tab--on")].map((a) =>
+          a.getAttribute("href"),
+        ),
+        [tab.path],
+        `${page} lights ${key}`,
+      );
+      assert.deepEqual(
+        [...doc.querySelectorAll('#chrome-sheet a[aria-current="page"]')].map(
+          (a) => a.getAttribute("href"),
+        ),
+        [tab.path],
+        `${page} marks ${key} in the sheet`,
+      );
     }
   },
 );
