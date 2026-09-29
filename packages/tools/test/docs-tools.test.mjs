@@ -121,9 +121,12 @@ test("elixir_docs: the index, one page, and a search that says where", async () 
 });
 
 test("elixir_examples: eleven, each with a real transcript and real tools", async () => {
-  const index = await elixirTools.elixir_examples.handler(ctx, {});
+  const registry = makeRegistry();
+  // Exercise the registry as the door does: its output-schema validation
+  // must accept both the index and a selected example.
+  const index = await registry.invoke("elixir_examples", ctx, {});
   assert.equal(index.examples.length, 11);
-  const one = await elixirTools.elixir_examples.handler(ctx, {
+  const one = await registry.invoke("elixir_examples", ctx, {
     example: "clan",
   });
   assert.equal(one.group, "For clan leaders");
