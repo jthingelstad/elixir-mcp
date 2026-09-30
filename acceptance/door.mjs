@@ -38,20 +38,62 @@ export function makeDoor({
   let seq = 0;
   async function rpc(method, params) {
     const started = performance.now();
-    const res = await fetchImpl(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ jsonrpc: "2.0", id: ++seq, method, params }),
-      // The server has an 18 s analytical budget. Keep the acceptance runner
-      // bounded when a connection or proxy fails to deliver that response.
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    const controller = new AbortController();
+    const deadline = started + timeoutMs;
+    const beforeDeadline = async (work, onTimeout = () => {}) => {
+      const remaining = Math.max(1, deadline - performance.now());
+      let timer;
+      try {
+        return await Promise.race([
+          work,
+          new Promise((_, reject) => {
+            timer = setTimeout(() => {
+              const error = new Error(`${method}: request timeout`);
+              controller.abort(error);
+              void onTimeout();
+              reject(error);
+            }, remaining);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+    const res = await beforeDeadline(
+      fetchImpl(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: ++seq, method, params }),
+        // The server has an 18 s analytical budget. Keep the acceptance runner
+        // bounded when a connection or proxy fails to deliver its whole response.
+        signal: controller.signal,
+      }),
+    );
     const ms = Math.round(performance.now() - started);
-    const text = await res.text();
+    let text;
+    if (!res.body?.getReader) {
+      text = await beforeDeadline(res.text(), () => res.body?.cancel());
+    } else {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      try {
+        text = "";
+        for (;;) {
+          const chunk = await beforeDeadline(reader.read(), () =>
+            reader.cancel(),
+          );
+          if (chunk.done) break;
+          text += decoder.decode(chunk.value, { stream: true });
+        }
+        text += decoder.decode();
+      } finally {
+        reader.releaseLock();
+      }
+    }
     let body;
     try {
       body = JSON.parse(text);
