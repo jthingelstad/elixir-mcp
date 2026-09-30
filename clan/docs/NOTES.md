@@ -166,8 +166,8 @@ member; no policy version was saved.
 ## Waiting on Jamie
 
 - **The family's name on a general product.** Elixir Clan is for any clan
-  (2026-09-25), but it lives at `clan.poapkings.com`, signs in through
-  `elixir.poapkings.com`, and the kit's footer reads "a POAP KINGS product"
+  (2026-09-25) and now lives at `elixir.poapkings.com/clan`, but the shared
+  kit's footer still reads "a POAP KINGS product"
   (`elixir-mcp/packages/ui/src/Disclaimer.tsx`). That is the whole Elixir
   family's naming, so it is decided there, not here.
 - **npm org** for publishing `@elixir-mcp/design` (optional; the pin works).

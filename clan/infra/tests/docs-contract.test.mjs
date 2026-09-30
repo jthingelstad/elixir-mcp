@@ -37,3 +37,14 @@ test("unverified claimers have one membership contract", async () => {
   );
   assert.doesNotMatch(vision, /only when their verified player is in it/);
 });
+
+test("the open family-name decision names Clan's current location", async () => {
+  const notes = await read("docs/NOTES.md");
+  const waiting = notes.match(
+    /## Waiting on Jamie\n(?<items>[\s\S]*?)\n## Open/,
+  )?.groups?.items;
+
+  assert.ok(waiting, "waiting-on-Jamie section is present");
+  assert.match(waiting, /lives at `elixir\.poapkings\.com\/clan`/);
+  assert.doesNotMatch(waiting, /lives at `clan\.poapkings\.com`/);
+});
