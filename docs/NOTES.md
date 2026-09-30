@@ -1542,3 +1542,39 @@ route in that time, through its own redeploy at 12:23Z.
 A collector request can no longer reach the web-api: the site API's
 `ANY /api/collector/{proxy+}` route sends every one to the collector,
 and the web-api answers any stray one 404.
+
+---
+
+## 2026-09-30 - Rankings Analyst daily board reconciliation
+
+The documented `cloud-engineer` identity completed one read-only
+`elixir-mcp-migrate` `{stats:true}` receipt at 11:02Z. Today's global Path
+of Legends tick has exactly one receipt and its snapshot was observed at
+10:07:57Z with 1,000 entries and `truncated: false`. Of 262 enabled location
+boards, 254 were admitted within 26 hours (69 valid empty boards); all eight
+stale locations were the known daily-held 404 state, leaving no unexplained
+admission gap. There are 662 active ranking-origin recordings. The next season
+roll is 2026-10-05T10:00Z, so the small-and-growing and held-collection checks
+do not apply yet.
+
+`node clients/boards/boards.mjs --json` completed without skips or collapse
+holds: the global, US, Japan, and top-clan collections changed +46/-46,
++33/-33, +41/-41, and +1/-1 respectively. The post-sync
+`--dry-run --json` receipt had zero additions and removals for all four
+collections (100, 100, 100, and 10 members), proving equality with the
+recorded boards at read time. No lease was used: collection synchronization is
+the Rankings Analyst's explicitly authorized write.
+
+Leaderboard result: the complete global board arrived at 10:07:57Z; the three
+top-100 collections turned over 120 player seats and the top-clan board
+changed one clan.
+
+---
+
+## 2026-09-30 - Queued Operator note: live acceptance response path
+
+The Operator reported that `npm run acceptance` could not complete because the
+live door kept a response stream open beyond the client's 20-second deadline.
+The acceptance client now builds its workspace prerequisites, bounds header
+and body reads, and cancels a locked stream; its focused regression tests pass.
+Recheck the live acceptance response path before rerunning the suite.
