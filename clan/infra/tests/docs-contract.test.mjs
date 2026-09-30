@@ -22,11 +22,12 @@ test("the weekly clan report has one status across the product contract", async 
   assert.doesNotMatch(agents, /weekly digest/);
 });
 
-test("unverified claimers have one membership contract", async () => {
-  const [agents, vision, chooser] = await Promise.all([
+test("unverified claimers have one ratified membership contract", async () => {
+  const [agents, vision, chooser, notes] = await Promise.all([
     read("AGENTS.md"),
     read("docs/VISION.md"),
     read("apps/web/src/views/Clans.jsx"),
+    read("docs/NOTES.md"),
   ]);
 
   assert.match(agents, /\*\*Unverified players are members/);
@@ -35,7 +36,15 @@ test("unverified claimers have one membership contract", async () => {
     chooser,
     /An unverified player is a member here whatever its role in the game/,
   );
+  assert.match(
+    notes,
+    /Confirmed by Jamie on 2026-09-30: an unverified member only\s+reads/,
+  );
   assert.doesNotMatch(vision, /only when their verified player is in it/);
+  assert.doesNotMatch(
+    notes,
+    /Defaults chosen here, for Jamie to confirm: an unverified member/,
+  );
 });
 
 test("the open family-name decision names Clan's current location", async () => {
