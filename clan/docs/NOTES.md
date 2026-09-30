@@ -1157,7 +1157,7 @@ forces the user to acknowledge and provides a link to go the Elixir".
   lands on `/verify` after sign-in, lists the players to verify, links to
   Elixir → Verify, and goes on once they say they have read it (per
   session; a changed list asks again).
-- Defaults chosen here, for Jamie to confirm: an unverified member only
+- Confirmed by Jamie on 2026-09-30: an unverified member only
   reads. No away notice, comments, decisions or clan map (view or place),
   since each would be done in a player's name that nobody has proven.
   An unverified claimer still sees that player's own standing line.
@@ -1363,3 +1363,11 @@ The same change on Elixir's side (elixir-mcp's `docs/NOTES.md`,
 a standing Clan grant covering the request. So **Sign in** is one click
 for someone signed in to Elixir, and the revoke here is what makes an
 explicit sign-out ask again next time.
+
+## 2026-09-30 — Unverified claimers remain read-only (Jamie)
+
+Jamie confirmed the boundary first shipped on 2026-09-26: an unverified
+claimer is a member who may read the clan and their own standing line, but
+may not set away, comment, decide an action or view or place themselves on
+the clan map. Verification is what lets the app act in a player's name.
+This ratifies the existing behavior; no runtime change was needed.
