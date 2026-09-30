@@ -1542,3 +1542,28 @@ route in that time, through its own redeploy at 12:23Z.
 A collector request can no longer reach the web-api: the site API's
 `ANY /api/collector/{proxy+}` route sends every one to the collector,
 and the web-api answers any stray one 404.
+
+---
+
+## 2026-09-29 - 088584e8 deployed: the collector door has one home
+
+088584e8 (#165) is deployed: lane platform (the web-api key and the
+template), migrations 195 applied, 0 ran, 43 smoke checks green. The
+stack updated `WebApiRole` at 12:49:47Z, the web-api at 12:50:00Z, and
+deleted `SubmitIngestErrorFilter` at 12:50:33Z (7:50 AM CT).
+
+Read-back, reads only:
+
+- `elixir-mcp-web-api`'s inline policy is five statements: outbox
+  `email/*` put and list, archive `calls/*` get, `mail/sent/*` get and
+  put, archive list. No `payloads/`.
+- The web-api's environment has no `COLLECTOR_MIN_ENFORCE`; the
+  collector's still does.
+- One `SubmitIngestError` filter is left, on the collector's log. The
+  archive policy is unchanged (`PayloadsWriteOnce`).
+- Through the 12:52:36Z tick: 96 submits (p95 280 ms) and 194 leases on
+  the collector Lambda, all 200; no `submit_ingest_error`,
+  `AccessDenied` or timeout; no collector line on the web-api. No
+  `elixir-` alarm out of OK.
+
+Nothing owed on the collector door.
