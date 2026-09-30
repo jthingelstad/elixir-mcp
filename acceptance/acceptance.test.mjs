@@ -175,6 +175,47 @@ test("the door bounds a stalled request", async () => {
   assert.match(stalled.body.error.message, /timeout/i);
 });
 
+test("the door bounds a stalled response body", async () => {
+  let cancelled = false;
+  const door = makeDoor({
+    url: "http://fake/mcp",
+    token: "svt_fake",
+    timeoutMs: 1,
+    fetchImpl: async () => ({
+      status: 200,
+      text: async () => new Promise(() => {}),
+      body: { cancel: () => (cancelled = true) },
+    }),
+  });
+  const stalled = await door.call("game_clock", {});
+  assert.equal(stalled.isError, true);
+  assert.match(stalled.body.error.message, /timeout/i);
+  assert.equal(cancelled, true);
+});
+
+test("the door cancels a locked stalled response stream", async () => {
+  let cancelled = false;
+  const door = makeDoor({
+    url: "http://fake/mcp",
+    token: "svt_fake",
+    timeoutMs: 1,
+    fetchImpl: async () => ({
+      status: 200,
+      body: {
+        getReader: () => ({
+          read: async () => new Promise(() => {}),
+          cancel: () => (cancelled = true),
+          releaseLock: () => {},
+        }),
+      },
+    }),
+  });
+  const stalled = await door.call("game_clock", {});
+  assert.equal(stalled.isError, true);
+  assert.match(stalled.body.error.message, /timeout/i);
+  assert.equal(cancelled, true);
+});
+
 test("the runner reports red and green and reuses a read", async () => {
   let calls = 0;
   const door = fakeDoor({
