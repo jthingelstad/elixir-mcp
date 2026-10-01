@@ -297,6 +297,16 @@ test("the Top 100 lint traces numbers to the brief and rejects tags, bangs and u
   assert.ok(problems.some((p) => /does not resolve/.test(p)));
 });
 
+test("a comma after a number is punctuation, not part of it (2026-10-01)", () => {
+  const brief = { board: { cutoff_rating: 3163, players: 121968 } };
+  const issue = {
+    subject: "s",
+    body_markdown:
+      "The cutoff is 3163, across 121,968 players.\n\nData as of the morning of October 1, 2026, UTC.",
+  };
+  assert.deepEqual(lintIssue(issue, brief), []);
+});
+
 test("a rate in the brief traces through every spelling a writer uses", () => {
   // The bug this pins: the meta section's usage_share and win_rate are
   // rates, canonicalised as integers (0.343 -> "1"), so every percentage
