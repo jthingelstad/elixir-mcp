@@ -1578,3 +1578,14 @@ live door kept a response stream open beyond the client's 20-second deadline.
 The acceptance client now builds its workspace prerequisites, bounds header
 and body reads, and cancels a locked stream; its focused regression tests pass.
 Recheck the live acceptance response path before rerunning the suite.
+
+---
+
+## 2026-10-01 - Arena-week mail consumes the deck-list contract
+
+The 2026-09-29 arena-week run composed no mail for 16 eligible recipients:
+the builder read `cards` from `battles_decks` list rows, while that endpoint's
+declared list shape intentionally carries only `card_names`. The source repair
+uses those labels directly and has a regression test for both compact list and
+full deck shapes. No missed mail was replayed; the next scheduled arena-week
+run is the natural acceptance path.

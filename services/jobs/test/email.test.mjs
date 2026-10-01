@@ -8,6 +8,7 @@ import {
   whenLabel,
 } from "../src/email/week.mjs";
 import { momentKey } from "../src/email/build-milestone.mjs";
+import { deckCardLabels } from "../src/email/build-arena.mjs";
 import { modeLabel } from "../src/email/shared.mjs";
 
 test("the game week is Monday 10:00Z to Monday 10:00Z, the last completed one", () => {
@@ -93,6 +94,17 @@ test("mode labels say what a player calls the mode", () => {
   assert.equal(modeLabel("Showdown_Friendly", "trail"), "Friendly");
   assert.equal(modeLabel("ranked", ""), "Ranked");
   assert.equal(modeLabel("war", ""), "War");
+});
+
+test("arena mail reads card_names from a lightweight deck list row", () => {
+  assert.deepEqual(
+    deckCardLabels({ card_names: "Evo Witch, Hog Rider, The Log" }),
+    ["Evo Witch", "Hog Rider", "The Log"],
+  );
+  assert.deepEqual(
+    deckCardLabels({ cards: [{ name: "Witch", form: "evolution" }] }),
+    ["Witch (Evo)"],
+  );
 });
 
 test("deliver: the send has its own id, in the footer, in the queue message, in the archive and on the row (0139); the campaign period reaches the render", async () => {
