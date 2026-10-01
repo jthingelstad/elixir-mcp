@@ -193,20 +193,40 @@ function resolvePath(obj, path) {
  *  "Hypno "u2764\ns Hans" for "Hypno ❤️ Hans", 2026-09-18) put back from
  *  the brief's spelling: a name with non-ASCII in it is matched by its
  *  ASCII tokens with a short run of anything between them. Bounded to
- *  the brief's names. */
+ *  the brief's names.
+ *
+ *  It needs two tokens to bracket the damage, a match standing as a
+ *  word, and never text that already spells a brief name. A one-token
+ *  name matched only its token, so it repaired nothing and rewrote
+ *  every other name sharing it: on 2026-10-01 "Dess" turned the
+ *  correctly written Dess❤️Rémyy into Dess❤️téø❤️Rémyy and "91" turned
+ *  "+914" into "+91至寒❤️和韧✨瓜呱4", and the lint then refused a
+ *  true issue for numbers beside the wrong player. */
 export function repairNames(body, names) {
   let out = String(body ?? "");
-  for (const name of names) {
-    if (!name || !/[^\x20-\x7e]/.test(name) || out.includes(name)) continue;
+  const known = names.filter((n) => typeof n === "string" && n);
+  for (const name of known) {
+    if (!/[^\x20-\x7e]/.test(name) || out.includes(name)) continue;
     const tokens = name
       .split(/[^\x21-\x7e]+/)
       .filter((t) => t.length >= 2)
       .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-    if (tokens.length === 0) continue;
+    if (tokens.length < 2) continue;
+    // Where the body already spells a brief name; a repair never
+    // reaches into one.
+    const spelled = [];
+    for (const n of known)
+      for (let at = out.indexOf(n); at !== -1; at = out.indexOf(n, at + 1))
+        spelled.push([at, at + n.length]);
     // The broken escape carries letters ("u2764", a stray "s"), so the
     // gap allows anything, short and non-greedy.
-    const re = new RegExp(tokens.join("[\\s\\S]{1,16}?"), "g");
-    out = out.replace(re, name);
+    const re = new RegExp(
+      `(?<![A-Za-z0-9_])${tokens.join("[\\s\\S]{1,16}?")}(?![A-Za-z0-9_])`,
+      "g",
+    );
+    out = out.replace(re, (m, at) =>
+      spelled.some(([a, b]) => at < b && at + m.length > a) ? m : name,
+    );
   }
   return out;
 }
