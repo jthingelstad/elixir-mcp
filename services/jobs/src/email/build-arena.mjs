@@ -136,7 +136,7 @@ export async function buildArena({ db, account, week, season }) {
         : null,
       modes: groupModes(byMode),
       decks: (decks?.decks ?? []).map((d) => ({
-        cards: d.cards.map(cardLabel),
+        cards: deckCardLabels(d),
         mode: modeLabel(d.dominant_mode ?? "", ""),
         battles: d.battles,
         wins: d.wins,
@@ -165,6 +165,13 @@ export async function buildArena({ db, account, week, season }) {
     },
     alts: altRows,
   };
+}
+
+/** A battles_decks list row deliberately carries card_names, not the full
+ * card objects. The mail asks for a list, so preserve that compact shape. */
+export function deckCardLabels(deck) {
+  if (Array.isArray(deck.cards)) return deck.cards.map(cardLabel);
+  return typeof deck.card_names === "string" ? deck.card_names.split(", ") : [];
 }
 
 function groupModes(byMode) {
