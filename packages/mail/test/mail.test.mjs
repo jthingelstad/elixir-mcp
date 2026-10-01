@@ -447,6 +447,24 @@ test("repairNames puts a name the model's JSON mangled back from the brief", asy
   assert.ok(out.includes("TR⚡️Matthew⚡️ climbed"));
 });
 
+test("repairNames leaves a correct body alone when a one-token name shares its text (2026-10-01)", async () => {
+  const { repairNames } = await import("../src/index.mjs");
+  const body = [
+    "| Dess❤️Rémyy | 534 to 24 (+510) | 3299 (+920) |",
+    "| ぐりてゃん | 343 to 2 (+341) | 3394 (+914) |",
+    "Hypno❤️Dybala held on.",
+  ].join("\n");
+  const names = [
+    "Dess❤️téø",
+    "Dess❤️Rémyy",
+    "91至寒❤️和韧✨瓜呱",
+    "ぐりてゃん",
+    "Hypno❤️Dybala",
+    "Hypno ❤️ Dybala Jr",
+  ];
+  assert.equal(repairNames(body, names), body);
+});
+
 test("unsubscribe links have their own key, and links sent before it still work (#71)", () => {
   const accountId = "8b6a2b6e-0c3c-4b3a-9a0e-2f1f8f2d9c11";
   const issuedAt = 1_758_000_000_000;
