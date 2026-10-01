@@ -176,7 +176,10 @@ function sentences(body, names) {
   return out;
 }
 
-const NUMBER = /(?<![\w#])[+−-]?\d[\d,]*(?:\.\d+)?(?![\w])/g;
+// A thousands comma sits between digits, never at the end: "2026," in
+// "October 1, 2026, UTC" read as a number, missed the year rule, and
+// refused the 2026-10-01 issue.
+const NUMBER = /(?<![\w#])[+−-]?\d(?:[\d,]*\d)?(?:\.\d+)?(?![\w])/g;
 
 /** Does a printed number trace to a spelling in the set? */
 const tracesTo = (raw, set) => set.has(raw) || set.has(raw.replace(/,/g, ""));
