@@ -57,7 +57,9 @@ test("catalog browsing works without requesting global statistics", async ({
     .getByRole("group", { name: "Elixir" })
     .getByRole("button", { name: "7+", exact: true })
     .click();
-  await page.getByLabel("Sort", { exact: true }).selectOption("elixir");
+  await page
+    .getByRole("combobox", { name: "Sort", exact: true })
+    .selectOption("elixir");
   expect((await names(page))[0]).toBe("Skeletons");
   await accessible(page, "catalog filters");
   await page.goto("/cards/26000000/?mode=war");

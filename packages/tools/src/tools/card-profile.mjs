@@ -1,6 +1,7 @@
 /** Factual card catalog details and the selected player/clan's recorded card history. */
 import {
   responseMeta,
+  modeGroupSql,
   MODE_GROUPS,
   cardForms,
   cardType,
@@ -25,6 +26,7 @@ import {
   RECORDED_PLAYERS_SQL,
   buildMeta,
 } from "./shared.mjs";
+import { countByModeGroup } from "../controls.mjs";
 import { resolveCard } from "./card-resolver.mjs";
 const rate = (w, l) => (w + l > 0 ? Number((w / (w + l)).toFixed(3)) : null);
 export const cardProfileTools = {
@@ -68,7 +70,8 @@ export const cardProfileTools = {
            join deck d on d.deck_hash = bp.deck_hash
            where ${seg.where} and ${notBoatDefense("bp")} and d.tower_troop_id = ${anchorParam}`
           : `select c.form, min(bp.battle_time) as at from ${PARTICIPANT_GAMES} bp
-           join battle_participant_card c on c.battle_id = bp.battle_id and c.player_tag = bp.player_tag and c.round = bp.round
+           join battle b on b.battle_id = bp.battle_id
+     join battle_participant_card c on c.battle_id = bp.battle_id and c.player_tag = bp.player_tag and c.round = bp.round
            where ${seg.where} and ${notBoatDefense("bp")} and c.card_id = ${anchorParam} group by c.form`,
         params,
       );
@@ -112,7 +115,7 @@ export const cardProfileTools = {
           win.seasonNotes,
           "first_seen_in_catalog is when Elixir first stored this catalog row, not a release date. first_played is earliest play in the selected recorded history, by form, across all windows; unknown forms stay null.",
           members
-            ? "members.played covers the current clan members' own games in the requested window; duels count by round. members.held is observed card inventory, not an upgrade recommendation. Missing inventory is unknown."
+            ? "members.played covers the current clan members' own games in the requested window; duels count by round. Its modes split names the games counted; use mode to keep different matchmaking apart. members.held is observed card inventory, not an upgrade recommendation. Missing inventory is unknown."
             : null,
         ),
         docs: docsRef("cards"),
@@ -154,9 +157,11 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
             count(*) filter (where bp.outcome = 'win')::int as wins,
             count(*) filter (where bp.outcome = 'loss')::int as losses,
             round(avg(c.level)::numeric, 1) as level_played,
-            array_agg(distinct c.form) as forms
+            array_agg(distinct c.form) as forms,
+            array_agg(${modeGroupSql("b.type", "b.event_tag")}) as mode_groups
      from clan_membership cm
      join ${PARTICIPANT_GAMES} bp on bp.player_tag = cm.player_tag
+     join battle b on b.battle_id = bp.battle_id
      join battle_participant_card c
        on c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
       and c.round = bp.round and c.card_id = $2
@@ -196,6 +201,7 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
       win_rate: rate(r.wins, r.losses),
       level_played: r.level_played === null ? null : Number(r.level_played),
       forms: (r.forms ?? []).map(formName).sort(),
+      modes: countByModeGroup(r.mode_groups),
     })),
     held: withCollection
       .filter((h) => h.since !== null)

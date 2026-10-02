@@ -881,6 +881,7 @@ export const OUTPUT_SCHEMAS = {
                 win_rate: RATE,
                 level_played: { type: ["number", "null"] },
                 forms: { type: "array", items: { type: "string" } },
+                modes: { type: "object", additionalProperties: COUNT },
               },
               required: [
                 "player_tag",

@@ -272,6 +272,7 @@ test("5.0.0 cards_card: a clan segment says who played the card and who holds it
   assert.equal(res.members.played[0].player_tag, TAG);
   assert.equal(res.members.played[0].battles, 6);
   assert.equal(res.members.played[0].level_played, 14);
+  assert.deepEqual(res.members.played[0].modes, { ladder: 6 });
   assert.deepEqual(res.members.played[0].forms, ["base", "evolution"]);
   assert.equal(res.members.held.length, 1);
   assert.equal(res.members.held[0].level, 14);
@@ -320,12 +321,16 @@ test("an activity clan's unrecorded opponent history is not member play", async 
       cards: cards(0),
       supportCards: [TOWER],
     });
+    await db.query(
+      "update battle set event_tag='event-fixture' where battle_id='df-evo-1'",
+    );
     const res = await call("cards_card", {
       card_id: 26000007,
       segment: { clan_tag: "#2CRPCL9V" },
       from: "2026-09-01",
     });
     assert.equal(res.members.members, 2);
+    assert.deepEqual(res.members.played[0].modes, { ladder: 5, event: 1 });
     assert.deepEqual(
       res.members.played.map((x) => x.player_tag),
       [TAG],
