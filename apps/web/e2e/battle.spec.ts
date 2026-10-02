@@ -38,6 +38,12 @@ test("signed out: both decks, the score, how it ended, and the way in", async ({
     `${left} beat ${right} 2 to 1 on Trophy Road`,
   );
   await expect(page).toHaveTitle(`${left} and ${right} - Battle - Elixir`);
+  // Public and signed out: no place on the bar is the one you are in.
+  await expect(
+    page
+      .getByRole("navigation", { name: "Products" })
+      .locator("[aria-current]"),
+  ).toHaveCount(0);
   // Left is the player, right the opponent, each with a deck to copy.
   const decks = page.getByRole("region", { name: /’s deck$/ });
   await expect(decks).toHaveCount(2);
@@ -154,5 +160,9 @@ test("@narrow on a phone both decks still sit side by side", async ({
   expect(Math.abs((a?.y ?? 0) - (b?.y ?? 0))).toBeLessThan(2);
   const width = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(width).toBeLessThanOrEqual(420);
+  // A battle's page is in no place: the bar's one button says Menu, and
+  // no place in its sheet is lit (2026-10-02).
+  await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
+  await expect(page.locator("#chrome-sheet [aria-current]")).toHaveCount(0);
   await accessible(page, "battle, narrow");
 });

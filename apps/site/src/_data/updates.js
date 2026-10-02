@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "A battle's page belongs to no part of Elixir",
+    body: "A battle's page is public and reads the same signed out, so the bar at the top no longer marks the Console as the place you are in there: Console, Ladder and Clan are plain links, and on a phone the bar's button says Menu. The Console's sign-in card now says Elixir, the platform's name. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "The weekly emails show the cards",
     body: "Elixir's emails now draw cards the way the game does. Your week in the Arena and Your friends this week show each deck as its eight cards in a row, with the tower troop named under it; a milestone for a card you unlocked shows the card, and opens its page; a new arena or league comes with the battle that did it; each of your collectors is shown as its card with whether it is checking in, silent or stopped. The clan report puts the war first (the clan's place, fame and war trophies, the race, who raced, with your own players marked), then who came and went and who has gone quiet, and links the roster rather than printing it, so Gmail no longer cuts a full clan's report short. Who gets each email and when is unchanged. No change to the tools.",
   },
