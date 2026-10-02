@@ -11,9 +11,9 @@ layout: base.njk
 prose: true
 navActive: updates
 eleventyComputed:
-  title: "{{ u.title }}"
+  title: "{{ u.title | safe }}"
   canonical: "/updates/{{ u.slug }}"
-  description: "{{ u.body | firstParagraph | clamp(150) }}"
+  description: "{{ u.body | firstParagraph | clamp(150) | safe }}"
 ---
 {#-
   One update, on its own page (2026-09-10). Both halves of the stream land

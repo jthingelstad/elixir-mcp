@@ -2163,3 +2163,17 @@ Still left out: the milestone board's two decks under the battle (the
 battle page's read lives in web-api's `battle-page.mjs`; the jobs
 service would need it in a shared package first), and the Arena board's
 "Battles worth a look" (no tool picks a closest win or a war duel).
+
+## 2026-10-02 - The site escapes text once
+
+The tool family pages showed `&amp;quot;mine&amp;quot;` (Track C's docs
+review): the site's own `esc` filter escaped a description and Nunjucks
+autoescape escaped the result again. Two more paths did the same:
+front matter rendered into data (`title: "{{ ex.title }}"`) came out
+escaped and was escaped again in `<head>`, and the outline's heading text
+was marked's HTML, escaped again.
+
+- `esc` is gone; autoescape is the one escape.
+- Templated front matter takes `| safe`, so the data holds raw text.
+- `headings` decodes marked's entities, so `h.text` is plain text.
+- `site.test.mjs` sweeps every built page for an escaped entity.

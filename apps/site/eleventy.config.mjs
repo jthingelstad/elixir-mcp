@@ -237,7 +237,16 @@ export default function (eleventyConfig) {
   );
 
   /** The H2 headings of a rendered page, for the docs rail's children
-   *  and the "On this page" outline: [{ id, text }]. */
+   *  and the "On this page" outline: [{ id, text }]. `text` is plain
+   *  text: the heading's HTML with its tags dropped and marked's entities
+   *  decoded, so the template's autoescape escapes it once. */
+  const decodeEntities = (s) =>
+    s
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&");
   eleventyConfig.addFilter("headings", (html, level = 2) => {
     const re = new RegExp(
       `<h${level} id="([^"]+)">([\\s\\S]*?)<\\/h${level}>`,
@@ -245,7 +254,7 @@ export default function (eleventyConfig) {
     );
     return [...String(html ?? "").matchAll(re)].map((m) => ({
       id: m[1],
-      text: m[2].replace(/<[^>]+>/g, ""),
+      text: decodeEntities(m[2].replace(/<[^>]+>/g, "")),
     }));
   });
   /** A doc's body without its own H1: the layout draws the title in
@@ -548,15 +557,6 @@ export default function (eleventyConfig) {
     return Number.isNaN(d.getTime()) ? "" : d.toUTCString();
   });
   eleventyConfig.addFilter("json", (v) => JSON.stringify(v, null, 2));
-
-  /** Escape text that lands inside HTML we build by hand. */
-  const esc = (s) =>
-    String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  eleventyConfig.addFilter("esc", esc);
 
   /** Render doc bodies with marked - the renderer the app used - so the
    *  docs read identically after the move.

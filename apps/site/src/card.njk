@@ -6,8 +6,8 @@ pagination:
   addAllPagesToCollections: true
 permalink: "/cards/{{ card.id }}/index.html"
 eleventyComputed:
-  title: "{{ card.name }}"
-  description: "What the Elixir record holds about {{ card.name }} in Clash Royale: how often it is played, how often it wins, by mode and by month."
+  title: "{{ card.name | safe }}"
+  description: "What the Elixir record holds about {{ card.name | safe }} in Clash Royale: how often it is played, how often it wins, by mode and by month."
   canonical: "/cards/{{ card.id }}"
 layout: base.njk
 navActive: cards

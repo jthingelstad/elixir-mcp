@@ -47,7 +47,7 @@ navActive: docs
         </summary>
         {%- for d in s.pages %}
         {%- if not d.data.toolFamily %}
-        <a class="rail__child{% if d.data.slug == slug %} rail__child--on{% endif %}" href="{{ d | pageUrl }}"{% if d.data.slug == slug %} aria-current="page"{% endif %} data-search="{{ (d.data.navTitle or d.data.title) | lower }} {{ d.data.description | lower | esc }}">
+        <a class="rail__child{% if d.data.slug == slug %} rail__child--on{% endif %}" href="{{ d | pageUrl }}"{% if d.data.slug == slug %} aria-current="page"{% endif %} data-search="{{ (d.data.navTitle or d.data.title) | lower }} {{ d.data.description | lower }}">
           {{- d.data.navTitle or d.data.title }}
           {%- if d.data.slug == "tools" %}<span class="rail__gen" title="Generated from the MCP tool registry">gen</span>{% endif -%}
         </a>
@@ -56,7 +56,7 @@ navActive: docs
             reading under it, each a link to its own heading. -#}
         {%- if d.data.slug == "tools" and isTools %}
           {%- for f in s.pages %}{% if f.data.toolFamily %}
-          <a class="rail__child docrail__family{% if f.data.slug == slug %} rail__child--on{% endif %}" href="{{ f | pageUrl }}"{% if f.data.slug == slug %} aria-current="page"{% endif %} data-search="{{ f.data.title | lower }} {{ f.data.description | lower | esc }}">{{ f.data.navTitle or f.data.title }}</a>
+          <a class="rail__child docrail__family{% if f.data.slug == slug %} rail__child--on{% endif %}" href="{{ f | pageUrl }}"{% if f.data.slug == slug %} aria-current="page"{% endif %} data-search="{{ f.data.title | lower }} {{ f.data.description | lower }}">{{ f.data.navTitle or f.data.title }}</a>
           {%- if f.data.slug == slug %}{% for h in outline %}
           <a class="rail__child rail__child--deep mono" href="#{{ h.id }}" data-search="{{ h.id }}">{{ h.id }}</a>
           {%- endfor %}{% endif %}
