@@ -8,8 +8,8 @@ pagination:
   alias: p
 permalink: "{{ p | familyPath(p.first) }}"
 eleventyComputed:
-  title: "{{ p.label }}"
-  description: "{{ p.lede }}"
+  title: "{{ p.label | safe }}"
+  description: "{{ p.lede | safe }}"
 ---
 {#-
   One page per product, as the design draws it: the rail lists every

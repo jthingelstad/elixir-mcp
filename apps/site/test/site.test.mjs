@@ -198,6 +198,15 @@ test("the share image is a 1200x630 PNG", { skip }, () => {
   assert.equal(png.readUInt32BE(20), 630);
 });
 
+test("text is escaped once, by the template", { skip }, () => {
+  // Nunjucks autoescapes every {{ }}. A hand-rolled esc filter on top of
+  // it escaped the escape, so a tool's description read &amp;quot;mine&amp;quot;
+  // on every family page and in every page's meta description.
+  const twice = /&amp;(?:quot|amp|lt|gt|#\d+);/;
+  const hits = htmlPages().filter((rel) => twice.test(read(rel)));
+  assert.deepEqual(hits, [], `escaped twice in: ${hits.join(", ")}`);
+});
+
 test("no two pages share a title or description", { skip }, () => {
   // Over the pinned pages. Two updates have shared a title before now
   // (the same ship written up twice), which is a content problem, not a

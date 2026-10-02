@@ -4,10 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ title }} - {{ site.name }}</title>
-    <meta name="description" content="{{ description | esc }}" />
+    <meta name="description" content="{{ description }}" />
     <link rel="canonical" href="{{ site.url }}{{ page | pageUrl }}" />
     <meta property="og:title" content="{{ title }} - {{ site.name }}" />
-    <meta property="og:description" content="{{ description | esc }}" />
+    <meta property="og:description" content="{{ description }}" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="{{ site.url }}{{ page | pageUrl }}" />
     <meta property="og:site_name" content="{{ site.name }}" />
@@ -20,7 +20,7 @@
     <meta property="og:image:alt" content="{{ site.name }}: {{ site.tagline }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="{{ title }} - {{ site.name }}" />
-    <meta name="twitter:description" content="{{ description | esc }}" />
+    <meta name="twitter:description" content="{{ description }}" />
     <meta name="twitter:image" content="{{ site.url }}/assets/og.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     {#- Autodiscovery: a feed nobody can find is a feed nobody reads. -#}

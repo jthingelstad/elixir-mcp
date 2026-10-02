@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Quotes and apostrophes read as written on the site",
+    body: "Some of the site printed an escape code where a quotation mark or an apostrophe belonged: the tool reference's descriptions, the On this page list beside a doc, and the description a link preview shows for an update, an example or a family page. The text was being escaped twice. Each is now escaped once and reads as written. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "A milestone email opens the battle that did it",
     body: "When a milestone email names the battle that took you to a new arena or league, See the battle now opens that battle's own page, the same link an agent gets from battles_query. Its button, and the button on Your week in the Arena, now open your season on Ladder, and the Arena week's deck links every deck of the season on Ladder's Decks. The footers of the Top 100 and Card of the Week name the switch they turn off. Who gets each email and when is unchanged. No change to the tools.",
   },

@@ -8,8 +8,8 @@ pagination:
   alias: ex
 permalink: "/examples/{{ ex.key }}/index.html"
 eleventyComputed:
-  title: "{{ ex.title }}"
-  description: "{{ ex.lede }}"
+  title: "{{ ex.title | safe }}"
+  description: "{{ ex.lede | safe }}"
 ---
 {#-
   One example per page, as the design draws it: a rail of all eleven
