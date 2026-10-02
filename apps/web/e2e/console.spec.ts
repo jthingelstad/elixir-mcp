@@ -35,6 +35,14 @@ test.describe("signed out", () => {
     await expect(page.locator(".chrome__product[aria-current]")).toHaveText(
       /Console/,
     );
+    // Signed out, the account slot is Sign in, the same 196px.
+    const signIn = page.locator(".chrome__account").getByRole("link", {
+      name: "Sign in",
+    });
+    await expect(signIn).toHaveAttribute("href", "/console/signin");
+    expect((await page.locator(".chrome__account").boundingBox())?.width).toBe(
+      196,
+    );
     await expect(page.locator(".rail")).toHaveCount(0);
     await accessible(page, "sign-in wall");
   });
@@ -111,7 +119,30 @@ test.describe("signed in", () => {
     await mockApi(page, signedIn());
   });
 
-  test("the rail: counts, the unread dot, the identity block, and every section renders its chunk", async ({
+  test("the bar's account slot is the person; its menu holds the players, the account's pages and the way out", async ({
+    page,
+  }) => {
+    await page.goto("/console/account/overview");
+    const slot = page.locator(".chrome__account");
+    const before = await slot.boundingBox();
+    const me = page.getByRole("button", { name: "Account: King Thing" });
+    await expect(me).toBeVisible();
+    // One width, whatever fills it: 196px wide.
+    expect(before?.width).toBe(196);
+    await me.click();
+    const menu = page.locator("#account-menu");
+    await expect(menu).toContainText("jamie@example.com");
+    await expect(menu).toContainText("leader · America/Chicago");
+    await expect(
+      menu.getByRole("link", { name: /King Thing/ }),
+    ).toHaveAttribute("href", "/console/explore/player/20JJJ2CCRU");
+    await accessible(page, "account menu");
+    await menu.getByRole("link", { name: /Account settings/ }).click();
+    await expect(page).toHaveURL(/\/console\/account\/profile$/);
+    await expect(menu).toHaveCount(0);
+  });
+
+  test("the rail: counts, the unread dot, and every section renders its chunk", async ({
     page,
   }) => {
     await page.goto("/console/account/overview");
@@ -123,9 +154,6 @@ test.describe("signed in", () => {
     );
     await expect(
       rail.getByRole("img", { name: "Unread notifications" }),
-    ).toBeVisible();
-    await expect(
-      rail.getByRole("link", { name: /jamie@example.com/ }),
     ).toBeVisible();
     await accessible(page, "overview");
 
@@ -433,17 +461,103 @@ test.describe("signed in", () => {
     await accessible(page, "narrow profile");
   });
 
-  test("@narrow the top bar's menu opens a sheet with every tab, and Escape closes it", async ({
+  test("@narrow the top bar names the Console, opens a sheet with every place, and Escape closes it", async ({
     page,
   }) => {
     await page.goto("/console/account/overview");
-    const menu = page.getByRole("button", { name: "Menu" });
+    // Narrow, the places fold into one button naming where you are; the
+    // account stays on the bar as its avatar.
+    await expect(
+      page.getByRole("navigation", { name: "Products" }),
+    ).toBeHidden();
+    await expect(
+      page.getByRole("button", { name: "Account: King Thing" }),
+    ).toBeVisible();
+    const menu = page.getByRole("button", { name: "Product: Console" });
     await expect(menu).toBeVisible();
     await menu.click();
     const sheet = page.locator("#chrome-sheet");
     await expect(sheet).toHaveAttribute("data-open", "true");
     await expect(sheet.getByRole("link", { name: "Docs" })).toBeVisible();
+    await expect(sheet.getByRole("link", { name: /Play Drop/ })).toBeVisible();
+    await accessible(page, "narrow bar sheet");
     await page.keyboard.press("Escape");
     await expect(sheet).toHaveAttribute("data-open", "false");
+    // No page scrolls sideways at phone width.
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+
+  test("@narrow the account menu opens from the avatar and fits the phone", async ({
+    page,
+  }) => {
+    await page.goto("/console/account/overview");
+    await page.getByRole("button", { name: "Account: King Thing" }).click();
+    const menu = page.locator("#account-menu");
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("button", { name: "Sign out" })).toBeVisible();
+    const box = await menu.boundingBox();
+    expect(box && box.x >= 0 && box.x + box.width <= 420).toBe(true);
+    await accessible(page, "narrow account menu");
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+  });
+});
+
+test.describe("the static site's bar", () => {
+  test("the front page draws the same bar, signed out, with the site's own row under it", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(
+      page.getByRole("navigation", { name: "Products" }),
+    ).toBeVisible();
+    const slot = page.locator(".chrome__account");
+    await expect(slot.getByRole("link", { name: "Sign in" })).toBeVisible();
+    expect((await slot.boundingBox())?.width).toBe(196);
+    await expect(
+      page
+        .getByRole("navigation", { name: "Site" })
+        .getByRole("link", { name: "Home" }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(page.locator(".chrome__logo")).toHaveJSProperty(
+      "naturalWidth",
+      96,
+    );
+    await accessible(page, "front page");
+  });
+
+  test("a doc lights Docs on the bar", async ({ page }) => {
+    await page.goto("/docs");
+    await expect(page.locator(".chrome__docs")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(page.getByRole("navigation", { name: "Site" })).toHaveCount(0);
+  });
+
+  test("@narrow the front page's bar folds into Menu, and nothing scrolls sideways", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const menu = page.getByRole("button", { name: "Menu" });
+    await expect(menu).toBeVisible();
+    await expect(
+      page.locator(".chrome__account").getByRole("link", { name: "Sign in" }),
+    ).toBeVisible();
+    await menu.click();
+    const sheet = page.locator("#chrome-sheet");
+    await expect(sheet.getByRole("link", { name: "Console" })).toBeVisible();
+    await accessible(page, "front page sheet");
+    await page.keyboard.press("Escape");
+    await expect(sheet).toHaveAttribute("data-open", "false");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
   });
 });

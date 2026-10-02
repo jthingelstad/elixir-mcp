@@ -21,10 +21,7 @@ import {
 import { createQueryClient } from "@elixir-mcp/client";
 import {
   Chrome as ChromeBar,
-  FAMILY_ORIGIN,
   FAMILY_PRODUCTS,
-  FAMILY_WORDMARK,
-  familyTabs,
   Disclaimer,
   ErrorBoundary,
   Icon,
@@ -412,36 +409,71 @@ export function App() {
 
 /**
  * The top bar: the family's, exactly as elixir.poapkings.com draws it -
- * the Elixir wordmark home to Elixir's front page (this origin's root),
- * the same tabs (absolute, back to the family home), and the product
- * buttons on the right with Clan lit green because this is Clan, routed
- * in-app. Sign-in is on the landing page, not here: the bar carries no
- * session state, so it never reshapes as you sign in.
+ * the logo and "Elixir" home to Elixir's front page (this origin's
+ * root), the places with Clan lit green because this is Clan, routed
+ * in-app, then Docs and Play Drop.
+ *
+ * The bar's shape never varies by session: its account slot is one
+ * width, and Clan fills it from Clan's own session (`me`, from
+ * /api/clan/me), never Elixir's. Empty while Clan asks; "Sign in",
+ * leading to Clan's landing, signed out; signed in, the player you act
+ * as (the star), your page, and Clan's own sign-out, a form post.
  */
 const PRODUCTS = FAMILY_PRODUCTS.map((p) =>
   p.key === "clan" ? { ...p, href: CLAN } : p,
 );
-const TABS = familyTabs(FAMILY_ORIGIN);
-function Chrome({ navigate }) {
+
+/** The account slot from Clan's session: undefined while unknown, null
+ *  signed out, the person signed in. */
+export function clanAccount(me) {
+  if (!me || me.unavailable) return undefined;
+  if (!me.signed_in) return null;
+  const clan = me.selected ?? null;
+  return {
+    name: clan?.player_name ?? me.primary?.name ?? "Signed in",
+    detail: clan
+      ? `${clan.role_label ?? clan.role} · ${clan.name}`
+      : "with Elixir",
+    links: [
+      {
+        key: "you",
+        icon: "user-round",
+        label: "You",
+        hint: "what Clan read from Elixir",
+        href: `${CLAN}/you`,
+      },
+      {
+        key: "feedback",
+        icon: "message-square",
+        label: "Feedback",
+        href: `${CLAN}/feedback`,
+      },
+    ],
+    signOut: {
+      label: "Sign out",
+      note: "Ends this browser's Clan session. The Console keeps its own sign-in.",
+      action: "/api/clan/auth/logout",
+    },
+  };
+}
+
+function Chrome({ navigate, me }) {
+  const inApp = (to) => (e) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+      return;
+    e.preventDefault();
+    navigate(to);
+  };
   const products = PRODUCTS.map((p) =>
-    p.key === "clan"
-      ? {
-          ...p,
-          onClick: (e) => {
-            e.preventDefault();
-            navigate(CLAN);
-          },
-        }
-      : p,
+    p.key === "clan" ? { ...p, onClick: inApp(CLAN) } : p,
   );
   return (
     <ChromeBar
-      wordmark={FAMILY_WORDMARK}
       home="/"
-      tabs={TABS}
       products={products}
       current="clan"
-      menu
+      account={clanAccount(me)}
+      signIn={{ label: "Sign in", href: CLAN, onClick: inApp(CLAN) }}
     />
   );
 }
@@ -600,7 +632,7 @@ function Shell() {
       value={{ me, checking, refresh, setMe, select, selecting }}
     >
       <div className="shell">
-        <Chrome navigate={navigate} />
+        <Chrome navigate={navigate} me={me} />
         <div
           className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
         >

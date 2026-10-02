@@ -269,7 +269,7 @@ test("Profile → Devices lists every device, marks this one, and signs the othe
   expect(await screen.findByText("Safari on iPhone")).toBeTruthy();
   expect(screen.getByText("this device")).toBeTruthy();
   expect(screen.getByText(/198\.51\.100\.77 · CA/)).toBeTruthy();
-  // This device has no per-row sign-out; the rail's button does that.
+  // This device has no per-row sign-out; the bar's account menu does that.
   expect(screen.getAllByRole("button", { name: "Sign out" })).toHaveLength(1);
   fireEvent.click(
     screen.getByRole("button", { name: "Sign out everywhere else" }),

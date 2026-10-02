@@ -1,7 +1,7 @@
 /**
  * The profile: the address the account holds, the tier, and the one
- * control that lives here - the timezone. The rail's identity block
- * names the address and leads here.
+ * control that lives here - the timezone. The bar's account menu names
+ * the address and leads here ("Account settings").
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, cleanup } from "@testing-library/react";
@@ -34,11 +34,11 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-test("the rail names the address and the profile shows it with the timezone", async () => {
+test("the console names the address and the profile shows it with the timezone", async () => {
   window.history.pushState({}, "", "/console/account/profile");
   render(<App />);
   await waitFor(() => screen.getByRole("heading", { name: "Profile" }));
-  // The identity block, and the page, both carry the address.
+  // The rail's account selector, and the page, both carry the address.
   expect(
     screen.getAllByText("jamie@example.com").length,
   ).toBeGreaterThanOrEqual(2);

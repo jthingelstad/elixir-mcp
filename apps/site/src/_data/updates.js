@@ -30,6 +30,11 @@ export default [
   },
   {
     date: "2026-10-01",
+    title: "One bar across Elixir: Console, Ladder, Clan, Docs, and Play Drop",
+    body: "The bar at the top of every Elixir page is new. The logo takes you home; Console, Ladder and Clan sit on the left, and the one you are in is green; Docs and a Play Drop button, which opens the elixir-cost game in a new window, sit on the right. At the end is your account: signed in, your initials and your player's name, opening a menu with your players, Account settings, Emails from Elixir, Feedback and Sign out, which used to sit at the foot of the console's left rail. Signed out, and on every page of the site, it says Sign in, and if you are already signed in that takes you straight to your console. The site's own pages, Home, Data, Examples, Updates and Support, are now a row under the bar and a footer at the end of each page. On a phone the bar folds into one button naming where you are. No change to the tools.",
+  },
+  {
+    date: "2026-10-01",
     title: "Ladder: your season, read back",
     body: "Ladder opens at /ladder, beside the console and signed in like it: the current season of one of your players, as Elixir recorded it, one mode at a time. Trophy Road, Path of Legends, war and events each have their own tab and nothing pools across them. The season home shows the season so far in that mode: battles, record, win rate and the trophies you ranged over, a note when you stood on an arena floor where losses cost nothing, the season week by week, and the deck you played most in the last 30 days with its record in each mode. Every number is one the tools return; Ladder adds no verdict and no advice. It opens on the mode you played most, and on your primary player, with your alts a click away. No change to the tools.",
   },

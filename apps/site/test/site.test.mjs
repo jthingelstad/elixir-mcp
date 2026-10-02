@@ -329,13 +329,22 @@ test(
         .matchAll(/"([^"]+)"/g),
     ].map((m) => m[1]);
     assert.ok(links.length > 0, "STATIC_LINKS was found");
-    const { FAMILY_ORIGIN, FAMILY_PRODUCTS, FAMILY_TABS } = await import(
+    const { FAMILY_DOCS, FAMILY_ORIGIN, FAMILY_PRODUCTS } = await import(
       path.join(repoRoot, "packages/ui/src/family.ts")
     );
-    for (const link of [...links, ...FAMILY_TABS.map(([, p]) => p)]) {
+    const { default: siteNav } = await import(
+      path.join(repoRoot, "apps/site/src/_data/siteNav.js")
+    );
+    const siteLinks = [
+      ...siteNav.pages.map((p) => p.path),
+      ...siteNav.footer.elixir.links.map((l) => l.path),
+      ...siteNav.footer.policy.links.map((l) => l.path),
+      FAMILY_DOCS.href.slice(FAMILY_ORIGIN.length),
+    ];
+    for (const link of [...links, ...siteLinks]) {
       assert.ok(
         STATIC_PAGES.includes(link),
-        `the app links to ${link}, which the site does not build`,
+        `the app or the site links to ${link}, which the site does not build`,
       );
     }
     // The Console's own button is the app, on this origin.
@@ -396,10 +405,7 @@ test("the bar has one source: the kit's product manifest", async () => {
   const kit = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
   assert.equal(kit.FAMILY_WORDMARK, manifest.wordmark);
   assert.equal(kit.FAMILY_ORIGIN, manifest.origin);
-  assert.deepEqual(
-    kit.FAMILY_TABS.map((t) => [...t]),
-    manifest.tabs.map((t) => [t.label, t.path]),
-  );
+  assert.equal(kit.FAMILY_LOGO, manifest.logo);
   assert.deepEqual(
     kit.FAMILY_PRODUCTS.map((p) => p.key),
     manifest.products.map((p) => p.key),
@@ -416,126 +422,212 @@ test("the bar has one source: the kit's product manifest", async () => {
       href: p.href ?? `${manifest.origin}${p.path}`,
       icon: p.icon,
       ...(p.external ? { external: true } : {}),
+      ...(p.game ? { game: true, action: p.action, about: p.about } : {}),
     });
   }
+  assert.equal(kit.FAMILY_DOCS.href, `${manifest.origin}${manifest.docs.path}`);
+  assert.equal(
+    kit.FAMILY_SIGN_IN.href,
+    `${manifest.origin}${manifest.signIn.path}`,
+  );
 
   // And the template keeps nothing of its own: no label, key, path or
-  // href from the manifest is spelled out in it. (The wordmark's home
-  // link is "/" in its own right, so the Home tab's path is not a tell.)
+  // href from the manifest, and no page of the site's own row, is
+  // spelled out in it. (The logo's home link is "/" in its own right, so
+  // the Home page's path is not a tell.)
+  const { default: siteNav } = await import(
+    path.join(repoRoot, "apps/site/src/_data/siteNav.js")
+  );
   const njk = readFileSync(
     path.join(repoRoot, "apps/site/src/_includes/base.njk"),
     "utf8",
   );
   const spelled = [
     `>${manifest.wordmark}<`,
-    ...manifest.tabs.flatMap((t) => [
+    ...[...manifest.products, manifest.docs, manifest.signIn].flatMap((p) => [
+      `>${p.label}<`,
+      ...(p.key ? [`"${p.key}"`] : []),
+      ...(p.action ? [`>${p.action}<`] : []),
+      `"${p.path ?? p.href}"`,
+      `"${p.icon}"`,
+    ]),
+    ...siteNav.pages.flatMap((t) => [
       `>${t.label}<`,
       `"${t.key}"`,
       ...(t.path === "/" ? [] : [`"${t.path}"`]),
     ]),
-    ...manifest.products.flatMap((p) => [
-      `>${p.label}<`,
-      `"${p.key}"`,
-      `"${p.path ?? p.href}"`,
-      `"${p.icon}"`,
-    ]),
+    `>${siteNav.tagline}<`,
   ];
   for (const s of spelled)
     assert.ok(!njk.includes(s), `base.njk hand-writes ${s} again`);
 });
 
 test(
-  "the static bar is the kit's bar: wordmark, tabs, product buttons",
+  "the static bar is the kit's bar: logo, places, Docs, the game, Sign in",
   { skip },
   async () => {
-    // What base.njk renders from the manifest, built: the same wordmark,
-    // the same tabs in the same order, and the same product buttons with
-    // the same hrefs as the kit's Chrome draws, or the two bars have
-    // drifted into two bars.
-    const { FAMILY_ORIGIN, FAMILY_PRODUCTS, FAMILY_TABS, FAMILY_WORDMARK } =
-      await import(path.join(repoRoot, "packages/ui/src/family.ts"));
-    const { default: manifest } = await import(
-      path.join(repoRoot, "packages/ui/src/family.json"),
-      { with: { type: "json" } }
+    // What base.njk renders from the manifest, built, against what the
+    // kit's Chrome draws from it (packages/ui/test/chrome.test.tsx pins
+    // the kit to the same shape): the same links in the same order, or
+    // the two bars have drifted into two bars. A document is on this
+    // origin, inside no product, and signed out.
+    const kit = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
+    const { JSDOM } = await import("jsdom");
+    const site = new JSDOM(read("index.html")).window.document;
+    /** The bar's links, each as what a reader and a crawler get. */
+    const links = (sel) =>
+      [...site.querySelectorAll(sel)].map((a) => ({
+        text: a.textContent.trim().replace(/\s+/g, " "),
+        href: a.getAttribute("href"),
+        target: a.getAttribute("target"),
+        label: a.getAttribute("aria-label"),
+        current: a.getAttribute("aria-current"),
+        glyphs: a.querySelectorAll("svg").length,
+      }));
+    const link = (text, href, more = {}) => ({
+      text,
+      href,
+      target: null,
+      label: null,
+      current: null,
+      glyphs: 1,
+      ...more,
+    });
+    const places = kit.FAMILY_PRODUCTS.filter((p) => !p.game).map((p) =>
+      link(p.label, kit.onOrigin(p.href)),
+    );
+    const docs = link(
+      kit.FAMILY_DOCS.label,
+      kit.onOrigin(kit.FAMILY_DOCS.href),
+    );
+    const games = kit.FAMILY_PRODUCTS.filter((p) => p.game).map((p) =>
+      link(p.action, p.href, {
+        target: "_blank",
+        label: kit.gameLabel(p),
+        glyphs: 2,
+      }),
+    );
+    const signIn = link(
+      kit.FAMILY_SIGN_IN.label,
+      kit.onOrigin(kit.FAMILY_SIGN_IN.href),
+    );
+
+    assert.deepEqual(links(".chrome__home"), [
+      link(kit.FAMILY_WORDMARK, "/", {
+        label: `${kit.FAMILY_WORDMARK} home`,
+        glyphs: 0,
+      }),
+    ]);
+    assert.equal(
+      site.querySelector(".chrome__logo").getAttribute("src").split("?")[0],
+      kit.FAMILY_LOGO,
+    );
+    assert.deepEqual(links(".chrome__nav a"), places);
+    assert.deepEqual(links(".chrome__end a"), [docs, ...games, signIn]);
+    assert.deepEqual(links("#chrome-sheet a"), [...places, docs, ...games]);
+    for (const a of site.querySelectorAll('.chrome a[target="_blank"]'))
+      assert.equal(a.getAttribute("rel"), "noopener");
+    // The same blocks, in the same order, as the kit's.
+    assert.deepEqual(
+      [...site.querySelector(".chrome__inner").children].map((el) =>
+        el.getAttribute("class"),
+      ),
+      [
+        "chrome__home",
+        "chrome__rule",
+        "chrome__nav",
+        "chrome__menu",
+        "chrome__end",
+      ],
+    );
+    // Inside nothing, the narrow button says Menu.
+    assert.equal(
+      site.querySelector(".chrome__menu").getAttribute("aria-label"),
+      "Menu",
+    );
+
+    // A doc lights Docs, on the bar and in the sheet, and nothing else;
+    // its narrow button names Docs, as the kit's does.
+    const docsPage = new JSDOM(read("docs/index.html")).window.document;
+    assert.deepEqual(
+      [
+        ...docsPage.querySelectorAll('.chrome__inner [aria-current="page"]'),
+      ].map((a) => a.getAttribute("href")),
+      ["/docs"],
+    );
+    assert.deepEqual(
+      [...docsPage.querySelectorAll('#chrome-sheet [aria-current="page"]')].map(
+        (a) => a.getAttribute("href"),
+      ),
+      ["/docs"],
+    );
+    assert.equal(
+      docsPage.querySelector(".chrome__menu").getAttribute("aria-label"),
+      `Product: ${kit.FAMILY_DOCS.label}`,
+    );
+  },
+);
+
+test(
+  "the site's own pages are a row under the bar, lit by the page, and a footer",
+  { skip },
+  async () => {
+    const { default: siteNav } = await import(
+      path.join(repoRoot, "apps/site/src/_data/siteNav.js")
     );
     const { JSDOM } = await import("jsdom");
-    const { document } = new JSDOM(read("index.html")).window;
-
-    assert.equal(
-      document.querySelector(".wordmark").textContent.trim(),
-      FAMILY_WORDMARK,
-    );
-    const tabs = [...document.querySelectorAll(".chrome__nav a")].map((a) => [
-      a.textContent.trim(),
-      a.getAttribute("href"),
-    ]);
-    assert.deepEqual(
-      tabs,
-      FAMILY_TABS.map((t) => [...t]),
-    );
-    // The narrow menu's sheet is the same tabs, in the same order.
-    assert.deepEqual(
-      [...document.querySelectorAll("#chrome-sheet a")].map((a) => [
-        a.textContent.trim(),
-        a.getAttribute("href"),
-      ]),
-      FAMILY_TABS.map((t) => [...t]),
-    );
-
-    const products = [...document.querySelectorAll(".chrome__product")];
-    assert.deepEqual(
-      products.map(
-        (a) => a.querySelector(".chrome__product-label").textContent,
-      ),
-      FAMILY_PRODUCTS.map((p) => p.label),
-    );
-    for (const [i, p] of FAMILY_PRODUCTS.entries()) {
-      // A product on this origin (the Console, Clan) is a bare path here.
-      const href = p.href.startsWith(`${FAMILY_ORIGIN}/`)
-        ? p.href.slice(FAMILY_ORIGIN.length)
-        : p.href;
-      assert.equal(products[i].getAttribute("href"), href, `${p.label} href`);
-      assert.equal(
-        products[i].getAttribute("target"),
-        p.external ? "_blank" : null,
-        `${p.label} target`,
-      );
-      assert.equal(
-        products[i].getAttribute("aria-label"),
-        p.external ? `${p.label} (opens in a new window)` : null,
-        `${p.label} aria-label`,
-      );
-      // Its glyph, and a second one saying "new window" when it is one.
-      assert.equal(
-        products[i].querySelectorAll("svg").length,
-        p.external ? 2 : 1,
-        `${p.label} glyphs`,
-      );
-      // A document is inside no product: nothing is current here.
-      assert.equal(products[i].getAttribute("aria-current"), null);
-    }
-
-    // A page lights its own tab, by the manifest's key, in the bar and
-    // in the sheet alike: home on the front page, docs on a doc.
     for (const [page, key] of [
       ["index.html", "home"],
-      ["docs/index.html", "docs"],
+      ["data/index.html", "data"],
+      ["updates/index.html", "updates"],
+      ["support/index.html", "support"],
     ]) {
       const doc = new JSDOM(read(page)).window.document;
-      const tab = manifest.tabs.find((t) => t.key === key);
+      const row = doc.querySelector('nav.sitenav[aria-label="Site"]');
       assert.deepEqual(
-        [...doc.querySelectorAll(".chrome__tab--on")].map((a) =>
+        [...row.querySelectorAll("a")].map((a) => [
+          a.textContent,
           a.getAttribute("href"),
-        ),
-        [tab.path],
-        `${page} lights ${key}`,
+        ]),
+        siteNav.pages.map((p) => [p.label, p.path]),
+        page,
       );
       assert.deepEqual(
-        [...doc.querySelectorAll('#chrome-sheet a[aria-current="page"]')].map(
-          (a) => a.getAttribute("href"),
+        [...row.querySelectorAll('[aria-current="page"]')].map((a) =>
+          a.getAttribute("href"),
         ),
-        [tab.path],
-        `${page} marks ${key} in the sheet`,
+        [siteNav.pages.find((p) => p.key === key).path],
+        `${page} lights ${key}`,
+      );
+      // No page of the site's is on the bar: the bar holds places.
+      assert.equal(doc.querySelectorAll(".chrome__tab").length, 0);
+    }
+    // A doc has Docs lit on the bar and the docs' own rail instead.
+    assert.equal(
+      new JSDOM(read("docs/index.html")).window.document.querySelector(
+        ".sitenav",
+      ),
+      null,
+    );
+    // The footer, on every page: the places, the site, the policies, and
+    // Supercell's note. Family is on no menu (Jamie, 2026-09-29), and its
+    // pages are still built.
+    for (const page of ["index.html", "docs/index.html", "family/index.html"]) {
+      const doc = new JSDOM(read(page)).window.document;
+      const foot = doc.querySelector("footer.sitefoot");
+      assert.ok(foot, `${page} has the footer`);
+      assert.match(foot.textContent, /not endorsed by Supercell/);
+      const hrefs = [...foot.querySelectorAll("a")].map((a) =>
+        a.getAttribute("href"),
+      );
+      for (const want of ["/console", "/ladder", "/clan", "/docs/privacy"])
+        assert.ok(hrefs.includes(want), `${page} footer links ${want}`);
+      assert.ok(!hrefs.some((h) => h.startsWith("/family")), page);
+      assert.ok(
+        ![...doc.querySelectorAll(".chrome a, .sitenav a")].some((a) =>
+          a.getAttribute("href").startsWith("/family"),
+        ),
+        `${page} links Family from a menu`,
       );
     }
   },
@@ -875,13 +967,13 @@ test(
 );
 
 test(
-  "the narrow menu opens, closes, and never swallows the product buttons",
+  "the narrow menu opens and closes, and the account slot stays on the bar",
   { skip },
   async () => {
     // The static half's menu is hand-written JavaScript, so it gets the
-    // same exercise the app's React one does. Two properties: the seven tabs
-    // collapse behind one button, and the PRODUCT BUTTONS ARE NOT IN THERE —
-    // they are the way into the products, and a menu is the wrong place.
+    // same exercise the app's React one does. At narrow width the places,
+    // Docs and the game fold behind one button; the account slot (here,
+    // always Sign in) is never in there.
     const { JSDOM } = await import("jsdom");
     const dom = new JSDOM(read("index.html"), { runScripts: "outside-only" });
     const { window } = dom;
@@ -897,11 +989,11 @@ test(
     assert.equal(sheet.dataset.open, "false");
     // Present with JavaScript off too: a crawler and a reader without it
     // both still find every destination.
-    assert.equal(sheet.querySelectorAll("a").length, 7);
-    assert.ok(
-      !/Console|Clan|Drop/.test(sheet.textContent),
-      "a product button is inside the menu",
+    assert.deepEqual(
+      [...sheet.querySelectorAll("a")].map((a) => a.getAttribute("href")),
+      ["/console", "/ladder", "/clan", "/docs", "https://drop.poapkings.com/"],
     );
+    assert.ok(!/Sign in/.test(sheet.textContent), "Sign in is in the menu");
 
     button.dispatchEvent(new window.Event("click", { bubbles: true }));
     assert.equal(sheet.dataset.open, "true");

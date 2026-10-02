@@ -4,6 +4,7 @@ import {
   screen,
   fireEvent,
   waitFor,
+  within,
   cleanup,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
@@ -104,10 +105,8 @@ test("sign-in flow: email step then code step authenticates", async () => {
     },
   });
   render(<App />);
-  // The top bar has no signed-in state by design, so Console is the way
-  // in: signed out it lands on the wall, which offers Sign in.
-  fireEvent.click(await screen.findByText("Console"));
-  fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
+  // Signed out, the bar's account slot is "Sign in", routed in-app.
+  fireEvent.click(await screen.findByRole("link", { name: "Sign in" }));
   fireEvent.change(await screen.findByLabelText(/Email/), {
     target: { value: "j@x.com" },
   });
@@ -208,7 +207,10 @@ test("tracking renders claims, recording state, and notify switches", async () =
   // is. One table over players and clans — a player and a clan are both
   // something you track.
   expect(await screen.findByText("#20JJJ2CCRU")).toBeTruthy();
-  expect(screen.getByText("Jamie")).toBeTruthy();
+  // In the page; the bar's account button says the name too.
+  expect(
+    within(document.querySelector("main")).getByText("Jamie"),
+  ).toBeTruthy();
   expect(screen.getByText("you")).toBeTruthy();
   expect(screen.getAllByText("Manage").length).toBeGreaterThan(0);
   // The controls are NOT in the row: a row with four controls in it is a
@@ -254,8 +256,10 @@ test("the tracked record holds the controls, and says what stopping costs", asyn
     "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
   });
   render(<App />);
-  expect(await screen.findByText("Jamie")).toBeTruthy();
-  expect(screen.getByRole("switch", { name: "Notifications" })).toBeTruthy();
+  await screen.findByRole("switch", { name: "Notifications" });
+  expect(
+    within(document.querySelector("main")).getByText("Jamie"),
+  ).toBeTruthy();
   expect(screen.getByText("active")).toBeTruthy();
   // The consequence sits beside the control, not behind a confirm.
   const stop = screen.getByRole("button", { name: "Stop tracking" });
@@ -622,7 +626,12 @@ describe("an agent's console (2026-09-23)", () => {
     render(<App />);
     await screen.findByText("Yours.");
     // Your console: the head names you, and offers the agent.
-    const head = await screen.findByRole("button", { name: /Jamie/ });
+    // (The rail's head, not the bar's account button beside it.)
+    const head = await waitFor(() =>
+      within(document.querySelector(".rail")).getByRole("button", {
+        name: /Jamie/,
+      }),
+    );
     fireEvent.click(head);
     fireEvent.click(await screen.findByRole("link", { name: /poap-bot/ }));
     await waitFor(() =>

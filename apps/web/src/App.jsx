@@ -2,15 +2,15 @@ import {
   Chrome as ChromeBar,
   Disclaimer,
   ErrorBoundary,
+  FAMILY_DOCS,
   FAMILY_PRODUCTS,
-  FAMILY_WORDMARK,
+  FAMILY_SIGN_IN,
   Icon,
   NavigateProvider,
   Rail as RailList,
-  RailIdentity,
   ZoneProvider,
-  familyTabs,
   isPlainClick,
+  onOrigin,
   writeErrorText,
 } from "@elixir-mcp/ui";
 import { useEffect, useState, useCallback } from "react";
@@ -45,6 +45,8 @@ import {
 } from "./lib/ladder.js";
 import { LadderRail } from "./ladder/LadderRail.jsx";
 import { SignIn } from "./views/SignIn.jsx";
+import { takeLoginToken } from "./url-hygiene.js";
+import { tagPath } from "./lib/tag-url.js";
 
 /**
  * Shell + rail (design handoff 2026-09-09). The three-tier top nav is
@@ -52,14 +54,17 @@ import { SignIn } from "./views/SignIn.jsx";
  * grew past what a horizontal row can hold without truncating or hiding
  * things behind a menu.
  *
- * Two rules from the handoff shape everything here.
+ * Two rules shape everything here.
  *
- * The TOP BAR CARRIES NO SIGNED-IN STATE. It must render identically in
- * the Eleventy build and in this app — the two halves are cached
- * differently and cannot agree on a shape that varies by session, and
- * when they tried, the "same" nav kept arriving with different items in
- * it and read as a glitch. Session identity lives at the foot of the
- * rail, which only this half renders.
+ * The TOP BAR'S SHAPE NEVER VARIES BY SESSION (canvas 2026-09-29). It is
+ * the kit's Chrome, the same bar the Eleventy build draws, and its
+ * account slot is one fixed width signed in or not. This app fills the
+ * slot from the session it already holds (`useMe`): empty while it asks,
+ * "Sign in" signed out, the person and the account menu signed in. The
+ * static half cannot know the session, so it always shows "Sign in", and
+ * the sign-in page below sends a reader who is already signed in on to
+ * their console. Nothing on the bar is swapped after load; when the old
+ * bar swapped "Sign in" for "Account" it read as a glitch.
  *
  * The RAIL CARRIES STRUCTURE, NEVER USER CONTENT. Sections and
  * sub-pages, never the name of a player or a clan: the rail must not
@@ -85,14 +90,8 @@ export const STATIC_LINKS = {
   examples: "/examples/play",
   docs: "/docs",
   updates: "/updates",
-  family: "/family",
   support: "/support",
 };
-
-/** The top bar's tabs: the kit's family list, on this host as bare paths.
- *  Identical in both builds by construction: every one is a document
- *  apps/site builds, and a test pins them to STATIC_LINKS. */
-const CHROME_TABS = familyTabs();
 
 /**
  * Sections and their pages — the app's route table.
@@ -937,36 +936,109 @@ function useNarrow() {
   return narrow;
 }
 
-/** The top bar: the kit's Chrome with the family's tabs and product
- *  buttons; we are the Console, so that one is green and routes in-app.
- *  The Console button is a place, not a state: signed out it lands on
- *  the sign-in wall, which is the honest answer. Never inside the menu,
- *  at any width: burying it behind a button costs a tap on the one
- *  thing most people came for. */
-const PRODUCTS = FAMILY_PRODUCTS.map((p) =>
-  p.key === "console" ? { ...p, href: CONSOLE } : p,
-);
-function Chrome({ navigate }) {
+/** The top bar: the kit's Chrome. We are the Console, so that place is
+ *  green and routes in-app; the other places are bare paths on this
+ *  origin, full page loads into their own apps. The Console button is a
+ *  place, not a state: signed out it lands on the sign-in wall, which is
+ *  the honest answer. */
+const PRODUCTS = FAMILY_PRODUCTS.map((p) => ({ ...p, href: onOrigin(p.href) }));
+const DOCS = { ...FAMILY_DOCS, href: onOrigin(FAMILY_DOCS.href) };
+const SIGN_IN = { ...FAMILY_SIGN_IN, href: onOrigin(FAMILY_SIGN_IN.href) };
+
+/** The account slot, from the session this app holds. `undefined` while
+ *  the session is unknown (pending, or Elixir did not answer): the empty
+ *  slot, never a guess. `null` signed out: "Sign in". Signed in: who you
+ *  are, your players, the account's own pages, and the way out. */
+export function consoleAccount(me, unreachable, signOut) {
+  if (me === null || unreachable) return undefined;
+  if (!me.authenticated) return null;
+  const claims = me.claims ?? [];
+  const primary = claims.find((c) => c.is_primary);
+  return {
+    name: primary?.nickname ?? primary?.name ?? me.email ?? "Your account",
+    email: me.email ?? undefined,
+    detail: [me.role, me.timezone].filter(Boolean).join(" · ") || undefined,
+    // Your players are you: the primary and its alts. A friend or a
+    // player you watch is tracked, not yours, and stays on Tracking.
+    players: claims
+      .filter((c) => c.is_primary || c.relationship === "alt")
+      .map((c) => ({
+        key: c.player_tag,
+        name: c.nickname ?? c.name ?? c.player_tag,
+        tag: c.player_tag,
+        primary: c.is_primary === true,
+        href: `${CONSOLE}/explore/player/${tagPath(c.player_tag)}`,
+      })),
+    playersFoot: {
+      label: "Add or verify a player",
+      href: `${CONSOLE}/account/verify`,
+    },
+    links: [
+      {
+        key: "settings",
+        icon: "user-round",
+        label: "Account settings",
+        hint: "profile, email, devices",
+        href: `${CONSOLE}/account/profile`,
+      },
+      {
+        key: "emails",
+        icon: "mail",
+        label: "Emails from Elixir",
+        href: `${CONSOLE}/account/activity/emails`,
+      },
+      {
+        key: "feedback",
+        icon: "message-square",
+        label: "Feedback",
+        hint: "every item is answered",
+        href: `${CONSOLE}/account/feedback`,
+      },
+    ],
+    signOut,
+  };
+}
+
+function Chrome({ navigate, me, unreachable, current = "console" }) {
+  // A sign-out that did not take says so in the menu, where the button
+  // is, instead of leaving for the home page still signed in (review
+  // 2026-09-27 §7.5).
+  const [signOutFailed, setSignOutFailed] = useState(null);
+  const inApp = (to) => (e) => {
+    if (!isPlainClick(e)) return;
+    e.preventDefault();
+    navigate(to);
+  };
+  // Console and Ladder are this app: their links route in it rather
+  // than reloading the page.
+  const IN_APP = { console: CONSOLE, ladder: LADDER };
   const products = PRODUCTS.map((p) =>
-    p.key === "console"
-      ? {
-          ...p,
-          onClick: (e) => {
-            if (!isPlainClick(e)) return;
-            e.preventDefault();
-            navigate(CONSOLE);
-          },
-        }
+    IN_APP[p.key]
+      ? { ...p, href: IN_APP[p.key], onClick: inApp(IN_APP[p.key]) }
       : p,
   );
+  const account = consoleAccount(me, unreachable, {
+    label: "Sign out",
+    note: "Ends this browser's Console session. Clan and Drop keep their own sign-in.",
+    error: signOutFailed,
+    onClick: async () => {
+      setSignOutFailed(null);
+      const r = await api.signOut();
+      if (!r.ok)
+        return setSignOutFailed(
+          `Not signed out. ${writeErrorText({ status: r.status, transport: r.error, data: r.data })}`,
+        );
+      window.location.assign(STATIC_LINKS.home);
+    },
+  });
   return (
     <ChromeBar
-      wordmark={FAMILY_WORDMARK}
       home={STATIC_LINKS.home}
-      tabs={CHROME_TABS}
       products={products}
-      current="console"
-      menu
+      docs={DOCS}
+      current={current}
+      account={account}
+      signIn={{ ...SIGN_IN, onClick: inApp(SIGN_IN.href) }}
     />
   );
 }
@@ -974,10 +1046,9 @@ function Chrome({ navigate }) {
 /** The rail: the kit's, fed the console's route table. Items are the
  *  RAIL config filtered by who is looking (admin pages for admins,
  *  owner pages for the owner), with the reader's counts and the two
- *  dots attached by key; the identity block is the way to the profile
- *  and the way out. */
+ *  dots attached by key. Who you are and the way out are the bar's
+ *  account menu now (canvas 2026-09-29), not the rail's foot. */
 function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
-  const [signOutFailed, setSignOutFailed] = useState(null);
   const rail = here.scope
     ? agentRail(here.scope)
     : RAIL.filter((r) => !r.adminOnly || me?.is_admin);
@@ -1026,54 +1097,6 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
       accounts={accounts}
       account={here.scope ?? "me"}
       manage={{ label: "Manage agents…", to: `${CONSOLE}/account/agents` }}
-      identity={
-        <RailIdentity
-          href={`${CONSOLE}/account/profile`}
-          onClick={(e) => {
-            if (!isPlainClick(e)) return;
-            e.preventDefault();
-            navigate(`${CONSOLE}/account/profile`);
-          }}
-          // The address, as the design draws it: account.email has held
-          // it since 0046. An account from before that fills in at its
-          // next sign-in and reads "Signed in" until then.
-          name={me?.email ?? "Signed in"}
-          title={me?.email ?? undefined}
-          detail={
-            // A sign-out that did not take says so here, where the button
-            // is, instead of leaving for the home page still signed in
-            // (review 2026-09-27 §7.5).
-            signOutFailed ? (
-              <span className="text-bad" role="alert">
-                {signOutFailed}
-              </span>
-            ) : (
-              [me?.role, me?.timezone].filter(Boolean).join(" · ")
-            )
-          }
-          action={
-            <button
-              type="button"
-              aria-label="Sign out"
-              title="Sign out"
-              className="btn btn--sm"
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setSignOutFailed(null);
-                const r = await api.signOut();
-                if (!r.ok)
-                  return setSignOutFailed(
-                    `Not signed out. ${writeErrorText({ status: r.status, transport: r.error, data: r.data })}`,
-                  );
-                window.location.assign(STATIC_LINKS.home);
-              }}
-            >
-              <Icon name="log-out" size={16} />
-            </button>
-          }
-        />
-      }
     />
   );
 }
@@ -1213,7 +1236,22 @@ const signInRoute = createRoute({
   path: `${CONSOLE}/signin`,
   component: function SignInPage() {
     const navigate = useNav();
-    const { refresh } = useMe();
+    const go = useNavigate();
+    const { me, refresh } = useMe();
+    // The static site's bar always says "Sign in" (it cannot know the
+    // session), so a reader who is signed in arrives here too: send them
+    // on to their console. Not when a login link brought a token: that is
+    // a sign-in (or a device hand-off) to finish, signed in or not.
+    const token = takeLoginToken();
+    const forward = me?.authenticated === true && !token;
+    useEffect(() => {
+      if (forward)
+        go({
+          to: takeAfterSignIn() ?? `${CONSOLE}/account/overview`,
+          replace: true,
+        });
+    }, [forward, go]);
+    if (forward || (me === null && !token)) return null;
     return (
       <SignIn
         onAuthed={async () => {
@@ -1485,7 +1523,12 @@ function Shell() {
     <ZoneProvider zone={me?.timezone}>
       <NavigateProvider navigate={navigate}>
         <div className="shell">
-          <Chrome navigate={navigate} />
+          <Chrome
+            navigate={navigate}
+            me={me}
+            unreachable={unreachable}
+            current={here.product === "ladder" ? "ladder" : "console"}
+          />
 
           <div
             className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}

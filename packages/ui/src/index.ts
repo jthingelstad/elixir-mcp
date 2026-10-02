@@ -8,13 +8,23 @@ export {
   type CardForm,
   type DeckCard,
 } from "./Cards.tsx";
-export { Chrome, type ChromeProduct, type ChromeTab } from "./Chrome.tsx";
 export {
+  AccountMenu,
+  initialsOf,
+  type ChromeAccount,
+  type ChromeAccountLink,
+  type ChromePlayer,
+} from "./AccountMenu.tsx";
+export { Chrome, type ChromeProduct } from "./Chrome.tsx";
+export {
+  FAMILY_DOCS,
+  FAMILY_LOGO,
   FAMILY_ORIGIN,
   FAMILY_PRODUCTS,
-  FAMILY_TABS,
+  FAMILY_SIGN_IN,
   FAMILY_WORDMARK,
-  familyTabs,
+  gameLabel,
+  onOrigin,
   type FamilyProduct,
 } from "./family.ts";
 export { Disclaimer } from "./Disclaimer.tsx";

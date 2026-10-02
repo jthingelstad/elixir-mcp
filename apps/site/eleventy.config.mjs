@@ -64,6 +64,10 @@ export default function (eleventyConfig) {
   // shell.mjs), PNG at 48 and 96 px. Mail links https PNGs on this
   // origin, never a data URI and never Supercell's CDN.
   eleventyConfig.addPassthroughCopy("src/assets/mail");
+  // The family's logo, the one the top bar draws on every surface
+  // (packages/ui/src/family.json names it). Rendered small from the
+  // 512px source in poapkings.com: the bar draws it at 40px.
+  eleventyConfig.addPassthroughCopy("src/assets/elixir-logo-*.webp");
   // Card art for mail and the card pages, mirrored at the sizes they
   // ask for by infra/scripts/mirror-card-art.mjs. Gitignored: it is a
   // cache, so a checkout that has not mirrored yet simply builds
@@ -75,6 +79,9 @@ export default function (eleventyConfig) {
       "[site] no mirrored card art: run infra/scripts/mirror-card-art.mjs",
     );
 
+  /** The host of an absolute URL, for a link that says where it opens
+   *  (the game button's label names drop.poapkings.com). */
+  eleventyConfig.addFilter("host", (url) => new URL(url).host);
   /** A static asset URL with its content hash on it. The bucket serves
    *  /assets/* under no Cache-Control, so browsers cache them
    *  heuristically and a deploy's edge invalidation never reaches them:
