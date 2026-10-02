@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Elixir Clan's Standing, redrawn",
+    body: "Standing in Elixir Clan has the new design. How it works here now opens with what Elder weighs in your clan, drawn as bars from the policy, and your own line sits under it with your war decks race by race. Where the clan shares it, each group has its own panel with what it means, every member's war decks per race beside their evidence, and the longest groups open at their first few with the rest a click away; your own row always shows. Nobody sees a score or a rank, and who sees what has not changed. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "Elixir Clan's clan page, redrawn",
     body: "A clan's page in Elixir Clan has the new design. It opens with what the game says the clan asks of a joiner and the clan's own figures as tiles: members by role, clan war trophies with the latest race result, and donations a week. The roster sits in a panel you can search by name or tag, with the longest rosters showing the first 25 and the rest a click away. Beside it are the clan's comings and goings, who joined or came back, who departed and how its races finished, in your own time zone, and once the clan's policy is on, a panel to spread the word with the clan's description, its tag to copy and a line for clan chat. Nothing about who sees what has changed. No change to the tools.",
   },

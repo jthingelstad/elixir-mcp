@@ -732,6 +732,12 @@ table {
   background: var(--info-fill);
   border: 1px solid var(--info-edge);
 }
+/* A count or a label that carries no state: present, and quiet. */
+.chip--mute {
+  color: var(--ink-dim);
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+}
 
 /* Gold is not a state. This is the tier badge and nothing else. */
 .chip--tier {
@@ -782,6 +788,27 @@ table {
   width: 2px;
   background: var(--ink);
   border-radius: 1px;
+}
+
+/* Spark — a count out of a whole, one bar per period (the kit's Spark):
+   bars only, accent when the whole was nearly met, dimmer below; a period
+   the record could not read is a flat dash in the line colour. */
+.spark {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+}
+.spark__bar {
+  fill: var(--accent);
+}
+.spark__bar--mid {
+  fill: #6d5bb0;
+}
+.spark__bar--low {
+  fill: var(--line-strong);
+}
+.spark__nil {
+  fill: var(--line);
 }
 
 /* ==================================================================

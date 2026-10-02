@@ -109,6 +109,7 @@ describe("standing", () => {
             lines: ["Elder is earned by participation: Clan Wars 100%."],
           },
         ],
+        weights: [{ key: "war", label: "Clan Wars", share: 1 }],
         as_of: "2026-09-12T18:00:00Z",
         freshness_seconds: 60,
         rows: [
@@ -118,6 +119,10 @@ describe("standing", () => {
             role: "member",
             status: "rising",
             evidence: "100% war decks over 4 war weeks, ~200 donations a week",
+            war: [
+              { season_id: 135, section_index: 3, decks: 16, decks_asked: 16 },
+              { season_id: 135, section_index: 4, decks: 12, decks_asked: 12 },
+            ],
           },
           {
             player_tag: "#8QCV",
@@ -125,11 +130,19 @@ describe("standing", () => {
             role: "elder",
             status: "holding",
             evidence: "75% war decks over 4 war weeks",
+            war: [
+              { season_id: 135, section_index: 3, decks: 12, decks_asked: 16 },
+              { season_id: 135, section_index: 4, decks: 9, decks_asked: 12 },
+            ],
           },
         ],
         you: {
           status: "rising",
           evidence: "100% war decks over 4 war weeks",
+          war: [
+            { season_id: 135, section_index: 3, decks: 16, decks_asked: 16 },
+            { season_id: 135, section_index: 4, decks: 12, decks_asked: 12 },
+          ],
           next: ["Play the war decks you are asked for."],
           inactivity: null,
           days_idle: 0.5,
@@ -144,16 +157,97 @@ describe("standing", () => {
       />,
     );
     await waitFor(() => expect(screen.getByText("Amy")).toBeTruthy());
-    expect(screen.getByText(/Holding Elder · 1/)).toBeTruthy();
-    expect(screen.getByText(/Rising · 1/)).toBeTruthy();
+    // Each group is its own panel, headed by its name and its count.
+    const holding = screen.getByRole("region", { name: "Holding Elder" });
+    expect(holding.textContent).toMatch(
+      /^Holding Elder1Elders the policy keeps/,
+    );
+    expect(holding.textContent).toMatch(/Amy/);
+    const rising = screen.getByRole("region", { name: "Rising" });
+    expect(rising.textContent).toMatch(/^Rising1/);
+    // War decks per race, out of the decks asked, in words for a reader.
+    expect(
+      screen.getByRole("img", {
+        name: "Amy's war decks: 135/3 12 of 16, 135/4 9 of 12",
+      }),
+    ).toBeTruthy();
+    const you = screen.getByRole("region", { name: "You" });
+    expect(you.textContent).toMatch(/Rising/);
+    expect(you.textContent).toMatch(/28 of 28/);
+    expect(you.textContent).toMatch(/Races 135\/3 to 135\/4\./);
     expect(
       screen.getByText(/Play the war decks you are asked for/),
     ).toBeTruthy();
     expect(screen.getByText("How it works here")).toBeTruthy();
     expect(screen.getByText(/Clan Wars 100%/)).toBeTruthy();
     expect(document.querySelector("tr[data-you='true']")).toBeTruthy();
+    // A member is not shown the leaders' policy page.
+    expect(screen.queryByText(/Read the policy in full/)).toBeNull();
     expect(document.body.textContent).not.toMatch(
       /\b(score|percentile|rank)\b/i,
+    );
+  });
+
+  test("a long group opens at its first rows, and your own row always shows", async () => {
+    const row = (i, status) => ({
+      player_tag: `#P${i}`,
+      name: `Player ${i}`,
+      role: status === "holding" ? "elder" : "member",
+      status,
+      evidence: "taking part",
+      war: [],
+    });
+    vi.spyOn(manageApi, "standing").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        policy_version: 3,
+        ranks_elder: true,
+        weights: [
+          { key: "war", label: "Clan Wars", share: 0.55 },
+          { key: "donations", label: "Donations", share: 0.45 },
+        ],
+        how: [{ key: "elder", title: "Elder", lines: ["Elder is earned."] }],
+        as_of: "2026-09-12T18:00:00Z",
+        freshness_seconds: 60,
+        rows: [
+          ...Array.from({ length: 8 }, (_, i) => row(i, "holding")),
+          ...Array.from({ length: 9 }, (_, i) => row(10 + i, "participating")),
+        ],
+        you: null,
+      },
+    });
+    renderWithProviders(
+      <Standing
+        clan={poap}
+        who={{ player_tag: "#P15", role: "leader", name: "Ada" }}
+      />,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: "Holding Elder" }),
+      ).toBeTruthy(),
+    );
+    const holding = screen.getByRole("region", { name: "Holding Elder" });
+    expect(holding.querySelectorAll("tbody tr").length).toBe(5);
+    const all = screen.getByRole("button", { name: "Show all 8" });
+    expect(all.getAttribute("aria-expanded")).toBe("false");
+    all.click();
+    await waitFor(() =>
+      expect(holding.querySelectorAll("tbody tr").length).toBe(8),
+    );
+    // Participating opens closed, but your row is there.
+    const middle = screen.getByRole("region", { name: "Participating" });
+    expect(middle.querySelectorAll("tbody tr").length).toBe(1);
+    expect(middle.querySelector("tr[data-you='true']").textContent).toMatch(
+      /Player 15/,
+    );
+    // What Elder weighs, as the policy set it; a leader can open the policy.
+    expect(screen.getByText("55%")).toBeTruthy();
+    expect(screen.getByText("policy v3")).toBeTruthy();
+    expect(screen.getByText(/Read the policy in full/)).toBeTruthy();
+    expect(document.body.textContent).toMatch(
+      /Leaders and co-leaders are not banded\./,
     );
   });
 

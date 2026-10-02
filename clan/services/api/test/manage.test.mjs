@@ -573,6 +573,29 @@ test("standing for members: evidence in a player's terms, no internals; private 
     s.body.how.map((x) => x.key),
     ["about", "counts", "minimums", "elder", "removal"],
   );
+  // What Elder weighs, as the policy set it, heaviest first; and each
+  // member's war decks per race out of the decks asked (the clan counts
+  // war), the same numbers The week shows.
+  assert.deepEqual(
+    s.body.weights.map((w) => [w.key, w.label, Math.round(w.share * 100)]),
+    [
+      ["war", "Clan Wars", 55],
+      ["donations", "Donations", 30],
+      ["ranked", "Ranked play", 15],
+    ],
+  );
+  for (const r of s.body.rows) {
+    assert.ok(Array.isArray(r.war));
+    for (const w of r.war)
+      assert.deepEqual(Object.keys(w).sort(), [
+        "decks",
+        "decks_asked",
+        "season_id",
+        "section_index",
+      ]);
+  }
+  assert.ok(s.body.rows.some((r) => r.war.length > 0));
+  assert.ok(Array.isArray(s.body.you.war));
   // A leader keeps where everyone stands to leaders: a member still sees
   // how the clan runs and their own line.
   const hl = harness({ part: partClan(), ledger: h.ledger });
@@ -596,6 +619,7 @@ test("standing for members: evidence in a player's terms, no internals; private 
     { key: "elder", title: "Elder", lines: ["Leaders choose Elders."] },
   ]);
   assert.equal(manual.body.rows, null);
+  assert.equal(manual.body.weights, null);
   assert.equal(
     h.mcp.calls.slice(calls).filter((c) => c[0] === "clans_participation")
       .length,

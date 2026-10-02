@@ -43,6 +43,8 @@ import {
   goalsInSentence,
   declaredGoals,
   countedCategories,
+  elderWeights,
+  CATEGORY_LABELS,
   memberWeeks,
   weeklyReport,
   welcomesFrom,
@@ -1601,6 +1603,7 @@ export function createManageService({
           policy_version: policy.version,
           how,
           ranks_elder: false,
+          weights: null,
           rows: null,
           you: null,
         };
@@ -1608,15 +1611,44 @@ export function createManageService({
       const { verdicts } = await evaluateClan({ clanTag, token, who });
       const showRows =
         ranked && (policy.values.members_see_standing || isLeader(who));
-      const rows = ranked ? standingForMembers(verdicts, policy.values) : [];
-      const mine =
-        verdicts.members.find((m) => m.player_tag === who.player_tag) ?? null;
+      // Each member's war decks in the races the policy's window read,
+      // out of the decks asked: the same numbers The week shows every
+      // member, and only when the clan counts war.
+      const countsWar = countedCategories(policy.values).includes("war");
+      const warOf = (m) =>
+        countsWar
+          ? (m?.facts?.war?.detail ?? []).map((w) => ({
+              season_id: w.season_id,
+              section_index: w.section_index,
+              decks: w.decks,
+              decks_asked: w.decks_asked,
+            }))
+          : null;
+      const byTag = new Map(verdicts.members.map((m) => [m.player_tag, m]));
+      const rows = ranked
+        ? standingForMembers(verdicts, policy.values).map((r) => ({
+            ...r,
+            war: warOf(byTag.get(r.player_tag)),
+          }))
+        : [];
+      const mine = byTag.get(who.player_tag) ?? null;
       const holds = await ledger.holds(clanTag);
       const myHold = holds.find((h) => h.player_tag === who.player_tag) ?? null;
       return {
         policy_version: policy.version,
         how,
         ranks_elder: ranked,
+        // What Elder weighs, as the policy set it (the same shares "How
+        // it works here" states in words), heaviest first.
+        weights: ranked
+          ? Object.entries(elderWeights(policy.values))
+              .sort((a, b) => b[1] - a[1])
+              .map(([key, share]) => ({
+                key,
+                label: CATEGORY_LABELS[key],
+                share,
+              }))
+          : null,
         as_of: verdicts.as_of,
         freshness_seconds: verdicts.freshness_seconds,
         rows: showRows ? rows : null,
@@ -1626,6 +1658,7 @@ export function createManageService({
                 rows.find((r) => r.player_tag === who.player_tag)?.status ??
                 null,
               evidence: participationPhrase(mine, policy.values),
+              war: warOf(mine),
               next: nextSteps(mine, policy.values),
               inactivity: !policy.values.removal_enabled
                 ? null

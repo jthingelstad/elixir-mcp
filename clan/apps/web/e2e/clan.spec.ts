@@ -204,7 +204,26 @@ test.describe("signed in", () => {
     await expect(page).toHaveURL(/\/standing$/);
     await expect(page.getByRole("heading", { name: "Standing" })).toBeVisible();
     await expect(page.getByText("How it works here")).toBeVisible();
+    // Each group its own panel; war decks per race in words for a reader;
+    // a leader is not banded, so their own line carries their role.
+    await expect(
+      page.getByRole("region", { name: "Holding Elder" }),
+    ).toContainText("Cy");
+    await expect(
+      page.getByRole("img", {
+        name: "Zed's war decks: 135/4 12 of 16, 136/0 12 of 12, 136/1 16 of 16",
+      }),
+    ).toBeVisible();
+    const yours = page.getByRole("region", { name: "You" });
+    await expect(yours).toContainText("Leader");
+    await expect(yours).toContainText("44 of 44");
+    await expect(yours).toContainText("Races 135/4 to 136/1.");
+    await expect(page.getByText("Read the policy in full ›")).toBeVisible();
+    await expect(
+      page.getByText(/Leaders and co-leaders are not banded/),
+    ).toBeVisible();
     await rendered(page);
+    await accessible(page, "standing");
 
     // Feedback: compose and send.
     await rail.getByRole("link", { name: /^Feedback/ }).click();
