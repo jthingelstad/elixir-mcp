@@ -287,6 +287,20 @@ test("gym.json loads: unique ids, every finding has a control, the verbs are kno
   assertOne({ eq: ["s.n", 4] }, body, body);
   assertOne({ lt: ["weeks[0].a", "weeks[0].b"] }, body, body);
   assertOne({ gte: ["s.n", 4] }, body, body);
+  const eligible = { all: [{ eq: ["s.n", 4] }, { sum_gte: ["weeks[].a", 4] }] };
+  assertOne(eligible, body, body);
+  assert.throws(
+    () => assertOne(eligible, { ...body, s: { n: 3 } }, body),
+    /eq s.n/,
+  );
+  assert.throws(
+    () => assertOne({ sum_gte: ["weeks[].a", 5] }, body, body),
+    /4 < 5/,
+  );
+  assert.throws(
+    () => assertOne({ sum_gte: ["weeks[].b", 1] }, body, body),
+    /numeric list/,
+  );
   assertOne({ sum_eq: [["weeks[0].a", 3], "s.n"] }, body, body);
   assertOne({ sorted_asc: [["weeks[].a"]] }, body, body);
   assertOne({ notes_match: "war day \\d" }, body, body);

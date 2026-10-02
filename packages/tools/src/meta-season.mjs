@@ -15,8 +15,8 @@
 import { unbandedTypes } from "@elixir-mcp/contracts";
 import {
   META_METHODOLOGY,
-  PARTICIPANT_GAMES,
   POP_GAMES,
+  participantGamesSql,
 } from "./tools/shared.mjs";
 
 /** The raw meta scans spill at the micro's 4 MB work_mem (review 2.6:
@@ -182,16 +182,19 @@ const meanGap = (r) =>
     ? null
     : Number(r.mean_level_gap);
 
-export async function rollupDecks(db, roll, { minBattles }) {
+export async function rollupDecks(db, roll, { minBattles, hashes = null }) {
   const banded = roll.trophyBand !== null && roll.trophyBand !== undefined;
   const params = [roll.month, roll.modeGroup, minBattles];
   if (banded) params.push(roll.trophyBand);
+  const keep =
+    hashes === null ? "" : `and deck_hash = any($${params.push(hashes)})`;
   const { rows } = await db.query(
     `select deck_hash, battles, wins, losses, players, repeat_players, first_used, last_used,
             level_gap_battles, ${MEAN_GAP_SQL} as mean_level_gap, duel_rounds
      from ${banded ? "deck_meta_season_band" : "deck_meta_season"}
      where season_month = $1 and mode_group = $2 and battles >= $3
        ${banded ? "and trophy_band = $4" : ""}
+       ${keep}
      order by battles desc`,
     params,
   );
@@ -352,13 +355,9 @@ export async function rollupSynergy(
          and bp.outcome in ('win', 'loss') and bp.type_class = 'pvp' ${typeClause} ${popBand}
        union all
        select bp.deck_hash, bp.player_tag, bp.outcome
-       from ${PARTICIPANT_GAMES} bp
-       join battle b on b.battle_id = bp.battle_id
+       from ${participantGamesSql("recent_participants")} bp
        where bp.battle_time >= $1 and bp.battle_time < $2
          and bp.outcome in ('win', 'loss') and bp.type_class = 'pvp' ${typeClause} ${bandClause}
-         and b.event_tag is null
-         and (b.deck_selection is null or b.deck_selection in ('collection', 'warDeckPick'))
-         and b.created_at > coalesce((select pop_through from population_state), '-infinity'::timestamptz)
          and not exists (
            select 1 from meta_season_pop cached, population_state
             where cached.season_month = $4
@@ -369,11 +368,19 @@ export async function rollupSynergy(
        select pop_through from meta_season_state st
         where season_month = $4 and pop_through is not null
           and exists (select 1 from meta_season_pop_day d where d.season_month = st.season_month)),
+     recent_participants as materialized (
+       select bp.* from battle b join battle_participant bp on bp.battle_id = b.battle_id
+       where b.created_at > coalesce((select pop_through from population_state), '-infinity'::timestamptz)
+         and b.event_tag is null
+         and (b.deck_selection is null or b.deck_selection in ('collection', 'warDeckPick'))
+         and bp.battle_time >= $1 and bp.battle_time < $2),
      anchored as materialized (
        select distinct a.deck_hash from deck_card a
        where a.card_id = $3 ${formClause}),
-     games as materialized (${games}),
-     identities as materialized (select deck_hash, card_id, form from deck_card),
+     games as (${games}),
+     identities as materialized (
+       select dc.deck_hash, dc.card_id, dc.form from anchored a
+       join deck_card dc on dc.deck_hash = a.deck_hash),
      dp as (
        select bp.deck_hash, bp.player_tag,
               count(*)::int as battles,

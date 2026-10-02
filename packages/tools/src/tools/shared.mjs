@@ -1202,11 +1202,9 @@ const PARTICIPANT_GAME_COLUMNS = [
   "starting_trophies",
 ];
 const PARTICIPANT_LEVELS = ["deck_avg_level", "opp_deck_avg_level"];
-export const PARTICIPANT_GAMES = duelGamesSql(
-  "battle_participant",
-  PARTICIPANT_GAME_COLUMNS,
-  { blank: PARTICIPANT_LEVELS },
-);
+export const participantGamesSql = (from) =>
+  duelGamesSql(from, PARTICIPANT_GAME_COLUMNS, { blank: PARTICIPANT_LEVELS });
+export const PARTICIPANT_GAMES = participantGamesSql("battle_participant");
 const POP_GAME_COLUMNS = [
   "season_month",
   "game_day",
