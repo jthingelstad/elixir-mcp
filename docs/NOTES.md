@@ -2910,3 +2910,10 @@ both root builds and 69 browser journeys pass. CloudFormation lint has no
 errors; its existing W3691/W3037 warnings remain outside this change, and
 the scoped lint and cutover Guard rules pass. No live auth write was used
 to test the operation.
+
+The legacy deployment smoke now reads the actual MigrationFrozen parameter
+and requires the deliberate 503 clan_migration refusal on business reads
+during transfer, while continuing to require a healthy read-only health door.
+It makes the same six safe reads in either mode; it never creates a login.
+Both modes and the full verification gate pass. This closes an expected
+false alarm that would otherwise interrupt the approved freeze deployment.

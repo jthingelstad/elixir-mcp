@@ -191,6 +191,15 @@ if (!skipWeb) {
 const smoke = spawnSync(process.execPath, [path.join(here, "smoke.mjs")], {
   cwd: repoRoot,
   stdio: "inherit",
+  env: {
+    ...process.env,
+    SMOKE_FROZEN: String(
+      stack.Parameters.some(
+        (p) =>
+          p.ParameterKey === "MigrationFrozen" && p.ParameterValue === "true",
+      ),
+    ),
+  },
 });
 if (smoke.status !== 0) {
   console.error("SMOKE FAILED - the stack deployed but the site misbehaves.");
