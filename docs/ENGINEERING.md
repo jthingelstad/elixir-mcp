@@ -550,3 +550,15 @@ id and the old digest, only matches a same-named MCP key on its human sponsor,
 and requires a successful audited REST call. It cannot revoke another agent's
 credential. Stage Drop's `ElixirIntegrationKey` parameter with the previous code
 artifact; CI then deploys the REST client while preserving the staged key.
+
+## Clan consolidation storage seam (2026-10-02, in progress)
+
+`packages/clan-state` is the single management ledger implementation. Its
+Postgres adapter receives the request's existing connected client; the caller
+owns transactions and the serialization of multi-item clan changes. The
+legacy runtime temporarily uses its Dynamo adapter through the same package.
+Migration 0196 adds the destination only, with complete item JSON and stable
+keys. Private Clan state is never imported by MCP/tool/public-game packages.
+A digest-bound private snapshot import excludes session/login items and
+OAuth pairs, preserves sealed keys, and refuses unknown durable kinds.
+No auth or storage cutover is implied by installing this additive foundation.

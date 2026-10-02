@@ -1,11 +1,6 @@
-/**
- * Clan lives in elixir-mcp's repository (clan/, 2026-09-28) but not in its
- * runtime: it reads Elixir over HTTP (/api/v1) like any integration, and
- * shares only the kit (@elixir-mcp/ui, client, design). An import from
- * Elixir's services or its other packages would couple two stacks that
- * deploy apart, and an Elixir import of Clan would put a vertical's
- * judgment into the hub. Both directions are refused here.
- */
+/** During consolidation, the legacy Clan runtime may consume the shared
+ * state package as well as the kit. No runtime imports another service.
+ * Private clan state must never be reachable from MCP or public tool code. */
 
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
@@ -22,6 +17,7 @@ const KIT = new Set([
   "@elixir-mcp/ui",
   "@elixir-mcp/client",
   "@elixir-mcp/design",
+  "@elixir-mcp/clan-state",
 ]);
 const CODE = /\.(m?js|jsx|ts|tsx)$/;
 const SKIP = new Set([
@@ -53,7 +49,7 @@ const packageOf = (spec) =>
     ? spec.split("/").slice(0, 2).join("/")
     : spec.split("/")[0];
 
-test("Clan imports nothing of Elixir's but the kit", async () => {
+test("Legacy Clan imports only the kit and shared clan state", async () => {
   const bad = [];
   for await (const file of files(CLAN)) {
     for (const spec of await imports(file)) {
