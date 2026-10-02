@@ -8,10 +8,11 @@
  * `battle_participant` alias is in scope (and survives the alias rewrite
  * battles_trends does for its window count). The lookup runs for boat
  * rows only, by primary key, so a scan over participants stays
- * index-only.
+ * index-only. Callers whose covering scan lacks side can supply a scalar
+ * side lookup; it stays inside the boat-only predicate.
  */
-export const notBoatDefense = (bp = "bp") =>
+export const notBoatDefense = (bp = "bp", { side = `${bp}.side` } = {}) =>
   `not (${bp}.type = 'boatBattle' and exists (
      select 1 from battle bd
       where bd.battle_id = ${bp}.battle_id and bd.boat_battle_side is not null
-        and (bd.boat_battle_side = 'defender') = (${bp}.side = 0)))`;
+        and (bd.boat_battle_side = 'defender') = (${side} = 0)))`;

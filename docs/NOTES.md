@@ -3210,3 +3210,15 @@ not change its scope. Changed identities and post-cutoff creations still
 refuse, as do new admitted source overlaps in battle batches. Scratch tests
 cover refresh, identity changes and new creation. No game history has been
 purged; exact-manifest human approval is still required.
+
+## 2026-10-02 - card history uses the existing covering index
+
+The first post-deploy card read still timed out after the scoped-query fix.
+Read-only profiling showed the earliest-history scan using the participant
+heap index: requesting side prevented the existing player/time covering index
+from serving it. Card queries no longer carry unused side values. The shared
+boat-defense predicate accepts a side expression, so these reads resolve side
+by primary key only for boat defense checks. Other callers retain their
+predicate. Fixtures keep both own boat attack sides, exclude both defense
+sides, keep an unknown mode, and preserve earliest forms and duel rounds.
+No index or migration is added; no game history has been purged.

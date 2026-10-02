@@ -434,6 +434,67 @@ test("scoped card history keeps earliest forms and each card-bearing duel round"
   }
 });
 
+test("card history keeps unknown types and own boat attacks, excluding both defense sides", async () => {
+  const db = scratch.db;
+  await db.query("begin");
+  try {
+    const cases = [
+      ["df-defense-team", "2026-08-29T12:00:00Z", 0, 0, "defender"],
+      ["df-defense-other", "2026-08-30T12:00:00Z", 1, 1, "attacker"],
+      ["df-own-team", "2026-09-01T12:00:00Z", 0, 0, "attacker"],
+      ["df-own-other", "2026-09-01T13:00:00Z", 0, 1, "defender"],
+      ["df-unknown-type", "2026-08-31T12:00:00Z", 1, 0, null],
+    ];
+    for (const [id, at, evo, side, boatSide] of cases) {
+      await db.query(
+        `insert into battle(battle_id,battle_time,type,type_class,boat_battle_side)
+         values ($1,$2,$3,'pvp',$4)`,
+        [id, at, boatSide ? "boatBattle" : "fixtureUnknownMode", boatSide],
+      );
+      const hash = await seedDeck(db, {
+        battle_time: at,
+        cards: cards(evo),
+        supportCards: [TOWER],
+      });
+      await db.query(
+        `insert into battle_participant(battle_id,player_tag,side,outcome,battle_time,type,type_class,deck_hash)
+         values ($1,$2,$3,'win',$4,$5,'pvp',$6)`,
+        [
+          id,
+          TAG,
+          side,
+          at,
+          boatSide ? "boatBattle" : "fixtureUnknownMode",
+          hash,
+        ],
+      );
+      await seedPlayedDeck(db, {
+        battle_id: id,
+        player_tag: TAG,
+        battle_time: at,
+        cards: cards(evo),
+        supportCards: [TOWER],
+      });
+    }
+    const result = await call("cards_card", {
+      card_id: 26000007,
+      segment: { clan_tag: "#2CRPCL9V" },
+      from: "2026-08-29",
+      to: "2026-09-03",
+    });
+    assert.deepEqual(result.card.first_played, {
+      base: "2026-09-01T12:00:00.000Z",
+      evolution: "2026-08-31T12:00:00.000Z",
+      hero: null,
+    });
+    assert.equal(result.members.played[0].battles, 9);
+    assert.equal(result.members.played[0].wins, 9);
+    assert.deepEqual(result.members.played[0].forms, ["base", "evolution"]);
+  } finally {
+    await db.query("rollback");
+  }
+});
+
 // --- 6.5.0: the archetype on every deck object, and the archetype filter --
 
 test("6.5.0: every deck object carries its archetype once the vocabulary is imported; the filter reads it; a name that is nothing refuses", async () => {
