@@ -104,13 +104,18 @@ test("every database-facing Lambda names its connections and bounds its statemen
       new RegExp(`^          PGAPPNAME: ${name}$`, "m"),
       logicalId,
     );
-    const timeout = Number(/^      Timeout: (\d+)$/m.exec(block)[1]);
+    const timeoutMatch = /^      Timeout: (\d+)$/m.exec(block);
+    const timeouts = timeoutMatch ? [Number(timeoutMatch[1])] : [20, 30];
+    if (!timeoutMatch) {
+      assert.equal(logicalId, "WebApiFunction");
+      assert.match(block, /^      Timeout: !If \[HasInternalClan, 30, 20\]$/m);
+    }
     const options = /^          PGOPTIONS: "(.+)"$/m.exec(block)?.[1] ?? "";
     const statement = /-c statement_timeout=(\d+)s\b/.exec(options);
     assert.ok(statement, `${logicalId} sets statement_timeout`);
     assert.ok(
-      Number(statement[1]) < timeout,
-      `${logicalId}: statement_timeout ${statement[1]} s is under the ${timeout} s Lambda timeout`,
+      timeouts.every((timeout) => Number(statement[1]) < timeout),
+      `${logicalId}: statement_timeout ${statement[1]} s is under the ${timeouts.join("/")} s Lambda timeouts`,
     );
     assert.match(
       options,
@@ -686,18 +691,38 @@ test("every public read is cached at the edge by one /api/public/* behaviour (re
   assert.doesNotMatch(block, /OriginRequestPolicyId/);
 });
 
-test("Elixir Clan's API is its own behaviour before /api/*, and no cookie of Elixir's reaches it (2026-09-28)", async () => {
+test("Clan routing preserves the isolated legacy door until the shared session is explicitly enabled", async () => {
   const template = await readFile(templateUrl, "utf8");
   const behaviours = cacheBehaviours(template);
   const paths = behaviours.map(([p]) => p);
   assert.ok(paths.includes("/api/clan/*"));
   assert.ok(paths.indexOf("/api/clan/*") < paths.indexOf("/api/*"));
   const [, block] = behaviours.find(([p]) => p === "/api/clan/*");
-  assert.match(block, /TargetOriginId: clanapi\n/);
   assert.match(
     block,
-    /OriginRequestPolicyId: !Ref ClanApiOriginRequestPolicy$/,
+    /TargetOriginId: !If \[HasInternalClan, api, clanapi\]\n/,
   );
+  assert.match(
+    block,
+    /OriginRequestPolicyId:\s*!If \[\s*HasInternalClan,\s*!Ref SiteApiOriginRequestPolicy,\s*!Ref ClanApiOriginRequestPolicy,/,
+  );
+  assert.match(
+    resource(template, "ClanInternal", "ClanModelSecretName"),
+    /Default: "false"/,
+  );
+  const shared = resource(
+    template,
+    "SiteApiOriginRequestPolicy",
+    "OauthAuthorizeOriginRequestPolicy",
+  );
+  assert.match(shared, /CookiesConfig: \{ CookieBehavior: all \}/);
+  assert.match(shared, /x-elixir-client/);
+  const external = resource(
+    template,
+    "McpOriginRequestPolicy",
+    "SecurityHeadersPolicy",
+  );
+  assert.match(external, /CookieBehavior: none/);
   const start = template.indexOf("  ClanApiOriginRequestPolicy:");
   const policy = template.slice(start, template.indexOf("\n\n", start));
   assert.match(
@@ -709,6 +734,27 @@ test("Elixir Clan's API is its own behaviour before /api/*, and no cookie of Eli
   assert.deepEqual(
     paths.filter((p) => p.startsWith("/clan")),
     ["/clan", "/clan/*"],
+  );
+});
+
+test("the private model sealing secret is limited to the shared web API and egress relay", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const functions = [...template.matchAll(/^  (\w+Function):\n/gm)];
+  const consumers = functions
+    .filter((entry, index) => {
+      const block = template.slice(entry.index, functions[index + 1]?.index);
+      return /CLAN_MODEL_SECRET:/.test(block);
+    })
+    .map((entry) => entry[1]);
+  assert.deepEqual(consumers, ["WebApiFunction", "EmailRelayFunction"]);
+  assert.equal((template.match(/CLAN_MODEL_SECRET:/g) ?? []).length, 2);
+  assert.equal(
+    (
+      template.match(
+        /\$\{ClanModelSecretName\}:SecretString:session_secret/g,
+      ) ?? []
+    ).length,
+    2,
   );
 });
 

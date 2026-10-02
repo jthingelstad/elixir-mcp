@@ -6,7 +6,11 @@ import { createHash } from "node:crypto";
 import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import { schemaFingerprint } from "../../../services/migrate/src/fingerprint.mjs";
 import { createPostgresStore, createPostgresLedger } from "../src/postgres.mjs";
-import { inspectSnapshot, importSnapshot } from "../src/import.mjs";
+import {
+  inspectSnapshot,
+  importSnapshot,
+  compareSnapshot,
+} from "../src/import.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -106,12 +110,17 @@ test("digest-bound import is lossless, private, idempotent and cannot overwrite 
   );
   const result = await importSnapshot(db, bytes, digest, { apply: true });
   assert.equal(result.applied, true);
+  const comparison = await compareSnapshot(db, bytes, digest);
+  assert.equal(comparison.equal, true);
+  assert.equal(comparison.matching, 7);
+  assert.equal(JSON.stringify(comparison).includes("stable-id"), false);
   const store = createPostgresStore(db);
   for (const item of durable) assert.deepEqual(await store.get(item.pk), item);
   const listed = await store.listByPartition("clan##P0LYQ");
   assert.equal(listed.length, 3);
   assert.ok(!listed.some((i) => i.pk.startsWith("model_key")));
   await store.put({ ...durable[0], version: 4 });
+  assert.equal((await compareSnapshot(db, bytes, digest)).equal, false);
   const repeat = await importSnapshot(db, bytes, digest, { apply: true });
   assert.equal(repeat.already_imported, true);
   assert.equal((await store.get(durable[0].pk)).version, 4);

@@ -571,3 +571,20 @@ key is fabricated. Membership, verification, roles and fact replacement checks
 remain in their common writers. The external JSON API still checks its audience,
 first-party registration and scopes. The internal path is disabled until state,
 model-key, scheduled-job and UI cutover checks pass.
+
+The prepared Clan cutover switch is `ClanInternal`, false until the private
+snapshot is imported and the unified UI is ready. It changes edge origins,
+the browser session path and the one-clan morning rule together. The legacy
+adapter's `MigrationFrozen` blocks all business GETs as well as mutations and
+scheduled evaluations; snapshot export waits 300 seconds after the freeze
+completes. `{clan_import}` reads only `clan-migration/v1/` objects, checks the
+exact digest and frozen-source times, defaults to preview, and requires an
+empty destination to apply. Comparison returns counts, never private bodies.
+
+Clan model calls use the existing non-VPC relay and outbox infrastructure,
+with separate private request, claim and reply prefixes. Only the request
+prefix notifies the queue. Both payload directions use a separate HKDF domain
+and authenticated encryption; no model key, prompt or answer is logged.
+The immutable worker claim is written before contacting the provider; an
+interrupted claim has an uncertain outcome and must not be spent again.
+The existing sealed model key retains its original derivation and AAD.

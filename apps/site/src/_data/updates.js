@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Preserving Clan records during consolidation",
+    body: "Clan consolidation now has a checked import path for its private records and preparation for its morning work inside Elixir. The cutover remains underway; existing policies, action numbers and mail history will be preserved. No recorded history has been removed.",
+  },
+  {
+    date: "2026-10-02",
     title: "Preparing Clan to share your Elixir account",
     body: "Clan's account consolidation now has preservation and permission checks for your existing clan records. The transition is still underway; your current Clan sign-in and app remain available. No clan records or game history have been removed. Contracts unchanged.",
   },

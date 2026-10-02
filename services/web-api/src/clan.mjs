@@ -1,3 +1,6 @@
+import { createModelService } from "@elixir-mcp/clan/manage/model.mjs";
+import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
+import { createModelBridge } from "@elixir-mcp/clan/model-bridge.mjs";
 /** Clan inside the web API: the authenticated Elixir person, the request's
  * connected Postgres client, and the same recorded facts the public doors
  * read. There is no internal OAuth grant or HTTP round trip. */
@@ -7,6 +10,7 @@ import { createRecordedClient } from "@elixir-mcp/clan/recorded-client.mjs";
 import {
   createManageService,
   fetchParticipation,
+  fetchRoster,
 } from "@elixir-mcp/clan/manage/service.mjs";
 import { createAwardsService } from "@elixir-mcp/clan/manage/awards.mjs";
 import { createRecruitService } from "@elixir-mcp/clan/manage/recruit.mjs";
@@ -63,13 +67,17 @@ export function createClanRequest({
   origin,
   maintainerTags = [],
   notify = async () => {},
+  modelSecret = null,
+  modelStorage = null,
 }) {
   const appUrl = `${origin}/clan`;
   return async ({ db, account, event, signout, modelFactory = null }) => {
     const credential = Object.freeze({});
     const invoke = makeInvoker({
       db,
-      account,
+      // This trusted internal feature retains the family quota exemption;
+      // it still uses the original person for every identity/role check.
+      account: { ...account, firstParty: true },
       registry,
       live,
       surface: "web",
@@ -120,13 +128,36 @@ export function createClanRequest({
       participationFor: (token, tag) => fetchParticipation(mcp, token, tag),
       elixir: mcp,
     });
-    const model = modelFactory ? modelFactory({ ledger, mcp }) : null;
+    const model = modelFactory
+      ? modelFactory({ ledger, mcp })
+      : modelSecret && modelStorage
+        ? createModelService({
+            ledger,
+            secret: modelSecret,
+            rosterFor: (token, tag) => fetchRoster(mcp, token, tag),
+            anthropic: createModelBridge({
+              secret: modelSecret,
+              storage: modelStorage,
+              timeoutMs: () =>
+                Math.max(
+                  1,
+                  Math.min(
+                    25_000,
+                    (event.softDeadlineAt ?? Date.now() + 28_000) -
+                      Date.now() -
+                      3000,
+                  ),
+                ),
+            }),
+          })
+        : null;
     const handler = createHandler({
       ...context,
       mcp,
       manage,
       awards,
       model,
+      drafts: createDrafts({ ledger, model }),
       recruit: createRecruitService({ ledger, mcp, model }),
       scout: createScout({ mcp }),
       social: createSocialService({ ledger, geo: diskGeo() }),

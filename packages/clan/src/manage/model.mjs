@@ -22,12 +22,7 @@
  * page then asks for it again.
  */
 
-import {
-  createCipheriv,
-  createDecipheriv,
-  hkdfSync,
-  randomBytes,
-} from "node:crypto";
+import { createBox } from "../sealed.mjs";
 import { PURPOSES, chooseModel } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 
@@ -38,41 +33,7 @@ const KEY_SHAPE = /^sk-ant-[A-Za-z0-9_-]{20,200}$/;
 
 /** Seal and open a clan's key under a key derived from the app secret. */
 export function sealer(secret) {
-  const key = Buffer.from(
-    hkdfSync("sha256", secret, "elixir-clan", "clan model key v1", 32),
-  );
-  return {
-    seal(plain, aad) {
-      const iv = randomBytes(12);
-      const c = createCipheriv("aes-256-gcm", key, iv);
-      c.setAAD(Buffer.from(aad));
-      const ct = Buffer.concat([c.update(plain, "utf8"), c.final()]);
-      return {
-        v: 1,
-        iv: iv.toString("base64"),
-        tag: c.getAuthTag().toString("base64"),
-        ct: ct.toString("base64"),
-      };
-    },
-    /** The plain key, or null when it cannot be opened here. */
-    open(box, aad) {
-      try {
-        const d = createDecipheriv(
-          "aes-256-gcm",
-          key,
-          Buffer.from(box.iv, "base64"),
-        );
-        d.setAAD(Buffer.from(aad));
-        d.setAuthTag(Buffer.from(box.tag, "base64"));
-        return Buffer.concat([
-          d.update(Buffer.from(box.ct, "base64")),
-          d.final(),
-        ]).toString("utf8");
-      } catch {
-        return null;
-      }
-    },
-  };
+  return createBox(secret, "clan model key v1");
 }
 
 const boundTo = (clanTag, playerTag) => `${clanTag}|${playerTag}`;
@@ -188,7 +149,7 @@ export function createModelService({
         refused_at: stored.refused_at ?? null,
         readable,
         owner_leads: leads,
-        usable: readable && !stored.refused_at && leads !== false,
+        usable: readable && !stored.refused_at && leads === true,
       };
     },
 
@@ -262,34 +223,55 @@ export function createModelService({
       if (stored.refused_at) throw new ManageError(409, "model_key_refused");
       const key = box.open(stored.sealed, boundTo(clanTag, stored.set_by));
       if (!key) throw new ManageError(409, "model_key_unreadable");
-      if ((await ownerLeads(clanTag, stored, token)) === false)
+      const leads = await ownerLeads(clanTag, stored, token);
+      if (leads === false)
         throw new ManageError(409, "model_key_owner_left", null, {
           set_by_name: stored.set_by_name ?? stored.set_by,
+        });
+      if (leads !== true)
+        throw new ManageError(503, "model_owner_unconfirmed", null, {
+          message:
+            "The recorded roster could not confirm who added this key. Try again shortly.",
         });
       const today = iso().slice(0, 10);
       if ((await ledger.modelCalls(clanTag, today)).length >= USES_PER_DAY)
         throw new ManageError(429, "model_daily_limit", null, {
           per_day: USES_PER_DAY,
         });
-      const r = await anthropic.write(key, {
-        model: stored.model,
-        system: request.system,
-        prompt: request.prompt,
-        tool: request.tool,
-        max_tokens: request.max_tokens,
-      });
-      await ledger.addModelCall(clanTag, {
+      // Reserve before dispatch. A killed request, lost transport reply or
+      // failed final ledger update still consumes and shows this attempt.
+      const call = await ledger.addModelCall(clanTag, {
         at: iso(),
         by: who.player_tag,
         by_name: who.name ?? null,
         purpose: request.purpose,
+        model: stored.model,
+        ok: false,
+        status: null,
+        code: "outcome_pending",
+        input_tokens: null,
+        output_tokens: null,
+        ttl: Math.floor(now() / 1000) + USE_KEEP_DAYS * 86400,
+      });
+      let r;
+      try {
+        r = await anthropic.write(key, {
+          model: stored.model,
+          system: request.system,
+          prompt: request.prompt,
+          tool: request.tool,
+          max_tokens: request.max_tokens,
+        });
+      } catch {
+        r = { ok: false, status: 0, code: "outcome_unknown" };
+      }
+      await ledger.finishModelCall(clanTag, call, {
         model: r.model ?? stored.model,
         ok: r.ok,
         status: r.status ?? null,
         code: r.ok ? null : (r.code ?? null),
         input_tokens: r.usage?.input_tokens ?? null,
         output_tokens: r.usage?.output_tokens ?? null,
-        ttl: Math.floor(now() / 1000) + USE_KEEP_DAYS * 86400,
       });
       if (r.ok)
         return { input: r.input, model: r.model, usage: r.usage ?? null };

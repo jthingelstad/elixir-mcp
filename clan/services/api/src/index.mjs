@@ -1,3 +1,4 @@
+import { frozenClanResponse } from "@elixir-mcp/clan/migration-door.mjs";
 /** Lambda entrypoint: real seams from the environment, nothing else. */
 
 import { createHandler } from "@elixir-mcp/clan/handler.mjs";
@@ -113,5 +114,10 @@ const http = createHandler({
 
 /** One function: HTTP from the API, and the daily rule's event, which
  *  no HTTP request can produce (API Gateway's event has its own shape). */
-export const handler = (event, context) =>
-  event?.scheduled === "evaluate" ? scheduled() : http(event, context);
+export const handler = (event, context) => {
+  if (process.env.MIGRATION_FROZEN === "true") {
+    const refusal = frozenClanResponse(event);
+    if (refusal) return refusal;
+  }
+  return event?.scheduled === "evaluate" ? scheduled() : http(event, context);
+};

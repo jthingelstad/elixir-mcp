@@ -11,6 +11,7 @@
     "@aws-sdk/client-s3": "^3.1140.0",
     "@aws-sdk/client-sesv2": "^3.1140.0",
     "@elixir-mcp/contracts": "0.1.0",
-    "@elixir-mcp/mail": "0.1.0"
+    "@elixir-mcp/mail": "0.1.0",
+    "@elixir-mcp/clan": "0.1.0"
   }
 }

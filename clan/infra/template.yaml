@@ -65,6 +65,11 @@ Parameters:
       for the morning evaluation with nobody signed in. Minted locally and
       staged with --param once; its value is never printed. Empty means no
       scheduled evaluation. PRESERVED.
+  MigrationFrozen:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Freeze business reads and writes for the explicit state migration
   ScheduleEnabled:
     Type: String
     Default: "false"
@@ -195,6 +200,7 @@ Resources:
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref ApiCodeKey }
       Environment:
         Variables:
+          MIGRATION_FROZEN: !Ref MigrationFrozen
           TABLE_NAME: !Ref SessionTable
           APP_URL: !Sub ${ElixirUrl}/clan
           ELIXIR_URL: !Ref ElixirUrl
@@ -298,6 +304,7 @@ Resources:
         LogGroup: !Ref ApiLogGroup
       Environment:
         Variables:
+          MIGRATION_FROZEN: !Ref MigrationFrozen
           TABLE_NAME: !Ref SessionTable
           APP_URL: !Sub ${ElixirUrl}/clan
           ELIXIR_URL: !Ref ElixirUrl

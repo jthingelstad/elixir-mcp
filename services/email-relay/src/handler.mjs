@@ -35,6 +35,7 @@ export function makeHandler({
   enroll = null,
   readObject = null,
   deleteObject = null,
+  modelObject = null,
 }) {
   /** One message: "sent" (or dropped by design) or "bad_message"; a
    *  transport failure throws so the record retries. */
@@ -105,6 +106,11 @@ export function makeHandler({
     if (objects === null) return deliver(JSON.parse(body));
     // One object per notification; S3's own test event names none.
     for (const obj of objects) {
+      if (obj.key.startsWith("clan-model/")) {
+        if (!modelObject) return "bad_message";
+        await modelObject(obj);
+        continue;
+      }
       const text = await readObject(obj);
       if (text === null) continue;
       const outcome = await deliver(JSON.parse(text));

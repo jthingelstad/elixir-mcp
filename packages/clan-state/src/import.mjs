@@ -126,6 +126,8 @@ export async function importSnapshot(
       .rows[0].n;
     if (count !== item_count)
       throw new Error("clan import: count verification failed");
+    if (!(await compareSnapshot(db, bytes, expectedSha256)).equal)
+      throw new Error("clan import: content verification failed");
     await db.query(
       "insert into clan_state_import (snapshot_sha256, item_count, kinds) values ($1, $2, $3::jsonb)",
       [sha256, item_count, JSON.stringify(kinds)],
@@ -136,4 +138,35 @@ export async function importSnapshot(
     await db.query("rollback");
     throw error;
   }
+}
+
+/** Canonical JSON content comparison, counts only across the operator door. */
+function stable(value) {
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+  if (value && typeof value === "object")
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stable(value[key])}`)
+      .join(",")}}`;
+  return JSON.stringify(value);
+}
+export async function compareSnapshot(db, bytes, expectedSha256) {
+  const { items, sha256, kinds, item_count } = inspectSnapshot(
+    bytes,
+    expectedSha256,
+  );
+  const rows = (await db.query("select pk,body from clan_state order by pk"))
+    .rows;
+  const actual = new Map(rows.map((r) => [r.pk, stable(r.body)]));
+  const matching = items.filter(
+    (item) => actual.get(item.pk) === stable(item),
+  ).length;
+  return {
+    sha256,
+    kinds,
+    item_count,
+    stored_count: rows.length,
+    matching,
+    equal: rows.length === item_count && matching === item_count,
+  };
 }
