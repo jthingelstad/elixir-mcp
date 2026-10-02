@@ -21,8 +21,10 @@ play, and run the clan with its history in front of you.
 The focus is recording what you and the people you follow do, sending
 notifications about that record, making it available to your agents, and
 giving you a dashboard where you can explore what happened. The agreed
-right-sizing retires game-wide meta statistics and gameplay recommendations;
-the runtime changes are still pending.
+right-sizing retires game-wide meta statistics, gameplay recommendations and
+named recording Collections. Your existing primary, alt, friend and watching
+relationships continue to organize the players you follow. Runtime retirement
+is still pending.
 
 The Clash Royale API only answers "what is true right now" — your last
 ~30 battles, your current trophies. Elixir polls continuously,

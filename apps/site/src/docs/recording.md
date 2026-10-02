@@ -138,6 +138,12 @@ Explore page performs.
 
 ## Collections
 
+Named recording Collections are scheduled for retirement as part of Elixir's
+right-sizing. The existing primary, alt, friend and watching relationships
+remain the way to organize followed players. The behavior below is still
+deployed; the transition will address deliberate user tracking and integration
+enrollment before collection recording reasons are removed.
+
 A collection is a curated, named group (slug `^[a-z0-9][a-z0-9-]{1,38}$`,
 public or private, `player` or `clan` kind) that **records its members**:
 adding a tag to a collection is a recording reason like any other, at the
