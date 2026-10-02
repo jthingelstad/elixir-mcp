@@ -172,6 +172,26 @@ test.describe("signed in", () => {
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV$/);
     await expect(page.getByText("Ben")).toBeVisible();
     await expect(page.getByText("Co-leader").first()).toBeVisible();
+    // The canvas: the clan's own figures, its comings and goings in the
+    // account's zone, and a roster that finds a member.
+    await expect(
+      page.getByText("Invite only, 5,000 trophies to join.", { exact: false }),
+    ).toBeVisible();
+    const tiles = page.getByRole("group", { name: "The clan in numbers" });
+    await expect(tiles).toContainText("1,220");
+    await expect(tiles).toContainText("1st in race 135/4, +100");
+    const comings = page.getByRole("region", { name: "Comings and goings" });
+    await expect(comings).toContainText("Lu departed");
+    await expect(comings).toContainText(
+      "Finished 1st in the Colosseum, race 135/4 with 10,305 fame",
+    );
+    await expect(comings).toContainText("09-05 17:13 CDT");
+    await expect(comings).not.toContainText(/kick|\bleft\b/i);
+    await page.getByRole("searchbox", { name: "Find a member" }).fill("ze");
+    const roster = page.getByRole("region", { name: "Roster" });
+    await expect(roster).toContainText("Zed");
+    await expect(roster).not.toContainText("Ben");
+    await page.getByRole("searchbox", { name: "Find a member" }).fill("");
     // The rail now carries the clan: Manage for a leader, the tag aside.
     await expect(rail.getByRole("link", { name: /^Actions/ })).toBeVisible();
     await expect(rail.getByRole("link", { name: /^Board/ })).toBeVisible();

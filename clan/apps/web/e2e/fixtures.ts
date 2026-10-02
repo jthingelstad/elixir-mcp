@@ -69,9 +69,43 @@ export const ME = {
 
 const ROSTER = {
   clan_tag: "#2PQRJ8LV",
+  name: "Example Clan",
   member_count: 3,
+  type: "inviteOnly",
+  required_trophies: 5000,
+  clan_war_trophies: 1220,
+  donations_per_week: 52,
+  role_counts: { leader: 1, coLeader: 1, member: 1 },
+  comings: [
+    {
+      type: "member_joined",
+      at: "2026-09-11T11:28:00Z",
+      player_tag: "#M1",
+      name: "Zed",
+    },
+    {
+      type: "week_resolved",
+      at: "2026-09-07T09:38:00Z",
+      season_id: 135,
+      section_index: 4,
+      is_colosseum: true,
+      rank: 1,
+      fame: 10305,
+      trophy_change: 100,
+    },
+    {
+      type: "member_left",
+      at: "2026-09-05T22:13:00Z",
+      player_tag: "#L",
+      name: "Lu",
+    },
+  ],
   cached_at: "2026-09-12T17:55:00Z",
-  meta: { freshness_seconds: 300, as_of: "2026-09-12T17:55:00Z" },
+  meta: {
+    freshness_seconds: 300,
+    as_of: "2026-09-12T17:55:00Z",
+    timezone_applied: "America/Chicago",
+  },
   notes: [],
   members: [
     {

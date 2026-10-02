@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Elixir Clan's clan page, redrawn",
+    body: "A clan's page in Elixir Clan has the new design. It opens with what the game says the clan asks of a joiner and the clan's own figures as tiles: members by role, clan war trophies with the latest race result, and donations a week. The roster sits in a panel you can search by name or tag, with the longest rosters showing the first 25 and the rest a click away. Beside it are the clan's comings and goings, who joined or came back, who departed and how its races finished, in your own time zone, and once the clan's policy is on, a panel to spread the word with the clan's description, its tag to copy and a line for clan chat. Nothing about who sees what has changed. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "A battle's link now comes with a picture",
     body: "Every battle page has a picture: add .png to the battle's link. It is the page in one image, with the player's name on the left and the opponent's on the right, both decks as the game lays them out with each card's level, average elixir and elixir leaked, the towers' hitpoints, how it ended, and the link. A battle's link shows it when you paste the link into a chat, and the page's Share image and Copy for a post buttons give you the picture and the link to post. Contract 9.18.1.",
   },

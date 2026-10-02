@@ -57,7 +57,12 @@ function NoteInput({ value, onChange, placeholder = "note (optional)" }) {
 
 /** Paste-ready in-game copy for clan chat; `event` and `value` name the
  *  copy for the analytics taxonomy. */
-export function CopyLine({ text, event = "clan.copy_in_game", value }) {
+export function CopyLine({
+  text,
+  event = "clan.copy_in_game",
+  value,
+  label = "Copy for clan chat",
+}) {
   const [done, setDone] = useState(false);
   return (
     <div className="flex items-start gap-2 rounded-lg border border-[var(--line-soft)] bg-[var(--ground-sunken)] px-2.5 py-2 text-[13px]">
@@ -65,8 +70,8 @@ export function CopyLine({ text, event = "clan.copy_in_game", value }) {
       <button
         type="button"
         className="btn btn--sm"
-        title="Copy for clan chat"
-        aria-label="Copy for clan chat"
+        title={label}
+        aria-label={label}
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(text);

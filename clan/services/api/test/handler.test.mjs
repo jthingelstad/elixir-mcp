@@ -512,6 +512,62 @@ test("shapeRoster never adds fields the tool did not answer", () => {
   assert.equal(m.last_recorded_battle, null);
   assert.equal(m.name, null);
   assert.equal(shaped.meta.freshness_seconds, null);
+  assert.equal(shaped.clan_war_trophies, null);
+  assert.equal(shaped.required_trophies, null);
+  assert.deepEqual(shaped.comings, []);
+  assert.equal(shaped.meta.timezone_applied, null);
+});
+
+test("shapeRoster carries the clan's own figures and its newest comings and goings", () => {
+  const event = (type, at, detail) => ({ type, at, detail });
+  const shaped = shapeRoster(
+    {
+      clan_tag: "#X",
+      type: "inviteOnly",
+      required_trophies: 7500,
+      clan_war_trophies: 1220,
+      donations_per_week: 2428,
+      scores_observed_at: "2026-09-30T00:00:00Z",
+      members: [],
+      recent_events: [
+        event("role_changed", "2026-09-29T00:00:00Z", { player_tag: "#A" }),
+        event("member_left", "2026-09-25T22:13:00Z", {
+          player_tag: "#L",
+          name: "Lu",
+          role_at_departure: "elder",
+        }),
+        event("member_joined", "2026-09-29T11:28:00Z", {
+          player_tag: "#J",
+          name: "Jo",
+        }),
+        event("week_resolved", "2026-09-27T09:38:00Z", {
+          season_id: 136,
+          section_index: 2,
+          rank: 1,
+          fame: 10305,
+          trophy_change: 100,
+        }),
+        event("bracket_observed", "2026-09-28T09:38:00Z", { rivals: [] }),
+      ],
+      meta: { timezone_applied: "America/Chicago" },
+    },
+    { yourTags: [] },
+  );
+  assert.equal(shaped.type, "inviteOnly");
+  assert.equal(shaped.required_trophies, 7500);
+  assert.equal(shaped.clan_war_trophies, 1220);
+  assert.equal(shaped.donations_per_week, 2428);
+  assert.equal(shaped.meta.timezone_applied, "America/Chicago");
+  // Joins, departures and race results only, newest first; a departure
+  // carries no role and nothing says kick or leave.
+  assert.deepEqual(
+    shaped.comings.map((e) => e.type),
+    ["member_joined", "week_resolved", "member_left"],
+  );
+  assert.equal(shaped.comings[1].rank, 1);
+  assert.equal(shaped.comings[1].fame, 10305);
+  assert.equal(shaped.comings[2].name, "Lu");
+  assert.equal("role_at_departure" in shaped.comings[2], false);
 });
 
 test("unknown routes are 404 JSON; health is open", async () => {
