@@ -101,7 +101,12 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
 - **Canonical tables are lossless by policy.** Projections are rebuildable
   from the S3 payload archive (every distinct payload, forever); battles,
   snapshots and receipts are the system of record and must never need a
-  rebuild.
+  rebuild. The ratified 2026-10-02 right-sizing is an explicit exception
+  for retired leaderboard and elite-only data, with a reviewed deletion
+  manifest that protects overlapping personal/clan records and removes
+  selected archive object versions too. It is not general permission to
+  prune game history; see the implementation plan in
+  `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md`.
 - **Tools never read `api_payload`.** Its JSON column is a cache for a reader
   waiting on that exact payload - `live_fetch`, on the live lane, within
   seconds - and only live-lane payloads carry it (a lane rule, never an

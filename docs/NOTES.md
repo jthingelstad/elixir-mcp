@@ -2335,3 +2335,46 @@ No note assertion or query ceiling is weakened, and no new known entry hides it.
 
 The finalized-August parity and pre-fix rankings exceptions remain as
 previously triaged. This final tuning patch is 9.19.3; JSON API stays 2.10.0.
+
+## 2026-10-02 - Elixir right sizing direction and assessment
+
+Jamie reframed Elixir as the recorder for enthusiastic players and clans,
+with personal exploration, friends, useful emails and clan management at its
+center. MCP is a connection to the record, not the product's definition.
+Jamie confirmed removal of global leaderboard capture and history while
+retaining profile-reported player ranks, and inclusion of full Clan
+consolidation into one application, session, storage and deployment. Ultimate
+Champions and Card of the Week are removal targets from the original request.
+These supersede the earlier top-of-ladder positioning, ranking dial, separate
+Clan architecture and unconditional archive-retention decisions. Runtime
+retirement and irreversible deletion have not happened.
+
+The engineering assessment and implementation sequence are in
+`docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md`; the purpose is recorded in
+the public About page, not a second product spec. Further corpus/meta and
+recommendation cuts are identified as proposals pending Jamie's answer.
+Social and model drafting remain separate product calls. No contract version
+changes in this documentation round.
+
+Read-only migrate stats/tables measured 33 accounts, 1,027 active recordings,
+686 ranking-origin recordings, 653,635 battles and a 9.41 GB database. Origin
+is not a safe deletion selector. Per-battle observer provenance lives in the
+archive, and the archive is versioned: retention overlap and exact object
+versions must be established before an approved purge. Exact removable
+battles, archive bytes and financial savings are not yet measured.
+
+The original simplify worktree contained pre-existing work and was left
+untouched. This assessment was prepared from origin/main 62032320 in its own
+worktree. Public health and the two read-only ops passed; no production
+writes, schedule changes, sends, lease claims or data deletion occurred.
+
+Queued implementation: settle the additional cuts, stop capture and
+editorial delivery, remove the capabilities and their replay paths, build a
+private reviewed purge manifest, execute the bounded purge, consolidate
+Clan with an import rehearsal and one authoritative writer, then remove
+obsolete infrastructure and maintenance ownership. Each runtime step uses
+the repository gates and live read-back.
+
+Validation: `npm run verify` passed for the documentation proposal, including
+the merged site build and all workspace tests. Runtime and data retirement
+remain pending; this proposal is for review, not a production removal release.
