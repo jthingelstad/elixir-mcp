@@ -114,7 +114,7 @@ trophies and the ranked standing, so the two sides of it are not one series.
   run on game days and floor an instant to its day, saying so. `days` and
   `weeks` are sugar; `season` (`current`, `previous`, `2026-08` or `135`)
   bounds one season on every windowed tool, `elixir_timeline` included, and
-  is the default on the meta tools and `cards_card`.
+  is the default on `cards_card`.
   Every windowed response echoes `applied.window` with a `source` of
   `argument`, `default`, `unbounded`, `season` or `fixed`, the `season` it
   starts in and `crosses`, every season roll inside it (a note fires when
@@ -129,7 +129,7 @@ trophies and the ranked standing, so the two sides of it are not one series.
   caveats to repeat with the numbers; `docs` is a `page#section` for
   `elixir_docs` where the formulas live.
 - **`live: true` asks for a fresh read** on `players_profile`, `clans_roster`,
-  `war_current`, `battles_query` and the board tools: served at once if a
+  `war_current`, `battles_query`: served at once if a
   read inside the API's cache window is in hand, otherwise queued while
   the record answers now with `live_status.state: "pending"` and when to
   call again. `live_fetch` is the raw catch-all and the last resort; it

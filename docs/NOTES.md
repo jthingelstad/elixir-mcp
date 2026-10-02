@@ -2917,3 +2917,37 @@ during transfer, while continuing to require a healthy read-only health door.
 It makes the same six safe reads in either mode; it never creates a login.
 Both modes and the full verification gate pass. This closes an expected
 false alarm that would otherwise interrupt the approved freeze deployment.
+### 2026-10-02: Board credential and documentation retirement checks
+
+The former collection-updater MCP key still belongs to the owner account
+alongside unrelated keys. A separate retire_board_recordings credential
+branch previews only its nonsecret metadata and applies only to its exact
+token id/name/audience after all board dials are disabled. It revokes that
+key once with an audit receipt; no account, sibling key, recording, fact or
+archive changes. Scratch tests cover preview, unrelated/stale IDs, active
+board refusal, preservation and idempotence. Live revocation is still owed.
+
+Consistency review found active live-read docs still promising board tools,
+meta comparison examples and the retired analyst's operational ownership.
+These now describe the retained personal/clan record. The four-owner
+workflow and generated manifest schedule agree. No matching board launchd
+writer was found on this Mac; other hosts were not scanned. The stale
+primary-checkout board credential file will be retired by exact path after
+the server key is revoked, without reading its value or executing its client.
+
+No tool implementation or response changes: contracts remain MCP 11.0.1
+and JSON API 3.0.0, deployment uses smoke without a tool acceptance sweep.
+
+Review caught legal same-name credentials on different accounts and revoked
+predecessors. Preview now lists all matching nonsecret metadata with account
+references; apply selects the exact token id first. Collision regressions
+preserve the predecessor timestamp and the peer’s live key. The obsolete
+ranking_health and pros_census queries and their exclusive tests retire;
+recorder/fetch-error diagnostics remain. Final read-only review found no
+blocker; 25 focused tests, full npm run verify and Lambda/site builds pass.
+
+PR #227 deployed from c927c73b after green main validate and legacy Clan CI.
+Door smoke passed; /api/me advertises clan_internal:false and public health
+is healthy with zero DLQ objects. Migration 0196 was already applied, with
+no new migrations. No private import or shared Clan activation occurred in
+that deployment. Lease b7726415-181c-4f44-a7dc-ac558a81d0f2 was released.

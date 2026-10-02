@@ -213,8 +213,7 @@ scraped enters the data layer. Use a season window to keep comparisons within th
 - **`season`** on every windowed tool (`cards_card`,
   `battles_trends`, the player battle tools, `clans_standings`, the daily
   series, `game_events` and `elixir_timeline`)
-  bounds the window to one season: `"current"` (the default on the meta
-  tools; to date), `"previous"`, the month (`"2026-08"`) or the war number
+  bounds the window to one season: `"current"` (to date), `"previous"`, the month (`"2026-08"`) or the war number
   (`135`). `from`/`to`/`days`/`weeks` given still win, and each tool's own
   default (unbounded, 30 days on the standings, the read pointer on the
   timeline) is unchanged when `season` is omitted.
@@ -227,8 +226,8 @@ scraped enters the data layer. Use a season window to keep comparisons within th
   window is season-clean, and an unbounded window crosses every roll on
   record. Nothing is refused: an agent asking across a roll may mean it,
   and a note fires only when `crosses` is non-empty, in the tool's own
-  terms (balance changes on the meta and battle tools; the trophy and
-  ranked resets on the series, standings and board tools), so the caveat
+  terms (balance changes on battle tools; the trophy and
+  ranked resets on personal series and clan standings), so the caveat
   travels with the numbers. `crosses` is what lets a consumer refuse for
   itself.
 - **`applied.window.season_age_days`** is how old that season is at the

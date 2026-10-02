@@ -161,3 +161,121 @@ test("capture cutover remains incomplete while obsolete work is locked elsewhere
     await ctx.drop();
   }
 });
+
+test("board credential retirement refuses stale or unrelated IDs, previews, and preserves its owner and other keys", async () => {
+  const ctx = await scratchDb("retire_board_key");
+  const db = ctx.db;
+  try {
+    const owner = (
+      await db.query(
+        "insert into account(email_hash,status,is_owner) values('board-key-test','approved',true) returning account_id",
+      )
+    ).rows[0].account_id;
+    const predecessor = (
+      await db.query(
+        "insert into service_token(account_id,name,token_hash,audience,revoked_at) values($1,'collection-updater','previous-key','mcp',now()-interval '1 day') returning token_id,revoked_at",
+        [owner],
+      )
+    ).rows[0];
+    const peer = (
+      await db.query(
+        "insert into account(email_hash,status) values('other-board-key','approved') returning account_id",
+      )
+    ).rows[0].account_id;
+    const peerToken = (
+      await db.query(
+        "insert into service_token(account_id,name,token_hash,audience) values($1,'collection-updater','peer-key','mcp') returning token_id",
+        [peer],
+      )
+    ).rows[0].token_id;
+    const tokens = {};
+    for (const name of ["collection-updater", "unrelated-token"]) {
+      tokens[name] = (
+        await db.query(
+          "insert into service_token(account_id,name,token_hash,audience) values($1,$2,$2,'mcp') returning token_id",
+          [owner, name],
+        )
+      ).rows[0].token_id;
+    }
+    const run = (credential) => retireBoardRecordings(null, { credential }, db);
+    const preview = await run({});
+    assert.equal(preview.applied, false);
+    assert.equal(preview.credentials.length, 3);
+    const selected = preview.credentials.find(
+      (t) => t.token_id === tokens["collection-updater"],
+    );
+    assert.equal(selected.revoked_at, null);
+    for (const candidate of preview.credentials) {
+      assert.equal(candidate.name, "collection-updater");
+      assert.equal(Object.hasOwn(candidate, "token_hash"), false);
+      assert.equal(Object.hasOwn(candidate, "account_id"), false);
+    }
+    for (const id of [undefined, "invalid", tokens["unrelated-token"]])
+      await assert.rejects(run({ apply: true, expected_token_id: id }));
+    await db.query(
+      "update ranking_board set enabled=false,record_top=0,reread_at=null",
+    );
+    // A configured board must be retired before its key, even on an exact ID.
+    await db.query(
+      "update ranking_board set enabled=true where board='pol' and location_key='global'",
+    );
+    const spec = {
+      apply: true,
+      expected_token_id: tokens["collection-updater"],
+    };
+    await assert.rejects(run(spec), /boards must retire/);
+    assert.equal(
+      (await run({})).credentials.find(
+        (t) => t.token_id === tokens["collection-updater"],
+      ).revoked_at,
+      null,
+    );
+    await db.query(
+      "update ranking_board set enabled=false,record_top=0,reread_at=null",
+    );
+    assert.equal((await run(spec)).revoked, 1);
+    assert.equal((await run(spec)).revoked, 0);
+    assert.equal(
+      (
+        await db.query(
+          "select revoked_at from service_token where token_id=$1",
+          [peerToken],
+        )
+      ).rows[0].revoked_at,
+      null,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select revoked_at from service_token where token_id=$1",
+          [predecessor.token_id],
+        )
+      ).rows[0].revoked_at.toISOString(),
+      predecessor.revoked_at.toISOString(),
+    );
+    const sibling = (
+      await db.query("select revoked_at from service_token where token_id=$1", [
+        tokens["unrelated-token"],
+      ])
+    ).rows[0];
+    assert.equal(sibling.revoked_at, null);
+    const account = (
+      await db.query(
+        "select status,is_owner from account where account_id=$1",
+        [owner],
+      )
+    ).rows[0];
+    assert.equal(account.status, "approved");
+    assert.equal(account.is_owner, true);
+    assert.equal(
+      (
+        await db.query(
+          "select count(*)::int as n from account_event where kind='service_token_revoked'",
+        )
+      ).rows[0].n,
+      1,
+    );
+  } finally {
+    await ctx.drop();
+  }
+});
