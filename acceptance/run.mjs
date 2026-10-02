@@ -42,6 +42,26 @@ import { ground } from "./checks/ground.mjs";
 import { loadCatalogue } from "./catalogue.mjs";
 import { writeShape, loadShape } from "./shapes.mjs";
 
+// Explicitly retired domains, kept here so historical criteria remain reviewable.
+const RETIRED_TOOLS = new Set([
+  "rankings_players",
+  "rankings_clans",
+  "rankings_clan_ladder",
+  "rankings_timeline",
+  "battles_meta_decks",
+  "battles_meta_cards",
+  "cards_synergy",
+  "battles_deck_sets",
+  "battles_deck_upgrades",
+]);
+class RetiredCriterion extends Error {}
+function retainedCall(tool, args) {
+  if (RETIRED_TOOLS.has(tool) || args?.segment === "corpus")
+    throw new RetiredCriterion(
+      "2026-10-02 recorder scope: global boards, corpus statistics and recommendations retired; historical criterion retained.",
+    );
+}
+
 export const SUITES = {
   contracts,
   identities,
@@ -74,11 +94,17 @@ export async function runSuite(
 ) {
   const tools = given ?? (await door.toolsList());
   const ctx = {
-    call: door.call,
+    call: async (tool, args) => {
+      retainedCall(tool, args);
+      return door.call(tool, args);
+    },
+    // Dedicated refusal probes intentionally call removed tools/selectors.
+    refusal: (tool, args) => door.call(tool, args),
     tools: new Map(tools.map((t) => [t.name, t])),
     cache: new Map(),
     /** A read, cached by tool + args for the run. */
     read: async (tool, args = {}) => {
+      retainedCall(tool, args);
       const key = `${tool}:${JSON.stringify(args)}`;
       if (!ctx.cache.has(key)) ctx.cache.set(key, await door.call(tool, args));
       return ctx.cache.get(key);
@@ -99,7 +125,8 @@ export async function runSuite(
       ms = out?.ms ?? null;
       skip = out?.skip ?? null;
     } catch (err) {
-      error = err instanceof Error ? err.message : String(err);
+      if (err instanceof RetiredCriterion) skip = err.message;
+      else error = err instanceof Error ? err.message : String(err);
     }
     const wall = Math.round(performance.now() - started);
     // A known failure (known.json: a reason and an expiry, filed for a

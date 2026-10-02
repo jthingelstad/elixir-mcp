@@ -1,34 +1,19 @@
 ---
 layout: base.njk
 title: "Cards"
-description: "Every Clash Royale card, and how it is played in the battles Elixir records this season: its share of decks and how those battles went, one mode at a time."
+description: "The recorded Clash Royale card catalog: names, rarity, elixir cost and available forms."
 permalink: /cards/index.html
 canonical: /cards
 navActive: cards
 ---
-{#-
-  The cards index (canvas 2026-09-29, CardsIndex). PUBLIC and sign-in
-  free, like every card page under it.
-
-  The list of cards is baked from the catalog at build time and reads
-  true with JavaScript off: every card, A to Z, each a link to its page.
-  How the cards are played moves every hour, so cards-index.js reads
-  /api/public/cards in the browser and redraws the list as the board
-  draws it: one mode at a time (modes are never added together), most
-  played first, with search, sort, rarity and cost. The controls stay
-  hidden until that script has data to drive them.
--#}
 <div class="flex flex-col gap-[22px] pt-8 pb-2" data-cards-index>
   <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
     <div class="flex min-w-0 flex-auto flex-col gap-2">
       <h1 class="hero-title m-0">Cards</h1>
       <p class="lede m-0 max-w-[70ch]" data-cards-lede>
-        Every card in Clash Royale, and how each is played in the battles
-        Elixir records this season, one mode at a time: modes are never
-        added together.
+        The recorded Clash Royale catalog: card names, rarity, elixir cost and available forms.
       </p>
     </div>
-    <span class="chip chip--ok" data-cards-updated hidden><span class="chip__dot"></span><span data-cards-updated-text></span></span>
   </div>
 
   <div class="flex flex-col gap-[14px]" data-cards-controls hidden>
@@ -37,13 +22,10 @@ navActive: cards
         {% icon "search", 16 %}
         <input type="search" placeholder="Find a card" aria-label="Find a card" autocomplete="off" data-cards-search />
       </label>
-      <div class="card-modes" role="group" aria-label="Mode" data-cards-modes></div>
       <span class="flex-auto"></span>
       <label class="flex items-center gap-2 text-[12.5px] text-ink-faint">
         Sort
         <select class="select" data-cards-sort>
-          <option value="played">Most played</option>
-          <option value="wins">Highest win rate</option>
           <option value="elixir">Elixir cost</option>
           <option value="name">Name</option>
         </select>
@@ -69,7 +51,7 @@ navActive: cards
   {%- if cards.length %}
   <ul class="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-[14px] p-0" data-cards-grid>
     {%- for card in cards %}
-    <li>
+    <li data-name="{{ card.name }}" data-rarity="{{ card.rarity }}" data-elixir="{{ card.elixir }}">
       <a class="card-tile" href="/cards/{{ card.id }}/">
         <span class="card-tile__art">
           <span class="card-art"><span class="card-art__frame"><img class="card-art__img" src="/assets/cards/{{ card.id }}-128.png" alt="" width="43" height="63" loading="lazy" data-name="{{ card.name }}" /></span></span>
@@ -90,23 +72,5 @@ navActive: cards
   </p>
   {%- endif %}
 
-  <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-    <button type="button" class="btn" data-cards-more hidden></button>
-    <p class="footnote m-0 flex-auto" data-cards-legend hidden>
-      Share of decks: of the mode&rsquo;s recorded battles this season,
-      how many had the card on the player&rsquo;s side. Wins: how those
-      battles went. Thin: under 2,000 battles.
-    </p>
-  </div>
-
-  <a class="panel flex items-center gap-4 px-5 py-4 text-ink no-underline hover:border-line-strong" href="/console/signin?request">
-    <span class="flex flex-none text-ink-link">{% icon "mail", 20 %}</span>
-    <span class="flex flex-auto flex-col gap-[2px]">
-      <span class="text-[15px] font-semibold">Card of the Week, every Friday</span>
-      <span class="text-[13.5px] text-ink-dim">One card, how its week went, in your inbox. On for every Elixir account; one click turns it off.</span>
-    </span>
-    <span class="whitespace-nowrap text-[14px] text-ink-link">Request access &rsaquo;</span>
-  </a>
 </div>
-
 <script defer src="{{ "/assets/cards-index.js" | asset }}"></script>

@@ -119,7 +119,6 @@ function AdminCards() {
   const data = useAdminCards().data;
   const version = data?.version ?? null;
   const cards = data?.cards ?? [];
-  const unattested = data?.unattested ?? [];
   const roleText = (c) => {
     const r = c.role;
     if (!r) return "—";
@@ -148,11 +147,6 @@ function AdminCards() {
         }
       : "—",
   ]);
-  const queueRows = unattested.map((u) => [
-    u.name,
-    String(u.decks),
-    String(u.battles),
-  ]);
   return (
     <>
       <LogTable
@@ -177,20 +171,6 @@ function AdminCards() {
         minWidth={820}
         empty="No catalog yet."
         footnote="card joined to card_role. A card with no role is not a win condition, however new; a deck built around one is named by its family alone until a public source names it."
-      />
-      <LogTable
-        title="Unattested this season"
-        note={`Cards with no role that are the most expensive troop or building in a deck with no attested win condition${data?.season ? ` (season ${data.season})` : ""}, by the battles those decks hold. The research agent's queue: a card here is attested only when a deck site or guide names decks by it.`}
-        cols={[
-          ["CARD", "left"],
-          ["DECKS", "right"],
-          ["BATTLES", "right"],
-        ]}
-        rows={queueRows}
-        monoCols={[1, 2]}
-        minWidth={420}
-        empty="Every deck this season has an attested win condition."
-        footnote="Wizard and Baby Dragon here are support cards in decks with no win condition at all - the honest fallback, not a missing role."
       />
     </>
   );

@@ -21,7 +21,6 @@ export const REQUIRED_PARAMETERS = [
   "EmailRelayCodeKey",
   "MigrateCodeKey",
   "JobsCodeKey",
-  "EditorCodeKey",
   "CollectorCodeKey",
 ];
 
@@ -49,8 +48,6 @@ export const PRESERVED_PARAMETERS = [
   "CollectorMinEnforce",
   // The Top 100 writer's model: changed by hand when a newer one is
   // wanted, never reset by a deploy.
-  "EditorModel",
-  "AnthropicKeyInSecret",
   // Secret rotation (docs/SECRETS.md, #71): the switches for keys the app
   // secret may or may not carry yet, the origin secret a rotation
   // replaced, and the epoch that makes every function re-read its

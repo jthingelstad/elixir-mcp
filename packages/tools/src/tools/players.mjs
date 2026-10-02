@@ -867,13 +867,13 @@ export const playersTools = {
           fielded.mean_level !== null &&
             fielded.recent_mean_level !== null &&
             Math.abs(fielded.recent_mean_level - fielded.mean_level) >= 1
-            ? `fielded.mean_level (${fielded.mean_level}) is a 30-day mean and this player's last ten decided battles fielded ${fielded.recent_mean_level}: the account is ${fielded.recent_mean_level > fielded.mean_level ? "levelling up" : "fielding lower now"}, so set an upgrade target from recent_mean_level.`
+            ? `fielded.mean_level (${fielded.mean_level}) is a 30-day mean and this player's last ten decided battles fielded ${fielded.recent_mean_level}: the account is ${fielded.recent_mean_level > fielded.mean_level ? "levelling up" : "fielding lower now"}; recent_mean_level describes the last ten games.`
             : null,
           "forms_available decodes maxEvolutionLevel (which forms exist), forms_unlocked decodes evolutionLevel (which the player holds); both are bit fields, never levels or progress.",
           "Levels are the in-game 1-16 scale (every card caps at 16); starLevel is cosmetic. The catalog's facts - rarity, elixirCost, maxLevelRarityScale, iconUrls - are not repeated per card here: cards_catalog carries them, once.",
           fielded.mean_level === null
             ? "fielded.mean_level is null: no decided pvp battle with a recorded deck in the last 30 days, so there is no benchmark for what this player fields."
-            : `fielded.mean_level (${fielded.mean_level} over ${fielded.battles} decided battles, 30 days) is the mean card level of the decks this player actually plays; a held level below ${fielded.recent_mean_level !== null && Math.abs(fielded.recent_mean_level - fielded.mean_level) >= 1 ? `the level fielded now (fielded.recent_mean_level, ${fielded.recent_mean_level})` : "it"} is an upgrade target, and battles_meta_decks with fit_for checks the population's decks against this collection.`,
+            : `fielded.mean_level (${fielded.mean_level} over ${fielded.battles} decided battles, 30 days) is the mean card level of the decks this player actually played; recent_mean_level describes their last ten such battles.`,
         ),
         docs: FORMS_DOCS,
         meta: await buildMeta(ctx.db, ctx.account, tag, ["player"]),

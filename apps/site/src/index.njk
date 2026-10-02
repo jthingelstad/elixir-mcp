@@ -16,7 +16,6 @@ navActive: home
     No number on this page is invented. The tiles describe a part of
     Elixir instead of showing a record, because a visitor here has none
     and the page has nobody's to show; the cards' numbers are the public
-    endpoint's, drawn by home-live.js when they arrive and absent when
     they do not. -#}
 {%- set t = stats.totals %}
 {%- set drop = familyBar.products | selectattr("game") | first %}
@@ -32,11 +31,9 @@ navActive: home
     </p>
     <div class="flex flex-wrap items-center gap-3">
       <a class="btn btn--primary btn--lg" href="/console/signin?request">Request access</a>
-      <a class="btn btn--lg" href="/cards/">{% icon "layout-grid", 16 %}Browse card stats</a>
     </div>
     <p class="footnote m-0">
-      Accounts are granted by hand while the record grows. Card stats are
-      public; no account needed.
+      Accounts are granted by hand while the record grows.
     </p>
   </div>
   <div class="home-art">
@@ -97,7 +94,6 @@ navActive: home
         <li class="home-tile__row"><span class="home-tile__day">Mon</span>Clan report</li>
         <li class="home-tile__row"><span class="home-tile__day">Tue</span>Your week in the Arena</li>
         <li class="home-tile__row"><span class="home-tile__day">Wed</span>Your friends this week</li>
-        <li class="home-tile__row"><span class="home-tile__day">Fri</span>Card of the Week</li>
       </ul>
       <a class="home-tile__cta" href="/docs/email">See every email ›</a>
     </article>
@@ -113,16 +109,7 @@ navActive: home
       <a class="home-tile__cta" href="/docs/quickstart">Connect your agent ›</a>
     </article>
 
-    <article class="home-tile">
-      <span class="home-tile__head"><span class="home-tile__icon">{% icon "layout-grid", 18 %}</span><span class="home-tile__product">Cards</span></span>
-      <h3 class="home-tile__question">What is everyone playing?</h3>
-      <p class="home-tile__text">Public stats for every card: how often it is played and how it does, by mode and by month. No account needed.</p>
-      <div class="home-tile__sample" data-home-top3 hidden>
-        <ol class="m-0 flex list-none flex-col gap-2 p-0" data-home-top3-list></ol>
-        <span class="home-tile__caption" data-home-top3-caption></span>
-      </div>
-      <a class="home-tile__cta" href="/cards/">Browse cards ›</a>
-    </article>
+
   </div>
 </section>
 
@@ -140,14 +127,7 @@ navActive: home
 </section>
 {%- endif %}
 
-<section class="home-band" aria-labelledby="home-top" data-home-strip hidden>
-  <div class="home-band__head">
-    <h2 class="home-band__title home-band__title--plain" id="home-top">Most played in Path of Legends this season</h2>
-    <span class="home-band__note" data-home-strip-note></span>
-    <a class="text-[14px]" href="/cards/?mode=ranked">All cards ›</a>
-  </div>
-  <ol class="home-strip" data-home-strip-list></ol>
-</section>
+
 
 <section class="home-band" aria-labelledby="home-ask">
   <div class="grid items-start gap-8 wide:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] wide:gap-10">
@@ -219,7 +199,7 @@ navActive: home
       <h2 class="panel-title m-0" id="home-request">Request access</h2>
       <p class="footnote m-0">
         Accounts are granted by hand while the record grows. Tell us who
-        you are in the arena; the card stats stay public either way.
+        you are in the arena and what you want to record.
       </p>
     </div>
     <a class="btn btn--primary" href="/console/signin?request">Request access</a>
@@ -228,4 +208,3 @@ navActive: home
 </div>
 
 <script src="{{ "/assets/transcript.js" | asset }}" defer></script>
-<script src="{{ "/assets/home-live.js" | asset }}" defer></script>

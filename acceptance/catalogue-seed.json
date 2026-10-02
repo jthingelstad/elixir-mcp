@@ -29,24 +29,6 @@
       "reason": "members[].played.level_played is a clan-segment field"
     }
   ],
-  "rankings_timeline": [
-    {
-      "args": {
-        "days": 14
-      },
-      "reason": "the board's own curve carries floor_delta"
-    }
-  ],
-  "rankings_players": [
-    {
-      "args": {
-        "board": "pol_final",
-        "season": 135,
-        "limit": 3
-      },
-      "reason": "a final board echoes season_requested"
-    }
-  ],
   "elixir_timeline": [
     {
       "args": {
@@ -70,32 +52,6 @@
         "player_tag": "#UL2V9QRG0"
       },
       "reason": "a full collection under the result cap (the owner's is not: filed)"
-    }
-  ],
-  "battles_meta_decks": [
-    {
-      "args": {
-        "segment": "corpus",
-        "limit": 5,
-        "fit_for": "#20JJJ2CCRU"
-      },
-      "reason": "fit rows carry held_level, vs_fielded, to_level, mean_level_after_upgrades the battles docs promise"
-    }
-  ],
-  "battles_deck_sets": [
-    {
-      "args": {
-        "player_tag": "#20JJJ2CCRU"
-      },
-      "reason": "the tool's first shape (9.4.0): sets[].decks[].value parts, modes, fit, candidates and near_misses the battles docs promise"
-    }
-  ],
-  "battles_deck_upgrades": [
-    {
-      "args": {
-        "player_tag": "#20JJJ2CCRU"
-      },
-      "reason": "the tool's first shape (9.7.0): baseline, options with gain and set_after, within_reach with raises and levels the battles docs promise"
     }
   ]
 }

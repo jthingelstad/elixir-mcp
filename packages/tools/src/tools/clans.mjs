@@ -213,7 +213,7 @@ async function clanScores(db, clanTag) {
 }
 
 const CLAN_SCORE_NOTE =
-  "clan_score is the game's own clan score (the clans board of rankings_clan_ladder ranks by it), not the sum of member trophies; clan_war_trophies is the clanwars board's figure. Both as of scores_observed_at, the newest roster read.";
+  "clan_score is the game's own clan score, not the sum of member trophies; clan_war_trophies is the game's observed war trophy count. Both as of scores_observed_at, the newest roster read.";
 
 export const clansTools = {
   clans_standings: {

@@ -20,7 +20,6 @@ defect somewhere.
 | **Elixir Data Auditor** | `record` | `elixir-data-auditor.md` | Is what we recorded actually what happened in the game — and do our docs and projections still match the live API? |
 | **Elixir Feedback Manager** | `loop` | `elixir-feedback-manager.md` | Is feedback (human AND agent) plus call-audit signal turning into responses, shipped improvements, and honest docs? |
 | **Elixir Security Reviewer** | `guard` | `elixir-security-reviewer.md` | Are entitlements, privacy boundaries, the public repo, secrets, and the one-key rate-budget posture actually holding? |
-| **Elixir Rankings Analyst** | `boards` | `elixir-rankings-analyst.md` | Did every leaderboard snapshot land, is a top-200 appearance recording the player for the season, and do the board-driven collections equal today's board? |
 
 Calendar cadence: [generated schedule](SCHEDULE.md), sourced from `automations.toml`.
 Each run works in its own worktree ([WORKFLOW](WORKFLOW.md), "One
@@ -53,9 +52,7 @@ deploys, recovery, or cost; **Elixir Data Auditor** for game facts,
 payload meaning, projection correctness, or CR API drift; **Elixir
 Feedback Manager** when the machinery works but feedback sits unanswered, agents
 stumble on tool ergonomics, or docs have gone stale; **Elixir Security Reviewer**
-for secrets, entitlements, privacy, or ToS-posture questions; **Elixir
-Rankings Analyst** for leaderboard snapshots, ranking presence and the
-board-driven collections.
+for secrets, entitlements, privacy, or ToS-posture questions.
 Cross-cutting work keeps one originating owner through acceptance.
 
 ## Boundaries with the neighbors
@@ -96,10 +93,8 @@ Cross-cutting work keeps one originating owner through acceptance.
   collector door, its own Lambda since 2026-09-29),
   auth (the shared credential core), ingest, scheduler (plans the job
   ledger), migrate (deploy plumbing + break-glass ops), jobs (scheduled
-  product work), and the two non-VPC Lambdas that are the only internet
-  egress: email-relay (mail over SES, Buttondown enrollment) and editor
-  (the Anthropic API for the written mails). The VPC Lambdas hand them
-  work through the outbox bucket; the servers send analytics nothing.
+  product work), and the non-VPC email-relay (mail over SES,
+  Buttondown enrollment). The VPC Lambdas hand it work through the outbox bucket; the servers send analytics nothing.
 - `~/Projects/clash-royale/elixir-mcp-collector` — the collector fleet's own repo;
   queue contract stays canonical here.
 - `~/Projects/clash-royale/cr-agent-api-docs` — CR API truth; patch it when the live

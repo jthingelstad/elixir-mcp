@@ -8,7 +8,7 @@ navTitle: "Welcome"
 icon: info
 lede: "Your Clash Royale history, your friends and your clan, kept for you to explore."
 console: ["See the recorder", "/data", "Data"]
-reviewed: "2026-10-02 product framing; recording and contracts unchanged"
+reviewed: "2026-10-02 recorder scope, contract 11.0.0"
 ---
 
 # About Elixir
@@ -20,11 +20,9 @@ play, and run the clan with its history in front of you.
 
 The focus is recording what you and the people you follow do, sending
 notifications about that record, making it available to your agents, and
-giving you a dashboard where you can explore what happened. The agreed
-right-sizing retires game-wide meta statistics, gameplay recommendations and
+giving you a dashboard where you can explore what happened. Elixir has retired game-wide meta statistics, gameplay recommendations and
 named recording Collections. Your existing primary, alt, friend and watching
-relationships continue to organize the players you follow. Runtime retirement
-is still pending.
+relationships organize the players you follow.
 
 The Clash Royale API only answers "what is true right now" — your last
 ~30 battles, your current trophies. Elixir polls continuously,

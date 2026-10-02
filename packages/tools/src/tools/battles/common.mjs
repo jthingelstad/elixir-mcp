@@ -6,34 +6,16 @@ import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
 import {
   EVENT_MODE_GROUP,
   MODE_GROUPS,
-  cardDisplayName,
   eventContentSql,
   typesForModeGroup,
 } from "@elixir-mcp/contracts";
-import {
-  PARTICIPANT_GAMES,
-  deckStamps,
-  docsRef,
-  requireEnum,
-} from "../shared.mjs";
-import { TROPHY_BAND_NAMES } from "../../meta-season.mjs";
+import { docsRef, requireEnum } from "../shared.mjs";
 
 /** group_by on battles_meta_decks (6.6.0, design §6): the population's
  *  decks folded by archetype label or by family, with the members who
  *  play each on a clan or player segment. */
-export const GROUP_BY_SCHEMA = {
-  type: "string",
-  enum: ["archetype", "family"],
-  description:
-    'Fold the population\'s decks by archetype label ("Royal Hogs bridge spam") or by family (six rows). Rows carry decks, battles, record and players; on a clan or player segment each carries members[] (who plays it, with their most-played deck of that shape). Sorted by players then battles - who plays what, never a tier list: shrunk_win_rate is deliberately absent. decks[] is empty with group_by.',
-};
 
 /** fit_for on the meta tools (6.4.0, feedback #70). */
-export const FIT_FOR_SCHEMA = {
-  type: "string",
-  description:
-    "A player tag whose recorded collection every row is checked against. On battles_meta_decks a row the player cannot field (a card not owned, a form not unlocked) leaves decks[] for unfieldable[] with the reason, and every row carries fit: the mean level the player would field it at, that against the level they have been fielding in the window (fit_for.fielded_mean_level), and the upgrade path to it. On battles_meta_cards each row carries held (level and forms) or null. Omit for the population alone; a recommendation to a person should not omit it.",
-};
 
 /** The trophy band argument the three meta tools take (0135): the
  *  participant's own starting trophies at battle time. */
@@ -41,47 +23,11 @@ export const FIT_FOR_SCHEMA = {
 /** One card, or a handful: the ids a card-shaped question names (5.0.0).
  *  Filters the rows AFTER aggregation, like min_battles and limit; the
  *  denominators (decided_battles, usage_share) stay the population's. */
-export const CARD_IDS_ARG = {
-  type: "array",
-  items: { type: "integer" },
-  minItems: 1,
-  maxItems: 8,
-};
-export const META_TROPHY_BAND_SCHEMA = {
-  type: "string",
-  enum: TROPHY_BAND_NAMES,
-  description:
-    "Only battles the deck's own player entered with starting trophies in this band: the meta at a level. Ranked (Path of Legends) battles carry a rating, not trophies, and sit in no band. A corpus season read answers from the banded rollup once the nightly rebuild has filled it, else from the raw rows with a note.",
-};
 
 /** The band fallback sentence when the rollup is not yet built. */
 /** The meta tools and the caller's collection (6.4.0, feedback #70). */
-export const NO_FIT_NOTE =
-  "These are the population's decks and levels; nothing here checks what a given player holds. Before naming a row as a recommendation to a person, pass fit_for with their tag: rows they cannot field leave decks[], and every row then says what they would field it at and what upgrades would open.";
 
 /** The same on battles_meta_cards, which has no decks[] (Gym journey r3). */
-export const NO_FIT_CARDS_NOTE =
-  "These are the population's cards and levels; nothing here checks what a given player holds. Before naming a card as a recommendation to a person, pass fit_for with their tag: every row then carries held (their level and forms, or null when they do not own it).";
-
-export function fitNotes(fitBlock, decks, unfieldable) {
-  const fielded =
-    fitBlock.fielded_mean_level === null
-      ? `${fitBlock.player_tag} has no decided pvp battles with a recorded deck in this window, so fit.vs_fielded and fit.upgrades are null: there is no fielded level to measure against`
-      : `${fitBlock.player_tag} has fielded a mean card level of ${fitBlock.fielded_mean_level} over ${fitBlock.fielded_battles} decided battles in this window, and ${fitBlock.recent_mean_level ?? fitBlock.fielded_mean_level} over their last ten (recent_mean_level); fit.vs_fielded is each row's own_mean_level against the recent level, and fit.upgrades is the path to it`;
-  const levelling =
-    fitBlock.recent_mean_level !== null &&
-    fitBlock.recent_mean_level !== undefined &&
-    fitBlock.fielded_mean_level !== null &&
-    Math.abs(fitBlock.recent_mean_level - fitBlock.fielded_mean_level) >= 1
-      ? `${fitBlock.player_tag} is levelling up: they field ${fitBlock.recent_mean_level} now against ${fitBlock.fielded_mean_level} over the window, so vs_fielded and the upgrade targets read against the recent level (Gym #171).`
-      : null;
-  return [
-    ...(levelling ? [levelling] : []),
-    `Checked against ${fitBlock.player_tag}'s collection as of ${fitBlock.collection_as_of}: ${decks.length} of the top ${decks.length + unfieldable.length} rows are fieldable as held (decks[]); ${unfieldable.length} are not (unfieldable[], each naming the card or form missing). The population's ranking is unchanged - the split is after sort and limit, so raise limit for more fieldable rows.`,
-    `${fielded}. mean_level_gap on a row is the population's players' edge over their opponents, not ${fitBlock.player_tag}'s; own_mean_level is what the deck would be at their levels, and held_level rides each card.`,
-    `fit.plays_archetype, fit.plays_win_condition and fit.plays_family say whether ${fitBlock.player_tag} already fields this row's exact shape, its win condition (form included: Evo Royal Hogs is not Royal Hogs) or its family (fit_for.plays lists theirs). Adoption cost reads off them in that order: the exact shape costs the least; the same win condition in another family is the card they have leveled and learned played at a different pace (the usual next step); the same family around a new win condition is a new card to level; a row sharing neither is a new deck to learn as well as levels to buy.`,
-  ];
-}
 
 /** Fold deck rows by their stamped archetype (label or family). With
  *  members, one scan of the scope's battle rows by player and deck says
@@ -89,126 +35,6 @@ export function fitNotes(fitBlock, decks, unfieldable) {
  *  then exact. Without (the corpus), `players` sums the decks' distinct
  *  players and the note says a player on two decks of one shape counts
  *  twice. */
-export async function groupByArchetype(
-  db,
-  { groupBy, rows, where, params, withMembers, limit },
-) {
-  const stamps = await deckStamps(
-    db,
-    rows.map((r) => r.deck_hash),
-  );
-  const keyOf = (stamp) => (groupBy === "family" ? stamp.family : stamp.label);
-  const groups = new Map();
-  const total = rows.reduce((n, r) => n + r.battles, 0);
-  for (const r of rows) {
-    const stamp = stamps.get(r.deck_hash);
-    if (!stamp) continue;
-    const key = keyOf(stamp);
-    const g = groups.get(key) ?? {
-      ...(groupBy === "family"
-        ? { family: stamp.family }
-        : {
-            label: stamp.label,
-            family: stamp.family,
-            win_condition_ids: stamp.win_condition_ids,
-          }),
-      decks: 0,
-      battles: 0,
-      wins: 0,
-      losses: 0,
-      players: 0,
-      _hashes: new Set(),
-    };
-    g.decks += 1;
-    g.battles += r.battles;
-    g.wins += r.wins;
-    g.losses += r.losses;
-    g.players += r.players ?? 0;
-    g._hashes.add(r.deck_hash);
-    groups.set(key, g);
-  }
-  let members = null;
-  if (withMembers) {
-    // Who plays what, over the same scope the deck rows came from.
-    const { rows: plays } = await db.query(
-      `select bp.player_tag, p.name, bp.deck_hash,
-              count(*)::int as battles,
-              count(*) filter (where bp.outcome = 'win')::int as wins
-       from ${PARTICIPANT_GAMES} bp
-       left join player p on p.player_tag = bp.player_tag
-       where ${where.join(" and ")}
-       group by bp.player_tag, p.name, bp.deck_hash`,
-      params,
-    );
-    members = new Map(); // key -> Map(player_tag -> {name, battles, wins, best})
-    for (const pl of plays) {
-      const stamp = stamps.get(pl.deck_hash);
-      if (!stamp) continue;
-      const key = keyOf(stamp);
-      const byPlayer = members.get(key) ?? new Map();
-      const m = byPlayer.get(pl.player_tag) ?? {
-        player_tag: pl.player_tag,
-        name: pl.name ?? null,
-        battles: 0,
-        wins: 0,
-        deck_hash: pl.deck_hash,
-        _deckBattles: 0,
-      };
-      m.battles += pl.battles;
-      m.wins += pl.wins;
-      if (pl.battles > m._deckBattles) {
-        m._deckBattles = pl.battles;
-        m.deck_hash = pl.deck_hash;
-      }
-      byPlayer.set(pl.player_tag, m);
-      members.set(key, byPlayer);
-    }
-  }
-  const out = [...groups.values()].map((g) => {
-    const row = { ...g };
-    delete row._hashes;
-    const byPlayer = members?.get(groupBy === "family" ? g.family : g.label);
-    const list = byPlayer
-      ? [...byPlayer.values()]
-          .sort(
-            (a, z) =>
-              z.battles - a.battles || a.player_tag.localeCompare(z.player_tag),
-          )
-          .map(({ _deckBattles, ...m }) => m)
-      : null;
-    return {
-      ...row,
-      ...(list ? { players: list.length, members: list } : {}),
-      win_rate:
-        row.wins + row.losses > 0
-          ? Number((row.wins / (row.wins + row.losses)).toFixed(3))
-          : null,
-      share: total > 0 ? Number((row.battles / total).toFixed(3)) : null,
-    };
-  });
-  out.sort((a, z) => z.players - a.players || z.battles - a.battles);
-  return {
-    rows: out.slice(0, limit),
-    folded: `Folded ${rows.length} decks over min_battles into ${out.length} ${groupBy === "family" ? "families" : "archetypes"} by their stamped label, sorted by who plays them (players, then battles); share is of the ${total} decided battles those decks hold. cards_archetype({ name }) says what one of these labels MEANS - its family, its win conditions, the other names for the shape - and cards_archetype({ cards }) names a deck you hand it. ${
-      withMembers
-        ? "members lists each player of the shape with their most-played deck of it; players is exact."
-        : "players sums the decks' distinct players, so a player on two decks of one shape counts twice."
-    } No win rate is shrunk or ranked here: the same label wins and loses with the player.`,
-  };
-}
-
-export function cardFitNote(fitBlock, cards) {
-  const unowned = cards.filter((c) => c.held === null).length;
-  const noForm = cards.filter((c) => c.held && !c.held.has_form).length;
-  return `held on each row is what ${fitBlock.player_tag} holds of the card as of ${fitBlock.collection_as_of} (${unowned} of ${cards.length} rows not owned, ${noForm} owned without the form played); ${
-    fitBlock.fielded_mean_level === null
-      ? "no fielded level is known for this window"
-      : `their fielded mean level in this window is ${fitBlock.fielded_mean_level}, the benchmark a held level reads against`
-  }. mean_level_gap is the population's, not theirs.`;
-}
-
-export const BAND_FALLBACK_NOTE =
-  "trophy_band answered from the raw rows (the season's banded rollup is not built yet; the nightly rebuild fills it), so distinct-player counts are exact and the read is slower.";
 
 /** tower_hp as served, from the three columns (0123): king when
  *  carried, princess as the fixed pair - a one-tower array was padded
@@ -433,48 +259,3 @@ export function modeClause(args, add) {
  *  card objects and the archetype object; the response drops the
  *  methodology block (documented) and the per-mode groups (the pooled
  *  note stays). fit keeps its verdict and drops the upgrade path. */
-export const COMPACT_DESC =
-  "one row keeps deck_hash, archetype_label, card_names (one string), battles, wins, losses, players, usage_share, win_rate, shrunk_win_rate, dominant_mode and (with fit_for) fit without its upgrade path; drops modes, first/last_used, the level gap, the card objects, the archetype object, methodology and modes_in_window.";
-export const COMPACT_CARDS_DESC =
-  "one row keeps card_id, name, form, battles, wins, losses, players, usage_share, win_rate, shrunk_win_rate and (with fit_for) held; drops modes, the level gap, methodology and modes_in_window.";
-export function compactDeckRow(row) {
-  const {
-    modes,
-    first_used,
-    last_used,
-    mean_level_gap,
-    level_gap_battles,
-    cards,
-    tower_troop,
-    archetype,
-    fit,
-    ...rest
-  } = row;
-  void modes;
-  void first_used;
-  void last_used;
-  void mean_level_gap;
-  void level_gap_battles;
-  void tower_troop;
-  return {
-    ...rest,
-    archetype_label: archetype?.label ?? null,
-    card_names: (cards ?? [])
-      .map((c) => cardDisplayName({ name: c.name, form: c.form ?? "base" }))
-      .join(", "),
-    ...(fit
-      ? {
-          fit: (({ upgrades, ...verdict }) => {
-            void upgrades;
-            return verdict;
-          })(fit),
-        }
-      : {}),
-  };
-}
-export function compactCardRow(row) {
-  const { modes, mean_level_gap, ...rest } = row;
-  void modes;
-  void mean_level_gap;
-  return rest;
-}

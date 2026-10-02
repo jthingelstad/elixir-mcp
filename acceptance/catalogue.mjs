@@ -132,7 +132,9 @@ if (isMain) {
   const raw = JSON.parse(Buffer.from(res.Payload).toString("utf8"));
   if (raw.errorMessage) throw new Error(raw.errorMessage);
   const stale = [];
-  const shaped = shapeCatalogue(raw, makeRegistry().declarations(), { stale });
+  const declarations = makeRegistry().declarations();
+  const byName = new Map(declarations.map((d) => [d.name, d]));
+  const shaped = shapeCatalogue(raw, declarations, { stale });
   // Hand-picked sets beside the derived ones (catalogue-seed.json, a
   // reason each): reads that guarantee rows a docs section promises and
   // usage this week did not happen to make.
@@ -140,16 +142,22 @@ if (isMain) {
     readFileSync(path.join(here, "catalogue-seed.json"), "utf8"),
   );
   for (const [tool, sets] of Object.entries(seeds)) {
-    if (tool.startsWith("_")) continue;
+    if (tool.startsWith("_") || !byName.has(tool)) continue;
     const t = (shaped.tools[tool] ??= {
       calls: null,
       p50_ms: null,
       p95_ms: null,
       sets: [],
     });
-    for (const seed of sets)
+    for (const seed of sets) {
+      const problem = validateArgs(byName.get(tool).inputSchema, seed.args);
+      if (problem) {
+        stale.push(`${tool} seed: ${problem}`);
+        continue;
+      }
       if (!t.sets.some((s) => canonical(s.args) === canonical(seed.args)))
         t.sets.push({ args: sortKeys(seed.args), calls: 0, seed: seed.reason });
+    }
   }
   writeFileSync(CATALOGUE_FILE, JSON.stringify(shaped, null, 2) + "\n");
   // The committed file is formatted like everything else in the repo.

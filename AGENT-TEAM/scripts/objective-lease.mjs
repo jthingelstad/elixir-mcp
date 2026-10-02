@@ -19,7 +19,7 @@
  *   node AGENT-TEAM/scripts/objective-lease.mjs notes [--clear]
  *   node AGENT-TEAM/scripts/objective-lease.mjs clear-stale --hours <n>
  *
- * Keys are the objectives' (README.md): run, record, loop, guard, boards;
+ * Keys are the objectives' (README.md): run, record, loop, guard;
  * Clan's clan-run, clan-judge, clan-loop, clan-guard; the domain team's
  * clock and game; session for an interactive session.
  *
@@ -56,7 +56,6 @@ const OBJECTIVES = new Set([
   "record",
   "loop",
   "guard",
-  "boards",
   "clan-run",
   "clan-judge",
   "clan-loop",

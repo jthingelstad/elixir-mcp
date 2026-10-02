@@ -11,7 +11,7 @@ lede: "One row per battle, both sides of it, and the words the numbers are built
 
 # The battle model
 
-Every battle tool reads the same corpus and the same row shape. This page is
+Every battle tool reads the same recorded history and the same row shape. This page is
 the vocabulary those tools share: what a row holds, how modes are grouped,
 what "decided" means, how a deck gets its identity, and how a war week is
 counted. The tools themselves are on [Tools](/docs/tools/battles); the
@@ -136,7 +136,7 @@ title the events read listed; `null` when that read never sighted the
 event). `event_tag` is `null` on a row that is not event content,
 clanmate battles included.
 
-## Events are their own group, and they do not inform the meta
+## Events are their own group
 
 Game modes are played as different games. A card that carries a river race
 only somewhat predicts Trophy Road and says little about Path of Legends, and
@@ -178,31 +178,6 @@ with it carries a note saying so: split by event before quoting one rate, with
 spread over several game modes is one row per mode there; a per-event row
 across modes is not served yet.
 
-**What the meta counts.** `battles_meta_decks`, `battles_meta_cards` and the
-deck and card statistics are built from a population that excludes:
-
-- **every battle carrying an event tag** (`event_tag` present): event content,
-  and a clanmate friendly played under an event's rules, which is `casual` but
-  still played under those rules. Seasonal Arena II bans the player's
-  eight most-won-with cards and floors the rest at Level 15 - its recorded decks
-  average 15.87 against 13.67 on Trophy Road - and every event bends the rules
-  its own way, so a win rate over them measures the event.
-- **a deck the player did not choose** - `deck_selection` outside `collection`
-  and `warDeckPick`, which is `eventDeck`, `draft`, `draftCompetitive`, `pick`,
-  `quadDeckPick` and `predefined`. A drafted deck is not anyone's choice, so it
-  cannot say what people play or how their choices do.
-
-Both remain fully recorded and fully readable through `battles_query` and a
-player's own record; they simply do not speak for the game. A `null`
-`deck_selection` is kept, because a population is not narrowed on an absence.
-The rule holds on every window, a season read from the rollup or a custom
-window or segment read raw (6.31.0: the raw reads had kept both), and
-`mode: "event"` on the meta tools answers empty with a note saying why.
-Everywhere else `event` is the event tag, not a battle type, so
-`battles_trends`, `battles_cards`, `cards_synergy`, the card profile and
-`battles_opponents` filter and label event battles as `event`, never
-`casual` (6.31.0), and a tagged clanmate battle as `casual` (9.12.8).
-
 ## Duels and boat battles
 
 Two `war` battle types are shaped differently from a head-to-head battle.
@@ -232,8 +207,7 @@ sweep has an empty `rounds[]`, and every non-duel row has none at all.
 **Each round is a game with its own deck** (9.11.0). A round's eight cards
 carry their own `deck_hash`, with no tower troop (the identity every Clan Wars
 battle has), and its own result by that round's crowns against the
-opponent's. `battles_cards`, the meta tools (`battles_meta_decks`,
-`battles_meta_cards`, `cards_card`, `cards_synergy`) and the war-deck tools
+opponent's. `battles_cards` and the selected-history card reader
 count each round as one game, and their rows say how many of their battles
 were rounds (`duel_rounds`). `battles_decks` keeps its rows to battles with
 one deck: it itemizes duels under `excluded {duels, no_deck}` and lists their
@@ -401,58 +375,7 @@ denominator:
   `trophy_battles`. Divide by `trophy_mode_battles` for a ladder record; a
   note names the weeks where the two differ (4.1.0).
 
-The meta tools (`battles_meta_decks`, `battles_meta_cards`) and
-`cards_synergy` count decided head-to-head **player-battle observations**,
-both participants of a match when both are in the segment; the two meta
-tools itemize what the window held and left out in `excluded`. The
-formulas, priors and floors are on
-[How the numbers are made](/docs/methodology#deck-and-card-meta-exactly-what-is-counted).
-`battles_trends` is a different count: the population's own battles week
-by week, every kind but a boat defense, with `win_rate = wins / (wins +
-losses)`. On a corpus read it counts the recorded players' side only,
-because every battle has two sides and counting both would put every
-week's win rate at 0.500 by construction.
-
-### The meta against one player's collection
-
-A population's deck sorted by win rate reads as advice, and the population's
-holdings are not the caller's: the same eight cards at one player's levels
-can be two mean levels below what they have been fielding, or contain a
-card they do not own. So the meta tools take **`fit_for`**, a player tag
-with a recorded collection, and a recommendation to a person should not omit
-it. On `battles_meta_decks` every returned row's cards then carry
-`held_level`, and every row carries `fit`:
-
-- `fieldable`, and `missing` — each card not owned or form not unlocked,
-  with its reason. **A row the player cannot field is not in `decks[]`**: it
-  sits in `unfieldable[]`, the same shape, after sort and limit, so the
-  population's ranking is unchanged (raise `limit` for more fieldable rows)
-  and an agent cannot recommend what is not in the array.
-- `own_mean_level` — the deck at the player's held levels; `vs_fielded` —
-  that against the level the player fields now, `fit_for.recent_mean_level`:
-  the mean card level of their last ten decided head-to-head battles in the
-  window and mode (the benchmark, 6.35.0). `fit_for.fielded_mean_level`
-  beside it is the mean over every such battle in the window, and stands in
-  when there is no recent figure; with no such battles both are null, and
-  then the gap and the path are null too.
-- `upgrades` — what could be: each held card below the fielded level,
-  largest deficit first, with `held_level`, `to_level` and `levels`; and
-  `mean_level_after_upgrades`, the deck once those are done. A form not
-  unlocked is in `missing`, not `upgrades`.
-
-With `fit_for` the reader also says which archetype families, win
-conditions and shapes the player already fields (`fit_for.plays`, and
-`fit.plays_family` / `fit.plays_win_condition` / `fit.plays_archetype`
-on every row; see [Deck archetypes](/docs/archetypes)): the exact shape
-costs the least to adopt, then the same win condition in another family.
-`battles_meta_cards` with `fit_for` carries `held` on each row (level,
-forms unlocked, whether the row's form is unlocked) or null when the card is
-not owned. `players_collection` carries the same benchmark as `fielded`
-(thirty days). Two things the notes repeat: `mean_level_gap` on a meta row
-is the population's players' edge over their opponents, never the caller's
-(on `battles_decks` the same name is the caller's); and without `fit_for`
-nothing in a meta response checks what any one player holds. Levels are the
-1-16 display scale on both sides.
+`battles_trends` counts the selected player or clan members' own battles week by week, every kind except boat defense. Its win rate is `wins / (wins + losses)`; a mode filter keeps different games separate. Clan membership is current at the time of the call, so a historical window describes today's members. There is no corpus segment.
 
 ## Deck identity and forms
 
@@ -472,8 +395,7 @@ A card's **form** is what the API encodes as the bit field `evolutionLevel`
 object the tools serve spells it as one word, **`form: "base" | "evolution"
 | "hero"`** (5.0.0; the integer `evolution` key is retired): on a played
 deck's cards in `battles_query`, `battles_decks` (one deck by `deck_hash`),
-`battles_meta_decks` and `players_summary`, on `battles_cards` and `battles_meta_cards` rows, and
-on `cards_synergy` partners. It is a form discriminator, never a level or a
+`players_summary`, and on `battles_cards` rows. It is a form discriminator, never a level or a
 progress counter, and forms are never merged: the card readers carry one
 row per form. On a collection, `maxEvolutionLevel` says which forms exist
 for the card and `evolutionLevel` which the player holds; `players_collection`
@@ -487,8 +409,8 @@ participant played is a fact of its own, so card questions are indexed
 lookups rather than scans of every deck. `battles_query` takes `with_card`
 (one id in your deck), `with_cards` (several ids, all present) and
 `against_card` (one id in an opponent's deck); `battles_cards`,
-`battles_meta_cards` and `cards_synergy` count from the same rows, and a
-deck's cards in `battles_decks` and `battles_meta_decks` are the identity's
+`cards_card` read those rows, and a
+deck's cards in `battles_decks` are the identity's
 own (ordered by card id, named from the catalog), not one player's copy.
 Card filters match the deck's cards, not the tower troop; a duel matches on
 any one round's deck (9.8.0). An empty `cards` list - some event formats

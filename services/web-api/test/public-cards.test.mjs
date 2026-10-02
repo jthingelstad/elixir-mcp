@@ -1,10 +1,4 @@
-/**
- * The public card catalog with its running season (2026-10-01): one read
- * the cards index and the home page's board draw from. Every card's
- * season, mode by mode, from the same rollup cards_card reads, for the
- * latest season it holds. Modes are never pooled: 'all' stays out, and a
- * per-form row never stands in for the card.
- */
+/** Public card catalog facts stay available after global statistics retire. */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
@@ -70,122 +64,18 @@ after(async () => {
   await admin.end();
 });
 
-test("with nothing rolled up the catalog says so: season is null, never zeros", async () => {
+test("catalog and card detail serve facts without season statistics", async () => {
   const { status, body } = await get("/api/public/cards");
   assert.equal(status, 200);
-  assert.ok(body.cards.some((c) => c.id === KNIGHT));
-  assert.equal(body.season, null);
-});
-
-test("the latest season, mode by mode: shares of that mode's decided battles, no pooled row", async () => {
-  for (const [month, war, starts, ends] of [
-    ["2026-09", 135, "2026-09-07T10:00:00Z", "2026-10-05T10:00:00Z"],
-    ["2026-10", 136, "2026-10-05T10:00:00Z", "2026-11-02T10:00:00Z"],
-  ])
-    await db.query(
-      `insert into season (season_month, war_season_id, starts_at, ends_at,
-                           sections, colosseum_section)
-       values ($1, $2, $3, $4, 4, 3) on conflict do nothing`,
-      [month, war, starts, ends],
-    );
-  // An older season that must not be the one read.
-  await db.query(
-    `insert into meta_season_totals (season_month, mode_group, decided, wins)
-     values ('2026-09', 'ladder', 999, 500)`,
-  );
-  await db.query(
-    `insert into card_meta_season (season_month, mode_group, card_id, form, battles, wins, losses, players)
-     values ('2026-09', 'ladder', $1, -1, 900, 450, 450, 90)`,
-    [KNIGHT],
-  );
-  // The running season: two modes with battles, war with none decided.
-  for (const [mode, decided] of [
-    ["all", 30000],
-    ["ladder", 20000],
-    ["ranked", 10000],
-    ["war", 0],
-  ])
-    await db.query(
-      `insert into meta_season_totals (season_month, mode_group, decided, wins)
-       values ('2026-10', $1, $2, $3)`,
-      [mode, decided, decided / 2],
-    );
-  for (const [card, mode, form, battles, wins, losses, players] of [
-    [KNIGHT, "all", -1, 3000, 1500, 1500, 700],
-    [KNIGHT, "ladder", -1, 2000, 1050, 950, 500],
-    [KNIGHT, "ladder", 0, 1999, 1, 1, 1], // a form's row: never the card's
-    [KNIGHT, "ranked", -1, 1000, 333, 667, 200],
-    [KNIGHT, "war", -1, 5, 0, 0, null],
-    [ARCHERS, "ladder", -1, 1500, 750, 750, 400],
-  ])
-    await db.query(
-      `insert into card_meta_season (season_month, mode_group, card_id, form, battles, wins, losses, players)
-       values ('2026-10', $1, $2, $3, $4, $5, $6, $7)`,
-      [mode, card, form, battles, wins, losses, players],
-    );
-  await db.query(
-    `insert into meta_season_state (season_month, counters_through, rebuilt_at)
-     values ('2026-10', '2026-10-02T05:00:00Z', '2026-10-02T03:10:00Z')`,
-  );
-
-  const { status, body } = await get("/api/public/cards");
-  assert.equal(status, 200);
-  const s = body.season;
-  assert.equal(s.season_month, "2026-10");
-  assert.equal(s.as_of, "2026-10-02T05:00:00.000Z");
-  assert.equal(s.players_as_of, "2026-10-02T03:10:00.000Z");
-  // Each mode with its own decided battles, biggest first; 'all' and a
-  // mode with nothing decided are not modes to read.
-  assert.deepEqual(s.modes, [
-    { mode_group: "ladder", decided_battles: 20000 },
-    { mode_group: "ranked", decided_battles: 10000 },
-  ]);
-  assert.deepEqual(s.cards[KNIGHT], {
-    ladder: {
-      battles: 2000,
-      players: 500,
-      decided_battles: 20000,
-      usage_share: 0.1,
-      win_rate: 0.525,
-    },
-    ranked: {
-      battles: 1000,
-      players: 200,
-      decided_battles: 10000,
-      usage_share: 0.1,
-      win_rate: 0.333,
-    },
-  });
-  assert.deepEqual(Object.keys(s.cards[ARCHERS]), ["ladder"]);
-  assert.equal(s.cards[ARCHERS].ladder.usage_share, 0.075);
-});
-
-test("a season the hourly increment has not stamped yet still reads, with no as_of", async () => {
-  await db.query(`delete from meta_season_state`);
-  const { body } = await get("/api/public/cards");
-  assert.equal(body.season.season_month, "2026-10");
-  assert.equal(body.season.as_of, null);
-  assert.equal(body.season.players_as_of, null);
-});
-
-test("the per-card page reads the same row shape, and says when it moved", async () => {
-  await db.query(
-    `insert into meta_season_state (season_month, counters_through)
-     values ('2026-10', '2026-10-02T06:00:00Z')`,
-  );
-  const { status, body } = await get(`/api/public/cards/${KNIGHT}`);
-  assert.equal(status, 200);
-  assert.equal(body.season, "2026-10");
-  assert.equal(body.as_of, "2026-10-02T06:00:00.000Z");
-  assert.deepEqual(
-    body.by_mode.find((m) => m.mode_group === "ladder"),
-    {
-      mode_group: "ladder",
-      battles: 2000,
-      players: 500,
-      decided_battles: 20000,
-      usage_share: 0.1,
-      win_rate: 0.525,
-    },
-  );
+  assert.ok(body.cards.some((c) => c.id === KNIGHT && c.name === "Knight"));
+  assert.ok(body.disclaimer);
+  for (const field of ["season", "history", "modes", "card_of_week"])
+    assert.equal(body[field], undefined);
+  const detail = await get(`/api/public/cards/${KNIGHT}`);
+  assert.equal(detail.status, 200);
+  assert.equal(detail.body.card.name, "Knight");
+  assert.ok(detail.body.disclaimer);
+  for (const field of ["season", "history", "modes", "card_of_week"])
+    assert.equal(detail.body[field], undefined);
+  assert.equal((await get("/api/public/cards/99999999")).status, 404);
 });

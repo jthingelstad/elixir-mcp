@@ -65,7 +65,8 @@ test("docs pointers: the source declares some, in every tool module", () => {
   const modulesWithPointers = new Set(found.map((p) => moduleOf(p.file)));
   for (const file of files) {
     const rel = path.relative(src, file);
-    if (rel === "tools/shared.mjs" || rel === "tools/synergy.mjs") continue;
+    if (rel === "tools/shared.mjs" || rel === "tools/card-resolver.mjs")
+      continue;
     if (isSplitIndex(file)) continue;
     assert.ok(
       modulesWithPointers.has(moduleOf(rel)),
@@ -89,17 +90,4 @@ test("docs pointers: every page and section a tool names exists in the corpus", 
       );
   }
   assert.deepEqual(misses, []);
-});
-
-test("docs pointers: the shared segment pointer resolves", async () => {
-  const { SEGMENT_DOCS } = await import("../src/tools/shared.mjs");
-  for (const ref of [SEGMENT_DOCS]) {
-    const [page, section] = ref.split("#");
-    const doc = DOCS.find((d) => d.slug === page);
-    assert.ok(doc, `${ref}: no page`);
-    assert.ok(
-      doc.sections.some((s) => s.slug === section),
-      `${ref}: no section`,
-    );
-  }
 });

@@ -188,8 +188,8 @@ The defaults differ by tool, and each says which applied:
 | `players_timeline`, `clans_members_timeline` | unbounded, on **game days**: `from`/`to` are `YYYY-MM-DD` game days (inclusive); an instant is floored to its game day, echoed under `applied.window.floored` with a note; `days: N` is N game days, today included |
 | `clans_timeline` | the last 30 game days (`source: "default"`, with a note naming `series_available_from`); bounds as on the other series |
 | `elixir_timeline` | since your read pointer, or the last day without one (`source: "pointer"` or `"default"`); capped at 30 days |
-| `rankings_timeline`, `game_events` | the current season so far |
-| `battles_meta_decks`, `battles_meta_cards`, `cards_synergy`, `cards_card` | the current season to date (`source: "season"`); `season` selects another |
+| `game_events` | the current season so far |
+| `cards_card` | the current season to date (`source: "season"`); `season` selects another |
 | `clans_standings` | 30 days |
 | `clans_participation` | 5 ISO weeks, the current one included |
 | `battles_trends` | 12 weeks |
@@ -208,17 +208,11 @@ not in the API and is not in the record; an agent that knows it may say
 it, the record never will.
 
 **Balance changes are not modelled**, deliberately: nothing hand-fed or
-scraped enters the data layer. Supercell ships balance changes on the
-season roll, so **a season is the window that honours them**: card and
-deck numbers inside one season are one population, and numbers that span a
-roll are not. That is why the meta tools (`battles_meta_decks`,
-`battles_meta_cards`, `cards_synergy`) default to **the current season to
-date** rather than a rolling number of days, which on most days of the
-month mixes two seasons without saying so.
+scraped enters the data layer. Use a season window to keep comparisons within the same game period; a window spanning seasons may include different card costs or rules.
 
-- **`season`** on every windowed tool (the meta tools and `cards_card`,
+- **`season`** on every windowed tool (`cards_card`,
   `battles_trends`, the player battle tools, `clans_standings`, the daily
-  series, the board and ranking tools, `game_events` and `elixir_timeline`)
+  series, `game_events` and `elixir_timeline`)
   bounds the window to one season: `"current"` (the default on the meta
   tools; to date), `"previous"`, the month (`"2026-08"`) or the war number
   (`135`). `from`/`to`/`days`/`weeks` given still win, and each tool's own

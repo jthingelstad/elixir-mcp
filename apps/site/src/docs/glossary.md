@@ -44,19 +44,9 @@ only when no reason remains. See [One recording, many reasons](/docs/recording#a
 current race and race log; `comprehensive` also records every current
 member's battles and profile, following joins and leaves.
 
-**corpus** — everything recorded, across every subject and every account. It
-is the matchmaking neighbourhood of the clans and players recorded (a few
-hundred thousand players observed around a few dozen recorded clans), not a
-random sample of the ladder, and a number over all of it describes nobody
-in particular. One population among the others a segment tool can score,
-named with `segment: "corpus"`, never a default; a corpus read carries
-`population` (the recorded clans and players it was drawn from).
+**record** — the history Elixir stores for players and clans people follow, including opponents who appeared in their games. Elixir does not publish game-wide meta statistics.
 
-**segment** — the population a segment tool scores: `"mine"` (the caller's
-clan: the agent's, or the primary player's), `"corpus"`, `{ player_tag }`,
-`{ clan_tag }` (the clan's current members). Every
-population is stated: `segment` is required (4.0.0), and a call without
-it is refused with the three shapes in the hint.
+**segment** — the player or clan named for a read: `"mine"` (your clan), `{player_tag}` or `{clan_tag}` (current members). `segment` is required on tools that use it.
 
 **owned card collection** — the cards and forms a player owns, recorded from their profile. Named recording Collections retired in contract 10.0.0.
 
@@ -112,15 +102,7 @@ is left out of battles, wins, losses and streaks on every surface.
 **both perspectives** — every battle is one row seen from each participant's
 side; `me`, `teammates` and `opponents` are relative to the tag asked about.
 
-**player-battle observation** — the unit the meta tools count: one
-participant in one decided battle. Both sides of a match can contribute, so
-observations are not independent matches.
-
-**shrunk win rate** — a win rate pulled toward a prior in proportion to how
-few observations back it: the corpus prior on the meta tools, and on
-`cards_card` the population's own window mean (`prior_basis` says which).
-Formula and floors on
-[Methodology](/docs/methodology#deck-and-card-meta-exactly-what-is-counted).
+**player-battle observation** — a recorded game from one participant's perspective. Opponents remain part of the complete game; two perspectives are not independent matches.
 
 **timeline** — `elixir_timeline`: what happened to the players and clans you
 track since your read pointer, as items newest first (battle sessions, named
@@ -238,14 +220,7 @@ profile (`best_trophies` its peak); `season_trophies` is the API's legacy
 `leagueStatistics` mirror of Trophy Road, with a frozen best in
 `season_best_trophies`, and NOT the seasonal Trophy Road, which is a
 progress bucket (above) read with `progress_key`; `pol_trophies`
-is the Path of Legends standing, the number `rankings_players` and
-`rankings_timeline` call `rating` (the same figure, verified equal on the
-live API), null — with `league_number`, `pol_rank` and the best-season peaks
-— for a player who has never played Path of Legends, which the API sends as a
-null result rather than zeros; `progress[].trophies` is a side mode's. `trophy_change` is one
-battle's swing; `net_trophies` is the recorded ladder sum over a window on
-`battles_performance` and `clans_standings` (one spelling since 4.0.0); a
-timeline session's `trophy_net` is the same sum over that session.
+is the Path of Legends standing carried in that player's own profile. Global leaderboard history has retired.
 
 **league_number** — the API's own `leagueNumber`, passed through
 unchanged. On a battle row it is the value the battle log carried: the

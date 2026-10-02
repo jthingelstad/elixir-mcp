@@ -73,7 +73,7 @@ test("an integration has no 'me' at all", () => {
   assert.ok(!integration.includes("elixir_track_clan"));
   // It is a corpus consumer, and the corpus is all still there.
   assert.ok(integration.includes("players_profile"));
-  assert.ok(integration.includes("battles_meta_decks"));
+  assert.ok(!integration.includes("battles_meta_decks"));
   assert.ok(integration.includes("game_clock"));
 });
 

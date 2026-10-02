@@ -448,14 +448,13 @@ package), so a consumer that counted `live_pending` as a failed call and
 swept after it can stop. Transport-level refusals (the rate limit, a
 database that will not connect) carry the same envelope and class.
 
-The heavy MCP reads `battles_meta_decks`, `battles_meta_cards`,
-`battles_trends`, `cards_card`, `cards_synergy`, `clans_standings` and
+The heavy MCP reads `battles_trends`, `cards_card`, `clans_standings` and
 `war_history` each have a query budget of **at most 18 seconds per call**,
 shortened if Lambda has less time remaining. It covers the whole aggregation,
 not a fresh allowance for each query. PostgreSQL cancels the work before the
 25-second Lambda ceiling so the tool can return `query_timeout`, a retry hint
 and `meta.request_id`, and audit the failed call. This is not a latency promise:
-a full-season corpus read can still exhaust the budget under load. Smaller
+a long history read can still exhaust the budget under load. Smaller
 `limit` values trim output, not the population scanned; narrow `from`/`to` to
 reduce work.
 
@@ -484,14 +483,13 @@ version, with the tool map, is [Choosing a tool](/docs/choosing-a-tool).
 
 **What omitting a subject argument means** depends on the tool's family, and
 the first sentence of every description says which. Segment tools are the
-exception: `segment` is required since 4.0.0, because the corpus is one
-population among the others and never an implicit default.
+exception: `segment` is required since 4.0.0, to identify the player or clan being read and never an implicit default.
 
 | Family | Subject argument | Omission rule |
 |---|---|---|
 | Player tools (`players_*`, `battles_query`, `battles_performance`, `battles_decks`, `battles_cards`, `battles_opponents`, `elixir_coverage`) | `player_tag` | the caller: a person's primary player, or whoever `on_behalf_of` maps to on an agent connection |
 | Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | a person's primary player's current clan (refused `not_recorded` when that clan is not recorded, `no_subject` when the primary is in no clan; never an alt's, a friend's or another tracked clan), an agent's clan |
-| Segment tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_synergy`, `cards_card`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, `"corpus"`, or an object naming a player or clan |
+| Segment tools (`battles_trends`, `cards_card`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, or an object naming a player or clan |
 | `game_clock`, `cards_catalog`, the Help tools | none | no subject at all |
 
 No default is ever looked up first, and there is no "no default" guess: a

@@ -29,20 +29,13 @@ conventions that hold everywhere.
 | My clan today: standings, who still has decks | `war_current` (`decks_today` can guide a nudge only while `race_finished_at` is null) |
 | Every current member's W/L/D over a short window | `clans_standings({ days: 1, min_battles: 1 })`, or explicit `from`/`to`; each row carries the ladder `net_trophies` and the `current_streak` too, and one member's battle-by-battle detail is `battles_performance` |
 | Which clanmates played this exact deck? | `battles_decks` for a `deck_hash`, then `battles_query({ deck_hash })` without `player_tag`, and compare the returned tags with `clans_roster`; this is exact deck evidence, not a playstyle similarity score |
-| Which game-mode leaderboard ids can I read? | `rankings_players({ board: "mode", location: "list" })`, then pass a returned `location` to read its board |
 | Who has gone quiet? | `clans_roster`, reading `last_seen_in_game` beside `last_recorded_battle` |
 | Who should be promoted, demoted or removed? | Elixir serves the facts and the clan decides: `clans_participation` (war decks, battles and donations per member per week), `clans_standings` (win rate and activity over a window, with who joined mid-window and whose battles were not captured), and `clans_roster` (role, tenure, `last_seen_in_game`). Read a member's week with the capture note in view: a low count can be a capture gap. |
 | What did every member do this week, and the weeks before? | `clans_participation` (battles, ranked battles and donations per member per week, and war decks used per race week, in one call) |
 | How has the clan moved over the season: score, war trophies, members, the members' trophies? | `clans_timeline` (one point per game day, with the aggregates over the members' rows) |
 | How has each member's trophies or rank moved day by day? | `clans_members_timeline` (every member's day series in one call; compact for first, last and delta) |
 | Scout the bracket | `war_rivals`, then `war_current({ clan_tag, live: true })` or `clans_roster({ clan_tag, live: true })` for one rival |
-| What is the meta, for a clan or the corpus? | `battles_meta_decks` / `battles_meta_cards` with a `segment`; `min_players: 2` keeps decks at least two players have played more than once (`repeat_players`), not one player's own; a row one player still carries says so (`top_player_battles` and a note) |
-| Which four war decks should I play? A different last war deck? | `battles_deck_sets` for the player ([war decks](/docs/war-decks)): four decks sharing no card, from the season's recorded decks, fitted to the collection and levels; `lock_decks` keeps the ones they like (the other three, for a new last deck), `exclude_cards` / `require_cards` shape the rest |
-| What should I upgrade to get better war decks? | `battles_deck_upgrades` for the player: each single upgrade (a card raised toward their level, an Evolution or Hero form unlocked) priced by how much it lifts their best four-deck set, with the set it gives |
-| Which of my cards should I upgrade first? | `battles_meta_decks` with `fit_for: "#TAG"` (each row's `fit.upgrades`: the upgrades that would bring that deck to your fielded level), beside `battles_cards` for which of your cards carry |
-| Which tower troops does the population use? | `battles_meta_cards({ segment, tower_troops: true })` (shares over the battles whose tower troop is known; river race battles carry none), `cards_card({ segment, card_id })` for one tower troop |
 | What does "LavaLoon" / "bridge spam" mean, or what is this deck called? | `cards_archetype` (`name`, or `cards`; nothing for the vocabulary) |
-| Which of those decks could THIS player actually play, and what would a few upgrades open? | the same, with `fit_for: "#TAG"`: rows they cannot field move to `unfieldable[]`, every row carries `fit` (their mean level, the gap to what they field, the upgrade path) |
 | Rarest badge, who holds one | `badges_rarity`, `badges_holders` |
 | A name to a tag, or tags to names | `players_search`, `players_names` |
 | What happened since I last looked? | `elixir_timeline` (items newest first and an entry per subject, then drill with the data tools) |
@@ -51,12 +44,10 @@ conventions that hold everywhere.
 | Who do I keep meeting, and how does it go? | `battles_opponents` |
 | Two to four players side by side | `battles_compare` (`mode`, or read each player's per-mode-group split, `window.modes`) |
 | Were my cards above or below my opponents' this window? | `players_summary` (`mean_level_gap` on each deck), `battles_decks` and `battles_cards` rows (`mean_level_gap`); the record describes the gap and does not score it, see [Methodology](/docs/methodology#card-levels-described-not-adjusted-for) |
-| How is a population trending week by week? | `battles_trends` with a `segment` |
-| Tell me about this card - usage, history, partners, decks, who in my clan plays it | `cards_card` (one call; [Cards](/docs/cards)) |
-| What is this card played with? | `cards_synergy`; `cards_catalog` resolves ids and names |
+| How did this player or clan's members play week by week? | `battles_trends` with a `segment` |
+| Card facts, earliest selected-history play, and who in my clan played or holds it | `cards_card` (one call; [Cards](/docs/cards)) |
 | The profile, the collection, how complete the record is | `players_profile`, `players_collection`, `elixir_coverage` |
 | Past war weeks: final ranks, boat fame, one member's points and decks | `war_history` (`seasons`, or `season_id` and `section_index` for one week's whole roster) |
-| The clan leaderboards, which clans hold a board, how a board moved | `rankings_clan_ladder`, `rankings_clans`, `rankings_timeline` |
 | What was on in the game: events, challenges, side modes, by day | `game_events` |
 | Track someone, say who they are to you | `elixir_track_player`, `elixir_track_clan`, `elixir_my_players`, `elixir_nickname` |
 | Resolve a human on an agent's surface to a player (agent connections only) | `elixir_identify`, `elixir_my_identities` |
@@ -65,7 +56,7 @@ conventions that hold everywhere.
 | How is this documented? | `elixir_docs`, `elixir_examples`, `elixir_updates`, `elixir_changelog` |
 
 Read `comparable` before ranking: where a response carries it (`clans_standings`,
-`battles_decks`, the meta tools), `false` means two rows were played in
+`battles_decks`), `false` means two rows were played in
 different modes or against different level gaps, and the note names them.
 
 Every recorded-data tool is unlimited within the daily call budget. The
@@ -116,18 +107,7 @@ trophies and the ranked standing, so the two sides of it are not one series.
   for); when that clan is not recorded, or there is none, the call is
   refused with the fixing call in the hint, never answered for another
   clan. Nothing is looked up first.
-- **The segment tools name a population.** `battles_meta_decks`,
-  `battles_meta_cards`, `battles_trends`, `cards_synergy`, `cards_card`,
-  `badges_rarity` and `badges_holders` take `segment`: `"mine"` (the caller's clan), `"corpus"`
-  (the whole recorded corpus, said on purpose) or `{ player_tag | clan_tag }`. The corpus is one population among the others, never a
-  default: it is the matchmaking neighbourhood of the recorded clans and
-  players, and a number over all of it describes nobody in particular.
-  `segment` is required (4.0.0): a call without it is refused with the
-  three shapes in the hint, and a corpus read carries `population` (the
-  recorded clans and players it was drawn from, and the distinct players
-  in the window). On the badge tools the corpus is the players recorded
-  now: a player the record no longer reads is left out, since their
-  badges stopped being read with them (6.30.1).
+- **Segment tools name a subject.** `battles_trends`, `cards_card` and `badges_*` require `"mine"` (your clan), `{player_tag}` or `{clan_tag}`. A clan read describes its current members. There is no corpus segment.
 - **Windows are `from`/`to`**, ISO instants or `YYYY-MM-DD` resolved in the
   account's timezone; a date-only `to` covers that whole day. The daily
   series (`players_timeline`, `clans_timeline`, `clans_members_timeline`)

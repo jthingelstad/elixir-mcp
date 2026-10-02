@@ -33,14 +33,16 @@ test("dead letters: objects past their lane's last retry, across pages", async (
     {
       Contents: [
         { Key: "editor/c.json", LastModified: ago(30) }, // still editing
-        { Key: "editor/d.json", LastModified: ago(90) }, // stuck
+        { Key: "editor/d.json", LastModified: ago(90) }, // retired lane; preserved, not an active incident
       ],
       IsTruncated: false,
     },
   ];
   const s3 = {
-    send: async (cmd) =>
-      cmd.input.ContinuationToken === "p2" ? pages[1] : pages[0],
+    send: async (cmd) => {
+      assert.equal(cmd.input.Prefix, "email/");
+      return cmd.input.ContinuationToken === "p2" ? pages[1] : pages[0];
+    },
   };
-  assert.equal(await countStuck("outbox-bucket", { s3, now }), 2);
+  assert.equal(await countStuck("outbox-bucket", { s3, now }), 1);
 });

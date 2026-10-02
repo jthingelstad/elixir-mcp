@@ -94,14 +94,12 @@ export const INSTRUCTIONS_BUDGET = 2048;
  */
 function instructionsFor(kind, identity) {
   const rules = [
-    "segment is REQUIRED on battles_meta_decks, battles_meta_cards,",
-    "battles_trends, cards_synergy, cards_card and badges_*: 'mine',",
-    "'corpus' (on purpose) or {player_tag | clan_tag}.",
+    "segment is REQUIRED on battles_trends, cards_card and badges_*:",
+    "'mine' (your clan) or {player_tag | clan_tag}. No corpus statistics.",
     "Windows: from/to, days/weeks or season ('current', 'previous', 2026-08,",
     "135); applied.window says what was read. Name a deck by its archetype",
     "label ('Hog Rider cycle'), never eight cards; a label is not a verdict;",
-    "cards_archetype resolves a name a person uses. A deck named to a person",
-    "passes fit_for (their collection). Modes are different games: a rate",
+    "cards_archetype resolves a name a person uses. Modes are different games: a rate",
     "with no mode pools them; pass mode for one. Repeat a response's",
     "notes[]. When serverInfo.version changes, re-fetch tools/list;",
     "elixir_changelog(since) says what shipped.",
@@ -119,8 +117,7 @@ function instructionsFor(kind, identity) {
       "under your own reader name; poll it and elixir_my_feedback only when",
       "meta.timeline_pending or meta.feedback_responses_pending says so.",
       "display_name beside an unmapped on_behalf_of makes no_subject carry",
-      "candidates[]. 'What decks do we play': battles_meta_decks({ segment:",
-      "'mine', group_by: 'archetype' }).",
+      "candidates[]. battles_decks reads a named player's recorded decks.",
     ],
     integration: [],
   };

@@ -185,16 +185,14 @@ product meaning of each lives on the site (`protocol.md`, "Argument
 conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
 
 - **Names.** `<domain>_<noun>` for reads; `<domain>_<verb>_<noun>` only for
-  writes. `*_tag` is one tag, `*_tags` an array, `collection` a slug.
+  writes. `*_tag` is one tag, `*_tags` an array.
 - **Defaults by family.** Player-shaped tools default `player_tag` to the
   caller (`subject()`); clan tools default `clan_tag` to the recorded clan
   (`entitledClan()`); segment tools take `segment` and name a population
-  (`SEGMENT_SCHEMA`, `resolveSegment()`, `segmentFilter()`): `"mine"`,
-  `"corpus"` or an object naming one subject. The corpus is one population
-  among the others, never a default (Jamie, 2026-09-18): `segment` is
-  required since 4.0.0 (`resolveSegment()` refuses its absence with the
-  argument's own description as the hint) and a corpus read carries
-  `population` (`populationBlock`). The first sentence of the description
+  (`SEGMENT_SCHEMA`, `resolveSegment()`, `segmentFilter()`): `"mine"`
+  or an object naming exactly one player or clan. `segment` is required;
+  missing, ambiguous, Collection and corpus selectors refuse before database work
+  (recorder scope, Jamie, 2026-10-02). The first sentence of the description
   says which, in the fixed phrase. Nothing to default to is `no_subject`, never a guess.
 - **Windows.** `from`/`to` (`WINDOW_ARGS`) on every windowed tool, `days` /
   `weeks` as sugar, and `season` (`SEASON_ARG_SCHEMA`), resolved once by

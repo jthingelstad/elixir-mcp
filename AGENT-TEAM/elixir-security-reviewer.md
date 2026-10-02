@@ -53,8 +53,8 @@ on changes since the last successful review; Sunday is the full weekly sweep.
   addresses of people who signed in, nothing more; unsubscribes were
   never overridden.
 - **Blast-radius review** of the week's diffs: new env vars, new IAM
-  grants, new outbound calls from the relay or the editor (the only
-  non-VPC Lambdas), new outbox lanes or queue consumers —
+  grants, new outbound calls from the relay (the non-VPC
+  mail worker), new outbox lanes or queue consumers —
   each one justified or challenged.
 
 ## Action

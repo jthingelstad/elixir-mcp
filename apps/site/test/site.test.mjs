@@ -58,7 +58,6 @@ const STATIC_PAGES = [
   "/data",
   "/family",
   "/examples/play",
-  "/examples/deck",
   "/examples/ladder",
   "/examples/friends",
   "/examples/clan",
@@ -959,27 +958,16 @@ test("nothing in the built site relies on inline script", { skip }, () => {
 });
 
 test(
-  "published methodology uses the reader floors and discloses statistical limits",
+  "published methodology describes retained history and retires global scores",
   { skip },
-  async () => {
+  () => {
     const page = read("docs/methodology/index.html");
-    assert.ok(!page.includes("{{ statistics"));
-    // 5.0.0: no level-expected rate or player score is published; the
-    // page says the gap is described, not adjusted for.
-    assert.ok(!page.includes("Pilot Score"));
+    assert.doesNotMatch(page, /{{ statistics|Pilot Score|shrunk_win_rate/);
     assert.match(page, /described, not adjusted for/);
-    assert.match(page, /draws and unresolved outcomes are excluded/i);
-    // The meta floors and the corpus prior are published from the same
-    // declaration the SQL readers use (0.39.0).
-    const { META_METHODOLOGY } =
-      await import("../../../packages/tools/src/tools/shared.mjs");
-    assert.ok(
-      page.includes(
-        `${META_METHODOLOGY.segment_min_decided} decided observations`,
-      ),
+    assert.match(
+      page,
+      /Game-wide meta statistics and recommendation scores have retired/,
     );
-    assert.match(page, /whole recorded corpus/);
-    assert.match(page, /itemizes what the window held and left out/);
   },
 );
 
@@ -1252,10 +1240,8 @@ test(
       root.textContent.replace(/\s+/g, " "),
       /Common troop · 3 elixir · also an Evo and a Hero/,
     );
-    assert.match(
-      root.querySelector(".card-call").textContent,
-      /cards_card \{ card: "Knight", segment: "corpus", mode: "ranked" \}/,
-    );
+    assert.equal(root.querySelector("[data-card-live]"), null);
+    assert.ok(root.querySelector('a[href="/docs/cards"]'));
     // A card with no other form draws its own art and no ribbon.
     const fireball = new JSDOM(read("cards/28000000/index.html")).window
       .document;
@@ -1269,12 +1255,12 @@ test(
       const html = read(`${page.slice(1)}/index.html`);
       assert.doesNotMatch(html, /\son(error|load|click)=/, page);
     }
-    assert.ok(existsSync(path.join(out, "assets/cards-live.js")));
+    assert.ok(!existsSync(path.join(out, "assets/cards-live.js")));
   },
 );
 
 test(
-  "the front door is the canvas's: six tiles, Drop next door, no record in it",
+  "the front door is the canvas's: five tiles, Drop next door, no record in it",
   { skip },
   async () => {
     // The Site board (2026-09-29). The page is built whole; the cards'
@@ -1289,17 +1275,12 @@ test(
     const art = doc.querySelector(".home-art img");
     assert.equal(art.getAttribute("src"), "/assets/elixir-logo-288.webp");
     assert.ok(existsSync(path.join(out, "assets/elixir-logo-288.webp")));
-    assert.ok(
-      doc.querySelector('a.btn[href="/cards/"]'),
-      "no way to the card stats",
-    );
-
     // Six parts of Elixir, each with one way in and nothing else to
     // click (the call stretches over its tile).
     const tiles = [...doc.querySelectorAll(".home-tile")];
     assert.deepEqual(
       tiles.map((t) => t.querySelector(".home-tile__product").textContent),
-      ["Ladder", "Clan", "Friends", "Emails", "Your AI", "Cards"],
+      ["Ladder", "Clan", "Friends", "Emails", "Your AI"],
     );
     assert.deepEqual(
       tiles.map((t) => t.querySelector(".home-tile__cta").getAttribute("href")),
@@ -1309,7 +1290,6 @@ test(
         "/docs/follow-a-friend",
         "/docs/email",
         "/docs/quickstart",
-        "/cards/",
       ],
     );
     for (const t of tiles) assert.equal(t.querySelectorAll("a").length, 1);
@@ -1328,13 +1308,8 @@ test(
     assert.equal(play.getAttribute("href"), drop.href);
     assert.equal(play.getAttribute("target"), "_blank");
 
-    // The most played strip and the Cards tile's three wait for data.
-    for (const sel of ["[data-home-strip]", "[data-home-top3]"]) {
-      const el = doc.querySelector(sel);
-      assert.ok(el.hasAttribute("hidden"), `${sel} is not hidden at build`);
-    }
-    assert.equal(doc.querySelectorAll(".home-strip__card").length, 0);
-    assert.ok(read("index.html").includes("/assets/home-live.js"));
-    assert.ok(existsSync(path.join(out, "assets/home-live.js")));
+    assert.equal(doc.querySelector("[data-home-strip]"), null);
+    assert.equal(doc.querySelector("[data-home-top3]"), null);
+    assert.ok(!existsSync(path.join(out, "assets/home-live.js")));
   },
 );

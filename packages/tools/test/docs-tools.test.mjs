@@ -92,7 +92,7 @@ test("elixir_docs: the index, one page, and a search that says where", async () 
   // The phrase no page contains, matched by word and pointing at the
   // section; then that section on its own.
   const words = await elixirTools.elixir_docs.handler(ctx, {
-    query: "shrunk win rate prior strength",
+    query: "rival intelligence coverage",
   });
   assert.equal(words.matches[0].slug, "methodology");
   assert.ok(words.matches[0].in_section);
@@ -120,12 +120,12 @@ test("elixir_docs: the index, one page, and a search that says where", async () 
   );
 });
 
-test("elixir_examples: eleven, each with a real transcript and real tools", async () => {
+test("elixir_examples: ten, each with a real transcript and real tools", async () => {
   const registry = makeRegistry();
   // Exercise the registry as the door does: its output-schema validation
   // must accept both the index and a selected example.
   const index = await registry.invoke("elixir_examples", ctx, {});
-  assert.equal(index.examples.length, 11);
+  assert.equal(index.examples.length, 10);
   const one = await registry.invoke("elixir_examples", ctx, {
     example: "clan",
   });

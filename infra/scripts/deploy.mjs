@@ -198,7 +198,6 @@ const required = {
   EmailRelayCodeKey: codeKeys["email-relay"],
   MigrateCodeKey: codeKeys.migrate,
   JobsCodeKey: codeKeys.jobs,
-  EditorCodeKey: codeKeys.editor,
   CollectorCodeKey: codeKeys.collector,
 };
 const templateBody = await readFile(

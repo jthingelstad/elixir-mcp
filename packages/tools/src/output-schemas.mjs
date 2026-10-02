@@ -377,175 +377,9 @@ const DECK_TROPHY_RANGE = {
 /** The seven schemas the call log asked for next (3.18.0, review Part
  *  3.2): the tools called enough in fourteen days to deserve a declared
  *  shape, permissive below the keys a consumer branches on. */
-const POPULATION = {
-  type: "object",
-  description:
-    "On a corpus read: the recorded clans and players the answer was drawn from, and the distinct players in the window (null on the rollup path until the nightly rebuild).",
-  properties: {
-    recorded_clans: COUNT,
-    recorded_players: COUNT,
-    players_in_window: NULLABLE_INT,
-  },
-};
-const META_ROW_COMMON = {
-  battles: COUNT,
-  wins: COUNT,
-  losses: COUNT,
-  players: NULLABLE_INT,
-  usage_share: RATE,
-  win_rate: RATE,
-  shrunk_win_rate: RATE,
-  insufficient_sample: { type: "boolean" },
-  mean_level_gap: LEVEL_GAP,
-  modes: MODE_SPLIT,
-  duel_rounds: {
-    type: ["integer", "null"],
-    description:
-      "9.11.0: of battles, how many were rounds of a Clan Wars duel (each round one game with its own deck and result); null on a season rollup row the nightly has not rebuilt since.",
-  },
-};
-const META_COMMON = {
-  applied: {
-    type: "object",
-    properties: {
-      segment: { type: "object" },
-      window: WINDOW_ECHO,
-      mode: { type: "string" },
-      trophy_band: { type: "string" },
-      min_battles: COUNT,
-      limit: COUNT,
-    },
-    required: ["segment", "window"],
-  },
-  population: POPULATION,
-  methodology: { type: "object" },
-  decided_battles: COUNT,
-  duel_rounds: {
-    type: ["integer", "null"],
-    description:
-      "9.11.0: of decided_battles, how many were rounds of a Clan Wars duel (each round one game with its own deck and result; the duel itself is one battle in excluded.duels and considered). null on a season rollup read until the nightly rebuild splits them.",
-  },
-  segment_win_rate: RATE,
-  prior_win_rate: RATE,
-  prior_basis: { type: "string" },
-  excluded: {
-    type: "object",
-    properties: {
-      considered: COUNT,
-      duels: COUNT,
-      boat: COUNT,
-      draws: COUNT,
-      unresolved: COUNT,
-      no_deck: COUNT,
-      outside_meta: COUNT,
-    },
-  },
-  players_as_of: { type: ["string", "null"] },
-  comparable: { type: "boolean" },
-  modes_in_window: {
-    type: "array",
-    description:
-      "When mode was omitted: the window's battles per mode group with each group's mean level gap, the pooled populations behind the rows.",
-    items: {
-      type: "object",
-      properties: {
-        mode: { type: "string" },
-        battles: COUNT,
-        mean_level_gap: LEVEL_GAP,
-      },
-    },
-  },
-  notes: NOTES,
-  docs: DOCS,
-  meta: META,
-};
+
 /** fit_for on the meta tools (6.4.0): the population's rows against
  *  one player's collection. */
-const FIT_FOR_BLOCK = {
-  type: "object",
-  description:
-    "Present with fit_for: whose collection, as of when, and the benchmark.",
-  properties: {
-    player_tag: TAG,
-    collection_as_of: { type: ["string", "null"] },
-    fielded_mean_level: {
-      type: ["number", "null"],
-      description:
-        "The mean card level of the decks the player actually played (decided pvp, this window and mode); null with none.",
-    },
-    recent_mean_level: {
-      type: ["number", "null"],
-      description:
-        "The mean card level of the player's last ten decided pvp battles in the window: the level fielded now, which vs_fielded and the upgrade targets read against (6.35.0).",
-    },
-    fielded_battles: COUNT,
-    plays: {
-      type: "object",
-      description:
-        "The families, win conditions (form included, as a label speaks them) and archetype labels of the decks the player fielded in the window and mode.",
-      properties: {
-        families: { type: "array", items: { type: "string" } },
-        win_conditions: {
-          type: "array",
-          items: { type: "string" },
-          description: "6.13.0: e.g. 'Evo Royal Hogs', 'Hog Rider'.",
-        },
-        archetypes: { type: "array", items: { type: "string" } },
-      },
-    },
-  },
-};
-const DECK_FIT = {
-  type: "object",
-  description:
-    "With fit_for: this deck against what the player holds. Levels are the 1-16 display scale.",
-  properties: {
-    fieldable: { type: "boolean" },
-    missing: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          id: COUNT,
-          name: { type: ["string", "null"] },
-          form: { type: "string" },
-          reason: { type: "string", enum: ["not_owned", "form_not_unlocked"] },
-        },
-      },
-    },
-    own_mean_level: {
-      type: ["number", "null"],
-      description:
-        "The deck's mean level at the player's held levels; null when a card is not owned.",
-    },
-    vs_fielded: {
-      type: ["number", "null"],
-      description:
-        "own_mean_level minus the level the player fields now: fit_for.recent_mean_level (their last ten decided pvp battles), fielded_mean_level when that is unknown.",
-    },
-    upgrades: {
-      type: "array",
-      description:
-        "The path to the fielded level: each held card below it, largest deficit first (held_level, to_level, levels).",
-    },
-    mean_level_after_upgrades: { type: ["number", "null"] },
-    plays_family: {
-      type: "boolean",
-      description:
-        "The player already fields a deck of this row's family in the window.",
-    },
-    plays_win_condition: {
-      type: "boolean",
-      description:
-        "The player already fields one of this row's win conditions, form included (6.13.0): the card leveled and learned, whatever family it was played in.",
-    },
-    plays_archetype: {
-      type: "boolean",
-      description:
-        "The player already fields a deck of this row's exact label in the window.",
-    },
-  },
-};
 
 /** Each clans_participation row's place at every war finish (9.13.0,
  *  issue #46), aligned to war_weeks[]. */
@@ -601,13 +435,13 @@ export const OUTPUT_SCHEMAS = {
   cards_archetype: {
     type: "object",
     description:
-      "Three shapes by argument: name -> resolved {family, win_conditions (form when the name said one), label, aliases} and this_season; cards -> archetype and in_the_record; neither -> the vocabulary (families, win conditions, aliases, version).",
+      "Three shapes by argument: name -> resolved {family, win_conditions (form when the name said one), label, aliases}; cards -> archetype; neither -> the vocabulary (families, win conditions, aliases, version).",
     properties: {
       applied: { type: "object" },
       resolved: { type: "object" },
-      this_season: { type: "object" },
+
       archetype: { type: "object" },
-      in_the_record: { type: ["object", "null"] },
+
       version: { type: "object" },
       docs: DOCS,
       meta: META,
@@ -993,86 +827,105 @@ export const OUTPUT_SCHEMAS = {
     type: "object",
     properties: {
       applied: { type: "object" },
-      by_band: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            battles: { type: ["number", "null"] },
-            decided_battles: { type: ["number", "null"] },
-            duel_rounds: { type: ["number", "null"] },
-            losses: { type: ["number", "null"] },
-            mean_level_gap: { type: ["number", "null"] },
-            players: { type: ["number", "null"] },
-            shrunk_win_rate: { type: ["number", "null"] },
-            trophy_band: { type: ["string", "null"] },
-            usage_share: { type: ["number", "null"] },
-            win_rate: { type: ["number", "null"] },
-            wins: { type: ["number", "null"] },
+      card: {
+        type: "object",
+        properties: {
+          id: COUNT,
+          name: { type: "string" },
+          type: { type: "string" },
+          rarity: { type: ["string", "null"] },
+          elixir_cost: { type: ["number", "null"] },
+          forms_available: {
+            type: "array",
+            items: { type: "string", enum: ["base", "evolution", "hero"] },
+          },
+          icon_urls: { type: ["object", "null"] },
+          first_seen_in_catalog: { type: ["string", "null"] },
+          first_played: {
+            type: "object",
+            properties: {
+              base: { type: ["string", "null"] },
+              evolution: { type: ["string", "null"] },
+              hero: { type: ["string", "null"] },
+            },
+            required: ["base", "evolution", "hero"],
           },
         },
+        required: [
+          "id",
+          "name",
+          "type",
+          "rarity",
+          "elixir_cost",
+          "forms_available",
+          "icon_urls",
+          "first_seen_in_catalog",
+          "first_played",
+        ],
       },
-      card: { type: "object" },
-      decks: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            archetype: { type: "object" },
-            battles: { type: ["number", "null"] },
-            cards: { type: "array" },
-            deck_hash: { type: ["string", "null"] },
-            duel_rounds: { type: ["number", "null"] },
-            losses: { type: ["number", "null"] },
-            players: { type: ["number", "null"] },
-            tower_troop: { type: "object" },
-            usage_share: { type: ["number", "null"] },
-            win_rate: { type: ["number", "null"] },
-            wins: { type: ["number", "null"] },
+      members: {
+        type: "object",
+        properties: {
+          members: COUNT,
+          members_with_collection: COUNT,
+          played: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                player_tag: TAG,
+                name: NAME,
+                battles: COUNT,
+                wins: COUNT,
+                losses: COUNT,
+                win_rate: RATE,
+                level_played: { type: ["number", "null"] },
+                forms: { type: "array", items: { type: "string" } },
+              },
+              required: [
+                "player_tag",
+                "name",
+                "battles",
+                "wins",
+                "losses",
+                "win_rate",
+                "level_played",
+                "forms",
+              ],
+            },
+          },
+          held: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                player_tag: TAG,
+                name: NAME,
+                level: NULLABLE_INT,
+                forms_unlocked: { type: "array", items: { type: "string" } },
+                star_level: NULLABLE_INT,
+                observed_at: ISO,
+                since: ISO,
+              },
+              required: [
+                "player_tag",
+                "name",
+                "level",
+                "forms_unlocked",
+                "star_level",
+                "observed_at",
+                "since",
+              ],
+            },
           },
         },
+        required: ["members", "members_with_collection", "played", "held"],
       },
       docs: DOCS,
-      history: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            battles: { type: ["number", "null"] },
-            decided_battles: { type: ["number", "null"] },
-            duel_rounds: { type: ["number", "null"] },
-            losses: { type: ["number", "null"] },
-            players: { type: ["number", "null"] },
-            season: { type: "object" },
-            usage_share: { type: ["number", "null"] },
-            win_rate: { type: ["number", "null"] },
-            wins: { type: ["number", "null"] },
-          },
-        },
-      },
-      members: { type: "object" },
       meta: META,
-      methodology: { type: "object" },
       notes: NOTES,
-      partners: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            card_id: { type: ["number", "null"] },
-            co_battles: { type: ["number", "null"] },
-            co_occurrence_rate: { type: ["number", "null"] },
-            form: { type: ["string", "null"] },
-            lift: { type: ["number", "null"] },
-            name: { type: ["string", "null"] },
-            players: { type: ["number", "null"] },
-          },
-        },
-      },
-      population: { type: "object" },
-      season: { type: "object" },
     },
-    required: ["applied", "card", "docs", "meta", "methodology", "notes"],
+    required: ["applied", "card", "docs", "meta", "notes"],
   },
 
   cards_catalog: {
@@ -1125,46 +978,6 @@ export const OUTPUT_SCHEMAS = {
       "meta",
       "notes",
       "tower_troops",
-    ],
-  },
-
-  cards_synergy: {
-    type: "object",
-    properties: {
-      anchor: { type: "object" },
-      applied: { type: "object" },
-      decided_battles: { type: ["number", "null"] },
-      docs: DOCS,
-      meta: META,
-      notes: NOTES,
-      partners: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            baseline_usage: { type: ["number", "null"] },
-            card_id: { type: ["number", "null"] },
-            co_battles: { type: ["number", "null"] },
-            co_occurrence_rate: { type: ["number", "null"] },
-            form: { type: ["string", "null"] },
-            lift: { type: ["number", "null"] },
-            name: { type: ["string", "null"] },
-            players: { type: ["number", "null"] },
-            win_rate_with_anchor: { type: ["number", "null"] },
-          },
-        },
-      },
-      players_as_of: { type: ["string", "null"] },
-      population: { type: "object" },
-    },
-    required: [
-      "anchor",
-      "applied",
-      "decided_battles",
-      "docs",
-      "meta",
-      "notes",
-      "partners",
     ],
   },
 
@@ -1540,136 +1353,6 @@ export const OUTPUT_SCHEMAS = {
     required: ["applied", "docs", "matches", "meta", "notes"],
   },
 
-  rankings_clan_ladder: {
-    type: "object",
-    properties: {
-      live_status: {
-        type: "object",
-        description:
-          "With live: true: whether a fresh read was served or is pending (retry_after_s says when to call again).",
-      },
-      applied: { type: "object" },
-      board: { type: ["string", "null"] },
-      clans: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            badge_id: { type: ["number", "null"] },
-            clan_tag: { type: ["string", "null"] },
-            location_id: { type: ["number", "null"] },
-            members: { type: ["number", "null"] },
-            name: { type: ["string", "null"] },
-            previous_rank: { type: ["number", "null"] },
-            rank: { type: ["number", "null"] },
-            score: { type: ["number", "null"] },
-          },
-        },
-      },
-      docs: DOCS,
-      location: { type: "object" },
-      meta: META,
-      notes: NOTES,
-      our_clan: { type: ["object", "null"] },
-      snapshot: { type: ["object", "null"] },
-    },
-    required: [
-      "applied",
-      "board",
-      "clans",
-      "docs",
-      "location",
-      "meta",
-      "notes",
-      "snapshot",
-    ],
-  },
-
-  rankings_clans: {
-    type: "object",
-    properties: {
-      live_status: {
-        type: "object",
-        description:
-          "With live: true: whether a fresh read was served or is pending (retry_after_s says when to call again).",
-      },
-      applied: { type: "object" },
-      board: { type: ["string", "null"] },
-      clans: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            best_player_name: { type: ["string", "null"] },
-            best_player_tag: { type: ["string", "null"] },
-            best_rank: { type: ["number", "null"] },
-            clan_name: { type: ["string", "null"] },
-            clan_tag: { type: ["string", "null"] },
-            rank: { type: ["number", "null"] },
-            rated_players: { type: ["number", "null"] },
-          },
-        },
-      },
-      clans_total: { type: ["number", "null"] },
-      docs: DOCS,
-      field_size: { type: ["number", "null"] },
-      location: { type: "object" },
-      meta: META,
-      notes: NOTES,
-      players_without_clan: { type: ["number", "null"] },
-      snapshot: { type: ["object", "null"] },
-    },
-    required: [
-      "applied",
-      "board",
-      "clans",
-      "docs",
-      "location",
-      "meta",
-      "notes",
-      "snapshot",
-    ],
-  },
-
-  rankings_timeline: {
-    type: "object",
-    properties: {
-      applied: { type: "object" },
-      board: { type: ["string", "null"] },
-      docs: DOCS,
-      location: { type: "object" },
-      meta: META,
-      notes: NOTES,
-      points: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            best_player_tag: { type: ["string", "null"] },
-            best_rank: { type: ["number", "null"] },
-            board_floor_rating: { type: ["number", "null"] },
-            board_full: { type: ["boolean", "null"] },
-            clan_tag: {},
-            day: { type: ["string", "null"] },
-            depth: { type: ["number", "null"] },
-            first: { type: "object" },
-            floor_delta: { type: ["number", "null"] },
-            floor_rating: { type: ["number", "null"] },
-            full: { type: ["boolean", "null"] },
-            observed_at: { type: ["string", "null"] },
-            on_board: { type: ["boolean", "null"] },
-            rank: {},
-            rated_players: { type: ["number", "null"] },
-            rating: {},
-            truncated: { type: ["boolean", "null"] },
-            unchanged_until: { type: ["string", "null"] },
-          },
-        },
-      },
-    },
-    required: ["applied", "docs", "meta", "notes", "points"],
-  },
-
   war_rivals: {
     type: "object",
     properties: {
@@ -1780,112 +1463,6 @@ export const OUTPUT_SCHEMAS = {
     required: ["feedback", "total", "next_offset", "notes", "docs", "meta"],
   },
 
-  rankings_players: {
-    type: "object",
-    description:
-      "A board page; with location 'list', the recorded mode boards instead (boards[] and no players).",
-    properties: {
-      board: { type: "string", enum: ["pol", "pol_final", "mode", "trophy"] },
-      location: {
-        type: "object",
-        properties: {
-          key: { type: "string" },
-          label: { type: ["string", "null"] },
-          kind: { type: ["string", "null"] },
-          country_code: { type: ["string", "null"] },
-        },
-        required: ["key"],
-      },
-      boards: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            location: { type: "string" },
-            name: { type: ["string", "null"] },
-            enabled: { type: "boolean" },
-            observed_at: { type: ["string", "null"] },
-            standings_changed_at: {
-              type: ["string", "null"],
-              description:
-                "When the board's ranks or ratings last moved; null before its first snapshot.",
-            },
-          },
-        },
-      },
-      applied: { type: "object" },
-      live_status: { type: "object" },
-      snapshot: {
-        type: ["object", "null"],
-        description: "null when the board has no snapshot on or before as_of.",
-        properties: {
-          observed_at: ISO,
-          unchanged_until: ISO,
-          season_id: COUNT,
-          season_month: { type: "string" },
-          entries: COUNT,
-          depth: {
-            type: "integer",
-            description:
-              "The places the board holds: 1,000 (the API's cut on a live board), 9,999 on a season final.",
-          },
-          full: {
-            type: "boolean",
-            description:
-              "entries is at depth: the board is a slice of the rated field, and floor_rating is a cutoff that moves with play, not a qualification threshold.",
-          },
-          floor_rating: {
-            type: ["integer", "null"],
-            description:
-              "The last place's rating: the rating floor while the board is below depth, the cutoff once it is full.",
-          },
-          truncated: {
-            type: "boolean",
-            description:
-              "The API offered a cursor past the places the recorder keeps. false on a full board means the API itself served nothing past depth.",
-          },
-          cadence_minutes: NULLABLE_INT,
-          standings_changed_at: {
-            type: ["string", "null"],
-            description:
-              "Mode boards only: when rank or rating last moved. A snapshot is also written when only a clan changes, so observed_at alone can be today on a closed event.",
-          },
-        },
-        required: [
-          "observed_at",
-          "unchanged_until",
-          "season_month",
-          "entries",
-          "depth",
-          "full",
-        ],
-      },
-      players: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            rank: COUNT,
-            player_tag: TAG,
-            name: { type: ["string", "null"] },
-            rating: {
-              type: ["integer", "null"],
-              description:
-                "On the pol boards the player's Path of Legends rating: the profile's pol_trophies.",
-            },
-            clan_tag: { type: ["string", "null"] },
-            clan_name: { type: ["string", "null"] },
-          },
-          required: ["rank", "player_tag", "rating"],
-        },
-      },
-      notes: NOTES,
-      docs: DOCS,
-      meta: META,
-    },
-    required: ["board", "applied", "notes", "docs", "meta"],
-  },
-
   war_history: {
     type: "object",
     properties: {
@@ -1986,462 +1563,6 @@ export const OUTPUT_SCHEMAS = {
       meta: META,
     },
     required: ["clan_tag", "applied", "weeks", "notes", "docs", "meta"],
-  },
-
-  battles_deck_upgrades: {
-    type: "object",
-    description:
-      "9.7.0: which single upgrade (a card raised toward the fielded level, or an Evolution or Hero form unlocked) lifts the player's best set of decks sharing no card the most, and which decks would join the set once their low cards reach that level, each priced by re-packing the set.",
-    properties: {
-      player: {
-        type: "object",
-        properties: {
-          player_tag: { type: "string" },
-          name: { type: ["string", "null"] },
-        },
-        required: ["player_tag"],
-      },
-      applied: {
-        type: "object",
-        properties: {
-          player_tag: { type: "string" },
-          window: WINDOW_ECHO,
-          count: COUNT,
-          max_levels: COUNT,
-          limit: COUNT,
-          min_battles: COUNT,
-          min_players: COUNT,
-        },
-        required: ["player_tag", "window", "count"],
-      },
-      objective: { type: "object" },
-      fit_for: {
-        type: "object",
-        properties: {
-          player_tag: { type: "string" },
-          collection_as_of: { type: ["string", "null"] },
-          fielded_mean_level: { type: ["number", "null"] },
-          recent_mean_level: { type: ["number", "null"] },
-          target_level: { type: ["number", "null"] },
-        },
-        required: ["player_tag", "target_level"],
-      },
-      baseline: {
-        type: ["object", "null"],
-        description:
-          "The player's best set today: its value (objective.set_value) and decks (deck_hash, archetype_label, value, card_names in full). null when no set exists yet.",
-      },
-      options: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            kind: { type: "string", enum: ["level", "form"] },
-            card: {
-              type: "object",
-              description:
-                "id and name; a level option adds cards_held, the count the profile last showed.",
-            },
-            held_level: COUNT,
-            to_level: COUNT,
-            levels: COUNT,
-            form: { type: "string", enum: ["evolution", "hero"] },
-            decks_affected: {
-              type: "integer",
-              description:
-                "Candidate decks that could reach the set and hold this card (a level) or play this form (a form): how widely the card is used, not how many decks it improves.",
-            },
-            lifts: {
-              type: "array",
-              description:
-                "9.7.1: the decks of the set after whose value this upgrade raises (deck_hash, archetype_label, value_before, value_after); a deck that joins only because another left is not listed.",
-            },
-            value_before: { type: "number" },
-            value_after: { type: "number" },
-            gain: {
-              type: "number",
-              description:
-                "value_after minus value_before, in log-odds: the change in the same set value battles_deck_sets optimises. An ordering, not a forecast.",
-            },
-            set_changes: {
-              type: "boolean",
-              description:
-                "true when the upgrade changes which decks the best set holds.",
-            },
-            set_after: {
-              type: "array",
-              description: "Full verbosity: the best set with this upgrade.",
-            },
-          },
-          required: [
-            "kind",
-            "card",
-            "decks_affected",
-            "lifts",
-            "value_before",
-            "value_after",
-            "gain",
-            "set_changes",
-          ],
-        },
-      },
-      within_reach: {
-        type: "array",
-        description:
-          "Decks outside the best set whose every card is at most max_levels under the fielded level: raised to it (raises, levels in total), with any form they play unlocked (forms), they join the set.",
-        items: {
-          type: "object",
-          properties: {
-            deck: {
-              type: "object",
-              description:
-                "deck_hash, archetype_label, its value once raised, card_names in full.",
-            },
-            raises: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  card: { type: "object" },
-                  held_level: COUNT,
-                  to_level: COUNT,
-                },
-                required: ["card", "held_level", "to_level"],
-              },
-            },
-            forms: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  card: { type: "object" },
-                  form: { type: "string", enum: ["evolution", "hero"] },
-                },
-                required: ["card", "form"],
-              },
-            },
-            levels: COUNT,
-            value_before: { type: "number" },
-            value_after: { type: "number" },
-            gain: { type: "number" },
-            set_after: { type: "array" },
-          },
-          required: [
-            "deck",
-            "raises",
-            "forms",
-            "levels",
-            "value_before",
-            "value_after",
-            "gain",
-          ],
-        },
-      },
-      search: {
-        type: "object",
-        properties: { exhausted: { type: "boolean" } },
-        required: ["exhausted"],
-      },
-      notes: NOTES,
-      docs: DOCS,
-      meta: META,
-    },
-    required: [
-      "player",
-      "applied",
-      "fit_for",
-      "baseline",
-      "options",
-      "within_reach",
-      "search",
-      "notes",
-      "docs",
-      "meta",
-    ],
-  },
-  battles_deck_sets: {
-    type: "object",
-    description:
-      "9.4.0: sets of decks a player can field together sharing no card, chosen exactly from the season's recorded decks and fitted to the player; value parts say why each set won. 9.8.0: a deck is its eight cards (every tower troop's variant pools; the player's duel rounds count), locked decks are echoed, and a partial set answers when no whole one exists.",
-    properties: {
-      player: {
-        type: "object",
-        properties: {
-          player_tag: { type: "string" },
-          name: { type: ["string", "null"] },
-        },
-        required: ["player_tag"],
-      },
-      applied: {
-        type: "object",
-        properties: {
-          player_tag: { type: "string" },
-          window: WINDOW_ECHO,
-          modes: { type: "array", items: { type: "string" } },
-          count: COUNT,
-          lock_decks: { type: "array", items: { type: "string" } },
-          exclude_decks: { type: "array", items: { type: "string" } },
-          exclude_cards: { type: "array", items: COUNT },
-          require_cards: { type: "array", items: COUNT },
-          alternatives: COUNT,
-          min_battles: COUNT,
-          min_players: COUNT,
-        },
-        required: ["player_tag", "window", "modes", "count"],
-      },
-      objective: {
-        type: "object",
-        description:
-          "Full verbosity: what the search maximises, term by term (deck_value, set_value, constraint).",
-      },
-      population: POPULATION,
-      fit_for: {
-        type: "object",
-        properties: {
-          player_tag: { type: "string" },
-          collection_as_of: { type: ["string", "null"] },
-          fielded_mean_level: { type: ["number", "null"] },
-          recent_mean_level: { type: ["number", "null"] },
-          fielded_battles: COUNT,
-          target_level: {
-            type: ["number", "null"],
-            description:
-              "The level the player fields now (recent_mean_level, else fielded_mean_level) over the three modes this season; null with no decided battle.",
-          },
-          min_card_level: {
-            type: ["integer", "null"],
-            description:
-              "The level gate: a deck with a held card under this (more than four levels under the target) is left out (candidates.below_level); null on the wider pass.",
-          },
-        },
-        required: ["player_tag", "target_level"],
-      },
-      priors: {
-        type: "object",
-        description:
-          "The corpus mean win rate per mode this season, the prior each deck's rate is shrunk toward.",
-      },
-      locked_decks: {
-        type: "array",
-        description:
-          "9.8.0: every locked deck, the same row shape as a set's decks, whether or not a set exists; fit.fieldable false and fit.unowned when the player lacks a card of it.",
-      },
-      candidates: {
-        type: "object",
-        description:
-          "How the season's card sets reduced, in this order: considered (over min_battles and min_players in the three modes, the player's own 5+, and the locked), then left out as an excluded deck, for an excluded card, a locked deck's card, a card not owned, or a card under min_card_level; fieldable remain, forms_substituted of them played with a base card for a form not unlocked, no_competitive_record of them with no record to value; valued and searched. one_card_short: the cards whose absence alone keeps the most decks out, [{id, name, decks}].",
-        properties: {
-          considered: COUNT,
-          excluded_decks: COUNT,
-          excluded_cards: COUNT,
-          shares_locked_cards: COUNT,
-          not_owned: COUNT,
-          below_level: COUNT,
-          fieldable: COUNT,
-          forms_substituted: COUNT,
-          no_competitive_record: COUNT,
-          valued: COUNT,
-          searched: COUNT,
-          one_card_short: { type: "array" },
-        },
-        required: ["considered", "fieldable", "searched"],
-      },
-      search: {
-        type: "object",
-        properties: {
-          exhausted: {
-            type: "boolean",
-            description:
-              "true: the sets are proven best under the objective; false: the search stopped at its node or time budget with the best it found.",
-          },
-          pool_capped: { type: "boolean" },
-        },
-        required: ["exhausted", "pool_capped"],
-      },
-      sets: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            rank: COUNT,
-            value: { type: "number" },
-            weakest_deck: { type: ["string", "null"] },
-            distinct_cards: COUNT,
-            card_slots: COUNT,
-            decks: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  deck_hash: { type: "string" },
-                  locked: { type: "boolean" },
-                  cards: { type: "array", items: DECK_CARD },
-                  card_names: { type: "string" },
-                  archetype: { type: ["object", "null"] },
-                  archetype_label: { type: ["string", "null"] },
-                  variants: {
-                    type: "array",
-                    description:
-                      "Full verbosity, 9.8.0: the deck_hash values these eight cards carry in the record this season, one per tower troop (null: a Clan Wars battle, which carries none), most played first, with their battles; deck_hash is the first.",
-                  },
-                  record: {
-                    type: ["object", "null"],
-                    description:
-                      "The eight cards' decided games this season over the three modes and every tower troop, each round of a Clan Wars duel one game: battles, wins, losses, win_rate, and shrunk_win_rate (each mode shrunk to its own prior, pooled by battles). null for a locked deck with no record.",
-                  },
-                  modes: {
-                    type: "object",
-                    description:
-                      "Full verbosity: the record per mode (ladder, ranked, war) with its players' mean_level_gap, the control the value corrects for; each mode's duel_rounds counts the duel rounds in its battles, every player's (null until the season's next rebuild splits them).",
-                  },
-                  forms_substituted: {
-                    type: "array",
-                    description:
-                      "Cards the deck's players ran as an Evolution or Hero form the player has not unlocked, so they would play the base card: full verbosity {id, name, form, plays_as, form_advantage, measured}; compact {id, name}. Empty when none.",
-                  },
-                  fit: {
-                    type: "object",
-                    description:
-                      "fieldable (every card owned: the deck can be built), exact_form (false when a form is played as its base card), own_mean_level, vs_fielded, lowest_card, and unowned [{id, name}] when a card is not owned.",
-                  },
-                  unowned: { type: "array" },
-                  own_mean_level: { type: ["number", "null"] },
-                  your_battles: COUNT,
-                  your_duel_rounds: COUNT,
-                  value: {
-                    type: ["object", "null"],
-                    description:
-                      "total = corpus_logit + level_term + form_term + familiarity_term, in log-odds (objective.deck_value); an ordering, not a forecast.",
-                  },
-                },
-                required: ["deck_hash", "locked", "record", "value"],
-              },
-            },
-          },
-          required: ["rank", "value", "weakest_deck", "decks"],
-        },
-      },
-      partial_set: {
-        type: ["object", "null"],
-        description:
-          "9.8.0: when no whole set exists, the best set of fewer decks that does (decks_found of decks_asked, the locked decks included), the same shape as a set; null otherwise.",
-      },
-      near_misses: {
-        type: "array",
-        description:
-          "Decks valued at least as high as the first set's weakest that it could not hold, the same row shape plus conflicts: [{with_deck, cards: [{id, name}]}].",
-      },
-      notes: NOTES,
-      docs: DOCS,
-      meta: META,
-    },
-    required: [
-      "player",
-      "applied",
-      "fit_for",
-      "locked_decks",
-      "candidates",
-      "search",
-      "sets",
-      "partial_set",
-      "near_misses",
-      "notes",
-      "docs",
-      "meta",
-    ],
-  },
-  battles_meta_decks: {
-    type: "object",
-    properties: {
-      ...META_COMMON,
-      decks: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            deck_hash: { type: "string" },
-            ...META_ROW_COMMON,
-            first_used: { type: ["string", "null"] },
-            last_used: { type: ["string", "null"] },
-            level_gap_battles: NULLABLE_INT,
-            repeat_players: {
-              type: ["number", "null"],
-              description:
-                "8.0.0: distinct players with two or more battles on the deck, what min_players counts; null on a season rollup row the nightly has not yet rebuilt.",
-            },
-            top_player_battles: {
-              type: ["number", "null"],
-              description:
-                "7.2.7: the busiest player's battles on the row, set when the row has two or more players and at most five repeat players (null otherwise). Near battles means one player carries the row.",
-            },
-            dominant_mode: { type: ["object", "null"] },
-            cards: {
-              type: "array",
-              items: DECK_CARD,
-              description:
-                "Full verbosity; compact carries card_names instead.",
-            },
-            card_names: {
-              type: "string",
-              description:
-                "Compact verbosity (6.12.0): the eight cards as one string, Evo/Hero prefixed by form.",
-            },
-            archetype_label: {
-              type: ["string", "null"],
-              description: "Compact verbosity (6.12.0): archetype.label alone.",
-            },
-            archetype: ARCHETYPE,
-            tower_troop: { type: ["object", "null"] },
-            fit: DECK_FIT,
-          },
-          required: ["deck_hash", "battles", "wins", "losses", "win_rate"],
-        },
-      },
-      fit_for: FIT_FOR_BLOCK,
-      archetypes: {
-        type: "array",
-        description:
-          "With group_by: the population's decks folded by archetype label or family - decks, battles, record, players, share; members[] (player_tag, name, battles, wins, deck_hash) on a clan or player segment. Sorted by players then battles; no shrunk rate.",
-      },
-      unfieldable: {
-        type: "array",
-        description:
-          "With fit_for: the rows the player cannot field as held (a card not owned or a form not unlocked), the same shape as decks[], each fit.missing naming why. Absent without fit_for.",
-      },
-    },
-    required: ["applied", "decided_battles", "decks", "notes", "docs", "meta"],
-  },
-
-  battles_meta_cards: {
-    type: "object",
-    properties: {
-      ...META_COMMON,
-      tower_troop_known_battles: { type: ["number", "null"] },
-      cards: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            card_id: COUNT,
-            name: { type: ["string", "null"] },
-            form: {
-              type: "string",
-              enum: ["base", "evolution", "hero"],
-              description: "The card FORM this row counts (5.0.0).",
-            },
-            ...META_ROW_COMMON,
-            held: {
-              type: ["object", "null"],
-              description:
-                "With fit_for: what the player holds of the card - level, forms_unlocked, has_form (the row's form is unlocked) - or null when not owned. Absent without fit_for.",
-            },
-          },
-          required: ["card_id", "battles", "wins", "losses", "win_rate"],
-        },
-      },
-      fit_for: FIT_FOR_BLOCK,
-    },
-    required: ["applied", "decided_battles", "cards", "notes", "docs", "meta"],
   },
 
   clans_participation: {

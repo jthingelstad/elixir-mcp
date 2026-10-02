@@ -19,10 +19,8 @@ Establish, with receipts:
   this hour; `jobs.dead`), `health.dlq_messages`, and capture-audit 24h
   gaps/polls. Collector work has no queues since 0040: it lives in the
   Postgres job ledger, and a job that exhausts its five leases is `dead`.
-  The only DLQs are the two outbox lanes' (`elixir-mcp-email-dlq` and
-  `elixir-mcp-editor-dlq`), and `dlq_messages` counts outbox objects still in
-  the bucket past their lane's last retry (15 min for email, 60 for the
-  editor). A dead job or a dead letter is an incident, not a curiosity.
+  The email outbox DLQ is `elixir-mcp-email-dlq`; `dlq_messages`
+  counts email objects still in the bucket past their last retry (15 min). A dead job or a dead letter is an incident, not a curiosity.
 - **Collector fleet.** The DB-backed collector status is the fleet-health
   source of truth: inspect each collector's `status`, last heartbeat, last
   successful admission, and recent fetch count on the public Status page and
@@ -66,22 +64,12 @@ Establish, with receipts:
   activity row (05:30Z) and efficiency row (05:20Z, `{capture_efficiency}`;
   yesterday's `lost_battles` in `capture_efficiency_daily`, which the
   console's Efficiency page reads) ran, Monday's sweeps ran (CloudWatch logs
-  `/aws/lambda/elixir-mcp-jobs`). The 04:40Z meta rollup's log line
-  carries `phases`: since 0140 (2026-09-19) `pop_days` is the days not
-  yet sealed, seconds on an ordinary night (10 s on day 12 of
-  September); the ten aggregates scale with the season and were ~200 s
-  that day, so a run past ~500 s mid-season is the thing to read.
-  The same nightly log line carries `archetype_stamp` (since 0148): the
-  decks re-stamped because the grammar or the vocabulary moved, and the
-  version they were stamped under - `written` is 0 on an ordinary night
-  and the whole table (~205k, about two minutes) the night after a
-  vocabulary import or a grammar bump; a non-zero `written` with no
-  deploy that day is the thing to read. The
-  proof that the population table matches the raw rows is
-  `{meta_rollup_equivalence: true}` on the jobs lambda (rolled back,
-  about five minutes when measured on the old db.t4g.micro, `hourly_ran`
-  says whether the :45
-  increment moved the counters meanwhile); not a routine check.
+  `/aws/lambda/elixir-mcp-jobs`). The nightly activity log also carries
+  `archetype_stamp`: decks re-stamped when the descriptive grammar or
+  vocabulary changes. A non-zero `written` with no vocabulary change or
+  deploy that day needs investigation. The hourly operational sweep
+  carries the factual war calendar health read. Global meta rollups and
+  their equivalence operations are retired.
 - **Doors.** MCP and web-api error alarms quiet; both p95 latency
   alarms quiet; `elixir-mcp-door-handled-failures` quiet (it counts the
   failures the doors answer themselves: `tool_failed_unexpectedly` and
@@ -132,7 +120,7 @@ Establish, with receipts:
 - Drain-and-diagnose a dead letter in the same run. The outbox object
   is the message (the DLQ holds only S3's notification pointing at it):
   read the object still in `elixir-mcp-outbox-<account>` under its lane
-  (`email/` or `editor/`) and the worker's log for why it failed, fix at
+  (`email/`) and the worker's log for why it failed, fix at
   the source, and only then redrive the DLQ so the worker reads the
   object again. Objects and DLQ messages live 14 days. Never delete an
   outbox object unexamined; a successful worker deletes its own. A
@@ -161,8 +149,7 @@ Establish, with receipts:
   - `{gateway_drain}` for a collector submitting errors or bad data, and
     `{gateway_recover}` once its fix is confirmed.
 
-  Every other write op without a runbook grant (`{collection}`, the
-  `{account_*}` ops, `{oauth_grants}`) stays Jamie's: they change
+  Every other write op without a runbook grant (the `{account_*}` ops, `{oauth_grants}`) stays Jamie's: they change
   people's accounts.
 - Transient upstream failures with held cursors self-heal — report and
   watch, don't churn. (The awareness-tick triage rule from elixir-bot

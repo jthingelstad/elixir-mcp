@@ -39,6 +39,64 @@ const read = (ctx, tool, args) =>
 
 export const contracts = [
   {
+    id: "recorder-cards-facts",
+    tools: ["cards_card"],
+    run: async (ctx) => {
+      const r = await ctx.read("cards_card", {
+        card_id: 26000007,
+        segment: "mine",
+      });
+      const body = answered(r, "selected card facts");
+      notesNameFields(ctx, "cards_card", body);
+      eq(body.card.id, 26000007, "card identity");
+      for (const form of ["base", "evolution", "hero"])
+        ok(
+          form in body.card.first_played,
+          "first_played says unknown forms too",
+        );
+      for (const field of ["season", "history", "partners", "prior", "decks"])
+        ok(!(field in body), `retired card statistic ${field}`);
+      if (body.applied.segment.kind === "clan") {
+        everyRowHas(body.members.played, "level_played", "member play");
+        everyRowHas(body.members.held, "observed_at", "member inventory");
+      }
+      return { ms: r.ms };
+    },
+  },
+  {
+    id: "recorder-retired-refusals",
+    tools: ["cards_card"],
+    run: async (ctx) => {
+      for (const tool of [
+        "rankings_players",
+        "rankings_clans",
+        "rankings_clan_ladder",
+        "rankings_timeline",
+        "battles_meta_decks",
+        "battles_meta_cards",
+        "cards_synergy",
+        "battles_deck_sets",
+        "battles_deck_upgrades",
+      ]) {
+        ok(!ctx.tools.has(tool), `${tool} is absent from tools/list`);
+        const r = await ctx.refusal(tool, {});
+        ok(r.isError, `${tool} refuses a stale declaration`);
+        eq(r.body?.error?.code, "rpc_error", `${tool} refusal`);
+        ok(
+          r.body?.error?.message?.includes(`Unknown tool: ${tool}`),
+          `${tool} is a named protocol refusal`,
+        );
+      }
+      const r = await ctx.refusal("cards_card", {
+        card_id: 26000007,
+        segment: "corpus",
+      });
+      ok(r.isError, "corpus selector refuses");
+      eq(r.body?.error?.code, "bad_request", "corpus refusal");
+    },
+  },
+
+  {
     id: "war_history-seasons",
     run: async (ctx) => {
       const r = await ctx.read("war_history", { seasons: 3 });

@@ -46,14 +46,9 @@ function resource(template, logicalId, nextLogicalId) {
 test("SQS visibility outlasts each Lambda timeout by six times", async () => {
   const template = await readFile(templateUrl, "utf8");
   const emailQueue = resource(template, "EmailQueue", "EmailDlq");
-  const editorQueue = resource(
-    template,
-    "EditorQueue",
-    "EditorDeadLetterQueue",
-  );
 
   assert.match(emailQueue, /^      VisibilityTimeout: 360$/m);
-  assert.match(editorQueue, /^      VisibilityTimeout: 5040$/m);
+  assert.doesNotMatch(template, /^  Editor(?:Function|Queue|EventSource):/m);
 });
 
 test("database-facing Lambda concurrency remains bounded", async () => {
@@ -64,7 +59,7 @@ test("database-facing Lambda concurrency remains bounded", async () => {
     ["McpFunction", "SchedulerLogGroup", 20],
     ["SchedulerFunction", "SchedulerRule", 1],
     ["MigrateFunction", "JobsLogGroup", 1],
-    ["JobsFunction", "EditorLogGroup", 1],
+    ["JobsFunction", "EmailClanReportRule", 1],
   ];
 
   for (const [logicalId, nextLogicalId, concurrency] of expected) {
@@ -99,7 +94,7 @@ test("every database-facing Lambda names its connections and bounds its statemen
     ["McpFunction", "SchedulerLogGroup", "elixir-mcp-mcp"],
     ["SchedulerFunction", "SchedulerRule", "elixir-mcp-scheduler"],
     ["MigrateFunction", "JobsLogGroup", "elixir-mcp-migrate"],
-    ["JobsFunction", "EditorLogGroup", "elixir-mcp-jobs"],
+    ["JobsFunction", "EmailClanReportRule", "elixir-mcp-jobs"],
   ];
   for (const [logicalId, nextLogicalId, name] of functions) {
     const block = resource(template, logicalId, nextLogicalId);
@@ -558,7 +553,7 @@ test("secrets rotate without a sign-out: previous values and the epoch are wired
   const webApi = block("WebApiFunction", "CollectorLogGroup");
   const collector = block("CollectorFunction", "McpLogGroup");
   const mcp = block("McpFunction", "SchedulerLogGroup");
-  const jobs = block("JobsFunction", "EditorLogGroup");
+  const jobs = block("JobsFunction", "EmailClanReportRule");
   for (const door of [webApi, mcp]) {
     assert.match(
       door,
@@ -587,7 +582,7 @@ test("secrets rotate without a sign-out: previous values and the epoch are wired
   assert.equal(
     (template.match(/^          SECRET_EPOCH: !Ref SecretEpoch$/gm) ?? [])
       .length,
-    8,
+    7,
   );
   assert.match(
     template.slice(

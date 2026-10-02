@@ -25,9 +25,6 @@ import {
   roleQuotas,
   MODE_GROUPS,
   formName,
-  normalizeTag,
-  cardForms,
-  CARD_FORM_BITS,
   classifyDeck,
   resolveArchetypeName,
   normalizeName,
@@ -230,19 +227,12 @@ export function VERBOSITY(compactDesc) {
   };
 }
 
-/** Segment scoping for the corpus-wide tools, NESTED so the name itself
- *  says it is a scope and not the caller (review 2.2.3): the same flat
- *  player_tag meant "you" on eleven tools and "the corpus" on five. */
-/** The population a segment tool scores (product call 5, 2026-09-18: a
- *  population is named, never assumed). The strings are sugar: "mine"
- *  is the caller's clan, "corpus" the whole recorded corpus said out
- *  loud; the object names one player, clan. Omitted still
- *  answers the corpus and the response says so in a note. */
+/** A read's explicit subject: one player or one clan's current members. */
 export const SEGMENT_SCHEMA = {
   description:
-    "The population to score, REQUIRED (4.0.0): 'mine' (the caller's clan: the agent's clan, or the primary player's), 'corpus' (the whole recorded corpus, explicitly), or an object naming exactly one of player_tag, clan_tag (current members) . The corpus is one population among others, never a default: a call without segment is refused.",
+    "The recorded player or clan to read: 'mine' (your clan) or an object naming exactly one of player_tag or clan_tag (current members). Required; corpus access has retired.",
   anyOf: [
-    { type: "string", enum: ["mine", "corpus"] },
+    { type: "string", enum: ["mine"] },
     {
       type: "object",
       properties: {
@@ -253,6 +243,7 @@ export const SEGMENT_SCHEMA = {
         },
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
       },
+      oneOf: [{ required: ["player_tag"] }, { required: ["clan_tag"] }],
       additionalProperties: false,
     },
   ],
@@ -272,11 +263,16 @@ export async function resolveSegment(ctx, args) {
   if (raw === undefined || raw === null)
     throw new ToolFailure(
       "bad_request",
-      "segment is required: name the population to score.",
-      `Pass segment: "mine" (your clan), segment: "corpus" (the whole recorded corpus, on purpose) or an object naming one of player_tag or clan_tag.`,
+      "segment is required: name the player or clan to read.",
+      `Pass segment: "mine" (your clan), or an object naming one of player_tag or clan_tag.`,
     );
   if (typeof raw === "string") {
-    if (raw === "corpus") return { kind: "corpus", echo: { kind: "corpus" } };
+    if (raw === "corpus")
+      throw new ToolFailure(
+        "bad_request",
+        "Corpus statistics have retired.",
+        "Name a recorded player or clan.",
+      );
     if (raw === "mine") {
       const clanTag = await entitledClan(ctx.db, ctx.account, undefined);
       return {
@@ -287,7 +283,7 @@ export async function resolveSegment(ctx, args) {
     }
     throw new ToolFailure(
       "bad_request",
-      `segment must be 'mine', 'corpus' or an object naming one of player_tag, clan_tag (got '${raw}').`,
+      `segment must be 'mine' or an object naming one of player_tag, clan_tag (got '${raw}').`,
     );
   }
   const seg = raw;
@@ -328,18 +324,15 @@ export async function resolveSegment(ctx, args) {
       echo: { kind: "clan", clan_tag: clanTag },
     };
   }
-  // An empty object is the corpus, said with an object.
-  return { kind: "corpus", echo: { kind: "corpus" } };
+  throw new ToolFailure(
+    "bad_request",
+    "segment must name exactly one player_tag or clan_tag.",
+  );
 }
 
-/** The recorded population a corpus number is drawn from (product call
- *  5): the active clan recordings and the players whose battle logs are
- *  recorded (directly, or as current members of a comprehensive clan),
- *  the same count elixir_data_insights serves. */
-/** The players recorded now, as one select of player_tag: tracked
- *  directly, or a current member of a comprehensively recorded clan. The
- *  population block counts it, and the badge corpus is read over it
- *  (6.30.1, Gym #145: the corpus had pooled every profile ever read). */
+/** Players whose games Elixir records now: direct active recordings and
+ *  current members of an actively recorded comprehensive clan. Scoped
+ *  history uses this to exclude incidental opponent-only observations. */
 export const RECORDED_PLAYERS_SQL = `select subject_tag as player_tag from recording
        where subject_type = 'player' and status = 'active'
      union
@@ -350,32 +343,6 @@ export const RECORDED_PLAYERS_SQL = `select subject_tag as player_tag from recor
       where r.subject_type = 'clan' and r.status = 'active'
         and r.scope = 'comprehensive'`;
 
-async function recordedPopulation(db) {
-  const {
-    rows: [r],
-  } = await db.query(
-    `select (select count(*) from recording
-              where subject_type = 'clan' and status = 'active')::int as recorded_clans,
-            (select count(distinct player_tag) from (${RECORDED_PLAYERS_SQL}) u)::int as recorded_players`,
-  );
-  return {
-    recorded_clans: r.recorded_clans,
-    recorded_players: r.recorded_players,
-  };
-}
-
-/** The population block a corpus read carries (3.16.0): whose
- *  neighbourhood the number describes. `playersInWindow` is the distinct
- *  players the read actually counted, null when the path cannot say. */
-export async function populationBlock(db, { playersInWindow = null } = {}) {
-  const pop = await recordedPopulation(db);
-  return { ...pop, players_in_window: playersInWindow };
-}
-
-// --- shared helpers --------------------------------------------------------
-
-/** IANA zone for this call: the argument when given and valid, else the
- *  account's. An invalid zone refuses rather than silently falling to UTC. */
 export function zoneFor(ctx, args = {}) {
   if (args.timezone === undefined) return ctx.account?.timezone ?? null;
   const tz = String(args.timezone).trim();
@@ -1002,12 +969,7 @@ export function requireOrderedWindow(from, to) {
   }
 }
 
-/** Segment resolution shared by the meta, trends, synergy and badge
- *  tools: `args.segment` holds exactly one of player_tag / clan_tag /
- *  collection, or is absent = the whole recorded corpus (universal
- *  reads). Returns a WHERE fragment + params slice that scopes
- *  battle_participant rows to the segment's players, the time column
- *  whose leading index matches that scope, plus the echo. */
+/** Resolve an explicit player or the recorded current members of a clan. */
 export async function segmentFilter(ctx, args, params) {
   const seg = await resolveSegment(ctx, args);
   if (seg.kind === "player") {
@@ -1048,54 +1010,14 @@ export async function segmentFilter(ctx, args, params) {
       echo: seg.echo,
     };
   }
-  return {
-    where: null,
-    // The participant carries battle_time (0001) and, since 0095,
-    // type_class: a corpus window scan needs no join to battle unless a
-    // mode filter asks for battle.type.
-    timeColumn: "bp.battle_time",
-    label: "corpus",
-    echo: seg.echo,
-  };
+  throw new ToolFailure(
+    "bad_request",
+    "A recorded player or clan is required.",
+  );
 }
 
 /** Empirical-Bayes shrinkage (docs/archive/META-INTEL.md): pull small samples toward
  *  the segment mean; this moderates extremes, not rank ordering. */
-export const META_METHODOLOGY = {
-  observation_unit: "player_battle",
-  outcomes: ["win", "loss"],
-  prior_strength: 20,
-  // The prior is the CORPUS mean over the same window and mode, never the
-  // segment's own (feedback #21): a player-scoped segment that shrinks
-  // toward itself regularizes by exactly nothing, and a 4-0 account came
-  // back as shrunk_win_rate 1.000. When the corpus window itself is below
-  // the floor, a neutral 0.5 stands in.
-  prior_source:
-    "recorded corpus over the same window and mode (segment-independent); 0.5 when the corpus window is below segment_min_decided",
-  // Below this many decided observations a segment is flagged
-  // insufficient_sample and shrunk rates are withheld rather than
-  // serving a number the sample cannot support.
-  segment_min_decided: 30,
-  // A duel counts as its rounds (9.11.0, feedback #363); only a duel
-  // whose rounds were never recorded is left out.
-  excluded: [
-    "duels without recorded rounds",
-    "boat battles",
-    "draws",
-    "unresolved",
-  ],
-  confidence_intervals: false,
-};
-
-export function ebShrink(
-  wins,
-  decided,
-  segmentMean,
-  m = META_METHODOLOGY.prior_strength,
-) {
-  if (decided === 0) return null;
-  return Number(((wins + m * segmentMean) / (decided + m)).toFixed(3));
-}
 
 /** The one-sentence caveats every meta tool carries; the formulas are on
  *  the methodology page (docsRef below). */
@@ -1116,15 +1038,6 @@ export function clanSegmentNote(seg) {
       .join(" ");
   return null;
 }
-
-export const SEGMENT_NOTES = [
-  "Pooled player-battle observations, not unique matches: both participants can contribute, so counts are dependent.",
-  "Only decided head-to-head games count, and each round of a Clan Wars duel is one game with its own deck and result (duel_rounds says how many of a row's battles were rounds); `excluded` says how many duels without recorded rounds, boat battles, draws and unresolved outcomes the window held.",
-  `shrunk_win_rate shrinks toward the CORPUS mean over the same window and mode, and is withheld (null, insufficient_sample: true) when the population is under ${META_METHODOLOGY.segment_min_decided} decided observations, not per row: a row with few battles still carries one, shrunk hard toward the mean. win_rate is the raw rate at any sample size, so read it beside battles.`,
-  "Shrinkage moderates extremes but does not adjust for skill or guarantee rank order; no confidence intervals.",
-];
-export const SEGMENT_DOCS =
-  "methodology#deck-and-card-meta-exactly-what-is-counted";
 
 export { DUEL_TYPES };
 
@@ -1152,124 +1065,14 @@ const PARTICIPANT_LEVELS = ["deck_avg_level", "opp_deck_avg_level"];
 export const participantGamesSql = (from) =>
   duelGamesSql(from, PARTICIPANT_GAME_COLUMNS, { blank: PARTICIPANT_LEVELS });
 export const PARTICIPANT_GAMES = participantGamesSql("battle_participant");
-const POP_GAME_COLUMNS = [
-  "season_month",
-  "game_day",
-  "battle_id",
-  "player_tag",
-  "deck_hash",
-  "outcome",
-  "battle_time",
-  "type",
-  "type_class",
-  "mode_group",
-  "trophy_band",
-  "level_gap",
-];
-export const popGamesSql = (from) =>
-  duelGamesSql(from, POP_GAME_COLUMNS, { blank: ["level_gap"] });
-export const POP_GAMES = popGamesSql("meta_season_pop");
-
 /** What a meta window held that the decided head-to-head population left
  *  out, so a 246-vs-212 gap is self-describing instead of something a
  *  consumer derives by subtraction across three tools (feedback #23).
  *  `where` scopes rows to segment + window + mode only. */
-export async function excludedBreakdown(
-  db,
-  where,
-  params,
-  { withPrior = false, source = "battle_participant" } = {},
-) {
-  // type and type_class are on the participant (0095, 0099); battle joins
-  // in only when the caller's scope still names it (a mode filter).
-  const battleJoin = where.some((w) => /\bb\./.test(w))
-    ? "join battle b on b.battle_id = bp.battle_id"
-    : "";
-  // A battle is a round-0 row: a duel once, as every tool counts it,
-  // its whole row deckless. Its recorded rounds are decided games
-  // (9.11.0): the prior counts them, and `duel_rounds` says how many.
-  const duel = `coalesce(bp.type = any($${params.length + 1}), false)`;
-  const {
-    rows: [r],
-  } = await db.query(
-    `select ${
-      withPrior
-        ? `count(*) filter (where bp.outcome in ('win','loss') and bp.type_class = 'pvp' and bp.deck_hash is not null)::int as prior_decided,
-            count(*) filter (where bp.outcome = 'win' and bp.type_class = 'pvp' and bp.deck_hash is not null)::int as prior_wins,`
-        : ""
-    }
-            count(*) filter (where bp.round = 0)::int as considered,
-            count(*) filter (where bp.round = 0 and ${duel})::int as duels,
-            count(*) filter (where bp.type_class = 'boat' and not ${duel})::int as boat,
-            count(*) filter (where bp.outcome = 'draw' and bp.type_class = 'pvp'
-                               and not ${duel})::int as draws,
-            count(*) filter (where (bp.outcome is null or bp.outcome = 'unresolved')
-                               and bp.type_class = 'pvp' and not ${duel})::int as unresolved,
-            count(*) filter (where bp.outcome in ('win','loss') and bp.type_class = 'pvp'
-                               and not ${duel} and bp.deck_hash is null)::int as no_deck,
-            count(*) filter (where bp.round > 0 and bp.outcome in ('win','loss')
-                               and bp.type_class = 'pvp' and bp.deck_hash is not null)::int as duel_rounds
-     from ${source === "meta_season_pop" ? POP_GAMES : PARTICIPANT_GAMES} bp ${battleJoin}
-     where ${where.join(" and ")}`,
-    [...params, DUEL_TYPES],
-  );
-  return {
-    considered: r.considered,
-    duels: r.duels,
-    boat: r.boat,
-    draws: r.draws,
-    unresolved: r.unresolved,
-    no_deck: r.no_deck,
-    // Not an exclusion: of the decided games, how many were duel rounds.
-    // Callers lift it out of `excluded`.
-    duel_rounds: r.duel_rounds,
-    ...(withPrior
-      ? {
-          prior: {
-            decided: r.prior_decided,
-            mean:
-              r.prior_decided >= META_METHODOLOGY.segment_min_decided
-                ? r.prior_wins / r.prior_decided
-                : null,
-          },
-        }
-      : {}),
-  };
-}
 
 /** The corpus prior for shrinkage: decided head-to-head rate over the
  *  same window and mode, ignoring the segment. Null when the corpus
  *  window is below the floor (the caller substitutes 0.5). */
-export async function corpusPrior(db, { from, to = null, types = null }) {
-  // Its own parameter list: Postgres refuses a bound parameter it cannot
-  // type, so the segment's params must not ride along unused.
-  // One scalar over the window from the participant's own columns
-  // (0095, 0099): battle_participant_window covers it, so this is an
-  // index-only scan - no join to battle, mode filter or not.
-  const params = [from];
-  const where = ["bp.battle_time >= $1"];
-  if (to) {
-    params.push(to);
-    where.push(`bp.battle_time < $${params.length}`);
-  }
-  if (types) {
-    params.push(types);
-    where.push(`bp.type = any($${params.length})`);
-  }
-  const {
-    rows: [r],
-  } = await db.query(
-    `select count(*)::int as decided,
-            count(*) filter (where bp.outcome = 'win')::int as wins
-     from ${PARTICIPANT_GAMES} bp
-     where bp.outcome in ('win','loss') and bp.type_class = 'pvp'
-       and bp.deck_hash is not null and ${where.join(" and ")}`,
-    params,
-  );
-  return r.decided >= META_METHODOLOGY.segment_min_decided
-    ? { decided: r.decided, mean: r.wins / r.decided }
-    : { decided: r.decided, mean: null };
-}
 
 /**
  * Deck identities as rows (0091): the cards of each deck_hash, by form,
@@ -1284,16 +1087,6 @@ export async function corpusPrior(db, { from, to = null, types = null }) {
  * (5.0.0, battles_meta_decks.containing): one indexed read of deck_card,
  * the tower troop excluded (it is on the deck row, not in deck_card).
  */
-export async function decksContaining(db, cardIds) {
-  const ids = [...new Set(cardIds.map(Number))];
-  const { rows } = await db.query(
-    `select deck_hash from deck_card
-     where card_id = any($1)
-     group by deck_hash having count(distinct card_id) = $2`,
-    [ids, ids.length],
-  );
-  return new Set(rows.map((r) => r.deck_hash));
-}
 
 /** The archetype vocabulary (0147): one cache for the readers and the
  *  ingest path (card-roles.mjs). */
@@ -1443,35 +1236,6 @@ export const ARCHETYPE_NOTE =
 /** A card set's identity from its cards alone ([{id, form}] per key), for
  *  a deck no deck row holds (a war deck played only in duels): the cards
  *  named, with the archetype deckIdentities would give them. */
-export async function cardSetIdentities(db, sets) {
-  const ids = [...new Set([...sets.values()].flat().map((c) => c.id))];
-  if (ids.length === 0) return new Map();
-  const { rows } = await db.query(
-    `select card_id, name, elixir_cost from card where card_id = any($1)`,
-    [ids],
-  );
-  const catalog = new Map(rows.map((r) => [r.card_id, r]));
-  const vocab = await vocabulary(db);
-  const out = new Map();
-  for (const [key, pairs] of sets) {
-    const sorted = [...pairs].sort((a, z) => a.id - z.id || a.form - z.form);
-    const priced = sorted.map((c) => ({
-      id: c.id,
-      name: catalog.get(c.id)?.name ?? null,
-      form: c.form,
-      elixir_cost: catalog.get(c.id)?.elixir_cost ?? null,
-    }));
-    out.set(key, {
-      cards: priced.map((c) => ({
-        id: c.id,
-        name: c.name,
-        form: formName(c.form),
-      })),
-      archetype: archetypeOf(priced, vocab),
-    });
-  }
-  return out;
-}
 
 export async function deckIdentities(db, hashes) {
   const wanted = [...new Set(hashes.filter(Boolean))];
@@ -1609,19 +1373,6 @@ export async function ensureClanRecording(db, tag, requestedBy) {
 
 /** What a player holds: card_id -> { level, forms }. An empty map means
  *  no collection is recorded. */
-async function heldCards(db, tag) {
-  const { rows } = await db.query(
-    `select card_id, level, evolution_level, observed_at from player_card where player_tag = $1`,
-    [tag],
-  );
-  const held = new Map();
-  let asOf = null;
-  for (const r of rows) {
-    held.set(r.card_id, { level: r.level, forms: r.evolution_level ?? 0 });
-    if (asOf === null || r.observed_at > asOf) asOf = r.observed_at;
-  }
-  return { held, as_of: asOf ? asOf.toISOString() : null };
-}
 
 /** The mean level a player has actually fielded: the average of their
  *  decks' mean card level over decided pvp battles in the window (and
@@ -1662,100 +1413,10 @@ export async function fieldedLevel(db, tag, { from, to, types }) {
 
 /** Resolve a fit_for argument to a tag with a recorded collection, or
  *  refuse: a fit against nothing would read as "owns nothing". */
-export async function resolveFitFor(db, value) {
-  let tag;
-  try {
-    tag = normalizeTag(String(value));
-  } catch {
-    throw new ToolFailure(
-      "invalid_tag",
-      `Invalid fit_for tag: ${value}`,
-      TAG_RULE_HINT,
-    );
-  }
-  const collection = await heldCards(db, tag);
-  if (collection.held.size === 0)
-    throw new ToolFailure(
-      "not_recorded",
-      `No collection recorded for ${tag}, so nothing to fit against.`,
-      "The collection is read from the player's profile; players_profile({ live: true }) fetches one now, or omit fit_for for the population's decks alone.",
-    );
-  return { tag, ...collection };
-}
 
 /** One deck's cards against what the player holds: fieldable or not
  *  (missing names the card and why), the mean level the player would
  *  field it at, that against the level they have been fielding, and
  *  the upgrade path to the fielded level (what could be). */
-export function deckFit(cards, held, fielded) {
-  const missing = [];
-  const levels = [];
-  const upgrades = [];
-  const target = fielded === null ? null : Math.round(fielded);
-  for (const c of cards) {
-    const h = held.get(c.id);
-    const bit = CARD_FORM_BITS[c.form] ?? 0;
-    if (!h) {
-      missing.push({
-        id: c.id,
-        name: c.name,
-        form: c.form,
-        reason: "not_owned",
-      });
-      continue;
-    }
-    if (bit !== 0 && (h.forms & bit) === 0)
-      missing.push({
-        id: c.id,
-        name: c.name,
-        form: c.form,
-        reason: "form_not_unlocked",
-      });
-    if (h.level !== null) {
-      levels.push(h.level);
-      if (target !== null && h.level < target)
-        upgrades.push({
-          id: c.id,
-          name: c.name,
-          form: c.form,
-          held_level: h.level,
-          to_level: target,
-          levels: target - h.level,
-        });
-    }
-  }
-  upgrades.sort((a, z) => z.levels - a.levels || a.id - z.id);
-  const mean = (xs) =>
-    xs.length
-      ? Number((xs.reduce((s, x) => s + x, 0) / xs.length).toFixed(3))
-      : null;
-  const ownMean = missing.some((m) => m.reason === "not_owned")
-    ? null
-    : mean(levels);
-  return {
-    fieldable: missing.length === 0,
-    missing,
-    own_mean_level: ownMean,
-    vs_fielded:
-      ownMean === null || fielded === null
-        ? null
-        : Number((ownMean - fielded).toFixed(3)),
-    upgrades,
-    mean_level_after_upgrades:
-      ownMean === null || target === null
-        ? null
-        : mean(levels.map((l) => Math.max(l, target))),
-  };
-}
 
 /** What a player holds of one card, for a card row: null when unowned. */
-export function heldCard(held, cardId, form) {
-  const h = held.get(cardId);
-  if (!h) return null;
-  const bit = CARD_FORM_BITS[form] ?? 0;
-  return {
-    level: h.level,
-    forms_unlocked: cardForms(h.forms),
-    has_form: bit === 0 || (h.forms & bit) !== 0,
-  };
-}

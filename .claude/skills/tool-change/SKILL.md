@@ -124,8 +124,7 @@ its column across `services/`, `apps/web/src/` and `packages/mail/`:
   tools through `callTool` and read fields by name, so a rename breaks
   them. Some also run SQL of their own. Fixtures are in
   `packages/mail/fixtures/`.
-- **Rollups** (`services/jobs/src/meta-rollup.mjs`,
-  `packages/ingest/src/rollups.mjs`), which must agree with the live SQL.
+- **Rollups** (`packages/ingest/src/rollups.mjs`), which must agree with the live SQL.
 - **The console** (`apps/web/src/`) and **web-api routes**
   (`services/web-api/src/routes/`).
 

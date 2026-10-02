@@ -1,14 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { runEmail, writtenSendDue } from "../src/email/index.mjs";
+import { runEmail } from "../src/email/index.mjs";
 import { deliver } from "@elixir-mcp/mail/deliver";
 import { handler } from "../src/index.mjs";
-import { top100Generate, top100Accept } from "../src/email/top100.mjs";
-import {
-  cardOfWeekGenerate,
-  cardOfWeekAccept,
-} from "../src/email/card-of-week.mjs";
-import { cardOfWeekPreview } from "../src/email/card-of-week-preview.mjs";
 
 test("scheduled, forced and direct editorial entry points perform no IO", async () => {
   const forbidden = () => {
@@ -36,22 +30,10 @@ test("scheduled, forced and direct editorial entry points perform no IO", async 
       );
     }
     assert.equal(
-      writtenSendDue(kind, "2026-10-01", new Date("2026-10-02T15:00:00Z")),
-      false,
-    );
-    assert.equal(
       (await handler({ email: kind, force: true })).skipped,
       "retired",
     );
   }
-  for (const fn of [
-    top100Generate,
-    top100Accept,
-    cardOfWeekGenerate,
-    cardOfWeekAccept,
-    cardOfWeekPreview,
-  ])
-    assert.equal((await fn({ db: { query: forbidden } })).skipped, "retired");
   for (const event of [
     { top100_generate: true },
     { top100_accept: { key: "old" } },

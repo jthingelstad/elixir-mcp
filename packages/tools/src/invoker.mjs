@@ -206,13 +206,8 @@ const READ_LOCK_TIMEOUT_MS = 5_000;
  *  4 MB, and battles_trends' p95 was 16-17 s against the Lambda's
  *  deadline with no query_timeout of its own. */
 const BUDGETED_TOOLS = new Set([
-  "battles_meta_decks",
-  "battles_meta_cards",
-  "battles_deck_sets",
-  "battles_deck_upgrades",
   "battles_trends",
   "cards_card",
-  "cards_synergy",
   "clans_standings",
   "war_history",
 ]);

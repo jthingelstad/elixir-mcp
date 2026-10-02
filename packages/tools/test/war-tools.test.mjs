@@ -494,9 +494,9 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
   assert.match(body.notes.join(" "), /observed so far/);
 });
 
-test("the registry declares 54 tools, every one classified and annotated", () => {
+test("the registry declares 45 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 54);
+  assert.equal(decls.length, 45);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -526,12 +526,9 @@ test("the registry declares 54 tools, every one classified and annotated", () =>
       "clans_roster",
       "live_fetch",
       "players_profile",
-      "rankings_clan_ladder",
-      "rankings_clans",
-      "rankings_players",
       "war_current",
     ],
-    "the raw lane and the seven tools with a live flag reach outside the corpus",
+    "the raw lane and the four tools with a live flag reach outside the corpus",
   );
 });
 

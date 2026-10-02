@@ -14,8 +14,7 @@ lede: "Royal Hogs bridge spam, Hog cycle, Log Bait - the names players use, on e
 Players talk about decks by name, and Elixir speaks the language in both
 directions. Every deck object it serves — on `battles_query`,
 `battles_decks` (the one deck asked for by `deck_hash`; its list rows
-carry the label alone, `archetype_label`), `battles_meta_decks`,
-`cards_card` and `players_summary` — carries an `archetype`: the deck's **family** and **win condition(s)**, a
+carry the label alone, `archetype_label`), `cards_card` and `players_summary` — carries an `archetype`: the deck's **family** and **win condition(s)**, a
 descriptive **label** composed from them, and the average elixir the deck
 runs at. And a name a person uses — a family, a label, or a community
 name like *LavaLoon* — is understood by the deck readers' `archetype`
@@ -117,39 +116,7 @@ which is how the sites read it too.
 
 ### The cycle bound
 
-Guides say "under 3.5"; the named cycle decks run 2.6–3.1. Elixir pins the
-bound where the record says the two populations part, and the record
-agrees with the guides read literally. An eight-card average steps by an
-eighth, so the question is whether 3.375 belongs with cycle or above it.
-Over every deck recorded in season 2026-09 (204,957 identities, 570,488
-battles), the battles per average for the three canonical chip win
-conditions:
-
-| average | Hog Rider | Royal Hogs | Miner |
-| --- | --- | --- | --- |
-| 2.625 | 12,231 | 63 | 225 |
-| 2.75 | 8,993 | 184 | 792 |
-| 2.875 | 2,057 | 6,058 | 5,437 |
-| 3.0 | 1,951 | 1,149 | 2,073 |
-| 3.125 | 2,039 | 2,246 | 1,828 |
-| 3.25 | 2,157 | 878 | 2,719 |
-| 3.375 | 3,628 | 1,909 | 1,849 |
-| **3.5** | **1,853** | **612** | **1,040** |
-| 3.625 | 2,776 | 909 | 1,325 |
-| 3.75 | 2,982 | 1,454 | 5,404 |
-| 3.875 | 2,603 | 1,387 | 1,479 |
-| 4.0 | 2,329 | 785 | 1,215 |
-| 4.125 | 4,297 | 2,071 | 738 |
-
-The trough is at exactly 3.5 for all three: 3.375 sits on the plateau
-below it, 3.5 is the dip before the heavier decks rise (Miner's 3.75 peak
-is the Miner Poison control shape; Hog Rider's 4.125 the Hog EQ and
-control shapes). So the bound in force, `CYCLE_MAX` in the contract, is
-**3.4**: an average of 3.375 is cycle, 3.5 is not. The `archetype_census`
-operator read reruns this over the whole record; the day the number
-moves, this page says so. (Balloon and Royal Giant show the same dip at
-3.5 with a second cluster at 2.875 and 3.0 respectively — "Balloon
-cycle" and "3.0 RG cycle"; Goblin Drill runs broad from 2.5 to 3.375.)
+The descriptive grammar uses a fixed cycle bound of 3.4 and a beatdown bound of 4.0. These label deck shapes; they do not rank decks or recommend one to play.
 
 ## Where the vocabulary lives, and who keeps it
 
@@ -187,13 +154,11 @@ partner test is the difference.
 
 **`cards_archetype`** answers the two questions on their own, with no
 population attached: `{ name }` says what a name means — family, win
-conditions, the other names for that shape, and how much of this
-season's record plays it — and `{ cards }` names a deck from up to eight
+conditions and the other names for that shape — and `{ cards }` names a deck from up to eight
 cards (ids or names; `Evo` / `Hero` before a name sets its form), with no
-record required and a note on whether anyone recorded has played that
-exact set. Called with nothing it returns the vocabulary itself.
+record required. Called with nothing it returns the vocabulary itself.
 
-`battles_meta_decks`, `battles_decks` and `cards_card` take `archetype`, a
+`battles_decks` takes `archetype`, a
 string, resolved the same way in three layers, first match wins. A form
 said before a win condition ("Evo Royal Hogs bridge spam") keeps to that
 form's decks; a name without one ("Royal Hogs bridge spam") matches every
@@ -216,50 +181,18 @@ The response echoes `applied.archetype` — `family`, `win_conditions`,
 the resolved shape — and a note says what was matched. A name that is
 nothing is refused (`bad_request`) with the six families and the grammar
 in the hint; it is never a silent empty list that reads as "nobody plays
-that". The filter runs over every deck in scope over `min_battles`, by
-its stamp, and denominators stay the population's.
+that". The filter reads the selected player's recorded decks by their stamp.
 
-## Who plays what
+## Recorded deck labels
 
-`battles_meta_decks { group_by: "archetype" }` folds a population's decks
-by label — one row per "Royal Hogs bridge spam", "Hog Rider cycle",
-"Graveyard control" — with `decks`, `battles`, the record, `players` and
-`share`; `group_by: "family"` folds to the six families. On a clan,
-player segment each row carries **`members[]`**: who plays
-the shape, their battles and wins in it, and their most-played deck of
-it, so "what decks do our players use?" is one call answered the way a
-player would say it. Rows are sorted by who plays them (players, then
-battles) and carry **no shrunk rate**: the same label sits at 83% and
-40% in one clan, and a pooled family rate would read as a tier list.
-`decks[]` is empty with `group_by`.
-
-Underneath, every deck in the record carries its archetype as a
-**stamp** — written when a deck first appears, and caught up nightly for
-every deck behind the current grammar or vocabulary version — so a
-rule change or a vocabulary import reaches history by the next morning,
-and the fold and the filter cover a whole season instead of its top
-rows.
-
-With `fit_for`, the meta reader also says which families, win
-conditions and shapes the player already fields (`fit_for.plays`), and
-on every row whether it is one of them (`fit.plays_archetype`,
-`fit.plays_win_condition`, `fit.plays_family`). Adoption cost reads off
-them in that order: the exact shape costs the least; the same win
-condition in another family - Evo Royal Hogs cycle to a player who
-fields Evo Royal Hogs bridge spam - is the card they have leveled and
-learned played at a different pace, the usual next step; the same
-family around a new win condition is a new card to level; a row sharing
-neither is a new deck to learn as well as levels to buy. The win
-condition is matched form included: Evo Royal Hogs is not Royal Hogs,
-because the form is what is unlocked and leveled.
+Every recorded deck carries a descriptive archetype stamp. It is written when the deck first appears and brought up to the current vocabulary and grammar overnight. `battles_decks`, `battles_query` and `players_summary` use those labels to describe the games you played.
 
 ## What is not here
 
 - **No matchup or expected-advantage number**, and none is coming. A
   player's own record by opposing family may arrive later, as facts about
   that player.
-- **No quality in a label.** `shrunk_win_rate` and its kin are on the
-  deck row, not on the archetype.
+- **No quality in a label.** A label describes its cards and pace; it is not a recommendation.
 - **No named-deck catalog.** Aliases are read on the way in only.
 - **No model.** The same cards and the same vocabulary name the same
   archetype on every call and every surface.
