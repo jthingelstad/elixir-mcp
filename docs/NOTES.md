@@ -3044,3 +3044,17 @@ order, duel and boat semantics. Bad or unreadable objects remain unresolved.
 Neither tool implements game-row or payload deletion. The exact retention and
 purge manifest, mutable-reason recheck and Jamie's manifest approval are still
 required before destruction. Contracts remain 11.0.1 and JSON API 3.0.0.
+
+Read-only review corrected census coverage for added_at/first_seen_at/window_end
+and dependent participants through their parent battle cutoff. Each page labels
+its cutoff policy and per-page snapshot isolation; untimed keys are current
+inventories, not historical as-of assertions. Resume revalidates receipt/content
+chains and the server lane inventory, and bounded page-size retries stay at the
+same cursor. Deliberate operator enrollment/tracking evidence is preserved with
+sanitized source/relationship details. The final mutable-evidence recheck is
+still required. No private database export or game-history deletion has run.
+
+The private export pins the live schema digest in every page and cursor. A
+resume compares the actual schema catalogue again; changed columns, keys or
+foreign keys require a fresh census. The definition also names its cutoff
+algorithm version. A scratch ALTER regression verifies refusal after drift.

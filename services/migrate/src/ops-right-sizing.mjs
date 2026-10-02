@@ -14,9 +14,9 @@ const LANES = Object.freeze({
   account_clan: {},
   account_event: {
     columns:
-      "event_id,account_id,kind,created_at,jsonb_strip_nulls(jsonb_build_object('player_tag',detail->'player_tag','clan_tag',detail->'clan_tag','scope',detail->'scope','subject_type',detail->'subject_type','subject_tag',detail->'subject_tag','recording_id',detail->'recording_id','collection_id',detail->'collection_id','slug',detail->'slug','via',detail->'via')) as detail",
+      "event_id,account_id,kind,created_at,jsonb_strip_nulls(jsonb_build_object('player_tag',detail->'player_tag','clan_tag',detail->'clan_tag','scope',detail->'scope','relationship',detail->'relationship','source',left(detail->>'source',200),'subject_type',detail->'subject_type','subject_tag',detail->'subject_tag','recording_id',detail->'recording_id','collection_id',detail->'collection_id','slug',detail->'slug','via',detail->'via')) as detail",
     filter:
-      "kind in ('claim_added','claim_removed','clan_added','clan_removed','recording_started','recording_stopped','collection_created','collection_deleted','collection_member_added','collection_member_removed','collection_grant_added','collection_grant_revoked')",
+      "kind in ('claim_added','claim_removed','clan_added','clan_removed','recording_started','recording_stopped','tracked_by_ops','enrolled','filled','collection_created','collection_deleted','collection_member_added','collection_member_removed','collection_grant_added','collection_grant_revoked')",
   },
   recording: {},
   clan_membership: {},
@@ -30,6 +30,7 @@ const LANES = Object.freeze({
   },
   battle_participant: {
     columns: "battle_id,player_tag,clan_tag,side,deck_hash",
+    parentClock: "battle",
   },
   battle_dependency_counts: {
     table: "battle",
@@ -82,6 +83,39 @@ const identifier = (value) => {
   return `"${value}"`;
 };
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const DEFINITION = digest(
+  Buffer.from(
+    JSON.stringify({ version: 2, cutoff_algorithm_version: 2, lanes: LANES }),
+  ),
+);
+
+async function readSchema(db) {
+  const foreignKeys = (
+    await db.query(
+      "select c.conname as name,c.conrelid::regclass::text as child_table,c.confrelid::regclass::text as parent_table,pg_get_constraintdef(c.oid) as definition,c.convalidated as validated from pg_constraint c join pg_namespace n on n.oid=c.connamespace where c.contype='f' and n.nspname='public' order by c.conrelid::regclass::text,c.conname",
+    )
+  ).rows;
+  const primaryKeys = (
+    await db.query(
+      "select i.indrelid::regclass::text as table_name,array_agg(a.attname::text order by array_position(i.indkey,a.attnum)) as columns from pg_index i join pg_attribute a on a.attrelid=i.indrelid and a.attnum=any(i.indkey) join pg_class r on r.oid=i.indrelid join pg_namespace n on n.oid=r.relnamespace where i.indisprimary and n.nspname='public' group by i.indrelid order by i.indrelid::regclass::text",
+    )
+  ).rows;
+  const columns = (
+    await db.query(
+      "select table_name,column_name,data_type,is_nullable from information_schema.columns where table_schema='public' order by table_name,ordinal_position",
+    )
+  ).rows;
+  const catalog = {
+    foreign_keys: foreignKeys,
+    primary_keys: primaryKeys,
+    columns,
+  };
+  return {
+    readonly: true,
+    schema_sha256: digest(Buffer.from(JSON.stringify(catalog))),
+    ...catalog,
+  };
+}
 
 async function schemaCatalog(databaseUrl) {
   const db = new pg.Client({ connectionString: databaseUrl });
@@ -89,28 +123,9 @@ async function schemaCatalog(databaseUrl) {
   try {
     await db.query("begin isolation level repeatable read read only");
     await db.query("set local statement_timeout='30s'");
-    const foreignKeys = (
-      await db.query(
-        "select c.conname as name,c.conrelid::regclass::text as child_table,c.confrelid::regclass::text as parent_table,pg_get_constraintdef(c.oid) as definition,c.convalidated as validated from pg_constraint c join pg_namespace n on n.oid=c.connamespace where c.contype='f' and n.nspname='public' order by c.conrelid::regclass::text,c.conname",
-      )
-    ).rows;
-    const primaryKeys = (
-      await db.query(
-        "select i.indrelid::regclass::text as table_name,array_agg(a.attname::text order by array_position(i.indkey,a.attnum)) as columns from pg_index i join pg_attribute a on a.attrelid=i.indrelid and a.attnum=any(i.indkey) join pg_class r on r.oid=i.indrelid join pg_namespace n on n.oid=r.relnamespace where i.indisprimary and n.nspname='public' group by i.indrelid order by i.indrelid::regclass::text",
-      )
-    ).rows;
-    const columns = (
-      await db.query(
-        "select table_name,column_name,data_type,is_nullable from information_schema.columns where table_schema='public' order by table_name,ordinal_position",
-      )
-    ).rows;
+    const result = await readSchema(db);
     await db.query("commit");
-    return {
-      readonly: true,
-      foreign_keys: foreignKeys,
-      primary_keys: primaryKeys,
-      columns,
-    };
+    return result;
   } finally {
     await db.end();
   }
@@ -132,6 +147,7 @@ export async function rightSizingCensus(
     return {
       readonly: true,
       catalog_available: true,
+      definition_sha256: DEFINITION,
       lanes: Object.keys(LANES),
     };
   const {
@@ -142,6 +158,11 @@ export async function rightSizingCensus(
     limit = 2000,
   } = spec.export;
   if (!Object.hasOwn(LANES, lane)) throw new Error("unknown census lane");
+  if (
+    spec.export.definition_sha256 &&
+    spec.export.definition_sha256 !== DEFINITION
+  )
+    throw new Error("census definition changed");
   if (
     !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(
       snapshotId ?? "",
@@ -191,6 +212,14 @@ export async function rightSizingCensus(
   try {
     await db.query("begin isolation level repeatable read read only");
     await db.query("set local statement_timeout='30s'");
+    const schema = await readSchema(db);
+    if (
+      spec.export.schema_sha256 &&
+      spec.export.schema_sha256 !== schema.schema_sha256
+    )
+      throw new Error("census schema changed");
+    if (previous && previous.schema_sha256 !== schema.schema_sha256)
+      throw new Error("census cursor schema changed");
     const table = LANES[lane].table ?? lane;
     const keys = (
       await db.query(
@@ -222,12 +251,31 @@ export async function rightSizingCensus(
       "observed_at",
       "captured_at",
       "joined_observed_at",
+      "added_at",
+      "first_seen_at",
+      "first_observed_at",
+      "recorded_at",
+      "window_end",
+      "snapshot_date",
+      "day",
     ].find((n) => columns.some((c) => c.column_name === n));
-    if (clockColumn) {
+    let cutoffPolicy = "current_inventory";
+    if (LANES[lane].parentClock) {
       values.push(cutoff);
       conditions.push(
-        `${identifier(clockColumn)} <= $${values.length}::timestamptz`,
+        `exists (select 1 from battle b where b.battle_id=${identifier(table)}.battle_id and b.created_at <= $${values.length}::timestamptz)`,
       );
+      cutoffPolicy = "parent_created_at:battle";
+    } else if (clockColumn) {
+      values.push(cutoff);
+      const clockType =
+        columns.find((c) => c.column_name === clockColumn).data_type === "date"
+          ? "date"
+          : "timestamptz";
+      conditions.push(
+        `${identifier(clockColumn)} <= $${values.length}::${clockType}`,
+      );
+      cutoffPolicy = `${clockType}:${clockColumn}`;
     }
     values.push(limit + 1);
     const selected =
@@ -252,6 +300,7 @@ export async function rightSizingCensus(
             lane,
             snapshot_id: snapshotId,
             cutoff,
+            schema_sha256: schema.schema_sha256,
             values: keys.map((k) => page.at(-1)[k]),
           })
         : null;
@@ -262,6 +311,10 @@ export async function rightSizingCensus(
         lane,
         cutoff,
         after,
+        cutoff_policy: cutoffPolicy,
+        snapshot_isolation: "per_page",
+        definition_sha256: DEFINITION,
+        schema_sha256: schema.schema_sha256,
         next_after: next,
         primary_key: keys,
         rows: page,
@@ -303,6 +356,10 @@ export async function rightSizingCensus(
       cutoff,
       key,
       sha256,
+      cutoff_policy: cutoffPolicy,
+      snapshot_isolation: "per_page",
+      definition_sha256: DEFINITION,
+      schema_sha256: schema.schema_sha256,
       bytes: bytes.length,
       rows: page.length,
       next_after: next,
