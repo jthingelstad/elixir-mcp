@@ -2177,3 +2177,33 @@ was marked's HTML, escaped again.
 - Templated front matter takes `| safe`, so the data holds raw text.
 - `headings` decodes marked's entities, so `h.text` is plain text.
 - `site.test.mjs` sweeps every built page for an escaped entity.
+
+## 2026-10-02 - Operator acceptance-capacity watch
+
+The queue's 2026-10-01 acceptance receipt reported 24 failures across 1,189
+cases. The product-contract cases (Gym 183.3 and 349.1, `war_history` notes,
+and record-versus-game war standings) remain with Elixir Feedback Manager and
+need Jamie's decision where the queue says so. The Operator capacity portion
+was read, not replayed: a full rerun is forbidden until triage is complete.
+
+At 09:48Z, `/api/public/status` was green: 1,090 battles in the prior hour,
+four-second fetch/admission freshness, zero queued, leased or dead ledger
+jobs, zero outbox DLQs, five fresh signed v3.0.6 active collectors, and 16
+capture gaps in 21,035 polls. `{stats:true}` agreed: 819 battle-log polls in
+the trailing hour with zero gaps, 20 prior-day fetch errors (ordinary 404s
+plus three transport receipts), and no current fetch errors. All
+`elixir-mcp-*` alarms were quiet.
+
+`{audit_census:{days:1}}` attributes the latency tail almost entirely to the
+acceptance principal (1,870 calls; 83 adversarial/refusal outcomes). Its
+normal readers remain under the 18-second query budget but are close enough to
+watch: `battles_meta_cards` p95 17.7s with two timeouts, `cards_card` p95
+14.9s, and `badges_rarity` p95 6.0s. Read-only `{profile_tool}` reproductions
+show the source cost: the seven-day corpus card meta path reads
+`meta_season_pop` and makes tens of thousands of deck-card probes; the
+full-season Knight card profile scans `battle_participant` and `battle`, then
+walks card-bearing decks for its exact partner block. These are measured
+walks, but they do not yet identify one small index that collapses the served
+query without moving the product contract. No runtime, schema, collector, or
+production mutation was made. Reassess only with a repeated natural/read-only
+receipt; do not loosen ceilings or add an index from a single cold-plan read.
