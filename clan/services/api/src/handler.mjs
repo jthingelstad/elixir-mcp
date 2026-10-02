@@ -1150,9 +1150,18 @@ export function routeKey(method, path) {
   return `${method} ${generic}`;
 }
 
+/** The roster's events the clan page shows as comings and goings: joins,
+ *  departures and the clan's own race results, newest first. Role
+ *  changes stay on The week. */
+const COMINGS = new Set(["member_joined", "member_left", "week_resolved"]);
+const COMINGS_SHOWN = 6;
+
 /** The roster as the page wants it: grouped by role rank, then trophies,
  *  the signed-in person's row marked, the API's role spelling kept beside
- *  its label. Nothing is added that the tool did not say. */
+ *  its label. Nothing is added that the tool did not say. The clan's own
+ *  figures (what it asks of a joiner, its war trophies, its donations a
+ *  week) and its newest comings and goings ride along for the clan page
+ *  (the October 2026 canvas). */
 export function shapeRoster(body, { yourTags = [] }) {
   const yours = new Set(yourTags);
   const members = (body.members ?? [])
@@ -1166,6 +1175,7 @@ export function shapeRoster(body, { yourTags = [] }) {
       last_recorded_battle: m.last_recorded_battle ?? null,
       last_seen_in_game: m.last_seen_in_game ?? null,
       first_observed_in_clan: m.first_observed_in_clan ?? null,
+      rejoined_observed_at: m.rejoined_observed_at ?? null,
       you: yours.has(m.player_tag),
     }))
     .sort(
@@ -1180,8 +1190,31 @@ export function shapeRoster(body, { yourTags = [] }) {
     clan_tag: body.clan_tag,
     name: body.name ?? null,
     member_count: body.member_count ?? members.length,
+    type: body.type ?? null,
+    description: body.description ?? null,
+    required_trophies: body.required_trophies ?? null,
+    clan_war_trophies: body.clan_war_trophies ?? null,
+    donations_per_week: body.donations_per_week ?? null,
+    scores_observed_at: body.scores_observed_at ?? null,
     role_counts: roleCounts,
     members,
+    comings: (Array.isArray(body.recent_events) ? body.recent_events : [])
+      .filter((e) => COMINGS.has(e?.type) && e.at)
+      .sort((a, b) => String(b.at).localeCompare(String(a.at)))
+      .slice(0, COMINGS_SHOWN)
+      .map((e) => ({
+        type: e.type,
+        at: e.at,
+        player_tag: e.detail?.player_tag ?? null,
+        name: e.detail?.name ?? null,
+        season_id: e.detail?.season_id ?? null,
+        section_index: e.detail?.section_index ?? null,
+        is_colosseum: e.detail?.is_colosseum === true,
+        rank: e.detail?.rank ?? null,
+        fame: e.detail?.fame ?? null,
+        trophy_change: e.detail?.trophy_change ?? null,
+      })),
+    events_recorded_since: body.events_recorded_since ?? null,
     your_tags: [...yours],
     notes: Array.isArray(body.notes) ? body.notes : [],
     docs: body.docs ?? null,
@@ -1192,6 +1225,7 @@ export function shapeRoster(body, { yourTags = [] }) {
       completeness_note: body.meta?.completeness_note ?? null,
       contract_version: body.meta?.contract_version ?? null,
       disclaimer: body.meta?.disclaimer ?? null,
+      timezone_applied: body.meta?.timezone_applied ?? null,
     },
   };
 }

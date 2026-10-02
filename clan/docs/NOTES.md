@@ -1412,3 +1412,51 @@ Left out of the canvas, with the reason:
   participating." "Took part, n of N" says it without names.
 - The canvas marks you among the names; the week's rows carry no `you`.
 
+## 2026-10-01 — The redesign, slice 2: the clan page
+
+The clan's own page, redrawn to the canvas's "Clan" board:
+
+- **The head**: Clan › the clan, the clan's name, a lede from what the
+  game says the clan asks of a joiner ("Invite only, 7,500 trophies to
+  join.") and what the page is, the switcher chip under it, the
+  freshness pill on the right.
+- **Tiles**: members (with the role counts), clan war trophies (with the
+  newest race result: "1st in race 136/2, +100") and donations a week,
+  the game's own figures from the roster read. A figure the record does
+  not have yet is no tile.
+- **The roster** in a panel with **Find a member** (name or tag) and,
+  above 30 members, the first 25 in role order with "N more members,
+  down to X trophies". Its foot keeps the counts, when Elixir recorded
+  it, when it was read, and **Check again**.
+- **Comings and goings** beside it: the roster's newest joins ("came
+  back" when the join began a second stint), departures ("departed",
+  never kick or leave, as on The week) and the clan's race results, in
+  the account's zone. Its link is History for the leaders who have it,
+  else The week.
+- **Spread the word** under it once the policy is active (see Spreading
+  the word in AGENTS.md); the other three Spread panels stay above the
+  roster.
+
+The API passes through what the clan page shows and the tool already
+answered: `type`, `description`, `required_trophies`,
+`clan_war_trophies`, `donations_per_week`, `scores_observed_at`,
+`events_recorded_since`, each member's `rejoined_observed_at`,
+`meta.timezone_applied`, and `comings` (the roster's `recent_events`
+narrowed to joins, departures and race results, newest six, without
+`role_at_departure`). The page wraps itself in the kit's `ZoneProvider`
+with that zone, so the times are the account's. Copying the clan tag is
+`clan.invite_copied` with the value `tag`. Inline styles 178 → 162.
+
+Left out of the canvas, with the reason:
+
+- **This race** (the tile "Training, war days start Thursday"): the
+  roster read carries no race phase, and Clan reads no live race.
+- **Share the public page**: Clan has no public pages.
+- **"Full? Send people to..."**: it names the clan's sister clans, which
+  Clan does not know and must not write in (no clan-specific copy).
+- **Last seen in amber after a week**: a fixed threshold on everyone's
+  view reads as a judgment the clan's policy did not make; the times
+  are shown as they are.
+- **Member names as links**: there is no member page every member may
+  open.
+
