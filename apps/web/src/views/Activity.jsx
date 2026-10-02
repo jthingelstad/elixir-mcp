@@ -10,10 +10,13 @@ import { CONSOLE } from "../lib/console.js";
 /**
  * Activity's three views: MCP requests, emails, account events.
  *
- * They are rail sub-pages, and all three are the SAME table with
- * different columns — see components/LogTable.jsx. Activity lands on MCP
- * requests. The timeline was its first view until 2026-09-23, when it
- * became a rail item of its own (views/account/Timeline.jsx).
+ * All three are the SAME table with different columns - see
+ * components/LogTable.jsx. Since the 2026-09-29 canvas they are not one
+ * rail item: MCP requests sit under Usage, below the meters; Emails and
+ * the account log (Sign-ins) are Account settings, reached from the top
+ * bar's account menu. The addresses did not move. The timeline was the
+ * first view until 2026-09-23, when it became a rail item of its own
+ * (views/account/Timeline.jsx).
  *
  * Naming here follows the product, not the schema: mcp_call_audit is
  * "MCP requests", email_send is "Emails", account_event is "account
@@ -83,7 +86,7 @@ export function Activity({ sub }) {
             ? "Your requests could not be read just now; try again shortly."
             : null
         }
-        crumb="Activity"
+        crumb={scoped ? "Activity" : "Usage"}
         title="MCP requests"
         note="Every call your connections made, newest first."
         cols={[
@@ -162,9 +165,13 @@ export function Activity({ sub }) {
   });
   return (
     <LogTable
-      crumb="Activity"
-      title="Account events"
-      note="Changes to your account, your access and what we record for you."
+      crumb={scoped ? "Activity" : "Your account"}
+      title={scoped ? "Account events" : "Sign-ins"}
+      note={
+        scoped
+          ? "Changes to this agent's account, its access and what it records."
+          : "Sign-ins and every other change to your account, your access and what we record for you."
+      }
       cols={[
         ["WHEN", "left"],
         ["EVENT", "left"],

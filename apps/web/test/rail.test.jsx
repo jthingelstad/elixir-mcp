@@ -18,11 +18,15 @@ import {
   within,
 } from "@testing-library/react";
 import {
+  ACCOUNT_RAIL,
+  ADMIN_RAIL,
   App,
   RAIL,
+  RAIL_FOOT,
   DOC_LINKS,
   agentRail,
   legalRoute,
+  railConsoles,
   railPosition,
 } from "../src/App.jsx";
 
@@ -58,10 +62,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** Every destination the rail offers, as [railKey, sub, path]: yours,
- *  and an agent's console (2026-09-23), which obeys the same rules. */
+/** Every destination the rails offer, as [railKey, sub, path]: yours and
+ *  its foot, an agent's console (2026-09-23), Admin's and Account
+ *  settings (2026-09-29), which all obey the same rules. */
 const AGENT_RAIL = agentRail("abcd1234");
-const destinations = [...RAIL, ...AGENT_RAIL].flatMap((row) => [
+const RAILS = [RAIL, AGENT_RAIL, ADMIN_RAIL, ACCOUNT_RAIL];
+const destinations = [...RAILS.flat(), RAIL_FOOT].flatMap((row) => [
   [row.key, undefined, row.to],
   ...(row.subs ?? []).map(([slug, , to]) => [row.key, slug, to]),
 ]);
@@ -119,11 +125,12 @@ test("no two items at the same level share a label", () => {
   // Connections and Account > Connections are two readable places.
   // What stays banned is a collision at ONE level, where nothing on
   // screen tells them apart.
-  for (const rail of [RAIL, AGENT_RAIL]) {
+  for (const rail of RAILS) {
     const tops = rail.map((r) => r.label);
     expect(new Set(tops).size, "two sections share a label").toBe(tops.length);
   }
-  for (const row of [...RAIL, ...AGENT_RAIL]) {
+  expect(RAIL.map((r) => r.label)).not.toContain(RAIL_FOOT.label);
+  for (const row of RAILS.flat()) {
     const subs = (row.subs ?? []).map(([, label]) => label);
     expect(
       new Set(subs).size,
@@ -143,8 +150,116 @@ test("Timeline sits between Overview and Explore, in the ungrouped top", () => {
   expect(railPosition("/console/account/timeline")).toEqual({
     key: "timeline",
   });
-  const activity = RAIL.find((r) => r.key === "activity");
-  expect(activity.subs.map(([slug]) => slug)).not.toContain("timeline");
+});
+
+test("your console: nine items in three groups, feedback at the foot", () => {
+  // The ConsoleRail board's proposed column (2026-09-29).
+  expect(RAIL.map((r) => r.label)).toEqual([
+    "Overview",
+    "Timeline",
+    "Explore",
+    "Tracking",
+    "Collections",
+    "Verify",
+    "Connections",
+    "Usage",
+    "Status",
+  ]);
+  expect(RAIL.filter((r) => r.group).map((r) => r.group)).toEqual([
+    "Your record",
+    "Access",
+    "Service",
+  ]);
+  expect(RAIL_FOOT).toMatchObject({
+    label: "Send feedback",
+    to: "/console/account/feedback",
+  });
+});
+
+test("where the rest went: every old address resolves, marked where it lives now", () => {
+  const at = (p) => railPosition(p);
+  // Activity's three logs.
+  expect(at("/console/account/activity/requests")).toMatchObject({
+    key: "usage",
+    sub: "requests",
+  });
+  expect(at("/console/account/activity/emails")).toMatchObject({
+    rail: "account",
+    key: "emails",
+    sub: "emails",
+  });
+  expect(at("/console/account/activity/e/x")).toMatchObject({
+    rail: "account",
+    key: "emails",
+    doc: "activity:email",
+  });
+  expect(at("/console/account/activity/events")).toMatchObject({
+    rail: "account",
+    key: "signins",
+    sub: "events",
+  });
+  // Profile and its pages are Account settings.
+  expect(at("/console/account/profile")).toMatchObject({
+    rail: "account",
+    key: "profile",
+  });
+  expect(at("/console/account/profile/email")).toMatchObject({
+    rail: "account",
+    key: "emails",
+  });
+  expect(at("/console/account/profile/devices")).toMatchObject({
+    rail: "account",
+    key: "devices",
+  });
+  // Agents are Connections; Admin is its own console.
+  expect(at("/console/account/agents")).toMatchObject({ key: "connections" });
+  expect(at("/console/admin/emails")).toMatchObject({
+    rail: "admin",
+    key: "emails",
+  });
+  expect(at("/console/admin")).toMatchObject({
+    rail: "admin",
+    key: "requests",
+  });
+  for (const p of [
+    "/console/account/activity/requests",
+    "/console/account/activity/emails",
+    "/console/account/activity/events",
+    "/console/account/profile/email",
+    "/console/account/profile/devices",
+    "/console/account/agents",
+    "/console/account/feedback",
+  ])
+    expect(legalRoute(p), p).toBe(p);
+});
+
+test("the switcher: you, your agents, and Admin for an admin", () => {
+  const me = {
+    ...ME,
+    claims: [{ player_tag: "#P", name: "King Thing", is_primary: true }],
+    agents: [{ public_id: "f43c60e8f5bd", name: "POAP KINGS", role: "leader" }],
+  };
+  expect(
+    railConsoles(me).map((c) => [c.group, c.label, c.detail, c.to]),
+  ).toEqual([
+    ["You", "Your console", "King Thing · owner", "/console/account/overview"],
+    [
+      "Your agents",
+      "POAP KINGS",
+      "agent · f43c60e8f5bd",
+      "/console/agent/f43c60e8f5bd/overview",
+    ],
+    [
+      "Operate",
+      "Admin console",
+      "every account · owner",
+      "/console/admin/requests",
+    ],
+  ]);
+  expect(railConsoles({ ...me, is_admin: false }).map((c) => c.key)).toEqual([
+    "me",
+    "f43c60e8f5bd",
+  ]);
 });
 
 test("wide: the rail is a list, with no disclosure to open", async () => {
@@ -156,9 +271,16 @@ test("wide: the rail is a list, with no disclosure to open", async () => {
   // Scoped to the rail: the top bar has its own expandable button now
   // (the narrow menu), which is a different control on a different
   // element and is present at every width.
+  // The only button in it is the console switcher, never a disclosure
+  // over the list.
   const rail = document.querySelector(".rail");
-  expect(within(rail).queryByRole("button", { expanded: false })).toBeNull();
-  expect(screen.getByRole("link", { name: /Tracking/ })).toBeTruthy();
+  expect(rail.querySelector(".rail__toggle")).toBeNull();
+  expect(
+    within(rail)
+      .getAllByRole("button")
+      .every((b) => b.classList.contains("rail__switch-head")),
+  ).toBe(true);
+  expect(within(rail).getByRole("link", { name: /Tracking/ })).toBeTruthy();
 });
 
 test("narrow: the rail is a disclosure above the content, not a drawer", async () => {

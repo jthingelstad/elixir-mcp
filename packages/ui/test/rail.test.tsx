@@ -131,23 +131,35 @@ test("the identity block: who you are, the way to the profile, and the way out a
   expect(onClick).toHaveBeenCalled();
 });
 
-const ACCOUNTS: [RailAccount, RailAccount] = [
+const ACCOUNTS: [RailAccount, RailAccount, RailAccount] = [
   {
     key: "me",
-    label: "Jamie",
+    group: "You",
+    icon: "gauge",
+    label: "Your console",
+    detail: "Jamie",
     aside: "owner",
     to: "/console/account/overview",
   },
   {
     key: "abc12345",
+    group: "Your agents",
+    icon: "bot",
     label: "poap-bot",
-    detail: "POAP KINGS",
-    aside: "agent · leader",
+    detail: "agent · abc12345",
     to: "/console/agent/abc12345/overview",
+  },
+  {
+    key: "admin",
+    group: "Operate",
+    icon: "shield",
+    label: "Admin console",
+    detail: "every account · owner",
+    to: "/console/admin/requests",
   },
 ];
 
-test("accounts: the head is the selector, and choosing one goes to its console", () => {
+test("accounts: the head is the switcher, and choosing one goes to its console", () => {
   const navigate = vi.fn();
   render(
     <Rail
@@ -161,14 +173,22 @@ test("accounts: the head is the selector, and choosing one goes to its console",
       manage={{ label: "Manage agents…", to: "/console/account/agents" }}
     />,
   );
-  const head = screen.getByRole("button", { name: /Jamie/ });
+  const head = screen.getByRole("button", { name: /Your console/ });
   expect(head.getAttribute("aria-expanded")).toBe("false");
-  expect(head.textContent).toContain("owner");
+  expect(head.textContent).toContain("Jamie · owner");
   expect(head.closest(".rail__switch")?.getAttribute("data-scoped")).toBe(
     "false",
   );
   fireEvent.click(head);
-  expect(screen.getByRole("link", { name: /poap-bot/ })).toBeTruthy();
+  // Each console under its heading, the current one checked.
+  const list = document.getElementById("rail-accounts")!;
+  expect(
+    [...list.querySelectorAll(".rail__switch-group")].map((g) => g.textContent),
+  ).toEqual(["You", "Your agents", "Operate"]);
+  expect(list.querySelector('[aria-current="true"]')?.textContent).toContain(
+    "Your console",
+  );
+  expect(screen.getByRole("link", { name: /Admin console/ })).toBeTruthy();
   expect(screen.getByRole("link", { name: /Manage agents/ })).toBeTruthy();
   fireEvent.click(screen.getByRole("link", { name: /poap-bot/ }));
   expect(navigate).toHaveBeenCalledWith("/console/agent/abc12345/overview");
@@ -179,7 +199,7 @@ test("accounts: the head is the selector, and choosing one goes to its console",
   expect(screen.queryByRole("link", { name: /Manage agents/ })).toBeNull();
 });
 
-test("accounts: an agent's console is tinted, and the selector stays in the narrow closed row", () => {
+test("accounts: another console is tinted, and the narrow row names it", () => {
   render(
     <Rail
       items={ITEMS}
@@ -187,21 +207,43 @@ test("accounts: an agent's console is tinted, and the selector stays in the narr
       navigate={vi.fn()}
       narrow
       title="Console"
+      subtitle="poap-bot"
       accounts={ACCOUNTS}
       account="abc12345"
     />,
   );
-  const head = screen.getByRole("button", { name: /poap-bot/ });
-  expect(head.textContent).toContain("agent · leader");
+  // Closed: one row naming the section and whose console it is, tinted.
+  const toggle = screen.getByRole("button", { expanded: false });
+  expect(toggle.textContent).toContain("Overview");
+  expect(toggle.textContent).toContain("poap-bot");
+  expect(toggle.getAttribute("data-scoped")).toBe("true");
+  expect(screen.queryByRole("navigation")).toBeNull();
+  // Open: the switcher, then the list.
+  fireEvent.click(toggle);
+  const head = document.querySelector("button.rail__switch-head")!;
+  expect(head.textContent).toContain("poap-bot");
   expect(head.closest(".rail__switch")?.getAttribute("data-scoped")).toBe(
     "true",
   );
-  // The section disclosure is closed, and the selector is still there.
-  expect(screen.queryByRole("navigation")).toBeNull();
+  expect(screen.getByRole("navigation")).toBeTruthy();
 });
 
-test("one account or none: the head is the plain title, as before", () => {
-  render(
+test("one account: the same tile with nothing to open; none: the plain title", () => {
+  const { rerender } = render(
+    <Rail
+      items={ITEMS}
+      current="overview"
+      navigate={vi.fn()}
+      narrow={false}
+      title="Console"
+      accounts={[ACCOUNTS[0]]}
+    />,
+  );
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(document.querySelector(".rail__switch-head")?.textContent).toContain(
+    "Your console",
+  );
+  rerender(
     <Rail
       items={ITEMS}
       current="overview"
@@ -209,10 +251,48 @@ test("one account or none: the head is the plain title, as before", () => {
       narrow={false}
       title="Console"
       aside="member"
-      accounts={[ACCOUNTS[0]]}
     />,
   );
-  expect(screen.queryByRole("button")).toBeNull();
   expect(screen.getByText("Console")).toBeTruthy();
   expect(screen.getByText("member")).toBeTruthy();
+});
+
+test("back and foot: a way back above the head, a place or an action at the foot", () => {
+  const navigate = vi.fn();
+  const out = vi.fn();
+  const { rerender } = render(
+    <Rail
+      items={ITEMS}
+      current={null}
+      navigate={navigate}
+      narrow={false}
+      title="Console"
+      back={{ label: "Console", to: "/console/account/overview" }}
+      foot={{
+        label: "Send feedback",
+        icon: "message-square",
+        to: "/console/account/feedback",
+        current: true,
+      }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("link", { name: /Console/ }));
+  expect(navigate).toHaveBeenCalledWith("/console/account/overview");
+  const fb = screen.getByRole("link", { name: /Send feedback/ });
+  expect(fb.getAttribute("aria-current")).toBe("page");
+  fireEvent.click(fb);
+  expect(navigate).toHaveBeenCalledWith("/console/account/feedback");
+  // An action is a button, never a link.
+  rerender(
+    <Rail
+      items={ITEMS}
+      current={null}
+      navigate={navigate}
+      narrow={false}
+      title="Console"
+      foot={{ label: "Sign out of Elixir", icon: "log-out", onClick: out }}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: /Sign out of Elixir/ }));
+  expect(out).toHaveBeenCalled();
 });

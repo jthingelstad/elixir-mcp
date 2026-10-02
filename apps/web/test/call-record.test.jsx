@@ -203,10 +203,11 @@ test("the Activity log links each request id to its record", async () => {
   expect(navigate).toHaveBeenCalledWith(`/console/account/activity/c/${ID}`);
 });
 
-test("the record belongs to MCP requests in the rail and has its own docs strip", () => {
+test("the record belongs to Usage in the rail and has its own docs strip", () => {
+  // MCP requests moved under Usage's meters (canvas 2026-09-29).
   const at = railPosition(`/console/account/activity/c/${ID}`);
   expect(at).toEqual({
-    key: "activity",
+    key: "usage",
     sub: "requests",
     doc: "activity:call",
   });

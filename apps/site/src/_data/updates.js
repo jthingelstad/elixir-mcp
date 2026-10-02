@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "The Console's menu and Overview, redrawn",
+    body: "The menu down the side of the Console is shorter and grouped: Overview, Timeline and Explore, then Your record (Tracking, Collections, Verify), Access (Connections, Usage) and Service (Status), with Send feedback at the foot. The box at the top switches between your console, each of your agents and, for admins, the admin console. Your account's own pages (profile, the emails Elixir sends you, sign-in and devices, sign-ins) have a menu of their own, with the way back and a sign-out button. The list of MCP requests now opens from Usage. Overview has a row across Elixir: your season on Ladder, your clan's week in Elixir Clan, and Drop. Under it are short lists of your players and clans that lead into Tracking, how many MCP calls you have made today, and when your main player was last read. On a phone the menu folds into one row above the page that names where you are.",
+  },
+  {
+    date: "2026-10-02",
     title: "Ladder: the cards you played and faced",
     body: "Ladder has a Cards page, at /ladder/cards: one mode's season card by card, with the same mode tabs as the season home. Your cards show the battles where your deck held each one, your record in them and the share you won; across the table, each card your opponents played, how often you faced it and your record against it. An evolution or a hero keeps its own row, and every card name opens the card's public page. Under them, how many different opponents you met this season and the ones you met again. No change to the tools.",
   },
