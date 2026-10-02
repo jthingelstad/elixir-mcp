@@ -541,13 +541,7 @@ still owns global pacing. Operational cleanup expires refresh records and keeps
 90 days of integration usage. REST operations use the existing call audit with
 `surface=rest`, token/account/request identity and HTTP status.
 
-Collection grants use the actual collection owner without impersonating them.
-`setCollectionMembers` owns the membership lock, capacity check, attribution and
-recording reconciliation transaction. Only requested tags are reconciled on
-add retries; manual members and other recording reasons survive. Schema changes
-are expand-first. Deploy MCP, provision a REST credential and collection grant,
-then switch Drop's backend credential and code together. Read-only API checks
-and ordinary traffic verify the cutover before revoking the old MCP key.
+
 
 
 For a controlled migration, the IAM-only migrate Lambda accepts

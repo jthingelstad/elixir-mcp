@@ -26,7 +26,6 @@ import {
   integrationOp,
   serviceTokenLimitsOp,
 } from "./ops-accounts.mjs";
-import { collectionOp } from "./ops-record.mjs";
 import { retireBoardRecordings } from "./ops-retire-boards.mjs";
 import {
   collectorTokenOp,
@@ -312,18 +311,18 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.retire_board_recordings) {
+  if (event?.retire_collection_recordings) {
     const result = await retireBoardRecordings(
       process.env.DATABASE_URL,
-      event.retire_board_recordings,
+      event.retire_collection_recordings,
     );
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.collection) {
-    const result = await collectionOp(
+  if (event?.retire_board_recordings) {
+    const result = await retireBoardRecordings(
       process.env.DATABASE_URL,
-      event.collection,
+      event.retire_board_recordings,
     );
     console.log(JSON.stringify(result));
     return result;

@@ -292,7 +292,7 @@ test("refresh rotation preserves scope/resource and replaying the old token revo
   const first = await mintTokens(db, {
     clientId,
     accountId,
-    scope: "cr:read collections:write",
+    scope: "cr:read recordings:write",
     resource: RESOURCE,
   });
   const rotated = await redeemRefreshToken(db, {
@@ -301,14 +301,14 @@ test("refresh rotation preserves scope/resource and replaying the old token revo
     resource: RESOURCE,
   });
   assert.equal(rotated.status, "ok");
-  assert.equal(rotated.tokens.scope, "cr:read collections:write");
+  assert.equal(rotated.tokens.scope, "cr:read recordings:write");
   assert.equal(rotated.tokens.resource, RESOURCE);
   const rotatedContext = await validateAccessToken(
     db,
     rotated.tokens.accessToken,
     { resource: RESOURCE },
   );
-  assert.deepEqual(rotatedContext.scopes, ["cr:read", "collections:write"]);
+  assert.deepEqual(rotatedContext.scopes, ["cr:read", "recordings:write"]);
 
   const replay = await redeemRefreshToken(db, {
     refreshToken: first.refreshToken,
@@ -388,4 +388,46 @@ test("absolute family lifetime forces re-consent", async () => {
     null,
     "expired family invalidates access too",
   );
+});
+
+test("old Collection scope is removed without losing retained OAuth permissions", async () => {
+  const retained = "cr:read recordings:write account:write feedback:write";
+  assert.equal(normalizeScope(retained + " collections:write"), retained);
+  assert.equal(normalizeScope("cr:read collections:write unknown:write"), "");
+  const client = await registerClient(db, {
+    clientName: "retired-collections",
+    redirectUris: ["https://example.com/callback"],
+  });
+  const tokens = await mintTokens(db, {
+    clientId: client.clientId,
+    accountId,
+    scope: retained,
+    resource: RESOURCE,
+  });
+  await db.query(
+    "update oauth_family set scope='cr:read recordings:write collections:write account:write feedback:write' where family_id=$1",
+    [tokens.familyId],
+  );
+  const access = await validateAccessToken(db, tokens.accessToken, {
+    resource: RESOURCE,
+  });
+  assert.equal(access.scope, retained);
+  const renewed = await redeemRefreshToken(db, {
+    refreshToken: tokens.refreshToken,
+    clientId: client.clientId,
+    resource: RESOURCE,
+  });
+  assert.equal(renewed.status, "ok");
+  assert.equal(renewed.tokens.scope, retained);
+});
+
+test("service keys retain write-only permissions while the retired scope is filtered", async () => {
+  const key = await issueServiceToken(db, {
+    accountId,
+    name: "write-only-retirement",
+    scope: "feedback:write collections:write",
+  });
+  const account = await validateServiceToken(db, key);
+  assert.equal(account.scope, "feedback:write");
+  assert.deepEqual(account.scopes, ["feedback:write"]);
 });

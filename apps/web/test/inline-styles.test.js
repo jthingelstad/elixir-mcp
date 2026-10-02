@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
  * values (a width from a prop, a tone's colour) are the legitimate
  * remainder and are what the floor will settle at.
  */
-const CEILING = 534;
+const CEILING = 485;
 
 const src = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

@@ -79,8 +79,7 @@ requires a deck hash; card meta requires a nonempty cards array.
 - **`cards_card` shrinks toward its own population.** Its rows are one
   card's forms, modes and bands inside one population, so a corpus season
   read shrinks toward the corpus season's decided mean
-  (`prior_basis: "corpus_season"`), and every other read, a clan, player or
-  collection segment included, shrinks toward that population's own decided
+  (`prior_basis: "corpus_season"`), and every other read, a clan or player segment included, shrinks toward that population's own decided
   mean over the window (`prior_basis: "segment_window"`; 0.5 below
   {{ statistics.meta.segment_min_decided }} decided observations). The
   response's `methodology.prior_source` says the same. A segment's shrunk
@@ -123,7 +122,7 @@ starts past the cursor or reaches a season whose population is gone
 scans the raw rows instead. (Until 6.12.0 every sub-season corpus
 window scanned the raw rows with a per-row level-gap lookup and timed
 out at the query budget.) A segment read (a clan, a
-player, a collection) scans the raw rows, exact to the instant, and takes
+player) scans the raw rows, exact to the instant, and takes
 only the corpus prior from the rollup. The paths answer the same numbers
 over the same window; tests hold them equal.
 

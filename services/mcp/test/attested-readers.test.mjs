@@ -27,8 +27,7 @@ function runtimeSources() {
       const src = path.join(repoRoot, group, name, "src");
       if (existsSync(src)) roots.push(src);
     }
-  for (const extra of ["clients", "infra/scripts"])
-    roots.push(path.join(repoRoot, extra));
+  for (const extra of ["infra/scripts"]) roots.push(path.join(repoRoot, extra));
   return roots.flatMap((root) =>
     readdirSync(root, { recursive: true })
       .filter(

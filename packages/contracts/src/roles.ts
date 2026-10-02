@@ -31,7 +31,7 @@ export interface RoleQuotas {
    *
    * Player slots therefore stop being a rung on the ladder. The tiers still
    * differ where the cost actually scales — clan watches, daily calls, the
-   * live lane, collections. (Integrations are admin-provisioned platform
+   * live lane. (Integrations are admin-provisioned platform
    * access, not a tier entitlement: Jamie, 2026-09-25.)
    */
   player_slots: number;
@@ -43,8 +43,6 @@ export interface RoleQuotas {
   mcp_calls_per_day: number;
   /** live_fetch calls per UTC day — these spend the global CR budget. */
   live_fetches_per_day: number;
-  /** Collections the account may create and curate. */
-  collections_max: number;
   /**
    * Agents the account may create. Agents are not a tier feature - any role
    * may create one for a clan it has added - but each agent is a credential
@@ -71,7 +69,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: 0,
     mcp_calls_per_day: 500,
     live_fetches_per_day: 20,
-    collections_max: 0,
     agents: 3,
   },
   leader: {
@@ -80,7 +77,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: 1,
     mcp_calls_per_day: 2000,
     live_fetches_per_day: 100,
-    collections_max: 0,
     agents: 5,
   },
   family: {
@@ -89,7 +85,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: 3,
     mcp_calls_per_day: 5000,
     live_fetches_per_day: 250,
-    collections_max: 5,
     agents: 10,
   },
   partner: {
@@ -98,7 +93,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: 5,
     mcp_calls_per_day: 15000,
     live_fetches_per_day: 1000,
-    collections_max: 20,
     agents: 25,
   },
   admin: {
@@ -107,7 +101,6 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: Infinity,
     mcp_calls_per_day: Infinity,
     live_fetches_per_day: Infinity,
-    collections_max: Infinity,
     agents: Infinity,
   },
   owner: {
@@ -116,14 +109,13 @@ export const ROLES: Record<Role, RoleQuotas> = {
     comprehensive_clans: Infinity,
     mcp_calls_per_day: Infinity,
     live_fetches_per_day: Infinity,
-    collections_max: Infinity,
     agents: Infinity,
   },
 };
 
 /** One entitlements system (Jamie, 2026-09-05): the console is a role
  *  power, not a separate flag. Admins run day-to-day (requests,
- *  feedback, collections, clan recordings, roles up to partner); the
+ *  feedback, clan recordings, roles up to partner); the
  *  owner — exactly one, whom no admin can affect — additionally holds
  *  admin grants, integrations, gateways, and quota overrides. */
 export type ConsoleAccess = "none" | "admin" | "owner";

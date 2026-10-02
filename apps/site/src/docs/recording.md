@@ -66,8 +66,6 @@ or stops the recording accordingly:
 | claimed | any account tracks the player |
 | added | any account tracks the clan |
 | added deep | any account tracks the clan at `comprehensive` scope |
-| collected | the subject is a member of a collection that still records; retired board collections do not count |
-| collected deep | a member of a still-recording `comprehensive` collection |
 | ops | the maintainer records it directly; never stopped by user actions |
 
 The widest reason wins. Removing your own reason frees your slot; the
@@ -135,25 +133,9 @@ characters, `null` clears) that only your account and your agents see;
 `players_search` ranks your nicknames first. It is the one write the website's
 Explore page performs.
 
-## Collections
+## Following players and clans
 
-Named recording Collections are scheduled for retirement as part of Elixir's
-right-sizing. The existing primary, alt, friend and watching relationships
-remain the way to organize followed players. The behavior below is still
-deployed; the transition will address deliberate user tracking and integration
-enrollment before collection recording reasons are removed.
-
-A collection is a curated, named group (slug `^[a-z0-9][a-z0-9-]{1,38}$`,
-public or private, `player` or `clan` kind) that **records its members**:
-adding a tag to a collection is a recording reason like any other, at the
-collection's scope (`comprehensive` by default). `collections_edit` takes
-`add`, `remove` or `set` with up to 500 tags per call and refuses the whole
-call on one malformed tag. Collections are a family-tier feature; reading
-public ones needs only `cr:read`.
-
-The former board-managed collections no longer initiate recording or sync
-with new boards. Their membership history remains during retirement. Other
-Collections are still deployed until their user and integration cutover.
+Named recording Collections have retired. Follow players directly and organize them as primary, alt, friend or watching; add clans at the scope you need. Existing direct follows, notification choices and historical data remain. Collection membership is retained for purge review, and no longer sustains recording or becomes a personal follow. Owned card collections remain part of player profiles.
 
 ## Leaderboards
 

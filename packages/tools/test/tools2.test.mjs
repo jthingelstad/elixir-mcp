@@ -770,45 +770,6 @@ test("feedback pages fit the wire cap and acknowledge only delivered replies", a
   }
 });
 
-test("collections: browse + enriched get; private stays owner-only; unknown honest", async () => {
-  const {
-    rows: [owner],
-  } = await db.query(`select account_id from account where is_owner limit 1`);
-  const ownerId = owner?.account_id ?? account.accountId;
-  const {
-    rows: [col],
-  } = await db.query(
-    `insert into collection (slug, title, kind, description, owner_account)
-     values ('pros', 'Pros', 'player', 'Professional players', $1)
-     returning collection_id`,
-    [ownerId],
-  );
-  await db.query(
-    `insert into collection_member (collection_id, subject_tag) values ($1, $2)`,
-    [col.collection_id, OBSERVER],
-  );
-  await db.query(
-    `insert into collection (slug, title, kind, owner_account, visibility)
-     values ('secret', 'Secret', 'player', $1, 'private')`,
-    [ownerId],
-  );
-
-  const browse = await call("collections_browse", {});
-  assert.equal(browse.isError, false);
-  assert.ok(browse.body.collections.some((c) => c.slug === "pros"));
-  // caller is NOT the owner account in this fixture? account may be owner=false
-  const got = await call("collections_get", { collection: "pros" });
-  assert.equal(got.isError, false, JSON.stringify(got.body));
-  assert.equal(got.body.kind, "player");
-  const m = got.body.members.find((x) => x.player_tag === OBSERVER);
-  assert.ok(m, "member enriched row present");
-  assert.ok(typeof m.recording === "boolean");
-
-  const missing = await call("collections_get", { collection: "nope-list" });
-  assert.equal(missing.isError, true);
-  assert.equal(missing.body.error.code, "not_found");
-});
-
 test("feedback round two: changelog since-filter, ship links, pending hint clears on read", async () => {
   const releases = [];
   let offset = 0;
@@ -909,20 +870,6 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
     }
   }
 
-  const seg = await call("battles_meta_decks", {
-    segment: { collection: "test-pros" },
-    min_battles: 1,
-    from: "2020-01-01",
-  });
-  assert.equal(seg.body.applied.segment.collection, "test-pros");
-  assert.ok(seg.body.decided_battles <= corpus.body.decided_battles);
-
-  const both = await call("battles_meta_decks", {
-    segment: { collection: "test-pros", clan_tag: "#J2RGCRVG" },
-  });
-  assert.equal(both.isError, true);
-  assert.equal(both.body.error.code, "bad_request");
-
   const cards = await call("battles_meta_cards", {
     segment: "corpus",
     min_battles: 1,
@@ -961,7 +908,7 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
     segment: { collection: "nope" },
   });
   assert.equal(missing.isError, true);
-  assert.equal(missing.body.error.code, "not_found");
+  assert.equal(missing.body.error.code, "bad_request");
 });
 
 test("battles_query links: url, short id, both sides' trophies and clans (9.18.0)", async () => {
@@ -1157,98 +1104,6 @@ test("nicknames: private to the account, matched first in search, shown in summa
   assert.equal(clr.body.cleared, true);
   const gone = await call("players_summary", { player_tag: OBSERVER });
   assert.ok(!("nickname" in gone.body));
-});
-
-test("collections_edit curates a collection you own, and records what it names", async () => {
-  const {
-    rows: [c],
-  } = await db.query(
-    `insert into collection (slug, title, kind, owner_account, scope, visibility)
-     values ('edit-me', 'Edit Me', 'player', $1, 'comprehensive', 'private')
-     returning collection_id`,
-    [account.accountId],
-  );
-
-  const added = await call("collections_edit", {
-    collection: "edit-me",
-    tags: ["#2YG98VVQ", "20JJJ2CCRU"], // the second is missing its hash
-  });
-  assert.equal(added.isError, false, JSON.stringify(added.body));
-  assert.equal(added.body.added, 2, "tags are folded to canonical form");
-  assert.equal(added.body.members, 2);
-  assert.equal(added.body.recordings_started, 2, "membership means recording");
-  assert.equal(added.body.scope, "comprehensive");
-
-  // Idempotent: syncing the same roster again changes nothing.
-  const again = await call("collections_edit", {
-    collection: "edit-me",
-    tags: ["#2YG98VVQ", "#20JJJ2CCRU"],
-  });
-  assert.equal(again.body.added, 0);
-  assert.equal(again.body.members, 2);
-
-  // 'set' is the roster shape: what is absent leaves.
-  const set = await call("collections_edit", {
-    collection: "edit-me",
-    action: "set",
-    tags: ["#2YG98VVQ"],
-  });
-  assert.equal(set.body.removed, 1);
-  assert.equal(set.body.members, 1);
-
-  const removed = await call("collections_edit", {
-    collection: "edit-me",
-    action: "remove",
-    tags: ["#2YG98VVQ"],
-  });
-  assert.equal(removed.body.members, 0);
-
-  await db.query(`delete from collection where collection_id = $1`, [
-    c.collection_id,
-  ]);
-});
-
-test("collections_edit refuses a bad tag outright rather than skipping it", async () => {
-  await db.query(
-    `insert into collection (slug, title, kind, owner_account, scope)
-     values ('strict', 'Strict', 'player', $1, 'activity')`,
-    [account.accountId],
-  );
-  // Silently skipping would quietly drop somebody from a synced roster.
-  const bad = await call("collections_edit", {
-    collection: "strict",
-    tags: ["#2YG98VVQ", "not-a-tag"],
-  });
-  assert.equal(bad.isError, true);
-  assert.match(JSON.stringify(bad.body), /not a valid Clash Royale tag/);
-  const { rows } = await db.query(
-    `select count(*)::int as n from collection_member m
-     join collection c on c.collection_id = m.collection_id where c.slug = 'strict'`,
-  );
-  assert.equal(rows[0].n, 0, "nothing was changed");
-  await db.query(`delete from collection where slug = 'strict'`);
-});
-
-test("collections_edit will not let you curate somebody else's collection", async () => {
-  const {
-    rows: [other],
-  } = await db.query(
-    `insert into account (email_hash, status) values ($1, 'approved')
-     returning account_id`,
-    [`someone-else-${Math.random()}`],
-  );
-  await db.query(
-    `insert into collection (slug, title, kind, owner_account, scope, visibility)
-     values ('theirs', 'Theirs', 'player', $1, 'activity', 'public')`,
-    [other.account_id],
-  );
-  const denied = await call("collections_edit", {
-    collection: "theirs",
-    tags: ["#2YG98VVQ"],
-  });
-  assert.equal(denied.isError, true);
-  assert.match(JSON.stringify(denied.body), /belongs to someone else/);
-  await db.query(`delete from collection where slug = 'theirs'`);
 });
 
 test("players_profile answers the player as a game entity, not just a name (§7.2)", async () => {
@@ -2008,7 +1863,7 @@ test("the season rollup answers exactly what the raw scan answers (0121)", async
   );
   // A segment read stays raw but takes its prior from the totals.
   const seg = await call("battles_meta_decks", {
-    segment: { collection: "test-pros" },
+    segment: { player_tag: OBSERVER },
     season: "2026-08",
     min_battles: 1,
   });
@@ -2730,7 +2585,7 @@ test("6.12.0: a sub-season corpus window reads the population table and answers 
     );
     // A segment read and a whole-season read never touch the table.
     const seg = await call("battles_meta_decks", {
-      segment: { collection: "test-pros" },
+      segment: { player_tag: OBSERVER },
       ...inside,
       min_battles: 1,
     });
@@ -2965,9 +2820,7 @@ test("a card name shared with a tower-troop entry is the deck card; Evo and Hero
 test("Gym #348: a row one player carries says so, and min_players counts repeat players (8.0.0)", async () => {
   const tags = ["#2QQQ8", "#2QQQ9", "#2QQQ0"];
   await db.query(
-    `insert into collection (slug, title, kind, owner_account)
-     values ('carried', 'Carried', 'player', $1) on conflict (slug) do nothing`,
-    [account.accountId],
+    `insert into clan (clan_tag) values ('#PQ8L0Y') on conflict do nothing`,
   );
   for (const tag of tags) {
     await db.query(
@@ -2975,12 +2828,14 @@ test("Gym #348: a row one player carries says so, and min_players counts repeat 
       [tag],
     );
     await db.query(
-      `insert into collection_member (collection_id, subject_tag)
-       select collection_id, $1 from collection where slug = 'carried'
-       on conflict do nothing`,
+      `insert into clan_membership (clan_tag, player_tag, joined_observed_at) values ('#PQ8L0Y',$1,now()) on conflict do nothing`,
       [tag],
     );
   }
+  await db.query(
+    `insert into recording (subject_type,subject_tag,requested_by,scope) values ('clan','#PQ8L0Y',$1,'comprehensive')`,
+    [account.accountId],
+  );
   const cards = [{ id: 26000348, name: "Carried Card", level: 14 }];
   await seedDeck(db, { cards });
   // One player 9-0, two players 0-1 each: "3 players, 9-2".
@@ -3004,7 +2859,7 @@ test("Gym #348: a row one player carries says so, and min_players counts repeat 
   // 8.0.0: min_players counts repeat players (two or more battles), so
   // the two one-battle players no longer carry it past min_players 2.
   const two = await call("battles_meta_decks", {
-    segment: { collection: "carried" },
+    segment: { clan_tag: "#PQ8L0Y" },
     min_battles: 1,
     min_players: 2,
   });
@@ -3013,7 +2868,7 @@ test("Gym #348: a row one player carries says so, and min_players counts repeat 
   assert.match(two.body.notes.join(" "), /repeat players/);
   for (const verbosity of ["full", "compact"]) {
     const { body, isError } = await call("battles_meta_decks", {
-      segment: { collection: "carried" },
+      segment: { clan_tag: "#PQ8L0Y" },
       min_battles: 1,
       verbosity,
     });

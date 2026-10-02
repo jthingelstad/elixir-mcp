@@ -16,7 +16,6 @@ import {
   toolsHiddenFrom,
 } from "@elixir-mcp/contracts";
 import { elixirTools } from "./tools/elixir.mjs";
-import { collectionsTools } from "./tools/collections.mjs";
 import { battlesTools } from "./tools/battles.mjs";
 import { opponentsTools } from "./tools/opponents.mjs";
 import { badgesTools } from "./tools/badges.mjs";
@@ -38,7 +37,6 @@ const EVENT_POOL_NOTE =
 
 const TOOLS = {
   ...elixirTools,
-  ...collectionsTools,
   ...battlesTools,
   ...opponentsTools,
   ...badgesTools,

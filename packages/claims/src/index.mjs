@@ -1,4 +1,3 @@
-import { RETIRED_BOARD_COLLECTIONS } from "@elixir-mcp/contracts";
 export { createPrincipal, normalizePrincipalName } from "./principals.mjs";
 import {
   poolLimits,
@@ -14,10 +13,7 @@ export { poolLimits, poolOwner, pooledUsage } from "./pool.mjs";
 /**
  * Who is subscribed to what, and therefore what gets recorded.
  *
- * Two things create a subscription: an account CLAIMS a player, or a
- * COLLECTION names a subject. Either is a reason to record it, and a
- * recording ends only when no reason is left. Both live here so the
- * two can never disagree about it.
+ * Direct player claims and clan follows sustain recording.
  *
  * Adding and removing a player, for BOTH entry points.
  *
@@ -77,8 +73,8 @@ async function logEvent(db, accountId, kind, detail) {
 /**
  * Make the recording match the reasons to record.
  *
- * A subject is recorded while ANY reason holds: an account claims it, or
- * a collection names it. When the last one goes, the recording stops.
+ * A subject is recorded while ANY reason holds: an account claims the player or
+ * follows the clan. When the last one goes, the recording stops.
  * An ops recording is never touched - it exists precisely because
  * somebody decided to record a subject nobody subscribes to.
  *
@@ -95,10 +91,7 @@ export async function reconcileRecording(
     `select
        -- EVERY reason a subject is recorded, counted in one place. An
        -- account associates with a player through claim and with a clan
-       -- through account_clan; a collection names either. A function
-       -- that knows only some of these stops recordings the others
-       -- still want, which is exactly how removing a clan you had added
-       -- used to stop a clan a collection was curating.
+       -- through account_clan. Retired Collections and boards do not count.
        ($2 = 'player'
         and exists (select 1 from claim where player_tag = $1)) as claimed,
        ($2 = 'clan'
@@ -106,33 +99,20 @@ export async function reconcileRecording(
        ($2 = 'clan'
         and exists (select 1 from account_clan
                     where clan_tag = $1 and scope = 'comprehensive')) as added_deep,
-       exists (select 1 from collection_member m
-               join collection c on c.collection_id = m.collection_id
-               where m.subject_tag = $1 and c.kind = $2
-                 and not (c.slug = any($3::text[]))) as collected,
-       -- How deep any collection asks this subject to be recorded. Two
-       -- collections can name it at different depths; the deepest wins.
-       exists (select 1 from collection_member m
-               join collection c on c.collection_id = m.collection_id
-               where m.subject_tag = $1 and c.kind = $2
-                 and c.scope = 'comprehensive'
-                 and not (c.slug = any($3::text[]))) as collected_deep,
        exists (select 1 from recording
                where subject_type = $2 and subject_tag = $1
                  and status = 'active' and origin = 'ops') as ops,
        exists (select 1 from recording
                where subject_type = $2 and subject_tag = $1
                  and status = 'active') as active`,
-    [tag, subjectType, RETIRED_BOARD_COLLECTIONS],
+    [tag, subjectType],
   );
-  const { claimed, added, added_deep, collected, collected_deep, ops, active } =
-    rows[0];
-  const wanted = claimed || added || collected;
+  const { claimed, added, added_deep, ops, active } = rows[0];
+  const wanted = claimed || added;
   // A claim means somebody added this player to their account, which has
   // always meant full capture. A clan carries the depth each account
-  // asked for; a collection the depth it asked for. Ranking history no longer asks for capture. Widest retained reason wins.
-  const scope =
-    claimed || added_deep || collected_deep ? "comprehensive" : "activity";
+  // asked for. Widest retained reason wins.
+  const scope = claimed || added_deep ? "comprehensive" : "activity";
 
   if (dryRun)
     return {
@@ -149,9 +129,9 @@ export async function reconcileRecording(
         [tag],
       );
     }
-    // A claim is somebody's; a remaining collection is its curator's.
+    // The direct subscription belongs to its requester.
     // The owner remains the fallback requester when no account is supplied.
-    const origin = claimed || added ? "claim" : "collection";
+    const origin = "claim";
     await db.query(
       `insert into recording (subject_type, subject_tag, requested_by, origin, scope)
        values ($2, $1,
@@ -173,9 +153,7 @@ export async function reconcileRecording(
         [tag, subjectType, scope],
       );
     } else if (scope === "comprehensive") {
-      // Players upgrade only. A collection asking for more depth deepens
-      // an existing recording; one asking for less never takes capture
-      // away from whoever is already relying on it.
+      // A direct player follow always asks for comprehensive capture.
       await db.query(
         `update recording set scope = 'comprehensive'
          where subject_type = $2 and subject_tag = $1
@@ -623,246 +601,6 @@ export async function setPrimaryClan(db, account, { tag, via }) {
     });
     await db.query("commit");
     return { ok: true, clan_tag: tag };
-  } catch (err) {
-    await db.query("rollback").catch(() => {});
-    throw err;
-  }
-}
-
-/**
- * Re-apply a collection's own settings to the members it already has.
- *
- * Changing scope from activity to comprehensive changes what the
- * collection is asking for without changing who is in it. Reconciling
- * only added/removed tags therefore deepens nobody, and the collection
- * keeps promising battle history it is not capturing. This reconciles
- * the membership read under the collection's lock, so it also cannot
- * miss a member that arrived since the caller last looked.
- */
-export async function reconcileCollection(db, collectionId) {
-  await db.query("begin");
-  try {
-    const { rows: col } = await db.query(
-      `select collection_id, kind, owner_account from collection
-       where collection_id = $1 for update`,
-      [collectionId],
-    );
-    if (!col[0]) {
-      await db.query("rollback");
-      return { found: false, members: 0, recordingsStarted: 0 };
-    }
-    const { rows: mem } = await db.query(
-      `select subject_tag from collection_member where collection_id = $1`,
-      [collectionId],
-    );
-    const tags = mem.map((r) => r.subject_tag).sort();
-    if (tags.length > 0) {
-      await db.query(
-        `select pg_advisory_xact_lock(hashtext(t)) from unnest($1::text[]) as t`,
-        [tags],
-      );
-    }
-    let started = 0;
-    for (const tag of tags) {
-      const r = await reconcileRecording(
-        db,
-        col[0].kind,
-        tag,
-        col[0].owner_account,
-      );
-      if (r.started) started += 1;
-    }
-    await db.query("commit");
-    return { found: true, members: tags.length, recordingsStarted: started };
-  } catch (err) {
-    await db.query("rollback").catch(() => {});
-    throw err;
-  }
-}
-
-/**
- * Delete a collection and settle what it was keeping alive.
- *
- * Membership rows cascade away on their own, but a cascade reconciles
- * nothing: a subject whose only reason to be recorded was this
- * collection would stay actively scheduled forever, spending the global
- * capture budget on a collection that no longer exists. Removing a
- * member through the ordinary membership path already stops it, so
- * deleting the parent must reach the same state.
- *
- * Subjects still wanted by another collection or by an account claim
- * keep recording, and operator-owned recordings are never touched —
- * both of those are reconcileRecording's own rules, honoured by asking
- * it after the delete rather than deciding here.
- */
-export async function deleteCollection(db, collectionId) {
-  await db.query("begin");
-  try {
-    const { rows: col } = await db.query(
-      `select collection_id, kind, owner_account from collection
-       where collection_id = $1 for update`,
-      [collectionId],
-    );
-    if (!col[0]) {
-      await db.query("rollback");
-      return { deleted: false, members: 0, recordingsStopped: 0 };
-    }
-    const { rows: mem } = await db.query(
-      `select subject_tag from collection_member where collection_id = $1`,
-      [collectionId],
-    );
-    // Same stable order as every other subject-touching write, so a
-    // delete racing an edit queues instead of deadlocking.
-    const tags = mem.map((r) => r.subject_tag).sort();
-    if (tags.length > 0) {
-      await db.query(
-        `select pg_advisory_xact_lock(hashtext(t)) from unnest($1::text[]) as t`,
-        [tags],
-      );
-    }
-    await db.query(`delete from collection where collection_id = $1`, [
-      collectionId,
-    ]);
-    let stopped = 0;
-    for (const tag of tags) {
-      const r = await reconcileRecording(
-        db,
-        col[0].kind,
-        tag,
-        col[0].owner_account,
-      );
-      if (r.stopped) stopped += 1;
-    }
-    await db.query("commit");
-    return { deleted: true, members: tags.length, recordingsStopped: stopped };
-  } catch (err) {
-    await db.query("rollback").catch(() => {});
-    throw err;
-  }
-}
-
-/**
- * Replace a collection's membership wholesale.
- *
- * `tags` is the membership the caller wants, already normalized. What is
- * absent leaves, what is new arrives, and every affected subject has its
- * recording reconciled: naming a tag in a collection is a reason to
- * record it, and removing the last reason stops it.
- *
- * Wholesale replacement is what a textarea edit means, and it is also
- * the shape an external manager wants ("here is the current roster"),
- * so it can be driven by a service token later without a second code
- * path. Adds and removes are diffed rather than delete-then-insert, so
- * added_at survives for members that stay.
- *
- * `mode` decides what `tags` means, and it MUST be resolved here rather
- * than by the caller. A caller that reads the membership, computes a
- * whole desired set and sends it as a replacement is racing: two
- * concurrent adds both build their set from the same snapshot, and the
- * second one's replacement deletes the first one's member. Deltas are
- * applied against the membership read under this function's own lock.
- *
- * `reconcileAll` reconciles every surviving member, not only the ones
- * that moved. Membership can be unchanged while the *depth* the
- * collection asks for has changed, and those members must be deepened
- * too.
- */
-export async function setCollectionMembers(
-  db,
-  collection,
-  tags,
-  {
-    mode = "set",
-    reconcileAll = false,
-    reconcileProvided = false,
-    memberLimit = null,
-    integrationId = null,
-  } = {},
-) {
-  const given = [...new Set(tags)];
-  await db.query("begin");
-  try {
-    await db.query(
-      `select collection_id from collection where collection_id = $1 for update`,
-      [collection.collectionId],
-    );
-    const { rows: current } = await db.query(
-      `select subject_tag from collection_member where collection_id = $1`,
-      [collection.collectionId],
-    );
-    const have = new Set(current.map((r) => r.subject_tag));
-    // Resolve the delta against what is there NOW, inside the lock.
-    const wanted =
-      mode === "add"
-        ? [...new Set([...have, ...given])]
-        : mode === "remove"
-          ? [...have].filter((t) => !given.includes(t))
-          : given;
-    if (
-      memberLimit !== null &&
-      wanted.length > memberLimit &&
-      wanted.length > have.size
-    ) {
-      const error = new Error("Collection enrollment limit reached");
-      error.code = "enrollment_limit";
-      throw error;
-    }
-    const added = wanted.filter((t) => !have.has(t));
-    const removed = [...have].filter((t) => !wanted.includes(t));
-
-    // Touch subjects in a stable order so two concurrent edits queue
-    // rather than deadlock on the per-subject locks. One round trip:
-    // an externally managed collection syncs hundreds of tags at once,
-    // and a query per tag would hold the transaction open for as long
-    // as the network takes, times the roster.
-    const touched = [...added, ...removed].sort();
-    const toReconcile = (
-      reconcileAll
-        ? [...new Set([...wanted, ...removed])]
-        : reconcileProvided
-          ? [...new Set([...given, ...touched])]
-          : touched
-    ).sort();
-    if (toReconcile.length > 0) {
-      await db.query(
-        `select pg_advisory_xact_lock(hashtext(t)) from unnest($1::text[]) as t`,
-        [toReconcile],
-      );
-    }
-    if (added.length > 0) {
-      await db.query(
-        `insert into collection_member (collection_id, subject_tag, added_by_integration)
-         select $1, unnest($2::text[]), $3 on conflict do nothing`,
-        [collection.collectionId, added, integrationId],
-      );
-    }
-    if (removed.length > 0) {
-      await db.query(
-        `delete from collection_member
-         where collection_id = $1 and subject_tag = any($2::text[])`,
-        [collection.collectionId, removed],
-      );
-    }
-    let started = 0;
-    let stopped = 0;
-    for (const tag of toReconcile) {
-      const r = await reconcileRecording(
-        db,
-        collection.kind,
-        tag,
-        collection.ownerAccount,
-      );
-      if (r.started) started += 1;
-      if (r.stopped) stopped += 1;
-    }
-    await db.query("commit");
-    return {
-      added: added.length,
-      removed: removed.length,
-      total: wanted.length,
-      recordingsStarted: started,
-      recordingsStopped: stopped,
-    };
   } catch (err) {
     await db.query("rollback").catch(() => {});
     throw err;

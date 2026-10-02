@@ -205,19 +205,19 @@ export default [
         icon: "binoculars",
         label: "Scout the other clan",
         title: "Scout the other clan",
-        lede: "Every race captures all five clans in the bracket, and a curated collection keeps the clans you care about recorded — so the comparison is always there to ask for.",
+        lede: "Every race captures all five clans in the bracket, and following a clan directly keeps it recorded — so the comparison is always there to ask for.",
         reads: [
           "Rival fingerprints from every race a recorded clan has shared",
           "Week-by-week war history for any recorded clan",
-          "The clans in a collection, recorded for as long as they stay in it",
+          "The clans you follow directly, recorded at the scope you choose",
         ],
         setup: ["Look up a clan tag", "Read the privacy posture"],
         script: {
-          tool: "collections_get · war_rivals · war_history",
+          tool: "war_rivals · war_history",
           lines: [
             {
               role: "user",
-              text: "How do the five clans in our Clans to Watch collection compare to us in war?",
+              text: "How do the clans we follow compare to us in war?",
             },
             {
               role: "agent",

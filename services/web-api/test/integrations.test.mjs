@@ -81,11 +81,9 @@ after(async () => {
   await admin.query(`drop database ${name} with (force)`);
   await admin.end();
 });
-test("admin provisions REST-only integration with a bound collection", async () => {
+test("admin provisions REST-only integration; retired collection routes refuse", async () => {
   const r = await request("POST", "/api/admin/integrations", {
     name: "test-integration",
-    collection_id: collection,
-    member_limit: 2,
   });
   assert.equal(r.statusCode, 201, r.body);
   const { token, integration } = data(r);
@@ -125,45 +123,42 @@ test("admin provisions REST-only integration with a bound collection", async () 
     (await request("GET", "/api/v1/game/clock", undefined, human)).statusCode,
     401,
   );
+  const beforePolicy = (
+    await db.query(
+      "select scopes,daily_limit,hourly_limit,refresh_limit from integration where account_id=$1",
+      [integration.account_id],
+    )
+  ).rows[0];
+  const obsolete = await request("POST", "/api/admin/integrations", {
+    action: "configure",
+    id: integration.public_id,
+    collection_id: collection,
+  });
+  assert.equal(obsolete.statusCode, 400);
+  assert.equal(data(obsolete).error, "collections_retired");
+  assert.deepEqual(
+    (
+      await db.query(
+        "select scopes,daily_limit,hourly_limit,refresh_limit from integration where account_id=$1",
+        [integration.account_id],
+      )
+    ).rows[0],
+    beforePolicy,
+    "obsolete grant input does not alter policy",
+  );
   const path = `/api/v1/collections/${collection}/members/%2320JJJ2CCRU`;
-  const added = await request("PUT", path, {}, token);
-  assert.equal(added.statusCode, 200, added.body);
-  assert.equal(data(added).data.added, 1);
-  const again = await request("PUT", path, {}, token);
-  assert.equal(data(again).data.added, 0);
-  assert.equal(data(again).data.enrollment_established, true);
+  assert.equal((await request("PUT", path, {}, token)).statusCode, 404);
   assert.equal(
     (
       await request(
         "POST",
         `/api/v1/collections/${collection}/members`,
-        { tags: ["#2GUCVLQR", "#J2RGCRVG"] },
+        { tags: ["#2GUCVLQR"] },
         token,
       )
     ).statusCode,
-    409,
+    404,
   );
-  const members = await db.query(
-    "select * from collection_member where collection_id=$1",
-    [collection],
-  );
-  assert.equal(members.rowCount, 1);
-  assert.equal((await request("DELETE", path, {}, token)).statusCode, 404);
-  const raced = await Promise.all([
-    request(
-      "PUT",
-      `/api/v1/collections/${collection}/members/%232GUCVLQR`,
-      {},
-      token,
-    ),
-    request(
-      "PUT",
-      `/api/v1/collections/${collection}/members/%23J2RGCRVG`,
-      {},
-      token,
-    ),
-  ]);
-  assert.deepEqual(raced.map((r) => r.statusCode).sort(), [200, 409]);
   assert.equal(
     (
       await db.query(
@@ -171,7 +166,7 @@ test("admin provisions REST-only integration with a bound collection", async () 
         [collection],
       )
     ).rows[0].n,
-    2,
+    0,
   );
   assert.equal(
     (
@@ -388,9 +383,7 @@ test("IAM provisioning accepts only a digest and returns no credential", async (
   );
   assert.equal((await integrationOp(databaseUrl, retire)).retired, 1);
   const listed = await integrationOp(databaseUrl, { action: "list" });
-  assert.ok(
-    listed.available_collections.some((c) => c.collection_id === collection),
-  );
+  assert.ok(!("available_collections" in listed));
 
   await db.query("update account set role='admin' where account_id=$1", [
     person,

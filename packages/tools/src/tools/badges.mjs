@@ -2,7 +2,7 @@
  *  (feedback #18 part 2). player_badge is current state per recorded
  *  profile; these read it sideways: which badge is rarest, and who has
  *  one. The corpus is the players recorded now (6.30.1), or a segment
- *  (clan / collection / one player) is named. */
+ *  (clan / one player) is named. */
 
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import { responseMeta } from "@elixir-mcp/contracts";
@@ -48,14 +48,6 @@ async function badgeScope(ctx, args, params) {
               and pb.player_tag in (${RECORDED_PLAYERS_SQL})`,
       echo: seg.echo,
       clanTag: seg.clanTag,
-    };
-  }
-  if (seg.kind === "collection") {
-    params.push(seg.collectionId);
-    return {
-      where: `pb.player_tag in (select m.subject_tag from collection_member m
-               where m.collection_id = $${params.length})`,
-      echo: seg.echo,
     };
   }
   // The corpus is the players recorded now (Jamie, 2026-09-23, Gym
@@ -257,7 +249,7 @@ function editDistance(a, b) {
 export const badgesTools = {
   badges_rarity: {
     description:
-      "Every badge observed across recorded profiles with its holder count, rarest first: the 'what is the rarest badge' question over a named population (segment 'mine', 'corpus' or {clan_tag | player_tag | collection}), with players_considered so the strength of the claim is in the payload. One-off badges are told apart from tiered ones, and tiered badges break down by level.",
+      "Every badge observed across recorded profiles with its holder count, rarest first: the 'what is the rarest badge' question over a named population (segment 'mine', 'corpus' or {clan_tag | player_tag}), with players_considered so the strength of the claim is in the payload. One-off badges are told apart from tiered ones, and tiered badges break down by level.",
     inputSchema: {
       type: "object",
       properties: {

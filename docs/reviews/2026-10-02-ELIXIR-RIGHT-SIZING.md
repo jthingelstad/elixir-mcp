@@ -5,7 +5,7 @@ This is an engineering assessment and removal plan, prepared for Jamie on
 The product's purpose belongs in [About Elixir](../../apps/site/src/docs/about.md).
 Implementation began with a reversible stop-capture and stop-send cutover
 (contract 9.20.0); the production receipt belongs in `docs/NOTES.md`. No
-production history has been deleted. The later removals below remain pending.
+production history has been deleted. Drop automatic enrollment has also shipped (PR #73). The Collection runtime/API cutover is in implementation; no history has been purged. The later removals below remain pending.
 
 Jamie confirmed that global leaderboard capture and history should go, while
 rank information delivered in a recorded player's profile stays. Full Clan

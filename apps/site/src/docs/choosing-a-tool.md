@@ -58,7 +58,6 @@ conventions that hold everywhere.
 | Past war weeks: final ranks, boat fame, one member's points and decks | `war_history` (`seasons`, or `season_id` and `section_index` for one week's whole roster) |
 | The clan leaderboards, which clans hold a board, how a board moved | `rankings_clan_ladder`, `rankings_clans`, `rankings_timeline` |
 | What was on in the game: events, challenges, side modes, by day | `game_events` |
-| Curated lists: pros, creators, clan families, your own | `collections_browse`, `collections_get`, `collections_edit` |
 | Track someone, say who they are to you | `elixir_track_player`, `elixir_track_clan`, `elixir_my_players`, `elixir_nickname` |
 | Resolve a human on an agent's surface to a player (agent connections only) | `elixir_identify`, `elixir_my_identities` |
 | Something is missing or took too many calls | `elixir_send_feedback`; `elixir_my_feedback` says what happened to it |
@@ -120,8 +119,7 @@ trophies and the ranked standing, so the two sides of it are not one series.
 - **The segment tools name a population.** `battles_meta_decks`,
   `battles_meta_cards`, `battles_trends`, `cards_synergy`, `cards_card`,
   `badges_rarity` and `badges_holders` take `segment`: `"mine"` (the caller's clan), `"corpus"`
-  (the whole recorded corpus, said on purpose) or `{ player_tag | clan_tag |
-  collection }`. The corpus is one population among the others, never a
+  (the whole recorded corpus, said on purpose) or `{ player_tag | clan_tag }`. The corpus is one population among the others, never a
   default: it is the matchmaking neighbourhood of the recorded clans and
   players, and a number over all of it describes nobody in particular.
   `segment` is required (4.0.0): a call without it is refused with the

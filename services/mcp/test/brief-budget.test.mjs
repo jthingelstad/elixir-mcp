@@ -218,7 +218,7 @@ test("a person who still sends them is never refused: they are dropped before va
     ),
     (err) =>
       err.code === "bad_request" &&
-      /segment has no property 'bogus'\. Known: player_tag, clan_tag, collection\.$/.test(
+      /segment has no property 'bogus'\. Known: player_tag, clan_tag\.$/.test(
         err.message,
       ),
   );

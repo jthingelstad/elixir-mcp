@@ -55,7 +55,7 @@ Refusals:
 
 | Case | Status | Body | Header |
 |---|---|---|---|
-| No `Authorization: Bearer` | 401 | `{"error":"invalid_token"}` | `WWW-Authenticate: Bearer resource_metadata="<issuer>/.well-known/oauth-protected-resource[<door path>]", scope="cr:read recordings:write collections:write account:write feedback:write"` |
+| No `Authorization: Bearer` | 401 | `{"error":"invalid_token"}` | `WWW-Authenticate: Bearer resource_metadata="<issuer>/.well-known/oauth-protected-resource[<door path>]", scope="cr:read recordings:write account:write feedback:write"` |
 | Unknown, expired, revoked, or suspended credential | 401 | same | same |
 | Valid credential at the wrong door | 403 | `{"error":"wrong_resource","message":"This credential is not for <resource>.","hint":"…"}` | none |
 | Tool needs a scope the token lacks | 403 | JSON-RPC error `-32003` (below) | `WWW-Authenticate: Bearer error="insufficient_scope", scope="<granted + required>", resource_metadata="…"` |
@@ -84,7 +84,7 @@ the call log.
   "code_challenge_methods_supported": ["S256"],
   "token_endpoint_auth_methods_supported": ["none", "client_secret_post"],
   "revocation_endpoint_auth_methods_supported": ["none", "client_secret_post"],
-  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write", "account:email", "clans:attest"]
+  "scopes_supported": ["cr:read", "recordings:write", "account:write", "feedback:write", "account:email", "clans:attest"]
 }
 ```
 
@@ -95,7 +95,7 @@ the call log.
 {
   "resource": "https://elixir.poapkings.com/mcp",
   "authorization_servers": ["https://elixir.poapkings.com"],
-  "scopes_supported": ["cr:read", "recordings:write", "collections:write", "account:write", "feedback:write", "account:email", "clans:attest"],
+  "scopes_supported": ["cr:read", "recordings:write", "account:write", "feedback:write", "account:email", "clans:attest"],
   "bearer_methods_supported": ["header"]
 }
 ```
@@ -230,7 +230,6 @@ grant. Refreshing never widens scope.
 |---|---|---|
 | `cr:read` | every read tool, `live_fetch`, and `elixir_timeline` (moving your read pointer is a bookmark, not an account change) | all others |
 | `recordings:write` | track or stop tracking players and clans | `elixir_track_player`, `elixir_track_clan` |
-| `collections:write` | edit collections you own | `collections_edit` |
 | `account:write` | private nicknames and end-user identity mappings | `elixir_nickname`, `elixir_identify` |
 | `feedback:write` | file attributed feedback | `elixir_send_feedback` |
 | `account:email` | read the account's email address at `/oauth/userinfo` (and `GET /api/v1/me`); granted only to the Elixir family's own apps | no tool; see below |
@@ -422,7 +421,7 @@ shape):
 | `invalid_tag` | `input` | input failed tag normalisation; hint states the rule |
 | `not_entitled` | `subject` | the caller lacks entitlement to the subject (clan tools, slots, identity binding) |
 | `not_recorded` | `subject` | the subject is valid but nothing has been recorded for it; on a person's door with no `clan_tag`, also the primary player's clan when it is not recorded (3.18.0: the default never slides to an alt's clan; the hint names the clan and the tracking call) |
-| `not_found` | `subject` | unknown to the record and to the live API; an unknown docs page, example or collection |
+| `not_found` | `subject` | unknown to the record and to the live API; an unknown docs page, example |
 | `no_subject` | `subject` | nothing to answer about: no primary player on the account, a primary player in no clan when `clan_tag` is omitted, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag). With `display_name` beside an unmapped `on_behalf_of`, `error.candidates[]` lists the clan members whose whole name matches (`player_tag`, `name`, `clan_tag`, `role`; case and spacing ignored, never a partial match), so one candidate is one `elixir_identify` call and zero or several is a question (3.18.0) |
 | `quota_exceeded` | `budget` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
 | `live_unavailable` | `server` | the live lane is not configured, or the fresh payload was refused at admission |
@@ -492,7 +491,7 @@ population among the others and never an implicit default.
 |---|---|---|
 | Player tools (`players_*`, `battles_query`, `battles_performance`, `battles_decks`, `battles_cards`, `battles_opponents`, `elixir_coverage`) | `player_tag` | the caller: a person's primary player, or whoever `on_behalf_of` maps to on an agent connection |
 | Clan tools (`clans_*`, `war_current`, `war_history`, `war_rivals`) | `clan_tag` | a person's primary player's current clan (refused `not_recorded` when that clan is not recorded, `no_subject` when the primary is in no clan; never an alt's, a friend's or another tracked clan), an agent's clan |
-| Segment tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_synergy`, `cards_card`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, `"corpus"`, or an object naming a player, clan or collection |
+| Segment tools (`battles_meta_decks`, `battles_meta_cards`, `battles_trends`, `cards_synergy`, `cards_card`, `badges_rarity`, `badges_holders`) | `segment` | cannot be omitted; pass `"mine"`, `"corpus"`, or an object naming a player or clan |
 | `game_clock`, `cards_catalog`, the Help tools | none | no subject at all |
 
 No default is ever looked up first, and there is no "no default" guess: a
@@ -502,7 +501,7 @@ in its hint.
 - **Tags.** `#` plus 3 to 12 characters from `0289PYLQGRJCUV`. Input is
   trimmed and upper-cased, a missing `#` is added, and the letter O folds to
   zero. Anything else is `invalid_tag`. `*_tag` is one tag, `*_tags` an
-  array, `collection` a collection's slug.
+  array.
 - **`on_behalf_of`** (≤200 chars, opaque) selects the end user on an agent
   connection; ignored on a personal one, where the caller is always the
   primary player. A personal connection's `tools/list` leaves it and
@@ -528,7 +527,7 @@ in its hint.
   timezone. An unknown zone is `bad_request`.
 - **`applied`** is the one echo block, on every response except seven
   (`elixir_my_players`, `elixir_my_identities`, `elixir_coverage`,
-  `collections_browse`, `elixir_collectors`, `elixir_data_insights`, and
+  `elixir_collectors`, `elixir_data_insights`, and
   `elixir_examples` without an `example`): `window` (`from`,
   `to`, `source` of `argument` | `default` | `unbounded` | `season` |
   `fixed` (and `pointer` on `elixir_timeline`), `timezone`, and on the season-grained tools `season`,

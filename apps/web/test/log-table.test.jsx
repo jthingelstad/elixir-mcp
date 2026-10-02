@@ -163,23 +163,6 @@ const PAGES = [
     },
   ],
   [
-    "Admin ▸ Collections",
-    () => <Admin me={ME} page="collections" navigate={() => {}} />,
-    {
-      "admin/collections": {
-        collections: [
-          {
-            slug: "war-carriers",
-            title: "War carriers",
-            kind: "player",
-            visibility: "public",
-            member_count: 12,
-          },
-        ],
-      },
-    },
-  ],
-  [
     "Admin ▸ Across accounts",
     () => <Admin me={ME} page="usage" navigate={() => {}} />,
     {

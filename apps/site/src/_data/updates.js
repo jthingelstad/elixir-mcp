@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Record the players and clans you choose",
+    body: "Named recording Collections have retired from tracking, Explore, administration, agents and platform integrations. A Collection no longer keeps its members recording. Follow players directly and organize them with primary, alt, friend and watching relationships; follow clans at the scope you need. Drop has stopped automatic enrollment while retaining Elixir sign-in and authorized account access. Your existing direct follows and recorded history stay. Owned cards are still recorded as part of player profiles. Contract 10.0.0; JSON API 3.0.0 removes Collection additions.",
+  },
+  {
+    date: "2026-10-02",
     title: "Elixir stops recording global boards and ends editorial mail",
     body: "Elixir is focusing on the players and clans you choose to record. Global, regional, clan and mode leaderboards no longer fetch, and leaderboard presence and the former board Collections no longer keep a player recording. The recording cutover preserves remaining user, clan, collection and operator requests. Ultimate Champions and Card of the Week have ended, including queued sends; their sent history and unsubscribe links remain available. Your personal profile ranks, record-driven reports and sign-in mail stay. Existing global history awaits a reviewed purge. Other Collections and Drop's enrollment cutover are still pending. Contract 9.20.0; JSON API unchanged.",
   },

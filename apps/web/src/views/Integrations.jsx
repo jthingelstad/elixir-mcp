@@ -1,16 +1,10 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import {
-  keys,
-  useAdminCollections,
-  useAdminIntegrations,
-  useInvalidate,
-} from "../lib/queries.js";
+import { keys, useAdminIntegrations, useInvalidate } from "../lib/queries.js";
 const scopes = [
   "game:read",
   "players:read",
   "profiles:refresh",
-  "collections:members:add",
   "facts:write",
   "clans:read",
   "mail:send",
@@ -22,16 +16,11 @@ const defaults = {
   daily_limit: 10000,
   hourly_limit: 2000,
   refresh_limit: 1000,
-  member_limit: 10000,
-  collection_id: "",
   scopes: scopes.filter((s) => !EXPLICIT.includes(s)),
 };
 export function Integrations() {
   const integrations = useAdminIntegrations();
   const items = integrations.data?.integrations ?? [];
-  const collections = (useAdminCollections().data?.collections ?? []).filter(
-    (x) => x.kind === "player",
-  );
   const [form, setForm] = useState(defaults),
     [selected, setSelected] = useState(null),
     [token, setToken] = useState(null),
@@ -67,8 +56,7 @@ export function Integrations() {
       <p>
         Platform connections use the{" "}
         <a href="/docs/integrations/">Integration API</a>. Each has its own key,
-        permissions and budget. Collection additions start recording; supplied
-        tags do not prove player identity.
+        permissions and budget; supplied tags do not prove player identity.
       </p>
       {(error || loadError) && (
         <p className="notice" role="alert">
@@ -114,7 +102,6 @@ export function Integrations() {
                 <th>Status</th>
                 <th>Calls today</th>
                 <th>Refreshes today</th>
-                <th>Recording collections</th>
                 <th>Key last used</th>
                 <th>Manage</th>
               </tr>
@@ -131,14 +118,6 @@ export function Integrations() {
                     {i.refreshes_today} / {i.refresh_limit}
                   </td>
                   <td>
-                    {i.collections.map((c) => (
-                      <div key={c.collection_id}>
-                        {c.slug}: {c.members} / {c.member_limit}, {c.scope} (
-                        {c.added_by_integration} added here)
-                      </div>
-                    ))}
-                  </td>
-                  <td>
                     {i.tokens
                       .filter((t) => !t.revoked_at)
                       .map((t) => t.last_used_at ?? "Never")
@@ -153,8 +132,6 @@ export function Integrations() {
                         setForm({
                           ...defaults,
                           ...i,
-                          collection_id: i.collections[0]?.collection_id ?? "",
-                          member_limit: i.collections[0]?.member_limit ?? 10000,
                         });
                         setToken(null);
                       }}
@@ -262,7 +239,6 @@ export function Integrations() {
             ["daily_limit", "API calls per UTC day"],
             ["hourly_limit", "API calls per hour"],
             ["refresh_limit", "Profile refreshes per UTC day"],
-            ["member_limit", "Collection member limit"],
           ].map(([key, label]) => (
             <label key={key}>
               {label}
@@ -278,27 +254,6 @@ export function Integrations() {
               />
             </label>
           ))}
-          <label>
-            Allow additions to collection
-            <select
-              value={form.collection_id}
-              onChange={(e) =>
-                setForm({ ...form, collection_id: e.target.value })
-              }
-            >
-              <option value="">No additional grant</option>
-              {collections.map((c) => (
-                <option key={c.collection_id} value={c.collection_id}>
-                  {c.title} ({c.slug})
-                </option>
-              ))}
-            </select>
-          </label>
-          <p>
-            Existing members and recording depth are preserved. A grant
-            authorizes additions only. Rotating a key immediately revokes its
-            predecessor; budgets stay with the integration.
-          </p>
           <button className="btn" disabled={busy}>
             {busy
               ? "Saving…"
@@ -320,28 +275,6 @@ export function Integrations() {
               New integration
             </button>
           )}
-          {selected &&
-            items
-              .find((i) => i.public_id === selected)
-              ?.collections.map((c) => (
-                <button
-                  className="btn btn--quiet"
-                  type="button"
-                  key={c.collection_id}
-                  disabled={busy}
-                  onClick={() =>
-                    act({
-                      ...form,
-                      collection_id: "",
-                      action: "configure",
-                      id: selected,
-                      remove_collection_id: c.collection_id,
-                    })
-                  }
-                >
-                  Remove grant: {c.slug}
-                </button>
-              ))}
         </form>
       </section>
     </>

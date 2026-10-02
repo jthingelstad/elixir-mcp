@@ -110,7 +110,6 @@ export const SECTIONS = {
       { slug: "timeline", label: "Timeline" },
       { slug: "tracking", label: "Tracking" },
       { slug: "verify", label: "Verify" },
-      { slug: "collections", label: "Collections" },
       { slug: "activity", label: "Activity" },
       { slug: "usage", label: "Usage" },
       { slug: "connections", label: "Connections" },
@@ -138,7 +137,6 @@ export const SECTIONS = {
       { slug: "accounts", label: "Accounts" },
       { slug: "integrations", label: "Integrations" },
       { slug: "connections", label: "Connections" },
-      { slug: "collections", label: "Collections" },
       { slug: "feedback", label: "Feedback" },
       { slug: "emails", label: "Emails" },
       { slug: "usage", label: "Usage" },
@@ -149,7 +147,7 @@ export const SECTIONS = {
   },
   // An agent's console (2026-09-23, docs/reviews/2026-09-23-CONSOLE-
   // ACCOUNT-SWITCHER.md): the pages that make sense for an agent, scoped
-  // to one you own, at /console/agent/<public_id>/<page>. Verify, Collections,
+  // to one you own, at /console/agent/<public_id>/<page>. Verify,
   // Profile and Admin are a person's; Explore and Status are the same for
   // everyone and stay in your console. `scoped` marks the id segment
   // before the page.
@@ -229,12 +227,6 @@ export const RAIL = [
     label: "Tracking",
     icon: "radar",
     to: `${CONSOLE}/account/tracking`,
-  },
-  {
-    key: "collections",
-    label: "Collections",
-    icon: "bookmark",
-    to: `${CONSOLE}/account/collections`,
   },
   // Proving a claim is a step in your record, next to what you track.
   {
@@ -318,12 +310,6 @@ export const ADMIN_RAIL = [
     label: "Integrations",
     icon: "wrench",
     to: `${CONSOLE}/admin/integrations`,
-  },
-  {
-    key: "collections",
-    label: "Collections",
-    icon: "bookmark",
-    to: `${CONSOLE}/admin/collections`,
   },
   {
     key: "usage",
@@ -599,14 +585,6 @@ export const DOC_LINKS = {
       ["Methodology", "/docs/methodology"],
     ],
   ],
-  collections: [
-    "Collections",
-    [
-      ["How recording works", "/docs/recording"],
-      ["collections_edit", "/docs/tools/collections"],
-      ["Tiers & slots", "/docs/roles"],
-    ],
-  ],
   tracking: [
     "What we record for you",
     [
@@ -860,13 +838,6 @@ export const DOC_LINKS = {
       ["Integration API", "/docs/integrations#provisioning-and-administration"],
     ],
   ],
-  "admin:collections": [
-    "Collections",
-    [
-      ["Collections", "/docs/recording#collections"],
-      ["How recording works", "/docs/recording"],
-    ],
-  ],
   "admin:feedback": ["Feedback queue", [["About the project", "/docs/about"]]],
   "admin:emails": [
     "What we send",
@@ -933,7 +904,6 @@ const REDIRECTS = {
   [`${CONSOLE}/admin`]: `${CONSOLE}/admin/requests`,
   [`${CONSOLE}/explore/player`]: `${CONSOLE}/explore`,
   [`${CONSOLE}/explore/clan`]: `${CONSOLE}/explore`,
-  [`${CONSOLE}/explore/collections`]: `${CONSOLE}/explore`,
   [`${CONSOLE}/status`]: `${CONSOLE}/status/service`,
   // The bare Activity path WAS the timeline until the timeline became
   // its own rail item (2026-09-23), so a link to it still means that.

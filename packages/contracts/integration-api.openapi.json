@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "2.10.0",
+    "version": "3.0.0",
     "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Collection grants allow additions only. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
@@ -258,161 +258,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/collections/{id}/members/{tag}": {
-      "put": {
-        "operationId": "addCollectionMember",
-        "x-permission": "collections:members:add",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tag",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "headers": {
-              "X-Request-ID": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MembershipResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "X-Request-ID": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {},
-                "required": []
-              }
-            }
-          }
-        }
-      }
-    },
-    "/collections/{id}/members": {
-      "post": {
-        "operationId": "addCollectionMembers",
-        "x-permission": "collections:members:add",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "headers": {
-              "X-Request-ID": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MembershipResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "X-Request-ID": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "tags": {
-                    "type": "array",
-                    "minItems": 1,
-                    "maxItems": 500,
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": ["tags"]
               }
             }
           }
@@ -1685,37 +1530,6 @@
         },
         "required": ["id", "player_tag", "status", "created_at", "expires_at"]
       },
-      "Membership": {
-        "type": "object",
-        "properties": {
-          "collection_id": {
-            "type": "string"
-          },
-          "added": {
-            "type": "integer"
-          },
-          "already_present": {
-            "type": "integer"
-          },
-          "total": {
-            "type": "integer"
-          },
-          "enrollment_established": {
-            "const": true
-          },
-          "recordings_started": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "collection_id",
-          "added",
-          "already_present",
-          "total",
-          "enrollment_established",
-          "recordings_started"
-        ]
-      },
       "Problem": {
         "type": "object",
         "properties": {
@@ -1781,19 +1595,6 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/Refresh"
-          },
-          "request_id": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        "required": ["data", "request_id"]
-      },
-      "MembershipResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/Membership"
           },
           "request_id": {
             "type": "string",

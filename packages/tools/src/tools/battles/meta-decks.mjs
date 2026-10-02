@@ -13,7 +13,7 @@ import {
   SEASON_ARG_SCHEMA,
   SEGMENT_DOCS,
   SEGMENT_NOTES,
-  collectionSegmentNote,
+  clanSegmentNote,
   SEGMENT_SCHEMA,
   VERBOSITY,
   WINDOW_ARGS,
@@ -87,7 +87,7 @@ const RESULT_BUDGET_CHARS = 45_000;
 
 export const battles_meta_decks = {
   description:
-    "Observed deck meta for a named population: segment 'mine' (your clan), 'corpus' (the whole recorded corpus, on purpose) or {clan_tag | player_tag | collection}. Per exact deck identity: decided player-battle observations (not unique matches), record, distinct players, usage share, raw and shrunk win rates. Default window: the current season to date; season selects another. No tier lists: what the recorded data shows, with sample sizes.",
+    "Observed deck meta for a named population: segment 'mine' (your clan), 'corpus' (the whole recorded corpus, on purpose) or {clan_tag | player_tag}. Per exact deck identity: decided player-battle observations (not unique matches), record, distinct players, usage share, raw and shrunk win rates. Default window: the current season to date; season selects another. No tier lists: what the recorded data shows, with sample sizes.",
   inputSchema: {
     type: "object",
     properties: {
@@ -668,7 +668,7 @@ export const battles_meta_decks = {
           ? "excluded counts the season and mode, not the band; decided_battles and every row are the band's."
           : null,
         SEGMENT_NOTES,
-        collectionSegmentNote(seg),
+        clanSegmentNote(seg),
         win.seasonNotes,
         roll?.note,
         pop?.note,

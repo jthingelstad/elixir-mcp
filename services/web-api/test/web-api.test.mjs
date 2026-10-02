@@ -1231,61 +1231,9 @@ test("service tokens: Admin no longer mints one on a person (review §6.5); an e
   assert.equal(nonOwner.statusCode, 403);
 });
 
-test("admin collections: owner curates; non-owner refused", async () => {
-  const ownerCookie = await signIn(JAMIE);
-  let res = await handler(
-    event({
-      path: "/api/admin/collections",
-      method: "POST",
-      cookie: ownerCookie,
-      body: {
-        action: "upsert",
-        slug: "creators",
-        title: "Creators",
-        kind: "player",
-      },
-    }),
-  );
-  assert.equal(JSON.parse(res.body).ok, true);
-  res = await handler(
-    event({
-      path: "/api/admin/collections",
-      method: "POST",
-      cookie: ownerCookie,
-      body: { action: "add", slug: "creators", tags: ["#PYGRJC0"] },
-    }),
-  );
-  assert.equal(JSON.parse(res.body).changed, 1);
-  res = await handler(
-    event({
-      path: "/api/admin/collections",
-      method: "GET",
-      cookie: ownerCookie,
-    }),
-  );
-  assert.equal(res.statusCode, 200, res.body);
-  const list = JSON.parse(res.body).collections;
-  const c = list.find((x) => x.slug === "creators");
-  assert.equal(c.member_count, 1);
-  assert.deepEqual(c.members, ["#PYGRJC0"]);
-
-  const memberCookie = await signIn(NEWCOMER);
-  res = await handler(
-    event({
-      path: "/api/admin/collections",
-      method: "GET",
-      cookie: memberCookie,
-    }),
-  );
-  assert.equal(res.statusCode, 403);
-});
-
-let ladderNewcomerCookie; // shared with the collections test (send limit)
-
 test("entitlement ladder: /api/me exposes tier; upgrades are self-serve; admin sets roles", async () => {
   const ownerCookie = bossCookie;
   const cookie = memberCookie;
-  ladderNewcomerCookie = cookie;
   // Clear the hand-tuned override from the cap test above: the role
   // default (member: 3) must take over when no override is set.
   await db.query(
@@ -1304,7 +1252,7 @@ test("entitlement ladder: /api/me exposes tier; upgrades are self-serve; admin s
   // unlimited); comprehensive clans and collections still are.
   assert.equal(me.entitlements.player_slots.limit, 50);
   assert.equal(me.entitlements.comprehensive_clans.limit, 0);
-  assert.equal(me.entitlements.collections.limit, 0);
+  assert.ok(!("collections" in me.entitlements));
 
   // Self-serve upgrade request: files once, refuses duplicates and
   // sideways moves.
@@ -1361,7 +1309,7 @@ test("entitlement ladder: /api/me exposes tier; upgrades are self-serve; admin s
     ),
   );
   assert.equal(me.role, "family");
-  assert.equal(me.entitlements.collections.limit, 5);
+  assert.ok(!("collections" in me.entitlements));
 
   // Non-role strings and non-owner setters are refused.
   const bogus = await handler(
@@ -1380,70 +1328,6 @@ test("entitlement ladder: /api/me exposes tier; upgrades are self-serve; admin s
     }),
   );
   assert.equal(sneaky.statusCode, 403);
-});
-
-test("self-serve collections: family curates within its cap, touches only its own", async () => {
-  const cookie = ladderNewcomerCookie; // family tier from the prior test
-  const make = (slug) =>
-    handler(
-      event({
-        path: "/api/me/collections",
-        cookie,
-        body: { action: "upsert", slug, title: slug, kind: "player" },
-      }),
-    );
-  for (const slug of ["fam-a", "fam-b", "fam-c", "fam-d", "fam-e"]) {
-    const r = await make(slug);
-    assert.equal(r.statusCode, 200, r.body);
-  }
-  const over = await make("fam-f");
-  assert.equal(over.statusCode, 429, "cap of 5 for family");
-
-  const add = await handler(
-    event({
-      path: "/api/me/collections",
-      cookie,
-      body: { action: "add", slug: "fam-a", tags: ["#PYGRJC0", "#2PLQVU"] },
-    }),
-  );
-  assert.equal(parse(add).changed, 2);
-
-  // The admin-owned 'creators' collection is not theirs to touch.
-  const foreign = await handler(
-    event({
-      path: "/api/me/collections",
-      cookie,
-      body: { action: "add", slug: "creators", tags: ["#2PLQVU"] },
-    }),
-  );
-  assert.equal(foreign.statusCode, 403);
-
-  // A plain member cannot create at all.
-  const { rows: acct } = await db.query(
-    `select account_id from account where email_hash = $1`,
-    [emailHash(NEWCOMER)],
-  );
-  await db.query(`update account set role = 'member' where account_id = $1`, [
-    acct[0].account_id,
-  ]);
-  const blocked = await make("fam-g");
-  assert.equal(blocked.statusCode, 403);
-  await db.query(`update account set role = 'family' where account_id = $1`, [
-    acct[0].account_id,
-  ]);
-
-  const mine = parse(
-    await handler(
-      event({
-        method: "GET",
-        path: "/api/me/collections",
-        cookie,
-        body: undefined,
-      }),
-    ),
-  );
-  assert.equal(mine.collections.length, 5);
-  assert.equal(mine.limit, 5);
 });
 
 test("clans: added = recorded within slots; notify is the toggle; remove settles the recording", async () => {
@@ -1942,278 +1826,10 @@ test("an admin cannot deny the owner or a peer out of the service", async () => 
 });
 
 // --------------------------------------------------------------- #16
-test("a losing racer cannot overwrite or publish another account's collection", async () => {
-  // Reported: the ownership precheck ran in its own SELECT while the
-  // upsert's ON CONFLICT had no ownership predicate. Racing another
-  // account's creation of the same slug let the loser rewrite the
-  // winner's row — including flipping it public and exposing members.
-  const OWNER_A = "race-a@example.com";
-  const OWNER_B = "race-b@example.com";
-  for (const addr of [OWNER_A, OWNER_B]) {
-    await db.query(
-      `insert into account (email_hash, status, role) values ($1, 'approved', 'family')`,
-      [emailHash(addr)],
-    );
-  }
-  const cookieB = await signIn(OWNER_B, "203.0.113.16");
-  const { rows: a } = await db.query(
-    `select account_id from account where email_hash = $1`,
-    [emailHash(OWNER_A)],
-  );
-
-  const other = new pg.Client({ connectionString: DB_URL });
-  await other.connect();
-  try {
-    // A's creation is in flight and holds the slug's unique conflict.
-    await other.query("begin");
-    const { rows: col } = await other.query(
-      `insert into collection (slug, title, kind, owner_account, visibility)
-       values ('contested', 'A private list', 'player', $1, 'private')
-       returning collection_id`,
-      [a[0].account_id],
-    );
-    await other.query(
-      `insert into collection_member (collection_id, subject_tag) values ($1, '#2YG98VVQ')`,
-      [col[0].collection_id],
-    );
-
-    // B's precheck sees nothing committed, so it proceeds to the insert
-    // and blocks there. Let A commit underneath it.
-    const racing = handler(
-      event({
-        path: "/api/me/collections",
-        cookie: cookieB,
-        body: {
-          action: "upsert",
-          slug: "contested",
-          title: "Changed by other account",
-          kind: "player",
-          visibility: "public",
-        },
-      }),
-    );
-    await new Promise((r) => setTimeout(r, 250));
-    await other.query("commit");
-    const res = await racing;
-
-    assert.equal(res.statusCode, 403, res.body);
-    const { rows: after } = await db.query(
-      `select title, visibility, owner_account from collection where slug = 'contested'`,
-    );
-    assert.equal(after[0].title, "A private list", "title untouched");
-    assert.equal(after[0].visibility, "private", "still not published");
-    assert.equal(after[0].owner_account, a[0].account_id);
-  } finally {
-    await other.end();
-  }
-});
 
 // --------------------------------------------------------------- #17
-test("two concurrent adds through the route both keep their member", async () => {
-  const OWNER_C = "route-add@example.com";
-  await db.query(
-    `insert into account (email_hash, status, role) values ($1, 'approved', 'family')`,
-    [emailHash(OWNER_C)],
-  );
-  const cookie = await signIn(OWNER_C, "203.0.113.17");
-  const created = await handler(
-    event({
-      path: "/api/me/collections",
-      cookie,
-      body: {
-        action: "upsert",
-        slug: "roster-sync",
-        title: "Roster",
-        kind: "player",
-      },
-    }),
-  );
-  assert.equal(created.statusCode, 200, created.body);
-
-  const [one, two] = await Promise.all([
-    handler(
-      event({
-        path: "/api/me/collections",
-        cookie,
-        body: { action: "add", slug: "roster-sync", tags: ["#RRR8LP2V"] },
-      }),
-    ),
-    handler(
-      event({
-        path: "/api/me/collections",
-        cookie,
-        body: { action: "add", slug: "roster-sync", tags: ["#QQQ9UV20"] },
-      }),
-    ),
-  ]);
-  assert.equal(one.statusCode, 200);
-  assert.equal(two.statusCode, 200);
-  const { rows: mem } = await db.query(
-    `select m.subject_tag from collection_member m
-     join collection c on c.collection_id = m.collection_id
-     where c.slug = 'roster-sync' order by m.subject_tag`,
-  );
-  assert.deepEqual(
-    mem.map((r) => r.subject_tag).sort(),
-    ["#QQQ9UV20", "#RRR8LP2V"],
-    "an add must never drop the other add's member",
-  );
-
-  // --------------------------------------------------------------- #19
-  // Deleting the collection settles the recordings it was the only
-  // reason for, rather than leaving them scheduled forever.
-  const active = async () =>
-    (
-      await db.query(
-        `select count(*)::int as n from recording
-         where subject_type = 'player' and status = 'active'
-           and subject_tag = any($1::text[])`,
-        [["#RRR8LP2V", "#QQQ9UV20"]],
-      )
-    ).rows[0].n;
-  assert.equal(await active(), 2, "membership means recording");
-  const gone = await handler(
-    event({
-      path: "/api/me/collections",
-      cookie,
-      body: { action: "delete", slug: "roster-sync" },
-    }),
-  );
-  assert.equal(gone.statusCode, 200);
-  assert.equal(await active(), 0, "deleting the collection stopped them");
-});
 
 // --------------------------------------------------------------- #18
-test("raising a collection's scope deepens the members it already has", async () => {
-  const OWNER_D = "scope-up@example.com";
-  await db.query(
-    `insert into account (email_hash, status, role) values ($1, 'approved', 'family')`,
-    [emailHash(OWNER_D)],
-  );
-  const cookie = await signIn(OWNER_D, "203.0.113.18");
-  const upsert = (scope) =>
-    handler(
-      event({
-        path: "/api/me/collections",
-        cookie,
-        body: {
-          action: "upsert",
-          slug: "depth",
-          title: "Depth",
-          kind: "player",
-          scope,
-        },
-      }),
-    );
-  assert.equal((await upsert("activity")).statusCode, 200);
-  await handler(
-    event({
-      path: "/api/me/collections",
-      cookie,
-      body: { action: "add", slug: "depth", tags: ["#9VUP08YL"] },
-    }),
-  );
-  const scopeOf = async () =>
-    (
-      await db.query(
-        `select scope from recording where subject_type = 'player'
-         and subject_tag = '#9VUP08YL' and status = 'active'`,
-      )
-    ).rows[0]?.scope;
-  assert.equal(await scopeOf(), "activity");
-
-  assert.equal((await upsert("comprehensive")).statusCode, 200);
-  assert.equal(
-    await scopeOf(),
-    "comprehensive",
-    "the promise of battle history has to reach the existing member",
-  );
-});
-
-test("removing a clan you added leaves a collection's clan recording alone", async () => {
-  // Jamie, 2026-09-07: removing personally-added clans that are also in
-  // a collection. settleClanRecording counted account_clan and nothing
-  // else, so this removal stopped a clan the collection still curated.
-  const OWNER_E = "clan-collection@example.com";
-  await db.query(
-    `insert into account (email_hash, status, role) values ($1, 'approved', 'family')`,
-    [emailHash(OWNER_E)],
-  );
-  const cookie = await signIn(OWNER_E, "203.0.113.19");
-  const CLAN = "#P2P2Y880";
-
-  const added = await handler(
-    event({
-      path: "/api/me/clans",
-      cookie,
-      body: { action: "add", clan_tag: CLAN, scope: "comprehensive" },
-    }),
-  );
-  assert.equal(added.statusCode, 200, added.body);
-
-  // The same clan is also curated in a collection.
-  const { rows: acct } = await db.query(
-    `select account_id from account where email_hash = $1`,
-    [emailHash(OWNER_E)],
-  );
-  const { rows: col } = await db.query(
-    `insert into collection (slug, title, kind, owner_account, scope)
-     values ('watched-clans', 'Watched', 'clan', $1, 'comprehensive')
-     returning collection_id`,
-    [acct[0].account_id],
-  );
-  await db.query(
-    `insert into collection_member (collection_id, subject_tag) values ($1, $2)`,
-    [col[0].collection_id, CLAN],
-  );
-
-  const active = async () =>
-    (
-      await db.query(
-        `select count(*)::int as n from recording
-         where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
-        [CLAN],
-      )
-    ).rows[0].n;
-  assert.equal(await active(), 1);
-
-  const removed = await handler(
-    event({
-      path: "/api/me/clans",
-      cookie,
-      body: { action: "remove", clan_tag: CLAN },
-    }),
-  );
-  assert.equal(removed.statusCode, 200);
-  assert.equal(parse(removed).removed, true, "the account association is gone");
-  assert.equal(
-    parse(removed).recording_stopped,
-    false,
-    "the collection is still a reason to record it",
-  );
-  assert.equal(await active(), 1, "the clan is still being recorded");
-
-  // And once the collection lets go, nothing wants it and it stops.
-  await db.query(`delete from collection_member where collection_id = $1`, [
-    col[0].collection_id,
-  ]);
-  await handler(
-    event({
-      path: "/api/me/clans",
-      cookie,
-      body: { action: "add", clan_tag: CLAN, scope: "comprehensive" },
-    }),
-  );
-  const gone = await handler(
-    event({
-      path: "/api/me/clans",
-      cookie,
-      body: { action: "remove", clan_tag: CLAN },
-    }),
-  );
-  assert.equal(parse(gone).recording_stopped, true);
-  assert.equal(await active(), 0);
-});
 
 // --------------------------------------------------------------- #27
 test("beta accounts are enrolled by default, and an opt-out is never overridden", async () => {
@@ -2776,7 +2392,6 @@ test("the explorer is metered and capped like the MCP door, and read-only", asyn
   for (const w of [
     "elixir_track_player",
     "elixir_track_clan",
-    "collections_edit",
     "elixir_identify",
   ])
     assert.equal((await call(w)).statusCode, 400, w);
@@ -3458,4 +3073,28 @@ test("retired email switches cannot be restored, while history and old unsubscri
   );
   assert.equal(detail.statusCode, 200);
   assert.equal(parse(detail).send.kind, "top_100");
+});
+
+test("retired personal and admin Collection routes are absent", async () => {
+  for (const path of ["/api/me/collections", "/api/admin/collections"]) {
+    for (const method of ["GET", "POST"]) {
+      const r = await handler(
+        event({
+          method,
+          path,
+          cookie: bossCookie,
+          body:
+            method === "POST"
+              ? {
+                  action: "upsert",
+                  slug: "retired-route",
+                  title: "Retired",
+                  kind: "player",
+                }
+              : undefined,
+        }),
+      );
+      assert.equal(r.statusCode, 404);
+    }
+  }
 });

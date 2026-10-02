@@ -14,7 +14,6 @@ import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
 import { terminateBackends, listBackends } from "../src/deck-backfill.mjs";
 import { oauthGrants } from "../src/ops-grants.mjs";
-import { collectionOp } from "../src/ops-record.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -221,79 +220,4 @@ test("oauth_grants revoke writes the revocation and its event together, or neith
   });
   assert.equal(listed.grants.length, 1);
   await assert.rejects(oauthGrants(SCRATCH_URL, {}), /redirect_host or revoke/);
-});
-
-test("collection: upsert, add starts recording, remove stops it, reconcile repairs, unknown refused", async () => {
-  await db.query(
-    `insert into account (email_hash, status, is_owner, role) values ('collection-owner', 'approved', true, 'owner')`,
-  );
-  const made = await collectionOp(SCRATCH_URL, {
-    op: "upsert",
-    slug: "Ops-Test",
-    title: "Ops test",
-    kind: "player",
-    description: null,
-    visibility: "public",
-  });
-  assert.equal(made.slug, "ops-test");
-  const again = await collectionOp(SCRATCH_URL, {
-    op: "upsert",
-    slug: "ops-test",
-    title: "Ops test, renamed",
-    kind: "player",
-  });
-  assert.equal(
-    again.collection_id,
-    made.collection_id,
-    "upsert, not a second row",
-  );
-
-  const added = await collectionOp(SCRATCH_URL, {
-    op: "add",
-    slug: "ops-test",
-    tags: ["#2ppp", "#9YY9YY9Q"],
-  });
-  assert.equal(added.added, 2);
-  assert.equal(added.recordings_started, 2);
-  const members = async () =>
-    (
-      await db.query(
-        `select subject_tag from collection_member where collection_id = $1 order by 1`,
-        [made.collection_id],
-      )
-    ).rows.map((r) => r.subject_tag);
-  assert.deepEqual(await members(), ["#2PPP", "#9YY9YY9Q"]);
-  const recorded = async (tag) =>
-    (
-      await db.query(
-        `select count(*)::int as n from recording where subject_tag = $1 and status = 'active'`,
-        [tag],
-      )
-    ).rows[0].n;
-  assert.ok((await recorded("#2PPP")) > 0, "added means recorded");
-
-  const removed = await collectionOp(SCRATCH_URL, {
-    op: "remove",
-    slug: "ops-test",
-    tags: ["#2PPP"],
-  });
-  assert.equal(removed.removed, 1);
-  assert.equal(removed.recordings_stopped, 1);
-  assert.equal(await recorded("#2PPP"), 0, "removed means no longer recorded");
-  assert.deepEqual(await members(), ["#9YY9YY9Q"]);
-
-  const repaired = await collectionOp(SCRATCH_URL, {
-    op: "reconcile",
-    slug: "ops-test",
-  });
-  assert.equal(repaired.slug, "ops-test");
-
-  await assert.rejects(
-    collectionOp(SCRATCH_URL, { op: "add", slug: "nope", tags: [] }),
-    /no collection nope/,
-  );
-  await assert.rejects(
-    collectionOp(SCRATCH_URL, { op: "delete", slug: "ops-test" }),
-    /unknown collection op/,
-  );
 });

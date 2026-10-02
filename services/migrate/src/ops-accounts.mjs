@@ -288,12 +288,6 @@ export async function integrationOp(databaseUrl, spec) {
           });
     // As the admin route answers it, dates as ISO strings.
     const result = { status: r.status, ...JSON.parse(JSON.stringify(r.body)) };
-    if (action === "list")
-      result.available_collections = (
-        await db.query(
-          "select c.collection_id,c.slug,c.kind,c.scope,(select count(*)::int from collection_member m where m.collection_id=c.collection_id) as members from collection c order by c.slug",
-        )
-      ).rows;
     return result;
   } finally {
     await db.end();

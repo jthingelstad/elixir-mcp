@@ -263,9 +263,10 @@ URI on a family origin; 0185) are not metered. Read
 `packages/contracts/integration-api.openapi.json` before changing this contract.
 Preserve REST/MCP credential audience separation (an MCP token never
 authenticates at `/api/v1`, and a `/api/v1` token never at MCP), integration-owned quotas,
-principal-bound asynchronous refreshes and narrow collection-add grants. Drop's
-automatic membership is deliberate; supplied tags are unverified, enrollment is
-not capture, and canonical game facts still enter only through collectors.
+principal-bound asynchronous refreshes and existing personal tracking. Named recording Collections and Drop automatic
+enrollment retired in 10.0.0 / JSON API 3.0.0. Historical Collection membership
+and grants remain inert as purge provenance. Canonical game facts still enter
+only through collectors.
 
 ### Elixir Clan lives in `clan/`
 

@@ -152,14 +152,13 @@ test("Timeline sits between Overview and Explore, in the ungrouped top", () => {
   });
 });
 
-test("your console: nine items in three groups, feedback at the foot", () => {
+test("your console: eight items in three groups, feedback at the foot", () => {
   // The ConsoleRail board's proposed column (2026-09-29).
   expect(RAIL.map((r) => r.label)).toEqual([
     "Overview",
     "Timeline",
     "Explore",
     "Tracking",
-    "Collections",
     "Verify",
     "Connections",
     "Usage",

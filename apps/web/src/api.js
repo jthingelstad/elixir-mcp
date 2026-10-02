@@ -75,9 +75,6 @@ export const api = {
       },
     };
   },
-  adminCollections: () => request("GET", "/api/admin/collections"),
-  adminCollectionAction: (body) =>
-    request("POST", "/api/admin/collections", body),
   myFeedback: (agent) => request("GET", `${home(agent)}/feedback`),
   sendFeedback: (message, category, context, request_id, send_id) =>
     request("POST", "/api/feedback", {
@@ -134,7 +131,6 @@ export const api = {
   adminAccounts: () => request("GET", "/api/admin/accounts"),
   adminSetRole: (account_id, role) =>
     request("POST", "/api/admin/accounts", { account_id, role }),
-  myCollections: () => request("GET", "/api/me/collections"),
   myClans: (agent) => request("GET", `${home(agent)}/clans`),
   verifyList: () => request("GET", "/api/me/verify"),
   verifyStart: (player_tag) =>
@@ -201,5 +197,4 @@ export const api = {
     request("POST", "/api/admin/integrations", body),
   revokePrincipalToken: (token_id) =>
     request("POST", "/api/me/principals/revoke", { token_id }),
-  myCollectionAction: (body) => request("POST", "/api/me/collections", body),
 };

@@ -38,6 +38,12 @@ export const DEFAULT_INTEGRATION_SCOPES = INTEGRATION_SCOPES.filter(
 const reply = (status, body) => ({ status, body });
 
 function settings(body) {
+  if (
+    body.collection_id !== undefined ||
+    body.remove_collection_id !== undefined ||
+    body.member_limit !== undefined
+  )
+    throw new Error("collections_retired");
   // Unnamed, the permissions that act on people are left out.
   const scopes = body.scopes ?? DEFAULT_INTEGRATION_SCOPES;
   if (
@@ -49,7 +55,6 @@ function settings(body) {
     daily_limit: body.daily_limit ?? 10000,
     hourly_limit: body.hourly_limit ?? 2000,
     refresh_limit: body.refresh_limit ?? 1000,
-    member_limit: body.member_limit ?? 10000,
   };
   for (const [key, value] of Object.entries(limits))
     if (
@@ -58,24 +63,21 @@ function settings(body) {
       value > (key === "daily_limit" ? 1000000 : 100000)
     )
       throw new Error("invalid_limits");
-  if (body.collection_id && !/^[0-9]+$/.test(String(body.collection_id)))
-    throw new Error("invalid_collection");
   return { ...limits, scopes: [...new Set(scopes)] };
 }
 
-/** Every integration with its collections, keys and today's use. */
+/** Every integration with its keys and today's use. */
 export async function listIntegrations(db) {
   const { rows } = await db.query(`select i.*,a.public_id,a.status,
-      (select coalesce(json_agg(json_build_object('collection_id',c.collection_id,'slug',c.slug,'scope',c.scope,'member_limit',g.member_limit,
-        'members',(select count(*)::int from collection_member where collection_id=c.collection_id),
-        'added_by_integration',(select count(*)::int from collection_member where collection_id=c.collection_id and added_by_integration=i.account_id))), '[]')
-        from integration_collection_grant g join collection c using(collection_id) where g.account_id=i.account_id) as collections,
       (select coalesce(json_agg(json_build_object('token_id',t.token_id,'created_at',t.created_at,'last_used_at',t.last_used_at,'revoked_at',t.revoked_at)), '[]')
         from service_token t where t.account_id=i.account_id and t.audience='integration_api') as tokens,
       coalesce(u.calls,0) as calls_today, coalesce(u.refreshes,0) as refreshes_today
       from integration i join account a using(account_id)
       left join integration_usage u on u.account_id=i.account_id and u.day=(now() at time zone 'UTC')::date order by i.name`);
-  return rows;
+  return rows.map((row) => ({
+    ...row,
+    scopes: row.scopes.filter((scope) => INTEGRATION_SCOPES.includes(scope)),
+  }));
 }
 
 /** create, configure, rotate, revoke, suspend or resume, as the admin
@@ -153,30 +155,6 @@ export async function administerIntegration(
           policy.refresh_limit,
         ],
       );
-      if (body.collection_id) {
-        const collection = (
-          await db.query(
-            "select collection_id from collection where collection_id=$1 and kind='player' for update",
-            [body.collection_id],
-          )
-        ).rows[0];
-        if (!collection) {
-          await db.query("rollback");
-          return reply(400, { error: "invalid_collection" });
-        }
-        await db.query(
-          "insert into integration_collection_grant(account_id,collection_id,member_limit) values($1,$2,$3) on conflict(account_id,collection_id) do update set member_limit=excluded.member_limit",
-          [id, body.collection_id, policy.member_limit],
-        );
-      }
-      if (body.remove_collection_id) {
-        if (!/^[0-9]+$/.test(String(body.remove_collection_id)))
-          throw new Error("invalid_collection");
-        await db.query(
-          "delete from integration_collection_grant where account_id=$1 and collection_id=$2",
-          [id, body.remove_collection_id],
-        );
-      }
     }
     if (action === "rotate" || action === "revoke")
       await db.query(
