@@ -268,6 +268,12 @@ war day in progress, weeks `resolved`),
 badges, standout sessions with their rungs, each bounded and named),
 `donations`.
 
+Clan presence is historical: its quiet and never-recorded summary uses
+membership at the requested window's end. Quiet-crossing and return items
+include people who belonged at the time of that moment, even if they left
+before the window ended. A later departure, a rejoin or a future newcomer
+cannot move someone into or out of an earlier window's presence population.
+
 Tracked players with nothing in the window get no entry; they are listed
 under `quiet` with `days_quiet` and `days_since_poll`. A clan always gets an
 entry: a clan's silence is the clan's activity.

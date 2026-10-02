@@ -13,6 +13,7 @@ import { seedPlayedDeck, seedDeck, hashFor } from "./deck-rows.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { ensureSeasonsAround, ensureSeason } from "@elixir-mcp/record/season";
 import { rebuildSeason } from "../../../services/jobs/src/meta-rollup.mjs";
+import { rollupSynergy } from "../src/meta-season.mjs";
 import { dailySql } from "../../record/src/daily-sql.mjs";
 import { notBoatDefense } from "../../record/src/boat-defense-sql.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
@@ -3077,4 +3078,65 @@ test("Gym #329: a bucket the newest profile read no longer carried is ended, eve
   );
   assert.equal(row.current, false, "ended: the newest profile read lacked it");
   assert.match(body.notes.join(" "), /have ended \(current false\)/);
+});
+
+test("season partners from the population plus late arrivals equal the raw season, including form and band filters", async () => {
+  await db.query("begin");
+  try {
+    const season = await ensureSeason(db, "2026-08");
+    await rebuildSeason(db, season, { final: true });
+    const {
+      rows: [sample],
+    } = await db.query(
+      `select mp.battle_id, dc.card_id from meta_season_pop mp join deck_card dc on dc.deck_hash = mp.deck_hash where mp.season_month = '2026-08' and mp.outcome in ('win','loss') limit 1`,
+    );
+    assert.ok(sample);
+    const {
+      rows: [state],
+    } = await db.query(
+      `select pop_through from meta_season_state where season_month = '2026-08'`,
+    );
+    const read = (band, form) =>
+      rollupSynergy(
+        db,
+        { month: "2026-08", modeGroup: "all", trophyBand: band },
+        {
+          anchorId: Number(sample.card_id),
+          anchorForm: form,
+          minPair: 1,
+          limit: 130,
+          season,
+          types: null,
+        },
+      );
+    const baseline = await read(null, -1);
+    assert.ok(baseline.partners.length);
+    // This battle was played in an old day, but learned after the cache
+    // cursor. Every side and its duel rounds must come from the tail once.
+    await db.query(
+      `update battle set created_at = $2::timestamptz + interval '1 millisecond' where battle_id = $1`,
+      [sample.battle_id, state.pop_through],
+    );
+    assert.deepEqual(
+      await read(null, -1),
+      baseline,
+      "a rebuilt day overlapping the tail is counted once",
+    );
+    await db.query(`delete from meta_season_pop where battle_id = $1`, [
+      sample.battle_id,
+    ]);
+    assert.deepEqual(await read(null, -1), baseline);
+    const cached = [];
+    for (const band of [null, "under_10000"])
+      for (const form of [-1, 0]) cached.push(await read(band, form));
+    await db.query(
+      `delete from meta_season_pop_day where season_month = '2026-08'`,
+    );
+    let i = 0;
+    for (const band of [null, "under_10000"])
+      for (const form of [-1, 0])
+        assert.deepEqual(await read(band, form), cached[i++]);
+  } finally {
+    await db.query("rollback");
+  }
 });

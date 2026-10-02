@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Start with your record, and keep a past week intact",
+    body: "Overview links the setup steps still waiting for you and offers a first question matched to the history already recorded. A connected client and a successful data read are separate checks; a profile is enough to start, and a clan is optional. The quickstart fits a phone even where a URL is long. A clan's historical presence now reads who belonged during the requested window, so later departures and future joins do not change that past window's quiet crossings or returns. Card meta, card partners and weekly trends do less repeated database work while preserving their counts and forms. Contract 9.19.1; no JSON API change.",
+  },
+  {
+    date: "2026-10-02",
     title: "Signed in to Elixir, signed in to Clan",
     body: "Clan on the bar used to stop at its own Sign in with Elixir button even when you were signed in to the Console. Now Clan sees you are signed in to Elixir and signs you in itself, and a Clan link you opened while signed out, such as an email's link to Actions, is where you land. Elixir still asks the first time, and again after you sign out of Clan or revoke it under Connections. Signing out of Clan leaves you signed out until you come back. No change to the tools.",
   },

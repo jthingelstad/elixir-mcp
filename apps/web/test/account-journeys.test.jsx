@@ -97,7 +97,7 @@ test(
     // Overview reports; Tracking manages. The empty state's one action
     // is the way across, and the field lives on the other side of it.
     open("/console/account/overview");
-    expect(await screen.findByText("0 of 5")).toBeTruthy();
+    expect(await screen.findByText("0 of 6")).toBeTruthy();
     fireEvent.click(
       await screen.findByRole("button", {
         name: "Add your player",

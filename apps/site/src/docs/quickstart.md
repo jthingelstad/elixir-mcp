@@ -115,8 +115,13 @@ try it and it does, or does not, `elixir_send_feedback` is the place to say so.
 
 ## 4. Ask something
 
-**Account → Overview** shows what is recorded for your primary so far, and
-**Account → Connections** offers starter questions matched to it under
+**Account → Overview** shows what is recorded for your primary so far,
+links unfinished setup steps, and offers a first question matched to that
+record. A profile is enough to start; adding a clan is optional. It shows
+connecting a client and that client's first successful data read as separate
+checks: authorizing a connection alone does not confirm a data read.
+
+**Account → Connections** offers more starter questions matched to it under
 **Try asking…**: a snapshot review when only a profile exists, a seven-day
 review once battles are in (30 days if the last week is empty), a deck
 comparison when two decks appear, a week-over-week comparison when both

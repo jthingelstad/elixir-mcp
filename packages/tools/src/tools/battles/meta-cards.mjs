@@ -260,7 +260,15 @@ export const battles_meta_cards = {
          -- aggregates read: the planner hashed all of deck_card twice (one
          -- join per aggregate, 18.6 s on a 7-day corpus window), and an
          -- index probe per deck is worse (65k decks in such a window, 47 s
-         -- of heap fetches). Measured live 2026-09-21 with {explain_meta}.
+         -- of heap fetches). The corpus materializes identities once,
+         -- so the join scans them instead of probing 59k times
+         -- (2026-10-02 profile_tool: 18.3 s cold, 21,885 deck-card blocks).
+         ${
+           !seg.where && !towers
+             ? `identities as materialized (
+           select deck_hash, card_id, form from deck_card),`
+             : ""
+         }
          joined as materialized (
            ${
              towers
@@ -268,7 +276,7 @@ export const battles_meta_cards = {
            from pairs p join deck d on d.deck_hash = p.deck_hash
            where d.tower_troop_id is not null`
                : `select dc.card_id, dc.form, p.type, p.player_tag, p.battles, p.wins, p.gap_sum, p.gap_n, p.rounds
-           from pairs p join deck_card dc on dc.deck_hash = p.deck_hash`
+           from pairs p join ${seg.where ? "deck_card" : "identities"} dc on dc.deck_hash = p.deck_hash`
            }),
          per_type as (
            select card_id, form, type,

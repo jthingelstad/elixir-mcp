@@ -72,7 +72,7 @@ export function ConnectionQuestions({ claimsKey, navigate }) {
                 </p>
                 <button
                   className="btn"
-                  onClick={() => navigate(`${CONSOLE}/account/overview`)}
+                  onClick={() => navigate(`${CONSOLE}/account/tracking`)}
                 >
                   Add your player
                 </button>

@@ -354,3 +354,163 @@ test("the cap keeps the newest: the timeline is a newsfeed", () => {
   // Under the cap nothing is cut.
   assert.deepEqual(capTimeline(items.slice(0, 5)).cut, []);
 });
+
+test("a closed clan window keeps its presence after later departures and excludes future joiners", async () => {
+  await ctx.db.query("begin");
+  try {
+    const spec = {
+      tag: CLAN,
+      fromMs: Date.parse("2026-09-05T00:00:00Z"),
+      toMs: Date.parse("2026-09-25T00:00:00Z"),
+    };
+    const before = await buildClanEntry(ctx.db, spec);
+    assert.ok(before.entry.presence.never_recorded > 0);
+    await ctx.db.query(
+      `update clan_membership set left_observed_at = '2026-09-26T00:00:00Z' where clan_tag = $1 and left_observed_at is null`,
+      [CLAN],
+    );
+    const after = await buildClanEntry(ctx.db, spec);
+    assert.deepEqual(after.entry.presence, before.entry.presence);
+    assert.deepEqual(
+      after.items.filter((i) => ["quiet_crossed", "returned"].includes(i.kind)),
+      before.items.filter((i) =>
+        ["quiet_crossed", "returned"].includes(i.kind),
+      ),
+    );
+    await ctx.db.query(
+      `insert into clan_membership (clan_tag, player_tag, role, joined_observed_at) values ($1, $2, 'member', '2026-09-27T00:00:00Z')`,
+      [CLAN, PROFILE],
+    );
+    const future = await buildClanEntry(ctx.db, spec);
+    assert.deepEqual(future.entry.presence, before.entry.presence);
+  } finally {
+    await ctx.db.query("rollback");
+  }
+});
+
+test("historical presence keeps event-time membership across departures, gaps, rejoins and late observations", async () => {
+  await ctx.db.query("begin");
+  try {
+    const tag = "#QY20P";
+    const at = (value) => Date.parse(value);
+    await ctx.db.query(
+      "insert into player (player_tag, name) values ($1, 'History test')",
+      [tag],
+    );
+    await ctx.db.query(
+      `insert into clan_membership (clan_tag, player_tag, role, joined_observed_at, left_observed_at)
+       values ($1, $2, 'elder', '2026-08-31T00:00:00Z', '2026-09-07T00:00:00Z'),
+              ($1, $2, 'member', '2026-09-11T00:00:00Z', null)`,
+      [CLAN, tag],
+    );
+    for (const [id, played, learned] of [
+      ["history-start", "2026-09-01T00:00:00Z", "2026-09-01T00:05:00Z"],
+      ["history-return", "2026-09-13T00:00:00Z", "2026-09-13T00:05:00Z"],
+    ]) {
+      await ctx.db.query(
+        `insert into battle (battle_id, battle_time, type, type_class, created_at)
+         values ($1, $2, 'PvP', 'pvp', $3)`,
+        [id, played, learned],
+      );
+      await ctx.db.query(
+        `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, clan_tag, type_class, type)
+         values ($1, $2, 0, $3, 'win', $4, 'pvp', 'PvP')`,
+        [id, tag, played, CLAN],
+      );
+    }
+    const read = async (from, to) =>
+      buildClanEntry(ctx.db, {
+        tag: CLAN,
+        scope: "comprehensive",
+        fromMs: at(from),
+        toMs: at(to),
+      });
+    const window = await read("2026-09-01T00:00:00Z", "2026-09-14T00:00:00Z");
+    const moments = window.items.filter(
+      (i) =>
+        i.facts?.player_tag === tag &&
+        ["quiet_crossed", "returned"].includes(i.kind),
+    );
+    assert.equal(
+      moments.length,
+      3,
+      "one elder crossing, one member crossing and one return; rejoining adds no duplicates",
+    );
+    assert.deepEqual(
+      moments
+        .filter((i) => i.kind === "quiet_crossed")
+        .map((i) => [i.at, i.facts.role]),
+      [
+        ["2026-09-06T00:00:00.000Z", "elder"],
+        ["2026-09-11T00:00:00.000Z", "member"],
+      ],
+    );
+    assert.equal(
+      moments.find((i) => i.kind === "returned").at,
+      "2026-09-13T00:00:00.000Z",
+    );
+    await ctx.db.query(
+      `update clan_membership set joined_observed_at = '2026-09-11T00:00:00.001Z' where clan_tag = $1 and player_tag = $2 and role = 'member'`,
+      [CLAN, tag],
+    );
+    const gap = await read("2026-09-01T00:00:00Z", "2026-09-14T00:00:00Z");
+    assert.equal(
+      gap.items.filter(
+        (i) => i.kind === "quiet_crossed" && i.facts.player_tag === tag,
+      ).length,
+      1,
+      "no crossing while outside the clan",
+    );
+    await ctx.db.query(
+      `update clan_membership set left_observed_at = '2026-09-06T00:00:00Z' where clan_tag = $1 and player_tag = $2 and role = 'elder'`,
+      [CLAN, tag],
+    );
+    const leftAtCrossing = await read(
+      "2026-09-01T00:00:00Z",
+      "2026-09-14T00:00:00Z",
+    );
+    assert.equal(
+      leftAtCrossing.items.filter(
+        (i) => i.kind === "quiet_crossed" && i.facts.player_tag === tag,
+      ).length,
+      0,
+      "departure is exclusive at the crossing",
+    );
+    await ctx.db.query(
+      `update clan_membership set left_observed_at = '2026-09-13T00:03:00Z' where clan_tag = $1 and player_tag = $2 and role = 'member'`,
+      [CLAN, tag],
+    );
+    const late = await read("2026-09-13T00:04:00Z", "2026-09-13T01:00:00Z");
+    const returned = late.items.filter(
+      (i) => i.kind === "returned" && i.facts.player_tag === tag,
+    );
+    assert.equal(
+      returned.length,
+      1,
+      "a return played during membership survives departure before its observation window",
+    );
+    assert.equal(returned[0].observed_at, "2026-09-13T00:05:00.000Z");
+    assert.ok(late.entry.presence.returned.items.some((i) => i.tag === tag));
+    assert.ok(
+      !late.entry.presence.quiet_crossed.items.some((i) => i.tag === tag),
+      "departed players are absent from the window-end quiet summary",
+    );
+    await ctx.db.query(
+      `update clan_membership set left_observed_at = '2026-09-13T00:00:00Z' where clan_tag = $1 and player_tag = $2 and role = 'member'`,
+      [CLAN, tag],
+    );
+    const leftAtReturn = await read(
+      "2026-09-13T00:04:00Z",
+      "2026-09-13T01:00:00Z",
+    );
+    assert.equal(
+      leftAtReturn.items.filter(
+        (i) => i.kind === "returned" && i.facts.player_tag === tag,
+      ).length,
+      0,
+      "departure is exclusive at the return",
+    );
+  } finally {
+    await ctx.db.query("rollback");
+  }
+});

@@ -69,52 +69,43 @@ export const battles_trends = {
     }
     requireEnum(args.mode, MODE_GROUPS, "mode");
     if (args.mode) where.push(participantModeClause(args.mode, params));
+    // One bounded population, read once. The former weekly, mode and
+    // distinct-player reads walked the same cold participant pages three times.
     const { rows } = await ctx.db.query(
-      `select w.*,
-                (select s.season_month from season s
-                  where s.starts_at <= w.week_start + interval '1 day'
-                    and s.ends_at > w.week_start + interval '1 day') as season_month
-         from (
-           select date_trunc('week', bp.battle_time) as week_start,
-                  to_char(date_trunc('week', bp.battle_time), 'IYYY-"W"IW') as iso_week,
-                  date_trunc('week', bp.battle_time)::date::text as week_of,
-                  count(*)::int as battles,
-                  count(*) filter (where bp.outcome = 'win')::int as wins,
-                  count(*) filter (where bp.outcome = 'loss')::int as losses,
-                  count(distinct bp.player_tag)::int as players,
-                  count(*) filter (where bp.type = any($${params.length + 1}) or bp.trophy_change is not null)::int as trophy_mode_battles,
-                  count(*) filter (where bp.trophy_change is not null)::int as trophy_battles,
-                  coalesce(sum(bp.trophy_change), 0)::int as net_trophies
-           from battle_participant bp
-           where ${where.join(" and ")}
-           group by date_trunc('week', bp.battle_time)) w
-         order by w.week_start`,
-      [...params, TROPHY_MODE_TYPES],
-    );
-    // The control next to the number (3.16.0): the week's mode split
-    // (one more group-by over the same rows), and the buckets the
-    // window clips marked with the span they hold.
-    const { rows: byType } = await ctx.db.query(
-      // Event-aware (Gym #187): the tag, not the type, marks event battles.
-      `select date_trunc('week', bp.battle_time)::date::text as week_of,
-                ${modeGroupSql("bp.type", "b.event_tag")} as mode_group,
-                count(*)::int as battles,
-                count(*) filter (where bp.outcome = 'win')::int as wins,
-                count(*) filter (where bp.outcome = 'loss')::int as losses,
-                (select count(distinct bp2.player_tag)::int
-                   from battle_participant bp2
-                  where ${where.join(" and ").replaceAll("bp.", "bp2.")}) as window_players
+      `with selected as materialized (
+         select bp.player_tag, bp.battle_time, bp.outcome, bp.type, bp.trophy_change,
+                ${modeGroupSql("bp.type", "b.event_tag")} as mode_group
            from battle_participant bp
            join battle b on b.battle_id = bp.battle_id
-          where ${where.join(" and ")}
-          group by 1, 2`,
-      params,
+          where ${where.join(" and ")}),
+       by_mode as (
+         select date_trunc('week', battle_time) as week_start, mode_group,
+                count(*)::int as battles,
+                count(*) filter (where outcome = 'win')::int as wins,
+                count(*) filter (where outcome = 'loss')::int as losses
+           from selected group by 1, 2),
+       weekly as (
+         select date_trunc('week', battle_time) as week_start,
+                count(*)::int as battles,
+                count(*) filter (where outcome = 'win')::int as wins,
+                count(*) filter (where outcome = 'loss')::int as losses,
+                count(distinct player_tag)::int as players,
+                count(*) filter (where type = any($${params.length + 1}) or trophy_change is not null)::int as trophy_mode_battles,
+                count(*) filter (where trophy_change is not null)::int as trophy_battles,
+                coalesce(sum(trophy_change), 0)::int as net_trophies
+           from selected group by 1)
+       select w.*, to_char(w.week_start, 'IYYY-"W"IW') as iso_week,
+              w.week_start::date::text as week_of,
+              (select s.season_month from season s
+                where s.starts_at <= w.week_start + interval '1 day'
+                  and s.ends_at > w.week_start + interval '1 day') as season_month,
+              (select count(distinct player_tag)::int from selected) as window_players,
+              (select jsonb_agg(jsonb_build_object('mode_group', m.mode_group,
+                        'battles', m.battles, 'wins', m.wins, 'losses', m.losses))
+                 from by_mode m where m.week_start = w.week_start) as modes
+         from weekly w order by w.week_start`,
+      [...params, TROPHY_MODE_TYPES],
     );
-    const typesByWeek = new Map();
-    for (const t of byType) {
-      if (!typesByWeek.has(t.week_of)) typesByWeek.set(t.week_of, []);
-      typesByWeek.get(t.week_of).push(t);
-    }
     const shaped = rows.map((r) => ({
       iso_week: r.iso_week,
       week_of: r.week_of,
@@ -130,7 +121,7 @@ export const battles_trends = {
       trophy_battles: r.trophy_battles,
       net_trophies: r.net_trophies,
       season_month: r.season_month,
-      modes: modeSplit(typesByWeek.get(r.week_of) ?? []),
+      modes: modeSplit(r.modes ?? []),
     }));
     const { rows: weeks, partial } = markPartialWeeks(shaped, {
       from: new Date(win.from),
@@ -139,7 +130,7 @@ export const battles_trends = {
     const population = seg.where
       ? null
       : await populationBlock(ctx.db, {
-          playersInWindow: byType[0]?.window_players ?? 0,
+          playersInWindow: rows[0]?.window_players ?? 0,
         });
     return {
       applied: appliedBlock({
