@@ -1,3 +1,4 @@
+import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** The jobs Lambda — scheduled product work, split out of the migrate
  *  Lambda (review item 5, 2026-09-05): EventBridge fires the sweeps and
  *  the nightly activity histogram here, so the function that can
@@ -288,6 +289,16 @@ function unsubscribeKeys() {
 }
 
 export async function handler(event, context) {
+  if (
+    isRetiredEmailKind(String(event?.email ?? "")) ||
+    event?.top100_generate ||
+    event?.top100_accept ||
+    event?.issue_accept ||
+    event?.card_of_week_generate ||
+    event?.card_of_week_preview
+  )
+    return { skipped: "retired" };
+
   if (typeof event?.email === "string") {
     const result = await runEmail({
       databaseUrl: process.env.DATABASE_URL,

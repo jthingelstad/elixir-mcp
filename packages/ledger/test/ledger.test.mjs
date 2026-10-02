@@ -48,6 +48,28 @@ before(async () => {
     [acct.account_id],
   );
   gw = g.gateway_id;
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, origin)
+    select 'player', tag, $1, 'ops' from unnest($2::text[]) tag`,
+    [
+      acct.account_id,
+      [
+        "#20JJJ2CCRU",
+        "#PLCCYUQL",
+        "#U08P889Y0",
+        "#2QUR9PQ8",
+        "#DUPSUBJ1",
+        "#ABND1",
+        "#ABND2",
+        "#ABND3",
+      ],
+    ],
+  );
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, origin)
+    values ('clan', '#J2RGCRVG', $1, 'ops')`,
+    [acct.account_id],
+  );
 });
 
 after(async () => {
@@ -271,4 +293,97 @@ test("settlement charges every abandoned lease to its gateway exactly once, whic
   await db2.end();
   assert.equal(s1.missed + s2.missed, 3, "three abandonments, counted once");
   assert.equal((await streak()) - before, 3, "streak charged exactly once");
+});
+
+test("old board work and stopped bulk subjects are consumed without collector punishment", async () => {
+  const { retireJobs } = await import("../src/ledger.mjs");
+  await db.query("update gateway set missed_streak = 0 where gateway_id = $1", [
+    gw,
+  ]);
+  for (const status of ["queued", "leased", "dead"]) {
+    await db.query(
+      `insert into job (endpoint, entity_key, lane, status, leased_by, leased_at)
+      values ('rankings_pol', $1, 'bulk', $2, $3, now() - interval '5 minutes')`,
+      [status, status, gw],
+    );
+  }
+  const refused = await enqueueJob(db, {
+    endpoint: "rankings_pol",
+    entity_key: "new",
+    lane: "live",
+  });
+  assert.equal(refused.retired, true);
+  const stopped = await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: "#STOPPED",
+    lane: "bulk",
+  });
+  const intentional = await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: "#STOPPED",
+    lane: "live",
+  });
+  assert.equal(intentional.job_id, stopped.job_id);
+  const unwanted = await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: "#NOFOLLOW",
+    lane: "bulk",
+  });
+  await retireJobs(db);
+  const { rows } = await db.query(
+    "select status from job where endpoint = 'rankings_pol'",
+  );
+  assert.ok(rows.every((r) => r.status === "done"));
+  const { rows: gateways } = await db.query(
+    "select missed_streak from gateway where gateway_id = $1",
+    [gw],
+  );
+  assert.equal(gateways[0].missed_streak, 0);
+  const { rows: abandoned } = await db.query(
+    "select status from job where job_id = $1",
+    [unwanted.job_id],
+  );
+  assert.equal(abandoned[0].status, "done");
+  const live = await leaseJob(db, { gatewayId: gw, lanes: ["live"] });
+  assert.equal(
+    live.entity_key,
+    "#STOPPED",
+    "intentional live request survives",
+  );
+  await completeJob(db, { jobId: live.job_id, gatewayId: gw });
+});
+
+test("obsolete job retirement bounds each write batch", async () => {
+  const { retireJobs } = await import("../src/ledger.mjs");
+  await db.query("delete from job");
+  await db.query(`insert into job (endpoint,entity_key,lane,status)
+    select 'rankings_pol', 'batch-' || n, 'bulk', 'dead' from generate_series(1,5) n`);
+  assert.equal(await retireJobs(db, { limit: 2 }), 2);
+  assert.equal(await retireJobs(db, { limit: 2 }), 2);
+  assert.equal(await retireJobs(db, { limit: 2 }), 1);
+  assert.equal(await retireJobs(db, { limit: 2 }), 0);
+});
+
+test("obsolete expired leases beyond the cleanup batch never penalize collectors", async () => {
+  await db.query("delete from job");
+  await db.query("update gateway set missed_streak=0 where gateway_id=$1", [
+    gw,
+  ]);
+  await db.query(
+    `insert into job (endpoint,entity_key,lane,status,leased_by,leased_at)
+    select 'rankings_pol', 'held-' || n, 'bulk', 'leased', $1, now() - interval '5 minutes' from generate_series(1,1001) n`,
+    [gw],
+  );
+  assert.equal((await settleLeases(db)).missed, 0);
+  const {
+    rows: [left],
+  } = await db.query("select count(*)::int n from job where status='leased'");
+  assert.equal(left.n, 1);
+  assert.equal((await settleLeases(db)).missed, 0);
+  const {
+    rows: [gateway],
+  } = await db.query("select missed_streak from gateway where gateway_id=$1", [
+    gw,
+  ]);
+  assert.equal(gateway.missed_streak, 0);
 });

@@ -16,7 +16,7 @@ export const BOARD_SCHEMA = {
   enum: ["pol", "trophy", "pol_final", "mode"],
   default: "pol",
   description:
-    "pol is the live Path of Legends board (the API's top 1,000: everyone above the rating floor while fewer than 1,000 are rated, a top-1,000 slice once the board is full; recorded daily at the 10:00Z reset); pol_final is a season's FINAL Path of Legends standing, the API's 9,999 places (the tail is cut at #9999, mid-tie), one per season since the ranked ladder's first (October 2022, S89 as game_clock counts) - pass `season`; mode is a game-mode leaderboard (Merge Tactics, Touchdown...) - pass its id as `location`, rankings_players with location 'list' names them; trophy is the Trophy Road board, which the API has served EMPTY for recent seasons.",
+    "Global leaderboard capture has ended; existing snapshots remain temporarily available pending the reviewed purge. pol is the Path of Legends board (the API's top 1,000: everyone above the rating floor while fewer than 1,000 are rated, a top-1,000 slice once the board is full; previously recorded daily at the 10:00Z reset); pol_final is a season's FINAL Path of Legends standing, the API's 9,999 places (the tail is cut at #9999, mid-tie), one per season since the ranked ladder's first (October 2022, S89 as game_clock counts) - pass `season`; mode is a game-mode leaderboard (Merge Tactics, Touchdown...) - pass its id as `location`, rankings_players with location 'list' names them; trophy is the Trophy Road board, which the API has served EMPTY for recent seasons.",
 };
 
 export const SEASON_SCHEMA = {
@@ -29,7 +29,7 @@ export const LOCATION_SCHEMA = {
   type: "string",
   default: "global",
   description:
-    "global (default), a numeric CR location id (57000249), or a two-letter country code (US, JP). With board mode: its leaderboard id, or location 'list' on rankings_players to discover the recorded catalog. The service records every location the API lists.",
+    "global (default), a numeric CR location id (57000249), or a two-letter country code (US, JP). With board mode: its leaderboard id, or location 'list' on rankings_players to discover the recorded catalog. Read only locations already present in the historical record.",
 };
 
 export const AS_OF_SCHEMA = {
@@ -93,7 +93,7 @@ export function noSnapshotNote(row, asOf, horizon, noun = "board") {
     return `No snapshot of this ${noun} exists on or before as_of; recording began ${dayOf(horizon)}.`;
   return row.board === "pol_final"
     ? null
-    : `This ${noun} has not been recorded yet. It is on the schedule; live: true reads it from the game now.`;
+    : `This ${noun} has no recorded snapshot. Global leaderboard capture has ended; no new read is scheduled.`;
 }
 
 /** Why a season's final board is not here (feedback #73): a season that
@@ -111,7 +111,7 @@ export function polFinalMissNote(requested, nowMs = Date.now()) {
     return `Season ${current} is in progress; its final board is fetched after it rolls on ${dayOf(new Date(nextSeasonStartMs(nowMs)))}.`;
   if (requested < FIRST_RANKED_SEASON)
     return `Season ${requested} is before the ranked ladder began (S${FIRST_RANKED_SEASON}, October 2022), so no Path of Legends final exists for it. If this number came from a player's in-game Pass, that is a different numbering the API does not use; game_clock names the API's season.`;
-  return `Season ${requested}'s final board (${monthForSeasonId(requested)}) has not been recorded yet; it is on the schedule.`;
+  return `Season ${requested}'s final board (${monthForSeasonId(requested)}) has no recorded snapshot; global leaderboard capture has ended.`;
 }
 
 /** The note a full board carries (6.2.0): whose cut it is, and what the
@@ -329,5 +329,5 @@ export async function suspectBoardNote(db, snapshot, row, floor) {
     return null;
   const fell = Number(prev.floor) - Number(floor);
   if (fell < 40) return null;
-  return `This snapshot's cutoff (${floor}) is ${fell} below the previous snapshot's (${prev.floor}, ${prev.observed_at.toISOString()}) on a full board, which play rarely moves by in a day: the API may have served an incomplete board, and a player absent here is not necessarily below the cutoff. Elixir re-reads a board like this once about 30 minutes later, and the re-read replaces it; live: true records the board as it stands now.`;
+  return `This snapshot's cutoff (${floor}) is ${fell} below the previous snapshot's (${prev.floor}, ${prev.observed_at.toISOString()}) on a full board, which play rarely moves by in a day: the API may have served an incomplete board, and a player absent here is not necessarily below the cutoff. Global leaderboard capture has ended, so this historical snapshot will not be re-read.`;
 }

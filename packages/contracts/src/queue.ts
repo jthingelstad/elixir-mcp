@@ -1,3 +1,4 @@
+import { isRetiredRecordingEndpoint } from "./recording-policy.js";
 /**
  * Queue message contracts — the gateway <-> ingest seam (DESIGN §5.1).
  * Versioned like the tool contract: additive = fine, breaking = bump `v`.
@@ -103,6 +104,13 @@ export const PRODUCT_EMAIL_KINDS = [
   "clan_actions_waiting",
 ] as const;
 export type ProductEmailKind = (typeof PRODUCT_EMAIL_KINDS)[number];
+export function isRetiredEmailKind(kind: string): boolean {
+  return kind === "top_100" || kind === "card_of_week";
+}
+/** Historical kinds stay valid for sent records and old unsubscribe links. */
+export const ACTIVE_PRODUCT_EMAIL_KINDS = PRODUCT_EMAIL_KINDS.filter(
+  (kind) => !isRetiredEmailKind(kind),
+);
 
 export interface EmailMessage {
   v: 1;
@@ -389,6 +397,7 @@ export function crPathForJob(job: {
   endpoint: string;
   entity_key: string;
 }): string | null {
+  if (isRetiredRecordingEndpoint(job.endpoint)) return null;
   const build = CR_PATH_BY_ENDPOINT[job.endpoint];
   return build ? build(job.entity_key) : null;
 }

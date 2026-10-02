@@ -1,3 +1,4 @@
+import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** The dry run's output: this week's issue rendered to a file, sent to
  *  nobody (deliverable 9).
  *
@@ -30,6 +31,8 @@ export async function cardOfWeekPreview({
   bucket,
   period = null,
 }) {
+  if (isRetiredEmailKind("card_of_week"))
+    return { kind: "card_of_week", skipped: "retired", sent: 0 };
   const own = !db;
   if (own) {
     db = new pg.Client({ connectionString: databaseUrl });

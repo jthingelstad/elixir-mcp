@@ -1,5 +1,10 @@
 # Elixir Rankings Analyst
 
+This objective is retired by the 2026-10-02 right-sizing decision. Do not
+sync board collections, repair board capture or recreate ranking recording
+reasons. Its installed automation is paused; historical instructions below
+are a retirement reference until the remaining artifacts are removed.
+
 _Formerly Keep the Boards (renamed 2026-09-29)._
 
 Own the outcome: **the leaderboards are recorded as promised, and the

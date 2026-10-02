@@ -7,7 +7,6 @@
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
@@ -31,7 +30,6 @@ const CLAN = "#2PQRJ8LV";
 const OLD_TAG = "#20QQL8CC";
 const NEW_TAG = "#8QQ8QQ8Q";
 // A Thursday: the Top 100's send day.
-const THURSDAY = new Date("2026-09-17T14:00:00Z");
 
 let db;
 const acct = {};
@@ -211,66 +209,6 @@ test("the milestone key is the moments', not the order they came in", () => {
     milestonePeriodKey(now, [b, a]),
   );
   assert.notEqual(milestonePeriodKey(now, [a]), milestonePeriodKey(now, [b]));
-});
-
-test("a written issue goes out only for its own period; with none, nothing sends and the owner hears once", async () => {
-  const facts = JSON.parse(
-    readFileSync(
-      path.join(repoRoot, "packages/mail/fixtures/top_100.json"),
-      "utf8",
-    ),
-  );
-  // Last week's accepted issue.
-  await db.query(
-    `insert into email_issue (kind, period_key, facts, subject_line, status, note, composed_at)
-     values ('top_100', '2026-09-10', $1, 'Last week', 'composed', 'issue mail/top100/2026-09-10/issue.json', '2026-09-10T12:00:00Z')`,
-    [facts],
-  );
-  const early = sink();
-  const r = await runEmail({
-    db,
-    kind: "top_100",
-    now: THURSDAY,
-    enqueue: early.enqueue,
-    secret: "s",
-  });
-  assert.equal(r.sent, 0);
-  assert.equal(r.skipped, 2);
-  assert.equal(early.out.length, 1);
-  assert.equal(early.out[0].kind, "owner_notify");
-  assert.match(early.out[0].note, /top_100 2026-09-17/);
-
-  // This week's issue, accepted.
-  const note = "issue mail/top100/2026-09-17/issue.json";
-  await db.query(
-    `insert into email_issue (kind, period_key, facts, subject_line, status, note)
-     values ('top_100', '2026-09-17', $1, 'This week', 'composed', $2)`,
-    [facts, note],
-  );
-  const onTime = sink();
-  const sent = await runEmail({
-    db,
-    kind: "top_100",
-    now: THURSDAY,
-    enqueue: onTime.enqueue,
-    secret: "s",
-  });
-  assert.equal(sent.sent, 2);
-  assert.ok(onTime.out.every((m) => m.issue_key === "top_100/2026-09-17/all"));
-  const { rows } = await db.query(
-    `select status, note from email_issue where kind = 'top_100' and period_key = '2026-09-17'`,
-  );
-  assert.deepEqual(rows[0], { status: "composed", note });
-  // A retry sends nobody twice.
-  const again = await runEmail({
-    db,
-    kind: "top_100",
-    now: THURSDAY,
-    enqueue: sink().enqueue,
-    secret: "s",
-  });
-  assert.equal(again.sent, 0);
-  assert.equal(again.already_sent, 2);
 });
 
 test("a clan report is the clan's, not its first tracker's: the same facts under either account, at the recording's scope", async () => {

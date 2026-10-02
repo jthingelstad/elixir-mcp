@@ -1,3 +1,4 @@
+import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** The spine both WRITTEN kinds share: a program builds a brief, a model
  *  writes from it, a lint refuses what does not trace, and only then is
  *  there an issue to send (docs/EMAIL.md, "how it stays honest").
@@ -81,6 +82,7 @@ export async function generateIssue({
   brief,
   subjectKey = "",
 }) {
+  if (isRetiredEmailKind(kind)) return { kind, skipped: "retired", sent: 0 };
   const key = await putJson(bucket, briefKey(kind, periodKey), brief);
   await upsertIssue(db, {
     kind,
@@ -118,6 +120,7 @@ export async function acceptIssue({
   enqueue = null,
   read = readJson,
 }) {
+  if (isRetiredEmailKind(kind)) return { kind, skipped: "retired", sent: 0 };
   const briefK = key.replace(/issue\.json$/, "brief.json");
   const [issue, brief] = await Promise.all([
     read(bucket, key),

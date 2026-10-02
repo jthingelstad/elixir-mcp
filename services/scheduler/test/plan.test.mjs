@@ -4,7 +4,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { settledPolMonths } from "@elixir-mcp/record/war-clock";
 import {
   planTick,
   CADENCE,
@@ -111,17 +110,6 @@ beforeEach(async () => {
   // Like the GLOBAL cards row they are parked here so each test's job-set
   // is about its own subjects; the boards test enables what it needs.
   await db.query("update ranking_board set enabled = false");
-  // A season's final is due until we hold it (0069): pretend we hold every
-  // ended season, so the finals stay out of the other tests' job sets. The
-  // finals test deletes one to prove the one-shot.
-  await db.query("delete from ranking_snapshot where board = 'pol_final'");
-  const settled = settledPolMonths(NOW.getTime());
-  await db.query(
-    `insert into ranking_snapshot (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries)
-     select 'pol_final', 'global', m, now(), now(), 'held-' || m, 9999
-     from unnest($1::text[]) as t(m)`,
-    [settled],
-  );
 });
 
 after(async () => {
@@ -145,7 +133,6 @@ test("new subject seeds both player endpoints plus the followed clan", async () 
     "clan:#J2RGCRVG",
     "events:GLOBAL",
     "globaltournaments:GLOBAL",
-    "leaderboards:GLOBAL",
     "player:#20JJJ2CCRU",
     "player_battlelog:#20JJJ2CCRU",
   ]);
@@ -311,97 +298,6 @@ test("clan cadence: who cares x how alive it is now (2026-09-11)", async () => {
   await setClan("#J2RGCRVG", { hint: "asleep", minutesAgo: 300 });
   assert.deepEqual(await planned(), ["#J2RGCRVG"]);
   await db.query(`delete from recording where subject_type = 'clan'`);
-});
-
-test("a daily leaderboard reads once per board-day, in the tick after 10:00Z", async () => {
-  // 0075: the global board is daily like every other board, and daily
-  // boards are anchored to the board-day rather than to elapsed time.
-  await freshenCards(NOW);
-  await db.query(
-    `update ranking_board set enabled = true
-     where board = 'pol' and location_key in ('global', '57000249')`,
-  );
-  const at = (iso) => new Date(iso);
-  await setTokens(100);
-
-  // Never fetched: both are due at any time.
-  const { jobs } = await planTick(db, at("2026-09-03T12:00:00Z"));
-  assert.deepEqual(jobs.map((j) => `${j.endpoint}:${j.entity_key}`).sort(), [
-    "rankings_pol:57000249",
-    "rankings_pol:global",
-  ]);
-
-  // Read at 10:02Z today: not due again at 15:00Z, nor at 09:58Z tomorrow.
-  for (const key of ["global", "57000249"]) {
-    await setState(key, "rankings_pol", {
-      admitted: at("2026-09-03T10:02:00Z"),
-      planned: at("2026-09-03T10:02:00Z"),
-    });
-  }
-  await setTokens(100);
-  assert.equal((await planTick(db, at("2026-09-03T15:00:00Z"))).jobs.length, 0);
-  // Re-park the GLOBAL daily rows so their own day does not roll over
-  // inside this test; only the boards are under observation here.
-  await freshenCards(at("2026-09-04T09:00:00Z"));
-  await setTokens(100);
-  assert.equal((await planTick(db, at("2026-09-04T09:58:00Z"))).jobs.length, 0);
-
-  // The first tick after the next 10:00Z: both boards due, once - and
-  // the global events and tournaments reads, anchored to the same
-  // board-day since Gym #126 (their 09:00Z read was yesterday's).
-  await setTokens(100);
-  const { jobs: j3 } = await planTick(db, at("2026-09-04T10:02:00Z"));
-  assert.deepEqual(j3.map((j) => `${j.endpoint}:${j.entity_key}`).sort(), [
-    "events:GLOBAL",
-    "globaltournaments:GLOBAL",
-    "rankings_pol:57000249",
-    "rankings_pol:global",
-  ]);
-  await setTokens(100);
-  assert.equal(
-    (await planTick(db, at("2026-09-04T10:07:00Z"))).jobs.length,
-    0,
-    "planned this board-day already",
-  );
-
-  // A row that asks for less than a day keeps its own cadence (0068).
-  await db.query(
-    `update ranking_board set every_minutes = 60 where location_key = 'global'`,
-  );
-  await setState("global", "rankings_pol", {
-    admitted: min(70),
-    planned: min(70),
-  });
-  await setState("57000249", "rankings_pol", {
-    admitted: min(70),
-    planned: min(70),
-  });
-  await setTokens(100);
-  const { jobs: j4 } = await planTick(db, NOW);
-  assert.deepEqual(
-    j4.map((j) => `${j.endpoint}:${j.entity_key}`),
-    ["rankings_pol:global"],
-  );
-
-  // A disabled board falls out without touching poll_state.
-  await db.query(
-    `update ranking_board set enabled = false where location_key = 'global'`,
-  );
-  await setState("global", "rankings_pol", {
-    admitted: min(200),
-    planned: min(200),
-  });
-  await setState("57000249", "rankings_pol", {
-    admitted: min(200),
-    planned: min(200),
-  });
-  await setTokens(100);
-  const { jobs: j5 } = await planTick(db, at("2026-09-04T10:02:00Z"));
-  assert.deepEqual(
-    j5.map((j) => `${j.endpoint}:${j.entity_key}`),
-    ["rankings_pol:57000249"],
-    "a board nobody remembers is not fetched",
-  );
 });
 
 test("a requested profile refresh (0101) is owed now: ahead of the cadence, once", async () => {
@@ -655,46 +551,6 @@ test("profiles are read once a day, eight hours when directly tracked, and now a
     ),
   );
   assert.equal(primed.requested, 1);
-});
-
-test("a season's final board is fetched once: due while we do not hold it, never again after", async () => {
-  await freshenCards(NOW);
-  // The finals are keyed by the API's own name for a season, the month it
-  // started in (0070) - never the numeric form, which is a list position.
-  const ended = settledPolMonths(NOW.getTime()).at(-1);
-  assert.match(ended, /^\d{4}-\d{2}$/);
-  // We hold every final but the one that just ended.
-  await db.query(
-    `delete from ranking_snapshot where board = 'pol_final' and season_month = $1`,
-    [ended],
-  );
-  await setTokens(100);
-  const { jobs } = await planTick(db, NOW);
-  assert.deepEqual(
-    jobs.map((j) => `${j.endpoint}:${j.entity_key}`),
-    [`rankings_pol_season:${ended}`],
-  );
-  // The current season is never planned: it is not final until it rolls.
-  const { rows: seeded } = await db.query(
-    `select subject_tag from poll_state where endpoint = 'rankings_pol_season' order by 1`,
-  );
-  assert.equal(seeded[0].subject_tag, "2022-10", "the ranked ladder's first");
-  assert.equal(seeded.at(-1).subject_tag, ended);
-  assert.ok(seeded.every((r) => /^\d{4}-\d{2}$/.test(r.subject_tag)));
-
-  // Once the snapshot exists the row is no longer eligible, however stale.
-  await db.query(
-    `insert into ranking_snapshot (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries)
-     values ('pol_final', 'global', $1, now(), now(), 'held', 9999)`,
-    [ended],
-  );
-  await setState(ended, "rankings_pol_season", {
-    admitted: min(10_000),
-    planned: min(10_000),
-  });
-  await setTokens(100);
-  const { jobs: again } = await planTick(db, NOW);
-  assert.equal(again.length, 0, "a held final is never fetched again");
 });
 
 test("budget accrues with elapsed time and caps at the carryover ceiling", async () => {
@@ -1023,147 +879,6 @@ test("eligibleNow reports what the next tick would plan without planning it", as
   );
 });
 
-test("a subject the API answers 404 for is due once a day and never starved (2026-09-19)", async () => {
-  // A regional board with no Path of Legends board behind it: never
-  // admitted, so the starvation floor found it every fifteen minutes
-  // forever (location 57000006, ten plans in two and a half hours).
-  await freshenCards(NOW);
-  await db.query(
-    `update ranking_board set enabled = true
-     where board = 'pol' and location_key = '57000006'`,
-  );
-  const {
-    rows: [gw],
-  } = await db.query(
-    `insert into gateway (owner_account_id, name, static_ip, status)
-     values ($1, 'sched-gw', '127.0.0.1', 'active') returning gateway_id`,
-    [accountId],
-  );
-  const notFound = async (endpoint, key, at) =>
-    db.query(
-      `insert into collector_fetch_error (gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
-       values ($1, $2, $3, $4, 404, 'http')`,
-      [gw.gateway_id, endpoint, key, at],
-    );
-  const at = (iso) => new Date(iso);
-  const keys = (r) => r.jobs.map((j) => `${j.endpoint}:${j.entity_key}`);
-
-  // Planned at 10:02Z, answered 404 at 10:03Z. The old rule re-planned
-  // it at 10:18Z; now it is held.
-  await setState("57000006", "rankings_pol", {
-    planned: at("2026-09-03T10:02:00Z"),
-  });
-  await notFound("rankings_pol", "57000006", at("2026-09-03T10:03:00Z"));
-  await setTokens(100);
-  const held = await planTick(db, at("2026-09-03T10:20:00Z"));
-  assert.deepEqual(keys(held), []);
-  assert.equal(held.notFoundHeld, 1);
-  await setTokens(100);
-  assert.deepEqual(keys(await planTick(db, at("2026-09-03T23:00:00Z"))), []);
-
-  // A day after the 404 it is tried once more.
-  await freshenCards(at("2026-09-04T10:30:00Z"));
-  await setTokens(100);
-  assert.deepEqual(keys(await planTick(db, at("2026-09-04T10:30:00Z"))), [
-    "rankings_pol:57000006",
-  ]);
-  await setTokens(100);
-  assert.deepEqual(keys(await planTick(db, at("2026-09-04T10:35:00Z"))), []);
-
-  // Another 404: held for another day. An admission after it lifts the
-  // hold and the ordinary board-day rule takes over.
-  await notFound("rankings_pol", "57000006", at("2026-09-04T10:31:00Z"));
-  await freshenCards(at("2026-09-05T09:00:00Z"));
-  await setTokens(100);
-  assert.deepEqual(keys(await planTick(db, at("2026-09-05T09:00:00Z"))), []);
-  await setState("57000006", "rankings_pol", {
-    admitted: at("2026-09-05T10:03:00Z"),
-    planned: at("2026-09-05T10:02:00Z"),
-  });
-  await freshenCards(at("2026-09-06T10:02:00Z"));
-  await setTokens(100);
-  assert.deepEqual(keys(await planTick(db, at("2026-09-06T10:02:00Z"))), [
-    "rankings_pol:57000006",
-  ]);
-
-  // A recorded clan the game has no race for: currentriverrace's
-  // two-hour floor used to re-plan it twelve times a day.
-  await db.query(
-    `insert into recording (subject_type, subject_tag, scope, requested_by)
-     values ('clan', '#GJ09RJP8', 'activity', $1)`,
-    [accountId],
-  );
-  await setState("#GJ09RJP8", "clan", { admitted: NOW, planned: NOW });
-  await setState("#GJ09RJP8", "riverracelog", { admitted: NOW, planned: NOW });
-  await setState("#GJ09RJP8", "currentriverrace", {
-    planned: at("2026-09-06T10:00:00Z"),
-  });
-  await notFound("currentriverrace", "#GJ09RJP8", at("2026-09-06T10:01:00Z"));
-  await freshenCards(at("2026-09-06T14:00:00Z"));
-  await setState("57000006", "rankings_pol", {
-    admitted: at("2026-09-06T10:03:00Z"),
-    planned: at("2026-09-06T10:02:00Z"),
-  });
-  await setState("#GJ09RJP8", "clan", {
-    admitted: at("2026-09-06T13:50:00Z"),
-    planned: at("2026-09-06T13:50:00Z"),
-  });
-  await setState("#GJ09RJP8", "riverracelog", {
-    admitted: at("2026-09-06T13:50:00Z"),
-    planned: at("2026-09-06T13:50:00Z"),
-  });
-  await setTokens(100);
-  assert.deepEqual(keys(await planTick(db, at("2026-09-06T14:00:00Z"))), []);
-  await setTokens(100);
-  assert.deepEqual(
-    keys(await planTick(db, at("2026-09-07T10:30:00Z"))).filter((k) =>
-      k.startsWith("currentriverrace"),
-    ),
-    ["currentriverrace:#GJ09RJP8"],
-  );
-});
-
-test("Gym #342: an incomplete board owes one re-read at reread_at, then is done for the day", async () => {
-  const at = (iso) => new Date(iso);
-  await db.query(
-    `update ranking_board set enabled = true, every_minutes = 1440, reread_at = '2026-09-05T10:32:00Z'
-     where board = 'pol' and location_key = '57000249'`,
-  );
-  await setState("57000249", "rankings_pol", {
-    admitted: at("2026-09-05T10:02:00Z"),
-    planned: at("2026-09-05T10:02:00Z"),
-  });
-  const planned = async (iso) => {
-    await setTokens(100);
-    return (await planTick(db, at(iso))).jobs.some(
-      (j) => j.endpoint === "rankings_pol" && j.entity_key === "57000249",
-    );
-  };
-  assert.equal(
-    await planned("2026-09-05T10:20:00Z"),
-    false,
-    "not before reread_at",
-  );
-  assert.equal(
-    await planned("2026-09-05T10:33:00Z"),
-    true,
-    "owed at reread_at",
-  );
-  await setState("57000249", "rankings_pol", {
-    admitted: at("2026-09-05T10:34:00Z"),
-    planned: at("2026-09-05T10:33:00Z"),
-  });
-  assert.equal(await planned("2026-09-05T11:00:00Z"), false, "once only");
-  await db.query(
-    `update ranking_board set reread_at = null where board = 'pol' and location_key = '57000249'`,
-  );
-});
-
-// Review 2026-09-27 §4.1 (#64). The bucket is the one global budget, so
-// a fleet outage must not turn into a backlog that recovery drains at
-// fleet speed. Before the fix the planner charged every plan whether or
-// not the enqueue inserted, and planned against tokens alone, so two
-// dark hours left one queued job per due subject for the returning fleet.
 test("a two-hour fleet outage leaves the ledger within the bucket, and recovery stays inside it (#64)", async () => {
   // 0.1 rps: a 30-token bucket (300 s of carryover) whose bulk share is
   // 27, so a handful of players is enough to over-subscribe it.
@@ -1358,4 +1073,63 @@ test("a battle log's jittered wait never passes the session ceiling (#69)", () =
   // Other endpoints keep their jitter unclamped.
   const profile = dueAfterMs({ subject_tag: up, endpoint: "player" }) / 60_000;
   assert.ok(profile > 1440);
+});
+
+test("enabled boards, missing finals, retries and reread flags cannot restart retired capture", async () => {
+  const { RETIRED_RECORDING_ENDPOINTS } = await import("@elixir-mcp/contracts");
+  await db.query(
+    "update ranking_board set enabled = true, record_top = 200, reread_at = $1",
+    [NOW],
+  );
+  for (const endpoint of RETIRED_RECORDING_ENDPOINTS) {
+    await setState(
+      endpoint === "rankings_pol_season" ? "2022-10" : "global",
+      endpoint,
+    );
+  }
+  await db.query(
+    "update poll_state set retry_at = $1 where endpoint = any($2::text[])",
+    [min(60), RETIRED_RECORDING_ENDPOINTS],
+  );
+  await addPlayer("#20JJJ2CCRU", { clan: "#J2RGCRVG" });
+  await setTokens(1000);
+  const { jobs } = await planTick(db, NOW);
+  assert.equal(
+    jobs.some((j) => RETIRED_RECORDING_ENDPOINTS.includes(j.endpoint)),
+    false,
+  );
+  assert.ok(jobs.some((j) => j.endpoint === "player_battlelog"));
+  assert.ok(jobs.some((j) => j.endpoint === "clan"));
+  assert.ok(jobs.some((j) => j.endpoint === "cards"));
+});
+
+test("a retained player profile still respects the API's 404 hold", async () => {
+  const tag = "#20JJJ2CCRU";
+  await addPlayer(tag);
+  await setState(tag, "player", { planned: min(10) });
+  const {
+    rows: [gw],
+  } = await db.query(
+    `insert into gateway (owner_account_id,name,status)
+    values ($1,'retained-404','active') returning gateway_id`,
+    [accountId],
+  );
+  await db.query(
+    `insert into collector_fetch_error (gateway_id,endpoint,entity_key,fetched_at,http_status,error_kind)
+    values ($1,'player',$2,$3,404,'http')`,
+    [gw.gateway_id, tag, min(9)],
+  );
+  await setTokens(100);
+  const held = await planTick(db, NOW);
+  assert.equal(
+    held.jobs.some((j) => j.endpoint === "player" && j.entity_key === tag),
+    false,
+  );
+  assert.equal(held.notFoundHeld, 2, "profile and battlelog respect the hold");
+  await setTokens(100);
+  const next = await planTick(db, new Date(NOW.getTime() + 86400_000));
+  assert.equal(
+    next.jobs.some((j) => j.endpoint === "player" && j.entity_key === tag),
+    true,
+  );
 });

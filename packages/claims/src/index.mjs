@@ -1,3 +1,4 @@
+import { RETIRED_BOARD_COLLECTIONS } from "@elixir-mcp/contracts";
 export { createPrincipal, normalizePrincipalName } from "./principals.mjs";
 import {
   poolLimits,
@@ -83,7 +84,13 @@ async function logEvent(db, accountId, kind, detail) {
  *
  * Callers must already hold the subject lock.
  */
-export async function reconcileRecording(db, subjectType, tag, requestedBy) {
+export async function reconcileRecording(
+  db,
+  subjectType,
+  tag,
+  requestedBy,
+  { dryRun = false } = {},
+) {
   const { rows } = await db.query(
     `select
        -- EVERY reason a subject is recorded, counted in one place. An
@@ -101,48 +108,38 @@ export async function reconcileRecording(db, subjectType, tag, requestedBy) {
                     where clan_tag = $1 and scope = 'comprehensive')) as added_deep,
        exists (select 1 from collection_member m
                join collection c on c.collection_id = m.collection_id
-               where m.subject_tag = $1 and c.kind = $2) as collected,
+               where m.subject_tag = $1 and c.kind = $2
+                 and not (c.slug = any($3::text[]))) as collected,
        -- How deep any collection asks this subject to be recorded. Two
        -- collections can name it at different depths; the deepest wins.
        exists (select 1 from collection_member m
                join collection c on c.collection_id = m.collection_id
                where m.subject_tag = $1 and c.kind = $2
-                 and c.scope = 'comprehensive') as collected_deep,
-       -- A live top-N appearance on a board that records (0068). Sticky
-       -- for the season plus a grace, so a player who dips to #101 for an
-       -- afternoon keeps their record, and last season's field is still
-       -- recorded through the empty hours after the roll.
-       ($2 = 'player'
-        and exists (select 1 from ranking_presence
-                    where player_tag = $1 and sticky_until > now())) as ranked,
+                 and c.scope = 'comprehensive'
+                 and not (c.slug = any($3::text[]))) as collected_deep,
        exists (select 1 from recording
                where subject_type = $2 and subject_tag = $1
                  and status = 'active' and origin = 'ops') as ops,
        exists (select 1 from recording
                where subject_type = $2 and subject_tag = $1
                  and status = 'active') as active`,
-    [tag, subjectType],
+    [tag, subjectType, RETIRED_BOARD_COLLECTIONS],
   );
-  const {
-    claimed,
-    added,
-    added_deep,
-    collected,
-    collected_deep,
-    ranked,
-    ops,
-    active,
-  } = rows[0];
-  const wanted = claimed || added || collected || ranked;
+  const { claimed, added, added_deep, collected, collected_deep, ops, active } =
+    rows[0];
+  const wanted = claimed || added || collected;
   // A claim means somebody added this player to their account, which has
   // always meant full capture. A clan carries the depth each account
-  // asked for; a collection the depth it asked for. A ranking presence is
-  // the season story and is always full capture. Widest reason wins.
+  // asked for; a collection the depth it asked for. Ranking history no longer asks for capture. Widest retained reason wins.
   const scope =
-    claimed || added_deep || collected_deep || ranked
-      ? "comprehensive"
-      : "activity";
+    claimed || added_deep || collected_deep ? "comprehensive" : "activity";
 
+  if (dryRun)
+    return {
+      started: wanted && !active && !ops,
+      stopped: !wanted && active && !ops,
+      retained: wanted || ops,
+    };
   if (ops) return { started: false, stopped: false };
 
   if (wanted && !active) {
@@ -152,11 +149,9 @@ export async function reconcileRecording(db, subjectType, tag, requestedBy) {
         [tag],
       );
     }
-    // A ranking has no account behind it; the owner stands as requester,
-    // as ops recordings do. Named reasons first: a claim is somebody's,
-    // a collection is a curator's, a ranking is the service's own.
-    const origin =
-      claimed || added ? "claim" : collected ? "collection" : "ranking";
+    // A claim is somebody's; a remaining collection is its curator's.
+    // The owner remains the fallback requester when no account is supplied.
+    const origin = claimed || added ? "claim" : "collection";
     await db.query(
       `insert into recording (subject_type, subject_tag, requested_by, origin, scope)
        values ($2, $1,

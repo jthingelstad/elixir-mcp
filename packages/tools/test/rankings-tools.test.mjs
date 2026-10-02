@@ -324,7 +324,7 @@ test("a board nobody has recorded yet says so, and an unknown location refuses",
   assert.equal(isError, false);
   assert.equal(body.snapshot, null);
   assert.deepEqual(body.players, []);
-  assert.ok(body.notes.some((n) => n.includes("not been recorded yet")));
+  assert.ok(body.notes.some((n) => n.includes("no recorded snapshot")));
 
   const { body: bad, isError: refused } = await invoke("rankings_players", {
     location: "Narnia",
@@ -629,7 +629,7 @@ test("rankings_timeline: a window before the horizon says so, and a clipped one 
     ),
   );
   const { body: never } = await invoke("rankings_clans", { location: "JP" });
-  assert.ok(never.notes.some((n) => /live: true reads it/.test(n)));
+  assert.ok(never.notes.some((n) => /capture has ended/.test(n)));
   assert.ok(!("recorded_since" in never.meta));
 });
 
@@ -671,7 +671,7 @@ test("pol_final: three seasons, three different notes; live is never offered; se
   );
   assert.match(
     settledMissing.notes[0],
-    /Season 120's final board \(2025-05\) has not been recorded yet; it is on the schedule/,
+    /Season 120's final board \(2025-05\) has no recorded snapshot; global leaderboard capture has ended/,
   );
   assert.equal(
     new Set([

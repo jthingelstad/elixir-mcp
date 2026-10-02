@@ -4,6 +4,7 @@ export * from "./deck.js";
 export * from "./meta.js";
 export * from "./version.js";
 export * from "./queue.js";
+export * from "./recording-policy.js";
 export * from "./modes.js";
 export * from "./season.js";
 export * from "./levels.js";

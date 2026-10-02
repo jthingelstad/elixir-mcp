@@ -18,7 +18,7 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
-import { outboxObjects } from "@elixir-mcp/contracts";
+import { outboxObjects, isRetiredEmailKind } from "@elixir-mcp/contracts";
 import { generateIssue, isFinal, finalError } from "./generate.mjs";
 import { lintIssue } from "@elixir-mcp/mail";
 
@@ -89,6 +89,10 @@ export async function handler(event) {
   } else {
     message = record ? JSON.parse(record.body) : (event ?? {});
   }
+  if (isRetiredEmailKind(String(message?.kind ?? ""))) {
+    await deleteHandoff(handoff);
+    return { kind: message.kind, skipped: "retired" };
+  }
   const briefKey = message?.brief_key;
   if (!briefKey) throw new Error("editor: brief_key missing");
   const out = await s3.send(
@@ -98,6 +102,10 @@ export async function handler(event) {
   // The brief says what it is; the message is the fallback for an ops
   // invoke that named only a key.
   const kind = brief.kind ?? message?.kind ?? "top_100";
+  if (isRetiredEmailKind(kind)) {
+    await deleteHandoff(handoff);
+    return { kind, skipped: "retired" };
+  }
   const started = Date.now();
   const issueKey = briefKey.replace(/brief\.json$/, "issue.json");
   const model = process.env.EDITOR_MODEL || "claude-opus-5";

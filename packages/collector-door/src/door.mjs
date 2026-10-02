@@ -19,9 +19,13 @@
  */
 
 import crypto from "node:crypto";
-import { crPathForJob, crBattleTime } from "@elixir-mcp/contracts";
+import {
+  crPathForJob,
+  crBattleTime,
+  isRetiredRecordingEndpoint,
+} from "@elixir-mcp/contracts";
 import { checkRateLimit, viewerIp } from "@elixir-mcp/auth";
-import { leaseJob, completeJob } from "@elixir-mcp/ledger";
+import { leaseJob, completeJob, bulkJobWanted } from "@elixir-mcp/ledger";
 
 const TOKEN_PREFIX = "emcg_";
 const LEASE_TTL_S = 90;
@@ -542,6 +546,13 @@ export function makeCollectorDoor({
       );
       if (!leased[0]) return { status: 400, body: { error: "bad_lease" } };
       const job = leased[0];
+      if (
+        isRetiredRecordingEndpoint(job.endpoint) ||
+        (job.lane === "bulk" && !(await bulkJobWanted(db, job)))
+      ) {
+        await completeJob(db, { jobId, gatewayId: gw.gateway_id });
+        return { status: 200, body: { ok: true, outcome: "retired" } };
+      }
 
       const status = body?.status === "ok" ? "ok" : "error";
       if (

@@ -166,7 +166,8 @@ decisions there as they happen and add the line to `DECISIONS.md`.
 
 Standing maintenance is objective-owned: five owners defined in
 `AGENT-TEAM/` (Elixir Operator, Elixir Data Auditor, Elixir Feedback Manager,
-Elixir Security Reviewer, Elixir Rankings Analyst) run on the `automations.toml` schedules.
+Elixir Security Reviewer, Elixir Rankings Analyst) run on the `automations.toml` schedules. The Rankings Analyst is retired
+and paused as of 2026-10-02; its old instructions remain reference only.
 Read order for any objective run: this file and `docs/DECISIONS.md` ->
 `AGENT-TEAM/WORKFLOW.md` -> `AGENT-TEAM/README.md` -> the objective file.
 The repo skills (`.claude/skills/`) are the procedures for recurring work;

@@ -19,7 +19,12 @@
  *  There is deliberately no anonymous page for an issue (Jamie,
  *  2026-09-18): sharing a Top 100 is forwarding the mail.
  */
-import { PRODUCT_EMAIL_KINDS, isProductEmailKind } from "@elixir-mcp/contracts";
+import {
+  PRODUCT_EMAIL_KINDS,
+  ACTIVE_PRODUCT_EMAIL_KINDS,
+  isProductEmailKind,
+  isRetiredEmailKind,
+} from "@elixir-mcp/contracts";
 import {
   verifyUnsubscribe,
   KIND_LABELS,
@@ -65,7 +70,10 @@ function labelOf(kind) {
 }
 
 async function setPref(db, accountId, kind, enabled, via) {
-  const kinds = kind === "all" ? [...PRODUCT_EMAIL_KINDS] : [kind];
+  const kinds =
+    kind === "all"
+      ? [...(enabled ? ACTIVE_PRODUCT_EMAIL_KINDS : PRODUCT_EMAIL_KINDS)]
+      : [kind];
   for (const k of kinds)
     await db.query(
       `insert into account_email_pref (account_id, kind, enabled, via, changed_at)
@@ -117,7 +125,7 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
       const by = new Map(rows.map((r) => [r.kind, r]));
       const last = new Map(lastSent.map((r) => [r.kind, r.send_id]));
       return json(200, {
-        kinds: PRODUCT_EMAIL_KINDS.map((kind) => ({
+        kinds: ACTIVE_PRODUCT_EMAIL_KINDS.map((kind) => ({
           kind,
           label: KIND_LABELS[kind],
           product: MAIL_SOURCE[kind]?.product ?? null,
@@ -172,6 +180,8 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
         return json(400, { error: "bad_kind" });
       if (typeof body?.enabled !== "boolean")
         return json(400, { error: "bad_enabled" });
+      if (body.enabled && isRetiredEmailKind(kind))
+        return json(410, { error: "kind_retired" });
       await setPref(db, account.accountId, kind, body.enabled, "profile");
       return json(200, { kind, enabled: body.enabled });
     },
@@ -183,6 +193,14 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
           page({
             title: "This link has expired",
             lead: `Sign in and use <a href="${SITE}/console/account/profile/email">your email page</a> to change which emails you get.`,
+          }),
+        );
+      if (isRetiredEmailKind(c.kind))
+        return html(
+          200,
+          page({
+            title: `${labelOf(c.kind)} has ended`,
+            lead: "Elixir no longer sends this email. Your other email preferences remain available on your account.",
           }),
         );
       const t = esc(event.queryStringParameters?.t ?? "");

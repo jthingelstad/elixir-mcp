@@ -1,3 +1,4 @@
+import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** The Top 100 issue: the brief builder, the lint, and the hand-off to
  *  the editor Lambda (docs/EMAIL.md; first specified in docs/archive/TOP100-README.md: the builder computes, the
  *  model writes).
@@ -357,7 +358,7 @@ function rangeLabel(fromIso, toIso) {
 
 /** The renderer's facts, from the brief and the accepted issue: every
  *  name the body prints is linked to its tag. */
-export function top100Facts(brief, issue) {
+function top100Facts(brief, issue) {
   const date = brief.window.issue_date;
   const names = new Map(brief.board.top100.map((p) => [p.name, p.tag]));
   for (const list of [
@@ -410,6 +411,8 @@ export async function top100Generate({
   now = new Date(),
   force = false,
 }) {
+  if (isRetiredEmailKind("top_100"))
+    return { kind: "top_100", skipped: "retired", sent: 0 };
   const own = !db;
   if (own) {
     db = new pg.Client({ connectionString: databaseUrl });
@@ -445,6 +448,8 @@ export async function top100Accept({
   key,
   enqueue = null,
 }) {
+  if (isRetiredEmailKind("top_100"))
+    return { kind: "top_100", skipped: "retired", sent: 0 };
   const own = !db;
   if (own) {
     db = new pg.Client({ connectionString: databaseUrl });

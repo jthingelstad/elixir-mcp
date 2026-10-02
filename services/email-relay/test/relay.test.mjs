@@ -564,3 +564,34 @@ test("a product kind rides the queue rendered: sent as given with the one-click 
     ["List-Unsubscribe", "List-Unsubscribe-Post"],
   );
 });
+
+test("retired direct, outbox and malformed editorial messages are consumed without sending", async () => {
+  for (const kind of ["top_100", "card_of_week"]) {
+    const deleted = [];
+    const handler = makeHandler({
+      send: () => {
+        throw new Error("retired mail sent");
+      },
+      readObject: async () => JSON.stringify({ kind }),
+      deleteObject: async (o) => deleted.push(o),
+    });
+    const direct = await handler({
+      Records: [{ messageId: "direct", body: JSON.stringify({ kind }) }],
+    });
+    assert.deepEqual(direct.batchItemFailures, []);
+    const body = JSON.stringify({
+      Records: [
+        {
+          eventSource: "aws:s3",
+          s3: {
+            bucket: { name: "outbox" },
+            object: { key: "email/test.json" },
+          },
+        },
+      ],
+    });
+    const queued = await handler({ Records: [{ messageId: "queued", body }] });
+    assert.deepEqual(queued.batchItemFailures, []);
+    assert.equal(deleted.length, 1);
+  }
+});

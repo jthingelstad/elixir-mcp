@@ -7,6 +7,7 @@ import crypto from "node:crypto";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { makeHandler } from "../src/handler.mjs";
+import { signUnsubscribe } from "@elixir-mcp/mail";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -3373,4 +3374,88 @@ test("GET /api/admin/cards: the catalog with its archetype roles, the vocabulary
     assert.ok(Number.isInteger(c.card_id));
     assert.ok(c.role === null || typeof c.role.win_condition === "boolean");
   }
+});
+
+test("retired email switches cannot be restored, while history and old unsubscribe links remain readable", async () => {
+  const {
+    rows: [account],
+  } = await db.query("select account_id from account where email_hash = $1", [
+    emailHash(NEWCOMER),
+  ]);
+  const accountId = account.account_id;
+  for (const kind of ["top_100", "card_of_week"]) {
+    const response = await handler(
+      event({
+        method: "PUT",
+        path: "/api/me/email",
+        cookie: memberCookie,
+        body: { kind, enabled: true },
+      }),
+    );
+    assert.equal(response.statusCode, 410);
+    assert.equal(parse(response).error, "kind_retired");
+    const token = signUnsubscribe({ secret: SECRET, accountId, kind });
+    for (const method of ["GET", "POST"]) {
+      const request = event({ method, path: "/api/email/unsubscribe" });
+      request.queryStringParameters = { t: token };
+      const reply = await handler(request);
+      assert.equal(reply.statusCode, 200, reply.body);
+      if (method === "GET") assert.match(reply.body, /has ended/);
+    }
+  }
+  await handler(
+    event({
+      method: "PUT",
+      path: "/api/me/email",
+      cookie: memberCookie,
+      body: { kind: "all", enabled: true },
+    }),
+  );
+  const preferences = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/email", cookie: memberCookie }),
+    ),
+  ).kinds;
+  assert.ok(
+    !preferences.some((k) => ["top_100", "card_of_week"].includes(k.kind)),
+  );
+  const { rows: prefs } = await db.query(
+    "select enabled from account_email_pref where account_id = $1 and kind in ('top_100', 'card_of_week')",
+    [accountId],
+  );
+  assert.equal(prefs.length, 2);
+  assert.ok(prefs.every((p) => p.enabled === false));
+  const {
+    rows: [issue],
+  } = await db.query(
+    "insert into email_issue (kind, period_key, subject_key, subject_line, status) values ('top_100', '2026-W38', $1, 'Archived issue', 'queued') returning issue_id",
+    [accountId],
+  );
+  const {
+    rows: [send],
+  } = await db.query(
+    "insert into email_send (issue_id, account_id, subject, archived) values ($1, $2, 'Archived issue', false) returning send_id",
+    [issue.issue_id, accountId],
+  );
+  const list = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/me/email/sends",
+        cookie: memberCookie,
+      }),
+    ),
+  ).sends;
+  assert.ok(
+    list.some((s) => s.send_id === send.send_id && s.kind === "top_100"),
+  );
+  const detail = await handler(
+    event({
+      method: "GET",
+      path: `/api/me/email/sends/${send.send_id}`,
+      cookie: memberCookie,
+    }),
+  );
+  assert.equal(detail.statusCode, 200);
+  assert.equal(parse(detail).send.kind, "top_100");
 });

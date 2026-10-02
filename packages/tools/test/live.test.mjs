@@ -296,24 +296,6 @@ test("the live daily cap trips as quota_exceeded before anything is minted", asy
   );
 });
 
-test("rankings paths map to leaderboard jobs; bad locations refuse (feedback #6)", async (t) => {
-  const { livePathToJob } = await import("../src/live.mjs");
-  const { normalizeTag } = await import("@elixir-mcp/contracts");
-  const g = livePathToJob("/locations/global/rankings/players", normalizeTag);
-  t.assert.deepStrictEqual(g, {
-    endpoint: "rankings_players",
-    entityKey: "global",
-  });
-  const pol = livePathToJob(
-    "/locations/57000249/pathoflegend/players",
-    normalizeTag,
-  );
-  t.assert.strictEqual(pol.endpoint, "rankings_pol");
-  t.assert.strictEqual(pol.entityKey, "57000249");
-  const bad = livePathToJob("/locations/nope!/rankings/players", normalizeTag);
-  t.assert.strictEqual(bad.error, "bad_request");
-});
-
 test("a bulk receipt inside the API's cache window IS the live answer; outside it, a fetch is queued", async () => {
   // The CR API serves a cached copy for max-age seconds, so a receipt
   // inside that window is what a new fetch would return, whichever lane
@@ -515,4 +497,29 @@ test("a live ask the account's quota refuses gives its token back (#64)", async 
     );
     await db.query("update budget_state set tokens = 1000");
   }
+});
+
+test("all leaderboard live paths and helpers refuse without IO or quota spend", async () => {
+  const { RETIRED_RECORDING_ENDPOINTS } = await import("@elixir-mcp/contracts");
+  const forbidden = () => {
+    throw new Error("retired live work performed IO");
+  };
+  const live = makeLive({
+    enqueue: forbidden,
+    charge: forbidden,
+    refund: forbidden,
+  });
+  for (const endpoint of RETIRED_RECORDING_ENDPOINTS)
+    assert.deepEqual(
+      await live(
+        { query: forbidden },
+        { endpoint, entityKey: "global", beforeMint: forbidden },
+      ),
+      { ok: false, reason: "live_unavailable" },
+    );
+  for (const path of [
+    "/locations/global/rankings/players",
+    "/locations/57000249/pathoflegend/players",
+  ])
+    assert.equal(livePathToJob(path, normalizeTag).error, "bad_request");
 });

@@ -1,3 +1,4 @@
+import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** The product email job: one op per kind, idempotent by the ledger.
  *
  *  runEmail asks the ledger first which recipients (and clans) already
@@ -85,6 +86,7 @@ export async function runEmail({
   // getRemainingTimeInMillis); null runs to the end.
   remainingMs = null,
 }) {
+  if (isRetiredEmailKind(kind)) return { kind, skipped: "retired", sent: 0 };
   const started = Date.now();
   const own = !db;
   if (own) {
@@ -426,7 +428,7 @@ function expectedWrittenPeriod(kind, now) {
 /** The scheduled send slot of each WRITTEN kind: UTC weekday and hour,
  *  the EventBridge crons in infra/template.yaml (EmailTop100Rule,
  *  EmailCardOfWeekRule; a test pins them together). */
-export const WRITTEN_SEND_SLOT = {
+const WRITTEN_SEND_SLOT = {
   top_100: { day: 4, hour: 14 },
   card_of_week: { day: 5, hour: 14 },
 };
@@ -438,6 +440,7 @@ export const WRITTEN_SEND_SLOT = {
  *  schedule; an accept for an older period, or one landing after the
  *  period has moved on, never sends on its own. */
 export function writtenSendDue(kind, period, now = new Date()) {
+  if (isRetiredEmailKind(kind)) return false;
   const slot = WRITTEN_SEND_SLOT[kind];
   if (!slot || !period) return false;
   const at = new Date(

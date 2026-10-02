@@ -13,7 +13,7 @@ reviewed: "2026-10-02 against contract 9.18.1"
 
 # Turn an email off
 
-Elixir sends eight kinds of email, and every one is on for a new
+Elixir sends six kinds of email, and every one is on for a new
 account. Each kind is one switch, and turning one off is immediate and
 yours to undo. [Email](/docs/email) has what each one holds and when it
 lands.
@@ -22,17 +22,16 @@ lands.
 
 **Console ▸ Profile ▸ Email**
 ([/console/account/profile/email](/console/account/profile/email)),
-*Emails from Elixir*, lays the six weekly kinds out on your week, each
+*Emails from Elixir*, lays the four weekly kinds out on your week, each
 on the day it arrives in your time zone: the Clan report, Your week in
-the Arena, Your friends this week, the Top 100, Card of the Week and
-Collector activity. The two that come when something happens,
+the Arena, Your friends this week and Collector activity. The two that come when something happens,
 Milestones and Clan actions waiting, sit below the week. Each has a
 line on what it is and a switch; turn one off and it stops. A kind
 already sent to you links the last one, and the page lists the last
 few emails sent to you, with a link to all of them.
 
-**Every email**, at the top of the page, turns all eight off at once,
-or all eight back on. While some are on and some are off it says how
+**Every email**, at the top of the page, turns all six off at once,
+or all six back on. While some are on and some are off it says how
 many are on.
 
 Two of the switches only matter to some accounts, and are dimmed for
@@ -78,3 +77,6 @@ codes are not in the list of emails sent to you.
 The product newsletter is not one of the eight. It goes out through a
 separate service, Buttondown, and you leave it with the unsubscribe link
 in any newsletter issue.
+
+Ultimate Champions (Top 100) and Card of the Week have ended. Their sent
+issues and old unsubscribe links remain available; they cannot be enabled again.
