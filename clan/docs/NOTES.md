@@ -1602,3 +1602,34 @@ Left out of the canvas, with the reason:
 - **Donations alone, week by week**: the board's phone list shows
   donations; the table keeps battles and ranked battles beside them, as
   the page did before.
+
+## 2026-10-02 — Signed in to Elixir is signed in to Clan
+
+Jamie, the morning after the redesign: "It isn't automatically signing me
+into clan." The bar is one bar now, Console, Ladder and Clan side by side,
+but Clan kept its own session, so a person signed in to the Console who
+clicked Clan met the landing and its Sign in with Elixir button. The
+pieces for a silent sign-in were already there: Elixir skips its consent
+page for a family app whose grant still stands (2026-09-29), and on one
+origin Clan's pages can read Elixir's own `/api/me`.
+
+- The landing reads `/api/me`. Signed in to Elixir, it shows one line
+  ("Signing you in with Elixir…") and goes to `/api/clan/auth/login`
+  itself; Elixir sends the person straight back, signed in. Not signed in
+  to Elixir, or the read fails, it is the landing as before.
+- It does not start after Clan's sign-out (the logout now lands on
+  `?signed_out=1`; a person who signs out is not signed straight back in,
+  and their grant was revoked, so Elixir would ask anyway), after a
+  sign-in that failed (any `?error=` but `session_expired`), or a second
+  time within a minute in the tab. A sign-in that cannot complete stops
+  at the landing and its message rather than looping.
+- A Clan address opened while signed out (an email's link to Actions) is
+  kept in the tab's sessionStorage for ten minutes and is where the person
+  lands after signing in, instead of the clan's front page.
+- Elixir's consent page still appears when there is no grant: the first
+  sign-in, after a sign-out, after a revoke on Connections, or after the
+  grant's 90 days. Making it implicit for the family's own app is Elixir's
+  call, not this change.
+- Tinylytics counts the started sign-in as `clan.signin_started` with
+  `auto`.
+

@@ -140,6 +140,50 @@ test("signed out: the landing, the way in on the bar, and a clan path sent home"
   await accessible(page, "landing");
 });
 
+test("signed in to Elixir: Clan's sign-in starts by itself and lands on the address opened", async ({
+  page,
+}) => {
+  await mockApi(page, {
+    "GET /api/clan/me": [401, { error: "signed_out" }],
+    "GET /api/me": [200, { authenticated: true }],
+    "GET /api/clan/auth/login": [200, { started: true }],
+  });
+  await page.goto("/clan/2PQRJ8LV/actions");
+  await page.waitForURL(/\/api\/clan\/auth\/login$/);
+
+  // Elixir sends them back signed in, to the clan the callback selected;
+  // the address they opened is where they end up.
+  await page.unroute("**/api/**");
+  await mockApi(
+    page,
+    signedIn({ "GET /api/clan/me": [200, { ...ME, selected: ME.clans[0] }] }),
+  );
+  await page.goto("/clan/2PQRJ8LV");
+  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions$/);
+});
+
+test("signed out of Clan on purpose, or not signed in to Elixir: the landing waits for the button", async ({
+  page,
+}) => {
+  await mockApi(page, {
+    "GET /api/clan/me": [401, { error: "signed_out" }],
+    "GET /api/me": [200, { authenticated: true }],
+  });
+  await page.goto("/clan/?signed_out=1");
+  const signIn = page.getByRole("link", { name: "Sign in with Elixir" });
+  await expect(signIn.first()).toBeVisible();
+  await expect(page).toHaveURL(/signed_out=1/);
+
+  await page.unroute("**/api/**");
+  await mockApi(page, {
+    "GET /api/clan/me": [401, { error: "signed_out" }],
+    "GET /api/me": [200, { authenticated: false }],
+  });
+  await page.goto("/clan/");
+  await expect(signIn.first()).toBeVisible();
+  await expect(page).toHaveURL(/\/clan\/$/);
+});
+
 test("an unverified Leader: the notice first, then the clan as a member with the way to verify", async ({
   page,
 }) => {

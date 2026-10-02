@@ -355,7 +355,7 @@ test("logout: POST only; deletes the session, revokes the grant, clears the cook
   assert.deepEqual(revokes(h), [], "a GET revokes nothing");
   const out = await h.handler(req("POST", "/auth/logout", { cookies }));
   assert.equal(out.statusCode, 303);
-  assert.equal(out.headers.location, "https://elixir.test/clan/");
+  assert.equal(out.headers.location, "https://elixir.test/clan/?signed_out=1");
   assert.ok(out.cookies[0].startsWith("__Host-elixir_clan_session=; "));
   // The session's own grant ends at Elixir, by its refresh token.
   assert.deepEqual(revokes(h), [{ token: "ert_1" }]);

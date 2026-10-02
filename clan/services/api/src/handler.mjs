@@ -454,7 +454,9 @@ export function createHandler({
           });
       }
     }
-    return redirect(`${appUrl}/`, [clearSessionCookie()]);
+    // signed_out tells the landing not to sign straight back in: on one
+    // origin it starts Clan's sign-in for anyone signed in to Elixir.
+    return redirect(`${appUrl}/?signed_out=1`, [clearSessionCookie()]);
   }
 
   async function me(event) {

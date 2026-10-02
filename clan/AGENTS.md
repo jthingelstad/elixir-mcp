@@ -162,7 +162,18 @@ the signing secret is `elixir-clan/app:session_secret` in Secrets Manager,
 consumed by the template as `{{resolve:secretsmanager:...}}` and never read
 by a person or an agent. A second cookie `__Host-elixir_clan_login` binds the
 OAuth `state` to the browser that started it. `POST /auth/logout` deletes the
-session.
+session and lands on `/clan/?signed_out=1`.
+
+A person signed in to Elixir on this origin (`/api/me` says
+`authenticated: true`) who reaches Clan signed out does not meet the
+landing's button: Clan's sign-in starts by itself
+(`apps/web/src/lib/auto-signin.js`, Jamie 2026-10-02), and Elixir, holding
+their grant to Clan, sends them back with no page between. Without a grant
+(the first time, or after a sign-out revoked it) Elixir's consent page asks,
+as before. It never starts on `?signed_out=1`, after a sign-in that came
+back with an error other than `session_expired`, or twice in a minute in one
+tab. A Clan address opened while signed out is kept in the tab for ten
+minutes and is where the person lands once signed in.
 
 The same table holds the durable product records described below. It has
 35-day point-in-time recovery, DynamoDB deletion protection, and CloudFormation
@@ -936,7 +947,7 @@ taxonomy, and it is REAL (add here when adding there):
 
 | Event                                                                                   | Value                                                                                                                               |
 | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `clan.signin_started`                                                                   | `landing` \| `chrome` (the link clicked)                                                                                            |
+| `clan.signin_started`                                                                   | `landing` \| `chrome` (the link clicked) \| `auto` (started for a person signed in to Elixir)                                   |
 | `clan.action_decided`, `clan.action_commented`                                          | `<type>:<status or classification>` e.g. `removal:done`, `departure:leave`; the type                                                |
 | `clan.hold_set`, `clan.note_added`                                                      | `until` \| `open`; `leader` \| `elder`                                                                                              |
 | `clan.policy_previewed`, `clan.policy_saved`, `clan.policy_preset`                      | (none); `v<n>`; the preset key or `goals`                                                                                           |

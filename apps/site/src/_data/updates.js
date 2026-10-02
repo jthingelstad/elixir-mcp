@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Signed in to Elixir, signed in to Clan",
+    body: "Clan on the bar used to stop at its own Sign in with Elixir button even when you were signed in to the Console. Now Clan sees you are signed in to Elixir and signs you in itself, and a Clan link you opened while signed out, such as an email's link to Actions, is where you land. Elixir still asks the first time, and again after you sign out of Clan or revoke it under Connections. Signing out of Clan leaves you signed out until you come back. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "Days played reads the whole season again",
     body: "Ladder's Days played could show \"Elixir could not read the season's battles\" in place of the calendar: it asked for the season in pages of fifty, and fifty battles now run past the size one answer may have. It asks for forty at a time, and when a page is still too large it reads the same page again at the size the answer names. The calendar, the nights and every count are unchanged. No change to the tools.",
   },
