@@ -16,6 +16,7 @@ export default {
   /** The row under the bar, left to right. */
   pages: [
     { key: "home", label: "Home", path: "/" },
+    { key: "cards", label: "Cards", path: "/cards" },
     { key: "data", label: "Data", path: "/data" },
     { key: "examples", label: "Examples", path: "/examples/play" },
     { key: "updates", label: "Updates", path: "/updates" },
@@ -30,6 +31,7 @@ export default {
       label: "Elixir",
       links: [
         { label: "Docs", path: "/docs" },
+        { label: "Cards", path: "/cards" },
         { label: "Updates", path: "/updates" },
         { label: "Data", path: "/data" },
         { label: "Support", path: "/support" },

@@ -54,6 +54,7 @@ const TOOL_GROUP_PAGES = built
 /** The pages the static site claims, as canonical paths. */
 const STATIC_PAGES = [
   "/",
+  "/cards",
   "/data",
   "/family",
   "/examples/play",
@@ -124,6 +125,22 @@ const STATIC_PAGES = [
   "/data/machines",
   "/support",
 ];
+
+/** Every card is its own page, built from the catalog: in a test build
+ *  the six real rows in test/fixtures/public-cards.json, so the list is
+ *  derived from the same data module the build reads, not pinned. */
+async function cardPages() {
+  const { shapeCards } = await import(
+    path.join(repoRoot, "apps/site/src/_lib/cards.mjs")
+  );
+  const fixture = JSON.parse(
+    readFileSync(
+      path.join(repoRoot, "apps/site/test/fixtures/public-cards.json"),
+      "utf8",
+    ),
+  );
+  return shapeCards(fixture).map((c) => `/cards/${c.id}`);
+}
 
 /** Every update is its own page (2026-09-10), so the list is derived from
  *  the entries rather than pinned: pinning a hundred and forty-eight
@@ -205,7 +222,11 @@ test("the sitemap lists exactly the static pages", { skip }, async () => {
     .sort();
   // Still exact — a sitemap entry that resolves to nothing is the defect
   // this test was written for — but the update pages are derived.
-  const expected = [...STATIC_PAGES, ...(await updatePages())].sort();
+  const expected = [
+    ...STATIC_PAGES,
+    ...(await updatePages()),
+    ...(await cardPages()),
+  ].sort();
   assert.deepEqual(locs, expected);
 });
 
@@ -255,7 +276,11 @@ test(
 
     // Every page the site builds is its own document, with or without
     // the trailing slash; the update pages are routed the same way.
-    for (const page of [...STATIC_PAGES, ...(await updatePages())]) {
+    for (const page of [
+      ...STATIC_PAGES,
+      ...(await updatePages()),
+      ...(await cardPages()),
+    ]) {
       assert.equal(route(page), doc(page), `${page} is not its document`);
       if (page !== "/")
         assert.equal(route(`${page}/`), doc(page), `${page}/ differs`);
@@ -578,6 +603,8 @@ test(
     const { JSDOM } = await import("jsdom");
     for (const [page, key] of [
       ["index.html", "home"],
+      ["cards/index.html", "cards"],
+      ["cards/26000000/index.html", "cards"],
       ["data/index.html", "data"],
       ["updates/index.html", "updates"],
       ["support/index.html", "support"],
@@ -1142,5 +1169,97 @@ test(
       assert.ok(item.title && item.content_html, item.id);
       assert.ok(!Number.isNaN(Date.parse(item.date_published)), item.id);
     }
+  },
+);
+
+test(
+  "the cards index lists every catalog card, A to Z, each a link to its page",
+  { skip },
+  async () => {
+    // Canvas 2026-09-29 (CardsIndex). The list is baked from the catalog
+    // and reads true with JavaScript off; cards-index.js redraws it by
+    // mode from /api/public/cards. No season number is baked: a test
+    // build's fixture carries none, and the page invents none.
+    const { JSDOM } = await import("jsdom");
+    const doc = new JSDOM(read("cards/index.html")).window.document;
+    const tiles = [...doc.querySelectorAll("[data-cards-grid] a.card-tile")];
+    const ids = (await cardPages()).map((p) => p.split("/").pop());
+    assert.deepEqual(
+      tiles.map((a) => a.getAttribute("href")),
+      ids.map((id) => `/cards/${id}/`),
+    );
+    const names = tiles.map(
+      (a) => a.querySelector(".card-tile__name").textContent,
+    );
+    assert.deepEqual(
+      names,
+      [...names].sort((a, b) => a.localeCompare(b)),
+    );
+    const knight = tiles.find((a) => a.href.endsWith("/26000000/"));
+    assert.equal(
+      knight.querySelector("img.card-art__img").getAttribute("src"),
+      "/assets/cards/26000000-128.png",
+    );
+    assert.equal(knight.querySelector(".card-elixir").textContent, "3");
+    assert.match(
+      knight.querySelector(".card-tile__kind").textContent,
+      /^Common troop · Evo and Hero$/,
+    );
+    // The controls wait for the script's data; the numbers are its.
+    assert.ok(doc.querySelector("[data-cards-controls]").hidden);
+    assert.equal(doc.querySelectorAll(".card-tile__pct").length, 0);
+    assert.ok(
+      doc.querySelector('script[src^="/assets/cards-index"]'),
+      "the index loads its script",
+    );
+    assert.ok(existsSync(path.join(out, "assets/cards-index.js")));
+  },
+);
+
+test(
+  "a card's page draws its art, its kind and the call an agent makes",
+  { skip },
+  async () => {
+    // Canvas 2026-09-29 (CardPage). Knight has an Evo and a Hero, so its
+    // art is the Hero's, as the canvas draws it.
+    const { JSDOM } = await import("jsdom");
+    const doc = new JSDOM(read("cards/26000000/index.html")).window.document;
+    const root = doc.querySelector("[data-card]");
+    assert.equal(root.getAttribute("data-card"), "26000000");
+    assert.equal(doc.querySelector("h1").textContent, "Knight");
+    const crumb = doc.querySelector('nav[aria-label="Breadcrumb"]');
+    assert.equal(crumb.querySelector("a").getAttribute("href"), "/cards/");
+    const img = root.querySelector(".card-figure img.card-art__img");
+    assert.equal(
+      img.getAttribute("src"),
+      "/assets/cards/26000000_hero-285.png",
+    );
+    assert.equal(img.getAttribute("alt"), "Hero Knight");
+    assert.equal(
+      root.querySelector(".card-art__form--hero").textContent,
+      "Hero",
+    );
+    assert.match(
+      root.textContent.replace(/\s+/g, " "),
+      /Common troop · 3 elixir · also an Evo and a Hero/,
+    );
+    assert.match(
+      root.querySelector(".card-call").textContent,
+      /cards_card \{ card: "Knight", segment: "corpus", mode: "ranked" \}/,
+    );
+    // A card with no other form draws its own art and no ribbon.
+    const fireball = new JSDOM(read("cards/28000000/index.html")).window
+      .document;
+    assert.equal(
+      fireball.querySelector(".card-figure img").getAttribute("src"),
+      "/assets/cards/28000000-285.png",
+    );
+    assert.equal(fireball.querySelector(".card-art__form"), null);
+    // The CSP forbids inline script, handlers included.
+    for (const page of await cardPages()) {
+      const html = read(`${page.slice(1)}/index.html`);
+      assert.doesNotMatch(html, /\son(error|load|click)=/, page);
+    }
+    assert.ok(existsSync(path.join(out, "assets/cards-live.js")));
   },
 );

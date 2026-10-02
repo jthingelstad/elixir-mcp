@@ -3,79 +3,157 @@ pagination:
   data: cards
   size: 1
   alias: card
+  addAllPagesToCollections: true
 permalink: "/cards/{{ card.id }}/index.html"
 eleventyComputed:
   title: "{{ card.name }}"
-  description: "What the Elixir record holds about {{ card.name }} in Clash Royale: how often it is played, how often it wins, by mode and by season."
+  description: "What the Elixir record holds about {{ card.name }} in Clash Royale: how often it is played, how often it wins, by mode and by month."
   canonical: "/cards/{{ card.id }}"
 layout: base.njk
+navActive: cards
 ---
-{#- A card's record, PUBLIC and sign-in free: this is where a forwarded
-    Card of the Week lands. The catalog facts are baked at build time and
-    read true with JavaScript off; cards-live.js fills the season numbers
-    from /api/public/cards/<id>, which the nightly rollup refreshes. -#}
-<div class="page-head">
-  <div style="display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap">
-    <img
-      src="/assets/cards/{{ card.id }}-285.png"
-      alt="{{ card.name }}"
-      width="160"
-      height="236"
-      style="border-radius: 10px"
-      onerror="this.style.display='none'"
-    />
-    <div>
-      <h1 class="hero-title" style="margin-bottom: 6px">{{ card.name }}</h1>
-      <p class="lede" style="margin: 0; max-width: 60ch">
-        {{ card.rarity | capitalize }} {{ card.type }}{% if card.elixir %}, {{ card.elixir }} elixir{% endif %}{% if card.forms.length %} &middot; {{ card.forms | join(" and ") }} form{% if card.forms.length > 1 %}s{% endif %}{% endif %}.
+{#- A card's record (canvas 2026-09-29, CardPage). PUBLIC and sign-in
+    free: this is where a forwarded Card of the Week lands, and where the
+    cards index links. The catalog facts are baked at build time and read
+    true with JavaScript off; cards-live.js fills the season's numbers
+    from /api/public/cards/<id>, one mode at a time, because modes are
+    different games and are never added together. Every number on the
+    page is the API's. -#}
+{%- set formName = {"hero": "Hero", "evolution": "Evo", "base": ""}[card.artForm] %}
+{%- set suffix = {"hero": "_hero", "evolution": "_evo", "base": ""}[card.artForm] %}
+<div class="flex flex-col gap-[22px] pt-7 pb-2" data-card="{{ card.id }}">
+  <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[13px] text-ink-faint">
+    <a href="/cards/" data-card-crumb>Cards</a>
+    <span class="flex" aria-hidden="true">{% icon "chevron-right", 14 %}</span>
+    <span class="text-ink-dim" aria-current="page">{{ card.name }}</span>
+  </nav>
+
+  <div class="flex flex-wrap items-center gap-x-7 gap-y-4">
+    <span class="card-figure">
+      <span class="card-art">
+        <span class="card-art__frame">
+          <img class="card-art__img" src="/assets/cards/{{ card.id }}{{ suffix }}-285.png" alt="{{ (formName + ' ') if formName }}{{ card.name }}" width="92" height="136" data-name="{{ card.name }}" />
+          {%- if formName %}
+          <span class="card-art__form card-art__form--{{ card.artForm }}">{{ formName }}</span>
+          {%- endif %}
+        </span>
+      </span>
+      <span class="card-elixir card-elixir--lg" aria-label="{{ card.elixir }} elixir">{{ card.elixir }}</span>
+    </span>
+    <div class="flex min-w-0 flex-auto flex-col gap-[10px]">
+      <h1 class="hero-title m-0">{{ card.name }}</h1>
+      <p class="m-0 text-[15px] text-ink-dim">
+        {{ card.rarity | capitalize }} {{ card.type }} &middot; {{ card.elixir }} elixir{% if card.also %} &middot; {{ card.also }}{% endif %}
       </p>
-      <p class="footnote" style="margin: 10px 0 0">
-        Card <span class="mono">{{ card.id }}</span> &middot;
-        <a href="/docs/cards">how a card is counted</a>
+      <p class="m-0 flex flex-wrap gap-2" data-card-chips hidden>
+        <span class="chip chip--mute" data-card-issue hidden>{% icon "mail", 13 %}<span data-card-issue-text></span></span>
+        <span class="chip chip--mute" data-card-rank hidden></span>
       </p>
     </div>
+    <span class="chip chip--ok" data-card-updated hidden><span class="chip__dot"></span><span data-card-updated-text></span></span>
+  </div>
+
+  <div class="card-modes" role="group" aria-label="Mode" data-card-modes hidden></div>
+
+  <div class="grid grid-cols-2 gap-4 wide:grid-cols-4">
+    <div class="card-stat">
+      <span class="card-stat__label">Share of decks</span>
+      <span class="card-stat__value" data-card-live="share">&mdash;</span>
+      <span class="card-stat__note" data-card-live="share-note">in the mode&rsquo;s battles</span>
+    </div>
+    <div class="card-stat">
+      <span class="card-stat__label">Wins</span>
+      <span class="card-stat__value" data-card-live="wins">&mdash;</span>
+      <span class="card-stat__note" data-card-live="wins-note">when it was in the deck</span>
+    </div>
+    <div class="card-stat">
+      <span class="card-stat__label">Battles</span>
+      <span class="card-stat__value" data-card-live="battles">&mdash;</span>
+      <span class="card-stat__note">with the card</span>
+    </div>
+    <div class="card-stat">
+      <span class="card-stat__label">Players</span>
+      <span class="card-stat__value" data-card-live="players">&mdash;</span>
+      <span class="card-stat__note">who played it</span>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 items-start gap-4 wide:grid-cols-5">
+    <section class="panel flex flex-col wide:col-span-3" aria-labelledby="card-months-h">
+      <div class="panel__head">
+        <h2 id="card-months-h" class="m-0 flex-auto text-[14px] font-semibold">By month</h2>
+        <span class="chip chip--mute">every mode together</span>
+      </div>
+      <div class="panel__body">
+        <div class="card-months" data-card-live="months">
+          <p class="footnote m-0">Loading the record&hellip;</p>
+        </div>
+      </div>
+      <div class="panel__note">
+        Months are kept for every mode together today, so this chart stays
+        the same when you pick a mode above.
+      </div>
+    </section>
+
+    <section class="panel flex flex-col wide:col-span-2" aria-labelledby="card-bymode-h">
+      <div class="panel__head">
+        <h2 id="card-bymode-h" class="m-0 flex-auto text-[14px] font-semibold">By mode</h2>
+      </div>
+      <div class="table__scroll">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col" class="uppercase">Mode</th>
+              <th scope="col" class="text-right uppercase">Battles</th>
+              <th scope="col" class="text-right uppercase">Share</th>
+              <th scope="col" class="text-right uppercase">Wins</th>
+            </tr>
+          </thead>
+          <tbody data-card-live="modes">
+            <tr><td colspan="4" class="text-ink-faint">Loading the record&hellip;</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel__note">
+        Each mode is its own game with its own matchmaking. Thin: under
+        2,000 battles.
+      </div>
+    </section>
+  </div>
+
+  <div class="grid grid-cols-1 items-start gap-4 wide:grid-cols-2">
+    <section class="panel flex flex-col" aria-labelledby="card-agent-h">
+      <div class="panel__head">
+        <h2 id="card-agent-h" class="m-0 flex-auto text-[14px] font-semibold">Ask your agent</h2>
+      </div>
+      <div class="panel__body flex flex-col gap-3">
+        <pre class="card-call"><span class="text-ink-faint">// what your agent calls</span>
+cards_card { card: "{{ card.name }}", segment: "corpus", mode: "<span data-card-live="agent-mode">ranked</span>" }</pre>
+        <p class="m-0 text-[13px] leading-[1.5] text-ink-faint">
+          Pass <code>segment: "mine"</code> and the same numbers come from
+          your own battles. <a href="/docs/cards">How a card is counted</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="panel flex flex-col" aria-labelledby="card-cotw-h">
+      <div class="panel__head">
+        <h2 id="card-cotw-h" class="m-0 flex-auto text-[14px] font-semibold">Card of the Week</h2>
+      </div>
+      <div class="panel__body flex flex-col gap-3">
+        <p class="m-0 text-[14px] leading-[1.55] text-ink-body" data-card-live="issue-line">
+          Every Friday, one card the record has something to say about,
+          read in full and sent to every Elixir account. A program draws it
+          from the season&rsquo;s ten most-played cards that have not had
+          an issue in the last year.
+        </p>
+        <p class="m-0 flex flex-wrap gap-x-5 gap-y-2 text-[13.5px]">
+          <a href="/docs/email">How Card of the Week is chosen &rsaquo;</a>
+          <a href="/console/signin?request">Request access &rsaquo;</a>
+        </p>
+      </div>
+    </section>
   </div>
 </div>
-
-<section class="panel" data-card="{{ card.id }}">
-  <div class="panel__body">
-    <h2 style="margin-top: 0; font-size: 17px">This season</h2>
-    <p style="margin: 0 0 4px; color: var(--ink-body)">
-      Played in <strong data-card-live="usage">&mdash;</strong> of decided
-      battles by <strong data-card-live="players">&mdash;</strong>
-      players, winning <strong data-card-live="win">&mdash;</strong>.
-    </p>
-    <p class="footnote" style="margin: 8px 0 0">
-      A card&rsquo;s win rate describes who played it as much as the card.
-    </p>
-  </div>
-</section>
-
-<section class="panel" style="margin-top: 16px">
-  <div class="panel__body">
-    <h2 style="margin-top: 0; font-size: 17px">By season</h2>
-    <div data-card-live="history"><p class="footnote" style="margin: 0">Loading the record&hellip;</p></div>
-  </div>
-</section>
-
-<section class="panel" style="margin-top: 16px">
-  <div class="panel__body">
-    <h2 style="margin-top: 0; font-size: 17px">By mode</h2>
-    <div data-card-live="modes"><p class="footnote" style="margin: 0">Loading the record&hellip;</p></div>
-  </div>
-</section>
-
-<section class="panel" style="margin-top: 16px" data-card-live="issue" hidden>
-  <div class="panel__body">
-    <h2 style="margin-top: 0; font-size: 17px">Card of the Week</h2>
-    <p style="margin: 0" data-card-live="issue-line"></p>
-  </div>
-</section>
-
-<p class="footnote" style="margin-top: 22px">
-  Ask your own agent &ldquo;how am I doing with {{ card.name }}?&rdquo; once
-  your tag is tracked. <a href="/">Request an account</a> &middot;
-  <a href="/docs/email">the weekly email</a>
-</p>
 
 <script defer src="{{ "/assets/cards-live.js" | asset }}"></script>
