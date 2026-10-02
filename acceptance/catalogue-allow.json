@@ -47,7 +47,12 @@
     "retry_statuses": "same",
     "previous_name": "on an attested award-standing timeline item only when first place changed hands",
     "previous_player_tag": "same",
-    "previous_best": "on an attested personal-record timeline item only when a previous best is supplied"
+    "previous_best": "on an attested personal-record timeline item only when a previous best is supplied",
+    "redirect_uris": "quickstart OAuth registration/authorization/token exchange parameter; not a recorded-history MCP response field",
+    "client_id": "quickstart OAuth registration/authorization/token exchange parameter; not a recorded-history MCP response field",
+    "redirect_uri": "quickstart OAuth registration/authorization/token exchange parameter; not a recorded-history MCP response field",
+    "code_challenge": "quickstart OAuth registration/authorization/token exchange parameter; not a recorded-history MCP response field",
+    "code_verifier": "quickstart OAuth registration/authorization/token exchange parameter; not a recorded-history MCP response field"
   },
   "battles_query": {
     "king_tower_fell": "a VALUE of inferred.duration.basis, not a field; the note explains the three rules",

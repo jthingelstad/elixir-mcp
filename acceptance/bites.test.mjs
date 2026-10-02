@@ -64,6 +64,7 @@ for (const bite of manifest) {
         only: bite.case,
         quiet: true,
         tools,
+        recordedFixtures: true,
       });
       assert.equal(report.cases.length, 1, `one case matches ${bite.case}`);
       assert.equal(

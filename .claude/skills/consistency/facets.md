@@ -18,7 +18,7 @@ The source of truth for what stands, and the files that point agents at it.
 | Invariants | `docs/ENGINEERING.md` | DECISIONS, the tests that enforce each invariant |
 | Working notes | `docs/NOTES.md`, `docs/notes/` | reasoning only; never cited as the ledger |
 | Agent guide | `AGENTS.md` (CLAUDE.md is a symlink) | DECISIONS; points at DECISIONS, not NOTES |
-| Objective runs | `AGENT-TEAM/READING.md`, `README.md`, `WORKFLOW.md`, the five objective files | DECISIONS; current plumbing in `infra/template.yaml` |
+| Objective runs | `AGENT-TEAM/READING.md`, `README.md`, `WORKFLOW.md`, the four active objective files | DECISIONS; current plumbing in `infra/template.yaml` |
 | Repo skills | `.claude/skills/gym/`, `.claude/skills/consistency/` | DECISIONS; the acceptance and deploy rules |
 | User skill | `~/.claude/skills/mcp-tool-review/SKILL.md` | profiles, paths and tools as they are now |
 | Domain guide | `../AGENTS.md`, `../AGENT-TEAM/` | the repo list, each repo's reading path, the lease order |
@@ -46,7 +46,6 @@ is where the war-days gap lived.
 | Timeline entries | `packages/tools/src/activity/entries.mjs`, `summary.mjs` | the tools for the same fact (war, battles, donations) |
 | Participation SQL | `packages/record/src/participation-sql.mjs` | `clans_participation`, `clans_standings`, war tools |
 | Product mail | `services/jobs/src/email/build-*.mjs`, `packages/mail/src/render.mjs`, `packages/mail/fixtures/` | the tools the builder should call; wording in docs |
-| Rollups | `services/jobs/src/meta-rollup.mjs` | live SQL for the same population and mode map |
 | Console | `apps/web/src/views/**`, `apps/web/src/pages/**` | tool semantics, docs wording, privacy (analytics.js) |
 | Web API routes | `services/web-api/src/routes/*.mjs`, `notify.mjs` | the tools, the docs, runtime strings that point at docs |
 | Collector quota | `packages/tools/src/quota.mjs`, ingest points | mail, console and docs wording for credits |

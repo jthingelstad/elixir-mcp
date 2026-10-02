@@ -53,3 +53,5 @@ A tower troop is the ninth card in a deck identity. The API reports none on rive
 ## A card's own page
 
 Every catalog card has a public page at `/cards/<card id>` with its name, art, rarity, cost and forms. Battle links and recorded decks link there. These pages serve catalog facts; Elixir no longer publishes global card statistics, Card of the Week, recommendation scores or corpus comparisons.
+
+Earliest play uses the recorded deck identity for each game or duel round; it does not infer a release date or compare your play with the game as a whole.
