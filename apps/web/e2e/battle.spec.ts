@@ -67,6 +67,14 @@ test("signed out: both decks, the score, how it ended, and the way in", async ({
   ).toHaveAttribute("href", "/console/signin?request");
   await expect(page.getByText(BATTLE.battle.id)).toBeVisible();
   await expect(page.locator(".rail")).toHaveCount(0);
+  // The picture and the link, never an embed.
+  const share = page.getByRole("region", { name: "Share this battle" });
+  await expect(
+    share.getByRole("link", { name: "Share image" }),
+  ).toHaveAttribute("href", `${BATTLE.battle.url}.png`);
+  await expect(
+    share.getByRole("button", { name: "Copy for a post" }),
+  ).toBeVisible();
   await accessible(page, "battle");
 });
 

@@ -17,6 +17,8 @@ import { processResult } from "../../../packages/ingest/src/pipeline.mjs";
 import { makeHandler } from "../src/handler.mjs";
 import { cycle4, readPublicBattle } from "../src/battle-page.mjs";
 import { namedShell, previewOf } from "../src/routes/battle.mjs";
+import { makeShareImage } from "../src/share-image.mjs";
+import { shareSources } from "../src/share-files.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -101,10 +103,22 @@ before(async () => {
     await fixture("player_battlelog/with_colosseum_duel.json"),
     "2026-09-03T14:30:34Z",
   );
+  const sources = shareSources();
   handler = makeHandler({
     databaseUrl,
     secret: "test",
     siteShell: async () => SHELL,
+    shareImage: makeShareImage({
+      assets: async () =>
+        Object.fromEntries(
+          await Promise.all(
+            Object.entries(sources).map(async ([k, f]) => [
+              k,
+              await readFile(f),
+            ]),
+          ),
+        ),
+    }),
   });
 });
 
@@ -150,8 +164,8 @@ test("a 1v1: the recorded player left, both decks, towers and the link", async (
     /^https:\/\/elixir\.poapkings\.com\/battle\/[0-9a-f]{12,64}$/,
   );
   assert.ok(id.startsWith(battle.short_id));
-  // The share picture is not drawn yet.
-  assert.equal(battle.image, null);
+  // The share picture is the page's address with .png on the end.
+  assert.equal(battle.image, `${battle.url}.png`);
   const [l, r] = sides;
   assert.equal(l.players[0].player_tag, OBSERVER);
   assert.equal(r.players.length, 1);
@@ -262,11 +276,63 @@ test("the page: the app shell named for the battle", async () => {
   assert.equal(res.body.includes('content="index"'), false);
   assert.ok(title.length > 0);
 
+  // The preview is the battle's own picture.
+  assert.ok(
+    res.body.includes(
+      `<meta property="og:image" content="${read.battle.url}.png" />`,
+    ),
+  );
+  assert.ok(
+    res.body.includes(
+      `<meta name="twitter:image" content="${read.battle.url}.png" />`,
+    ),
+  );
+  assert.equal(res.body.includes("/assets/og.png"), false);
+
   const missing = await get("/battle/ffffffffffff");
   assert.equal(missing.statusCode, 404);
   assert.equal(missing.headers["cache-control"], "public, max-age=60");
-  const png = await get(`/battle/${read.battle.short_id}.png`);
-  assert.equal(png.statusCode, 404);
+});
+
+test("the picture: a 1200 by 630 PNG, cached a day, and a 404 for no battle", async () => {
+  const id = await battleOf("PvP");
+  const before = await writes();
+  const res = await get(`/battle/${id.slice(0, 12)}.png`);
+  assert.equal(res.statusCode, 200, res.body);
+  assert.equal(res.headers["content-type"], "image/png");
+  assert.equal(res.headers["cache-control"], "public, max-age=86400");
+  assert.equal(res.isBase64Encoded, true);
+  const png = Buffer.from(res.body, "base64");
+  assert.deepEqual(
+    [...png.subarray(0, 8)],
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+  );
+  // IHDR: width and height, big-endian, after the signature and header.
+  assert.equal(png.readUInt32BE(16), 1200);
+  assert.equal(png.readUInt32BE(20), 630);
+  // A picture view writes nothing either.
+  assert.deepEqual(await writes(), before);
+
+  const none = await get("/battle/ffffffffffff.png");
+  assert.equal(none.statusCode, 404);
+  assert.equal(none.headers["cache-control"], "public, max-age=60");
+  assert.match(none.headers["content-type"], /^text\/plain/);
+
+  const bare = makeHandler({ databaseUrl, secret: "test" });
+  const off = await bare({
+    rawPath: `/battle/${id.slice(0, 12)}.png`,
+    requestContext: { http: { method: "GET" } },
+    headers: {},
+  });
+  assert.equal(off.statusCode, 503);
+});
+
+test("the picture's read skips the meetings and the sitting", async () => {
+  const id = await battleOf("PvP");
+  const read = await readPublicBattle(db, id, { around: false });
+  assert.equal(read.status, 200);
+  assert.deepEqual(read.meetings, []);
+  assert.deepEqual(read.sitting, []);
 });
 
 test("the page without a shell says so rather than guessing", async () => {

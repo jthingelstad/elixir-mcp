@@ -107,6 +107,13 @@ game names only, never a nickname or anything of an account, and its link
 unfurls in a chat as the battle itself. The same projection is JSON at
 `/api/public/battles/<short id>`.
 
+Add `.png` to the link for the battle's picture: the page drawn as one 1200 by
+630 image, with the names left and right, both decks two by four with their
+levels, the elixir numbers, the towers' hitpoints and how it ended, and the
+link under it. It is what the link shows when it unfurls, and it can be posted
+on its own with the link beside it. Its time is in UTC, since a picture has no
+reader's clock.
+
 ## Mode groups
 
 The `mode` argument on every battle tool takes one of seven groups. Each folds

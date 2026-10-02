@@ -141,6 +141,9 @@ export function makeHandler({
   /** () => the built app shell (routes/battle.mjs makeSiteShell), which a
    *  battle's page is served in; null = /battle/* answers 503. */
   siteShell = null,
+  /** (read) => a battle's share picture as PNG bytes (share-image.mjs
+   *  makeShareImage); null = /battle/<id>.png answers 503. */
+  shareImage = null,
 }) {
   // What unsubscribe links are signed and checked with: their own key
   // when there is one, and the session secrets for links sent before it.
@@ -270,7 +273,7 @@ export function makeHandler({
     ...integrationsRoutes({ resolveAccount, logEvent }),
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleActivityRoutes({ resolveAccount }),
-    ...battleRoutes({ siteShell }),
+    ...battleRoutes({ siteShell, shareImage }),
     ...emailRoutes({
       resolveAccount,
       secret: unsubscribeKeys,

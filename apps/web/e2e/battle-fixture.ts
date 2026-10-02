@@ -7,7 +7,7 @@ export const BATTLE = {
     id: "ccd04012bda83b5715777045eb019ca3a1dc7c60907a445508dd8e787dd58805",
     short_id: "ccd04012bda8",
     url: "https://elixir.poapkings.com/battle/ccd04012bda8",
-    image: null,
+    image: "https://elixir.poapkings.com/battle/ccd04012bda8.png",
     battle_time: "2026-09-03T14:11:39.000Z",
     type: "PvP",
     kind: "1v1",

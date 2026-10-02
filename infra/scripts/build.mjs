@@ -12,6 +12,10 @@ import { cp, mkdir, rm } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  SHARE_FILES,
+  shareSources,
+} from "../../services/web-api/src/share-files.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(here, "../..");
@@ -112,6 +116,14 @@ export async function buildAll() {
         ["docs/card-of-week/generator-prompt.md", "card-of-week-prompt.md"],
       ])
         await cp(path.join(repoRoot, doc), path.join(outDir, file));
+    }
+    if (name === "web-api") {
+      // A battle's share picture is drawn in the function: resvg's wasm
+      // and the fonts sit beside the code, read on the first picture.
+      await mkdir(path.join(outDir, "share"), { recursive: true });
+      const sources = shareSources();
+      for (const [k, file] of Object.entries(SHARE_FILES))
+        await cp(sources[k], path.join(outDir, "share", file));
     }
     if (db) {
       await mkdir(path.join(outDir, path.dirname(RDS_CA_PATH)), {
