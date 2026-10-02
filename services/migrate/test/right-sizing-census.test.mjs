@@ -60,6 +60,45 @@ test("private census pages preserve composite timestamp keys, historical request
     await ctx.db.query(
       "insert into battle_participant_round(battle_id,player_tag,round) values('retained-game','#P0LYQ',1),('retained-game','#P8LQ0',1),('retained-game','#P8LQ0',2)",
     );
+    await ctx.db.query(
+      "insert into battle_participant(battle_id,player_tag,side,battle_time,type_class,type) values('future-game','#P8LQ0',0,'2026-10-03','pvp','PvP')",
+    );
+    const participants = await rightSizingCensus(
+      ctx.url,
+      spec("battle_participant", { limit: 100 }),
+      settings,
+    );
+    assert.equal(participants.rows, 2);
+    assert.equal(participants.cutoff_policy, "parent_created_at:battle");
+    const group = (
+      await ctx.db.query(
+        "insert into collection(slug,title,kind,owner_account,created_at) values('private-group','Private','player',$1,'2026-01-01') returning collection_id",
+        [a.account_id],
+      )
+    ).rows[0];
+    await ctx.db.query(
+      "insert into collection_member(collection_id,subject_tag,added_at) values($1,'#P0LYQ','2026-01-01'),($1,'#P8LQ0','2026-10-03')",
+      [group.collection_id],
+    );
+    const members = await rightSizingCensus(
+      ctx.url,
+      spec("collection_member", { limit: 100 }),
+      settings,
+    );
+    assert.equal(members.rows, 1);
+    assert.equal(members.cutoff_policy, "timestamptz:added_at");
+    await ctx.db.query(
+      "insert into account_event(account_id,kind,detail,created_at) values($1,'tracked_by_ops',$2,'2026-01-01'),($1,'enrolled',$2,'2026-01-01')",
+      [
+        a.account_id,
+        {
+          player_tag: "#P0LYQ",
+          source: "deliberate approved request",
+          relationship: "friend",
+          email: "never-export",
+        },
+      ],
+    );
     const dependencies = await rightSizingCensus(
       ctx.url,
       spec("battle_dependency_counts"),
@@ -117,13 +156,29 @@ test("private census pages preserve composite timestamp keys, historical request
     );
     const events = await rightSizingCensus(
       ctx.url,
-      spec("account_event"),
+      spec("account_event", { limit: 100 }),
       settings,
     );
-    assert.equal(events.rows, 1);
+    assert.equal(events.rows, 3);
     const eventBody = objects.get(events.key).toString();
     assert.ok(eventBody.includes("recording_started"));
     assert.ok(!eventBody.includes("never-export"));
+    const intent = await rightSizingCensus(
+      ctx.url,
+      spec("account_event", { limit: 100 }),
+      settings,
+    );
+    const intentRows = JSON.parse(objects.get(intent.key)).rows;
+    assert.equal(intentRows.length, 3);
+    assert.equal(
+      intentRows.find((r) => r.kind === "enrolled").detail.source,
+      "deliberate approved request",
+    );
+    assert.equal(
+      intentRows.find((r) => r.kind === "tracked_by_ops").detail.relationship,
+      "friend",
+    );
+    assert.ok(!objects.get(intent.key).toString().includes("never-export"));
     const accounts = await rightSizingCensus(
       ctx.url,
       spec("account"),
@@ -156,6 +211,24 @@ test("private census pages preserve composite timestamp keys, historical request
       ).columns,
       ["battle_id", "player_tag", "round", "card_id", "form"],
     );
+    const pinned = await rightSizingCensus(
+      ctx.url,
+      spec("claim", { schema_sha256: catalog.schema_sha256 }),
+      settings,
+    );
+    assert.equal(pinned.schema_sha256, catalog.schema_sha256);
+    await ctx.db.query(
+      "alter table claim add column census_test_column integer",
+    );
+    await assert.rejects(
+      rightSizingCensus(
+        ctx.url,
+        spec("claim", { schema_sha256: catalog.schema_sha256 }),
+        settings,
+      ),
+      /schema changed/,
+    );
+    await ctx.db.query("alter table claim drop column census_test_column");
     const lanes = (await rightSizingCensus(null)).lanes;
     for (const lane of lanes) {
       const page = await rightSizingCensus(
