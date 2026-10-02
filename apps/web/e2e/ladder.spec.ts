@@ -327,3 +327,151 @@ test.describe("Ladder signed in", () => {
     await accessible(page, "ladder narrow");
   });
 });
+
+test.describe("Ladder days played", () => {
+  // Tuesday, September 29, 4:00 pm Central: the board's "today".
+  const TODAY = new Date("2026-09-29T21:00:00Z");
+
+  test("the season's days on the account's calendar, each mode its own mark, and the nights", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(TODAY);
+    const calls: ToolCall[] = [];
+    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await page.goto("/ladder/days");
+
+    await expect(
+      page.getByRole("heading", { level: 1, name: "17 of 23 days played" }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle("Days played - Ladder - Elixir MCP");
+    await expect(page.locator(".page__lede")).toContainText(
+      "Every day of the September season, Central time.",
+    );
+    await expect(
+      page
+        .getByRole("navigation", { name: "Ladder sections" })
+        .getByRole("link", { name: "Days played" }),
+    ).toHaveAttribute("aria-current", "page");
+
+    const tiles = page.locator(".ladder-tile");
+    await expect(tiles).toHaveCount(4);
+    await expect(tiles.nth(0)).toContainText("17");
+    await expect(tiles.nth(0)).toContainText("of 23 so far");
+    await expect(tiles.nth(1)).toContainText("Trophy Road days");
+    await expect(tiles.nth(1)).toContainText("14");
+    await expect(tiles.nth(1)).toContainText("34 battles");
+    await expect(
+      tiles.nth(1).getByRole("img", { name: "12 won, 22 lost" }),
+    ).toBeVisible();
+    await expect(tiles.nth(2)).toContainText("War days");
+    await expect(
+      tiles.nth(2).getByRole("img", { name: "13 won, 12 lost" }),
+    ).toBeVisible();
+    await expect(tiles.nth(3)).toContainText("2 days");
+    await expect(tiles.nth(3)).toContainText("Sep 13 and 14");
+
+    // Monday the 7th to Sunday, October 4, each day its own cell.
+    const days = page.locator(".ladder-cal > li:not(.ladder-day--blank)");
+    await expect(days).toHaveCount(28);
+    const sep10 = days.nth(3);
+    await expect(sep10).toContainText("Sep 10");
+    await expect(sep10.locator(".ladder-day__n")).toHaveText("4");
+    await expect(
+      sep10.getByRole("img", { name: "2 won, 1 lost" }),
+    ).toBeVisible();
+    await expect(sep10.locator(".ladder-day__mode").nth(0)).toContainText(
+      "Trophy Road",
+    );
+    // A boat defense is not the member's battle: the 24th holds its
+    // three attacks and nothing more.
+    await expect(days.nth(17).locator(".ladder-day__n")).toHaveText("3");
+    await expect(days.nth(22)).toHaveAttribute("aria-current", "date");
+    await expect(days.nth(22)).toContainText("today · nothing yet");
+    await expect(days.nth(23)).toContainText("to come");
+    await expect(page.locator(".panel__foot").first()).toContainText(
+      "The season runs Monday, September 7 at 5:00 am to Monday, October 5 at 5:00 am.",
+    );
+
+    // Nights, newest first: Monday's two events then three on Trophy
+    // Road, a record per mode, down to the floor.
+    const nights = page.locator(".ladder-night");
+    await expect(nights).toHaveCount(5);
+    const night = nights.first();
+    await expect(night).toContainText("Mon, Sep 28");
+    await expect(night).toContainText("10:37 – 11:09 pm");
+    await expect(night).toContainText("2 event battles");
+    await expect(night).toContainText("then 3 on Trophy Road");
+    await expect(night).toContainText("Ended on the 12,500 floor");
+    await expect(night).toContainText("12,530 → 12,500");
+    await expect(
+      night.getByRole("img", { name: "0 won, 3 lost" }),
+    ).toBeVisible();
+    // Two modes: no one record for the night.
+    await expect(night.locator(".ladder-night__record")).toHaveText("");
+
+    const open = night.getByRole("button");
+    await expect(open).toHaveAttribute("aria-expanded", "false");
+    await open.click();
+    await expect(open).toHaveAttribute("aria-expanded", "true");
+    const rows = night.locator(".battle-row");
+    await expect(rows).toHaveCount(5);
+    await expect(rows.first()).toContainText("11:09 pm");
+    await expect(rows.first()).toContainText("lost 0–1");
+    // Links come from the tool's url, never built here.
+    await expect(rows.first()).toHaveAttribute(
+      "href",
+      /^\/battle\/[0-9a-f]{12}$/,
+    );
+    await accessible(page, "ladder days");
+
+    await page.getByRole("button", { name: "Show all 17 nights" }).click();
+    await expect(nights).toHaveCount(17);
+
+    // Every page of the season was read, compact, as the reader's player.
+    const reads = calls.filter((c) => c.tool === "battles_query");
+    expect(reads.length).toBe(2);
+    expect(reads[0]?.args).toMatchObject({
+      player_tag: "#20JJJ2CCRU",
+      season: "current",
+      verbosity: "compact",
+      limit: 50,
+      include_total: true,
+    });
+    expect(reads[1]?.args.cursor).toBe("at:50");
+  });
+
+  test("a battle without a page is a row, not a link", async ({ page }) => {
+    await page.clock.setFixedTime(TODAY);
+    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await page.goto("/ladder/days");
+    await page.getByRole("button", { name: "Show all 17 nights" }).click();
+    // The fixture's fifty-fifth battle, a war loss on the 26th, has no url.
+    const night = page
+      .locator(".ladder-night")
+      .filter({ hasText: "Sat, Sep 26" });
+    await night.getByRole("button").click();
+    await expect(night.locator("span.battle-row")).toHaveCount(1);
+    await expect(night.locator("a.battle-row")).toHaveCount(3);
+  });
+
+  test("@narrow the calendar is a list of the days so far, and nothing scrolls sideways", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(TODAY);
+    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await page.goto("/ladder/days");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "17 of 23 days played" }),
+    ).toBeVisible();
+    await expect(page.locator(".ladder-cal__weekdays")).toBeHidden();
+    await expect(page.locator(".ladder-day--future").first()).toBeHidden();
+    await expect(
+      page.locator(".ladder-day").filter({ hasText: "Sep 10" }),
+    ).toContainText("Thu Sep 10");
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+    await accessible(page, "ladder days narrow");
+  });
+});

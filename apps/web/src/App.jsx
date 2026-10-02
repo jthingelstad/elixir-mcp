@@ -817,6 +817,13 @@ export const DOC_LINKS = {
       ["players_summary", "/docs/tools/players#players_summary"],
     ],
   ],
+  "ladder:days": [
+    "Ladder",
+    [
+      ["Days played", "/docs/ladder#days-played"],
+      ["battles_query", "/docs/tools/battles#battles_query"],
+    ],
+  ],
 };
 
 /** Structural redirects: a bare section to its first page, a partial

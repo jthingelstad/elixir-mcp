@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Ladder: the days you played",
+    body: "Ladder has a second page, Days played, at /ladder/days: every day of the season on your calendar in your own timezone, each mode with its own mark and record, the two modes you played most as tiles, the longest break, and your nights (runs of battles with no gap over half an hour), newest first. Open a night to see each battle, and a battle opens on its own page. A defense of your clan's boat is not your battle and is left out, as on the season home.",
+  },
+  {
+    date: "2026-10-02",
     title: "A battle's page belongs to no part of Elixir",
     body: "A battle's page is public and reads the same signed out, so the bar at the top no longer marks the Console as the place you are in there: Console, Ladder and Clan are plain links, and on a phone the bar's button says Menu. The Console's sign-in card now says Elixir, the platform's name. No change to the tools.",
   },

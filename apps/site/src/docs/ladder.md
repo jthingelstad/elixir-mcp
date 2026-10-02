@@ -30,9 +30,12 @@ Each mode is its own game, so each has its own tab, and nothing on a page
 pools across them. **Trophy Road** and **Path of Legends** match you by
 different rules; a war battle draws its opponent from the clans racing that
 week, not from your trophies; an event plays by its own. A win rate across
-all of them would describe none of them.
+all of them would describe none of them. [Modes](/docs/modes) says how
+Elixir tells them apart.
 
-A page opens on the mode you played most: Path of Legends when your last 30
+Days played is the one page that shows every mode at once, and it still
+keeps each mode's mark and record apart. Any other page opens on the mode
+you played most: Path of Legends when your last 30
 days hold more of it than Trophy Road, otherwise Trophy Road. The tabs are
 addresses (`/ladder?mode=ranked`), so a link to one mode stays in it.
 
@@ -71,12 +74,40 @@ The season home is the current season so far in the chosen mode, from
 The season itself runs first Monday to first Monday at 10:00 UTC, which
 the page gives in your own timezone, as it gives every time.
 
+## Days played
+
+**Days played**, at `/ladder/days`, lays the season on your calendar in
+your own timezone, from [battles_query](/docs/tools/battles#battles_query):
+the season's battles in compact form, read fifty to a page. A page view
+reads at most twelve pages, the newest 600 battles; past that, the days it
+did not reach are marked "not read", never drawn as days without a battle.
+
+- **Days played**: the days with at least one battle, of the season's days
+  so far, today included.
+- **A tile for each of the two modes you played most**: the days you
+  played it, its battles and its own record.
+- **Longest break**: the longest run of whole days with no battle before
+  today.
+- **The calendar**: one cell a day, each mode with its own mark and
+  record, and the day's battles counted in the corner. A battle after
+  midnight counts on the next day.
+- **Nights**: a night is a run of battles with no gap longer than 30
+  minutes, newest first. A night in one mode shows its record; a night
+  across modes shows each mode's record where it was played, and never one
+  for the night. On Trophy Road it shows the trophies you started and
+  ended on, and says so when you ended on the floor. Open a night for its
+  battles; a battle opens on its own page when the record has one.
+
+A defense of your clan's boat is not your battle, so Days played leaves it
+out, as the season home does.
+
 ## What Ladder leaves out
 
 - **A verdict.** Nothing on Ladder rates you, projects a pace ("at this
   rate, Arena 20 by Friday") or suggests a change. A record is evidence;
   what it means is yours to say.
 - **When you play.** The hour-of-day rhythm tile was removed from the
-  console by decision, and Ladder follows it.
+  console by decision, and Days played follows it: the nights say when you
+  played, and no chart sums them into a habit.
 - **Matchup expectations.** How you should do against a deck is a judgment
   Elixir does not make; what happened against it is on the record.

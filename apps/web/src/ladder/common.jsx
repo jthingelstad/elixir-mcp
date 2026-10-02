@@ -64,7 +64,7 @@ export function Record({ wins, losses, draws = 0 }) {
   );
 }
 
-export function Tile({ label, children, small = false }) {
+export function Tile({ label, children, small = false, sub = null }) {
   return (
     <div className="ladder-tile">
       <span className="ladder-tile__label">{label}</span>
@@ -73,6 +73,7 @@ export function Tile({ label, children, small = false }) {
       >
         {children}
       </span>
+      {sub ? <span className="ladder-tile__sub">{sub}</span> : null}
     </div>
   );
 }
