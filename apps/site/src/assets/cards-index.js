@@ -1,17 +1,18 @@
 /** Catalog browsing and art fallback. No game-wide statistics are requested. */
 (function () {
-  document.addEventListener(
-    "error",
-    function (event) {
-      const img = event.target;
-      if (!img?.classList?.contains("card-art__img")) return;
-      const blank = document.createElement("span");
-      blank.className = "card-art__blank";
-      blank.textContent = img.getAttribute("data-name") || "";
-      img.replaceWith(blank);
-    },
-    true,
-  );
+  function missingArt(img) {
+    if (!img?.classList?.contains("card-art__img")) return;
+    const blank = document.createElement("span");
+    blank.className = "card-art__blank";
+    blank.textContent = img.getAttribute("data-name") || "";
+    img.replaceWith(blank);
+  }
+  document.addEventListener("error", (event) => missingArt(event.target), true);
+  // The deferred script may arrive after an uncached image has failed.
+  // Register first, then handle completed failures whose event was missed.
+  for (const img of document.querySelectorAll("img.card-art__img")) {
+    if (img.complete && img.naturalWidth === 0) missingArt(img);
+  }
   const root = document.querySelector("[data-cards-index]");
   const grid = root?.querySelector("[data-cards-grid]");
   if (!grid) return;

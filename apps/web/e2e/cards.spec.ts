@@ -105,6 +105,11 @@ test("@narrow catalog and card facts fit phone, tablet and desktop", async ({
 test("a missing card-art cache keeps catalog facts readable", async ({
   page,
 }) => {
+  // Force image failure before the deferred script registers its handler.
+  await page.route("**/assets/cards-index.js*", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await route.continue();
+  });
   await page.route("**/assets/cards/**", (route) =>
     route.fulfill({ status: 404, body: "not cached" }),
   );
