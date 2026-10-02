@@ -24,6 +24,7 @@ conventions that hold everywhere.
 | Over a window, or since X compared with before | `battles_performance` (`from`/`to`, `before_after`, `group_by: "week"`; pass `mode`, or read the per-mode-group split, `modes`, it returns without one) |
 | What decks do I play, and how do they do? | `battles_decks` (a page of decks, each one line of card names; `next_offset` for more), `battles_decks({ deck_hash })` for one deck's cards in full, `battles_query({ deck_hash })` for its battles |
 | Show me the battles themselves; the workhorse | `battles_query` (filters, cursor, `verbosity: "compact"`) |
+| A link to one battle, to hand a person | the row's `url` from `battles_query`, [the battle's public page](/docs/battles#a-battles-page); `battles_query({ battle_id })` also takes the short id or the `url` |
 | What day is it in the game? Season, war day, when it rolls | `game_clock` |
 | My clan today: standings, who still has decks | `war_current` (`decks_today` can guide a nudge only while `race_finished_at` is null) |
 | Every current member's W/L/D over a short window | `clans_standings({ days: 1, min_battles: 1 })`, or explicit `from`/`to`; each row carries the ladder `net_trophies` and the `current_streak` too, and one member's battle-by-battle detail is `battles_performance` |

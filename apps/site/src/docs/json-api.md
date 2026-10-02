@@ -46,7 +46,7 @@ calls, and answer with that tool's result.
 | `GET /me` | person | who you are to Elixir and the players you track |
 | `POST /me/players` | person (`recordings:write`) | `elixir_track_player` |
 | `GET /players/{tag}/profile` | person | `players_profile` |
-| `GET /players/{tag}/battles` | person | `battles_query`, compact, up to 50 |
+| `GET /players/{tag}/battles` | person | `battles_query`, compact, up to 50; each battle's `url` is [its public page](/docs/battles#a-battles-page) |
 | `POST /players/names` | person | `players_names`, up to 100 tags |
 | `GET /clans/{tag}/roster` | person, integration | `clans_roster` |
 | `GET /clans/{tag}/participation` | person, integration | `clans_participation`, 1 to 8 weeks |

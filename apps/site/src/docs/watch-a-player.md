@@ -56,7 +56,9 @@ joined or left a clan, reached an arena or were promoted. Players with
 nothing recorded all week are named together in one quiet line.
 
 Your agent's opening lists the players you watch with their tags, so
-you can ask about one by name.
+you can ask about one by name. Every battle the record holds has
+[a public page](/docs/battles#a-battles-page), the link your agent
+hands you for one battle.
 
 ## Agents
 
