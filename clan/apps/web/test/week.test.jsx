@@ -74,10 +74,18 @@ describe("the week in the clan", () => {
     expect(
       screen.getByText(/Clan Wars, Ranked play and Donations/),
     ).toBeTruthy();
-    const war = screen.getByRole("list", { name: "Clan Wars: who took part" });
-    expect(war.textContent).toMatch(/Ada · 16 ✓/);
-    expect(war.textContent).toMatch(/Bo · 10/);
-    expect(war.textContent).not.toMatch(/Cy/);
+    // War splits into every deck asked and partway, each with n/asked.
+    const all = screen.getByRole("list", {
+      name: "Clan Wars: played every deck asked",
+    });
+    const partway = screen.getByRole("list", { name: "Clan Wars: partway" });
+    expect(all.textContent).toMatch(/Ada16\/16/);
+    expect(partway.textContent).toMatch(/Bo10\/16/);
+    expect(all.textContent + partway.textContent).not.toMatch(/Cy/);
+    // The tiles count what the week returned.
+    const tiles = screen.getByRole("group", { name: "The week in numbers" });
+    expect(tiles.textContent).toMatch(/Took part2 of 3/);
+    expect(tiles.textContent).toMatch(/Every deck asked1/);
     expect(screen.getByText(/1 member played every deck asked/)).toBeTruthy();
     // Who came and went: departed, never kicked or left.
     expect(screen.getByText("Departed")).toBeTruthy();

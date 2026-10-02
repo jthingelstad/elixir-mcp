@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-01",
+    title: "Elixir Clan's week, redrawn",
+    body: "The week in Elixir Clan has the new design. The top says where you are, and the week's numbers sit in a row of tiles: how many members took part in the war, how many played some of their decks and how many played every deck asked. The war lists everyone in two groups, each name with their decks out of those asked, and who came and went sits beside it with the week so far. It is the same report as before, and who sees it has not changed. No change to the tools.",
+  },
+  {
+    date: "2026-10-01",
     title:
       "New guides for your account, friends, emails, modes and building on Elixir",
     body: "Eight new pages in the docs, each about one thing you came to do: your account (signing in, your players, your time zone, removal), following a friend and watching any player, milestone emails, turning an email off, why modes are kept apart, signing in to Elixir's own apps with your Elixir account, and the JSON API. Three older pages pointed at the console's Overview for things that live on Tracking and Profile, and now point at the right place. No change to the tools.",
