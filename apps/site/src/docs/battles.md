@@ -28,7 +28,8 @@ answers from the perspective of the tag you asked about:
 
 | Field | Meaning |
 |---|---|
-| `battle_id` | the record's identity; `battles_query({ battle_id })` returns it from every side |
+| `battle_id` | the record's identity; `battles_query({ battle_id })` returns it from every side, and takes the short id or the `url` as well |
+| `url` | the battle's public page, `https://elixir.poapkings.com/battle/<short id>`: both decks, the towers and how it ended, readable without signing in, with a share picture at the same address plus `.png`. The short id is the first 12 characters of `battle_id`, longer only where another recorded battle shares them. It is the link to hand a person for one battle |
 | `battle_time` | when it was played, ISO 8601 UTC. Never when it was captured |
 | `battle_time_local` | the same instant as ISO 8601 with a UTC offset (`2026-09-09T23:31:47-05:00`), present when a timezone applies (the account's, or the call's `timezone`) |
 | `type` | the API's battle type, exactly as the game names it (`PvP`, `riverRacePvP`, `boatBattle`, ...) |
@@ -39,8 +40,9 @@ answers from the perspective of the tag you asked about:
 | `context` | full verbosity: the battle's own facts as the log carried them. `event_tag` names the event a challenge or event battle belongs to (joins `game_events` by tag; a battle can name an event the daily events read never sighted); `tournament_tag` the tournament; `ladder_tournament` and `hosted` the API's own flags; `deck_selection` how the deck was chosen. Compact carries `deck_selection` alone, at the top level |
 | `deck_selection` | `collection` for the player's own deck, `warDeckPick` for a river-race duel deck picked from the player's own war decks (both chosen by the player, and both kept by the meta); `draft`, `draftCompetitive`, `pick`, `predefined`, `eventDeck` and the like for a deck handed out or drafted on the spot, which has no identity a player will play again. Read it before treating a `deck_hash` as a deck the player owns |
 | `boat` | full verbosity, `boatBattle` rows only: `side` (`attacker` or `defender`), `towers_before` and `towers_after` (the clan's towers destroyed on this boat before and after the attack) and `remaining` (the boat's towers still standing) |
-| `me` | the asked-about participant: `outcome` (`win`, `loss`, `draw` or `unresolved`), `crowns`, `trophy_change`, `starting_trophies`, `deck_hash`, `deck`, `elixir`, `tower_hp` |
-| `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, `deck_hash`, `clan_tag`, `deck`, `elixir`, `tower_hp` |
+| `me` | the asked-about participant: `outcome` (`win`, `loss`, `draw` or `unresolved`), `crowns`, `trophy_change`, `starting_trophies`, `clan_tag`, `clan_name`, `deck_hash`, `deck`, `elixir`, `tower_hp` |
+| `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, their own `trophy_change` and `starting_trophies`, `deck_hash`, `clan_tag`, `clan_name`, `deck`, `elixir`, `tower_hp` |
+| `clan_tag`, `clan_name` | the clan the player was in at battle time, by tag, and that clan's name as last recorded beside it (`null` for a clan the record does not keep) |
 | `name_known` | `false` when no observation ever carried a name for that tag; `players_names` resolves the ones the corpus knows |
 | `rounds_played` | present on duel rows only: how many games the row collapses |
 | `rounds[]` | duel rows only: each game's own `crowns`, `tower_hp` and `elixir` (with its own differential) |

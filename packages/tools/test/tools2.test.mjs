@@ -963,6 +963,89 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
   assert.equal(missing.body.error.code, "not_found");
 });
 
+test("battles_query links: url, short id, both sides' trophies and clans (9.18.0)", async () => {
+  const {
+    rows: [pvp],
+  } = await db.query(
+    `select bp.battle_id from battle_participant bp join battle b using (battle_id)
+      where b.type = 'PvP' and bp.side = 0
+        and exists (select 1 from battle_participant o
+                     where o.battle_id = bp.battle_id and o.side = 1)
+      order by bp.battle_id limit 1`,
+  );
+  const byId = await call("battles_query", { battle_id: pvp.battle_id });
+  assert.equal(byId.isError, false, JSON.stringify(byId.body));
+  const [battle] = byId.body.battles;
+  const short = battle.url.split("/").pop();
+  assert.match(
+    battle.url,
+    /^https:\/\/elixir\.poapkings\.com\/battle\/[0-9a-f]{12,64}$/,
+  );
+  assert.ok(pvp.battle_id.startsWith(short));
+  // The short id, and the link itself, name the same battle.
+  for (const ref of [short, battle.url, `${battle.url}.png`]) {
+    const again = await call("battles_query", { battle_id: ref });
+    assert.equal(again.isError, false, JSON.stringify(again.body));
+    assert.equal(again.body.battle_id, pvp.battle_id, ref);
+    assert.equal(again.body.battles.length, 1);
+  }
+  // The other side's own trophies and clan, from the rows the record kept.
+  const {
+    rows: [them],
+  } = await db.query(
+    `select o.trophy_change, o.starting_trophies, o.clan_tag, c.name as clan_name
+       from battle_participant o left join clan c using (clan_tag)
+      where o.battle_id = $1 and o.side = 1`,
+    [pvp.battle_id],
+  );
+  const opp = battle.opponents[0];
+  assert.equal(opp.trophy_change, them.trophy_change);
+  assert.equal(opp.starting_trophies, them.starting_trophies);
+  assert.equal(opp.clan_tag, them.clan_tag);
+  assert.equal(opp.clan_name, them.clan_name ?? null);
+  assert.ok(Object.hasOwn(battle.me, "clan_tag"));
+  assert.ok(Object.hasOwn(battle.me, "clan_name"));
+  // A short id nobody holds is an empty page, not an error.
+  const none = await call("battles_query", { battle_id: "ffffffffffff" });
+  assert.equal(none.isError, false, JSON.stringify(none.body));
+  assert.equal(none.body.battles.length, 0);
+});
+
+test("battle links grow past a shared prefix", async () => {
+  const { battleLinks, resolveBattleRef } =
+    await import("../../record/src/battle-links.mjs");
+  const {
+    rows: [base],
+  } = await db.query(
+    `select battle_id, battle_time, type, type_class from battle order by battle_id limit 1`,
+  );
+  // A second battle sharing the first 12 characters (a link issued
+  // before it existed now names two).
+  const twin =
+    base.battle_id.slice(0, 12) +
+    (base.battle_id[12] === "0" ? "1" : "0") +
+    base.battle_id.slice(13);
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class) values ($1, $2, $3, $4)`,
+    [twin, base.battle_time, base.type, base.type_class],
+  );
+  try {
+    const links = await battleLinks(db, [base.battle_id, twin]);
+    const a = links.get(base.battle_id).short_id;
+    const b = links.get(twin).short_id;
+    assert.ok(a.length >= 13 && b.length >= 13, `${a} ${b}`);
+    assert.notEqual(a, b);
+    assert.deepEqual(await resolveBattleRef(db, a), [base.battle_id]);
+    assert.deepEqual(
+      (await resolveBattleRef(db, base.battle_id.slice(0, 12))).sort(),
+      [base.battle_id, twin].sort(),
+    );
+    assert.deepEqual(await resolveBattleRef(db, "not a battle"), []);
+  } finally {
+    await db.query(`delete from battle where battle_id = $1`, [twin]);
+  }
+});
+
 test("battles_query addressing modes: battle_id alone, corpus deck_hash alone", async () => {
   const { rows: one } = await db.query(
     `select bp.battle_id, bp.deck_hash from battle_participant bp
