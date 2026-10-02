@@ -5156,6 +5156,206 @@ button.ladder-player__head:hover {
   margin-top: auto;
   font-size: 13px;
 }
+.ladder-tile__sub {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+
+/* Days played (LadderDays.dc.html): the season on the account's
+   calendar, one cell a day, each mode its own mark and record; the shade
+   deepens with the day's battles. Then the nights, newest first. */
+.ladder-cal__weekdays,
+.ladder-cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.ladder-cal {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ladder-cal__weekdays {
+  margin-bottom: 8px;
+  padding-left: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.ladder-day {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 96px;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--ground-sunken);
+  border: 1px solid var(--line-row);
+  font-size: 12px;
+}
+.ladder-day--l1 {
+  background: color-mix(in srgb, var(--accent) 9%, var(--ground-sunken));
+}
+.ladder-day--l2 {
+  background: color-mix(in srgb, var(--accent) 19%, var(--ground-sunken));
+}
+.ladder-day--l3 {
+  background: color-mix(in srgb, var(--accent) 30%, var(--ground-sunken));
+}
+.ladder-day--today {
+  border: 2px solid var(--ok);
+}
+.ladder-day--future,
+.ladder-day--unread {
+  background: transparent;
+  border: 1px dashed var(--line-soft);
+}
+.ladder-day--blank {
+  visibility: hidden;
+}
+.ladder-day__head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.ladder-day__date {
+  flex-grow: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+.ladder-day--future .ladder-day__date,
+.ladder-day--unread .ladder-day__date {
+  color: var(--ink-faint);
+}
+/* The weekday is the column's on a wide screen, and the row's own on a
+   phone, where the calendar is a list. */
+.ladder-day__wd {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ladder-day__n {
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+.ladder-day--l0 .ladder-day__n {
+  color: var(--ink-faint);
+}
+.ladder-day__mode {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--ink-body);
+}
+.ladder-day__label {
+  flex-grow: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ladder-day__none {
+  color: var(--ink-faint);
+}
+.ladder-day--today .ladder-day__none {
+  color: var(--ok);
+}
+.mode-chip__dot--casual {
+  background: var(--ink-faint);
+}
+
+.ladder-nights {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ladder-night {
+  border-bottom: 1px solid var(--line-row);
+}
+.ladder-night__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 18px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-body);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ladder-night__head:hover {
+  background: var(--hover-row);
+}
+.ladder-night__when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 132px;
+  flex-shrink: 0;
+}
+.ladder-night__day {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.ladder-night__time,
+.ladder-night__sub {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.ladder-night__what {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-grow: 1;
+  min-width: 0;
+  font-size: 13.5px;
+}
+.ladder-night__seg .ladder-record {
+  margin-left: 6px;
+  font-size: 12.5px;
+}
+.ladder-night__record {
+  width: 60px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 13.5px;
+}
+.ladder-night__trophies {
+  width: 150px;
+  flex-shrink: 0;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+.ladder-night__chev {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--ink-faint);
+  transition: transform 0.15s;
+}
+.ladder-night__head[aria-expanded="true"] .ladder-night__chev {
+  transform: rotate(180deg);
+}
+.ladder-night__battles {
+  margin: 0;
+  padding: 0 18px 10px 166px;
+}
+.ladder-night__battles .battle-row__when {
+  width: 64px;
+}
 
 @media (max-width: 900px) {
   .ladder-tiles {
@@ -5179,5 +5379,53 @@ button.ladder-player__head:hover {
   }
   .ladder-tile__value--sm {
     font-size: 17px;
+  }
+  /* The calendar becomes a list of the days so far, newest first, each
+     naming its weekday; the weeks' padding and the days to come drop
+     out. */
+  .ladder-cal {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 6px;
+  }
+  .ladder-cal__weekdays,
+  .ladder-day--blank,
+  .ladder-day--future {
+    display: none;
+  }
+  .ladder-day {
+    min-height: 0;
+  }
+  .ladder-day__wd {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+  .ladder-night__head {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    padding: 12px 14px;
+  }
+  .ladder-night__when {
+    width: auto;
+    flex-direction: row;
+    gap: 8px;
+    align-items: baseline;
+  }
+  .ladder-night__what {
+    flex-basis: 100%;
+    order: 3;
+  }
+  .ladder-night__record {
+    width: auto;
+    margin-left: auto;
+  }
+  .ladder-night__trophies {
+    width: auto;
+  }
+  .ladder-night__battles {
+    padding: 0 14px 10px;
   }
 }

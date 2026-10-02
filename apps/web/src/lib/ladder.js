@@ -20,6 +20,7 @@ export const LADDER = "/ladder";
 /** The pages, in rail order. `slug` "season" is the bare /ladder. */
 export const LADDER_PAGES = [
   { slug: "season", label: "Season", icon: "chart-line" },
+  { slug: "days", label: "Days played", icon: "calendar-days" },
 ];
 
 /** The mode groups a Ladder page reads, one at a time, in tab order.

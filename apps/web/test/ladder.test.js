@@ -74,7 +74,9 @@ test("every Ladder page has a rail position, a title and a docs strip entry", ()
   for (const [, links] of LADDER_PAGES.map(
     (p) => DOC_LINKS[`ladder:${p.slug}`],
   ))
-    expect(links.some(([, href]) => href === "/docs/ladder")).toBe(true);
+    expect(
+      links.some(([, href]) => href.split("#")[0] === "/docs/ladder"),
+    ).toBe(true);
 });
 
 test("an address carries the player without its hash and only what was given", () => {

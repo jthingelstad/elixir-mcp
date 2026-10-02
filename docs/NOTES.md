@@ -1838,3 +1838,39 @@ Console, and the kit bar with no `current` lights nothing and says Menu.
 Pinned in `chrome-menu.test.jsx` beside the bar's other cases, and in
 `battle.spec.ts` at both widths. The sign-in wall now says "This part of
 Elixir", not "Elixir MCP".
+
+---
+
+---
+
+## 2026-10-02 - Ladder's Days played page
+
+The second Ladder slice (LadderDays.dc.html) is `/ladder/days`. It reads
+`battles_query` for the current season, compact, 50 a page, through
+`next_cursor` up to 12 pages (`SWEEP_PAGES`, the newest 600 battles, at most
+twelve calls of the reader's quota per view, cached five minutes). When the
+sweep stops early, the days up to and including the oldest day it reached
+are drawn "not read" and left out of every count, since that oldest day may
+be partial. Days are the account zone's calendar dates; the calendar runs
+from the season's first local day to the day before its last, plus the last
+morning when a battle fell in it.
+
+Decisions: no mode tabs on this page (it is the one page that shows every
+mode at once), but each mode keeps its own mark and record everywhere,
+including a night across modes, where the board's one pooled record became
+one record per mode as played; the two mode tiles are the two modes played
+most (the board's "Trophy Road nights" counted days, so the tile says
+days); "All nights" is an in-place "Show all" rather than a page; a night
+opens as a disclosure listing its battles, linked through the url
+battles_query returned (the path of that url, so the link stays in the app,
+as Battle.jsx does); and "When you play" is left out, following the removal
+of the console's rhythm tile.
+
+Boat defenses: battles_performance leaves them out (0171) and battles_query
+does not, and its compact row carries the battle's `boat.side` but not which
+side the row's player was on. Days played treats `boat.side: "defender"` as
+a defense, which is right whenever the battle was recorded from this
+player's own log (side 0). A defense recorded first from the attacker's log
+would count here as the player's battle. The clean fix is a hub field (the
+player's own boat role on the row); it is not added here.
+

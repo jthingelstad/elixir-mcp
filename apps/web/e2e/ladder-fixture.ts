@@ -184,6 +184,165 @@ export function summary(
   };
 }
 
+/**
+ * The season's battles as battles_query returns them (compact), from
+ * the Days board: each day's modes and results in the order played,
+ * one night a day starting at the local time given (Central, UTC-5 in
+ * September). Trophy Road starts at 12,530 and moves 30 a battle, down
+ * to the 12,500 floor, where a loss carries no change.
+ */
+type Played = [mode: string, results: string];
+const DAYS: [day: string, start: string, played: Played[]][] = [
+  ["2026-09-08", "21:00", [["ladder", "WWL"]]],
+  ["2026-09-09", "20:10", [["ladder", "WLWLL"]]],
+  [
+    "2026-09-10",
+    "19:30",
+    [
+      ["war", "WWL"],
+      ["ladder", "L"],
+    ],
+  ],
+  ["2026-09-11", "19:00", [["war", "WLL"]]],
+  [
+    "2026-09-12",
+    "18:00",
+    [
+      ["event", "L"],
+      ["war", "WW"],
+      ["ladder", "L"],
+    ],
+  ],
+  ["2026-09-15", "19:27", [["ladder", "WLWLL"]]],
+  ["2026-09-16", "21:00", [["ladder", "WLL"]]],
+  [
+    "2026-09-17",
+    "19:00",
+    [
+      ["war", "WW"],
+      ["ladder", "W"],
+    ],
+  ],
+  [
+    "2026-09-18",
+    "19:00",
+    [
+      ["war", "LLL"],
+      ["ladder", "L"],
+    ],
+  ],
+  ["2026-09-19", "17:00", [["war", "WWL"]]],
+  [
+    "2026-09-20",
+    "19:00",
+    [
+      ["war", "WLL"],
+      ["ladder", "L"],
+    ],
+  ],
+  ["2026-09-21", "22:00", [["ladder", "W"]]],
+  ["2026-09-22", "21:11", [["ladder", "WLWLLL"]]],
+  ["2026-09-23", "20:00", [["ladder", "LL"]]],
+  ["2026-09-24", "19:00", [["war", "WWW"]]],
+  [
+    "2026-09-26",
+    "19:00",
+    [
+      ["war", "LLL"],
+      ["ladder", "W"],
+    ],
+  ],
+  [
+    "2026-09-28",
+    "22:37",
+    [
+      ["event", "LL"],
+      ["ladder", "LLL"],
+    ],
+  ],
+];
+const OPPONENTS = ["Lucky Red Panda", "Chanco", "JaxikoLane", "Ditaka"];
+
+function seasonBattles() {
+  const out: Record<string, unknown>[] = [];
+  let trophies = 12530;
+  let i = 0;
+  for (const [day, start, played] of DAYS) {
+    const [h = 0, m = 0] = start.split(":").map(Number);
+    // Central is UTC-5: 9:00 pm on the 8th is 02:00Z on the 9th.
+    let t = Date.parse(`${day}T00:00:00Z`) + ((h + 5) * 60 + m) * 60_000;
+    for (const [mode, results] of played)
+      for (const r of results) {
+        i++;
+        const win = r === "W";
+        const ladder = mode === "ladder";
+        const change = !ladder
+          ? null
+          : win
+            ? 30
+            : trophies <= 12500
+              ? null
+              : -Math.min(30, trophies - 12500);
+        const id = (0x5eed0000 + i).toString(16).padStart(12, "0");
+        out.push({
+          battle_id: `${id}${"0".repeat(52)}`,
+          // One battle the record has no page for: no url, no link.
+          url: i === 55 ? null : `https://elixir.poapkings.com/battle/${id}`,
+          battle_time: new Date(t).toISOString(),
+          type: ladder ? "PvP" : mode === "war" ? "riverRacePvP" : "trail",
+          game_mode: { id: 72000006, name: "Ladder" },
+          arena: { id: 54000142, name: "Ultimate Clash Pit" },
+          league_number: null,
+          mode_group: mode,
+          deck_selection: "collection",
+          me: {
+            outcome: win ? "win" : "loss",
+            crowns: win ? 2 : 0,
+            trophy_change: change,
+            starting_trophies: ladder ? trophies : null,
+            clan_tag: "#J2RGCRVG",
+            clan_name: "POAP KINGS",
+            global_rank: null,
+            deck_hash: TOP_DECK.deck_hash,
+          },
+          teammates: [],
+          opponents: [
+            {
+              player_tag: "#2PQ8RV0L",
+              name: OPPONENTS[i % OPPONENTS.length],
+              name_known: true,
+              crowns: win ? 0 : 1,
+              trophy_change: null,
+              starting_trophies: null,
+              deck_hash: "c0ffee",
+              clan_tag: null,
+              clan_name: null,
+              global_rank: null,
+            },
+          ],
+        });
+        if (ladder) trophies += change ?? 0;
+        t += 8 * 60_000;
+      }
+  }
+  // A defense of the clan's boat: in the log, never the member's battle.
+  const last = out[out.length - 1] ?? {};
+  out.push({
+    ...last,
+    battle_id: `${"d".repeat(64)}`,
+    url: null,
+    battle_time: "2026-09-25T00:30:00.000Z",
+    type: "boatBattle",
+    mode_group: "war",
+    boat: { side: "defender" },
+    me: { ...(last.me as object), outcome: "loss" },
+  });
+  return out.sort((a, b) =>
+    String(b.battle_time).localeCompare(String(a.battle_time)),
+  );
+}
+const BATTLES = seasonBattles();
+
 export interface ToolCall {
   tool: string;
   args: Record<string, unknown>;
@@ -202,6 +361,25 @@ export function explore(
       { tool, is_error: false, body },
     ];
     if (tool === "players_summary") return ok(players_summary);
+    if (tool === "battles_query") {
+      const limit = Number(args.limit ?? 25);
+      const from = Number(String(args.cursor ?? "0").replace(/^at:/, ""));
+      const page = BATTLES.slice(from, from + limit);
+      return ok({
+        player_tag: args.player_tag,
+        applied: {
+          ...APPLIED,
+          limit,
+          verbosity: args.verbosity ?? "full",
+        },
+        battles: page,
+        ...(args.include_total ? { total_count: BATTLES.length } : {}),
+        next_cursor:
+          from + limit < BATTLES.length ? `at:${from + limit}` : null,
+        notes: [],
+        meta: META,
+      });
+    }
     if (tool === "battles_performance") {
       const mode = String(args.mode ?? "ladder");
       const base = {
