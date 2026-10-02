@@ -2299,3 +2299,39 @@ The follow-up is contract 9.19.2, unchanged JSON API 2.10.0. The first-use
 read-back passes at 390 pixels with no page errors, document overflow or
 serious/critical accessibility violations. Public tools and changelog confirm
 9.19.1; the production pipeline and five signed v3.0.6 collectors stay healthy.
+
+
+PR #214 (`7f9e36c6`) shipped 9.19.2, again with no new migrations and
+43 green smoke checks. The scoped battles/cards gate ran 310 cases,
+six failures, eight guarded skips and 279 distinct calls. Card profiles
+now pass: catalogue Knight 8.1s (previous gate 17.9s), Barbarian Barrel
+10.9s (previous 15.6s), and the formerly timed-out Archer Queen case
+10.9s. Card meta's seven-day budget passes at 7.6s.
+
+Two remaining tight budgets are fix-forward: catalogue trends#1 at 4.4s
+against 4s and synergy#0 at 8.6s against 6.794s. The exact trends profile
+still reads 27,593 participant heap blocks before retaining 1,078 recorded
+ladder observations. Its final query selects covered player/time keys,
+filters recording membership, then fetches the heap-only values. A seeded
+regression holds multiple distinct games at one timestamp, a mixed mode
+and an unresolved result, without multiplication or changed exclusions.
+
+The exact synergy profile reads 142,897 blocks: three population-table
+scans plus the full participant heap despite a bounded recording cursor.
+The final query reads anchor-bearing cached participants and every duel
+parent once, expands rounds afterwards, and probes participants only for
+bounded recent battle IDs. The overlap check remains against the full
+cache's primary keys; its planner barrier prevents another full cache scan.
+The absent-cache path bounds battle IDs by the canonical season time.
+Cache/tail/form/band equivalence still passes; no index or migration is needed.
+
+The other four failures (Gym 116.3, 203.4, 287.4 and 322.4) reuse one
+collection meta-decks response. The first isolated rerun also failed;
+`audit_census` over the gate window confirms two meta-decks query timeouts.
+The subsequent exact call returns in 2.9s with all membership/sync notes;
+each assertion is rerun alone. This is the existing cold collection-read
+latency item, retained for Elixir Operator under #195, not a text change.
+No note assertion or query ceiling is weakened, and no new known entry hides it.
+
+The finalized-August parity and pre-fix rankings exceptions remain as
+previously triaged. This final tuning patch is 9.19.3; JSON API stays 2.10.0.

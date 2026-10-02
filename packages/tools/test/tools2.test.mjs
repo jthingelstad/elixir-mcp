@@ -3140,3 +3140,44 @@ test("season partners from the population plus late arrivals equal the raw seaso
     await db.query("rollback");
   }
 });
+
+test("corpus trends preserve distinct battles at the same player timestamp and reapply mode filters", async () => {
+  await db.query("begin");
+  try {
+    for (const [id, type, outcome, trophies] of [
+      ["trend-collision-ladder", "PvP", "win", 11],
+      ["trend-collision-casual", "clanMate", "loss", null],
+      ["trend-collision-unresolved", "PvP", null, null],
+    ]) {
+      await db.query(
+        `insert into battle (battle_id, battle_time, type, type_class)
+         values ($1, '2026-07-01T05:00:00Z', $2, 'pvp')`,
+        [id, type],
+      );
+      await db.query(
+        `insert into battle_participant (battle_id, player_tag, side, battle_time, type, type_class, outcome, trophy_change)
+         values ($1, $2, 0, '2026-07-01T05:00:00Z', $3, 'pvp', $4, $5)`,
+        [id, OBSERVER, type, outcome, trophies],
+      );
+    }
+    for (const [mode, expected] of [
+      [null, 2],
+      ["ladder", 1],
+      ["casual", 1],
+    ]) {
+      const { body, isError } = await call("battles_trends", {
+        segment: "corpus",
+        from: "2026-07-01T04:59:59Z",
+        to: "2026-07-01T05:00:01Z",
+        ...(mode ? { mode } : {}),
+      });
+      assert.equal(isError, false, JSON.stringify(body));
+      assert.equal(body.weeks.length, 1);
+      assert.equal(body.weeks[0].battles, expected);
+      assert.equal(body.weeks[0].players, 1);
+      assert.equal(body.weeks[0].net_trophies, mode === "casual" ? 0 : 11);
+    }
+  } finally {
+    await db.query("rollback");
+  }
+});

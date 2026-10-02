@@ -1219,9 +1219,9 @@ const POP_GAME_COLUMNS = [
   "trophy_band",
   "level_gap",
 ];
-export const POP_GAMES = duelGamesSql("meta_season_pop", POP_GAME_COLUMNS, {
-  blank: ["level_gap"],
-});
+export const popGamesSql = (from) =>
+  duelGamesSql(from, POP_GAME_COLUMNS, { blank: ["level_gap"] });
+export const POP_GAMES = popGamesSql("meta_season_pop");
 
 /** What a meta window held that the decided head-to-head population left
  *  out, so a 246-vs-212 gap is self-describing instead of something a

@@ -57,7 +57,7 @@ export const battles_trends = {
     // corpus, the recorded players' side only: every battle has two
     // sides, so counting both makes every win rate 0.500 by construction
     // (Jamie 2026-09-25).
-    const where = ["bp.outcome is not null", notBoatDefense()];
+    const where = ["bp.outcome is not null"];
     const membership =
       seg.where ?? `bp.player_tag in (${RECORDED_PLAYERS_SQL})`;
     const win = await resolveSeasonWindow(ctx, args, {
@@ -78,29 +78,38 @@ export const battles_trends = {
       params.push(typesForModeGroup(args.mode));
       where.push(`bp.type = any($${params.length})`);
     }
-    const event = eventContentSql("bp.type", "b.event_tag");
+    const detail = seg.where ? "bp" : "p";
+    const event = eventContentSql(`${detail}.type`, "b.event_tag");
     const mode = args.mode
       ? `and ${args.mode === EVENT_MODE_GROUP ? event : `not ${event}`}`
       : "";
-    // Bound a corpus read by time before joining the recorded players.
-    // Otherwise the planner walks each player's entire covering index,
-    // fetching thousands of cold heap pages to reject out-of-window rows.
+    // Time, player, outcome and type are covered by the window index.
+    // Apply recording membership before fetching the heap-only trophies
+    // and battle id. DISTINCT keys preserve multiple battles at one instant.
     const bounded = seg.where
       ? ""
       : `bounded as materialized (
-      select bp.player_tag, bp.battle_id, bp.battle_time, bp.outcome, bp.type,
-             bp.trophy_change, bp.side
-      from battle_participant bp where ${where.join(" and ")}),`;
-    const source = seg.where ? "battle_participant" : "bounded";
-    const scope = seg.where ? `${where.join(" and ")} and ` : "";
+      select distinct bp.player_tag, bp.battle_time
+      from battle_participant bp where ${where.join(" and ")}),
+      recorded as materialized (
+      select bp.* from bounded bp where ${membership}),`;
+    const source = seg.where ? "battle_participant" : "recorded";
+    const heap = seg.where
+      ? ""
+      : `join battle_participant p
+      on p.player_tag = bp.player_tag and p.battle_time = bp.battle_time`;
+    const scope = seg.where
+      ? `${where.join(" and ")} and ${membership}`
+      : where.join(" and ").replaceAll("bp.", "p.");
     // Weekly, mode and distinct-player aggregates share this population.
     const { rows } = await ctx.db.query(
       `with ${bounded} selected as materialized (
-         select bp.player_tag, bp.battle_time, bp.outcome, bp.type, bp.trophy_change,
-                ${modeGroupSql("bp.type", "b.event_tag")} as mode_group
-           from ${source} bp
-           join battle b on b.battle_id = bp.battle_id
-          where ${scope}${membership} ${mode}),
+         select ${detail}.player_tag, ${detail}.battle_time, ${detail}.outcome,
+                ${detail}.type, ${detail}.trophy_change,
+                ${modeGroupSql(`${detail}.type`, "b.event_tag")} as mode_group
+           from ${source} bp ${heap}
+           join battle b on b.battle_id = ${detail}.battle_id
+          where ${scope} and ${notBoatDefense(detail)} ${mode}),
        by_mode as (
          select date_trunc('week', battle_time) as week_start, mode_group,
                 count(*)::int as battles,

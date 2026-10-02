@@ -12,10 +12,10 @@
  * counters are hourly and the distinct-player counts nightly.
  */
 
-import { unbandedTypes } from "@elixir-mcp/contracts";
+import { DUEL_TYPES, unbandedTypes } from "@elixir-mcp/contracts";
 import {
   META_METHODOLOGY,
-  POP_GAMES,
+  popGamesSql,
   participantGamesSql,
 } from "./tools/shared.mjs";
 
@@ -345,11 +345,14 @@ export async function rollupSynergy(
   // Read the cache cursor and rows in one statement snapshot. A day can
   // already be rebuilt beyond that cursor, so exclude cached identities
   // from the raw tail instead of double-counting them during a rebuild.
+  // OFFSET 0 keeps the tail's participant lookup after its battle-id bound
+  // and the overlap check as primary-key probes rather than a cache scan.
+  // Cache only anchor decks plus duel parents; expand their rounds afterwards.
   const popBand = banded
     ? `and bp.trophy_band = $${params.push(roll.trophyBand)}`
     : "";
   const games = `select bp.deck_hash, bp.player_tag, bp.outcome
-       from ${POP_GAMES} bp
+       from ${popGamesSql("cached_participants")} bp
        where bp.season_month = $4 and bp.battle_time >= $1 and bp.battle_time < $2
          and exists (select 1 from population_state)
          and bp.outcome in ('win', 'loss') and bp.type_class = 'pvp' ${typeClause} ${popBand}
@@ -362,21 +365,33 @@ export async function rollupSynergy(
            select 1 from meta_season_pop cached, population_state
             where cached.season_month = $4
               and cached.game_day = (bp.battle_time - interval '10 hours')::date
-              and cached.battle_id = bp.battle_id and cached.player_tag = bp.player_tag)`;
+              and cached.battle_id = bp.battle_id and cached.player_tag = bp.player_tag
+           offset 0)`;
   const { rows: partners } = await db.query(
     `with population_state as materialized (
        select pop_through from meta_season_state st
         where season_month = $4 and pop_through is not null
           and exists (select 1 from meta_season_pop_day d where d.season_month = st.season_month)),
-     recent_participants as materialized (
-       select bp.* from battle b join battle_participant bp on bp.battle_id = b.battle_id
+     recent_battles as materialized (
+       select b.battle_id from battle b
        where b.created_at > coalesce((select pop_through from population_state), '-infinity'::timestamptz)
+         and b.battle_time >= $1 and b.battle_time < $2
          and b.event_tag is null
-         and (b.deck_selection is null or b.deck_selection in ('collection', 'warDeckPick'))
-         and bp.battle_time >= $1 and bp.battle_time < $2),
+         and (b.deck_selection is null or b.deck_selection in ('collection', 'warDeckPick'))),
+     recent_participants as materialized (
+       select bp.* from recent_battles b
+       join lateral (
+         select p.* from battle_participant p where p.battle_id = b.battle_id
+           and p.battle_time >= $1 and p.battle_time < $2 offset 0) bp on true),
      anchored as materialized (
        select distinct a.deck_hash from deck_card a
        where a.card_id = $3 ${formClause}),
+     cached_participants as materialized (
+       select bp.* from meta_season_pop bp
+       where bp.season_month = $4 and bp.battle_time >= $1 and bp.battle_time < $2
+         and exists (select 1 from population_state)
+         and (bp.deck_hash in (select deck_hash from anchored)
+              or bp.type = any('{${DUEL_TYPES.join(",")}}'::text[]))),
      games as (${games}),
      identities as materialized (
        select dc.deck_hash, dc.card_id, dc.form from anchored a
