@@ -42,15 +42,17 @@ connection almost everybody wants.
 
 ### Signing in to other Elixir products with this account
 
-Elixir Clan (and, soon, Elixir Drop) can sign you in **with Elixir**: the
-same consent page, plus one extra line, *Know your email address*. Only the
-Elixir family's own apps (a client the maintainer has provisioned for
-the family, with every redirect on a family origin) can ask for it; any other client is never granted it, whatever it
-asks for. That is how those products know you are the same person you are
-here. It is listed on Connections like any other client, and disconnecting
-it there ends its access. The address itself is never released to any
-client outside the family, which includes every MCP client and agent. See
-[Protocol → Signing a person in](/docs/protocol#signing-a-person-in-with-elixir).
+Elixir Clan and Elixir Drop sign you in **with Elixir**: the same consent
+page, listing what each asks for. Elixir Clan asks to *Record what you do in
+your clan*, and Elixir Drop to *Know your email address*. Only the Elixir
+family's own apps (a client the maintainer has provisioned for the family,
+with every redirect on a family origin) can ask for either; any other client
+is never granted them, whatever it asks for. Each app learns who you are
+from your Elixir account, so you are the same person there as here. Each is
+listed on Connections like any other client, and disconnecting it there
+ends its access. Your address is never released to any client outside the
+family, which includes every MCP client and agent. See
+[Sign in with Elixir](/docs/sign-in-with-elixir).
 
 ### Your first question
 

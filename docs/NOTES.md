@@ -1613,3 +1613,34 @@ The layout (`_includes/doc.njk`) gained a breadcrumb, "Next:" links to the
 following pages in the group, and "Something wrong on this page?", which opens
 the console's feedback form with the page named. The architecture-diagram
 test now scopes past the lede, since the breadcrumb carries icons too.
+
+---
+
+## 2026-10-01 - Eight task pages, and what writing them found
+
+New docs pages, every sentence read against the code: `your-account`,
+`follow-a-friend`, `watch-a-player`, `milestones`, `turn-an-email-off`,
+`modes`, `sign-in-with-elixir`, `json-api`. Corrected on the way:
+quickstart, recording and roles sent people to Account → Overview to track
+a player, track a clan or ask for a tier (it is Tracking, Tracking, and
+Profile ▸ Ask for more slots; approval already makes the requested tag the
+primary). Connections and protocol said Elixir Clan signs in with
+`account:email`; Clan asks for `cr:read clans:attest`, and Drop for
+`cr:read recordings:write account:email`.
+
+Found in the product's own copy and left for its owners (the docs say what
+the code does):
+
+- The tracked player's Notifications note says "never email", but notify
+  off also drops the player from the Wednesday Tracking report
+  (`subjectsFor` filters on `notify`).
+- `elixir_track_player` applies `relationship` only when it adds the
+  player; re-adding a tracked player as a friend changes nothing yet
+  echoes the relationship in `applied`. Its error hint names "the
+  console's Players page", which is Tracking.
+- The Top 100 footer's turn-off link reads "Turn off Ultimate Champions".
+- A milestone's "Next:" line is rendered but never built (`next: null`).
+- The JSON API's problem `type` URIs link `/docs/integrations/#<code>`, and
+  no heading on that page carries a code's id, so each lands at the top.
+- The tool family pages double-escape quotes in tool descriptions
+  (`&amp;quot;mine&amp;quot;`), live as well as in a fresh build.
