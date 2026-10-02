@@ -8,7 +8,9 @@ migration source, not the desired architecture. Follow the root
 `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md` for the transition. Preserve
 verified-player authority, in-game roles, private state and the provenance
 of clan decisions when moving the engine and its records. No cutover or
-retirement of this store has happened yet.
+retirement of this store has happened yet. The shared ledger now lives in
+`packages/clan-state`; the legacy API uses its transitional Dynamo adapter.
+Migration 0196 is an empty Postgres destination, not a production import.
 
 Elixir Clan: being in a clan, on top of Elixir. One of the Elixir family's
 verticals (`../../elixir-family/MAP.md`), served on Elixir's origin: the

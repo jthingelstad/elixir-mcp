@@ -2692,3 +2692,30 @@ now explicitly says it supplies recorded fixtures, so those unchanged
 criteria still fail on the old faulty captures. A regression proves that
 live runs make no call when blocked and a replay still catches the missing
 field. No criterion or captured evidence was weakened to pass the gate.
+### 2026-10-02: Clan state consolidation foundation (not a cutover)
+
+Read-only live inventory counted 146 DynamoDB items across 20 kinds: 15
+sessions and 131 durable items, including one sealed model key. No item
+values, tokens, personal text or IDs were returned to agent context.
+The durable counts establish the preservation checklist; sessions are
+intentionally left behind when Elixir's session takes over.
+
+The common ledger moved into packages/clan-state and the legacy runtime
+now consumes that one package through a temporary Dynamo adapter. Migration
+0196 adds an empty private Postgres item store and import receipt table;
+no existing game table changes and no live state has been imported. Stable
+keys and full item JSON preserve IDs, version pointers, evidence, mail
+watermarks, preferences and sealed boxes. Model keys stay outside clan
+listings, as they were. The importer requires a private snapshot's exact
+SHA-256, refuses unknown kinds and session/token/plaintext-key material,
+imports only into an empty destination transactionally, verifies counts,
+and refuses to overwrite subsequent state on a repeated import.
+
+Scratch Postgres tests prove lossless/idempotent import, refusals, complete
+version history, literal prefix matching and concurrent action counters,
+first-attribute assignment and daily claims on independent connections.
+The fingerprint was regenerated from that newly migrated scratch database.
+The first full verify caught the new migration pin using a directory prefix
+instead of the required filename; corrected before shipping. No deployed
+migration file was edited. Auth, routes, jobs, key sealing and legacy-runtime
+retirement remain the following consolidation work, not reported complete.

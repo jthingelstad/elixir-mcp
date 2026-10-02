@@ -1,0 +1,17 @@
+{
+  "name": "@elixir-mcp/clan-state",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/ledger.mjs",
+    "./postgres": "./src/postgres.mjs",
+    "./import": "./src/import.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "pg": "^8.13.0"
+  }
+}
