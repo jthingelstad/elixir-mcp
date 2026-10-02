@@ -114,7 +114,7 @@ function roundWinner(a, b) {
 /** The battle a reference names, projected for the page. `{status: 404}`
  *  when nothing matches; `{status: 300, matches}` when a hand-cut prefix
  *  names several (a link Elixir hands out never does). */
-export async function readPublicBattle(db, ref) {
+export async function readPublicBattle(db, ref, { around = true } = {}) {
   const ids = await resolveBattleRef(db, ref);
   if (ids.length === 0) return { status: 404 };
   if (ids.length > 1) {
@@ -191,7 +191,8 @@ export async function readPublicBattle(db, ref) {
   const leftTag = left.players[0]?.player_tag ?? null;
   const rightTag = right.players[0]?.player_tag ?? null;
   // One pg client: the two reads go one after the other.
-  const solo = kind !== "2v2" && leftTag;
+  // The share picture shows the battle alone: no meetings, no sitting.
+  const solo = around && kind !== "2v2" && leftTag;
   const meetings =
     solo && rightTag ? await meetingsOf(db, leftTag, rightTag) : [];
   const sitting = solo ? await sittingOf(db, leftTag, b.battle_time) : [];
@@ -201,8 +202,9 @@ export async function readPublicBattle(db, ref) {
       id: b.battle_id,
       short_id: link?.short_id ?? null,
       url: link?.url ?? null,
-      // The share picture (/battle/<short id>.png) is not drawn yet.
-      image: null,
+      // The share picture, drawn from this same projection
+      // (share-image.mjs): the page's address with .png on the end.
+      image: link?.url ? `${link.url}.png` : null,
       battle_time: b.battle_time,
       type: b.type,
       kind,

@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-10-02",
+    title: "A battle's link now comes with a picture",
+    body: "Every battle page has a picture: add .png to the battle's link. It is the page in one image, with the player's name on the left and the opponent's on the right, both decks as the game lays them out with each card's level, average elixir and elixir leaked, the towers' hitpoints, how it ended, and the link. A battle's link shows it when you paste the link into a chat, and the page's Share image and Copy for a post buttons give you the picture and the link to post. Contract 9.18.1.",
+  },
+  {
     date: "2026-10-01",
     title: "Every battle has a page you can share",
     body: "Each recorded battle now has its own page at elixir.poapkings.com/battle/ followed by a short id, and anyone with the link can open it, no account needed. The player is on the left and the opponent on the right, with the score, both decks as the game lays them out, a Copy deck button that opens Clash Royale with that deck ready to save, the towers each side kept and how the game ended, and the two sides' numbers side by side. A duel reads game by game. Below are the player's other battles from the same session and every recorded meeting of the two. The page shows game names only, never a nickname. Agents get the same link on every battle (url on battles_query), so they can hand it to you. Contract 9.18.0.",

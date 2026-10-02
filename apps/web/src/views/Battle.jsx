@@ -369,7 +369,7 @@ function BattleView({ read, me }) {
       <div className="battle__grid battle__grid--three">
         <Meetings read={read} zone={clock.zone} />
         <Sitting read={read} zone={clock.zone} />
-        <Share battle={battle} />
+        <Share battle={battle} sides={sides} />
       </div>
 
       {signedOut && <Invite />}
@@ -911,10 +911,20 @@ function Sitting({ read, zone }) {
   );
 }
 
-function Share({ battle }) {
+/** Text for an HTML attribute: a player names themselves, quotes and all. */
+const attr = (s) =>
+  String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+function Share({ battle, sides }) {
   if (!battle.url) return null;
+  // Just the picture and the link (Jamie: no embed for a blog).
+  const alt = `${namesOf(sides[0])} against ${namesOf(sides[1])}, a Clash Royale battle on Elixir`;
   const post = battle.image
-    ? `<a href="${battle.url}"><img src="${battle.image}" alt="A Clash Royale battle on Elixir" width="1200" height="630"></a>`
+    ? `<a href="${attr(battle.url)}"><img src="${attr(battle.image)}" alt="${attr(alt)}" width="1200" height="630"></a>`
     : null;
   return (
     <section className="panel" aria-label="Share this battle">

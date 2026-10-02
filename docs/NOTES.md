@@ -1702,3 +1702,34 @@ recorded player; when two recorded players meet, whoever was read first
 is on the left whichever of them shares it. The share picture
 (`/battle/<short id>.png`) is the next change; until it lands the preview
 image is the site's own and the `.png` address is a 404.
+
+---
+
+## 2026-10-02 - A battle's share picture
+
+Jamie, 2026-10-01: the share version should "look more like the web version
+with the cards in the familiar 2x4 and player names in left and right. It
+should show tier health, elixir. Many of the details," and no blog embed,
+"just the image and a link." `/battle/<short id>.png` is that picture, 1200
+by 630, and the page's `og:image` and `twitter:image` now name it.
+
+It is drawn in the web API, not a browser: `share-image.mjs` writes SVG from
+the page's own projection (`readPublicBattle` with `around: false`, which
+skips the meetings and sitting reads) and rasterises it with
+`@resvg/resvg-wasm`, about 150 ms warm on a laptop. The wasm and three fonts
+ride in the bundle's `share/` (`share-files.mjs` is the one list, read by the
+build and the tests). Inter is cut to static TTFs from the site's own WOFF2,
+since resvg reads no WOFF2 (`services/web-api/fonts/README.md`); Clash is
+the site's OTF. `font-metrics.mjs` reads advance widths from the fonts so
+the chips fit their words and a long name is shortened before it reaches
+the score. Card art comes from the site bucket's mirror at 128 px
+(`assets/cards/*`, a read-only grant beside `app.html` in the stack); a
+card the mirror lacks, and Mirror itself, is its name in the frame. CJK and
+emoji in a name have no glyphs in these fonts and draw as nothing; the
+page itself shows them.
+
+The picture's time is UTC, labelled, since an image has no reader's clock.
+A duel shows its games won and the last game's decks and towers; a 2v2
+shows both players a side with one row of eight each, and its chip names
+the winning side ("Left team won") rather than cutting the team to one
+name. The edge keeps a picture a day.

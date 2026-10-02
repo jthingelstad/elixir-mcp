@@ -7,7 +7,8 @@ import { currentAndPrevious } from "@elixir-mcp/auth";
 import { makeHandler } from "./handler.mjs";
 import { makeCaptureStore } from "@elixir-mcp/tools/capture";
 import { makeOutbox, countStuck } from "@elixir-mcp/outbox";
-import { makeSiteShell } from "./routes/battle.mjs";
+import { makeCardArt, makeSiteShell, shareAssetsIn } from "./routes/battle.mjs";
+import { makeShareImage } from "./share-image.mjs";
 
 const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 
@@ -68,4 +69,10 @@ export const handler = makeHandler({
   },
   // A battle's page is the app shell with the battle's preview tags.
   siteShell: makeSiteShell(process.env.SITE_BUCKET),
+  // Its share picture: resvg and the fonts ride in the bundle's share/
+  // (infra/scripts/build.mjs), the card art in the site bucket.
+  shareImage: makeShareImage({
+    assets: shareAssetsIn(new URL("./share/", import.meta.url)),
+    cardArt: makeCardArt(process.env.SITE_BUCKET),
+  }),
 });

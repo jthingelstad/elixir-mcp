@@ -383,11 +383,14 @@ Resources:
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn
               # A battle's public page (2026-10-01): the app shell it is
-              # served in, read from the site bucket. One object, read
-              # only; the site is published by the deploy, never here.
+              # served in, and the card art its share picture draws,
+              # read from the site bucket. Read only; the site is
+              # published by the deploy, never here.
               - Effect: Allow
                 Action: s3:GetObject
-                Resource: !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/app.html
+                Resource:
+                  - !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/app.html
+                  - !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/assets/cards/*
 
   # The collector door (services/collector): archives each submission at
   # admission, write-once (ArchiveBucketPolicy; a put with If-None-Match
