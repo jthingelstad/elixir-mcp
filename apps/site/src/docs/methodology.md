@@ -3,7 +3,7 @@ slug: methodology
 title: "How the numbers are made"
 description: "The populations, denominators, shrinkage formula and limits behind the meta tools and cards_card, the trophy bands, the card-level gap and rival history. Descriptive evidence, not proof of skill or improvement."
 section: record
-order: 21
+order: 9
 navTitle: "Methodology"
 icon: flask-conical
 lede: "How derived numbers are computed — meta segments, shrinkage, trophy bands, rival history."

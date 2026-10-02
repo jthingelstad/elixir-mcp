@@ -2,8 +2,8 @@
 slug: protocol
 title: "Protocol reference"
 description: "The wire contract for the MCP door: transport, OAuth discovery and registration, scopes, per-principal URLs, error codes, the response cap, versioning and the tools/list cache-buster, cursors, and the meta envelope."
-section: using
-order: 10
+section: agent
+order: 5
 navTitle: "Protocol"
 icon: network
 lede: "The MCP surface: transport, sessions, errors and versioning."

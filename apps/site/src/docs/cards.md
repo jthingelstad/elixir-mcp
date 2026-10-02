@@ -3,7 +3,7 @@ slug: cards
 title: "Cards in the record"
 description: "How a card is recorded: the catalog and its types and forms, the 1-16 level scale, card rows on every battle side, deck identity, the collection snapshot, and the season rollups; then which tool answers which card question, and cards_card, which answers most of them in one call."
 section: record
-order: 19
+order: 4
 navTitle: "Cards"
 icon: layers
 lede: "One card, every place the record holds it, and the one call that gathers them."

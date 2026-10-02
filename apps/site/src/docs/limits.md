@@ -2,8 +2,8 @@
 slug: limits
 title: "Limits"
 description: "Every quota and rate limit in one table, with the exact refusal each produces: the hourly bucket, daily tool calls, live fetches, slots, agents, OAuth registration, sign-in codes, the collector door and the REST API."
-section: using
-order: 13
+section: agent
+order: 7
 navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a tier changes."

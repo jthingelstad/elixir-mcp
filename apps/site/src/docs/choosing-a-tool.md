@@ -2,8 +2,8 @@
 slug: choosing-a-tool
 title: "Choosing a tool"
 description: "Which tool answers which shape of question, the four call sequences most answers follow (how am I doing, scout a bracket, name to tag to drill, how have I moved), and the conventions every tool shares on one screen: defaults, windows, verbosity, notes and docs, live reads and the timezone argument."
-section: using
-order: 9
+section: agent
+order: 3
 navTitle: "Choosing a tool"
 icon: compass
 lede: "The tool reference is exhaustive. This page is the map: question in, tool out."

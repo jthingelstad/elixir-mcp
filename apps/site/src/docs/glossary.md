@@ -3,7 +3,7 @@ slug: glossary
 title: "Glossary"
 description: "The words Elixir MCP uses, each in a sentence or two: recorded and tracked, claims and relationships, scope and segment, decided battles and head-to-head, the game day, series, stamps, kinds and the four trophy kinds, the policy day and war vocabulary, forms and deck identity, principals and budgets, and the response fields and controls that carry caveats."
 section: record
-order: 20
+order: 8
 navTitle: "Glossary"
 icon: book-a
 lede: "Sixty-odd words the service uses precisely, so a search for one of them finds the page that uses it."

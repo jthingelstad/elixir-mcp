@@ -3,7 +3,7 @@ slug: quickstart
 title: "Connect a client"
 description: "From nothing to a working connection: request access, add your player, then connect Claude.ai, Claude Desktop, Claude Code, or any MCP client to https://elixir.poapkings.com/mcp, with the exact steps for each and an honest note on ChatGPT."
 section: start
-order: 1
+order: 2
 navTitle: "Quickstart"
 icon: rocket
 lede: "Connect your MCP client, tell Elixir what to record, and ask it about Clash Royale history. Five minutes, no key to paste."

@@ -4,7 +4,7 @@ title: "Roles and quotas"
 description: "Roles never gate what you can read. Every approved account reads all recorded game data; tiers set how much Elixir MCP records for you and how many calls your agent gets per day."
 section: policy
 order: 30
-navTitle: "Roles & tiers"
+navTitle: "Roles and tiers"
 icon: shield-check
 lede: "What each tier records for you — never what you may read."
 console: ["Your tier", "/console/account/profile", "Console ▸ Profile"]

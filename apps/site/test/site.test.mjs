@@ -673,11 +673,11 @@ test("inline HTML in a doc survives the markdown renderer", { skip }, () => {
   // diagram, because the tag spans two lines. The page still built,
   // still passed every other check, and rendered as a column of loose
   // words where a diagram belonged. Hence marked, and hence this test.
-  // Scoped to the doc body: the top bar now carries an inline icon, so
-  // the page's FIRST <svg> is the Console button rather than the
-  // diagram this test is about.
+  // Scoped to the doc body below the lede: the top bar and the
+  // breadcrumb carry inline icons, so the page's FIRST <svg> is an
+  // icon rather than the diagram this test is about.
   const page = read("docs/architecture/index.html");
-  const html = page.slice(page.indexOf("<article"));
+  const html = page.slice(page.indexOf('class="docs__lede"'));
   const open = html.indexOf("<svg");
   assert.ok(open > -1, "the architecture diagram is gone");
   const close = html.indexOf("</svg>", open);

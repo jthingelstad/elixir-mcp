@@ -2592,6 +2592,9 @@ input[aria-invalid="true"] {
   color: var(--ink-faint);
 }
 .docs__crumb span {
+  color: var(--ink-faint);
+}
+.docs__crumb [aria-current] {
   color: var(--ink-body);
 }
 .docs__lede {
@@ -2618,6 +2621,255 @@ input[aria-invalid="true"] {
 }
 .docs__console .btn {
   margin-left: auto;
+}
+
+/* ── The docs rail, page and home (design 2026-10-01) ────────────────
+   The rail is the apps' rail: each group of the docs is one row (glyph,
+   label, chevron) that opens in place, a <details>, so it works without
+   JavaScript; the open group lists its pages as rail children, the
+   gold rule on the current one. */
+.docrail__group > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.docrail__group > summary::-webkit-details-marker {
+  display: none;
+}
+.docrail__summary {
+  gap: 12px;
+  min-height: 36px;
+  padding: 8px 11px;
+}
+.docrail__summary > svg {
+  color: var(--ink-faint);
+}
+.docrail__label {
+  flex: 1 1 auto;
+}
+.docrail__summary > svg:last-child {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.docrail__group[open] > .docrail__summary {
+  color: var(--ink);
+  font-weight: 600;
+}
+.docrail__group[open] > .docrail__summary > svg:first-child {
+  color: var(--gold);
+}
+.docrail__group[open] > .docrail__summary > svg:last-child {
+  transform: rotate(90deg);
+}
+.siterail--docs .rail__child {
+  min-height: 32px;
+  padding: 6px 11px 6px 39px;
+}
+.siterail--docs .docrail__family {
+  padding-left: 52px;
+  font-size: 13px;
+}
+.siterail--docs .rail__child--deep {
+  padding-left: 64px;
+}
+/* A search hides what does not match; the rail's classes set `display`,
+   which beats the browser's own [hidden] rule. */
+.siterail--docs .siterail__list [hidden] {
+  display: none;
+}
+.docrail__note {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+.docrail__note code {
+  color: var(--ink-dim);
+}
+/* The rail's head row is the phone's disclosure; on a desktop the
+   search box leads, as drawn. */
+@media (min-width: 901px) {
+  .siterail--docs .siterail__head {
+    display: none;
+  }
+}
+.docs__crumb > svg {
+  color: var(--ink-faint);
+}
+.docs__title {
+  font-size: 38px;
+  margin: 0 0 10px;
+}
+.docs__onpage-label {
+  margin-bottom: 9px;
+}
+.docs__onpage-edit {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-dim);
+}
+/* What to read next, and a way to say the page is wrong. */
+.docs__next {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 32px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13.5px;
+  color: var(--ink-faint);
+}
+.docs__next-links {
+  flex: 1 1 auto;
+}
+.docs__wrong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* The docs home: one card per thing a person comes to do. */
+.docs-layout .docs__body--home {
+  max-width: none;
+}
+.docs-tasks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 28px 0;
+}
+.docs-task {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: var(--r-panel);
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.docs-task__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.docs-task__icon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-control);
+  background: var(--panel-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+}
+.docs-task__title {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.docs-task__product {
+  flex: 0 0 auto;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.docs-task__text {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-body);
+}
+.docs-task__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+.docs-new {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: var(--r-panel);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
+}
+.docs-new > svg {
+  flex: 0 0 auto;
+  color: var(--accent-bright);
+}
+.docs-new p {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-body);
+}
+.docs-new b {
+  color: var(--ink);
+}
+.docs-ref {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.docs-ref__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.docs-ref__head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.docs-ref__head span {
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+.docs-ref__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.docs-ref__links a {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-control);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+  font-size: 13.5px;
+}
+.docs-ref__links a:hover {
+  border-color: var(--accent-deep);
+  color: var(--ink);
+}
+@media (max-width: 1180px) {
+  .docs-tasks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .docs-tasks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .docs-new {
+    flex-wrap: wrap;
+  }
 }
 /* Rail cards on Examples and Family: "More like this", siblings. */
 .rail-card {

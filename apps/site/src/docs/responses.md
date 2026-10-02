@@ -2,8 +2,8 @@
 slug: responses
 title: "Reading a response"
 description: "Every Elixir MCP response carries a meta envelope: when it was computed, how far back the record goes, how fresh it is, whether capture was incomplete, and the id of the call that produced it."
-section: using
-order: 12
+section: agent
+order: 6
 navTitle: "Responses"
 icon: file-json
 lede: "The shape of what comes back, and how to read the footnotes on a number."

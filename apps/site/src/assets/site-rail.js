@@ -4,7 +4,8 @@
  * Two jobs, both progressive: below the one breakpoint the rail's head
  * row is a disclosure that opens the list in place — above the content,
  * never over it — and on Docs the search box narrows the rail to the
- * pages whose name or description matches, with "/" focusing it.
+ * pages whose name or description matches, opening the groups that
+ * hold them, with "/" focusing it.
  * Without JavaScript the full list is in the page and every link works.
  *
  * External file, never inline: the CSP forbids inline script and a test
@@ -24,24 +25,32 @@
     const search = rail.querySelector("[data-docs-search]");
     if (search) {
       const items = [...rail.querySelectorAll("[data-search]")];
-      const groups = [...rail.querySelectorAll(".rail__group")];
+      // The docs' groups are disclosures, one open; a search opens every
+      // group with a match and hides the rest, and clearing it puts back
+      // the groups as they were.
+      const groups = [...rail.querySelectorAll("[data-docs-group]")].map(
+        (el) => ({ el, open: el.open }),
+      );
       const apply = () => {
         const q = search.value.trim().toLowerCase();
         for (const el of items)
           el.hidden = Boolean(q) && !el.dataset.search.includes(q);
-        // A group heading with nothing left under it goes too.
         for (const g of groups) {
-          let el = g.nextElementSibling;
-          let any = false;
-          while (el && !el.classList.contains("rail__group")) {
-            if (el.matches("[data-search]") && !el.hidden) any = true;
-            el = el.nextElementSibling;
-          }
-          g.hidden = !any;
+          const any = [...g.el.querySelectorAll("[data-search]")].some(
+            (el) => !el.hidden,
+          );
+          g.el.hidden = Boolean(q) && !any;
+          g.el.open = q ? any : g.open;
         }
         // Searching opens the rail on a phone, or the matches are unseen.
         if (q) rail.dataset.open = "true";
       };
+      // A group opened or closed by hand is how it stays when the
+      // search is cleared.
+      for (const g of groups)
+        g.el.addEventListener("toggle", () => {
+          if (!search.value.trim()) g.open = g.el.open;
+        });
       search.addEventListener("input", apply);
       document.addEventListener("keydown", (e) => {
         if (e.key !== "/" || e.target === search) return;

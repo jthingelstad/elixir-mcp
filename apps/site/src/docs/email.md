@@ -2,8 +2,8 @@
 slug: email
 title: "Email"
 description: "The eight emails Elixir sends: four weekly reports built from your record with no model in the loop, two written weekly pieces, a milestone note when something you did is a first, and Elixir Clan's note when something new in your clan is yours to do. Every one is a switch on your account page; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
-section: using
-order: 17
+section: friends
+order: 3
 navTitle: "Email"
 icon: mail
 lede: "Eight kinds, each a switch, each with a turn-off link in every issue. Six are weekly; one arrives when something you did is a first; one when something in your clan is yours to do."

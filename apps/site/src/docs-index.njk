@@ -1,46 +1,100 @@
 ---
 layout: doc.njk
 title: "Docs"
-description: "Documentation for Elixir MCP: connecting your agent, the difference between users, agents and integrations, the full tool reference, how the numbers are made, and how the service treats your data."
+description: "Elixir's documentation, by what you came to do: your account and players, your clan, your friends and the weekly emails, your own AI agent, what every number in the record means, and building on Elixir."
 permalink: /docs/index.html
 canonical: /docs
 navActive: docs
 ---
-<h1>Documentation</h1>
+{#-
+  The docs home, as the 2026-10-01 design draws it: the title, then one
+  card per thing a person comes to do, each linking the pages that do
+  it; a pointer to the Quickstart for someone new; and the record's
+  reference pages as a row of links. A card links only pages that
+  exist (`docPages` leaves out a slug no page has yet), and a card with
+  none is left out, so the home never links a page before it is written.
+-#}
+{%- set tasks = [
+  { icon: "chart-line", title: "See how I am doing", product: "Ladder",
+    text: "Your season by mode, the nights you played, your decks, and the cards across the table from you.",
+    slugs: ["ladder-season", "ladder-decks", "ladder-cards"] },
+  { icon: "users", title: "Run my clan", product: "Clan",
+    text: "Your leaders write the clan's policy once. Elixir Clan reads the record against it and hands them the calls to make.",
+    slugs: ["bring-your-clan", "standing", "clan-actions"] },
+  { icon: "heart", title: "Follow my friends", product: "Friends",
+    text: "Follow friends, watch any player, and get a Wednesday email on how each of them did.",
+    slugs: ["follow-a-friend", "watch-a-player"] },
+  { icon: "mail", title: "Get emails", product: "Emails",
+    text: "What each email holds, when it lands, and the switch for every one.",
+    slugs: ["email", "milestones", "turn-an-email-off"] },
+  { icon: "bot", title: "Ask my AI", product: "MCP",
+    text: "Connect Claude or any MCP client to your whole record. Which tool answers which question, and how to read the answers.",
+    slugs: ["connections", "choosing-a-tool", "tools"] },
+  { icon: "code", title: "Build on Elixir", product: "Developers",
+    text: "Sign in with Elixir, the JSON API and integration keys, and running a collector of your own.",
+    slugs: ["integrations", "sign-in-with-elixir", "operators"] }
+] %}
+{%- set record = collections.docSections | docGroup("record") %}
+<nav class="docs__crumb" aria-label="Breadcrumb"><span aria-current="page">Docs</span></nav>
+<h1 class="hero-title docs__title">Elixir docs</h1>
+<p class="docs__lede">Elixir keeps your Clash Royale record and reads it back to you: in the console, in your clan, by email and through your own AI. Start with what you want to do.</p>
 
-<p>Elixir MCP records the Clash Royale history the official API doesn't keep,
-and serves it to your own agent. If you just want that working, the
-<a href="/docs/quickstart">quickstart</a> is five minutes. If you are trying to
-work out whether you want a personal connection or an agent for your clan,
-read <a href="/docs/connections">users, agents and integrations</a> first —
-it's the distinction everything else rests on. Building a client or an agent?
-The <a href="/docs/protocol">protocol reference</a>, <a href="/docs/agents">agent guide</a>
-and <a href="/docs/limits">limits</a> are written for you.</p>
-
-{%- for s in collections.docSections %}
-<h2>{{ s.label }}</h2>
-<dl class="outline">
-  {%- for d in s.pages %}
-  <dt><a href="{{ d | pageUrl }}">{{ d.data.title }}</a></dt>
-  <dd>{{ d.data.description }}</dd>
+<div class="docs-tasks">
+  {%- for t in tasks %}
+  {%- set pages = collections.docs | docPages(t.slugs) %}
+  {%- if pages.length %}
+  <section class="docs-task" aria-labelledby="task-{{ loop.index }}">
+    <div class="docs-task__head">
+      <span class="docs-task__icon">{% icon t.icon, 17 %}</span>
+      <h2 class="docs-task__title" id="task-{{ loop.index }}">{{ t.title }}</h2>
+      <span class="docs-task__product">{{ t.product }}</span>
+    </div>
+    <p class="docs-task__text">{{ t.text }}</p>
+    <div class="docs-task__links">
+      {%- for d in pages %}
+      <a href="{{ d | pageUrl }}">{{ d.data.navTitle or d.data.title }}</a>
+      {%- endfor %}
+    </div>
+  </section>
+  {%- endif %}
   {%- endfor %}
-</dl>
-{%- endfor %}
+</div>
 
-<h2>For agents</h2>
-<dl class="outline">
-  <dt><code>elixir_docs</code>, <code>elixir_examples</code>, <code>elixir_updates</code></dt>
-  <dd>This documentation, the worked examples and What's new, read over the MCP connection itself: the index, one page, one section, or a word search. Start with <a href="/docs/choosing-a-tool">Choosing a tool</a> and the <a href="/docs/glossary">glossary</a>.</dd>
-  <dt><code>elixir://docs/&lt;slug&gt;</code> and friends</dt>
-  <dd>The same pages as MCP resources (<code>elixir://docs</code>, <code>elixir://docs/&lt;slug&gt;#&lt;section&gt;</code>, <code>elixir://examples</code>, <code>elixir://changelog</code>, <code>elixir://updates</code>, <code>elixir://cards</code>), listed lazily by clients that cache <code>tools/list</code>; the eleven examples are also prompts.</dd>
-  <dt><a href="/llms.txt">/llms.txt</a></dt>
-  <dd>What this service is and where everything lives, in one short file.</dd>
-  <dt><a href="/llms-full.txt">/llms-full.txt</a></dt>
-  <dd>Every documentation page and the whole tool reference in one fetch.</dd>
-  <dt><a href="/tools.json">/tools.json</a></dt>
-  <dd>The tool registry as JSON: names, groups, descriptions, arguments, and the capability each one requires.</dd>
-  <dt><a href="/api/public/stats">/api/public/stats</a></dt>
-  <dd>Live corpus totals and the full-history daily series. No authentication.</dd>
-  <dt><a href="/updates">Updates</a></dt>
-  <dd>Every contract version and what shipped in it — the same list <code>elixir_changelog</code> returns.</dd>
-</dl>
+<div class="docs-new">
+  {% icon "rocket", 18 %}
+  <p><b>New here?</b> The Quickstart takes you from asking for access to your first answer: an account, your player, and your own AI agent connected.</p>
+  <a class="btn btn--gold" href="/docs/quickstart">Quickstart</a>
+</div>
+
+<section class="docs-ref" aria-labelledby="docs-ref">
+  <div class="docs-ref__head">
+    <h2 id="docs-ref">The record</h2>
+    <span>what every number means, for people and agents alike</span>
+  </div>
+  <div class="docs-ref__links">
+    {%- for d in record.pages %}
+    <a href="{{ d | pageUrl }}">{{ d.data.navTitle or d.data.title }}</a>
+    {%- endfor %}
+  </div>
+</section>
+
+<section class="docs-ref" aria-labelledby="docs-agents">
+  <div class="docs-ref__head">
+    <h2 id="docs-agents">For agents</h2>
+    <span>these pages and the tool reference, read by a machine</span>
+  </div>
+  <dl class="outline">
+    <dt><code>elixir_docs</code>, <code>elixir_examples</code>, <code>elixir_updates</code></dt>
+    <dd>This documentation, the worked examples and What's new, read over the MCP connection itself: the index, one page, one section, or a word search. Start with <a href="/docs/choosing-a-tool">Choosing a tool</a> and the <a href="/docs/glossary">glossary</a>.</dd>
+    <dt><code>elixir://docs/&lt;slug&gt;</code> and friends</dt>
+    <dd>The same pages as MCP resources (<code>elixir://docs</code>, <code>elixir://docs/&lt;slug&gt;#&lt;section&gt;</code>, <code>elixir://examples</code>, <code>elixir://changelog</code>, <code>elixir://updates</code>, <code>elixir://cards</code>), listed lazily by clients that cache <code>tools/list</code>; the eleven examples are also prompts.</dd>
+    <dt><a href="/llms.txt">/llms.txt</a> and <a href="/llms-full.txt">/llms-full.txt</a></dt>
+    <dd>What this service is and where everything lives, in one short file; and every documentation page with the whole tool reference in one fetch.</dd>
+    <dt><a href="/tools.json">/tools.json</a></dt>
+    <dd>The tool registry as JSON: names, groups, descriptions, arguments, and the capability each one requires.</dd>
+    <dt><a href="/api/public/stats">/api/public/stats</a></dt>
+    <dd>Live corpus totals and the full-history daily series. No authentication.</dd>
+    <dt><a href="/updates">Updates</a></dt>
+    <dd>Every contract version and what shipped in it, the same list <code>elixir_changelog</code> returns.</dd>
+  </dl>
+</section>

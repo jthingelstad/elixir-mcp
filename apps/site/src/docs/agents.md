@@ -2,9 +2,9 @@
 slug: agents
 title: "Building an agent"
 description: "A clan agent is a principal you own with its own key, URL, timeline read pointer and feedback inbox. Creating one, what initialize tells it, resolving which human is asking with on_behalf_of and elixir_identify, consuming the timeline with its own named reader, and the key lifecycle."
-section: using
-order: 15
-navTitle: "Agents"
+section: agent
+order: 2
+navTitle: "Your agents"
 icon: bot
 lede: "A runtime that acts for one clan, with its own door, key, identity map and feed."
 console: ["Create and manage agents", "/console/account/agents", "Console ▸ Connections"]

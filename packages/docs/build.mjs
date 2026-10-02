@@ -103,19 +103,28 @@ function parse(md) {
   return { data, body: md.slice(m[0].length).trim() };
 }
 
-const SECTIONS = {
-  start: "Start here",
-  using: "Using it",
-  record: "The record",
-  policy: "Policy",
+// The docs' groups: the site's one ordered list, which its rail and
+// docs home read too. A page in a group this list does not name fails
+// the build here as it fails the site's.
+const { default: GROUPS } = await import(path.join(site, "_data/docGroups.js"));
+const groupOf = (data) => {
+  const rank = GROUPS.findIndex((g) => g.key === data.section);
+  if (rank === -1)
+    throw new Error(
+      `doc "${data.slug}" has section "${data.section}", which is not one of: ${GROUPS.map((g) => g.key).join(", ")}`,
+    );
+  return { rank, label: GROUPS[rank].label };
 };
 
+const groupRank = new Map();
 const docs = readdirSync(path.join(site, "docs"))
   .filter((f) => f.endsWith(".md"))
   .map((f) => {
     const { data, body } = parse(
       readFileSync(path.join(site, "docs", f), "utf8"),
     );
+    const group = groupOf(data);
+    groupRank.set(data.slug, group.rank);
     // Every page opens with an H1 equal to its title, which readers
     // (resources/read, elixir_docs) already print from `title`; keeping
     // it in `markdown` had every page read back with the heading twice.
@@ -129,7 +138,7 @@ const docs = readdirSync(path.join(site, "docs"))
     return {
       slug: data.slug,
       title: data.title,
-      section: SECTIONS[data.section] ?? data.section,
+      section: group.label,
       order: data.order ?? 0,
       lede: lede.length >= 40 ? lede : (data.description ?? lede),
       description: data.description ?? "",
@@ -138,7 +147,11 @@ const docs = readdirSync(path.join(site, "docs"))
       sections: sections(markdown),
     };
   })
-  .sort((a, b) => a.order - b.order);
+  // Group by group, then by `order` within one: the rail's order.
+  .sort(
+    (a, b) =>
+      groupRank.get(a.slug) - groupRank.get(b.slug) || a.order - b.order,
+  );
 
 const { default: examples } = await import(
   path.join(site, "_data/examples.js")

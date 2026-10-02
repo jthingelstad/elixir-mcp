@@ -1589,3 +1589,27 @@ declared list shape intentionally carries only `card_names`. The source repair
 uses those labels directly and has a regression test for both compact list and
 full deck shapes. No missed mail was replayed; the next scheduled arena-week
 run is the natural acceptance path.
+
+---
+
+## 2026-10-01 - The docs are grouped by task, from one list
+
+Jamie, 2026-09-29: the docs "were heavily based on Elixir MCP as a product";
+the new docs are task-first. The groups now have one source,
+`apps/site/src/_data/docGroups.js` (Start, Ladder, Clan, Friends and emails,
+Your AI agent, The record, Build on Elixir, Policy). The site's rail and docs
+home and the MCP corpus (`packages/docs/build.mjs`) all read it; before, the
+site's `SECTIONS` and the corpus's `SECTIONS` were two lists kept in step by
+hand. A page whose `section` the list does not name fails both builds, and a
+group with no pages yet (Ladder, Clan) is left out of the rail and the home.
+Pages sort by group, then by `order` within the group.
+
+Every existing page was re-keyed (front matter `section`, `order`, a shorter
+`navTitle` on a few); no slug, title or H2 moved, so every URL, every MCP
+`docs` pointer and every `/docs/integrations/#<code>` problem type is where
+it was. `privacy.md` and `terms.md` were not edited: they stay in `policy`.
+The tool reference stays generated and nests under Tools in "Your AI agent".
+The layout (`_includes/doc.njk`) gained a breadcrumb, "Next:" links to the
+following pages in the group, and "Something wrong on this page?", which opens
+the console's feedback form with the page named. The architecture-diagram
+test now scopes past the lede, since the breadcrumb carries icons too.

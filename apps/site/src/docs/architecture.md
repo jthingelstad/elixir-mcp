@@ -2,8 +2,8 @@
 slug: architecture
 title: "Architecture"
 description: "How Elixir MCP is built: the collector fleet, the recording pipeline, the Postgres corpus, and the authenticated remote MCP server behind one hostname."
-section: record
-order: 22
+section: build
+order: 5
 navTitle: "Architecture"
 icon: layers
 lede: "Collectors, the door, the job ledger, admission and retention."
