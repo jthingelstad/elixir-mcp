@@ -2738,3 +2738,10 @@ and 3371 ms respectively). An isolated read-only profile also completed
 without an error. This is a load/cache-dependent performance failure, not
 a fully green deploy gate; retain the cold-query performance follow-up.
 Read-only smoke passed after deployment. No history or archive was deleted.
+
+The foundation passed full verify after rebasing onto 11.0.1. The engine move
+passed all 51 Elixir and 15 Clan browser journeys and both deployment bundles.
+The Clan deployment change detector now includes both shared Clan packages.
+This foundation does not change a tool or shared tool implementation, so the
+root deploy uses smoke without another full live acceptance sweep; the
+existing card cold-query performance follow-up remains open.
