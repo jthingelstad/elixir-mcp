@@ -34,7 +34,6 @@ const rate = (w, l) => (w + l > 0 ? Number((w / (w + l)).toFixed(3)) : null);
 const GAME_COLUMNS = [
   "battle_id",
   "player_tag",
-  "side",
   "battle_time",
   "type",
   "type_class",
@@ -43,6 +42,13 @@ const GAME_COLUMNS = [
 ];
 const SELECTED_COLUMNS = GAME_COLUMNS.map((c) => `bp.${c}`).join(", ");
 const SELECTED_GAMES = duelGamesSql("selected_participants", GAME_COLUMNS);
+// The player/time covering index carries every scalar above, but not side.
+// Resolve side by primary key only inside the boat-defense check, rather
+// than loading every historical participant's heap row for an unused side.
+const OWN_GAMES = notBoatDefense("bp", {
+  side: `(select own.side from battle_participant own
+          where own.battle_id=bp.battle_id and own.player_tag=bp.player_tag)`,
+});
 export const cardProfileTools = {
   cards_card: {
     description:
@@ -81,7 +87,7 @@ export const cardProfileTools = {
       const { rows: firstPlayed } = await ctx.db.query(
         `with selected_participants as materialized (
            select ${SELECTED_COLUMNS} from battle_participant bp
-           where ${seg.where} and ${notBoatDefense("bp")}
+           where ${seg.where} and ${OWN_GAMES}
          ), first_deck_play as materialized (
            select bp.deck_hash, min(bp.battle_time) as at from ${SELECTED_GAMES} bp
            where bp.deck_hash is not null group by bp.deck_hash
@@ -161,7 +167,7 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
   const params = [clanTag, anchor.id, win.from.toISOString()];
   // The selected current members' own recorded games; duels count by round.
   const where = [
-    notBoatDefense("bp"),
+    OWN_GAMES,
     "bp.battle_time >= $3",
     `bp.player_tag in (${RECORDED_PLAYERS_SQL})`,
   ];

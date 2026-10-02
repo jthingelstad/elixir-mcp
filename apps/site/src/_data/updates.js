@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Card history reads less of the record",
+    body: "Card history now uses the existing player index and checks boat sides only where needed. Earliest recorded forms, own boat attacks and duel rounds stay the same; boat defenses remain excluded. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "Cleanup checks follow the recorded contents",
     body: "The reviewed history cleanup distinguishes unchanged re-fetches from new contents. Personal and clan overlap and later recordings stay protected. No game history has been purged. Contracts unchanged.",
   },
