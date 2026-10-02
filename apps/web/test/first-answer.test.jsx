@@ -152,7 +152,7 @@ test("no player: Overview says so and offers one action, and asks nothing", asyn
   ).toBeTruthy();
   // Readiness says which of the five are missing, and nothing on this
   // page offers a question it has no history to answer.
-  expect(await screen.findByText("0 of 5")).toBeTruthy();
+  expect(await screen.findByText("0 of 6")).toBeTruthy();
   expect(screen.getByText("nothing here defaults to you")).toBeTruthy();
   expect(screen.queryByRole("button", { name: /Copy question/ })).toBeNull();
   expect(navigate).not.toHaveBeenCalled();
@@ -162,11 +162,13 @@ test("readiness names what each line is waiting for, not just that it is not don
   respond();
   render(<FirstAnswer claimsKey="a" />);
   await screen.findByText("Add the player you play as");
-  expect(screen.getByText("1 of 5")).toBeTruthy();
+  expect(screen.getByText("1 of 6")).toBeTruthy();
   expect(screen.getByText("arrives on the first poll")).toBeTruthy();
-  expect(screen.getByText("0 recorded")).toBeTruthy();
   expect(
-    screen.getByText("your player's clan is offered once we see it"),
+    screen.getByText("0 recorded · a profile is enough to start"),
+  ).toBeTruthy();
+  expect(
+    screen.getByText("optional · your player's clan is offered once we see it"),
   ).toBeTruthy();
   expect(screen.getByText("no connections yet")).toBeTruthy();
 });
@@ -188,7 +190,7 @@ test("readiness carries the window on every number it shows", async () => {
     { clan_tag: "#Y8QRJ0LP", name: "POAP KINGS", war_weeks: 27 },
   );
   render(<FirstAnswer claimsKey="a" />);
-  await screen.findByText("5 of 5");
+  await screen.findByText("6 of 6");
   // A bare "1,284" is a claim; the window makes it a fact.
   expect(
     screen.getByText("1,284 in the last 30 days · 38 in the last 7"),
@@ -333,4 +335,37 @@ test("changing primary discards old suggestions even when the earlier request ar
   await waitFor(() =>
     expect(screen.queryByText(/Waiting for the first capture/)).toBeNull(),
   );
+});
+
+test("Overview links incomplete steps and offers a supported first question without counting a connection as a read", async () => {
+  respond(
+    { ...player, profile_available: true },
+    { ...connection, active_connections: 1 },
+  );
+  const copy = vi.fn().mockResolvedValue();
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: copy },
+  });
+  render(<FirstAnswer claimsKey="a" />);
+  await screen.findByText("3 of 6");
+  expect(
+    screen.getByRole("link", { name: /Track your clan/ }).getAttribute("href"),
+  ).toBe("/console/account/tracking");
+  expect(
+    screen.getByRole("link", { name: /Connection help/ }).getAttribute("href"),
+  ).toBe("/docs/quickstart");
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: "Copy question: Start with your player snapshot",
+    }),
+  );
+  await screen.findByText("Copied — paste into your connected client.");
+  expect(copy.mock.calls[0][0]).toContain(player.player_tag);
+  expect(copy.mock.calls[0][0]).toContain(
+    "Do not infer progress from a single snapshot",
+  );
+  expect(
+    screen.getByText("a connection alone does not confirm a data read"),
+  ).toBeTruthy();
 });

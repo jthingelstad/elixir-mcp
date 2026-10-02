@@ -13,8 +13,11 @@
  */
 
 import { unbandedTypes } from "@elixir-mcp/contracts";
-import { metaPopulationClause } from "@elixir-mcp/record/mode-filter";
-import { META_METHODOLOGY, PARTICIPANT_GAMES } from "./tools/shared.mjs";
+import {
+  META_METHODOLOGY,
+  PARTICIPANT_GAMES,
+  POP_GAMES,
+} from "./tools/shared.mjs";
 
 /** The raw meta scans spill at the micro's 4 MB work_mem (review 2.6:
  *  an external merge over 37k temp blocks). The call's connection is its
@@ -298,13 +301,9 @@ export async function rollupModeGroups(db, roll) {
   }));
 }
 
-/** cards_synergy over a season: the anchor's own row (form -1 = any
- *  form) and every partner's baseline from card_meta_season, the decided
- *  total from the totals; the pairs from the raw rows of the decks that
- *  CONTAIN the anchor only - deck_card by card id, then the participants
- *  by (deck_hash, battle_time) - so the distinct pilots per pair are
- *  exact and the scan is a fraction of the population (0122: a pair
- *  rollup was 25M rows to group on the micro and never landed). */
+/** Exact season partners and distinct pilots from the population cache
+ *  plus uncached observations. An absent cache reads the raw season.
+ *  The anchor's forms and each partner's forms remain independent. */
 export async function rollupSynergy(
   db,
   roll,
@@ -340,30 +339,53 @@ export async function rollupSynergy(
   const bandJoin = banded
     ? `and bl.trophy_band = $${params.push(roll.trophyBand)}`
     : "";
+  // Read the cache cursor and rows in one statement snapshot. A day can
+  // already be rebuilt beyond that cursor, so exclude cached identities
+  // from the raw tail instead of double-counting them during a rebuild.
+  const popBand = banded
+    ? `and bp.trophy_band = $${params.push(roll.trophyBand)}`
+    : "";
+  const games = `select bp.deck_hash, bp.player_tag, bp.outcome
+       from ${POP_GAMES} bp
+       where bp.season_month = $4 and bp.battle_time >= $1 and bp.battle_time < $2
+         and exists (select 1 from population_state)
+         and bp.outcome in ('win', 'loss') and bp.type_class = 'pvp' ${typeClause} ${popBand}
+       union all
+       select bp.deck_hash, bp.player_tag, bp.outcome
+       from ${PARTICIPANT_GAMES} bp
+       join battle b on b.battle_id = bp.battle_id
+       where bp.battle_time >= $1 and bp.battle_time < $2
+         and bp.outcome in ('win', 'loss') and bp.type_class = 'pvp' ${typeClause} ${bandClause}
+         and b.event_tag is null
+         and (b.deck_selection is null or b.deck_selection in ('collection', 'warDeckPick'))
+         and b.created_at > coalesce((select pop_through from population_state), '-infinity'::timestamptz)
+         and not exists (
+           select 1 from meta_season_pop cached, population_state
+            where cached.season_month = $4
+              and cached.game_day = (bp.battle_time - interval '10 hours')::date
+              and cached.battle_id = bp.battle_id and cached.player_tag = bp.player_tag)`;
   const { rows: partners } = await db.query(
-    `with anchored as (
-       select a.deck_hash from deck_card a
+    `with population_state as materialized (
+       select pop_through from meta_season_state st
+        where season_month = $4 and pop_through is not null
+          and exists (select 1 from meta_season_pop_day d where d.season_month = st.season_month)),
+     anchored as materialized (
+       select distinct a.deck_hash from deck_card a
        where a.card_id = $3 ${formClause}),
+     games as materialized (${games}),
+     identities as materialized (select deck_hash, card_id, form from deck_card),
      dp as (
        select bp.deck_hash, bp.player_tag,
               count(*)::int as battles,
               count(*) filter (where bp.outcome = 'win')::int as wins
-       from anchored ad
-       join ${PARTICIPANT_GAMES} bp on bp.deck_hash = ad.deck_hash
-       where bp.battle_time >= $1 and bp.battle_time < $2
-         and bp.outcome in ('win', 'loss') and bp.type_class = 'pvp' ${typeClause} ${bandClause}
-         -- The rollup's own population (Gym #153): the anchor row and the
-         -- baseline come from the rollup, which excludes event content and
-         -- drafted decks, so the partner walk must too - without it
-         -- co_occurrence_rate reached 4.92 and lift 139.
-         and ${metaPopulationClause()}
+       from games bp join anchored ad on bp.deck_hash = ad.deck_hash
        group by bp.deck_hash, bp.player_tag),
      pairs as (
        select dc.card_id, dc.form,
               sum(dp.battles)::int as co_battles,
               sum(dp.wins)::int as wins,
               count(distinct dp.player_tag)::int as players
-       from dp join deck_card dc on dc.deck_hash = dp.deck_hash
+       from dp join identities dc on dc.deck_hash = dp.deck_hash
        where dc.card_id <> $3
        group by dc.card_id, dc.form)
      select p.card_id, c.name, p.form, p.co_battles, p.wins, p.players,

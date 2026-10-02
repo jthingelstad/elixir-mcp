@@ -2741,6 +2741,9 @@ input[aria-invalid="true"] {
   max-width: 720px;
   line-height: 1.65;
 }
+.docs__body :not(pre) > code {
+  overflow-wrap: anywhere;
+}
 .docs__body pre {
   padding: var(--s-3);
   background: var(--ground-sunken);

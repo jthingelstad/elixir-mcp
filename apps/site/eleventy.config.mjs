@@ -567,7 +567,7 @@ export default function (eleventyConfig) {
    *  The whole diagram collapsed into flowing text. marked keeps the
    *  block intact, which is why that page looked right for months
    *  inside the app. */
-  const { marked } = require("marked");
+  const { marked, Renderer } = require("marked");
   /** Headings carry ids so pages can link to a section (marked stopped
    *  emitting them in v8). Slug: lower-case, non-alphanumerics to
    *  hyphens, trimmed - the same shape GitHub produces. */
@@ -584,6 +584,13 @@ export default function (eleventyConfig) {
       .replace(/^-+|-+$/g, "");
   marked.use({
     renderer: {
+      // A long command scrolls inside its block on phones; keyboard users
+      // need to focus that block to reach the rest of the command.
+      code(token) {
+        return Renderer.prototype.code
+          .call(this, token)
+          .replace("<pre>", '<pre tabindex="0">');
+      },
       heading({ tokens, depth }) {
         const text = this.parser.parseInline(tokens);
         return `<h${depth} id="${slug(text)}">${text}</h${depth}>\n`;

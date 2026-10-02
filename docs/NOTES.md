@@ -2207,3 +2207,50 @@ walks, but they do not yet identify one small index that collapses the served
 query without moving the product contract. No runtime, schema, collector, or
 production mutation was made. Reassess only with a repeated natural/read-only
 receipt; do not loosen ceilings or add an index from a single cold-plan read.
+
+## 2026-10-02 - Assessment improvements: analytical reads, historical presence and first use
+
+Jamie approved recommendations 1, 2 and 3. The fleet recommendation is
+withdrawn: he runs all five collectors across three locations with no shared
+infrastructure; no collector change is needed.
+
+The bounded production profile of seven-day corpus card meta read 59,289
+deck-card index probes, 21,885 deck-card blocks and 18.3 seconds cold. Corpus
+card reads now materialize deck identities once, while small segment reads
+retain their indexed join. Trends reuse one selected battle population for
+weekly totals, modes and distinct players. Season card partners read the
+existing meta population plus raw battles learned after its cursor, so a
+late capture into an old game day is counted once, including a rebuild day
+that already overlaps the raw tail. Cursor and rows share one query snapshot. Scratch equivalence tests
+cover cache, tail, absent cache, form and trophy-band paths. No migration,
+instance resize, cache reset or raised acceptance ceiling is involved.
+
+Historical clan presence retains historical tenures. Window-end quiet and
+never-recorded summaries select membership at that end; crossing/return
+moments select membership and role at their own time, including returns
+learned after departure. A regression reproduced disappearing
+presence after a later departure, and now holds the closed window equal;
+future joiners are excluded. Contract 9.19.1, unchanged response schemas;
+elixir_timeline has no JSON API mirror, so that contract stays 2.10.0.
+
+Overview links incomplete setup, offers its first supported starter question,
+and separates an authorized connection from its successful data read. The
+profile alone supports a first question and a clan is optional. Long inline
+code wraps in the phone quickstart; preformatted commands keep their own
+horizontal scrolling and are keyboard-focusable. The shared design change is checked in both apps.
+
+Preflight queued three existing findings: loop's 2026-10-01 product-contract
+acceptance failures, run's analytical latency failures (also #195), and
+Clan Operator's five successful slow clans_participation reads. This run
+addresses card/meta/trends latency; the unrelated product cases and Clan
+participation latency remain routed to their owners. Acceptance is scoped
+to battles, cards and elixir for these changes; the full untriaged suite is
+not replayed.
+
+Pre-deploy gates: `npm run verify` green across every workspace; 97 focused
+tool/identity/history regressions and all 72 browser journeys (57 Console,
+15 Clan) pass. First use was rendered at 1440 and 390 pixels with no page
+errors or horizontal document overflow; quickstart at 390 pixels passes
+the layout and serious/critical accessibility checks. The consistency trace
+reviewed MCP, Console, shared summaries/mail, docs, ledger and JSON API
+mirrors, and corrected delayed returns, tenure roles and boundary guards.

@@ -1378,7 +1378,13 @@ export async function buildClanEntry(
   // Presence: rung crossings inside the window, returns, never recorded.
   const { rows: members } = await timed(perf, "clan.members", () =>
     db.query(
-      `select cm.player_tag, p.name, cm.role,
+      `with membership as materialized (
+         select player_tag, role, joined_observed_at, left_observed_at
+           from clan_membership
+          where clan_tag = $1 and joined_observed_at < ${ts(toMs + 1)})
+       select distinct on (cm.player_tag) cm.player_tag, p.name, cm.role,
+            (select jsonb_agg(jsonb_build_object('from', m.joined_observed_at, 'to', m.left_observed_at, 'role', m.role))
+               from membership m where m.player_tag = cm.player_tag) as membership,
             (select max(bp.battle_time) from battle_participant bp
               where bp.player_tag = cm.player_tag and bp.battle_time < ${ts(toMs + 1)}) as last_battle,
             (select floor(extract(epoch from (${ts(toMs)} - max(r.fetched_at))) / 86400)::int
@@ -1386,15 +1392,26 @@ export async function buildClanEntry(
               where r.entity_key = cm.player_tag and r.endpoint = 'player_battlelog'
                 and r.fetched_at < ${ts(toMs + 1)})
               as days_since_poll
-       from clan_membership cm
+       from membership cm
        join player p on p.player_tag = cm.player_tag
-      where cm.clan_tag = $1 and cm.left_observed_at is null`,
+       order by cm.player_tag, cm.joined_observed_at desc`,
       [tag],
     ),
   );
+  // Quiet and never-recorded summaries use membership at the window's end.
+  // Moments use their own time; keep older tenures too, because a return
+  // played before `from` may only be learned inside this window.
+  const tenureAt = (m, at) =>
+    m.membership.find(
+      (period) =>
+        Date.parse(period.from) <= at &&
+        (period.to === null || Date.parse(period.to) > at),
+    );
+  const memberAt = (m, at) => Boolean(tenureAt(m, at));
   const quietCrossed = [];
   let neverRecorded = 0;
   for (const m of members) {
+    if (!memberAt(m, toMs)) continue;
     if (!m.last_battle) {
       neverRecorded += 1;
       continue;
@@ -1473,6 +1490,7 @@ export async function buildClanEntry(
         const learnedMs = open ? null : learnedAt.get(`${m.player_tag}|${end}`);
         if (
           !open &&
+          memberAt(m, end) &&
           end - start >= RETURN_AFTER_DAYS * DAY_MS &&
           (learnedMs ?? end) > fromMs &&
           (learnedMs ?? end) <= toMs
@@ -1490,6 +1508,7 @@ export async function buildClanEntry(
           // in this window (Gym #318: it was in neither window and paging
           // lost it); a closed gap ends at the battle that ended it.
           if (
+            !memberAt(m, atMs) ||
             atMs <= fromMs ||
             atMs > toMs ||
             (open ? atMs > end : atMs >= end)
@@ -1510,7 +1529,7 @@ export async function buildClanEntry(
           crossings.push({
             tag: m.player_tag,
             name: m.name,
-            role: m.role,
+            role: tenureAt(m, atMs).role,
             rung,
             // The member's poll lag rides along, as on every crossing (#163).
             days_since_poll: m.days_since_poll,

@@ -644,3 +644,85 @@ test.describe("the static site's bar", () => {
     ).toBe(true);
   });
 });
+
+test("@narrow Overview guides a profile-only account through its first successful data read", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let read = false;
+  await mockApi(
+    page,
+    signedIn({
+      "GET /api/me/first-answer": () => [
+        200,
+        {
+          player: {
+            player_tag: "#20JJJ2CCRU",
+            name: "King Thing",
+            profile_available: true,
+            profile_observed_at: new Date().toISOString(),
+            battles_7d: 0,
+            battles_30d: 0,
+          },
+          clan: null,
+          connection: {
+            active_connections: 1,
+            last_data_read_at: read ? new Date().toISOString() : null,
+          },
+        },
+      ],
+    }),
+  );
+  await page.goto("/console/account/overview");
+  const readiness = page.getByRole("region", {
+    name: "What your agent can answer",
+  });
+  await expect(readiness).toContainText("3 of 6");
+  await expect(
+    readiness.getByRole("link", { name: /Track your clan/ }),
+  ).toHaveAttribute("href", "/console/account/tracking");
+  await expect(
+    readiness.getByRole("link", { name: /Connection help/ }),
+  ).toHaveAttribute("href", "/docs/quickstart");
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await readiness
+    .getByRole("button", {
+      name: "Copy question: Start with your player snapshot",
+    })
+    .click();
+  await expect(readiness.getByRole("status")).toContainText("Copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+    "Do not infer progress from a single snapshot",
+  );
+  await accessible(page, "first-use overview");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  read = true;
+  await page.reload();
+  await expect(readiness).toContainText("4 of 6");
+  await expect(readiness).toContainText(
+    "Your client has successfully read Elixir data.",
+  );
+  await expect(
+    readiness.getByRole("link", { name: /Connection help/ }),
+  ).toHaveCount(0);
+});
+
+test("@narrow quickstart keeps long inline credentials and URLs within a phone", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/docs/quickstart");
+  await expect(
+    page.getByRole("heading", { name: "Connect a client", exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await accessible(page, "phone quickstart");
+});
