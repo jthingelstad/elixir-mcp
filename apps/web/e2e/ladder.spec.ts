@@ -434,10 +434,37 @@ test.describe("Ladder days played", () => {
       player_tag: "#20JJJ2CCRU",
       season: "current",
       verbosity: "compact",
-      limit: 50,
+      limit: 40,
       include_total: true,
     });
-    expect(reads[1]?.args.cursor).toBe("at:50");
+    expect(reads[1]?.args.cursor).toBe("at:40");
+  });
+
+  test("a page over the result cap is read again at the limit the refusal names", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(TODAY);
+    const calls: ToolCall[] = [];
+    await mockApi(
+      page,
+      signedIn({ "POST /api/explore": explore(calls, { fits: 23 }) }),
+    );
+    await page.goto("/ladder/days");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "17 of 23 days played" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Show all 17 nights" }).click();
+    await expect(page.locator(".ladder-night")).toHaveCount(17);
+
+    // One refusal, then the season from the top at the limit that fits.
+    const reads = calls.filter((c) => c.tool === "battles_query");
+    expect(reads.map((c) => [c.args.limit, c.args.cursor ?? null])).toEqual([
+      [40, null],
+      [23, null],
+      [23, "at:23"],
+      [23, "at:46"],
+    ]);
+    expect(reads[1]?.args.include_total).toBe(true);
   });
 
   test("a battle without a page is a row, not a link", async ({ page }) => {

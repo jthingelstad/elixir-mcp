@@ -29,8 +29,10 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  * Days played (LadderDays.dc.html): every day of the season on the
  * account's calendar and every night, from the season's battles as
  * battles_query returns them (compact, every page through next_cursor up
- * to the sweep's cap). Each mode keeps its own mark and its own record;
- * the page counts battles and never rates a day.
+ * to the sweep's cap). Forty compact rows fit the result cap with room;
+ * a page that does not is read again at the limit the hub's refusal
+ * names (lib/battle-sweep.js). Each mode keeps its own mark and its own
+ * record; the page counts battles and never rates a day.
  */
 export function Days({ player, summary }) {
   const { zone } = useClock();
@@ -39,7 +41,7 @@ export function Days({ player, summary }) {
     player_tag: player.player_tag,
     season: "current",
     verbosity: "compact",
-    limit: 50,
+    limit: 40,
   });
   const first = sweep.data?.first;
   const season = first?.applied?.window?.season ?? null;
