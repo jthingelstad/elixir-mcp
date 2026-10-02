@@ -77,8 +77,9 @@ export const esc = (v) =>
 
 /** The pill at the top right: the product a mail belongs to, and when it
  *  comes. The sources are the console's (Clan, Ladder, Friends, Cards,
- *  Collectors, Account). */
-const MAIL_SOURCE = {
+ *  Collectors, Account), and the console's email page wears the same
+ *  chip on each kind. */
+export const MAIL_SOURCE = {
   clan_report: { product: "Clan", when: "Monday" },
   arena_week: { product: "Ladder", when: "Tuesday" },
   tracking_report: { product: "Friends", when: "Wednesday" },
@@ -126,8 +127,10 @@ function zoneName(timezone, at) {
 /** A weekly kind's send in the reader's zone, this week: {weekday,
  *  time, zone}, e.g. {weekday: "Monday", time: "9:00 am", zone:
  *  "Central"}. The weekday is the reader's (14:00 UTC on a Monday is
- *  already Tuesday in Sydney), and the hour follows daylight time. */
-function sendTime(kind, timezone = "UTC", now = new Date()) {
+ *  already Tuesday in Sydney), and the hour follows daylight time. The
+ *  footer says it, and the console's email page lays the week out by
+ *  it. */
+export function sendTime(kind, timezone = "UTC", now = new Date()) {
   const slot = MAIL_SCHEDULE[kind];
   if (!slot) return null;
   const at = new Date(

@@ -104,7 +104,7 @@ export function EmailRecord({ id, navigate }) {
           Report a problem with this email
         </Link>
         <Link className="btn btn--sm" to={`${CONSOLE}/account/profile/email`}>
-          Email switches
+          Emails from Elixir
         </Link>
       </div>
 

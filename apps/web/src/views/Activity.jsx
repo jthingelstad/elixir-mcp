@@ -145,7 +145,7 @@ export function Activity({ sub }) {
         rows={rows}
         monoCols={[0, 4]}
         filters={[{ key: "kind", label: "Kind", col: 1 }]}
-        empty="Nothing sent yet. The switches on your Profile say which emails you get; each arrives here as it is sent."
+        empty="Nothing sent yet. Emails from Elixir, under your Profile, says which emails you get; each arrives here as it is sent."
         footnote="email_send — every product email queued for your address, last 200. EMAIL is the id printed in the mail's footer; open it for the mail as it was sent and to report a problem with it. Sign-in codes are not listed."
       />
     );

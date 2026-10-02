@@ -108,8 +108,8 @@ export function Profile({ me, refresh, navigate }) {
           navigate={navigate}
           to={`${CONSOLE}/account/profile/email`}
           icon="mail"
-          title="Email"
-          note="the emails Elixir sends you, each a switch, and what was sent"
+          title="Emails from Elixir"
+          note="your week in email, each one a switch, and what was sent"
         />
         <SubpageLink
           navigate={navigate}

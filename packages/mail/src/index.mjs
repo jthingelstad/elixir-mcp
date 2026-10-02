@@ -21,6 +21,8 @@ export {
   FONT as MAIL_FONT,
   MONO as MAIL_MONO,
   MAIL_SCHEDULE,
+  MAIL_SOURCE,
+  sendTime as mailSendTime,
 } from "./shell.mjs";
 export { cardAsset } from "./cards.mjs";
 export {
