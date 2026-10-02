@@ -32,7 +32,7 @@ route to make another objective's work easier.
   there is no public page, no public document and no cached CloudFront
   behavior that drops the cookie. A change that adds one is refused here.
 - **No clan in the code.** The guard test
-  (`services/engine/test/no-clan-specifics.test.mjs`) passes: no product
+  (`../packages/clan-engine/test/no-clan-specifics.test.mjs`) passes: no product
   source names a clan, a real player, one clan's awards or website, or the
   bot a process was first ported from.
 - **The public repo.** `git ls-files` holds no member data, no token, no

@@ -84,7 +84,7 @@ acceptance.
 - `AGENTS.md` (= `CLAUDE.md`): the five rules, the gate, sessions, the
   engine's contract, policy, awards, feedback, roles, quota, AWS. `docs/NOTES.md`
   is the decision ledger, newest last.
-- `services/engine/` — the pure engine (policy, facts, standing, evaluate,
+- `../packages/clan-engine/` — the pure engine (policy, facts, standing, evaluate,
   render, awards) and its golden tests.
 - `services/api/` — one Lambda: auth, the gate, sessions, the roster,
   Manage (ledger, service, awards, recruit, scout), feedback.

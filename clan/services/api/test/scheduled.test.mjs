@@ -15,7 +15,7 @@ import {
   participation,
   NOW,
   EXAMPLE_POLICY,
-} from "../../engine/test/fixture.mjs";
+} from "@elixir-mcp/clan-engine/fixtures";
 
 const quiet = { info() {}, warn() {} };
 

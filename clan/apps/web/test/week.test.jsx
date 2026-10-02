@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
-import { weeklyReport } from "@elixir-clan/engine";
+import { weeklyReport } from "@elixir-mcp/clan-engine";
 import { renderWithProviders } from "./helpers.jsx";
 import { Week } from "../src/views/Week.jsx";
 import { manageApi } from "../src/api.js";
@@ -11,7 +11,7 @@ import {
   participation,
   NOW,
   EXAMPLE_POLICY,
-} from "../../../services/engine/test/fixture.mjs";
+} from "@elixir-mcp/clan-engine/fixtures";
 
 afterEach(() => {
   cleanup();

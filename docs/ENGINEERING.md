@@ -553,6 +553,7 @@ artifact; CI then deploys the REST client while preserving the staged key.
 
 ## Clan consolidation storage seam (2026-10-02, in progress)
 
+`packages/clan-engine` owns the pure management engine and golden tests;
 `packages/clan-state` is the single management ledger implementation. Its
 Postgres adapter receives the request's existing connected client; the caller
 owns transactions and the serialization of multi-item clan changes. The

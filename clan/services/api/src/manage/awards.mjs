@@ -19,14 +19,14 @@ import {
   describeAward,
   evaluateAwards,
   validateAwards,
-} from "@elixir-clan/engine";
+} from "@elixir-mcp/clan-engine";
 import {
   ManageError,
   EVALUATION_TTL_MS,
   noteClanSize,
   tooFewMembers,
 } from "./service.mjs";
-import { MIN_MEMBERS, leaderMessage } from "@elixir-clan/engine";
+import { MIN_MEMBERS, leaderMessage } from "@elixir-mcp/clan-engine";
 import { createActionStore } from "./actions.mjs";
 import { newId } from "./ledger.mjs";
 import { planStandings, standingsFrom } from "./standings.mjs";

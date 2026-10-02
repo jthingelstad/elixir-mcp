@@ -18,15 +18,15 @@ const ROOT = path.resolve(
   "../../..",
 );
 const PRODUCT = [
-  "services/engine/src",
-  "services/engine/test",
-  "services/api/src",
-  "services/api/test",
-  "apps/web/src",
-  "apps/web/index.html",
-  "infra/template.yaml",
-  "infra/scripts",
-  "scripts",
+  "packages/clan-engine/src",
+  "packages/clan-engine/test",
+  "clan/services/api/src",
+  "clan/services/api/test",
+  "clan/apps/web/src",
+  "clan/apps/web/index.html",
+  "clan/infra/template.yaml",
+  "clan/infra/scripts",
+  "clan/scripts",
 ];
 // Tests too (2026-09-26: a standings test used one clan's award names and
 // members' names, in a public repo): case-insensitive names, award ids in
@@ -40,7 +40,7 @@ const specific = (line) =>
 // A test that asserts product output never says these writes them in a
 // regex literal; those lines are the guard's kin, not a leak.
 const ASSERTS_ABSENCE = /doesNotMatch\(|^\s*\/.*\/[a-z]*,?\s*$/;
-const SELF = "services/engine/test/no-clan-specifics.test.mjs";
+const SELF = "packages/clan-engine/test/no-clan-specifics.test.mjs";
 
 function files(p) {
   const abs = path.join(ROOT, p);

@@ -1,5 +1,5 @@
 import { Fresh, Icon, ago } from "@elixir-mcp/ui";
-import { LEADER_MESSAGE, chatWarnings } from "@elixir-clan/engine";
+import { LEADER_MESSAGE, chatWarnings } from "@elixir-mcp/clan-engine";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";

@@ -235,7 +235,7 @@ test("recruit: a leader saves a pitch as a new version and the copy follows; bad
 });
 
 test("recruit: a leader writing the first pitch starts from a draft of the clan's goals; a member gets none", async () => {
-  const { policyFromGoals } = await import("@elixir-clan/engine");
+  const { policyFromGoals } = await import("@elixir-mcp/clan-engine");
   const ledger = seedVersion(
     createMemoryLedger(),
     "policy",

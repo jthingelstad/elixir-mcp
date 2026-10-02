@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Bringing Clan into Elixir",
+    body: "The Clan consolidation is underway. Its management engine and ledger are now shared within Elixir, with preservation checks for policies, actions, awards, preferences and mail history. Clan's current sign-in and stored records still serve the app while the account and storage cutover is prepared. No clan state or game history has been removed. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "The first time you played a card",
     body: "A card's earliest recorded play reads the deck identities already kept with your games, including each recorded duel round and card form. This avoids a timeout seen on a clan-sized history while preserving what the answer means. Contract 11.0.1; JSON API remains 3.0.0.",
   },

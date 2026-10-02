@@ -50,7 +50,7 @@ import {
   welcomesFrom,
   actionsWaitingMail,
   ACTIONS_MAIL_KIND,
-} from "@elixir-clan/engine";
+} from "@elixir-mcp/clan-engine";
 import { newId } from "./ledger.mjs";
 import { createActionStore } from "./actions.mjs";
 import { createSharing } from "./sharing.mjs";

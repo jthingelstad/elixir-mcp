@@ -112,15 +112,15 @@
       "entry": ["src/index.mjs", "test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
-    "clan/services/engine": {
-      "entry": ["test/**/*.test.mjs"],
-      "project": ["src/**/*.mjs", "test/**/*.mjs"]
-    },
     "clan/infra": {
       "entry": ["scripts/*.mjs", "tests/**/*.test.mjs"],
       "project": ["scripts/**/*.mjs", "tests/**/*.mjs"]
     },
     "packages/clan-state": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "packages/clan-engine": {
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     }

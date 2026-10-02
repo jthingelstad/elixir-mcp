@@ -7,7 +7,7 @@
  *
  *   node scripts/geo.mjs <dir with countryInfo.txt, admin1CodesASCII.txt, cities5000.txt>
  *
- * Writes services/engine/geo/countries.json and one <CC>.json per country.
+ * Writes packages/clan-engine/geo/countries.json and one <CC>.json per country.
  * Host-run and committed, like the card snapshot elsewhere in the family:
  * the build never reaches GeoNames. A region's pin is the middle of its
  * cities (so a member who names only a region is never pinned to a city
@@ -26,7 +26,7 @@ if (!src) {
 }
 const out = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../services/engine/geo",
+  "../../packages/clan-engine/geo",
 );
 const rows = (file) =>
   readFileSync(path.join(src, file), "utf8")

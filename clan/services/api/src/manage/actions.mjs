@@ -15,7 +15,7 @@ import {
   logEntry,
   priorActions,
   reconstructedLog,
-} from "@elixir-clan/engine";
+} from "@elixir-mcp/clan-engine";
 
 export function createActionStore({ ledger, now = () => Date.now() }) {
   const person = (who) => ({

@@ -30,7 +30,7 @@ import {
   NOW,
   EXAMPLE_POLICY,
   EXAMPLE_AWARDS,
-} from "../../engine/test/fixture.mjs";
+} from "@elixir-mcp/clan-engine/fixtures";
 
 function harness({
   players = [player()],

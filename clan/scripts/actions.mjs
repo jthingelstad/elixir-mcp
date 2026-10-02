@@ -17,10 +17,7 @@
  */
 
 import { createDynamoLedger } from "../services/api/src/manage/ledger.mjs";
-import {
-  ACTION_TYPES,
-  reconstructedLog,
-} from "../services/engine/src/index.mjs";
+import { ACTION_TYPES, reconstructedLog } from "@elixir-mcp/clan-engine";
 import { normalizeTag } from "../services/api/src/gate.mjs";
 import { REGION, STACK } from "../infra/scripts/stack.mjs";
 import {

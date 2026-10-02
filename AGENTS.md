@@ -282,6 +282,11 @@ to Clan's HTTP API with only Clan's two cookies forwarded, so Elixir's
 session never reaches Clan's Lambda. `clan/AGENTS.md` governs work inside
 `clan/`; read it before editing there.
 
+Consolidation foundation (2026-10-02): the pure engine and golden tests are
+`packages/clan-engine`; `packages/clan-state` owns the common ledger with
+a temporary legacy Dynamo adapter. Migration 0196 adds an empty destination,
+not an account or storage cutover.
+
 Shared: the kit (`packages/ui`, `packages/client`, `packages/design`,
 taken from the workspace, so a kit change is checked against Clan in the
 same gate), the root `npm run verify` and `npm run e2e`, the ruleset and

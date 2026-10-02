@@ -14,7 +14,7 @@ import {
   declaredGoals,
   leaderMessageFromDraft,
   leaderMessageRequest,
-} from "@elixir-clan/engine";
+} from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 import { createActionStore } from "./actions.mjs";
 

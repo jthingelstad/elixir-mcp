@@ -1,17 +1,18 @@
 /** The place lists in the browser: the engine's `createGeo`, loading the
  *  country index when the map opens and one country's file when a place
  *  in it is picked (Vite splits each into its own chunk). */
-import { createGeo } from "@elixir-clan/engine";
+import { createGeo } from "@elixir-mcp/clan-engine";
 
+const placeFiles = import.meta.glob(
+  "../../../../../packages/clan-engine/geo/*.json",
+);
+const load = (name) =>
+  placeFiles[`../../../../../packages/clan-engine/geo/${name}.json`]().then(
+    (m) => m.default,
+  );
 export const geo = createGeo({
-  loadCountries: () =>
-    import("../../../../services/engine/geo/countries.json").then(
-      (m) => m.default,
-    ),
-  loadCountry: (code) =>
-    import(`../../../../services/engine/geo/${code}.json`).then(
-      (m) => m.default,
-    ),
+  loadCountries: () => load("countries"),
+  loadCountry: (code) => load(code),
 });
 
 /** The local time at a place, "3:12 PM", and how far that is from the

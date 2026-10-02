@@ -1,7 +1,7 @@
 /**
  * Places for the clan map (Social, Jamie 2026-09-26): a country, its region
  * (state, province) and optionally a city, picked from GeoNames' lists
- * (`services/engine/geo`, built by scripts/geo.mjs), never typed and never
+ * (`packages/clan-engine/geo`, built by scripts/geo.mjs), never typed and never
  * a location the device reports. A place resolves to where its pin goes and
  * its time zone: a city's own, a region's middle and its largest city's
  * zone, a country's the same.

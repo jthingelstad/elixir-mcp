@@ -20,7 +20,7 @@ import {
   participation,
   NOW,
   EXAMPLE_POLICY,
-} from "../../engine/test/fixture.mjs";
+} from "@elixir-mcp/clan-engine/fixtures";
 
 const DAY = 86400_000;
 

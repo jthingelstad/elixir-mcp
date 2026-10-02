@@ -8,13 +8,13 @@ import {
   memberWeeks,
   policyFromGoals,
   weeklyReport,
-} from "@elixir-clan/engine";
+} from "@elixir-mcp/clan-engine";
 import {
   member,
   participation,
   NOW,
   EXAMPLE_POLICY,
-} from "../../../services/engine/test/fixture.mjs";
+} from "@elixir-mcp/clan-engine/fixtures";
 
 /** A saved policy as the editor reads it: a war clan, version 1. */
 const POLICY_VIEW = {

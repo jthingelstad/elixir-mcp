@@ -3,7 +3,7 @@ import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Policy } from "../src/views/Policy.jsx";
 import { manageApi } from "../src/api.js";
-import { FIELDS, GROUPS, TABS, defaults } from "@elixir-clan/engine";
+import { FIELDS, GROUPS, TABS, defaults } from "@elixir-mcp/clan-engine";
 
 afterEach(() => {
   cleanup();
