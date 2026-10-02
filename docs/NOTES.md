@@ -1665,3 +1665,14 @@ non-PNG image. `node packages/mail/scripts/preview.mjs` renders every kind
 into gitignored `packages/mail/.preview/`. The logo's URL answers only
 after the next deploy uploads the site; until then a sent mail shows the
 wordmark beside an empty 44 px cell.
+
+## 2026-10-01 - Six Clan pages, written from the engine
+
+The docs' Clan group now has its pages: `bring-your-clan`, `clan-week`,
+`standing`, `clan-actions`, `clan-awards`, `clan-policy`, each read
+against `clan/services/engine`, `clan/services/api/src/manage` and the
+rail in `clan/apps/web/src/lib/rail.js`. They describe what Clan does
+and the names of its controls (policy fields, action kinds, page names),
+not the layout, so the canvas redraw under way keeps them true; a
+renamed control or page is the one edit they need. Ladder's pages wait
+for Ladder's code on `main`.
