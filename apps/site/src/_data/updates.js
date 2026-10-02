@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Days played reads the whole season again",
+    body: "Ladder's Days played could show \"Elixir could not read the season's battles\" in place of the calendar: it asked for the season in pages of fifty, and fifty battles now run past the size one answer may have. It asks for forty at a time, and when a page is still too large it reads the same page again at the size the answer names. The calendar, the nights and every count are unchanged. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "Emails from Elixir opens your switches",
     body: "Emails from Elixir, in the account menu and in Account settings, now opens the page with your week of emails and a switch for each, rather than the list of what was sent. That list is one click on, under All sent. No change to the tools.",
   },

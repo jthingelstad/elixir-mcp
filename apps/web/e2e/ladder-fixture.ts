@@ -699,10 +699,16 @@ export interface ToolCall {
   args: Record<string, unknown>;
 }
 
-/** POST /api/explore, answered by tool. `calls` collects every read. */
+/** POST /api/explore, answered by tool. `calls` collects every read.
+ *  `fits` is the largest battles_query page under the result cap: a
+ *  larger one is refused as the hub prices it (renderToolResultText),
+ *  which the live Days page met on 2026-10-02. */
 export function explore(
   calls: ToolCall[] = [],
-  { players_summary = summary() }: { players_summary?: unknown } = {},
+  {
+    players_summary = summary(),
+    fits = Infinity,
+  }: { players_summary?: unknown; fits?: number } = {},
 ) {
   return (route: Route): [number, unknown] => {
     const { tool, args = {} } = route.request().postDataJSON() as ToolCall;
@@ -714,6 +720,22 @@ export function explore(
     if (tool === "players_summary") return ok(players_summary);
     if (tool === "battles_query") {
       const limit = Number(args.limit ?? 25);
+      if (limit > fits)
+        return [
+          200,
+          {
+            tool,
+            is_error: true,
+            body: {
+              error: {
+                code: "result_too_large",
+                class: "input",
+                message: "Result is 49162 characters; the cap is 48000.",
+                hint: `Narrow the arguments (limit, verbosity, from, to). This page was 49162 characters at limit ${limit} (verbosity compact); a limit of ${fits} should fit the same arguments.`,
+              },
+            },
+          },
+        ];
       const from = Number(String(args.cursor ?? "0").replace(/^at:/, ""));
       const page = BATTLES.slice(from, from + limit);
       return ok({

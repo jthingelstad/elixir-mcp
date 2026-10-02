@@ -17,6 +17,7 @@
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { answered, unwrap } from "@elixir-mcp/client";
 import { api } from "../api.js";
+import { sweepBattles } from "./battle-sweep.js";
 import { useScope } from "./scope.js";
 
 export const keys = {
@@ -337,6 +338,7 @@ async function toolRead(tool, args) {
   if (r?.is_error) {
     const e = new Error(r.body?.error?.message ?? `${tool} refused`);
     e.code = r.body?.error?.code;
+    e.hint = r.body?.error?.hint;
     throw e;
   }
   return r?.body ?? null;
@@ -366,43 +368,17 @@ export const useToolReads = (tool, list, { enabled = true } = {}) =>
     })),
   });
 
-/** The most pages one sweep reads: 12 of 50 is the newest 600 battles,
+/** The most pages one sweep reads: 12 of 40 is the newest 480 battles,
  *  twelve calls of the reader's daily quota at most. */
 const SWEEP_PAGES = 12;
 
-/** battles_query, every page of it through next_cursor up to `pages`:
- *  the battles newest first, the first page's answer (its applied
- *  window, meta and total_count) and whether the sweep stopped before
- *  the end. Each page is one read. */
-async function sweep(args, pages) {
-  const battles = [];
-  let first = null;
-  let cursor = null;
-  let read = 0;
-  do {
-    const body = await toolRead("battles_query", {
-      ...args,
-      ...(cursor ? { cursor } : { include_total: true }),
-    });
-    first ??= body;
-    battles.push(...(body?.battles ?? []));
-    cursor = body?.next_cursor ?? null;
-    read++;
-  } while (cursor && read < pages);
-  return {
-    first,
-    battles,
-    total: first?.total_count ?? null,
-    capped: Boolean(cursor),
-  };
-}
 export const useBattleSweep = (
   args,
   { enabled = true, pages = SWEEP_PAGES } = {},
 ) =>
   useQuery({
     queryKey: ladderKey("battles_query:sweep", { ...args, pages }),
-    queryFn: () => sweep(args, pages),
+    queryFn: () => sweepBattles(toolRead, args, pages),
     enabled,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
