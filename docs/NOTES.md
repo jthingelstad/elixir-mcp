@@ -2719,3 +2719,22 @@ The first full verify caught the new migration pin using a directory prefix
 instead of the required filename; corrected before shipping. No deployed
 migration file was edited. Auth, routes, jobs, key sealing and legacy-runtime
 retirement remain the following consolidation work, not reported complete.
+
+The pure engine, its golden tests and geographic data now move by rename to
+packages/clan-engine. Legacy API and UI consume that workspace package;
+there is no second copy. Browser place files still split by country, and
+the legacy Lambda build still includes the same place data. Active reading
+maps and the no-clan-specific-source guard follow the new paths. This
+extraction does not itself migrate accounts or activate the Postgres store.
+
+### 2026-10-02: 11.0.1 deployed, isolated card checks pass
+
+PR #223 merged at 12cdb548; the actual stack UPDATE_COMPLETE event is
+2026-10-02T17:30:51.032Z. Card-family acceptance reported 112 cases, four
+failed, 81 skipped and 33 calls. The first Witch/mine read timed out;
+contracts/recorder-cards-facts, gym/283.1, gym/283.2 and gym/325.6 shared
+that failed response. Each was re-run alone and passed (4673, 4202, 3976
+and 3371 ms respectively). An isolated read-only profile also completed
+without an error. This is a load/cache-dependent performance failure, not
+a fully green deploy gate; retain the cold-query performance follow-up.
+Read-only smoke passed after deployment. No history or archive was deleted.

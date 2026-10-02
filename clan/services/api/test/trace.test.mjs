@@ -27,7 +27,7 @@ import {
   participation,
   NOW,
   EXAMPLE_POLICY,
-} from "../../engine/test/fixture.mjs";
+} from "@elixir-mcp/clan-engine/fixtures";
 import { serverTiming, summarize, timedElixir } from "../src/trace.mjs";
 import { routeKey } from "../src/handler.mjs";
 

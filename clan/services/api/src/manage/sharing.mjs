@@ -24,7 +24,7 @@
  * inactive member) is never shared as a message.
  */
 
-import { leaderMessage } from "@elixir-clan/engine";
+import { leaderMessage } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 
 /** What each kind records in Elixir, when, and who sees it there. */

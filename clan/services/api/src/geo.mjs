@@ -8,12 +8,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createGeo } from "@elixir-clan/engine";
+import { createGeo } from "@elixir-mcp/clan-engine";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const DIR = [path.join(here, "geo"), path.join(here, "../../engine/geo")].find(
-  (d) => existsSync(path.join(d, "countries.json")),
-);
+const DIR = [
+  path.join(here, "geo"),
+  path.join(here, "../../../../packages/clan-engine/geo"),
+].find((d) => existsSync(path.join(d, "countries.json")));
 
 const read = (name) =>
   JSON.parse(readFileSync(path.join(DIR, `${name}.json`), "utf8"));

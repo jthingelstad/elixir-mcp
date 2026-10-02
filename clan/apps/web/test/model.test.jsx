@@ -5,7 +5,7 @@ import { Model } from "../src/views/Model.jsx";
 import { Recruit } from "../src/views/Recruit.jsx";
 import { manageApi } from "../src/api.js";
 import { railItems, railKey } from "../src/lib/rail.js";
-import { PITCH_FIELDS } from "@elixir-clan/engine";
+import { PITCH_FIELDS } from "@elixir-mcp/clan-engine";
 
 afterEach(() => {
   cleanup();

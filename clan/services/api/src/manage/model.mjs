@@ -28,7 +28,7 @@ import {
   hkdfSync,
   randomBytes,
 } from "node:crypto";
-import { PURPOSES, chooseModel } from "@elixir-clan/engine";
+import { PURPOSES, chooseModel } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 
 export const USES_PER_DAY = 20;

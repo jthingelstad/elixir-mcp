@@ -37,7 +37,7 @@ export async function buildApi() {
   });
   // The clan map's place lists ride beside the bundle, read from disk one
   // country at a time (services/api/src/geo.mjs), never parsed at start.
-  const geoSrc = path.join(repoRoot, "services/engine/geo");
+  const geoSrc = path.join(repoRoot, "../packages/clan-engine/geo");
   await cp(geoSrc, path.join(outDir, "geo"), { recursive: true });
   const zipPath = path.join(distRoot, "api.zip");
   await rm(zipPath, { force: true });

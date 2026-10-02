@@ -66,7 +66,7 @@ chosen: `docs/VISION.md`. Read it before proposing a feature.
    Clan Wars) Elixir Clan is a statistics view: no policy can be created,
    and a saved one pauses, kept, until the clan is back at 10. A test fails if product
    source names a clan, a real player, one clan's awards or website, or
-   elixir-bot (`services/engine/test/no-clan-specifics.test.mjs`).
+   elixir-bot (`../packages/clan-engine/test/no-clan-specifics.test.mjs`).
 7. **An app, not a publisher.** Every route under `/api/clans` needs a
    session: no public pages, no public documents (Jamie, 2026-09-25). What
    members should see, they see signed in.
@@ -86,7 +86,7 @@ apps/web/          React 19 + Vite SPA on Elixir's kit (TanStack Router + Query,
                    /clan/you, /clan/you/away, /clan/feedback, /clan/maintain/feedback,
                    /clan/refused/<reason>, /clan/verify. The app's page names win
                    over a tag; a tag is read the gate's way (0289PYLQGRJCUV).
-services/engine/   the management engine, PURE: policy schema, facts, standing,
+../packages/clan-engine/   the management engine, PURE: policy schema, facts, standing,
                    evaluate, render, awards, recruit, chat, words. No I/O, no clock.
                    Golden tests in test/.
 services/api/      Node 24 arm64 Lambda behind one HTTP API: /auth/*, /api/*,
@@ -200,7 +200,7 @@ database is kept here. The remembered clan choice, management ledger,
 recruiting facts cache, awards and feedback are described below; their
 retention is separate from the session cache window.
 
-## The engine's contract (`services/engine`)
+## The engine's contract (`../packages/clan-engine`)
 
 `verdicts = evaluate({ participation, policy, now, decisions, holds,
 trophies })`, a pure function of a SAVED policy: the service never evaluates
@@ -271,7 +271,7 @@ only when the policy counts trophy road, each member's trophies today from
 
 ## Policy is versioned configuration, and nothing runs without it
 
-`services/engine/src/policy.mjs` (schema 2, 2026-09-25) owns the fields:
+`../packages/clan-engine/src/policy.mjs` (schema 2, 2026-09-25) owns the fields:
 label, unit, range, starting value, a `why` that says what the setting does
 (never what a clan should believe), and `when`, the values under which a
 field or group applies (the editor shows only those). Everything starts
@@ -298,7 +298,7 @@ fills that tab from the clan's posture (`tabStart` in `goals.mjs`), to
 tune. The tab bar marks each tab on or off, changed, or needing a fix, and
 a refused save opens the tab that holds the problem.
 
-**What the clan is for** (2026-09-25, `services/engine/src/goals.mjs`): the
+**What the clan is for** (2026-09-25, `../packages/clan-engine/src/goals.mjs`): the
 measurable goals ARE the categories the clan counts (`declaredGoals`: Clan
 Wars, climbing for ranked play or trophy road, donations); only playing
 together, which the game cannot measure, is its own field
@@ -326,7 +326,7 @@ read, so a clan that grows back to 10 resumes on the next visit.
 ## Awards
 
 Season recognition as per-clan configuration: a CATALOG OF KINDS, never a
-rules engine (`services/engine/src/awards.mjs`). Each kind is one function
+rules engine (`../packages/clan-engine/src/awards.mjs`). Each kind is one function
 with a few parameters; every award a clan runs is an instance with the
 clan's own name and description. Kinds: `season_points_podium` (war points
 over the season; equal points go to the higher donor over the season and
@@ -377,7 +377,7 @@ state or region and, if they like, a city, picked from lists (never typed,
 never an address, never the device's location). The lists are GeoNames'
 (CC BY 4.0: 245 countries, first-level regions, every city of 5,000 people
 or more, each with its time zone), built by `scripts/geo.mjs` into
-`services/engine/geo/*.json` and committed; `createGeo` in the engine
+`../packages/clan-engine/geo/*.json` and committed; `createGeo` in the engine
 resolves a picked place to its pin and zone (a city's own; a region's middle
 and its largest city's zone, so a member who names only a region is never
 pinned to a city). The browser loads one country's file when it is picked;
@@ -394,7 +394,7 @@ this site's origin as referrer, never a path).
 
 ## Recruit
 
-A page every member can use (`services/engine/src/recruit.mjs`), open before
+A page every member can use (`../packages/clan-engine/src/recruit.mjs`), open before
 a clan has a policy. Two inputs: the clan's **pitch** (a leader's words,
 versioned like policy: `recruit#<clan>#v<n>`; tagline, about, up to six
 points, who we want, website, how to get in; every clan starts with an
@@ -437,7 +437,7 @@ read-only; its mail) belongs there next. Then the clan's
 model may write **words, never judgments**:
 
 - **What it may write** is a closed list (`PURPOSES` in
-  `services/engine/src/words.mjs`): `recruit_pitch` and, since the second
+  `../packages/clan-engine/src/words.mjs`): `recruit_pitch` and, since the second
   round (2026-09-25), `leader_message`: on an open action that ends in a
   Clan Leader Message (promotion, demotion, the season's awards, how the
   clan runs), a leader asks for it in the clan's voice (`POST
@@ -525,7 +525,7 @@ Scheduled evaluation: see "The morning evaluation".
 
 What Elixir Clan suggests a person in the clan do is an **action** (Jamie:
 "cards" did not resonate; code and storage keep `card`). Each action has an
-**audience** (`services/engine/src/actions.mjs`): `leaders` (promote,
+**audience** (`../packages/clan-engine/src/actions.mjs`): `leaders` (promote,
 demote, remove, departure), `elders` (elders and up: welcome a newcomer) or
 one `member` (going to be away?). Whoever the audience allows completes it
 or declines it (a leader's decline says why; a welcome or an away may just
@@ -558,7 +558,7 @@ judge a member (`JUDGING_TYPES`); completing a message action logs
 (`services/api/src/manage/actions.mjs`) raises, withdraws, logs and shapes
 actions for both the manage and the awards service.
 
-**The game's chat filter** (`services/engine/src/chat.mjs`) is one module
+**The game's chat filter** (`../packages/clan-engine/src/chat.mjs`) is one module
 every in-game line goes through, chat and Leader Message alike: the
 game silently blanks innocent text, often with the words beside it, and
 each rule was learned from a real message that came out censored (the
@@ -613,7 +613,7 @@ commented).
 ## You here (2026-09-25)
 
 Every member's own page in a clan (`/clan/<TAG>/me`, `GET
-/api/clans/<TAG>/me`, `memberWeeks` in `services/engine/src/member.mjs`):
+/api/clans/<TAG>/me`, `memberWeeks` in `../packages/clan-engine/src/member.mjs`):
 this week so far and week by week (battles, ranked battles, donations, war
 decks against those asked, points), trophies today, and time here (join and
 role changes from the roster's events). These are statistics, so the page
@@ -634,7 +634,7 @@ link to Standing ("How Elder works here").
 
 The weekly clan report, as a page first (`/clan/<TAG>/week[/<iso
 week>]`, `GET /api/clans/<TAG>/week[?week=2026-W38]`, `weeklyReport` in
-`services/engine/src/week.mjs`); its email waits on a
+`../packages/clan-engine/src/week.mjs`); its email waits on a
 `clan_weekly_report` mail kind in Elixir, and will send the same
 report. Every member of any clan reads it, with or without a policy, at
 any size, on the rail's main group beside You here. One participation
@@ -1062,7 +1062,7 @@ the index, put when a policy is saved or evaluated.
 **Then the email (door 2, JSON API 2.4.0).** After each clan's
 evaluation, `mailActionsWaiting` emails, through Elixir, each person who
 can act on something that became theirs since their last email
-(`actionsWaitingMail` in `services/engine/src/mail.mjs`: only people who
+(`actionsWaitingMail` in `../packages/clan-engine/src/mail.mjs`: only people who
 can act on an action are sent it, Jamie; the email lists everything
 waiting for them by number, the new marked, and links the one action's
 page when only one is waiting). Clan names each person by player tag

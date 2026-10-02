@@ -104,6 +104,8 @@ export async function importSnapshot(
   if (!apply) return { ...receipt, applied: false };
   await db.query("begin");
   try {
+    await db.query("set local lock_timeout = '5s'");
+    await db.query("lock table clan_state in share row exclusive mode");
     await db.query(
       "select pg_advisory_xact_lock(hashtext('clan-state-import'))",
     );

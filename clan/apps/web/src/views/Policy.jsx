@@ -3,7 +3,7 @@ import { manageApi } from "../api.js";
 import { keys, useInvalidate, usePolicy } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
 import { TooFew } from "../components/TooFew.jsx";
-import { PRESETS, policyFromGoals, tabStart } from "@elixir-clan/engine";
+import { PRESETS, policyFromGoals, tabStart } from "@elixir-mcp/clan-engine";
 
 /** Whether a group or field applies under the draft (engine `applies`). */
 const applies = (when, values) =>

@@ -23,7 +23,7 @@ import {
   recruitCopy,
   validateCopy,
   validatePitch,
-} from "@elixir-clan/engine";
+} from "@elixir-mcp/clan-engine";
 import { ManageError, fetchRoster } from "./service.mjs";
 
 export const FACTS_TTL_MS = 6 * 3600_000;

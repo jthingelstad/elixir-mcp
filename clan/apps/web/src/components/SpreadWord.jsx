@@ -1,4 +1,4 @@
-import { inviteCopy } from "@elixir-clan/engine";
+import { inviteCopy } from "@elixir-mcp/clan-engine";
 import { CopyLine } from "./ActionCard.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
 

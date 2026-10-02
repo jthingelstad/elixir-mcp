@@ -11,7 +11,7 @@
  * asks again. Facts from Elixir; the policy answer is this app's.
  */
 
-import { ranksElder, setMinimums } from "@elixir-clan/engine";
+import { ranksElder, setMinimums } from "@elixir-mcp/clan-engine";
 import { normalizeTag } from "../gate.mjs";
 
 const DAY_MS = 86400_000;

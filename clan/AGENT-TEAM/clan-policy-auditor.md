@@ -18,7 +18,7 @@ did it". Elixir Clan is for any clan (Jamie, 2026-09-25).
 
 ## Every run
 
-- **The golden tests are the rules.** `services/engine/test/` states what
+- **The golden tests are the rules.** `../packages/clan-engine/test/` states what
   the engine does under a policy, case by case. They pass on `main`; a
   change to the engine lands with its test. The guard test keeps product
   source free of any one clan's specifics.
