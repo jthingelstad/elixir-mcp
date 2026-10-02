@@ -66,7 +66,7 @@ never set.)
 **`timezone_applied`** — the display timezone used for local labels, when one
 applied: the account's, or the call's own `timezone` argument. Stored
 timestamps and the envelope remain UTC. Every windowed tool that resolves a
-date-only bound or a local label emits it (the battle tools, the meta tools,
+date-only bound or a local label emits it (the battle tools,
 `clans_standings`, `clans_participation`, `battles_trends`, the daily series,
 `elixir_timeline`); it is absent when no zone applied, and `live_fetch`,
 feedback and changelog answers carry the three required fields only.

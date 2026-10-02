@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Your history is the focus",
+    body: "Elixir is a recorder for the players and clans you follow. Global leaderboard tools, game-wide card and deck statistics, recommendations and the editorial model worker have retired. Explore your own games, card inventory and clan activity, receive the notifications you choose, and bring those records to your agent. Card catalog pages and sent-email history remain available. Historical global data is pending a separately reviewed purge. Contract 11.0.0; JSON API remains 3.0.0.",
+  },
+  {
+    date: "2026-10-02",
     title: "Record the players and clans you choose",
     body: "Named recording Collections have retired from tracking, Explore, administration, agents and platform integrations. A Collection no longer keeps its members recording. Follow players directly and organize them with primary, alt, friend and watching relationships; follow clans at the scope you need. Drop has stopped automatic enrollment while retaining Elixir sign-in and authorized account access. Your existing direct follows and recorded history stay. Owned cards are still recorded as part of player profiles. Contract 10.0.0; JSON API 3.0.0 removes Collection additions.",
   },

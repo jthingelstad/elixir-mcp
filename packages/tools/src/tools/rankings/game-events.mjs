@@ -13,7 +13,8 @@ import {
   withWindowSugar,
   zoneFor,
 } from "../shared.mjs";
-import { AS_OF_SCHEMA, seasonStartOf } from "./common.mjs";
+import { seasonFromDate } from "@elixir-mcp/record/war-clock";
+const seasonStartOf = (at) => seasonFromDate(at.getTime()).seasonStartMs;
 
 export const game_events = {
   description:
@@ -49,7 +50,7 @@ export const game_events = {
       throw new ToolFailure(
         "bad_request",
         "Could not read from/to as dates.",
-        AS_OF_SCHEMA.description,
+        "Pass from/to as ISO timestamps or YYYY-MM-DD dates.",
       );
     // An inverted window is refused, as the battle tools refuse it (Gym
     // #221): it had answered 0 events with no word.
@@ -186,7 +187,6 @@ export const game_events = {
         // read first_seen_at as when an event started.
         "first_seen_at and last_seen_at, and first_sighting_day and latest_sighting_day, are the record's whole span of sightings, not this window's, and a start falls somewhere in the gap before the first read that saw it: for when an event was on inside this window, read game_days_seen.",
         `Sightings began ${running[0]?.first_day ?? "when recording did"}; nothing before that date is known, and days without a read are unknown, not empty.`,
-        "The game-mode leaderboards (rankings_players with board: mode) are the same modes' standings; a title here and a board name there usually match.",
         "The window selects the events reads made inside it (its instants, not the dates around them), and running_on_latest_day says the event was in the most recent read the record holds - as close to 'on now' as the record gets.",
         gaps.length
           ? `No events read covered the game day${gaps.length === 1 ? "" : "s"} ${gaps.map((g) => g.day).join(", ")}: an event's game_days_seen skip ${gaps.length === 1 ? "it" : "them"} because nothing was read, not because the event was off.`
@@ -195,7 +195,7 @@ export const game_events = {
           ? `No events read inside the window covered game day${readOutside.length === 1 ? "" : "s"} ${readOutside.join(", ")}, which the window touches: ${readOutside.length === 1 ? "its read" : "their reads"} fell outside it, so ${readOutside.length === 1 ? "that day's" : "those days'"} events are not listed. Widen from/to to take the read in (game_days_read lists the days a read inside the window covered).`
           : null,
       ),
-      docs: docsRef("recording", "leaderboards"),
+      docs: docsRef("recording", "events"),
       meta: await buildMeta(ctx.db, ctx.account, "GLOBAL", ["events"], {
         timezone: args.timezone,
       }),

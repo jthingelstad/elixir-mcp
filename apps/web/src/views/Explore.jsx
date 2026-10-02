@@ -235,7 +235,7 @@ const BROWSE = {
     placeholder: "#J2RGCRVG",
   },
   meta: {
-    title: "Meta & decks",
+    title: "Decks",
     lede: "Decks by the hash that identifies them, and how they have actually done.",
     hint: "Paste a deck hash, or open one from a battle.",
     placeholder: "deck:8f21c4…",

@@ -137,7 +137,7 @@ export const GROUP_ORDER = [
   "Cards",
   "Clans",
   "War",
-  "Rankings",
+  "Game",
   "Live",
   "Timeline",
   "Service",
@@ -259,26 +259,7 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Compare players",
     readOnly: true,
   },
-  battles_meta_decks: {
-    group: "Battles",
-    title: "Meta decks (observed)",
-    readOnly: true,
-  },
-  battles_deck_sets: {
-    group: "Battles",
-    title: "Deck sets sharing no card",
-    readOnly: true,
-  },
-  battles_deck_upgrades: {
-    group: "Battles",
-    title: "Upgrades that lift a deck set",
-    readOnly: true,
-  },
-  battles_meta_cards: {
-    group: "Battles",
-    title: "Meta cards (observed)",
-    readOnly: true,
-  },
+
   battles_trends: {
     group: "Battles",
     title: "Segment trends",
@@ -297,7 +278,7 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "One card, everything recorded",
     readOnly: true,
   },
-  cards_synergy: { group: "Cards", title: "Card synergy", readOnly: true },
+
   cards_archetype: {
     group: "Cards",
     title: "Deck archetype, by name or by cards",
@@ -349,31 +330,9 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   // Rankings — the recorded leaderboards (0068): the global Path of
   // Legends board hourly, every location daily. `live: true` reaches the
   // game, so both are open-world.
-  rankings_players: {
-    group: "Rankings",
-    title: "Leaderboard players",
-    readOnly: true,
-    openWorld: true,
-  },
-  rankings_clans: {
-    group: "Rankings",
-    title: "Clans on the leaderboard",
-    readOnly: true,
-    openWorld: true,
-  },
-  rankings_clan_ladder: {
-    group: "Rankings",
-    title: "Clan leaderboard",
-    readOnly: true,
-    openWorld: true,
-  },
-  rankings_timeline: {
-    group: "Rankings",
-    title: "Leaderboard over time",
-    readOnly: true,
-  },
+
   game_events: {
-    group: "Rankings",
+    group: "Game",
     title: "What was on",
     readOnly: true,
   },

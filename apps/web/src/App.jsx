@@ -217,7 +217,7 @@ export const RAIL = [
     subs: [
       ["players", "Players", `${CONSOLE}/explore/players`],
       ["clans", "Clans & wars", `${CONSOLE}/explore/clans`],
-      ["meta", "Meta & decks", `${CONSOLE}/explore/meta`],
+      ["meta", "Decks", `${CONSOLE}/explore/meta`],
       ["weeks", "War weeks", `${CONSOLE}/explore/weeks`],
     ],
   },

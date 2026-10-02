@@ -600,8 +600,7 @@ export const battles_query = {
       // it had counted the deck's lifetime whatever the window and
       // filters said): counts, W-L, distinct pilots, span. Deliberately
       // NO win rate - a deck's pooled rate describes who plays it
-      // (docs/archive/META-INTEL.md §2); lift with a sample size is an agent tool
-      // (battles_meta_decks).
+      // (docs/archive/META-INTEL.md §2).
       const { rows: ds } = await ctx.db.query(
         `select count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,
@@ -704,7 +703,7 @@ export const battles_query = {
         win.seasonNotes,
         caveats,
         deckStats &&
-          "deck_stats counts the battles this call matches (its window, mode and other filters; every page, not this one) and carries no pooled win rate by design: a deck's rate describes who plays it; battles_meta_decks has shrunk rates with sample sizes.",
+          "deck_stats counts the battles this call matches (its window, mode and other filters; every page, not this one) and carries no pooled win rate by design: a deck's pooled rate describes who plays it.",
         "me.vs is every comparison the row already held both halves of, as me MINUS the one opponent: crowns, deck_level (the level edge in THIS battle, from the cards as played), starting_trophies (on ladder, what matchmaking paired), tower_hp (hitpoints REMAINING on both sides) and tower_level (the tower troop's level). tower_hp is a margin of victory only when tower_level is 0. Null on 2v2, duels and boat battles (a defense against an attack), and a field is null where the record lacks a side's value. Read these before the absolute numbers - a leak, a level or a tower total means little except against the other side's.",
         towerGapRows > 0
           ? `${towerGapRows} ${towerGapRows === 1 ? "row's towers" : "rows' towers"} started unequal (tower levels differ; vs.tower_level is not 0): a tower one level higher starts with more hitpoints (1,564 more across the three towers at 16 against 15), so vs.tower_hp there carries the starting gap as well as the damage - it is not a margin of victory.`

@@ -30,7 +30,7 @@ const RECORDED_ALTERNATIVE = {
 export const liveTools = {
   live_fetch: {
     description:
-      "The catch-all: one allowlisted raw GET against the CR API through the live lane (per-account daily quota, spends the shared CR budget). Paths: /players/{tag}, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog, /locations/{id}/rankings/players, /locations/{id}/pathoflegend/players. Prefer the recorded tools, all of which take live: true where a fresh read matters; /players/{tag}/battlelog is refused (a raw log exceeds the delivery cap): use battles_query({ live: true }). RAW payload: card levels are the API's rarity-relative scale.",
+      "The catch-all: one allowlisted raw GET against the CR API through the live lane (per-account daily quota, spends the shared CR budget). Paths: /players/{tag}, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog. Prefer the recorded tools, all of which take live: true where a fresh read matters; /players/{tag}/battlelog is refused (a raw log exceeds the delivery cap): use battles_query({ live: true }). RAW payload: card levels are the API's rarity-relative scale.",
     inputSchema: {
       type: "object",
       properties: {

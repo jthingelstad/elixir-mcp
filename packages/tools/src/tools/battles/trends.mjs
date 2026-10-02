@@ -15,8 +15,6 @@ import {
   appliedBlock,
   docsRef,
   notes,
-  RECORDED_PLAYERS_SQL,
-  populationBlock,
   requireEnum,
   resolveSeasonWindow,
   segmentFilter,
@@ -32,7 +30,7 @@ import {
 
 export const battles_trends = {
   description:
-    "Weekly time series for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag}. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies, the season the week starts in. Default 12 weeks; weeks, from/to or season set the window; applied.window.crosses marks each season roll inside it. Single-player weekly detail also lives in battles_performance group_by 'week'.",
+    "Weekly time series for a named population: segment 'mine' or {clan_tag | player_tag}. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies, the season the week starts in. Default 12 weeks; weeks, from/to or season set the window; applied.window.crosses marks each season roll inside it. Single-player weekly detail also lives in battles_performance group_by 'week'.",
   inputSchema: {
     type: "object",
     properties: {
@@ -53,13 +51,8 @@ export const battles_trends = {
   async handler(ctx, args) {
     const params = [];
     const seg = await segmentFilter(ctx, args, params);
-    // A member's own battles (boat defenses are not theirs, 0171); on the
-    // corpus, the recorded players' side only: every battle has two
-    // sides, so counting both makes every win rate 0.500 by construction
-    // (Jamie 2026-09-25).
     const where = ["bp.outcome is not null"];
-    const membership =
-      seg.where ?? `bp.player_tag in (${RECORDED_PLAYERS_SQL})`;
+    const membership = seg.where;
     const win = await resolveSeasonWindow(ctx, args, {
       defaultDays: 12 * 7,
     });
@@ -78,36 +71,19 @@ export const battles_trends = {
       params.push(typesForModeGroup(args.mode));
       where.push(`bp.type = any($${params.length})`);
     }
-    const detail = seg.where ? "bp" : "p";
-    const event = eventContentSql(`${detail}.type`, "b.event_tag");
+    const detail = "bp";
+    const event = eventContentSql("bp.type", "b.event_tag");
     const mode = args.mode
       ? `and ${args.mode === EVENT_MODE_GROUP ? event : `not ${event}`}`
       : "";
-    // Time, player, outcome and type are covered by the window index.
-    // Apply recording membership before fetching the heap-only trophies
-    // and battle id. DISTINCT keys preserve multiple battles at one instant.
-    const bounded = seg.where
-      ? ""
-      : `bounded as materialized (
-      select distinct bp.player_tag, bp.battle_time
-      from battle_participant bp where ${where.join(" and ")}),
-      recorded as materialized (
-      select bp.* from bounded bp where ${membership}),`;
-    const source = seg.where ? "battle_participant" : "recorded";
-    const heap = seg.where
-      ? ""
-      : `join battle_participant p
-      on p.player_tag = bp.player_tag and p.battle_time = bp.battle_time`;
-    const scope = seg.where
-      ? `${where.join(" and ")} and ${membership}`
-      : where.join(" and ").replaceAll("bp.", "p.");
+    const scope = `${where.join(" and ")} and ${membership}`;
     // Weekly, mode and distinct-player aggregates share this population.
     const { rows } = await ctx.db.query(
-      `with ${bounded} selected as materialized (
+      `with selected as materialized (
          select ${detail}.player_tag, ${detail}.battle_time, ${detail}.outcome,
                 ${detail}.type, ${detail}.trophy_change,
                 ${modeGroupSql(`${detail}.type`, "b.event_tag")} as mode_group
-           from ${source} bp ${heap}
+           from battle_participant bp
            join battle b on b.battle_id = ${detail}.battle_id
           where ${scope} and ${notBoatDefense(detail)} ${mode}),
        by_mode as (
@@ -159,11 +135,6 @@ export const battles_trends = {
       from: new Date(win.from),
       to: win.to ? new Date(win.to) : null,
     });
-    const population = seg.where
-      ? null
-      : await populationBlock(ctx.db, {
-          playersInWindow: rows[0]?.window_players ?? 0,
-        });
     return {
       applied: appliedBlock({
         segment: seg.echo,
@@ -171,13 +142,9 @@ export const battles_trends = {
         weeks: args.weeks,
         mode: args.mode,
       }),
-      ...(population ? { population } : {}),
       weeks,
       notes: notes(
         clanSegmentNote(seg),
-        seg.where
-          ? null
-          : "On the corpus every count reads the recorded players' side of each battle (their opponents are not counted: the two sides of a battle always sum to a 0.500 win rate), so players_in_window is recorded players who played in the window.",
         partialWeeksNote(partial),
         trophyBattlesNote(weeks),
         "Aggregate win_rate over a group moves with COMPOSITION (who played that week) as much as with skill; players per week is the tell.",

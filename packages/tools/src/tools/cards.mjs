@@ -18,7 +18,6 @@ import {
   notes,
   docsRef,
 } from "./shared.mjs";
-import { synergyTools } from "./synergy.mjs";
 import { cardProfileTools } from "./card-profile.mjs";
 import { archetypeTools } from "./archetype.mjs";
 
@@ -46,7 +45,6 @@ const compactCard = (c) => ({
 
 /** The catalog rows in the API's own item shape (0076: the `card`
  *  table, never the payload cache), oldest id first. Shared by
- *  cards_catalog, cards_synergy's name resolution and the collector
  *  card avatars. */
 /** The API's iconUrls object from the three columns (0123): the keys
  *  it carried, none it did not. */
@@ -193,7 +191,6 @@ export const cardsTools = {
       };
     },
   },
-  ...synergyTools,
   ...cardProfileTools,
   ...archetypeTools,
 };

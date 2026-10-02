@@ -85,7 +85,7 @@ const KEY = {
     "segment is REQUIRED",
     "applied.window",
     "archetype label",
-    "fit_for",
+    "No corpus statistics",
     "Modes are different games",
     "notes[]",
     "re-fetch tools/list",
@@ -193,7 +193,7 @@ test("a person's tools/list carries no agent-only argument; an agent's and the c
   assert.ok(
     registry
       .declarations("agent")
-      .find((d) => d.name === "battles_meta_decks")
+      .find((d) => d.name === "battles_trends")
       .inputSchema.properties.segment.anyOf.some(
         (b) => b.properties?.on_behalf_of,
       ),
@@ -212,7 +212,7 @@ test("a person who still sends them is never refused: they are dropped before va
   // mistake lists what a person's schema holds.
   await assert.rejects(
     registry.invoke(
-      "battles_meta_decks",
+      "battles_trends",
       {},
       { segment: { on_behalf_of: "discord:1", bogus: 1 } },
     ),

@@ -3,8 +3,7 @@ Description: elixir-mcp - Clash Royale history recorder and MCP server (unoffici
 
 # One stack (docs/ENGINEERING.md). NAT-free VPC: DB-touching Lambdas reach
 # S3 through the free gateway endpoint and nothing else; they hand mail
-# and editor work to the non-VPC workers through the outbox bucket, and
-# the email relay and editor are the only compute with internet egress. Secrets arrive via
+# work to the non-VPC email relay through the outbox bucket. Secrets arrive via
 # CloudFormation dynamic references from the app secret (created by
 # bootstrap); CR API tokens exist only on gateway operator machines.
 
@@ -24,19 +23,8 @@ Parameters:
     Type: String
   JobsCodeKey:
     Type: String
-  EditorCodeKey:
-    Type: String
   CollectorCodeKey:
     Type: String
-  EditorModel:
-    Type: String
-    Default: claude-opus-5
-    Description: The model the Top 100 editor Lambda writes with (Anthropic API model id)
-  AnthropicKeyInSecret:
-    Type: String
-    Default: "false"
-    AllowedValues: ["true", "false"]
-    Description: Set to true once the app secret carries anthropic_api_key (secret-add-keys.mjs); until then the editor Lambda has no key and the Top 100 issue is not generated
   AppSecretName:
     Type: String
     Default: elixir-mcp/app
@@ -124,7 +112,6 @@ Conditions:
   HasSessionSecretPrevious: !Equals [!Ref SessionSecretPreviousInSecret, "true"]
   HasUnsubscribeKey: !Equals [!Ref UnsubscribeKeyInSecret, "true"]
   TickIsOneMinute: !Equals [!Ref SchedulerTickMinutes, 1]
-  HasAnthropicKey: !Equals [!Ref AnthropicKeyInSecret, "true"]
 
 Resources:
   # ------------------------------------------------------------ networking
@@ -533,92 +520,20 @@ Resources:
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn
               # Product email (docs/EMAIL.md): the jobs Lambda composes
-              # and hands it to the outbox; the relay sends. The Top 100
-              # brief and issue pass through the archive bucket under
-              # mail/.
+              # and hands it to the outbox; the relay sends. Sent message bodies remain archived under mail/.
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject]
                 Resource: !Sub
                   - ${Arn}/mail/*
                   - Arn: !GetAtt ArchiveBucket.Arn
-              # The VPC reaches nothing but S3, so mail and the editor's
-              # brief both leave through the outbox.
+              # The VPC reaches nothing but S3, so mail's
+              # messages leave through the outbox.
               - Effect: Allow
                 Action: s3:PutObject
                 Resource:
                   - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
-                  - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/editor/*
 
-  # The Top 100 editor: the one function that calls a model, non-VPC
-  # on the relay's pattern because the VPC has no internet. It reads
-  # and writes only under mail/ and hands the issue back to the jobs
-  # Lambda, which lints and stores it; it holds no database.
-  EditorRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: elixir-mcp-editor
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal: { Service: lambda.amazonaws.com }
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: elixir-mcp-editor
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action: [s3:GetObject, s3:PutObject]
-                Resource: !Sub
-                  - ${Arn}/mail/*
-                  - Arn: !GetAtt ArchiveBucket.Arn
-              - Effect: Allow
-                Action: lambda:InvokeFunction
-                Resource: !GetAtt JobsFunction.Arn
-              - Effect: Allow
-                Action: [s3:GetObject, s3:DeleteObject]
-                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/editor/*
-              - Effect: Allow
-                Action:
-                  [
-                    sqs:ReceiveMessage,
-                    sqs:DeleteMessage,
-                    sqs:GetQueueAttributes,
-                    sqs:GetQueueUrl,
-                  ]
-                Resource: !GetAtt EditorQueue.Arn
-
-  # The brief's way out of the VPC: one message per Top 100 issue,
-  # consumed by the editor. Visibility is six times the 840-second
-  # consumer timeout so a running edit is never redelivered; three
-  # receives, then it stays in the DLQ for the owner to see.
-  EditorQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: elixir-mcp-editor
-      VisibilityTimeout: 5040
-      MessageRetentionPeriod: 86400
-      SqsManagedSseEnabled: true
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt EditorDeadLetterQueue.Arn
-        maxReceiveCount: 3
-  EditorDeadLetterQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: elixir-mcp-editor-dlq
-      MessageRetentionPeriod: 1209600
-      SqsManagedSseEnabled: true
-
-  # The outbox (2026-09-24): how a VPC Lambda hands work to a non-VPC
-  # worker. It writes one JSON object per message through the free S3
-  # gateway endpoint and S3 notifies the lane's queue; the worker reads
-  # the object, acts, and deletes it. Anything still here after the
-  # queue's retries is what dead-lettered, so objects live as long as the
-  # DLQs keep their messages (14 days). Replaced the SQS interface
-  # endpoint, which cost more than the database's disk and backups.
+  # The email outbox connects VPC composers to the non-VPC relay.
   OutboxBucket:
     Type: AWS::S3::Bucket
     DependsOn: OutboxQueuePolicy
@@ -644,10 +559,6 @@ Resources:
             Queue: !GetAtt EmailQueue.Arn
             Filter:
               S3Key: { Rules: [{ Name: prefix, Value: email/ }] }
-          - Event: s3:ObjectCreated:*
-            Queue: !GetAtt EditorQueue.Arn
-            Filter:
-              S3Key: { Rules: [{ Name: prefix, Value: editor/ }] }
 
   # S3 may notify the two lanes' queues, and only from the outbox. The
   # bucket ARN is spelled out rather than referenced so the bucket can
@@ -656,14 +567,14 @@ Resources:
   OutboxQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
-      Queues: [!Ref EmailQueue, !Ref EditorQueue]
+      Queues: [!Ref EmailQueue]
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal: { Service: s3.amazonaws.com }
             Action: sqs:SendMessage
-            Resource: [!GetAtt EmailQueue.Arn, !GetAtt EditorQueue.Arn]
+            Resource: [!GetAtt EmailQueue.Arn]
             Condition:
               ArnEquals:
                 aws:SourceArn: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
@@ -1093,8 +1004,7 @@ Resources:
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           # Product email (docs/EMAIL.md): the queue the relay drains, the
           # secret the one-click unsubscribe token is signed with (the same
-          # one the web API verifies it with), the owner's address for a
-          # failed Top 100 issue, and the editor to hand a brief to.
+          # one the web API verifies it with).
           OUTBOX_BUCKET: !Ref OutboxBucket
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           UNSUBSCRIBE_SECRET: !If
@@ -1117,50 +1027,6 @@ Resources:
       MaximumEventAgeInSeconds: 3600
       MaximumRetryAttempts: 2
 
-  EditorLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /aws/lambda/elixir-mcp-editor
-      RetentionInDays: 30
-  EditorFunction:
-    Type: AWS::Lambda::Function
-    DependsOn: EditorLogGroup
-    Properties:
-      FunctionName: elixir-mcp-editor
-      Runtime: nodejs24.x
-      Architectures: [arm64]
-      Handler: index.handler
-      MemorySize: 512
-      # Two model passes with thinking on a 40 KB brief run minutes.
-      Timeout: 840
-      ReservedConcurrentExecutions: 1
-      Role: !GetAtt EditorRole.Arn
-      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref EditorCodeKey }
-      Environment:
-        Variables:
-          ARCHIVE_BUCKET: !Ref ArchiveBucket
-          JOBS_FUNCTION: !Ref JobsFunction
-          EDITOR_MODEL: !Ref EditorModel
-          # Resolved only once the key is in the secret: a resolve of a
-          # missing JSON key fails the whole stack update.
-          SECRET_EPOCH: !Ref SecretEpoch
-          ANTHROPIC_API_KEY: !If
-            - HasAnthropicKey
-            - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:anthropic_api_key}}"
-            - !Ref AWS::NoValue
-
-  EditorEventSource:
-    Type: AWS::Lambda::EventSourceMapping
-    Properties:
-      EventSourceArn: !GetAtt EditorQueue.Arn
-      FunctionName: !Ref EditorFunction
-      BatchSize: 1
-
-  # Product email (docs/EMAIL.md): six weekly kinds at 14:00Z on their
-  # days, the milestone mail hourly, and the two WRITTEN kinds' briefs
-  # ahead of their sends - the Top 100 Thursday 10:30Z after the daily
-  # board lands, Card of the Week Friday 06:00Z after the nightly rollup.
-  # One rule per kind so a kind can be paused alone.
   EmailClanReportRule:
     Type: AWS::Events::Rule
     Properties:
@@ -1312,54 +1178,10 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt CaptureEfficiencyRule.Arn
 
-  # The season meta rollups (0121): nightly, the running season rebuilt
-  # from the raw rows (the only writer of distinct players and card
-  # pairs) and any ended season filled in; hourly at :45, the counters
-  # incremented from battles created since the cursor. 04:40Z sits in
-  # the quiet hours before the histogram and after the UTC day closes;
-  # the two nightly jobs never overlap (reserved concurrency 1 queues,
-  # but the rollup is ~1 min a season on the micro).
-  MetaRollupNightlyRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: elixir-mcp-meta-rollup-nightly
-      ScheduleExpression: cron(40 4 * * ? *)
-      Targets:
-        - Arn: !GetAtt JobsFunction.Arn
-          Id: meta-rollup-nightly
-          Input: '{"meta_rollup_nightly": true}'
-
-  MetaRollupNightlyPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref JobsFunction
-      Action: lambda:InvokeFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt MetaRollupNightlyRule.Arn
-
-  MetaRollupHourlyRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: elixir-mcp-meta-rollup-hourly
-      ScheduleExpression: cron(45 * * * ? *)
-      Targets:
-        - Arn: !GetAtt JobsFunction.Arn
-          Id: meta-rollup-hourly
-          Input: '{"meta_rollup_hourly": true}'
-
-  MetaRollupHourlyPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref JobsFunction
-      Action: lambda:InvokeFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt MetaRollupHourlyRule.Arn
-
   # The nightly payload shape census (time-series review 2.7, 0132):
   # twenty archived objects per endpoint from the last day against the
   # field manifest; findings filed into feedback (surface recorder), the
-  # PayloadShapeFindings metric emitted. 05:05Z: after the 04:40Z rollup,
-  # before the 05:30Z histogram, the UTC day closed.
+  # PayloadShapeFindings metric emitted. 05:05Z: before the 05:30Z histogram, the UTC day closed.
   ShapeCensusRule:
     Type: AWS::Events::Rule
     Properties:

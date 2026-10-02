@@ -96,40 +96,11 @@ export function adminRoutes({
           where c.name is not null
           order by c.card_id`,
       );
-      const { rows: season } = await db.query(
-        `select season_month from season where starts_at <= now() order by season_month desc limit 1`,
-      );
-      const seasonMonth = season[0]?.season_month ?? null;
-      // Decks with no attested win condition this season, and the most
-      // expensive troop or building in each that has no role.
-      const { rows: unattested } = await db.query(
-        `with fallback as (
-           select d.deck_hash, m.battles
-             from deck d
-             join deck_meta_season m on m.deck_hash = d.deck_hash
-              and m.season_month = $1 and m.mode_group = 'all'
-            where d.archetype_win_conditions = '{}'),
-         defining as (
-           select distinct on (f.deck_hash) f.deck_hash, f.battles, dc.card_id
-             from fallback f
-             join deck_card dc on dc.deck_hash = f.deck_hash
-             join card c on c.card_id = dc.card_id
-             left join card_role r on r.card_id = dc.card_id
-            where r.card_id is null and dc.card_id < 28000000 and c.elixir_cost is not null
-            order by f.deck_hash, c.elixir_cost desc, dc.card_id)
-         select x.card_id, c.name, count(*)::int as decks, sum(x.battles)::int as battles
-           from defining x join card c on c.card_id = x.card_id
-          group by x.card_id, c.name
-          order by battles desc, decks desc
-          limit 30`,
-        [seasonMonth],
-      );
       const { rows: aliases } = await db.query(
         `select alias, cards, family, source, attested_at from deck_alias order by alias`,
       );
       return json(200, {
         version: version[0] ?? null,
-        season: seasonMonth,
         cards: cards.map((c) => ({
           card_id: c.card_id,
           name: c.name,
@@ -159,7 +130,6 @@ export function adminRoutes({
                 }
               : null,
         })),
-        unattested,
         aliases,
       });
     },

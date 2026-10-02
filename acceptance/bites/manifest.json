@@ -29,7 +29,8 @@
     "why": "a 7-day corpus meta read answered query_timeout",
     "rule": "answered",
     "capture": "77-meta-decks-corpus-week.json",
-    "expect": "refused query_timeout"
+    "expect": "refused query_timeout",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "contract": "6.10.0",
@@ -120,7 +121,8 @@
     "why": "the Gym's block 92.1: RoyalTournamentRank and its _v2 served under one label; the legacy one read as the rarest",
     "case": "gym/92.1",
     "captures": ["92-badges_rarity-corpus.json"],
-    "expect": "neq badges\\[\\?name=RoyalTournamentRank\\]\\.label"
+    "expect": "neq badges\\[\\?name=RoyalTournamentRank\\]\\.label",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 93,
@@ -216,7 +218,8 @@
     "why": "the Gym's block 102.1: ranked ratings filed under the under_5000 trophy band with no note",
     "case": "gym/102.1",
     "captures": ["102-cards_card-witch-ranked.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 103,
@@ -224,7 +227,8 @@
     "why": "the Gym's block 103.1: members.played counted war duels that season excludes",
     "case": "gym/103.1",
     "captures": ["103-cards_card-witch-mine.json"],
-    "expect": "sum_eq: members\\.played"
+    "expect": "sum_eq: members\\.played",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 104,
@@ -248,7 +252,8 @@
     "why": "the Gym's block 105.3: the Evo archetype filter returned both forms' rows",
     "case": "gym/105.3",
     "captures": ["105-battles_meta_decks-evo-filter.json"],
-    "expect": "count_eq archetypes"
+    "expect": "count_eq archetypes",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 106,
@@ -256,7 +261,8 @@
     "why": "the Gym's block 106.1: history pooled every mode across an 18% to 92% ranked shift, unsaid",
     "case": "gym/106.1",
     "captures": ["106-cards_card-witch-corpus.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 107,
@@ -264,7 +270,8 @@
     "why": "the Gym's block 107.1: notes promised excluded counts that were never served",
     "case": "gym/107.1",
     "captures": ["107-cards_card-witch-player.json"],
-    "expect": "has excluded\\.duels: absent"
+    "expect": "has excluded\\.duels: absent",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 108,
@@ -272,7 +279,8 @@
     "why": "the Gym's block 108.1: anchor.decks counted battles beside tools whose decks count identities",
     "case": "gym/108.1",
     "captures": ["108-cards_synergy-witch-corpus.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 110,
@@ -623,7 +631,8 @@
     "why": "the Gym block 136.1 on the answer it read",
     "case": "gym/136.1",
     "captures": ["136-1-rankings_clan_ladder.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 136,
@@ -631,7 +640,8 @@
     "why": "the Gym block 136.2 on the answer it read",
     "case": "gym/136.2",
     "captures": ["136-2-rankings_clan_ladder.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 137,
@@ -639,7 +649,8 @@
     "why": "the Gym block 137.1 on the answer it read",
     "case": "gym/137.1",
     "captures": ["137-1-rankings_players.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 137,
@@ -647,7 +658,8 @@
     "why": "the Gym block 137.2 on the answer it read",
     "case": "gym/137.2",
     "captures": ["137-2-rankings_players.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 137,
@@ -655,7 +667,8 @@
     "why": "the Gym block 137.3 on the answer it read",
     "case": "gym/137.3",
     "captures": ["137-3-rankings_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 138,
@@ -663,7 +676,8 @@
     "why": "the Gym block 138.1 on the answer it read",
     "case": "gym/138.1",
     "captures": ["138-1-rankings_players.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 138,
@@ -671,7 +685,8 @@
     "why": "the Gym block 138.2 on the answer it read",
     "case": "gym/138.2",
     "captures": ["138-2-rankings_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 140,
@@ -720,7 +735,8 @@
     "why": "the Gym block 144.2 on the answer it read",
     "case": "gym/144.2",
     "captures": ["144-2-badges_rarity.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 145,
@@ -728,7 +744,8 @@
     "why": "the Gym block 145.1 on the answer it read",
     "case": "gym/145.1",
     "captures": ["145-1-badges_rarity.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 145,
@@ -736,7 +753,8 @@
     "why": "the Gym block 145.2 on the answer it read",
     "case": "gym/145.2",
     "captures": ["145-2-badges_holders.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 146,
@@ -800,7 +818,8 @@
     "why": "the Gym block 154.1 on the answer it read",
     "case": "gym/154.1",
     "captures": ["154-1-cards_synergy.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 154,
@@ -808,7 +827,8 @@
     "why": "the Gym block 154.2 on the answer it read",
     "case": "gym/154.2",
     "captures": ["154-2-cards_synergy.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 154,
@@ -816,7 +836,8 @@
     "why": "the Gym block 154.3 on the answer it read",
     "case": "gym/154.3",
     "captures": ["154-3-cards_synergy.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 155,
@@ -824,7 +845,8 @@
     "why": "the Gym block 155.1 on the answer it read",
     "case": "gym/155.1",
     "captures": ["155-1-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 155,
@@ -832,7 +854,8 @@
     "why": "the Gym block 155.2 on the answer it read",
     "case": "gym/155.2",
     "captures": ["155-2-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 157,
@@ -1026,7 +1049,8 @@
     "why": "the Gym block 171.1 on the answer it read",
     "case": "gym/171.1",
     "captures": ["171-1-battles_meta_decks.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 171,
@@ -1034,7 +1058,8 @@
     "why": "the Gym block 171.2 on the answer it read",
     "case": "gym/171.2",
     "captures": ["171-2-battles_meta_decks.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 174,
@@ -1042,7 +1067,8 @@
     "why": "the Gym block 174.1 on the answer it read",
     "case": "gym/174.1",
     "captures": ["174-1-rankings_clans.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 174,
@@ -1050,7 +1076,8 @@
     "why": "the Gym block 174.2 on the answer it read",
     "case": "gym/174.2",
     "captures": ["174-2-rankings_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 175,
@@ -1058,7 +1085,8 @@
     "why": "the Gym block 175.1 on the answer it read",
     "case": "gym/175.1",
     "captures": ["175-1-rankings_players.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 175,
@@ -1066,7 +1094,8 @@
     "why": "the Gym block 175.2 on the answer it read",
     "case": "gym/175.2",
     "captures": ["175-2-rankings_players.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 176,
@@ -1074,7 +1103,8 @@
     "why": "the Gym block 176.1 on the answer it read",
     "case": "gym/176.1",
     "captures": ["176-1-rankings_players.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 177,
@@ -1082,7 +1112,8 @@
     "why": "the Gym block 177.1 on the answer it read",
     "case": "gym/177.1",
     "captures": ["177-1-rankings_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 179,
@@ -1195,7 +1226,8 @@
     "why": "the Gym block 188.1 on the answer it read",
     "case": "gym/188.1",
     "captures": ["188-1-battles_meta_decks.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 188,
@@ -1203,7 +1235,8 @@
     "why": "the Gym block 188.2 on the answer it read",
     "case": "gym/188.2",
     "captures": ["188-2-battles_meta_cards.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 189,
@@ -1219,7 +1252,8 @@
     "why": "the Gym block 191.2 on the answer it read",
     "case": "gym/191.2",
     "captures": ["191-2-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 193,
@@ -1227,7 +1261,8 @@
     "why": "the Gym block 193.1 on the answer it read",
     "case": "gym/193.1",
     "captures": ["193-1-badges_rarity.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 193,
@@ -1235,7 +1270,8 @@
     "why": "the Gym block 193.3 on the answer it read",
     "case": "gym/193.3",
     "captures": ["193-3-badges_rarity.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 195,
@@ -1309,7 +1345,8 @@
     "why": "the Gym block 204.1 on the answer it read",
     "case": "gym/204.1",
     "captures": ["204-1-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 204,
@@ -1317,7 +1354,8 @@
     "why": "the Gym block 204.2 on the answer it read",
     "case": "gym/204.2",
     "captures": ["204-2-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 205,
@@ -1325,7 +1363,8 @@
     "why": "the Gym block 205.1 on the answer it read",
     "case": "gym/205.1",
     "captures": ["205-1-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 206,
@@ -1333,7 +1372,8 @@
     "why": "the Gym block 206.1 on the answer it read",
     "case": "gym/206.1",
     "captures": ["206-1-cards_synergy.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 208,
@@ -1341,7 +1381,8 @@
     "why": "the Gym block 208.1 on the answer it read",
     "case": "gym/208.1",
     "captures": ["208-1-rankings_players.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 208,
@@ -1349,7 +1390,8 @@
     "why": "the Gym block 208.2 on the answer it read",
     "case": "gym/208.2",
     "captures": ["208-2-rankings_players.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 209,
@@ -1357,7 +1399,8 @@
     "why": "the Gym block 209.1 on the answer it read",
     "case": "gym/209.1",
     "captures": ["209-1-rankings_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 209,
@@ -1365,7 +1408,8 @@
     "why": "the Gym block 209.2 on the answer it read",
     "case": "gym/209.2",
     "captures": ["209-2-rankings_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 219,
@@ -1677,7 +1721,8 @@
     "why": "the Gym block 286.1 on the answer it read",
     "case": "gym/286.1",
     "captures": ["286-1-battles_meta_decks.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 286,
@@ -1693,7 +1738,8 @@
     "why": "the Gym block 286.3 on the answer it read",
     "case": "gym/286.3",
     "captures": ["286-3-battles_meta_decks.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 287,
@@ -1728,7 +1774,8 @@
     "why": "the Gym block 290.1 on the answer it read",
     "case": "gym/290.1",
     "captures": ["290-1-rankings_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 291,
@@ -1736,7 +1783,8 @@
     "why": "the Gym block 291.1 on the answer it read",
     "case": "gym/291.1",
     "captures": ["291-1-rankings_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 292,
@@ -1744,7 +1792,8 @@
     "why": "the Gym block 292.1 on the answer it read",
     "case": "gym/292.1",
     "captures": ["292-1-rankings_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 292,
@@ -1752,7 +1801,8 @@
     "why": "the Gym block 292.2 on the answer it read",
     "case": "gym/292.2",
     "captures": ["292-2-rankings_timeline.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 293,
@@ -1760,7 +1810,8 @@
     "why": "the Gym block 293.1 on the answer it read",
     "case": "gym/293.1",
     "captures": ["293-1-rankings_clan_ladder.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 294,
@@ -1776,7 +1827,8 @@
     "why": "the Gym block 294.2 on the answer it read",
     "case": "gym/294.2",
     "captures": ["294-2-rankings_clan_ladder.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 296,
@@ -1832,7 +1884,8 @@
     "why": "the Gym block 300.2 on the answer it read",
     "case": "gym/300.2",
     "captures": ["300-2-battles_meta_decks.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 302,
@@ -1896,7 +1949,8 @@
     "why": "the Gym block 308.1 on the answer it read",
     "case": "gym/308.1",
     "captures": ["308-1-battles_meta_decks.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 308,
@@ -1936,7 +1990,8 @@
     "why": "the Gym block 315.2 on the answer it read",
     "case": "gym/315.2",
     "captures": ["315-2-battles_meta_cards.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 315,
@@ -1944,7 +1999,8 @@
     "why": "the Gym block 315.3 on the answer it read",
     "case": "gym/315.3",
     "captures": ["315-3-battles_meta_cards.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 322,
@@ -2044,7 +2100,8 @@
     "why": "the Gym block 324.1 on the answer it read",
     "case": "gym/324.1",
     "captures": ["324-1-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 324,
@@ -2052,7 +2109,8 @@
     "why": "the Gym block 324.2 on the answer it read",
     "case": "gym/324.2",
     "captures": ["324-2-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 324,
@@ -2060,7 +2118,8 @@
     "why": "the Gym block 324.3 on the answer it read",
     "case": "gym/324.3",
     "captures": ["324-3-cards_synergy.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 324,
@@ -2076,7 +2135,8 @@
     "why": "the Gym block 325.1 on the answer it read",
     "case": "gym/325.1",
     "captures": ["325-1-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 325,
@@ -2084,7 +2144,8 @@
     "why": "the Gym block 325.2 on the answer it read",
     "case": "gym/325.2",
     "captures": ["325-2-cards_synergy.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 325,
@@ -2092,7 +2153,8 @@
     "why": "the Gym block 325.3 on the answer it read",
     "case": "gym/325.3",
     "captures": ["325-3-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 326,
@@ -2100,7 +2162,8 @@
     "why": "the Gym block 326.2 on the answer it read",
     "case": "gym/326.2",
     "captures": ["326-2-cards_card.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 328,
@@ -2204,7 +2267,8 @@
     "why": "the Gym block 342.2 on the answer it read",
     "case": "gym/342.2",
     "captures": ["342-2-rankings_players.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 344,
@@ -2212,6 +2276,7 @@
     "why": "the Gym block 344.1 on the answer it read",
     "case": "gym/344.1",
     "captures": ["344-1-rankings_clan_ladder.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   }
 ]

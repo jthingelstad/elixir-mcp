@@ -10,7 +10,6 @@ import {
   ToolFailure,
   SEGMENT_SCHEMA,
   resolveSegment,
-  populationBlock,
   RECORDED_PLAYERS_SQL,
   appliedBlock,
   notes,
@@ -50,15 +49,7 @@ async function badgeScope(ctx, args, params) {
       clanTag: seg.clanTag,
     };
   }
-  // The corpus is the players recorded now (Jamie, 2026-09-23, Gym
-  // #145): a profile the record no longer polls stays in player_badge
-  // with the badges and clan of its last read, as old as March, and
-  // pooled in it nearly doubled players_considered.
-  return {
-    where: `pb.player_tag in (${RECORDED_PLAYERS_SQL})`,
-    echo: seg.echo,
-    corpus: true,
-  };
+  throw new ToolFailure("bad_request", "Name a recorded player or clan.");
 }
 
 /** How much of a clan a clan segment could read (Gym #183): a clan
@@ -79,7 +70,7 @@ async function clanCoverageNote(db, scope, considered) {
 
 /** The parameters a scope's where clause uses: one for a named segment,
  *  none for the corpus. */
-const scopeArity = (scope) => (scope.corpus ? 0 : 1);
+const scopeArity = () => 1;
 
 /** The population, and how fresh its reads are: `observations` is the
  *  oldest and newest PROFILE POLL among the players considered (Gym #91).
@@ -249,7 +240,7 @@ function editDistance(a, b) {
 export const badgesTools = {
   badges_rarity: {
     description:
-      "Every badge observed across recorded profiles with its holder count, rarest first: the 'what is the rarest badge' question over a named population (segment 'mine', 'corpus' or {clan_tag | player_tag}), with players_considered so the strength of the claim is in the payload. One-off badges are told apart from tiered ones, and tiered badges break down by level.",
+      "Every badge observed across recorded profiles with its holder count, rarest first: the 'what is the rarest badge' question over a named population (segment 'mine' or {clan_tag | player_tag}), with players_considered so the strength of the claim is in the payload. One-off badges are told apart from tiered ones, and tiered badges break down by level.",
     inputSchema: {
       type: "object",
       properties: {
@@ -291,11 +282,6 @@ export const badgesTools = {
          limit ${limit}`,
         params,
       );
-      const corpus = !scope.corpus
-        ? null
-        : await populationBlock(ctx.db, {
-            playersInWindow: pop.players_considered,
-          });
       // A limited page is cut from the rarest end (Gym #193): the pair
       // note reads every badge in the population, not just the page's, so
       // a legacy row listed alone still carries its versioned twin's
@@ -316,7 +302,6 @@ export const badgesTools = {
           ).filter(([a, b]) => onPage.has(a) || onPage.has(b));
       return {
         applied: appliedBlock({ segment: scope.echo, kind: args.kind, limit }),
-        ...(corpus ? { population: corpus } : {}),
         ...pop,
         badges: rows.map((r) => ({
           name: r.name,
@@ -342,7 +327,7 @@ export const badgesTools = {
           // One player is not a population (Gym #257): every badge they
           // hold reads holders 1, share 1, sorted "rarest first".
           scope.echo?.kind === "player" || scope.echo?.player_tag
-            ? "This segment is one player, so every badge listed is one they hold (holders 1, holder_share 1) and the order says nothing about rarity. For how rare a badge is, read badges_rarity over segment 'corpus' or a clan, and badges_holders for who holds it."
+            ? "This segment is one player, so every badge listed is one they hold (holders 1, holder_share 1) and the order says nothing about rarity. For how rare a badge is, read badges_rarity over a clan segment, and badges_holders for who holds it."
             : null,
           cut
             ? `This page lists ${rows.length} of ${badgesTotal} badges held here, the rarest first (limit ${limit}); the other ${badgesTotal - rows.length} are more common and not listed. Rarity is within the RECORDED population, not the game.`
@@ -354,7 +339,6 @@ export const badgesTools = {
             await pairCounts(ctx.db, pairs, scope.where, scopeParams),
           ),
           OBSERVATIONS_NOTE,
-          corpus ? corpusNote(pop, corpus) : null,
           emptyPopulationNote(pop),
           await clanCoverageNote(ctx.db, scope, pop.players_considered),
         ),
@@ -366,7 +350,7 @@ export const badgesTools = {
 
   badges_holders: {
     description:
-      "Who holds a badge: every recorded player in a named population (segment 'mine', 'corpus' or an object) with the named badge, with level and progress where tiered, names not just tags, and their clan as of the last profile read. The badge is its API identifier or its label (badges_rarity lists both); a near-miss or a label two badges share is refused with candidates rather than guessed.",
+      "Who holds a badge: every recorded player in a named population (segment 'mine' or an object) with the named badge, with level and progress where tiered, names not just tags, and their clan as of the last profile read. The badge is its API identifier or its label (badges_rarity lists both); a near-miss or a label two badges share is refused with candidates rather than guessed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -455,11 +439,6 @@ export const badgesTools = {
         params,
       );
       const oneOff = rows.length > 0 && rows.every((r) => r.level === null);
-      const corpus = !scope.corpus
-        ? null
-        : await populationBlock(ctx.db, {
-            playersInWindow: pop.players_considered,
-          });
       return {
         badge: exact.name,
         label: badgeLabel(exact.name),
@@ -472,7 +451,6 @@ export const badgesTools = {
           min_level: args.min_level,
           limit,
         }),
-        ...(corpus ? { population: corpus } : {}),
         ...pop,
         holders_total: rows[0]?.holders_total ?? 0,
         holder_share:
@@ -515,7 +493,6 @@ export const badgesTools = {
           "A holder's clan_tag is their clan at observed_at, not necessarily today's: a player the record no longer polls keeps the clan of that last read.",
           LABEL_NOTE,
           OBSERVATIONS_NOTE,
-          corpus ? corpusNote(pop, corpus) : null,
           emptyPopulationNote(pop),
           await clanCoverageNote(ctx.db, scope, pop.players_considered),
         ),
@@ -550,10 +527,4 @@ async function siblingNote(db, name, scopeWhere, scopeParams) {
     [...scopeParams, sibling],
   );
   return `Versioned pair: ${c.pair} are two identifiers for one badge a player names the same way (${badgeLabel(sibling)} is the other). In this population ${s.n} ${s.n === 1 ? "holds" : "hold"} ${sibling}, and ${players(c.either)} ${c.either === 1 ? "holds" : "hold"} either (${holdBoth(c.both)}).`;
-}
-
-/** What the corpus counts (Gym #145): the players recorded now, with a
- *  profile the record has read - not every profile it ever read. */
-function corpusNote(pop, corpus) {
-  return `players_considered counts the players recorded now whose profile the record has read (${pop.players_considered} of the ${corpus.recorded_players} recorded now): a player no longer recorded is left out, since the record stopped reading their badges. population.players_in_window is the same count.`;
 }

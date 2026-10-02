@@ -1,5 +1,5 @@
 /**
- * Eleven examples, each a real page (the design's "use cases"; Jamie
+ * Ten examples, each a real page (the design's "use cases"; Jamie
  * renamed the section Examples on 2026-09-10).
  *
  * The transcripts are REAL (2026-09-10): each question was put to the
@@ -47,37 +47,6 @@ export default [
               role: "agent",
               text: "Mostly grinding, with one bright spot. I looked at your last 30 days — 79 recorded battles since August 11.\n\n**By week** your win rate has bounced rather than climbed: 61% → 63% → 48% → 80% → 45%. Your trophies have gone nowhere: 12,593 five weeks ago, 12,562 today.\n\n**By deck** is where the story is:\n\n- **Royal Hogs bridge spam** — your main deck, 54 battles, 68% of your games: 25–29, **46%**\n- **Mortar siege** — 13 battles: 11–2, **85%**\n\nThe deck you play least is the one that wins. That is not grinding paying off; that is a deck choice.",
             },
-            { role: "user", text: "So what do I drop?" },
-            {
-              role: "agent",
-              text: "Not a card — a mode. Your main deck's problem is **Ladder specifically**: 25–29 there, but 19–6 (76%) in 1v1 war battles and 9–3 in duels over the same window, on the same eight cards.\n\nTwo things I would try, in order:\n\n1. Take the Mortar siege deck to Ladder for a week and see whether 11–2 survives a bigger sample. Thirteen games is a hint, not a verdict.\n2. If it does, keep the bridge spam deck for war, where it is already winning.",
-            },
-          ],
-        },
-      },
-      {
-        key: "deck",
-        icon: "layers",
-        label: "Pick your next deck",
-        title: "Pick your next deck",
-        lede: "What is winning in the population you name (segment: the recorded corpus, your clan or one player), weighted by results rather than by how often you see it on a stream — with the sample sizes attached.",
-        reads: [
-          "Meta decks by segment: the corpus, your clan, or one player",
-          "Win rates from recorded battles, shrunk toward the corpus mean over the same window",
-          "Your own deck history",
-        ],
-        setup: ["Track your player", "Read the methodology"],
-        script: {
-          tool: "battles_meta_decks · battles_decks",
-          lines: [
-            {
-              role: "user",
-              text: "What should I play next season? I'm bored of my Witch deck.",
-            },
-            {
-              role: "agent",
-              text: "Honest answer first: the corpus can tell you what is *winning*, not what will win for you. Over the last 28 days — 9,938 decided Ladder battles on record — the decks with the best win rates are all played by **one pilot each**, 60–65% over 30–68 games, so they say more about that player than about the deck.\n\nThe widely played decks tell the opposite story: the most common Ladder deck in the corpus, **X-Bow / Tesla / Archers** (42 different players), wins only 42%. Popular is not the same as good.\n\nAsking again for decks played by at least two players (min_players 2) and checked against your collection (fit_for), two are worth a look:\n\n- **Royal Hogs bridge spam, with Skeleton King** — 9 players, 58% over 71 games, and you can field it now at your usual level: the one upgrade that matters is Skeleton King, two levels behind.\n- **Mortar siege** — your own second deck, 11–2. You may not need a new deck; you may need to play the one you are winning with.\n\nSample sizes are small everywhere here. Treat this as where to look, not a ranking.",
-            },
           ],
         },
       },
@@ -102,7 +71,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Your best is **12,622** and you are at **12,562** — 60 away, a gap that keeps closing and reopening. Net trophies over the last five weeks: +32, −57, +6, −32, +52. You have been oscillating, not sinking.\n\nWhat the record shows since August 11:\n\n- Ladder is the only mode you lose in: **25–29 (46%)**, against 76% in war 1v1s and 75% in duels.\n- Every one of those Ladder games was on your main Witch / Royal Hogs deck. Your Mortar deck, 11–2 overall, has barely touched Ladder.\n- Volume is low and steady, 11–28 battles a week. At 46% that is a coin flip per session.\n\nNothing here says tilt or time of day — there are not enough Ladder games to split by session honestly. The one lever the data supports: take the deck that is winning to Ladder, and give it 30 games before judging.",
+              text: "Your best is **12,622** and you are at **12,562** — 60 away, a gap that keeps closing and reopening. Net trophies over the last five weeks: +32, −57, +6, −32, +52. You have been oscillating, not sinking.\n\nWhat the record shows since August 11:\n\n- Ladder is the only mode you lose in: **25–29 (46%)**, against 76% in war 1v1s and 75% in duels.\n- Every one of those Ladder games was on your main Witch / Royal Hogs deck. Your Mortar deck, 11–2 overall, has barely touched Ladder.\n- Volume is low and steady, 11–28 battles a week. At 46% that is a coin flip per session.\n\nNothing here says tilt or time of day — there are not enough Ladder games to split by session honestly. ",
             },
           ],
         },
@@ -317,7 +286,7 @@ export default [
         icon: "server",
         label: "Run a collector",
         title: "Run a collector",
-        lede: "Volunteer a machine that fetches for the corpus. It is named for a card, credited to you, and it raises what Elixir records for you.",
+        lede: "Volunteer a machine that fetches for the recorder. It is named for a card, credited to you, and it raises what Elixir records for you.",
         reads: [
           "The collector fleet: points, credits, last success",
           "Coverage on your own tag: polls, captures, completeness",

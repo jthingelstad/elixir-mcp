@@ -28,14 +28,13 @@ export function docContext() {
         const v = mod.default;
         return typeof v === "function" ? await v() : v;
       };
-      const [responses, statistics, tools, site, build] = await Promise.all([
+      const [responses, tools, site, build] = await Promise.all([
         load("responses.js"),
-        load("statistics.js"),
         load("tools.js"),
         load("site.js"),
         load("build.js"),
       ]);
-      return { responses, statistics, tools, site, build };
+      return { responses, tools, site, build };
     })();
   }
   return contextPromise;

@@ -1,126 +1,55 @@
 ---
 slug: cards
 title: "Cards in the record"
-description: "How a card is recorded: the catalog and its types and forms, the 1-16 level scale, card rows on every battle side, deck identity, the collection snapshot, and the season rollups; then which tool answers which card question, and cards_card, which answers most of them in one call."
+description: "Card catalog facts, forms, recorded inventory and the cards you and your clan have played."
 section: record
 order: 4
 navTitle: "Cards"
 icon: layers
-lede: "One card, every place the record holds it, and the one call that gathers them."
+lede: "The cards you hold and the cards you played, as recorded."
 ---
 
 # Cards in the record
 
-The record holds a card in five places, and 5.0.0 added the reader shaped
-like the card. This page is the card model - what each place stores and on
-what scale - and the map from a card question to the tool that answers it.
+Elixir keeps the card catalog, your observed card inventory, the cards on each battle side and exact deck identities. These are facts from the API and your recorded history.
 
-## The five places a card lives
+## The places a card lives
 
-| where | one row is | what it carries |
-| --- | --- | --- |
-| **the catalog** | a card or tower troop, as the API's `/cards` last listed it; a card never leaves | id, name, **type** (troop, building, spell, tower troop - from the id range, which the API does not spell out), rarity, elixir cost, icons, the forms that exist, when it entered the catalog and when it last changed |
-| **a battle side's cards** | one card one side played in one battle | the card, its **form** (base, evolution or hero), its slot (0 = the tower troop), its **level** on the 1-16 scale |
-| **a deck identity** | the exact set of card:form pairs plus the tower troop, as `deck_hash` | the cards, each with its form; never levels |
-| **a collection** | a recorded player's card as the profile last showed it | level, count toward the next level, the forms unlocked, star level, when it was observed |
-| **the season rollups** | season × mode group × card × form (and the same by trophy band) | decided observations, wins, losses, distinct players, the mean level gap; rebuilt nightly, incremented hourly |
+| place | what it holds |
+| --- | --- |
+| Catalog | Id, name, type, rarity, elixir cost, icons and available forms. |
+| Battle side | Played card, form, slot and level on the in-game 1–16 scale. |
+| Deck identity | Exact card/form pairs plus tower troop, identified by `deck_hash`; levels are separate. |
+| Player inventory | Last observed level, count, unlocked forms and star level, with observation timestamps. |
 
-**Forms.** The API encodes a card's form as the bit field `evolutionLevel`
-(`1` Evolution, `2` Hero, `3` both). Every card object a tool serves spells
-the *played* form as one word, `form: "base" | "evolution" | "hero"`; the
-collection's and catalog's *sets* of forms are `forms_unlocked` and
-`forms_available`. Forms are never merged in a card row: a card played in
-two forms is two rows. The one place forms merge on purpose is the
-`all` row of `cards_card` and the anchor of `cards_synergy`, which say so.
-See [Deck identity and forms](/docs/battles#deck-identity-and-forms).
+**Forms.** Played cards say `form: "base" | "evolution" | "hero"`. Inventory and catalog list sets as `forms_unlocked` and `forms_available`. The API encodes these as `evolutionLevel`: 1 Evolution, 2 Hero, 3 both. See [Deck identity and forms](/docs/battles#deck-identity-and-forms).
 
-**Levels.** Every recorded-data tool serves levels on the in-game 1 to 16
-scale, whatever the rarity; the API's rarity-relative cap is
-`maxLevelRarityScale` on the catalog for anyone joining to a raw payload.
-The record describes level differences (`mean_level_gap` on deck and card
-rows) and does not adjust for them:
-[Methodology](/docs/methodology#card-levels-described-not-adjusted-for).
-
-**What is not here.** Descriptions, stats, arena unlocks and release dates
-are not in the API and not observed by the record. `cards_card` says when a
-card first entered the catalog and when each form was first *played* in
-the record, which is what it can know.
+**Levels.** Recorded tools serve the in-game 1–16 scale. Raw API payloads use rarity-relative levels; `cards_catalog` carries `maxLevelRarityScale` for joining to them. Level differences describe the games that happened, as explained in [Methodology](/docs/methodology#card-levels-described-not-adjusted-for).
 
 ## One card in one call
 
-`cards_card` gathers what the record knows about a card for a named
-population (`segment: "mine" | "corpus" | {clan_tag | player_tag}`, required as on every segment tool), anchored by `card_id` or
-an exact `card` name (`Witch` is never read as `Mother Witch`; a fuzzy
-name is refused with the candidates). Default window: the current season to
-date; `season`, `from`/`to` and `mode` as everywhere.
+`cards_card` takes an exact card name or `card_id` and a required subject: `segment: "mine"` for your clan, `{player_tag}` for one player, or `{clan_tag}` for a clan's current members. It serves catalog facts and `card.first_played {base, evolution, hero}`: the earliest play of each form in that selected recorded history. A form never observed stays null.
 
-| block | what it holds | served for |
-| --- | --- | --- |
-| `card` | the catalog row with `type`, `forms_available`, `first_seen_in_catalog` (when Elixir first stored the card; every card already in the game on 2026-09-10, when storage began, carries that date), and `first_played {base, evolution, hero}` (the earliest recorded deck carrying each form) | every read |
-| `season` | this window: `all` (forms merged) and `forms` (one row per form played), each with battles, W/L, players (every pilot seen in the population, opponents included on a corpus read), `usage_share` over the population's `decided_battles`, raw and shrunk win rate; on a corpus season read with `mode` omitted, `by_mode` splits it by mode group | every read (`by_mode`: corpus season reads) |
-| `history` | one point per recorded season, same shape, from the rollups | corpus reads |
-| `by_band` | the season's usage by trophy band, with `mean_level_gap` | corpus season reads, once the band rollup is filled |
-| `partners` | the eight cards most played with it and their lift (`cards_synergy` has the full list for any segment) | corpus season reads |
-| `decks` | the five most-played decks containing it, with their cards | every read |
-| `excluded`, `prior_win_rate`, `prior_basis` | what the window held outside the decided head-to-head population, in battles (duels, which count by their rounds instead, boat battles, draws, unresolved, no deck; every row's `duel_rounds` says how many of its battles were duel rounds), and the mean `shrunk_win_rate` shrinks toward: the corpus season's (`corpus_season`) or this population's own over the window (`segment_window`). A row below the sample floor says `insufficient_sample: true` (6.22.0) | every read |
-| `members` | on a clan segment: `played` (each member's battles with it in the same population as `season`, a duel's rounds counted as games, win rate, `level_played`, forms) and `held` (each member's level, forms unlocked, star level from the collection snapshot), with how many members have a recorded collection | clan segments |
+`first_seen_in_catalog` is when Elixir stored the catalog row, not the card's release date. The API does not provide release dates, descriptions or combat statistics.
 
-`verbosity: "compact"` keeps `card`, `season` and `history`. Every number
-is a description of what was recorded, with the same caveats as the meta
-tools: pooled player-battle observations, both sides can contribute, and a
-card's win rate describes who played it as much as the card.
+For a clan, `members.played` lists current members who played the card in the requested window, with battle counts, wins/losses, levels and forms. A duel contributes each recorded round. `members.held` lists observed inventory with `observed_at` and `since`; missing inventory is unknown. Membership is current at the time of the call, including members' earlier games. The window defaults to the current season; `season`, `from`/`to` and `mode` can narrow the played list. `first_played` spans the whole selected history. Compact verbosity drops the member lists.
 
 ## Which tool for which card question
 
 | question | tool |
 | --- | --- |
-| What is this card, which forms exist, what is its id? | `cards_catalog` (`query`, `ids`; `type` on every row) |
-| Tell me about this card | `cards_card` |
-| How much is it played and does it win, for a population? | `cards_card` (`season`), or `battles_meta_cards` with `cards: [ids]` for the row beside other cards |
-| How has its usage moved across seasons? | `cards_card` (`history`, corpus) |
-| What is it played with? | `cards_synergy` (any segment); `cards_card.partners` for the top eight |
-| Which decks carry it? | `cards_card` (`decks`; `archetype` narrows them to one shape), or `battles_meta_decks` with `containing: [ids]` for the full ranked list |
-| What is this deck called, or what does "LavaLoon" mean? | `cards_archetype` (`cards`, or `name`; every deck object already carries `archetype`) — see [Deck archetypes](/docs/archetypes) |
-| Who in my clan plays it, and at what level? Who holds it? | `cards_card` with `segment: "mine"` (`members`) |
-| Which tower troops does the meta use, and do they win? | `battles_meta_cards` with `tower_troops: true` (one row per tower troop over the same population) |
-| Tell me about one tower troop, and who in my clan holds it | `cards_card` with the tower troop's id or name (`season.all`, `members`) |
-| Which of MY cards carry, which enemy cards beat me? | `battles_cards` (`perspective`) |
-| My battles with or against a card | `battles_query` (`with_card`, `with_cards`, `against_card`) |
-| My collection: levels, forms, counts, and the level I actually field | `players_collection` (`fielded`) |
-| Which meta decks can I field, and what would upgrades open? | `battles_meta_decks` with `fit_for` (`decks[]` fieldable as held, `unfieldable[]` with the missing card or form, `fit.upgrades` on every row); `battles_meta_cards` with `fit_for` carries `held` per row |
-
-What beats a card across the corpus - the matchup question - is not
-answered, and none is coming: matchup expectations were considered and
-declined ([Deck archetypes](/docs/archetypes) says the same of decks).
+| What is this card, and which forms exist? | `cards_catalog` |
+| When did this player first play it? Who in this clan played or holds it? | `cards_card` |
+| Which cards did I play, or face, in my games? | `battles_cards` with `perspective` |
+| My battles with or against a card | `battles_query` with `with_card`, `with_cards` or `against_card` |
+| My observed card levels and forms | `players_collection` |
+| Which decks did I play? | `battles_decks` |
+| What is this deck called? | `cards_archetype` |
 
 ## Tower troops
 
-A deck is eight cards and a tower troop, the ninth card, and Elixir
-records it on every battle side (slot 0) and in each `deck_hash`, so two
-decks with the same eight cards and different tower troops are different
-decks. `battles_meta_cards` with `tower_troops: true` reads the ninth card
-over the same population, window and mode as the eight: `decided_battles`
-is the same number, but each tower troop's `usage_share` is taken over
-`tower_troop_known_battles`, the observations whose tower troop is known.
-The API reports none on a river race battle, so those observations count
-in `decided_battles` and in no tower-troop row. `cards_card` answers a tower troop's usage, win rate and a
-clan's holders; its season history, top decks and partners are read for
-the eight deck cards, and `cards_synergy` pairs deck cards only.
-`players_collection` lists a player's tower troops and levels
-(`support_cards`).
-
-`cards_catalog` lists what the newest `/cards` fetch lists: its `cards`
-are the API's `items` and its `tower_troops` its `supportItems`. A card
-or tower troop first seen in a battle or a profile (an event-only card
-such as Super Archers, or a release-day card before the next catalog
-read), or known only from a replay of old history, is on the record but
-not listed until `/cards` lists it, and one `/cards` stops listing leaves
-the list while its battles keep naming it.
+A tower troop is the ninth card in a deck identity. The API reports none on river race battles; that absence stays unknown. Two otherwise identical decks with different tower troops have different hashes. `players_collection` lists observed tower troops as `support_cards`; `cards_card` can describe a tower troop and its earliest selected-history play. `cards_catalog` separates API `items` and `supportItems`.
 
 ## A card's own page
 
-Every card in the catalog has a public page at `/cards/<card id>` —
-`/cards/28000015` is Barbarian Barrel. No sign-in: the catalog row, the
-season-by-season series, the split by mode, and the Card of the Week
-issue about it if one has been sent. The numbers are the ones
-`cards_card` gives, refreshed with the nightly rollup.
+Every catalog card has a public page at `/cards/<card id>` with its name, art, rarity, cost and forms. Battle links and recorded decks link there. These pages serve catalog facts; Elixir no longer publishes global card statistics, Card of the Week, recommendation scores or corpus comparisons.

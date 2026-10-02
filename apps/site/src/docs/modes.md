@@ -76,9 +76,8 @@ has the detail.
 
 The battle and card tools take `mode`, one group at a time:
 `battles_query`, `battles_performance`, `battles_compare`,
-`battles_trends`, `battles_decks`, `battles_cards`, `battles_meta_decks`,
-`battles_meta_cards`, `battles_opponents`, `cards_card`,
-`cards_synergy` and `clans_standings`. Ask your agent for "my Path of
+`battles_trends`, `battles_decks`, `battles_cards`, `battles_opponents`, `cards_card`,
+and `clans_standings`. Ask your agent for "my Path of
 Legends this week" and it passes `mode: "ranked"`; the
 [glossary](/docs/glossary) has the words people use for each. Omitting
 `mode` means every mode, and the note above. The meta tools have no

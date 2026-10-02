@@ -27,7 +27,7 @@ An npm workspaces monorepo.
 | --- | --- |
 | `apps/site` | The static half of the site (Eleventy): home, docs, updates, and the machine-readable surfaces |
 | `apps/web` | The application half (React): sign-in, explore, account, admin, live data |
-| `services/` | The Lambdas, each only its door (entry, handler, routes): `collector`, `editor`, `email-relay`, `jobs`, `mcp`, `migrate`, `scheduler`, `web-api` |
+| `services/` | The Lambdas, each only its door (entry, handler, routes): `collector`, `email-relay`, `jobs`, `mcp`, `migrate`, `scheduler`, `web-api` |
 | `packages/` | What more than one Lambda or app runs, imported by name: `auth`, `claims`, `client`, `collector-door` (the collectors' config, lease and submit), `contracts` (the tool and API contract), `design`, `docs`, `ingest`, `ledger`, `mail`, `outbox`, `record`, `tools` (the tool registry), `ui` |
 | `acceptance/` | The read-only acceptance suite run against the live service |
 | `clients/boards` | A client that keeps the leaderboard collections equal to the boards |

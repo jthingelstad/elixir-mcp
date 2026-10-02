@@ -143,13 +143,17 @@ Global, regional, clan and game-mode leaderboard capture has stopped,
 including historical Path of Legends final-board backfill. Leaderboard
 appearance and the former board Collections no longer sustain recording.
 Live leaderboard reads are unavailable. Existing board history is retained
-only until the separately reviewed purge and tool retirement.
+only until the separately reviewed purge. The global leaderboard tools are removed.
 
 A recorded player's own profile still supplies their rank information.
 Players continue to be recorded when a person follows them or their clan is
 recorded, regardless of their rank. The retirement cutover reconciles all
 remaining reasons before stopping a recording; its original origin label
 is not a safe way to decide what stays.
+
+## Events
+
+Elixir records the game event calendar so you can see which modes and challenges were available when your games happened. `game_events` lists daily sightings in a selected window, the first and latest sighting, and days without a read. These are observations, not announced start/end times. The event calendar does not enroll players or publish global rankings.
 
 ## How often a subject is fetched
 
@@ -385,7 +389,7 @@ the same column (`role_at_war_finish`); today's `role` is only today's.
 ## Reading the game live
 
 `live: true` is a request for a read of the game no older than the API's
-own cache: 60 seconds for players, battle logs and boards, 120 for clans
+own cache: 60 seconds for players, battle logs, 120 for clans
 and the river race. It is **asynchronous**. If such a read is in hand, the
 tool answers from it (`live_status.state: "fresh"`). If not, one priority
 fetch is queued for the next collector that checks in and the tool answers
@@ -397,7 +401,7 @@ the same `retry_after_s`. Nothing waits on a collector inside a call.
 {{ tools.liveFlagCount }} recorded tools take the flag:
 {{ tools.liveFlagNames }}. The player tools can read any tag;
 `clans_roster` and `war_current` can read **any clan, recorded or not**;
-the board tools name their board and location. `battles_query` polls a
+`battles_query` polls a
 player's battle log for the "what did they just play" path. Prefer these;
 they are the live lane with the record's shape.
 
@@ -412,8 +416,6 @@ hand, then `{ path, live: true, live_status, data, meta }`.
 | `/clans/{tag}` | `clan` |
 | `/clans/{tag}/currentriverrace` | `currentriverrace` |
 | `/clans/{tag}/riverracelog` | `riverracelog` |
-| `/locations/{id}/rankings/players` | `rankings_players` (`id` is `global` or numeric) |
-| `/locations/{id}/pathoflegend/players` | `rankings_pol` |
 
 `/players/{tag}/battlelog` is **refused** with `result_too_large` before the
 lane is spent: a raw battle log cannot fit the 48,000-character delivery cap,
@@ -431,5 +433,4 @@ admin unlimited) and an agent spends its owner's allowance. A queued fetch
 is charged once, when it is queued; a fresh read already in hand and the
 follow-up call that finds it are free. Every collector in the fleet picks
 up a queued live fetch first, so the worst-case wait is one check-in
-interval (15 seconds) plus the fetch. Leaderboard fetches also enrol the
-ranked tags into the corpus.
+interval (15 seconds) plus the fetch. Global leaderboard paths are retired and refused before the live lane is spent.

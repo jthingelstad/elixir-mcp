@@ -7,34 +7,18 @@ import { isRetiredEmailKind } from "@elixir-mcp/contracts";
  *
  *  Ops payloads: {sweep_payloads: true,
  *  sweep_operational: true} · {sweep_operational: true} ·
- *  {activity_histogram: true} · {capture_efficiency: true} · {meta_rollup_nightly: true} ·
- *  {meta_rollup_hourly: true} · {meta_rollup_equivalence: true} · {meta_rollup_season: {season_month}} ·
- *  {shape_census: true} · {email: "<kind>",
- *  account_id?, force?} (docs/EMAIL.md: the seven product mail kinds,
- *  on their EventBridge rules; account_id + force is the manual path) ·
- *  {top100_generate: true | {force: true}} (the brief for the Top 100
- *  issue, handed to the editor Lambda through the outbox; force marks
- *  it an operator's regenerate: no owner mail, no send of its own) ·
- *  {issue_accept: {key, kind}} (the editor's answer, linted and stored
- *  as the issue to send; one accepted after its kind's send slot is
- *  sent at once; top100_accept is the older name). */
+ *  {activity_histogram: true} · {capture_efficiency: true} ·
+ *  {shape_census: true} · {email: "<kind>", account_id?, force?}.
+ *  Retired editorial payloads refuse before I/O. */
 
 import pg from "pg";
 import { sweepSilentCollectors } from "./fleet.mjs";
 import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
 import { makeOutbox } from "@elixir-mcp/outbox";
-import { runEmail, writtenSendDue } from "./email/index.mjs";
-import { top100Generate, top100Accept } from "./email/top100.mjs";
-import { cardOfWeekGenerate, cardOfWeekAccept } from "./email/card-of-week.mjs";
-import { cardOfWeekPreview } from "./email/card-of-week-preview.mjs";
+import { runEmail } from "./email/index.mjs";
 import { activityHistogram } from "./activity.mjs";
 import { captureEfficiency } from "./efficiency.mjs";
-import {
-  metaRollupNightly,
-  metaRollupHourly,
-  metaRollupEquivalence,
-  metaRollupSeason,
-} from "./meta-rollup.mjs";
+import { warBattlesUnresolved, warUnresolvedEmf } from "./war-calendar.mjs";
 import { shapeCensus } from "./shape-census.mjs";
 import { seriesMetrics } from "./series-metrics.mjs";
 
@@ -153,7 +137,9 @@ export async function sweepOperational(databaseUrl) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
   try {
-    const out = {};
+    const war_unresolved = await warBattlesUnresolved(db);
+    process.stdout.write(`${warUnresolvedEmf(war_unresolved)}\n`);
+    const out = { war_unresolved };
     out.integration_refreshes = (
       await db.query(
         "delete from integration_profile_refresh where created_at < now() - interval '1 day'",
@@ -325,96 +311,6 @@ export async function handler(event, context) {
       );
     return result;
   }
-  if (event?.top100_generate) {
-    const result = await top100Generate({
-      databaseUrl: process.env.DATABASE_URL,
-      bucket: process.env.ARCHIVE_BUCKET,
-      force: Boolean(event.top100_generate?.force),
-    });
-    console.log(JSON.stringify({ top100_generate: result }));
-    return result;
-  }
-  // The editor hands every written kind back through issue_accept;
-  // top100_accept is the older name and still arrives from a message
-  // queued before this deploy.
-  const accept = event?.issue_accept ?? event?.top100_accept;
-  if (accept) {
-    const kind = accept.kind ?? "top_100";
-    const common = {
-      databaseUrl: process.env.DATABASE_URL,
-      bucket: process.env.ARCHIVE_BUCKET,
-      key: accept.key,
-      enqueue: enqueueEmail,
-    };
-    const result =
-      kind === "card_of_week"
-        ? await cardOfWeekAccept(common)
-        : await top100Accept(common);
-    console.log(JSON.stringify({ issue_accept: { kind, ...result } }));
-    // An issue the editor finished after its send slot goes out now,
-    // not a week late (review 2026-09-27 §6.7). The ledger makes this
-    // idempotent: a recipient the scheduled run reached is skipped. An
-    // operator's forced regenerate (ops) never mails on its own.
-    if (
-      result.accepted &&
-      !result.ops &&
-      writtenSendDue(kind, result.period, new Date())
-    ) {
-      const late = await runEmail({
-        databaseUrl: process.env.DATABASE_URL,
-        kind,
-        enqueue: enqueueEmail,
-        secret: unsubscribeKeys(),
-        archive: await mailArchiveStore(),
-        remainingMs:
-          typeof context?.getRemainingTimeInMillis === "function"
-            ? () => context.getRemainingTimeInMillis()
-            : null,
-      });
-      console.log(JSON.stringify({ late_send: { kind, ...late } }));
-      if (late.incomplete)
-        throw new Error(
-          `email_run_incomplete: late ${kind} sent ${late.sent}, ${late.remaining} remaining after ${late.ms} ms`,
-        );
-      return { ...result, late_send: late };
-    }
-    return result;
-  }
-  if (event?.card_of_week_generate) {
-    const o = event.card_of_week_generate;
-    const result = await cardOfWeekGenerate({
-      databaseUrl: process.env.DATABASE_URL,
-      bucket: process.env.ARCHIVE_BUCKET,
-      ...(o?.force ? { force: String(o.force) } : {}),
-      dryRun: Boolean(o?.dry_run),
-    });
-    // A dry run returns the whole brief; the log gets the shape of it.
-    console.log(
-      JSON.stringify({
-        card_of_week_generate: result.brief
-          ? {
-              dry_run: true,
-              period: result.periodKey,
-              card: result.brief.card?.name,
-              rank: result.brief.rank?.position,
-              decks: result.brief.decks?.length,
-              deep_cut: result.brief.deep_cut?.type,
-            }
-          : result,
-      }),
-    );
-    return result;
-  }
-  if (event?.card_of_week_preview) {
-    const result = await cardOfWeekPreview({
-      databaseUrl: process.env.DATABASE_URL,
-      bucket: process.env.ARCHIVE_BUCKET,
-      period: event.card_of_week_preview.period ?? null,
-      secret: unsubscribeKeys(),
-    });
-    console.log(JSON.stringify({ card_of_week_preview: result }));
-    return result;
-  }
   if (event?.shape_census) {
     const result = await shapeCensus(process.env.DATABASE_URL);
     // The nightly series census rides the same invocation
@@ -432,38 +328,6 @@ export async function handler(event, context) {
     console.log(JSON.stringify({ series_metrics: result }));
     return result;
   }
-  if (event?.meta_rollup_equivalence) {
-    const result = await metaRollupEquivalence(
-      process.env.DATABASE_URL,
-      event.meta_rollup_equivalence === true
-        ? {}
-        : { seasonMonth: event.meta_rollup_equivalence.season_month ?? null },
-    );
-    console.log(JSON.stringify({ meta_rollup_equivalence: result }));
-    return result;
-  }
-  if (event?.meta_rollup_nightly) {
-    const result = await metaRollupNightly(process.env.DATABASE_URL);
-    console.log(JSON.stringify({ meta_rollup_nightly: result }));
-    // The archetype stamp (0148) catches up nightly: every deck behind
-    // the current grammar + vocabulary version is re-stamped.
-    const stamped = await archetypeStampNightly(process.env.DATABASE_URL);
-    console.log(JSON.stringify({ archetype_stamp: stamped }));
-    return { ...result, archetype_stamp: stamped };
-  }
-  if (event?.meta_rollup_season) {
-    const result = await metaRollupSeason(
-      process.env.DATABASE_URL,
-      event.meta_rollup_season,
-    );
-    console.log(JSON.stringify({ meta_rollup_season: result }));
-    return result;
-  }
-  if (event?.meta_rollup_hourly) {
-    const result = await metaRollupHourly(process.env.DATABASE_URL);
-    console.log(JSON.stringify({ meta_rollup_hourly: result }));
-    return result;
-  }
   if (event?.capture_efficiency) {
     const result = await captureEfficiency(process.env.DATABASE_URL);
     console.log(JSON.stringify({ capture_efficiency: result }));
@@ -471,6 +335,9 @@ export async function handler(event, context) {
   }
   if (event?.activity_histogram) {
     const result = await activityHistogram(process.env.DATABASE_URL);
+    result.archetype_stamp = await archetypeStampNightly(
+      process.env.DATABASE_URL,
+    );
     console.log(JSON.stringify({ activity_histogram: result }));
     return result;
   }

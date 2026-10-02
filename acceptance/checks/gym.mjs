@@ -110,12 +110,12 @@ export const gym = [
         .filter((t) => !t.inputSchema?.properties?.verbosity)
         .map((t) => t.name);
       eq(missing.length, 0, `tools without verbosity: ${missing.join(", ")}`);
-      const meta = ctx.tools.get("battles_meta_decks");
+      const meta = ctx.tools.get("cards_card");
       ok(
         meta.inputSchema.properties.verbosity.description.startsWith(
           "compact:",
         ),
-        "battles_meta_decks is two-size (#80)",
+        "cards_card is two-size",
       );
     },
   },

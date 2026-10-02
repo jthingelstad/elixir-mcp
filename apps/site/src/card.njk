@@ -7,18 +7,11 @@ pagination:
 permalink: "/cards/{{ card.id }}/index.html"
 eleventyComputed:
   title: "{{ card.name | safe }}"
-  description: "What the Elixir record holds about {{ card.name | safe }} in Clash Royale: how often it is played, how often it wins, by mode and by month."
+  description: "What the Elixir record holds about {{ card.name | safe }} in Clash Royale: its catalog name, rarity, elixir cost and available forms."
   canonical: "/cards/{{ card.id }}"
 layout: base.njk
 navActive: cards
 ---
-{#- A card's record (canvas 2026-09-29, CardPage). PUBLIC and sign-in
-    free: this is where a forwarded Card of the Week lands, and where the
-    cards index links. The catalog facts are baked at build time and read
-    true with JavaScript off; cards-live.js fills the season's numbers
-    from /api/public/cards/<id>, one mode at a time, because modes are
-    different games and are never added together. Every number on the
-    page is the API's. -#}
 {%- set formName = {"hero": "Hero", "evolution": "Evo", "base": ""}[card.artForm] %}
 {%- set suffix = {"hero": "_hero", "evolution": "_evo", "base": ""}[card.artForm] %}
 <div class="flex flex-col gap-[22px] pt-7 pb-2" data-card="{{ card.id }}">
@@ -45,115 +38,9 @@ navActive: cards
       <p class="m-0 text-[15px] text-ink-dim">
         {{ card.rarity | capitalize }} {{ card.type }} &middot; {{ card.elixir }} elixir{% if card.also %} &middot; {{ card.also }}{% endif %}
       </p>
-      <p class="m-0 flex flex-wrap gap-2" data-card-chips hidden>
-        <span class="chip chip--mute" data-card-issue hidden>{% icon "mail", 13 %}<span data-card-issue-text></span></span>
-        <span class="chip chip--mute" data-card-rank hidden></span>
-      </p>
-    </div>
-    <span class="chip chip--ok" data-card-updated hidden><span class="chip__dot"></span><span data-card-updated-text></span></span>
-  </div>
-
-  <div class="card-modes" role="group" aria-label="Mode" data-card-modes hidden></div>
-
-  <div class="grid grid-cols-2 gap-4 wide:grid-cols-4">
-    <div class="card-stat">
-      <span class="card-stat__label">Share of decks</span>
-      <span class="card-stat__value" data-card-live="share">&mdash;</span>
-      <span class="card-stat__note" data-card-live="share-note">in the mode&rsquo;s battles</span>
-    </div>
-    <div class="card-stat">
-      <span class="card-stat__label">Wins</span>
-      <span class="card-stat__value" data-card-live="wins">&mdash;</span>
-      <span class="card-stat__note" data-card-live="wins-note">when it was in the deck</span>
-    </div>
-    <div class="card-stat">
-      <span class="card-stat__label">Battles</span>
-      <span class="card-stat__value" data-card-live="battles">&mdash;</span>
-      <span class="card-stat__note">with the card</span>
-    </div>
-    <div class="card-stat">
-      <span class="card-stat__label">Players</span>
-      <span class="card-stat__value" data-card-live="players">&mdash;</span>
-      <span class="card-stat__note">who played it</span>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 items-start gap-4 wide:grid-cols-5">
-    <section class="panel flex flex-col wide:col-span-3" aria-labelledby="card-months-h">
-      <div class="panel__head">
-        <h2 id="card-months-h" class="m-0 flex-auto text-[14px] font-semibold">By month</h2>
-        <span class="chip chip--mute">every mode together</span>
-      </div>
-      <div class="panel__body">
-        <div class="card-months" data-card-live="months">
-          <p class="footnote m-0">Loading the record&hellip;</p>
-        </div>
-      </div>
-      <div class="panel__note">
-        Months are kept for every mode together today, so this chart stays
-        the same when you pick a mode above.
-      </div>
-    </section>
-
-    <section class="panel flex flex-col wide:col-span-2" aria-labelledby="card-bymode-h">
-      <div class="panel__head">
-        <h2 id="card-bymode-h" class="m-0 flex-auto text-[14px] font-semibold">By mode</h2>
-      </div>
-      <div class="table__scroll">
-        <table class="table">
-          <thead>
-            <tr>
-              <th scope="col" class="uppercase">Mode</th>
-              <th scope="col" class="text-right uppercase">Battles</th>
-              <th scope="col" class="text-right uppercase">Share</th>
-              <th scope="col" class="text-right uppercase">Wins</th>
-            </tr>
-          </thead>
-          <tbody data-card-live="modes">
-            <tr><td colspan="4" class="text-ink-faint">Loading the record&hellip;</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="panel__note">
-        Each mode is its own game with its own matchmaking. Thin: under
-        2,000 battles.
-      </div>
-    </section>
-  </div>
-
-  <div class="grid grid-cols-1 items-start gap-4 wide:grid-cols-2">
-    <section class="panel flex flex-col" aria-labelledby="card-agent-h">
-      <div class="panel__head">
-        <h2 id="card-agent-h" class="m-0 flex-auto text-[14px] font-semibold">Ask your agent</h2>
-      </div>
-      <div class="panel__body flex flex-col gap-3">
-        <pre class="card-call"><span class="text-ink-faint">// what your agent calls</span>
-cards_card { card: "{{ card.name }}", segment: "corpus", mode: "<span data-card-live="agent-mode">ranked</span>" }</pre>
-        <p class="m-0 text-[13px] leading-[1.5] text-ink-faint">
-          Pass <code>segment: "mine"</code> and the same numbers come from
-          your own battles. <a href="/docs/cards">How a card is counted</a>
-        </p>
-      </div>
-    </section>
-
-    <section class="panel flex flex-col" aria-labelledby="card-cotw-h">
-      <div class="panel__head">
-        <h2 id="card-cotw-h" class="m-0 flex-auto text-[14px] font-semibold">Card of the Week</h2>
-      </div>
-      <div class="panel__body flex flex-col gap-3">
-        <p class="m-0 text-[14px] leading-[1.55] text-ink-body" data-card-live="issue-line">
-          Every Friday, one card the record has something to say about,
-          read in full and sent to every Elixir account. A program draws it
-          from the season&rsquo;s ten most-played cards that have not had
-          an issue in the last year.
-        </p>
-        <p class="m-0 flex flex-wrap gap-x-5 gap-y-2 text-[13.5px]">
-          <a href="/docs/email">How Card of the Week is chosen &rsaquo;</a>
-          <a href="/console/signin?request">Request access &rsaquo;</a>
-        </p>
-      </div>
-    </section>
-  </div>
+  <p class="footnote m-0">Catalog facts from the recorded Clash Royale API. <a href="/docs/cards">Read your own card history with Elixir</a>.</p>
 </div>
-
-<script defer src="{{ "/assets/cards-live.js" | asset }}"></script>
+<script defer src="{{ "/assets/cards-index.js" | asset }}"></script>

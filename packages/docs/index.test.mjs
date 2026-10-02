@@ -37,10 +37,10 @@ test("importing the package does not need the corpus built (the site's build imp
   }
 });
 
-test("the corpus carries every docs page, all eleven examples and the updates", () => {
+test("the corpus carries every docs page, all ten examples and the updates", () => {
   assert.ok(DOCS.length >= 20, `only ${DOCS.length} docs pages`);
   assert.ok(DOCS.every((d) => d.slug && d.title && d.markdown.length > 100));
-  assert.equal(EXAMPLES.length, 11);
+  assert.equal(EXAMPLES.length, 10);
   assert.ok(
     EXAMPLES.every((e) => e.transcript.length >= 2 && e.tools.length >= 1),
   );
@@ -62,7 +62,10 @@ test("a doc's variables are rendered and its links are absolute", () => {
     );
   }
   const m = DOCS.find((d) => d.slug === "methodology").markdown;
-  assert.match(m, /m = \d+/);
+  assert.match(
+    m,
+    /Game-wide meta statistics and recommendation scores have retired/,
+  );
   const a = DOCS.find((d) => d.slug === "agents").markdown;
   assert.match(a, /has \d\d tools/);
   // Three short pages (about, privacy, terms) have no H2s; the rest do.
@@ -91,7 +94,7 @@ test("section slugs are GitHub-style, the shape the code's docs pointers use", (
     [
       "what-a-battle-record-holds",
       "mode-groups",
-      "events-are-their-own-group-and-they-do-not-inform-the-meta",
+      "events-are-their-own-group",
       "duels-and-boat-battles",
       "comparisons-and-what-a-battle-proves-about-its-own-length",
       "the-control-next-to-the-number",
@@ -107,7 +110,7 @@ test("section slugs are GitHub-style, the shape the code's docs pointers use", (
   const war = DOCS.find((d) => d.slug === "war-decks");
   assert.deepEqual(
     war.sections.map((s) => s.slug),
-    ["deck-sets", "deck-upgrades"],
+    [],
   );
   const clocks = DOCS.find((d) => d.slug === "clocks");
   assert.ok(clocks.sections.some((s) => s.slug === "the-policy-day"));
@@ -157,16 +160,16 @@ test("the index lede is never shorter than 40 characters, and description rides 
 });
 
 test("search matches by word, prefers pages with every word, and says when it fell back", async () => {
-  const r = await searchDocs("shrunk win rate prior strength");
+  const r = await searchDocs("rival intelligence coverage");
   assert.ok(
     r.matches.length > 0,
     "the phrase no page contains still finds pages by word",
   );
   assert.equal(r.matches[0].slug, "methodology");
   assert.ok(r.matches[0].in_section, "the match names the section it is in");
-  const exact = await searchDocs("Shrunk win rate");
+  const exact = await searchDocs("rival intelligence");
   assert.equal(exact.fallback, false);
-  assert.match(exact.matches[0].excerpt, /Shrunk win rate/);
+  assert.match(exact.matches[0].excerpt, /Rival intelligence/i);
   assert.deepEqual(await searchDocs(""), { matches: [], fallback: false });
   // Plurals: "quotas" finds the page that says "quota", and vice versa.
   const plural = await searchDocs("quotas");

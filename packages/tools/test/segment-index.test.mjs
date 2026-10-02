@@ -2,13 +2,24 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { segmentFilter } from "../src/tools/shared.mjs";
 
-test("the whole corpus reads the participant's own battle_time: the window index, no join", async () => {
-  // 0098: battle_participant_window covers (battle_time) with deck_hash,
-  // player_tag and outcome for pvp participants with a deck, so a corpus
-  // window scan is index-only; battle is joined only for a mode filter.
-  const segment = await segmentFilter({}, { segment: "corpus" }, []);
-  assert.equal(segment.timeColumn, "bp.battle_time");
-  assert.equal(segment.where, null);
+test("corpus, missing and empty selectors refuse before a database read", async () => {
+  const ctx = {
+    db: {
+      query() {
+        throw Error("unexpected database read");
+      },
+    },
+  };
+  for (const segment of [
+    "corpus",
+    {},
+    undefined,
+    { player_tag: "#20JJJ2CCRU", clan_tag: "#J2RGCRVG" },
+  ])
+    await assert.rejects(
+      segmentFilter(ctx, { segment }, []),
+      (e) => e.code === "bad_request",
+    );
 });
 
 test("a retired Collection selector refuses before any population query", async () => {

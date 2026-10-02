@@ -15,71 +15,6 @@ import { DISCLAIMER, cardForms, cardType } from "@elixir-mcp/contracts";
 import { RECORDED_PLAYERS_SQL } from "@elixir-mcp/tools/shared";
 import { readPublicBattle } from "../battle-page.mjs";
 
-/** A card's season reading, as both card routes give it: its battles,
- *  its players, the mode's decided battles, the share of those it was in
- *  and how the ones it was in went. */
-const rate = (w, l) => (w + l > 0 ? Number((w / (w + l)).toFixed(3)) : null);
-const share = (n, d) => (d > 0 ? Number((n / d).toFixed(4)) : null);
-const cardRow = (r) => ({
-  battles: r.battles,
-  players: r.players,
-  decided_battles: Number(r.decided),
-  usage_share: share(r.battles, Number(r.decided)),
-  win_rate: rate(r.wins, r.losses),
-});
-
-/**
- * Every card's running season, mode by mode: what the public cards index
- * and the home page's board draw (canvas 2026-09-29). The same rollup
- * cards_card reads (card_meta_season, every form together, against
- * meta_season_totals), for the latest season it holds. Modes are never
- * added together here: 'all' is left out, and each mode carries its own
- * decided battles. `as_of` is the rollup's battle cursor (the hourly
- * increment), `players_as_of` the nightly rebuild the distinct-player
- * counts come from. Null when nothing is rolled up yet.
- */
-export async function readCardSeason(db) {
-  const {
-    rows: [state],
-  } = await db.query(
-    `select t.season_month, s.counters_through, s.rebuilt_at
-       from (select max(season_month) as season_month
-               from meta_season_totals) t
-       left join meta_season_state s on s.season_month = t.season_month
-      where t.season_month is not null`,
-  );
-  if (!state) return null;
-  const { rows: totals } = await db.query(
-    `select mode_group, decided from meta_season_totals
-      where season_month = $1 and mode_group <> 'all' and decided > 0
-      order by decided desc`,
-    [state.season_month],
-  );
-  const { rows } = await db.query(
-    `select cm.card_id, cm.mode_group, cm.battles, cm.wins, cm.losses,
-            cm.players, t.decided
-       from card_meta_season cm
-       join meta_season_totals t
-         on t.season_month = cm.season_month and t.mode_group = cm.mode_group
-      where cm.season_month = $1 and cm.form = -1 and cm.mode_group <> 'all'
-        and t.decided > 0
-      order by cm.card_id, cm.mode_group`,
-    [state.season_month],
-  );
-  const cards = {};
-  for (const r of rows) (cards[r.card_id] ??= {})[r.mode_group] = cardRow(r);
-  return {
-    season_month: state.season_month,
-    as_of: state.counters_through?.toISOString() ?? null,
-    players_as_of: state.rebuilt_at?.toISOString() ?? null,
-    modes: totals.map((t) => ({
-      mode_group: t.mode_group,
-      decided_battles: Number(t.decided),
-    })),
-    cards,
-  };
-}
-
 export function publicRoutes({ deadLetters }) {
   return {
     "GET /api/public/status": async (db) => {
@@ -410,10 +345,6 @@ export function publicRoutes({ deadLetters }) {
         {
           cards: catalog.cards,
           as_of: catalog.as_of,
-          // Every card's running season by mode (2026-10-01), for the
-          // cards index and the home page's board: one read, not one
-          // per card.
-          season: await readCardSeason(db),
           disclaimer: DISCLAIMER,
         },
         { "cache-control": "public, max-age=3600" },
@@ -455,49 +386,6 @@ export function publicRoutes({ deadLetters }) {
         [cardId],
       );
       if (!card) return json(404, { error: "not_found" });
-      // Season by season, from the same rollup cards_card reads.
-      const { rows: history } = await db.query(
-        `select cm.season_month, cm.battles, cm.wins, cm.losses, cm.players,
-                t.decided
-           from card_meta_season cm
-           join meta_season_totals t
-             on t.season_month = cm.season_month and t.mode_group = cm.mode_group
-          where cm.card_id = $1 and cm.form = -1 and cm.mode_group = 'all'
-          order by cm.season_month`,
-        [cardId],
-      );
-      const current = history.at(-1)?.season_month ?? null;
-      // When that season's rollup last moved: the hourly increment's
-      // battle cursor (2026-10-01, the card page's "updated" line).
-      const {
-        rows: [state],
-      } = await db.query(
-        `select counters_through from meta_season_state where season_month = $1`,
-        [current],
-      );
-      const { rows: modes } = await db.query(
-        `select cm.mode_group, cm.battles, cm.wins, cm.losses, cm.players,
-                t.decided
-           from card_meta_season cm
-           join meta_season_totals t
-             on t.season_month = cm.season_month and t.mode_group = cm.mode_group
-          where cm.card_id = $1 and cm.form = -1 and cm.season_month = $2
-            and cm.mode_group <> 'all'
-          order by cm.battles desc`,
-        [cardId, current],
-      );
-      // The latest issue about this card, when one has actually sent.
-      const {
-        rows: [issue],
-      } = await db.query(
-        `select f.period_key, f.sent_at, i.subject_line
-           from email_featured_card f
-           left join email_issue i
-             on i.kind = 'card_of_week' and i.period_key = f.period_key
-          where f.card_id = $1 and f.sent_at is not null
-          order by f.sent_at desc limit 1`,
-        [cardId],
-      );
       return json(
         200,
         {
@@ -509,23 +397,6 @@ export function publicRoutes({ deadLetters }) {
             forms_available: cardForms(card.max_evolution_level),
             type: cardType(card.card_id),
           },
-          season: current,
-          as_of: state?.counters_through?.toISOString() ?? null,
-          history: history.map((h) => ({
-            season_month: h.season_month,
-            ...cardRow(h),
-          })),
-          by_mode: modes.map((m) => ({
-            mode_group: m.mode_group,
-            ...cardRow(m),
-          })),
-          issue: issue
-            ? {
-                period_key: issue.period_key,
-                subject: issue.subject_line,
-                sent_at: issue.sent_at,
-              }
-            : null,
           disclaimer: DISCLAIMER,
         },
         { "cache-control": "public, max-age=900" },

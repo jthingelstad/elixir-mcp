@@ -9,16 +9,12 @@ import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
 import { emailHash } from "../../auth/src/index.mjs";
 import { makeRegistry } from "../src/tools.mjs";
-import { seedPlayedDeck, seedDeck, hashFor } from "./deck-rows.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { ensureSeasonsAround, ensureSeason } from "@elixir-mcp/record/season";
-import { rebuildSeason } from "../../../services/jobs/src/meta-rollup.mjs";
-import { rollupSynergy } from "../src/meta-season.mjs";
 import { dailySql } from "../../record/src/daily-sql.mjs";
 import { notBoatDefense } from "../../record/src/boat-defense-sql.mjs";
 import { refreshDailyRollups } from "../../ingest/src/rollups.mjs";
 import { typesForModeGroup } from "@elixir-mcp/contracts";
-import { seasonFromDate, monthKey } from "@elixir-mcp/record/war-clock";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -824,62 +820,11 @@ test("feedback round two: changelog since-filter, ship links, pending hint clear
   assert.equal(after2.body.meta.feedback_responses_pending, 0);
 });
 
-test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct", async () => {
-  // A collection segment containing the observer.
-  await db.query(
-    `insert into collection (slug, title, kind, owner_account)
-     values ('test-pros', 'Test Pros', 'player', $1)
-     on conflict (slug) do nothing`,
-    [account.accountId],
-  );
-  await db.query(
-    `insert into collection_member (collection_id, subject_tag)
-     select collection_id, $1 from collection where slug = 'test-pros'
-     on conflict do nothing`,
-    [OBSERVER],
-  );
-
-  const corpus = await call("battles_meta_decks", {
-    segment: "corpus",
-    min_battles: 1,
-    from: "2020-01-01",
+test("trends: a selected player history has weekly mode counts and clipped windows", async () => {
+  const trends = await call("battles_trends", {
+    segment: { player_tag: OBSERVER },
+    weeks: 52,
   });
-  assert.equal(corpus.isError, false, JSON.stringify(corpus.body));
-  assert.equal(corpus.body.applied.segment.kind, "corpus");
-  assert.ok(corpus.body.decks.length > 0, "corpus decks");
-  const top = corpus.body.decks[0];
-  assert.ok(top.players >= 1);
-  assert.ok(corpus.body.excluded, "what the window left out is stated");
-  assert.equal(typeof corpus.body.prior_win_rate, "number");
-  if (corpus.body.insufficient_sample) {
-    // Below the floor the shrunk rate is withheld, not served (feedback #21).
-    assert.equal(top.shrunk_win_rate, undefined);
-    assert.equal(
-      corpus.body.insufficient_sample_floor,
-      corpus.body.methodology.segment_min_decided,
-    );
-  } else {
-    assert.ok(top.shrunk_win_rate !== null);
-    // Shrinkage pulls toward the prior: a small sample never sits at 0 or 1.
-    const small = corpus.body.decks.find((d) => d.wins + d.losses <= 3);
-    if (small) {
-      assert.ok(
-        small.shrunk_win_rate > 0.05 && small.shrunk_win_rate < 0.95,
-        `shrunk ${small.shrunk_win_rate}`,
-      );
-    }
-  }
-
-  const cards = await call("battles_meta_cards", {
-    segment: "corpus",
-    min_battles: 1,
-    from: "2020-01-01",
-  });
-  assert.equal(cards.isError, false, JSON.stringify(cards.body));
-  assert.ok(cards.body.cards.length > 0);
-  assert.ok(cards.body.cards.every((c) => c.usage_share !== null));
-
-  const trends = await call("battles_trends", { segment: "corpus", weeks: 52 });
   assert.equal(trends.isError, false, JSON.stringify(trends.body));
   assert.ok(trends.body.weeks.length > 0, "weekly rows");
   const wk = trends.body.weeks.at(-1);
@@ -894,7 +839,7 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
     "the split sums to the week",
   );
   const clipped = await call("battles_trends", {
-    segment: "corpus",
+    segment: { player_tag: OBSERVER },
     from: "2026-08-24",
     to: "2026-09-03T12:00:00Z",
   });
@@ -903,12 +848,6 @@ test("meta + trends: segment machinery, EB shrinkage, evolution forms distinct",
   assert.equal(last.partial, true, "the week `to` cuts is partial");
   assert.equal(last.covers.to, "2026-09-03T12:00:00.000Z");
   assert.ok(clipped.body.notes.some((l) => /partial/.test(l)));
-
-  const missing = await call("battles_meta_decks", {
-    segment: { collection: "nope" },
-  });
-  assert.equal(missing.isError, true);
-  assert.equal(missing.body.error.code, "bad_request");
 });
 
 test("battles_query links: url, short id, both sides' trophies and clans (9.18.0)", async () => {
@@ -1159,98 +1098,6 @@ test("players_profile answers the player as a game entity, not just a name (§7.
   assert.doesNotMatch(JSON.stringify(body), /api-assets\.clashroyale\.com/);
 });
 
-test("meta denominators exclude draws and unresolved outcomes before shrinkage", async () => {
-  const tag = "#2PPPP";
-  await db.query("insert into player (player_tag) values ($1)", [tag]);
-  await db.query(
-    "insert into recording (subject_type, subject_tag, requested_by) values ('player',$1,$2)",
-    [tag, account.accountId],
-  );
-  for (const [i, outcome] of ["win", "loss", "draw", "unresolved"].entries()) {
-    const id = `meta-decided-${i}`;
-    await db.query(
-      "insert into battle (battle_id,battle_time,type,type_class) values ($1,now(),'PvP','pvp')",
-      [id],
-    );
-    const cards = [{ id: 26000000, name: "Knight", level: 14 }];
-    // The deck before the participant, as ingest writes them (0108 FK),
-    // and the card rows after it.
-    await seedDeck(db, { cards });
-    await db.query(
-      "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck_hash,type,type_class) values ($1,$2,now(),0,$3,$4,'PvP','pvp')",
-      [id, tag, outcome, hashFor(cards)],
-    );
-    await seedPlayedDeck(db, { battle_id: id, player_tag: tag, cards });
-  }
-  for (const tool of ["battles_meta_decks", "battles_meta_cards"]) {
-    const { body, isError } = await call(tool, {
-      segment: { player_tag: tag },
-      min_battles: 1,
-    });
-    assert.equal(isError, false, JSON.stringify(body));
-    assert.equal(body.decided_battles, 2);
-    assert.equal(body.segment_win_rate, 0.5);
-    const row = (body.decks ?? body.cards)[0];
-    assert.equal(row.battles, 2);
-    assert.equal(row.win_rate, 0.5);
-    // Two decided observations is below the floor: no shrunk rate is
-    // served, the flag says why, and the exclusions are itemized.
-    assert.equal(row.shrunk_win_rate, undefined);
-    assert.equal(body.insufficient_sample, true);
-    assert.equal(body.excluded.draws, 1);
-    assert.equal(body.excluded.unresolved, 1);
-    assert.equal(row.usage_share, 1);
-    assert.match(body.notes.join(" "), /player-battle/);
-    const empty = await call(tool, {
-      segment: { player_tag: tag },
-      from: "2099-01-01",
-      min_battles: 1,
-    });
-    assert.equal(empty.body.decided_battles, 0);
-    assert.equal(
-      empty.body.segment_win_rate,
-      null,
-      "empty is unknown, not an observed 50%",
-    );
-  }
-});
-
-test("card meta refuses an inverted window", async () => {
-  const result = await call("battles_meta_cards", {
-    segment: "corpus",
-    from: "2026-09-05",
-    to: "2026-09-01",
-  });
-  assert.equal(result.isError, true);
-  assert.equal(result.body.error.code, "bad_request");
-});
-
-test("shrinkage moderates extremes without guaranteeing rank order", async () => {
-  const { ebShrink } = await import("../src/tools/shared.mjs");
-  assert.ok(ebShrink(3, 3, 0.8) > ebShrink(60, 100, 0.8));
-  assert.equal(ebShrink(0, 0, 0.5), null);
-});
-
-test("card meta does not dilute usage with empty card arrays", async () => {
-  const tag = "#2PPPP";
-  await db.query(
-    "insert into battle (battle_id,battle_time,type,type_class) values ('meta-empty',now(),'PvP','pvp')",
-  );
-  // An empty cards list has no identity (0093): no deck_hash, no rows.
-  await db.query(
-    "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck_hash,type,type_class) values ('meta-empty',$1,now(),0,'win',null,'PvP','pvp')",
-    [tag],
-  );
-  const result = await call("battles_meta_cards", {
-    segment: { player_tag: tag },
-    min_battles: 1,
-  });
-  assert.equal(result.isError, false, JSON.stringify(result.body));
-  assert.equal(result.body.decided_battles, 2);
-  assert.equal(result.body.cards[0].usage_share, 1);
-  assert.equal(result.body.segment_win_rate, 0.5);
-});
-
 /**
  * What the owner recorded about each player has to come BACK.
  *
@@ -1453,64 +1300,10 @@ test("battles_performance: decided vs boat denominators, mode key documented", a
   assert.ok(modes.body.by_mode.every((r) => "type" in r));
 });
 
-test("meta tools say event content is outside their population (feedback #148)", async () => {
-  for (const tool of ["battles_meta_decks", "battles_meta_cards"]) {
-    const { body, isError } = await call(tool, {
-      segment: { player_tag: OBSERVER },
-      mode: "event",
-      min_battles: 1,
-      from: "2020-01-01",
-    });
-    assert.equal(isError, false, JSON.stringify(body));
-    assert.equal(body.decided_battles ?? 0, 0, tool);
-    assert.match(body.notes.join(" "), /not in the meta population/, tool);
-  }
-  const ranked = await call("battles_trends", {
-    segment: { player_tag: OBSERVER },
-    mode: "casual",
-    from: "2020-01-01",
-  });
-  assert.equal(ranked.isError, false, JSON.stringify(ranked.body));
-});
-
-test("meta tools shrink toward the corpus prior, itemize exclusions, exclude boats", async () => {
-  const { body, isError } = await call("battles_meta_decks", {
-    segment: { player_tag: OBSERVER },
-    min_battles: 1,
-    from: "2020-01-01",
-  });
-  assert.equal(isError, false, JSON.stringify(body));
-  assert.equal(body.excluded.boat, 10);
-  // A duel is one battle, in excluded.duels and considered as before;
-  // its rounds are decided games in the rows (9.11.0), and duel_rounds
-  // says how many of decided_battles they are.
-  assert.equal(body.excluded.duels, 1);
-  const {
-    rows: [{ rounds }],
-  } = await db.query(
-    `select count(*)::int as rounds from battle_participant_round
-      where player_tag = $1 and outcome in ('win','loss') and deck_hash is not null`,
-    [OBSERVER],
-  );
-  assert.ok(rounds > 0);
-  assert.equal(
-    body.decks.reduce((s, d) => s + d.duel_rounds, 0),
-    rounds,
-  );
-  assert.equal(body.duel_rounds, rounds);
-  assert.match(body.methodology.prior_source, /corpus/);
-  assert.ok(["corpus_window", "neutral_0.5"].includes(body.prior_basis));
-  const cards = await call("battles_meta_cards", {
-    segment: { player_tag: OBSERVER },
-    min_battles: 1,
-    from: "2020-01-01",
-  });
-  assert.equal(cards.body.excluded.boat, 10);
-  assert.equal(cards.body.decided_battles, body.decided_battles);
-});
-
 test("badges are a dimension: rarity census and holders, exact names only", async () => {
-  const rarity = await call("badges_rarity", { segment: "corpus" });
+  const rarity = await call("badges_rarity", {
+    segment: { player_tag: OBSERVER },
+  });
   assert.equal(rarity.isError, false, JSON.stringify(rarity.body));
   const n = rarity.body.players_considered;
   assert.ok(n >= 1);
@@ -1521,14 +1314,17 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
   assert.equal(years.holder_share, Number((years.holders / n).toFixed(3)));
   assert.ok(rarity.body.badges.every((b) => b.holders <= n));
   const oneOff = await call("badges_rarity", {
-    segment: "corpus",
+    segment: { player_tag: OBSERVER },
     kind: "one_off",
   });
   assert.ok(oneOff.body.badges.every((b) => b.kind === "one_off"));
   assert.ok(oneOff.body.badges.length < rarity.body.badges.length);
   // A limited page says it was cut, and drops "does not appear" (#193).
   assert.ok(rarity.body.notes.some((l) => /does not appear at all/.test(l)));
-  const page = await call("badges_rarity", { segment: "corpus", limit: 5 });
+  const page = await call("badges_rarity", {
+    segment: { player_tag: OBSERVER },
+    limit: 5,
+  });
   assert.equal(page.body.badges.length, 5);
   assert.ok(
     page.body.notes.some((l) =>
@@ -1539,7 +1335,7 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
   assert.ok(!page.body.notes.some((l) => /does not appear at all/.test(l)));
 
   const holders = await call("badges_holders", {
-    segment: "corpus",
+    segment: { player_tag: OBSERVER },
     badge: "yearsplayed",
   });
   assert.equal(holders.isError, false, JSON.stringify(holders.body));
@@ -1549,7 +1345,7 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
   assert.equal(me.level, 4);
   assert.equal(me.name_known, true);
   const near = await call("badges_holders", {
-    segment: "corpus",
+    segment: { player_tag: OBSERVER },
     badge: "Years",
   });
   assert.equal(near.isError, true);
@@ -1560,7 +1356,7 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
     "candidates, not a guess",
   );
   const none = await call("badges_holders", {
-    segment: "corpus",
+    segment: { player_tag: OBSERVER },
     badge: "NoSuchBadgeAtAll",
   });
   assert.equal(none.body.error.code, "not_found");
@@ -1569,7 +1365,7 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
 
   // A label resolves to its identifier and says so (#93).
   const byLabel = await call("badges_holders", {
-    segment: "corpus",
+    segment: { player_tag: OBSERVER },
     badge: "Years Played",
   });
   assert.equal(byLabel.isError, false, JSON.stringify(byLabel.body));
@@ -1582,469 +1378,14 @@ test("badges are a dimension: rarity census and holders, exact names only", asyn
   // what it counts (#145) and quotes a versioned pair as distinct players
   // (#144) when the fixture holds one.
   const typo = await call("badges_holders", {
-    segment: "corpus",
+    segment: { player_tag: OBSERVER },
     badge: "Years Plaeyd",
   });
   assert.equal(typo.body.error.code, "not_found");
   assert.match(typo.body.error.message, /Did you mean: YearsPlayed/);
   assert.match(none.body.error.message, /exactly 'NoSuchBadgeAtAll'/);
   const said = rarity.body.notes.join(" ");
-  assert.match(
-    said,
-    /players_considered counts the players recorded now[^.]*recorded now/,
-  );
-
-  // The corpus is the players recorded now (#145): a profile the record
-  // read once and no longer polls is left out.
-  await db.query(
-    `insert into player (player_tag) values ('#9YY9YY9Q') on conflict do nothing`,
-  );
-  await db.query(
-    `insert into player_badge (player_tag, name, observed_at)
-     values ('#9YY9YY9Q', 'LapsedProbeBadge', now())`,
-  );
-  try {
-    const recorded = await call("badges_rarity", { segment: "corpus" });
-    assert.ok(
-      !recorded.body.badges.some((b) => b.name === "LapsedProbeBadge"),
-      "an unrecorded profile's badge is not in the corpus",
-    );
-    assert.ok(
-      recorded.body.players_considered <=
-        recorded.body.population.recorded_players,
-    );
-  } finally {
-    await db.query(`delete from player_badge where player_tag = '#9YY9YY9Q'`);
-  }
-
-  // A pair one player holds both halves of counts that player once.
-  await db.query(
-    `insert into player_badge (player_tag, name, observed_at)
-     values ($1, 'PairProbeBadge', now()), ($1, 'PairProbeBadge_v2', now())`,
-    [OBSERVER],
-  );
-  try {
-    const paired = await call("badges_rarity", { segment: "corpus" });
-    assert.match(
-      paired.body.notes.join(" "),
-      /PairProbeBadge \/ PairProbeBadge_v2 is held by 1 distinct player \(1 holds both\)/,
-    );
-    assert.doesNotMatch(
-      paired.body.notes.join(" "),
-      /count their holders together/,
-    );
-    const sib = await call("badges_holders", {
-      segment: { player_tag: OBSERVER },
-      badge: "PairProbeBadge",
-    });
-    assert.equal(sib.isError, false, JSON.stringify(sib.body));
-    assert.match(
-      sib.body.notes.join(" "),
-      /Versioned pair: PairProbeBadge \/ PairProbeBadge_v2[^]*1 holds PairProbeBadge_v2, and 1 distinct player holds either \(1 holds both\)/,
-    );
-  } finally {
-    await db.query(
-      `delete from player_badge where name in ('PairProbeBadge', 'PairProbeBadge_v2')`,
-    );
-  }
-
-  // since is the stored first sighting; observed_at is never older (#91),
-  // and holder_share is over the population, not the page (#94).
-  for (const h of holders.body.holders)
-    assert.ok(Date.parse(h.observed_at) >= Date.parse(h.since), h.player_tag);
-  assert.equal(
-    holders.body.holder_share,
-    Number(
-      (holders.body.holders_total / holders.body.players_considered).toFixed(3),
-    ),
-  );
-});
-
-test("meta tools default to the current season, take a season, and say what a window crosses (3.10.0)", async () => {
-  const now = Date.now();
-  const currentMonth = monthKey(seasonFromDate(now).seasonStartMs);
-  for (const tool of [
-    "battles_meta_decks",
-    "battles_meta_cards",
-    "cards_synergy",
-  ]) {
-    const args =
-      tool === "cards_synergy"
-        ? { card: "Knight", min_pair_battles: 1, segment: "corpus" }
-        : { min_battles: 1, segment: "corpus" };
-    const dflt = await call(tool, args);
-    assert.equal(dflt.isError, false, JSON.stringify(dflt.body));
-    const w = dflt.body.applied.window;
-    assert.equal(w.source, "season", tool);
-    assert.equal(w.season.month, currentMonth, tool);
-    assert.equal(typeof w.season.war, "number");
-    assert.equal(w.from, w.season.starts_at, "from is the season's start");
-    assert.equal(w.to, null, "to date");
-    assert.deepEqual(w.crosses, [], "a season window is clean by construction");
-    assert.ok(Number.isInteger(w.season_age_days) && w.season_age_days >= 0);
-    if (w.season_age_days < 7)
-      assert.ok(
-        dflt.body.notes.some((n) => /settled comparison/.test(n)),
-        "a thin season says so",
-      );
-    // The fixture battles are S135 (Aug 20 .. Sep 3): the month, the war
-    // number and 'previous' (when it is) all name the same bounds.
-    const byMonth = await call(tool, { ...args, season: "2026-08" });
-    assert.equal(byMonth.isError, false, JSON.stringify(byMonth.body));
-    assert.equal(byMonth.body.applied.window.from, "2026-08-03T10:00:00.000Z");
-    assert.equal(byMonth.body.applied.window.to, "2026-09-07T10:00:00.000Z");
-    assert.equal(byMonth.body.applied.window.source, "season");
-    assert.deepEqual(byMonth.body.applied.window.season, {
-      month: "2026-08",
-      war: 135,
-      starts_at: "2026-08-03T10:00:00.000Z",
-      ends_at: "2026-09-07T10:00:00.000Z",
-    });
-    assert.equal(byMonth.body.applied.window.season_age_days, 35);
-    const byWar = await call(tool, { ...args, season: 135 });
-    assert.deepEqual(byWar.body.applied.window, byMonth.body.applied.window);
-    const rows =
-      byMonth.body.decks ?? byMonth.body.cards ?? byMonth.body.partners;
-    assert.ok(rows.length > 0, `${tool}: S135 holds the fixture battles`);
-    const unknown = await call(tool, { ...args, season: "2019-01" });
-    assert.equal(unknown.isError, true);
-    assert.equal(unknown.body.error.code, "not_found");
-    // Explicit bounds win over season, and a window across the roll says so.
-    const across = await call(tool, {
-      ...args,
-      season: "2026-08",
-      from: "2026-08-20T00:00:00Z",
-      to: "2026-09-10T00:00:00Z",
-    });
-    assert.equal(across.isError, false, JSON.stringify(across.body));
-    const aw = across.body.applied.window;
-    assert.equal(aw.source, "argument");
-    assert.equal(aw.season.month, "2026-08", "the season the window starts in");
-    assert.deepEqual(aw.crosses, [
-      {
-        kind: "season",
-        at: "2026-09-07T10:00:00.000Z",
-        from_season: { month: "2026-08", war: 135 },
-        to_season: { month: "2026-09", war: 136 },
-      },
-    ]);
-    assert.ok(
-      across.body.notes.some((n) =>
-        /spans S135 \(2026-08\) and S136 \(2026-09\)/.test(n),
-      ),
-      JSON.stringify(across.body.notes),
-    );
-    const clean = await call(tool, {
-      ...args,
-      from: "2026-08-20T00:00:00Z",
-      to: "2026-09-05T00:00:00Z",
-    });
-    assert.deepEqual(clean.body.applied.window.crosses, []);
-    assert.ok(!clean.body.notes.some((n) => /spans S/.test(n)));
-  }
-  // battles_trends keeps its 12-week default and crosses by design; season
-  // bounds it, every week names its season, the roll is marked.
-  const trends = await call("battles_trends", {
-    segment: "corpus",
-    season: "2026-08",
-  });
-  assert.equal(trends.isError, false, JSON.stringify(trends.body));
-  assert.equal(trends.body.applied.window.source, "season");
-  assert.ok(trends.body.weeks.length > 0);
-  assert.ok(
-    trends.body.weeks.every((w) => w.season_month === "2026-08"),
-    JSON.stringify(trends.body.weeks),
-  );
-  const spanning = await call("battles_trends", {
-    segment: "corpus",
-    from: "2026-08-20T00:00:00Z",
-    to: "2026-09-10T00:00:00Z",
-  });
-  assert.equal(spanning.body.applied.window.source, "argument");
-  assert.equal(spanning.body.applied.window.crosses.length, 1);
-  const twelve = await call("battles_trends", { segment: "corpus" });
-  assert.equal(twelve.body.applied.window.source, "default");
-  assert.ok(Array.isArray(twelve.body.applied.window.crosses));
-});
-
-test("the season rollup answers exactly what the raw scan answers (0121)", async () => {
-  const {
-    rows: [season],
-  } = await db.query(`select * from season where season_month = '2026-08'`);
-  const rebuilt = await rebuildSeason(db, season, { final: true });
-  assert.ok(rebuilt.decks > 0 && rebuilt.cards > 0, JSON.stringify(rebuilt));
-  const bounds = {
-    from: "2026-08-03T10:00:00Z",
-    to: "2026-09-07T10:00:00Z",
-  };
-  const strip = (body) => {
-    const rest = { ...body };
-    for (const k of ["applied", "notes", "meta", "players_as_of"])
-      delete rest[k];
-    return rest;
-  };
-  const byKey = (rows, key) => Object.fromEntries(rows.map((r) => [key(r), r]));
-  for (const [tool, args, key] of [
-    [
-      "battles_meta_decks",
-      { min_battles: 1, limit: 40, segment: "corpus" },
-      (r) => r.deck_hash,
-    ],
-    [
-      "battles_meta_cards",
-      { min_battles: 1, limit: 130, segment: "corpus" },
-      (r) => `${r.card_id}|${r.form}`,
-    ],
-    [
-      "cards_synergy",
-      { card: "Knight", min_pair_battles: 1, limit: 60, segment: "corpus" },
-      (r) => `${r.card_id}|${r.form}`,
-    ],
-  ]) {
-    const raw = await call(tool, { ...args, ...bounds });
-    const rolled = await call(tool, { ...args, season: "2026-08" });
-    assert.equal(raw.isError, false, JSON.stringify(raw.body));
-    assert.equal(rolled.isError, false, JSON.stringify(rolled.body));
-    assert.equal(
-      raw.body.players_as_of,
-      undefined,
-      "raw path carries no as-of",
-    );
-    assert.equal(
-      typeof rolled.body.players_as_of,
-      "string",
-      `${tool}: rollup path says as-of`,
-    );
-    assert.ok(rolled.body.notes.some((n) => /final rollup/.test(n)));
-    const listKey =
-      tool === "cards_synergy"
-        ? "partners"
-        : tool === "battles_meta_decks"
-          ? "decks"
-          : "cards";
-    const a = strip(raw.body);
-    const b = strip(rolled.body);
-    const listA = byKey(a[listKey], key);
-    const listB = byKey(b[listKey], key);
-    delete a[listKey];
-    delete b[listKey];
-    assert.deepEqual(b, a, `${tool}: scalars, excluded, prior, anchor`);
-    assert.deepEqual(
-      Object.keys(listB).sort(),
-      Object.keys(listA).sort(),
-      `${tool}: the same rows`,
-    );
-    for (const k of Object.keys(listA))
-      assert.deepEqual(listB[k], listA[k], `${tool}: row ${k}`);
-  }
-  // A mode read has its own rows (players never sum across modes).
-  const rawMode = await call("battles_meta_cards", {
-    segment: "corpus",
-    ...bounds,
-    mode: "ladder",
-    min_battles: 1,
-  });
-  const rolledMode = await call("battles_meta_cards", {
-    segment: "corpus",
-    season: "2026-08",
-    mode: "ladder",
-    min_battles: 1,
-  });
-  assert.deepEqual(strip(rolledMode.body).cards, strip(rawMode.body).cards);
-  assert.ok(
-    rolledMode.body.cards.every(
-      (c) => Object.keys(c.modes).join() === "ladder",
-    ),
-    "a mode read's rows split to that mode alone on both paths",
-  );
-  assert.deepEqual(
-    strip(rolledMode.body).excluded,
-    strip(rawMode.body).excluded,
-  );
-  // A segment read stays raw but takes its prior from the totals.
-  const seg = await call("battles_meta_decks", {
-    segment: { player_tag: OBSERVER },
-    season: "2026-08",
-    min_battles: 1,
-  });
-  assert.equal(seg.body.players_as_of, undefined);
-  const corpus = await call("battles_meta_decks", {
-    segment: "corpus",
-    season: "2026-08",
-    min_battles: 1,
-  });
-  assert.equal(seg.body.prior_basis, corpus.body.prior_basis);
-  assert.equal(seg.body.prior_win_rate, corpus.body.prior_win_rate);
-
-  // 3.16.0: every meta row carries modes and mean_level_gap on both
-  // paths (pinned equal above), the response carries comparable and
-  // modes_in_window, and a segment whose rows are one player's habits
-  // says so.
-  assert.equal(typeof corpus.body.comparable, "boolean");
-  assert.ok(corpus.body.decks.every((d) => typeof d.modes === "object"));
-  assert.ok(corpus.body.decks.every((d) => "mean_level_gap" in d));
-  assert.ok(Array.isArray(corpus.body.modes_in_window));
-  assert.ok(
-    seg.body.notes.some((n) => /ONE player/.test(n)) ||
-      seg.body.decks.some((d) => d.players > 1),
-  );
-
-  // The trophy band (0135): the same rows from the band table and from
-  // the raw rows; before a rebuild has filled the band tables the raw
-  // path answers with the fallback note.
-  for (const [tool, args, listKey, key] of [
-    [
-      "battles_meta_decks",
-      { min_battles: 1, limit: 40, segment: "corpus" },
-      "decks",
-      (r) => r.deck_hash,
-    ],
-    [
-      "battles_meta_cards",
-      { min_battles: 1, limit: 130, segment: "corpus" },
-      "cards",
-      (r) => `${r.card_id}|${r.form}`,
-    ],
-    [
-      "cards_synergy",
-      { card: "Knight", min_pair_battles: 1, limit: 60, segment: "corpus" },
-      "partners",
-      (r) => `${r.card_id}|${r.form}`,
-    ],
-  ]) {
-    const band = { trophy_band: "10000_13999" };
-    const rawBand = await call(tool, { ...args, ...bounds, ...band });
-    const rolledBand = await call(tool, {
-      ...args,
-      season: "2026-08",
-      ...band,
-    });
-    assert.equal(rawBand.isError, false, JSON.stringify(rawBand.body));
-    assert.equal(rolledBand.isError, false, JSON.stringify(rolledBand.body));
-    assert.equal(rolledBand.body.applied.trophy_band, "10000_13999");
-    if (tool !== "cards_synergy")
-      assert.ok(
-        rawBand.body[listKey].length > 0,
-        `${tool}: the band holds rows`,
-      );
-    assert.equal(
-      typeof rolledBand.body.players_as_of,
-      "string",
-      `${tool}: band from the rollup`,
-    );
-    const listA = byKey(strip(rawBand.body)[listKey], key);
-    const listB = byKey(strip(rolledBand.body)[listKey], key);
-    assert.deepEqual(
-      Object.keys(listB).sort(),
-      Object.keys(listA).sort(),
-      `${tool}: the same banded rows`,
-    );
-    for (const k of Object.keys(listA)) {
-      const a = { ...listA[k] };
-      const b = { ...listB[k] };
-      assert.deepEqual(b, a, `${tool}: banded row ${k}`);
-    }
-    assert.ok(
-      rolledBand.body.decided_battles <= corpus.body.decided_battles,
-      "the band is within the season",
-    );
-  }
-  await db.query(
-    "update meta_season_state set bands_rebuilt_at = null where season_month = '2026-08'",
-  );
-  const pending = await call("battles_meta_decks", {
-    segment: "corpus",
-    season: "2026-08",
-    min_battles: 1,
-    trophy_band: "10000_13999",
-  });
-  assert.equal(pending.body.players_as_of, undefined, "raw path");
-  assert.ok(
-    pending.body.notes.some((n) => /banded rollup is not built yet/.test(n)),
-  );
-  await db.query(
-    "update meta_season_state set bands_rebuilt_at = rebuilt_at where season_month = '2026-08'",
-  );
-
-  // The population is named (product call 5; required since 4.0.0): a
-  // call without segment is refused with the hint naming the three
-  // shapes; "corpus" answers with the population it was drawn from;
-  // "mine" is the caller's clan.
-  for (const [tool, args] of [
-    ["battles_meta_decks", { season: "2026-08", min_battles: 1 }],
-    ["battles_meta_cards", { season: "2026-08", min_battles: 1 }],
-    ["battles_trends", { weeks: 2 }],
-    ["cards_synergy", { card: "Knight" }],
-    ["badges_rarity", {}],
-    ["badges_holders", { badge: "MasteryWitch" }],
-  ]) {
-    const omitted = await call(tool, args);
-    assert.equal(omitted.isError, true, tool);
-    assert.equal(omitted.body.error.code, "bad_request");
-    assert.equal(omitted.body.error.class, "input");
-    assert.match(omitted.body.error.hint, /'mine'.*'corpus'.*object/);
-  }
-  const explicit = await call("battles_meta_decks", {
-    season: "2026-08",
-    min_battles: 1,
-    segment: "corpus",
-  });
-  assert.ok(!explicit.body.notes.some((n) => /segment was omitted/.test(n)));
-  assert.ok(Number.isInteger(explicit.body.population.recorded_clans));
-  assert.ok(Number.isInteger(explicit.body.population.recorded_players));
-  assert.ok("players_in_window" in explicit.body.population);
-  assert.deepEqual(explicit.body.applied.segment, { kind: "corpus" });
-  // "mine" on an account with no clan is no_subject, never a guess; once
-  // the account's player is in a recorded clan it is that clan.
-  const nobody = await call("battles_meta_decks", {
-    season: "2026-08",
-    min_battles: 1,
-    segment: "mine",
-  });
-  assert.equal(nobody.isError, true);
-  assert.equal(nobody.body.error.code, "no_subject");
-  assert.equal(nobody.body.error.class, "subject");
-  await db.query(
-    "insert into clan (clan_tag, name) values ('#J2RGCRVG', 'POAP KINGS') on conflict do nothing",
-  );
-  await db.query(
-    `insert into recording (subject_type, subject_tag, requested_by, scope)
-     values ('clan', '#J2RGCRVG', $1, 'comprehensive') on conflict do nothing`,
-    [account.accountId],
-  );
-  await db.query(
-    `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
-     values ('#J2RGCRVG', $1, now(), 'member') on conflict do nothing`,
-    [OBSERVER],
-  );
-  const mine = await call("battles_meta_decks", {
-    season: "2026-08",
-    min_battles: 1,
-    segment: "mine",
-  });
-  assert.equal(mine.isError, false, JSON.stringify(mine.body));
-  assert.equal(mine.body.applied.segment.kind, "clan");
-  assert.equal(mine.body.applied.segment.clan_tag, "#J2RGCRVG");
-  assert.equal(mine.body.applied.segment.source, "mine");
-  assert.equal(
-    mine.body.population,
-    undefined,
-    "a clan read carries no corpus population",
-  );
-  const junk = await call("battles_meta_decks", { segment: "theirs" });
-  assert.equal(junk.isError, true);
-  assert.equal(junk.body.error.code, "bad_request");
-  for (const tool of ["badges_rarity", "battles_trends", "cards_synergy"]) {
-    const r = await call(
-      tool,
-      tool === "cards_synergy"
-        ? { card: "Knight", segment: "corpus" }
-        : { segment: "corpus" },
-    );
-    assert.equal(r.isError, false, JSON.stringify(r.body));
-    assert.ok(!r.body.notes.some((n) => /segment was omitted/.test(n)), tool);
-    assert.ok(r.body.population, tool);
-  }
+  assert.match(said, /players_considered/);
 });
 
 test("dailySql sums equal the raw rows over any instant window, edge days included", async () => {
@@ -2232,51 +1573,6 @@ test("a window on bp.battle_time answers what a window on b.battle_time answered
     [OBSERVER, from, to],
   );
   assert.equal(perf.body.window.battles, own.n);
-});
-
-test("cards_synergy: co-occurrence with lift; names resolve exactly or refuse", async () => {
-  const decks = await call("battles_decks", {});
-  const anchorId = (
-    await call("battles_decks", { deck_hash: decks.body.decks[0].deck_hash })
-  ).body.decks[0].cards[0].id;
-  const { body, isError } = await call("cards_synergy", {
-    segment: "corpus",
-    card_id: anchorId,
-    from: "2020-01-01",
-    min_pair_battles: 1,
-  });
-  assert.equal(isError, false, JSON.stringify(body));
-  assert.equal(body.anchor.card_id, anchorId);
-  assert.ok(body.anchor.decks > 0 && body.anchor.players >= 1);
-  assert.ok(body.partners.length > 0);
-  for (const p of body.partners) {
-    assert.ok(p.co_occurrence_rate > 0 && p.co_occurrence_rate <= 1);
-    assert.ok(p.baseline_usage > 0);
-    assert.equal(typeof p.lift, "number");
-    assert.ok(p.players >= 1);
-    assert.notEqual(p.card_id, anchorId);
-  }
-  const byName = await call("cards_synergy", {
-    segment: "corpus",
-    card: "witch",
-    from: "2020-01-01",
-    min_pair_battles: 1,
-  });
-  assert.equal(byName.isError, false, JSON.stringify(byName.body));
-  assert.equal(
-    byName.body.anchor.name,
-    "Witch",
-    "exact match beats Mother Witch",
-  );
-  const fuzzy = await call("cards_synergy", {
-    segment: "corpus",
-    card: "gobl",
-  });
-  assert.equal(fuzzy.isError, true);
-  assert.equal(fuzzy.body.error.code, "bad_request");
-  assert.match(fuzzy.body.error.message, /Candidates/);
-  const neither = await call("cards_synergy", { segment: "corpus" });
-  assert.equal(neither.body.error.code, "bad_request");
 });
 
 test("forms are decoded, never ordinal: collection, catalog, in-game max level", async () => {
@@ -2470,315 +1766,15 @@ test("3.17.0: every instant-windowed tool says its season, crossings fire only w
 // lateral for the level gap: every 7-day corpus read timed out at the 18 s
 // budget (feedback #77, #78, #79). The population table (0140) holds the
 // same rows with the gap on them; the read answers what the heap answered.
-test("6.12.0: a sub-season corpus window reads the population table and answers what the raw scan answered", async () => {
-  const { rows: seasons } = await db.query(
-    `select * from season where season_month in ('2026-08', '2026-09') order by season_month`,
-  );
-  assert.equal(seasons.length, 2);
-  const inside = {
-    from: "2026-08-10T10:00:00Z",
-    to: "2026-08-31T10:00:00Z",
-  };
-  // A window spanning the roll into the running season: both
-  // populations are kept, so it reads the table too.
-  const acrossRoll = {
-    from: "2026-08-25T10:00:00Z",
-    to: "2026-09-10T10:00:00Z",
-  };
-  const strip = (body) => {
-    const rest = { ...body };
-    for (const k of ["applied", "notes", "meta", "players_as_of"])
-      delete rest[k];
-    return rest;
-  };
-  const byKey = (rows, key) => Object.fromEntries(rows.map((r) => [key(r), r]));
-  const cases = [
-    [
-      "battles_meta_decks",
-      { min_battles: 1, limit: 40, segment: "corpus" },
-      (r) => r.deck_hash,
-      "decks",
-    ],
-    [
-      "battles_meta_cards",
-      { min_battles: 1, limit: 130, segment: "corpus" },
-      (r) => `${r.card_id}|${r.form}`,
-      "cards",
-    ],
-  ];
-  // With no population built, the windows read the heap (no population
-  // note): the reference.
-  await db.query(`delete from meta_season_pop`);
-  await db.query(`delete from meta_season_pop_day`);
-  const raw = {};
-  for (const [tool, args] of cases)
-    for (const [name, bounds] of [
-      ["inside", inside],
-      ["across", acrossRoll],
-    ]) {
-      const r = await call(tool, { ...args, ...bounds });
-      assert.equal(r.isError, false, JSON.stringify(r.body));
-      assert.ok(!r.body.notes.some((n) => /population table/.test(n)));
-      raw[`${tool}:${name}`] = r;
-    }
-  // Both seasons rebuilt as the nightly leaves them: August final (its
-  // population kept), September running.
-  const aug = await rebuildSeason(db, seasons[0], { final: true });
-  const sep = await rebuildSeason(db, seasons[1], { final: false });
-  assert.ok(aug.pop_rows > 0 && sep.pop_rows > 0, JSON.stringify({ aug, sep }));
-  try {
-    for (const [tool, args, key, listKey] of cases)
-      for (const [name, bounds, notePattern] of [
-        [
-          "inside",
-          inside,
-          /Read from the season population table \(filled through/,
-        ],
-        [
-          "across",
-          acrossRoll,
-          /Read from the season population table \(filled through/,
-        ],
-      ]) {
-        const pop = await call(tool, { ...args, ...bounds });
-        assert.equal(pop.isError, false, JSON.stringify(pop.body));
-        assert.ok(
-          pop.body.notes.some((n) => notePattern.test(n)),
-          `${tool} ${name}: says its source and its cursor: ${pop.body.notes.join(" | ")}`,
-        );
-        const a = strip(raw[`${tool}:${name}`].body);
-        const b = strip(pop.body);
-        const listA = byKey(a[listKey], key);
-        const listB = byKey(b[listKey], key);
-        delete a[listKey];
-        delete b[listKey];
-        assert.deepEqual(b, a, `${tool} ${name}: scalars, excluded, prior`);
-        assert.deepEqual(
-          Object.keys(listB).sort(),
-          Object.keys(listA).sort(),
-          `${tool} ${name}: the same rows`,
-        );
-        for (const k of Object.keys(listA))
-          assert.deepEqual(listB[k], listA[k], `${tool} ${name}: row ${k}`);
-      }
-    // A band and a mode take the table's own columns.
-    const banded = await call("battles_meta_decks", {
-      segment: "corpus",
-      ...inside,
-      trophy_band: "under_10000",
-      mode: "ladder",
-      min_battles: 1,
-    });
-    assert.equal(banded.isError, false, JSON.stringify(banded.body));
-    assert.ok(banded.body.notes.some((n) => /population table/.test(n)));
-    // An open window into the running season names the cursor.
-    const open = await call("battles_meta_decks", {
-      segment: "corpus",
-      from: "2026-08-25T10:00:00Z",
-      min_battles: 1,
-    });
-    assert.ok(
-      open.body.notes.some((n) =>
-        /battles recorded since are not counted/.test(n),
-      ),
-      open.body.notes.join(" | "),
-    );
-    // A segment read and a whole-season read never touch the table.
-    const seg = await call("battles_meta_decks", {
-      segment: { player_tag: OBSERVER },
-      ...inside,
-      min_battles: 1,
-    });
-    assert.ok(!seg.body.notes.some((n) => /population table/.test(n)));
-    const whole = await call("battles_meta_decks", {
-      segment: "corpus",
-      season: "2026-08",
-      min_battles: 1,
-    });
-    assert.ok(!whole.body.notes.some((n) => /population table/.test(n)));
-    assert.ok(whole.body.notes.some((n) => /final rollup/.test(n)));
-    // A season whose population is gone sends the window back to the heap.
-    await db.query(
-      `delete from meta_season_pop_day where season_month = '2026-08'`,
-    );
-    const gone = await call("battles_meta_decks", {
-      segment: "corpus",
-      ...acrossRoll,
-      min_battles: 1,
-    });
-    assert.ok(!gone.body.notes.some((n) => /population table/.test(n)));
-  } finally {
-    await rebuildSeason(db, seasons[0], { final: true });
-  }
-});
 
 // ---------------------------------------------------------------- 6.12.0 (#80)
-test("6.12.0: compact on the meta tools keeps the comparison and drops the detail (feedback #80)", async () => {
-  const full = await call("battles_meta_decks", {
-    segment: "corpus",
-    from: "2020-01-01",
-    min_battles: 1,
-    limit: 5,
-    fit_for: OBSERVER,
-  });
-  assert.equal(full.isError, false, JSON.stringify(full.body));
-  const compact = await call("battles_meta_decks", {
-    segment: "corpus",
-    from: "2020-01-01",
-    min_battles: 1,
-    limit: 5,
-    fit_for: OBSERVER,
-    verbosity: "compact",
-  });
-  assert.equal(compact.isError, false, JSON.stringify(compact.body));
-  assert.equal(compact.body.applied.verbosity, "compact");
-  assert.ok(!compact.body.notes.some((n) => /has one size/.test(n)));
-  assert.equal(compact.body.methodology, undefined);
-  assert.equal(compact.body.modes_in_window, undefined);
-  assert.ok(full.body.methodology && full.body.modes_in_window);
-  // The scalars a comparison reads are the same on both sizes.
-  for (const k of [
-    "decided_battles",
-    "segment_win_rate",
-    "prior_win_rate",
-    "comparable",
-    "excluded",
-  ])
-    assert.deepEqual(compact.body[k], full.body[k], k);
-  const rowsFull = [...full.body.decks, ...full.body.unfieldable];
-  const rowsCompact = [...compact.body.decks, ...compact.body.unfieldable];
-  assert.equal(rowsCompact.length, rowsFull.length);
-  for (const [i, row] of rowsCompact.entries()) {
-    const ref = rowsFull[i];
-    assert.equal(row.deck_hash, ref.deck_hash);
-    for (const k of [
-      "battles",
-      "wins",
-      "losses",
-      "players",
-      "usage_share",
-      "win_rate",
-      "shrunk_win_rate",
-      "dominant_mode",
-    ])
-      assert.deepEqual(row[k], ref[k], `${k} kept`);
-    for (const k of [
-      "modes",
-      "first_used",
-      "last_used",
-      "mean_level_gap",
-      "level_gap_battles",
-      "cards",
-      "archetype",
-      "tower_troop",
-    ])
-      assert.ok(!(k in row), `${k} dropped`);
-    assert.equal(row.archetype_label, ref.archetype.label);
-    assert.equal(
-      row.card_names.split(", ").length,
-      ref.cards.length,
-      "one name per card",
-    );
-    assert.equal(row.fit.fieldable, ref.fit.fieldable);
-    assert.ok(!("upgrades" in row.fit), "the upgrade path is the detail");
-  }
-  assert.ok(
-    JSON.stringify(rowsCompact).length < JSON.stringify(rowsFull).length / 2,
-    "a compact row is less than half a full one",
-  );
-  assert.ok(
-    JSON.stringify(compact.body).length < JSON.stringify(full.body).length,
-  );
-
-  const fullCards = await call("battles_meta_cards", {
-    segment: "corpus",
-    from: "2020-01-01",
-    min_battles: 1,
-    limit: 10,
-    fit_for: OBSERVER,
-  });
-  const compactCards = await call("battles_meta_cards", {
-    segment: "corpus",
-    from: "2020-01-01",
-    min_battles: 1,
-    limit: 10,
-    fit_for: OBSERVER,
-    verbosity: "compact",
-  });
-  assert.equal(compactCards.isError, false, JSON.stringify(compactCards.body));
-  assert.equal(compactCards.body.methodology, undefined);
-  assert.equal(compactCards.body.cards.length, fullCards.body.cards.length);
-  for (const [i, row] of compactCards.body.cards.entries()) {
-    const ref = fullCards.body.cards[i];
-    for (const k of [
-      "card_id",
-      "name",
-      "form",
-      "battles",
-      "players",
-      "usage_share",
-      "shrunk_win_rate",
-      "held",
-    ])
-      assert.deepEqual(row[k], ref[k], `${k} kept`);
-    assert.ok(!("modes" in row) && !("mean_level_gap" in row));
-  }
-});
-
-test("tower troops are a deck's ninth card: meta rows and a cards_card profile (Jamie 2026-09-24)", async () => {
-  const towers = await call("battles_meta_cards", {
-    segment: "corpus",
-    min_battles: 1,
-    from: "2020-01-01",
-    tower_troops: true,
-  });
-  assert.equal(towers.isError, false, JSON.stringify(towers.body));
-  assert.ok(
-    towers.body.cards.length > 0,
-    "the fixture decks carry tower troops",
-  );
-  assert.equal(towers.body.applied.tower_troops, true);
-  const eight = await call("battles_meta_cards", {
-    segment: "corpus",
-    min_battles: 1,
-    from: "2020-01-01",
-  });
-  assert.equal(
-    towers.body.decided_battles,
-    eight.body.decided_battles,
-    "the same population, read for its ninth card",
-  );
-  const towerIds = new Set(towers.body.cards.map((c) => c.card_id));
-  assert.ok(!eight.body.cards.some((c) => towerIds.has(c.card_id)));
-  const share = towers.body.cards.reduce((s, c) => s + c.usage_share, 0);
-  assert.ok(share <= 1.001, `shares ${share}`);
-
-  const top = towers.body.cards[0];
-  const profile = await call("cards_card", {
-    card_id: top.card_id,
-    segment: "corpus",
-    from: "2020-01-01",
-  });
-  assert.equal(profile.isError, false, JSON.stringify(profile.body));
-  assert.equal(profile.body.card.type, "tower_troop");
-  assert.equal(profile.body.season.all.battles, top.battles);
-  assert.ok(profile.body.card.first_played.base);
-  assert.ok(profile.body.notes.some((n) => /ninth card/.test(n)));
-
-  const synergy = await call("cards_synergy", {
-    card_id: top.card_id,
-    segment: "corpus",
-  });
-  assert.equal(synergy.isError, true, "pairings stay on the eight deck cards");
-});
 
 test("a card name shared with a tower-troop entry is the deck card; Evo and Hero prefixes name the card (Gym #324, #325)", async () => {
-  const eight = await call("battles_meta_cards", {
-    segment: "corpus",
-    min_battles: 1,
-    from: "2020-01-01",
-  });
-  const top = eight.body.cards[0];
+  const {
+    rows: [top],
+  } = await db.query(
+    `select card_id, name from card where kind = 'card' order by card_id limit 1`,
+  );
   // A tower-troop catalog entry that shares the top card's name, as the
   // live catalog's "Archer Queen" tower entry shares the champion's.
   await db.query(
@@ -2789,7 +1785,7 @@ test("a card name shared with a tower-troop entry is the deck card; Evo and Hero
   try {
     const byName = await call("cards_card", {
       card: top.name,
-      segment: "corpus",
+      segment: { player_tag: OBSERVER },
       from: "2020-01-01",
       verbosity: "compact",
     });
@@ -2799,14 +1795,9 @@ test("a card name shared with a tower-troop entry is the deck card; Evo and Hero
       top.card_id,
       "the deck card, not the tower entry",
     );
-    const syn = await call("cards_synergy", {
-      card: top.name,
-      segment: "corpus",
-    });
-    assert.notEqual(syn.body?.error?.message?.includes("tower troop"), true);
     const evo = await call("cards_card", {
       card: `Evo ${top.name}`,
-      segment: "corpus",
+      segment: { player_tag: OBSERVER },
       from: "2020-01-01",
       verbosity: "compact",
     });
@@ -2814,73 +1805,6 @@ test("a card name shared with a tower-troop entry is the deck card; Evo and Hero
     assert.equal(evo.body.card.id, top.card_id);
   } finally {
     await db.query(`delete from card where card_id = 29000099`);
-  }
-});
-
-test("Gym #348: a row one player carries says so, and min_players counts repeat players (8.0.0)", async () => {
-  const tags = ["#2QQQ8", "#2QQQ9", "#2QQQ0"];
-  await db.query(
-    `insert into clan (clan_tag) values ('#PQ8L0Y') on conflict do nothing`,
-  );
-  for (const tag of tags) {
-    await db.query(
-      "insert into player (player_tag) values ($1) on conflict do nothing",
-      [tag],
-    );
-    await db.query(
-      `insert into clan_membership (clan_tag, player_tag, joined_observed_at) values ('#PQ8L0Y',$1,now()) on conflict do nothing`,
-      [tag],
-    );
-  }
-  await db.query(
-    `insert into recording (subject_type,subject_tag,requested_by,scope) values ('clan','#PQ8L0Y',$1,'comprehensive')`,
-    [account.accountId],
-  );
-  const cards = [{ id: 26000348, name: "Carried Card", level: 14 }];
-  await seedDeck(db, { cards });
-  // One player 9-0, two players 0-1 each: "3 players, 9-2".
-  const plays = [
-    ...Array.from({ length: 9 }, () => [tags[0], "win"]),
-    [tags[1], "loss"],
-    [tags[2], "loss"],
-  ];
-  for (const [i, [tag, outcome]] of plays.entries()) {
-    const id = `carried-${i}`;
-    await db.query(
-      "insert into battle (battle_id,battle_time,type,type_class) values ($1,now(),'PvP','pvp')",
-      [id],
-    );
-    await db.query(
-      "insert into battle_participant (battle_id,player_tag,battle_time,side,outcome,deck_hash,type,type_class) values ($1,$2,now(),0,$3,$4,'PvP','pvp')",
-      [id, tag, outcome, hashFor(cards)],
-    );
-    await seedPlayedDeck(db, { battle_id: id, player_tag: tag, cards });
-  }
-  // 8.0.0: min_players counts repeat players (two or more battles), so
-  // the two one-battle players no longer carry it past min_players 2.
-  const two = await call("battles_meta_decks", {
-    segment: { clan_tag: "#PQ8L0Y" },
-    min_battles: 1,
-    min_players: 2,
-  });
-  assert.equal(two.isError, false, JSON.stringify(two.body));
-  assert.ok(!two.body.decks.some((d) => d.deck_hash === hashFor(cards)));
-  assert.match(two.body.notes.join(" "), /repeat players/);
-  for (const verbosity of ["full", "compact"]) {
-    const { body, isError } = await call("battles_meta_decks", {
-      segment: { clan_tag: "#PQ8L0Y" },
-      min_battles: 1,
-      verbosity,
-    });
-    assert.equal(isError, false, JSON.stringify(body));
-    const row = body.decks.find((d) => d.deck_hash === hashFor(cards));
-    assert.equal(row.players, 3);
-    assert.equal(row.repeat_players, 1);
-    assert.equal(row.top_player_battles, 9);
-    assert.match(
-      body.notes.join(" "),
-      /Carried Card\): 9 of its 11 battles by one player/,
-    );
   }
 });
 
@@ -2935,68 +1859,7 @@ test("Gym #329: a bucket the newest profile read no longer carried is ended, eve
   assert.match(body.notes.join(" "), /have ended \(current false\)/);
 });
 
-test("season partners from the population plus late arrivals equal the raw season, including form and band filters", async () => {
-  await db.query("begin");
-  try {
-    const season = await ensureSeason(db, "2026-08");
-    await rebuildSeason(db, season, { final: true });
-    const {
-      rows: [sample],
-    } = await db.query(
-      `select mp.battle_id, dc.card_id from meta_season_pop mp join deck_card dc on dc.deck_hash = mp.deck_hash where mp.season_month = '2026-08' and mp.outcome in ('win','loss') limit 1`,
-    );
-    assert.ok(sample);
-    const {
-      rows: [state],
-    } = await db.query(
-      `select pop_through from meta_season_state where season_month = '2026-08'`,
-    );
-    const read = (band, form) =>
-      rollupSynergy(
-        db,
-        { month: "2026-08", modeGroup: "all", trophyBand: band },
-        {
-          anchorId: Number(sample.card_id),
-          anchorForm: form,
-          minPair: 1,
-          limit: 130,
-          season,
-          types: null,
-        },
-      );
-    const baseline = await read(null, -1);
-    assert.ok(baseline.partners.length);
-    // This battle was played in an old day, but learned after the cache
-    // cursor. Every side and its duel rounds must come from the tail once.
-    await db.query(
-      `update battle set created_at = $2::timestamptz + interval '1 millisecond' where battle_id = $1`,
-      [sample.battle_id, state.pop_through],
-    );
-    assert.deepEqual(
-      await read(null, -1),
-      baseline,
-      "a rebuilt day overlapping the tail is counted once",
-    );
-    await db.query(`delete from meta_season_pop where battle_id = $1`, [
-      sample.battle_id,
-    ]);
-    assert.deepEqual(await read(null, -1), baseline);
-    const cached = [];
-    for (const band of [null, "under_10000"])
-      for (const form of [-1, 0]) cached.push(await read(band, form));
-    await db.query(
-      `delete from meta_season_pop_day where season_month = '2026-08'`,
-    );
-    let i = 0;
-    for (const band of [null, "under_10000"])
-      for (const form of [-1, 0])
-        assert.deepEqual(await read(band, form), cached[i++]);
-  } finally {
-    await db.query("rollback");
-  }
-});
-
-test("corpus trends preserve distinct battles at the same player timestamp and reapply mode filters", async () => {
+test("player trends preserve distinct battles at the same player timestamp and reapply mode filters", async () => {
   await db.query("begin");
   try {
     for (const [id, type, outcome, trophies] of [
@@ -3021,7 +1884,7 @@ test("corpus trends preserve distinct battles at the same player timestamp and r
       ["casual", 1],
     ]) {
       const { body, isError } = await call("battles_trends", {
-        segment: "corpus",
+        segment: { player_tag: OBSERVER },
         from: "2026-07-01T04:59:59Z",
         to: "2026-07-01T05:00:01Z",
         ...(mode ? { mode } : {}),

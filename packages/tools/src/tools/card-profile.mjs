@@ -1,719 +1,153 @@
-/** cards_card - everything the record knows about ONE card, in one call
- *  (5.0.0; docs/reviews/2026-09-19-CARDS-REVIEW.md). Before it, a card
- *  question cost the whole 130-row card meta and a hand search of the
- *  deck rows, and a card's season-by-season history sat in
- *  card_meta_season with no reader. The blocks are read from tables that
- *  exist: the catalog, deck/deck_card (first played per form), the
- *  season rollups (this season, by band, every season) on a corpus read,
- *  the raw participant rows on a segment or an explicit window, and
- *  player_card / battle_participant_card for a clan's members. */
-
-import {
-  META_EVENT_NOTE,
-  metaPopulationClause,
-  participantModeClause,
-} from "@elixir-mcp/record/mode-filter";
+/** Factual card catalog details and the selected player/clan's recorded card history. */
 import {
   responseMeta,
   MODE_GROUPS,
-  typesForModeGroup,
   cardForms,
   cardType,
   formName,
 } from "@elixir-mcp/contracts";
+import { participantModeClause } from "@elixir-mcp/record/mode-filter";
+import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
 import {
   VERBOSITY,
   MODE_SCHEMA,
   WINDOW_ARGS,
   SEASON_ARG_SCHEMA,
   SEGMENT_SCHEMA,
-  SEGMENT_NOTES,
-  clanSegmentNote,
   appliedBlock,
   notes,
   docsRef,
   requireEnum,
   resolveSeasonWindow,
-  resolveSegment,
   segmentFilter,
-  ebShrink,
-  META_METHODOLOGY,
-  excludedBreakdown,
-  buildMeta,
-  deckIdentities,
-  ARCHETYPE_NOTE,
-  ARCHETYPE_ARG,
-  resolveArchetypeArg,
-  deckStamps,
-  stampMatches,
-  decksContaining,
+  clanSegmentNote,
   PARTICIPANT_GAMES,
-  populationBlock,
+  RECORDED_PLAYERS_SQL,
+  buildMeta,
 } from "./shared.mjs";
-import {
-  seasonRollup,
-  rollupDecks,
-  rollupSynergy,
-  rawScanMemory,
-  RANKED_NO_BAND_NOTE,
-  CAP_BAND_NOTE,
-} from "../meta-season.mjs";
-import { resolveCard } from "./synergy.mjs";
-
-const CARD_DOCS = docsRef("cards", "one-card-in-one-call");
-
-/** The decided-observation scope every raw read here shares: segment,
- *  window and mode, pushed onto `params` in one place. */
-function scopeClauses(seg, win, args, params) {
-  const where = [
-    "bp.deck_hash is not null",
-    "bp.outcome in ('win','loss')",
-    "bp.type_class = 'pvp'",
-  ];
-  if (seg.where) where.push(seg.where);
-  params.push(win.from.toISOString());
-  where.push(`${seg.timeColumn} >= $${params.length}`);
-  if (win.to) {
-    params.push(win.to);
-    where.push(`${seg.timeColumn} < $${params.length}`);
-  }
-  if (args.mode) where.push(participantModeClause(args.mode, params));
-  // The meta population a season read counts (Gym #154): a raw from/to
-  // window had kept event battles and drafted decks the rollup leaves
-  // out, so the same window read two ways (74,770 decided against 44,956).
-  where.push(metaPopulationClause());
-  return where;
-}
-const FORM_ROWS = [
-  { form: -1, name: "all" },
-  { form: 0, name: "base" },
-  { form: 1, name: "evolution" },
-  { form: 2, name: "hero" },
-];
+import { resolveCard } from "./card-resolver.mjs";
 const rate = (w, l) => (w + l > 0 ? Number((w / (w + l)).toFixed(3)) : null);
-const share = (n, d) => (d > 0 ? Number((n / d).toFixed(3)) : null);
-
-/** One usage row: battles, W/L, players, usage share against the
- *  population's decided total, raw and (when the population clears the
- *  floor) shrunk win rate toward the population prior. */
-function usageRow(r, decided, prior) {
-  const wins = Number(r.wins ?? 0);
-  const losses = Number(r.losses ?? 0);
-  const battles = Number(r.battles ?? 0);
-  const out = {
-    battles,
-    wins,
-    losses,
-    players:
-      r.players === null || r.players === undefined ? null : Number(r.players),
-    usage_share: share(battles, decided),
-    win_rate: rate(wins, losses),
-    // Of battles, how many were duel rounds (9.11.0, #363); null on a
-    // rollup row the nightly has not split since 0183.
-    duel_rounds: r.duel_rounds === null ? null : Number(r.duel_rounds ?? 0),
-  };
-  if (
-    decided >= META_METHODOLOGY.segment_min_decided &&
-    prior !== null &&
-    prior !== undefined
-  )
-    out.shrunk_win_rate = ebShrink(wins, wins + losses, prior);
-  // The notes promise the flag where the shrunk rate is withheld (Gym
-  // #107): below the floor, say so rather than leave the key absent.
-  else if (decided < META_METHODOLOGY.segment_min_decided)
-    out.insufficient_sample = true;
-  return out;
-}
-
 export const cardProfileTools = {
   cards_card: {
     description:
-      "Everything the record knows about ONE card, in one call, for a named population (segment 'mine', 'corpus' or {clan_tag | player_tag}): the catalog row with type and forms and when each form was first played; this window's usage and win rate, all forms and per form, by mode group; the same by trophy band; every recorded season as a series; the top partners; the most-played decks carrying it; on a clan segment, who played it (and at what level) and who holds it. Anchor by card_id or exact name. Default window: the current season. verbosity compact keeps card, season and history.",
+      "One card's catalog facts and earliest recorded play in a named player or clan's history. A clan read also lists current members who played it in the requested window and who hold it, with recorded levels and forms. No corpus statistics, partners, popularity, scores or recommendations. Anchor by card_id or exact name. The window defaults to the current season; first_played spans the selected history.",
     inputSchema: {
       type: "object",
       properties: {
-        card_id: { type: "integer", description: "The card id (preferred)." },
+        card_id: { type: "integer", description: "The card id." },
         card: {
           type: "string",
-          description:
-            "The card by EXACT name (case-insensitive); ambiguous names are refused with candidates.",
+          description: "An exact catalog name, case-insensitive.",
         },
         segment: SEGMENT_SCHEMA,
         ...WINDOW_ARGS,
         season: SEASON_ARG_SCHEMA,
         mode: MODE_SCHEMA,
-        verbosity: VERBOSITY(
-          "keeps card, season and history; drops by_band, partners, decks and members.",
-        ),
-        archetype: {
-          ...ARCHETYPE_ARG,
-          description:
-            "Only decks of this archetype among the decks carrying the card (a family, a composed label, or a community name); applied.archetype echoes the resolution. Unknown names are refused with the vocabulary.",
-        },
+        verbosity: VERBOSITY("keeps card facts; drops clan member lists."),
       },
       required: ["segment"],
       additionalProperties: false,
     },
     async handler(ctx, args) {
-      const archetype =
-        args.archetype === undefined
-          ? null
-          : await resolveArchetypeArg(ctx.db, args.archetype);
-      const anchor = await resolveCard(ctx.db, args, { allowTower: true });
-      const compact = args.verbosity === "compact";
-      requireEnum(args.mode, MODE_GROUPS, "mode");
-      const segment = await resolveSegment(ctx, args);
       const params = [];
       const seg = await segmentFilter(ctx, args, params);
-      const segParamCount = params.length;
+      const anchor = await resolveCard(ctx.db, args, { allowTower: true });
+      requireEnum(args.mode, MODE_GROUPS, "mode");
       const win = await resolveSeasonWindow(ctx, args);
-      const modeGroup = args.mode ?? "all";
-      if (anchor.tower_troop)
-        return towerTroopProfile(ctx, { args, anchor, segment, win, compact });
-
-      // --- card: the catalog row, the type, the record's own dates -----
       const {
         rows: [cat],
       } = await ctx.db.query(
-        `select first_seen_at, observed_at,
-                -- A bulk catalog load, not a release (Gym #205): twenty or
-                -- more cards first stored in the same hour as this one.
-                (select count(*) from card c2
-                  where c2.first_seen_at >= card.first_seen_at - interval '1 hour'
-                    and c2.first_seen_at <= card.first_seen_at + interval '1 hour') >= 20 as since_storage
-           from card where card_id = $1`,
+        `select first_seen_at from card where card_id = $1`,
         [anchor.id],
       );
-      // First played per form: the earliest deck carrying that form
-      // (deck.first_seen_at), one indexed read per form; no participant scan.
+      params.push(anchor.id);
+      const anchorParam = `$${params.length}`;
       const { rows: firstPlayed } = await ctx.db.query(
-        `select dc.form, min(d.first_seen_at) as at
-         from deck_card dc join deck d on d.deck_hash = dc.deck_hash
-         where dc.card_id = $1 group by dc.form`,
-        [anchor.id],
+        anchor.tower_troop
+          ? `select 0 as form, min(bp.battle_time) as at from ${PARTICIPANT_GAMES} bp
+           join deck d on d.deck_hash = bp.deck_hash
+           where ${seg.where} and ${notBoatDefense("bp")} and d.tower_troop_id = ${anchorParam}`
+          : `select c.form, min(bp.battle_time) as at from ${PARTICIPANT_GAMES} bp
+           join battle_participant_card c on c.battle_id = bp.battle_id and c.player_tag = bp.player_tag and c.round = bp.round
+           where ${seg.where} and ${notBoatDefense("bp")} and c.card_id = ${anchorParam} group by c.form`,
+        params,
       );
       const first = { base: null, evolution: null, hero: null };
-      // The earliest per form: formName folds every code it does not name
-      // into base, so a later row had overwritten base's date on the four
-      // cards with both an Evolution and a Hero (Gym #281: Valkyrie base
-      // read 2026-08-09 over 9,543 earlier base battles).
       for (const r of firstPlayed) {
-        const k = formName(r.form);
-        const at = r.at.toISOString();
-        if (!first[k] || at < first[k]) first[k] = at;
+        if (!r.at) continue;
+        const key = formName(r.form),
+          at = r.at.toISOString();
+        if (!first[key] || at < first[key]) first[key] = at;
       }
-      const card = {
-        id: anchor.id,
-        name: anchor.name,
-        type: cardType(anchor.id),
-        rarity: anchor.rarity ?? null,
-        elixir_cost: anchor.elixirCost ?? null,
-        forms_available: cardForms(anchor.maxEvolutionLevel),
-        icon_urls: anchor.iconUrls ?? null,
-        first_seen_in_catalog: cat?.first_seen_at?.toISOString() ?? null,
-        first_played: first,
-      };
-      // The catalog was first stored 2026-09-10, so every card present then
-      // carries that instant (Gym #205: Knight and Minion Giant alike).
-      const catalogNote = !cat?.since_storage
-        ? null
-        : `card.first_seen_in_catalog (${card.first_seen_in_catalog}) is when Elixir stored a whole catalog at once, not when this card entered the game: every card in that load carries the same instant. card.first_played is the earliest recorded deck with each form.`;
-
-      // --- the population: rollup or raw ------------------------------
-      const roll = await seasonRollup(ctx.db, {
-        win,
-        seg,
-        mode: args.mode,
-      });
-      const usage = await seasonUsage(ctx, {
-        anchor,
-        seg,
-        win,
-        params,
-        args,
-        roll,
-        modeGroup,
-      });
-
-      const out = {
+      const members =
+        seg.echo.kind === "clan" && args.verbosity !== "compact"
+          ? await clanMembers(ctx, {
+              anchor,
+              clanTag: seg.echo.clan_tag,
+              win,
+              args,
+            })
+          : null;
+      return {
         applied: appliedBlock({
           segment: seg.echo,
           window: win.echo,
           mode: args.mode,
-          archetype: archetype ?? undefined,
-          verbosity: compact ? "compact" : "full",
+          verbosity: args.verbosity ?? "full",
         }),
-        card,
-        season: usage.season,
-        // Gym #107: the counts and the prior the notes speak of, served
-        // as battles_meta_decks serves them.
-        excluded: usage.excluded,
-        prior_win_rate:
-          usage.prior.mean === null || usage.prior.mean === undefined
-            ? null
-            : Number(usage.prior.mean.toFixed(3)),
-        prior_basis: usage.prior.basis,
+        card: {
+          id: anchor.id,
+          name: anchor.name,
+          type: cardType(anchor.id),
+          rarity: anchor.rarity ?? null,
+          elixir_cost: anchor.elixirCost ?? null,
+          forms_available: cardForms(anchor.maxEvolutionLevel),
+          icon_urls: anchor.iconUrls ?? null,
+          first_seen_in_catalog: cat?.first_seen_at?.toISOString() ?? null,
+          first_played: first,
+        },
+        ...(members ? { members } : {}),
+        notes: notes(
+          clanSegmentNote(seg),
+          win.seasonNotes,
+          "first_seen_in_catalog is when Elixir first stored this catalog row, not a release date. first_played is earliest play in the selected recorded history, by form, across all windows; unknown forms stay null.",
+          members
+            ? "members.played covers the current clan members' own games in the requested window; duels count by round. members.held is observed card inventory, not an upgrade recommendation. Missing inventory is unknown."
+            : null,
+        ),
+        docs: docsRef("cards"),
+        meta:
+          seg.echo.kind === "player"
+            ? await buildMeta(
+                ctx.db,
+                ctx.account,
+                seg.echo.player_tag,
+                ["player_battlelog"],
+                { timezone: win.timezone, windowTo: win.to },
+              )
+            : responseMeta({
+                as_of: new Date().toISOString(),
+                ...(win.timezone ? { timezone_applied: win.timezone } : {}),
+              }),
       };
-      if (!seg.where)
-        out.population = await populationBlock(ctx.db, {
-          playersInWindow: usage.playersInWindow,
-        });
-      const extraNotes = [];
-
-      // --- history: one point per recorded season (corpus only) --------
-      if (!seg.where) {
-        const { rows } = await ctx.db.query(
-          `select cm.season_month, cm.battles, cm.wins, cm.losses, cm.players,
-                  cm.duel_rounds, t.decided, s.war_season_id
-           from card_meta_season cm
-           join meta_season_totals t
-             on t.season_month = cm.season_month and t.mode_group = cm.mode_group
-           join season s on s.season_month = cm.season_month
-           where cm.card_id = $1 and cm.form = -1 and cm.mode_group = $2
-           order by cm.season_month`,
-          [anchor.id, modeGroup],
-        );
-        out.history = rows.map((r) => ({
-          season: { month: r.season_month, war: r.war_season_id },
-          decided_battles: r.decided,
-          ...usageRow(r, r.decided, null),
-        }));
-        if (rows.length === 0)
-          extraNotes.push(
-            "history is empty: no season rollup holds this card in this mode group yet (rollups are rebuilt nightly).",
-          );
-        // A pooled series across a changing mode mix (Gym #106): the
-        // corpus went from mostly ladder to mostly ranked, so a card's
-        // pooled usage moves with the mix. Said when the ranked share
-        // moved 20 points or more across the seasons shown.
-        if (!args.mode && rows.length >= 2) {
-          const { rows: mix } = await ctx.db.query(
-            `select a.season_month,
-                    coalesce(r.decided, 0)::numeric / nullif(a.decided, 0) as ranked_share
-               from meta_season_totals a
-               left join meta_season_totals r
-                 on r.season_month = a.season_month and r.mode_group = 'ranked'
-              where a.mode_group = 'all' and a.season_month = any($1)
-              order by a.season_month`,
-            [rows.map((r) => r.season_month)],
-          );
-          const shares = mix
-            .filter((m) => m.ranked_share !== null)
-            .map((m) => ({
-              month: m.season_month,
-              share: Number(m.ranked_share),
-            }));
-          if (shares.length >= 2) {
-            const lo = shares.reduce((a, m) => (m.share < a.share ? m : a));
-            const hi = shares.reduce((a, m) => (m.share > a.share ? m : a));
-            if (hi.share - lo.share >= 0.2)
-              extraNotes.push(
-                `history pools every mode, and the mode mix moved: ranked (Path of Legends) was ${Math.round(lo.share * 100)}% of decided observations in ${lo.month} and ${Math.round(hi.share * 100)}% in ${hi.month}. A pooled usage_share or win_rate moves with that mix, not only with the card; pass mode to compare seasons within one mode.`,
-              );
-          }
-        }
-      } else
-        extraNotes.push(
-          "history (one point per recorded season) is a corpus series; a segment read carries this window's usage only.",
-        );
-
-      if (!compact) {
-        // --- by_band (corpus season read only) -------------------------
-        if (roll) {
-          const { rows } = await ctx.db.query(
-            `select b.trophy_band, b.battles, b.wins, b.losses, b.players, b.duel_rounds,
-                    round((b.level_gap_sum / nullif(b.level_gap_battles, 0))::numeric, 2) as mean_level_gap,
-                    bt.decided, bt.wins as pop_wins
-             from card_meta_season_band b
-             join meta_season_band_totals bt
-               on bt.season_month = b.season_month and bt.mode_group = b.mode_group
-              and bt.trophy_band = b.trophy_band
-             where b.season_month = $1 and b.mode_group = $2 and b.card_id = $3 and b.form = -1
-             order by array_position(array['under_10000','10000_13999','trophy_road_complete'], b.trophy_band)`,
-            [roll.month, modeGroup, anchor.id],
-          );
-          out.by_band = rows.map((r) => ({
-            trophy_band: r.trophy_band,
-            decided_battles: r.decided,
-            mean_level_gap:
-              r.mean_level_gap === null ? null : Number(r.mean_level_gap),
-            ...usageRow(
-              r,
-              r.decided,
-              r.decided >= META_METHODOLOGY.segment_min_decided
-                ? r.pop_wins / r.decided
-                : null,
-            ),
-          }));
-          if (rows.length === 0)
-            extraNotes.push(
-              // Ranked rows have no band by rule (Gym #102, #155): the
-              // rollup is filled; there is nothing to band.
-              modeGroup === "ranked"
-                ? "by_band is empty on ranked: a Path of Legends row carries a rating, not trophies, so it has no trophy band."
-                : modeGroup === "tournament"
-                  ? "by_band is empty on tournament: a tournament row's starting trophies are the player's running score in that tournament, not trophies, so it has no trophy band (6.36.6)."
-                  : "by_band is empty: the banded rollup has not been filled for this season yet.",
-            );
-        } else
-          extraNotes.push(
-            "by_band (usage by trophy band) is answered from the season rollup on a corpus season read only.",
-          );
-
-        // --- partners (corpus season read only; cards_synergy has the rest)
-        if (roll) {
-          const syn = await rollupSynergy(ctx.db, roll, {
-            anchorId: anchor.id,
-            anchorForm: -1,
-            minPair: 5,
-            limit: 8,
-            season: win.season,
-            types: args.mode ? typesForModeGroup(args.mode) : null,
-          });
-          const anchorDecks = syn.anchor?.battles ?? 0;
-          out.partners = (syn.partners ?? []).map((r) => {
-            const co = anchorDecks > 0 ? r.co_battles / anchorDecks : null;
-            const base =
-              roll.prior.decided > 0
-                ? r.baseline_battles / roll.prior.decided
-                : null;
-            return {
-              card_id: Number(r.card_id),
-              name: r.name,
-              form: formName(r.form),
-              co_battles: r.co_battles,
-              players: r.players,
-              co_occurrence_rate: co === null ? null : Number(co.toFixed(3)),
-              lift: co !== null && base ? Number((co / base).toFixed(2)) : null,
-            };
-          });
-        } else
-          extraNotes.push(
-            "partners ride the corpus season read; cards_synergy answers them for any segment and window.",
-          );
-
-        // --- decks: the most-played decks containing the card ------------
-        out.decks = await topDecks(ctx, {
-          anchor,
-          seg,
-          params,
-          segParamCount,
-          win,
-          args,
-          roll,
-          archetype,
-          decided: usage.decided,
-        });
-
-        // --- members (clan segment only) ---------------------------------
-        if (segment.kind === "clan") {
-          out.members = await clanMembers(ctx, {
-            anchor,
-            clanTag: segment.clanTag,
-            win,
-            args,
-          });
-        }
-      }
-
-      // prior_source says what THIS read shrank toward (Gym #155): the
-      // shared text names the corpus, and a segment read's basis is the
-      // segment's own window mean.
-      out.methodology =
-        usage.prior.basis === "segment_window"
-          ? {
-              ...META_METHODOLOGY,
-              prior_source:
-                "this population's own decided mean over the window (prior_basis segment_window); 0.5 below segment_min_decided",
-            }
-          : META_METHODOLOGY;
-      out.notes = notes(
-        args.mode === "event" ? META_EVENT_NOTE : null,
-        `Forms: season.all merges the card's forms; season.forms carries one row per form played (${FORM_ROWS.slice(
-          1,
-        )
-          .map((f) => f.name)
-          .join(
-            ", ",
-          )}); usage_share is the row's decided observations over the population's decided_battles.`,
-        "A card's win rate describes who played it as much as the card: compare within one mode and similar mean_level_gap, never across segments.",
-        out.decks ? ARCHETYPE_NOTE : null,
-        ...extraNotes,
-        catalogNote,
-        out.members?.held?.length
-          ? "members.held[].observed_at is the newest read of each member's collection (it arrives with the profile); since is when that level and form were first seen."
-          : null,
-        args.mode === "ladder" ? null : RANKED_NO_BAND_NOTE,
-        out.by_band?.some((b) => b.trophy_band === "trophy_road_complete")
-          ? CAP_BAND_NOTE
-          : null,
-        SEGMENT_NOTES.filter((n) => !n.includes("CORPUS mean")),
-        clanSegmentNote(seg),
-        `shrunk_win_rate shrinks toward prior_win_rate: ${usage.prior.basis === "corpus_season" ? "the corpus season's decided mean" : "this population's own decided mean over the window"} (prior_basis), and is withheld (null, insufficient_sample: true) when the POPULATION is under ${META_METHODOLOGY.segment_min_decided} decided observations, not per row: a row with few battles still carries one, shrunk hard toward the prior.`,
-        win.seasonNotes,
-        roll?.note,
-      );
-      out.docs = CARD_DOCS;
-      // One player's read carries the player's freshness, as the battle
-      // tools do (Gym #107: freshness_seconds and recorded_since absent).
-      const playerTag =
-        seg.echo && typeof seg.echo === "object" ? seg.echo.player_tag : null;
-      out.meta = playerTag
-        ? await buildMeta(
-            ctx.db,
-            ctx.account,
-            playerTag,
-            ["player_battlelog"],
-            {
-              timezone: win.timezone,
-              windowTo: win.to,
-            },
-          )
-        : responseMeta({
-            as_of: new Date().toISOString(),
-            ...(win.timezone ? { timezone_applied: win.timezone } : {}),
-          });
-      return out;
     },
   },
 };
 
-/** This window's usage of the card: all forms and per form, and (with
- *  mode omitted) the per-mode-group split; from the rollup on a corpus
- *  season read, from the participant rows otherwise. */
-async function seasonUsage(
-  ctx,
-  { anchor, seg, win, params, args, roll, modeGroup },
-) {
-  if (roll) {
-    const { rows } = await ctx.db.query(
-      `select cm.mode_group, cm.form, cm.battles, cm.wins, cm.losses, cm.players,
-              cm.duel_rounds, t.decided, t.wins as pop_wins
-       from card_meta_season cm
-       join meta_season_totals t
-         on t.season_month = cm.season_month and t.mode_group = cm.mode_group
-       where cm.season_month = $1 and cm.card_id = $2
-         ${args.mode ? "and cm.mode_group = $3" : ""}`,
-      args.mode ? [roll.month, anchor.id, modeGroup] : [roll.month, anchor.id],
-    );
-    const shape = (list) => {
-      const byForm = new Map(list.map((r) => [Number(r.form), r]));
-      const pop = list[0];
-      const decided = pop ? Number(pop.decided) : roll.prior.decided;
-      const prior =
-        pop && decided >= META_METHODOLOGY.segment_min_decided
-          ? Number(pop.pop_wins) / decided
-          : null;
-      const all = byForm.get(-1);
-      return {
-        decided_battles: decided,
-        all: all ? usageRow(all, decided, prior) : usageRow({}, decided, prior),
-        forms: FORM_ROWS.slice(1)
-          .filter((f) => byForm.has(f.form))
-          .map((f) => ({
-            form: f.name,
-            ...usageRow(byForm.get(f.form), decided, prior),
-          })),
-      };
-    };
-    const main = shape(rows.filter((r) => r.mode_group === modeGroup));
-    const season = { mode_group: modeGroup, ...main };
-    if (!args.mode) {
-      const groups = [...new Set(rows.map((r) => r.mode_group))].filter(
-        (g) => g !== "all",
-      );
-      season.by_mode = groups
-        .map((g) => ({
-          mode_group: g,
-          ...shape(rows.filter((r) => r.mode_group === g)),
-        }))
-        .filter((g) => g.all.battles > 0)
-        .sort((a, z) => z.all.battles - a.all.battles);
-    }
-    return {
-      season,
-      decided: main.decided_battles,
-      playersInWindow: roll.players,
-      excluded: roll.excluded,
-      prior: { mean: roll.prior.mean, basis: "corpus_season" },
-    };
-  }
-  // Raw path: the population's decided total, then the card's rows by
-  // form (deck_card gives the form of the card in each deck).
-  await rawScanMemory(ctx.db);
-  const where = scopeClauses(seg, win, args, params);
-  const {
-    rows: [pop],
-  } = await ctx.db.query(
-    `select count(*)::int as decided,
-            count(*) filter (where bp.outcome = 'win')::int as wins,
-            count(distinct bp.player_tag)::int as players
-     from ${PARTICIPANT_GAMES} bp where ${where.join(" and ")}`,
-    params,
-  );
-  params.push(anchor.id);
-  let { rows } = await ctx.db.query(
-    `select dc.form, bp.type, grouping(bp.type) = 1 as form_total,
-            count(*)::int as battles,
-            count(*) filter (where bp.outcome = 'win')::int as wins,
-            count(*) filter (where bp.outcome = 'loss')::int as losses,
-            count(distinct bp.player_tag)::int as players,
-            count(*) filter (where bp.round > 0)::int as duel_rounds
-     from ${PARTICIPANT_GAMES} bp
-     join deck_card dc on dc.deck_hash = bp.deck_hash and dc.card_id = $${params.length}
-     where ${where.join(" and ")}
-     group by grouping sets ((dc.form, bp.type), (dc.form))`,
-    params,
-  );
-  // The (form) set carries each form's distinct players, which the
-  // (form, type) rows cannot sum to (journey r3: forms[].players was null).
-  const formPlayers = new Map(
-    rows.filter((r) => r.form_total).map((r) => [Number(r.form), r.players]),
-  );
-  rows = rows.filter((r) => !r.form_total);
-  const decided = pop?.decided ?? 0;
-  const prior =
-    decided >= META_METHODOLOGY.segment_min_decided ? pop.wins / decided : null;
-  const fold = (list) => {
-    const acc = { battles: 0, wins: 0, losses: 0, duel_rounds: 0 };
-    for (const r of list) {
-      acc.battles += r.battles;
-      acc.wins += r.wins;
-      acc.losses += r.losses;
-      acc.duel_rounds += r.duel_rounds;
-    }
-    return acc;
-  };
-  // Distinct players per form come from the (form) grouping set; the
-  // merged row is re-counted once below.
-  const forms = FORM_ROWS.slice(1)
-    .map((f) => ({ f, list: rows.filter((r) => Number(r.form) === f.form) }))
-    .filter(({ list }) => list.length)
-    .map(({ f, list }) => ({
-      form: f.name,
-      ...usageRow(
-        { ...fold(list), players: formPlayers.get(f.form) ?? null },
-        decided,
-        prior,
-      ),
-    }));
-  const {
-    rows: [allPlayers],
-  } = await ctx.db.query(
-    `select count(distinct bp.player_tag)::int as players
-     from ${PARTICIPANT_GAMES} bp
-     join deck_card dc on dc.deck_hash = bp.deck_hash and dc.card_id = $${params.length}
-     where ${where.join(" and ")}`,
-    params,
-  );
-  const season = {
-    mode_group: modeGroup,
-    decided_battles: decided,
-    all: usageRow(
-      { ...fold(rows), players: allPlayers?.players ?? null },
-      decided,
-      prior,
-    ),
-    forms,
-  };
-  // What the window held outside the decided head-to-head population
-  // (the SEGMENT_NOTES promise, Gym #107): the scope without the three
-  // population filters scopeClauses opens with.
-  const scopeParams = params.slice(0, -1);
-  const excluded = await excludedBreakdown(ctx.db, where.slice(3), scopeParams);
-  // Not an exclusion; season.all.duel_rounds carries this card's.
-  delete excluded.duel_rounds;
-  return {
-    season,
-    decided,
-    playersInWindow: pop?.players ?? 0,
-    excluded,
-    prior: { mean: prior, basis: "segment_window" },
-  };
-}
-
-/** The most-played decks containing the card in the window: the rollup's
- *  deck rows narrowed to the identities carrying it, or one grouped read
- *  of the participant rows on a segment / explicit window. */
-async function topDecks(
-  ctx,
-  { anchor, seg, params, segParamCount, win, args, roll, decided, archetype },
-) {
-  const keep = await decksContaining(ctx.db, [anchor.id]);
-  let rows;
-  if (roll) {
-    rows = await rollupDecks(ctx.db, roll, {
-      minBattles: 1,
-      hashes: [...keep],
-    });
-  } else {
-    // The segment's own params (segmentFilter pushed them first), then
-    // the scope, then the anchor: a fresh array built the same way.
-    const p = params.slice(0, segParamCount);
-    const where = scopeClauses(seg, win, args, p);
-    p.push(anchor.id);
-    where.push(
-      `bp.deck_hash in (select a.deck_hash from deck_card a where a.card_id = $${p.length})`,
-    );
-    const res = await ctx.db.query(
-      `select bp.deck_hash, count(*)::int as battles,
-              count(*) filter (where bp.outcome = 'win')::int as wins,
-              count(*) filter (where bp.outcome = 'loss')::int as losses,
-              count(distinct bp.player_tag)::int as players,
-              count(*) filter (where bp.round > 0)::int as duel_rounds
-       from ${PARTICIPANT_GAMES} bp where ${where.join(" and ")}
-       group by bp.deck_hash`,
-      p,
-    );
-    rows = res.rows;
-  }
-  rows.sort((a, z) => z.battles - a.battles);
-  // The archetype filter (6.6.0) over every deck carrying the card, by
-  // its stamp, before the top five are cut.
-  if (archetype) {
-    const stamps = await deckStamps(
-      ctx.db,
-      rows.map((r) => r.deck_hash),
-    );
-    rows = rows.filter((r) => stampMatches(stamps.get(r.deck_hash), archetype));
-  }
-  const top = rows.slice(0, 5);
-  const identities = await deckIdentities(
-    ctx.db,
-    top.map((r) => r.deck_hash),
-  );
-  return top.map((r) => ({
-    deck_hash: r.deck_hash,
-    battles: r.battles,
-    wins: r.wins,
-    losses: r.losses,
-    players: r.players ?? null,
-    usage_share: share(r.battles, decided),
-    win_rate: rate(r.wins, r.losses),
-    duel_rounds: r.duel_rounds ?? null,
-    ...(identities.get(r.deck_hash) ?? { cards: [] }),
-  }));
-}
-
-/** A clan's members and the card: who played it in the window (and at
- *  what level), who holds it and at what level and forms. */
 async function clanMembers(ctx, { anchor, clanTag, win, args }) {
   const params = [clanTag, anchor.id, win.from.toISOString()];
-  // The population season counts (scopeClauses): games with a deck
-  // identity, so a duel counts by its rounds as the season does
-  // (9.11.0, #363; Gym #103 was a whole duel counted here and not there).
+  // The selected current members' own recorded games; duels count by round.
   const where = [
-    "bp.deck_hash is not null",
-    "bp.outcome in ('win','loss')",
-    "bp.type_class = 'pvp'",
+    notBoatDefense("bp"),
     "bp.battle_time >= $3",
+    `bp.player_tag in (${RECORDED_PLAYERS_SQL})`,
   ];
   if (win.to) {
     params.push(win.to);
     where.push(`bp.battle_time < $${params.length}`);
   }
   if (args.mode) where.push(participantModeClause(args.mode, params));
-  where.push(metaPopulationClause());
+
   const { rows: played } = await ctx.db.query(
     `select bp.player_tag, p.name,
             count(*)::int as battles,
@@ -777,104 +211,4 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
     members_with_collection: withCollection.length,
     members: held.length,
   };
-}
-
-/** A tower troop, the deck's ninth card (Jamie 2026-09-24): its usage
- *  and win rate over the population (battles_meta_cards' tower_troops
- *  read), when it was first recorded in a deck, and a clan's holders. The
- *  season history, top decks and partners are the eight deck cards'. */
-async function towerTroopProfile(ctx, { args, anchor, segment, win, compact }) {
-  const { battles_meta_cards } = await import("./battles/meta-cards.mjs");
-  const { card, card_id, archetype, verbosity, ...rest } = args;
-  void card;
-  void card_id;
-  void verbosity;
-  const meta = await battles_meta_cards.handler(ctx, {
-    ...rest,
-    tower_troops: true,
-    cards: [anchor.id],
-    min_battles: 1,
-  });
-  const row = meta.cards[0] ?? null;
-  const {
-    rows: [firstDeck],
-  } = await ctx.db.query(
-    `select min(first_seen_at) as at from deck where tower_troop_id = $1`,
-    [anchor.id],
-  );
-  const {
-    rows: [cat],
-  } = await ctx.db.query(`select first_seen_at from card where card_id = $1`, [
-    anchor.id,
-  ]);
-  const out = {
-    applied: appliedBlock({
-      segment: meta.applied.segment,
-      window: meta.applied.window,
-      mode: args.mode,
-      verbosity: compact ? "compact" : "full",
-    }),
-    card: {
-      id: anchor.id,
-      name: anchor.name,
-      type: "tower_troop",
-      rarity: anchor.rarity ?? null,
-      forms_available: cardForms(anchor.maxEvolutionLevel),
-      icon_urls: anchor.iconUrls ?? null,
-      first_seen_in_catalog: cat?.first_seen_at?.toISOString() ?? null,
-      first_played: { base: firstDeck?.at?.toISOString() ?? null },
-    },
-    season: {
-      decided_battles: meta.decided_battles,
-      tower_troop_known_battles: meta.tower_troop_known_battles,
-      all: row
-        ? {
-            battles: row.battles,
-            wins: row.wins,
-            losses: row.losses,
-            players: row.players,
-            usage_share: row.usage_share,
-            win_rate: row.win_rate,
-            ...(row.shrunk_win_rate !== undefined
-              ? { shrunk_win_rate: row.shrunk_win_rate }
-              : {}),
-          }
-        : null,
-    },
-    excluded: meta.excluded,
-    prior_win_rate: meta.prior_win_rate,
-    ...(meta.population ? { population: meta.population } : {}),
-  };
-  if (segment.kind === "clan")
-    out.members = await clanMembers(ctx, {
-      anchor,
-      clanTag: segment.clanTag,
-      win,
-      args,
-    });
-  out.methodology = META_METHODOLOGY;
-  out.notes = notes(
-    `${anchor.name} is a tower troop, a deck's ninth card: season.all is its usage and win rate over this population, as battles_meta_cards with tower_troops: true lists every tower troop. Season history, top decks and partners are read for the eight deck cards only.`,
-    archetype !== undefined
-      ? "archetype narrows the eight deck cards and is not applied to a tower troop."
-      : null,
-    row === null
-      ? "No decided observation in this population carried it in the window."
-      : null,
-    out.members?.held?.length
-      ? "members.held[] is each member's tower troop level from their collection; observed_at is the newest read of it."
-      : null,
-    meta.decided_battles > (meta.tower_troop_known_battles ?? 0)
-      ? `The API reports no tower troop on river race (war) battles: ${meta.decided_battles - (meta.tower_troop_known_battles ?? 0)} of this population's ${meta.decided_battles} decided observations carried none, and season.all.usage_share is over the ${meta.tower_troop_known_battles ?? 0} whose tower troop is known.`
-      : null,
-    // The meta read's notes, less those about its own rows or about
-    // inputs and fields cards_card does not have (Gym #326: fit_for,
-    // decks[]).
-    meta.notes.filter(
-      (n) => !/Rows are tower troops|fit_for|decks\[\]/.test(n),
-    ),
-  );
-  out.docs = CARD_DOCS;
-  out.meta = meta.meta;
-  return out;
 }

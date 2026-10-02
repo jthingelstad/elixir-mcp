@@ -263,10 +263,9 @@ export function validateEmailMessage(
  *  internet, only to S3 through the free gateway endpoint, so a message
  *  for a non-VPC worker is written to the outbox bucket as one JSON
  *  object and S3 notifies that lane's queue. The object body is the
- *  message itself (an EmailMessage on the email lane, `{brief_key, kind}`
- *  on the editor lane); the worker reads it, acts and deletes it, so an
+ *  message itself (an EmailMessage on the email lane); the worker reads it, acts and deletes it, so an
  *  object still there after the queue's retries is one that failed. */
-export const OUTBOX_LANES = ["email", "editor"] as const;
+export const OUTBOX_LANES = ["email"] as const;
 export type OutboxLane = (typeof OUTBOX_LANES)[number];
 
 export function outboxKey(lane: OutboxLane, id: string): string {

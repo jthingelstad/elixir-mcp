@@ -49,7 +49,7 @@ collided often, and a held lease stalled the runs behind it.
   text merge misses (a repeated migration id). The later PR rebases
   (`gh pr update-branch --rebase`) and resolves.
 
-Lease keys: `run`, `record`, `loop`, `guard`, `boards` (this team);
+Lease keys: `run`, `record`, `loop`, `guard` (this team);
 `clan-run`, `clan-judge`, `clan-loop`, `clan-guard` (Elixir Clan's,
 `clan/AGENT-TEAM/`); `clock`, `game` (the domain team's,
 `../AGENT-TEAM/`); `session` (an interactive session).
@@ -97,7 +97,7 @@ Lease keys: `run`, `record`, `loop`, `guard`, `boards` (this team);
    migration run, an ops-lambda write), never for an edit:
 
    ```bash
-   node AGENT-TEAM/scripts/objective-lease.mjs claim <run|record|loop|guard|boards|session>
+   node AGENT-TEAM/scripts/objective-lease.mjs claim <run|record|loop|guard|session>
    ```
 
    `session` is for an interactive session; the Gym claims `loop`.

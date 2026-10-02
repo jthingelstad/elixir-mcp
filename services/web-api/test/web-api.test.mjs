@@ -2982,7 +2982,7 @@ test("GET /api/admin/cards: the catalog with its archetype roles, the vocabulary
   assert.equal(res.statusCode, 200, res.body);
   const body = parse(res);
   assert.ok(Array.isArray(body.cards));
-  assert.ok(Array.isArray(body.unattested));
+  assert.equal(body.unattested, undefined);
   assert.ok(Array.isArray(body.aliases));
   assert.ok("version" in body);
   for (const c of body.cards) {

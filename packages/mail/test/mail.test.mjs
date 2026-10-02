@@ -11,7 +11,6 @@ import {
   UNSUBSCRIBE_KEY_ID,
   verifyUnsubscribe,
   unsubscribeUrl,
-  lintIssue,
   KIND_LABELS,
   MAIL_SCHEDULE,
   cardAsset,
@@ -473,116 +472,6 @@ test("htmlToText keeps table rows on one line and prints hrefs once", () => {
   assert.ok(!text.includes("https://x.example/b (https://x.example/b)"));
 });
 
-test("the Top 100 lint traces numbers to the brief and rejects tags, bangs and unpaired rows", () => {
-  const brief = {
-    board: { cutoff_rating: 2434, inflation: 450 },
-    movers: {
-      up: [{ name: "A", rank_from: 166, rank_to: 8, rating_delta: 702 }],
-    },
-    season: { id: 136 },
-  };
-  const ok = {
-    subject: "s",
-    body_markdown:
-      "## The board\n\nThe floor is 2434. Up 450 in a week.\n\n| Player | Rank | Rating |\n|---|---|---|\n| A | 166 → 8 | +702 |",
-    numbers_used: [{ claim: "floor", brief_path: "board.cutoff_rating" }],
-  };
-  assert.deepEqual(lintIssue(ok, brief), []);
-  const bad = {
-    subject: "s",
-    body_markdown:
-      "Wow! A (#C89L0002L) climbed 9999 places.\n\n| A | 166 → 8 | |",
-    numbers_used: [{ claim: "x", brief_path: "board.nope" }],
-  };
-  const problems = lintIssue(bad, brief);
-  assert.ok(problems.some((p) => /exclamation/.test(p)));
-  assert.ok(problems.some((p) => /bare tag/.test(p)));
-  assert.ok(problems.some((p) => /9999/.test(p)));
-  assert.ok(problems.some((p) => /without a rating delta/.test(p)));
-  assert.ok(problems.some((p) => /does not resolve/.test(p)));
-});
-
-test("a comma after a number is punctuation, not part of it (2026-10-01)", () => {
-  const brief = { board: { cutoff_rating: 3163, players: 121968 } };
-  const issue = {
-    subject: "s",
-    body_markdown:
-      "The cutoff is 3163, across 121,968 players.\n\nData as of the morning of October 1, 2026, UTC.",
-  };
-  assert.deepEqual(lintIssue(issue, brief), []);
-});
-
-test("a rate in the brief traces through every spelling a writer uses", () => {
-  // The bug this pins: the meta section's usage_share and win_rate are
-  // rates, canonicalised as integers (0.343 -> "1"), so every percentage
-  // the writer printed from them was reported unsourced and the editor
-  // pass deleted a true number. It failed quiet, because the second lint
-  // then passed over the stripped body.
-  const brief = {
-    meta: {
-      cards: [{ name: "Barbarian Barrel", usage_share: 0.343, players: 84 }],
-      decks: [{ battles: 7683, win_rate: 0.512, players: 742 }],
-    },
-    season: { id: 136 },
-  };
-  const ok = {
-    subject: "s",
-    body_markdown:
-      "It is in 34.3 percent of their battles, and that deck wins 51.2 percent over 7,683 battles with 742 players.",
-    numbers_used: [],
-  };
-  // The body is deliberately short, so only the number findings matter.
-  assert.deepEqual(
-    lintIssue(ok, brief, { kind: "card_of_week" }).filter((p) =>
-      /not in the brief/.test(p),
-    ),
-    [],
-  );
-  // A decimal is judged whole: a wrong one no longer passes on a right
-  // integer part.
-  const altered = {
-    subject: "s",
-    body_markdown: "It is in 34.9 percent of their battles.",
-    numbers_used: [],
-  };
-  assert.ok(
-    lintIssue(altered, brief, { kind: "card_of_week" }).some((p) =>
-      /34\.9 is not in the brief/.test(p),
-    ),
-  );
-});
-
-test("the length rules are the kind's, and a gutted issue is refused", () => {
-  const brief = { season: { id: 136 } };
-  const short = {
-    subject: "s",
-    body_markdown: "One short line.",
-    numbers_used: [],
-  };
-  // The Top 100 has no floor; Card of the Week does, because an editor
-  // pass that cuts an issue to nothing passes every other rule.
-  assert.deepEqual(lintIssue(short, brief), []);
-  assert.ok(
-    lintIssue(short, brief, { kind: "card_of_week" }).some((p) =>
-      /the floor is 380/.test(p),
-    ),
-  );
-  // The rank-and-rating pairing is the Top 100's rule alone.
-  const deckRow = {
-    subject: "s",
-    body_markdown: "| Skeletons → Hog Rider | 51 |",
-    numbers_used: [],
-  };
-  assert.ok(
-    lintIssue(deckRow, brief).some((p) => /without a rating delta/.test(p)),
-  );
-  assert.ok(
-    !lintIssue(deckRow, brief, { kind: "card_of_week" }).some((p) =>
-      /without a rating delta/.test(p),
-    ),
-  );
-});
-
 test("a deck block is the record's own cards, in order, one strip of eight", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "card_of_week.json"), "utf8"),
@@ -651,33 +540,6 @@ test("a chart, when the record has earned one, carries its series in alt text", 
   const { html } = renderMail("card_of_week", facts, links);
   assert.ok(/alt="Barbarian Barrel usage share by season[^"]+"/.test(html));
   assert.ok(html.includes('width="560"'));
-});
-
-test("repairNames puts a name the model's JSON mangled back from the brief", async () => {
-  const { repairNames } = await import("../src/index.mjs");
-  const body =
-    'A week ago **Hypno "u2764\ns Hans** held rank 1; TR⚡️Matthew⚡️ climbed.';
-  const out = repairNames(body, ["Hypno ❤️ Hans", "TR⚡️Matthew⚡️", "JTR_CR"]);
-  assert.ok(out.includes("**Hypno ❤️ Hans**"), out);
-  assert.ok(out.includes("TR⚡️Matthew⚡️ climbed"));
-});
-
-test("repairNames leaves a correct body alone when a one-token name shares its text (2026-10-01)", async () => {
-  const { repairNames } = await import("../src/index.mjs");
-  const body = [
-    "| Dess❤️Rémyy | 534 to 24 (+510) | 3299 (+920) |",
-    "| ぐりてゃん | 343 to 2 (+341) | 3394 (+914) |",
-    "Hypno❤️Dybala held on.",
-  ].join("\n");
-  const names = [
-    "Dess❤️téø",
-    "Dess❤️Rémyy",
-    "91至寒❤️和韧✨瓜呱",
-    "ぐりてゃん",
-    "Hypno❤️Dybala",
-    "Hypno ❤️ Dybala Jr",
-  ];
-  assert.equal(repairNames(body, names), body);
 });
 
 test("unsubscribe links have their own key, and links sent before it still work (#71)", () => {

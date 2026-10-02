@@ -29,7 +29,6 @@ import { buildTracking } from "./build-tracking.mjs";
 import { buildClan } from "./build-clan.mjs";
 import { buildCollector } from "./build-collector.mjs";
 import { buildMilestone, recordMilestones } from "./build-milestone.mjs";
-import { recordFeaturedSent } from "./card-of-week-select.mjs";
 import { tryTool } from "./shared.mjs";
 
 /** The milestone window: 26 hours back from the account's last look that
@@ -68,8 +67,6 @@ async function recordMilestoneLook(db, accountId, now) {
 /** Stop taking recipients with this much of the invocation left: the
  *  longest single compose is well under it. */
 const STOP_MARGIN_MS = 90_000;
-const SITE = "https://elixir.poapkings.com";
-const WRITTEN = new Set(["top_100", "card_of_week"]);
 
 export async function runEmail({
   databaseUrl,
@@ -151,8 +148,7 @@ export async function runEmail({
         return r;
       },
     };
-    if (WRITTEN.has(kind)) await runWritten(run, recipients);
-    else {
+    {
       const season = await seasonOf(db, recipients[0], now);
       if (kind === "clan_report") await runClans(run, recipients, season);
       else await runPerAccount(run, recipients, season);
@@ -414,130 +410,6 @@ async function runPerAccount(run, recipients, season) {
       failed(run, { account: account.accountId }, err);
     }
   }
-}
-
-/** The period a scheduled send of a WRITTEN kind is for: the Top 100
- *  goes out on the Thursday its board was read, Card of the Week on the
- *  Friday after the game week it covers. */
-function expectedWrittenPeriod(kind, now) {
-  return kind === "top_100"
-    ? now.toISOString().slice(0, 10)
-    : lastGameWeek(now).key;
-}
-
-/** The scheduled send slot of each WRITTEN kind: UTC weekday and hour,
- *  the EventBridge crons in infra/template.yaml (EmailTop100Rule,
- *  EmailCardOfWeekRule; a test pins them together). */
-const WRITTEN_SEND_SLOT = {
-  top_100: { day: 4, hour: 14 },
-  card_of_week: { day: 5, hour: 14 },
-};
-
-/** Whether an issue accepted now for `period` has missed its scheduled
- *  send (review 2026-09-27 §6.7): the kind's slot has passed and that
- *  slot's send was for this very period, which is still the period a
- *  send now would take. An accept before the slot is left to the
- *  schedule; an accept for an older period, or one landing after the
- *  period has moved on, never sends on its own. */
-export function writtenSendDue(kind, period, now = new Date()) {
-  if (isRetiredEmailKind(kind)) return false;
-  const slot = WRITTEN_SEND_SLOT[kind];
-  if (!slot || !period) return false;
-  const at = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      slot.hour,
-    ),
-  );
-  at.setUTCDate(at.getUTCDate() - ((at.getUTCDay() - slot.day + 7) % 7));
-  if (at > now) at.setUTCDate(at.getUTCDate() - 7);
-  return (
-    expectedWrittenPeriod(kind, at) === period &&
-    expectedWrittenPeriod(kind, now) === period
-  );
-}
-
-/** The accepted issue for a WRITTEN kind's period (the editor pipeline
- *  wrote its facts); null when there is none. An issue that failed its
- *  lint has no facts and is never picked up here, which is how a
- *  failing issue does not send. With no period (the operator's forced
- *  send), the newest accepted issue. */
-async function writtenIssue(db, kind, periodKey) {
-  const { rows } = await db.query(
-    `select issue_id, period_key, facts from email_issue
-      where kind = $1 and subject_key = '' and facts is not null
-        and ($2::text is null or period_key = $2)
-      order by composed_at desc limit 1`,
-    [kind, periodKey],
-  );
-  return rows[0] ?? null;
-}
-
-/** top_100 and card_of_week: ONE issue for everyone, tied to its period
- *  (review 2026-09-27 §6.7). Last week's issue is never sent as this
- *  week's: with no accepted issue for the period, nothing sends and the
- *  owner hears so. The send leaves the issue row as the pipeline wrote
- *  it (its status and its `issue <key>` note). */
-async function runWritten(run, recipients) {
-  const { db, kind, now, result } = run;
-  const expected = expectedWrittenPeriod(kind, now);
-  const issue = await writtenIssue(db, kind, run.force ? null : expected);
-  if (!issue) {
-    result.skipped += recipients.length;
-    result.details.push({ no_issue: expected });
-    if (run.scheduled && run.enqueue)
-      await run.enqueue({
-        v: 1,
-        kind: "owner_notify",
-        to: process.env.OWNER_NOTIFY_EMAIL || "elixir@poapkings.com",
-        note: `${kind} ${expected}: no accepted issue at send time, so nothing was sent. The period's row in email_issue says why (failed lint, or the editor has not answered).`,
-        link: `${SITE}/console/admin`,
-      });
-    return;
-  }
-  const periodKey = issue.period_key;
-  let issueId = issue.issue_id;
-  let todo = recipients;
-  if (run.force)
-    // The manual path records its sends on a row of its own.
-    issueId = await upsertIssue(db, {
-      kind,
-      periodKey: periodKey + run.manual,
-      subjectKey: "",
-      status: "queued",
-    });
-  else {
-    const sent = (await sentForPeriod(db, kind, periodKey)).get("");
-    todo = recipients.filter((a) => !sent?.has(a.accountId));
-    result.already_sent += recipients.length - todo.length;
-  }
-  result.composed = 1;
-  let anySent = false;
-  for (let i = 0; i < todo.length; i++) {
-    const account = todo[i];
-    if (run.outOfTime()) {
-      stop(run, todo.length - i);
-      break;
-    }
-    try {
-      const r = await run.send({
-        issueId,
-        issueKey: `${kind}/${periodKey}/all`,
-        period: periodKey,
-        account,
-        facts: issue.facts,
-      });
-      anySent ||= r.sent;
-    } catch (err) {
-      failed(run, { account: account.accountId }, err);
-    }
-  }
-  // The card is consumed by a SEND, never by a selection: a dry run or
-  // an issue that failed its verifier leaves it eligible.
-  if (kind === "card_of_week" && anySent)
-    await recordFeaturedSent(db, { periodKey, at: now });
 }
 
 async function seasonOf(db, account, now) {

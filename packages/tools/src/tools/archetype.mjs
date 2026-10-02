@@ -3,12 +3,10 @@
  *  is not the constraint). Three shapes, no population attached:
  *
  *    { name }   what a name means: family, win conditions, the aliases
- *               for the shape, and how much of this season's corpus
- *               plays it (from the stamp).
+ *               for the shape.
  *    { cards }  name this deck: eight cards (ids or names, "Evo "/"Hero "
  *               prefixes set the form) to their archetype, pure - no
- *               record needed - plus whether that card set is in the
- *               record and how it did.
+ *               record needed.
  *    {}         the vocabulary: the six families, the win conditions
  *               with their tiers and families, the aliases, the
  *               version in force.
@@ -27,7 +25,6 @@ import {
   GRAMMAR_VERSION,
   cardDisplayName,
 } from "@elixir-mcp/contracts";
-import { seasonFromDate, monthKey } from "@elixir-mcp/record/war-clock";
 import { cachedVocabulary } from "@elixir-mcp/ingest/card-roles";
 import {
   ToolFailure,
@@ -36,7 +33,6 @@ import {
   docsRef,
   buildMeta,
   resolveArchetypeArg,
-  formedLabelParts,
   ARCHETYPE_NOTE,
 } from "./shared.mjs";
 
@@ -92,37 +88,10 @@ function resolveCardInput(value, cards) {
   return c ? { ...c, form } : null;
 }
 
-/** This season's corpus on a shape, from the stamp and the rollup:
- *  decks, battles and the decks' distinct players. */
-async function seasonOn(db, resolved) {
-  const season = monthKey(seasonFromDate(Date.now()).seasonStartMs);
-  const { rows } = await db.query(
-    `select count(*)::int as decks,
-            coalesce(sum(m.battles), 0)::int as battles,
-            coalesce(sum(m.players), 0)::int as players
-       from deck d
-       join deck_meta_season m on m.deck_hash = d.deck_hash
-        and m.season_month = $1 and m.mode_group = 'all'
-      where ($2::text is null or d.archetype_family = $2)
-        and ($3::int[] is null or d.archetype_win_conditions @> $3)
-        and (select bool_and(d.archetype_label like '%' || part || '%')
-               from unnest($4::text[]) part) is not false`,
-    [
-      season,
-      resolved.family,
-      resolved.win_conditions.length
-        ? resolved.win_conditions.map((w) => w.id)
-        : null,
-      formedLabelParts(resolved),
-    ],
-  );
-  return { season, ...rows[0] };
-}
-
 export const archetypeTools = {
   cards_archetype: {
     description:
-      "What a deck name means, or what to call a deck. name: a family (bridge spam), a composed label (Royal Hogs bridge spam) or a community name (LavaLoon, Log Bait, 2.6 Hog) to its family, win conditions, the aliases for that shape and how much of this season's corpus plays it. cards: eight cards (ids or names; 'Evo '/'Hero ' prefixes set the form) to their archetype - pure, no record needed - plus whether that card set is in the record. Neither: the vocabulary (families, win conditions with tiers, aliases, the version in force). A label is a noun, never a verdict.",
+      "What a deck name means, or what to call a deck. name: a family (bridge spam), a composed label (Royal Hogs bridge spam) or a community name (LavaLoon, Log Bait, 2.6 Hog) to its family, win conditions, the aliases for that shape. cards: eight cards (ids or names; 'Evo '/'Hero ' prefixes set the form) to their archetype - from catalog and vocabulary facts, without a population. Neither: the vocabulary (families, win conditions with tiers, aliases, the version in force). A label is a noun, never a verdict.",
     inputSchema: {
       type: "object",
       properties: {
@@ -163,7 +132,6 @@ export const archetypeTools = {
 
       if (args.name !== undefined) {
         const resolved = await resolveArchetypeArg(ctx.db, args.name);
-        const on = await seasonOn(ctx.db, resolved);
         const familyWord = resolved.family
           ? FAMILY_LABEL[resolved.family]
           : null;
@@ -184,18 +152,16 @@ export const archetypeTools = {
                   ? familyWord.charAt(0).toUpperCase() + familyWord.slice(1)
                   : null,
           },
-          this_season: on,
           version,
           notes: notes(
             `'${args.name}' resolved by ${resolved.resolved_from === "alias" ? "a community alias" : resolved.resolved_from === "family" ? "its family word" : "its label (card names and the family)"}${resolved.family ? ` to ${familyWord}` : " to any family"}${resolved.win_conditions.length ? ` with ${resolved.win_conditions.map((w) => w.name).join(" and ")}` : ""}.`,
-            `this_season counts the recorded decks whose stamped archetype has that family${resolved.win_conditions.length ? " and those win conditions" : ""} in season ${on.season}; players sums the decks' distinct players, so a player on two such decks counts twice. Pass the same name as archetype to battles_meta_decks for the decks themselves.`,
             resolved.win_conditions.some((w) => !w.form)
-              ? `A win condition named without 'Evo ' or 'Hero ' counts every form of it (${resolved.win_conditions
+              ? `A win condition named without 'Evo ' or 'Hero ' matches every form of it (${resolved.win_conditions
                   .filter((w) => !w.form)
                   .map((w) => w.name)
                   .join(
                     ", ",
-                  )} decks in any form); say the form to count one ('Evo ${resolved.win_conditions.find((w) => !w.form)?.name}').`
+                  )} decks in any form); say the form to name one ('Evo ${resolved.win_conditions.find((w) => !w.form)?.name}').`
               : null,
             ARCHETYPE_NOTE,
           ),
@@ -234,31 +200,6 @@ export const archetypeTools = {
             elixir_cost: cost.get(c.id)?.elixir_cost ?? null,
           }));
         const a = classifyDeck(played, vocab.roles);
-        // Is this card set in the record? Any identity with exactly
-        // these cards (forms and tower aside), and its season.
-        const season = monthKey(seasonFromDate(Date.now()).seasonStartMs);
-        const { rows: known } = await ctx.db.query(
-          // Exactly these cards: every one of them (through the card
-          // index, one probe per card) and no more (card_count). The
-          // old form scanned every deck of that size with two
-          // correlated subqueries each, and an eight-card set - the
-          // tool's main use - timed out every time (Gym #104).
-          `with same as (
-             select d.deck_hash
-               from (select deck_hash from deck_card
-                      where card_id = any($1::int[])
-                      group by deck_hash
-                     having count(distinct card_id) = $2) c
-               join deck d on d.deck_hash = c.deck_hash
-              where d.card_count = $2)
-           select count(*)::int as identities,
-                  coalesce(sum(m.battles), 0)::int as battles,
-                  coalesce(sum(m.players), 0)::int as players
-             from same s
-             left join deck_meta_season m on m.deck_hash = s.deck_hash
-              and m.season_month = $3 and m.mode_group = 'all'`,
-          [played.map((c) => c.id), played.length, season],
-        );
         return {
           applied: appliedBlock({
             cards: played.map((c) => ({
@@ -279,12 +220,6 @@ export const archetypeTools = {
             grammar_version: a.grammar_version,
             roles_version: version.roles_version,
           },
-          in_the_record: {
-            identities: known[0]?.identities ?? 0,
-            season,
-            battles: known[0]?.battles ?? 0,
-            players: known[0]?.players ?? 0,
-          },
           version,
           notes: notes(
             played.length < 8
@@ -293,7 +228,6 @@ export const archetypeTools = {
             a.named_by
               ? `${a.named_by.name} names this deck but is not a win condition: the deck has none, and its tower damage is chip from the troops behind the tank.`
               : null,
-            `in_the_record counts the deck identities with exactly these ${played.length} cards in any forms and with any tower troop, and their battles and players in season ${season}; 0 identities means nobody recorded has played this card set, and the name stands anyway - it needs no record.`,
             ARCHETYPE_NOTE,
           ),
           docs,

@@ -90,7 +90,6 @@ test("every published schema declares verbosity: the two-size tools in their own
   for (const name of [
     "battles_query",
     "cards_catalog",
-    "rankings_players",
     "war_current",
     "clans_roster",
     "clans_participation",
@@ -112,10 +111,7 @@ test("every published schema declares verbosity: the two-size tools in their own
 
 test("segment tools take a nested segment, never a flat scope; the population is named (3.16.0)", () => {
   const SEGMENT_TOOLS = [
-    "battles_meta_decks",
-    "battles_meta_cards",
     "battles_trends",
-    "cards_synergy",
     "cards_card",
     "badges_rarity",
     "badges_holders",
@@ -134,14 +130,14 @@ test("segment tools take a nested segment, never a flat scope; the population is
     assert.ok(p.segment, `${name} has segment`);
     // "mine" and "corpus" as strings, or the object naming one subject.
     const [strings, object] = p.segment.anyOf;
-    assert.deepEqual(strings, { type: "string", enum: ["mine", "corpus"] });
+    assert.deepEqual(strings, { type: "string", enum: ["mine"] });
     assert.equal(object.type, "object", name);
     assert.deepEqual(Object.keys(object.properties).sort(), [
       "clan_tag",
       "on_behalf_of",
       "player_tag",
     ]);
-    assert.match(p.segment.description, /never a default/);
+    assert.match(p.segment.description, /Required/);
     for (const flat of ["player_tag", "clan_tag", "collection"])
       assert.ok(!(flat in p), `${name} has no flat ${flat}`);
   }

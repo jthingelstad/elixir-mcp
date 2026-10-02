@@ -413,18 +413,6 @@ test("a payload no op knows is refused and migrates nothing; {} still migrates",
   await assert.rejects(handler({}), /migrations/);
 });
 
-test("explain_meta explains the tool's own excluded-breakdown SQL, not a copy", async () => {
-  process.env.DATABASE_URL = SCRATCH_URL;
-  const { handler } = await import("../src/lambda.mjs");
-  const out = await handler({ explain_meta: { days: 7 } });
-  const excluded = out.explains.find((e) =>
-    e.name.startsWith("excluded breakdown"),
-  );
-  assert.ok(excluded, out.explains.map((e) => e.name).join(", "));
-  assert.match(excluded.name, /the tool's own SQL/);
-  assert.match(excluded.plan, /battle_participant/);
-});
-
 test("mode_shape_census splits Ranked by league and outcome", async () => {
   process.env.DATABASE_URL = SCRATCH_URL;
   const { handler } = await import("../src/lambda.mjs");

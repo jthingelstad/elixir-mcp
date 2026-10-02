@@ -21,7 +21,6 @@ The source of product behavior is `apps/site/src/docs/`, not this map. Read:
 | Elixir Data Auditor | `recording.md`, `clocks.md`, `methodology.md`, `responses.md`; affected tool declarations and standalone CR reference |
 | Elixir Feedback Manager | `choosing-a-tool.md`, `timeline.md`, `protocol.md`; pages/declarations named by the observed feedback, including `agents.md` for the preview |
 | Elixir Security Reviewer | `roles.md`, `agents.md`, `integrations.md`, `connections.md`, `privacy.md`, `limits.md`; changed auth declarations and refusal tests |
-| Elixir Rankings Analyst | `recording.md`, `clocks.md`; `clients/boards/` |
 | JSON API (`/api/v1`) finding, or a change to a tool an operation mirrors | `integrations.md`, `packages/contracts/integration-api.openapi.json` |
 
 Paths in the table are relative to `apps/site/src/docs/` unless explicitly

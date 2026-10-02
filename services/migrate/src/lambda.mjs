@@ -6,7 +6,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   deckCensus,
-  explainMeta,
   rewriteTable,
   terminateBackends,
   listBackends,
@@ -59,13 +58,7 @@ import {
   pollReplay,
   acceptanceCatalogue,
 } from "./ops-analysis.mjs";
-import { nameCensus } from "./ops-names.mjs";
-import {
-  cardRolesImport,
-  archetypeCensus,
-  archetypeStamp,
-  archetypeSample,
-} from "./ops-archetypes.mjs";
+import { cardRolesImport, archetypeStamp } from "./ops-archetypes.mjs";
 import {
   feedbackPending,
   feedbackRead,
@@ -128,14 +121,7 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.name_census) {
-    const result = await nameCensus(
-      process.env.DATABASE_URL,
-      event.name_census === true ? {} : event.name_census,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
+
   if (event?.stats) {
     const result = await stats(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
@@ -340,24 +326,7 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.archetype_sample) {
-    const result = await archetypeSample(
-      process.env.DATABASE_URL,
-      typeof event.archetype_sample === "object" ? event.archetype_sample : {},
-    );
-    console.log(
-      JSON.stringify({ season: result.season, top: result.top.length }),
-    );
-    return result;
-  }
-  if (event?.archetype_census) {
-    const result = await archetypeCensus(
-      process.env.DATABASE_URL,
-      typeof event.archetype_census === "object" ? event.archetype_census : {},
-    );
-    console.log(JSON.stringify({ decks: result.decks, roles: result.roles }));
-    return result;
-  }
+
   if (event?.feedback_respond) {
     const result = await feedbackRespond(
       process.env.DATABASE_URL,
@@ -411,14 +380,7 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.explain_meta) {
-    const result = await explainMeta(
-      process.env.DATABASE_URL,
-      event.explain_meta === true ? {} : event.explain_meta,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
+
   if (event?.battle_fidelity_census) {
     const result = await battleFidelityCensus(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));

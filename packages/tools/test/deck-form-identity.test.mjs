@@ -18,7 +18,6 @@ import { deckHash } from "@elixir-mcp/contracts";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { seedPlayedDeck, seedDeck } from "./deck-rows.mjs";
-import { rebuildSeason } from "../../../services/jobs/src/meta-rollup.mjs";
 
 let scratch;
 let account;
@@ -153,23 +152,6 @@ test("battles_decks distinguishes the forms visibly, not only by hash", async ()
   assert.deepEqual(base.tower_troop, TOWER);
 });
 
-test("battles_meta_decks renders forms the same way", async () => {
-  const res = await call("battles_meta_decks", {
-    segment: { player_tag: TAG },
-    from: "2026-09-01",
-    min_battles: 1,
-  });
-  const byHash = Object.fromEntries(res.decks.map((d) => [d.deck_hash, d]));
-  const evo = byHash[hashFor(1)];
-  assert.ok(evo, "the Evolution deck is present");
-  assert.equal(
-    evo.cards.find((c) => c.id === 26000007).form,
-    "evolution",
-    "meta decks must not erase the form either",
-  );
-  assert.deepEqual(evo.tower_troop, TOWER);
-});
-
 test("battles_cards splits the forms instead of merging them into one row", async () => {
   const res = await call("battles_cards", { player_tag: TAG });
   const witches = res.cards.filter((c) => c.id === 26000007);
@@ -183,50 +165,6 @@ test("battles_cards splits the forms instead of merging them into one row", asyn
   assert.ok(witches.every((w) => w.battles === 3));
   // Cards that never evolved stay single rows.
   assert.equal(res.cards.filter((c) => c.id === 26000021).length, 1);
-});
-
-test("5.0.0: containing narrows the deck meta to decks with ALL the cards; cards narrows the card meta; denominators stay the population's", async () => {
-  const all = await call("battles_meta_decks", {
-    segment: { player_tag: TAG },
-    from: "2026-09-01",
-    min_battles: 1,
-  });
-  const witch = await call("battles_meta_decks", {
-    segment: { player_tag: TAG },
-    from: "2026-09-01",
-    min_battles: 1,
-    containing: [26000007, 26000021],
-  });
-  assert.equal(witch.decks.length, 2, "both forms of the Witch deck qualify");
-  assert.equal(
-    witch.decided_battles,
-    all.decided_battles,
-    "the population is unchanged",
-  );
-  assert.deepEqual(witch.applied.containing, [26000007, 26000021]);
-  const none = await call("battles_meta_decks", {
-    segment: { player_tag: TAG },
-    from: "2026-09-01",
-    min_battles: 1,
-    containing: [26000007, 28000000],
-  });
-  assert.equal(none.decks.length, 0, "Fireball is in no seeded deck");
-  assert.equal(none.decided_battles, all.decided_battles);
-
-  const cards = await call("battles_meta_cards", {
-    segment: { player_tag: TAG },
-    from: "2026-09-01",
-    min_battles: 1,
-    cards: [26000007],
-  });
-  assert.deepEqual(
-    cards.cards.map((c) => c.form).sort(),
-    ["base", "evolution"],
-    "one card, every form of it, as separate rows",
-  );
-  assert.ok(cards.cards.every((c) => c.card_id === 26000007));
-  assert.equal(cards.decided_battles, 6, "the denominator is the population's");
-  assert.deepEqual(cards.applied.cards, [26000007]);
 });
 
 test("5.0.0: the catalog says the type from the id range and when it last changed vs was fetched", async () => {
@@ -264,7 +202,7 @@ test("5.0.0: the catalog says the type from the id range and when it last change
   assert.equal(compact.cards[0].type, "troop");
 });
 
-test("5.0.0 cards_card: one card in one call on a player segment (raw path) and on the corpus (rollup path)", async () => {
+test("5.0.0 cards_card: catalog facts and first played forms in a selected player history", async () => {
   // The fixture catalog has no form bits; give the Witch her Evolution.
   await scratch.db.query(
     `update card set max_evolution_level = 1, rarity = 'epic', elixir_cost = 5 where card_id = 26000007`,
@@ -280,89 +218,28 @@ test("5.0.0 cards_card: one card in one call on a player segment (raw path) and 
   assert.deepEqual(mine.card.forms_available, ["evolution"]);
   assert.ok(mine.card.first_played.base && mine.card.first_played.evolution);
   assert.equal(mine.card.first_played.hero, null);
-  assert.equal(mine.season.mode_group, "all");
-  assert.equal(mine.season.decided_battles, 6);
-  assert.equal(mine.season.all.battles, 6, "all forms merged");
-  assert.equal(mine.season.all.usage_share, 1);
-  assert.equal(mine.season.all.players, 1);
-  assert.deepEqual(
-    mine.season.forms.map((f) => [f.form, f.battles, f.players]),
-    [
-      ["base", 3, 1],
-      ["evolution", 3, 1],
-    ],
-    "each form counts its distinct players (journey r3: was null)",
-  );
-  assert.equal(mine.history, undefined, "history is a corpus series");
-  assert.equal(mine.by_band, undefined);
-  assert.equal(mine.decks.length, 2, "both identities carry the Witch");
-  assert.ok(mine.decks.every((d) => d.cards.some((c) => c.id === 26000007)));
-  assert.ok(mine.decks[0].cards.every((c) => typeof c.form === "string"));
-  assert.equal(mine.members, undefined, "members is a clan block");
-  assert.ok(mine.notes.some((n) => /history/.test(n)));
-  assert.equal(mine.docs, "cards#one-card-in-one-call");
-
-  // A card the player never played reads as zero, not as an error.
+  assert.equal(mine.season, undefined);
+  assert.equal(mine.history, undefined);
+  assert.equal(mine.decks, undefined);
+  assert.equal(mine.partners, undefined);
+  assert.equal(mine.members, undefined);
   await scratch.db.query(
     `insert into card (card_id, name, kind) values (28000000, 'Fireball', 'card') on conflict do nothing`,
   );
   const never = await call("cards_card", {
     card_id: 28000000,
     segment: { player_tag: TAG },
-    from: "2026-09-01",
   });
-  assert.equal(never.season.all.battles, 0);
-  assert.equal(never.season.decided_battles, 6);
-  assert.deepEqual(never.season.forms, []);
-  assert.deepEqual(never.decks, []);
-
+  assert.deepEqual(never.card.first_played, {
+    base: null,
+    evolution: null,
+    hero: null,
+  });
   // Exact names only.
   await assert.rejects(
     call("cards_card", { card: "Witc", segment: { player_tag: TAG } }),
     /not an exact card name|No card named/,
   );
-
-  // Corpus rollup path: rebuild the season the fixtures sit in.
-  const {
-    rows: [season],
-  } = await scratch.db.query(
-    `select * from season where season_month = '2026-08'`,
-  );
-  await rebuildSeason(scratch.db, season, { final: false });
-  const corpus = await call("cards_card", {
-    card_id: 26000007,
-    segment: "corpus",
-    season: "2026-08",
-  });
-  assert.equal(corpus.season.all.battles, 6);
-  assert.equal(corpus.season.decided_battles, 6);
-  assert.ok(
-    Array.isArray(corpus.season.by_mode),
-    "mode split when mode is omitted",
-  );
-  assert.equal(corpus.season.by_mode[0].mode_group, "ladder");
-  assert.equal(corpus.history.length, 1, "one recorded season");
-  assert.equal(corpus.history[0].season.month, "2026-08");
-  assert.equal(corpus.history[0].battles, 6);
-  assert.ok(Array.isArray(corpus.by_band));
-  assert.ok(Array.isArray(corpus.partners));
-  assert.ok(
-    corpus.partners.every(
-      (p) => typeof p.form === "string" && p.card_id !== 26000007,
-    ),
-  );
-  assert.equal(corpus.decks.length, 2);
-  assert.ok(corpus.population, "a corpus read names its population");
-
-  const compact = await call("cards_card", {
-    card_id: 26000007,
-    segment: "corpus",
-    season: "2026-08",
-    verbosity: "compact",
-  });
-  assert.equal(compact.decks, undefined);
-  assert.equal(compact.partners, undefined);
-  assert.ok(compact.history);
 });
 
 test("5.0.0 cards_card: a clan segment says who played the card and who holds it", async () => {
@@ -401,197 +278,69 @@ test("5.0.0 cards_card: a clan segment says who played the card and who holds it
   assert.deepEqual(res.members.held[0].forms_unlocked, ["evolution"]);
 });
 
-// --- 6.4.0: fit_for, the population's decks against one collection (#70) ----
-
-test("6.4.0 fit_for: a row the player cannot field leaves decks[]; a fieldable row says what it would field at and the upgrade path", async () => {
-  const FIT = "#2PPLUV0";
-  await scratch.db.query("insert into player (player_tag) values ($1)", [FIT]);
-  // Owns seven of the eight cards (no Cannon), the Witch without her
-  // evolution, at mixed levels: 16,16,15,14,13,12,11.
-  const levels = {
-    26000007: [13, 0], // Witch, base only
-    26000021: [16, 0],
-    26000000: [16, 0],
-    26000010: [15, 0],
-    28000011: [14, 0],
-    26000014: [12, 0],
-    28000001: [11, 0],
-  };
-  for (const [id, [level, forms]] of Object.entries(levels))
-    await scratch.db.query(
-      `insert into player_card (player_tag, card_id, level, count, evolution_level, star_level, first_seen_at, observed_at)
-       values ($1, $2, $3, 1, $4, 0, now(), '2026-09-20T06:42:49Z')`,
-      [FIT, Number(id), level, forms],
-    );
-  const args = {
+test("card facts retain player observation metadata and tower play", async () => {
+  const player = await call("cards_card", {
+    card_id: TOWER.id,
     segment: { player_tag: TAG },
+  });
+  assert.equal(player.card.first_played.base, "2026-09-02T12:00:00.000Z");
+  assert.ok(player.meta.recorded_since);
+  assert.ok("player_battlelog" in player.meta.source_polls);
+  assert.equal(player.meta.source_polls.player_battlelog.observed_at, null);
+  const clan = await call("cards_card", {
+    card_id: TOWER.id,
+    segment: { clan_tag: "#2CRPCL9V" },
     from: "2026-09-01",
-    fit_for: FIT,
-    min_battles: 1,
-  };
-  // Without a fielded level: both rows unfieldable, both name the Cannon.
-  const res = await call("battles_meta_decks", args);
-  assert.equal(res.applied.fit_for, FIT);
-  assert.equal(res.fit_for.player_tag, FIT);
-  assert.equal(res.fit_for.collection_as_of, "2026-09-20T06:42:49.000Z");
-  assert.equal(res.fit_for.fielded_mean_level, null);
-  assert.deepEqual(res.decks, []);
-  assert.equal(res.unfieldable.length, 2);
-  for (const row of res.unfieldable) {
-    assert.equal(row.fit.fieldable, false);
-    assert.ok(
-      row.fit.missing.some(
-        (m) => m.id === 27000000 && m.reason === "not_owned",
-      ),
+  });
+  assert.equal(clan.members.played[0].battles, 6);
+  assert.deepEqual(clan.members.played[0].forms, ["base"]);
+});
+
+test("an activity clan's unrecorded opponent history is not member play", async () => {
+  const db = scratch.db;
+  await db.query("begin");
+  try {
+    await db.query(
+      "update recording set scope='activity' where subject_tag='#2CRPCL9V'",
     );
-    assert.equal(
-      row.fit.own_mean_level,
-      null,
-      "a deck with an unowned card has no level",
+    await db.query(
+      "insert into player(player_tag,name) values ('#P0LYQ','Unrecorded member')",
     );
-    assert.ok(row.cards.every((c) => "held_level" in c));
-    assert.equal(row.cards.find((c) => c.id === 27000000).held_level, null);
+    await db.query(
+      "insert into clan_membership(clan_tag,player_tag,joined_observed_at,role) values ('#2CRPCL9V','#P0LYQ','2026-09-01','member')",
+    );
+    await db.query(
+      "insert into battle_participant(battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash,type,type_class) select battle_id,'#P0LYQ',2,'loss',battle_time,0,deck_hash,type,type_class from battle_participant where player_tag=$1 and battle_id='df-base-1'",
+      [TAG],
+    );
+    await seedPlayedDeck(db, {
+      battle_id: "df-base-1",
+      player_tag: "#P0LYQ",
+      battle_time: "2026-09-02T12:00:00Z",
+      cards: cards(0),
+      supportCards: [TOWER],
+    });
+    const res = await call("cards_card", {
+      card_id: 26000007,
+      segment: { clan_tag: "#2CRPCL9V" },
+      from: "2026-09-01",
+    });
+    assert.equal(res.members.members, 2);
+    assert.deepEqual(
+      res.members.played.map((x) => x.player_tag),
+      [TAG],
+    );
+    assert.equal(res.members.members_with_collection, 1);
+    assert.equal(res.members.held.length, 1);
+  } finally {
+    await db.query("rollback");
   }
-  const evoRow = res.unfieldable.find((r) =>
-    r.cards.some((c) => c.id === 26000007 && c.form === "evolution"),
-  );
-  assert.ok(
-    evoRow.fit.missing.some(
-      (m) => m.id === 26000007 && m.reason === "form_not_unlocked",
-    ),
-  );
-  assert.ok(res.notes[0].startsWith(`Checked against ${FIT}'s collection`));
-  assert.match(res.notes[0], /0 of the top 2 rows are fieldable/);
-  assert.ok(
-    res.notes.some((n) =>
-      /no decided pvp battles with a recorded deck in this window/.test(n),
-    ),
-  );
-
-  // Give them the Cannon at 10 and a fielded history at 15.4 (three
-  // battles: the benchmark). The base deck is fieldable; the Evo deck
-  // still is not.
-  await scratch.db.query(
-    `insert into player_card (player_tag, card_id, level, count, evolution_level, star_level, first_seen_at, observed_at)
-     values ($1, 27000000, 10, 1, 0, 0, now(), '2026-09-20T06:42:49Z')`,
-    [FIT],
-  );
-  // Two days ago: inside the meta window and inside players_collection's
-  // 30 days whenever the test runs.
-  const recent = new Date(Date.now() - 2 * 86_400_000).toISOString();
-  for (const [n, lvl] of [
-    [1, 15.5],
-    [2, 15.5],
-    [3, 15.2],
-  ]) {
-    await scratch.db.query(
-      `insert into battle (battle_id,battle_time,type,type_class,game_mode_name)
-       values ($1,$2::timestamptz,'PvP','pvp','Ladder')`,
-      [`fit-${n}`, recent],
-    );
-    await scratch.db.query(
-      `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash,type,type_class,deck_avg_level)
-       values ($1,$2,0,'loss',$5::timestamptz,0,$3,'PvP','pvp',$4)`,
-      [`fit-${n}`, FIT, hashFor(0), lvl, recent],
-    );
-  }
-  const again = await call("battles_meta_decks", args);
-  assert.equal(again.fit_for.fielded_mean_level, 15.4);
-  assert.equal(again.fit_for.fielded_battles, 3);
-  assert.equal(again.decks.length, 1);
-  assert.equal(again.unfieldable.length, 1);
-  const base = again.decks[0];
-  assert.equal(base.fit.fieldable, true);
-  assert.deepEqual(base.fit.missing, []);
-  // (13+16+16+15+14+12+11+10)/8 = 13.375
-  assert.equal(base.fit.own_mean_level, 13.375);
-  assert.equal(base.fit.vs_fielded, -2.025);
-  // Target is the fielded level rounded (15): five cards below it,
-  // largest deficit first.
-  assert.deepEqual(
-    base.fit.upgrades.map((u) => [u.name, u.held_level, u.to_level, u.levels]),
-    [
-      ["Cannon", 10, 15, 5],
-      ["Arrows", 11, 15, 4],
-      ["Musketeer", 12, 15, 3],
-      ["Witch", 13, 15, 2],
-      ["The Log", 14, 15, 1],
-    ],
-  );
-  // (15+16+16+15+15+15+15+15)/8 = 15.25
-  assert.equal(base.fit.mean_level_after_upgrades, 15.25);
-  assert.ok(
-    again.notes.some((n) => /1 of the top 2 rows are fieldable/.test(n)),
-  );
-  assert.ok(
-    again.notes.some((n) =>
-      /fielded a mean card level of 15.4 over 3 decided battles/.test(n),
-    ),
-  );
-  // The population's ranking is untouched: the rows themselves are the same.
-  assert.equal(base.battles, 3);
-
-  // Without fit_for the note says the population knows nothing of the caller.
-  const plain = await call("battles_meta_decks", {
-    segment: { player_tag: TAG },
-    from: "2026-09-01",
-    min_battles: 1,
-  });
-  assert.match(plain.notes[0], /nothing here checks what a given player holds/);
-  assert.ok(!("unfieldable" in plain));
-  assert.ok(!("fit" in plain.decks[0]));
-
-  // The card meta carries held per row.
-  const cards = await call("battles_meta_cards", {
-    segment: { player_tag: TAG },
-    from: "2026-09-01",
-    min_battles: 1,
-    fit_for: FIT,
-  });
-  const witchEvo = cards.cards.find(
-    (c) => c.card_id === 26000007 && c.form === "evolution",
-  );
-  const witchBase = cards.cards.find(
-    (c) => c.card_id === 26000007 && c.form === "base",
-  );
-  assert.deepEqual(witchEvo.held, {
-    level: 13,
-    forms_unlocked: [],
-    has_form: false,
-  });
-  assert.deepEqual(witchBase.held, {
-    level: 13,
-    forms_unlocked: [],
-    has_form: true,
-  });
-  assert.equal(cards.fit_for.fielded_mean_level, 15.4);
-  assert.ok(cards.notes[0].startsWith(`held on each row is what ${FIT} holds`));
-
-  // An unrecorded collection refuses rather than reading as "owns nothing".
-  await assert.rejects(
-    call("battles_meta_decks", { ...args, fit_for: "#2LLLL" }),
-    (e) => e.code === "not_recorded",
-  );
-
-  // players_collection carries the same benchmark.
-  const coll = await call("players_collection", { player_tag: FIT });
-  // 6.27.0 (Gym #133, #134): the window behind it and the level fielded
-  // in the last ten decided battles ride beside the 30-day mean.
-  const { from: fieldedFrom, ...fieldedRest } = coll.fielded;
-  assert.ok(Date.parse(fieldedFrom) > 0);
-  assert.deepEqual(fieldedRest, {
-    days: 30,
-    to: null,
-    mean_level: 15.4,
-    recent_mean_level: 15.4,
-    battles: 3,
-  });
 });
 
 // --- 6.5.0: the archetype on every deck object, and the archetype filter --
 
 test("6.5.0: every deck object carries its archetype once the vocabulary is imported; the filter reads it; a name that is nothing refuses", async () => {
-  const { cardRolesImport, archetypeCensus } =
+  const { cardRolesImport } =
     await import("../../../services/migrate/src/ops-archetypes.mjs");
   const { readFileSync } = await import("node:fs");
   const snapshot = JSON.parse(
@@ -693,47 +442,6 @@ test("6.5.0: every deck object carries its archetype once the vocabulary is impo
     // the fixture's battles are on 2026-09-02, so only while that holds).
     const sum = await callFresh("players_summary", { player_tag: TAG });
     if (sum.top_deck) assert.equal(sum.top_deck.archetype.family, "cycle");
-    // The meta reader, and the filter by family, label and alias.
-    const meta = await callFresh("battles_meta_decks", {
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      min_battles: 1,
-    });
-    assert.equal(meta.decks.length, 2);
-    assert.ok(meta.decks.every((d) => d.archetype.label === "Hog Rider cycle"));
-    const byFamily = await callFresh("battles_meta_decks", {
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      min_battles: 1,
-      archetype: "cycle",
-    });
-    assert.equal(byFamily.decks.length, 2);
-    assert.equal(byFamily.applied.archetype.family, "cycle");
-    assert.equal(byFamily.applied.archetype.resolved_from, "family");
-    const byLabel = await callFresh("battles_meta_decks", {
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      min_battles: 1,
-      archetype: "hog rider cycle",
-    });
-    assert.equal(byLabel.decks.length, 2);
-    assert.equal(byLabel.applied.archetype.resolved_from, "label");
-    const byAlias = await callFresh("battles_meta_decks", {
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      min_battles: 1,
-      archetype: "2.6 Hog",
-    });
-    assert.equal(byAlias.applied.archetype.resolved_from, "alias");
-    assert.equal(byAlias.decks.length, 2);
-    const none = await callFresh("battles_meta_decks", {
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      min_battles: 1,
-      archetype: "beatdown",
-    });
-    assert.deepEqual(none.decks, []);
-    assert.ok(none.notes.some((n) => /resolved to beatdown/.test(n)));
     const decksByArchetype = await callFresh("battles_decks", {
       player_tag: TAG,
       from: "2026-09-01",
@@ -752,11 +460,6 @@ test("6.5.0: every deck object carries its archetype once the vocabulary is impo
       }),
       (e) => e.code === "bad_request" && /LavaLoon/.test(e.hint),
     );
-    // The census runs over the scratch corpus.
-    const census = await archetypeCensus(scratch.url, {});
-    assert.equal(census.decks, 2);
-    assert.equal(census.families.cycle.decks, 2);
-    assert.ok(census.histograms["26000021"], "Hog Rider has a histogram");
   } finally {
     await fresh.end();
   }
@@ -819,116 +522,6 @@ test("6.6.0: decks are stamped (backfill and at insert), group_by folds by label
   assert.equal(fresh.length, 1);
   assert.equal(fresh[0].archetype_label, "Hog Rider cycle");
   assert.equal(fresh[0].archetype_version, stamped.version);
-
-  const client = new pg.Client({ connectionString: scratch.url });
-  await client.connect();
-  try {
-    const callFresh = (name, args) =>
-      registry.invoke(name, { db: client, account }, args);
-    // group_by archetype on the player segment: one row, with members.
-    const byLabel = await callFresh("battles_meta_decks", {
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      min_battles: 1,
-      group_by: "archetype",
-    });
-    assert.deepEqual(byLabel.decks, []);
-    assert.equal(byLabel.applied.group_by, "archetype");
-    assert.equal(byLabel.archetypes.length, 1);
-    const row = byLabel.archetypes[0];
-    assert.equal(row.label, "Hog Rider cycle");
-    assert.equal(row.family, "cycle");
-    assert.deepEqual(row.win_condition_ids, [26000021]);
-    assert.equal(row.decks, 2);
-    assert.equal(row.battles, 6);
-    assert.equal(row.wins, 6);
-    assert.equal(row.players, 1, "exact: one member");
-    assert.equal(row.share, 1);
-    assert.equal(row.members.length, 1);
-    assert.equal(row.members[0].player_tag, TAG);
-    assert.equal(row.members[0].battles, 6);
-    assert.ok(row.members[0].deck_hash, "their most-played deck of the shape");
-    assert.ok(!("shrunk_win_rate" in row), "never a tier list");
-    assert.match(byLabel.notes[0], /Folded 2 decks .* into 1 archetypes/);
-    assert.match(byLabel.notes[0], /players is exact/);
-    // By family: the same one row under family.
-    const byFamily = await callFresh("battles_meta_decks", {
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      min_battles: 1,
-      group_by: "family",
-    });
-    assert.equal(byFamily.archetypes.length, 1);
-    assert.equal(byFamily.archetypes[0].family, "cycle");
-    assert.ok(!("label" in byFamily.archetypes[0]));
-    // The filter now reads the stamp over every candidate.
-    const filtered = await callFresh("battles_meta_decks", {
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      min_battles: 1,
-      archetype: "hog cycle",
-    });
-    assert.equal(filtered.decks.length, 2);
-    assert.ok(filtered.notes.some((n) => /ran over all 2 decks/.test(n)));
-    // fit_for on a player who fields these decks: plays_family true.
-    await scratch.db.query(
-      `insert into player_card (player_tag, card_id, level, count, evolution_level, star_level, first_seen_at, observed_at)
-       select $1, card_id, 14, 1, 1, 0, now(), now() from card where card_id in (26000007,26000021,26000000,26000010,28000011,26000014,27000000,28000001)
-       on conflict do nothing`,
-      [TAG],
-    );
-    const fitted = await callFresh("battles_meta_decks", {
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      min_battles: 1,
-      fit_for: TAG,
-    });
-    assert.deepEqual(fitted.fit_for.plays, {
-      families: ["cycle"],
-      win_conditions: ["Hog Rider"],
-      archetypes: ["Hog Rider cycle"],
-    });
-    for (const d of fitted.decks) {
-      assert.equal(d.fit.plays_family, true);
-      // 6.13.0: the middle rung - the win condition, form included.
-      assert.equal(d.fit.plays_win_condition, true);
-      assert.equal(d.fit.plays_archetype, true);
-    }
-    assert.ok(fitted.notes.some((n) => /costs the least/.test(n)));
-    assert.ok(
-      fitted.notes.some((n) => /plays_win_condition/.test(n)),
-      "the note names the rung",
-    );
-    assert.ok(
-      fitted.notes.some((n) => /Evo Royal Hogs is not Royal Hogs/.test(n)),
-      "the form rule is said",
-    );
-    // cards_card.decks takes the same filter.
-    const cc = await callFresh("cards_card", {
-      card_id: 26000007,
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      archetype: "cycle",
-    });
-    assert.equal(cc.applied.archetype.family, "cycle");
-    assert.equal(cc.decks.length, 2);
-    const ccNone = await callFresh("cards_card", {
-      card_id: 26000007,
-      segment: { player_tag: TAG },
-      from: "2026-09-01",
-      archetype: "siege",
-    });
-    assert.deepEqual(ccNone.decks, []);
-    await assert.rejects(
-      callFresh("battles_meta_decks", {
-        segment: { player_tag: TAG },
-        group_by: "colour",
-      }),
-      (e) => e.code === "bad_request",
-    );
-  } finally {
-    await client.end();
-  }
 });
 
 // --- 6.8.0: cards_archetype, the resolver ----------------------------------
@@ -950,7 +543,7 @@ test("6.8.0 cards_archetype: a name to its shape and this season's corpus; eight
     );
     assert.equal(alias.resolved.label, "Hog Rider cycle");
     assert.ok(alias.resolved.aliases.includes("2.6 Hog"));
-    assert.equal(typeof alias.this_season.decks, "number");
+    assert.equal(alias.this_season, undefined);
     assert.equal(alias.version.cycle_max, 3.4);
     assert.ok(alias.notes[0].includes("resolved by a community alias"));
     const fam = await callFresh("cards_archetype", { name: "Bridge Spam" });
@@ -986,10 +579,7 @@ test("6.8.0 cards_archetype: a name to its shape and this season's corpus; eight
     assert.deepEqual(named.archetype.win_conditions, [
       { id: 26000021, name: "Hog Rider", form: "evolution" },
     ]);
-    assert.ok(
-      named.in_the_record.identities >= 2,
-      "the fixture's identities share this card set",
-    );
+    assert.equal(named.in_the_record, undefined);
     assert.equal(named.applied.cards.find((c) => c.id === 26000021).form, 1);
     const byId = await callFresh("cards_archetype", {
       cards: [
@@ -1009,7 +599,7 @@ test("6.8.0 cards_archetype: a name to its shape and this season's corpus; eight
         "Cannon",
       ],
     });
-    assert.equal(unplayed.in_the_record.identities, 0);
+    assert.equal(unplayed.in_the_record, undefined);
     assert.equal(unplayed.archetype.family, "cycle");
     assert.ok(unplayed.notes.some((n) => /7 cards named, not eight/.test(n)));
     await assert.rejects(

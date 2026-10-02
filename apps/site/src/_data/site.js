@@ -1,14 +1,14 @@
 /** Canonical site facts. One place, so a URL never gets retyped into a
  *  template, an llms.txt entry, and a sitemap and drift between them. */
 export default {
-  name: "Elixir MCP",
+  name: "Elixir",
   // The top bar's wordmark (the family, not the service) is the kit's
   // manifest's: familyBar.wordmark, from packages/ui/src/family.json.
   url: "https://elixir.poapkings.com",
   mcpUrl: "https://elixir.poapkings.com/mcp",
   tagline: "Clash Royale history, recorded.",
   description:
-    "Clash Royale history, recorded — served to your own AI agent over MCP.",
+    "Your Clash Royale history, your friends and your clan, recorded for you to explore.",
   repo: "https://github.com/jthingelstad/elixir-mcp",
   family: "a POAP KINGS product",
   tinylyticsId: "Yzx8dUUvUPn9AEJpTMeU",
