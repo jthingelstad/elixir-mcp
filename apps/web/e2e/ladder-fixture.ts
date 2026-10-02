@@ -600,6 +600,100 @@ function battlesDecks(args: Record<string, unknown>) {
   };
 }
 
+/* Cards: battles_cards on Trophy Road, yours and theirs (live answers,
+   2026-10-02, contract 9.18.1), and battles_opponents' repeats. The
+   repeat opponent is invented: no real player's tag in a fixture. */
+type CardRow = [id: number, name: string, form: string, b: number, w: number];
+const cardRow = ([id, name, form, battles, wins]: CardRow) => ({
+  id,
+  name,
+  form,
+  battles,
+  wins,
+  losses: battles - wins,
+  win_rate: Math.round((wins / battles) * 1000) / 1000,
+  modes: { ladder: battles },
+  mean_level_gap: 0.6,
+});
+const MY_CARDS: CardRow[] = [
+  [26000018, "Mini P.E.K.K.A", "hero", 35, 12],
+  [26000012, "Skeleton Army", "base", 35, 12],
+  [28000001, "Arrows", "base", 35, 12],
+  [26000037, "Inferno Dragon", "base", 35, 12],
+  [26000007, "Witch", "evolution", 20, 8],
+  [27000000, "Cannon", "base", 20, 8],
+  [26000050, "Royal Ghost", "evolution", 20, 8],
+  [26000059, "Royal Hogs", "base", 20, 8],
+  [26000059, "Royal Hogs", "evolution", 15, 4],
+  [26000050, "Royal Ghost", "base", 15, 4],
+  [26000007, "Witch", "base", 15, 4],
+  [27000000, "Cannon", "evolution", 15, 4],
+];
+const THEIR_CARDS: CardRow[] = [
+  [26000007, "Witch", "evolution", 9, 1],
+  [28000010, "Graveyard", "base", 9, 2],
+  [28000000, "Fireball", "base", 8, 2],
+  [28000001, "Arrows", "base", 7, 3],
+  [26000010, "Skeletons", "base", 6, 0],
+  [26000030, "Ice Spirit", "base", 6, 1],
+  [26000055, "Mega Knight", "evolution", 5, 1],
+  [26000021, "Hog Rider", "base", 5, 2],
+  [27000006, "Tesla", "base", 5, 1],
+  [26000017, "Wizard", "hero", 5, 3],
+  [26000074, "Golden Knight", "base", 4, 2],
+  [28000018, "Royal Delivery", "base", 4, 2],
+  [26000031, "Fire Spirit", "base", 4, 1],
+  [26000006, "Balloon", "base", 4, 2],
+];
+function battlesCards(args: Record<string, unknown>) {
+  const mode = String(args.mode ?? "ladder");
+  const perspective = String(args.perspective ?? "mine");
+  const rows =
+    mode === "ladder"
+      ? (perspective === "opponent" ? THEIR_CARDS : MY_CARDS).map(cardRow)
+      : [];
+  return {
+    player_tag: args.player_tag,
+    applied: { ...APPLIED, perspective, mode, min_battles: 3 },
+    modes_in_window:
+      mode === "ladder"
+        ? { ladder: { battles: 35, mean_level_gap: 0.62 } }
+        : {},
+    comparable: true,
+    cards: rows,
+    notes: [],
+    meta: META,
+  };
+}
+function battlesOpponents(args: Record<string, unknown>) {
+  const ladder = String(args.mode ?? "ladder") === "ladder";
+  return {
+    player_tag: args.player_tag,
+    applied: { ...APPLIED, mode: args.mode, min_battles: args.min_battles },
+    distinct_opponents: ladder ? 34 : 0,
+    matching_opponents: ladder ? 1 : 0,
+    opponents: ladder
+      ? [
+          {
+            player_tag: "#2Q8L9V0P",
+            name: "A Rival",
+            name_known: true,
+            battles: 2,
+            wins: 1,
+            losses: 1,
+            draws: 0,
+            first_seen: "2026-09-10T04:14:21.000Z",
+            last_seen: "2026-09-27T03:55:51.000Z",
+            modes: ["Ladder"],
+            clan_tag_last_seen: null,
+          },
+        ]
+      : [],
+    notes: [],
+    meta: META,
+  };
+}
+
 export interface ToolCall {
   tool: string;
   args: Record<string, unknown>;
@@ -638,6 +732,8 @@ export function explore(
       });
     }
     if (tool === "battles_decks") return ok(battlesDecks(args));
+    if (tool === "battles_cards") return ok(battlesCards(args));
+    if (tool === "battles_opponents") return ok(battlesOpponents(args));
     if (tool === "battles_performance") {
       const mode = String(args.mode ?? "ladder");
       const base = {

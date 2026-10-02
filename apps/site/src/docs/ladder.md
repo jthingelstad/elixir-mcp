@@ -130,6 +130,29 @@ war deck (which has no tower troop) is its own row.
   deck, so its rows are the decks you played in its rounds, each round won
   or lost on its own crowns.
 
+## Cards
+
+**Cards**, at `/ladder/cards`, is one mode's season card by card, with
+the same mode tabs as the season home. An evolution or a hero is a
+different card from its base form, so each keeps its own row, as the tools
+keep it. Each card's name opens its public page, where the card's record
+across everyone Elixir records lives.
+
+- **Your cards**: from [battles_cards](/docs/tools/battles#battles_cards)
+  with `perspective: mine`: for each card and form, the battles where your
+  deck held it, your record in them and the share you won. A card in more
+  than one deck carries all of their battles, so the rows overlap and
+  never add up. The tool leaves out cards played in fewer than three
+  battles, and the page says so.
+- **Across the table from you**: the same tool with
+  `perspective: opponent`: each card your opponents played, how many
+  battles you faced it in, and your record in those battles. The longest
+  lists show twelve rows until you ask for all.
+- **Opponents**: from
+  [battles_opponents](/docs/tools/battles#battles_opponents): how many
+  different players you met in the mode this season, and each one you met
+  more than once, with your record against them.
+
 ## What Ladder leaves out
 
 - **A verdict.** Nothing on Ladder rates you, projects a pace ("at this
@@ -141,5 +164,8 @@ war deck (which has no tower troop) is its own row.
 - **Comparing two decks.** The board's "Compare two decks" has no page
   yet; each deck's record sits in its own row, and a comparison across
   rows is only fair within one mode and a similar level gap.
+- **How everyone plays a card.** The card tables show your battles only;
+  how often everyone recorded plays a card is on the card's public page,
+  one click away, and is not copied into a column here.
 - **Matchup expectations.** How you should do against a deck is a judgment
   Elixir does not make; what happened against it is on the record.

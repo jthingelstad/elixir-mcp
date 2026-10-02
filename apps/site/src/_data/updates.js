@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Ladder: the cards you played and faced",
+    body: "Ladder has a Cards page, at /ladder/cards: one mode's season card by card, with the same mode tabs as the season home. Your cards show the battles where your deck held each one, your record in them and the share you won; across the table, each card your opponents played, how often you faced it and your record against it. An evolution or a hero keeps its own row, and every card name opens the card's public page. Under them, how many different opponents you met this season and the ones you met again. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "Ladder: every deck you played",
     body: "Ladder has a Decks page, at /ladder/decks: every deck you played this season, each judged in the mode it was played in. Trophy Road and Path of Legends show each deck with its eight cards, its evolutions, the days you played it, its average elixir, and its record, win rate and level gap in that mode. When two decks are the same cards with an evolution moved and one followed the other, the page draws the swap: what moved, what stayed, and each deck's own record, without saying the change caused it. War, duels and events sit in one table, a row per deck per mode, with duel rounds counted as rounds. No change to the tools.",
   },

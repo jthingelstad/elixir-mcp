@@ -1905,3 +1905,29 @@ returned, rows and duel rounds together. Duel rounds come from each mode's
 no mode claims is shown as "Duel" with no mode rather than a guessed one.
 A war or event deck with the same cards and forms as a Trophy Road deck
 says so (compared by `card_names`, whose forms the tool prefixes).
+
+---
+
+## 2026-10-02 - Ladder's Cards page
+
+The fourth Ladder slice (LadderCards.dc.html) is `/ladder/cards`, one mode
+at a time with the season home's tabs. It reads `battles_cards` twice
+(`perspective` mine and opponent) and `battles_opponents` once
+(`min_battles: 2`), each with `season: current` and the mode: three calls a
+view. `battles_opponents` is outside the Ladder brief's tool list; it is the
+read-only tool built for the board's Opponents panel (its
+`distinct_opponents` and repeat rows are exactly the panel), where counting
+opponents from a `battles_query` sweep would cost up to twelve calls.
+
+Decisions: a form is its own row, as the tool keeps it; the card's art is
+never a link and its name is the one link, a plain anchor to the static
+`/cards/<id>/` page (a tower troop has none); both tables show twelve rows
+until "Show all"; the panel heads count rows and distinct cards as returned,
+and the mode's battles from `modes_in_window`. A repeat opponent's name
+opens their console record, as on the battle page. Left out: the board's
+"Trophy Road, everyone" column (a corpus share no Ladder tool returns; the
+card page has it), its "the core four carry all 34 battles" line (an
+interpretation of overlapping rows; the foot says rows overlap instead) and
+"Opponents ›" (no such page). The tool's own floor (`applied.min_battles`,
+three) is stated under each table. The rail's Cards item adds Lucide's
+`gallery-horizontal-end` to the kit's Icon set.
