@@ -134,76 +134,250 @@ table {
    Shell
    ================================================================== */
 
+/* The top bar (canvas 2026-09-29). Full bleed: the logo and "Elixir"
+   home, the places (Console, Ladder, Clan), then on the right Docs, the
+   "Play Drop" candy button and the account slot.
+
+   THE BAR'S SHAPE NEVER VARIES BY SESSION: the account slot is a fixed
+   width at every width, filled by an app from the session it holds and
+   always "Sign in" on the static site, so nothing on the bar moves when
+   a session arrives. Both builds render the same markup; which width is
+   showing is decided HERE, in one media query, never in either build's
+   JavaScript. */
 .chrome {
-  position: relative; /* the narrow menu sheet hangs off this */
+  position: relative; /* the sheet and the account menu hang off this */
+  z-index: 30;
   background: var(--ground-chrome);
   border-bottom: 1px solid var(--line-soft);
 }
 
 .chrome__inner {
-  max-width: var(--page-max);
-  margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 0 22px;
-  padding: 0 24px;
+  gap: 20px;
+  padding: 0 20px 0 18px;
   min-height: 60px;
 }
 
-/* The top bar carries NO signed-in state — it must render identically in
-   the Eleventy build and the app. Session lives in the rail. */
-.chrome__tab {
-  padding: 19px 0;
-  font-size: 14px;
-  color: var(--ink-dim);
+.chrome__home {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
 }
-.chrome__tab--on {
-  color: var(--ink);
-  font-weight: 600;
-  box-shadow: var(--mark-tab);
+.chrome__logo {
+  display: block;
+  width: 40px;
+  height: 40px;
+}
+.chrome__home .wordmark {
+  font-size: 25px;
+  line-height: 1;
+  background: none;
+  color: var(--gold);
 }
 
-/* The narrow menu.
- *
- * Below the breakpoint the tabs cannot share a row with the wordmark
- * and the product buttons, so they collapse into a sheet behind one
- * button on the RIGHT. The product buttons never go in there: they are
- * the way into the products and stay on the bar at every width.
- *
- * Which width is showing is decided HERE, in one media query, rather
- * than in each build's own JavaScript — that is what keeps the Eleventy
- * bar and the React bar the same bar. Both render the same markup at all
- * times; CSS chooses.
- */
-/* The tab row. Its display lives HERE and never inline: an inline style
-   beats any stylesheet rule, so a `display: flex` attribute on this
-   element silently defeats the media query below and the bar keeps its
-   six tabs at every width. */
+.chrome__rule {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 24px;
+  background: var(--line-soft);
+}
+
+/* The places. Plain until current; the one you are inside is a green
+   pill with a soft ring, the same green the rest of the family uses for
+   "you are here". Icons are gold: the brand, the way over. */
 .chrome__nav {
   display: flex;
-  gap: 22px;
+  align-items: center;
+  gap: 8px;
+}
+.chrome__product,
+.chrome__docs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-body);
+  white-space: nowrap;
+}
+.chrome__product > svg {
+  color: var(--gold);
+}
+.chrome__docs {
+  color: var(--ink-dim);
+}
+.chrome__product:hover,
+.chrome__docs:hover {
+  background: var(--hover-rail);
+  color: var(--ink);
+}
+.chrome__product[aria-current],
+.chrome__docs[aria-current] {
+  padding: 0 16px 0 12px;
+  background: var(--ok-grad);
+  color: var(--ok-on);
+  font-weight: 600;
+  box-shadow: var(--ok-ring);
+}
+.chrome__product[aria-current] > svg {
+  color: currentColor;
 }
 
-.chrome__menu {
-  display: none; /* wide: the tabs are on the bar */
+.chrome__end {
+  margin-left: auto;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: var(--hit);
-  height: var(--hit);
+  gap: 14px;
   flex: 0 0 auto;
+}
+
+/* Play Drop: candy, because Drop is a game and the record is not. It
+   opens its own host in a new window. The droplet is filled. */
+.chrome__play {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px 0 12px;
+  border-radius: 12px;
+  background: var(--drop-grad);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 3px 0 var(--drop-edge),
+    0 5px 12px var(--drop-glow);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 2px 0 var(--drop-edge),
+    1px 1px 0 var(--drop-edge),
+    -1px 1px 0 var(--drop-edge);
+  white-space: nowrap;
+}
+.chrome__play > svg:first-child {
+  fill: currentColor;
+}
+.chrome__play:hover {
+  filter: brightness(1.06);
+}
+.chrome__play:active {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 0 var(--drop-edge),
+    0 3px 8px var(--drop-glow);
+}
+
+/* The account slot: one width, whatever is in it. */
+.chrome__account {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  width: 196px;
+}
+.chrome__me,
+.chrome__signin {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: var(--hit);
+  border-radius: var(--r-pill);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.chrome__me {
+  padding: 0 12px 0 4px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--r-control);
-  color: var(--ink-body);
 }
-.chrome__menu:hover {
+.chrome__me:hover,
+.chrome__me[aria-expanded="true"] {
+  border-color: var(--line-strong);
+}
+.chrome__me > svg {
+  color: var(--ink-faint);
+}
+.chrome__me-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+.chrome__signin {
+  justify-content: center;
+  background: var(--panel-raised);
+  border: 1px solid var(--line-strong);
+}
+.chrome__signin:hover {
   border-color: var(--accent-deep);
-  color: var(--ink);
+}
+.chrome__signin > svg {
+  color: var(--gold);
+}
+.chrome__avatar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  background: var(--panel-raised);
+  color: var(--gold-light);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.chrome__avatar--lg {
+  width: 44px;
+  height: 44px;
+  font-size: 15px;
+}
+
+/* The narrow button: where you are, opening the sheet. Wide, the places
+   are on the bar and this is not drawn. */
+.chrome__menu {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  height: var(--hit);
+  padding: 0 12px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  color: var(--ink-body);
+  font-size: 14px;
+  font-weight: 600;
+}
+.chrome__menu[data-here] {
+  padding: 0 10px 0 12px;
+  border-color: transparent;
+  background: var(--ok-grad);
+  color: var(--ok-on);
+  box-shadow: var(--ok-ring);
+}
+.chrome__menu[data-here] > svg:last-child {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.chrome__menu[data-here][aria-expanded="true"] > svg:last-child {
+  transform: rotate(180deg);
 }
 /* The `hidden` ATTRIBUTE does not hide an <svg>. The UA rule that
    implements it lives in the HTML namespace and an svg element is not in
    it, so the static half's button rendered its open AND close icon side
-   by side. The app half swaps components and never had the problem. */
+   by side. */
 .chrome__menu svg[hidden] {
   display: none;
 }
@@ -212,107 +386,242 @@ table {
   display: none;
 }
 
+/* The account menu, under the account button. */
+.account-menu {
+  position: absolute;
+  top: 68px;
+  right: 20px;
+  z-index: 40;
+  width: 344px;
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-panel);
+  background: var(--panel-float);
+  box-shadow: var(--shadow-float);
+}
+.account-menu__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.account-menu__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.account-menu__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.account-menu__detail {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.account-menu__group {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.account-menu__label {
+  padding: 6px 8px 4px;
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.account-menu__player,
+.account-menu__link,
+.account-menu__more {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 8px;
+  border-radius: var(--r-control);
+  font-size: 14px;
+  color: var(--ink-body);
+}
+.account-menu__player:hover,
+.account-menu__link:hover,
+.account-menu__more:hover {
+  background: var(--hover-rail);
+  color: var(--ink);
+}
+.account-menu__star {
+  display: flex;
+  width: 14px;
+  color: var(--gold);
+}
+.account-menu__star svg {
+  fill: currentColor;
+}
+.account-menu__player-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--ink);
+}
+.account-menu__tag {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-link);
+}
+.account-menu__more {
+  min-height: 32px;
+  font-size: 13px;
+  color: var(--ink-link);
+}
+.account-menu__link > svg {
+  color: var(--accent-bright);
+}
+.account-menu__hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.account-menu__foot {
+  padding: 12px 16px 14px;
+}
+.account-menu__out {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: var(--hit);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.account-menu__out:hover {
+  border-color: var(--line-strong);
+}
+.account-menu__note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
 @media (max-width: 900px) {
   .chrome__inner {
-    gap: 0 12px;
+    gap: 10px;
+    padding: 0 12px 0 16px;
   }
-  /* The tab row goes; the button that opens it arrives. */
-  .chrome__nav {
+  .chrome__logo {
+    width: 34px;
+    height: 34px;
+  }
+  .chrome__home .wordmark {
+    font-size: 22px;
+  }
+  /* The places, Docs and the game fold into the sheet; the button that
+     names where you are opens it. */
+  .chrome__rule,
+  .chrome__nav,
+  .chrome__docs,
+  .chrome__end > .chrome__play {
     display: none;
   }
   .chrome__menu {
     display: flex;
-    order: 3; /* rightmost, after the Console button */
   }
-  .chrome__products {
-    order: 2;
-    margin-left: auto;
+  .chrome__end {
+    gap: 0;
   }
-  /* The sheet drops below the bar rather than over the page: the bar is
-     56-60px and a full-screen overlay for six links is a modal for
-     something that is not a decision. */
+  .chrome__account {
+    width: 96px;
+  }
+  .chrome__me {
+    width: var(--hit-touch);
+    height: var(--hit-touch);
+    padding: 0;
+    justify-content: center;
+    border: 0;
+    background: none;
+  }
+  .chrome__me .chrome__avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+  .chrome__me-name,
+  .chrome__me > svg {
+    display: none;
+  }
+  .chrome__signin {
+    height: var(--hit-touch);
+    gap: 6px;
+  }
+  /* The sheet drops below the bar rather than over the page: a
+     full-screen overlay for five links is a modal for something that is
+     not a decision. */
   .chrome__sheet[data-open="true"] {
     display: flex;
     flex-direction: column;
+    gap: 2px;
     position: absolute;
     top: 100%;
     right: 0;
     left: 0;
     z-index: 30;
+    padding: 8px 12px 14px;
     background: var(--ground-chrome);
     border-bottom: 1px solid var(--line-soft);
     box-shadow: var(--shadow-float);
-    padding: 8px 12px 14px;
   }
-  .chrome__sheet a {
+  .chrome__sheet-item {
     display: flex;
     align-items: center;
+    gap: 10px;
     min-height: var(--hit-touch);
-    padding: 0 11px;
+    padding: 0 12px;
     border-radius: var(--r-control);
     font-size: 15px;
-    color: var(--ink-dim);
+    color: var(--ink-body);
   }
-  .chrome__sheet a:hover,
-  .chrome__sheet a[aria-current] {
+  .chrome__sheet-item > svg {
+    color: var(--gold);
+  }
+  .chrome__sheet-item:hover {
     background: var(--hover-rail);
     color: var(--ink);
   }
-  .chrome__sheet a[aria-current] {
+  .chrome__sheet-item[aria-current] {
+    background: var(--ok-grad);
+    color: var(--ok-on);
     font-weight: 600;
-    box-shadow: var(--mark-current);
   }
-}
-
-/* Phone: three buttons and a menu do not fit with their words on, so the
-   words go and the glyphs stay. Each button still has its name for a
-   screen reader through the label span. */
-@media (max-width: 560px) {
-  .chrome__product {
-    padding: 10px 12px;
+  .chrome__sheet-item[aria-current] > svg {
+    color: currentColor;
   }
-  .chrome__product-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
+  .chrome__sheet .chrome__play {
+    align-self: flex-start;
+    margin: 10px 4px 2px;
+    height: var(--hit-touch);
   }
-}
-
-/* The product buttons: Console, Clan, Drop, on the right of every bar in
-   the family. Gold is the way over; the one you are inside (aria-current)
-   is green and glows. */
-.chrome__products {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-}
-.chrome__product {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--gold-grad);
-  color: var(--gold-on);
-  font-weight: 700;
-  font-size: 14px;
-  padding: 10px 15px;
-  border-radius: var(--r-control);
-  white-space: nowrap;
-}
-.chrome__product[aria-current] {
-  background: var(--ok-grad);
-  color: var(--ok-on);
-  box-shadow:
-    0 0 0 1px var(--ok-edge),
-    0 0 16px var(--ok-edge);
-}
-/* The new-window glyph sits a little lighter than the label. */
-.chrome__product > svg:last-child:not(:first-child) {
-  opacity: 0.7;
+  .account-menu {
+    top: 64px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+    max-width: none;
+  }
 }
 
 /* ==================================================================
@@ -1239,144 +1548,113 @@ main.wrap {
   gap: 20px;
 }
 
-/* ── Navigation: three tiers that must not look alike ─────── */
-
-/* Tier 1 — product areas. Gold underline, gold ink. */
-.nav1 {
-  border-bottom: 1px solid var(--line-soft);
+/* ── The static site's own navigation (canvas 2026-09-29) ──────
+   The top bar holds places, not pages, so the site's pages are a row of
+   their own under it and a footer at the end of every page. Gold rule
+   under the current page, the same mark the bar's tabs used to carry. */
+.sitenav {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  height: 48px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line-row);
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
 }
-.nav1__inner {
+.sitenav a {
   display: flex;
   align-items: center;
-  gap: 0 24px;
-  min-height: 56px;
-  flex-wrap: wrap;
+  padding: 0 14px;
+  font-size: 14px;
+  color: var(--ink-dim);
 }
-.nav1 nav {
-  display: flex;
-  gap: 22px;
-  align-self: stretch;
-  flex-wrap: wrap;
-}
-/* Scoped to the LINK ROW. This used to be `.nav1 a`, which also caught the
-   wordmark and the meta control: the gold Sign in button was stretched into
-   a 56px flex row and stopped reading as a button at all. The wordmark
-   carried an inline padding hack to survive the same rule. */
-.nav1 nav a {
-  display: flex;
-  align-items: center;
-  min-height: 56px;
-  font-size: 13.5px;
-  color: var(--ink-body);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-.nav1 nav a:hover {
+.sitenav a:hover {
   color: var(--ink);
 }
-.nav1 nav a[aria-current] {
-  color: var(--gold-light);
+.sitenav a[aria-current] {
+  color: var(--ink);
   font-weight: 600;
-  border-bottom-color: var(--gold);
+  box-shadow: var(--mark-tab);
 }
-.nav1 .wordmark {
+
+/* The footer: the logo and what Elixir is, then the site's pages, the
+   places and the policies, then Supercell's note. */
+.sitefoot {
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 var(--pad-page) var(--s-6);
+}
+.sitefoot__cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line-row);
+}
+.sitefoot__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 0 1 360px;
+}
+.sitefoot__home {
   display: flex;
   align-items: center;
-  min-height: 56px;
+  gap: 8px;
 }
-.nav1__meta {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.sitefoot__home img {
+  display: block;
+  width: 36px;
+  height: 36px;
+}
+.sitefoot__home .wordmark {
+  font-size: 20px;
+  background: none;
+  color: var(--gold);
+}
+.sitefoot__tagline {
   font-size: 12.5px;
+  line-height: 1.5;
   color: var(--ink-faint);
 }
-/* Sign out is a button here, because it is an action rather than a place.
-   It has to sit level with the links beside it and read the same. */
-.nav1__meta button {
-  font: inherit;
-  color: inherit;
-  padding: 0;
+.sitefoot__col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.nav1__meta button:hover {
-  color: var(--ink);
-}
-
-/* ── The application's own chrome ──────────────────────────
-   The site and the app are two surfaces, not one continuous thing. They
-   share type, colour and spacing; they do not share a navigation. This
-   modifier is what makes crossing between them read as "I moved into the
-   app" rather than "the nav lost three items".
-
-   The site bar sits on the page background. The app bar sits on the well,
-   which is the same surface every panel and control in the app uses -- so
-   the application looks assembled from its own material. */
-.nav1--app {
-  background: var(--ground-sunken);
-  border-bottom-color: var(--line);
-}
-
-/* Reads as a label on the wordmark, never as a link. Small, quiet, and the
-   one word that says which of the two surfaces you are standing on. */
-.appmark {
-  align-self: center;
-  margin-left: -16px;
-  padding: 2px 7px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
+.sitefoot__head {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--ink-faint);
-  user-select: none;
+}
+.sitefoot__col a {
+  font-size: 13.5px;
+  color: var(--ink-dim);
+}
+.sitefoot__col a:hover {
+  color: var(--ink);
+}
+.sitefoot .disclaimer {
+  margin-top: 20px;
+  padding: 0;
+  border: 0;
 }
 
-/* The site's pages, reachable from inside the app but plainly not part of
-   it: footer weight, above the disclaimer, full page loads. */
-.sitelinks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  margin-top: var(--s-6);
-  padding-top: var(--s-4);
-  border-top: 1px solid var(--line-soft);
-  font-size: 12.5px;
-}
-.sitelinks a {
-  color: var(--ink-faint);
-}
-.sitelinks a:hover {
-  color: var(--ink);
-}
-
-/* Tier 2 — pages within a section. Purple underline, tighter, smaller.
-   NOT pills: pills are what the current file uses for both tier 2 and
-   in-page tabs, which is why they read the same. */
-.nav2 {
-  border-bottom: 1px solid var(--line-soft);
-}
-.nav2__inner {
-  display: flex;
-  gap: 2px;
-  overflow-x: auto;
-  overflow-y: hidden; /* the -1px margin below would spawn a v-scrollbar */
-  white-space: nowrap;
-  scrollbar-width: none;
-}
-.nav2 a {
-  padding: 10px 12px;
-  font-size: 13px;
-  color: var(--ink-faint);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-.nav2 a:hover {
-  color: var(--ink);
-}
-.nav2 a[aria-current] {
-  color: var(--ink);
-  border-bottom-color: var(--accent);
+@media (max-width: 900px) {
+  .sitenav {
+    padding: 0 8px;
+  }
+  .sitefoot {
+    padding: 0 var(--pad-page-narrow) var(--s-6);
+  }
+  .sitefoot__brand {
+    flex-basis: 100%;
+  }
 }
 
 /* In-page tabs — a segmented control sunk in a well. Third distinct
@@ -2120,9 +2398,6 @@ input[aria-invalid="true"] {
   .stats {
     grid-template-columns: 1fr 1fr;
   }
-  .nav1__inner {
-    min-height: 52px;
-  }
   .segmented button {
     padding: 8px 12px;
   } /* 44px row */
@@ -2202,9 +2477,6 @@ input[aria-invalid="true"] {
   padding: 6px 14px;
   font-size: 12.5px;
   border-radius: 8px;
-}
-.nav1__meta .btn--gold {
-  text-decoration: none;
 }
 
 /* Account onboarding uses the same panels and tokens as the record views. */

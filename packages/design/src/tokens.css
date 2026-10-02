@@ -175,6 +175,13 @@
     #4ade80
   ); /* the product you are in */
   --ok-on: #052e16; /* text on a green surface */
+  --ok-ring: 0 0 0 3px rgba(74, 222, 128, 0.16); /* "you are here" on the bar */
+
+  /* Drop's candy: the game next door, and only the game (2026-09-29).
+     Magenta is Drop's alone; nothing in the record wears it. */
+  --drop-grad: linear-gradient(180deg, #f0abfc, #d946ef 45%, #a21caf);
+  --drop-edge: #6b0f6e;
+  --drop-glow: rgba(217, 70, 239, 0.35);
 
   --win: #2d85f3; /* a day of wins (Jamie's blue), activity graphic */
   --loss: #ef4444; /* a day of losses */

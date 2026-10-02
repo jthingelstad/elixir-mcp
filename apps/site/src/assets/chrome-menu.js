@@ -1,18 +1,18 @@
 /**
  * The top bar's narrow menu, on the static half.
  *
- * The app half does the same thing in React. Both render the same markup
- * at every width and let ONE media query decide which is showing, so the
- * two bars stay one bar — that is the handoff's stated build constraint,
- * and it is easy to break by teaching each half its own breakpoint.
+ * The app half does the same thing in React (the kit's Chrome). Both
+ * render the same markup at every width and let ONE media query decide
+ * which is showing, so the two bars stay one bar, and that is easy to
+ * break by teaching each half its own breakpoint.
  *
- * The Console button is deliberately not in here. It is the way into the
- * product, and burying it behind a menu costs a tap on the one thing
- * most people came for.
+ * At narrow width the places (Console, Ladder, Clan), Docs and Play
+ * Drop fold into the sheet behind one button. The account slot stays on
+ * the bar at every width; on this half it is always "Sign in".
  *
  * Progressive enhancement: with the script off the button does nothing
- * and the six links are still reachable — they are in the sheet's markup,
- * and every one of them is also a real page a crawler can follow.
+ * and every link is still in the sheet's markup, a real page a crawler
+ * can follow.
  */
 (function () {
   const button = document.querySelector("[data-chrome-menu]");

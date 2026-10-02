@@ -152,6 +152,7 @@ for (const required of [
   "feed.json",
   "assets/site.css",
   "assets/og.png",
+  "assets/elixir-logo-96.webp",
 ]) {
   if (!files.has(required)) problems.push(`${required} is missing`);
 }

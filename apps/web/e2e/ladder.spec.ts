@@ -69,6 +69,16 @@ test.describe("Ladder signed in", () => {
     );
     await expect(page.locator(".freshness")).toContainText("battle log read");
 
+    // The bar marks Ladder as the place you are in, not the Console.
+    const places = page.getByRole("navigation", { name: "Products" });
+    await expect(places.getByRole("link", { name: "Ladder" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(
+      places.getByRole("link", { name: "Console" }),
+    ).not.toHaveAttribute("aria-current", "page");
+
     // The rail: Ladder's own, the player at its head, Season current.
     const rail = page.getByRole("navigation", { name: "Ladder sections" });
     await expect(rail.getByRole("link", { name: "Season" })).toHaveAttribute(

@@ -1753,3 +1753,33 @@ Legends, a deck's rate only when it is one mode's own, and the week bars drawn
 in SVG so their heights are attributes and not inline styles. The top bar
 still marks Console under /ladder until the shell's Chrome takes a current
 product from the route; that hook belongs to the shell's owner.
+
+---
+
+## 2026-10-01 - One top bar: places, Docs, the game, a fixed account slot
+
+The 2026-09-29 canvas (TopBar, AccountMenu, Phone) replaces the bar. The
+manifest (`packages/ui/src/family.json`) now names the places (Console,
+Ladder, Clan), the game (Drop, `game: true`, drawn as the "Play Drop" candy
+button), Docs, the logo and the sign-in path; its `tabs` are gone. The site's
+own pages moved to `apps/site/src/_data/siteNav.js`: a row under the bar on
+every non-docs page and a footer on every page. Family left the menus (Jamie,
+2026-09-29); its pages are still built.
+
+The old rule "the top bar carries no signed-in state" is replaced by "the
+bar's shape never varies by session": the account slot is one fixed width
+(196px wide, 96px narrow). An app fills it from the session it already holds
+(empty while asking, Sign in, or the person and the account menu); the static
+site always shows Sign in, and `/console/signin` forwards a reader who is
+already signed in (and holds no login token) to their console. Nothing swaps
+after load. The Console's rail lost its identity block: who you are and the
+way out are the account menu now. Clan fills the slot from Clan's own session
+and signs out with its own form post; Clan's rail identity block is left for
+Clan's owner. The account menu's "Signed in to" chips are not drawn: the
+Console cannot see Clan's or Drop's session, so it cannot say which are
+signed in. Logo: `apps/site/src/assets/elixir-logo-96.webp`, rendered from
+poapkings.com's 512px source.
+
+The Console app's bar now takes its current place from the route: under
+`/ladder` it marks Ladder, and its Console and Ladder links route in the app
+instead of reloading (the hook Ladder's note above left for the shell).

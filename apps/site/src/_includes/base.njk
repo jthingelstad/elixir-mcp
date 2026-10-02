@@ -31,89 +31,156 @@
   </head>
   <body>
     <div class="shell">
-      {#- The top bar, and the ONE build constraint the design states
-          outright: it must render identically here and in the app. The
-          two halves are cached differently and cannot agree on a shape
-          that varies by session, so this carries no signed-in state at
-          all — same markup, same classes, same tabs, same product
-          buttons as the kit's Chrome (packages/ui/src/Chrome.tsx)
-          renders. Both read ONE list, the kit's product manifest
-          (packages/ui/src/family.json, here as `familyBar`), and this
-          template loops over it: it holds no tab, product or link of its
-          own. Session identity lives at the foot of the console's rail,
-          which only the app draws.
+      {#- The top bar: the kit's Chrome (packages/ui/src/Chrome.tsx), the
+          same markup and classes, read from ONE list, the kit's product
+          manifest (packages/ui/src/family.json, here as `familyBar`).
+          This template loops over it and holds no product, label or link
+          of its own; a test pins that, and pins this bar to the kit's.
 
-          It used to show "Sign in" here and swap it to "Account" once
-          /api/me answered, which is the reshaping-nav clunk that whole
-          exercise was trying to remove. Console leads somewhere real
-          either way: signed in it is the console, signed out it is the
-          wall that offers sign-in. -#}
+          THE BAR'S SHAPE NEVER VARIES BY SESSION: the account slot is a
+          fixed width everywhere. An app fills it from the session it
+          already holds; this build cannot know the session, so it always
+          shows "Sign in", and the Console's sign-in page sends a reader
+          who is signed in straight on to their console. Nothing here is
+          swapped after load. (It once showed "Sign in" and swapped it to
+          "Account" when /api/me answered, and the bar read as a glitch.)
+
+          A page names `navActive`: the manifest's docs key lights Docs on the bar; any
+          other key lights its item in the site's row below. -#}
       <header class="chrome">
         <div class="chrome__inner">
-          <a class="wordmark" href="/">{{ familyBar.wordmark }}</a>
-          {#- The SAME markup as apps/web renders, at every width: which
-              one is showing is a media query's decision, not this
-              template's and not the app's. That is what keeps the two
-              bars one bar. A page lights its tab by naming the tab's
-              key as `navActive`. -#}
-          <nav class="chrome__nav" aria-label="{{ familyBar.wordmark }}">
-            {%- for tab in familyBar.tabs %}
-            <a class="chrome__tab{% if navActive == tab.key %} chrome__tab--on{% endif %}" href="{{ tab.path }}">{{ tab.label }}</a>
-            {%- endfor %}
-          </nav>
-          {#- The family's products, never inside the menu, at any width.
-              A document is inside none of them, so no button is current
-              here; the console app marks Console, the Clan app marks Clan.
-              A product on this origin links its bare path; one elsewhere
-              its href, in a new window, and says so with a glyph. Glyphs
-              are the Lucide icons the manifest names, drawn the way the
-              kit's Icon draws them (the chromeIcon shortcode). -#}
-          <div class="chrome__products">
-            {%- for product in familyBar.products %}
-            <a class="chrome__product" href="{{ product.href or product.path }}"{% if product.external %} target="_blank" rel="noopener" aria-label="{{ product.label }} (opens in a new window)"{% endif %}>
+          <a class="chrome__home" href="/" aria-label="{{ familyBar.wordmark }} home">
+            <img class="chrome__logo" src="{{ familyBar.logo | asset }}" alt="" />
+            <span class="wordmark">{{ familyBar.wordmark }}</span>
+          </a>
+          <span class="chrome__rule" aria-hidden="true"></span>
+          {#- The places. A document is inside none of them, so none is
+              current here; the Console marks Console, Clan marks Clan.
+              Glyphs are the Lucide icons the manifest names, drawn the
+              way the kit's Icon draws them (the chromeIcon shortcode). -#}
+          <nav class="chrome__nav" aria-label="Products">
+            {%- for product in familyBar.products %}{% if not product.game %}
+            <a class="chrome__product" href="{{ product.path }}">
               {% chromeIcon product.icon, 17 %}
               <span class="chrome__product-label">{{ product.label }}</span>
-              {%- if product.external %}
-              {% chromeIcon "external-link", 13 %}
-              {%- endif %}
             </a>
-            {%- endfor %}
-          </div>
-          <button type="button" class="chrome__menu" aria-label="Menu" aria-expanded="false" aria-controls="chrome-sheet" data-chrome-menu>
-            <svg data-menu-open width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-            <svg data-menu-close hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            {%- endif %}{% endfor %}
+          </nav>
+          {#- Narrow: one button, where you are (Docs, on a docs page) or
+              "Menu", opening the sheet below. Which width is showing is a
+              media query's decision, never this template's. -#}
+          {%- if navActive == familyBar.docs.key %}
+          <button type="button" class="chrome__menu" aria-label="Product: {{ familyBar.docs.label }}" aria-expanded="false" aria-controls="chrome-sheet" data-here="true" data-chrome-menu>
+            {% chromeIcon familyBar.docs.icon, 17 %}
+            <span class="chrome__menu-label">{{ familyBar.docs.label }}</span>
+            {% chromeIcon "chevron-down", 16 %}
           </button>
+          {%- else %}
+          <button type="button" class="chrome__menu" aria-label="Menu" aria-expanded="false" aria-controls="chrome-sheet" data-chrome-menu>
+            <span data-menu-open>{% chromeIcon "menu", 20 %}</span><span data-menu-close hidden>{% chromeIcon "x", 20 %}</span>
+            <span class="chrome__menu-label">Menu</span>
+          </button>
+          {%- endif %}
+          <div class="chrome__end">
+            <a class="chrome__docs" href="{{ familyBar.docs.path }}"{% if navActive == familyBar.docs.key %} aria-current="page"{% endif %}>
+              {% chromeIcon familyBar.docs.icon, 17 %}
+              <span class="chrome__docs-label">{{ familyBar.docs.label }}</span>
+            </a>
+            {%- for product in familyBar.products %}{% if product.game %}
+            <a class="chrome__play" href="{{ product.href }}" target="_blank" rel="noopener" aria-label="{{ product.action }}, {{ product.about }} (opens {{ product.href | host }} in a new window)">
+              {% chromeIcon product.icon, 17 %}
+              <span class="chrome__play-label">{{ product.action }}</span>
+              {% chromeIcon "arrow-up-right", 14 %}
+            </a>
+            {%- endif %}{% endfor %}
+            <span class="chrome__rule" aria-hidden="true"></span>
+            <div class="chrome__account">
+              <a class="chrome__signin" href="{{ familyBar.signIn.path }}">
+                {% chromeIcon familyBar.signIn.icon, 16 %}
+                <span>{{ familyBar.signIn.label }}</span>
+              </a>
+            </div>
+          </div>
         </div>
 
         <nav class="chrome__sheet" id="chrome-sheet" aria-label="{{ familyBar.wordmark }} menu" data-open="false">
-          {%- for tab in familyBar.tabs %}
-          <a href="{{ tab.path }}"{% if navActive == tab.key %} aria-current="page"{% endif %}>{{ tab.label }}</a>
-          {%- endfor %}
+          {%- for product in familyBar.products %}{% if not product.game %}
+          <a class="chrome__sheet-item" href="{{ product.path }}">
+            {% chromeIcon product.icon, 17 %}
+            <span class="chrome__sheet-item-label">{{ product.label }}</span>
+          </a>
+          {%- endif %}{% endfor %}
+          <a class="chrome__sheet-item" href="{{ familyBar.docs.path }}"{% if navActive == familyBar.docs.key %} aria-current="page"{% endif %}>
+            {% chromeIcon familyBar.docs.icon, 17 %}
+            <span class="chrome__sheet-item-label">{{ familyBar.docs.label }}</span>
+          </a>
+          {%- for product in familyBar.products %}{% if product.game %}
+          <a class="chrome__play" href="{{ product.href }}" target="_blank" rel="noopener" aria-label="{{ product.action }}, {{ product.about }} (opens {{ product.href | host }} in a new window)">
+            {% chromeIcon product.icon, 17 %}
+            <span class="chrome__play-label">{{ product.action }}</span>
+            {% chromeIcon "arrow-up-right", 14 %}
+          </a>
+          {%- endif %}{% endfor %}
         </nav>
       </header>
 
-      {% if nav2 %}
-      <nav class="nav2" aria-label="{{ nav2Label }} pages">
-        <div class="nav2__inner wrap">
-          {%- for item in nav2 %}
-          <a href="{{ item.url }}"{% if item.url == (page | pageUrl) %} aria-current="page"{% endif %}>{{ item.label }}</a>
-          {%- endfor %}
-        </div>
+      {#- The site's own pages (_data/siteNav.js), under the bar. Not on
+          a docs page: there Docs is lit on the bar and the docs carry
+          their own rail. -#}
+      {%- if navActive != familyBar.docs.key %}
+      <nav class="sitenav" aria-label="Site">
+        {%- for item in siteNav.pages %}
+        <a href="{{ item.path }}"{% if navActive == item.key %} aria-current="page"{% endif %}>{{ item.label }}</a>
+        {%- endfor %}
       </nav>
-      {% endif %}
+      {%- endif %}
 
       <main class="wrap{% if prose %} wrap--prose{% endif %}">
         {{ content | safe }}
       </main>
 
-      <footer class="disclaimer">
-        <span class="disclaimer__tag">UNOFFICIAL</span>
-        <span class="disclaimer__text">
-          This material is unofficial and is not endorsed by Supercell. For more
-          information see Supercell&rsquo;s Fan Content Policy:
-          <a href="https://www.supercell.com/fan-content-policy">www.supercell.com/fan-content-policy</a>.
-        </span>
-        <span class="disclaimer__family">{{ site.family }}</span>
+      <footer class="sitefoot">
+        <nav class="sitefoot__cols" aria-label="Footer">
+          <div class="sitefoot__brand">
+            <a class="sitefoot__home" href="/" aria-label="{{ familyBar.wordmark }} home">
+              <img src="{{ familyBar.logo | asset }}" alt="" />
+              <span class="wordmark">{{ familyBar.wordmark }}</span>
+            </a>
+            <span class="sitefoot__tagline">{{ siteNav.tagline }}</span>
+          </div>
+          {%- set foot = siteNav.footer %}
+          <div class="sitefoot__col">
+            <span class="sitefoot__head">{{ foot.elixir.label }}</span>
+            {%- for link in foot.elixir.links %}
+            <a href="{{ link.path }}">{{ link.label }}</a>
+            {%- endfor %}
+          </div>
+          <div class="sitefoot__col">
+            <span class="sitefoot__head">{{ foot.places.label }}</span>
+            {%- for product in familyBar.products %}
+            {%- if product.external %}
+            <a href="{{ product.href }}" target="_blank" rel="noopener" aria-label="{{ product.label }} (opens {{ product.href | host }} in a new window)">{{ product.label }}</a>
+            {%- else %}
+            <a href="{{ product.path }}">{{ product.label }}</a>
+            {%- endif %}
+            {%- endfor %}
+          </div>
+          <div class="sitefoot__col">
+            <span class="sitefoot__head">{{ foot.policy.label }}</span>
+            {%- for link in foot.policy.links %}
+            <a href="{{ link.path }}">{{ link.label }}</a>
+            {%- endfor %}
+          </div>
+        </nav>
+        <div class="disclaimer">
+          <span class="disclaimer__tag">UNOFFICIAL</span>
+          <span class="disclaimer__text">
+            This material is unofficial and is not endorsed by Supercell. For more
+            information see Supercell&rsquo;s Fan Content Policy:
+            <a href="https://www.supercell.com/fan-content-policy">www.supercell.com/fan-content-policy</a>.
+          </span>
+          <span class="disclaimer__family">{{ site.family }}</span>
+        </div>
       </footer>
     </div>
     {#- Tinylytics: a static page is a real document load, so the embed
