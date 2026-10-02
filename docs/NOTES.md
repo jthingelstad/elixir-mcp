@@ -3180,3 +3180,22 @@ observer prefixes and the reader's hash suffix; full hashes shared across
 observers remain separately bound to each observer's key. Scratch cases cover
 a missing ordinary source followed by a valid redirected source both within
 one batch and across consecutive batches.
+
+## 2026-10-02 - Bound factual card reads to the selected history
+
+The purge-foundation deploy completed, but whole-suite acceptance reported
+five card-read failures: three query timeouts and two checks reusing a refused
+response. The read-only `profile_tool` identified two cold statements at
+14.36 s and 15.66 s, reading 36,984 and 22,123 shared blocks. The first expanded
+rounds through repeated global scans and probed deck identity once per game;
+the member query probed played-card facts even for games without that card.
+
+Both statements now materialize only selected scalar participant columns
+before using the canonical duel expansion. Earliest play groups games by deck
+identity before card lookup. Member play filters card-bearing game identities
+before reading played-card levels and battle metadata. No schema, contract,
+recording reason or history is changed. The scratch regression checks earlier
+play outside a narrowed window, both forms in different duel rounds, round
+wins/losses and levels, a round without the card, and tower play in every round.
+Private manifests and published retained-only bodies remain intact; canonical
+history and original archive versions have not been deleted.

@@ -342,6 +342,98 @@ test("an activity clan's unrecorded opponent history is not member play", async 
   }
 });
 
+test("scoped card history keeps earliest forms and each card-bearing duel round", async () => {
+  const db = scratch.db;
+  await db.query("begin");
+  try {
+    await db.query(
+      `insert into battle(battle_id,battle_time,type,type_class)
+       values ('df-card-duel','2026-09-01T12:00:00Z','riverRaceDuel','pvp')`,
+    );
+    await db.query(
+      `insert into battle_participant(battle_id,player_tag,side,outcome,battle_time,type,type_class)
+       values ('df-card-duel',$1,0,'win','2026-09-01T12:00:00Z','riverRaceDuel','pvp')`,
+      [TAG],
+    );
+    const roundCards = [
+      cards(0).map((c) => ({ ...c, level: 13 })),
+      cards(1).map((c) => ({ ...c, level: 16 })),
+      cards(0).map((c) =>
+        c.id === 26000007 ? { id: 28000000, name: "Fireball", level: 14 } : c,
+      ),
+    ];
+    for (const [i, deck] of roundCards.entries()) {
+      const hash = await seedDeck(db, {
+        battle_time: "2026-09-01T12:00:00Z",
+        cards: deck,
+        supportCards: [TOWER],
+      });
+      await db.query(
+        `insert into battle_participant_round(battle_id,player_tag,round,crowns,deck_hash,outcome)
+         values ('df-card-duel',$1,$2,$3,$4,$5)`,
+        [TAG, i + 1, i === 1 ? 0 : 3, hash, i === 1 ? "loss" : "win"],
+      );
+      await db.query(
+        `insert into battle_participant_card(battle_id,player_tag,round,card_id,form,slot,level)
+         values ('df-card-duel',$1,$2,$3,0,0,14)`,
+        [TAG, i + 1, TOWER.id],
+      );
+    }
+    await seedPlayedDeck(db, {
+      battle_id: "df-card-duel",
+      player_tag: TAG,
+      battle_time: "2026-09-01T12:00:00Z",
+      rounds: roundCards,
+    });
+    const narrowed = await call("cards_card", {
+      card_id: 26000007,
+      segment: { clan_tag: "#2CRPCL9V" },
+      from: "2026-09-02",
+      to: "2026-09-03",
+      mode: "ladder",
+    });
+    assert.deepEqual(narrowed.card.first_played, {
+      base: "2026-09-01T12:00:00.000Z",
+      evolution: "2026-09-01T12:00:00.000Z",
+      hero: null,
+    });
+    assert.equal(narrowed.members.played[0].battles, 6);
+    const war = await call("cards_card", {
+      card_id: 26000007,
+      segment: { clan_tag: "#2CRPCL9V" },
+      from: "2026-09-01",
+      to: "2026-09-02",
+      mode: "war",
+    });
+    const [played] = war.members.played;
+    assert.equal(
+      played.battles,
+      2,
+      "the other-card round and whole duel do not count",
+    );
+    assert.equal(played.wins, 1);
+    assert.equal(played.losses, 1);
+    assert.equal(played.level_played, 14.5);
+    assert.deepEqual(played.forms, ["base", "evolution"]);
+    assert.deepEqual(played.modes, { war: 2 });
+    const tower = await call("cards_card", {
+      card_id: TOWER.id,
+      segment: { clan_tag: "#2CRPCL9V" },
+      from: "2026-09-01",
+      to: "2026-09-02",
+      mode: "war",
+    });
+    assert.equal(
+      tower.members.played[0].battles,
+      3,
+      "tower identity includes every round",
+    );
+    assert.equal(tower.card.first_played.base, "2026-09-01T12:00:00.000Z");
+  } finally {
+    await db.query("rollback");
+  }
+});
+
 // --- 6.5.0: the archetype on every deck object, and the archetype filter --
 
 test("6.5.0: every deck object carries its archetype once the vocabulary is imported; the filter reads it; a name that is nothing refuses", async () => {

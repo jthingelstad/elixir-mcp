@@ -34,6 +34,8 @@ Elixir keeps the card catalog, your observed card inventory, the cards on each b
 
 For a clan, `members.played` lists current members who played the card in the requested window, with battle counts, wins/losses, levels and forms. A duel contributes each recorded round. `members.held` lists observed inventory with `observed_at` and `since`; missing inventory is unknown. Membership is current at the time of the call, including members' earlier games. The window defaults to the current season; `season`, `from`/`to` and `mode` can narrow the played list. `first_played` spans the whole selected history. Compact verbosity drops the member lists.
 
+Card history reads use the selected players' recorded games before looking up card details. Repeated decks still contribute every played game and duel round; they share one earliest-play lookup for each card form.
+
 ## Which tool for which card question
 
 | question | tool |
