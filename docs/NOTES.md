@@ -2482,8 +2482,100 @@ transitional, including Drop's enrollment; their separate consumer cutover
 has not shipped. Meta/recommendation removal, full Clan consolidation and the
 reviewed database/S3 purge remain pending.
 
-Validation and production receipt will be appended after the gates and
-cutover. No history deletion is included in this change.
+Runtime PR #218 merged on green `validate`; deployed main
+`9ca9fe0e56ee1614d16685e0c44e50f07feb7bbc`. `npm run verify` passed,
+the merged site built, and Playwright passed 57 Elixir and 15 Clan journeys.
+CloudFormation lint had no errors; its two warnings (Postgres 17 deprecation
+metadata and an SNS action) reproduce on the prior main template.
+
+Production receipt: CloudFormation `UPDATE_COMPLETE` at
+2026-10-02T14:23:12.298Z (the stack's event, not its update-start time),
+schema 195 already applied, zero migrations run, contract 9.20.0 on
+`/tools.json`. All 43 deployment smoke checks passed. The eight editorial
+schedule/permission resources are absent from the deployed stack.
+
+Under the session lease, preview traversed 1,028 active recording subjects:
+956 would stop, 72 would remain. Apply matched in six bounded batches
+(200, 200, 200, 200, 200, 28), disabled 302 board configurations and stopped
+956 recordings. No obsolete queued/leased/dead jobs remained to consume;
+every batch reported `retired_jobs_pending: false`. Repeat preview checked
+the remaining 72, stopped zero, and returned `done: true`. No game facts,
+membership provenance, historical boards or S3 payloads were deleted.
+
+Read-back at 2026-10-02T14:53:29.138Z: public health healthy, last admission
+36 seconds ago, five active collectors, zero queued or leased jobs, zero
+dead jobs and zero DLQ messages. Due work was player/profile and battlelog
+reads. This proves continuing capture, not a user-capacity estimate: the
+fleet still shares one 1 request/second budget.
+
+The prior orphan lease was cleared only after verifying its chat was
+interrupted, its worktree absent, the stack settled, and migrate's backend
+read showed no active work. A shared Codex process PID was not treated as
+proof the former session was still running. The new session lease covers
+this deploy and bounded cutover only.
+
+Full production acceptance was **red**: 1,189 cases, 15 counted failures,
+58 skips, 789 distinct calls. It was not repeated wholesale or relabelled
+green. Each failure has this verdict:
+
+- `budgets/clans_participation`: 16,065 ms against 8,000; alone 16,127 ms.
+  Open performance defect on the retained clan tool, not a flake. Keep
+  its ceiling and repro unchanged; carry it into the Clan consolidation.
+- `gym/154.2`: corpus `cards_synergy` query timeout; alone passed in
+  17,709 ms. File the timeout/jitter here; the global corpus path is
+  explicitly pending retirement, not optimized or exempted by this phase.
+- `gym/183.3`: old Hunter/current-clan fixture was present before cutover;
+  after cutover its clan is no longer recorded and the read correctly
+  refuses `not_recorded`. Live fixture no longer applicable; retain the
+  case until the badge/corpus retirement reviews its replacement coverage.
+- `gym/185.4`: the same formerly active Hunter appeared in the corpus;
+  after the authorized cutover the control passes alone (2,661 ms).
+  Control preserved unchanged.
+- `gym/285.2`, `gym/304.1`: different live read moments, as at 9.12.8;
+  both pass alone (16,372 and 3,869 ms). File the comparison race here,
+  leave assertions and tolerances unchanged.
+- `gym/337.1`: clan no longer recorded; repeats alone. Existing moved
+  live fixture (9.12.2/9.12.7), not a new roster regression. Preserve the
+  refusal rather than enroll a clan solely to make a test pass.
+- `gym/343.2`: old board-note live fixture still fails alone, as at
+  9.12.8. Pending history/tool retirement; no new `known` exemption.
+- `catalogue/badges_rarity#1`: 5,374 ms against 4,000; alone passes
+  (3,614 ms). Timing jitter filed here, ceiling unchanged.
+- `catalogue/cards_synergy#0`: 9,238 ms against 6,794; alone 12,496 ms.
+  Open corpus performance defect on a path pending retirement; no widened
+  budget and no claim this gate passed.
+- `catalogue/clans_participation#2`: 16,065 ms against 15,000; alone
+  passes (10,979 ms). The stricter budget case above remains open.
+- `catalogue/cards_archetype#docs`, `elixir_collectors#docs`: methodology
+  names `archetype_census` (operator op) and `submit_retry`/`retry_statuses`
+  (collector config), not MCP result fields. Allow their verified surface
+  names with reasons in `catalogue-allow.json`.
+- `catalogue/elixir_timeline#docs`: attested `previous_name`,
+  `previous_player_tag`, `previous_best` were absent in this window, but
+  are served by the conditional attested-fact path. Allow with reasons;
+  do not manufacture a private fact as a test.
+- `catalogue/war_history#notes`: sampled historical week had no periodLog
+  day rows; `end_of_day_rank` is real on populated days, pinned by scratch
+  war tests. Allow the conditional field with its reason.
+
+The five already-known historical snapshot/board-gap failures remain
+reported under their existing expiries. No new known-failure entry, deleted
+control, broadened timing ceiling or production test write was introduced.
+Narrow catalogue reruns answered all four groups and passed their notes
+checks, including `war_history#notes`. Their shared-doc checks cannot be
+used as a whole-suite green gate: they inspect the union of every response
+in the run, and selecting only one group omits fields from other tools
+(`bridge_spam`/`named_by`, collector `fetched_at`, other timeline kinds and
+war-current/participation fields). Those reduced-union failures were
+inspected; no further allowance was added to compensate for missing reads.
+Receipt verification initially hit a local Tailwind subprocess `SIGABRT`
+with empty stderr on the design-token test; its other three checks passed.
+The unchanged design suite passed all four alone. Filed as a local tooling
+flake here; no assertion, test or dependency was changed to make it pass.
+The first runtime cutover is live; these open performance/fixture items
+mean the full acceptance gate remains red. Collections/Drop enrollment,
+meta/recommendation removal, full Clan consolidation and reviewed historical
+database/S3 deletion remain separate unfinished stages.
 
 Cutover review tightened job cleanup to bounded `SKIP LOCKED` batches with an
 explicit remaining-work check. Fleet bulk admission holds the shared session

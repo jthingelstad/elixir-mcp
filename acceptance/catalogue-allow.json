@@ -41,11 +41,20 @@
     "training_today": "deprecated at 7.2.x (decks_today covers every race-week day); war_current serves it only on a training day, so a war-day run never sees it",
     "roster_and_war_only": "an activity basis served only for an activity-scope clan (members' logs not recorded); a run over recorded clans never sees it",
     "account_role_changed": "timeline: an account item written only when an admin changes the account's role; the suite's account has had none",
-    "card_form_unlocked": "timeline: a kind written only when a member of the suite's clan newly unlocks an Evolution or Hero form (9.14.0, going forward only); a run's window may hold none"
+    "card_form_unlocked": "timeline: a kind written only when a member of the suite's clan newly unlocks an Evolution or Hero form (9.14.0, going forward only); a run's window may hold none",
+    "archetype_census": "an operator-only migration read named by the archetypes methodology; not an MCP response field",
+    "submit_retry": "collector config transport policy, served by the collector door rather than MCP",
+    "retry_statuses": "same",
+    "previous_name": "on an attested award-standing timeline item only when first place changed hands",
+    "previous_player_tag": "same",
+    "previous_best": "on an attested personal-record timeline item only when a previous best is supplied"
   },
   "battles_query": {
     "king_tower_fell": "a VALUE of inferred.duration.basis, not a field; the note explains the three rules",
     "regulation_ran": "same",
     "overtime_expired": "same"
+  },
+  "war_history": {
+    "end_of_day_rank": "on days[].standings[] only when a recorded week holds API periodLogs; the sampled historical week can have no day rows"
   }
 }
