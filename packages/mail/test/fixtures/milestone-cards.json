@@ -20,8 +20,7 @@
     "name": "Royal Recruits",
     "form": "base"
    },
-   "card_line": "Common",
-   "next": null
+   "card_line": "Common"
   },
   {
    "kind": "card_unlocked",
@@ -40,8 +39,7 @@
     "name": "Balloon",
     "form": "base"
    },
-   "card_line": "Epic",
-   "next": null
+   "card_line": "Epic"
   },
   {
    "kind": "card_unlocked",
@@ -60,8 +58,7 @@
     "name": "Dark Prince",
     "form": "base"
    },
-   "card_line": "Epic",
-   "next": null
+   "card_line": "Epic"
   }
  ],
  "also": []

@@ -386,6 +386,56 @@ test("cards unlocked reach the mail as their art, each a link to its page; a for
   assert.match(html, /You unlocked three cards/);
 });
 
+test("the battle that did it links its page, the short id battles_query hands out", async () => {
+  const TAG = "#2RQQ9LG8";
+  const OPP = "#2PGQ8Y0L";
+  const id = await person("arena", TAG, "2026-09-01T00:00:00Z", null);
+  await db.query(
+    `insert into player (player_tag, name) values ($1, 'SparkSanji')`,
+    [OPP],
+  );
+  const BATTLE = `aad68079b0fa${"0".repeat(52)}`;
+  const at = "2026-09-24T17:00:00Z";
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class)
+     values ($1, $2, 'PvP', 'pvp')`,
+    [BATTLE, at],
+  );
+  await db.query(
+    `insert into battle_participant
+       (battle_id, player_tag, side, battle_time, outcome, type, type_class,
+        crowns, trophy_change, starting_trophies)
+     values ($1, $2, 0, $4, 'win', 'PvP', 'pvp', 1, 29, 1992),
+            ($1, $3, 1, $4, 'loss', 'PvP', 'pvp', 0, -29, 1991)`,
+    [BATTLE, TAG, OPP, at],
+  );
+  await db.query(
+    `insert into player_event
+       (player_tag, event_type, timing, window_start, window_end,
+        arena_from, arena_to, arena_to_name, battle_id)
+     values ($1, 'arena_changed', 'exact', $2, $2, 10, 11, 'Royal Arena', $3)`,
+    [TAG, at, BATTLE],
+  );
+  const { enqueue, out } = sink();
+  const r = await runEmail({
+    db,
+    kind: "milestone",
+    now: new Date("2026-09-24T17:20:00Z"),
+    enqueue,
+    secret: "s",
+    accountId: id,
+  });
+  assert.equal(r.sent, 1, JSON.stringify(r));
+  const { html } = out[0];
+  assert.match(html, /The battle that did it/);
+  assert.match(html, /SparkSanji/);
+  assert.match(
+    html,
+    /href="https:\/\/elixir\.poapkings\.com\/battle\/aad68079b0fa\?[^"]*"[^>]*>See the battle ›/,
+  );
+  assert.match(html, /\/ladder\?player=2RQQ9LG8/);
+});
+
 test("the milestone window reaches back to the last clean look, never more than seven days", () => {
   const now = new Date("2026-09-21T15:20:00Z");
   const h = 3600_000;

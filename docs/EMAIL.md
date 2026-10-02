@@ -614,7 +614,10 @@ estimated, and listed in `docs/NOTES.md` for the week.
   stay one issue for every reader.
 - **Your week in the Arena:** a tile per mode family, the most-played
   deck as a strip (`featuredDeck`), opponents with repeats, a line per
-  alt.
+  alt. Its button opens the primary's season on Ladder
+  (`/ladder?player=<tag>`) and the deck links Ladder › Decks (since
+  2026-10-02; Ladder reads only the reader's own players, so the
+  friends report keeps the console's record pages).
 - **Your friends this week:** a card per friend, then the busiest
   watched players, ten in all (`CARD_CAP`): `battles_performance` per
   mode family, two moments, the most-played deck from `battles_decks`.
@@ -627,7 +630,12 @@ estimated, and listed in `docs/NOTES.md` for the week.
 - **Milestone:** the arena or league large, with the battle that did it
   from the moment's own `promoted_by`; cards unlocked as tiles of their
   art linking `/cards/<id>`. `instant` rides beside the old `at` label
-  so the subtitle names the day and date in the reader's zone.
+  so the subtitle names the day and date in the reader's zone. Since
+  2026-10-02 the battle carries `url`, its `/battle/<short id>` page
+  from `battleLinks` (`@elixir-mcp/record/battle-links`, the read
+  `battles_query` uses), shown as "See the battle"; the button opens the
+  player on Ladder. The empty "Next:" line (the builder always wrote
+  `next: null`) is gone.
 - **Clan actions waiting:** one box per line the app wrote, its "(new)"
   a chip, the app's "And N more." counted into the title.
 - **Card of the Week:** the form's art at 130 beside the base card, from

@@ -780,6 +780,56 @@ test("a milestone that a battle did names the battle: the opponent, the score, t
   );
 });
 
+test("the battle that did it opens its page, and a stored issue without the link still renders", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "milestone.json"), "utf8"),
+  );
+  const { url } = facts.milestones[0].battle;
+  assert.equal(url, "https://elixir.poapkings.com/battle/aad68079b0fa");
+  const { html } = renderMail("milestone", facts, links);
+  assert.match(
+    html,
+    /<a href="https:\/\/elixir\.poapkings\.com\/battle\/aad68079b0fa\?utm_source=email[^"]*"[^>]*>See the battle ›<\/a>/,
+  );
+  // The button opens the player's own season on Ladder.
+  assert.match(html, />Open Big Thing in Ladder</);
+  assert.match(
+    html,
+    /href="https:\/\/elixir\.poapkings\.com\/ladder\?player=VJG0J29QP&amp;utm_source=email/,
+  );
+  delete facts.milestones[0].battle.url;
+  const old = renderMail("milestone", facts, links).html;
+  assert.match(old, /The battle that did it/);
+  assert.doesNotMatch(old, /See the battle/);
+});
+
+test("the Arena week opens Ladder: the season, and every deck on Ladder › Decks", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "arena_week.json"), "utf8"),
+  );
+  const { html } = renderMail("arena_week", facts, links);
+  assert.match(html, />Open King Thing in Ladder</);
+  assert.match(
+    html,
+    /href="https:\/\/elixir\.poapkings\.com\/ladder\/decks\?player=20JJJ2CCRU&amp;utm_source=email[^"]*"[^>]*>Ladder › Decks<\/a>/,
+  );
+  assert.doesNotMatch(html, /in the console</);
+});
+
+test("the written kinds' footers name the switch, not the masthead", () => {
+  for (const [kind, name] of [
+    ["top_100", "the Top 100"],
+    ["card_of_week", "Card of the Week"],
+  ]) {
+    const facts = JSON.parse(
+      readFileSync(path.join(fixtures, `${kind}.json`), "utf8"),
+    );
+    const { html } = renderMail(kind, facts, links);
+    assert.ok(html.includes(`Turn off ${name}<`), `${kind}: Turn off ${name}`);
+    assert.doesNotMatch(html, /Turn off Ultimate Champions/);
+  }
+});
+
 test("each collector is its card, with what it is doing now", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "collector_activity.json"), "utf8"),

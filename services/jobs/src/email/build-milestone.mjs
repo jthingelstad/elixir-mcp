@@ -7,6 +7,7 @@
  *  Bundled: everything new since the last look goes in one mail. */
 import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
+import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { formLabel, itemText } from "@elixir-mcp/tools/activity/summary";
 import { myPlayers } from "./shared.mjs";
 import { whenLabel } from "./week.mjs";
@@ -59,7 +60,8 @@ export function momentKey(kind, f) {
 
 /** The battle that did it, from the moment's own payload (the ingest
  *  stamped it when the moment was written): the score, who it was
- *  against and where they started, the trophies it moved. */
+ *  against and where they started, the trophies it moved. Its page's
+ *  link is added once the issue's battles are known (battleLinks). */
 function promotingBattle(b) {
   if (!b || b.crowns == null) return null;
   return {
@@ -253,8 +255,16 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
     // reader's zone ("Tue Sep 29, 7:53 pm").
     instant: m.at,
     ...card(m.kind, m.facts, m.subject, m.at, tz),
-    next: null,
   }));
+  // Each battle that did it gets its public page, /battle/<short id>:
+  // the same link battles_query hands an agent (9.18.0).
+  const links = await battleLinks(
+    db,
+    milestones.map((m) => m.battle?.battle_id),
+  );
+  for (const m of milestones)
+    if (m.battle?.battle_id)
+      m.battle.url = links.get(m.battle.battle_id)?.url ?? null;
   const rest = news.filter(
     (m) => !(lead.length ? lead : news.slice(0, 3)).includes(m),
   );

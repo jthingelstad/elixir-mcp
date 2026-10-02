@@ -91,6 +91,11 @@ const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
 const playerUrl = (tag) => `${SITE}/console/explore/player/${tagPath(tag)}`;
 const clanUrl = (tag) => `${SITE}/console/explore/clan/${tagPath(tag)}`;
+// Ladder, a player's own season (apps/web pages/LadderPage.jsx):
+// `?player=` names one of the reader's own players, so only the Arena
+// week and Milestones, which are about the reader's own, link it.
+const ladderUrl = (tag, page = "") =>
+  `${SITE}/ladder${page ? `/${page}` : ""}?player=${tagPath(tag)}`;
 // The console's record of one sent email (apps/web views/account/
 // EmailRecord.jsx) and its list (views/Activity.jsx, Emails). The
 // footer links the record by its id, and with ?report=1 the record
@@ -212,7 +217,7 @@ function make(
   // ({size, color, mb, extra}).
   const p = (html, opt = "") =>
     parts.p(html, typeof opt === "string" ? { extra: opt } : opt);
-  const { h2, small, box, rows } = parts;
+  const { h2, small, box, rows, link } = parts;
   const h3 = (html) =>
     `<div style="font-family:${FONT};font-size:15.5px;font-weight:700;color:${M.ink};margin:18px 0 6px;">${html}</div>`;
   // Tiles: a row of up to three (the boards' row), four as two by two.
@@ -311,6 +316,7 @@ function make(
     cov,
     box,
     rows,
+    link,
     shell,
     day,
     days,
@@ -401,7 +407,7 @@ function arena(f, c) {
   const notes = (pr.modes ?? []).filter((m) => m.note);
   const war = fams.find((m) => m.mode === "war");
   const deck = pr.deck
-    ? `${c.h2(`Your ${FAMILY_LABEL[pr.deck.family] ?? "main"} deck`)}${deckBox(pr.deck, c)}`
+    ? `${c.h2(`Your ${FAMILY_LABEL[pr.deck.family] ?? "main"} deck`)}${deckBox(pr.deck, c)}${c.small(`Every deck of the season, each in the mode it was played in, is in ${c.link(ladderUrl(pr.tag, "decks"), "Ladder › Decks")}.`)}`
     : "";
   const warLine = war
     ? c.p(
@@ -451,7 +457,7 @@ function arena(f, c) {
     ${deck}${warLine}
     ${met}
     ${alts}
-    ${c.button(`Open ${pr.name} in the console`, playerUrl(pr.tag))}
+    ${c.button(`Open ${pr.name} in Ladder`, ladderUrl(pr.tag))}
     ${c.cov(esc(pr.coverage))}`;
   const subjectRecords = fams.length
     ? fams
@@ -971,7 +977,8 @@ function top100(f, c) {
         subtitle: `${esc(f.strap)} · ${esc(f.issue.label)} · Season ${f.issue.season}, day ${f.issue.day_of_season}`,
         preheader,
         body,
-        turnOff: f.masthead,
+        // The switch's name, not the masthead's (still a placeholder).
+        turnOff: "the Top 100",
         links,
       }),
   };
@@ -1071,7 +1078,7 @@ function cardOfWeek(f, c) {
         subtitle: "",
         preheader,
         body,
-        turnOff: f.masthead,
+        turnOff: "Card of the Week",
         links,
       }),
   };
@@ -1222,8 +1229,7 @@ function milestone(f, c) {
       `${ms.length > 1 ? `<div style="font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${M.faint};margin-bottom:6px;">${esc(m.headline)}</div>` : ""}
       ${m.big ? `<div style="font-family:${FONT};font-size:28px;font-weight:800;line-height:1.15;color:${M.ink};">${esc(m.big)}</div>` : ""}
       ${m.big_label ? `<div style="font-family:${FONT};font-size:13.5px;line-height:1.5;color:${M.muted};margin-top:4px;">${esc(m.big_label)}</div>` : ""}
-      ${m.lines?.length ? c.list(m.lines.map(esc)) : ""}
-      ${m.next ? c.small(`<strong style="color:${M.muted};">Next:</strong> ${esc(m.next)}`) : ""}`,
+      ${m.lines?.length ? c.list(m.lines.map(esc)) : ""}`,
       { pad: "16px", mt: 12 },
     );
   const battle = (b) => {
@@ -1237,8 +1243,13 @@ function milestone(f, c) {
       b.trophy_change != null && b.trophy_change !== 0
         ? ` ${signed(b.trophy_change)} trophies.`
         : "";
+    // Its page, /battle/<short id>, once the record named one (an
+    // issue stored before 2026-10-02 has none).
+    const page = b.url
+      ? `<div style="font-family:${FONT};font-size:13.5px;margin-top:8px;">${c.link(b.url, "See the battle ›", "font-weight:600;")}</div>`
+      : "";
     return `${c.h2("The battle that did it")}${c.box(
-      `<div style="font-family:${FONT};font-size:14.5px;line-height:1.5;color:${M.muted};"><strong style="color:${M.ink};">${b.won ? "Won" : "Lost"}${score}</strong>${against}.${moved}</div>`,
+      `<div style="font-family:${FONT};font-size:14.5px;line-height:1.5;color:${M.muted};"><strong style="color:${M.ink};">${b.won ? "Won" : "Lost"}${score}</strong>${against}.${moved}</div>${page}`,
     )}`;
   };
   const tiles = cards.length
@@ -1267,7 +1278,7 @@ function milestone(f, c) {
   const body = `${others.map((m) => `${big(m)}${battle(m.battle)}`).join("")}
     ${tiles}
     ${also}
-    ${c.button(`Open ${first.subject.name} in the console`, playerUrl(first.subject.tag))}
+    ${c.button(`Open ${first.subject.name} in Ladder`, ladderUrl(first.subject.tag))}
     ${c.cov("Milestones come from the record as it is polled, usually within the hour. A move down never mails; only firsts do.")}`;
   const more = ms.length - 1;
   const preheader =

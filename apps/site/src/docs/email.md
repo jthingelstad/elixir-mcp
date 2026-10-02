@@ -18,13 +18,15 @@ product's mail, and all eight are **a switch on your account page**
 issue and one-click unsubscribe in mail clients that support it. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
-Five of the eight are **reports**: structured, built from your record
-by the same readers the tools answer with, no language model anywhere
-in them. Every number is the number a tool would give you, and every
-one of them carries the coverage note the tools carry, because a report
-that hides a gap in the record is a report that lies. The other two,
-the Top 100 and Card of the Week, are **written** pieces, and the one
-place a model writes for Elixir; how they are kept honest is below.
+Four of the eight are weekly **reports**, and the milestone note is
+built the same way: structured, built from your record by the same
+readers the tools answer with, no language model anywhere in them.
+Every number is the number a tool would give you, and every one of
+them carries the coverage note the tools carry, because a report that
+hides a gap in the record is a report that lies. Two, the Top 100 and
+Card of the Week, are **written** pieces, and the one place a model
+writes for Elixir; how they are kept honest is below. The last, Clan
+actions waiting, carries Elixir Clan's own words about your clan.
 
 ## The week
 
@@ -40,13 +42,13 @@ notes are exempt: they come as the moments do.
 | Day | Kind | What it is |
 |---|---|---|
 | Monday | **Clan report** | Your clan's week: the war result if a war week closed (the clan's place, fame and war trophies, the race as it finished, the top five who raced and your own players), who joined and left and when, who has gone quiet, and the week in battles, promotions, new bests and donations, with a link to the roster. One report per clan you track, the same one to every member who tracks it, with its days named in your own timezone and your own players marked *you*. |
-| Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the deck you played most drawn card by card, who you faced and who came round more than once, and a line for each alt. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
+| Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the deck you played most drawn card by card, who you faced and who came round more than once, and a line for each alt. It links your season on [Ladder](/docs/ladder), and every deck of it on Ladder's Decks. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
 | Wednesday | **Your friends this week** | How everyone you follow played: a card each for your friends and the busiest players you watch (their battles in each mode, a moment or two, the deck they played most), with you and your clans in a line each. It is the [timeline](/docs/timeline) for the week, rendered. Until October 2026 it was called the Tracking report; your switch for it carried over. |
 | Thursday | **Top 100** | One issue for everyone: a read of the global Path of Legends top 100 over the week that ended at that morning's board. Forward it to anyone who would enjoy it. |
 | Friday | **Card of the Week** | One card the record has something to say about, read in full: how much it is played and how often it wins, where it gets played, who plays it best, what it travels with, and the decks carrying it. One issue for everyone. Forward it to someone who runs that card. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, whether it is checking in, silent or stopped, its fetches this week and points to date; how much the edge filter saved, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
 | Mornings | **Clan actions waiting** | From [Elixir Clan](https://elixir.poapkings.com/clan), one of the Elixir family's apps: after its morning run, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Elixir Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
-| As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked, an Evolution or Hero form unlocked. A new arena or league comes with the battle that did it; a card comes as its art. Checked hourly; everything new since the last note rides together. |
+| As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked, an Evolution or Hero form unlocked. A new arena or league comes with the battle that did it and a link to [that battle's page](/docs/battles#a-battles-page); a card comes as its art. Checked hourly; everything new since the last note rides together. |
 
 ## Milestones are firsts
 

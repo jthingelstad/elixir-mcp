@@ -2132,3 +2132,34 @@ ratchet ceiling is left for whoever lands last to lower. Journeys:
 
 Left for Jamie: the board names the Thursday kind "Ultimate Champions";
 the page keeps the API's "Top 100" until the masthead name is decided.
+
+## 2026-10-02 - Battle links and Ladder in the mail (email redesign, part 4)
+
+The milestone's "The battle that did it" now links the battle's page.
+`buildMilestone` passes the issue's `promoted_by` battle ids through
+`battleLinks` (`@elixir-mcp/record/battle-links`, the read battles_query's
+`url` uses since 9.18.0) and stores `battle.url` in the facts, so a
+re-render of the stored issue keeps the same short id even after a later
+battle comes to share its first twelve characters. An issue stored
+before today has no `url` and renders without the link.
+
+Ladder has pages now, so the two kinds about the reader's own players
+link it: the Arena week's button opens the primary's season
+(`/ladder?player=<tag>`) and its deck links Ladder › Decks; the
+milestone's button opens that player's season. Ladder never reads a
+tag that is not the reader's, so the friends report and the clan
+report keep the console's record pages for names.
+
+From Track C's review: the Top 100 footer read "Turn off Ultimate
+Champions", the masthead placeholder. Both written kinds now name the
+switch ("the Top 100", "Card of the Week"), whatever the masthead
+becomes. The milestone's "Next:" line was never filled (the builder
+wrote `next: null` since the first version), so it is removed rather
+than invented. email.md said "Five of the eight are reports" against
+its own "four weekly reports"; it now counts four weekly reports, the
+milestone note built the same way, two written pieces and Clan's note.
+
+Still left out: the milestone board's two decks under the battle (the
+battle page's read lives in web-api's `battle-page.mjs`; the jobs
+service would need it in a shared package first), and the Arena board's
+"Battles worth a look" (no tool picks a closest win or a war duel).
