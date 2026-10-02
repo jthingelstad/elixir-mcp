@@ -708,7 +708,12 @@ read), awards (read; grant what elders may), scout. Everyone in the clan,
 once there is an active policy: Actions (their own), Standing ("How it works
 here" and their own line, plus where everyone stands when Elder is ranked
 and `members_see_standing` is on) and Trophies. Nobody below co-leader ever
-sees a removal action or who is on a clock.
+sees a removal action or who is on a clock. Standing's response carries
+what Elder weighs (`weights`, the shares "How it works here" states in
+words) and, when the clan counts war, each line's war decks per race over
+the policy's war window (`war`: decks out of decks asked, the numbers The
+week already shows everyone); it never carries a score, a rank or the slot
+count, and its rows stay behind the same switch.
 
 ## What is stored, second push
 

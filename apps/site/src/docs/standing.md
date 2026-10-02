@@ -93,12 +93,15 @@ Once the clan has a policy, every member's **Standing** page shows:
   rules, and what newcomers can expect.
 - **Their own line**: where they stand, the evidence in a player's
   terms ("100% war decks over 4 war weeks, 12 ranked battles, ~213
-  donations a week"), what would move them, the days since their last
-  battle, and any hold a leader has set.
+  donations a week"), their war decks race by race when the clan counts
+  war, what would move them, the days since their last battle, and any
+  hold a leader has set.
 
 When the clan ranks Elder and the policy lets members see where everyone
 stands (on unless the leaders turn it off), the page also lists every
-member and Elder in one of five groups, each with their own evidence:
+member and Elder in one of five groups, each with their own evidence
+and, when the clan counts war, their war decks in each race of the
+clan's war window, out of the decks asked:
 
 | Group | Who |
 |---|---|

@@ -194,24 +194,66 @@ export function signedIn(
         freshness_seconds: 300,
         policy_version: 1,
         ranks_elder: true,
+        weights: [
+          { key: "war", label: "Clan Wars", share: 0.55 },
+          { key: "donations", label: "Donations", share: 0.3 },
+          { key: "ranked", label: "Ranked play", share: 0.15 },
+        ],
         how: [
           {
             key: "elder",
             title: "Elder",
-            lines: ["Elder is earned by participation: Clan Wars 100%."],
+            lines: [
+              "Elder is earned by participation, compared across the clan's members and Elders: Clan Wars 55%, Donations 30% and Ranked play 15%.",
+            ],
           },
         ],
         rows: [
           {
-            player_tag: "#UQ8LP2R9C",
-            name: "Ben",
+            player_tag: "#C1",
+            name: "Cy",
+            role: "elder",
             status: "holding",
-            evidence: "100% war decks over 4 war weeks",
+            evidence: "100% war decks over 3 war weeks",
+            war: [
+              { season_id: 135, section_index: 4, decks: 16, decks_asked: 16 },
+              { season_id: 136, section_index: 0, decks: 12, decks_asked: 12 },
+              { season_id: 136, section_index: 1, decks: 16, decks_asked: 16 },
+            ],
+          },
+          {
+            player_tag: "#M1",
+            name: "Zed",
+            role: "member",
+            status: "rising",
+            evidence: "90% war decks over 3 war weeks",
+            war: [
+              { season_id: 135, section_index: 4, decks: 12, decks_asked: 16 },
+              { season_id: 136, section_index: 0, decks: 12, decks_asked: 12 },
+              { season_id: 136, section_index: 1, decks: 16, decks_asked: 16 },
+            ],
+          },
+          {
+            player_tag: "#D1",
+            name: "Dee",
+            role: "member",
+            status: "quiet",
+            evidence: "",
+            war: [
+              { season_id: 135, section_index: 4, decks: 0, decks_asked: 16 },
+              { season_id: 136, section_index: 0, decks: 4, decks_asked: 12 },
+              { season_id: 136, section_index: 1, decks: 0, decks_asked: 16 },
+            ],
           },
         ],
         you: {
           status: null,
-          evidence: "100% war decks over 4 war weeks",
+          evidence: "100% war decks over 3 war weeks",
+          war: [
+            { season_id: 135, section_index: 4, decks: 16, decks_asked: 16 },
+            { season_id: 136, section_index: 0, decks: 12, decks_asked: 12 },
+            { season_id: 136, section_index: 1, decks: 16, decks_asked: 16 },
+          ],
           next: [],
           inactivity: null,
         },

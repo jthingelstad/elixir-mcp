@@ -1460,3 +1460,57 @@ Left out of the canvas, with the reason:
 - **Member names as links**: there is no member page every member may
   open.
 
+
+## 2026-10-01 — The redesign, slice 3: Standing
+
+Standing drawn to the "Clan, standing" board. Who sees what is unchanged:
+"How it works here" and your own line for everyone once a policy is
+active, where everyone stands only when Elder is ranked and
+`members_see_standing` is on (a leader always), and never a removal or a
+clock below co-leader.
+
+- **Head**: the shared page head (Clan › the clan › Standing) with the
+  board's lede and the read's freshness.
+- **How it works here** on the left: a `policy vN` chip, what Elder
+  weighs as bars (the policy's own shares, the same ones its Elder
+  sentence states), then every section in a member's words. A leader
+  gets "Read the policy in full ›" to the Policy page.
+- **You** under it: your name, your group (or your role, for leaders,
+  who are not banded), your war decks per race as a spark with "N of M",
+  the evidence, the next steps, and the inactivity and hold notices as
+  before; its foot names the races the spark covers.
+- **The groups** on the right, each its own panel with a tone bar, a
+  count and what the group means: Holding Elder, Slipping ("Elders
+  falling short of what the policy keeps", not the board's "leaders see
+  a card": the word is action, and members need not be told what
+  leaders are shown), Rising, Participating (opens closed, the clan's
+  middle) and Quiet. A group over six opens at five with "Show all N";
+  your own row always shows.
+- The footnote adds what the bars are and that leaders and co-leaders
+  are not banded.
+
+The API adds `weights` (what Elder weighs, from `elderWeights`, heaviest
+first; null when Elder is not ranked) and `war` on each row and on `you`
+(the evaluation's `facts.war.detail`: decks and decks asked per race over
+the policy's war window; null when the clan does not count war). Both are
+numbers members already see: the weights in "How it works here", the
+decks on The week. The kit gains `Spark` (a count out of a whole per
+period, said in words for a screen reader) and `.chip--mute`. Inline
+styles 162 → 156.
+
+Left out of the canvas, with the reason:
+
+- **The donations and ranked lines in You** ("517 · 386 · 400 · 370",
+  "no Path of Legends battles in five weeks"): the evaluation keeps a
+  donation average and a ranked total over each window, not a week-by-
+  week series, and the evidence sentence already says both.
+- **"Race 136/3 starts its war days Thursday"**: Standing reads no live
+  race.
+- **"How Elder works, for everyone"**: Clan has no public pages.
+- **"Reviewed Monday"** in the head and the board's "reviewed on Monday
+  and shared on Tuesday": the review day is not a fact every clan's
+  policy shares, so the head keeps the read's own freshness.
+- **A row as a link**: there is no member page every member may open.
+- **A race the record could not read** is missing from a member's spark
+  rather than drawn as a dash: the evaluation leaves an unread week out of
+  its detail. The kit's `Spark` draws a dash for one when a caller has it.

@@ -257,7 +257,14 @@ const clanRoute = createRoute({
         />
       );
     if (parsed.section === "standing")
-      return <Standing key={clan.clan_tag} clan={clan} who={who} />;
+      return (
+        <Standing
+          key={clan.clan_tag}
+          clan={clan}
+          who={who}
+          navigate={navigate}
+        />
+      );
     if (parsed.section === "trophies")
       return <Trophies key={clan.clan_tag} clan={clan} who={who} />;
     if (parsed.section === "recruit")
