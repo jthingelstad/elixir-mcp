@@ -8,10 +8,10 @@ import { CLAN } from "../lib/base.js";
 export const REFUSALS = {
   not_a_person: {
     title: "That was an agent's connection, not yours",
-    body: "Elixir Clan signs people in. The consent you gave was for an agent or integration door, and an agent has no player to be here as.",
-    action: "Sign in again and consent as yourself, on the personal door.",
+    body: "Elixir Clan signs people in. An agent or integration credential cannot open the personal clan dashboard.",
+    action: "Sign in to Elixir as yourself.",
     link: [ELIXIR_LINKS.connectionsDocs, "Users, agents and integrations"],
-    retry: "/api/clan/auth/login",
+    retry: "/console/signin",
   },
   no_primary_player: {
     title: "Add your player in Elixir",

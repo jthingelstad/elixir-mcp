@@ -691,24 +691,22 @@ test("every public read is cached at the edge by one /api/public/* behaviour (re
   assert.doesNotMatch(block, /OriginRequestPolicyId/);
 });
 
-test("Clan routing preserves the isolated legacy door until the shared session is explicitly enabled", async () => {
+test("Clan always uses the shared account door and never falls back to the retired runtime", async () => {
   const template = await readFile(templateUrl, "utf8");
   const behaviours = cacheBehaviours(template);
   const paths = behaviours.map(([p]) => p);
   assert.ok(paths.includes("/api/clan/*"));
   assert.ok(paths.indexOf("/api/clan/*") < paths.indexOf("/api/*"));
   const [, block] = behaviours.find(([p]) => p === "/api/clan/*");
-  assert.match(
-    block,
-    /TargetOriginId: !If \[HasInternalClan, api, clanapi\]\n/,
-  );
-  assert.match(
-    block,
-    /OriginRequestPolicyId:\s*!If \[\s*HasInternalClan,\s*!Ref SiteApiOriginRequestPolicy,\s*!Ref ClanApiOriginRequestPolicy,/,
+  assert.match(block, /TargetOriginId: api\n/);
+  assert.match(block, /OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy/);
+  assert.doesNotMatch(
+    template,
+    /ClanApiOriginRequestPolicy|ClanApiDomain|Id: clanapi|Id: clanweb/,
   );
   assert.match(
     resource(template, "ClanInternal", "ClanModelSecretName"),
-    /Default: "false"/,
+    /Default: "true"/,
   );
   const shared = resource(
     template,
@@ -723,13 +721,6 @@ test("Clan routing preserves the isolated legacy door until the shared session i
     "SecurityHeadersPolicy",
   );
   assert.match(external, /CookieBehavior: none/);
-  const start = template.indexOf("  ClanApiOriginRequestPolicy:");
-  const policy = template.slice(start, template.indexOf("\n\n", start));
-  assert.match(
-    policy,
-    /Cookies: \[__Host-elixir_clan_session, __Host-elixir_clan_login\]/,
-  );
-  assert.doesNotMatch(policy, /elixir_session|CookieBehavior: all/);
   // The app takes two patterns, never /clan*, which would take /clans.
   assert.deepEqual(
     paths.filter((p) => p.startsWith("/clan")),

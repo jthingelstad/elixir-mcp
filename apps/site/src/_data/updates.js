@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Clan is part of Elixir",
+    body: "Your Elixir sign-in now opens your record and clan tools in one application. Clan policies, actions, awards, preferences and private records were transferred and checked in full. The separate Clan sign-in and service key are retired; Drop keeps Elixir authentication and authorized account access. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "Completing the board recorder retirement",
     body: "The old board updater credential has a separate retirement check that preserves the account and its other connections. Live-read documentation now describes only the personal and clan recorder. Global game history still awaits the reviewed purge. Contracts unchanged.",
   },

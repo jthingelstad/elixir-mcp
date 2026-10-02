@@ -3,8 +3,8 @@
   "ignoreBinaries": ["ssh-keygen"],
   "workspaces": {
     ".": {
-      "entry": ["infra/scripts/*.mjs", "clan/scripts/*.mjs"],
-      "project": ["infra/scripts/**/*.mjs", "clan/scripts/**/*.mjs"]
+      "entry": ["infra/scripts/*.mjs"],
+      "project": ["infra/scripts/**/*.mjs"]
     },
     "apps/site": {
       "entry": ["src/_data/*.js", "test/**/*.test.mjs"],
@@ -97,19 +97,6 @@
     "services/web-api": {
       "entry": ["src/index.mjs", "test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
-    },
-    "clan/apps/web": {
-      "entry": ["scripts/*.mjs"],
-      "project": ["src/**/*.{js,jsx}", "scripts/**/*.mjs"],
-      "ignoreDependencies": ["tailwindcss", "@elixir-mcp/design"]
-    },
-    "clan/services/api": {
-      "entry": ["src/index.mjs", "test/**/*.test.mjs"],
-      "project": ["src/**/*.mjs", "test/**/*.mjs"]
-    },
-    "clan/infra": {
-      "entry": ["scripts/*.mjs", "tests/**/*.test.mjs"],
-      "project": ["scripts/**/*.mjs", "tests/**/*.mjs"]
     },
     "packages/clan-state": {
       "entry": ["test/**/*.test.mjs"],

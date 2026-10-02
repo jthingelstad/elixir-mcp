@@ -22,15 +22,8 @@ const PRODUCT = [
   "packages/clan-engine/test",
   "packages/clan/src",
   "packages/clan/test",
-  "clan/services/api/src",
-  "clan/services/api/test",
-  "clan/apps/web/src",
   "packages/clan-web/src",
   "packages/clan-web/test",
-  "clan/apps/web/index.html",
-  "clan/infra/template.yaml",
-  "clan/infra/scripts",
-  "clan/scripts",
 ];
 // Tests too (2026-09-26: a standings test used one clan's award names and
 // members' names, in a public repo): case-insensitive names, award ids in

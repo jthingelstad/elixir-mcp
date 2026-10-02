@@ -1554,7 +1554,6 @@ export const routeTree = rootRoute.addChildren([
   battleRoute,
   ladderRoute,
   createClanRoutes(rootRoute, {
-    sharedSession: true,
     SharedChrome: SharedClanChrome,
     rememberAfterSignIn,
   }),

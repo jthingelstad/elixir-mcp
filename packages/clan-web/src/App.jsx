@@ -16,11 +16,8 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import {
-  Chrome as ChromeBar,
-  FAMILY_PRODUCTS,
   Disclaimer,
   ErrorBoundary,
-  Icon,
   Rail as RailList,
   RailIdentity,
 } from "@elixir-mcp/ui";
@@ -44,13 +41,6 @@ import { YouHere } from "./views/YouHere.jsx";
 import { Week } from "./views/Week.jsx";
 import { VerifyNotice } from "./views/VerifyNotice.jsx";
 import { ELIXIR_LINKS } from "./lib/links.js";
-import {
-  rememberNext,
-  tabStore,
-  takeNext,
-  useAutoSignIn,
-} from "./lib/auto-signin.js";
-
 // The clan map brings Leaflet and the place lists: loaded when opened.
 const ClanMap = lazy(() =>
   import("./views/ClanMap.jsx").then((m) => ({ default: m.ClanMap })),
@@ -172,19 +162,10 @@ const SessionContext = createContext(null);
 const useSession = () => useContext(SessionContext);
 
 export function LandingPage() {
-  const { me, sharedSession } = useSession();
-  const search = window.location.search;
-  const error = new URLSearchParams(search).get("error");
-  // Signed in to Elixir already? Then Clan's sign-in starts by itself
-  // (lib/auto-signin.js) and the landing is only a line while it goes.
-  const auto = useAutoSignIn(
-    Boolean(!sharedSession && me && !me.signed_in),
-    search,
-  );
+  const { me } = useSession();
+  const error = new URLSearchParams(window.location.search).get("error");
   if (me === null || me.signed_in) return null;
-  if (!sharedSession && auto !== "landing")
-    return <p className="page__lede">Signing you in with Elixir…</p>;
-  return <Landing error={error} sharedSession={sharedSession} />;
+  return <Landing error={error} />;
 }
 
 export function ClansPage() {
@@ -343,81 +324,7 @@ export function MaintainPage() {
   );
 }
 
-/**
- * The top bar: the family's, exactly as elixir.poapkings.com draws it -
- * the logo and "Elixir" home to Elixir's front page (this origin's
- * root), the places with Clan lit green because this is Clan, routed
- * in-app, then Docs and Play Drop.
- *
- * The bar's shape never varies by session: its account slot is one
- * width, and Clan fills it from Clan's own session (`me`, from
- * /api/clan/me), never Elixir's. Empty while Clan asks; "Sign in",
- * leading to Clan's landing, signed out; signed in, the player you act
- * as (the star), your page, and Clan's own sign-out, a form post.
- */
-const PRODUCTS = FAMILY_PRODUCTS.map((p) =>
-  p.key === "clan" ? { ...p, href: CLAN } : p,
-);
-
-/** The account slot from Clan's session: undefined while unknown, null
- *  signed out, the person signed in. */
-export function clanAccount(me) {
-  if (!me || me.unavailable) return undefined;
-  if (!me.signed_in) return null;
-  const clan = me.selected ?? null;
-  return {
-    name: clan?.player_name ?? me.primary?.name ?? "Signed in",
-    detail: clan
-      ? `${clan.role_label ?? clan.role} · ${clan.name}`
-      : "with Elixir",
-    links: [
-      {
-        key: "you",
-        icon: "user-round",
-        label: "You",
-        hint: "what Clan read from Elixir",
-        href: `${CLAN}/you`,
-      },
-      {
-        key: "feedback",
-        icon: "message-square",
-        label: "Feedback",
-        href: `${CLAN}/feedback`,
-      },
-    ],
-    signOut: {
-      label: "Sign out",
-      note: "Ends this browser's Clan session. The Console keeps its own sign-in.",
-      action: "/api/clan/auth/logout",
-    },
-  };
-}
-
-function Chrome({ navigate, me }) {
-  const inApp = (to) => (e) => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
-      return;
-    e.preventDefault();
-    navigate(to);
-  };
-  const products = PRODUCTS.map((p) =>
-    p.key === "clan" ? { ...p, onClick: inApp(CLAN) } : p,
-  );
-  return (
-    <ChromeBar
-      home="/"
-      products={products}
-      current="clan"
-      account={clanAccount(me)}
-      signIn={{ label: "Sign in", href: CLAN, onClick: inApp(CLAN) }}
-    />
-  );
-}
-
-/** The left rail: Elixir's console structure carried over (Jamie,
- *  2026-09-12: "that is where we are going"). The kit's Rail, fed what
- *  this person may see (lib/rail.js) and the clan they are in. */
-export function Rail({ me, path, navigate, narrow, sharedSession = false }) {
+export function Rail({ me, path, navigate, narrow }) {
   const clan = me?.selected ?? null;
   return (
     <RailList
@@ -454,40 +361,13 @@ export function Rail({ me, path, navigate, narrow, sharedSession = false }) {
               "with Elixir"
             )
           }
-          action={
-            sharedSession ? null : (
-              // Signing out is a form post, as it always was here: an
-              // action with no destination of its own.
-              <form method="post" action="/api/clan/auth/logout">
-                <button
-                  type="submit"
-                  aria-label="Sign out"
-                  title="Sign out"
-                  className="btn btn--sm"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Icon name="log-out" size={16} />
-                </button>
-              </form>
-            )
-          }
         />
       }
     />
   );
 }
 
-/** Whether this sign-in may record what the person does in Elixir
- *  (`clans:attest`, asked for since 2026-09-25). A session from before
- *  holds `cr:read` alone: what it completes is logged as not shared, so
- *  every page asks the person to sign in again. */
-export const canShare = (me) =>
-  String(me?.scope ?? "")
-    .split(/\s+/)
-    .includes("clans:attest");
-
 export function ClanShell({
-  sharedSession = false,
   SharedChrome = null,
   rememberAfterSignIn = () => {},
 }) {
@@ -518,16 +398,7 @@ export function ClanShell({
   useEffect(() => {
     if (!me) return;
     if (!me.signed_in) {
-      if (sharedSession) {
-        rememberAfterSignIn(path + window.location.search);
-        return;
-      }
-      if (app !== "/") {
-        // The address they opened (an email's link to Actions, say) is
-        // where they land once signed in.
-        rememberNext(tabStore(), path, Date.now());
-        navigate(me.expired ? `${CLAN}?error=session_expired` : CLAN);
-      }
+      rememberAfterSignIn(path + window.location.search);
       return;
     }
     if (me.unavailable) return;
@@ -552,12 +423,6 @@ export function ClanShell({
         navigate(`${CLAN}/verify`);
       return;
     }
-    // Signed in from a Clan address opened while signed out: there.
-    const next = takeNext(tabStore(), Date.now());
-    if (next && next !== path) {
-      navigate(next);
-      return;
-    }
     const atClan = clanFromPath(path, me.clans);
     // The landing is no page for a signed-in person: their clan, or the
     // chooser when none is selected.
@@ -574,16 +439,7 @@ export function ClanShell({
       // remembered clan follows where you actually went.
       select(atClan.clan_tag);
     }
-  }, [
-    me,
-    path,
-    app,
-    navigate,
-    select,
-    selecting,
-    sharedSession,
-    rememberAfterSignIn,
-  ]);
+  }, [me, path, app, navigate, select, selecting, rememberAfterSignIn]);
 
   // The rail belongs to a signed-in person with somewhere to go: their
   // clan pages, or their own pages while the gate still refuses them.
@@ -594,45 +450,20 @@ export function ClanShell({
 
   return (
     <SessionContext.Provider
-      value={{ me, checking, refresh, setMe, select, selecting, sharedSession }}
+      value={{ me, checking, refresh, setMe, select, selecting }}
     >
       <div className="shell">
-        {SharedChrome ? (
-          <SharedChrome navigate={navigate} />
-        ) : (
-          <Chrome navigate={navigate} me={me} />
-        )}
+        <SharedChrome navigate={navigate} />
         <div
           className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
         >
           {showRail ? (
-            <Rail
-              me={me}
-              path={path}
-              navigate={navigate}
-              narrow={narrow}
-              sharedSession={sharedSession}
-            />
+            <Rail me={me} path={path} navigate={navigate} narrow={narrow} />
           ) : null}
           <main className="page">
             <div
               className={`page__inner${showRail ? "" : " page__inner--solo max-w-page"}`}
             >
-              {!sharedSession && me?.signed_in && me.ok && !canShare(me) ? (
-                <div className="callout callout--warn mb-4" role="status">
-                  <span>
-                    Sign in again so what you do here reaches Elixir. This
-                    sign-in is from before Elixir Clan could record departures,
-                    promotions, awards and aways in Elixir, so what you complete
-                    now stays here.
-                  </span>
-                  <form method="post" action="/api/clan/auth/logout">
-                    <button type="submit" className="btn btn--sm">
-                      Sign out, then sign in again
-                    </button>
-                  </form>
-                </div>
-              ) : null}
               {me?.signed_in &&
               me.ok &&
               (me.selected?.verified === false || me.selected?.unlock) &&
@@ -649,11 +480,8 @@ export function ClanShell({
                 </div>
               ) : null}
               <ErrorBoundary key={path}>
-                {sharedSession && me && !me.signed_in && app !== "/" ? (
-                  <Landing
-                    error={me.expired ? "session_expired" : null}
-                    sharedSession
-                  />
+                {me && !me.signed_in && app !== "/" ? (
+                  <Landing error={me.expired ? "session_expired" : null} />
                 ) : null}
                 {me?.signed_in && me.unavailable ? (
                   <div

@@ -2951,3 +2951,43 @@ Door smoke passed; /api/me advertises clan_internal:false and public health
 is healthy with zero DLQ objects. Migration 0196 was already applied, with
 no new migrations. No private import or shared Clan activation occurred in
 that deployment. Lease b7726415-181c-4f44-a7dc-ac558a81d0f2 was released.
+
+## 2026-10-02 - Clan account/storage/runtime cutover and source retirement
+
+- PR #228 (`12f60355`) and PR #229 (`6f5dd250`) deployed from green merged main.
+  The legacy runtime froze at 19:58:07Z; business/auth reads returned the
+  migration notice and its scheduled evaluator refused work. After five quiet
+  minutes, the private export excluded old sessions/logins and held 131 durable
+  records (205,840 bytes). Preview, apply and complete-body comparison passed:
+  131 stored, 131 matching. Policies/actions/logs, awards/snapshots, preferences,
+  schedules, morning/mail receipts and the original sealed model key are kept.
+  Snapshot SHA-256: `ef613a80de5401b49100576cd945d3b10a2b711ef190a5f8b33e7f6646863476`.
+- Canonical deployment activated ClanInternal and preserved the actual maintainer
+  configuration. Smoke passed; `/api/me` advertises enabled Clan, `/clan` serves
+  the common app, `/api/clan/me` returns signed-out 401 without an OAuth loop,
+  and `/api/clan/health` returns 200. No live member/model/mail writes were used
+  as tests. No tool contract changed, so this transfer used focused scratch
+  identity/import tests, browser journeys and smoke rather than an MCP sweep.
+- Exact Clan OAuth retirement expired the registration, revoked ten active grants
+  and burned two outstanding codes. Read-back: zero live Clan grants, retired
+  Clan service key; Drop remains active with four grants and its existing key.
+  The historical Clan integration identity remains as the internal attester.
+- The board updater's exact token 10 retired separately, without suspending its
+  owner or touching sibling tokens. Its old mode-0600 local credential file was
+  removed by pathname without reading plaintext; read-back confirms revocation.
+- Four installed legacy Clan automations were deleted after handoff; the four
+  root owners keep their current schedules. The old runtime remains frozen
+  until its verified infrastructure teardown. No canonical battle/board history
+  or payload archive has been purged; that waits for the exact private manifest.
+- This cleanup moves useful behavior tests into the shared package, removes the
+  old app/API/Dynamo/OAuth adapters, CI deploy and obsolete maintenance source,
+  and removes CloudFront legacy origins/cookie policy. The private-state import
+  guard survives in the root web API test suite. A disabled feature has no old
+  runtime fallback. The sealing secret is retained unchanged.
+- Validation: full `npm run verify`, 69 Playwright journeys (including shared
+  Clan identity/deep links and responsive/axe coverage), all Lambda bundles,
+  workflow lint and scoped CFN lint/Guard pass. The 131 shared Clan tests now
+  exercise the common account context; retired OAuth/Dynamo-only tests leave
+  with their implementation. Read-only consistency review found no access,
+  privacy, build or data-loss blocker; its stale-doc findings were corrected.
+  Existing template warnings W3691/W3037 remain separately acknowledged.

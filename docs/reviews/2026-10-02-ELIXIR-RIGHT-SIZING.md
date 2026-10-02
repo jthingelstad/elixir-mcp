@@ -5,7 +5,7 @@ This is an engineering assessment and removal plan, prepared for Jamie on
 The product's purpose belongs in [About Elixir](../../apps/site/src/docs/about.md).
 Implementation began with a reversible stop-capture and stop-send cutover
 (contract 9.20.0); the production receipt belongs in `docs/NOTES.md`. No
-production history has been deleted. Drop automatic enrollment has also shipped (PR #73). Collections retired in MCP 10.0.0 and JSON API 3.0.0. Global board tools, game-wide statistics, recommendations and editorial infrastructure retired in MCP 11.0.0. Clan consolidation and the reviewed historical purge remain pending; no history has been purged.
+production history has been deleted. Drop automatic enrollment has also shipped (PR #73). Collections retired in MCP 10.0.0 and JSON API 3.0.0. Global board tools, game-wide statistics, recommendations and editorial infrastructure retired in MCP 11.0.0. Clan now uses the shared Elixir session, application and Postgres ledger after a complete frozen-state comparison. The remaining legacy infrastructure retirement and reviewed historical purge are pending; no canonical game history has been purged.
 
 Jamie confirmed that global leaderboard capture and history should go, while
 rank information delivered in a recorded player's profile stays. Full Clan

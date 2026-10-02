@@ -1,0 +1,277 @@
+/** Fakes for every seam. No network, no spend: the MCP client and the
+ *  OAuth exchange are scripted, the store is in memory, the clock is a
+ *  number the test moves. */
+
+import { createAccountContext } from "../src/account.mjs";
+import { createHandler } from "@elixir-mcp/clan/handler.mjs";
+
+export const PERSON = {
+  kind: "person",
+  subject: { type: "player", tag: "#20QQL8CCRU", name: "Ada" },
+  clan: { tag: "#2PQRJ8LV", name: "Example Clan" },
+};
+
+export function player(overrides = {}) {
+  return {
+    player_tag: "#20QQL8CCRU",
+    name: "Ada",
+    relationship: "primary",
+    is_primary: true,
+    claim_status: "verified",
+    notify: false,
+    recording: "active",
+    clan_tag: "#2PQRJ8LV",
+    clan_role: "leader",
+    ...overrides,
+  };
+}
+
+export function rosterBody(members) {
+  return {
+    clan_tag: "#2PQRJ8LV",
+    name: "Example Clan",
+    member_count: members.length,
+    members,
+    notes: ["last_seen_in_game is the game's own lastSeen."],
+    docs: "recording#the-games-own-last-seen",
+    meta: {
+      as_of: "2026-09-12T18:00:00.000Z",
+      freshness_seconds: 120,
+      source_polls: {
+        clan: {
+          observed_at: "2026-09-12T17:58:00.000Z",
+          freshness_seconds: 120,
+        },
+      },
+      contract_version: "1.7.0",
+    },
+  };
+}
+
+/**
+ * A scripted MCP door. `principal` is what initialize answers;
+ * `players` what elixir_my_players answers; `roster` what clans_roster
+ * answers (a body, or `{ error: { code, message } }` for a tool failure).
+ * `refuse` makes every call answer HTTP 401 until cleared, which is how
+ * an expired or revoked access token looks from here.
+ */
+import { timedElixir } from "@elixir-mcp/clan/trace.mjs";
+
+export function fakeMcp({
+  principal = PERSON,
+  players = [player()],
+  roster = null,
+} = {}) {
+  const calls = [];
+  const state = {
+    principal,
+    players,
+    roster,
+    refuse: false,
+    acceptedTokens: null,
+    facts: [],
+    removed: [],
+    mail: [],
+    mailStatus: {},
+    factAnswer: null,
+  };
+  const refused = () => ({ ok: false, status: 401, error: "http 401" });
+  const tokenOk = (token) =>
+    !state.refuse && (!state.acceptedTokens || state.acceptedTokens.has(token));
+  return {
+    calls,
+    state,
+    // Timed into the request's trace like the real client, so a test can
+    // read the story a request tells.
+    initialize(token) {
+      return timedElixir("initialize", async () => {
+        calls.push(["initialize", token]);
+        if (!tokenOk(token)) return refused();
+        return {
+          ok: true,
+          body: { principal: state.principal, players: state.players },
+          version: "1.7.0+tools.abc",
+          principal: state.principal,
+        };
+      });
+    },
+    callTool(token, name, args) {
+      return timedElixir(name, () => this.rawCallTool(token, name, args));
+    },
+    // Attested facts (JSON API 2.2.0): recorded, answered as scripted.
+    async writeFact(token, clanTag, fact) {
+      calls.push(["writeFact", token, { clanTag, ...fact }]);
+      state.facts.push({ clanTag, ...fact });
+      return (
+        state.factAnswer ?? {
+          ok: true,
+          body: { id: String(state.facts.length), visibility: "clan" },
+        }
+      );
+    },
+    // Mail through Elixir (JSON API 2.4.0): recorded; each message is
+    // answered from `state.mailStatus[tag]`, else sent.
+    async sendMail(key, clanTag, body) {
+      calls.push(["sendMail", key, { clanTag, ...body }]);
+      state.mail.push({ clanTag, ...body });
+      return {
+        ok: true,
+        body: {
+          kind: body.kind,
+          results: body.messages.map((m) => ({
+            player_tag: m.player_tag,
+            status: state.mailStatus[m.player_tag] ?? "sent",
+          })),
+        },
+      };
+    },
+    async removeFact(token, clanTag, ref) {
+      calls.push(["removeFact", token, { clanTag, ref }]);
+      state.removed.push(ref);
+      return { ok: true };
+    },
+    async rawCallTool(token, name, args) {
+      calls.push([name, token, args]);
+      if (!tokenOk(token)) return refused();
+      if (name === "elixir_my_players")
+        return {
+          ok: true,
+          body: {
+            players: state.players,
+            meta: { as_of: "2026-09-12T18:00:00.000Z" },
+          },
+        };
+      if (name === "clans_roster") {
+        if (state.roster?.error)
+          return {
+            ok: false,
+            code: state.roster.error.code,
+            error: state.roster.error.message,
+            hint: state.roster.error.hint,
+          };
+        return { ok: true, body: state.roster ?? rosterBody([]) };
+      }
+      return { ok: false, code: "unknown", error: `no fake for ${name}` };
+    },
+  };
+}
+
+export function createTestAccount() {
+  const items = new Map();
+  const state = {
+    get: async (pk) => items.get(pk) ?? null,
+    put: async (row) => {
+      items.set(row.pk, structuredClone(row));
+    },
+  };
+  let context;
+  const identity = {
+    async load(event) {
+      const signedIn = event.cookies?.includes(
+        "__Host-elixir_session=test-person",
+      );
+      if (!signedIn) return null;
+      context = createAccountContext({
+        account: { kind: "person", accountId: "test-person" },
+        state,
+        credential: "recorded-person",
+        login: identity.login,
+        logout: identity.logout,
+      });
+      return context.identity.load(event);
+    },
+    credential: (session) => context?.identity.credential(session),
+    login: async () => ({
+      statusCode: 303,
+      headers: { location: "https://elixir.test/console/sign-in?next=%2Fclan" },
+      body: "",
+    }),
+    logout: async () => ({
+      statusCode: 303,
+      headers: { location: "https://elixir.test/clan" },
+      body: "",
+    }),
+  };
+  const store = { items };
+  for (const name of [
+    "updateSession",
+    "getPreference",
+    "putPreference",
+    "deleteSession",
+  ])
+    store[name] = (...args) => context.store[name](...args);
+  return { identity, store };
+}
+
+export function harness(opts = {}) {
+  const clock = { t: Date.parse("2026-09-12T18:00:00Z") };
+  const now = () => clock.t;
+  const mcp = opts.mcp ?? fakeMcp(opts.door);
+  const { identity, store } = createTestAccount();
+  const handler = createHandler({
+    mcp,
+    identity,
+    store,
+    appUrl: "https://elixir.test/clan",
+    elixirUrl: "https://elixir.test",
+    now,
+    log: { warn() {}, error() {}, info() {} },
+  });
+  return { clock, now, mcp, store, handler };
+}
+
+export function req(method, path, { query, cookies, body } = {}) {
+  return {
+    rawPath: path,
+    requestContext: { http: { method } },
+    queryStringParameters: query,
+    body,
+    cookies: cookies
+      ? Object.entries(cookies).map(([k, v]) => `${k}=${v}`)
+      : [],
+  };
+}
+
+/** The outer web API has already authenticated this Elixir person. */
+export async function signIn(h) {
+  const sessionCookie = "__Host-elixir_session=test-person";
+  const me = await h.handler(
+    req("GET", "/api/me", { cookies: cookieHeader(sessionCookie) }),
+  );
+  return { me, sessionCookie };
+}
+
+export function cookieHeader(sessionCookie) {
+  const [k, v] = sessionCookie.split("=");
+  return { [k]: v };
+}
+
+/**
+ * A memory ledger holding a saved version of one clan's policy, awards or
+ * pitch, synchronously: the test harnesses are built without awaiting,
+ * and nothing in clan management runs until a clan has a policy.
+ */
+export function seedVersion(ledger, kind, clanTag, values, version = 1) {
+  const saved_at = "2026-09-01T00:00:00.000Z";
+  ledger.items.set(`${kind}#${clanTag}#v${version}`, {
+    pk: `${kind}#${clanTag}#v${version}`,
+    gsi1pk: `clan#${clanTag}`,
+    gsi1sk: `${kind}#v${String(version).padStart(6, "0")}`,
+    clan_tag: clanTag,
+    version,
+    values,
+    saved_by: "#TESTLEADER",
+    saved_by_name: "A leader",
+    saved_at,
+    note: null,
+  });
+  ledger.items.set(`${kind}#${clanTag}`, {
+    pk: `${kind}#${clanTag}`,
+    version,
+    saved_at,
+  });
+  return ledger;
+}
+
+export const ledgerWithPolicy = (ledger, clanTag, values, version = 1) =>
+  seedVersion(ledger, "policy", clanTag, values, version);

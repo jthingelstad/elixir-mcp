@@ -2,7 +2,6 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanup, screen } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Sharing } from "../src/views/Sharing.jsx";
-import { canShare } from "../src/App.jsx";
 import { manageApi } from "../src/api.js";
 
 afterEach(() => {
@@ -37,12 +36,5 @@ describe("what Elixir Clan records in Elixir", () => {
     expect(screen.getByText(/the clan's agent/)).toBeTruthy();
     expect(screen.queryByRole("checkbox")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
-  });
-
-  test("a sign-in may share only when its grant holds clans:attest", () => {
-    expect(canShare({ scope: "cr:read clans:attest" })).toBe(true);
-    expect(canShare({ scope: "cr:read" })).toBe(false);
-    expect(canShare({ scope: null })).toBe(false);
-    expect(canShare(null)).toBe(false);
   });
 });

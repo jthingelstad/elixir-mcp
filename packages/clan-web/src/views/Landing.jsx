@@ -1,26 +1,13 @@
 import { ELIXIR_LINKS } from "../lib/links.js";
 
-/** What went wrong on the way back from Elixir, in one sentence each.
- *  The codes are the API's (services/api/src/handler.mjs, callback). */
 const ERRORS = {
-  state_mismatch:
-    "That sign-in did not start in this browser. Start again from here.",
-  login_expired:
-    "That sign-in took longer than ten minutes, or was already used. Start again.",
-  missing_code: "Elixir sent you back without a code. Start again.",
-  wrong_issuer: "That code did not come from Elixir. Start again.",
-  exchange_failed:
-    "Elixir would not exchange that code, which usually means it was already used or timed out. Start again.",
-  not_configured:
-    "This deployment has no Elixir client registered yet, so sign-in is not wired up. That is an operator step, not yours.",
   session_expired: "Your session ended. Sign in again to continue.",
-  elixir_unavailable:
-    "Elixir did not answer. Nothing is wrong with your account; try again in a minute.",
+  elixir_unavailable: "Elixir did not answer. Try again in a minute.",
 };
 
 /** Signed out. The two prerequisites are stated here, before the button,
  *  so nobody discovers them one refusal page at a time. */
-export function Landing({ error, sharedSession = false }) {
+export function Landing({ error }) {
   return (
     <div style={{ maxWidth: "560px", margin: "40px auto 0" }}>
       <p className="eyebrow">ELIXIR CLAN</p>
@@ -71,15 +58,13 @@ export function Landing({ error, sharedSession = false }) {
           </div>
         </div>
         <div className="panel__foot">
-          {sharedSession
-            ? "Your Elixir sign-in opens your recorded history and clan tools."
-            : "Sign in with Elixir to open your clan tools."}
+          Your Elixir sign-in opens your recorded history and clan tools.
         </div>
       </div>
 
       <a
         className="btn btn--primary"
-        href={sharedSession ? "/console/signin" : "/api/clan/auth/login"}
+        href="/console/signin"
         data-tinylytics-event="clan.signin_started"
         data-tinylytics-event-value="landing"
       >

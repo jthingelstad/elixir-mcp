@@ -257,13 +257,13 @@ test("Limits states the enforced console-session lifetime", { skip }, () => {
 
 /** The edge router's function, evaluated from the template: the rule is
  *  tested as the edge runs it, not as a copy of it here. */
-function edgeRouter(internalClan = false) {
+function edgeRouter() {
   const template = readFileSync(
     path.join(repoRoot, "infra/template.yaml"),
     "utf8",
   );
   const from = template.indexOf(
-    "FunctionCode: !Sub |",
+    "FunctionCode: |",
     template.indexOf("\n  SpaRouter:"),
   );
   const code = [];
@@ -271,9 +271,7 @@ function edgeRouter(internalClan = false) {
     if (line.trim() && !line.startsWith("        ")) break;
     code.push(line);
   }
-  const rendered = code
-    .join("\n")
-    .replaceAll("${ClanInternal}", String(internalClan));
+  const rendered = code.join("\n");
   const handler = new Function(`${rendered}\nreturn handler;`)();
   return (uri) => handler({ request: { uri } }).uri;
 }
@@ -319,8 +317,7 @@ test(
     assert.ok(!existsSync(path.join(out, "ladder")));
     assert.equal(route("/ladders"), "/ladders/index.html");
 
-    // Elixir Clan owns /clan the same way, from its own bucket, where its
-    // build sits under clan/ (2026-09-28).
+    // Clan always uses the common app shell, including when features are disabled.
     for (const uri of [
       "/clan",
       "/clan/",
@@ -328,12 +325,7 @@ test(
       "/clan/J2RGCRVG/actions",
       "/clan/verify",
     ]) {
-      assert.equal(route(uri), "/clan/index.html", `${uri} is not legacy Clan`);
-      assert.equal(
-        edgeRouter(true)(uri),
-        "/app.html",
-        `${uri} is not shared Clan`,
-      );
+      assert.equal(route(uri), "/app.html", `${uri} is not shared Clan`);
     }
     assert.equal(
       route("/clan/assets/index-a1b2c3d4.js"),

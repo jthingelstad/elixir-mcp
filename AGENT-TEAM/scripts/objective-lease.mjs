@@ -20,7 +20,7 @@
  *   node AGENT-TEAM/scripts/objective-lease.mjs clear-stale --hours <n>
  *
  * Keys are the objectives' (README.md): run, record, loop, guard;
- * Clan's clan-run, clan-judge, clan-loop, clan-guard; the domain team's
+ * the domain team's
  * clock and game; session for an interactive session.
  *
  * abort is the blocked-run exit: it releases the lease AND queues a note
@@ -56,10 +56,6 @@ const OBJECTIVES = new Set([
   "record",
   "loop",
   "guard",
-  "clan-run",
-  "clan-judge",
-  "clan-loop",
-  "clan-guard",
   "clock",
   "game",
   "session",

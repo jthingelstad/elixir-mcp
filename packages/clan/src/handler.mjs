@@ -1,29 +1,5 @@
-/**
- * The Lambda behind /auth/* and /api/*, as a factory so every seam is
- * injected: the MCP client, the OAuth exchange, the store and the clock.
- * Tests hand in fakes; index.mjs hands in the real ones from the
- * environment.
- *
- * What a person is here: an Elixir session and nothing else. There are
- * no accounts, no passwords, no roles of our own; in-game role is the
- * app role and comes from the roster on every read.
- *
- * Quota discipline: every call spends the signed-in person's Elixir daily
- * budget, so the gate answer and the roster are cached per session for a
- * few minutes, `?refresh=1` is rate-limited, and nothing here polls.
- */
-
-import {
-  clearLoginCookie,
-  clearSessionCookie,
-  newSessionId,
-  readCookies,
-  LOGIN_COOKIE,
-  SESSION_COOKIE,
-  setLoginCookie,
-  setSessionCookie,
-  verifySessionCookie,
-} from "./cookies.mjs";
+/** Clan routes use the authenticated Elixir account. Gate and roster state
+ * live only for a request; no OAuth grant or second session is stored here. */
 import { normalizeTag, runGate, verifyNotice } from "./gate.mjs";
 import {
   withTrace,
@@ -32,23 +8,7 @@ import {
   summarize,
   serverTiming,
 } from "./trace.mjs";
-import { pkcePair, randomState } from "./oauth.mjs";
 import { roleLabel, roleRank } from "./roles.mjs";
-
-export const GATE_TTL_MS = 2 * 60_000;
-export const ROSTER_TTL_MS = 3 * 60_000;
-const REFRESH_FLOOR_MS = 30_000;
-const ACCESS_SKEW_MS = 60_000;
-const FAMILY_MS = 90 * 24 * 3600_000;
-const REFRESH_MS = 30 * 24 * 3600_000;
-const SESSION_TTL_S = 90 * 24 * 3600;
-/** How long one request holds the refresh (the token call times out at
- *  20 s), and how long another waits for the pair it stores. */
-const REFRESH_LOCK_MS = 25_000;
-const ADOPT_WAIT_MS = 250;
-const ADOPT_TRIES = 20;
-/** Elixir did not answer the refresh: try again later, still signed in. */
-const UNAVAILABLE = Symbol("unavailable");
 
 const json = (statusCode, body, extra = {}) => ({
   statusCode,
@@ -61,19 +21,10 @@ const json = (statusCode, body, extra = {}) => ({
   body: JSON.stringify(body),
 });
 
-const redirect = (location, cookies) => ({
-  statusCode: 303,
-  headers: { location, "cache-control": "no-store" },
-  cookies,
-  body: "",
-});
-
 export function createHandler({
   mcp,
-  oauth,
-  identity = null,
+  identity,
   store,
-  sessionSecret,
   appUrl,
   elixirUrl,
   manage = null,
@@ -90,171 +41,33 @@ export function createHandler({
   /** Verified player tags of the product's maintainer(s): MaintainerTags. */
   maintainerTags = [],
   now = () => Date.now(),
-  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   log = console,
 }) {
   for (const [k, v] of Object.entries({
     mcp,
-    ...(identity ? { identity } : { oauth, sessionSecret }),
+    identity,
     store,
     appUrl,
     elixirUrl,
   })) {
     if (!v) throw new Error(`handler needs ${k}`);
   }
-  // appUrl is where the app is (Elixir's origin, under /clan); this API
-  // is on the same origin under /api/clan, so the code comes back there.
-  const redirectUri = `${new URL(appUrl).origin}/api/clan/auth/callback`;
+  const loadSession = (event) => identity.load(event);
 
-  // ---- sessions ---------------------------------------------------------
-
-  async function loadSession(event) {
-    if (identity) return identity.load(event);
-    const raw = readCookies(event)[SESSION_COOKIE];
-    const id = verifySessionCookie(sessionSecret, raw);
-    // Why a request reads as signed out, on its log line: the browser
-    // sent no cookie, one that fails its signature, or one whose session
-    // is gone. The three have different causes (2026-09-26).
-    if (!id) {
-      annotate({ cookie: raw ? "bad_signature" : "absent" });
-      return null;
-    }
-    const session = await store.getSession(id);
-    if (!session) annotate({ cookie: "no_session" });
-    return session ? { id, ...session } : null;
-  }
-
-  /**
-   * A usable access token for this session, refreshing when it is about
-   * to expire. `null` means sign in again: the family ran out, or Elixir
-   * refused the refresh (a revoked grant, a rotated token). `UNAVAILABLE`
-   * means Elixir did not answer; the session stays and so does the cookie.
-   *
-   * Only one request spends a refresh token (`store.claimRefresh`); any
-   * other that needs one at the same moment waits for the pair the first
-   * stores and uses it. Presenting a rotated token twice revokes the whole
-   * grant, and a page load fires several API calls at once.
-   */
-  async function accessToken(session, { force = false } = {}) {
-    if (identity) return identity.credential(session);
-    const t = now();
-    if (session.familyExpiresAt && session.familyExpiresAt <= t) {
-      await store.deleteSession(session.id);
-      return null;
-    }
-    if (!force && session.accessExpiresAt - t > ACCESS_SKEW_MS)
-      return session.accessToken;
-    if (!session.refreshToken) {
-      await store.deleteSession(session.id);
-      return null;
-    }
-    const claimed = await store.claimRefresh(session.id, {
-      refreshToken: session.refreshToken,
-      nowMs: t,
-      untilMs: t + REFRESH_LOCK_MS,
-    });
-    if (!claimed) return adoptRefreshed(session);
-    const refreshed = await oauth.refresh({
-      refreshToken: session.refreshToken,
-    });
-    if (!refreshed.ok) {
-      log.warn?.("refresh_failed", {
-        error: refreshed.error,
-        status: refreshed.status ?? null,
-      });
-      if (refreshed.status === 400) {
-        await store.deleteSession(session.id);
-        return null;
-      }
-      await store.updateSession(session.id, { refreshLockUntil: 0 });
-      return UNAVAILABLE;
-    }
-    const patch = {
-      accessToken: refreshed.tokens.accessToken,
-      accessExpiresAt: refreshed.tokens.accessExpiresAt,
-      refreshToken: refreshed.tokens.refreshToken ?? session.refreshToken,
-      refreshExpiresAt: t + REFRESH_MS,
-      scope: refreshed.tokens.scope,
-      refreshLockUntil: 0,
-    };
-    // Stored BEFORE any further use: a rotated refresh token presented
-    // twice revokes the whole grant on Elixir's side.
-    await store.updateSession(session.id, patch);
-    Object.assign(session, patch);
-    return session.accessToken;
-  }
-
-  /** Another request is refreshing, or already has: use what it stores. */
-  async function adoptRefreshed(session) {
-    for (let i = 0; i < ADOPT_TRIES; i += 1) {
-      const stored = await store.getSession(session.id);
-      if (!stored) return null;
-      if (stored.refreshToken !== session.refreshToken) {
-        log.info?.("refresh_adopted", { waits: i });
-        for (const k of [
-          "accessToken",
-          "accessExpiresAt",
-          "refreshToken",
-          "refreshExpiresAt",
-          "scope",
-        ])
-          session[k] = stored[k];
-        return session.accessToken;
-      }
-      await sleep(ADOPT_WAIT_MS);
-    }
-    log.warn?.("refresh_wait_timeout", {});
-    return UNAVAILABLE;
-  }
-
-  /** Run `fn(token)`; on a 401 from the door, refresh once and retry. */
   async function withToken(session, fn) {
-    let token = await accessToken(session);
-    if (token === UNAVAILABLE) return { unavailable: true };
-    if (!token) return { signInRequired: true };
-    let result = await fn(token);
-    if (result?.status === 401) {
-      token = await accessToken(session, { force: true });
-      if (token === UNAVAILABLE) return { unavailable: true };
-      if (!token) return { signInRequired: true };
-      result = await fn(token);
-      if (result?.status === 401) {
-        await store.deleteSession(session.id);
-        return { signInRequired: true };
-      }
-    }
-    return { result };
+    const credential = identity.credential(session);
+    if (!credential) return { signInRequired: true };
+    const result = await fn(credential);
+    return result?.status === 401 ? { signInRequired: true } : { result };
   }
 
-  async function gateFor(session, { refresh = false } = {}) {
-    if (identity) {
-      const ran = await withToken(session, (token) => runGate({ mcp, token }));
-      if (ran.signInRequired) return { signInRequired: true };
-      if (ran.unavailable || ran.result?.error)
-        return { error: "elixir_unavailable" };
-      return { gate: ran.result, checkedAt: now() };
-    }
-    const t = now();
-    const cached = session.gate;
-    if (
-      cached &&
-      !refresh &&
-      typeof cached.checkedAt === "number" &&
-      t - cached.checkedAt < GATE_TTL_MS
-    )
-      return { gate: cached.result, checkedAt: cached.checkedAt };
-    if (cached && refresh && t - cached.checkedAt < REFRESH_FLOOR_MS)
-      return { gate: cached.result, checkedAt: cached.checkedAt };
-    const ran = await withToken(session, (token) => runGate({ mcp, token }));
+  async function gateFor(session) {
+    const ran = await withToken(session, (credential) =>
+      runGate({ mcp, token: credential }),
+    );
     if (ran.signInRequired) return { signInRequired: true };
-    if (ran.unavailable) return { error: "refresh_unavailable" };
-    const gate = ran.result;
-    if (gate.error) return { error: gate.error };
-    await store.updateSession(session.id, {
-      gate: { result: gate, checkedAt: t },
-    });
-    session.gate = { result: gate, checkedAt: t };
-    return { gate, checkedAt: t };
+    if (ran.result?.error) return { error: "elixir_unavailable" };
+    return { gate: ran.result, checkedAt: now() };
   }
 
   /** The preference key: the primary's tag, or the first tag on the
@@ -273,10 +86,9 @@ export function createHandler({
     if (session.selected && inSet(session.selected.clan_tag))
       return inSet(session.selected.clan_tag);
     let chosen = null;
-    const key = identity ? session.id : prefKey(gate);
+    const key = session.id;
     let pref = key ? await store.getPreference(key) : null;
-    if (identity && !pref && prefKey(gate))
-      pref = await store.getPreference(prefKey(gate));
+    if (!pref && prefKey(gate)) pref = await store.getPreference(prefKey(gate));
     if (pref?.clan_tag) chosen = inSet(pref.clan_tag);
     if (!chosen && gate.clans.length === 1) chosen = gate.clans[0];
     if (chosen) {
@@ -355,128 +167,12 @@ export function createHandler({
     elixir_url: elixirUrl,
   });
 
-  const signedOut = (extra) =>
-    json(
-      401,
-      { signed_in: false, ...extra },
-      identity ? {} : { cookies: [clearSessionCookie()] },
-    );
-
-  // ---- routes -----------------------------------------------------------
-
-  async function login(event) {
-    if (identity) return identity.login(event);
-    if (oauth.configured === false)
-      return redirect(`${appUrl}/?error=not_configured`);
-    const state = randomState();
-    const { verifier, challenge } = pkcePair();
-    await store.putLogin(state, { verifier, redirectUri }, now());
-    let url;
-    try {
-      url = await oauth.authorizationUrl({
-        redirectUri,
-        state,
-        codeChallenge: challenge,
-      });
-    } catch (error) {
-      log.error?.("discovery_failed", { error: error.message });
-      return redirect(`${appUrl}/?error=elixir_unavailable`);
-    }
-    return redirect(url, [setLoginCookie(state)]);
-  }
-
-  async function callback(event) {
-    const q = event.queryStringParameters ?? {};
-    const cookies = readCookies(event);
-    const cleared = [clearLoginCookie()];
-    const fail = (code) => redirect(`${appUrl}/?error=${code}`, cleared);
-
-    if (!q.state || !q.code) return fail("missing_code");
-    if (cookies[LOGIN_COOKIE] !== q.state) return fail("state_mismatch");
-    if (q.iss && q.iss !== elixirUrl) return fail("wrong_issuer");
-    const login = await store.takeLogin(q.state);
-    if (!login) return fail("login_expired");
-
-    const exchanged = await oauth.exchange({
-      code: q.code,
-      codeVerifier: login.verifier,
-      redirectUri: login.redirectUri,
-    });
-    if (!exchanged.ok) {
-      log.warn?.("exchange_failed", { error: exchanged.error });
-      return fail("exchange_failed");
-    }
-
-    const t = now();
-    const gate = await runGate({ mcp, token: exchanged.tokens.accessToken });
-    if (gate.error) {
-      log.warn?.("gate_unavailable", { error: gate.error });
-      return fail("elixir_unavailable");
-    }
-    // An agent's or integration's grant gets no session at all: there is
-    // no person to remember, and the page says what to do instead.
-    if (gate.reason === "not_a_person")
-      return redirect(`${appUrl}/refused/not_a_person`, cleared);
-
-    const id = newSessionId();
-    await store.putSession(id, {
-      accessToken: exchanged.tokens.accessToken,
-      accessExpiresAt: exchanged.tokens.accessExpiresAt,
-      refreshToken: exchanged.tokens.refreshToken,
-      refreshExpiresAt: t + REFRESH_MS,
-      familyExpiresAt: t + FAMILY_MS,
-      scope: exchanged.tokens.scope,
-      createdAt: t,
-      gate: { result: gate, checkedAt: t },
-      ttl: Math.floor(t / 1000) + SESSION_TTL_S,
-    });
-    const session = { id, selected: null };
-    const selected = gate.ok ? await selectionFor(session, gate) : null;
-    const to = !gate.ok
-      ? `/refused/${gate.reason}`
-      : verifyNotice(gate)
-        ? "/verify"
-        : selected
-          ? `/${selected.clan_tag.slice(1)}`
-          : "/clans";
-    return redirect(`${appUrl}${to}`, [
-      ...cleared,
-      setSessionCookie(sessionSecret, id),
-    ]);
-  }
-
-  /**
-   * Signing out of Clan ends Clan's grant at Elixir too (2026-09-29).
-   * Elixir skips its consent page for a grant that still stands, so
-   * without this the next "Sign in" would be back in with no question
-   * asked. The session goes first: the sign-out holds here whatever
-   * Elixir says, and a revoke that fails is logged, not shown.
-   */
-  async function logout(event) {
-    if (identity) return identity.logout(event);
-    const session = await loadSession(event);
-    if (session) {
-      await store.deleteSession(session.id);
-      const token = session.refreshToken ?? session.accessToken;
-      if (token) {
-        const revoked = await oauth.revoke({ token });
-        if (!revoked.ok)
-          log.warn?.("revoke_failed", {
-            error: revoked.error,
-            status: revoked.status ?? null,
-          });
-      }
-    }
-    // signed_out tells the landing not to sign straight back in: on one
-    // origin it starts Clan's sign-in for anyone signed in to Elixir.
-    return redirect(`${appUrl}/?signed_out=1`, [clearSessionCookie()]);
-  }
+  const signedOut = (extra) => json(401, { signed_in: false, ...extra });
 
   async function me(event) {
     const session = await loadSession(event);
     if (!session) return signedOut();
-    const refresh = event.queryStringParameters?.refresh === "1";
-    const answer = await gateFor(session, { refresh });
+    const answer = await gateFor(session);
     if (answer.signInRequired) return signedOut({ reason: "session_expired" });
     if (answer.error)
       return json(502, { signed_in: true, error: "elixir_unavailable" });
@@ -603,7 +299,7 @@ export function createHandler({
     };
     await store.updateSession(session.id, { selected });
     session.selected = selected;
-    const key = identity ? session.id : prefKey(gated.gate);
+    const key = session.id;
     if (key)
       await store.putPreference(key, {
         clan_tag: chosen.clan_tag,
@@ -634,35 +330,15 @@ export function createHandler({
       clan = await selectionFor(session, gated.gate);
       if (!clan) return json(409, { error: "no_selection" });
     }
-    const got = await loadRoster(session, gated.gate, clan, {
-      refresh: q.refresh === "1",
-    });
+    const got = await loadRoster(session, clan);
     if (got.response) return got.response;
     return json(200, got.body);
   }
 
-  /**
-   * One of the person's clans' roster, from the session's cache (3 min,
-   * floored at 30 s on a refresh) or Elixir: `{ body }` as the clan page
-   * reads it (with `cached_at`), or `{ response }` to send instead. The
-   * clan page and the clan map both read it here.
-   */
-  async function loadRoster(session, gate, clan, { refresh = false } = {}) {
+  /** Read the named clan from the recorded facts for this request. */
+  async function loadRoster(session, clan) {
     const clanTag = clan.clan_tag;
     const t = now();
-    const cached = session.rosters?.[clanTag];
-    const fresh =
-      cached &&
-      typeof cached.cachedAt === "number" &&
-      t - cached.cachedAt < (refresh ? REFRESH_FLOOR_MS : ROSTER_TTL_MS);
-    if (fresh)
-      return {
-        body: {
-          ...cached.body,
-          cached_at: new Date(cached.cachedAt).toISOString(),
-        },
-      };
-
     // The clan is named explicitly rather than left to the tool's default,
     // which is the first RECORDED clan among the account's claims and can
     // be an alt's clan when the primary's is not recorded.
@@ -696,15 +372,6 @@ export function createHandler({
         .catch((e) =>
           log.warn?.("clan_size_note_failed", { error: e.message }),
         );
-    // Bounded: only clans in the set are ever cached, one entry each.
-    const rosters = {};
-    for (const c of gate.clans) {
-      if (session.rosters?.[c.clan_tag])
-        rosters[c.clan_tag] = session.rosters[c.clan_tag];
-    }
-    rosters[clanTag] = { cachedAt: t, body };
-    await store.updateSession(session.id, { rosters });
-    session.rosters = rosters;
     return { body: { ...body, cached_at: new Date(t).toISOString() } };
   }
 
@@ -769,9 +436,7 @@ export function createHandler({
           clan_tag: tag ?? tagInput,
         }),
       };
-    const token = await accessToken(session);
-    if (token === UNAVAILABLE)
-      return { response: json(502, { error: "elixir_unavailable" }) };
+    const token = identity.credential(session);
     if (!token) return { response: signedOut({ reason: "session_expired" }) };
     return {
       session,
@@ -1117,13 +782,12 @@ export function createHandler({
         return await feedbackRoute(event, method, path);
       if (method === "GET" && path === "/api/health")
         return json(200, { ok: true });
-      if (method === "GET" && path === "/auth/login") return await login(event);
-      if (identity && path === "/auth/callback")
+      if (method === "GET" && path === "/auth/login")
+        return await identity.login(event);
+      if (path === "/auth/callback")
         return json(410, { error: "retired_oauth_callback" });
-      if (method === "GET" && path === "/auth/callback")
-        return await callback(event);
       if (method === "POST" && path === "/auth/logout")
-        return await logout(event);
+        return await identity.logout(event);
       if (method === "GET" && path === "/api/me") return await me(event);
       if (method === "POST" && path === "/api/select")
         return await select(event);

@@ -256,10 +256,10 @@ The smoke read the doors; read what this change moved, reads only:
 - Only after the hub change it needs is live: Drop's sign-in over
   `/api/v1` (cffc06d) went out after 9.1.1 let `/oauth/userinfo` answer an
   `/api/v1` grant, Clan b4a5d61 after 9.0.1.
-- Clan, Drop, poapkings.com, cr-agent-api-docs and elixir-mcp-discord
+- Drop, poapkings.com, cr-agent-api-docs and elixir-mcp-discord
   take only pull requests from 2026-09-26, on this repo's ruleset shape
   (`validate`, rebase, no bypass): each lands through its own Merge step.
-- Elixir Clan and Elixir Drop still deploy by CI from `main` once
+- Elixir Drop deploys by CI from `main` once
   `validate` is green on the merged commit (moving to GitHub OIDC roles),
   so merging one is a production deploy: a session that could not deploy
   the hub does not merge a sibling that needs it. Watch the deploy on the
@@ -268,12 +268,12 @@ The smoke read the doors; read what this change moved, reads only:
 - elixir-mcp-discord's three bots build from the local checkout on
   purpose (nearly live code: they are Jamie's tests); its own guide
   owns their deploy.
-- A kit change (`packages/design`, `ui`, `client`) reaches Clan when the
-  `elixir-mcp` pin in its `apps/web/package.json` moves to the merged commit.
+- Clan is part of this application: its shared packages, UI, private ledger and
+  jobs build, test and deploy in the canonical Elixir lane.
 - elixir-bot is retired (stopped 2026-09-26): no sibling step, never in
   scope.
-- Each repo keeps its own lease tool, objectives and gate (Clan `npm run
-  verify`, Drop the one its `CONTRIBUTING.md` names). A sibling change is
+- Each sibling repo keeps its own lease tool, objectives and gate (Drop's
+  `CONTRIBUTING.md` names its gate). A sibling change is
   made in that repo's own worktree, and its lease is claimed only for its
   deploy, one repo's lease at a time (`../AGENT-TEAM/WORKFLOW.md`). Collectors: `docs/RELEASING-COLLECTOR.md`.
 

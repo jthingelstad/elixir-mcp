@@ -94,7 +94,7 @@ is where the war-days gap lived.
 
 | Repo | Where it touches the hub | Must agree with |
 |---|---|---|
-| `clan/` (in this repo since 2026-09-28) | `packages/clan/src/elixir-api.mjs` (legacy adapter), `services/web-api/src/clan.mjs` (prepared internal adapter), `clan/AGENTS.md`, `clan/docs/NOTES.md` | `/api/v1` operations and versions |
+| Clan inside Elixir | `services/web-api/src/clan.mjs`, `packages/clan`, `packages/clan-state`, `packages/clan-web` | shared account, current role, private-state boundary |
 | `../drop.poapkings.com` | `services/api/src/elixir-oauth.ts` (sign-in, `/api/v1`), `elixir-mcp.ts` and `elixir-collection.ts` (integration key), `seasons.ts` (policy clock), SPEC.md, AGENTS.md | `/api/v1`, the OAuth door, the clock |
 | `../elixir-bot` | RETIRED (stopped 2026-09-26) | nothing; do not sweep it |
 | `../elixir-mcp-discord` | `src/events.js`, `src/prompt.js`, `src/feedback.js`, AGENTS.md | `elixir_timeline` paging and order, tool names |

@@ -19,11 +19,10 @@ acts in the game and never decides for anyone; the leaders do. Every
 page is behind sign-in, and only people sign in: an agent cannot use
 Elixir Clan.
 
-Clan is becoming part of Elixir's shared account and storage. This work is
-underway: your current sign-in, clan policies, actions, awards and preferences
-remain available during the transition. No clan records or game history have
-been removed by this foundation step. Shared-account permission checks are prepared;
-the account cutover has not happened yet.
+Clan is part of Elixir's shared application, account and storage. Your Elixir
+sign-in opens Clan directly; there is no second consent or Clan account.
+The transfer preserved policies, actions, awards, preferences and private
+records, including their history.
 
 ## Before you sign in
 
@@ -88,10 +87,6 @@ message, and the leaders are shown where to start.
 
 ## Signing out
 
-Signing out of Clan also ends the grant you gave it at Elixir, so the
-next sign-in asks again.
-
-Clan is moving into Elixir’s shared application and sign-in. Your current
-Clan session remains available until the transfer is complete. Policies,
-action numbers, awards, mail history and private records are preserved. The
-optional clan model continues to use the clan’s own key.
+Signing out ends your Elixir browser session across the record and clan tools.
+Your saved policies, action numbers, awards, mail history and private records
+remain. The optional clan model continues to use the clan's own key.
