@@ -443,3 +443,7 @@ both someone's friend and a former leaderboard subject: that overlap must keep
 the person's wanted battles and clan history. Cleanup uses historical requests
 and archive provenance rather than a player's current ranking or recording
 origin. No canonical history is deleted by the private census step.
+
+The historical cleanup checks archived observer logs against recording evidence
+and preserves whole games wherever they overlap with personal or clan history.
+Its private inventory and checks do not themselves remove recorded games.

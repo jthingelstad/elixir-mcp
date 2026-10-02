@@ -3011,3 +3011,36 @@ requests must be rechecked immediately before any approved destruction. The
 exact manifest still requires historical intent, archive observer mapping,
 complete version/marker inventory, overlap/dependency counts, unresolved cases
 and backup disposition. No deletion capability is granted or implemented here.
+
+## 2026-10-02 - Clan legacy infrastructure retirement and private provenance preparation
+
+PR #230 (`9ec16b97`) deployed from green main. The 43 door smoke checks pass;
+CloudFront is Deployed with only site/api/mcpapi origins and routes Clan to the
+common application/API. Post-deploy frozen-import comparison again reports
+131 stored, 131 matching, equal true. Shared Clan health returns 200; unsigned
+me returns 401 without an OAuth redirect. No live test wrote a private record.
+
+The legacy elixir-clan stack reached DELETE_COMPLETE. Its 262 static web assets
+and 198 versioned code artifacts were removed from the separate buckets. The
+retained legacy DynamoDB table was explicitly retired only after its durable
+copy matched; both buckets and the table now return absence. The two bootstrap
+deployment roles, unused runtime boundary and clan-production GitHub environment
+were removed. Shared OIDC and elixir-clan/app remain; the latter still seals the
+preserved model key. Lease 6954b6b8-06d7-4b69-8420-5efbe166822b was released.
+No canonical game/history or payload archive deletion occurred.
+
+The complete private payload inventory at 20:19:00Z has 325,116 versions, five
+markers, 2,143,668,884 bytes and 326 pages; its SHA256 is
+c80b0a15ac0cc29c4c8a752f1678d90bb3f1388a7cf86c9dd989979267576fdb.
+This is inventory, not classification or approval. The RDS backup window is
+seven days with eight automated snapshots and no observed manual snapshot;
+backup expiry remains separate from active-row/S3 removal.
+
+Private census preparation expands to game-history identities, retired card
+meta keys and per-battle dependent counts. A resumable downloader verifies every
+page digest before checkpointing. The archive observer scan reads exact versions
+and uses the same canonical identity function as ingest, preserving observer
+order, duel and boat semantics. Bad or unreadable objects remain unresolved.
+Neither tool implements game-row or payload deletion. The exact retention and
+purge manifest, mutable-reason recheck and Jamie's manifest approval are still
+required before destruction. Contracts remain 11.0.1 and JSON API 3.0.0.
