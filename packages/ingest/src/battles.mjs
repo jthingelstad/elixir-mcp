@@ -229,10 +229,26 @@ function canonicalBattleId(battleTimeCanonical, participantTags, typeClass) {
     .digest("hex");
 }
 
-/** Extract the canonical battle + participant rows from one battlelog entry. */
-export function canonicalizeBattle(entry) {
+/** The same identity for ingest and private archive provenance scans. */
+export function canonicalBattleIdentity(entry) {
   const battleTime = canonicalBattleTime(entry.battleTime);
   const typeClass = entry.type?.startsWith("boatBattle") ? "boat" : "pvp";
+  const tags = [entry.team, entry.opponent]
+    .flatMap((side) => (Array.isArray(side) ? side : []))
+    .filter((p) => p.tag !== undefined)
+    .map((p) => normalizeTag(p.tag));
+  return {
+    battle_id: canonicalBattleId(battleTime, tags, typeClass),
+    battle_time: battleTime,
+    type_class: typeClass,
+  };
+}
+
+/** Extract the canonical battle + participant rows from one battlelog entry. */
+export function canonicalizeBattle(entry) {
+  const identity = canonicalBattleIdentity(entry);
+  const battleTime = identity.battle_time;
+  const typeClass = identity.type_class;
   const team = Array.isArray(entry.team) ? entry.team : [];
   const opponent = Array.isArray(entry.opponent) ? entry.opponent : [];
 
@@ -291,11 +307,7 @@ export function canonicalizeBattle(entry) {
       : null;
   }
 
-  const battleId = canonicalBattleId(
-    battleTime,
-    participants.map((p) => p.player_tag),
-    typeClass,
-  );
+  const battleId = identity.battle_id;
 
   return {
     battle: {

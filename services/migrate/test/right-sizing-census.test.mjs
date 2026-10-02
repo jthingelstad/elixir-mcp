@@ -44,6 +44,36 @@ test("private census pages preserve composite timestamp keys, historical request
     ).rows[0];
     await ctx.db.query("insert into player(player_tag) values('#P0LYQ')");
     await ctx.db.query("insert into clan(clan_tag) values('#P2LQ0')");
+    await ctx.db.query("insert into player(player_tag) values('#P8LQ0')");
+    await ctx.db.query(
+      "insert into battle(battle_id,battle_time,type,type_class,created_at) values('retained-game','2026-01-01','riverRaceDuel','pvp','2026-01-01'),('future-game','2026-10-03','PvP','pvp','2026-10-03')",
+    );
+    await ctx.db.query(
+      "insert into battle_participant(battle_id,player_tag,side,battle_time,type_class,type) values('retained-game','#P0LYQ',0,'2026-01-01','pvp','riverRaceDuel'),('retained-game','#P8LQ0',1,'2026-01-01','pvp','riverRaceDuel')",
+    );
+    await ctx.db.query(
+      "insert into card(card_id,name,kind,rarity,max_level) values(26000000,'Knight','card','common',14)",
+    );
+    await ctx.db.query(
+      "insert into battle_participant_card(battle_id,player_tag,round,card_id,slot) values('retained-game','#P0LYQ',1,26000000,0),('retained-game','#P8LQ0',1,26000000,0)",
+    );
+    await ctx.db.query(
+      "insert into battle_participant_round(battle_id,player_tag,round) values('retained-game','#P0LYQ',1),('retained-game','#P8LQ0',1),('retained-game','#P8LQ0',2)",
+    );
+    const dependencies = await rightSizingCensus(
+      ctx.url,
+      spec("battle_dependency_counts"),
+      settings,
+    );
+    assert.equal(dependencies.rows, 1);
+    assert.deepEqual(JSON.parse(objects.get(dependencies.key)).rows, [
+      {
+        battle_id: "retained-game",
+        participants: "2",
+        cards: "2",
+        rounds: "3",
+      },
+    ]);
     await ctx.db.query(
       "insert into clan_membership(clan_tag,player_tag,joined_observed_at,left_observed_at) values('#P2LQ0','#P0LYQ','2026-01-01 00:00:00.000001Z','2026-01-02'),('#P2LQ0','#P0LYQ','2026-01-01 00:00:00.000002Z','2026-01-03')",
     );
@@ -113,6 +143,19 @@ test("private census pages preserve composite timestamp keys, historical request
       ),
       /another snapshot/,
     );
+    const catalog = await rightSizingCensus(ctx.url, { catalog: true });
+    assert.equal(catalog.readonly, true);
+    assert.ok(
+      catalog.foreign_keys.some(
+        (k) => k.child_table === "player_event" && k.parent_table === "battle",
+      ),
+    );
+    assert.deepEqual(
+      catalog.primary_keys.find(
+        (k) => k.table_name === "battle_participant_card",
+      ).columns,
+      ["battle_id", "player_tag", "round", "card_id", "form"],
+    );
     const lanes = (await rightSizingCensus(null)).lanes;
     for (const lane of lanes) {
       const page = await rightSizingCensus(
@@ -140,6 +183,8 @@ test("census refuses arbitrary tables, credentials, unsafe bounds and deletion b
   for (const value of [
     { apply: true },
     { delete: false },
+    { catalog: false },
+    { ...spec("recording"), catalog: true },
     spec("service_token"),
     spec("clan_state"),
     spec("recording", { limit: 0 }),

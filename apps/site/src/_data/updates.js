@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "One service for your record and clan",
+    body: "Clan now uses Elixir’s account, application, storage and deployment. Its old service and storage have retired after all transferred private records matched. Personal and clan history stays protected while the cleanup of retired global captures is prepared. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "Preparing the history cleanup",
     body: "The retired global recording features stay off. Cleanup now gathers historical recording evidence privately so personal, friend and clan history survives overlapping elite-player captures. No game history has been purged.",
   },

@@ -14,7 +14,7 @@ const LANES = Object.freeze({
   account_clan: {},
   account_event: {
     columns:
-      "event_id,account_id,kind,created_at,jsonb_strip_nulls(jsonb_build_object('player_tag',detail->'player_tag','clan_tag',detail->'clan_tag','subject_type',detail->'subject_type','subject_tag',detail->'subject_tag','recording_id',detail->'recording_id','collection_id',detail->'collection_id','slug',detail->'slug','via',detail->'via')) as detail",
+      "event_id,account_id,kind,created_at,jsonb_strip_nulls(jsonb_build_object('player_tag',detail->'player_tag','clan_tag',detail->'clan_tag','scope',detail->'scope','subject_type',detail->'subject_type','subject_tag',detail->'subject_tag','recording_id',detail->'recording_id','collection_id',detail->'collection_id','slug',detail->'slug','via',detail->'via')) as detail",
     filter:
       "kind in ('claim_added','claim_removed','clan_added','clan_removed','recording_started','recording_stopped','collection_created','collection_deleted','collection_member_added','collection_member_removed','collection_grant_added','collection_grant_revoked')",
   },
@@ -28,16 +28,51 @@ const LANES = Object.freeze({
   battle: {
     columns: "battle_id,cursor,battle_time,type,type_class,created_at",
   },
-  battle_participant: { columns: "battle_id,player_tag,clan_tag,side" },
+  battle_participant: {
+    columns: "battle_id,player_tag,clan_tag,side,deck_hash",
+  },
+  battle_dependency_counts: {
+    table: "battle",
+    columns:
+      "battle_id,(select count(*) from battle_participant p where p.battle_id=battle.battle_id) as participants,(select count(*) from battle_participant_card c where c.battle_id=battle.battle_id) as cards,(select count(*) from battle_participant_round r where r.battle_id=battle.battle_id) as rounds",
+  },
+  player: { keysOnly: true },
+  clan: { keysOnly: true },
+  player_snapshot_daily: { keysOnly: true },
+  clan_snapshot_daily: { keysOnly: true },
+  player_progress_daily: { keysOnly: true },
+  player_pol_season: { keysOnly: true },
+  player_card: { keysOnly: true },
+  player_badge: { keysOnly: true },
+  player_event: { omit: ["payload"] },
+  clan_event: { omit: ["payload"] },
+  player_daily_battle_rollup: { keysOnly: true },
+  player_activity: { keysOnly: true },
+  battlelog_high_water: { keysOnly: true },
+  capture_audit: {},
+  poll_state: { keysOnly: true },
+  war_week: { keysOnly: true },
+  war_week_clan: { keysOnly: true },
+  war_period: { keysOnly: true },
+  war_period_log: { keysOnly: true },
+  war_participation: { keysOnly: true },
+  war_attendance_day: { keysOnly: true },
+  integration_profile_refresh: {
+    columns: "refresh_id,account_id,player_tag,job_id,created_at",
+  },
+  series_backfill_state: {},
   ranking_board: {},
   ranking_snapshot: {},
   ranking_entry: { keysOnly: true },
+  clan_ranking_entry: { keysOnly: true },
   ranking_presence: {},
   meta_season_state: {},
   meta_season_totals: { keysOnly: true },
   deck_meta_season: { keysOnly: true },
+  card_meta_season: { keysOnly: true },
   meta_season_band_totals: { keysOnly: true },
   deck_meta_season_band: { keysOnly: true },
+  card_meta_season_band: { keysOnly: true },
   meta_season_pop: { keysOnly: true },
   meta_season_pop_day: { keysOnly: true },
 });
@@ -48,6 +83,39 @@ const identifier = (value) => {
 };
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
+async function schemaCatalog(databaseUrl) {
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("begin isolation level repeatable read read only");
+    await db.query("set local statement_timeout='30s'");
+    const foreignKeys = (
+      await db.query(
+        "select c.conname as name,c.conrelid::regclass::text as child_table,c.confrelid::regclass::text as parent_table,pg_get_constraintdef(c.oid) as definition,c.convalidated as validated from pg_constraint c join pg_namespace n on n.oid=c.connamespace where c.contype='f' and n.nspname='public' order by c.conrelid::regclass::text,c.conname",
+      )
+    ).rows;
+    const primaryKeys = (
+      await db.query(
+        "select i.indrelid::regclass::text as table_name,array_agg(a.attname::text order by array_position(i.indkey,a.attnum)) as columns from pg_index i join pg_attribute a on a.attrelid=i.indrelid and a.attnum=any(i.indkey) join pg_class r on r.oid=i.indrelid join pg_namespace n on n.oid=r.relnamespace where i.indisprimary and n.nspname='public' group by i.indrelid order by i.indrelid::regclass::text",
+      )
+    ).rows;
+    const columns = (
+      await db.query(
+        "select table_name,column_name,data_type,is_nullable from information_schema.columns where table_schema='public' order by table_name,ordinal_position",
+      )
+    ).rows;
+    await db.query("commit");
+    return {
+      readonly: true,
+      foreign_keys: foreignKeys,
+      primary_keys: primaryKeys,
+      columns,
+    };
+  } finally {
+    await db.end();
+  }
+}
+
 export async function rightSizingCensus(
   databaseUrl,
   spec = {},
@@ -55,7 +123,17 @@ export async function rightSizingCensus(
 ) {
   if (Object.hasOwn(spec, "apply") || Object.hasOwn(spec, "delete"))
     throw new Error("right sizing census cannot delete or apply game data");
-  if (!spec.export) return { readonly: true, lanes: Object.keys(LANES) };
+  if (Object.hasOwn(spec, "catalog")) {
+    if (spec.catalog !== true || spec.export)
+      throw new Error("catalog is a separate read-only census");
+    return schemaCatalog(databaseUrl);
+  }
+  if (!spec.export)
+    return {
+      readonly: true,
+      catalog_available: true,
+      lanes: Object.keys(LANES),
+    };
   const {
     lane,
     snapshot_id: snapshotId,
@@ -113,10 +191,11 @@ export async function rightSizingCensus(
   try {
     await db.query("begin isolation level repeatable read read only");
     await db.query("set local statement_timeout='30s'");
+    const table = LANES[lane].table ?? lane;
     const keys = (
       await db.query(
         `select a.attname from pg_index i join pg_attribute a on a.attrelid=i.indrelid and a.attnum=any(i.indkey) where i.indrelid=$1::regclass and i.indisprimary order by array_position(i.indkey,a.attnum)`,
-        [lane],
+        [table],
       )
     ).rows.map((r) => r.attname);
     if (!keys.length || (previous && previous.values.length !== keys.length))
@@ -124,7 +203,7 @@ export async function rightSizingCensus(
     const columns = (
       await db.query(
         "select column_name,data_type from information_schema.columns where table_schema='public' and table_name=$1 order by ordinal_position",
-        [lane],
+        [table],
       )
     ).rows;
     const names = keys.map(identifier);
@@ -161,7 +240,7 @@ export async function rightSizingCensus(
             .join(","));
     const rows = (
       await db.query(
-        `select ${selected} from ${identifier(lane)}${conditions.length ? ` where ${conditions.join(" and ")}` : ""} order by ${names.join(",")} limit $${values.length}`,
+        `select ${selected} from ${identifier(table)}${conditions.length ? ` where ${conditions.join(" and ")}` : ""} order by ${names.join(",")} limit $${values.length}`,
         values,
       )
     ).rows;
