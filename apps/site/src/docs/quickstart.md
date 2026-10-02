@@ -26,10 +26,11 @@ carries a one-click link; either works.
 
 ## 2. Track your player
 
-On **Account → Overview**, track your player tag. Tracking **is** recording:
-the scheduler starts fetching your profile and battle log at its next tick,
-and history builds from there. Your first player becomes your **primary**,
-which is what every tool means when you omit `player_tag`. Track alts and
+The player tag you asked with is already on your account when it opens:
+approval tracks it as your **primary**, which is what every tool means when
+you omit `player_tag`, and records its clan. Tracking **is** recording: the
+scheduler starts fetching your profile and battle log at its next tick, and
+history builds from there. More players go on **Account → Tracking**. Track alts and
 friends the same way and mark the relationship; every tier holds 50 players. See
 [Recording and coverage](/docs/recording) for what gets fetched and how often.
 

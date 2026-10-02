@@ -272,8 +272,11 @@ tokens issued with no scope carry every capability.
 ### Signing a person in with Elixir
 
 A web product in the Elixir family (Elixir Clan, Elixir Drop) can use Elixir
-as its sign-in. The grant it needs is the ordinary one plus **`account:email`**,
-the one capability that is never offered unasked: it does not appear ticked
+as its sign-in ([Sign in with Elixir](/docs/sign-in-with-elixir)). The grant
+it needs is the ordinary one, plus **`account:email`** when it needs the
+person's address (Elixir Drop asks for it; Elixir Clan asks for
+`clans:attest` instead). Like `clans:attest`, `account:email` is never
+offered unasked: it does not appear ticked
 on the consent page, is not part of the default grant, is never widened into
 from a checkbox or from Account → Connections, and is not advertised in a 401
 challenge. It is offered only to the family's own apps: a client Elixir provisioned,

@@ -49,7 +49,7 @@ starts at the next scheduler tick. (Before contract 1.0.0 the tools said
 | Act | Tool | Web | Scope needed |
 |---|---|---|---|
 | Record a player | `elixir_track_player({ player_tag, relationship? })` | Account → Tracking | `recordings:write` |
-| Record a clan | `elixir_track_clan({ clan_tag, scope? })` | Account → Overview | `recordings:write` |
+| Record a clan | `elixir_track_clan({ clan_tag, scope? })` | Account → Tracking | `recordings:write` |
 | Stop | the same tools with `action: "remove"` | same | `recordings:write` |
 | Silence the feed without stopping | `action: "notify_off"` / `"notify_on"` | same | `recordings:write` |
 

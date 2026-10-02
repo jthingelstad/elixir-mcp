@@ -151,8 +151,8 @@ the fleet is the lever that grows the whole service.
 
 ## Upgrades
 
-Request a tier from **Account ▸ Overview** — say what you're building or
-leading. The maintainer reviews requests by hand; you'll see the outcome
+Request a tier from **Account ▸ Profile ▸ Ask for more slots** — say
+what you're building or leading. The maintainer reviews requests by hand; you'll see the outcome
 in your feedback (your agent sees it too, via `elixir_my_feedback`, and
 your timeline carries an `account_role_changed` item when your role
 changes). Hand-tuned per-account

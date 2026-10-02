@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-10-01",
+    title:
+      "New guides for your account, friends, emails, modes and building on Elixir",
+    body: "Eight new pages in the docs, each about one thing you came to do: your account (signing in, your players, your time zone, removal), following a friend and watching any player, milestone emails, turning an email off, why modes are kept apart, signing in to Elixir's own apps with your Elixir account, and the JSON API. Three older pages pointed at the console's Overview for things that live on Tracking and Profile, and now point at the right place. No change to the tools.",
+  },
+  {
+    date: "2026-10-01",
     title: "The docs are reorganized around what you came to do",
     body: "The docs are reorganized around what you came to do: getting started, your friends and the emails, your own AI agent, what every number in the record means, building on Elixir, and the policies. The docs home starts from those tasks, the rail on the left is the apps' rail with one group open and the page you are reading marked, and every page ends with what to read next and a way to tell us something on it is wrong. Every page kept its address, and an agent reading the docs through elixir_docs sees the same groups. No change to the tools.",
   },
