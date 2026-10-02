@@ -501,6 +501,12 @@ Resources:
                 Resource: !Sub
                   - ${Arn}/clan-migration/v1/*
                   - Arn: !GetAtt ArchiveBucket.Arn
+              # Private census artifacts only; no payload or archive deletion.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub
+                  - ${Arn}/right-sizing/v1/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
               # The call captures, READ only (3.18.0): the refusal and
               # controls censuses read request and response bodies the
               # MCP door wrote; nothing here writes a capture.

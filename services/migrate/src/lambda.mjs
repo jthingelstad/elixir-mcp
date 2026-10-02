@@ -1,3 +1,4 @@
+import { rightSizingCensus } from "./ops-right-sizing.mjs";
 import { clanMaintenance } from "./ops-clan-maintenance.mjs";
 import { clanImport } from "./ops-clan-import.mjs";
 /** The migrate Lambda — the ONLY thing that applies schema migrations in
@@ -117,6 +118,12 @@ async function dispatch(event) {
     );
     console.log(JSON.stringify(result));
     return result;
+  }
+  if (event?.right_sizing_census) {
+    return rightSizingCensus(
+      process.env.DATABASE_URL,
+      event.right_sizing_census,
+    );
   }
   if (event?.clan_import) {
     const result = await clanImport(

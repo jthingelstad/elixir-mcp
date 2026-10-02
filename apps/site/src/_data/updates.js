@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Preparing the history cleanup",
+    body: "The retired global recording features stay off. Cleanup now gathers historical recording evidence privately so personal, friend and clan history survives overlapping elite-player captures. No game history has been purged.",
+  },
+  {
+    date: "2026-10-02",
     title: "Clan is part of Elixir",
     body: "Your Elixir sign-in now opens your record and clan tools in one application. Clan policies, actions, awards, preferences and private records were transferred and checked in full. The separate Clan sign-in and service key are retired; Drop keeps Elixir authentication and authorized account access. Contracts unchanged.",
   },
