@@ -15,6 +15,11 @@ export default [
   },
   {
     date: "2026-10-01",
+    title: "Ladder: your season, read back",
+    body: "Ladder opens at /ladder, beside the console and signed in like it: the current season of one of your players, as Elixir recorded it, one mode at a time. Trophy Road, Path of Legends, war and events each have their own tab and nothing pools across them. The season home shows the season so far in that mode: battles, record, win rate and the trophies you ranged over, a note when you stood on an arena floor where losses cost nothing, the season week by week, and the deck you played most in the last 30 days with its record in each mode. Every number is one the tools return; Ladder adds no verdict and no advice. It opens on the mode you played most, and on your primary player, with your alts a click away. No change to the tools.",
+  },
+  {
+    date: "2026-10-01",
     title: "Every battle has a page you can share",
     body: "Each recorded battle now has its own page at elixir.poapkings.com/battle/ followed by a short id, and anyone with the link can open it, no account needed. The player is on the left and the opponent on the right, with the score, both decks as the game lays them out, a Copy deck button that opens Clash Royale with that deck ready to save, the towers each side kept and how the game ended, and the two sides' numbers side by side. A duel reads game by game. Below are the player's other battles from the same session and every recorded meeting of the two. The page shows game names only, never a nickname. Agents get the same link on every battle (url on battles_query), so they can hand it to you. Contract 9.18.0.",
   },

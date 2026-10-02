@@ -1733,3 +1733,23 @@ A duel shows its games won and the last game's decks and towers; a 2v2
 shows both players a side with one row of eight each, and its chip names
 the winning side ("Left team won") rather than cutting the team to one
 name. The edge keeps a picture a day.
+
+---
+
+---
+
+## 2026-10-01 - Ladder ships its season home at /ladder
+
+Ladder (design canvas 2026-10-01, Ladder.dc.html) is a section of the
+console's app beside the Console, not a vertical: `/ladder` is routed to
+`app.html` by the SpaRouter and by `serve-site.mjs`, and the app's root guard
+hands Ladder its own paths (`lib/ladder.js`). It reads only through
+`POST /api/explore`, so every read is metered like any other: the season
+home is `battles_performance` twice (the season, and `group_by: week`) plus
+`players_summary` (the default mode and the most-played deck). Decisions:
+your own players only (primary, then alts; a friend's season is theirs), the
+mode in the address and else the one played most of Trophy Road and Path of
+Legends, a deck's rate only when it is one mode's own, and the week bars drawn
+in SVG so their heights are attributes and not inline styles. The top bar
+still marks Console under /ladder until the shell's Chrome takes a current
+product from the route; that hook belongs to the shell's owner.

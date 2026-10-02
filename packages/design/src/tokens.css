@@ -178,6 +178,8 @@
 
   --win: #2d85f3; /* a day of wins (Jamie's blue), activity graphic */
   --loss: #ef4444; /* a day of losses */
+  --win-ink: #7fb6f8; /* a win as text: a record's wins, on a panel */
+  --loss-ink: var(--bad); /* a loss as text: #fb7185 */
   --warn-fill: rgba(252, 211, 77, 0.1);
   --warn-edge: rgba(252, 211, 77, 0.45);
   --bad-fill: rgba(251, 113, 133, 0.12);

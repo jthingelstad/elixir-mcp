@@ -326,6 +326,31 @@ export const useExploreCollections = () =>
 export const usePublicStats = () =>
   useQuery({ queryKey: keys.stats, queryFn: payload(api.publicStats) });
 
+/** One tool's answer through the explore bridge, as Ladder reads it:
+ *  the body, or a thrown error carrying the tool's code when the tool
+ *  refused. Keyed under the reader's root, because what it reads is
+ *  theirs and a timezone change (the days a battle falls on) or a sign
+ *  in must refetch it. Ladder pages cache for minutes and never poll
+ *  (the Ladder brief: every read is priced against the reader's quota). */
+async function toolRead(tool, args) {
+  const r = unwrap(await api.explore(tool, args));
+  if (r?.is_error) {
+    const e = new Error(r.body?.error?.message ?? `${tool} refused`);
+    e.code = r.body?.error?.code;
+    throw e;
+  }
+  return r?.body ?? null;
+}
+const ladderKey = (tool, args) => ["me", "ladder", tool, args];
+export const useToolRead = (tool, args, { enabled = true } = {}) =>
+  useQuery({
+    queryKey: ladderKey(tool, args),
+    queryFn: () => toolRead(tool, args),
+    enabled,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+
 /** `invalidate(keys.sessions)` after a mutation: the read refetches and
  *  every screen showing it follows. `invalidate()` with no key is the
  *  console's root: the session and everything that is the reader's own,

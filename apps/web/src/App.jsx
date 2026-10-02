@@ -36,6 +36,14 @@ import { answered, createQueryClient } from "@elixir-mcp/client";
 import { api } from "./api.js";
 import { useAgentMe } from "./lib/queries.js";
 import { CONSOLE, appPath } from "./lib/console.js";
+import {
+  LADDER,
+  isLadder,
+  ladderHere,
+  ladderLegal,
+  ladderTitle,
+} from "./lib/ladder.js";
+import { LadderRail } from "./ladder/LadderRail.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 
 /**
@@ -800,6 +808,16 @@ export const DOC_LINKS = {
       ["Cards", "/docs/cards"],
     ],
   ],
+  // Ladder's pages: the section's own page first, then the tool each
+  // page reads.
+  "ladder:season": [
+    "Ladder",
+    [
+      ["Ladder", "/docs/ladder"],
+      ["battles_performance", "/docs/tools/battles#battles_performance"],
+      ["players_summary", "/docs/tools/players#players_summary"],
+    ],
+  ],
 };
 
 /** Structural redirects: a bare section to its first page, a partial
@@ -831,6 +849,9 @@ const BATTLE_PATH = /^\/battle\/[0-9a-f]{12,64}$/;
 export function legalRoute(path) {
   // A battle's public page is the app's too, outside the Console.
   if (BATTLE_PATH.test(path)) return path;
+  // Ladder is a section of its own beside the Console (2026-09-28), and
+  // resolves its own paths.
+  if (isLadder(path)) return ladderLegal(path);
   const app = appPath(path);
   if (app === null) return null;
   const [, section, page] = app.split("/");
@@ -866,6 +887,7 @@ const prettify = (seg) =>
         .replace(/^./, (c) => c.toUpperCase());
 
 export function titleFor(section, sec, path) {
+  if (isLadder(path)) return ladderTitle(path, SITE);
   const parts = (appPath(path) ?? "").split("/").filter(Boolean);
   if (parts.length === 0) return SITE;
   if (!sec) return SITE;
@@ -1093,7 +1115,8 @@ function DocsStrip({ here }) {
  *  a new tab. Console paths only, read once and cleared. */
 const AFTER_SIGN_IN = "elixir.after_sign_in";
 const signedInPath = (path) =>
-  /^\/(account|admin|agent)\//.test(appPath(path) ?? "");
+  /^\/(account|admin|agent)\//.test(appPath(path) ?? "") ||
+  isLadder(String(path ?? "").split("?")[0]);
 export function rememberAfterSignIn(path) {
   try {
     if (signedInPath(path)) window.localStorage.setItem(AFTER_SIGN_IN, path);
@@ -1256,6 +1279,17 @@ const battleRoute = createRoute({
   ),
 });
 
+/** Ladder: a section of Elixir beside the Console, its own rail in the
+ *  same shell. Signed in only, like the Console. */
+const ladderRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: `${LADDER}/{-$page}`,
+  component: lazyRouteComponent(
+    () => import("./pages/LadderPage.jsx"),
+    "LadderPage",
+  ),
+});
+
 const dataRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: `${CONSOLE}/data/{-$page}`,
@@ -1271,14 +1305,26 @@ export const routeTree = rootRoute.addChildren([
   adminRoute,
   dataRoute,
   battleRoute,
+  ladderRoute,
 ]);
 
 /** Where a route is on the rail and in the route table, from its path:
  *  the section, its page (validated against SECTIONS, so a stale slug
  *  falls back to the section's first page), the rail position, the
  *  ids. Route components read this rather than re-deriving it. */
+/** Ladder's place in the route table: one section, signed in. */
+const LADDER_SECTION = { label: "Ladder", authed: true, pages: [] };
+
 export function useHere() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  if (isLadder(pathname))
+    return {
+      path: pathname,
+      section: "ladder",
+      sec: LADDER_SECTION,
+      here: ladderHere(pathname),
+      search: search ?? {},
+    };
   // Segments are read on the app path (the prefix off); `path` stays the
   // real one, since it is what the page keys and titles on.
   const app = appPath(pathname) ?? "";
@@ -1372,7 +1418,7 @@ function Shell() {
   const navigate = useNav();
   const { me, unreachable, retrying, refresh } = useMe();
   const narrow = useNarrow();
-  const { path: effectivePath, section, sec, here } = useHere();
+  const { path: effectivePath, section, sec, here, search } = useHere();
 
   const authed = me?.authenticated === true;
 
@@ -1444,7 +1490,15 @@ function Shell() {
           <div
             className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
           >
-            {showRail && (
+            {showRail && here.product === "ladder" ? (
+              <LadderRail
+                me={me}
+                search={search}
+                here={here}
+                navigate={navigate}
+                narrow={narrow}
+              />
+            ) : showRail ? (
               <Rail
                 me={me}
                 agent={agent}
@@ -1454,7 +1508,7 @@ function Shell() {
                 counts={counts}
                 dots={dots}
               />
-            )}
+            ) : null}
 
             <main className="page">
               <div

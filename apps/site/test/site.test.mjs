@@ -101,6 +101,7 @@ const STATIC_PAGES = [
   "/docs/operators",
   "/docs/verify",
   "/docs/activity",
+  "/docs/ladder",
   "/docs/email",
   "/docs/your-account",
   "/docs/follow-a-friend",
@@ -246,7 +247,7 @@ function edgeRouter() {
 }
 
 test(
-  "the edge router sends /console and /clan to their apps and every other page to its document",
+  "the edge router sends /console, /ladder and /clan to their apps and every other page to its document",
   { skip },
   async () => {
     const route = edgeRouter();
@@ -274,6 +275,13 @@ test(
       assert.equal(route(uri), "/app.html", `${uri} is not the app`);
     assert.ok(!existsSync(path.join(out, "console")));
     assert.equal(route("/consoles"), "/consoles/index.html");
+
+    // Ladder is a section of the same app beside the Console
+    // (2026-09-28): its prefix is the app shell too, and only its prefix.
+    for (const uri of ["/ladder", "/ladder/", "/ladder/days", "/ladder/decks"])
+      assert.equal(route(uri), "/app.html", `${uri} is not the app`);
+    assert.ok(!existsSync(path.join(out, "ladder")));
+    assert.equal(route("/ladders"), "/ladders/index.html");
 
     // Elixir Clan owns /clan the same way, from its own bucket, where its
     // build sits under clan/ (2026-09-28).

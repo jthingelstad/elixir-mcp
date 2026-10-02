@@ -2132,8 +2132,9 @@ Resources:
   # docs at all.
   #
   # One origin, paths not hostnames (2026-09-28): the Console lives
-  # under /console, Elixir Clan under /clan, and everything else is the
-  # site's, so the rule is a prefix, not a list of pages to keep in step.
+  # under /console, Ladder under /ladder (a section of the same app),
+  # Elixir Clan under /clan, and everything else is the site's, so the
+  # rule is a prefix, not a list of pages to keep in step.
   # The MCP, OAuth and API paths never reach this function: they are
   # their own behaviours. Clan's two behaviours share it; each origin
   # sees only its own paths, because the behaviours split them first.
@@ -2176,6 +2177,13 @@ Resources:
           // The Console owns /console and everything under it; the app
           // resolves its own paths (and sends a stale one home).
           if (key === '/console' || key.indexOf('/console/') === 0) {
+            request.uri = '/app.html';
+            return request;
+          }
+
+          // Ladder is a section of the same app beside the Console: the
+          // same shell, its own rail (2026-09-28).
+          if (key === '/ladder' || key.indexOf('/ladder/') === 0) {
             request.uri = '/app.html';
             return request;
           }

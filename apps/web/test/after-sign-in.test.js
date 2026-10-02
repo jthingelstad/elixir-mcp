@@ -32,3 +32,12 @@ test("only console paths are remembered; anything else lands on Overview", () =>
     "/console/admin/emails/5c1c5dbf-0000-4000-8000-000000000001",
   );
 });
+
+test("a Ladder path is kept across sign-in too; a look-alike is not", () => {
+  rememberAfterSignIn("/ladder?player=VJQV8G8RL&mode=ranked");
+  expect(takeAfterSignIn()).toBe("/ladder?player=VJQV8G8RL&mode=ranked");
+  rememberAfterSignIn("/ladders/x");
+  expect(takeAfterSignIn()).toBeNull();
+  rememberAfterSignIn("https://evil.example/ladder");
+  expect(takeAfterSignIn()).toBeNull();
+});

@@ -1,7 +1,8 @@
 /**
  * Serve the merged tree (dist/site) the way the edge does - the same rule
  * as the CloudFront function in infra/template.yaml: a file is itself,
- * /console and everything under it is the app shell (app.html), and any
+ * /console and /ladder and everything under them is the app shell
+ * (app.html), and any
  * other path is the site's document or an honest 404. No API: the
  * Playwright journeys answer /api/* themselves, with fixtures, so the
  * built app is tested end to end without a database.
@@ -47,6 +48,7 @@ function route(pathname) {
   // A battle's page is the app shell too: at the edge the API serves it
   // (the /battle/* behavior), with the battle's preview tags written in.
   if (/^\/battle\/[0-9a-f]{12,64}$/.test(key)) return "/app.html";
+  if (key === "/ladder" || key.startsWith("/ladder/")) return "/app.html";
   return `${key}/index.html`;
 }
 

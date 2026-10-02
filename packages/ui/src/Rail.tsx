@@ -80,6 +80,11 @@ export interface RailAccount {
  * the narrow layout's closed row, where a phone could otherwise be acting
  * as an agent without showing it. With one account or none the head is
  * the plain title, as it always was.
+ *
+ * `head` replaces the head outright, for a section whose rail belongs to
+ * something other than an account: Ladder's is the player whose season
+ * it reads. Like the selector, it stays in the narrow layout's closed
+ * row, so which player a phone is reading is never hidden.
  */
 export function Rail({
   items,
@@ -95,6 +100,7 @@ export function Rail({
   accounts,
   account,
   manage,
+  head,
 }: {
   items: RailItem[];
   current: string | null | undefined;
@@ -111,6 +117,8 @@ export function Rail({
   account?: string;
   /** The last line of the selector: where accounts are managed. */
   manage?: { label: string; to: string };
+  /** A head of the section's own, in place of the title or selector. */
+  head?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const active = items.find((r) => r.key === current);
@@ -180,7 +188,8 @@ export function Rail({
   const subLabel = (active?.subs ?? []).find((s) => s.slug === sub)?.label;
   const shown = !narrow || open;
   const switcher =
-    accounts && accounts.length > 1 ? (
+    head ??
+    (accounts && accounts.length > 1 ? (
       <AccountSwitcher
         accounts={accounts}
         current={account}
@@ -190,7 +199,7 @@ export function Rail({
           navigate(to);
         }}
       />
-    ) : null;
+    ) : null);
 
   return (
     <aside className="rail">
