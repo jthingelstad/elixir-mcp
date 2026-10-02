@@ -89,6 +89,12 @@ body of up to 180, and it stays in every member's inbox. A clan chat
 line is for the chat. Clan drafts the words; copy them into the game and
 change what you like. Nothing is ever posted for the clan automatically.
 
+With the clan's own model set up under **Manage ▸ Settings**, an open
+Leader Message action also offers **Draft in our voice**. It uses the
+clan's Anthropic key to draft a promotion, demotion, awards announcement
+or policy-change announcement. The model is not given a member's name or
+numbers, and its answer remains an editable draft for a leader to send.
+
 ## The inactivity clock
 
 When the clan turns on **Suggest removals**, a member's days since their
