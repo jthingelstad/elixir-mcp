@@ -1,34 +1,491 @@
 {
-  "week": {"from": "2026-09-07T10:00:00Z", "to": "2026-09-14T10:00:00Z", "label": "Sep 7 – 14", "key": "2026-W37", "season": 136},
-  "account": {"name": "Jamie"},
-  "primary": {"tag": "#20JJJ2CCRU", "name": "King Thing", "nickname": "Jamie",
-    "trophies": {"from": 12510, "to": 12504}, "battles": 19, "wins": 9, "losses": 10, "sessions": 10, "war_battles": 8,
-    "clan": {"name": "POAP KINGS", "tag": "#J2RGCRVG", "role": "leader", "rank": 23, "rank_from": 24},
-    "moments": []},
-  "alts": [
-    {"tag": "#VJG0J29QP", "name": "Big Thing", "battles": 16, "wins": 16, "losses": 0, "sessions": 5, "trophies": null,
-     "moments": [{"when": "Wed 22:57", "text": "joined Elixir Kings"}, {"when": "Sun 07:17", "text": "left Elixir Kings (was elder)"}, {"when": "Sun 07:17", "text": "joined Ship It!"}]},
-    {"tag": "#VJQV8G8RL", "name": "thingles", "battles": 20, "wins": 20, "losses": 0, "sessions": 7, "trophies": null,
-     "moments": [{"when": "Tue 23:37", "text": "joined ALT KINGS"}, {"when": "Wed 22:57", "text": "left ALT KINGS (was leader)"}, {"when": "Wed 22:57", "text": "joined Elixir Kings"}]}
-  ],
-  "friends": [
-    {"tag": "#U8RYG9Y2U", "name": "King Levy", "nickname": "Levi", "battles": 25, "wins": 9, "losses": 16, "sessions": 14, "modes": "25 ranked", "trophies": null, "clan": "POAP KINGS", "moments": []},
-    {"tag": "#UL2V9QRG0", "name": "raquaza", "nickname": "Tyler", "battles": 22, "wins": 9, "losses": 13, "sessions": 8, "modes": "10 casual, 7 ladder, 5 ranked", "trophies": {"from": 13933, "to": 13904}, "clan": "POAP KINGS", "moments": []}
-  ],
-  "watching": [
-    {"tag": "#C920YGLC2", "name": "Vijay", "line": "300 battles, 144W-156L (289 casual, 8 ranked, 3 war)", "clan": "POAP KINGS", "delta": null},
-    {"tag": "#RJ9RRQPVU", "name": "OllieTurtle", "line": "65 battles, 37W-28L (54 ranked, 11 casual)", "clan": "POAP KINGS", "delta": null},
-    {"tag": "#20R8QRLYLP", "name": "Chanco", "line": "46 battles; led the clan's donations (74)", "clan": "POAP KINGS", "delta": 60},
-    {"tag": "#V0CRYP2GG", "name": "pokemon", "line": "4 battles, 2W-2L; back after 10 quiet days", "clan": "POAP KINGS", "delta": -6},
-    {"tag": "#VGJJLC9PR", "name": "Ditaka", "line": "no recorded battles; left POAP KINGS on Thursday", "clan": null, "delta": 0},
-    {"tag": "#VPY0Y2209", "name": "JaxikoLane", "line": "nothing recorded this week", "clan": null, "delta": null},
-    {"tag": "#200UL8LYUJ", "name": "Lucky Red Panda", "line": "nothing recorded this week", "clan": null, "delta": null},
-    {"tag": "#2282UV9UY8", "name": "Lord of Latency", "line": "quiet for 148 days", "clan": null, "delta": null}
-  ],
-  "clans": [
-    {"tag": "#J2RGCRVG", "name": "POAP KINGS", "line": "3,200 battles by 46 of 47 members; war week 1 finished 1st with 10,134 fame; roster 48 → 47"},
-    {"tag": "#GJ09RJP8", "name": "Elixir Kings", "line": "28 battles by 2 players who were members during the week; roster now 1"},
-    {"tag": "#GCYQR9VY", "name": "Ship It!", "line": "recording began inside the week; roster 1"}
-  ],
-  "coverage": "12 subjects; every tracked player was polled inside the week."
+ "week": {
+  "from": "2026-09-21T10:00:00Z",
+  "to": "2026-09-28T10:00:00Z",
+  "label": "Sep 21 – 28",
+  "key": "2026-W39",
+  "season": 136
+ },
+ "primary": {
+  "tag": "#20JJJ2CCRU",
+  "name": "King Thing",
+  "nickname": null,
+  "battles": 16,
+  "wins": 7,
+  "losses": 9,
+  "sessions": 6,
+  "war_battles": 6,
+  "trophies": {
+   "from": 12505,
+   "to": 12530
+  },
+  "clan": {
+   "tag": "#J2RGCRVG",
+   "name": "POAP KINGS",
+   "role": "leader"
+  },
+  "modes": "10 ladder, 6 war",
+  "moments": [],
+  "by_family": [
+   {
+    "mode": "ladder",
+    "battles": 10,
+    "wins": 4,
+    "losses": 6
+   },
+   {
+    "mode": "war",
+    "battles": 6,
+    "wins": 3,
+    "losses": 3
+   }
+  ]
+ },
+ "alts": [
+  {
+   "tag": "#VJQV8G8RL",
+   "name": "thingles",
+   "nickname": null,
+   "battles": 34,
+   "wins": 29,
+   "losses": 5,
+   "sessions": 5,
+   "war_battles": 0,
+   "trophies": {
+    "from": 1207,
+    "to": 1923
+   },
+   "clan": null,
+   "modes": "34 ladder",
+   "moments": [
+    {
+     "when": "Sat 21:40",
+     "text": "reached Spell Valley"
+    }
+   ]
+  },
+  {
+   "tag": "#VJG0J29QP",
+   "name": "Big Thing",
+   "nickname": null,
+   "battles": 37,
+   "wins": 31,
+   "losses": 6,
+   "sessions": 6,
+   "war_battles": 0,
+   "trophies": {
+    "from": 1148,
+    "to": 1903
+   },
+   "clan": null,
+   "modes": "37 ladder",
+   "moments": []
+  }
+ ],
+ "friends": [
+  {
+   "tag": "#U8RYG9Y2U",
+   "name": "King Levy",
+   "nickname": "Levi",
+   "battles": 9,
+   "wins": 3,
+   "losses": 6,
+   "sessions": 4,
+   "war_battles": 0,
+   "trophies": null,
+   "clan": {
+    "tag": "#J2RGCRVG",
+    "name": "POAP KINGS",
+    "role": "member"
+   },
+   "modes": "8 ranked, 1 event",
+   "moments": [],
+   "by_family": [
+    {
+     "mode": "ranked",
+     "battles": 8,
+     "wins": 3,
+     "losses": 5
+    },
+    {
+     "mode": "event",
+     "battles": 1,
+     "wins": 0,
+     "losses": 1
+    }
+   ],
+   "deck": {
+    "family": "ranked",
+    "label": "Evo Skeleton Barrel bait",
+    "battles": 8,
+    "wins": 3,
+    "losses": 5,
+    "cards": [
+     {
+      "id": 26000007,
+      "name": "Witch",
+      "form": "evolution"
+     },
+     {
+      "id": 26000018,
+      "name": "Mini P.E.K.K.A",
+      "form": "hero"
+     },
+     {
+      "id": 26000030,
+      "name": "Ice Spirit",
+      "form": "base"
+     },
+     {
+      "id": 26000040,
+      "name": "Dart Goblin",
+      "form": "base"
+     },
+     {
+      "id": 26000056,
+      "name": "Skeleton Barrel",
+      "form": "evolution"
+     },
+     {
+      "id": 27000000,
+      "name": "Cannon",
+      "form": "base"
+     },
+     {
+      "id": 28000001,
+      "name": "Arrows",
+      "form": "base"
+     },
+     {
+      "id": 28000011,
+      "name": "The Log",
+      "form": "base"
+     }
+    ],
+    "tower_troop": "Tower Princess",
+    "average_elixir": 2.9,
+    "level_gap": null
+   },
+   "decks_used": 2,
+   "deck_battles": 9
+  },
+  {
+   "tag": "#UL2V9QRG0",
+   "name": "raquaza",
+   "nickname": "Tyler",
+   "battles": 58,
+   "wins": 23,
+   "losses": 35,
+   "sessions": 9,
+   "war_battles": 0,
+   "trophies": {
+    "from": 13966,
+    "to": 13966
+   },
+   "clan": {
+    "tag": "#J2RGCRVG",
+    "name": "POAP KINGS",
+    "role": "elder"
+   },
+   "modes": "57 event, 1 ladder",
+   "moments": [
+    {
+     "when": "Fri 19:02",
+     "text": "earned Classic Challenge, level 3"
+    }
+   ],
+   "by_family": [
+    {
+     "mode": "event",
+     "battles": 57,
+     "wins": 22,
+     "losses": 35
+    },
+    {
+     "mode": "ladder",
+     "battles": 1,
+     "wins": 1,
+     "losses": 0
+    }
+   ],
+   "deck": {
+    "family": "event",
+    "label": "Evo P.E.K.K.A bridge spam",
+    "battles": 7,
+    "wins": 4,
+    "losses": 3,
+    "cards": [
+     {
+      "id": 26000004,
+      "name": "P.E.K.K.A",
+      "form": "evolution"
+     },
+     {
+      "id": 26000005,
+      "name": "Minions",
+      "form": "base"
+     },
+     {
+      "id": 26000036,
+      "name": "Battle Ram",
+      "form": "base"
+     },
+     {
+      "id": 26000050,
+      "name": "Royal Ghost",
+      "form": "evolution"
+     },
+     {
+      "id": 26000062,
+      "name": "Magic Archer",
+      "form": "base"
+     },
+     {
+      "id": 26000103,
+      "name": "Boss Bandit",
+      "form": "base"
+     },
+     {
+      "id": 28000008,
+      "name": "Zap",
+      "form": "base"
+     },
+     {
+      "id": 28000009,
+      "name": "Poison",
+      "form": "base"
+     }
+    ],
+    "tower_troop": "Tower Princess",
+    "average_elixir": 4.1,
+    "level_gap": null
+   },
+   "decks_used": 37,
+   "deck_battles": 58
+  }
+ ],
+ "watching": [
+  {
+   "tag": "#C920YGLC2",
+   "name": "Vijay",
+   "line": "355 battles, 187W-168L (218 ranked, 117 event, 19 casual, 1 war)",
+   "battles": 355,
+   "wins": 187,
+   "losses": 168,
+   "delta": null,
+   "trophies": null,
+   "moments": [],
+   "by_family": [
+    {
+     "mode": "ranked",
+     "battles": 218,
+     "wins": 102,
+     "losses": 116
+    },
+    {
+     "mode": "event",
+     "battles": 117,
+     "wins": 72,
+     "losses": 45
+    },
+    {
+     "mode": "casual",
+     "battles": 19,
+     "wins": 12,
+     "losses": 7
+    },
+    {
+     "mode": "war",
+     "battles": 1,
+     "wins": 1,
+     "losses": 0
+    }
+   ],
+   "deck": {
+    "family": "ranked",
+    "label": "Lava Hound beatdown",
+    "battles": 51,
+    "wins": 27,
+    "losses": 24,
+    "cards": [
+     {
+      "id": 26000008,
+      "name": "Barbarians",
+      "form": "base"
+     },
+     {
+      "id": 26000015,
+      "name": "Baby Dragon",
+      "form": "evolution"
+     },
+     {
+      "id": 26000029,
+      "name": "Lava Hound",
+      "form": "base"
+     },
+     {
+      "id": 26000039,
+      "name": "Mega Minion",
+      "form": "hero"
+     },
+     {
+      "id": 26000107,
+      "name": "Minion Giant",
+      "form": "base"
+     },
+     {
+      "id": 27000009,
+      "name": "Tombstone",
+      "form": "base"
+     },
+     {
+      "id": 28000000,
+      "name": "Fireball",
+      "form": "base"
+     },
+     {
+      "id": 28000008,
+      "name": "Zap",
+      "form": "evolution"
+     }
+    ],
+    "tower_troop": "Tower Princess",
+    "average_elixir": 4.0,
+    "level_gap": null
+   },
+   "decks_used": 14,
+   "deck_battles": 355
+  },
+  {
+   "tag": "#RJ9RRQPVU",
+   "name": "OllieTurtle",
+   "line": "26 battles, 12W-14L (21 ranked, 5 event); promoted to Grand Champion",
+   "battles": 26,
+   "wins": 12,
+   "losses": 14,
+   "delta": null,
+   "trophies": null,
+   "moments": [
+    {
+     "when": "Thu 20:11",
+     "text": "promoted to Grand Champion"
+    }
+   ],
+   "by_family": [
+    {
+     "mode": "ranked",
+     "battles": 21,
+     "wins": 11,
+     "losses": 10
+    },
+    {
+     "mode": "event",
+     "battles": 5,
+     "wins": 1,
+     "losses": 4
+    }
+   ],
+   "deck": {
+    "family": "ranked",
+    "label": "Goblin Drill cycle",
+    "battles": 15,
+    "wins": 8,
+    "losses": 7,
+    "cards": [
+     {
+      "id": 26000010,
+      "name": "Skeletons",
+      "form": "base"
+     },
+     {
+      "id": 26000102,
+      "name": "Berserker",
+      "form": "hero"
+     },
+     {
+      "id": 27000006,
+      "name": "Tesla",
+      "form": "base"
+     },
+     {
+      "id": 27000010,
+      "name": "Furnace",
+      "form": "evolution"
+     },
+     {
+      "id": 27000013,
+      "name": "Goblin Drill",
+      "form": "base"
+     },
+     {
+      "id": 28000009,
+      "name": "Poison",
+      "form": "base"
+     },
+     {
+      "id": 28000017,
+      "name": "Giant Snowball",
+      "form": "evolution"
+     },
+     {
+      "id": 28000018,
+      "name": "Royal Delivery",
+      "form": "base"
+     }
+    ],
+    "tower_troop": "Tower Princess",
+    "average_elixir": 3.1,
+    "level_gap": null
+   },
+   "decks_used": 3,
+   "deck_battles": 26
+  },
+  {
+   "tag": "#VPY0Y2209",
+   "name": "JaxikoLane",
+   "line": "no recorded battles",
+   "battles": 0,
+   "wins": 0,
+   "losses": 0,
+   "delta": null,
+   "trophies": null,
+   "moments": []
+  },
+  {
+   "tag": "#200UL8LYUJ",
+   "name": "Lucky Red Panda",
+   "line": "no recorded battles",
+   "battles": 0,
+   "wins": 0,
+   "losses": 0,
+   "delta": null,
+   "trophies": null,
+   "moments": []
+  }
+ ],
+ "clans": [
+  {
+   "tag": "#J2RGCRVG",
+   "name": "POAP KINGS",
+   "line": "3,200 battles by 46 of 47 members; war week 3 finished 1st with 10,305 fame"
+  },
+  {
+   "tag": "#GJ09RJP8",
+   "name": "Elixir Kings",
+   "line": "28 battles by 2 members"
+  }
+ ],
+ "quiet": [
+  {
+   "tag": "#VPY0Y2209",
+   "name": "JaxikoLane",
+   "days": 12
+  },
+  {
+   "tag": "#200UL8LYUJ",
+   "name": "Lucky Red Panda",
+   "days": 30
+  }
+ ],
+ "coverage": "12 subjects tracked; 2 with nothing recorded this week (read days since poll before calling the silence theirs)."
 }

@@ -211,6 +211,19 @@ async function runClans(run, recipients, season) {
     if (!trackers.has(r.clan_tag)) trackers.set(r.clan_tag, new Set());
     trackers.get(r.clan_tag).add(r.account_id);
   }
+  // Each reader's own players (primary and alts): the report is the
+  // clan's, but the render marks the reader's own rows "you".
+  const { rows: claims } = await db.query(
+    `select account_id, player_tag from claim
+      where account_id = any($1::uuid[]) and (is_primary or relationship = 'alt')`,
+    [recipients.map((r) => r.accountId)],
+  );
+  const tagsOf = new Map();
+  for (const r of claims)
+    tagsOf.set(r.account_id, [
+      ...(tagsOf.get(r.account_id) ?? []),
+      r.player_tag,
+    ]);
   const sent = run.force ? new Map() : await sentForPeriod(db, kind, week.key);
   const clans = [...trackers].map(([clanTag, who]) => {
     // Recipients' order (oldest account first), as before.
@@ -276,7 +289,7 @@ async function runClans(run, recipients, season) {
           issueId,
           issueKey: `${kind}/${week.key}/${clanTag}`,
           period: week.key,
-          account,
+          account: { ...account, tags: tagsOf.get(account.accountId) ?? [] },
           facts,
         });
     } catch (err) {
@@ -346,7 +359,7 @@ async function runPerAccount(run, recipients, season) {
       else if (kind === "tracking_report")
         facts = await buildTracking({ db, account, week, season });
       else if (kind === "collector_activity")
-        facts = await buildCollector({ db, account, week });
+        facts = await buildCollector({ db, account, week, now });
       else {
         facts = await buildMilestone({
           db,

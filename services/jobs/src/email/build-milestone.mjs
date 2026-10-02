@@ -57,6 +57,40 @@ export function momentKey(kind, f) {
   }
 }
 
+/** The battle that did it, from the moment's own payload (the ingest
+ *  stamped it when the moment was written): the score, who it was
+ *  against and where they started, the trophies it moved. */
+function promotingBattle(b) {
+  if (!b || b.crowns == null) return null;
+  return {
+    battle_id: b.battle_id ?? null,
+    won: b.crowns > (b.crowns_against ?? 0),
+    crowns: b.crowns,
+    crowns_against: b.crowns_against ?? null,
+    opponent: b.opponent
+      ? {
+          tag: b.opponent.player_tag,
+          name: b.opponent.name ?? b.opponent.player_tag,
+          starting_trophies: b.opponent.starting_trophies ?? null,
+        }
+      : null,
+    trophy_change: b.trophy_change ?? null,
+  };
+}
+
+/** A card moment's art: the card by id and the form unlocked, and its
+ *  rarity under it. A moment written before card ids rode the payload
+ *  has none, and the mail says it in words. */
+function cardArt(f, form) {
+  if (f.card_id == null || !f.card) return {};
+  return {
+    card: { id: Number(f.card_id), name: f.card, form: form ?? "base" },
+    card_line: f.rarity
+      ? `${String(f.rarity).charAt(0).toUpperCase()}${String(f.rarity).slice(1)}`
+      : null,
+  };
+}
+
 function card(kind, f, subject, at, tz) {
   const n = (v) => Number(v).toLocaleString("en-US");
   const who = subject.relationship === "alt" ? subject.name : "You";
@@ -65,29 +99,26 @@ function card(kind, f, subject, at, tz) {
       return {
         headline: `${who} reached ${f.to_name ?? "a new arena"}`,
         big: f.to_name ?? null,
-        big_label: "Trophy Road",
-        lines: [
-          f.from_name ? `${f.from_name} → ${f.to_name}.` : `A new arena.`,
-          ...(f.promoted_by?.opponent
-            ? [
-                `Won the deciding battle ${f.promoted_by.crowns}–${f.promoted_by.crowns_against} against ${f.promoted_by.opponent.name ?? f.promoted_by.opponent.player_tag}.`,
-              ]
-            : []),
-        ],
+        big_label: [
+          f.from_name ? `Up from ${f.from_name}` : "A new arena",
+          f.promoted_by?.trophies_after != null
+            ? `at ${n(f.promoted_by.trophies_after)} trophies`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(", "),
+        lines: [],
+        battle: promotingBattle(f.promoted_by),
       };
     case "ranked_promotion":
       return {
         headline: `${who} advanced to ${f.to_name ?? "a new league"}`,
         big: f.to_name ?? null,
-        big_label: "Path of Legends",
-        lines: [
-          f.from_name ? `Up from ${f.from_name}.` : "A new league.",
-          ...(f.promoted_by?.opponent
-            ? [
-                `The promoting battle: ${f.promoted_by.crowns}–${f.promoted_by.crowns_against} against ${f.promoted_by.opponent.name ?? f.promoted_by.opponent.player_tag}.`,
-              ]
-            : []),
-        ],
+        big_label: f.from_name
+          ? `Path of Legends, up from ${f.from_name}`
+          : "Path of Legends",
+        lines: [],
+        battle: promotingBattle(f.promoted_by),
       };
     case "best_trophies_band":
       return {
@@ -115,12 +146,17 @@ function card(kind, f, subject, at, tz) {
         headline: `${who} unlocked ${f.card}${f.evolution === 2 ? " (Hero)" : f.evolution === 1 ? " (Evolution)" : ""}`,
         big: null,
         lines: [],
+        ...cardArt(
+          f,
+          f.evolution === 2 ? "hero" : f.evolution === 1 ? "evolution" : "base",
+        ),
       };
     case "card_form_unlocked":
       return {
         headline: `${who} unlocked ${formLabel(f)}`,
         big: null,
         lines: [],
+        ...cardArt(f, f.form),
       };
     case "badge_earned":
     case "legendary_badge_earned": {
@@ -213,6 +249,9 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
       relationship: m.subject.relationship,
     },
     at: whenLabel(m.at, tz),
+    // The instant too: the render names the day and date in the
+    // reader's zone ("Tue Sep 29, 7:53 pm").
+    instant: m.at,
     ...card(m.kind, m.facts, m.subject, m.at, tz),
     next: null,
   }));
@@ -226,14 +265,18 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
         players[0].name,
     },
     milestones,
-    also: rest.map((m) => ({
-      tag: m.subject.tag,
-      name: m.subject.name,
-      text: card(m.kind, m.facts, m.subject, m.at, tz).headline.replace(
-        /^You /,
-        "",
-      ),
-    })),
+    also: rest.map((m) => {
+      const said = card(m.kind, m.facts, m.subject, m.at, tz);
+      return {
+        tag: m.subject.tag,
+        name: m.subject.name,
+        // The row names the player, so the sentence starts at the verb.
+        text: said.headline.startsWith(`${m.subject.name} `)
+          ? said.headline.slice(m.subject.name.length + 1)
+          : said.headline.replace(/^You /, ""),
+        ...(said.card ? { card: said.card } : {}),
+      };
+    }),
     _moments: news.map((m) => ({
       subject_tag: m.subject.tag,
       kind: m.kind,

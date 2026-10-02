@@ -348,6 +348,44 @@ test("a moment from a day the milestone job failed is mailed by the next run tha
   assert.equal(again.sent, 0);
 });
 
+test("cards unlocked reach the mail as their art, each a link to its page; a form as its own art", async () => {
+  const TAG = "#9QQ2GG8Q";
+  const id = await person("cards", TAG, "2026-09-01T00:00:00Z", null);
+  await db.query(
+    `insert into card (card_id, name, kind, rarity) values
+       (26000047, 'Royal Recruits', 'card', 'common'),
+       (26000006, 'Balloon', 'card', 'epic'),
+       (26000021, 'Hog Rider', 'card', 'rare')
+     on conflict (card_id) do nothing`,
+  );
+  const at = ["2026-09-23T17:00:00Z", "2026-09-23T18:00:00Z"];
+  await db.query(
+    `insert into player_event
+       (player_tag, event_type, timing, window_start, window_end, card_id, step)
+     values ($1, 'card_unlocked', 'estimated', $2, $3, 26000047, null),
+            ($1, 'card_unlocked', 'estimated', $2, $3, 26000006, null),
+            ($1, 'card_form_unlocked', 'estimated', $2, $3, 26000021, 1)`,
+    [TAG, ...at],
+  );
+  const { enqueue, out } = sink();
+  const r = await runEmail({
+    db,
+    kind: "milestone",
+    now: new Date("2026-09-23T18:20:00Z"),
+    enqueue,
+    secret: "s",
+    accountId: id,
+  });
+  assert.equal(r.sent, 1, JSON.stringify(r));
+  const { html } = out[0];
+  for (const file of ["26000047-285", "26000006-285", "26000021_evo-285"])
+    assert.ok(html.includes(`/assets/cards/${file}.png`), file);
+  for (const card of [26000047, 26000006, 26000021])
+    assert.match(html, new RegExp(`href="[^"]*/cards/${card}\\?`));
+  assert.match(html, />Epic</);
+  assert.match(html, /You unlocked three cards/);
+});
+
 test("the milestone window reaches back to the last clean look, never more than seven days", () => {
   const now = new Date("2026-09-21T15:20:00Z");
   const h = 3600_000;

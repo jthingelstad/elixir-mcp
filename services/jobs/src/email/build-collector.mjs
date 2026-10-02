@@ -4,16 +4,23 @@
  *  the way quota.mjs computes them: 1 per 10 points, pooled per account,
  *  capped at 4x the tier base. Only accounts with a collector get one. */
 import { OPERATOR_BONUS, roleQuotas } from "@elixir-mcp/contracts";
+import { silentSince } from "@elixir-mcp/ingest/fleet";
 
 const CREDIT_DIVISOR = 10;
 const CREDIT_CAP_MULTIPLE = 4;
 const QUIET_GAP_MS = 3 * 3600_000;
 
-export async function buildCollector({ db, account, week }) {
+export async function buildCollector({ db, account, week, now = new Date() }) {
   const { rows: gws } = await db.query(
-    `select gateway_id, name, card_name, status, fetch_points, enrolled_at, last_seen_sha, missed_streak
-       from gateway where owner_account_id = $1 and status <> 'revoked'
-      order by fetch_points desc, enrolled_at`,
+    // The card a collector is named for, by id, for its art (the
+    // elixir_collectors tool lists the whole fleet and no owner, so the
+    // account's own collectors are read here, the way the console does).
+    `select g.gateway_id, g.name, g.card_name, g.status, g.fetch_points, g.enrolled_at,
+            g.last_seen_sha, g.missed_streak, g.last_heartbeat_at, c.card_id
+       from gateway g
+       left join card c on c.name = g.card_name and c.kind = 'card'
+      where g.owner_account_id = $1 and g.status <> 'revoked'
+      order by g.fetch_points desc, g.enrolled_at`,
     [account.accountId],
   );
   if (gws.length === 0) return null;
@@ -63,9 +70,19 @@ export async function buildCollector({ db, account, week }) {
     const p = perById.get(g.gateway_id);
     const q = gapById.get(g.gateway_id);
     const quietHours = q ? Math.round(q.quiet_ms / 3600_000) : 0;
+    // What it is doing now, the tool's rule (elixir_collectors): an
+    // active one that has not checked in for an hour reads silent.
+    const silent = silentSince(g, now.getTime());
     return {
       name: g.card_name ?? g.name,
+      card_id: g.card_id ?? null,
       status: g.status,
+      state: silent ? "silent" : g.status,
+      since: silent
+        ? silent.toISOString()
+        : g.status === "active"
+          ? null
+          : (g.last_heartbeat_at?.toISOString?.() ?? null),
       version: g.last_seen_sha ? String(g.last_seen_sha).slice(0, 7) : null,
       fetches: p?.fetches ?? 0,
       errors: p?.rejected ?? 0,
@@ -136,7 +153,7 @@ export async function buildCollector({ db, account, week }) {
     lifetime: { points: pointsLifetime, credits: creditsLifetime },
     fleet_note: `${newFacts.toLocaleString("en-US")} new facts entered the record through your collectors this week (battles, membership events, moved snapshots, changed cards).`,
     coverage:
-      "Counted from the collector ledger: every fetch your collectors submitted between Sunday 14:00 UTC and Sunday 14:00 UTC. Bytes are what the CR API returned; the edge filter share is what the collectors dropped as already recorded.",
+      "Counted from the collector ledger: every fetch your collectors submitted between Sunday 14:00 UTC and Sunday 14:00 UTC. The edge filter share is what the collectors read and dropped as already recorded.",
   };
 }
 

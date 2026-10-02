@@ -14,6 +14,7 @@
  *  brief, and a brief that holds only rates makes every percentage in
  *  the issue untraceable - which is exactly the bug that had the editor
  *  deleting true numbers from the Top 100. */
+import { cardAsset } from "@elixir-mcp/mail";
 import { accountCtx, callTool } from "./ctx.mjs";
 import { tryTool, cardLabel, modeLabel } from "./shared.mjs";
 import { rankOf } from "./card-of-week-select.mjs";
@@ -59,18 +60,6 @@ const MONTHS = [
 
 const pctOf = (v, dp = 1) =>
   v == null ? null : Number((Number(v) * 100).toFixed(dp));
-
-/** The asset served for a given DISPLAY width. Mail asks for 64, 96 and
- *  160 CSS pixels; the file behind each is twice that, so a retina
- *  screen has real pixels to draw with instead of upscaling one. The
- *  hero's 160 maps to 285 rather than 320 because 285 is the source
- *  art's own width and inventing pixels above it would only add bytes. */
-const ASSET_FOR_DISPLAY = { 64: 128, 96: 192, 160: 285 };
-
-/** Cached card art, never Supercell's CDN: a mail client proxies or
- *  blocks a third-party image, and we do not hotlink in mail. */
-export const cardAsset = (cardId, form, displayWidth) =>
-  `${SITE}/assets/cards/${cardId}${form === "hero" ? "_hero" : form === "evolution" ? "_evo" : ""}-${ASSET_FOR_DISPLAY[displayWidth] ?? displayWidth}.png`;
 
 const deckCards = (cards = []) =>
   cards.map((c) => ({
@@ -352,10 +341,10 @@ export async function buildCardOfWeekBrief({
       icons: {
         base: cardAsset(card.id, "base", 160),
         ...(card.forms_available?.includes("hero")
-          ? { hero: cardAsset(card.id, "hero", 96) }
+          ? { hero: cardAsset(card.id, "hero", 150) }
           : {}),
         ...(card.forms_available?.includes("evolution")
-          ? { evolution: cardAsset(card.id, "evolution", 96) }
+          ? { evolution: cardAsset(card.id, "evolution", 150) }
           : {}),
       },
       page_url: `${SITE}/cards/${card.id}`,

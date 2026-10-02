@@ -1,86 +1,107 @@
 {
  "week": {
-  "from": "2026-09-06T14:00:00Z",
-  "to": "2026-09-13T14:00:00Z",
-  "label": "Sep 6 – 13",
-  "key": "2026-W37"
+  "from": "2026-09-20T14:00:00Z",
+  "to": "2026-09-27T14:00:00Z",
+  "label": "Sep 20 – 27",
+  "key": "2026-W39"
  },
  "account": {
-  "name": "Jamie",
-  "tier": "owner"
+  "name": "Jamie"
  },
  "collectors": [
   {
    "name": "Mini P.E.K.K.A",
+   "card_id": 26000018,
    "status": "active",
-   "version": "1.4.2",
+   "state": "active",
+   "since": null,
+   "version": "a145324",
    "fetches": 6120,
    "errors": 3,
    "breaker_trips": 0,
    "quiet_hours": 0,
-   "lifetime_points": 34482
+   "note": null,
+   "lifetime_points": 76382
   },
   {
-   "name": "Hog Rider",
+   "name": "Royal Hogs",
+   "card_id": 26000059,
    "status": "active",
-   "version": "1.4.2",
+   "state": "active",
+   "since": null,
+   "version": "a145324",
    "fetches": 4870,
    "errors": 1,
    "breaker_trips": 0,
-   "quiet_hours": 17,
-   "lifetime_points": 27923,
-   "note": "quiet Thu 01:40 → Thu 18:40"
+   "quiet_hours": 0,
+   "note": null,
+   "lifetime_points": 56260
   },
   {
    "name": "Witch",
+   "card_id": 26000007,
    "status": "active",
-   "version": "1.4.2",
+   "state": "active",
+   "since": null,
+   "version": "a145324",
    "fetches": 4402,
    "errors": 0,
    "breaker_trips": 0,
    "quiet_hours": 0,
-   "lifetime_points": 25549
-  },
-  {
-   "name": "Royal Hogs",
-   "status": "active",
-   "version": "1.4.1",
-   "fetches": 3715,
-   "errors": 2,
-   "breaker_trips": 1,
-   "quiet_hours": 0,
-   "lifetime_points": 21473,
-   "note": "one 403 breaker trip Sat, 5 min"
+   "note": null,
+   "lifetime_points": 53248
   },
   {
    "name": "Skeleton Army",
+   "card_id": 26000012,
    "status": "active",
-   "version": "1.4.2",
-   "fetches": 1810,
-   "errors": 0,
+   "state": "active",
+   "since": null,
+   "version": "a145324",
+   "fetches": 3715,
+   "errors": 2,
    "breaker_trips": 0,
    "quiet_hours": 0,
-   "lifetime_points": 8581
+   "note": null,
+   "lifetime_points": 33160
   },
   {
    "name": "Cannon",
+   "card_id": 27000000,
    "status": "active",
-   "version": "1.4.2",
-   "fetches": 1640,
+   "state": "active",
+   "since": null,
+   "version": "a145324",
+   "fetches": 3450,
+   "errors": 0,
+   "breaker_trips": 0,
+   "quiet_hours": 17,
+   "note": "1 quiet stretch of 3 h or more",
+   "lifetime_points": 29134
+  },
+  {
+   "name": "Hog Rider",
+   "card_id": 26000021,
+   "status": "draining",
+   "state": "draining",
+   "since": "2026-09-17T15:12:00Z",
+   "version": "a145324",
+   "fetches": 0,
    "errors": 0,
    "breaker_trips": 0,
    "quiet_hours": 0,
-   "lifetime_points": 8259
+   "note": null,
+   "lifetime_points": 27923
   }
  ],
  "totals": {
   "fetches": 22557,
   "of_fleet": 1.0,
   "api_bytes": 1520000000,
-  "submitted_bytes": 583000000,
+  "submitted_bytes": null,
   "saved_share": 0.62,
   "errors": 6,
-  "breaker_trips": 1,
+  "breaker_trips": 0,
   "quiet_hours": 17
  },
  "by_endpoint": [
@@ -107,19 +128,19 @@
  ],
  "credits": {
   "earned": 2255,
+  "points_week": 22550,
   "base": 500,
-  "cap": 2000,
   "applied": 2000,
+  "capped": true,
   "slots": {
    "players": 2,
    "clans": 1
-  },
-  "capped": true
+  }
  },
  "lifetime": {
-  "points": 126267,
-  "credits": 12626
+  "points": 276107,
+  "credits": 27610
  },
- "fleet_note": "Your six collectors are the whole fleet this week.",
- "coverage": "Counted from the collector ledger."
+ "fleet_note": "18,204 new facts entered the record through your collectors this week (battles, membership events, moved snapshots, changed cards).",
+ "coverage": "Counted from the collector ledger: every fetch your collectors submitted between Sunday 14:00 UTC and Sunday 14:00 UTC. The edge filter share is what the collectors read and dropped as already recorded."
 }

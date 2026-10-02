@@ -1,7 +1,7 @@
 ---
 slug: follow-a-friend
 title: "Follow a friend"
-description: "Mark a player you track as a friend: how to add one in the console or through your agent, what a friend gets that a watched player does not (a paragraph in Wednesday's Your friends this week, a name in your agent's opening), nicknames, the notifications switch, and stopping."
+description: "Mark a player you track as a friend: how to add one in the console or through your agent, what a friend gets that a watched player does not (a card of their own, first, in Wednesday's Your friends this week, a name in your agent's opening), nicknames, the notifications switch, and stopping."
 section: friends
 order: 1
 navTitle: "Follow a friend"
@@ -42,15 +42,19 @@ player.
 |---|---|---|
 | Recording | the same | the same |
 | Your timeline | yes, while notifications are on | yes, while notifications are on |
-| Wednesday's Your friends this week | a paragraph of their own | one row in a table |
+| Wednesday's Your friends this week | a card of their own, first | a card if among the busiest, otherwise a line |
 | Your agent's opening | named under "Friends you follow" | named under "You are also watching" |
 
-In **Your friends this week** each friend gets a paragraph under their
-name and your nickname for them: the week's battles in sessions, wins and losses, the
-modes, the trophy change, and up to eight moments such as a new arena, a
-promotion in Path of Legends, a new best, a card unlocked, a clan
-joined or left, or a return after a quiet spell. A watched player gets
-one line. [Watch any player](/docs/watch-a-player) has that side.
+In **Your friends this week** each friend who played gets a card under
+their name and your nickname for them: the week's battles in each mode
+with the wins and losses (each mode on its own line, never pooled),
+their trophies, up to two moments such as a new arena, a promotion in
+Path of Legends, a badge or a clan joined or left, and the deck they
+played most, drawn card by card with how many of their battles it
+carried. Friends come first, then the players you watch, busiest first:
+ten full cards a week in all. A watched player past those gets one line;
+anyone with no battle recorded is named once, together, at the end.
+[Watch any player](/docs/watch-a-player) has that side.
 
 Some things are only ever about you. A friend never gets
 [milestone emails](/docs/milestones), never appears in "Your week in the

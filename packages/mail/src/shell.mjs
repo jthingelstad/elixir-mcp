@@ -45,6 +45,11 @@ export const M = {
   ok: "#4ade80",
   accent: "#8b5cf6",
   warn: "#fcd34d",
+  // "You": the reader's own row or clan, green as everywhere in Elixir.
+  youRow: "#123126",
+  youChip: "#173a2a",
+  youEdge: "#2f7a52",
+  youInk: "#bbf7d0",
 };
 
 /** Mode colours, as the console's mode dots draw them. Modes are never

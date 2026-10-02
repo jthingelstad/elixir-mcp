@@ -56,7 +56,10 @@ polled, usually within the hour of the battle.
 
 The biggest moments lead, up to four of them: a new arena, a promotion,
 a new best or a legendary badge. A new arena and a promotion carry the
-battle that decided them when the record has it. With none of those,
+battle that decided them when the record has it: the score, who it was
+against and where they started, and the trophies it moved. A card
+unlocked is shown as its art, in the form you unlocked, and opens the
+card's page in Elixir. With none of those,
 the first three of anything lead. The rest are listed under **Also**. The subject is the first
 headline, with how many more ride along.
 

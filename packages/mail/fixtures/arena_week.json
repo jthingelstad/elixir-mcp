@@ -1,231 +1,226 @@
 {
  "week": {
-  "from": "2026-09-07T10:00:00Z",
-  "to": "2026-09-14T10:00:00Z",
-  "label": "Sep 7 – 14",
-  "key": "2026-W37",
+  "from": "2026-09-21T10:00:00Z",
+  "to": "2026-09-28T10:00:00Z",
+  "label": "Sep 21 – 28",
+  "key": "2026-W39",
   "season": 136
- },
- "account": {
-  "name": "Jamie",
-  "timezone": "America/Chicago"
  },
  "primary": {
   "tag": "#20JJJ2CCRU",
   "name": "King Thing",
   "totals": {
-   "battles": 19,
-   "wins": 9,
-   "losses": 10,
-   "win_rate": 0.474,
-   "crowns_for": 26,
-   "crowns_against": 20,
+   "battles": 16,
+   "wins": 7,
+   "losses": 9,
+   "win_rate": 0.438,
+   "crowns_for": 19,
+   "crowns_against": 17,
    "three_crown_rate": 0.125,
-   "streak": -1,
-   "sessions": 10
+   "sessions": 6,
+   "by_family": [
+    {
+     "mode": "ladder",
+     "battles": 10,
+     "wins": 4,
+     "losses": 6,
+     "win_rate": 0.4
+    },
+    {
+     "mode": "war",
+     "battles": 6,
+     "wins": 3,
+     "losses": 3,
+     "win_rate": 0.5
+    }
+   ]
   },
   "trophies": {
-   "from": 12510,
-   "to": 12504,
-   "floor": 12500,
-   "arena": "Ultimate Clash Pit",
+   "from": 12505,
+   "to": 12530,
    "floored": true,
-   "on_floor_losses": 1
+   "floor": 12500,
+   "arena": "Ultimate Clash Pit"
   },
   "modes": [
    {
     "label": "Trophy Road",
     "battles": 10,
     "wins": 4,
-    "losses": 6,
-    "note": "1 loss on the 12,500 floor cost nothing"
+    "losses": 6
    },
    {
     "label": "War · 1v1",
-    "battles": 5,
-    "wins": 3,
+    "battles": 4,
+    "wins": 2,
     "losses": 2
    },
    {
     "label": "War · Duel",
-    "battles": 3,
-    "wins": 2,
-    "losses": 1
-   },
-   {
-    "label": "Friendly",
-    "battles": 1,
-    "wins": 0,
+    "battles": 2,
+    "wins": 1,
     "losses": 1
    }
   ],
   "decks": [
    {
     "cards": [
-     "Witch (Evo)",
-     "Skeleton Army",
+     "Royal Hogs (Evo)",
      "Mini P.E.K.K.A (Hero)",
-     "Inferno Dragon",
-     "Royal Ghost (Evo)",
-     "Royal Hogs",
-     "Cannon",
-     "Arrows"
+     "Cannon (Evo)",
+     "Skeleton Army",
+     "Arrows",
+     "Royal Ghost",
+     "Witch",
+     "Inferno Dragon"
     ],
     "mode": "Trophy Road",
     "battles": 10,
     "wins": 4,
     "losses": 6,
-    "level_gap": 0.47
-   },
-   {
-    "cards": [
-     "Spear Goblins",
-     "Dart Goblin",
-     "Bandit",
-     "Electro Dragon",
-     "Golden Knight",
-     "Mortar (Evo)",
-     "The Log",
-     "Giant Snowball (Evo)"
-    ],
-    "mode": "War",
-    "battles": 3,
-    "wins": 2,
-    "losses": 1,
-    "level_gap": 1.92
-   },
-   {
-    "cards": [
-     "Witch (Evo)",
-     "Skeleton Army",
-     "Musketeer",
-     "Mini P.E.K.K.A (Hero)",
-     "Inferno Dragon",
-     "Royal Ghost (Evo)",
-     "Royal Hogs",
-     "Arrows"
-    ],
-    "mode": "War",
-    "battles": 2,
-    "wins": 1,
-    "losses": 1,
-    "level_gap": 1.57
+    "level_gap": 0.0
    }
   ],
+  "deck": {
+   "family": "ladder",
+   "label": "Evo Royal Hogs bridge spam",
+   "battles": 10,
+   "wins": 4,
+   "losses": 6,
+   "cards": [
+    {
+     "id": 26000059,
+     "name": "Royal Hogs",
+     "form": "evolution"
+    },
+    {
+     "id": 26000018,
+     "name": "Mini P.E.K.K.A",
+     "form": "hero"
+    },
+    {
+     "id": 27000000,
+     "name": "Cannon",
+     "form": "evolution"
+    },
+    {
+     "id": 26000012,
+     "name": "Skeleton Army",
+     "form": "base"
+    },
+    {
+     "id": 28000001,
+     "name": "Arrows",
+     "form": "base"
+    },
+    {
+     "id": 26000050,
+     "name": "Royal Ghost",
+     "form": "base"
+    },
+    {
+     "id": 26000007,
+     "name": "Witch",
+     "form": "base"
+    },
+    {
+     "id": 26000037,
+     "name": "Inferno Dragon",
+     "form": "base"
+    }
+   ],
+   "tower_troop": "Tower Princess",
+   "average_elixir": 3.75,
+   "level_gap": 0.0
+  },
   "opponents": {
-   "distinct": 19,
-   "repeats": 0,
+   "distinct": 16,
+   "repeats": 1,
+   "again": [
+    {
+     "tag": "#20V9PQLPCG",
+     "name": "Toxic_Watson",
+     "battles": 2,
+     "wins": 1,
+     "losses": 1,
+     "mode": "Trophy Road"
+    }
+   ],
    "rows": [
     {
-     "name": "máximo",
-     "tag": "#VRLL0L992",
+     "tag": "#20V9PQLPCG",
+     "name": "Toxic_Watson",
      "mode": "Trophy Road",
-     "result": "L",
+     "result": "1–1",
      "when": "Sat"
     },
     {
-     "name": "N ☉ M Uツ",
-     "tag": "#L02Y29VP2",
-     "mode": "War 1v1",
-     "result": "W",
-     "when": "Sat"
-    },
-    {
-     "name": "ich",
-     "tag": "#VJLUCJ09Y",
+     "tag": "#2Q8U0L9C",
+     "name": "juancho",
      "mode": "War Duel",
      "result": "W",
-     "when": "Sat"
-    },
-    {
-     "name": "Youthlest",
-     "tag": "#R8VQ8RYY2",
-     "mode": "Friendly",
-     "result": "L",
-     "when": "Sat"
-    },
-    {
-     "name": "thelion",
-     "tag": "#90VV8VCC2",
-     "mode": "War 1v1",
-     "result": "L",
-     "when": "Fri"
-    },
-    {
-     "name": "❤️❤️MOCHI❤️❤️",
-     "tag": "#GJ8UP2LRR",
-     "mode": "War 1v1",
-     "result": "W",
-     "when": "Fri"
-    },
-    {
-     "name": "☪️BARIŞ☪️✨74",
-     "tag": "#U92YGGL9L",
-     "mode": "War Duel",
-     "result": "L",
-     "when": "Fri"
-    },
-    {
-     "name": "SmoothVladimir",
-     "tag": "#VRJ9902GJ",
-     "mode": "Trophy Road",
-     "result": "L",
-     "when": "Thu"
-    },
-    {
-     "name": "Kage影 LEGEND",
-     "tag": "#VPUY9J2JP",
-     "mode": "War 1v1",
-     "result": "W",
-     "when": "Thu"
-    },
-    {
-     "name": "ナイトフィッシングイズグッド",
-     "tag": "#V9UVJQGQC",
-     "mode": "War 1v1",
-     "result": "L",
      "when": "Thu"
     }
    ]
   },
-  "coverage": "Battle log last read Sep 14 01:42 CDT; the log holds 25 battles and was read 11 times this week, so nothing was missed."
+  "coverage": "16 battles recorded for King Thing; battle log last read 12 minutes ago. The log holds 25 battles, so a long session between reads can leave a gap; missing coverage is unknown, not evidence of absence."
  },
  "alts": [
   {
-   "tag": "#VJG0J29QP",
-   "name": "Big Thing",
-   "battles": 16,
-   "wins": 16,
-   "losses": 0,
+   "tag": "#VJQV8G8RL",
+   "name": "thingles",
+   "battles": 34,
+   "wins": 29,
+   "losses": 5,
    "sessions": 5,
+   "by_family": [
+    {
+     "mode": "ladder",
+     "battles": 34,
+     "wins": 29,
+     "losses": 5,
+     "win_rate": 0.853
+    }
+   ],
+   "trophies": {
+    "from": 1207,
+    "to": 1923
+   },
    "modes": [
     {
      "label": "Trophy Road",
-     "battles": 16,
-     "wins": 16,
-     "losses": 0
+     "battles": 34,
+     "wins": 29,
+     "losses": 5
     }
    ]
   },
   {
-   "tag": "#VJQV8G8RL",
-   "name": "thingles",
-   "battles": 20,
-   "wins": 20,
-   "losses": 0,
-   "sessions": 7,
+   "tag": "#VJG0J29QP",
+   "name": "Big Thing",
+   "battles": 37,
+   "wins": 31,
+   "losses": 6,
+   "sessions": 6,
+   "by_family": [
+    {
+     "mode": "ladder",
+     "battles": 37,
+     "wins": 31,
+     "losses": 6,
+     "win_rate": 0.838
+    }
+   ],
+   "trophies": {
+    "from": 1148,
+    "to": 1903
+   },
    "modes": [
     {
      "label": "Trophy Road",
-     "battles": 19,
-     "wins": 19,
-     "losses": 0
-    },
-    {
-     "label": "Friendly",
-     "battles": 1,
-     "wins": 1,
-     "losses": 0
+     "battles": 37,
+     "wins": 31,
+     "losses": 6
     }
    ]
   }
