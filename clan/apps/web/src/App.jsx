@@ -48,6 +48,12 @@ import { YouHere } from "./views/YouHere.jsx";
 import { Week } from "./views/Week.jsx";
 import { VerifyNotice } from "./views/VerifyNotice.jsx";
 import { ELIXIR_LINKS } from "./lib/links.js";
+import {
+  rememberNext,
+  tabStore,
+  takeNext,
+  useAutoSignIn,
+} from "./lib/auto-signin.js";
 
 // The clan map brings Leaflet and the place lists: loaded when opened.
 const ClanMap = lazy(() =>
@@ -175,8 +181,14 @@ const landingRoute = createRoute({
   path: CLAN,
   component: function LandingPage() {
     const { me } = useSession();
-    const error = new URLSearchParams(window.location.search).get("error");
+    const search = window.location.search;
+    const error = new URLSearchParams(search).get("error");
+    // Signed in to Elixir already? Then Clan's sign-in starts by itself
+    // (lib/auto-signin.js) and the landing is only a line while it goes.
+    const auto = useAutoSignIn(Boolean(me && !me.signed_in), search);
     if (me === null || me.signed_in) return null;
+    if (auto !== "landing")
+      return <p className="page__lede">Signing you in with Elixir…</p>;
     return <Landing error={error} />;
   },
 });
@@ -576,8 +588,12 @@ function Shell() {
   useEffect(() => {
     if (!me) return;
     if (!me.signed_in) {
-      if (app !== "/")
+      if (app !== "/") {
+        // The address they opened (an email's link to Actions, say) is
+        // where they land once signed in.
+        rememberNext(tabStore(), path, Date.now());
         navigate(me.expired ? `${CLAN}?error=session_expired` : CLAN);
+      }
       return;
     }
     if (me.unavailable) return;
@@ -600,6 +616,12 @@ function Shell() {
         !app.startsWith("/feedback")
       )
         navigate(`${CLAN}/verify`);
+      return;
+    }
+    // Signed in from a Clan address opened while signed out: there.
+    const next = takeNext(tabStore(), Date.now());
+    if (next && next !== path) {
+      navigate(next);
       return;
     }
     const atClan = clanFromPath(path, me.clans);
