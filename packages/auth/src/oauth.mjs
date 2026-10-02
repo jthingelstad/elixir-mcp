@@ -356,11 +356,15 @@ export async function mintTokens(db, { clientId, accountId, scope, resource }) {
   const audience = canonicalResource(resource);
   if (!grantedScope || !audience) throw new Error("invalid OAuth grant");
   const { rows } = await db.query(
-    `insert into oauth_family (client_id, account_id, scope, resource, absolute_expires_at)
-     values ($1, $2, $3, $4, now() + make_interval(days => $5))
+    `with live_client as materialized (
+       select client_id from oauth_client where client_id=$1 and expires_at > now() for share
+     )
+     insert into oauth_family (client_id, account_id, scope, resource, absolute_expires_at)
+     select client_id, $2, $3, $4, now() + make_interval(days => $5) from live_client
      returning family_id`,
     [clientId, accountId, grantedScope, audience, FAMILY_ABSOLUTE_DAYS],
   );
+  if (!rows[0]) return null;
   const family = rows[0].family_id;
   // Activity log (0010): a new family = a newly authorized client.
   await db
@@ -547,6 +551,7 @@ export async function validateAccessToken(db, token, { resource } = {}) {
      where t.token_hash = $1 and t.kind = 'access'
        and t.expires_at > now() and t.revoked_at is null
        and f.revoked_at is null and f.absolute_expires_at > now()
+       and c.expires_at > now()
        and f.resource = $2
        and not exists (select 1 from integration i where i.account_id = a.account_id)
        and a.status = 'approved'

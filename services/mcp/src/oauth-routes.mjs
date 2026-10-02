@@ -1066,6 +1066,7 @@ export function makeOauthRoutes({
           scope: redeemed.scope,
           resource: redeemed.resource,
         });
+        if (!tokens) return json(400, { error: "invalid_grant" });
         authLog("oauth_token_issued", {
           client: clientId,
           resource: redeemed.resource,

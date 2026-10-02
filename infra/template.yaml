@@ -1024,6 +1024,7 @@ Resources:
           NODE_EXTRA_CA_CERTS: /var/task/certificates/rds.pem
           SECRET_EPOCH: !Ref SecretEpoch
           PGAPPNAME: elixir-mcp-migrate
+          CLAN_INTERNAL: !Ref ClanInternal
           # statement_timeout: under the 300 s Lambda kill. The ops that
           # set their own (120 s, 250 s) set it lower.
           PGOPTIONS: "-c statement_timeout=285s -c idle_in_transaction_session_timeout=60s"
