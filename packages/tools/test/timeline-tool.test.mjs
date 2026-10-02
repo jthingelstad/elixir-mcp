@@ -174,6 +174,7 @@ test("a first read covers the last 24 hours: the clan always has an entry, silen
 test("from as a local date opens the window; every entry carries a summary and all its sections", async () => {
   const { body, isError } = await call("elixir_timeline", {
     from: "2026-09-03",
+    to: "2026-09-30",
     mark_read: false,
   });
   assert.equal(isError, false, JSON.stringify(body));
@@ -217,6 +218,7 @@ test("from as a local date opens the window; every entry carries a summary and a
 test("sections and verbosity trim the wire; an unknown section is refused", async () => {
   const trimmed = await call("elixir_timeline", {
     from: "2026-09-03",
+    to: "2026-09-30",
     sections: ["battles", "roster"],
     mark_read: false,
   });
@@ -229,6 +231,7 @@ test("sections and verbosity trim the wire; an unknown section is refused", asyn
 
   const compact = await call("elixir_timeline", {
     from: "2026-09-03",
+    to: "2026-09-30",
     verbosity: "compact",
     mark_read: false,
   });
@@ -393,8 +396,11 @@ test("a window longer than 30 days is capped and says so; from after to is refus
 });
 
 test("the timeline: battle sessions break on a 30-minute gap, items are newest first with text, sections filter items", async () => {
+  // A closed window: an open one ends now, and the 30-day cap moved its
+  // start past the 09-01 pair on 2026-10-01 (the fixture ends 09-20).
   const { body, isError } = await call("elixir_timeline", {
     from: "2026-09-01",
+    to: "2026-09-30",
     mark_read: false,
   });
   assert.equal(isError, false, JSON.stringify(body));
@@ -422,6 +428,7 @@ test("the timeline: battle sessions break on a 30-minute gap, items are newest f
 
   const rosterOnly = await call("elixir_timeline", {
     from: "2026-09-01",
+    to: "2026-09-30",
     sections: ["roster"],
     mark_read: false,
   });
