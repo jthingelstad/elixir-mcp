@@ -34,17 +34,38 @@ export interface RailItem {
   subs?: RailSub[];
 }
 
-/** One account the rail can be the console of: the person, or an agent
- *  they own. `to` is where choosing it goes, because an account's console
- *  is a PLACE with its own address, never a mode the app remembers. */
+/** One account the rail can be the console of: the person, one of their
+ *  agents, or an operating console such as Admin. `to` is where choosing
+ *  it goes, because a console is a PLACE with its own address, never a
+ *  mode the app remembers. */
 export interface RailAccount {
   key: string;
   label: string;
-  /** A second line in the menu: the clan an agent acts for. */
+  /** The second line: whose it is and the role ("King Thing · owner",
+   *  "agent · f43c60e8f5bd", "every account · owner"). */
   detail?: string;
-  /** The mono aside: the role, or "agent · leader". */
+  /** A mono aside, appended to the second line. */
   aside?: string;
+  /** The glyph in the head's tile; `initials` draws an avatar instead. */
+  icon?: string;
+  initials?: string;
+  /** A heading in the open list above this entry ("You", "Your agents",
+   *  "Operate"); repeated headings are drawn once. */
+  group?: string;
   to: string;
+}
+
+/** The line at the rail's foot: a place ("Send feedback") or an action
+ *  ("Sign out of Elixir"). An action is a button, never a link: signing
+ *  out is not a destination (see RailIdentity). */
+export interface RailFoot {
+  label: string;
+  icon: string;
+  to?: string;
+  onClick?: () => void;
+  current?: boolean;
+  /** An action that did not take, said under its button. */
+  error?: ReactNode;
 }
 
 /**
@@ -53,38 +74,37 @@ export interface RailAccount {
  * grow when the data does. A count of the reader's own things is the
  * one exception, because it is a number and not a list.
  *
- * The current item is a gold left rule plus weight and brighter ink —
- * never a filled block, because background is reserved for hover, and
- * once a fill means "selected" hover has nowhere to go. Two items the
- * reader can see at once never share a label; `subs` render only while
- * their item is current, which is how two sections can each have a
- * "Collectors" without ever showing both.
+ * The current item is a gold left rule, weight, brighter ink and a quiet
+ * fill (canvas 2026-09-29). Two items the reader can see at once never
+ * share a label; `subs` render only while their item is current, which
+ * is how two sections can each have a "Collectors" without ever showing
+ * both.
  *
  * Below the one breakpoint it becomes a DISCLOSURE ABOVE THE CONTENT:
- * a 44px row naming the section and where you are in it, expanding to
- * the same list in the same order. Not a drawer over the content — a
- * drawer hides the page you are reading in order to show you a list of
- * pages.
+ * a 44px row naming the section and whose console it is, expanding to
+ * the same head, list and foot in the same order. Not a drawer over the
+ * content - a drawer hides the page you are reading in order to show
+ * you a list of pages.
  *
- * `title` and `aside` are the desktop head (the product, and a mono
- * aside such as the role or the clan tag); `subtitle` is what the
- * narrow toggle shows beside the current section, defaulting to the
- * current sub-page's label. `identity` is the block at the foot: who
- * you are and the way out (RailIdentity).
+ * `title` and `aside` are the plain desktop head (the product, and a
+ * mono aside such as the role or the clan tag); `subtitle` is what the
+ * narrow row shows beside the current section, defaulting to the
+ * current sub-page's label. `back` is a link above the head (a settings
+ * rail's way back to its console); `foot` is the line at the bottom;
+ * `identity` is the older identity block (RailIdentity).
  *
- * `accounts` turns the head into the ACCOUNT SELECTOR (2026-09-23): the
- * console belongs to one of them (`account` names which), and the head
- * shows that one with the others a click away. The first is the person;
- * any other is an agent, and the head is tinted while it is current, so
- * whose console this is never has to be read off a label. It stays in
- * the narrow layout's closed row, where a phone could otherwise be acting
- * as an agent without showing it. With one account or none the head is
- * the plain title, as it always was.
+ * `accounts` turns the head into the CONSOLE SWITCHER (2026-09-23,
+ * redrawn 2026-09-29): the console belongs to one of them (`account`
+ * names which), and the head shows that one, with the others a click
+ * away. The first is the person; any other (an agent, Admin) tints the
+ * head while it is current, and the narrow row is tinted and names it
+ * too, so whose console a phone is showing never has to be guessed.
+ * With one account the head is the same tile with nothing to open.
  *
  * `head` replaces the head outright, for a section whose rail belongs to
  * something other than an account: Ladder's is the player whose season
- * it reads. Like the selector, it stays in the narrow layout's closed
- * row, so which player a phone is reading is never hidden.
+ * it reads. It stays in the narrow layout's closed row, so which player a
+ * phone is reading is never hidden.
  */
 export function Rail({
   items,
@@ -101,6 +121,8 @@ export function Rail({
   account,
   manage,
   head,
+  back,
+  foot,
 }: {
   items: RailItem[];
   current: string | null | undefined;
@@ -115,10 +137,12 @@ export function Rail({
   accounts?: RailAccount[];
   /** The key of the account this console belongs to. */
   account?: string;
-  /** The last line of the selector: where accounts are managed. */
+  /** The last line of the switcher: where accounts are managed. */
   manage?: { label: string; to: string };
-  /** A head of the section's own, in place of the title or selector. */
+  /** A head of the section's own, in place of the title or switcher. */
   head?: ReactNode;
+  back?: { label: string; to: string };
+  foot?: RailFoot;
 }) {
   const [open, setOpen] = useState(false);
   const active = items.find((r) => r.key === current);
@@ -187,32 +211,49 @@ export function Rail({
 
   const subLabel = (active?.subs ?? []).find((s) => s.slug === sub)?.label;
   const shown = !narrow || open;
-  const switcher =
-    head ??
-    (accounts && accounts.length > 1 ? (
-      <AccountSwitcher
-        accounts={accounts}
-        current={account}
-        manage={manage}
-        navigate={(to) => {
-          setOpen(false);
-          navigate(to);
-        }}
-      />
-    ) : null);
+  const here =
+    accounts && accounts.length > 0
+      ? (accounts.find((a) => a.key === account) ?? accounts[0])
+      : undefined;
+  const scoped = Boolean(here && accounts && here.key !== accounts[0]?.key);
+
+  const top = head ? (
+    narrow ? null : (
+      head
+    )
+  ) : accounts && accounts.length > 0 ? (
+    <AccountSwitcher
+      accounts={accounts}
+      current={account}
+      manage={manage}
+      navigate={(to) => {
+        setOpen(false);
+        navigate(to);
+      }}
+    />
+  ) : narrow ? null : (
+    <div className="mb-[6px] flex h-10 items-center gap-[9px] border-0 border-b border-solid border-line-soft px-[11px]">
+      <span className="truncate text-[13.5px] font-semibold" title={title}>
+        {title}
+      </span>
+      {aside && <span className="mono ml-auto text-ink-faint">{aside}</span>}
+    </div>
+  );
 
   return (
     <aside className="rail">
-      {narrow && switcher}
-      {narrow ? (
+      {narrow && head}
+      {narrow && (
         <button
           type="button"
           className="rail__toggle"
           aria-expanded={open}
+          data-scoped={scoped}
           onClick={() => setOpen(!open)}
         >
+          {active && <Icon name={active.icon} size={17} />}
           <span className="text-[13.5px] font-semibold">
-            {active?.label ?? title}
+            {active?.label ?? foot?.label ?? title}
           </span>
           <span className="truncate text-[13px] text-ink-faint">
             {subtitle ?? subLabel ?? ""}
@@ -221,31 +262,85 @@ export function Rail({
             <Icon name={open ? "chevron-up" : "chevron-down"} size={17} />
           </span>
         </button>
-      ) : switcher ? (
-        switcher
-      ) : (
-        <div className="mb-[6px] flex h-10 items-center gap-[9px] border-0 border-b border-solid border-line-soft px-[11px]">
-          <span className="truncate text-[13.5px] font-semibold" title={title}>
-            {title}
-          </span>
-          {aside && (
-            <span className="mono ml-auto text-ink-faint">{aside}</span>
+      )}
+
+      {shown && back && (
+        <a className="rail__back" href={back.to} onClick={go(back.to)}>
+          <Icon name="chevron-left" size={15} />
+          {back.label}
+        </a>
+      )}
+      {shown && top}
+      {shown && list}
+
+      {shown && foot && (
+        <div className="rail__foot">
+          {foot.to ? (
+            <a
+              className={
+                "rail__item rail__item--foot" +
+                (foot.current ? " rail__item--on" : "")
+              }
+              href={foot.to}
+              aria-current={foot.current ? "page" : undefined}
+              onClick={go(foot.to)}
+            >
+              <Icon name={foot.icon} />
+              {foot.label}
+            </a>
+          ) : (
+            <button
+              type="button"
+              className="rail__item rail__item--foot"
+              onClick={() => foot.onClick?.()}
+            >
+              <Icon name={foot.icon} />
+              {foot.label}
+            </button>
+          )}
+          {foot.error && (
+            <p className="field-error mx-[11px] mt-2 mb-0" role="alert">
+              {foot.error}
+            </p>
           )}
         </div>
       )}
-
-      {shown && list}
-
       {shown && identity && <div className="mt-auto pt-4">{identity}</div>}
     </aside>
   );
 }
 
+/** The tile and two lines that name a console, in the head and the list. */
+function ConsoleName({ a }: { a: RailAccount }) {
+  const line2 = [a.detail, a.aside].filter(Boolean).join(" · ");
+  return (
+    <>
+      <span className="rail__switch-mark" aria-hidden="true">
+        {a.initials ? (
+          <span className="chrome__avatar">{a.initials}</span>
+        ) : (
+          <Icon name={a.icon ?? "gauge"} size={17} />
+        )}
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-[13.5px] font-semibold text-ink">
+          {a.label}
+        </span>
+        {line2 && (
+          <span className="truncate text-[12px] text-ink-faint">{line2}</span>
+        )}
+      </span>
+    </>
+  );
+}
+
 /**
- * The rail head as a selector: the current account, and a disclosure
- * listing the others. A list of links, not an ARIA menu: choosing one is
- * navigation to another console's address. Escape and a click outside
- * close it, the way the top bar's sheet closes on Escape.
+ * The rail head as the console switcher: the current console, and a
+ * disclosure listing the others under their headings. A list of links,
+ * not an ARIA menu: choosing one is navigation to another console's
+ * address. Escape and a click outside close it, the way the top bar's
+ * menus close. With one console there is nothing to open, and the head
+ * is the same tile without the chevrons.
  */
 function AccountSwitcher({
   accounts,
@@ -260,10 +355,10 @@ function AccountSwitcher({
 }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
-  // Rendered only with two or more accounts; the first is the person.
   const person = accounts[0] as RailAccount;
   const here = accounts.find((a) => a.key === current) ?? person;
   const scoped = here.key !== person.key;
+  const single = accounts.length === 1;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -291,50 +386,46 @@ function AccountSwitcher({
 
   return (
     <div className="rail__switch" ref={box} data-scoped={scoped}>
-      <button
-        type="button"
-        className="rail__switch-head"
-        aria-expanded={open}
-        aria-controls="rail-accounts"
-        title={`Console: ${here.label}. Switch account`}
-        onClick={() => setOpen(!open)}
-      >
-        <span className="flex min-w-0 items-center gap-[7px]">
-          <span className="min-w-0 truncate text-[13.5px] font-semibold">
-            {here.label}
+      {single ? (
+        <div className="rail__switch-head">
+          <ConsoleName a={here} />
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="rail__switch-head"
+          aria-expanded={open}
+          aria-controls="rail-accounts"
+          title={`${here.label}: switch console`}
+          onClick={() => setOpen(!open)}
+        >
+          <ConsoleName a={here} />
+          <span className="ml-auto flex shrink-0 text-ink-faint">
+            <Icon name="chevrons-up-down" size={16} />
           </span>
-          <Icon name={open ? "chevron-up" : "chevron-down"} size={15} />
-        </span>
-        {here.aside && (
-          <span className="mono ml-auto shrink-0 whitespace-nowrap text-ink-faint">
-            {here.aside}
-          </span>
-        )}
-      </button>
+        </button>
+      )}
       {open && (
         <div id="rail-accounts" className="rail__switch-list">
-          {accounts.map((a) => (
-            <a
-              key={a.key}
-              href={a.to}
-              className="rail__switch-item"
-              aria-current={a.key === here.key ? "true" : undefined}
-              onClick={go(a.to)}
-            >
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate font-semibold">{a.label}</span>
-                {a.detail && (
-                  <span className="truncate text-[12px] text-ink-faint">
-                    {a.detail}
+          {accounts.map((a, i) => (
+            <div key={a.key}>
+              {a.group && a.group !== accounts[i - 1]?.group && (
+                <div className="rail__switch-group">{a.group}</div>
+              )}
+              <a
+                href={a.to}
+                className="rail__switch-item"
+                aria-current={a.key === here.key ? "true" : undefined}
+                onClick={go(a.to)}
+              >
+                <ConsoleName a={a} />
+                {a.key === here.key && (
+                  <span className="ml-auto flex shrink-0 text-ok">
+                    <Icon name="check" size={16} />
                   </span>
                 )}
-              </span>
-              {a.aside && (
-                <span className="mono ml-auto shrink-0 text-[12px] text-ink-faint">
-                  {a.aside}
-                </span>
-              )}
-            </a>
+              </a>
+            </div>
           ))}
           {manage && (
             <a

@@ -160,12 +160,14 @@ test.describe("signed in", () => {
     // Every section is its own lazy chunk: each must arrive and render.
     const sections: [string, RegExp, string][] = [
       ["Timeline", /\/console\/account\/timeline$/, "Timeline"],
+      ["Tracking", /\/console\/account\/tracking$/, "Tracking"],
+      ["Collections", /\/console\/account\/collections$/, "Collections"],
+      ["Verify", /\/console\/account\/verify$/, "Verify"],
       ["Usage", /\/console\/account\/usage$/, "Usage"],
-      ["Activity", /\/console\/account\/activity\/requests$/, "MCP requests"],
       ["Connections", /\/console\/account\/connections$/, "Connections"],
-      ["Profile", /\/console\/account\/profile$/, "Profile"],
       ["Status", /\/console\/status\/service$/, "Status"],
       ["Explore", /\/console\/explore$/, "Explore"],
+      ["Send feedback", /\/console\/account\/feedback$/, "Feedback"],
     ];
     for (const [label, url, heading] of sections) {
       await rail
@@ -185,19 +187,82 @@ test.describe("signed in", () => {
         await expect(session).toContainText("unread");
       }
     }
-    // Subs render only under the current item: Activity's three, and the
-    // current one marked. Activity lands on MCP requests since the
-    // timeline became its own item.
-    await rail.getByRole("link", { name: /^Activity/ }).click();
+    // Subs render only under the current item: Status's two, and the
+    // current one marked.
+    await expect(rail.getByRole("link", { name: "Collectors" })).toHaveCount(0);
+    await rail.getByRole("link", { name: /^Status/ }).click();
+    await rail.getByRole("link", { name: "Efficiency" }).click();
+    await expect(page).toHaveURL(/\/console\/status\/efficiency$/);
     await expect(
-      rail.getByRole("link", { name: "MCP requests" }),
-    ).toBeVisible();
-    await rail.getByRole("link", { name: "MCP requests" }).click();
-    await expect(page).toHaveURL(/\/console\/account\/activity\/requests$/);
-    await expect(
-      rail.getByRole("link", { name: "MCP requests" }),
+      rail.getByRole("link", { name: "Efficiency" }),
     ).toHaveAttribute("aria-current", "page");
+
+    // The MCP request log left the rail for Usage (canvas 2026-09-29):
+    // one link from the page, and Usage stays lit while you read it.
+    await rail.getByRole("link", { name: /^Usage/ }).click();
+    await page.getByRole("link", { name: /MCP requests/ }).click();
+    await expect(page).toHaveURL(/\/console\/account\/activity\/requests$/);
+    await expect(rail.getByRole("link", { name: /^Usage/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await rendered(page);
     await accessible(page, "requests log");
+  });
+
+  test("the switcher: your console, your agents and the admin console, grouped; the account's own rail has a way back", async ({
+    page,
+  }) => {
+    await mockApi(page, {
+      ...signedIn(),
+      "GET /api/me": [
+        200,
+        {
+          ...ME,
+          is_admin: true,
+          agents: [{ public_id: "abc12345", name: "poap-bot", role: "member" }],
+        },
+      ],
+      "GET /api/agent/abc12345": [
+        200,
+        { ...ME, kind: "agent", name: "poap-bot", email: null, claims: [] },
+      ],
+    });
+    await page.goto("/console/account/overview");
+    const rail = page.locator(".rail");
+    const head = rail.locator("button.rail__switch-head");
+    await expect(head).toContainText("Your console");
+    await head.click();
+    const list = page.locator("#rail-accounts");
+    await expect(list.locator(".rail__switch-group")).toHaveText([
+      "You",
+      "Your agents",
+      "Operate",
+    ]);
+    await expect(
+      list.locator('.rail__switch-item[aria-current="true"]'),
+    ).toContainText("Your console");
+    await accessible(page, "console switcher");
+    await list.getByRole("link", { name: /poap-bot/ }).click();
+    await expect(page).toHaveURL(/\/console\/agent\/abc12345\//);
+    await expect(
+      page.getByRole("navigation", { name: "Agent console sections" }),
+    ).toBeVisible();
+
+    // The account's own pages have their own rail, with the way back.
+    await page.goto("/console/account/profile");
+    const account = page.getByRole("navigation", { name: "Account sections" });
+    await expect(account).toBeVisible();
+    await expect(
+      account.getByRole("link", { name: /Profile/ }),
+    ).toHaveAttribute("aria-current", "page");
+    // The foot and the way back sit in the rail, around its list.
+    await expect(
+      rail.getByRole("button", { name: /Sign out of Elixir/ }),
+    ).toBeVisible();
+    await accessible(page, "account rail");
+    await rail.locator(".rail__back").click();
+    await expect(page).toHaveURL(/\/console\/account\/overview$/);
   });
 
   test("a read timeline has no unread dot and its rows say read; an empty week says so", async ({
@@ -451,14 +516,32 @@ test.describe("signed in", () => {
     ).toBeVisible();
     await page
       .getByRole("navigation", { name: "Console sections" })
-      .getByRole("link", { name: /^Profile/ })
+      .getByRole("link", { name: /^Tracking/ })
       .click();
-    await expect(page).toHaveURL(/\/console\/account\/profile$/);
+    await expect(page).toHaveURL(/\/console\/account\/tracking$/);
     // Following a link closes it.
     await expect(
       page.getByRole("navigation", { name: "Console sections" }),
     ).toHaveCount(0);
-    await accessible(page, "narrow profile");
+    await accessible(page, "narrow tracking");
+  });
+
+  test("@narrow Overview: the Ladder and the clan, no Drop tile (the bar has the game), and nothing scrolls sideways", async ({
+    page,
+  }) => {
+    await page.goto("/console/account/overview");
+    await expect(page.locator(".rail__toggle")).toContainText("Overview");
+    const across = page.getByRole("region", { name: "Across Elixir" });
+    await expect(across.getByRole("link", { name: /Ladder/ })).toBeVisible();
+    await expect(across.getByRole("link", { name: /Clan/ })).toBeVisible();
+    await expect(across.locator(".drop-card")).toBeHidden();
+    await rendered(page);
+    await accessible(page, "narrow overview");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
   });
 
   test("@narrow the top bar names the Console, opens a sheet with every place, and Escape closes it", async ({

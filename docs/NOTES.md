@@ -1931,3 +1931,40 @@ interpretation of overlapping rows; the foot says rows overlap instead) and
 "Opponents ›" (no such page). The tool's own floor (`applied.min_battles`,
 three) is stated under each table. The rail's Cards item adds Lucide's
 `gallery-horizontal-end` to the kit's Icon set.
+
+---
+
+## 2026-10-01 - The Console's rail and Overview, to the canvas
+
+The 2026-09-29 canvas (ConsoleRail "proposed", Main, Phone). Your console's
+rail is `RAIL` in `apps/web/src/App.jsx`: nine items in three groups
+(Overview, Timeline, Explore; Your record: Tracking, Collections, Verify;
+Access: Connections, Usage; Service: Status), with Send feedback as the
+kit Rail's new `foot`. The switcher in the rail's head lists consoles in
+groups (`railConsoles`: You, Your agents, Operate), so the Admin console is
+a console you switch to rather than a rail item; Admin draws `ADMIN_RAIL`
+(People, Access, Record). The account's own pages (profile, emails,
+devices, sign-ins) draw `ACCOUNT_RAIL` with the kit Rail's new `back` link
+and a "Sign out of Elixir" foot. Activity left the rail: its MCP request
+log stays at `/console/account/activity/requests`, linked from Usage, which
+the rail lights while you read it; Activity › Emails and Sign-ins are the
+account rail's (`railPosition` says where each old address lands). Every
+rail item keeps a `DOC_LINKS` entry, and `rail.test.jsx` pins that.
+
+Overview shows only what the console already reads: `/api/me` (claims,
+recordings, role), `/api/me/clans` (home clan, member counts),
+`/api/me/usage` and the primary's `/api/me/battle-activity`. The canvas's
+Ladder trophies, arena and season record, the clan's "N of 46 have not
+played a war deck today", the Status dot and "sister clan" labels are not
+drawn: none has a source the console can read without spending the
+reader's metered explore calls, and "sister clan" is not in the record.
+The Ladder tile names the primary player and goes to `/ladder`; the Clan
+tile counts members and goes to `/clan/<tag>/week` (Clan sends a clan
+that is not yours to its chooser). The "live" pill is the primary's
+`freshest_poll`, said as "last read", because that is any endpoint's read,
+not only the battle log. The Drop tile is the kit's `.drop-card`, the one
+place outside the bar that wears Drop's magenta (new `--drop-*` tokens);
+it is hidden on a phone, where the bar's sheet has the game. "Your tier"
+left Overview (Profile has the whole table) and `SlotMeter.jsx` went with
+it. The inline-style ceiling is 545.
+

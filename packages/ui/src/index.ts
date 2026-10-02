@@ -47,6 +47,7 @@ export {
   type RailAccount,
   type RailDot,
   type RailItem,
+  type RailFoot,
   type RailSub,
 } from "./Rail.tsx";
 export {

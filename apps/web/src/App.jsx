@@ -7,6 +7,7 @@ import {
   FAMILY_SIGN_IN,
   Icon,
   NavigateProvider,
+  initialsOf,
   Rail as RailList,
   ZoneProvider,
   isPlainClick,
@@ -139,8 +140,8 @@ export const SECTIONS = {
       { slug: "connections", label: "Connections" },
       { slug: "collections", label: "Collections" },
       { slug: "feedback", label: "Feedback" },
-      { slug: "emails", label: "Emails sent" },
-      { slug: "usage", label: "Across accounts" },
+      { slug: "emails", label: "Emails" },
+      { slug: "usage", label: "Usage" },
       { slug: "cards", label: "Cards" },
       { slug: "collectors", label: "Collectors", ownerOnly: true },
       { slug: "service-tokens", label: "Service tokens", ownerOnly: true },
@@ -177,50 +178,22 @@ export const SECTIONS = {
 };
 
 /**
- * The rail, top to bottom, in four groups — the reading order the design
- * specifies, which is not the same as the route table's shape.
+ * The rails (canvas 2026-09-29, ConsoleRail). Your console is nine items
+ * in three groups, with no sub-items open by default; who you are and
+ * your account's own pages left the rail for the top bar's account menu,
+ * and Admin is a console of its own in the switcher. Where the rest went:
  *
- * `subs` render only while their section is current, which is why
- * Service ▸ Collectors and Admin ▸ Collectors can share a label without
- * ever being visible at once: the house rule is that no two items the
- * reader can see at the same moment share one.
+ *   Profile, Email, Devices   the account menu › Account settings
+ *   Activity › MCP requests   Usage, under the meters
+ *   Activity › Emails         the account menu › Emails from Elixir
+ *   Activity › Account events Account settings › Sign-ins
+ *   Connections › Agents      the switcher, and Connections
+ *   Admin                     its own console in the switcher
+ *
+ * Every address still resolves; only where the rail marks it moved
+ * (railPosition below). `subs` render only while their item is current,
+ * and no two items the reader can see at once share a label.
  */
-const ADMIN_SUBS = [
-  ["requests", "Requests", `${CONSOLE}/admin/requests`],
-  ["accounts", "Accounts", `${CONSOLE}/admin/accounts`],
-  // Bare "Connections" and "Collections" here, though Account has items
-  // by those names too (Jamie, 2026-09-10: "crazy long and odd"). The
-  // house rule against two identical labels on screen at once is about
-  // AMBIGUITY, and these are not ambiguous: admin sub-items render
-  // indented under the Admin row that is one line above them, so the
-  // qualifier the long label was carrying is already on screen. The
-  // page's own crumb says Admin as well.
-  ["connections", "Connections", `${CONSOLE}/admin/connections`],
-  ["collectors", "Collectors", `${CONSOLE}/admin/collectors`, "owner"],
-  [
-    "service-tokens",
-    "Service tokens",
-    `${CONSOLE}/admin/service-tokens`,
-    "owner",
-  ],
-  ["integrations", "Integrations", `${CONSOLE}/admin/integrations`],
-  ["collections", "Collections", `${CONSOLE}/admin/collections`],
-  // "Feedback queue", not "Feedback": Access > Feedback is a top-level
-  // item and stays visible while Admin is open, so the bare word would
-  // put two identical labels on screen at once — the thing that broke
-  // navigation twice during design. The design's own remedy for the
-  // same clash on Usage was to name whose it is ("Across accounts"),
-  // and its docs map already calls this page the feedback queue.
-  ["feedback", "Feedback queue", `${CONSOLE}/admin/feedback`],
-  // "Emails sent", not "Emails": Account > Activity > Emails is on the
-  // rail too, and the qualifier says whose these are (everyone's).
-  ["emails", "Emails sent", `${CONSOLE}/admin/emails`],
-  ["usage", "Across accounts", `${CONSOLE}/admin/usage`],
-  // "Cards", read-only: the archetype vocabulary in force and the
-  // unattested queue; the file is edited in cr-agent-api-docs.
-  ["cards", "Cards", `${CONSOLE}/admin/cards`],
-];
-
 export const RAIL = [
   {
     key: "overview",
@@ -256,6 +229,12 @@ export const RAIL = [
     icon: "radar",
     to: `${CONSOLE}/account/tracking`,
   },
+  {
+    key: "collections",
+    label: "Collections",
+    icon: "bookmark",
+    to: `${CONSOLE}/account/collections`,
+  },
   // Proving a claim is a step in your record, next to what you track.
   {
     key: "verify",
@@ -264,55 +243,17 @@ export const RAIL = [
     to: `${CONSOLE}/account/verify`,
   },
   {
-    key: "collections",
-    label: "Collections",
-    icon: "bookmark",
-    to: `${CONSOLE}/account/collections`,
-  },
-  {
-    key: "activity",
-    label: "Activity",
-    icon: "activity",
-    to: `${CONSOLE}/account/activity/requests`,
-    subs: [
-      ["requests", "MCP requests", `${CONSOLE}/account/activity/requests`],
-      ["emails", "Emails", `${CONSOLE}/account/activity/emails`],
-      ["events", "Account events", `${CONSOLE}/account/activity/events`],
-    ],
+    group: "Access",
+    key: "connections",
+    label: "Connections",
+    icon: "plug",
+    to: `${CONSOLE}/account/connections`,
   },
   {
     key: "usage",
     label: "Usage",
     icon: "chart-column",
     to: `${CONSOLE}/account/usage`,
-  },
-  {
-    group: "Access",
-    key: "connections",
-    label: "Connections",
-    icon: "plug",
-    to: `${CONSOLE}/account/connections`,
-    subs: [
-      ["clients", "Clients", `${CONSOLE}/account/connections`],
-      ["agents", "Agents", `${CONSOLE}/account/agents`],
-    ],
-  },
-  {
-    key: "profile",
-    label: "Profile",
-    icon: "user-round",
-    to: `${CONSOLE}/account/profile`,
-    subs: [
-      ["profile", "Profile", `${CONSOLE}/account/profile`],
-      ["email", "Email", `${CONSOLE}/account/profile/email`],
-      ["devices", "Devices", `${CONSOLE}/account/profile/devices`],
-    ],
-  },
-  {
-    key: "feedback",
-    label: "Feedback",
-    icon: "message-square",
-    to: `${CONSOLE}/account/feedback`,
   },
   {
     group: "Service",
@@ -325,14 +266,125 @@ export const RAIL = [
       ["efficiency", "Efficiency", `${CONSOLE}/status/efficiency`],
     ],
   },
+];
+
+/** The foot of your console's rail: feedback is always one click away,
+ *  and every item is answered. */
+export const RAIL_FOOT = {
+  key: "feedback",
+  label: "Send feedback",
+  icon: "message-square",
+  to: `${CONSOLE}/account/feedback`,
+};
+
+/** The Admin console's rail: bare labels again, because nothing else is
+ *  on screen beside them. Collectors and Service tokens are the owner's. */
+export const ADMIN_RAIL = [
   {
-    key: "admin",
-    label: "Admin",
-    icon: "shield-check",
+    group: "People",
+    key: "requests",
+    label: "Requests",
+    icon: "inbox",
     to: `${CONSOLE}/admin/requests`,
+  },
+  {
+    key: "accounts",
+    label: "Accounts",
+    icon: "users",
+    to: `${CONSOLE}/admin/accounts`,
+  },
+  {
+    key: "feedback",
+    label: "Feedback",
+    icon: "message-square",
+    to: `${CONSOLE}/admin/feedback`,
+  },
+  {
+    key: "emails",
+    label: "Emails",
+    icon: "mail",
+    to: `${CONSOLE}/admin/emails`,
+  },
+  {
+    group: "Access",
+    key: "connections",
+    label: "Connections",
+    icon: "plug",
+    to: `${CONSOLE}/admin/connections`,
+  },
+  {
+    key: "integrations",
+    label: "Integrations",
+    icon: "wrench",
+    to: `${CONSOLE}/admin/integrations`,
+  },
+  {
+    key: "collections",
+    label: "Collections",
+    icon: "bookmark",
+    to: `${CONSOLE}/admin/collections`,
+  },
+  {
+    key: "usage",
+    label: "Usage",
+    icon: "chart-column",
+    to: `${CONSOLE}/admin/usage`,
+  },
+  // Read-only: the archetype vocabulary in force and the unattested
+  // queue; the file is edited in cr-agent-api-docs.
+  {
+    group: "Record",
+    key: "cards",
+    label: "Cards",
+    icon: "layout-grid",
+    to: `${CONSOLE}/admin/cards`,
+  },
+  {
+    key: "collectors",
+    label: "Collectors",
+    icon: "server",
+    to: `${CONSOLE}/admin/collectors`,
     meta: "owner",
-    adminOnly: true,
-    subs: ADMIN_SUBS,
+    ownerOnly: true,
+  },
+  {
+    key: "service-tokens",
+    label: "Service tokens",
+    icon: "key-round",
+    to: `${CONSOLE}/admin/service-tokens`,
+    meta: "owner",
+    ownerOnly: true,
+  },
+];
+
+/** Account settings, reached from the top bar's account menu: a rail of
+ *  its own with the way back to the console above it (ConsoleEmails
+ *  board). Sign-ins is the account log that was Activity › Account
+ *  events. */
+export const ACCOUNT_RAIL = [
+  {
+    key: "profile",
+    label: "Profile",
+    icon: "user-round",
+    to: `${CONSOLE}/account/profile`,
+  },
+  {
+    key: "emails",
+    label: "Emails from Elixir",
+    icon: "mail",
+    to: `${CONSOLE}/account/activity/emails`,
+  },
+  {
+    key: "devices",
+    label: "Sign-in and devices",
+    icon: "key-round",
+    to: `${CONSOLE}/account/profile/devices`,
+  },
+  {
+    key: "signins",
+    label: "Sign-ins",
+    icon: "history",
+    to: `${CONSOLE}/account/activity/events`,
   },
 ];
 
@@ -439,7 +491,11 @@ export function railPosition(path) {
       // A record and the raise form both read the operators guide.
       ...(page === "collectors" && rest ? { doc: "status:collector" } : {}),
     };
-  if (section === "admin") return { key: "admin", sub: page ?? "requests" };
+  // Admin is a console of its own: its rail's items are its pages.
+  if (section === "admin") {
+    const key = page ?? "requests";
+    return { rail: "admin", key, doc: `admin:${key}` };
+  }
   // The in-app charts are the corpus in detail, reached from the site's
   // /data page. They sit under Explore in the rail rather than nowhere:
   // losing the whole navigation on one route is worse than putting a
@@ -447,31 +503,56 @@ export function railPosition(path) {
   // record.
   if (section === "data" && page === "dashboard") return { key: "explore" };
   if (section === "account") {
-    // /account/activity/c/<request_id> is a call record and belongs to
-    // MCP requests rather than being a sub-page of its own; likewise
-    // /account/activity/e/<send_id>, an email record, belongs to Emails.
-    if (page === "activity")
+    // Activity's three logs went three ways. MCP requests, and a call
+    // record (/activity/c/<request_id>), sit under Usage; Emails, and an
+    // email record (/activity/e/<send_id>), are Account settings ›
+    // Emails from Elixir; Account events are Account settings ›
+    // Sign-ins. `sub` still names the log, for the page that draws it.
+    if (page === "activity") {
+      const log =
+        rest === "c"
+          ? "requests"
+          : rest === "e"
+            ? "emails"
+            : (rest ?? "requests");
+      if (log === "emails")
+        return {
+          rail: "account",
+          key: "emails",
+          sub: "emails",
+          doc: rest === "e" ? "activity:email" : "activity:emails",
+        };
+      if (log === "events")
+        return {
+          rail: "account",
+          key: "signins",
+          sub: "events",
+          doc: "activity:events",
+        };
       return {
-        key: "activity",
-        sub:
-          rest === "c"
-            ? "requests"
-            : rest === "e"
-              ? "emails"
-              : (rest ?? "requests"),
-        ...(rest === "c" ? { doc: "activity:call" } : {}),
-        ...(rest === "e" ? { doc: "activity:email" } : {}),
+        key: "usage",
+        sub: "requests",
+        doc: rest === "c" ? "activity:call" : "activity:requests",
       };
-    if (page === "connections") return { key: "connections", sub: "clients" };
-    // The agent record is addressable in its own right, but it belongs
-    // to Connections in the rail: an agent IS a connection.
-    if (page === "agents") return { key: "connections", sub: "agents" };
+    }
+    // Profile and its two pages are Account settings.
+    if (page === "profile") {
+      if (rest === "email")
+        return { rail: "account", key: "emails", doc: "profile:email" };
+      if (rest === "devices")
+        return { rail: "account", key: "devices", doc: "profile:devices" };
+      return { rail: "account", key: "profile", doc: "profile:profile" };
+    }
+    if (page === "connections")
+      return { key: "connections", doc: "connections:clients" };
+    // The agent list is addressable in its own right, but it belongs to
+    // Connections in the rail: an agent IS a connection.
+    if (page === "agents")
+      return { key: "connections", doc: "connections:agents" };
     // /account/tracking/<tag> is a record of a tracked thing, which
     // belongs to Tracking rather than being a section of its own.
     if (page === "tracking" && rest)
       return { key: "tracking", doc: "tracking:record" };
-    // /account/profile/{email,devices} are Profile's own pages.
-    if (page === "profile") return { key: "profile", sub: rest ?? "profile" };
     return { key: page ?? "overview" };
   }
   return {};
@@ -1075,15 +1156,60 @@ function Chrome({ navigate, me, unreachable, current }) {
   );
 }
 
-/** The rail: the kit's, fed the console's route table. Items are the
- *  RAIL config filtered by who is looking (admin pages for admins,
- *  owner pages for the owner), with the reader's counts and the two
- *  dots attached by key. Who you are and the way out are the bar's
- *  account menu now (canvas 2026-09-29), not the rail's foot. */
+/** The consoles the rail head switches between (ConsoleRail board): you,
+ *  each agent you own, and Admin for an admin. Each is a place with its
+ *  own address, never a mode the app remembers. */
+export function railConsoles(me) {
+  const primary = (me?.claims ?? []).find((c) => c.is_primary);
+  const name = primary?.nickname ?? primary?.name ?? me?.email ?? undefined;
+  return [
+    {
+      key: "me",
+      group: "You",
+      icon: "gauge",
+      label: "Your console",
+      detail: [name, me?.role].filter(Boolean).join(" · ") || undefined,
+      to: `${CONSOLE}/account/overview`,
+    },
+    ...(me?.agents ?? []).map((a) => ({
+      key: a.public_id,
+      group: "Your agents",
+      icon: "bot",
+      label: a.name ?? a.public_id,
+      detail: `agent · ${a.public_id}`,
+      to: `${CONSOLE}/agent/${a.public_id}/overview`,
+    })),
+    ...(me?.is_admin
+      ? [
+          {
+            key: "admin",
+            group: "Operate",
+            icon: "shield",
+            label: "Admin console",
+            detail: ["every account", me.role].filter(Boolean).join(" · "),
+            to: `${CONSOLE}/admin/requests`,
+          },
+        ]
+      : []),
+  ];
+}
+
+/** The rail: the kit's, fed the rail this place belongs to (yours, an
+ *  agent's, Admin's, or Account settings), filtered by who is looking,
+ *  with the reader's counts and the two dots attached by key. Who you
+ *  are and the way out are the bar's account menu (canvas 2026-09-29),
+ *  never the rail's. */
 function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
+  const [signOutFailed, setSignOutFailed] = useState(null);
+  const consoles = railConsoles(me);
+  const settings = here.rail === "account";
   const rail = here.scope
     ? agentRail(here.scope)
-    : RAIL.filter((r) => !r.adminOnly || me?.is_admin);
+    : here.rail === "admin"
+      ? ADMIN_RAIL.filter((r) => !r.ownerOnly || me?.is_owner)
+      : settings
+        ? ACCOUNT_RAIL
+        : RAIL;
   const items = rail.map((row) => ({
     key: row.key,
     label: row.label,
@@ -1092,43 +1218,78 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
     group: row.group,
     meta: row.meta ?? counts[row.key],
     dot: dots[row.key] ?? null,
-    subs: (row.subs ?? [])
-      .filter(([, , , ownerOnly]) => !ownerOnly || me?.is_owner)
-      .map(([slug, label, to]) => ({ slug, label, to })),
+    subs: (row.subs ?? []).map(([slug, label, to]) => ({ slug, label, to })),
   }));
-  // The head is the account selector (2026-09-23): you, then each agent
-  // you own, each a console at its own address. With no agents it is the
-  // plain "Console" head it always was.
-  const primary = (me?.claims ?? []).find((c) => c.is_primary);
-  const accounts = [
-    {
-      key: "me",
-      label: primary?.nickname ?? primary?.name ?? "Console",
-      detail: me?.email ?? undefined,
-      aside: me?.role ?? "",
-      to: `${CONSOLE}/account/overview`,
-    },
-    ...(me?.agents ?? []).map((a) => ({
-      key: a.public_id,
-      label: a.name,
-      detail: a.clan?.name ?? a.clan?.clan_tag ?? undefined,
-      aside: `agent · ${a.role}`,
-      to: `${CONSOLE}/agent/${a.public_id}/overview`,
-    })),
-  ];
+  const account = here.scope ?? (here.rail === "admin" ? "admin" : "me");
+  const current = consoles.find((c) => c.key === account) ?? consoles[0];
+  const you = consoles[0];
+
+  if (settings) {
+    const primary = (me?.claims ?? []).find((c) => c.is_primary);
+    return (
+      <RailList
+        label="Account sections"
+        items={items}
+        current={here.key}
+        navigate={navigate}
+        narrow={narrow}
+        title="Your account"
+        subtitle="Your account"
+        back={{ label: "Console", to: you.to }}
+        accounts={[
+          {
+            key: "account",
+            initials: initialsOf(
+              primary?.nickname ?? primary?.name ?? me?.email ?? "You",
+            ),
+            label: "Your account",
+            detail: you.detail,
+            to: `${CONSOLE}/account/profile`,
+          },
+        ]}
+        account="account"
+        foot={{
+          label: "Sign out of Elixir",
+          icon: "log-out",
+          error: signOutFailed,
+          onClick: async () => {
+            setSignOutFailed(null);
+            const r = await api.signOut();
+            if (!r.ok)
+              return setSignOutFailed(
+                `Not signed out. ${writeErrorText({ status: r.status, transport: r.error, data: r.data })}`,
+              );
+            window.location.assign(STATIC_LINKS.home);
+          },
+        }}
+      />
+    );
+  }
+
   return (
     <RailList
-      label={here.scope ? "Agent console sections" : "Console sections"}
+      label={
+        here.scope
+          ? "Agent console sections"
+          : here.rail === "admin"
+            ? "Admin console sections"
+            : "Console sections"
+      }
       items={items}
       current={here.key}
       sub={here.sub}
       navigate={navigate}
       narrow={narrow}
       title="Console"
-      aside={here.scope ? `agent · ${agent?.role ?? ""}` : (me?.role ?? "")}
-      accounts={accounts}
-      account={here.scope ?? "me"}
+      subtitle={here.scope ? (agent?.name ?? current.label) : current.label}
+      accounts={consoles}
+      account={account}
       manage={{ label: "Manage agents…", to: `${CONSOLE}/account/agents` }}
+      foot={
+        here.scope || here.rail === "admin"
+          ? undefined
+          : { ...RAIL_FOOT, current: here.key === RAIL_FOOT.key }
+      }
     />
   );
 }
@@ -1509,19 +1670,14 @@ function Shell() {
    *  shared numbers once). Omitted rather than guessed while /api/me has
    *  not answered. The Tracking count is what this console's account
    *  tracks (signals.tracking); the slot figures are pooled across you and
-   *  your agents, so they are not it. */
+   *  your agents, so they are not it. The canvas (2026-09-29) keeps the
+   *  one count on your rail; an agent's rail, which still lists its
+   *  feedback, keeps that count too. */
   const counts = {};
   if (subject?.signals?.tracking !== undefined)
     counts.tracking = String(subject.signals.tracking);
-  // A tier with no collections shows no count: "0" would invite a click
-  // the page then refuses.
-  if (me?.entitlements?.collections && me.entitlements.collections.limit !== 0)
-    counts.collections = String(me.entitlements.collections.used ?? 0);
-  if (subject?.signals) {
-    counts.connections = String(subject.signals.connections ?? 0);
-    if (subject.signals.feedback > 0)
-      counts.feedback = String(subject.signals.feedback);
-  }
+  if (here.scope && subject?.signals?.feedback > 0)
+    counts.feedback = String(subject.signals.feedback);
   /** The two dots the design puts on the rail: unread on Timeline while
    *  the feed holds events no connection has read, and an alert on
    *  Connections while a credential that no longer works is still being

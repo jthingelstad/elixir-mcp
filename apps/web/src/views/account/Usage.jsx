@@ -1,6 +1,6 @@
-import { Link, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, useClock } from "@elixir-mcp/ui";
 import { useUsage } from "../../lib/queries.js";
-import { useScope } from "../../lib/scope.js";
+import { useConsolePath, useScope } from "../../lib/scope.js";
 import { quotaReading } from "../../lib/quota.js";
 import { CONSOLE } from "../../lib/console.js";
 
@@ -79,6 +79,7 @@ export function Usage() {
   // cards show the budget's day (everything it paid for today), and the
   // lede says how much of that was this agent.
   const scoped = Boolean(useScope());
+  const path = useConsolePath();
   if (error) return <p className="field-error">Could not load usage.</p>;
   if (!usage) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 
@@ -131,6 +132,23 @@ export function Usage() {
           line={quota.fetches}
         />
       </div>
+
+      {/* Every call, newest first: the log that was Activity › MCP
+          requests sits here, under the meters it spends (canvas
+          2026-09-29). */}
+      <Link
+        className="panel mb-[14px] flex items-center gap-3 px-[18px] py-[13px] text-inherit"
+        to={path(`${CONSOLE}/account/activity/requests`)}
+      >
+        <span className="flex text-ink-faint">
+          <Icon name="activity" size={17} />
+        </span>
+        <span className="text-[14px] font-semibold">MCP requests</span>
+        <span className="text-[13px] text-ink-faint">
+          every call your connections made, newest first
+        </span>
+        <span className="ml-auto text-[13px] text-ink-link">Open ›</span>
+      </Link>
 
       <section className="panel" style={{ marginBottom: "14px" }}>
         <div className="panel__head">

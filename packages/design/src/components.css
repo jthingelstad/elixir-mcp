@@ -238,7 +238,8 @@ table {
 
 /* Play Drop: candy, because Drop is a game and the record is not. It
    opens its own host in a new window. The droplet is filled. */
-.chrome__play {
+.chrome__play,
+.drop-card__play {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -260,18 +261,68 @@ table {
     -1px 1px 0 var(--drop-edge);
   white-space: nowrap;
 }
-.chrome__play > svg:first-child {
+.chrome__play > svg:first-child,
+.drop-card__play > svg:first-child {
   fill: currentColor;
 }
-.chrome__play:hover {
+.chrome__play:hover,
+.drop-card:hover .drop-card__play {
   filter: brightness(1.06);
 }
-.chrome__play:active {
+.chrome__play:active,
+.drop-card:active .drop-card__play {
   transform: translateY(2px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.55),
     0 1px 0 var(--drop-edge),
     0 3px 8px var(--drop-glow);
+}
+
+/* Drop's tile beside the record (Console Overview, canvas 2026-09-29):
+   the game's own magenta, the one place outside the bar it appears, and
+   the same candy button. The whole tile is the link; it opens Drop's
+   host in a new window. */
+.drop-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: var(--r-panel);
+  background:
+    radial-gradient(22rem 12rem at 100% 0%, var(--drop-glow), transparent),
+    linear-gradient(160deg, var(--drop-deep), var(--drop-ground));
+  border: 1px solid var(--drop-line);
+  box-shadow: inset 0 1px 0 rgba(240, 171, 252, 0.25);
+  color: var(--ink);
+  overflow: hidden;
+}
+.drop-card:hover {
+  color: var(--ink);
+}
+.drop-card__name {
+  flex: 1 1 auto;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 0 var(--drop-edge);
+}
+.drop-card__kind {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--drop-ink);
+}
+.drop-card__about {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--drop-ink);
+}
+.drop-card__play {
+  align-self: flex-start;
+  margin-top: auto;
 }
 
 /* The account slot: one width, whatever is in it. */
@@ -664,11 +715,13 @@ table {
   color: var(--ink);
 }
 
-/* Current item: rule + weight. Never a filled block — background is
-   reserved for hover, and only hover. */
-.rail__item--on {
+/* Current item: the gold rule, weight, brighter ink and a quiet fill
+   (canvas 2026-09-29). Hover is the lighter wash on everything else. */
+.rail__item--on,
+.rail__item--on:hover {
   color: var(--ink);
   font-weight: 600;
+  background: var(--panel);
   box-shadow: var(--mark-current);
 }
 
@@ -713,37 +766,52 @@ table {
   box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.22);
 }
 
-/* The head as an account selector (2026-09-23). Tinted while the console
-   is an agent's, so whose console this is reads at a glance. */
+/* The head as the console switcher (2026-09-23, redrawn 2026-09-29): a
+   tile with the console's glyph, its name and whose it is. Tinted while
+   the console is not the person's own (an agent's, Admin), so whose
+   console this is reads at a glance. */
 .rail__switch {
   position: relative;
-  margin-bottom: 6px;
-  border-bottom: 1px solid var(--line-soft);
+  margin: 0 0 12px;
 }
-.rail__switch[data-scoped="true"] {
-  background: var(--panel);
-  border-radius: var(--r-rail) var(--r-rail) 0 0;
-  box-shadow: inset 3px 0 0 var(--accent-bright);
-}
-/* The name and its chevron are one unit; the aside ("agent · leader")
-   sits beside them when it fits and drops to its own line when it does
-   not, so the head never sets the rail's width. */
 .rail__switch-head {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  column-gap: 7px;
+  gap: 10px;
   width: 100%;
-  min-height: 40px;
-  padding: 6px 11px;
-  background: transparent;
-  border: 0;
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
   color: var(--ink);
+  font: inherit;
   text-align: left;
+}
+button.rail__switch-head {
   cursor: pointer;
 }
-.rail__switch-head:hover {
-  background: var(--hover-rail);
+button.rail__switch-head:hover {
+  border-color: var(--line-strong);
+}
+.rail__switch[data-scoped="true"] .rail__switch-head {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent-bright);
+}
+.rail__switch-mark {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--line-soft);
+  color: var(--gold);
+}
+.rail__switch-mark .chrome__avatar {
+  width: 32px;
+  height: 32px;
 }
 .rail__switch-list {
   position: absolute;
@@ -751,13 +819,22 @@ table {
   top: 100%;
   left: 0;
   right: 0;
-  margin-top: 4px;
+  margin-top: 6px;
   display: flex;
   flex-direction: column;
   padding: 4px;
   background: var(--panel-float);
   border: 1px solid var(--line);
   border-radius: var(--r-control);
+  box-shadow: var(--shadow-float);
+}
+.rail__switch-group {
+  padding: 10px 9px 4px;
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
 }
 .rail__switch-item {
   display: flex;
@@ -773,14 +850,39 @@ table {
   color: var(--ink);
 }
 .rail__switch-item[aria-current="true"] {
-  color: var(--ink);
-  box-shadow: var(--mark-current);
+  background: var(--panel);
 }
 .rail__switch-manage {
   margin-top: 4px;
   border-top: 1px solid var(--line-soft);
   border-radius: 0;
   color: var(--ink-link);
+}
+
+/* A settings rail's way back to its console, above the head. */
+.rail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px 6px;
+  font-size: 13.5px;
+}
+
+/* The line at the rail's foot: a place ("Send feedback") or an action
+   ("Sign out of Elixir"), below a rule, pinned to the bottom. */
+.rail__foot {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+}
+.rail__item--foot {
+  width: 100%;
+  border: 0;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink-faint);
+  text-align: left;
+  cursor: pointer;
 }
 
 .rail__identity {
@@ -813,6 +915,16 @@ table {
     padding: 0 11px;
     color: var(--ink);
     text-align: left;
+  }
+  .rail__toggle[data-scoped="true"] {
+    border-color: var(--accent);
+    box-shadow: inset 3px 0 0 var(--accent-bright);
+  }
+  .rail__switch {
+    margin-top: 10px;
+  }
+  .rail__foot {
+    margin-top: 8px;
   }
 }
 

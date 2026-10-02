@@ -182,6 +182,10 @@
   --drop-grad: linear-gradient(180deg, #f0abfc, #d946ef 45%, #a21caf);
   --drop-edge: #6b0f6e;
   --drop-glow: rgba(217, 70, 239, 0.35);
+  --drop-deep: #3b0764; /* Drop's tile, top */
+  --drop-ground: #1a0b3d; /* Drop's tile, bottom */
+  --drop-line: #a21caf;
+  --drop-ink: #f5d0fe; /* text on Drop's tile */
 
   --win: #2d85f3; /* a day of wins (Jamie's blue), activity graphic */
   --loss: #ef4444; /* a day of losses */
