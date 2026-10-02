@@ -624,6 +624,32 @@ test("generic event ownership, fresh previews, parent cascades, cache identity a
       keys: [{ ...cache, payload_hash: "c".repeat(64) }],
     });
     await assert.rejects(rightSizingPurge(ctx.url, s, deps), /cache identity/);
+    const refreshed = (
+      await ctx.db.query(
+        "insert into api_payload(endpoint,entity_key,payload_hash,payload_json,first_fetched_at,last_fetched_at) values('rankings_pol','global',$1,'{}','2026-01-01','2026-10-03') returning payload_id::text,endpoint,entity_key,payload_hash",
+        ["d".repeat(64)],
+      )
+    ).rows[0];
+    s = await make({ version: 1, kind: "cache", keys: [refreshed] });
+    assert.equal((await rightSizingPurge(ctx.url, s, deps)).affected, 1);
+    await ctx.db.query(
+      "update api_payload set first_fetched_at='2026-10-03' where payload_id=$1",
+      [refreshed.payload_id],
+    );
+    await assert.rejects(rightSizingPurge(ctx.url, s, deps), /cache identity/);
+    await ctx.db.query(
+      "update api_payload set first_fetched_at='2026-01-01',payload_hash=$2 where payload_id=$1",
+      [refreshed.payload_id, "e".repeat(64)],
+    );
+    await assert.rejects(rightSizingPurge(ctx.url, s, deps), /cache identity/);
+    await ctx.db.query(
+      "update api_payload set payload_hash=$2 where payload_id=$1",
+      [refreshed.payload_id, refreshed.payload_hash],
+    );
+    assert.equal(
+      (await rightSizingPurge(ctx.url, applied(s), deps)).affected,
+      1,
+    );
     const call = (
       await ctx.db.query(
         "insert into mcp_call_audit(tool,args,request_id,created_at,captured) values('rankings_players','{}','00000000-0000-0000-0000-000000000002','2026-01-01',true) returning audit_id::text,request_id::text",

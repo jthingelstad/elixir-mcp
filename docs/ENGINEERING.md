@@ -595,3 +595,12 @@ account envelope. There is no separate frontend wrapper or build.
 Clan maintenance uses the IAM-only `{clan_maintenance}` migrate op,
 with bounded kind-specific reads, unchanged reply pointers and digest-checked,
 explicit feedback responses. Sealed key items have no maintenance read path.
+
+## Approved history cleanup and cache identity
+
+A hot `api_payload` cache is content-addressed. Approved removal checks its
+exact payload ID, endpoint, entity and full payload hash, plus its original
+`first_fetched_at` cutoff. An identical re-fetch can advance `last_fetched_at`
+without changing the selected body; that timestamp alone does not enlarge the
+selection. Ownership guards and later-admission battle-source checks remain
+independent. Canonical/projection freshness checks retain their cutoffs.

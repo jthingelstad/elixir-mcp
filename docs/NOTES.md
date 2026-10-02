@@ -3199,3 +3199,14 @@ play outside a narrowed window, both forms in different duel rounds, round
 wins/losses and levels, a round without the card, and tower play in every round.
 Private manifests and published retained-only bodies remain intact; canonical
 history and original archive versions have not been deleted.
+
+## 2026-10-02 - unchanged cache re-fetches in the approved purge
+
+Private previews refused selected content-addressed caches whose identical
+body was fetched again after review. Moving the review cutoff did not resolve
+continuous timestamp refreshes. Cache removal now binds original creation,
+full semantic identity and protected ownership; a timestamp-only re-fetch does
+not change its scope. Changed identities and post-cutoff creations still
+refuse, as do new admitted source overlaps in battle batches. Scratch tests
+cover refresh, identity changes and new creation. No game history has been
+purged; exact-manifest human approval is still required.
