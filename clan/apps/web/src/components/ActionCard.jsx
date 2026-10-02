@@ -17,6 +17,12 @@ import { RoleChip } from "./RoleChip.jsx";
  */
 
 const LEADER_TYPES = new Set(["promotion", "demotion", "removal"]);
+const ROLE = {
+  leader: "Leader",
+  coLeader: "Co-leader",
+  elder: "Elder",
+  member: "Member",
+};
 export const STATUS = {
   done: ["Completed", "chip--ok"],
   declined: ["Declined", "chip--warn"],
@@ -34,6 +40,44 @@ const KIND = {
   drafted: "Drafted by the clan's model",
   shared: "Shared with Elixir",
   not_shared: "Not shared with Elixir",
+};
+/** Each kind of action's mark, as the canvas draws it: what it is in one
+ *  glyph, toned by what it asks (a removal is the clan's hardest call). */
+const TYPE_ICON = {
+  promotion: ["award", "text-accent-bright"],
+  demotion: ["award", "text-warn"],
+  removal: ["user-round", "text-bad"],
+  departure: ["log-out", "text-ink-dim"],
+  welcome: ["users", "text-ok"],
+  away: ["plane", "text-accent-bright"],
+  awards_announcement: ["megaphone", "text-accent-bright"],
+  rules_announcement: ["file-text", "text-accent-bright"],
+};
+
+/** An action's mark in its tile; `big` on the action's own page. */
+export function TypeIcon({ type, big = false }) {
+  const [name, tone] = TYPE_ICON[type] ?? ["inbox", "text-accent-bright"];
+  return (
+    <span
+      className={`grid shrink-0 place-items-center ${big ? "h-9 w-9 rounded-control bg-info-fill" : "h-[30px] w-[30px] rounded-[9px] bg-panel-raised"} ${tone}`}
+    >
+      <Icon name={name} size={big ? 18 : 15} />
+    </span>
+  );
+}
+
+const KIND_ICON = {
+  raised: "bell",
+  completed: "circle-check",
+  declined: "x",
+  withdrawn: "circle-dashed",
+  outcome_verified: "shield-check",
+  outcome_flagged: "shield-question-mark",
+  comment: "message-square",
+  emailed: "mail",
+  drafted: "file-text",
+  shared: "external-link",
+  not_shared: "shield-x",
 };
 const CLASSIFIED = {
   member_kicked: "said: kicked",
@@ -65,7 +109,7 @@ export function CopyLine({
 }) {
   const [done, setDone] = useState(false);
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-[var(--line-soft)] bg-[var(--ground-sunken)] px-2.5 py-2 text-[13px]">
+    <div className="flex items-start gap-2 rounded-control border border-line-soft bg-ground-sunken px-2.5 py-2 text-[13px]">
       <span className="flex-auto">{text}</span>
       <button
         type="button"
@@ -101,7 +145,7 @@ function MessageField({ label, value, onChange, max, rows = 1 }) {
     <div className="grid gap-1">
       <div className="flex items-center gap-2">
         <span className="label">{label}</span>
-        <span className={`page-head__note ${over ? "text-[var(--bad)]" : ""}`}>
+        <span className={`page-head__note ${over ? "text-bad" : ""}`}>
           {value.length}/{max}
         </span>
         <button
@@ -139,7 +183,7 @@ function MessageField({ label, value, onChange, max, rows = 1 }) {
         />
       )}
       {warnings.length ? (
-        <div className="page-head__note text-[var(--warn)]" role="status">
+        <div className="page-head__note text-warn" role="status">
           The game may blank or garble this: {warnings.join("; ")}.
         </div>
       ) : null}
@@ -185,12 +229,24 @@ function LeaderMessage({
   const body = words.body;
   const setTitle = (t) => change({ ...words, title: t });
   const setBody = (b) => change({ ...words, body: b });
+  const filtered = (v, max) =>
+    chatWarnings(v, max).filter((w) => !w.startsWith("longer")).length > 0;
+  const clean =
+    !filtered(title, LEADER_MESSAGE.title) &&
+    !filtered(body, LEADER_MESSAGE.body);
   return (
-    <div className="grid gap-2 rounded-lg border border-[var(--line-soft)] bg-[var(--ground-sunken)] p-2.5">
+    <div className="grid gap-2.5 rounded-block border border-line-soft bg-ground-sunken p-4">
+      <div className="flex items-center gap-2.5">
+        <span className="text-accent-bright">
+          <Icon name="megaphone" size={15} />
+        </span>
+        <span className="grow text-[13.5px] font-semibold">
+          Clan Leader Message
+        </span>
+      </div>
       <div className="page-head__note">
-        Clan Leader Message: in the game, Clan → the leader message button; only
-        leaders and co-leaders can send one, and it stays in every
-        member&rsquo;s Inbox.
+        In the game, Clan → the leader message button; only leaders and
+        co-leaders can send one, and it stays in every member&rsquo;s Inbox.
       </div>
       <MessageField
         label="Title"
@@ -205,6 +261,12 @@ function LeaderMessage({
         max={LEADER_MESSAGE.body}
         rows={3}
       />
+      {clean ? (
+        <span className="flex items-center gap-2 text-[12.5px] text-ok">
+          <Icon name="circle-check" size={14} />
+          Nothing the game&rsquo;s chat filter is known to block.
+        </span>
+      ) : null}
       {onDraft ? (
         <div className="grid gap-1.5">
           <div className="flex flex-wrap gap-2">
@@ -297,14 +359,30 @@ export function ActionLog({ action, clan, onChanged }) {
   };
   return (
     <div className="grid gap-2">
-      <ol className="m-0 grid list-none gap-2 p-0">
+      <ol className="m-0 grid list-none p-0">
         {(action.log ?? []).map((e, i) => (
-          <li key={e.entry_id ?? `${e.kind}-${i}`} className="text-[13.5px]">
-            <div className="page-head__note">
-              {when(e.at)} · <By by={e.by} /> · {KIND[e.kind] ?? e.kind}
-              {e.detail?.reconstructed ? " (from the action's own record)" : ""}
+          <li
+            key={e.entry_id ?? `${e.kind}-${i}`}
+            className="grid gap-1 border-b border-line-row py-2 text-[13.5px] last:border-b-0"
+          >
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-accent-bright">
+                <Icon name={KIND_ICON[e.kind] ?? "circle-dashed"} size={14} />
+              </span>
+              <span className="text-[13px] font-semibold text-ink">
+                {KIND[e.kind] ?? e.kind}
+              </span>
+              <span className="grow text-[13px] text-ink-dim">
+                by <By by={e.by} />
+                {e.detail?.reconstructed
+                  ? " (from the action's own record)"
+                  : ""}
+              </span>
+              <span className="mono text-[12px] text-ink-faint">
+                {when(e.at)}
+              </span>
             </div>
-            {e.text ? <div>{e.text}</div> : null}
+            {e.text ? <div className="text-ink-body">{e.text}</div> : null}
             {e.detail?.reason ? (
               <div className="page-head__note">
                 reason: {e.detail.reason.replaceAll("_", " ")}
@@ -316,7 +394,7 @@ export function ActionLog({ action, clan, onChanged }) {
               </div>
             ) : null}
             {e.kind === "raised" && e.detail?.facts?.length ? (
-              <ul className="m-0 pl-[18px] text-[var(--ink-body)]">
+              <ul className="m-0 pl-[18px] text-ink-body">
                 {e.detail.facts.map((f) => (
                   <li key={f}>{f}</li>
                 ))}
@@ -419,91 +497,127 @@ export function ActionCard({
     );
     onChanged?.();
   };
+  const id = `action-${action.card_id}`;
   return (
-    <div className="panel" data-action={action.card_id}>
-      <div className="panel__head flex-wrap gap-2">
-        {mine ? (
-          <span>
-            <span className="yours">★</span> You
-          </span>
-        ) : !action.player_tag ? (
-          <span>The clan</span>
-        ) : (
-          <>
-            <span>{action.player_name ?? action.player_tag}</span>
-            <span className="tag">{action.player_tag}</span>
-            {action.role_at_raise ? (
-              <RoleChip
-                role={action.role_at_raise}
-                label={action.role_at_raise}
-              />
-            ) : null}
-          </>
-        )}
-        <span className="ml-auto">
-          {open ? (
-            ev.as_of ? (
-              <Fresh label="evidence as of" ts={ev.as_of} />
-            ) : (
-              <span className="page-head__note">
-                suggested {ago(action.raised_at)}
+    <article
+      className="panel max-w-[880px] overflow-hidden"
+      data-action={action.card_id}
+      aria-labelledby={id}
+    >
+      <div className="flex flex-wrap items-center gap-3 border-b border-line-soft px-5 py-4">
+        <TypeIcon type={action.type} big />
+        <div className="grid min-w-0 grow gap-0.5">
+          <h2 id={id} className="m-0 text-[17px] font-semibold">
+            {action.label}
+          </h2>
+          <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-dim">
+            {mine ? (
+              <span>
+                <span className="yours">★</span> You
               </span>
-            )
+            ) : !action.player_tag ? (
+              <span>The clan</span>
+            ) : (
+              <>
+                <b className="text-ink">
+                  {action.player_name ?? action.player_tag}
+                </b>
+                <span className="tag">{action.player_tag}</span>
+                {action.role_at_raise ? (
+                  <RoleChip
+                    role={action.role_at_raise}
+                    label={ROLE[action.role_at_raise] ?? action.role_at_raise}
+                  />
+                ) : null}
+              </>
+            )}
+          </div>
+        </div>
+        {open ? (
+          ev.as_of ? (
+            <Fresh label="evidence as of" ts={ev.as_of} />
           ) : (
-            <span className={`chip ${STATUS[action.status]?.[1] ?? ""}`}>
-              {STATUS[action.status]?.[0] ?? action.status}
+            <span className="chip chip--warn">
+              suggested {ago(action.raised_at)}
             </span>
-          )}
-        </span>
-      </div>
-      <div className="panel__body grid gap-2.5">
-        <div className="font-semibold">{action.label}</div>
-        {action.type === "departure" ? (
-          <div>
-            Left the clan {ago(ev.left_at)} ({ev.left_at?.slice(0, 10)})
-            {ev.removal_state && ev.removal_state !== "none"
-              ? ` · was ${ev.removal_state.replaceAll("_", " ")} on the clock`
-              : ""}
-            {ev.days_idle != null
-              ? ` · ${Math.round(ev.days_idle)} days since their last battle`
-              : ""}
-            {ev.tenure_days != null
-              ? ` · ${ev.tenure_days} days in the clan`
-              : ""}
-            . A leave and a kick look the same in the record; say which so the
-            clan&rsquo;s history knows.
-          </div>
-        ) : action.type === "welcome" ? (
-          <div>
-            Joined {ago(ev.joined_at)}. Welcome them in clan chat, then mark it
-            done.
-          </div>
-        ) : action.type === "away" ? (
-          <div>
-            You have not played in {Math.floor(ev.days_idle ?? 0)} days. Going
-            to be away? Mark it and your inactivity clock pauses
-            {ev.away_max_days ? ` (up to ${ev.away_max_days} days)` : ""}.
-          </div>
-        ) : action.type === "awards_announcement" ? (
-          <div>
-            Season {ev.season_id} is closed and its awards are granted. Tell the
-            clan with a Clan Leader Message, then mark it sent.
-          </div>
-        ) : action.type === "rules_announcement" ? (
-          <div>
-            {ev.changes?.length
-              ? `Policy version ${ev.version} changed: ${ev.changes.join(", ")}.`
-              : `Policy version ${ev.version}: the clan's first.`}{" "}
-            Tell the clan with a Clan Leader Message, then mark it sent.
-          </div>
+          )
         ) : (
-          <div>{ev.rationale?.headline}</div>
+          <span className={`chip ${STATUS[action.status]?.[1] ?? ""}`.trim()}>
+            {STATUS[action.status]?.[0] ?? action.status}
+          </span>
         )}
+      </div>
+      <div className="grid gap-4 px-5 py-[18px]">
+        <div className="text-[14.5px] leading-[1.6] text-ink-body">
+          {action.type === "departure" ? (
+            <div>
+              Left the clan {ago(ev.left_at)} ({ev.left_at?.slice(0, 10)})
+              {ev.removal_state && ev.removal_state !== "none"
+                ? ` · was ${ev.removal_state.replaceAll("_", " ")} on the clock`
+                : ""}
+              {ev.days_idle != null
+                ? ` · ${Math.round(ev.days_idle)} days since their last battle`
+                : ""}
+              {ev.tenure_days != null
+                ? ` · ${ev.tenure_days} days in the clan`
+                : ""}
+              . A leave and a kick look the same in the record; say which so the
+              clan&rsquo;s history knows.
+            </div>
+          ) : action.type === "welcome" ? (
+            <div>
+              Joined {ago(ev.joined_at)}. Welcome them in clan chat, then mark
+              it done.
+            </div>
+          ) : action.type === "away" ? (
+            <div>
+              You have not played in {Math.floor(ev.days_idle ?? 0)} days. Going
+              to be away? Mark it and your inactivity clock pauses
+              {ev.away_max_days ? ` (up to ${ev.away_max_days} days)` : ""}.
+            </div>
+          ) : action.type === "awards_announcement" ? (
+            <div>
+              Season {ev.season_id} is closed and its awards are granted. Tell
+              the clan with a Clan Leader Message, then mark it sent.
+            </div>
+          ) : action.type === "rules_announcement" ? (
+            <div>
+              {ev.changes?.length
+                ? `Policy version ${ev.version} changed: ${ev.changes.join(", ")}.`
+                : `Policy version ${ev.version}: the clan's first.`}{" "}
+              Tell the clan with a Clan Leader Message, then mark it sent.
+            </div>
+          ) : (
+            <div>{ev.rationale?.headline}</div>
+          )}
+        </div>
         {open && (action.type === "promotion" || action.type === "demotion") ? (
-          <div className="page-head__note">
-            In the game: {action.type === "promotion" ? "promote" : "demote"}{" "}
+          <div className="rounded-control bg-panel-raised px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-ink-body">
+            <b className="text-ink">In the game:</b>{" "}
+            {action.type === "promotion" ? "promote" : "demote"}{" "}
             {action.player_name ?? action.player_tag}, send this Clan Leader
             Message, then mark it complete. They go together.
+          </div>
+        ) : null}
+        {LEADER_TYPES.has(action.type) && ev.facts?.length ? (
+          <div className="grid">
+            {ev.facts.map((f) => (
+              <div
+                key={f.key}
+                className="flex flex-wrap gap-x-4 gap-y-0.5 border-b border-line-row py-2 last:border-b-0"
+              >
+                <span className="w-[110px] shrink-0 text-[12.5px] text-ink-faint">
+                  {f.label}
+                </span>
+                <span className="grow text-[13.5px] text-ink-body">
+                  {f.value}{" "}
+                  <span className="page-head__note">
+                    ({f.window}
+                    {f.fidelity !== "daily" ? `, ${f.fidelity}` : ""})
+                  </span>
+                </span>
+              </div>
+            ))}
           </div>
         ) : null}
         {action.copy && open ? <CopyLine text={action.copy} /> : null}
@@ -534,20 +648,6 @@ export function ActionCard({
             }
           />
         ) : null}
-        {LEADER_TYPES.has(action.type) && ev.facts?.length ? (
-          <ul className="m-0 pl-[18px] text-[13.5px] text-[var(--ink-body)]">
-            {ev.facts.map((f) => (
-              <li key={f.key}>
-                <span className="label mr-1.5">{f.label}</span>
-                {f.value}{" "}
-                <span className="page-head__note">
-                  ({f.window}
-                  {f.fidelity !== "daily" ? `, ${f.fidelity}` : ""})
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
         {!open ? (
           <div className="page-head__note">
             {action.status === "withdrawn"
@@ -558,181 +658,7 @@ export function ActionCard({
           </div>
         ) : null}
 
-        {open && action.can_act ? (
-          action.type === "departure" ? (
-            <div className="flex flex-wrap gap-2">
-              <NoteInput
-                value={note}
-                onChange={setNote}
-                placeholder="why, for the log (optional)"
-              />
-              <button
-                type="button"
-                className="btn btn--danger"
-                disabled={busy}
-                onClick={() => decide("done", { classification: "kick" })}
-              >
-                Kicked
-              </button>
-              <button
-                type="button"
-                className="btn btn--primary"
-                disabled={busy}
-                onClick={() => decide("done", { classification: "leave" })}
-              >
-                Left
-              </button>
-              <button
-                type="button"
-                className="btn btn--quiet"
-                disabled={busy}
-                onClick={() => decide("done", { classification: "ignore" })}
-              >
-                Ignore
-              </button>
-            </div>
-          ) : action.type === "away" ? (
-            <div className="flex flex-wrap gap-2">
-              <a
-                className="btn btn--primary"
-                href={`${CLAN}/you/away`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate?.(`${CLAN}/you/away`);
-                }}
-              >
-                Mark me away
-              </a>
-              <button
-                type="button"
-                className="btn"
-                disabled={busy}
-                onClick={() => decide("declined")}
-              >
-                I&rsquo;m not away
-              </button>
-            </div>
-          ) : action.type === "awards_announcement" ||
-            action.type === "rules_announcement" ? (
-            <div className="flex flex-wrap gap-2">
-              <NoteInput value={note} onChange={setNote} />
-              <button
-                type="button"
-                className="btn btn--primary"
-                disabled={busy}
-                onClick={() => decide("done")}
-              >
-                Sent
-              </button>
-              <button
-                type="button"
-                className="btn"
-                disabled={busy}
-                onClick={() => decide("declined")}
-              >
-                Skip
-              </button>
-            </div>
-          ) : action.type === "welcome" ? (
-            <div className="flex flex-wrap gap-2">
-              <NoteInput value={note} onChange={setNote} />
-              <button
-                type="button"
-                className="btn btn--primary"
-                disabled={busy}
-                onClick={() => decide("done")}
-              >
-                Welcomed
-              </button>
-              <button
-                type="button"
-                className="btn"
-                disabled={busy}
-                onClick={() => decide("declined")}
-              >
-                Skip
-              </button>
-            </div>
-          ) : !declining ? (
-            <div className="flex flex-wrap gap-2">
-              <NoteInput value={note} onChange={setNote} />
-              <button
-                type="button"
-                className="btn btn--primary"
-                disabled={busy}
-                onClick={() => decide("done")}
-              >
-                Complete
-              </button>
-              <button
-                type="button"
-                className="btn"
-                disabled={busy}
-                onClick={() => setDeclining(true)}
-              >
-                Decline
-              </button>
-              <button
-                type="button"
-                className="btn btn--quiet"
-                onClick={() => setSheet((v) => !v)}
-              >
-                Notes & hold
-              </button>
-            </div>
-          ) : (
-            <form
-              className="flex flex-wrap items-center gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                decide("declined");
-              }}
-            >
-              <select
-                className="select"
-                aria-label="Why decline"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              >
-                {(reasons ?? []).map((r) => (
-                  <option key={r} value={r}>
-                    {r.replaceAll("_", " ")}
-                  </option>
-                ))}
-              </select>
-              <NoteInput value={note} onChange={setNote} />
-              <button type="submit" className="btn btn--danger" disabled={busy}>
-                Decline
-              </button>
-              <button
-                type="button"
-                className="btn btn--quiet"
-                onClick={() => setDeclining(false)}
-              >
-                Back
-              </button>
-            </form>
-          )
-        ) : null}
-        {sheet ? (
-          <MemberSheet
-            clanTag={clan.clan_tag}
-            member={{
-              player_tag: action.player_tag,
-              name: action.player_name,
-              role: action.role_at_raise,
-              hold: null,
-            }}
-            role={who.role}
-            onChange={onChanged}
-          />
-        ) : null}
-        {error ? (
-          <div className="callout callout--warn" role="alert">
-            <span>{error}</span>
-          </div>
-        ) : null}
-        <div className="mt-1 grid gap-2 border-t border-[var(--line-soft)] pt-3">
+        <div className="grid gap-1">
           <div className="label">
             Log · {(action.log ?? []).length}{" "}
             {(action.log ?? []).length === 1 ? "entry" : "entries"}
@@ -740,6 +666,194 @@ export function ActionCard({
           <ActionLog action={action} clan={clan} onChanged={onChanged} />
         </div>
       </div>
-    </div>
+      {(open && action.can_act) || sheet || error ? (
+        <div className="grid gap-3 border-t border-line-soft bg-ground-chrome px-5 py-3.5">
+          {open && action.can_act ? (
+            action.type === "departure" ? (
+              <div className="flex flex-wrap gap-2">
+                <NoteInput
+                  value={note}
+                  onChange={setNote}
+                  placeholder="why, for the log (optional)"
+                />
+                <button
+                  type="button"
+                  className="btn btn--danger"
+                  disabled={busy}
+                  onClick={() => decide("done", { classification: "kick" })}
+                >
+                  Kicked
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={busy}
+                  onClick={() => decide("done", { classification: "leave" })}
+                >
+                  Left
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  disabled={busy}
+                  onClick={() => decide("done", { classification: "ignore" })}
+                >
+                  Ignore
+                </button>
+              </div>
+            ) : action.type === "away" ? (
+              <div className="flex flex-wrap gap-2">
+                <a
+                  className="btn btn--primary"
+                  href={`${CLAN}/you/away`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate?.(`${CLAN}/you/away`);
+                  }}
+                >
+                  Mark me away
+                </a>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={() => decide("declined")}
+                >
+                  I&rsquo;m not away
+                </button>
+              </div>
+            ) : action.type === "awards_announcement" ||
+              action.type === "rules_announcement" ? (
+              <div className="flex flex-wrap gap-2">
+                <NoteInput value={note} onChange={setNote} />
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={busy}
+                  onClick={() => decide("done")}
+                >
+                  Sent
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={() => decide("declined")}
+                >
+                  Skip
+                </button>
+              </div>
+            ) : action.type === "welcome" ? (
+              <div className="flex flex-wrap gap-2">
+                <NoteInput value={note} onChange={setNote} />
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={busy}
+                  onClick={() => decide("done")}
+                >
+                  Welcomed
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={() => decide("declined")}
+                >
+                  Skip
+                </button>
+              </div>
+            ) : !declining ? (
+              <div className="flex flex-wrap gap-2">
+                <NoteInput value={note} onChange={setNote} />
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={busy}
+                  onClick={() => decide("done")}
+                >
+                  Complete
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={() => setDeclining(true)}
+                >
+                  Decline
+                  <Icon name="chevron-down" size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  onClick={() => setSheet((v) => !v)}
+                >
+                  Notes & hold
+                </button>
+              </div>
+            ) : (
+              <form
+                className="flex flex-wrap items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  decide("declined");
+                }}
+              >
+                <select
+                  className="select"
+                  aria-label="Why decline"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                >
+                  {(reasons ?? []).map((r) => (
+                    <option key={r} value={r}>
+                      {r.replaceAll("_", " ")}
+                    </option>
+                  ))}
+                </select>
+                <NoteInput value={note} onChange={setNote} />
+                <button
+                  type="submit"
+                  className="btn btn--danger"
+                  disabled={busy}
+                >
+                  Decline
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  onClick={() => setDeclining(false)}
+                >
+                  Back
+                </button>
+              </form>
+            )
+          ) : null}
+          {sheet ? (
+            <MemberSheet
+              clanTag={clan.clan_tag}
+              member={{
+                player_tag: action.player_tag,
+                name: action.player_name,
+                role: action.role_at_raise,
+                hold: null,
+              }}
+              role={who.role}
+              onChange={onChanged}
+            />
+          ) : null}
+          {error ? (
+            <div className="callout callout--warn" role="alert">
+              <span>{error}</span>
+            </div>
+          ) : null}
+          {open && action.can_act && LEADER_TYPES.has(action.type) ? (
+            <span className="text-[12.5px] text-ink-faint">
+              One action, one decision.
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </article>
   );
 }

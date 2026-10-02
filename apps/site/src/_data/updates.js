@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Elixir Clan's actions, redrawn",
+    body: "Actions in Elixir Clan have the new design. What is waiting for you and what closed in the last 30 days sit in two panels, each action marked by its kind with its number, who it is about and its comments. An action's own page opens with what it asks and who it is about, then why, what to do in the game, the facts it was judged by, the message to copy, its log and the decision at the foot. The Clan Leader Message now says when nothing in it is known to trip the game's chat filter. Every action keeps its own address, and who sees which actions has not changed. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "Elixir Clan's Standing, redrawn",
     body: "Standing in Elixir Clan has the new design. How it works here now opens with what Elder weighs in your clan, drawn as bars from the policy, and your own line sits under it with your war decks race by race. Where the clan shares it, each group has its own panel with what it means, every member's war decks per race beside their evidence, and the longest groups open at their first few with the rest a click away; your own row always shows. Nobody sees a score or a rank, and who sees what has not changed. No change to the tools.",
   },
