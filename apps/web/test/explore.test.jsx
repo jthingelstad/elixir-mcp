@@ -189,3 +189,96 @@ test("a tag lookup's probe seeds the record, so the lookup costs one call", asyn
   // The toolbar still shows the record's call, with the record's args.
   expect(screen.getByText(/players_summary/)).toBeTruthy();
 });
+
+/** Two rows as battles_query (9.18.0) gives them: one with its public
+ *  page, one recorded before links existed. */
+const BATTLES = {
+  player_tag: "#20JJJ2CCRU",
+  name: "King Thing",
+  battles: [
+    {
+      battle_id: "a1b2c3d4e5f6a7b8c9d0".padEnd(64, "0"),
+      url: "https://elixir.poapkings.com/battle/a1b2c3d4e5f6a7",
+      battle_time: "2026-10-01T14:03:00.000Z",
+      type: "pathOfLegend",
+      game_mode: { id: 72000464, name: "Ranked1v1_NewArena2" },
+      me: {
+        player_tag: "#20JJJ2CCRU",
+        name: "King Thing",
+        outcome: "win",
+        crowns: 3,
+        deck_hash: "d".repeat(64),
+      },
+      opponents: [{ player_tag: "#U8RYG9Y2U", name: "King Levy", crowns: 1 }],
+    },
+    {
+      battle_id: "f".repeat(64),
+      url: null,
+      battle_time: "2026-09-30T10:00:00.000Z",
+      type: "PvP",
+      game_mode: { id: 72000006, name: "Ladder" },
+      me: { player_tag: "#20JJJ2CCRU", outcome: "loss", crowns: 0 },
+      opponents: [{ player_tag: "#VJQV8G8RL", name: "thingles", crowns: 1 }],
+    },
+  ],
+};
+
+test("a battle row opens the battle's public page, from the row's own url", async () => {
+  vi.spyOn(api, "explore").mockImplementation(async () => answer(BATTLES));
+  renderWithProviders(
+    <Explore
+      me={{}}
+      navigate={vi.fn()}
+      path="/console/explore/list/battles:20JJJ2CCRU"
+    />,
+  );
+  const rows = (await screen.findAllByRole("row")).slice(1);
+  const first = (r) => r.querySelector("td a")?.getAttribute("href");
+  // The short id as the server gave it (14 characters here, not the 12
+  // a rebuild from battle_id would guess).
+  expect(first(rows[0])).toBe("/battle/a1b2c3d4e5f6a7");
+  // A row with no url keeps the Console's record of it.
+  expect(first(rows[1])).toBe(`/console/explore/battle/${"f".repeat(64)}`);
+});
+
+test("a deck's battles open the same pages", async () => {
+  vi.spyOn(api, "explore").mockImplementation(async () => answer(BATTLES));
+  renderWithProviders(
+    <Explore
+      me={{}}
+      navigate={vi.fn()}
+      path={`/console/explore/list/deckbattles:${"d".repeat(64)}`}
+    />,
+  );
+  const rows = (await screen.findAllByRole("row")).slice(1);
+  expect(rows[0].querySelector("td a")?.getAttribute("href")).toBe(
+    "/battle/a1b2c3d4e5f6a7",
+  );
+});
+
+test("a battle's record links its public page", async () => {
+  vi.spyOn(api, "explore").mockImplementation(async () =>
+    answer({ ...BATTLES, battles: [BATTLES.battles[0]] }),
+  );
+  renderWithProviders(
+    <Explore
+      me={{}}
+      navigate={vi.fn()}
+      path={`/console/explore/battle/${BATTLES.battles[0].battle_id}`}
+    />,
+  );
+  const link = await screen.findByRole("link", {
+    name: "/battle/a1b2c3d4e5f6a7",
+  });
+  expect(link.getAttribute("href")).toBe("/battle/a1b2c3d4e5f6a7");
+});
+
+test("battlePath takes only a battle page's path, never a guess", async () => {
+  const { battlePath } = await import("../src/views/Explore.jsx");
+  expect(
+    battlePath("https://elixir.poapkings.com/battle/0123456789abcdef"),
+  ).toBe("/battle/0123456789abcdef");
+  expect(battlePath(null)).toBe(null);
+  expect(battlePath("not a url")).toBe(null);
+  expect(battlePath("https://elixir.poapkings.com/console")).toBe(null);
+});

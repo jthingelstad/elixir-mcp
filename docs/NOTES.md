@@ -2023,3 +2023,19 @@ keeps), and the panel says so. The current mode's row in By mode is marked
 in the accent tint, not the canvas's gold: gold is the brand's.
 Spirit Empress (28000025) has no mirrored art yet; a missing image falls
 back to the kit's blank frame with the card's name.
+
+---
+
+## 2026-10-02 - Console battle rows open the battle's page
+
+Explore's two battle lists (a player's battles, `list/battles:<tag>`, and a
+deck's, `list/deckbattles:<hash>`) link each row's time to `/battle/<short
+id>` in the app, and a battle's record view gains a `page` field. The path is
+read from the row's `url` (battles_query, 9.18.0) and never rebuilt from
+`battle_id`, since the server lengthens a short id where two recorded battles
+share a prefix (`battlePath` in `views/Explore.jsx`, which accepts only a
+`/battle/<hex>` path). A row with no `url` keeps the record view link.
+
+No other Console surface lists battles. Verify's proof line ("Win 3-1 vs …")
+is one battle read from `/api/me/verify`, which carries no `url`, so it is
+left alone; Ladder's Season reads `battles_performance` weeks, not battles.

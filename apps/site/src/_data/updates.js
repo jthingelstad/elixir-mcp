@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "A battle in the Console opens its page",
+    body: "In the Console's Explore, a battle in a player's list or a deck's list now opens that battle's own page: both decks, the towers and how it ended, at the same link you can hand anyone. A battle's record in Explore links its page too. A battle recorded before these links existed still opens its record. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "Every card, one mode at a time",
     body: "Cards has its own page at /cards, linked from the row under the bar. It lists every Clash Royale card and how each is played in the battles Elixir recorded this season, one mode at a time: Path of Legends, Trophy Road, War and the rest each rank the cards on their own, because modes are different games and are never added together. Each card shows its place in the mode, its share of decks, how those battles went and how many there were, and says when a reading is thin (under 2,000 battles). Find a card by name, sort by play, wins, cost or name, and narrow by rarity or elixir. Each card's page is redrawn too: its art and cost, four figures in the mode you pick, its months, every mode side by side, the call your agent makes for the same numbers, and when it was the Card of the Week. Sign-in free, and every number is the record's. The public cards endpoint now carries every card's season by mode. No change to the tools.",
   },
