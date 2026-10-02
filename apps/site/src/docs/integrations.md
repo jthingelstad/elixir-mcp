@@ -360,6 +360,13 @@ status returns 404. A one-time refresh does not create a recording subscription.
 
 ## Automatic collection membership
 
+Named recording Collections are scheduled for retirement. The current
+operations and grants below remain deployed until a versioned retirement
+removes dependent callers. Drop's automatic collection enrollment is also
+scheduled for removal; its personal OAuth tracking and other API use remain.
+Signing into Drop with Elixir and granting it authorized account access remain
+supported parts of the integration.
+
 A platform may automatically add a supplied tag to its granted collection. Drop
 asserts membership on login and when a player saves an optional CR tag, through
 its durable refresh queue. Failed enrollment retries there; queue submission or

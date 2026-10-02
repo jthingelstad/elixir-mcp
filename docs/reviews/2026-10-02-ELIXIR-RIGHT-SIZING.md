@@ -13,6 +13,11 @@ are removal targets from the original request. Jamie also confirmed removal
 of game-wide meta statistics and recommendations: "Recommendations are
 going OUT. Game wide meta OUT." These removals are settled scope, including
 public corpus statistics, corpus analysis, deck sets and upgrade advice.
+Jamie subsequently confirmed retirement of all named recording Collections.
+Existing primary/alt/friend/watching relationships already organize followed
+players; no replacement grouping feature is needed.
+Drop's automatic collection enrollment is also a confirmed removal, without
+a replacement integration enrollment feature.
 Other proposed cuts below remain separate decisions.
 
 ## Current scale and the limits of the measurements
@@ -53,6 +58,7 @@ does not automatically lower the RDS bill or shrink its provisioned disk.
 | Milestone, personal week, friends, clan and action emails | Keep | Record-driven mail is core; preserve preferences, send history and deduplication |
 | MCP connection | Keep as an extension | The website and emails remain useful without an agent connection |
 | Versioned JSON API and external integrations | Keep | Clan becoming internal does not retire Drop's or another caller's public contract |
+| Drop sign-in with Elixir and authorized account access | Keep | Retire automatic collection enrollment separately; preserve Drop's OAuth client, consent and authentication flow |
 | Global boards and historical season finals | Remove | Scheduling, ingest, tools, collections, archive and replay sources all go |
 | Regional, clan and rotating-mode boards | Recommend removing with global boards | Keeping them retains the same capture and maintenance machinery; personal profile rank stays |
 | Automatic recording of ranked players and board collections | Remove | Reconcile every remaining legitimate recording reason before stopping capture |
@@ -60,7 +66,7 @@ does not automatically lower the RDS bill or shrink its provisioned disk.
 | Public corpus card/deck statistics and corpus analysis | Remove | Includes public card performance pages, home-page meta, global season rollups and corpus segments |
 | Deck sets, upgrade advice and other gameplay recommendations | Remove | Retire corpus priors, candidate generation, form-advantage scoring and recommendation tools; do not recreate them over friends or a smaller recorded population |
 | Card catalog, card art, deck identity and factual personal card history | Keep | Used by recorded battles and the remaining interface; remove editorial content without deleting these foundations |
-| Generic curated collections | Review individually | Keep a person's useful grouping; retire board/pro collections and their capture side effects |
+| Named player and clan recording Collections | Remove | Transition deliberate user tracking and integration enrollment, then remove collection capture reasons, tools, UI, quotas and storage; existing tracking relationships remain |
 | Global event and tournament collection | Recommend cutting autonomous capture | Keep event facts delivered in people's battles; verify catalog needs before removing an endpoint |
 | Clan social map and bring-your-own-model drafting | Review separately | Not necessary to remove elite capture; do not migrate complexity by default or delete private records implicitly |
 
@@ -115,6 +121,73 @@ and clan reads through narrow paths with no corpus prior, global comparison
 or recommendation score. The retained record can answer what someone
 played, faced or achieved; a recommendation over friends is not a replacement
 feature in this plan.
+
+## Collections retirement
+
+Retire all named player and clan recording Collections, including public,
+private, manually curated and board-managed groups. Keep the existing
+primary/alt/friend/watching classification and private nicknames on followed
+players. Do not build replacement labels, suggested-account curation,
+always-on creator recording or popularity-based quota exemptions.
+Keep a player's recorded owned-card collection (`players_collection`, card
+levels and form unlocks); that is game history, separate from named recording
+groups.
+
+Inventory collection ownership, membership, scope, attribution and history
+before changing recording reasons. Separate deliberate requests from board
+sync, autonomous curator/ops capture and external integration enrollment;
+ownership alone does not establish a person's intent. Preview deduplicated
+ordinary player/clan tracking for legitimate personal requests, preserving
+existing relationships, primary identity and clan scope. Do not infer an
+alt/friend relationship or convert board populations into user follows. Check
+the person's pooled player/clan quotas before migration; capacity conflicts
+need a reviewed transition, never silent overflow or dropped requests.
+Do not mechanically call ordinary tracking for every member: a first player
+becomes primary, and direct player tracking requests comprehensive scope.
+Any approved conversion needs explicit identity, scope and notification
+dispositions so it cannot silently change the person's primary or deepen
+capture from an activity-only group.
+Retained historical recording evidence must survive removal of the collection
+tables for the purge census and its audit trail.
+
+External integrations currently enroll through collection grants and
+`/api/v1/collections` operations. Trace Drop's deployed enrollment consumer
+and each active grant. Jamie confirmed removing automatic collection
+enrollment from Drop too; do not introduce a replacement integration
+enrollment feature. Retire dependent callers before the old operations and
+grants. Resolve any other active consumer explicitly rather than silently
+breaking it or moving its population into the sponsor's player slots.
+Removing those operations is a breaking JSON API change requiring its own
+version/cutover. Keep unrelated profile reads, asynchronous refreshes,
+OAuth and other external API operations.
+Jamie explicitly confirmed that Drop using Elixir for account authentication
+and gaining authorized account access is a useful feature within scope. Its
+OAuth client, consent and sign-in stay; only Clan's internal OAuth loopback
+is removed during consolidation.
+
+Drop's `services/api/src/refresh-worker.ts` currently awaits collection
+enrollment before requesting a profile refresh. Removing enrollment first
+would strand those queued jobs. Remove that awaited call, enrollment helper
+and client operation, collection configuration, sync script, associated
+tests and deployment parameters in Drop's own reviewed change. Verify queued
+profile jobs still refresh, then deploy Drop before removing Elixir's
+collection endpoint and grants. The person's OAuth `/me/players` path
+already exists separately and stays. Anonymous
+or integration-supplied tags must not become the sponsoring person's follows.
+
+Once legitimate requests have another recording reason, remove collection
+writers, recording predicates, quota buckets, MCP declarations and schemas,
+Console routes/query hooks, admin operations, API grants and operations,
+segment selectors, examples, docs and dead jobs. Use ordered migrations for
+storage cleanup; preserve immutable historical migrations. Reconcile capture
+from the remaining reasons, including outstanding ops exceptions. Stopping
+collection-only capture does not itself authorize deleting its history:
+the same reviewed provenance and overlap manifest decides what can go.
+`services/web-api/src/routes/collections.mjs` also implements retained
+`/api/me/clans` routes: separate those handlers before pruning collection
+code rather than deleting the module wholesale. Retire collection OAuth
+scopes and consent copy too. Retire integration collection grants before
+collection rows because their foreign keys prevent collection deletion.
 
 ## Clan consolidation target
 
@@ -179,7 +252,7 @@ directory moves alone do not satisfy it.
 ### Establish what stays before selecting what goes
 
 Build a private, deterministic census of recording reasons. Include people's
-players and friends, retained personal collections, recorded clans and their
+players and friends, legitimate historical collection requests, recorded clans and their
 membership, narrow external-integration grants, and deliberately retained
 operator subjects. Review legacy ops/pro recordings explicitly. Historical
 requests and clan membership matter: the current roster and today's claims
@@ -187,7 +260,7 @@ alone cannot justify deleting someone else's earlier record.
 
 Classify each affected subject and time range as retained, removable or
 unresolved. Unresolved evidence is reported for review and retained until
-resolved. Name the retired board/pro collections explicitly; do not infer
+resolved. Name every retired collection and its classified purpose explicitly; do not infer
 their purpose from the owner's account or an origin enum.
 
 ### Derive battle ownership from the archive
@@ -269,7 +342,9 @@ remaining measured workload, rather than assuming a smaller instance is safe.
    clan benefits and whether the feature needs capture beyond their request.
 2. **Stop unwanted growth.** Retire the installed rankings writer, board
    scheduling and season-final backfill; disable automatic elite enrollment;
-   remove board/pro collection reasons and reconcile recordings. Suppress
+   transition legitimate personal collection requests, retire Drop's
+   automatic enrollment and other dependent callers,
+   remove all collection recording reasons and reconcile recordings. Suppress
    editorial composition and pending sends. Guard the admission boundary
    against late leases and replays recreating retired facts. Confirm through
    naturally occurring receipts that no retired fetches or sends recur.
@@ -306,7 +381,10 @@ continue to be generated from the registry.
 The retirement is done when there are no autonomous elite/board recordings,
 global board history or retired replay sources; no game-wide statistics or
 recommendation tools, indirect corpus readers, scoring/prior machinery,
-retired aggregates or cached recommendation output remain; retained
+retired aggregates or cached recommendation output remain; no named recording
+Collections, independent collection capture reasons or collection quota/API
+machinery remain, and retained user tracking, Drop sign-in and integration
+profile reads/refreshes work; retained
 personal/clan history and mail work; Clan has one session, store and
 deployment with Elixir; and the removed capabilities have no running
 maintenance owner, hidden schedule, dormant generator or misleading
@@ -339,7 +417,7 @@ documentation changes are prepared in the separate `elixir-right-sizing`
 worktree from origin/main. Another session holds the deployment lease;
 this assessment took no lease and made no production writes.
 
-Game-wide meta and recommendations are confirmed removals. The remaining
+Game-wide meta, recommendations and Collections are confirmed removals. The remaining
 product proposals concern regional/mode boards, autonomous event/tournament
 capture and the smaller Clan social/model features. Exact deletion counts
 and archive bytes remain work for the census. The plan does not call the

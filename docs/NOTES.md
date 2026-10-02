@@ -2406,3 +2406,44 @@ in this documentation follow-up.
 Follow-up validation: `npm run verify` passed. The final About-page wording
 also passed the docs corpus tests and merged site build/tests (9 and 34
 tests). No runtime changes or production writes were made.
+
+## 2026-10-02 - Collections are a confirmed retirement
+
+Jamie: "we already have a classification of friends, alts, etc for accounts
+we are following. Move forward with retiring collections."
+
+The decision ledger and right-sizing plan now retire all named player/clan
+recording Collections, including public, private and manually curated groups.
+Keep existing primary/alt/friend/watching classifications and private
+nicknames. No replacement grouping feature, suggested-creator catalog,
+speculative recording or popularity-based quota exemption is introduced.
+
+The cutover must distinguish deliberate user requests from board/ops and
+integration populations, preserve legitimate historical evidence and shared
+recordings, and check pooled player/clan quotas before ordinary tracking
+migration. Drop's refresh worker awaits collection enrollment before profile
+refresh; Jamie then confirmed "we should remove that feature from drop."
+Remove Drop's automatic enrollment call/helper/client operation, collection
+config and sync script in its own change; verify queued refreshes and deploy
+Drop before retiring collection API operations/grants. No replacement
+integration enrollment feature is planned. Keep the person's OAuth tracking
+and unrelated profile reads/refreshes. Do not turn integration or
+board populations into the owner's follows. Preserve the clan tracking
+handlers currently colocated in the collections web API module.
+Keep recorded owned-card collections, card levels and form-unlock history;
+those are game facts rather than named recording groups.
+
+Jamie explicitly confirmed that Drop using Elixir as an authentication method
+and gaining authorized account access is useful and within scope. The plan
+and decision ledger preserve Drop's OAuth sign-in/client, consent and account
+access independently of the removed automatic collection enrollment.
+
+About, Recording, Integrations and the product update distinguish the
+ratified direction from still-deployed behavior. This follow-up updates the
+draft planning PR; runtime removal, contract changes and data deletion remain
+pending. No production writes, sends, schedule changes or lease claims.
+
+Validation: `npm run verify` passed for the Collections plan update. Final
+scope clarifications passed formatting, docs corpus tests (9) and the merged
+site build/tests (34). Drop's runtime source was read to verify the dependency;
+its code and deployment have not changed in this planning PR.
