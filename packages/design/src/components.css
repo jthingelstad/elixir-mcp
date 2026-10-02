@@ -4475,6 +4475,325 @@ a.card-art:hover .card-art__img {
   gap: 4px;
 }
 
+/* ------------------------------------------------------------ card tile
+   The public card pages (canvas 2026-09-29: CardsIndex, CardPage). A
+   card tile is one card in a list: its art with the elixir drop, its
+   place in the mode, its name and kind, its share of decks as a bar and
+   the line under it. The rest of this block is the same pages' pieces:
+   the mode switch and filter pills, the four figures on a card's page
+   and its months as bars. Every number in them is the API's; the bar
+   widths and heights are set from those numbers by the page script. */
+.card-tile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+.card-tile:hover {
+  background: var(--hover-row);
+  border-color: var(--line-strong);
+}
+.card-tile__art {
+  position: relative;
+  flex: none;
+  display: flex;
+  justify-content: center;
+  width: 52px;
+}
+.card-tile__art .card-art {
+  --card-w: 43px;
+}
+.card-tile__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.card-tile__head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.card-tile__rank {
+  font: 11.5px var(--font-mono);
+  color: var(--ink-faint);
+}
+.card-tile__name {
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-tile__kind {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.card-tile__share {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-tile__bar {
+  display: flex;
+  flex: 1 1 auto;
+  height: 5px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--line-row);
+}
+.card-tile__fill {
+  width: 0;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+.card-tile__pct {
+  font: 12.5px var(--font-mono);
+  color: var(--ink);
+}
+.card-tile__line {
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+/* Under 2,000 battles a share or a rate is a thin reading: said, not
+   hidden. */
+.card-thin {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-faint);
+  font-size: 11px;
+  white-space: nowrap;
+}
+/* The elixir drop on a card's art: the game's own elixir colour. */
+.card-elixir {
+  position: absolute;
+  top: -5px;
+  left: -3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 17px;
+  height: 17px;
+  border-radius: var(--r-pill);
+  background: radial-gradient(circle at 35% 30%, #f5b8ff, #d946ef 55%, #86198f);
+  border: 2px solid var(--ground);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+.card-elixir--lg {
+  top: -5px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+/* These pages show their live pieces when the data arrives, with the
+   hidden attribute. A class or a utility that sets `display` beats the
+   browser's own [hidden] rule (and utilities sit a layer above this
+   one), so the rule is restated here, important, for the two pages. */
+[data-cards-index] [hidden],
+[data-card] [hidden] {
+  display: none !important;
+}
+/* A card page's own art: the canvas's 92px card with the large drop. */
+.card-figure {
+  position: relative;
+  flex: none;
+  display: flex;
+  justify-content: center;
+  width: 112px;
+}
+.card-figure .card-art {
+  --card-w: 92px;
+}
+/* The By mode table's row for the mode the page is reading. */
+.card-mode-row[aria-current="true"] td {
+  background: var(--hover-rail);
+  color: var(--ink);
+  font-weight: 600;
+}
+.card-thin-rate {
+  color: var(--ink-faint);
+}
+/* The call an agent makes for the same numbers. */
+.card-call {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border-radius: var(--r-control);
+  background: var(--ground);
+  border: 1px solid var(--line-row);
+  font: 12.5px/1.6 var(--font-mono);
+  color: var(--ink-code);
+  white-space: pre-wrap;
+}
+/* The mode switch: one mode at a time, never pooled. */
+.card-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 4px;
+  border-radius: var(--r-block);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line-row);
+}
+.card-modes button {
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.card-modes button:hover {
+  background: var(--hover-rail);
+  color: var(--ink);
+}
+.card-modes button[aria-pressed="true"] {
+  background: var(--accent-deep);
+  color: var(--ink);
+  font-weight: 600;
+}
+.card-filter {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.card-filter--round {
+  padding: 0;
+}
+.card-filter[aria-pressed="true"] {
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+  color: var(--ink);
+}
+.card-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 280px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: var(--r-control);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line);
+  color: var(--ink-faint);
+}
+.card-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.card-search:focus-within {
+  border-color: var(--accent);
+}
+/* A card's page: its four figures in one mode. */
+.card-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.card-stat__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.card-stat__value {
+  font: 600 26px/1.2 var(--font-mono);
+  color: var(--ink);
+}
+.card-stat__note {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+/* A card's months: share of decks as bars, wins under each. */
+.card-months {
+  display: flex;
+  gap: 12px;
+  padding: 4px 8px;
+  overflow-x: auto;
+}
+.card-months__col {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 44px;
+}
+.card-months__pct {
+  font: 12px var(--font-mono);
+  color: var(--ink);
+}
+.card-months__track {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 180px;
+}
+.card-months__bar {
+  width: 100%;
+  max-width: 46px;
+  height: 0;
+  border-radius: 6px 6px 0 0;
+  background: var(--line-strong);
+}
+.card-months__col:last-child .card-months__bar {
+  background: var(--accent);
+}
+.card-months__label {
+  font-size: 12.5px;
+  color: var(--ink-body);
+}
+.card-months__wins {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
 /* ---------------------------------------------------------------- battle
    One battle's public page (apps/web Battle.jsx, design canvas
    2026-10-01): the player left, the opponent right, the scoreboard

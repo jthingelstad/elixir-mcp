@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Every card, one mode at a time",
+    body: "Cards has its own page at /cards, linked from the row under the bar. It lists every Clash Royale card and how each is played in the battles Elixir recorded this season, one mode at a time: Path of Legends, Trophy Road, War and the rest each rank the cards on their own, because modes are different games and are never added together. Each card shows its place in the mode, its share of decks, how those battles went and how many there were, and says when a reading is thin (under 2,000 battles). Find a card by name, sort by play, wins, cost or name, and narrow by rarity or elixir. Each card's page is redrawn too: its art and cost, four figures in the mode you pick, its months, every mode side by side, the call your agent makes for the same numbers, and when it was the Card of the Week. Sign-in free, and every number is the record's. The public cards endpoint now carries every card's season by mode. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "The Console's menu and Overview, redrawn",
     body: "The menu down the side of the Console is shorter and grouped: Overview, Timeline and Explore, then Your record (Tracking, Collections, Verify), Access (Connections, Usage) and Service (Status), with Send feedback at the foot. The box at the top switches between your console, each of your agents and, for admins, the admin console. Your account's own pages (profile, the emails Elixir sends you, sign-in and devices, sign-ins) have a menu of their own, with the way back and a sign-out button. The list of MCP requests now opens from Usage. Overview has a row across Elixir: your season on Ladder, your clan's week in Elixir Clan, and Drop. Under it are short lists of your players and clans that lead into Tracking, how many MCP calls you have made today, and when your main player was last read. On a phone the menu folds into one row above the page that names where you are.",
   },

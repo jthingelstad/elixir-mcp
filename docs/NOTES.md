@@ -1968,3 +1968,58 @@ it is hidden on a phone, where the bar's sheet has the game. "Your tier"
 left Overview (Profile has the whole table) and `SlotMeter.jsx` went with
 it. The inline-style ceiling is 545.
 
+---
+
+## 2026-10-02 - The cards index and a card's page, to the canvas
+
+The 2026-09-29 canvas (CardsIndex, CardPage) as built. `/cards` is new and
+on the site's row ("Cards", after Home) and footer; `/cards/<id>` is
+redrawn. Both are public and sign-in free.
+
+**Data.** `GET /api/public/cards` gains `season`
+(`readCardSeason` in `services/web-api/src/routes/public.mjs`): the latest
+rolled-up season's `modes` (each mode group but `all`, with its decided
+battles, most decided first) and `cards` (`{card_id: {mode_group: row}}`,
+every form together, the same rollup `cards_card` reads), plus `as_of`
+(the hourly increment's battle cursor) and `players_as_of` (the nightly
+rebuild). `GET /api/public/cards/<id>` gains `as_of`. Both keep their
+cache headers. The pages need a web-api deploy for these; until then the
+index keeps its catalog list and the controls that need no numbers, and a
+card page shows no "updated" chip.
+
+**Build vs live.** The build bakes only catalog facts (name, rarity, type,
+cost, forms), A to Z; the season's numbers are read in the browser
+(`cards-index.js`, `cards-live.js`), so nothing on these pages goes stale
+between deploys and nothing is invented at build time. A test build now
+bakes six real catalog rows from `apps/site/test/fixtures/public-cards.json`
+instead of none, so the card pages are built and tested in CI. The card
+shape helpers live in `apps/site/src/_lib/cards.mjs`: Eleventy hands a
+`_data` module with named exports to templates as an object, not as its
+default, which collapsed every card page onto `/cards/index.html`.
+
+**Sitemap.** Pagination only adds its first page to collections by
+default, so the sitemap listed one card page of the 122.
+`addAllPagesToCollections: true` on `card.njk`; the sitemap and edge-router
+tests now derive the card pages from the fixture.
+
+**Shared CSS** (`packages/design/src/components.css`, under "card tile"):
+`.card-tile` (`__art`, `__body`, `__head`, `__rank`, `__name`, `__kind`,
+`__share`, `__bar`, `__fill`, `__pct`, `__line`), `.card-thin`,
+`.card-elixir` (`--lg`), `.card-modes`, `.card-filter` (`--round`),
+`.card-search`, `.card-stat` (`__label`, `__value`, `__note`),
+`.card-months` (`__col`, `__pct`, `__track`, `__bar`, `__label`,
+`__wins`), `.card-figure`, `.card-mode-row`, `.card-call`. They sit on the
+kit's `.card-art*`. Bar widths and heights are set by the page scripts
+from the API's numbers. `[hidden]` is restated (important) inside the two
+pages, because a class or utility that sets `display` beats the
+browser's rule.
+
+**Not drawn.** The canvas's "In your record" panel: the Console has no
+page for one player's record with one card to link to. The Card of the
+Week panel's week share ("in 31.1% of last week's battles") is not in the
+API, and "Every Card of the Week" has no archive page, so the panel links
+`/docs/email`. Months are every mode together (the only history the rollup
+keeps), and the panel says so. The current mode's row in By mode is marked
+in the accent tint, not the canvas's gold: gold is the brand's.
+Spirit Empress (28000025) has no mirrored art yet; a missing image falls
+back to the kit's blank frame with the card's name.

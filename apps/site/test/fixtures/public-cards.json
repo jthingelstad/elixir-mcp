@@ -1,0 +1,103 @@
+{
+  "cards": [
+    {
+      "id": 26000000,
+      "name": "Knight",
+      "maxEvolutionLevel": 3,
+      "elixirCost": 3,
+      "iconUrls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/jAj1Q5rclXxU9kVImGqSJxa4wEMfEhvwNQ_4jiGUuqg.png",
+        "evolutionMedium": "https://api-assets.clashroyale.com/cardevolutions/300/jAj1Q5rclXxU9kVImGqSJxa4wEMfEhvwNQ_4jiGUuqg.png",
+        "heroMedium": "https://api-assets.clashroyale.com/cardheroes/300/jAj1Q5rclXxU9kVImGqSJxa4wEMfEhvwNQ_4jiGUuqg.png"
+      },
+      "rarity": "common",
+      "type": "troop",
+      "maxLevel": 16,
+      "maxLevelRarityScale": 16,
+      "forms_available": [
+        "evolution",
+        "hero"
+      ]
+    },
+    {
+      "id": 26000010,
+      "name": "Skeletons",
+      "maxEvolutionLevel": 1,
+      "elixirCost": 1,
+      "iconUrls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/oO7iKMU5m0cdxhYPZA3nWQiAUh2yoGgdThLWB1rVSec.png",
+        "evolutionMedium": "https://api-assets.clashroyale.com/cardevolutions/300/oO7iKMU5m0cdxhYPZA3nWQiAUh2yoGgdThLWB1rVSec.png"
+      },
+      "rarity": "common",
+      "type": "troop",
+      "maxLevel": 16,
+      "maxLevelRarityScale": 16,
+      "forms_available": [
+        "evolution"
+      ]
+    },
+    {
+      "id": 28000015,
+      "name": "Barbarian Barrel",
+      "maxEvolutionLevel": 2,
+      "elixirCost": 2,
+      "iconUrls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/Gb0G1yNy0i5cIGUHin8uoFWxqntNtRPhY_jeMXg7HnA.png",
+        "heroMedium": "https://api-assets.clashroyale.com/cardheroes/300/Gb0G1yNy0i5cIGUHin8uoFWxqntNtRPhY_jeMXg7HnA.png"
+      },
+      "rarity": "epic",
+      "type": "spell",
+      "maxLevel": 16,
+      "maxLevelRarityScale": 11,
+      "forms_available": [
+        "hero"
+      ]
+    },
+    {
+      "id": 28000000,
+      "name": "Fireball",
+      "elixirCost": 4,
+      "iconUrls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/lZD9MILQv7O-P3XBr_xOLS5idwuz3_7Ws9G60U36yhc.png"
+      },
+      "rarity": "rare",
+      "type": "spell",
+      "maxLevel": 16,
+      "maxLevelRarityScale": 14,
+      "forms_available": []
+    },
+    {
+      "id": 26000074,
+      "name": "Golden Knight",
+      "elixirCost": 4,
+      "iconUrls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/WJd207D0O1sN-l1FTb8P9KhYL2oF5jY26vRUfTUW3FQ.png"
+      },
+      "rarity": "champion",
+      "type": "troop",
+      "maxLevel": 16,
+      "maxLevelRarityScale": 6,
+      "forms_available": []
+    },
+    {
+      "id": 26000055,
+      "name": "Mega Knight",
+      "maxEvolutionLevel": 1,
+      "elixirCost": 7,
+      "iconUrls": {
+        "medium": "https://api-assets.clashroyale.com/cards/300/O2NycChSNhn_UK9nqBXUhhC_lILkiANzPuJjtjoz0CE.png",
+        "evolutionMedium": "https://api-assets.clashroyale.com/cardevolutions/300/O2NycChSNhn_UK9nqBXUhhC_lILkiANzPuJjtjoz0CE.png"
+      },
+      "rarity": "legendary",
+      "type": "troop",
+      "maxLevel": 16,
+      "maxLevelRarityScale": 8,
+      "forms_available": [
+        "evolution"
+      ]
+    }
+  ],
+  "as_of": "2026-09-10T23:57:37.591Z",
+  "season": null,
+  "disclaimer": "This material is unofficial and is not endorsed by Supercell. For more information see Supercell’s Fan Content Policy: www.supercell.com/fan-content-policy."
+}

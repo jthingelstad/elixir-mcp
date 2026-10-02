@@ -18,6 +18,7 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 - [What we collect]({{ site.url }}/data/collect): each subject, how often it is collected, since when and how long it is kept
 - [Recording now]({{ site.url }}/data/now): the live strip - last battle seen, battles this hour, collectors running
 - [For machines]({{ site.url }}/data/machines): the public JSON and text surfaces, no key needed
+- [Cards]({{ site.url }}/cards): every Clash Royale card and how it is played this season, one mode at a time; each card has its own page at /cards/<card id>
 - [What's new]({{ site.url }}/updates): every user-visible change, newest first, each on its own page
 {% for g in examples %}{% for c in g.cases %}- [Example: {{ c.title }}]({{ site.url }}/examples/{{ c.key }}): {{ c.lede | safe }}
 {% endfor %}{% endfor %}- [The family]({{ site.url }}/family): the POAP KINGS products that read from this hub, and the Clash Royale things we like but are unconnected to
@@ -28,6 +29,7 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 - [Tool registry JSON]({{ site.url }}/tools.json): all {{ tools.count }} tools with groups, descriptions, arguments, and required OAuth capabilities
 - [Public corpus stats JSON]({{ site.url }}/api/public/stats): live totals plus the full-history daily series; no authentication
 - [Public service status JSON]({{ site.url }}/api/public/status): recording health; no authentication
+- [Public cards JSON]({{ site.url }}/api/public/cards): the card catalog and every card's running season by mode; /api/public/cards/<card id> is one card's months and modes; no authentication
 - [Updates feed]({{ site.url }}/feed.xml): RSS 2.0 of what's new, product updates and contract versions
 - [Updates feed, JSON]({{ site.url }}/feed.json): the same items as JSON Feed 1.1
 - [Sitemap]({{ site.url }}/sitemap.xml)
