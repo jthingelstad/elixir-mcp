@@ -8,7 +8,7 @@ navTitle: "Milestones"
 icon: sparkles
 lede: "A short note when you or an alt does something for the first time: a new arena, a promotion, a new best. Never a move down, never the same moment twice."
 console: ["Your email switches", "/console/account/profile/email", "Console ▸ Profile ▸ Email"]
-reviewed: "2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-02 against contract 9.18.1"
 ---
 
 # Milestones
@@ -57,11 +57,14 @@ polled, usually within the hour of the battle.
 The biggest moments lead, up to four of them: a new arena, a promotion,
 a new best or a legendary badge. A new arena and a promotion carry the
 battle that decided them when the record has it: the score, who it was
-against and where they started, and the trophies it moved. A card
+against and where they started, and the trophies it moved, with **See
+the battle** opening [the battle's own page](/docs/battles#a-battles-page),
+the same link `battles_query` hands an agent. A card
 unlocked is shown as its art, in the form you unlocked, and opens the
 card's page in Elixir. With none of those,
 the first three of anything lead. The rest are listed under **Also**. The subject is the first
-headline, with how many more ride along.
+headline, with how many more ride along. The button at the foot opens
+that player's season on [Ladder](/docs/ladder).
 
 ## Turning it off
 
