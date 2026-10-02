@@ -19,6 +19,11 @@ acts in the game and never decides for anyone; the leaders do. Every
 page is behind sign-in, and only people sign in: an agent cannot use
 Elixir Clan.
 
+Clan is becoming part of Elixir's shared account and storage. This work is
+underway: your current sign-in, clan policies, actions, awards and preferences
+remain available during the transition. No clan records or game history have
+been removed by this foundation step.
+
 ## Before you sign in
 
 You need two things:
