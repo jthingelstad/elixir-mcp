@@ -2039,3 +2039,46 @@ share a prefix (`battlePath` in `views/Explore.jsx`, which accepts only a
 No other Console surface lists battles. Verify's proof line ("Win 3-1 vs …")
 is one battle read from `/api/me/verify`, which carries no `url`, so it is
 left alone; Ladder's Season reads `battles_performance` weeks, not battles.
+
+---
+
+## 2026-10-02 - The front page, to the canvas
+
+`apps/site/src/index.njk` is drawn to the canvas's Site board: the hero
+("Your Clash Royale, on the record.") with Request access and Browse card
+stats, the logo at 288px (`assets/elixir-logo-288.webp`, the canvas's own
+encode of the same art as the 96px mark), six capability tiles, Drop's
+band and the ten most played cards in Path of Legends. Below the board it
+keeps what the page has to carry: the agent transcript (so the
+transcript-link and `transcript.js` pins hold), the corpus totals baked
+from `/api/public/stats`, and the request panel that holds the second
+`/console/signin?request` link. "What people use it for", "How it works",
+"What's new" and "For machines" are gone, as the board has them gone; the
+transcript's chips and its link to the examples carry the first, /data
+and /updates the others. Their CSS (`.pipeline`, `.case-card`,
+`.machine-link`, `.home-section`) went with them.
+
+**No record on the page.** The board's tiles carry samples: a player's
+Trophy Road and war W-L, named friends with their records, a named
+newcomer. The home page has nobody's record to show and baking someone's
+would be both stale and theirs, so each sample says what that part shows
+instead: Ladder's four modes and its pages, two of the calls Clan hands
+leaders, what a friend gets in Wednesday's email, the four weekly emails
+by their real names and days. A site test pins that no tile holds a W-L,
+a percentage or a count.
+
+**Live numbers.** `assets/home-live.js` reads `/api/public/cards` once
+(the season block from the cards PR) and draws the Cards tile's three and
+the strip from Path of Legends alone, with the mode's own decided-battle
+count and "updated N hours ago" from the rollup's cursor. Without a
+season, without ranked in it, or on a failed read, both stay hidden. The
+strip needs the web-api deploy that ships the cards `season` field.
+
+**CSS** (`components.css`, "The front door"): `.home-title`, `.home-lede`,
+`.btn--lg`, `.home-art`, `.home-band` (`__head`, `__title`, `--plain`,
+`__note`), `.home-tile` (`__head`, `__icon`, `__product`, `__question`,
+`__text`, `__sample`, `__row`, `__caption`, `__day`, `__ask`, `__tools`,
+`__cta`, whose `::after` stretches the one link over the tile),
+`.home-top3__*`, `.home-drop` (`__mark`, `__body`, `__eyebrow`, `__title`,
+`__text`, `__play`, the last joining the candy button's rules) and
+`.home-strip` (`__item`, `__card`, `__art`, `__name`, `__pct`, `__wins`).

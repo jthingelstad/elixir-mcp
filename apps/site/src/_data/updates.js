@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "A new front page",
+    body: "Elixir's front page is redrawn. It says what Elixir is for a player: every battle, clan week and river race you play, kept and read back on your Ladder, inside your clan, in a short weekly email or to your own AI. Six tiles show what each part does and lead into it: Ladder, Clan, following friends, the emails, connecting an agent, and the public card stats. Drop has a band of its own with a Play Drop button. Under it are the ten cards played most in Path of Legends this season, each with its share of decks and how those battles went, straight from the record and linked to its page; when the season has no numbers yet, the row is simply not there. The agent conversation, the corpus totals and the way to ask for an account are still on the page. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "A battle in the Console opens its page",
     body: "In the Console's Explore, a battle in a player's list or a deck's list now opens that battle's own page: both decks, the towers and how it ended, at the same link you can hand anyone. A battle's record in Explore links its page too. A battle recorded before these links existed still opens its record. No change to the tools.",
   },
