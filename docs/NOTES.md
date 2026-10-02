@@ -2254,3 +2254,48 @@ errors or horizontal document overflow; quickstart at 390 pixels passes
 the layout and serious/critical accessibility checks. The consistency trace
 reviewed MCP, Console, shared summaries/mail, docs, ledger and JSON API
 mirrors, and corrected delayed returns, tenure roles and boundary guards.
+
+
+The 9.19.1 deployment of PR #213 (`404d82fe`) updated the stack with no
+new migrations and passed all 43 smoke checks. Clan's shared-design CI deploy
+also passed. The scoped battles/cards/elixir acceptance ran 498 cases,
+17 failures, 18 guarded skips and 423 distinct calls. Every failure was triaged:
+
+- Corpus card meta's seven-day budget passes (7.3s, below 15s). Card profile,
+  synergy and weekly trends retain cold latency failures: Gym 324.1 and
+  catalogue battles_trends#1, cards_card#0/#2, cards_synergy#0/#1. The exact
+  deployed profile shows partners reading 144,928 blocks and writing 56,033
+  temporary blocks. The follow-up narrows deck identities to the anchor,
+  bounds raw participants by newly recorded battles before expanding rounds,
+  and sends card-profile deck filtering to SQL. Trends' cold plan fetches
+  32,350 participant blocks across 1,236 player-index walks; its follow-up
+  bounds corpus rows by time before applying recorded-player membership.
+  This is fix-forward, with the same ceilings and no new index or migration.
+- Gym 303.1/.2/.4, 304.2 and 318.1/.6 assert today's-roster behavior that the
+  approved historical-membership decision replaces. The amended cases retain
+  exact overflow counts and inclusive-to/exclusive-from controls. The wide
+  September 8-19 presence window restores two crossings for historical members
+  and excludes one return before an observed join (19 versus 18 moments).
+  Seven expired historical-presence known entries are removed; 267.2,
+  272.4/.5 and 303.3 already pass without amendments.
+- Gym 196.2's guard ignored the existing five-expected-battle warning floor.
+  The live subject has one captured of three expected battles; no warning is
+  correct. Eligibility now requires comparable intervals totaling at least
+  five, retaining the low-ratio and named-warning assertions and control.
+- Gym 285.2's separate current-season reads disagreed by three games; rerun
+  alone passed. The record can advance between reads. No product or tolerance
+  change was made.
+- Gym 154.1/.4 and 207.1 reproduce alone: August's final rollup (as of
+  September 26 13:34:50.405Z) has 51,568 decided games, while the raw August
+  window now has 51,638; Witch has 8,354 versus 8,358. This is the existing
+  final-versus-raw snapshot issue, routed to Elixir Data Auditor for the
+  final-snapshot decision, with known entries expiring October 9. The
+  September 24 finalization rule remains intact; this run does not rewrite
+  an older final cache or change canonical data. The parity cases stay active.
+- Existing known rankings 342.3 remains with Rankings Analyst; this change
+  does not alter reset-board history.
+
+The follow-up is contract 9.19.2, unchanged JSON API 2.10.0. The first-use
+read-back passes at 390 pixels with no page errors, document overflow or
+serious/critical accessibility violations. Public tools and changelog confirm
+9.19.1; the production pipeline and five signed v3.0.6 collectors stay healthy.

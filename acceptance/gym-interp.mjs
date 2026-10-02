@@ -11,7 +11,7 @@
  * element where key equals value). With `calls`, the first segment is
  * an alias (`r.rivals[...]`, `w.standings[...]`).
  *
- * Verbs: has, absent, eq, neq, lt, lte, gt, gte, count_eq, sum_eq (paths
+ * Verbs: has, absent, eq, neq, lt, lte, gt, gte, count_eq, sum_gte, all, sum_eq (paths
  * and literals; a fanned total `list[].field` is summed, 87.1; a total
  * that is a list of parts is their sum, 301.1; a decimal compares to
  * 0.005, 96.1), contains
@@ -140,6 +140,21 @@ export function assertOne(spec, scope, root) {
     return v;
   };
   switch (verb) {
+    case "all": {
+      for (const condition of arg) assertOne(condition, scope, root);
+      return;
+    }
+    case "sum_gte": {
+      const [path, floor] = arg;
+      const values = at(path);
+      ok(
+        Array.isArray(values) && values.every(Number.isFinite),
+        `sum_gte ${path}: not a numeric list`,
+      );
+      const sum = values.reduce((n, v) => n + v, 0);
+      ok(sum >= floor, `sum_gte ${path}: ${sum} < ${floor}`);
+      return;
+    }
     case "has": {
       const v = at(arg);
       if (Array.isArray(v))

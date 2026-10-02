@@ -18,45 +18,21 @@
     "filed": "2026-09-25"
   },
   {
-    "case": "gym/303.1",
-    "reason": "A frozen window's presence moved when two members left the clan on 2026-09-25: the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Elixir Data Auditor: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
-    "until": "2026-10-02",
-    "filed": "2026-09-25"
+    "case": "gym/154.1",
+    "reason": "The August final rollup is fixed at players_as_of 2026-09-26T13:34:50.405Z (51,568 decided games; Witch 8,354), while the canonical raw August window now has 51,638 decided games and Witch 8,358. Reproduced alone on 2026-10-02. The 2026-09-24 decision makes ended-season rollups final after three days; changing or rebuilding an older final snapshot needs the Data Auditor/Jamie decision. No final-cache write or policy change is authorized by this performance/history work. Preserve the raw-versus-final parity criterion pending that decision.",
+    "until": "2026-10-09",
+    "filed": "2026-10-02"
   },
   {
-    "case": "gym/303.2",
-    "reason": "A frozen window's presence moved when two members left the clan on 2026-09-25: the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Elixir Data Auditor: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
-    "until": "2026-10-02",
-    "filed": "2026-09-25"
+    "case": "gym/154.4",
+    "reason": "The August final rollup is fixed at players_as_of 2026-09-26T13:34:50.405Z (51,568 decided games; Witch 8,354), while the canonical raw August window now has 51,638 decided games and Witch 8,358. Reproduced alone on 2026-10-02. The 2026-09-24 decision makes ended-season rollups final after three days; changing or rebuilding an older final snapshot needs the Data Auditor/Jamie decision. No final-cache write or policy change is authorized by this performance/history work. Preserve the raw-versus-final parity criterion pending that decision.",
+    "until": "2026-10-09",
+    "filed": "2026-10-02"
   },
   {
-    "case": "gym/303.3",
-    "reason": "A frozen window's presence moved when two members left the clan on 2026-09-25: the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Elixir Data Auditor: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
-    "until": "2026-10-02",
-    "filed": "2026-09-25"
-  },
-  {
-    "case": "gym/304.2",
-    "reason": "A frozen window's presence moved when two members left the clan on 2026-09-25: the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Elixir Data Auditor: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
-    "until": "2026-10-02",
-    "filed": "2026-09-25"
-  },
-  {
-    "case": "gym/267.2",
-    "reason": "A frozen window's presence moved when members left the clan on 2026-09-25 (four by 22:13 CT: Chanco, VVSBUDGET, alex #20G0JGQLPL and Brotherinpants, the last two named by these cases): the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Elixir Data Auditor: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
-    "until": "2026-10-02",
-    "filed": "2026-09-25"
-  },
-  {
-    "case": "gym/272.4",
-    "reason": "A frozen window's presence moved when members left the clan on 2026-09-25 (four by 22:13 CT: Chanco, VVSBUDGET, alex #20G0JGQLPL and Brotherinpants, the last two named by these cases): the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Elixir Data Auditor: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
-    "until": "2026-10-02",
-    "filed": "2026-09-25"
-  },
-  {
-    "case": "gym/272.5",
-    "reason": "A frozen window's presence moved when members left the clan on 2026-09-25 (four by 22:13 CT: Chanco, VVSBUDGET, alex #20G0JGQLPL and Brotherinpants, the last two named by these cases): the clan entry still counts them among 'players who were members during the window' and lists their joins, but its quiet and returned lists and the quiet_crossed/returned items are filtered to today's roster, so a past window's names and +N counts change whenever someone leaves. Pre-existing, not 9.3.0 (which changed only who sees attested facts, none of which exist yet). Open question for Elixir Data Auditor: should a past window's presence keep members who have since left, as its header does? Fix that, or re-freeze the cases on names that cannot leave.",
-    "until": "2026-10-02",
-    "filed": "2026-09-25"
+    "case": "gym/207.1",
+    "reason": "The August final rollup is fixed at players_as_of 2026-09-26T13:34:50.405Z (51,568 decided games; Witch 8,354), while the canonical raw August window now has 51,638 decided games and Witch 8,358. Reproduced alone on 2026-10-02. The 2026-09-24 decision makes ended-season rollups final after three days; changing or rebuilding an older final snapshot needs the Data Auditor/Jamie decision. No final-cache write or policy change is authorized by this performance/history work. Preserve the raw-versus-final parity criterion pending that decision.",
+    "until": "2026-10-09",
+    "filed": "2026-10-02"
   }
 ]

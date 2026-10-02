@@ -642,9 +642,10 @@ async function topDecks(
   const keep = await decksContaining(ctx.db, [anchor.id]);
   let rows;
   if (roll) {
-    rows = (await rollupDecks(ctx.db, roll, { minBattles: 1 })).filter((r) =>
-      keep.has(r.deck_hash),
-    );
+    rows = await rollupDecks(ctx.db, roll, {
+      minBattles: 1,
+      hashes: [...keep],
+    });
   } else {
     // The segment's own params (segmentFilter pushed them first), then
     // the scope, then the anchor: a fresh array built the same way.

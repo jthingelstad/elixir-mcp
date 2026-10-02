@@ -9318,13 +9318,24 @@
     },
     "request_id": "3b9de083-b261-44ef-84e6-3de2da67e0b9",
     "when": {
-      "lt": ["c.completeness_last_7_days.average_ratio", 0.5]
+      "all": [
+        {
+          "lt": ["c.completeness_last_7_days.average_ratio", 0.5]
+        },
+        {
+          "eq": ["c.completeness_last_7_days.unknown_intervals", 0]
+        },
+        {
+          "sum_gte": ["c.observation_intervals[].expected_battles", 5]
+        }
+      ]
     },
     "assert": [
       {
         "notes_match": ["s", "kiruba|#G2CUUJQ8V"]
       }
-    ]
+    ],
+    "amended": "2026-10-02: the existing underCaptureNote rule requires at least five expected battles. Only assert the named warning when coverage intervals are comparable and total at least five; a 1-of-3 sample is below the warning floor. Keep the low-ratio criterion and the control."
   },
   {
     "id": "196.3",
@@ -17324,12 +17335,19 @@
     "request_id": "cbe2ad37-f962-4106-a0a3-d0a1fcf644fd",
     "assert": [
       {
-        "contains": ["entries[0].summary", "Brotherinpants (5d) +1"]
+        "contains": ["entries[0].summary", "Waltadr (5d) +1"]
       },
       {
-        "contains": ["entries[0].summary", "Brotherinpants after 7d +9"]
+        "contains": ["entries[0].summary", "sniperhendo after 7d +7"]
+      },
+      {
+        "count_eq": ["entries[0].presence.returned.items[]", 10]
+      },
+      {
+        "eq": ["entries[0].presence.returned.more", 0]
       }
-    ]
+    ],
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. Stable tag ordering breaks a five-day tie. Six quiet members and ten returns preserve both summary overflow guards."
   },
   {
     "id": "303.2",
@@ -17348,9 +17366,19 @@
         "contains": ["entries[0].summary", "VVSBUDGET (5d) +1"]
       },
       {
-        "contains": ["entries[0].summary", "round hamster after 7d +2"]
+        "contains": ["entries[0].summary", "round hamster after 7d +1"]
+      },
+      {
+        "count_eq": ["entries[0].presence.returned.items[]", 4]
+      },
+      {
+        "eq": ["entries[0].presence.returned.more", 0]
+      },
+      {
+        "absent": "entries[0].presence.returned.items[?tag=#20CLVPLG8R]"
       }
-    ]
+    ],
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded."
   },
   {
     "id": "303.3",
@@ -17398,9 +17426,19 @@
         "eq": ["entries[0].presence.returned.more", 0]
       },
       {
-        "has": "entries[0].presence.returned.items[?tag=#CV20JCY0V]"
+        "absent": "entries[0].presence.returned.items[?tag=#CV20JCY0V]"
+      },
+      {
+        "count_eq": ["entries[0].presence.returned.items[]", 10]
+      },
+      {
+        "eq": [
+          "entries[0].presence.returned.items[?tag=#2LRYLQPL].after_days",
+          7
+        ]
       }
-    ]
+    ],
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded."
   },
   {
     "id": "304.1",
@@ -17461,15 +17499,25 @@
     "request_id": "622e6659-3d6e-4a5d-bd92-b3a705a95a28",
     "assert": [
       {
-        "count_eq": ["w.timeline[]", 18]
+        "count_eq": ["w.timeline[]", 19]
       },
       {
         "has": "w.timeline[?observed_at=2026-09-17T23:45:07.000Z]"
       },
       {
         "has": "n.timeline[?observed_at=2026-09-17T23:45:07.000Z]"
+      },
+      {
+        "has": "w.timeline[?observed_at=2026-09-08T22:18:22.000Z]"
+      },
+      {
+        "has": "w.timeline[?observed_at=2026-09-08T11:47:41.000Z]"
+      },
+      {
+        "absent": "w.timeline[?observed_at=2026-09-09T09:01:57.000Z]"
       }
-    ]
+    ],
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. The original 18 moments restore pax and Ditaka crossings during their September 3-11 tenures and remove VVSBUDGET’s September 9 return before the September 12 join: 19 moments."
   },
   {
     "id": "304.3",
@@ -19167,19 +19215,36 @@
     "id": "318.1",
     "feedback": 318,
     "stability": "frozen",
-    "tool": "elixir_timeline",
-    "args": {
-      "from": "2026-09-20T03:00:00Z",
-      "to": "2026-09-20T03:37:44.000Z",
-      "mark_read": false,
-      "kinds": ["quiet_crossed"]
-    },
     "request_id": "8d9e2a71-8a55-4602-87ec-7cf37b95eb5c",
     "assert": [
       {
-        "has": "timeline[?observed_at=2026-09-20T03:37:44.000Z]"
+        "absent": "g.timeline[?observed_at=2026-09-20T03:37:44.000Z]"
+      },
+      {
+        "has": "k.timeline[?observed_at=2026-09-16T02:33:43.000Z]"
       }
-    ]
+    ],
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. Gem left September 19 and rejoined September 23; this crossing is in the gap. Kiruba in 318.2/.3/.5/.6 preserves inclusive-to and exclusive-from controls.",
+    "calls": {
+      "g": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-20T03:00:00Z",
+          "to": "2026-09-20T03:37:44.000Z",
+          "mark_read": false,
+          "kinds": ["quiet_crossed"]
+        }
+      },
+      "k": {
+        "tool": "elixir_timeline",
+        "args": {
+          "from": "2026-09-16T02:00:00Z",
+          "to": "2026-09-16T02:33:43.000Z",
+          "mark_read": false,
+          "kinds": ["quiet_crossed"]
+        }
+      }
+    }
   },
   {
     "id": "318.2",
@@ -19251,17 +19316,18 @@
     "stability": "frozen",
     "tool": "elixir_timeline",
     "args": {
-      "from": "2026-09-20T03:37:44.000Z",
-      "to": "2026-09-20T04:00:00Z",
+      "from": "2026-09-16T02:33:43.000Z",
+      "to": "2026-09-16T03:00:00Z",
       "mark_read": false,
       "kinds": ["quiet_crossed"]
     },
     "request_id": "8881b8e8-efa6-4258-9697-1d3842a12349",
     "assert": [
       {
-        "absent": "timeline[?observed_at=2026-09-20T03:37:44.000Z]"
+        "absent": "timeline[?observed_at=2026-09-16T02:33:43.000Z]"
       }
-    ]
+    ],
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded."
   },
   {
     "id": "318.6",
@@ -19270,17 +19336,18 @@
     "stability": "frozen",
     "tool": "elixir_timeline",
     "args": {
-      "from": "2026-09-20T03:00:00Z",
-      "to": "2026-09-20T03:37:44.001Z",
+      "from": "2026-09-16T02:00:00Z",
+      "to": "2026-09-16T02:33:43.001Z",
       "mark_read": false,
       "kinds": ["quiet_crossed"]
     },
     "request_id": "41a8087d-436c-4c17-85e7-7da0e61158c6",
     "assert": [
       {
-        "has": "timeline[?observed_at=2026-09-20T03:37:44.000Z]"
+        "has": "timeline[?observed_at=2026-09-16T02:33:43.000Z]"
       }
-    ]
+    ],
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded."
   },
   {
     "id": "319.1",

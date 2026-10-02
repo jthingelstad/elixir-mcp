@@ -1,6 +1,12 @@
-import { participantModeClause } from "@elixir-mcp/record/mode-filter";
 import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
-import { MODE_GROUPS, modeGroupSql, responseMeta } from "@elixir-mcp/contracts";
+import {
+  MODE_GROUPS,
+  modeGroupSql,
+  eventContentSql,
+  EVENT_MODE_GROUP,
+  typesForModeGroup,
+  responseMeta,
+} from "@elixir-mcp/contracts";
 import {
   MODE_SCHEMA,
   SEASON_ARG_SCHEMA,
@@ -52,8 +58,8 @@ export const battles_trends = {
     // sides, so counting both makes every win rate 0.500 by construction
     // (Jamie 2026-09-25).
     const where = ["bp.outcome is not null", notBoatDefense()];
-    if (seg.where) where.push(seg.where);
-    else where.push(`bp.player_tag in (${RECORDED_PLAYERS_SQL})`);
+    const membership =
+      seg.where ?? `bp.player_tag in (${RECORDED_PLAYERS_SQL})`;
     const win = await resolveSeasonWindow(ctx, args, {
       defaultDays: 12 * 7,
     });
@@ -68,16 +74,33 @@ export const battles_trends = {
       where.push(`${seg.timeColumn} < $${params.length}`);
     }
     requireEnum(args.mode, MODE_GROUPS, "mode");
-    if (args.mode) where.push(participantModeClause(args.mode, params));
-    // One bounded population, read once. The former weekly, mode and
-    // distinct-player reads walked the same cold participant pages three times.
+    if (args.mode && args.mode !== EVENT_MODE_GROUP) {
+      params.push(typesForModeGroup(args.mode));
+      where.push(`bp.type = any($${params.length})`);
+    }
+    const event = eventContentSql("bp.type", "b.event_tag");
+    const mode = args.mode
+      ? `and ${args.mode === EVENT_MODE_GROUP ? event : `not ${event}`}`
+      : "";
+    // Bound a corpus read by time before joining the recorded players.
+    // Otherwise the planner walks each player's entire covering index,
+    // fetching thousands of cold heap pages to reject out-of-window rows.
+    const bounded = seg.where
+      ? ""
+      : `bounded as materialized (
+      select bp.player_tag, bp.battle_id, bp.battle_time, bp.outcome, bp.type,
+             bp.trophy_change, bp.side
+      from battle_participant bp where ${where.join(" and ")}),`;
+    const source = seg.where ? "battle_participant" : "bounded";
+    const scope = seg.where ? `${where.join(" and ")} and ` : "";
+    // Weekly, mode and distinct-player aggregates share this population.
     const { rows } = await ctx.db.query(
-      `with selected as materialized (
+      `with ${bounded} selected as materialized (
          select bp.player_tag, bp.battle_time, bp.outcome, bp.type, bp.trophy_change,
                 ${modeGroupSql("bp.type", "b.event_tag")} as mode_group
-           from battle_participant bp
+           from ${source} bp
            join battle b on b.battle_id = bp.battle_id
-          where ${where.join(" and ")}),
+          where ${scope}${membership} ${mode}),
        by_mode as (
          select date_trunc('week', battle_time) as week_start, mode_group,
                 count(*)::int as battles,
