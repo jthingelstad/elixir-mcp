@@ -3,8 +3,8 @@ slug: about
 title: "About Elixir MCP"
 description: "Elixir MCP records the Clash Royale history the official API does not keep - battles, progression, and clan life - and serves it to your own AI agent through a remote MCP server."
 section: start
-order: 2
-navTitle: "What this is"
+order: 1
+navTitle: "Welcome"
 icon: info
 lede: "A hub that records Clash Royale history and serves it to agents over MCP."
 console: ["See the corpus", "/data", "Data"]

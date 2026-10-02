@@ -2,8 +2,8 @@
 slug: timeline
 title: "The timeline"
 description: "elixir_timeline: what happened to the players and clans you track since your read pointer, as items newest first (battle sessions, named moments, roster and war moments, presence) plus one summary entry per subject; who is a subject for a person and for an agent; the window and read-pointer semantics; what the timeline never does."
-section: using
-order: 16
+section: agent
+order: 8
 navTitle: "Timeline"
 icon: bell
 lede: "What happened to the players and clans you track, newest first, written so a person can read it and an agent can act on it."

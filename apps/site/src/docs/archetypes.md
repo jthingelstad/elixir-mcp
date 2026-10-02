@@ -3,7 +3,7 @@ slug: archetypes
 title: "Deck archetypes"
 description: "How Elixir names a deck's shape - its win condition and family - from the cards, and how a name a person uses resolves back to decks. The six families, the grammar, the vocabulary's sources, the cycle bound and how it was measured, and what a label is not."
 section: record
-order: 19.5
+order: 5
 navTitle: "Archetypes"
 icon: shapes
 lede: "Royal Hogs bridge spam, Hog cycle, Log Bait - the names players use, on every deck Elixir serves, and understood when a person says one."

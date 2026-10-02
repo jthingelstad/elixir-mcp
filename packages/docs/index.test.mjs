@@ -113,6 +113,30 @@ test("section slugs are GitHub-style, the shape the code's docs pointers use", (
   assert.ok(clocks.sections.some((s) => s.slug === "the-policy-day"));
 });
 
+test("every page sits in one of the site's groups, in the rail's order", async () => {
+  // The docs' groups have one source, the site's `_data/docGroups.js`,
+  // which the rail, the docs home and this corpus all read (2026-10-01:
+  // they were two lists, kept in step by hand). A page's `section` is
+  // the group's label here, and the corpus runs group by group.
+  const { default: GROUPS } = await import(
+    new URL("../../apps/site/src/_data/docGroups.js", import.meta.url)
+  );
+  const labels = GROUPS.map((g) => g.label);
+  const ranks = DOCS.map((d) => labels.indexOf(d.section));
+  assert.ok(
+    ranks.every((r) => r > -1),
+    DOCS.filter((d) => !labels.includes(d.section))
+      .map((d) => `${d.slug}: ${d.section}`)
+      .join(", "),
+  );
+  assert.deepEqual(
+    ranks,
+    [...ranks].sort((a, b) => a - b),
+  );
+  assert.equal(DOCS[0].section, "Start");
+  assert.equal(DOCS.find((d) => d.slug === "clocks").section, "The record");
+});
+
 test("the index lede is never shorter than 40 characters, and description rides beside it", () => {
   // A lede under 40 characters yields to the description in the builder;
   // every page carries both, so a reader can fall back either way.

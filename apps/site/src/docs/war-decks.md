@@ -3,7 +3,7 @@ slug: war-decks
 title: "War decks"
 description: "How Elixir answers which four decks a player should field in Clan Wars and what to upgrade for better ones: a deck as its eight cards, duel rounds as games, the reductions, the value and its parts, the exact search, and single upgrades priced by re-packing the set."
 section: record
-order: 19.7
+order: 6
 navTitle: "War decks"
 icon: layers
 lede: "Four decks, thirty-two cards, chosen exactly from what this season's players played, and what to upgrade to make them better."

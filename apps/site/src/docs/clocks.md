@@ -3,8 +3,8 @@ slug: clocks
 title: "Time and clocks"
 description: "The three timestamps a response can carry (computed, observed, played) and which one freshness reads; the 10:00 UTC policy day every clan shares and the war-day, week, section, season and Colosseum vocabulary built on it; and how from/to windows, date-only bounds, days and weeks sugar and the timezone argument resolve on every windowed tool."
 section: record
-order: 19
-navTitle: "Time & clocks"
+order: 3
+navTitle: "Time and clocks"
 icon: clock
 lede: "Computed, observed and played are three different times. Which one a field means, and what day it is in the game."
 ---

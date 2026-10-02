@@ -2,9 +2,9 @@
 slug: activity
 title: "Battle activity: a year of days"
 description: "The battle-activity graphic on each player you track: a year of UTC days drawn from the record, what a not-recorded day means and why it is never drawn as zero, and how the nightly row behind it is computed."
-section: using
-order: 18
-navTitle: "Battle activity"
+section: record
+order: 7
+navTitle: "Coverage"
 icon: calendar-days
 lede: "Every player you track shows a year of days, drawn from what Elixir recorded, with the days it was not watching marked as exactly that."
 console: ["See yours on the Overview", "/console/account", "Console ▸ Overview"]

@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-10-01",
+    title: "The docs are reorganized around what you came to do",
+    body: "The docs are reorganized around what you came to do: getting started, your friends and the emails, your own AI agent, what every number in the record means, building on Elixir, and the policies. The docs home starts from those tasks, the rail on the left is the apps' rail with one group open and the page you are reading marked, and every page ends with what to read next and a way to tell us something on it is wrong. Every page kept its address, and an agent reading the docs through elixir_docs sees the same groups. No change to the tools.",
+  },
+  {
     date: "2026-09-29",
     title: "Worked examples now describe both of their answer shapes",
     body: "Elixir's worked-examples tool can return either its index or one complete example. Both responses already carried the right information, but the published schema incorrectly said every response had the index. It now describes the two forms correctly, so a client that checks responses strictly no longer reports an error. Contract 9.17.1.",

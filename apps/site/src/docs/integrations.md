@@ -2,8 +2,8 @@
 slug: integrations
 title: "Integrations"
 description: "The JSON API at /api/v1: people by OAuth, platforms by admin-issued key; recorded profiles, asynchronous refreshes, a game clock, and automatic collection enrollment."
-section: record
-order: 24
+section: build
+order: 1
 navTitle: "Integrations"
 icon: share-2
 lede: "First-party services reading the hub with a service key."

@@ -3,7 +3,7 @@ slug: battles
 title: "The battle model"
 description: "What one recorded battle holds and from whose side, the seven mode groups and the API battle types each folds, how duels and boat battles are shaped, which battles count as decided and in which denominators, how a deck's identity is computed with card forms, and how war weeks, points and fame relate."
 section: record
-order: 18
+order: 1
 navTitle: "Battle model"
 icon: swords
 lede: "One row per battle, both sides of it, and the words the numbers are built from."

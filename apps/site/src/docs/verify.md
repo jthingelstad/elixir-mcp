@@ -2,9 +2,9 @@
 slug: verify
 title: "Verify: proving a player is yours"
 description: "How Elixir proves that an account controls a Clash Royale player: play one battle with a deck we name, what a verified claim proves and does not, why the battle log and not the profile is the proof, and what is read."
-section: using
-order: 17
-navTitle: "Verify"
+section: start
+order: 4
+navTitle: "Prove a player is yours"
 icon: shield-check
 lede: "Play one battle with a deck we name, and the claim on your player becomes a fact rather than a promise."
 console: ["Verify a player you have added", "/console/account/verify", "Console ▸ Verify"]

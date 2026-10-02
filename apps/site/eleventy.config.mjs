@@ -22,6 +22,7 @@ import { createRequire } from "node:module";
 import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import DOC_GROUPS from "./src/_data/docGroups.js";
 
 const require = createRequire(import.meta.url);
 
@@ -105,47 +106,72 @@ export default function (eleventyConfig) {
     return clean.length > 1 ? clean.replace(/\/$/, "") : "/";
   });
 
-  /** Docs in their published order (front-matter `order`), so the
-   *  sidebar, the docs index, the sitemap and llms.txt all agree. */
-  eleventyConfig.addCollection("docs", (api) =>
-    api.getFilteredByTag("doc").sort((a, b) => a.data.order - b.data.order),
-  );
-
   /**
-   * The same docs, grouped into sections for the sidebar and the index.
+   * The docs, grouped by what a person came to do, for the rail and the
+   * docs home.
    *
-   * Flat was fine at six pages. It stops being fine once the set spans four
-   * audiences who each need a different third of it — somebody connecting
-   * Claude, a clan leader creating an agent, a developer building on the
-   * corpus, and the handful of people running a collector. Grouping is what
-   * lets each of them ignore the other three.
-   *
-   * SECTIONS is the single ordered source; a page names its section in
-   * front-matter and `order` sorts within it. A page whose section is unknown
-   * is a build error rather than a silent orphan at the bottom of the nav.
+   * The groups are `_data/docGroups.js`, the one ordered list the MCP
+   * corpus (packages/docs/build.mjs) reads too; a page names its group
+   * in front matter (`section`) and `order` sorts it within the group.
+   * A page whose group is unknown is a build error rather than a silent
+   * orphan at the bottom of the rail, and a group with no pages yet is
+   * left out.
    */
-  const SECTIONS = [
-    ["start", "Start here"],
-    ["using", "Using it"],
-    ["record", "The record"],
-    ["policy", "Policy"],
-  ];
-  eleventyConfig.addCollection("docSections", (api) => {
-    const pages = api
+  const groupRank = (page) => {
+    const rank = DOC_GROUPS.findIndex((g) => g.key === page.data.section);
+    if (rank === -1)
+      throw new Error(
+        `doc "${page.data.slug}" has section "${page.data.section}", which is not one of: ${DOC_GROUPS.map((g) => g.key).join(", ")}`,
+      );
+    return rank;
+  };
+  const docsInOrder = (api) =>
+    api
       .getFilteredByTag("doc")
-      .sort((a, b) => a.data.order - b.data.order);
-    for (const page of pages) {
-      const key = page.data.section;
-      if (!SECTIONS.some(([k]) => k === key))
-        throw new Error(
-          `doc "${page.data.slug}" has section "${key}", which is not one of: ${SECTIONS.map(([k]) => k).join(", ")}`,
-        );
-    }
-    return SECTIONS.map(([key, label]) => ({
-      key,
-      label,
-      pages: pages.filter((p) => p.data.section === key),
+      .sort(
+        (a, b) => groupRank(a) - groupRank(b) || a.data.order - b.data.order,
+      );
+  /** Docs in their published order, group by group, so the rail, the
+   *  docs home, the sitemap and llms.txt all agree. */
+  eleventyConfig.addCollection("docs", docsInOrder);
+  eleventyConfig.addCollection("docSections", (api) => {
+    const pages = docsInOrder(api);
+    return DOC_GROUPS.map((group) => ({
+      ...group,
+      pages: pages.filter((p) => p.data.section === group.key),
     })).filter((s) => s.pages.length > 0);
+  });
+  /** The group a page sits in, by its `section` key: the rail opens it
+   *  and the breadcrumb names it. A page with none (the docs home)
+   *  gets the first group, Start. */
+  eleventyConfig.addFilter(
+    "docGroup",
+    (sections, key) =>
+      (sections ?? []).find((s) => s.key === key) ?? sections?.[0] ?? {},
+  );
+  /** The pages a list of slugs names, in that order, leaving out a
+   *  slug no page has yet: the docs home's task cards link pages that
+   *  are written group by group. */
+  eleventyConfig.addFilter("docPages", (docs, slugs) =>
+    (slugs ?? [])
+      .map((s) => (docs ?? []).find((d) => d.data.slug === s))
+      .filter(Boolean),
+  );
+  /** What to read after a page: the next two pages of its group, or,
+   *  at the end of a group, the first page of the next one. The tool
+   *  families are the Tools page's children, never a "next". */
+  eleventyConfig.addFilter("docNext", (sections, slug) => {
+    const groups = (sections ?? []).map((s) =>
+      s.pages.filter((p) => !p.data.toolFamily),
+    );
+    const g = groups.findIndex((pages) =>
+      pages.some((p) => p.data.slug === slug),
+    );
+    if (g === -1) return [];
+    const at = groups[g].findIndex((p) => p.data.slug === slug);
+    const rest = groups[g].slice(at + 1, at + 3);
+    if (rest.length > 0) return rest;
+    return groups[g + 1] ? groups[g + 1].slice(0, 1) : [];
   });
 
   /**
