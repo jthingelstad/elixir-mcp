@@ -185,7 +185,8 @@ export const SECTIONS = {
  *
  *   Profile, Email, Devices   the account menu › Account settings
  *   Activity › MCP requests   Usage, under the meters
- *   Activity › Emails         the account menu › Emails from Elixir
+ *   Activity › Emails         Emails from Elixir › All sent (the item
+ *                             opens the switches; the log sits under it)
  *   Activity › Account events Account settings › Sign-ins
  *   Connections › Agents      the switcher, and Connections
  *   Admin                     its own console in the switcher
@@ -372,7 +373,7 @@ export const ACCOUNT_RAIL = [
     key: "emails",
     label: "Emails from Elixir",
     icon: "mail",
-    to: `${CONSOLE}/account/activity/emails`,
+    to: `${CONSOLE}/account/profile/email`,
   },
   {
     key: "devices",
@@ -1098,7 +1099,7 @@ export function consoleAccount(me, unreachable, signOut) {
         key: "emails",
         icon: "mail",
         label: "Emails from Elixir",
-        href: `${CONSOLE}/account/activity/emails`,
+        href: `${CONSOLE}/account/profile/email`,
       },
       {
         key: "feedback",

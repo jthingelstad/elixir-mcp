@@ -143,6 +143,23 @@ test("while the session is unknown the slot is empty, never a guess", () => {
   ).toBe("a@b.c");
 });
 
+test("Emails from Elixir opens the switches, with what was sent under it", async () => {
+  // The menu item and the account rail name the ConsoleEmails page, whose
+  // "All sent ›" leads on to the log; both once opened the log itself.
+  const { ACCOUNT_RAIL } = await import("../src/App.jsx");
+  const menu = consoleAccount(
+    { authenticated: true, email: "a@b.c" },
+    false,
+    {},
+  );
+  const item = menu.links.find((l) => l.key === "emails");
+  expect(item.label).toBe("Emails from Elixir");
+  expect(item.href).toMatch(/\/console\/account\/profile\/email$/);
+  expect(ACCOUNT_RAIL.find((i) => i.key === "emails").to).toBe(
+    "/console/account/profile/email",
+  );
+});
+
 test("a signed-in reader who follows Sign in goes on to their console", async () => {
   me = { authenticated: true, email: "jamie@example.com", signals: {} };
   window.history.pushState({}, "", "/console/signin");

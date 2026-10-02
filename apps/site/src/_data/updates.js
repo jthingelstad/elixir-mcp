@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Emails from Elixir opens your switches",
+    body: "Emails from Elixir, in the account menu and in Account settings, now opens the page with your week of emails and a switch for each, rather than the list of what was sent. That list is one click on, under All sent. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "Quotes and apostrophes read as written on the site",
     body: "Some of the site printed an escape code where a quotation mark or an apostrophe belonged: the tool reference's descriptions, the On this page list beside a doc, and the description a link preview shows for an update, an example or a family page. The text was being escaped twice. Each is now escaped once and reads as written. No change to the tools.",
   },
