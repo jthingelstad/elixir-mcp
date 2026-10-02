@@ -5,6 +5,7 @@ import {
   FIELDS,
   GROUPS,
   TABS,
+  memberWeeks,
   policyFromGoals,
   weeklyReport,
 } from "@elixir-clan/engine";
@@ -58,6 +59,68 @@ async function accessible(page: Page, name: string) {
     ),
     `${name}: accessibility`,
   ).toEqual([]);
+}
+
+/** "You here" for Ada, a Leader since Aug 20, from the engine's own read
+ *  of a participation answer: five closed races and the one on now. */
+function memberView() {
+  const part = participation([
+    member("#20QQL8CCRU", { name: "Ada", role: "leader" }),
+    member("#M1", { name: "Zed" }),
+  ]);
+  const roster = {
+    recent_events: [
+      {
+        type: "role_changed",
+        at: "2026-08-20T00:00:00Z",
+        detail: {
+          player_tag: "#20QQL8CCRU",
+          role_before: "coLeader",
+          role_after: "leader",
+        },
+      },
+    ],
+  };
+  return {
+    clan_tag: "#2PQRJ8LV",
+    clan_name: "Example Clan",
+    as_of: NOW.toISOString(),
+    freshness_seconds: 60,
+    members: 12,
+    min_members: 10,
+    policy: { set: true, active: true },
+    you: memberWeeks(part, "#20QQL8CCRU", roster, NOW),
+    clan: {
+      version: 1,
+      goals: ["war"],
+      counted: ["war", "donations"],
+      ranks_elder: true,
+      status: null,
+      evidence: "100% war decks over 4 war weeks",
+      next: [],
+      minimums: {
+        set: { war: 1 },
+        met: { war: true },
+        passes: true,
+        unknown: false,
+        rule: "any",
+        window_weeks: 2,
+      },
+      tenure_min_days: null,
+      inactivity: null,
+    },
+    open_actions: 2,
+    hold: null,
+    trophies: [
+      {
+        season_id: 135,
+        award_id: "war_champ",
+        name: "War Champ",
+        rank: 1,
+        manual: false,
+      },
+    ],
+  };
 }
 
 async function rendered(page: Page) {
@@ -582,6 +645,44 @@ test.describe("signed in", () => {
     await rendered(page);
   });
 
+  test("you here: your week, your races, what the policy makes of them", async ({
+    page,
+  }) => {
+    await mockApi(
+      page,
+      signedIn({ "GET /api/clan/clans/2PQRJ8LV/me": [200, memberView()] }),
+    );
+    await page.goto("/clan/2PQRJ8LV");
+    const rail = page.locator(".rail");
+    await rail.getByRole("link", { name: /^You here/ }).click();
+    await expect(page).toHaveURL(/\/me$/);
+    await expect(page.getByRole("heading", { name: "You here" })).toBeVisible();
+    await expect(page.getByText("since Aug 20")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /2 actions wait for you/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("group", { name: "This week so far" }),
+    ).toContainText("Race 136/0, four a war day");
+    await expect(
+      page.getByRole("img", {
+        name: "Your war decks: 135/1 16 of 16, 135/2 16 of 16, 135/3 16 of 16, 135/4 16 of 16, 136/0 8 so far",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("64 of 64 in the finished races."),
+    ).toBeVisible();
+    await expect(page.getByText("This week, so far")).toBeVisible();
+    await expect(page.getByText(/War Champ · 1st/)).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Breadcrumb" }),
+    ).toContainText("You here");
+    await rendered(page);
+    await accessible(page, "you here");
+    await page.getByRole("link", { name: "How Elder works here ›" }).click();
+    await expect(page).toHaveURL(/\/standing$/);
+  });
+
   test("@narrow the rail is a disclosure above the content", async ({
     page,
   }) => {
@@ -602,5 +703,29 @@ test.describe("signed in", () => {
       page.getByRole("navigation", { name: "Sections" }),
     ).toHaveCount(0);
     await accessible(page, "narrow standing");
+  });
+  test("@narrow you here: one column, nothing wider than the phone", async ({
+    page,
+  }) => {
+    await mockApi(
+      page,
+      signedIn({ "GET /api/clan/clans/2PQRJ8LV/me": [200, memberView()] }),
+    );
+    await page.goto("/clan/2PQRJ8LV");
+    await page.locator(".rail__toggle").click();
+    await page
+      .getByRole("navigation", { name: "Sections" })
+      .getByRole("link", { name: /^You here/ })
+      .click();
+    await expect(page).toHaveURL(/\/me$/);
+    await expect(page.getByRole("heading", { name: "You here" })).toBeVisible();
+    await expect(
+      page.getByRole("img", { name: /^Your war decks: 135\/1/ }),
+    ).toBeVisible();
+    const wide = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    );
+    expect(wide, "no sideways scroll").toBe(false);
+    await accessible(page, "narrow you here");
   });
 });

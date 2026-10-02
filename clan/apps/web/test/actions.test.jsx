@@ -539,6 +539,15 @@ describe("you here", () => {
               decks_asked: 16,
               points: 3200,
             },
+            {
+              season_id: 136,
+              section_index: 0,
+              is_colosseum: false,
+              open: true,
+              decks: 8,
+              decks_asked: null,
+              points: 1600,
+            },
           ],
           trophies: 7000,
           time_here: {
@@ -580,10 +589,27 @@ describe("you here", () => {
     expect(screen.getByText("Participating")).toBeTruthy();
     expect(screen.getByText(/5 more days in the clan/)).toBeTruthy();
     expect(screen.getByText(/23 of the 28 days/)).toBeTruthy();
-    expect(screen.getByText(/1 action waiting for you/)).toBeTruthy();
-    expect(screen.getByText(/8 this war week/)).toBeTruthy();
-    expect(screen.getByText(/16 of 16/)).toBeTruthy();
-    expect(screen.getByText(/Joined 2026-08-20: 23 days/)).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: /1 action waits for you/ }),
+    ).toBeTruthy();
+    const week = screen.getByRole("group", { name: "This week so far" });
+    expect(week.textContent).toMatch(/War decks8Race 136\/0, four a war day/);
+    // Ranked is not what this clan counts; donations are.
+    expect(week.textContent).toMatch(/Ranked battles2Not counted here/);
+    expect(week.textContent).toMatch(/Donations100Battles/);
+    expect(
+      screen.getByRole("img", {
+        name: "Your war decks: 135/4 16 of 16, 136/0 8 so far",
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText("16 of 16 in the finished race.")).toBeTruthy();
+    expect(screen.getByRole("cell", { name: "16 of 16" })).toBeTruthy();
+    expect(screen.getByText("135/4 · Colosseum")).toBeTruthy();
+    expect(screen.getByText("This week, so far")).toBeTruthy();
+    expect(screen.getByText(/Joined Aug 20: 23 days/)).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "How Elder works here ›" }),
+    ).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/\bcard\b/i);
   });
 });

@@ -1555,3 +1555,50 @@ Left out of the canvas, with the reason:
 - **One "Copy for the game" button**: each field of the Leader Message
   keeps its own copy button, because the game takes the title and the
   message in separate boxes.
+
+## 2026-10-02 — The redesign, slice 5: You here
+
+You here drawn to the "Clan on a phone" board, wide and narrow alike.
+The route, the read (`GET /api/clans/<TAG>/me`), what shows with and
+without an active policy, and who sees it (only you) are as before; the
+API is unchanged.
+
+- **The head**: the shared page head (Clan › the clan › You here) with
+  a lede that says the page is yours alone, then your name, tag, role in
+  words, and "since" the day the roster recorded you taking that role,
+  when its events hold it.
+- **Actions waiting**: a link at the top ("3 actions wait for you"), as
+  the board draws it, when any wait.
+- **This week so far**: tiles for war decks (of those asked, with the
+  race), ranked battles, donations, battles and trophies; a tile the
+  active policy does not count says "Not counted here".
+- **How you are doing here**: the status chip, the evidence, what would
+  move you, your minimums each met, not met or not known yet, the days
+  toward Elder, your inactivity clock, and your hold or away, as before;
+  its foot links to Standing ("How Elder works here", or "How it works
+  here" when the policy does not rank Elder).
+- **War decks, last five races**: one column per race, its height what
+  you played out of what the race asked, the race on now lighter and
+  marked "now", with the played-of-asked total of the finished ones;
+  every race in the read stays in a table under it, with its points.
+- **Week by week**, **Your time here** and **Your trophies here** as
+  panels; weeks and dates read "Week of Sep 21", in UTC like The week,
+  since weeks and races turn on UTC boundaries.
+
+Left out of the canvas, with the reason:
+
+- **"War days start Thursday, 5:00 am"**: the page reads participation
+  and the roster, not the game clock; a clock read would be a new Elixir
+  call for one line.
+- **"Leader since Elixir first read the clan"**: "since" shows only when
+  the roster's events record the role change; the roster keeps recent
+  events, so their absence does not prove the role is as old as the
+  record.
+- **"a promotion and two welcomes"**: the page's read counts the actions
+  waiting; it does not list their kinds, and the Actions page does.
+- **"The clan finished 1st in all three races this season"**: the
+  clan's race results are on the clan page; this read carries only your
+  own lines.
+- **Donations alone, week by week**: the board's phone list shows
+  donations; the table keeps battles and ranked battles beside them, as
+  the page did before.

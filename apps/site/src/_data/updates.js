@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Elixir Clan's You here, redrawn",
+    body: "You here, your own page in a clan on Elixir Clan, has the new design. Any actions waiting for you sit in a link at the top. This week so far is a row of tiles: war decks out of those asked, ranked battles, donations, battles and trophies, each marked when the clan's policy does not count it. Your last five races are drawn as columns, the race on now lighter, with every race and its points in a table underneath. How you are doing here keeps your standing, what would move you and your minimums, now with a link to how Elder works in your clan. It is still a page only you see. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "Elixir Clan's actions, redrawn",
     body: "Actions in Elixir Clan have the new design. What is waiting for you and what closed in the last 30 days sit in two panels, each action marked by its kind with its number, who it is about and its comments. An action's own page opens with what it asks and who it is about, then why, what to do in the game, the facts it was judged by, the message to copy, its log and the decision at the foot. The Clan Leader Message now says when nothing in it is known to trip the game's chat filter. Every action keeps its own address, and who sees which actions has not changed. No change to the tools.",
   },

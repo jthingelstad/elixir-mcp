@@ -601,7 +601,11 @@ toward Elder, their own inactivity clock, their actions waiting, their hold
 or away, and their trophies here. One participation read and one roster
 read, judged on the spot with `evaluate`: opening it never raises an
 action. Only the viewer's own lines: no one else's, no notes, no removal
-action about them.
+action about them. Drawn to the canvas's phone board (2026-10-02): the
+actions waiting as a link at the top, this week as tiles (each marked
+when the active policy does not count it), the last five races as
+columns with every race and its points in a table under them, and a
+link to Standing ("How Elder works here").
 
 ## The week (2026-09-27)
 
