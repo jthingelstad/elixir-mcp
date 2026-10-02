@@ -2,8 +2,11 @@
 
 **Right-sizing direction (2026-10-02).** Elixir is the personal and clan
 recorder; MCP is an extension. Global board history, autonomous elite
-recording and the two editorial emails are being retired, and Clan is being
-fully consolidated into Elixir. `docs/DECISIONS.md` records Jamie's confirmed
+recording, game-wide meta statistics, gameplay recommendations and the two
+editorial emails are being retired, and Clan is being fully consolidated
+into Elixir. Recording the circle, notifications, agent access and a dashboard
+for exploring what happened are the focus; do not rebuild recommendations
+over a smaller population. `docs/DECISIONS.md` records Jamie's confirmed
 scope; `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md` is the engineering
 removal plan. The runtime descriptions below still describe the deployed
 system until their migration steps land. Do not expand or restore retired

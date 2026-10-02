@@ -2351,8 +2351,9 @@ retirement and irreversible deletion have not happened.
 
 The engineering assessment and implementation sequence are in
 `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md`; the purpose is recorded in
-the public About page, not a second product spec. Further corpus/meta and
-recommendation cuts are identified as proposals pending Jamie's answer.
+the public About page, not a second product spec. Jamie subsequently
+confirmed the corpus/meta and recommendation removals in this same session
+(the follow-up entry below records the scope).
 Social and model drafting remain separate product calls. No contract version
 changes in this documentation round.
 
@@ -2378,3 +2379,30 @@ the repository gates and live read-back.
 Validation: `npm run verify` passed for the documentation proposal, including
 the merged site build and all workspace tests. Runtime and data retirement
 remain pending; this proposal is for review, not a production removal release.
+
+## 2026-10-02 - Game wide meta and recommendations are confirmed removals
+
+Jamie: "Yes, retire game-wide meta statistics and corpus-powered
+recommendations. Our job is recording what you and your friends do, sending
+notificaitons, making that avialble to agents, and being a dashboard where you
+can explore what has happened." Then: "Recommendations are going OUT. Game
+wide meta OUT."
+
+The plan and decision ledger now mark those capabilities for removal rather
+than as proposals. Remove public corpus card/deck statistics, global meta
+analysis, deck-set and upgrade advice, scoring/candidate/prior machinery and
+their dependent rollups. Do not substitute recommendations over a friends
+cohort or a smaller corpus. Keep factual personal and clan exploration, card
+catalog/art and canonical deck identity. Clan management remains in scope;
+this decision retires gameplay advice, not the clan's policy/action engine.
+
+The About page records the four responsibilities: recording the circle,
+notifications, making the record available to agents and a dashboard for
+exploring what happened. Runtime removal and data deletion remain pending.
+Regional/mode boards, autonomous event/tournament capture and Clan social/model
+features remain separately labelled proposals. No contract or runtime changes
+in this documentation follow-up.
+
+Follow-up validation: `npm run verify` passed. The final About-page wording
+also passed the docs corpus tests and merged site build/tests (9 and 34
+tests). No runtime changes or production writes were made.

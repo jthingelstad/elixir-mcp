@@ -9,8 +9,11 @@ Jamie confirmed that global leaderboard capture and history should go, while
 rank information delivered in a recorded player's profile stays. Full Clan
 consolidation is in scope: moving it into this repository and onto the same
 hostname did not finish that work. Ultimate Champions and Card of the Week
-are removal targets from the original request. Additional cuts below are
-identified as recommendations until Jamie settles them.
+are removal targets from the original request. Jamie also confirmed removal
+of game-wide meta statistics and recommendations: "Recommendations are
+going OUT. Game wide meta OUT." These removals are settled scope, including
+public corpus statistics, corpus analysis, deck sets and upgrade advice.
+Other proposed cuts below remain separate decisions.
 
 ## Current scale and the limits of the measurements
 
@@ -54,9 +57,9 @@ does not automatically lower the RDS bill or shrink its provisioned disk.
 | Regional, clan and rotating-mode boards | Recommend removing with global boards | Keeping them retains the same capture and maintenance machinery; personal profile rank stays |
 | Automatic recording of ranked players and board collections | Remove | Reconcile every remaining legitimate recording reason before stopping capture |
 | Ultimate Champions and Card of the Week | Remove | Builders, generation, schedules, templates, switches and future-send paths |
-| Public corpus card/deck statistics and corpus analysis | Recommend removing | Includes public card performance pages, home-page meta, global season rollups and corpus segments |
-| Corpus-powered deck sets and upgrade recommendations | Recommend retiring | They depend on corpus priors, candidate decks and measured form advantages; changing the population silently would change their meaning |
-| Card catalog, card art, deck identity and personal card analysis | Keep | Used by recorded battles and the remaining interface; remove editorial content without deleting these foundations |
+| Public corpus card/deck statistics and corpus analysis | Remove | Includes public card performance pages, home-page meta, global season rollups and corpus segments |
+| Deck sets, upgrade advice and other gameplay recommendations | Remove | Retire corpus priors, candidate generation, form-advantage scoring and recommendation tools; do not recreate them over friends or a smaller recorded population |
+| Card catalog, card art, deck identity and factual personal card history | Keep | Used by recorded battles and the remaining interface; remove editorial content without deleting these foundations |
 | Generic curated collections | Review individually | Keep a person's useful grouping; retire board/pro collections and their capture side effects |
 | Global event and tournament collection | Recommend cutting autonomous capture | Keep event facts delivered in people's battles; verify catalog needs before removing an endpoint |
 | Clan social map and bring-your-own-model drafting | Review separately | Not necessary to remove elite capture; do not migrate complexity by default or delete private records implicitly |
@@ -96,12 +99,22 @@ must be suppressed at the final send boundary, not only at composition.
 Previously sent email records and unsubscribe links need to remain usable.
 Remove the raw leaderboard allowlist in `packages/tools/src/live.mjs` too,
 so an agent cannot reintroduce board history through a live request.
+Retire the recommendation prompts in `apps/site/src/_data/examples.js`,
+agent initialization guidance and public card performance links as part of
+the same change; examples must not route readers back into removed tools.
 
 `services/jobs/src/meta-rollup.mjs` and `packages/tools/src/meta-season.mjs`
 maintain a population cache and season aggregates beyond the personal
 record. These also supply priors and candidates to deck recommendations.
-Retiring them requires tracing their readers, not leaving them as dormant
-jobs or substituting a smaller population under an unchanged claim.
+Both game-wide meta and recommendations are now confirmed removals. Trace
+and remove their readers and derived caches as well as their jobs, including
+`battles_meta_decks`, `battles_meta_cards`, `battles_deck_sets` and
+`battles_deck_upgrades`. Review `cards_card`, `cards_synergy`, trends and
+badge corpus branches for the same global dependency. Keep factual personal
+and clan reads through narrow paths with no corpus prior, global comparison
+or recommendation score. The retained record can answer what someone
+played, faced or achieved; a recommendation over friends is not a replacement
+feature in this plan.
 
 ## Clan consolidation target
 
@@ -291,10 +304,13 @@ need full acceptance and read-only production read-back. Public tool pages
 continue to be generated from the registry.
 
 The retirement is done when there are no autonomous elite/board recordings,
-global board history or retired replay sources; retained personal/clan
-history and mail work; Clan has one session, store and deployment with
-Elixir; and the removed capabilities have no running maintenance owner,
-hidden schedule, dormant generator or misleading documentation.
+global board history or retired replay sources; no game-wide statistics or
+recommendation tools, indirect corpus readers, scoring/prior machinery,
+retired aggregates or cached recommendation output remain; retained
+personal/clan history and mail work; Clan has one session, store and
+deployment with Elixir; and the removed capabilities have no running
+maintenance owner, hidden schedule, dormant generator or misleading
+documentation.
 
 ## Assessment delivery status
 
@@ -323,9 +339,11 @@ documentation changes are prepared in the separate `elixir-right-sizing`
 worktree from origin/main. Another session holds the deployment lease;
 this assessment took no lease and made no production writes.
 
-The two further decisions are the disposition of corpus analysis and the
-smaller Clan social/model features. Exact deletion counts and archive bytes
-remain work for the census. The plan does not call the retirement shipped.
+Game-wide meta and recommendations are confirmed removals. The remaining
+product proposals concern regional/mode boards, autonomous event/tournament
+capture and the smaller Clan social/model features. Exact deletion counts
+and archive bytes remain work for the census. The plan does not call the
+retirement shipped.
 
 Validation for this documentation proposal: `npm run verify` passed,
 including formatting, lint, knip, typecheck, the merged site build and all

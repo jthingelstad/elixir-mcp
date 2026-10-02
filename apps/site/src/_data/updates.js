@@ -11,7 +11,7 @@ export default [
   {
     date: "2026-10-02",
     title: "Elixir is your Clash Royale recorder",
-    body: "About Elixir now starts with what it is for: keeping your own play, your friends and your clan on the record, so you can explore what happened and hear about it in useful emails. Connecting your agent over MCP is one way to use that record. Clan and Ladder are features inside Elixir. This is a clarification of the product's purpose; no recording, tools, email delivery or stored data has changed in this update.",
+    body: "About Elixir now starts with what it is for: recording your own play, your friends and your clan, sending notifications, making the record available to agents, and a dashboard where you can explore what happened. Clan and Ladder are features inside Elixir. The agreed right-sizing retires game-wide meta statistics and gameplay recommendations. This update records the direction; runtime removal follows, and no recording, tools, email delivery or stored data has changed in this update.",
   },
   {
     date: "2026-10-02",
