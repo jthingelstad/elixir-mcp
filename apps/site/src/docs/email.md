@@ -134,8 +134,12 @@ even for a full clan: it links the roster rather than printing it.
 
 ## Turning one off
 
-Each kind has its own switch on [Profile → Email](/console/account/profile/email),
-beside the list of what was sent to you. Every issue's footer has a
+Each kind has its own switch on [Emails from Elixir](/console/account/profile/email)
+(Profile → Email), which lays the weekly kinds out on your week by the
+day each arrives, in your time zone, with the two that come when
+something happens below it and the last few sent beside them. **Every
+email** at the top turns them all off, or all back on. Every issue's
+footer has a
 *turn off* link for that kind, which opens a page with one button to
 confirm; mail clients that support one-click unsubscribe show their own
 button, which needs no confirming. Turning a kind off is immediate and

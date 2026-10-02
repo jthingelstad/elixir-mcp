@@ -8,7 +8,7 @@ navTitle: "Turn an email off"
 icon: bell-off
 lede: "Every kind of email is one switch, all on to start. Turn one off from your profile or from the link at the foot of any issue, and turn it back on the same way."
 console: ["Your email switches", "/console/account/profile/email", "Console ▸ Profile ▸ Email"]
-reviewed: "2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-02 against contract 9.18.1"
 ---
 
 # Turn an email off
@@ -21,11 +21,19 @@ lands.
 ## The switches
 
 **Console ▸ Profile ▸ Email**
-([/console/account/profile/email](/console/account/profile/email)) lists
-the eight kinds, each with a line on what it is: the Clan report, Your
-week in the Arena, Your friends this week, the Top 100, Card of the Week,
-Collector activity, Milestones and Clan actions waiting. Untick one and
-it stops. The same page links to every email sent to you.
+([/console/account/profile/email](/console/account/profile/email)),
+*Emails from Elixir*, lays the six weekly kinds out on your week, each
+on the day it arrives in your time zone: the Clan report, Your week in
+the Arena, Your friends this week, the Top 100, Card of the Week and
+Collector activity. The two that come when something happens,
+Milestones and Clan actions waiting, sit below the week. Each has a
+line on what it is and a switch; turn one off and it stops. A kind
+already sent to you links the last one, and the page lists the last
+few emails sent to you, with a link to all of them.
+
+**Every email**, at the top of the page, turns all eight off at once,
+or all eight back on. While some are on and some are off it says how
+many are on.
 
 Two of the switches only matter to some accounts, and are dimmed for
 the rest: **Collector activity** needs a collector you run, and **Clan
@@ -56,8 +64,8 @@ about one subject:
   too unless something else keeps it recorded.
 - **Milestones**: one switch covers your primary and every alt.
 
-There is no single switch that turns everything off; turn off each kind
-you do not want.
+To stop them all, turn **Every email** off; turn it back on to have all
+eight again.
 
 ## Mail that has no switch
 

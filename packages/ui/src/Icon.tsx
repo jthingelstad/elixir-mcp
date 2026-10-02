@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   Award,
   Bell,
+  BellRing,
   BookOpen,
   Bookmark,
   Bot,
@@ -64,6 +65,7 @@ import {
   Timer,
   UserRound,
   Users,
+  UsersRound,
   X,
   Wrench,
 } from "lucide-react";
@@ -94,6 +96,7 @@ const ICONS = {
   "arrow-up-right": ArrowUpRight,
   award: Award,
   bell: Bell,
+  "bell-ring": BellRing,
   "book-open": BookOpen,
   bookmark: Bookmark,
   bot: Bot,
@@ -154,6 +157,7 @@ const ICONS = {
   timer: Timer,
   "user-round": UserRound,
   users: Users,
+  "users-round": UsersRound,
   wrench: Wrench,
   x: X,
 } as const;

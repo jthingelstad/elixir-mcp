@@ -2103,3 +2103,32 @@ when the battle was recorded from the defender's log.
 - **Pinned:** `record-to-wire.test.mjs` reads the same battle from both
   players; `ladder-days.test.js` covers a defender-log attack and an
   attacker-log defense.
+
+## 2026-10-02 - Emails from Elixir, the console page (email redesign, part 3)
+
+Profile → Email is redrawn from the ConsoleEmails board: the weekly kinds
+on a Monday-to-Sunday week by the day each arrives in the account's zone,
+the two event kinds (Milestones, Clan actions waiting) below it, the last
+four sends beside them, and Every email at the top. The page derives
+nothing about the schedule: `GET /api/me/email` now returns each kind's
+`product` (the mail pill's `MAIL_SOURCE`), `sends` (`sendTime`, the
+footer's own function, in the account's zone; null for event kinds) and
+`last_send_id`. `PUT /api/me/email` accepts kind `"all"`, which
+`setPref` already understood from "all" unsubscribe tokens; Every email
+is on only when all eight are. Who receives each kind, its schedule, its
+default and the footer's per-kind link are unchanged.
+
+Choices against the board: its "Preview ›" is "The last one ›", the
+account's own most recent send of that kind (there is no preview route
+for a kind, and a mail rendered from someone else's facts would not be
+theirs); a kind never sent shows no link. A not-applicable kind
+(Collector activity without a collector) is a dashed card with a
+disabled switch, not faded: the first cut used opacity and axe failed
+its contrast. In a seven-column week the switch wraps above the product
+chip instead of squeezing it. The page sheds one inline style; the
+ratchet ceiling is left for whoever lands last to lower. Journeys:
+`apps/web/test/email-page.test.jsx` and `apps/web/e2e/email.spec.ts`
+(wide, and @narrow with no sideways scroll).
+
+Left for Jamie: the board names the Thursday kind "Ultimate Champions";
+the page keeps the API's "Top 100" until the masthead name is decided.

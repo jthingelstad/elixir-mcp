@@ -111,7 +111,10 @@ is ON and a backfill is not needed). Every change writes an
 `account_event`. Person principals only: agents and integrations have no
 inbox. Profile → Email shows the switches (the "send me this one
 now" button beside each was removed 2026-09-19; the ops op is the test
-path). The Collector switch appears only for an account with a collector.
+path). The Collector switch is shown to every account and can be flipped
+only by one with a collector (`applies`). `PUT /api/me/email` takes kind
+`"all"` for the page's Every email switch, the same `setPref` an "all"
+unsubscribe token makes.
 
 ### 3. Ledger and idempotency
 
@@ -629,6 +632,20 @@ estimated, and listed in `docs/NOTES.md` for the week.
   a chip, the app's "And N more." counted into the title.
 - **Card of the Week:** the form's art at 130 beside the base card, from
   the 285 files.
+
+### The console page (2026-10-02)
+
+Profile → Email is drawn from the ConsoleEmails board as *Emails from
+Elixir*: the six weekly kinds laid on a Monday-to-Sunday week by the day
+each arrives in the account's zone, the two event kinds below it, the
+last four sends beside them, and an Every email switch at the top. The
+page computes no schedule of its own: `GET /api/me/email` returns, per
+kind, `product` (the mail's own pill, `MAIL_SOURCE`), `sends`
+(`{weekday, time, zone}` from `sendTime`, the footer's function; null
+for the event kinds) and `last_send_id` (the account's most recent send
+of that kind, which "The last one" opens; there is no preview route for
+a kind). Every email is on only when all eight are, and writes `"all"`.
+Recipients, schedules, defaults and the unsubscribe path are unchanged.
 
 ## Open
 

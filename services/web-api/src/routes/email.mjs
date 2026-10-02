@@ -1,7 +1,11 @@
 /** Product email routes (docs/EMAIL.md).
  *
- *  GET  /api/me/email          every switch (absent row = on)
- *  PUT  /api/me/email          {kind, enabled}
+ *  GET  /api/me/email          every switch (absent row = on), with
+ *       each kind's product, its send time in the account's zone and
+ *       the last one sent to this account
+ *  PUT  /api/me/email          {kind, enabled}; kind "all" is the
+ *       page's Every email switch: every kind at once, the flip an
+ *       "all" unsubscribe token makes
  *  GET  /api/me/email/sends    every product email sent to me, newest
  *       first (the Activity page's Emails view)
  *  GET  /api/me/email/sends/<send_id>  one of them with its archived
@@ -16,8 +20,18 @@
  *  2026-09-18): sharing a Top 100 is forwarding the mail.
  */
 import { PRODUCT_EMAIL_KINDS, isProductEmailKind } from "@elixir-mcp/contracts";
-import { verifyUnsubscribe, KIND_LABELS } from "@elixir-mcp/mail";
-import { SENDS_SQL, sendRow, loadSendRecord } from "../send-record.mjs";
+import {
+  verifyUnsubscribe,
+  KIND_LABELS,
+  MAIL_SOURCE,
+  mailSendTime,
+} from "@elixir-mcp/mail";
+import {
+  SENDS_FROM,
+  SENDS_SQL,
+  sendRow,
+  loadSendRecord,
+} from "../send-record.mjs";
 import { json, UUID_RE } from "../http.mjs";
 
 const SITE = "https://elixir.poapkings.com";
@@ -91,11 +105,26 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
         `${SENDS_SQL} where s.account_id = $1 order by s.enqueued_at desc limit 12`,
         [account.accountId],
       );
+      // The last one of each kind, so the page can open what a kind
+      // looks like from the account's own record.
+      const { rows: lastSent } = await db.query(
+        `select distinct on (i.kind) i.kind, s.send_id
+           ${SENDS_FROM}
+          where s.account_id = $1
+          order by i.kind, s.enqueued_at desc`,
+        [account.accountId],
+      );
       const by = new Map(rows.map((r) => [r.kind, r]));
+      const last = new Map(lastSent.map((r) => [r.kind, r.send_id]));
       return json(200, {
         kinds: PRODUCT_EMAIL_KINDS.map((kind) => ({
           kind,
           label: KIND_LABELS[kind],
+          product: MAIL_SOURCE[kind]?.product ?? null,
+          // {weekday, time, zone} in the account's zone; null for the
+          // kinds that come when something happens.
+          sends: mailSendTime(kind, account.timezone ?? "UTC"),
+          last_send_id: last.get(kind) ?? null,
           enabled: by.get(kind)?.enabled ?? true,
           changed_at: by.get(kind)?.changed_at ?? null,
           applies:
@@ -139,7 +168,8 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
       });
       if (!account) return json(401, { error: "unauthenticated" });
       const kind = String(body?.kind ?? "");
-      if (!isProductEmailKind(kind)) return json(400, { error: "bad_kind" });
+      if (kind !== "all" && !isProductEmailKind(kind))
+        return json(400, { error: "bad_kind" });
       if (typeof body?.enabled !== "boolean")
         return json(400, { error: "bad_enabled" });
       await setPref(db, account.accountId, kind, body.enabled, "profile");

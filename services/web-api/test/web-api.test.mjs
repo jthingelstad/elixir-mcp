@@ -1001,6 +1001,35 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   // The Profile panel's recent list carries the same ids.
   const prefs = parse(await get("/api/me/email"));
   assert.equal(prefs.recent[0].send_id, mine[0].send_id);
+  // Each kind carries its product, when it comes in the account's zone,
+  // and the last one sent here, which the page opens as its example.
+  const kind = (k) => prefs.kinds.find((x) => x.kind === k);
+  assert.equal(kind("milestone").last_send_id, mine[0].send_id);
+  assert.equal(kind("arena_week").last_send_id, mine[1].send_id);
+  assert.equal(kind("clan_report").last_send_id, null);
+  assert.equal(kind("arena_week").product, "Ladder");
+  assert.equal(kind("tracking_report").product, "Friends");
+  assert.equal(kind("milestone").sends, null);
+  assert.deepEqual(Object.keys(kind("clan_report").sends).sort(), [
+    "time",
+    "weekday",
+    "zone",
+  ]);
+  assert.match(kind("clan_report").sends.time, /^\d{1,2}:00 (am|pm)$/);
+
+  // The page's Every email switch is the footer's "all": every kind at
+  // once, and back.
+  const put = (body) =>
+    handler(event({ method: "PUT", path: "/api/me/email", cookie, body }));
+  assert.equal((await put({ kind: "all", enabled: false })).statusCode, 200);
+  assert.ok(
+    parse(await get("/api/me/email")).kinds.every((k) => k.enabled === false),
+  );
+  assert.equal((await put({ kind: "all", enabled: true })).statusCode, 200);
+  assert.ok(
+    parse(await get("/api/me/email")).kinds.every((k) => k.enabled === true),
+  );
+  assert.equal((await put({ kind: "nope", enabled: true })).statusCode, 400);
 
   // Without a store: the row answers, the body is null.
   const bare = parse(await get(`/api/me/email/sends/${mine[0].send_id}`));
