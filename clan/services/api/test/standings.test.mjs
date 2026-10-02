@@ -7,7 +7,10 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { planStandings, standingsFrom } from "../src/manage/standings.mjs";
+import {
+  planStandings,
+  standingsFrom,
+} from "@elixir-mcp/clan/manage/standings.mjs";
 
 const AS_OF = "2026-09-26T11:00:00.000Z";
 const podium = (rows) =>

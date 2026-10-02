@@ -1,25 +1,25 @@
 /** Lambda entrypoint: real seams from the environment, nothing else. */
 
-import { createHandler } from "./handler.mjs";
-import { createElixirApiClient } from "./elixir-api.mjs";
-import { createOAuthClient } from "./oauth.mjs";
+import { createHandler } from "@elixir-mcp/clan/handler.mjs";
+import { createElixirApiClient } from "@elixir-mcp/clan/elixir-api.mjs";
+import { createOAuthClient } from "@elixir-mcp/clan/oauth.mjs";
 import { createDynamoStore } from "./store.mjs";
 import { createDynamoLedger } from "./manage/ledger.mjs";
 import {
   createManageService,
   fetchParticipation,
   fetchRoster,
-} from "./manage/service.mjs";
-import { createAwardsService } from "./manage/awards.mjs";
-import { createRecruitService } from "./manage/recruit.mjs";
-import { createModelService } from "./manage/model.mjs";
-import { createAnthropicClient } from "./anthropic.mjs";
-import { createScheduledRun } from "./scheduled.mjs";
-import { createDrafts } from "./manage/drafts.mjs";
-import { createScout } from "./manage/scout.mjs";
-import { createFeedbackService } from "./feedback.mjs";
-import { createSocialService } from "./manage/social.mjs";
-import { diskGeo } from "./geo.mjs";
+} from "@elixir-mcp/clan/manage/service.mjs";
+import { createAwardsService } from "@elixir-mcp/clan/manage/awards.mjs";
+import { createRecruitService } from "@elixir-mcp/clan/manage/recruit.mjs";
+import { createModelService } from "@elixir-mcp/clan/manage/model.mjs";
+import { createAnthropicClient } from "@elixir-mcp/clan/anthropic.mjs";
+import { createScheduledRun } from "@elixir-mcp/clan/scheduled.mjs";
+import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
+import { createScout } from "@elixir-mcp/clan/manage/scout.mjs";
+import { createFeedbackService } from "@elixir-mcp/clan/feedback.mjs";
+import { createSocialService } from "@elixir-mcp/clan/manage/social.mjs";
+import { diskGeo } from "@elixir-mcp/clan/geo.mjs";
 import { createSnsNotifier } from "./notify.mjs";
 
 const env = (name, fallback) => {

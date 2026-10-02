@@ -27,7 +27,7 @@ import {
   PutCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { timedStore } from "./trace.mjs";
+import { timedStore } from "@elixir-mcp/clan/trace.mjs";
 
 const LOGIN_TTL_S = 600;
 

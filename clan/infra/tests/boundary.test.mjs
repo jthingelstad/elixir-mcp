@@ -19,6 +19,7 @@ const KIT = new Set([
   "@elixir-mcp/design",
   "@elixir-mcp/clan-state",
   "@elixir-mcp/clan-engine",
+  "@elixir-mcp/clan",
 ]);
 const CODE = /\.(m?js|jsx|ts|tsx)$/;
 const SKIP = new Set([
@@ -82,6 +83,25 @@ test("Elixir imports nothing of Clan's", async () => {
         if (
           packageOf(spec).startsWith("@elixir-clan/") ||
           (target && target.startsWith(CLAN + path.sep))
+        )
+          bad.push(`${path.relative(ROOT, file)}: ${spec}`);
+      }
+    }
+  }
+  assert.deepEqual(bad, []);
+});
+
+test("MCP and public tool code cannot import private Clan state", async () => {
+  const bad = [];
+  for (const top of ["services/mcp/src", "packages/tools/src"]) {
+    for await (const file of files(path.join(ROOT, top))) {
+      const text = await readFile(file, "utf8");
+      if (/\bclan_state\b/.test(text)) bad.push(path.relative(ROOT, file));
+      for (const spec of await imports(file)) {
+        if (
+          ["@elixir-mcp/clan", "@elixir-mcp/clan-state"].includes(
+            packageOf(spec),
+          )
         )
           bad.push(`${path.relative(ROOT, file)}: ${spec}`);
       }

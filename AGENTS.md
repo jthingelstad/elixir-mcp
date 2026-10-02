@@ -293,3 +293,9 @@ same gate), the root `npm run verify` and `npm run e2e`, the ruleset and
 the one lease. Not shared: `clan/infra/tests/boundary.test.mjs`
 refuses a Clan import of anything of Elixir's but the kit, and an Elixir
 import of anything of Clan's. Facts stay here and judgment stays in Clan.
+
+Consolidation preparation now also shares Clan orchestration through
+`packages/clan`. The legacy deployment adapter still owns its Dynamo and OAuth
+wiring. `services/web-api/src/clan.mjs` is the prepared internal request path;
+`CLAN_INTERNAL` remains off until the reviewed state/runtime cutover. Private
+Clan state is never an MCP or public-tool input.

@@ -111,6 +111,11 @@ export async function buildAll() {
       // A battle's share picture is drawn in the function: resvg's wasm
       // and the fonts sit beside the code, read on the first picture.
       await mkdir(path.join(outDir, "share"), { recursive: true });
+      await cp(
+        path.join(repoRoot, "packages/clan-engine/geo"),
+        path.join(outDir, "geo"),
+        { recursive: true },
+      );
       const sources = shareSources();
       for (const [k, file] of Object.entries(SHARE_FILES))
         await cp(sources[k], path.join(outDir, "share", file));

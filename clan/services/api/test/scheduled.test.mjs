@@ -7,8 +7,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMemoryLedger } from "../src/manage/ledger.mjs";
-import { createManageService } from "../src/manage/service.mjs";
-import { createScheduledRun } from "../src/scheduled.mjs";
+import { createManageService } from "@elixir-mcp/clan/manage/service.mjs";
+import { createScheduledRun } from "@elixir-mcp/clan/scheduled.mjs";
 import { fakeMcp, rosterBody, ledgerWithPolicy } from "./fakes.mjs";
 import {
   member,

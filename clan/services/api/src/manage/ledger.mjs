@@ -8,10 +8,10 @@ import {
   QueryCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { timedStore } from "../trace.mjs";
+import { timedStore } from "@elixir-mcp/clan/trace.mjs";
 
 import { ledgerOver } from "@elixir-mcp/clan-state";
-export { createMemoryLedger, newId } from "@elixir-mcp/clan-state";
+export { createMemoryLedger } from "@elixir-mcp/clan-state";
 
 const clanKey = (tag) => `clan#${tag}`;
 

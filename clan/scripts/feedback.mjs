@@ -15,7 +15,7 @@
  */
 
 import { createDynamoLedger } from "../services/api/src/manage/ledger.mjs";
-import { createFeedbackService } from "../services/api/src/feedback.mjs";
+import { createFeedbackService } from "@elixir-mcp/clan/feedback.mjs";
 import { REGION, STACK } from "../infra/scripts/stack.mjs";
 import {
   CloudFormationClient,

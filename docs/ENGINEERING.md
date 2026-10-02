@@ -563,3 +563,11 @@ keys. Private Clan state is never imported by MCP/tool/public-game packages.
 A digest-bound private snapshot import excludes session/login items and
 OAuth pairs, preserves sealed keys, and refuses unknown durable kinds.
 No auth or storage cutover is implied by installing this additive foundation.
+
+The prepared internal Clan path lives in web-api and receives only its resolved
+Elixir person and connected database client. Request-local opaque credentials
+keep the closed Clan reader inside this process; no OAuth grant or integration
+key is fabricated. Membership, verification, roles and fact replacement checks
+remain in their common writers. The external JSON API still checks its audience,
+first-party registration and scopes. The internal path is disabled until state,
+model-key, scheduled-job and UI cutover checks pass.

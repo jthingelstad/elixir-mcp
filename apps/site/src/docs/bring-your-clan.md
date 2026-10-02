@@ -22,7 +22,8 @@ Elixir Clan.
 Clan is becoming part of Elixir's shared account and storage. This work is
 underway: your current sign-in, clan policies, actions, awards and preferences
 remain available during the transition. No clan records or game history have
-been removed by this foundation step.
+been removed by this foundation step. Shared-account permission checks are prepared;
+the account cutover has not happened yet.
 
 ## Before you sign in
 

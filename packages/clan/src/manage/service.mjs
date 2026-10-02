@@ -51,7 +51,7 @@ import {
   actionsWaitingMail,
   ACTIONS_MAIL_KIND,
 } from "@elixir-mcp/clan-engine";
-import { newId } from "./ledger.mjs";
+import { newId } from "@elixir-mcp/clan-state";
 import { createActionStore } from "./actions.mjs";
 import { createSharing } from "./sharing.mjs";
 

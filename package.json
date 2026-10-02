@@ -30,7 +30,8 @@
     "playwright": "^1.63.0",
     "prettier": "^3.9.9",
     "typescript": "^7.0.2",
-    "@elixir-mcp/clan-engine": "0.1.0"
+    "@elixir-mcp/clan-engine": "0.1.0",
+    "@elixir-mcp/clan": "0.1.0"
   },
   "scripts": {
     "build": "npm run build -w @elixir-mcp/design && npm run build -w @elixir-mcp/contracts && npm run build -w @elixir-mcp/docs",

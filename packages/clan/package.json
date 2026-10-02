@@ -1,0 +1,16 @@
+{
+  "name": "@elixir-mcp/clan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "@elixir-mcp/clan-engine": "0.1.0",
+    "@elixir-mcp/clan-state": "0.1.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

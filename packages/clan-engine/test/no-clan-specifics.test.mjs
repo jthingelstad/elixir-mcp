@@ -20,6 +20,8 @@ const ROOT = path.resolve(
 const PRODUCT = [
   "packages/clan-engine/src",
   "packages/clan-engine/test",
+  "packages/clan/src",
+  "packages/clan/test",
   "clan/services/api/src",
   "clan/services/api/test",
   "clan/apps/web/src",

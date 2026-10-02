@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { roleLabel, roleRank } from "../src/roles.mjs";
+import { roleLabel, roleRank } from "@elixir-mcp/clan/roles.mjs";
 
 test("role labels: the API's coLeader is the UI's Co-leader", () => {
   assert.equal(roleLabel("leader"), "Leader");

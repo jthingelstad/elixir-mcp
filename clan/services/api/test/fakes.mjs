@@ -3,7 +3,7 @@
  *  number the test moves. */
 
 import { createMemoryStore } from "../src/store.mjs";
-import { createHandler } from "../src/handler.mjs";
+import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 
 export const PERSON = {
   kind: "person",
@@ -55,7 +55,7 @@ export function rosterBody(members) {
  * `refuse` makes every call answer HTTP 401 until cleared, which is how
  * an expired or revoked access token looks from here.
  */
-import { timedElixir } from "../src/trace.mjs";
+import { timedElixir } from "@elixir-mcp/clan/trace.mjs";
 
 export function fakeMcp({
   principal = PERSON,
