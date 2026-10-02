@@ -41,7 +41,7 @@ notes are exempt: they come as the moments do.
 |---|---|---|
 | Monday | **Clan report** | Your clan's week: battles and sessions, the war result if a war week closed, who joined and left, role changes, standouts, and the roster with each member's trophies and the week's change. One report per clan you track, the same one to every member who tracks it, with its days named in your own timezone. |
 | Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the decks you played, who you faced. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
-| Wednesday | **Tracking report** | Everyone you track, ordered by who they are to you: you in full, your alts shorter, friends a paragraph, watchers a line, your clans a line. It is the [timeline](/docs/timeline) for the week, rendered. |
+| Wednesday | **Your friends this week** | How everyone you follow played: friends and the players you watch, with you and your clans in a line each. It is the [timeline](/docs/timeline) for the week, rendered. Until October 2026 it was called the Tracking report; your switch for it carried over. |
 | Thursday | **Top 100** | One issue for everyone: a read of the global Path of Legends top 100 over the week that ended at that morning's board. Forward it to anyone who would enjoy it. |
 | Friday | **Card of the Week** | One card the record has something to say about, read in full: how much it is played and how often it wins, where it gets played, who plays it best, what it travels with, and the decks carrying it. One issue for everyone. Forward it to someone who runs that card. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): what your collectors fetched, how much the edge filter saved, quiet stretches, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
@@ -54,7 +54,7 @@ A milestone mails once, ever, per account and subject, keyed by the
 moment's own identity: the arena, the league, the band, the badge, the
 card's form. A season's re-climb of an arena you have already been
 congratulated for is silent; a higher one is news. A move down never mails. Friends' and
-watchers' moments belong to the Tracking report, not here. If a check is
+watchers' moments belong to Your friends this week, not here. If a check is
 missed (an outage, a failed send), the next one reads back to the last
 check that went through, up to a week, so a first is late rather than lost.
 
@@ -116,6 +116,19 @@ time goes out as soon as it is ready, while it is still the current issue, and o
 readers the scheduled send did not reach. Named players are public
 leaderboard entries, written about neutrally, and linked to their record.
 
+## What every email looks like
+
+Every email Elixir sends wears the same frame, so a sign-in code and a
+clan report are plainly from the same sender: Elixir's logo and name at
+the top with a label saying which part of Elixir it comes from and when
+(Clan · Monday, Account · Sign in), the mail itself, and a footer that
+says why you got it and when the next one comes, in your own timezone.
+A weekly email's footer also carries the turn-off link, its id, and the
+sponsor line; a sign-in code or a welcome has no turn-off, because you
+asked for it. Every image is a PNG served from elixir.poapkings.com (the
+logo, card art), never Supercell's servers, and each card says its name
+to a mail client that does not show images.
+
 ## Turning one off
 
 Each kind has its own switch on [Profile → Email](/console/account/profile/email),
@@ -150,7 +163,8 @@ Mail is counted by issue, never by reader, through
 site uses. A small image in each mail counts an **open** at a path that
 names the mail, not the reader (`/mail/clan_report/2026-W37`); it is an
 estimate, and a low one, since image blocking and caching both cut
-against it. Links into the site carry a **campaign tag** (the mail's
+against it. The other images, the logo and card art, are plain files
+and count nothing. Links into the site carry a **campaign tag** (the mail's
 kind and issue), so the site's own counts can say which mail brought
 people to which page. There is no redirector: a link goes where it
 says, and the *turn off* link carries no tag. The footer's links to the

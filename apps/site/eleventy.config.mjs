@@ -60,6 +60,10 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets/site-rail.js");
   // The share image every page's og:image and twitter:image name.
   eleventyConfig.addPassthroughCopy("src/assets/og.png");
+  // Mail's own images: the logo every email wears (packages/mail,
+  // shell.mjs), PNG at 48 and 96 px. Mail links https PNGs on this
+  // origin, never a data URI and never Supercell's CDN.
+  eleventyConfig.addPassthroughCopy("src/assets/mail");
   // Card art for mail and the card pages, mirrored at the sizes they
   // ask for by infra/scripts/mirror-card-art.mjs. Gitignored: it is a
   // cache, so a checkout that has not mirrored yet simply builds

@@ -12,10 +12,18 @@ import {
   unsubscribeUrl,
   lintIssue,
   KIND_LABELS,
+  MAIL_SCHEDULE,
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SITE = "https://elixir.poapkings.com";
+const LOGO = `${SITE}/assets/mail/elixir-96.png`;
+const esc = (v) =>
+  String(v ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 const fixtures = path.join(here, "../fixtures");
 const links = {
   unsubscribe: "https://elixir.poapkings.com/api/email/unsubscribe?t=x",
@@ -55,14 +63,28 @@ test("every kind renders its fixture: subject, preheader, html, and a text alter
     for (const tag of tags.filter((t) => !/tinylytics\.app/.test(t))) {
       const src = /src="([^"]*)"/.exec(tag)?.[1] ?? "";
       assert.ok(
-        src.startsWith("/assets/") || src.startsWith(`${SITE}/assets/`),
-        `${kind} image is served by us, not hotlinked: ${src}`,
+        src.startsWith(`${SITE}/assets/`),
+        `${kind} image is an https PNG of ours, not hotlinked or inlined: ${src}`,
       );
-      assert.ok(
-        /alt="[^"]+"/.test(tag),
-        `${kind} content image has alt text: ${tag.slice(0, 80)}`,
-      );
+      assert.ok(src.endsWith(".png"), `${kind} image is a PNG: ${src}`);
+      // The logo stands beside the word "Elixir", so it is decorative
+      // and says nothing; every other image says what it is.
+      if (src === LOGO) assert.ok(/alt=""/.test(tag), `${kind} logo alt`);
+      else
+        assert.ok(
+          /alt="[^"]+"/.test(tag),
+          `${kind} content image has alt text: ${tag.slice(0, 80)}`,
+        );
     }
+    assert.ok(out.html.includes(`src="${LOGO}"`), `${kind} wears the logo`);
+    // The inbox preview is the string the renderer returns, once.
+    assert.equal(
+      /<span style="display:none[^"]*"[^>]*>([\s\S]*?)<\/span>/.exec(
+        out.html,
+      )?.[1],
+      esc(out.preheader),
+      `${kind} preheader in the html is the one returned`,
+    );
     assert.ok(
       out.html.includes(
         `pixel/Yzx8dUUvUPn9AEJpTMeU.gif?path=${encodeURIComponent(`/mail/${kind}/2026-W37`)}`,
@@ -103,7 +125,8 @@ test("links.pixel false renders tagged links without the open pixel (the public 
     readFileSync(path.join(fixtures, "top_100.json"), "utf8"),
   );
   const { html } = renderMail("top_100", facts, { ...links, pixel: false });
-  assert.ok(!/<img/i.test(html));
+  assert.ok(!/tinylytics/i.test(html));
+  assert.ok(html.includes(LOGO), "the page still wears the logo");
   assert.ok(html.includes("utm_campaign=top_100-2026-W37"));
 });
 
@@ -225,6 +248,70 @@ test("a clan report names each day in its reader's zone; an issue stored with a 
     assert.match(html, />Fri</);
     assert.ok(!html.includes("{{day:"), "every day token is filled");
   }
+});
+
+test("one shell: the wordmark, the product pill, the why-line in the reader's zone, the turn-off on a bulk kind", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
+  );
+  const html = renderMail("clan_report", facts, {
+    ...links,
+    timezone: "America/Chicago",
+  }).html;
+  assert.match(html, />Elixir</, "the wordmark is Elixir");
+  assert.ok(!/Elixir MCP|ELIXIR/.test(html), "never the old wordmark");
+  assert.ok(html.includes("Clan · Monday"), "the pill");
+  // 14:00 UTC is 9:00 am in daylight time and 8:00 am in standard.
+  assert.match(
+    html,
+    /You get this on Mondays at [89]:00 am Central, for each clan you track\./,
+  );
+  assert.match(html, /Turn off the clan report/);
+  const utc = renderMail("clan_report", facts, links).html;
+  assert.match(utc, /on Mondays at 2:00 pm UTC/);
+  // Mail is tables: no flex, no grid, no background image anywhere.
+  for (const file of readdirSync(fixtures).filter((f) => f.endsWith(".json"))) {
+    const kind = file.replace(".json", "");
+    const out = renderMail(
+      kind,
+      JSON.parse(readFileSync(path.join(fixtures, file), "utf8")),
+      links,
+    ).html;
+    assert.ok(!/display:\s*(flex|grid)/.test(out), `${kind}: no flex or grid`);
+    assert.ok(!/background-image|url\(/.test(out), `${kind}: no backgrounds`);
+    assert.ok(!/data:image/.test(out), `${kind}: no data URIs`);
+  }
+});
+
+test("the friends mail is called what it is: Your friends this week (Jamie, 2026-10-01)", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
+  );
+  const out = renderMail("tracking_report", facts, links);
+  assert.equal(KIND_LABELS.tracking_report, "Your friends this week");
+  assert.match(out.subject, /^Your friends this week/);
+  assert.ok(!/Tracking report/.test(out.html));
+  assert.match(out.html, /Turn off Your friends this week/);
+});
+
+test("the weekly send times are the EventBridge crons", () => {
+  const template = readFileSync(
+    path.join(here, "../../../infra/template.yaml"),
+    "utf8",
+  );
+  const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const crons = new Map();
+  for (const m of template.matchAll(
+    /ScheduleExpression: cron\((\d+) (\d+) \? \* (\w+) \*\)\n(?:.*\n){0,8}?\s*Input: '\{"email": "(\w+)"\}'/g,
+  ))
+    crons.set(m[4], {
+      day: DAYS.indexOf(m[3]),
+      hour: Number(m[2]),
+      minute: Number(m[1]),
+    });
+  for (const [kind, slot] of Object.entries(MAIL_SCHEDULE))
+    assert.deepEqual(slot, crons.get(kind), kind);
+  assert.equal(Object.keys(MAIL_SCHEDULE).length, 6);
 });
 
 test("renderMail refuses a kind it does not know and a send without links", () => {

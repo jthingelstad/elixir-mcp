@@ -20,7 +20,7 @@ first time, and it is only ever about you.
 ## Whose moments
 
 Your **primary player and your alts**. A friend's or a watched player's
-moments go to the Wednesday Tracking report instead, never here. When
+moments go to Wednesday's Your friends this week instead, never here. When
 an alt's moment leads, the note names the alt; your own reads "You".
 
 ## What counts

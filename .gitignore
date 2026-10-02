@@ -35,3 +35,7 @@ playwright-report/
 # build artifact, ~15 MB of thumbnails, uploaded by deploy. Never
 # committed - the repo is public and this is a cache, not a source.
 apps/site/src/assets/cards/
+
+# Mail previews (node packages/mail/scripts/preview.mjs): rendered
+# fixtures to open or screenshot, never committed.
+packages/mail/.preview/

@@ -1,7 +1,7 @@
 ---
 slug: follow-a-friend
 title: "Follow a friend"
-description: "Mark a player you track as a friend: how to add one in the console or through your agent, what a friend gets that a watched player does not (a paragraph in the Wednesday Tracking report, a name in your agent's opening), nicknames, the notifications switch, and stopping."
+description: "Mark a player you track as a friend: how to add one in the console or through your agent, what a friend gets that a watched player does not (a paragraph in Wednesday's Your friends this week, a name in your agent's opening), nicknames, the notifications switch, and stopping."
 section: friends
 order: 1
 navTitle: "Follow a friend"
@@ -42,10 +42,10 @@ player.
 |---|---|---|
 | Recording | the same | the same |
 | Your timeline | yes, while notifications are on | yes, while notifications are on |
-| Wednesday Tracking report | a paragraph of their own | one row in a table |
+| Wednesday's Your friends this week | a paragraph of their own | one row in a table |
 | Your agent's opening | named under "Friends you follow" | named under "You are also watching" |
 
-In the **Tracking report** each friend gets a paragraph under their
+In **Your friends this week** each friend gets a paragraph under their
 name and your nickname for them: the week's battles in sessions, wins and losses, the
 modes, the trophy change, and up to eight moments such as a new arena, a
 promotion in Path of Legends, a new best, a card unlocked, a clan
@@ -61,7 +61,7 @@ belong to your primary player and your alts.
 
 Give a friend a nickname on their page (**Nickname**, 1 to 40
 characters) or through your agent with `elixir_nickname`. It is private
-to you, your agent sees it, and the Tracking report uses it. A nickname
+to you, your agent sees it, and Your friends this week uses it. A nickname
 stays when you stop tracking the player, and an empty one clears it.
 
 ## The notifications switch
@@ -70,7 +70,7 @@ Each tracked player has a **Notifications** switch, on from the start;
 your agent can flip it with `elixir_track_player` and `action:
 "notify_off"` or `"notify_on"`. With it on, the player is a subject of your timeline, which your agent
 and the console read. With it off, the player leaves your timeline and
-the Wednesday Tracking report too, while recording carries on.
+Wednesday's Your friends this week too, while recording carries on.
 
 ## Stopping
 

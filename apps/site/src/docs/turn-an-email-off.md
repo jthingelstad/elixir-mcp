@@ -23,7 +23,7 @@ lands.
 **Console ▸ Profile ▸ Email**
 ([/console/account/profile/email](/console/account/profile/email)) lists
 the eight kinds, each with a line on what it is: the Clan report, Your
-week in the Arena, the Tracking report, the Top 100, Card of the Week,
+week in the Arena, Your friends this week, the Top 100, Card of the Week,
 Collector activity, Milestones and Clan actions waiting. Untick one and
 it stops. The same page links to every email sent to you.
 
@@ -48,7 +48,7 @@ profile or from a link.
 The switches are per kind, never per player or per clan. To hear less
 about one subject:
 
-- **Tracking report**: switch off the player's **Notifications** on its
+- **Your friends this week**: switch off the player's **Notifications** on its
   page under Tracking, and it leaves the report and your timeline while
   recording carries on ([Follow a friend](/docs/follow-a-friend#the-notifications-switch)).
 - **Clan report**: it comes for each clan you track, one report per

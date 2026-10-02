@@ -1,14 +1,25 @@
 /** The renderer: facts in, {subject, preheader, html} out, for the eight
- *  product kinds. The shell and the components are the transactional
- *  templates' idiom (services/email-relay/src/templates.mjs) grown for
- *  report mail: packages/design tokens inline, tables, 600 px, a 2x2
- *  tile grid at every width (a 4-up row cramps a phone and media
- *  queries are not honoured everywhere), names as links into Browse,
- *  the coverage note last, the switch and the disclaimer in the footer.
- *  Dark only, by decision (Jamie, 2026-09-18, from the gallery). */
-import { DISCLAIMER } from "@elixir-mcp/contracts";
+ *  product kinds. Every kind sits in the one mail shell (shell.mjs), the
+ *  same one the relay's sign-in code and welcome use: the logo and the
+ *  wordmark, the product pill, a panel with a gold top bar, and the
+ *  footer that carries the turn-off link, the send id, the sponsor line
+ *  and the disclaimer. Tables and inline styles only; names are links
+ *  into Explore; the coverage note comes last. Dark only, by decision
+ *  (Jamie, 2026-09-18, from the gallery). Each renderer hands the shell
+ *  the same preheader it returns, so the inbox preview and the record of
+ *  the send are one string. */
 import family from "@elixir-mcp/ui/family.json" with { type: "json" };
 import { pixelPath, pixelTag } from "./pixel.mjs";
+import {
+  SITE,
+  FONT,
+  MONO,
+  M,
+  MODE_COLOR,
+  esc,
+  mailShell,
+  mailParts,
+} from "./shell.mjs";
 
 /** A mode group's reader-facing name (contracts MODE_GROUPS). */
 const FAMILY_LABEL = {
@@ -21,41 +32,33 @@ const FAMILY_LABEL = {
   tournament: "Tournaments",
 };
 
-const SITE = "https://elixir.poapkings.com";
-const FONT =
-  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
-
-// packages/design/src/tokens.css, the 2026-09-09 handoff. Values are
-// copied, not imported: mail cannot read a stylesheet.
-const DARK = {
-  ground: "#0c0920",
-  chrome: "#100c26",
-  panel: "#1a1440",
-  raised: "#221a52",
-  head: "#181135",
-  line: "#3a3175",
-  lineSoft: "#2d2560",
-  lineRow: "#241d4e",
-  ink: "#faf8ff",
-  body: "#ddd7f5",
-  dim: "#bdb4e2",
-  faint: "#a29ad0",
-  link: "#b49dfb",
-  gold: "#f5c84c",
-  goldOn: "#2a1500",
-  ok: "#4ade80",
-  bad: "#fb7185",
-  warn: "#fcd34d",
-  accent: "#8b5cf6",
-  tile: "#221a52",
+// The renderers' older colour names, on the shell's palette.
+const C = {
+  ground: M.bg,
+  panel: M.panel,
+  raised: M.raised,
+  head: M.well,
+  line: M.edge,
+  lineSoft: M.edge,
+  lineRow: M.row,
+  ink: M.ink,
+  body: M.muted,
+  dim: M.muted,
+  faint: M.faint,
+  link: M.link,
+  gold: M.gold,
+  goldOn: M.goldOn,
+  ok: M.ok,
+  bad: M.loss,
+  warn: M.warn,
+  accent: M.accent,
+  tile: M.box,
 };
-const C = DARK;
 
 export const KIND_LABELS = {
   clan_report: "Clan report",
   arena_week: "Your week in the Arena",
-  tracking_report: "Tracking report",
+  tracking_report: "Your friends this week",
   top_100: "Top 100",
   card_of_week: "Card of the Week",
   collector_activity: "Collector activity",
@@ -77,12 +80,6 @@ const FAMILY_ORIGINS = [
   ]),
 ];
 
-const esc = (v) =>
-  String(v ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 const n = (v) => (v == null ? "—" : Number(v).toLocaleString("en-US"));
 const signed = (v) =>
   v == null ? "—" : v > 0 ? `+${n(v)}` : v < 0 ? `−${n(-v)}` : "0";
@@ -153,9 +150,9 @@ function make(campaign = null, { pixel = true, timezone = "UTC" } = {}) {
     );
   const T = (url) => tagLink(url, campaign);
   const P = (tag, name) =>
-    `<a href="${T(playerUrl(tag))}" title="${esc(tag)}" style="color:${C.link};text-decoration:underline;text-decoration-color:${C.lineSoft};text-underline-offset:2px;">${esc(name)}</a>`;
+    `<a href="${T(playerUrl(tag))}" title="${esc(tag)}" style="color:${M.link};text-decoration:none;font-weight:600;">${esc(name)}</a>`;
   const K = (tag, name) =>
-    `<a href="${T(clanUrl(tag))}" title="${esc(tag)}" style="color:${C.link};text-decoration:underline;text-decoration-color:${C.lineSoft};text-underline-offset:2px;">${esc(name)}</a>`;
+    `<a href="${T(clanUrl(tag))}" title="${esc(tag)}" style="color:${M.link};text-decoration:none;font-weight:600;">${esc(name)}</a>`;
   const delta = (v) =>
     v == null
       ? `<span style="color:${C.faint}">—</span>`
@@ -164,88 +161,81 @@ function make(campaign = null, { pixel = true, timezone = "UTC" } = {}) {
         : v < 0
           ? `<span style="color:${C.bad}">−${n(-v)}</span>`
           : `<span style="color:${C.faint}">0</span>`;
-  const p = (html, extra = "") =>
-    `<p style="margin:0 0 12px;font-family:${FONT};font-size:15px;line-height:1.55;color:${C.body};${extra}">${html}</p>`;
-  const h2 = (text, sub = "") =>
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 10px;"><tr>
-      <td style="font-family:${FONT};font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:${C.gold};padding-bottom:6px;border-bottom:1px solid ${C.line};">${esc(text)}${sub ? `<span style="float:right;font-weight:400;letter-spacing:0;text-transform:none;color:${C.faint};">${esc(sub)}</span>` : ""}</td></tr></table>`;
+  const parts = mailParts(T);
+  const p = (html, extra = "") => parts.p(html, { extra });
+  const { h2, small, box, rows } = parts;
   const h3 = (html) =>
-    `<div style="font-family:${FONT};font-size:16px;font-weight:700;color:${C.ink};margin:18px 0 6px;">${html}</div>`;
-  const small = (html) =>
-    `<div style="font-family:${FONT};font-size:12.5px;line-height:1.5;color:${C.faint};margin:6px 0 0;">${html}</div>`;
-  // Tiles: inline-block cells, two per row at every width. A 4-up row is
-  // cramped on a phone and a media query is not reliably honoured, so the
-  // 2x2 grid is the one layout every client gets.
-  const tiles = (items) =>
-    `<div style="margin:10px -4px 4px;font-size:0;">${items
-      .map(
-        ([label, value, hint]) =>
-          `<div style="display:inline-block;vertical-align:top;width:50%;box-sizing:border-box;padding:4px;"><div bgcolor="${C.tile}" style="background-color:${C.tile};border:1px solid ${C.lineSoft};border-radius:10px;padding:10px 12px 9px;">
-          <div style="font-family:${FONT};font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:${C.faint};">${esc(label)}</div>
-          <div style="font-family:${FONT};font-size:22px;font-weight:700;color:${C.ink};line-height:1.2;margin-top:2px;">${value}</div>
-          ${hint ? `<div style="font-family:${FONT};font-size:12px;color:${C.dim};margin-top:2px;">${hint}</div>` : `<div style="font-size:12px;line-height:1.35;">&nbsp;</div>`}
-        </div></div>`,
-      )
-      .join("")}</div>`;
+    `<div style="font-family:${FONT};font-size:15.5px;font-weight:700;color:${M.ink};margin:18px 0 6px;">${html}</div>`;
+  // Tiles: a row of up to three (the boards' row), four as two by two.
+  // Table cells, not inline blocks: a phone client is not a browser.
+  const tiles = (items) => {
+    const per = items.length === 4 ? 2 : Math.min(3, items.length || 1);
+    const out = [];
+    for (let i = 0; i < items.length; i += per) {
+      const row = items.slice(i, i + per);
+      out.push(
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;margin:${i ? 10 : 0}px 0 0;"><tr>${row
+          .map(
+            ([label, value, hint, mode], k) =>
+              `<td valign="top" width="${Math.floor(100 / per)}%" style="padding:0 ${k < per - 1 ? 5 : 0}px 0 ${k ? 5 : 0}px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="${M.box}" style="background-color:${M.box};border:1px solid ${M.edge};border-radius:12px;padding:13px 14px;">
+          <div style="font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:${M.faint};">${mode ? `${dot(mode)}&nbsp;` : ""}${esc(label)}</div>
+          <div style="font-family:${FONT};font-size:22px;font-weight:700;color:${M.ink};line-height:1.2;margin-top:5px;">${value}</div>
+          ${hint ? `<div style="font-family:${FONT};font-size:12.5px;line-height:1.45;color:${M.faint};margin-top:4px;">${hint}</div>` : ""}
+        </td></tr></table></td>`,
+          )
+          .join(
+            "",
+          )}${Array.from({ length: per - row.length }, () => `<td width="${Math.floor(100 / per)}%"></td>`).join("")}</tr></table>`,
+      );
+    }
+    return `<div style="margin:4px 0 0;">${out.join("")}</div>`;
+  };
   const table = (cols, rows, { align = [], mono = [] } = {}) =>
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-top:6px;">
-      <tr>${cols.map((c, i) => `<th align="${align[i] ?? "left"}" style="font-family:${FONT};font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:${C.faint};padding:6px 6px 6px 0;border-bottom:1px solid ${C.line};white-space:nowrap;">${esc(c)}</th>`).join("")}</tr>
-      ${rows.map((r) => `<tr>${r.map((cell, i) => `<td align="${align[i] ?? "left"}" style="font-family:${mono[i] ? MONO : FONT};font-size:${mono[i] ? 13 : 14}px;line-height:1.35;color:${C.body};padding:7px 6px 7px 0;border-bottom:1px solid ${C.lineRow};${align[i] === "right" ? "white-space:nowrap;" : ""}">${cell}</td>`).join("")}</tr>`).join("")}
+      <tr>${cols.map((c, i) => `<th align="${align[i] ?? "left"}" style="font-family:${FONT};font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:${M.faint};padding:6px 6px 6px 0;border-bottom:1px solid ${M.edge};white-space:nowrap;">${esc(c)}</th>`).join("")}</tr>
+      ${rows.map((r) => `<tr>${r.map((cell, i) => `<td align="${align[i] ?? "left"}" style="font-family:${mono[i] ? MONO : FONT};font-size:${mono[i] ? 13 : 14}px;line-height:1.35;color:${M.muted};padding:7px 6px 7px 0;border-bottom:1px solid ${M.row};${align[i] === "right" ? "white-space:nowrap;" : ""}">${cell}</td>`).join("")}</tr>`).join("")}
     </table>`;
   const list = (items) =>
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 0;">${items
       .map(
         (it) =>
-          `<tr><td valign="top" style="font-family:${FONT};font-size:14px;color:${C.gold};padding:3px 8px 3px 0;">•</td><td style="font-family:${FONT};font-size:14.5px;line-height:1.5;color:${C.body};padding:3px 0;">${it}</td></tr>`,
+          `<tr><td valign="top" style="font-family:${FONT};font-size:14px;color:${M.faint};padding:3px 8px 3px 0;">•</td><td style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};padding:3px 0;">${it}</td></tr>`,
       )
       .join("")}</table>`;
-  const button = (label, url) =>
-    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 6px;"><tr><td bgcolor="${DARK.gold}" style="background-color:${DARK.gold};border-radius:8px;">
-      <a href="${T(url)}" style="display:inline-block;padding:11px 18px;font-family:${FONT};font-size:14px;font-weight:700;color:${DARK.goldOn};text-decoration:none;">${esc(label)}</a></td></tr></table>
-      <div style="font-family:${FONT};font-size:12px;color:${C.faint};word-break:break-all;">${esc(url)}</div>`;
-  const cov = (text) =>
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;"><tr><td bgcolor="${C.head}" style="background-color:${C.head};border-left:3px solid ${C.accent};padding:10px 12px;font-family:${FONT};font-size:12.5px;line-height:1.5;color:${C.dim};"><strong style="color:${C.ink};">Coverage.</strong> ${text}</td></tr></table>`;
+  const button = (label, url) => parts.button(label, url);
+  const cov = (text) => parts.cov(text);
 
-  function shell({
-    kind,
-    title,
-    subtitle,
-    preheader,
-    body,
-    unsubscribeKind,
-    extraFooter = "",
-    links,
-  }) {
-    return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>${esc(title)}</title></head>
-<body style="margin:0;padding:0;background-color:${DARK.ground};-webkit-text-size-adjust:100%;">
-<span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">${esc(preheader)}</span>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${DARK.ground}" style="background-color:${DARK.ground};"><tr><td align="center" style="padding:28px 12px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
-  <tr><td style="padding:2px 4px 16px;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td style="font-family:${FONT};font-size:18px;font-weight:800;letter-spacing:.18em;color:${DARK.ink};">ELIXIR</td>
-      <td align="right" style="font-family:${FONT};font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:${DARK.faint};">${esc(kind)}</td>
-    </tr></table>
-  </td></tr>
-  <tr><td bgcolor="${C.panel}" style="background-color:${C.panel};border:1px solid ${C.line};border-radius:16px;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr><td style="height:4px;background-color:${DARK.gold};border-radius:16px 16px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
-      <tr><td style="padding:24px 22px 22px;">
-        <div style="font-family:${FONT};font-size:24px;font-weight:800;line-height:1.2;color:${C.ink};">${title}</div>
-        ${subtitle ? `<div style="font-family:${FONT};font-size:14px;color:${C.dim};margin-top:4px;">${subtitle}</div>` : ""}
-        ${body}
-      </td></tr>
-    </table>
-  </td></tr>
-  <tr><td style="padding:18px 8px 0;font-family:${FONT};font-size:11.5px;line-height:1.6;color:${DARK.faint};">
-    ${extraFooter}
-    You get this because it is on for your Elixir account. <a href="${T(links.manage)}" style="color:${DARK.link};">Manage your emails</a> · <a href="${links.unsubscribe}" style="color:${DARK.link};">Turn off ${esc(unsubscribeKind)}</a><br>
-    ${links.send_id ? `This email is <a href="${T(sentMailUrl(links.send_id))}" style="font-family:${MONO};color:${DARK.link};">${esc(links.send_id)}</a> · Something not right? <a href="${T(sentMailUrl(links.send_id, { report: true }))}" style="color:${DARK.link};">Send feedback about this email</a> · <a href="${T(SENT_MAIL_LIST_URL)}" style="color:${DARK.link};">Every email sent to you</a><br>` : ""}
-    Elixir is free and sponsor-supported; sponsorship changes nothing about your account. <a href="${T(SUPPORT_URL)}" style="color:${DARK.link};">Support Elixir</a><br>
-    ${esc(DISCLAIMER)}
-  </td></tr>
-</table></td></tr></table>${campaign && pixel ? pixelTag(pixelPath(campaign.kind, campaign.period)) : ""}</body></html>`;
+  /** The shell, with this mail's links: the manage page and the one-click
+   *  turn-off, the send's record, the support page, the open pixel. */
+  function shell({ kind, title, subtitle, preheader, body, turnOff, links }) {
+    const id = links.send_id;
+    return mailShell({
+      kind,
+      docTitle: String(title ?? "").replace(/<[^>]+>/g, ""),
+      title,
+      subtitle,
+      preheader,
+      body,
+      timezone,
+      manage: {
+        url: T(links.manage),
+        unsubscribe: links.unsubscribe,
+        turnOff,
+      },
+      send: id
+        ? {
+            id,
+            record: T(sentMailUrl(id)),
+            report: T(sentMailUrl(id, { report: true })),
+            list: T(SENT_MAIL_LIST_URL),
+          }
+        : null,
+      support: T(SUPPORT_URL),
+      pixel:
+        campaign && pixel
+          ? pixelTag(pixelPath(campaign.kind, campaign.period))
+          : "",
+    });
   }
   return {
     T,
@@ -261,11 +251,21 @@ function make(campaign = null, { pixel = true, timezone = "UTC" } = {}) {
     list,
     button,
     cov,
+    box,
+    rows,
     shell,
     day,
     days,
   };
 }
+
+/** A mode's small coloured square, as the console draws it. */
+const dot = (mode) =>
+  `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background-color:${MODE_COLOR[mode] ?? M.faint};"></span>`;
+
+/** A record: wins blue, losses rose, everywhere Elixir draws one. */
+const recHtml = (w, l) =>
+  `<span style="font-family:${MONO};font-weight:700;white-space:nowrap;"><span style="color:${M.win};">${n(w)}</span><span style="color:${M.faint};">–</span><span style="color:${M.loss};">${n(l)}</span></span>`;
 
 // ---------------------------------------------------------------- kinds
 
@@ -284,7 +284,12 @@ function arena(f, c) {
       ? c.small("No battles recorded this week.")
       : c.table(
           ["Mode", "Battles", "W–L", "Win rate"],
-          pr.modes.map((m) => [esc(m.label), n(m.battles), rec(m), wr(m)]),
+          pr.modes.map((m) => [
+            esc(m.label),
+            n(m.battles),
+            recHtml(m.wins, m.losses),
+            wr(m),
+          ]),
           { align: ["left", "right", "right", "right"] },
         ) +
         c.small(
@@ -310,7 +315,7 @@ function arena(f, c) {
         pr.opponents.rows.map((o) => [
           c.P(o.tag, o.name),
           esc(o.mode),
-          `<span style="color:${o.result === "W" ? C.ok : o.result === "L" ? C.bad : C.faint};font-weight:700;">${esc(o.result)}</span>`,
+          `<span style="color:${o.result === "W" ? M.win : o.result === "L" ? M.loss : C.faint};font-weight:700;">${esc(o.result)}</span>`,
           esc(o.when),
         ]),
         { align: ["left", "left", "center", "right"] },
@@ -375,17 +380,18 @@ function arena(f, c) {
   const altsNote = f.alts.length
     ? ` and ${f.alts.length} alt${f.alts.length === 1 ? "" : "s"}`
     : "";
+  const preheader = `${t.battles} battles, ${rec(t)}${pr.trophies ? `, ${signed(pr.trophies.to - pr.trophies.from)} trophies` : ""}.`;
   return {
     subject: `Your week in the Arena: ${rec(t)}, ${f.week.label}`,
-    preheader: `${t.battles} battles, ${rec(t)}${pr.trophies ? `, ${signed(pr.trophies.to - pr.trophies.from)} trophies` : ""}.`,
+    preheader,
     html: (links) =>
       c.shell({
-        kind: KIND_LABELS.arena_week,
+        kind: "arena_week",
         title: "Your week in the Arena",
         subtitle: `${esc(f.week.label)} · Season ${f.week.season} · ${c.P(pr.tag, pr.name)}${altsNote}`,
-        preheader: `${t.battles} battles, ${rec(t)}.`,
+        preheader,
         body,
-        unsubscribeKind: "Your week in the Arena",
+        turnOff: "the Arena week",
         links,
       }),
   };
@@ -478,17 +484,19 @@ function tracking(f, c) {
     f.friends.length +
     f.watching.length +
     (f.quiet?.length ?? 0);
+  const preheader =
+    f.preheader ?? `${players} players, ${f.clans.length} clans.`;
   return {
-    subject: `Tracking report, ${f.week.label}`,
-    preheader: f.preheader ?? `${players} players, ${f.clans.length} clans.`,
+    subject: `Your friends this week, ${f.week.label}`,
+    preheader,
     html: (links) =>
       c.shell({
-        kind: KIND_LABELS.tracking_report,
-        title: "Tracking report",
+        kind: "tracking_report",
+        title: "Your friends this week",
         subtitle: `${esc(f.week.label)} · Season ${f.week.season} · ${players} player${players === 1 ? "" : "s"}, ${f.clans.length} clan${f.clans.length === 1 ? "" : "s"}`,
-        preheader: f.preheader ?? "",
+        preheader,
         body,
-        unsubscribeKind: "the Tracking report",
+        turnOff: "Your friends this week",
         links,
       }),
   };
@@ -584,17 +592,18 @@ function clan(f, c) {
     ${c.cov(esc(f.coverage))}`;
   const warBit =
     f.war?.present && f.war.rank ? `${ordinal(f.war.rank)} in war, ` : "";
+  const preheader = `${warBit}${n(h.battles)} battles by ${h.active} members; ${n(h.donations)} donations.`;
   return {
     subject: `${f.clan.name}, ${f.week.label}: ${warBit}${f.membership.left.length} left, ${f.membership.joined.length} joined`,
-    preheader: `${warBit}${n(h.battles)} battles by ${h.active} members; ${n(h.donations)} donations.`,
+    preheader,
     html: (links) =>
       c.shell({
-        kind: KIND_LABELS.clan_report,
+        kind: "clan_report",
         title: c.K(f.clan.tag, f.clan.name),
         subtitle: `${esc(f.week.label)} · Season ${f.week.season}${f.week.war_week != null ? `, war week ${f.week.war_week}` : ""}`,
-        preheader: `${warBit}${n(h.battles)} battles.`,
+        preheader,
         body,
-        unsubscribeKind: "the Clan report",
+        turnOff: "the clan report",
         links,
       }),
   };
@@ -705,17 +714,18 @@ function top100(f, c) {
     ${f.cta ? `${c.h2(f.cta.head)}${c.p(esc(f.cta.text))}${c.button(f.cta.button, f.cta.url)}` : ""}
     ${f.players_index?.length ? `${c.h2("Players in this issue")}<div style="font-family:${MONO};font-size:11.5px;line-height:1.7;color:${C.faint};">${f.players_index.map((x) => `${esc(x.name)} ${esc(x.tag)}`).join(" · ")}</div>` : ""}
     ${c.cov(esc(f.coverage))}`;
+  const preheader = f.preheader ?? "";
   return {
     subject: f.subject,
-    preheader: f.preheader ?? "",
+    preheader,
     html: (links) =>
       c.shell({
-        kind: f.masthead,
+        kind: "top_100",
         title: esc(f.masthead),
         subtitle: `${esc(f.strap)} · ${esc(f.issue.label)} · Season ${f.issue.season}, day ${f.issue.day_of_season}`,
-        preheader: f.preheader ?? "",
+        preheader,
         body,
-        unsubscribeKind: f.masthead,
+        turnOff: f.masthead,
         links,
       }),
   };
@@ -806,17 +816,18 @@ function cardOfWeek(f, c) {
     ${c.p(`Ask your agent: <strong style="color:${C.ink};">&ldquo;How am I doing with ${esc(card.name)}?&rdquo;</strong> Elixir answers from your own battles: your usage, your record with it, which of your decks carry it, and how that compares with your clan.`)}
     ${c.p(`Not on Elixir yet? <a href="${c.T(card.page_url)}" style="color:${C.link};">See the ${esc(card.name)} record</a> · <a href="${c.T(`${SITE}/`)}" style="color:${C.link};">Request an account</a>`)}
     ${c.cov(esc(f.coverage))}`;
+  const preheader = f.preheader ?? "";
   return {
     subject: f.subject,
-    preheader: f.preheader ?? "",
+    preheader,
     html: (links) =>
       c.shell({
-        kind: f.masthead,
+        kind: "card_of_week",
         title: `Card of the Week: ${esc(card.name)}`,
         subtitle: `${esc(f.issue.week_label)} · ${esc(f.issue.season_label)}`,
-        preheader: f.preheader ?? "",
+        preheader,
         body,
-        unsubscribeKind: f.masthead,
+        turnOff: f.masthead,
         links,
       }),
   };
@@ -902,17 +913,18 @@ function collector(f, c) {
     ])}
     ${f.fleet_note ? c.small(esc(f.fleet_note)) : ""}
     ${c.cov(esc(f.coverage))}`;
+  const preheader = `${n(t.fetches)} fetches across ${k} collector${k === 1 ? "" : "s"}, +${n(f.credits.earned)} credits. Thank you.`;
   return {
     subject: `Your collectors, ${f.week.label}: ${n(t.fetches)} fetches`,
-    preheader: `${n(t.fetches)} fetches across ${k} collector${k === 1 ? "" : "s"}, +${n(f.credits.earned)} credits. Thank you.`,
+    preheader,
     html: (links) =>
       c.shell({
-        kind: KIND_LABELS.collector_activity,
+        kind: "collector_activity",
         title: "Your collectors this week",
         subtitle: `${esc(f.week.label)} · ${k} Elixir Collector${k === 1 ? "" : "s"} on your account`,
-        preheader: `${n(t.fetches)} fetches. Thank you.`,
+        preheader,
         body,
-        unsubscribeKind: "Collector activity",
+        turnOff: "Your collectors",
         links,
       }),
   };
@@ -921,10 +933,10 @@ function collector(f, c) {
 function milestone(f, c) {
   const card = (
     m,
-  ) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 0;"><tr><td bgcolor="${C.tile}" style="background-color:${C.tile};border:1px solid ${C.lineSoft};border-left:4px solid ${DARK.gold};border-radius:12px;padding:16px 16px 14px;">
+  ) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 0;"><tr><td bgcolor="${C.tile}" style="background-color:${C.tile};border:1px solid ${C.lineSoft};border-left:4px solid ${M.accent};border-radius:12px;padding:16px 16px 14px;">
       <div style="font-family:${FONT};font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:${C.faint};">${m.subject.relationship === "alt" ? `your alt ${c.P(m.subject.tag, m.subject.name)}` : c.P(m.subject.tag, m.subject.name)} · ${esc(m.at)}</div>
       <div style="font-family:${FONT};font-size:22px;font-weight:800;line-height:1.2;color:${C.ink};margin-top:4px;">${esc(m.headline)}</div>
-      ${m.big ? `<div style="font-family:${FONT};font-size:34px;font-weight:800;color:${DARK.gold};line-height:1.1;margin-top:10px;">${esc(m.big)}</div><div style="font-family:${FONT};font-size:12.5px;color:${C.faint};">${esc(m.big_label ?? "")}</div>` : ""}
+      ${m.big ? `<div style="font-family:${FONT};font-size:34px;font-weight:800;color:${M.ink};line-height:1.1;margin-top:10px;">${esc(m.big)}</div><div style="font-family:${FONT};font-size:12.5px;color:${C.faint};">${esc(m.big_label ?? "")}</div>` : ""}
       ${m.lines?.length ? c.list(m.lines.map(esc)) : ""}
       ${m.next ? c.small(`<strong style="color:${C.dim};">Next:</strong> ${esc(m.next)}`) : ""}
     </td></tr></table>`;
@@ -933,17 +945,18 @@ function milestone(f, c) {
     ${c.cov("Milestones come from the record as it is polled, usually within the hour. A move down never mails; only firsts do.")}`;
   const first = f.milestones[0];
   const more = f.milestones.length - 1;
+  const preheader = first.lines?.[0] ?? first.headline;
   return {
     subject: more > 0 ? `${first.headline} (+${more} more)` : first.headline,
-    preheader: first.lines?.[0] ?? first.headline,
+    preheader,
     html: (links) =>
       c.shell({
-        kind: "Milestone",
+        kind: "milestone",
         title: `Congratulations, ${esc(f.account.name)}`,
         subtitle: esc(first.headline),
-        preheader: first.headline,
+        preheader,
         body,
-        unsubscribeKind: "Milestone emails",
+        turnOff: "milestones",
         links,
       }),
   };
@@ -962,17 +975,18 @@ function clanActions(f, c) {
     ${c.list(f.lines.map(esc))}
     ${c.button("Open your actions", f.link)}
     ${c.cov(`${esc(f.app ?? "Elixir Clan")} sends this through Elixir after its morning run, when something new is yours to do; only people who can act on an action are sent it. Everything in it is what the app shows you signed in.`)}`;
+  const preheader = f.lines[0] ?? f.subject;
   return {
     subject: f.subject,
-    preheader: f.lines[0] ?? f.subject,
+    preheader,
     html: (links) =>
       c.shell({
-        kind: "Clan actions",
+        kind: "clan_actions_waiting",
         title: "Actions waiting for you",
         subtitle: esc(`${clan} · ${f.app ?? "Elixir Clan"}`),
-        preheader: f.lines[0] ?? f.subject,
+        preheader,
         body,
-        unsubscribeKind: "Clan actions emails",
+        turnOff: "Actions waiting",
         links,
       }),
   };

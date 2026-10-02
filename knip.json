@@ -57,6 +57,10 @@
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
+    "packages/mail": {
+      "entry": ["scripts/*.mjs", "test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "scripts/**/*.mjs", "test/**/*.mjs"]
+    },
     "packages/tools": {
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
