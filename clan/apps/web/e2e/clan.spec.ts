@@ -509,10 +509,17 @@ test.describe("signed in", () => {
     await expect(page).toHaveURL(/\/week$/);
     await expect(page.getByRole("heading", { name: "The week" })).toBeVisible();
     await expect(page.getByText(/what this clan counts/)).toBeVisible();
-    const war = page.getByRole("list", { name: "Clan Wars: who took part" });
-    await expect(war).toContainText("Ada · 16 ✓");
-    await expect(war).toContainText("Ben · 10");
-    await expect(war).not.toContainText("Zed");
+    const all = page.getByRole("list", {
+      name: "Clan Wars: played every deck asked",
+    });
+    const partway = page.getByRole("list", { name: "Clan Wars: partway" });
+    await expect(all).toContainText("Ada16/16");
+    await expect(partway).toContainText("Ben10/16");
+    await expect(all).not.toContainText("Zed");
+    await expect(partway).not.toContainText("Zed");
+    await expect(
+      page.getByRole("navigation", { name: "Breadcrumb" }),
+    ).toContainText("The week");
     await expect(page.getByText("Departed", { exact: true })).toBeVisible();
     await rendered(page);
     await accessible(page, "the week");

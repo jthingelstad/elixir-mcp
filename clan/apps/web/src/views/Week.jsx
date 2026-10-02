@@ -2,6 +2,7 @@ import { Fresh } from "@elixir-mcp/ui";
 import { CATEGORY_LABELS } from "@elixir-clan/engine";
 import { useWeek } from "../lib/queries.js";
 import { CLAN, clanPath } from "../lib/base.js";
+import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
 
 const ROLE = {
   member: "Member",
@@ -54,44 +55,133 @@ function warLine(w) {
   return lines.join(" ");
 }
 
-function Area({ a }) {
+const TONE = { ok: "text-ok", warn: "text-warn", dim: "text-ink-dim" };
+
+/** The race a war week was, as the game numbers it: "race 136/2". */
+const raceName = (w) =>
+  w && w.season_id !== null && w.section_index !== null
+    ? `race ${w.season_id}/${w.section_index}`
+    : null;
+
+/** One group of the people who took part, each with what they did. */
+function Group({ label, tone, people, asked, name }) {
+  if (!people.length) return null;
   return (
-    <section className="panel mb-[18px]">
-      <div className="panel__head flex-wrap gap-2">
-        <span>{a.label}</span>
-        <span className="page-head__note">{summary(a)}</span>
-      </div>
-      <div className="panel__body grid gap-2">
-        {a.war ? <div className="page-head__note">{warLine(a.war)}</div> : null}
-        {a.participants.length ? (
-          <ul
-            className="flex flex-wrap gap-2"
-            aria-label={`${a.label}: who took part`}
+    <div className="panel__body grid gap-2 border-b border-line-row last:border-b-0">
+      <span className={`text-[12px] font-semibold ${TONE[tone]}`}>{label}</span>
+      <ul className="m-0 p-0 list-none flex flex-wrap gap-2" aria-label={name}>
+        {people.map((p) => (
+          <li
+            key={p.player_tag}
+            className="inline-flex items-center gap-2 min-h-7 px-2.5 rounded-chip bg-panel-raised text-[13px]"
+            title={p.joined_during ? "Joined this week" : undefined}
           >
-            {a.participants.map((p) => (
-              <li
-                key={p.player_tag}
-                className={`chip ${p.all_decks ? "chip--ok" : ""}`.trim()}
-                title={
-                  p.all_decks
-                    ? "Played every deck asked"
-                    : p.joined_during
-                      ? "Joined this week"
-                      : undefined
-                }
-              >
-                {p.name ?? p.player_tag} · {n(p.value)}
-                {p.all_decks ? " ✓" : ""}
-                {p.joined_during ? " · new" : ""}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="page-head__note">Nobody this week.</div>
-        )}
+            {p.name ?? p.player_tag}
+            <span className={`font-mono text-[12px] ${TONE[tone]}`}>
+              {asked ? `${n(p.value)}/${asked}` : n(p.value)}
+            </span>
+            {p.joined_during ? (
+              <span className="text-[12px] text-ink-faint">new</span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** An area of the week: what the clan did together, then everyone who
+ *  took part. War splits into every deck asked and partway. */
+function Area({ a }) {
+  const asked = a.war?.decks_asked ?? null;
+  const race = raceName(a.war);
+  const note = a.war ? warLine(a.war) : "";
+  return (
+    <section className="panel" aria-labelledby={`week-${a.key}`}>
+      <div className="panel__head">
+        <h2 id={`week-${a.key}`} className="m-0 grow text-[14px] font-semibold">
+          {a.label}
+          {race ? ` · ${race}` : ""}
+        </h2>
+        <span className="page-head__note font-normal">{summary(a)}</span>
       </div>
+      {note ? (
+        <div className="panel__body pb-0 page-head__note">{note}</div>
+      ) : null}
+      {!a.participants.length ? (
+        <div className="panel__body page-head__note">Nobody this week.</div>
+      ) : asked ? (
+        <>
+          <Group
+            label="Every deck asked"
+            tone="ok"
+            people={a.participants.filter((p) => p.all_decks)}
+            asked={asked}
+            name={`${a.label}: played every deck asked`}
+          />
+          <Group
+            label="Partway"
+            tone="warn"
+            people={a.participants.filter((p) => !p.all_decks)}
+            asked={asked}
+            name={`${a.label}: partway`}
+          />
+        </>
+      ) : (
+        <Group
+          label="Took part"
+          tone="dim"
+          people={a.participants}
+          name={`${a.label}: who took part`}
+        />
+      )}
     </section>
   );
+}
+
+/** The tiles: counts the week returned, never a score. War, where the
+ *  record knows the decks asked, reads as the canvas draws it. */
+function tiles(d, highlighted) {
+  const out = [];
+  for (const a of highlighted) {
+    const took = a.participants.length;
+    const asked = a.war?.decks_asked;
+    if (a.key === "war" && asked) {
+      const race = raceName(a.war);
+      out.push(
+        <Tile
+          key="war-took"
+          label="Took part"
+          value={n(took)}
+          of={`of ${n(d.members)}`}
+          hint={race ? `members who played a war deck in ${race}` : undefined}
+        />,
+        <Tile
+          key="war-partway"
+          label="Partway"
+          value={n(took - a.war.all_decks)}
+          tone="warn"
+          hint={`fewer than the ${asked} decks asked`}
+        />,
+        <Tile
+          key="war-all"
+          label="Every deck asked"
+          value={n(a.war.all_decks)}
+          tone="ok"
+          hint={`${asked} decks each`}
+        />,
+      );
+    } else
+      out.push(
+        <Tile
+          key={a.key}
+          label={a.label}
+          value={n(a.total)}
+          hint={`by ${plural(took, "member")}`}
+        />,
+      );
+  }
+  return out;
 }
 
 /** Why these areas are highlighted, in the clan's own terms. */
@@ -112,11 +202,93 @@ function basisLine(d) {
   return "This clan's leaders have not set up how it runs yet, so the week highlights where the clan was busiest.";
 }
 
+/** Who came and went, one line a kind: the roster's own events inside
+ *  the week. A departure is "Departed", never a kick or a leave. */
+function Membership({ m }) {
+  const rows = [
+    ["Joined", m.joined.map((x) => x.name ?? x.player_tag)],
+    ["Departed", m.departed.map((x) => x.name ?? x.player_tag)],
+    [
+      "Promoted",
+      m.promoted.map(
+        (x) =>
+          `${x.name ?? x.player_tag} to ${ROLE[x.role_after] ?? x.role_after}`,
+      ),
+    ],
+    [
+      "Demoted",
+      m.demoted.map(
+        (x) =>
+          `${x.name ?? x.player_tag} to ${ROLE[x.role_after] ?? x.role_after}`,
+      ),
+    ],
+  ].filter(([, names]) => names.length);
+  return (
+    <section className="panel" aria-labelledby="week-membership">
+      <div className="panel__head">
+        <h2 id="week-membership" className="m-0 grow text-[14px] font-semibold">
+          Who came and went
+        </h2>
+      </div>
+      <div className="px-4 py-1">
+        {rows.map(([label, names]) => (
+          <div
+            key={label}
+            className="grid gap-1 py-2.5 border-b border-line-row last:border-b-0"
+          >
+            <span className="label">{label}</span>
+            <span className="text-[13.5px] text-ink-body">{list(names)}</span>
+          </div>
+        ))}
+        {rows.length === 0 && m.complete ? (
+          <p className="page-head__note my-2.5">
+            Nobody joined, departed or changed role.
+          </p>
+        ) : null}
+      </div>
+      {!m.complete ? (
+        <div className="panel__foot">
+          Elixir&rsquo;s recent roster events
+          {m.events_from
+            ? ` reach back to ${date(m.events_from)}`
+            : " do not cover this week"}
+          ; earlier changes are not shown.
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+/** The week still running: each area's total and how many took part. */
+function SoFar({ s }) {
+  return (
+    <section className="panel" aria-labelledby="week-so-far">
+      <div className="panel__head">
+        <h2 id="week-so-far" className="m-0 grow text-[14px] font-semibold">
+          This week so far
+        </h2>
+        <span className="page-head__note font-normal">from {date(s.from)}</span>
+      </div>
+      <div className="panel__body fields">
+        {s.areas.map((a) => (
+          <span key={a.key} className="contents">
+            <span className="label">{a.label}</span>
+            <span>
+              {n(a.total)} ({plural(a.took_part, "member")})
+            </span>
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /**
- * The week in the clan (2026-09-27): the latest closed week, or an earlier
- * one, for every member. What the clan did together, everyone who took
- * part by name, who came and went, and the week so far. Highlighted by
- * what the clan's policy counts, or where the clan was busiest.
+ * The week in the clan (2026-09-27; the October 2026 canvas): the latest
+ * closed week, or an earlier one, for every member. What the clan did
+ * together as tiles, everyone who took part by name, who came and went,
+ * and the week so far. Highlighted by what the clan's policy counts, or
+ * where the clan was busiest. No actions and no standings.
  */
 export function Week({ clan, week, navigate }) {
   const { state } = useWeek(clan.clan_tag, week);
@@ -126,21 +298,22 @@ export function Week({ clan, week, navigate }) {
     e.preventDefault();
     navigate?.(path);
   };
-  const head = (
-    <div className="page-head items-center">
-      <h1 className="page__title">The week</h1>
-      {d?.week ? (
-        <>
-          <span className="page-head__note">
-            {date(d.week.from)} to {date(d.week.to)} ·{" "}
-            {d.clan_name ?? clan.name ?? clan.clan_tag}
-          </span>
-          {d.as_of ? (
-            <Fresh label="as of" seconds={d.freshness_seconds} ts={d.as_of} />
-          ) : null}
-        </>
-      ) : null}
-    </div>
+  const head = (lede, children) => (
+    <PageHead
+      clan={clan}
+      name={d?.clan_name}
+      crumb="The week"
+      title="The week"
+      lede={lede}
+      navigate={navigate}
+      fresh={
+        d?.as_of ? (
+          <Fresh label="as of" seconds={d.freshness_seconds} ts={d.as_of} />
+        ) : null
+      }
+    >
+      {children}
+    </PageHead>
   );
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -149,7 +322,7 @@ export function Week({ clan, week, navigate }) {
   if (state.error)
     return (
       <>
-        {head}
+        {head()}
         <div className="callout callout--warn" role="alert">
           <span>
             {state.error === "clan_not_recorded"
@@ -166,32 +339,30 @@ export function Week({ clan, week, navigate }) {
         </div>
       </>
     );
-  if (!d)
-    return (
-      <>
-        {head}
-        <p className="page__lede">Reading the week…</p>
-      </>
-    );
+  if (!d) return head("Reading the week…");
   const at = d.weeks.findIndex((w) => w.iso_week === d.week?.iso_week);
   const earlier = at >= 0 ? d.weeks[at + 1] : null;
   const later = at > 0 ? d.weeks[at - 1] : null;
   const weekPath = (w) => `${base}/${String(w.iso_week).toLowerCase()}`;
   const highlighted = d.week ? d.areas.filter((a) => a.highlighted) : [];
   const rest = d.week ? d.areas.filter((a) => !a.highlighted) : [];
-  const m = d.membership;
-  const changes = m
-    ? m.joined.length + m.departed.length + m.promoted.length + m.demoted.length
-    : 0;
+  const soFar = d.so_far && at <= 0 ? <SoFar s={d.so_far} /> : null;
+  if (!d.week)
+    return (
+      <>
+        {head(
+          "No week has closed in the record yet. The first one closes at the Monday reset.",
+        )}
+        {soFar}
+      </>
+    );
+  const shown = tiles(d, highlighted);
   return (
     <>
-      {head}
-      {d.week ? (
-        <>
-          <p className="page__lede">
-            The week closes at the Monday reset. {basisLine(d)}
-          </p>
-          <nav className="flex flex-wrap gap-3 mb-[18px]" aria-label="Weeks">
+      {head(
+        `${date(d.week.from)} to ${date(d.week.to)}. The week closes at the Monday reset. ${basisLine(d)}`,
+        earlier || later ? (
+          <nav className="flex flex-wrap gap-4 text-[13px]" aria-label="Weeks">
             {earlier ? (
               <a href={weekPath(earlier)} onClick={go(weekPath(earlier))}>
                 ← Week of {date(earlier.from)}
@@ -203,111 +374,41 @@ export function Week({ clan, week, navigate }) {
               </a>
             ) : null}
           </nav>
+        ) : null,
+      )}
 
+      {shown.length ? <Tiles label="The week in numbers">{shown}</Tiles> : null}
+
+      <div className="grid gap-4 items-start wide:grid-cols-5">
+        <div className="grid gap-4 min-w-0 wide:col-span-3">
           {highlighted.map((a) => (
             <Area key={a.key} a={a} />
           ))}
           {d.highlight.basis === "policy" && highlighted.length === 0 ? (
-            <p className="page-head__note mb-[18px]">
+            <p className="page-head__note m-0">
               Nothing the clan counts was recorded this week.
             </p>
           ) : null}
-
-          <section className="panel mb-[18px]">
-            <div className="panel__head">
-              <span>Who came and went</span>
-            </div>
-            <div className="panel__body grid gap-2">
-              {m.joined.length ? (
-                <div>
-                  <span className="label">Joined</span>{" "}
-                  {list(m.joined.map((x) => x.name ?? x.player_tag))}
-                </div>
-              ) : null}
-              {m.departed.length ? (
-                <div>
-                  <span className="label">Departed</span>{" "}
-                  {list(m.departed.map((x) => x.name ?? x.player_tag))}
-                </div>
-              ) : null}
-              {m.promoted.length ? (
-                <div>
-                  <span className="label">Promoted</span>{" "}
-                  {list(
-                    m.promoted.map(
-                      (x) =>
-                        `${x.name ?? x.player_tag} to ${ROLE[x.role_after] ?? x.role_after}`,
-                    ),
-                  )}
-                </div>
-              ) : null}
-              {m.demoted.length ? (
-                <div>
-                  <span className="label">Demoted</span>{" "}
-                  {list(
-                    m.demoted.map(
-                      (x) =>
-                        `${x.name ?? x.player_tag} to ${ROLE[x.role_after] ?? x.role_after}`,
-                    ),
-                  )}
-                </div>
-              ) : null}
-              {changes === 0 && m.complete ? (
-                <div className="page-head__note">
-                  Nobody joined, departed or changed role.
-                </div>
-              ) : null}
-              {!m.complete ? (
-                <div className="page-head__note">
-                  Elixir&rsquo;s recent roster events
-                  {m.events_from
-                    ? ` reach back to ${date(m.events_from)}`
-                    : " do not cover this week"}
-                  ; earlier changes are not shown.
-                </div>
-              ) : null}
-            </div>
-          </section>
-
           {rest.length ? (
-            <details className="mb-[18px]">
-              <summary className="label cursor-pointer mb-2">
+            <details>
+              <summary className="label cursor-pointer mb-3">
                 Also this week
               </summary>
-              {rest.map((a) => (
-                <Area key={a.key} a={a} />
-              ))}
+              <div className="grid gap-4">
+                {rest.map((a) => (
+                  <Area key={a.key} a={a} />
+                ))}
+              </div>
             </details>
           ) : null}
-        </>
-      ) : (
-        <p className="page__lede">
-          No week has closed in the record yet. The first one closes at the
-          Monday reset.
-        </p>
-      )}
+        </div>
+        <div className="grid gap-4 min-w-0 wide:col-span-2">
+          <Membership m={d.membership} />
+          {soFar}
+        </div>
+      </div>
 
-      {d.so_far && at <= 0 ? (
-        <section className="mb-[18px]">
-          <div className="label mb-2">
-            This week so far (from {date(d.so_far.from)})
-          </div>
-          <div className="panel">
-            <div className="panel__body fields">
-              {d.so_far.areas.map((a) => (
-                <span key={a.key} className="contents">
-                  <span className="label">{a.label}</span>
-                  <span>
-                    {n(a.total)} ({plural(a.took_part, "member")})
-                  </span>
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <p className="page-head__note">
+      <p className="page-head__note mt-[22px]">
         Numbers are for today&rsquo;s members: someone who has departed is not
         counted. Only those who took part are named.
       </p>

@@ -619,7 +619,7 @@ action. Jamie's calls:
   reset, whichever is first. The latest closed week is shown; any
   closed week in the record's eight is one click back
   (`/week/2026-w36`); an open or unknown week is `404 no_week`. The week
-  still running shows below as "so far" (totals and how many took part).
+  still running shows beside it as "so far" (totals and how many took part).
 - **Everyone who took part is named, with what they did**: war decks
   (a check for every deck asked, `4 × days asked` as the engine counts
   them), cards donated, ranked battles, battles. Nobody with nothing in

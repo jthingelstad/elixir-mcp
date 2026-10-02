@@ -1371,3 +1371,44 @@ claimer is a member who may read the clan and their own standing line, but
 may not set away, comment, decide an action or view or place themselves on
 the clan map. Verification is what lets the app act in a player's name.
 This ratifies the existing behavior; no runtime change was needed.
+
+## 2026-10-01 — The redesign, slice 1: The week
+
+Jamie approved the October 2026 design canvas (Elixir's one-origin shell)
+and asked for all of it to be built overnight: "Please proceed with
+building the entire new design... Operate autonomously to deliver the
+entire new site and we will check in the morning." Clan's screens are
+redrawn in slices, each its own pull request: The week, the clan page,
+Standing, Actions. Each is a redesign of a page that exists: no route,
+gate, visibility rule or analytics event changes.
+
+Every redrawn page wears one head (`apps/web/src/components/PageHead.jsx`):
+Clan › the clan › the page, the title, one lede, the freshness pill on
+the right; `Tile` and `Tiles` are the canvas's row of counts. Built from
+the kit's classes and Tailwind's token utilities, no inline styles.
+
+The week, redrawn:
+
+- **Tiles.** For war, when the record knows the decks asked: took part
+  (of the week's members), partway, and every deck asked. Every other
+  highlighted area is one tile: its total and how many took part. Counts
+  the week returned, nothing derived.
+- **The highlighted areas** are panels on the left. War splits into
+  "Every deck asked" and "Partway", each name with its decks out of
+  those asked (`9/16`), and names its race (`race 135/4`, the war week's
+  season and section, as the canvas writes it). Other areas list everyone
+  who took part with their number.
+- **Who came and went** and **This week so far** sit on the right.
+
+Left out of the canvas, with the reason:
+
+- The canvas draws today's race: the title "Race week 4 · training
+  day 2", today's decks as untouched, partway and all four, and the rival
+  clans' war trophies going in. The week is the closed ISO week and the
+  week so far; it reads no live race (`war_current` is not one of Clan's
+  reads), and Elixir serves no per-day war split (decks, not days).
+- The canvas names the untouched members. Jamie's rule for this page
+  (2026-09-27): "Don't list people that were absent and not
+  participating." "Took part, n of N" says it without names.
+- The canvas marks you among the names; the week's rows carry no `you`.
+
