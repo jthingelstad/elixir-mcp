@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "A boat battle says whether you attacked or defended",
+    body: "battles_query's boat block now has role, the player's own part in a boat battle: attacker or defender. The side it already carried is what the recorded battle log said for its own player, who can be the other side, so a boat attack recorded from the defender's log read as a defense. Compact rows carry role beside side. Ladder's Days played reads role, so a boat attack recorded that way is back on your calendar and a defense is still left out. Contract 9.19.0; JSON API 2.10.0.",
+  },
+  {
+    date: "2026-10-02",
     title: "A new front page",
     body: "Elixir's front page is redrawn. It says what Elixir is for a player: every battle, clan week and river race you play, kept and read back on your Ladder, inside your clan, in a short weekly email or to your own AI. Six tiles show what each part does and lead into it: Ladder, Clan, following friends, the emails, connecting an agent, and the public card stats. Drop has a band of its own with a Play Drop button. Under it are the ten cards played most in Path of Legends this season, each with its share of decks and how those battles went, straight from the record and linked to its page; when the season has no numbers yet, the row is simply not there. The agent conversation, the corpus totals and the way to ask for an account are still on the page. No change to the tools.",
   },

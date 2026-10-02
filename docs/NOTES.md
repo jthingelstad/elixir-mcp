@@ -2082,3 +2082,24 @@ strip needs the web-api deploy that ships the cards `season` field.
 `.home-top3__*`, `.home-drop` (`__mark`, `__body`, `__eyebrow`, `__title`,
 `__text`, `__play`, the last joining the candy button's rules) and
 `.home-strip` (`__item`, `__card`, `__art`, `__name`, `__pct`, `__wins`).
+
+## 2026-10-02 - A boat battle says the player's own role (9.19.0)
+
+Ladder's Days played (#193) dropped a battle whose `boat.side` was
+`defender`, so a member's real boat attack vanished from their calendar
+when the battle was recorded from the defender's log.
+
+- **Cause:** `battle.boat_battle_side` is the API's `boatBattleSide` as the
+  recording log said it, for that log's owner, who is side 0. The rollups
+  already flip it for side 1 (`notBoatDefense()` in
+  `packages/record/src/boat-defense-sql.mjs`), but `battles_query` passed
+  the raw word through as `boat.side`, so a reader of the wire could not
+  tell an attack from a defense.
+- **Fix, additive:** `boat.role` is the row's player's own part, by the
+  same rule as `notBoatDefense()`; `side` keeps its meaning. Compact
+  carries `role` beside `side`, so a compact reader can leave a defense
+  out. Ladder's day counter reads `role`. MCP 9.19.0, JSON API
+  2.10.0 (`/players/{tag}/battles` mirrors the tool).
+- **Pinned:** `record-to-wire.test.mjs` reads the same battle from both
+  players; `ladder-days.test.js` covers a defender-log attack and an
+  attacker-log defense.

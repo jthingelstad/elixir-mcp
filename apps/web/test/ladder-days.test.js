@@ -42,7 +42,7 @@ function battle(time, mode, outcome, extra = {}) {
     url: extra.url ?? null,
     battle_time: time,
     mode_group: mode,
-    ...(extra.boat ? { boat: { side: extra.boat } } : {}),
+    ...(extra.boat ? { boat: { side: extra.boat, role: extra.boat } } : {}),
     me: {
       outcome,
       crowns: extra.crowns ?? (outcome === "win" ? 1 : 0),
@@ -274,7 +274,24 @@ test("a battle row names its opponents and score, and links only a url the tool 
   );
   expect(battleWho({ opponents: [] })).toBe("Unknown opponent");
   expect(battleScore({ me: { outcome: "draw" }, opponents: [] })).toBe("drew");
-  expect(counted({ me: { outcome: "win" }, boat: { side: "attacker" } })).toBe(
-    true,
-  );
+  expect(
+    counted({
+      me: { outcome: "win" },
+      boat: { side: "attacker", role: "attacker" },
+    }),
+  ).toBe(true);
+  // The record keeps the word of the log that recorded the battle; when
+  // the other player's log came first, side is theirs and role is yours.
+  expect(
+    counted({
+      me: { outcome: "win" },
+      boat: { side: "defender", role: "attacker" },
+    }),
+  ).toBe(true);
+  expect(
+    counted({
+      me: { outcome: "loss" },
+      boat: { side: "attacker", role: "defender" },
+    }),
+  ).toBe(false);
 });

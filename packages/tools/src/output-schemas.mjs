@@ -3187,9 +3187,13 @@ export const OUTPUT_SCHEMAS = {
             boat: {
               type: "object",
               description:
-                "Full verbosity, boat battles only: the attacking side and the towers before, after and remaining.",
+                "Boat battles only: role, this row's player's part (attacker or defender; a defense is not the member's battle), and side, the API's boatBattleSide as the log that recorded the battle said it for its own player, who may be the other side. Compact keeps those two; full adds the towers before, after and remaining (9.19.0: role).",
               properties: {
                 side: { type: ["string", "null"] },
+                role: {
+                  type: ["string", "null"],
+                  enum: ["attacker", "defender", null],
+                },
                 towers_before: { type: ["integer", "null"] },
                 towers_after: { type: ["integer", "null"] },
                 remaining: { type: ["integer", "null"] },

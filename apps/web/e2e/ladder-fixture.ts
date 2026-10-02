@@ -334,7 +334,7 @@ function seasonBattles() {
     battle_time: "2026-09-25T00:30:00.000Z",
     type: "boatBattle",
     mode_group: "war",
-    boat: { side: "defender" },
+    boat: { side: "defender", role: "defender" },
     me: { ...(last.me as object), outcome: "loss" },
   });
   return out.sort((a, b) =>
