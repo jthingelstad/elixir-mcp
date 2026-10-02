@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Cleanup checks follow the recorded contents",
+    body: "The reviewed history cleanup distinguishes unchanged re-fetches from new contents. Personal and clan overlap and later recordings stay protected. No game history has been purged. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "Card history stays with your players",
     body: "Card reads now start from your selected players' games and look up repeated deck identities once for earliest play. Clan lists retain each played game, duel round, level and form. This fixes excessive reads during the history cleanup. Contracts unchanged.",
   },

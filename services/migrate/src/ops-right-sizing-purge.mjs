@@ -740,10 +740,13 @@ export async function rightSizingPurge(
           r.endpoint !== k.endpoint ||
           r.entity_key !== k.entity_key ||
           r.payload_hash !== k.payload_hash ||
-          r.first_fetched_at.getTime() > Date.parse(manifest.cutoff) ||
-          r.last_fetched_at.getTime() > Date.parse(manifest.cutoff)
+          r.first_fetched_at.getTime() > Date.parse(manifest.cutoff)
         )
           throw new Error("cache identity or cutoff differs");
+        // Re-fetching identical content only advances last_fetched_at. The
+        // approved full payload hash still names the same disposable cache
+        // body; its original creation cutoff and protected owners stay bound.
+        // New admitted logs are checked separately before battle removal.
         if (
           !RETIRED_ENDPOINTS.has(r.endpoint) &&
           r.endpoint !== "player_battlelog"
