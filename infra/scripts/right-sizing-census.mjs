@@ -20,6 +20,7 @@ function validatePage(snapshot, lane, r, bytes, after) {
     r.snapshot_id !== snapshot.snapshot_id ||
     r.lane !== lane ||
     r.cutoff !== snapshot.cutoff ||
+    r.receipt_high_water !== snapshot.receipt_high_water ||
     !/^[a-f0-9]{64}$/.test(r.sha256 ?? "") ||
     r.key !==
       `right-sizing/v1/${snapshot.snapshot_id}/${lane}/${r.sha256}.json` ||
@@ -41,6 +42,7 @@ function validatePage(snapshot, lane, r, bytes, after) {
     page.snapshot_id !== snapshot.snapshot_id ||
     page.lane !== lane ||
     page.cutoff !== snapshot.cutoff ||
+    page.receipt_high_water !== snapshot.receipt_high_water ||
     page.after !== after ||
     page.next_after !== r.next_after ||
     page.definition_sha256 !== r.definition_sha256 ||
@@ -102,6 +104,9 @@ export async function collectCensus({
           lane,
           snapshot_id: snapshot.snapshot_id,
           cutoff: snapshot.cutoff,
+          ...(snapshot.group === "admissions"
+            ? { receipt_high_water: snapshot.receipt_high_water }
+            : {}),
           after,
           limit: snapshot.limit,
           definition_sha256: snapshot.definition_sha256,
@@ -169,9 +174,14 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
       const i = x.indexOf("=");
       if (
         i < 3 ||
-        !["--directory", "--cutoff", "--resume", "--limit", "--group"].includes(
-          x.slice(0, i),
-        )
+        ![
+          "--directory",
+          "--cutoff",
+          "--resume",
+          "--limit",
+          "--group",
+          "--receipt-high-water",
+        ].includes(x.slice(0, i))
       )
         throw new Error("unknown census argument");
       return [x.slice(2, i), x.slice(i + 1)];
@@ -180,7 +190,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   if (!path.isAbsolute(args.directory ?? ""))
     throw new Error("census needs an absolute private directory");
   const group = args.group ?? "history";
-  if (!["history", "references"].includes(group))
+  if (!["history", "references", "admissions"].includes(group))
     throw new Error("unknown census group");
   const options = { region: "us-east-1", maxAttempts: 1 };
   const sts = await new STSClient(options).send(
@@ -249,6 +259,11 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     );
     if (args.cutoff && snapshot.cutoff !== args.cutoff)
       throw new Error("resume cutoff differs");
+    if (
+      args["receipt-high-water"] &&
+      snapshot.receipt_high_water !== args["receipt-high-water"]
+    )
+      throw new Error("resume receipt ceiling differs");
     if ((snapshot.group ?? "history") !== group)
       throw new Error("resume group differs");
   } else {
@@ -263,6 +278,9 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     snapshot = {
       version: 1,
       group,
+      ...(group === "admissions"
+        ? { receipt_high_water: args["receipt-high-water"] }
+        : {}),
       snapshot_id: randomUUID(),
       cutoff: args.cutoff,
       limit: requestedLimit ?? 2000,

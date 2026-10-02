@@ -1,3 +1,4 @@
+import { rightSizingPurge } from "./ops-right-sizing-purge.mjs";
 import { rightSizingCensus } from "./ops-right-sizing.mjs";
 import { clanMaintenance } from "./ops-clan-maintenance.mjs";
 import { clanImport } from "./ops-clan-import.mjs";
@@ -118,6 +119,9 @@ async function dispatch(event) {
     );
     console.log(JSON.stringify(result));
     return result;
+  }
+  if (event?.right_sizing_purge) {
+    return rightSizingPurge(process.env.DATABASE_URL, event.right_sizing_purge);
   }
   if (event?.right_sizing_census) {
     return rightSizingCensus(
