@@ -28,7 +28,7 @@ import { makeRegistry } from "@elixir-mcp/tools";
 import { authRoutes } from "./routes/auth.mjs";
 import { accountRoutes } from "./routes/account.mjs";
 import { emailRoutes } from "./routes/email.mjs";
-import { collectionsRoutes } from "./routes/collections.mjs";
+import { clansRoutes } from "./routes/clans.mjs";
 import { publicRoutes } from "./routes/public.mjs";
 import { gatewaysRoutes } from "./routes/gateways.mjs";
 import { exploreRoutes } from "./routes/explore.mjs";
@@ -257,7 +257,7 @@ export function makeHandler({
       notifyOwner,
     }),
     ...accountRoutes({ resolveAccount, logEvent, notifyOwner, capture }),
-    ...collectionsRoutes({ resolveAccount, logEvent }),
+    ...clansRoutes({ resolveAccount, logEvent }),
     ...publicRoutes({ deadLetters }),
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),
     ...exploreRoutes({ resolveAccount, exploreRegistry }),

@@ -119,6 +119,18 @@ before(async () => {
     `insert into collection_member (collection_id, subject_tag) values ($1, '#2PP0V9RR')`,
     [col.collection_id],
   );
+  const retiredIntegration = await one(
+    `insert into account (kind,status,role,owned_by_account_id,public_id) values ('integration','approved','partner',$1,'retiredgrant') returning account_id`,
+    [ids.other],
+  );
+  await db.query(
+    `insert into integration (account_id,name,scopes,daily_limit,hourly_limit,refresh_limit) values ($1,'retired-grant',ARRAY['players:read'],10000,2000,1000)`,
+    [retiredIntegration.account_id],
+  );
+  await db.query(
+    `insert into integration_collection_grant (account_id,collection_id,member_limit) values ($1,$2,10000)`,
+    [retiredIntegration.account_id, col.collection_id],
+  );
 
   // Credentials: the agent's key and the person's OAuth grant.
   agentKey = await issueServiceToken(db, {
@@ -242,6 +254,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     claim_challenge: 0,
     claim: 2,
     account_clan: 2,
+    integration_collection_grant: 1,
     collection: 1,
     player_nickname: 1,
     timeline_reader: 0,

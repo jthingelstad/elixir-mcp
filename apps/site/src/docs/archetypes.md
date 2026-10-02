@@ -225,7 +225,7 @@ its stamp, and denominators stay the population's.
 by label — one row per "Royal Hogs bridge spam", "Hog Rider cycle",
 "Graveyard control" — with `decks`, `battles`, the record, `players` and
 `share`; `group_by: "family"` folds to the six families. On a clan,
-player or collection segment each row carries **`members[]`**: who plays
+player segment each row carries **`members[]`**: who plays
 the shape, their battles and wins in it, and their most-played deck of
 it, so "what decks do our players use?" is one call answered the way a
 player would say it. Rows are sorted by who plays them (players, then

@@ -28,7 +28,7 @@ import {
   SEASON_ARG_SCHEMA,
   SEGMENT_SCHEMA,
   SEGMENT_NOTES,
-  collectionSegmentNote,
+  clanSegmentNote,
   appliedBlock,
   notes,
   docsRef,
@@ -128,7 +128,7 @@ function usageRow(r, decided, prior) {
 export const cardProfileTools = {
   cards_card: {
     description:
-      "Everything the record knows about ONE card, in one call, for a named population (segment 'mine', 'corpus' or {clan_tag | player_tag | collection}): the catalog row with type and forms and when each form was first played; this window's usage and win rate, all forms and per form, by mode group; the same by trophy band; every recorded season as a series; the top partners; the most-played decks carrying it; on a clan segment, who played it (and at what level) and who holds it. Anchor by card_id or exact name. Default window: the current season. verbosity compact keeps card, season and history.",
+      "Everything the record knows about ONE card, in one call, for a named population (segment 'mine', 'corpus' or {clan_tag | player_tag}): the catalog row with type and forms and when each form was first played; this window's usage and win rate, all forms and per form, by mode group; the same by trophy band; every recorded season as a series; the top partners; the most-played decks carrying it; on a clan segment, who played it (and at what level) and who holds it. Anchor by card_id or exact name. Default window: the current season. verbosity compact keeps card, season and history.",
     inputSchema: {
       type: "object",
       properties: {
@@ -448,7 +448,7 @@ export const cardProfileTools = {
           ? CAP_BAND_NOTE
           : null,
         SEGMENT_NOTES.filter((n) => !n.includes("CORPUS mean")),
-        collectionSegmentNote(seg),
+        clanSegmentNote(seg),
         `shrunk_win_rate shrinks toward prior_win_rate: ${usage.prior.basis === "corpus_season" ? "the corpus season's decided mean" : "this population's own decided mean over the window"} (prior_basis), and is withheld (null, insufficient_sample: true) when the POPULATION is under ${META_METHODOLOGY.segment_min_decided} decided observations, not per row: a row with few battles still carries one, shrunk hard toward the prior.`,
         win.seasonNotes,
         roll?.note,

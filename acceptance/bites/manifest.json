@@ -312,7 +312,8 @@
     "why": "the Gym's block 114.1: Global 100 ordered by Trophy Road trophies with no word that it is not the board's order",
     "case": "gym/114.1",
     "captures": ["114-collections_get-pol-global.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 114,
@@ -320,7 +321,8 @@
     "why": "the Gym's block 114.2: US 100 the same",
     "case": "gym/114.2",
     "captures": ["114-collections_get-pol-us.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 114,
@@ -328,7 +330,8 @@
     "why": "the Gym's block 114.3: top clans ordered by member count, unsaid",
     "case": "gym/114.3",
     "captures": ["114-collections_get-top-clans.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 115,
@@ -336,7 +339,8 @@
     "why": "the Gym's block 115.1: open_members defined nowhere; it is the member count",
     "case": "gym/115.1",
     "captures": ["115-collections_get-clans-to-watch.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 116,
@@ -344,7 +348,8 @@
     "why": "the Gym's block 116.1: a board collection read as a fixed cohort",
     "case": "gym/116.1",
     "captures": ["114-collections_get-pol-global.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 116,
@@ -352,7 +357,8 @@
     "why": "the Gym's block 116.2: browse said nothing of board-synced membership",
     "case": "gym/116.2",
     "captures": ["116-collections_browse.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 116,
@@ -360,7 +366,8 @@
     "why": "the Gym's block 116.3: a collection segment read did not say which membership it applied",
     "case": "gym/116.3",
     "captures": ["116-battles_meta_decks-collection.json"],
-    "expect": "notes_match"
+    "expect": "notes_match",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 118,
@@ -704,7 +711,8 @@
     "why": "the Gym block 144.1 on the answer it read",
     "case": "gym/144.1",
     "captures": ["144-1-badges_holders.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 144,
@@ -872,7 +880,8 @@
     "why": "the Gym block 160.1 on the answer it read",
     "case": "gym/160.1",
     "captures": ["160-1-collections_get.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 160,
@@ -880,7 +889,8 @@
     "why": "the Gym block 160.2 on the answer it read",
     "case": "gym/160.2",
     "captures": ["160-2-collections_get.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 162,
@@ -1152,7 +1162,8 @@
     "why": "the Gym block 184.2 on the answer it read",
     "case": "gym/184.2",
     "captures": ["184-2-badges_holders.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 187,
@@ -1280,7 +1291,8 @@
     "why": "the Gym block 201.1 on the answer it read",
     "case": "gym/201.1",
     "captures": ["201-1-collections_get.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 202,
@@ -1288,7 +1300,8 @@
     "why": "the Gym block 202.1 on the answer it read",
     "case": "gym/202.1",
     "captures": ["202-1-battles_meta_decks.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 204,
@@ -1688,7 +1701,8 @@
     "why": "the Gym block 287.1 on the answer it read",
     "case": "gym/287.1",
     "captures": ["287-1-battles_trends.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 287,
@@ -1696,7 +1710,8 @@
     "why": "the Gym block 287.2 on the answer it read",
     "case": "gym/287.2",
     "captures": ["287-2-cards_synergy.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 288,
@@ -1704,7 +1719,8 @@
     "why": "the Gym block 288.1 on the answer it read",
     "case": "gym/288.1",
     "captures": ["288-1-collections_get.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 290,
@@ -1936,7 +1952,8 @@
     "why": "the Gym block 322.1 on the answer it read",
     "case": "gym/322.1",
     "captures": ["322-1-collections_get.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 322,
@@ -1944,7 +1961,8 @@
     "why": "the Gym block 322.2 on the answer it read",
     "case": "gym/322.2",
     "captures": ["322-2-collections_get.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 322,
@@ -1952,7 +1970,8 @@
     "why": "the Gym block 322.3 on the answer it read",
     "case": "gym/322.3",
     "captures": ["322-3-collections_get.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 322,
@@ -1960,7 +1979,8 @@
     "why": "the Gym block 322.4 on the answer it read",
     "case": "gym/322.4",
     "captures": ["322-4-battles_meta_decks.json"],
-    "expect": "."
+    "expect": ".",
+    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 317,

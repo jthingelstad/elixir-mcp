@@ -172,9 +172,7 @@ export function accountRoutes({
       );
       const { rows: ent } = await db.query(
         `select a.role, a.mcp_daily_quota, a.live_daily_quota,
-                a.newsletter_opt_in, a.email,
-                (select count(*)::int from collection c
-                 where c.owner_account = $1) as collections_used
+                a.newsletter_opt_in, a.email
          from account a where a.account_id = $1`,
         [account.accountId],
       );
@@ -309,10 +307,6 @@ export function accountRoutes({
         role: e.role,
         entitlements: {
           ...entitlements,
-          collections: {
-            used: e.collections_used,
-            limit: lim(q.collections_max),
-          },
           // The one the ladder publishes that this payload did not, so
           // the console's limits table and /docs/roles are the same rows
           // from the same source (roles.ts). Integrations are admin-
@@ -424,7 +418,13 @@ export function accountRoutes({
          order by last_seen desc limit 10`,
         [account.accountId],
       );
-      return json(200, { connections: rows, refusals });
+      return json(200, {
+        connections: rows.map((row) => ({
+          ...row,
+          scope: normalizeScope(row.scope),
+        })),
+        refusals,
+      });
     },
 
     // Acknowledging a refusal warning. Per row, because a row is one

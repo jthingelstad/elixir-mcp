@@ -35,7 +35,6 @@ export const keys = {
   emailRecord: (id) => ["me", "email", "sends", id],
   connections: ["me", "connections"],
   principals: ["me", "principals"],
-  collections: ["me", "collections"],
   feedback: ["me", "feedback"],
   verifyList: ["me", "verify"],
   callRecord: (id) => ["me", "requests", id],
@@ -54,11 +53,9 @@ export const keys = {
   adminCards: ["admin", "cards"],
   adminEmail: (id) => ["admin", "email", "sends", id],
   adminIntegrations: ["admin", "integrations"],
-  adminCollections: ["admin", "collections"],
   status: ["status"],
   efficiency: ["efficiency"],
   stats: ["stats"],
-  exploreCollections: ["explore", "collections"],
 };
 
 const payload = (call) => () => call().then(unwrap);
@@ -260,18 +257,6 @@ export const useAdminIntegrations = () =>
     queryFn: payload(api.adminIntegrations),
   });
 
-export const useAdminCollections = () =>
-  useQuery({
-    queryKey: keys.adminCollections,
-    queryFn: payload(api.adminCollections),
-  });
-
-export const useMyCollections = () =>
-  useQuery({
-    queryKey: keys.collections,
-    queryFn: payload(api.myCollections),
-  });
-
 export const useMyFeedback = () => {
   const agent = useScope();
   return useQuery({
@@ -311,17 +296,6 @@ export const usePublicEfficiency = () =>
   useQuery({
     queryKey: keys.efficiency,
     queryFn: payload(api.publicEfficiency),
-  });
-
-/** The collections the lookup offers: one bridge call, cached like a
- *  record. A tool error reads as an empty list, as it always did. */
-export const useExploreCollections = () =>
-  useQuery({
-    queryKey: keys.exploreCollections,
-    queryFn: async () => {
-      const r = unwrap(await api.explore("collections_browse"));
-      return r.is_error ? [] : (r.body?.collections ?? []);
-    },
   });
 
 export const usePublicStats = () =>

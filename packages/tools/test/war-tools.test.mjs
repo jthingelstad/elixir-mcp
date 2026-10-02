@@ -494,9 +494,9 @@ test("war_current: decks_today names untouched/partial/finished on a live war da
   assert.match(body.notes.join(" "), /observed so far/);
 });
 
-test("the registry declares 57 tools, every one classified and annotated", () => {
+test("the registry declares 54 tools, every one classified and annotated", () => {
   const decls = makeRegistry().declarations();
-  assert.equal(decls.length, 57);
+  assert.equal(decls.length, 54);
   for (const d of decls) {
     assert.ok(d.annotations, `${d.name} has annotations`);
     assert.match(
@@ -510,19 +510,13 @@ test("the registry declares 57 tools, every one classified and annotated", () =>
   assert.deepEqual(
     writers.map((d) => d.name).sort(),
     [
-      // Curation of a collection YOU OWN is the one write outside the
-      // service domain: a collection is a domain resource, and editing
-      // one is editing the domain, not administering the service.
-      // Recorded game history stays read-only to every tool here - the
-      // recording pipeline is the only writer of facts.
-      "collections_edit",
       "elixir_identify",
       "elixir_nickname",
       "elixir_send_feedback",
       "elixir_track_clan",
       "elixir_track_player",
     ],
-    "writes are service-domain, plus curating your own collections",
+    "writes change account state, never canonical game history",
   );
   const open = decls.filter((d) => d.annotations.openWorldHint === true);
   assert.deepEqual(

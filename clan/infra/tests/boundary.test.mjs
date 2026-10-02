@@ -76,14 +76,7 @@ test("Clan imports nothing of Elixir's but the kit", async () => {
 
 test("Elixir imports nothing of Clan's", async () => {
   const bad = [];
-  for (const top of [
-    "apps",
-    "services",
-    "packages",
-    "infra",
-    "acceptance",
-    "clients",
-  ]) {
+  for (const top of ["apps", "services", "packages", "infra", "acceptance"]) {
     for await (const file of files(path.join(ROOT, top))) {
       for (const spec of await imports(file)) {
         const target = spec.startsWith(".")

@@ -2475,7 +2475,8 @@
       {
         "notes_match": "Trophy Road"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "114.2",
@@ -2490,7 +2491,8 @@
       {
         "notes_match": "Trophy Road"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "114.3",
@@ -2505,7 +2507,8 @@
       {
         "notes_match": "rankings_clans"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "114.4",
@@ -2522,7 +2525,8 @@
       {
         "notes_not_match": "Trophy Road"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "115.1",
@@ -2538,7 +2542,8 @@
       {
         "notes_match": "open_members"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "115.2",
@@ -2565,7 +2570,8 @@
       {
         "eq": ["c.members[?clan_tag=#PPLCV9G2].open_members", "r.member_count"]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "115.3",
@@ -2581,7 +2587,8 @@
       {
         "notes_not_match": "open_members"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "115.4",
@@ -2601,7 +2608,8 @@
       {
         "notes_match": "(fixed cohort|follows the .*board|re-?synced|re-?set at each)"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "116.2",
@@ -2614,7 +2622,8 @@
       {
         "notes_match": "(fixed cohort|follows the .*board|re-?synced|re-?set at each)"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "116.3",
@@ -2632,7 +2641,8 @@
       {
         "notes_match": "(membership|members as of)"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "116.4",
@@ -2648,7 +2658,8 @@
       {
         "notes_not_match": "(fixed cohort|follows the .*board|re-?synced|re-?set at each)"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "117.1",
@@ -2664,7 +2675,8 @@
       {
         "notes_match": "collections_browse"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "117.2",
@@ -2680,7 +2692,8 @@
       {
         "eq": ["slug", "applied.collection"]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "117.3",
@@ -2696,7 +2709,8 @@
       {
         "notes_match": "one size"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "117.4",
@@ -2723,7 +2737,8 @@
           "b.collections[?slug=global-top-10-clans].member_count"
         ]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "118.1",
@@ -4696,7 +4711,8 @@
       {
         "notes_match": "[Vv]ersioned pair"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "144.2",
@@ -4851,7 +4867,8 @@
           "c.collections[?slug=pol-global-top-100].member_count"
         ]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "146.1",
@@ -6202,7 +6219,8 @@
       {
         "notes_match": "years_played"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "160.2",
@@ -6217,7 +6235,8 @@
       {
         "notes_match": "years_played"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "160.3",
@@ -6246,7 +6265,8 @@
           "p.attributes.years_played"
         ]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "160.4",
@@ -6263,7 +6283,8 @@
       {
         "notes_not_match": "years_played"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "160.5",
@@ -6287,7 +6308,8 @@
       {
         "notes_match": "Trophy Road"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "161.2",
@@ -6306,7 +6328,8 @@
       {
         "notes_match": "membership as of this call"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "161.3",
@@ -6326,7 +6349,8 @@
       {
         "notes_match": "membership as of this call"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "161.4",
@@ -6343,7 +6367,8 @@
       {
         "notes_match": "not a fixed cohort"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "161.5",
@@ -6365,7 +6390,8 @@
       {
         "notes_match": "collections_browse"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "161.6",
@@ -6391,7 +6417,8 @@
       {
         "count_eq": ["c.members[]", "r.clans"]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "162.1",
@@ -8112,7 +8139,8 @@
       {
         "eq": ["kind", "tiered"]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "184.3",
@@ -8179,7 +8207,8 @@
       {
         "notes_match": "In this population \\d+ hold RoyalTournamentRank_v2, and \\d+ distinct players? holds? either"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "185.2",
@@ -9755,7 +9784,8 @@
       {
         "notes_match": "no YearsPlayed badge"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "201.2",
@@ -9773,7 +9803,8 @@
       {
         "notes_match": "no YearsPlayed badge"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "201.3",
@@ -9805,7 +9836,8 @@
       {
         "gte": ["p.attributes.years_played", 1]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "201.4",
@@ -9834,7 +9866,8 @@
       {
         "notes_match": "clan_tag"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "202.2",
@@ -9852,7 +9885,8 @@
       {
         "notes_match": "clan collection"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "202.3",
@@ -9874,7 +9908,8 @@
       {
         "notes_not_match": "clan collection"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "202.4",
@@ -9890,7 +9925,8 @@
       {
         "notes_not_match": "clan collection is not a segment"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "203.1",
@@ -9917,7 +9953,8 @@
       {
         "eq": ["c.members[?clan_tag=#LG0].open_members", "r.member_count"]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "203.2",
@@ -9946,7 +9983,8 @@
           "p.snapshot.trophies"
         ]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "203.3",
@@ -9968,7 +10006,8 @@
       {
         "lte": ["holders_total", "players_considered"]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "203.4",
@@ -9987,7 +10026,8 @@
       {
         "notes_match": "describe today's members"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "204.1",
@@ -16148,7 +16188,8 @@
       {
         "notes_match": "today's members"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "287.2",
@@ -16167,7 +16208,8 @@
       {
         "notes_match": "today's members"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "287.3",
@@ -16206,7 +16248,8 @@
       {
         "notes_match": "today's members"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "288.1",
@@ -16224,7 +16267,8 @@
       {
         "notes_match": "not a segment"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "288.2",
@@ -16243,7 +16287,8 @@
       {
         "notes_not_match": "not a segment"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "289.1",
@@ -16265,7 +16310,8 @@
       {
         "notes_match": "clan_tag"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "289.2",
@@ -16281,7 +16327,8 @@
       {
         "notes_match": "collections_browse"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "289.3",
@@ -16346,7 +16393,8 @@
       {
         "lte": ["weeks[0].players", 100]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "290.1",
@@ -17517,7 +17565,7 @@
         "absent": "w.timeline[?observed_at=2026-09-09T09:01:57.000Z]"
       }
     ],
-    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. The original 18 moments restore pax and Ditaka crossings during their September 3-11 tenures and remove VVSBUDGET’s September 9 return before the September 12 join: 19 moments."
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. The original 18 moments restore pax and Ditaka crossings during their September 3-11 tenures and remove VVSBUDGET\u2019s September 9 return before the September 12 join: 19 moments."
   },
   {
     "id": "304.3",
@@ -17909,7 +17957,8 @@
       {
         "notes_not_match": "of this clan's \\d+ current members"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "310.1",
@@ -18900,7 +18949,8 @@
       {
         "has": "synced_snapshot_observed_at"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "322.2",
@@ -18915,7 +18965,8 @@
       {
         "notes_match": "board observed \\d{4}-\\d{2}-\\d{2}"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "322.3",
@@ -18933,7 +18984,8 @@
       {
         "notes_match": "board observed \\d{4}-\\d{2}-\\d{2}"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "322.4",
@@ -18951,7 +19003,8 @@
       {
         "notes_match": "pol-global-top-100's membership[^.]*\\d{4}-\\d{2}-\\d{2}"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "322.5",
@@ -18983,7 +19036,8 @@
         "notes_not_match": ["c", "so this is today's membership"]
       }
     ],
-    "amended": "Two calls: the note is the collection read's (binding c); the filed form read the last call's notes."
+    "amended": "Two calls: the note is the collection read's (binding c); the filed form read the last call's notes.",
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "322.6",
@@ -18999,7 +19053,8 @@
       {
         "notes_not_match": "re-synced|board observed|not applied yet"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "322.7",
@@ -19025,7 +19080,8 @@
       {
         "count_eq": ["c.members[]", "r.players"]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "323.1",
@@ -19084,7 +19140,8 @@
       {
         "lte": ["t.cards[0].battles", "t.decided_battles"]
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "323.3",
@@ -19104,7 +19161,8 @@
       {
         "notes_match": "at most one of player_tag, clan_tag, collection"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "323.4",
@@ -19118,7 +19176,8 @@
       {
         "notes_match": "collection is required"
       }
-    ]
+    ],
+    "refuted": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "id": "317.1",

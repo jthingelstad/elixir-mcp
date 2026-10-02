@@ -91,7 +91,6 @@ is no OpenID Connect: no ID token. Who the person is comes from
 |---|---|---|
 | `cr:read` | Read recorded game data | any app; always included |
 | `recordings:write` | Change what you track | any app |
-| `collections:write` | Edit collections | any app |
 | `account:write` | Update account preferences | any app |
 | `feedback:write` | Send feedback | any app |
 | `account:email` | Know your email address | family apps only |

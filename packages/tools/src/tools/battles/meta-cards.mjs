@@ -12,7 +12,7 @@ import {
   SEASON_ARG_SCHEMA,
   SEGMENT_DOCS,
   SEGMENT_NOTES,
-  collectionSegmentNote,
+  clanSegmentNote,
   SEGMENT_SCHEMA,
   VERBOSITY,
   WINDOW_ARGS,
@@ -73,7 +73,7 @@ import {
 
 export const battles_meta_cards = {
   description:
-    "Observed card meta for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag | collection}. Per card AND form (forms never merge): usage share among decided player-battle observations, distinct players, raw and shrunk win rates. Default window: the current season to date; season selects another. What the recorded data shows, with sample sizes; never a tier list.",
+    "Observed card meta for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag}. Per card AND form (forms never merge): usage share among decided player-battle observations, distinct players, raw and shrunk win rates. Default window: the current season to date; season selects another. What the recorded data shows, with sample sizes; never a tier list.",
   inputSchema: {
     type: "object",
     properties: {
@@ -498,7 +498,7 @@ export const battles_meta_cards = {
           ? "excluded counts the season and mode, not the band; decided_battles and every row are the band's."
           : null,
         SEGMENT_NOTES,
-        collectionSegmentNote(seg),
+        clanSegmentNote(seg),
         win.seasonNotes,
         roll?.note,
         pop?.note,

@@ -14,7 +14,7 @@ console: ["Your tier", "/console/account/profile", "Console ▸ Profile"]
 
 Every account sits on a six-rung ladder. One principle above everything:
 **roles never gate what you can read.** All recorded game data — battles,
-snapshots, wars, collections — is open to every approved account, the same
+snapshots, wars — is open to every approved account, the same
 posture as the game's own public API. Tiers set the two things that cost
 the service something: **collection** (what Elixir promises to record for
 you) and **call volume** (your daily budgets, including the live lane that
@@ -35,7 +35,6 @@ never reach an agent.
 | Clan watches — comprehensive | — | 1 | 3 | 5 | unlimited | unlimited |
 | Tool calls / day | 500 | 2,000 | 5,000 | 15,000 | unlimited | unlimited |
 | Live CR fetches / day | 20 | 100 | 250 | 1,000 | unlimited | unlimited |
-| Collections you curate | — | — | 5 | 20 | unlimited | unlimited |
 | Agents | 3 | 5 | 10 | 25 | unlimited | unlimited |
 
 **member** — the default. You, a couple of alts, and your clan at
@@ -46,9 +45,7 @@ battles and profile, following membership as it changes. This is the tier
 a clan's own agent needs.
 
 **family** — you run a clan family: a main plus feeders. Multiple
-comprehensive watches, and the first tier that creates
-[collections](/console/explore/collections) — curated groupings everyone can
-browse.
+comprehensive watches for the clans you follow.
 
 **partner** — you run serious tooling (a clan bot, a community service)
 on top of Elixir. Community-scale slots and budgets — and an expectation:
@@ -56,7 +53,7 @@ partners run a collector. At this scale you should be adding capacity to
 the fleet, not only consuming it.
 
 **admin** — runs the console day-to-day: approves access requests,
-answers feedback, curates collections, provisions platform integrations,
+answers feedback, provisions platform integrations,
 revokes connections, and sets roles up to partner. Unlimited quotas,
 exempt from every cap.
 
@@ -96,7 +93,7 @@ be able to say out loud.
 **An integration** connects another platform to the [REST API](/docs/integrations).
 It is platform access an admin provisions, not a tier entitlement: no role
 includes one, and it is set up with explicit permissions and independent
-API, refresh and enrollment limits. It has no personal subject or inherited
+API and refresh limits. It has no personal subject or inherited
 admin authority.
 
 | | You | Agent | Integration |
@@ -128,8 +125,7 @@ or someone you're **watching** — and "how are my friends playing?" is only a
 question worth asking if there is room to keep friends in.
 
 So player slots are deliberately not a rung on the ladder. The tiers differ
-where cost actually scales: clan watches, daily calls, the live lane and
-collections.
+where cost actually scales: clan watches, daily calls, the live lane.
 
 ## Why comprehensive is the scarce thing
 

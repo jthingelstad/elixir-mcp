@@ -10,7 +10,7 @@ import {
   WriteError,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
-import { useExploreCollections, usePublicStats } from "../lib/queries.js";
+import { usePublicStats } from "../lib/queries.js";
 import { tagPath, tagFromPath } from "../lib/tag-url.js";
 import { CONSOLE, appPath } from "../lib/console.js";
 
@@ -87,8 +87,6 @@ async function fetchRecord(kind, id) {
       return call("battles_query", { battle_id: id });
     case "deck":
       return call("battles_query", { deck_hash: id, limit: 10 });
-    case "collection":
-      return call("collections_get", { collection: id });
     case "week": {
       // The exact week, by name (review 2026-09-27 §7.5). This read the
       // last 12 seasons and searched them, so an older week answered
@@ -136,8 +134,6 @@ async function fetchRecord(kind, id) {
           verbosity: "compact",
           include_total: true,
         });
-      if (what === "colmembers")
-        return call("collections_get", { collection: key });
       throw new Error(`unknown list ${what}`);
     }
     default:
@@ -282,7 +278,6 @@ function Lookup({ me, navigate, browse }) {
   const [failure, setFailure] = useState(null);
   const [matches, setMatches] = useState(null);
   const [busy, setBusy] = useState(false);
-  const collections = useExploreCollections().data ?? [];
   const corpus = usePublicStats().data?.totals ?? null;
   const queryClient = useQueryClient();
 
@@ -347,11 +342,6 @@ function Lookup({ me, navigate, browse }) {
     setFailure(null);
     setMatches(null);
     try {
-      const slug = query.toLowerCase();
-      if (collections.some((c) => c.slug === slug)) {
-        go("collection", slug);
-        return;
-      }
       if (HASH_RE.test(query)) {
         go("deck", query.replace(/^deck:/i, "").toLowerCase());
         return;
@@ -424,7 +414,6 @@ function Lookup({ me, navigate, browse }) {
           },
         ]
       : []),
-    ...collections.slice(0, 2).map((c) => ({ label: c.slug, q: c.slug })),
   ];
 
   return (
@@ -626,50 +615,6 @@ function Lookup({ me, navigate, browse }) {
               <span className="tag">{r.tag}</span>
               <span style={{ color: "var(--ink-faint)" }}>{r.name}</span>
               <span className="kind-chip">{r.kind}</span>
-            </Link>
-          ))}
-        </section>
-
-        <section className="panel" style={{ flex: "1 1 340px", minWidth: 0 }}>
-          <div className="panel__head">
-            <span className="panel-title">Collections</span>
-            <span
-              className="mono"
-              style={{
-                marginLeft: "auto",
-                fontSize: "11px",
-                color: "var(--ink-faint)",
-              }}
-            >
-              curator lists
-            </span>
-          </div>
-          {collections.map((c) => (
-            <Link
-              key={c.slug}
-              to={`${CONSOLE}/explore/collection/${c.slug}`}
-              onClick={restartTrail}
-              style={{
-                display: "flex",
-                gap: "10px",
-                padding: "10px 16px",
-                borderTop: "1px solid var(--line-soft)",
-                fontSize: "12.5px",
-                color: "var(--ink)",
-              }}
-            >
-              <span>{c.title}</span>
-              <span className="tag">{c.slug}</span>
-              <span
-                className="mono"
-                style={{
-                  marginLeft: "auto",
-                  color: "var(--ink-faint)",
-                  fontSize: "11.5px",
-                }}
-              >
-                {c.member_count} members
-              </span>
             </Link>
           ))}
         </section>
@@ -1268,47 +1213,6 @@ function buildView(kind, rawId, res, me, zone) {
     };
   }
 
-  if (kind === "collection") {
-    const members = b.members ?? [];
-    return {
-      kindLabel: "COLLECTION",
-      crumb: b.title ?? rawId,
-      title: b.title ?? rawId,
-      tag: rawId,
-      chip: { label: b.kind ?? "player" },
-      sub:
-        b.description ??
-        "A curator's list — membership is editorial, never a global fact.",
-      table: {
-        cols: [
-          { label: "MEMBER" },
-          { label: "TAG" },
-          { label: "TROPHIES", num: true },
-          { label: "RECORDING" },
-        ],
-        rows: members.map((m) => [
-          {
-            text: m.name ?? "—",
-            href: m.player_tag
-              ? `${CONSOLE}/explore/player/${encTag(m.player_tag)}`
-              : undefined,
-          },
-          { text: m.player_tag ?? m.clan_tag, mono: true },
-          m.trophies !== undefined && m.trophies !== null
-            ? { text: String(m.trophies) }
-            : { text: "—", nil: true },
-          {
-            text: m.recording ? "recording" : "observed",
-            style: m.recording
-              ? { color: "var(--ok)" }
-              : { color: "var(--ink-faint)" },
-          },
-        ]),
-      },
-      note: b.note,
-    };
-  }
-
   if (kind === "week") {
     // fetchRecord asked for this exact week and refuses an empty answer.
     const wk = b.weeks[0];
@@ -1645,8 +1549,5 @@ function buildListView(rawId, res, zone) {
     };
   }
 
-  if (what === "colmembers") {
-    return buildView("collection", key, res, undefined, zone);
-  }
   throw new Error(`unknown list ${what}`);
 }

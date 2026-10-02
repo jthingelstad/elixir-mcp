@@ -327,7 +327,6 @@ function TierLimits({ me, entitlements: e, usage }) {
     ],
     ["Tool calls / day", usage?.today_calls, e.mcp_calls_per_day],
     ["Live CR fetches / day", usage?.live_today, e.live_fetches_per_day],
-    ["Collections you curate", e.collections?.used, e.collections?.limit],
     ["Agents", undefined, e.agents?.limit],
   ];
   return (
@@ -459,7 +458,7 @@ function TierPanel({ me, entitlements: e, usage }) {
       </div>
       <div className="panel__note">
         Tiers set what Elixir records for you, your daily budgets, and how many
-        agents and collections you can have — never what you can read.
+        agents you can have — never what you can read.
       </div>
     </section>
   );

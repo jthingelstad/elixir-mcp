@@ -156,11 +156,9 @@ test("a tag lookup's probe seeds the record, so the lookup costs one call", asyn
   const explore = vi
     .spyOn(api, "explore")
     .mockImplementation(async (tool) =>
-      tool === "collections_browse"
-        ? answer({ collections: [] })
-        : tool === "players_summary"
-          ? answer(body)
-          : { ok: true, status: 200, data: { is_error: true, body: {} } },
+      tool === "players_summary"
+        ? answer(body)
+        : { ok: true, status: 200, data: { is_error: true, body: {} } },
     );
   const navigate = vi.fn();
   const { rerender } = renderWithProviders(

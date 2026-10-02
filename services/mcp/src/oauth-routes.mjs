@@ -260,7 +260,6 @@ function codeFailure(reason) {
  *  will stop). */
 const WITHOUT = {
   "recordings:write": "track or stop tracking players and clans for you",
-  "collections:write": "change the members of your collections",
   "account:write":
     "remember who is talking to it or set your private nicknames",
   "feedback:write": "send feedback to the Elixir maintainer for you",

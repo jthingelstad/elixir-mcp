@@ -1,7 +1,7 @@
 ---
 slug: integrations
 title: "Integrations"
-description: "The JSON API at /api/v1: people by OAuth, platforms by admin-issued key; recorded profiles, asynchronous refreshes, a game clock, and automatic collection enrollment."
+description: "The JSON API at /api/v1: people by OAuth, platforms by admin-issued key; recorded profiles, asynchronous refreshes, a game clock, and attested platform facts."
 section: build
 order: 1
 navTitle: "Integrations"
@@ -56,11 +56,9 @@ each operation names the callers it admits (`x-principals`).
 ## Provisioning and administration
 
 **Admin → Integrations** creates the platform identity, issues a key, sets API
-and refresh budgets, and grants addition rights to existing player collections.
+and refresh budgets.
 Admins can change permissions, revoke or rotate keys, and suspend or resume an
-integration. The screen shows last key use, daily usage, recording depth, member
-counts and enrollment limits. Collection depth and ownership remain controlled
-by the collection's administrator. Removing a grant does not remove members.
+integration. The screen shows last key use, daily usage and refresh usage.
 
 The raw `svt_…` key appears once; only its SHA-256 digest is stored. Keep it in
 the consuming platform's server configuration. Never ship it to a browser.
@@ -83,15 +81,11 @@ accountable for the integration but contributes no admin authority or quota.
 | `GET /players/{tag}` | `players:read` | Recorded name, clan, account age and source timestamp |
 | `POST /profile-refreshes` | `profiles:refresh` | Accepted asynchronous profile refresh |
 | `GET /profile-refreshes/{id}` | `profiles:refresh` | Pending, complete or failed refresh |
-| `PUT /collections/{id}/members/{tag}` | `collections:members:add` plus collection grant | Idempotent addition and recording enrollment |
-| `POST /collections/{id}/members` | Same | Bounded add-only batch |
 | `GET /clans/{tag}/participation`, `GET /clans/{tag}/roster`, `GET /clans/{tag}/war-history` | `clans:read` | Any recorded clan, answered as a person's grant is (the `clans_participation`, `clans_roster` and `war_history` results): a family app evaluating a clan with nobody signed in, or a clan's website |
 | `POST /clans/{tag}/mail` | `mail:send` | A family app's own mail, sent through Elixir by player tag, never by address ([below](#a-family-apps-mail)) |
 | `POST /players/{tag}/facts` | `facts:write` | A fact the platform's own game produced for a player ([attested facts](#attested-facts)) |
 
-Tags must be URL-encoded in paths: `#2PYQ0` becomes `%232PYQ0`. Collection IDs
-are decimal identifiers; a collection's slug is also accepted. A grant is for a
-specific existing collection, not every collection owned by the sponsoring human.
+Tags must be URL-encoded in paths: `#2PYQ0` becomes `%232PYQ0`.
 
 Successful responses contain `data` and `request_id`. Failures use
 `application/problem+json`, with `type`, `title`, `status`, `code`, `detail` and
@@ -102,6 +96,8 @@ response header ties either response to the operational audit. Treat
 unknown response fields as compatible additions.
 
 ## Versions
+
+- **3.0.0** (2026-10-02): the Collection membership operations and permission are removed. No replacement automatic enrollment is provided. Existing integration keys, read/refresh permissions, budgets and OAuth account access remain. Drop has deployed this retirement. Historical Collection membership is kept pending a reviewed purge.
 
 The JSON API carries its own semantic version, the OpenAPI document's
 `info.version`. Its callers are programs, so a removed or renamed response
@@ -358,45 +354,11 @@ profile data. A job being marked done is insufficient. Rejection, dead work or a
 key to retry a failed refresh. Requests expire after 24 hours, after which their
 status returns 404. A one-time refresh does not create a recording subscription.
 
-## Automatic collection membership
-
-Named recording Collections are scheduled for retirement. The current
-operations and grants below remain deployed until a versioned retirement
-removes dependent callers. Drop's automatic collection enrollment is also
-scheduled for removal; its personal OAuth tracking and other API use remain.
-Signing into Drop with Elixir and granting it authorized account access remain
-supported parts of the integration.
-
-A platform may automatically add a supplied tag to its granted collection. Drop
-asserts membership on login and when a player saves an optional CR tag, through
-its durable refresh queue. Failed enrollment retries there; queue submission or
-hub outages must not fail login or profile save. The add-only reconciliation
-script repairs older or missed additions.
-
-A single addition uses `PUT` with an empty JSON object. A batch uses `POST` with
-`{"tags":["#2PYQ0"]}` and accepts 1–500 tags. The response includes `added`,
-`already_present`, `total`, `recordings_started` and `enrollment_established`.
-The latter confirms the recording reason exists, not that capture has finished.
-
-Membership and recording enrollment commit together. Repeated additions preserve
-manual members and are safe to retry. The member limit is checked under the
-collection lock, so an oversized batch fails atomically. Recording is shared
-with any other accounts or collections already following the subject.
-
-V1 is add-only. Removing a tag from Drop or changing it does not remove its old
-collection membership. Integrations cannot replace membership, delete members,
-change recording depth, create collections, or upload game facts. A supplied tag
-is **unverified** and does not prove identity or participation in the platform.
-Only normal collector admission establishes canonical game observations; an
-[attested fact](#attested-facts) is a platform's own word beside them, never
-one of them.
-
 ## Limits and errors
 
 Admins size each integration independently: API calls per UTC day (default
 10,000), API calls per hour (default 2,000), profile-refresh requests per UTC
-day (default 1,000), and collection member capacity per grant (default
-10,000). `Retry-After` is the seconds to the top of the hour, to UTC midnight,
+day (default 1,000). `Retry-After` is the seconds to the top of the hour, to UTC midnight,
 3600 for a refresh refusal, or the seconds to the next scheduler tick when
 the shared budget is spent.
 Refresh retries with the same idempotency key do not spend another refresh unit.

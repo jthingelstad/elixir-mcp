@@ -20,12 +20,12 @@ import { TROPHY_BAND_NAMES } from "../../meta-season.mjs";
 
 /** group_by on battles_meta_decks (6.6.0, design §6): the population's
  *  decks folded by archetype label or by family, with the members who
- *  play each on a clan, player or collection segment. */
+ *  play each on a clan or player segment. */
 export const GROUP_BY_SCHEMA = {
   type: "string",
   enum: ["archetype", "family"],
   description:
-    'Fold the population\'s decks by archetype label ("Royal Hogs bridge spam") or by family (six rows). Rows carry decks, battles, record and players; on a clan, player or collection segment each carries members[] (who plays it, with their most-played deck of that shape). Sorted by players then battles - who plays what, never a tier list: shrunk_win_rate is deliberately absent. decks[] is empty with group_by.',
+    'Fold the population\'s decks by archetype label ("Royal Hogs bridge spam") or by family (six rows). Rows carry decks, battles, record and players; on a clan or player segment each carries members[] (who plays it, with their most-played deck of that shape). Sorted by players then battles - who plays what, never a tier list: shrunk_win_rate is deliberately absent. decks[] is empty with group_by.',
 };
 
 /** fit_for on the meta tools (6.4.0, feedback #70). */

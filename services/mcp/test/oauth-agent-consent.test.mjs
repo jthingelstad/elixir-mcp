@@ -446,7 +446,7 @@ test("an agent's writes start ticked but tracking; unticking one asks first, and
     }),
   );
   assert.equal(emailStep.statusCode, 200);
-  for (const s of ["feedback:write", "account:write", "collections:write"])
+  for (const s of ["feedback:write", "account:write"])
     assert.match(
       emailStep.body,
       new RegExp(`name="grant" value="${s}" checked`),
@@ -472,26 +472,20 @@ test("an agent's writes start ticked but tracking; unticking one asks first, and
     );
   };
   // Feedback unticked: the confirmation names it, and holds the code.
-  const ask = await post({}, ["account:write", "collections:write"]);
+  const ask = await post({}, ["account:write"]);
   assert.equal(ask.statusCode, 200);
   assert.match(ask.body, /send feedback to the Elixir maintainer/);
   assert.match(ask.body, new RegExp(`name="code" value="${code}"`));
   // Back: the code page again, with the person's choices kept.
-  const back = await post({ confirm: "back" }, [
-    "account:write",
-    "collections:write",
-  ]);
+  const back = await post({ confirm: "back" }, ["account:write"]);
   assert.equal(back.statusCode, 200);
   assert.match(back.body, /name="grant" value="feedback:write">/);
   assert.match(back.body, /name="grant" value="account:write" checked/);
   // Confirmed: the code was never spent by the steps above.
-  const done = await post({ confirm: "1" }, [
-    "account:write",
-    "collections:write",
-  ]);
+  const done = await post({ confirm: "1" }, ["account:write"]);
   assert.equal(done.statusCode, 303, done.body?.slice(0, 200));
   const { rows } = await db.query(
     `select scope from oauth_code order by created_at desc limit 1`,
   );
-  assert.equal(rows[0].scope, "cr:read collections:write account:write");
+  assert.equal(rows[0].scope, "cr:read account:write");
 });

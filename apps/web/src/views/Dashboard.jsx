@@ -9,7 +9,6 @@ import { Timeline } from "./account/Timeline.jsx";
 import { Tracking } from "./account/Tracking.jsx";
 import { TrackedRecord } from "./account/TrackedRecord.jsx";
 import { Profile } from "./account/Profile.jsx";
-import { Collections } from "./account/Collections.jsx";
 import { AgentMoved, Agents } from "./account/Agents.jsx";
 import { FeedbackItem, Feedback } from "./account/Feedback.jsx";
 import { Connections } from "./account/Connections.jsx";
@@ -53,8 +52,6 @@ export function Dashboard({
     return <DevicesPage navigate={navigate} />;
   if (page === "profile")
     return <Profile me={me} refresh={refresh} navigate={navigate} />;
-  if (page === "collections")
-    return <Collections me={me} navigate={navigate} />;
   if (page === "agents")
     return itemId ? (
       <AgentMoved id={itemId} navigate={navigate} />

@@ -236,11 +236,11 @@ export function VERBOSITY(compactDesc) {
 /** The population a segment tool scores (product call 5, 2026-09-18: a
  *  population is named, never assumed). The strings are sugar: "mine"
  *  is the caller's clan, "corpus" the whole recorded corpus said out
- *  loud; the object names one player, clan or collection. Omitted still
+ *  loud; the object names one player, clan. Omitted still
  *  answers the corpus and the response says so in a note. */
 export const SEGMENT_SCHEMA = {
   description:
-    "The population to score, REQUIRED (4.0.0): 'mine' (the caller's clan: the agent's clan, or the primary player's), 'corpus' (the whole recorded corpus, explicitly), or an object naming exactly one of player_tag, clan_tag (current members) or collection (a player collection's slug). The corpus is one population among others, never a default: a call without segment is refused.",
+    "The population to score, REQUIRED (4.0.0): 'mine' (the caller's clan: the agent's clan, or the primary player's), 'corpus' (the whole recorded corpus, explicitly), or an object naming exactly one of player_tag, clan_tag (current members) . The corpus is one population among others, never a default: a call without segment is refused.",
   anyOf: [
     { type: "string", enum: ["mine", "corpus"] },
     {
@@ -250,10 +250,6 @@ export const SEGMENT_SCHEMA = {
         clan_tag: {
           type: "string",
           description: "A recorded clan's current members.",
-        },
-        collection: {
-          type: "string",
-          description: "A player collection's slug.",
         },
         on_behalf_of: ON_BEHALF_OF_SCHEMA,
       },
@@ -265,8 +261,8 @@ export const SEGMENT_SCHEMA = {
 /**
  * The segment as one resolved thing, before any tool builds its own
  * predicate: `{ kind, echo, ... }` where kind is corpus, player,
- * clan or collection and the object carries the resolved tag, clan tag
- * or collection id. "mine" resolves through entitledClan(undefined), so
+ * clan and the object carries the resolved tag, clan tag
+ * . "mine" resolves through entitledClan(undefined), so
  * an account with no clan is no_subject, never a guess.
  */
 export async function resolveSegment(ctx, args) {
@@ -277,7 +273,7 @@ export async function resolveSegment(ctx, args) {
     throw new ToolFailure(
       "bad_request",
       "segment is required: name the population to score.",
-      `Pass segment: "mine" (your clan), segment: "corpus" (the whole recorded corpus, on purpose) or an object naming one of player_tag, clan_tag or collection.`,
+      `Pass segment: "mine" (your clan), segment: "corpus" (the whole recorded corpus, on purpose) or an object naming one of player_tag or clan_tag.`,
     );
   if (typeof raw === "string") {
     if (raw === "corpus") return { kind: "corpus", echo: { kind: "corpus" } };
@@ -291,17 +287,21 @@ export async function resolveSegment(ctx, args) {
     }
     throw new ToolFailure(
       "bad_request",
-      `segment must be 'mine', 'corpus' or an object naming one of player_tag, clan_tag, collection (got '${raw}').`,
+      `segment must be 'mine', 'corpus' or an object naming one of player_tag, clan_tag (got '${raw}').`,
     );
   }
   const seg = raw;
-  const picked = ["player_tag", "clan_tag", "collection"].filter(
-    (k) => seg[k] !== undefined,
-  );
+  if (Object.hasOwn(seg, "collection"))
+    throw new ToolFailure(
+      "bad_request",
+      "Named recording Collections have retired.",
+      "Use player_tag or clan_tag for recorded history.",
+    );
+  const picked = ["player_tag", "clan_tag"].filter((k) => seg[k] !== undefined);
   if (picked.length > 1) {
     throw new ToolFailure(
       "bad_request",
-      "segment takes at most one of player_tag, clan_tag, collection.",
+      "segment takes at most one of player_tag, clan_tag.",
     );
   }
   if (seg.player_tag !== undefined) {
@@ -326,49 +326,6 @@ export async function resolveSegment(ctx, args) {
       kind: "clan",
       clanTag,
       echo: { kind: "clan", clan_tag: clanTag },
-    };
-  }
-  if (seg.collection !== undefined) {
-    const slug = String(seg.collection).toLowerCase().trim();
-    const { rows } = await ctx.db.query(
-      `select c.collection_id, c.synced_from, c.synced_at from collection c
-       where c.slug = $1 and c.kind = 'player'
-         and (c.visibility = 'public' or c.owner_account = $2)`,
-      [slug, ctx.account.accountId],
-    );
-    if (!rows[0]) {
-      // A clan collection is a real subject passed where players are
-      // read (Gym #202): an argument error with the working route, not
-      // the not_found an unknown slug gets.
-      const {
-        rows: [clanColl],
-      } = await ctx.db.query(
-        `select 1 from collection c
-          where c.slug = $1 and c.kind = 'clan'
-            and (c.visibility = 'public' or c.owner_account = $2)`,
-        [slug, ctx.account.accountId],
-      );
-      if (clanColl)
-        throw new ToolFailure(
-          "bad_request",
-          `No player collection '${slug}': it is a clan collection, and a segment collection reads players.`,
-          `Pass segment { clan_tag } once per clan (collections_get({ collection: '${slug}' }) lists them); collections_browse lists the player collections.`,
-        );
-      throw new ToolFailure(
-        "not_found",
-        `No player collection '${slug}'.`,
-        "collections_browse lists what exists.",
-      );
-    }
-    return {
-      kind: "collection",
-      collectionId: rows[0].collection_id,
-      // A board collection's last sync (Gym #322), for the segment note.
-      ...(rows[0].synced_from
-        ? { syncedAt: rows[0].synced_at?.toISOString?.() ?? null }
-        : {}),
-      slug,
-      echo: { kind: "collection", collection: slug },
     };
   }
   // An empty object is the corpus, said with an object.
@@ -1091,19 +1048,6 @@ export async function segmentFilter(ctx, args, params) {
       echo: seg.echo,
     };
   }
-  if (seg.kind === "collection") {
-    params.push(seg.collectionId);
-    return {
-      where: `bp.player_tag in (select m.subject_tag from collection_member m
-               where m.collection_id = $${params.length})`,
-      timeColumn: "bp.battle_time",
-      label: seg.slug,
-      echo: seg.echo,
-      // When a board collection was last synced (Gym #322): the segment
-      // is that sync's membership, which the note dates.
-      ...(seg.syncedAt !== undefined ? { syncedAt: seg.syncedAt } : {}),
-    };
-  }
   return {
     where: null,
     // The participant carries battle_time (0001) and, since 0095,
@@ -1155,10 +1099,8 @@ export function ebShrink(
 
 /** The one-sentence caveats every meta tool carries; the formulas are on
  *  the methodology page (docsRef below). */
-/** A collection segment applies the collection's membership as it
- *  stands now (Gym #116): a board-synced collection turns over daily,
- *  so a season's rates are over today's members, not the season's. */
-export function collectionSegmentNote(seg) {
+/** Current-clan membership caveat shared by scoped history reads. */
+export function clanSegmentNote(seg) {
   const echo = seg?.echo ?? seg;
   // A clan segment is today's roster over the whole window (Gym #300: a
   // member who left dropped out of the weeks he played for the clan, and
@@ -1172,8 +1114,7 @@ export function collectionSegmentNote(seg) {
     ]
       .filter(Boolean)
       .join(" ");
-  if (echo?.kind !== "collection") return null;
-  return `The collection segment applies ${echo.collection}'s membership as of this call${seg?.syncedAt !== undefined ? `, the board as synced ${seg.syncedAt ?? "before sync times were kept (2026-09-24)"}` : ""} (collections_get lists it); a collection that follows a live board (collections_get.synced_from) turns over daily, so rates over a past window describe today's members, not the ones on the board then.`;
+  return null;
 }
 
 export const SEGMENT_NOTES = [
@@ -1647,16 +1588,8 @@ export async function renderDecks(db, battleIds) {
 
 // --- tools -----------------------------------------------------------------
 
-/** Added = recorded, shared honestly: the clan's recording exists while
- *  ANY account has it added OR a collection names it, at the widest
- *  scope anybody asks for. Returns true when this call started it.
- *
- *  Both of these delegate to reconcileRecording rather than counting
- *  account_clan themselves. They used to do their own counting, which
- *  meant they could not see collection membership: removing the last
- *  account that had added a clan stopped a clan a collection was still
- *  curating, and adding one at activity scope could downgrade a clan a
- *  comprehensive collection wanted. One function knows every reason. */
+/** A clan is recorded at the widest scope requested by a direct follower.
+ * The shared evaluator also preserves explicit operator recordings. */
 export async function ensureClanRecording(db, tag, requestedBy) {
   const { started } = await reconcileRecording(db, "clan", tag, requestedBy);
   return started;

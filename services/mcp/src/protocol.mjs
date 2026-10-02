@@ -96,7 +96,7 @@ function instructionsFor(kind, identity) {
   const rules = [
     "segment is REQUIRED on battles_meta_decks, battles_meta_cards,",
     "battles_trends, cards_synergy, cards_card and badges_*: 'mine',",
-    "'corpus' (on purpose) or {player_tag | clan_tag | collection}.",
+    "'corpus' (on purpose) or {player_tag | clan_tag}.",
     "Windows: from/to, days/weeks or season ('current', 'previous', 2026-08,",
     "135); applied.window says what was read. Name a deck by its archetype",
     "label ('Hog Rider cycle'), never eight cards; a label is not a verdict;",

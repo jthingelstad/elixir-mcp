@@ -30,7 +30,7 @@ import {
   META_METHODOLOGY,
   populationBlock,
   buildMeta,
-  collectionSegmentNote,
+  clanSegmentNote,
   PARTICIPANT_GAMES,
 } from "./shared.mjs";
 import {
@@ -118,7 +118,7 @@ const RAW_MODE_GROUP = modeGroupSql("bp.type", "null::text");
 export const synergyTools = {
   cards_synergy: {
     description:
-      "What a card is played WITH, for a named population (segment 'mine', 'corpus' or {clan_tag | player_tag | collection}) and window (default: the current season to date; season selects another): partner cards ranked by co-occurrence in decided head-to-head decks that contain the anchor, with co_occurrence_rate, distinct players per pair, the partner's baseline usage and lift = co_occurrence_rate / baseline (near 1 = rides along with everything). Anchor by card_id or exact name, never fuzzy; the anchor's forms merge by default, partners stay split by form.",
+      "What a card is played WITH, for a named population (segment 'mine', 'corpus' or {clan_tag | player_tag}) and window (default: the current season to date; season selects another): partner cards ranked by co-occurrence in decided head-to-head decks that contain the anchor, with co_occurrence_rate, distinct players per pair, the partner's baseline usage and lift = co_occurrence_rate / baseline (near 1 = rides along with everything). Anchor by card_id or exact name, never fuzzy; the anchor's forms merge by default, partners stay split by form.",
     inputSchema: {
       type: "object",
       properties: {
@@ -384,7 +384,7 @@ export const synergyTools = {
           };
         }),
         notes: notes(
-          collectionSegmentNote(seg),
+          clanSegmentNote(seg),
           args.mode === "event" ? META_EVENT_NOTE : null,
           bandPending
             ? "trophy_band answered from the raw rows (the season's banded rollup is not built yet; the nightly rebuild fills it)."

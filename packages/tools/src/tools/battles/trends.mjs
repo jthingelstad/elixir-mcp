@@ -20,7 +20,7 @@ import {
   requireEnum,
   resolveSeasonWindow,
   segmentFilter,
-  collectionSegmentNote,
+  clanSegmentNote,
 } from "../shared.mjs";
 import {
   TROPHY_MODE_TYPES,
@@ -32,7 +32,7 @@ import {
 
 export const battles_trends = {
   description:
-    "Weekly time series for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag | collection}. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies, the season the week starts in. Default 12 weeks; weeks, from/to or season set the window; applied.window.crosses marks each season roll inside it. Single-player weekly detail also lives in battles_performance group_by 'week'.",
+    "Weekly time series for a named population: segment 'mine', 'corpus' or {clan_tag | player_tag}. Per ISO week: battles, record, aggregate win rate, distinct active players, net trophies, the season the week starts in. Default 12 weeks; weeks, from/to or season set the window; applied.window.crosses marks each season roll inside it. Single-player weekly detail also lives in battles_performance group_by 'week'.",
   inputSchema: {
     type: "object",
     properties: {
@@ -174,7 +174,7 @@ export const battles_trends = {
       ...(population ? { population } : {}),
       weeks,
       notes: notes(
-        collectionSegmentNote(seg),
+        clanSegmentNote(seg),
         seg.where
           ? null
           : "On the corpus every count reads the recorded players' side of each battle (their opponents are not counted: the two sides of a battle always sum to a 0.500 win rate), so players_in_window is recorded players who played in the window.",

@@ -283,7 +283,7 @@ allowance on a fresh read instead of waiting for the schedule.
   2026-09-05; no membership gate on the clan tools). Your account data
   stays private.
 - The MCP door is OAuth 2.1 with rotating refresh tokens. `cr:read` is the
-  baseline, while recordings, collections, account preferences, and
+  baseline, while recordings, account preferences, and
   feedback each require their own write capability. The consent page
   names every requested capability, refresh never expands it, and an
   insufficient tool call is refused before it spends rate or daily

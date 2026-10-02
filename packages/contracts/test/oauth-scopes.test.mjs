@@ -16,16 +16,15 @@ test("OAuth scope catalog is closed and read is the safe default", () => {
   assert.deepEqual(OAUTH_SCOPES, [
     "cr:read",
     "recordings:write",
-    "collections:write",
     "account:write",
     "feedback:write",
     "account:email",
     "clans:attest",
   ]);
   // The default grant and the consent page's ticked extras are the
-  // STANDARD five; account:email and clans:attest are granted only to a
+  // STANDARD four; account:email and clans:attest are granted only to a
   // client that names them.
-  assert.deepEqual(STANDARD_OAUTH_SCOPES, OAUTH_SCOPES.slice(0, 5));
+  assert.deepEqual(STANDARD_OAUTH_SCOPES, OAUTH_SCOPES.slice(0, 4));
   assert.equal(FULL_OAUTH_SCOPE, STANDARD_OAUTH_SCOPES.join(" "));
   for (const scope of ["account:email", "clans:attest"])
     assert.equal(
@@ -36,7 +35,6 @@ test("OAuth scope catalog is closed and read is the safe default", () => {
 
 test("every tool has exactly the capability its behavior requires", () => {
   const expectedWrites = {
-    collections_edit: OAUTH_SCOPE.COLLECTIONS_WRITE,
     elixir_track_clan: OAUTH_SCOPE.RECORDINGS_WRITE,
     elixir_track_player: OAUTH_SCOPE.RECORDINGS_WRITE,
     // The feed advances the caller's own bookmark and nothing else; the

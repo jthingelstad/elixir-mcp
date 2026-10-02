@@ -47,7 +47,6 @@ link() {
 for rel in \
   .env \
   acceptance/.env \
-  clients/boards/.env \
   .claude/settings.local.json \
   .claude/skills/gym/.env \
   .claude/skills/gym/reports \

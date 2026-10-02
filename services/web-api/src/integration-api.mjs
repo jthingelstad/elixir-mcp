@@ -19,7 +19,6 @@ import { toolDeadlineMs } from "./deadline.mjs";
 import { makeLive } from "@elixir-mcp/tools/live";
 import { ERROR_CLASS } from "@elixir-mcp/contracts";
 import { normalizeTag } from "@elixir-mcp/contracts";
-import { setCollectionMembers } from "@elixir-mcp/claims";
 import { gameClock } from "@elixir-mcp/record/game-clock";
 import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
 import { enqueueJob, takeLiveToken } from "@elixir-mcp/ledger";
@@ -621,54 +620,6 @@ export async function integrationApi(db, event, body, deps = {}) {
         if (!UUID_RE.test(id)) throw new ApiError(404, "not_found");
         run = () => refreshStatus(db, account.accountId, id);
       } else if (
-        (method === "PUT" || method === "POST") &&
-        (match =
-          /^\/api\/v1\/collections\/([^/]+)\/members(?:\/([^/]+))?$/.exec(path))
-      ) {
-        if ((method === "PUT") !== Boolean(match[2]))
-          throw new ApiError(404, "not_found");
-        operation = "collections.members.add";
-        scope = "collections:members:add";
-        const id = decodeURIComponent(match[1]);
-        const values =
-          method === "PUT" ? [decodeURIComponent(match[2])] : body.tags;
-        if (!Array.isArray(values) || values.length < 1 || values.length > 500)
-          throw new ApiError(400, "invalid_members");
-        const tags = values.map(tag);
-        run = async () => {
-          const grant = (
-            await db.query(
-              `select c.*,g.member_limit from integration_collection_grant g join collection c using(collection_id)
-        where g.account_id=$1 and (c.collection_id::text=$2 or c.slug=$2) and c.kind='player'`,
-              [account.accountId, id],
-            )
-          ).rows[0];
-          if (!grant) throw new ApiError(404, "not_found");
-          const result = await setCollectionMembers(
-            db,
-            {
-              collectionId: grant.collection_id,
-              kind: grant.kind,
-              ownerAccount: grant.owner_account,
-            },
-            tags,
-            {
-              mode: "add",
-              reconcileProvided: true,
-              memberLimit: grant.member_limit,
-              integrationId: account.accountId,
-            },
-          );
-          return {
-            collection_id: grant.collection_id,
-            added: result.added,
-            already_present: new Set(tags).size - result.added,
-            total: result.total,
-            enrollment_established: true,
-            recordings_started: result.recordingsStarted,
-          };
-        };
-      } else if (
         method === "GET" &&
         (match =
           /^\/api\/v1\/clans\/([^/]+)\/(participation|roster|war-history)$/.exec(
@@ -775,11 +726,7 @@ export async function integrationApi(db, event, body, deps = {}) {
       );
     }
   } catch (error) {
-    if (
-      !error.status &&
-      error.code !== "enrollment_limit" &&
-      !(error instanceof URIError)
-    )
+    if (!error.status && !(error instanceof URIError))
       console.error("integration_api_failed", {
         request_id: requestId,
         operation,
@@ -788,16 +735,10 @@ export async function integrationApi(db, event, body, deps = {}) {
       });
     const status =
       error.status ??
-      (error.code === "enrollment_limit"
-        ? 409
-        : error instanceof URIError
-          ? 400
-          : isTransientDbError(error)
-            ? 503
-            : 500);
+      (error instanceof URIError ? 400 : isTransientDbError(error) ? 503 : 500);
     response = integrationProblem(
       status,
-      error.status || error.code === "enrollment_limit"
+      error.status
         ? error.code
         : status === 400
           ? "bad_request"

@@ -161,7 +161,6 @@ test.describe("signed in", () => {
     const sections: [string, RegExp, string][] = [
       ["Timeline", /\/console\/account\/timeline$/, "Timeline"],
       ["Tracking", /\/console\/account\/tracking$/, "Tracking"],
-      ["Collections", /\/console\/account\/collections$/, "Collections"],
       ["Verify", /\/console\/account\/verify$/, "Verify"],
       ["Usage", /\/console\/account\/usage$/, "Usage"],
       ["Connections", /\/console\/account\/connections$/, "Connections"],

@@ -54,12 +54,11 @@ named with `segment: "corpus"`, never a default; a corpus read carries
 
 **segment** — the population a segment tool scores: `"mine"` (the caller's
 clan: the agent's, or the primary player's), `"corpus"`, `{ player_tag }`,
-`{ clan_tag }` (the clan's current members) or `{ collection }`. Every
+`{ clan_tag }` (the clan's current members). Every
 population is stated: `segment` is required (4.0.0), and a call without
 it is refused with the three shapes in the hint.
 
-**collection** — a curated, named group of players or clans (a slug such as
-`pros`) that records its members at its own scope.
+**owned card collection** — the cards and forms a player owns, recorded from their profile. Named recording Collections retired in contract 10.0.0.
 
 **capture gap** — a stretch the recorder did not see: a burst that rolled off
 the ~30-battle log between polls, a week observed without a standings

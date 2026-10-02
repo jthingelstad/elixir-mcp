@@ -18,7 +18,6 @@ import crypto from "node:crypto";
 import {
   DEFAULT_OAUTH_SCOPE,
   OAUTH_SCOPES,
-  STANDARD_OAUTH_SCOPES,
   FULL_OAUTH_SCOPE,
 } from "@elixir-mcp/contracts";
 
@@ -114,7 +113,11 @@ export function validCodeChallenge(value) {
 export function normalizeScope(value) {
   const raw = String(value ?? "").trim();
   if (!raw) return FULL_OAUTH_SCOPE;
-  const unique = [...new Set(raw.split(/\s+/))];
+  const unique = [
+    ...new Set(
+      raw.split(/\s+/).filter((scope) => scope !== "collections:write"),
+    ),
+  ];
   if (
     !unique.includes(DEFAULT_OAUTH_SCOPE) ||
     unique.some((s) => !OAUTH_SCOPES.includes(s))
@@ -332,7 +335,7 @@ export async function redeemAuthCode(db, code) {
         accountId: row.account_id,
         codeChallenge: row.code_challenge,
         redirectUri: row.redirect_uri,
-        scope: row.scope,
+        scope: normalizeScope(row.scope),
         resource: row.resource,
       }
     : null;
@@ -461,7 +464,7 @@ export async function redeemRefreshToken(
       accessToken,
       refreshToken: newRefresh,
       expiresIn: ACCESS_TOKEN_TTL_SECONDS,
-      scope: row.scope,
+      scope: normalizeScope(row.scope),
       resource: row.resource,
       familyId: row.family_id,
     },
@@ -571,8 +574,8 @@ export async function validateAccessToken(db, token, { resource } = {}) {
           provisioned: row.provisioned,
         }),
         oauthFamilyId: row.family_id,
-        scope: row.scope,
-        scopes: row.scope.split(" "),
+        scope: normalizeScope(row.scope),
+        scopes: normalizeScope(row.scope).split(" "),
         resource: row.resource,
         kind: row.kind,
         ownedByAccountId: row.owned_by_account_id,
@@ -663,8 +666,8 @@ const SERVICE_TOKEN_PREFIX = "svt_";
  *
  * `scope` omitted means every scope — the shape every token minted before 0053
  * holds, kept so those keep working. New keys should say what they need:
- * Elixir Drop reads a war clock and has no business being able to edit
- * collections or change account settings.
+ * Elixir Drop reads a war clock and has no business being able to
+ * change account settings.
  */
 /**
  * A service token value and its digest, without storing either.
@@ -768,13 +771,16 @@ function serviceAccount(row) {
     // scope, which is what every token minted before 0053 holds — narrowing
     // them retroactively would revoke authority nobody agreed to give up.
     // New keys are written narrow: Drop needs cr:read to read a war clock, not
-    // the ability to edit collections and change account settings.
+    // the ability to change account settings.
     // "Every capability" for a key is the STANDARD set: account:email is
     // a person's address, and a service key is never a person.
-    scope: row.token_scope ?? FULL_OAUTH_SCOPE,
-    scopes: row.token_scope
-      ? row.token_scope.split(" ")
-      : [...STANDARD_OAUTH_SCOPES],
+    scope: (row.token_scope ?? FULL_OAUTH_SCOPE)
+      .split(/\s+/)
+      .filter((scope) => scope !== "collections:write")
+      .join(" "),
+    scopes: (row.token_scope ?? FULL_OAUTH_SCOPE)
+      .split(/\s+/)
+      .filter((scope) => scope !== "collections:write"),
     kind: row.kind,
     ownedByAccountId: row.owned_by_account_id,
     publicId: row.public_id,

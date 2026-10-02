@@ -17,7 +17,6 @@
 export const OAUTH_SCOPE = {
   READ: "cr:read",
   RECORDINGS_WRITE: "recordings:write",
-  COLLECTIONS_WRITE: "collections:write",
   ACCOUNT_WRITE: "account:write",
   FEEDBACK_WRITE: "feedback:write",
   /** The one scope that is never offered unless asked for (2026-09-12):
@@ -47,7 +46,7 @@ export const OAUTH_SCOPE_DETAILS: ReadonlyArray<{
     scope: OAUTH_SCOPE.READ,
     title: "Read recorded game data",
     description:
-      "Read what Elixir records: player profiles, battles, clans, war, collections and your timeline, plus your live-fetch allowance.",
+      "Read what Elixir records: player profiles, battles, clans, war and your timeline, plus your live-fetch allowance.",
     standard: true,
   },
   {
@@ -55,12 +54,6 @@ export const OAUTH_SCOPE_DETAILS: ReadonlyArray<{
     title: "Change what you track",
     description:
       "Start or stop tracking players and clans for you. Each player or clan tracked uses one of your tracking slots.",
-    standard: true,
-  },
-  {
-    scope: OAUTH_SCOPE.COLLECTIONS_WRITE,
-    title: "Edit collections",
-    description: "Add and remove members in collections you own.",
     standard: true,
   },
   {
@@ -145,7 +138,6 @@ export const GROUP_ORDER = [
   "Clans",
   "War",
   "Rankings",
-  "Collections",
   "Live",
   "Timeline",
   "Service",
@@ -384,27 +376,6 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     group: "Rankings",
     title: "What was on",
     readOnly: true,
-  },
-
-  // Collections — curated groupings (owner-published lists + your own).
-  collections_browse: {
-    group: "Collections",
-    title: "Browse collections",
-    readOnly: true,
-  },
-  collections_get: {
-    group: "Collections",
-    title: "Collection members",
-    readOnly: true,
-  },
-  collections_edit: {
-    group: "Collections",
-    title: "Edit a collection",
-    readOnly: false,
-    // `set` replaces membership wholesale and `remove` can stop a
-    // recording; the hint says so instead of pretending every action adds.
-    destructive: true,
-    oauthScope: OAUTH_SCOPE.COLLECTIONS_WRITE,
   },
 
   // Live — the ONE lane that spends real CR API budget by raw path.

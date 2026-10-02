@@ -231,28 +231,16 @@ test(
 );
 
 test(
-  "admin provisions and suspends a platform integration with a collection grant",
+  "admin provisions and suspends a platform integration without retired enrollment",
   { timeout: 20000 },
   async () => {
     await scratch.db.query(
       "update account set role='admin' where account_id=$1",
       [accountId],
     );
-    const c = (
-      await scratch.db.query(
-        "insert into collection(slug,title,kind,owner_account) values('ui-integration','Integration players','player',$1) returning collection_id",
-        [accountId],
-      )
-    ).rows[0];
     open("/console/admin/integrations");
     fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: "ui-platform" },
-    });
-    await screen.findByRole("option", {
-      name: "Integration players (ui-integration)",
-    });
-    fireEvent.change(screen.getByLabelText("Allow additions to collection"), {
-      target: { value: c.collection_id },
     });
     await clickReady("Create and issue key");
     await screen.findByText("Copy this key now. It is shown once.");

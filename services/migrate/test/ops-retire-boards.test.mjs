@@ -61,8 +61,8 @@ test("capture cutover previews the same reasons, preserves overlaps and provenan
       [tags[4]],
     );
     const preview = await retireBoardRecordings(null, {}, db);
-    assert.equal(preview.stopped, 2);
-    assert.equal(preview.retained, 4);
+    assert.equal(preview.stopped, 3);
+    assert.equal(preview.retained, 3);
     const { rows: before } = await db.query("select status from recording");
     assert.ok(
       before.every((r) => r.status === "active"),
@@ -79,22 +79,18 @@ test("capture cutover previews the same reasons, preserves overlaps and provenan
       stopped += r.stopped;
       after = r.next_after;
     } while (after);
-    assert.equal(stopped, 2);
+    assert.equal(stopped, 3);
     assert.equal(
       (await retireBoardRecordings(null, { apply: true }, db)).stopped,
       0,
     );
-    for (const tag of [tags[0], tags[2], tags[3]]) {
+    for (const tag of [tags[0], tags[2]]) {
       const {
         rows: [r],
       } = await db.query("select status from recording where subject_tag=$1", [
         tag,
       ]);
-      assert.equal(
-        r.status,
-        "active",
-        "claim, ops and unrelated collection survive stale origin",
-      );
+      assert.equal(r.status, "active", "claim and ops survive stale origin");
     }
     assert.equal(
       await bulkJobWanted(db, {

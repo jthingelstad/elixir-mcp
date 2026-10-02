@@ -56,7 +56,6 @@ calls, and answer with that tool's result.
 | `GET /game/clock` | integration | the game clock |
 | `GET /players/{tag}` | integration | a slim recorded profile |
 | `POST /profile-refreshes`, `GET /profile-refreshes/{id}` | integration | a profile refresh, asynchronous |
-| `PUT /collections/{id}/members/{tag}`, `POST /collections/{id}/members` | integration | adding players to a collection |
 | `POST /players/{tag}/facts` | integration | a fact about a player |
 | `POST /clans/{tag}/mail` | integration | a family app's mail to a clan |
 

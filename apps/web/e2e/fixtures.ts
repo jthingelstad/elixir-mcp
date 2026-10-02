@@ -31,7 +31,6 @@ export const ME = {
   entitlements: {
     activity_clans: { used: 0, limit: 1 },
     comprehensive_clans: { used: 0, limit: 0 },
-    collections: { used: 1, limit: 3 },
     live_fetch: { used: 3, limit: 40 },
     calls: { used: 120, limit: 2000 },
   },
@@ -118,7 +117,6 @@ export function signedIn(
     "GET /api/me/connections": [200, { connections: [], refusals: [] }],
     "GET /api/me/principals": [200, { agents: [], addable_clans: [] }],
     "GET /api/me/gateways": [200, { gateways: [] }],
-    "GET /api/me/collections": [200, { collections: [] }],
     "GET /api/me/feedback": [200, { feedback: [] }],
     "GET /api/me/verify": [200, { players: [] }],
     "GET /api/me/sessions": [

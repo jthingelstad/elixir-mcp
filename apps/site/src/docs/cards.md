@@ -49,8 +49,7 @@ the record, which is what it can know.
 ## One card in one call
 
 `cards_card` gathers what the record knows about a card for a named
-population (`segment: "mine" | "corpus" | {clan_tag | player_tag |
-collection}`, required as on every segment tool), anchored by `card_id` or
+population (`segment: "mine" | "corpus" | {clan_tag | player_tag}`, required as on every segment tool), anchored by `card_id` or
 an exact `card` name (`Witch` is never read as `Mother Witch`; a fuzzy
 name is refused with the candidates). Default window: the current season to
 date; `season`, `from`/`to` and `mode` as everywhere.

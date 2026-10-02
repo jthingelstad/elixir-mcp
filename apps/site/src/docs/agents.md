@@ -29,7 +29,7 @@ agent's console is the same pages scoped to it, at
 the address to connect it at), its Timeline, its MCP requests and account
 events, its share of your budget, the clients connected as it, its Settings
 and the feedback it has filed. Pages that belong to a person (Verify,
-Collections, Profile) are not there; Explore and Status are the same for
+Profile) are not there; Explore and Status are the same for
 everyone and stay in yours. An agent spends your budget and your recording
 slots, so your own Usage still counts it. New feedback is always filed as
 you.

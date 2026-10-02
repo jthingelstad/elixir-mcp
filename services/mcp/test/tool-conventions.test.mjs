@@ -138,7 +138,6 @@ test("segment tools take a nested segment, never a flat scope; the population is
     assert.equal(object.type, "object", name);
     assert.deepEqual(Object.keys(object.properties).sort(), [
       "clan_tag",
-      "collection",
       "on_behalf_of",
       "player_tag",
     ]);
@@ -223,7 +222,7 @@ test("prose rides notes[] and docs, never a bespoke *_note key", () => {
 test("no source names a retired tool, and every call-shaped mention is a real tool", () => {
   const known = new Set(declarations.map((d) => d.name));
   const retired =
-    /\b(elixir_watch_\w+|elixir_add_\w+|elixir_remove_\w+|get_\w+_performance|query_battles|list_my_players|cr_api_live)\b/g;
+    /\b(collections_(?:browse|get|edit)|elixir_watch_\w+|elixir_add_\w+|elixir_remove_\w+|get_\w+_performance|query_battles|list_my_players|cr_api_live)\b/g;
   for (const { file, text } of sources) {
     const hits = [...text.matchAll(retired)].map((m) => m[1]);
     assert.deepEqual(

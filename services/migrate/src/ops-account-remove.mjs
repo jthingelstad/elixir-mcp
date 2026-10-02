@@ -30,7 +30,7 @@
  * not a person (an agent goes with its owner), the owner account, an
  * owner of an integration (admin-provisioned: retire it first), a live
  * collector (revoke it first through the collector door's own revoke),
- * or a collection an integration is granted.
+ * and already removed accounts. Inert historical Collection grants do not block removal.
  *
  * Not reachable from here, so listed in `manual`: the newsletter address
  * at Buttondown, sent-mail bodies under mail/sent/ in the archive bucket
@@ -116,15 +116,6 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
   if (gw[0].live > 0)
     return refuse("collectors_live", { collectors: gw[0].live });
 
-  const { rows: granted } = await db.query(
-    `select count(*)::int as n from integration_collection_grant g
-       join collection c on c.collection_id = g.collection_id
-      where c.owner_account = any($1::uuid[])`,
-    [ids],
-  );
-  if (granted[0].n > 0)
-    return refuse("collection_granted", { grants: granted[0].n });
-
   // Identifiers the credential tables hang off.
   const { rows: tokens } = await db.query(
     `select token_id from service_token where account_id = any($1::uuid[])`,
@@ -195,6 +186,10 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     ["claim_challenge", `claim_challenge where account_id = any($1::uuid[])`],
     ["claim", `claim where account_id = any($1::uuid[])`],
     ["account_clan", `account_clan where account_id = any($1::uuid[])`],
+    [
+      "integration_collection_grant",
+      `integration_collection_grant where collection_id in (select collection_id from collection where owner_account = any($1::uuid[]))`,
+    ],
     ["collection", `collection where owner_account = any($1::uuid[])`],
     ["player_nickname", `player_nickname where account_id = any($1::uuid[])`],
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
