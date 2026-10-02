@@ -1,4 +1,5 @@
 import { normalizeTag } from "@elixir-mcp/contracts";
+import { battleLinks, resolveBattleRef } from "@elixir-mcp/record/battle-links";
 import { formatLocal } from "../../time.mjs";
 import {
   ARCHETYPE_NOTE,
@@ -36,7 +37,7 @@ import {
 
 export const battles_query = {
   description:
-    "The workhorse: recorded battles with filters and cursor pagination, both perspectives of every battle. Three addressing modes: player_tag (the usual sweep, defaults to the caller); battle_id alone (ONE battle, both sides); deck_hash alone (corpus-wide battles for that exact deck with a deck_stats aggregate and deliberately no pooled win rate). live: true asks for a battle-log poll no older than a minute (the 'what did they just play' path): served if in hand, otherwise queued while the record answers with live_status pending.",
+    "The workhorse: recorded battles with filters and cursor pagination, both perspectives of every battle. Three addressing modes: player_tag (the usual sweep, defaults to the caller); battle_id alone (ONE battle, both sides); deck_hash alone (corpus-wide battles for that exact deck with a deck_stats aggregate and deliberately no pooled win rate). live: true asks for a battle-log poll no older than a minute (the 'what did they just play' path): served if in hand, otherwise queued while the record answers with live_status pending. Each battle's url is its public page.",
   inputSchema: {
     type: "object",
     properties: {
@@ -79,7 +80,8 @@ export const battles_query = {
       },
       battle_id: {
         type: "string",
-        description: "Fetch exactly this battle (both perspectives).",
+        description:
+          "Fetch exactly this battle (both perspectives): its battle_id, the short id at the end of its url, or the url itself.",
       },
       game_mode: {
         type: "string",
@@ -164,9 +166,14 @@ export const battles_query = {
     }
     const where = [];
     const params = [];
+    // A battle by its id, its short id or its link (9.18.0's url): a
+    // short id two battles share answers both.
+    const battleIds = byBattle
+      ? await resolveBattleRef(ctx.db, args.battle_id)
+      : null;
     if (byBattle) {
-      params.push(String(args.battle_id));
-      where.push(`bp.battle_id = $1`, `bp.side = 0`);
+      params.push(battleIds.length > 0 ? battleIds : [String(args.battle_id)]);
+      where.push(`bp.battle_id = any($1)`, `bp.side = 0`);
     } else if (corpusDeck) {
       where.push("bp.side is not null");
     } else {
@@ -303,10 +310,11 @@ export const battles_query = {
                 bp.player_tag, bp.side, bp.crowns, bp.trophy_change, bp.starting_trophies, bp.deck_hash,
                 bp.elixir_leaked, bp.king_tower_hp, bp.princess_tower_hp_1,
                 bp.princess_tower_hp_2, bp.global_rank, bp.deck_avg_level,
-                bp.outcome, p.name as player_name
+                bp.outcome, bp.clan_tag, p.name as player_name, cl.name as clan_name
          from battle_participant bp
          join battle b on b.battle_id = bp.battle_id
          left join player p on p.player_tag = bp.player_tag
+         left join clan cl on cl.clan_tag = bp.clan_tag
          where ${where.join(" and ")}
          order by bp.battle_time desc, bp.battle_id desc
          limit ${limit}`,
@@ -322,14 +330,18 @@ export const battles_query = {
           ? `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
                   o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2,
                   o.elixir_leaked, o.global_rank, o.deck_avg_level,
-                  o.starting_trophies, p.name
+                  o.starting_trophies, o.trophy_change, o.outcome, p.name,
+                  cl.name as clan_name
            from battle_participant o join player p on p.player_tag = o.player_tag
+           left join clan cl on cl.clan_tag = o.clan_tag
            where o.battle_id = any($1) and o.player_tag <> $2`
           : `select o.battle_id, o.player_tag, o.side, o.crowns, o.deck_hash, o.clan_tag,
                   o.king_tower_hp, o.princess_tower_hp_1, o.princess_tower_hp_2,
                   o.elixir_leaked, o.global_rank, o.deck_avg_level,
-                  o.starting_trophies, p.name
+                  o.starting_trophies, o.trophy_change, o.outcome, p.name,
+                  cl.name as clan_name
            from battle_participant o join player p on p.player_tag = o.player_tag
+           left join clan cl on cl.clan_tag = o.clan_tag
            join unnest($1::text[], $2::int[]) me(battle_id, side)
              on me.battle_id = o.battle_id
            where o.side <> me.side`,
@@ -342,6 +354,11 @@ export const battles_query = {
       }, new Map());
     }
 
+    // Each battle's public page (9.18.0): the link a person is handed.
+    const links = await battleLinks(
+      ctx.db,
+      rows.map((r) => r.battle_id),
+    );
     // Decks render from the card rows (0091) for the page's battles;
     // compact needs only rounds_played, which the same rows carry.
     const decks = await renderDecks(
@@ -403,8 +420,13 @@ export const battles_query = {
         // populated on this path" (feedback #14).
         name_known: o.name !== null,
         crowns: o.crowns,
+        // Their own trophy change and count going in (9.18.0): the
+        // record always held them; a battle page shows both sides'.
+        trophy_change: o.trophy_change ?? null,
+        starting_trophies: o.starting_trophies ?? null,
         deck_hash: o.deck_hash,
         clan_tag: o.clan_tag,
+        clan_name: o.clan_name ?? null,
         // Their global leaderboard position at battle time, null
         // unless they were ranked then (0151).
         global_rank: o.global_rank ?? null,
@@ -434,10 +456,15 @@ export const battles_query = {
         if (/^riverRace/.test(String(r.type)) && r.starting_trophies !== null)
           warVsRows++;
       }
-      if (r.type === "PvP" && r.outcome === "loss" && r.trophy_change === null)
-        floorLosses++;
+      if (r.type === "PvP") {
+        for (const side of [r, ...opponents]) {
+          if (side.outcome === "loss" && side.trophy_change === null)
+            floorLosses++;
+        }
+      }
       return {
         battle_id: r.battle_id,
+        url: links.get(r.battle_id)?.url ?? null,
         battle_time: r.battle_time.toISOString(),
         ...(tz ? { battle_time_local: formatLocal(r.battle_time, tz) } : {}),
         type: r.type,
@@ -501,6 +528,8 @@ export const battles_query = {
           crowns: r.crowns,
           trophy_change: r.trophy_change,
           starting_trophies: r.starting_trophies,
+          clan_tag: r.clan_tag ?? null,
+          clan_name: r.clan_name ?? null,
           global_rank: r.global_rank ?? null,
           deck_hash: r.deck_hash,
           ...roundsPlayed(deckOf(r)),
@@ -627,7 +656,13 @@ export const battles_query = {
 
     return {
       ...(tag ? { player_tag: tag, name: subjectName } : {}),
-      ...(byBattle ? { battle_id: String(args.battle_id) } : {}),
+      // The battle asked for: its full id once the reference named one.
+      ...(byBattle
+        ? {
+            battle_id:
+              battleIds.length === 1 ? battleIds[0] : String(args.battle_id),
+          }
+        : {}),
       ...(deckStats
         ? { deck_hash: String(args.deck_hash), deck_stats: deckStats }
         : {}),
@@ -680,7 +715,7 @@ export const battles_query = {
           ? "elixir is each side's own leaked-elixir counter with its caveat on the object: read elixir.differential (me minus the one opponent, null on duels - a duel's per-round differentials ride rounds[]) before elixir.leaked, and neither as a skill measure."
           : null,
         floorLosses > 0
-          ? `${floorLosses} ladder ${floorLosses === 1 ? "loss carries" : "losses carry"} trophy_change null: a loss standing ON the arena's trophy floor costs nothing and the game omits the field, and a loss just above the floor is clamped to it, so trophy sums understate losses for a floored player (battles_performance.trophy_floor names the floor).`
+          ? `${floorLosses} ladder ${floorLosses === 1 ? "loss carries" : "losses carry"} trophy_change null (me or an opponent): a loss standing ON the arena's trophy floor costs nothing and the game omits the field, and a loss just above the floor is clamped to it, so trophy sums understate losses for a floored player (battles_performance.trophy_floor names the floor).`
           : null,
       ),
       docs: BATTLE_DOCS,

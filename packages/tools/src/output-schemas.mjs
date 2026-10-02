@@ -267,8 +267,19 @@ const PARTICIPANT = {
     name: { type: ["string", "null"] },
     name_known: { type: "boolean" },
     crowns: { type: ["integer", "null"] },
+    trophy_change: {
+      type: ["integer", "null"],
+      description:
+        "Their own trophy change in this battle (9.18.0); null off ladder and on a loss standing on the trophy floor.",
+    },
+    starting_trophies: { type: ["integer", "null"] },
     deck_hash: { type: ["string", "null"] },
     clan_tag: { type: ["string", "null"] },
+    clan_name: {
+      type: ["string", "null"],
+      description:
+        "The clan's name beside clan_tag (9.18.0): its name as last recorded; the tag is the clan at battle time.",
+    },
     global_rank: {
       type: ["integer", "null"],
       description:
@@ -3129,6 +3140,11 @@ export const OUTPUT_SCHEMAS = {
           type: "object",
           properties: {
             battle_id: { type: "string" },
+            url: {
+              type: ["string", "null"],
+              description:
+                "The battle's public page (9.18.0): both sides' decks and how it ended, readable without signing in; url + '.png' is its share picture. The link to hand a person for this battle.",
+            },
             battle_time: ISO,
             battle_time_local: {
               type: "string",
@@ -3211,6 +3227,8 @@ export const OUTPUT_SCHEMAS = {
                 crowns: { type: ["integer", "null"] },
                 trophy_change: { type: ["integer", "null"] },
                 starting_trophies: { type: ["integer", "null"] },
+                clan_tag: { type: ["string", "null"] },
+                clan_name: { type: ["string", "null"] },
                 global_rank: {
                   type: ["integer", "null"],
                   description:
