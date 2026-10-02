@@ -169,7 +169,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
       const i = x.indexOf("=");
       if (
         i < 3 ||
-        !["--directory", "--cutoff", "--resume", "--limit"].includes(
+        !["--directory", "--cutoff", "--resume", "--limit", "--group"].includes(
           x.slice(0, i),
         )
       )
@@ -179,7 +179,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   );
   if (!path.isAbsolute(args.directory ?? ""))
     throw new Error("census needs an absolute private directory");
-  const options = { region: "us-east-1" };
+  const group = args.group ?? "history";
+  if (!["history", "references"].includes(group))
+    throw new Error("unknown census group");
+  const options = { region: "us-east-1", maxAttempts: 1 };
   const sts = await new STSClient(options).send(
     new GetCallerIdentityCommand({}),
   );
@@ -197,7 +200,9 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
       new InvokeCommand({
         FunctionName: "elixir-mcp-migrate",
         InvocationType: "RequestResponse",
-        Payload: Buffer.from(JSON.stringify({ right_sizing_census: spec })),
+        Payload: Buffer.from(
+          JSON.stringify({ right_sizing_census: { ...spec, group } }),
+        ),
       }),
     );
     const p = JSON.parse(Buffer.from(r.Payload).toString("utf8"));
@@ -244,6 +249,8 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     );
     if (args.cutoff && snapshot.cutoff !== args.cutoff)
       throw new Error("resume cutoff differs");
+    if ((snapshot.group ?? "history") !== group)
+      throw new Error("resume group differs");
   } else {
     if (
       args.resume !== undefined ||
@@ -255,6 +262,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     await mkdir(args.directory, { mode: 0o700 });
     snapshot = {
       version: 1,
+      group,
       snapshot_id: randomUUID(),
       cutoff: args.cutoff,
       limit: requestedLimit ?? 2000,

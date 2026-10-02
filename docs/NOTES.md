@@ -3058,3 +3058,29 @@ The private export pins the live schema digest in every page and cursor. A
 resume compares the actual schema catalogue again; changed columns, keys or
 foreign keys require a fresh census. The definition also names its cutoff
 algorithm version. A scratch ALTER regression verifies refusal after drift.
+
+
+## 2026-10-02 - Provenance export deployment and reconstructing-source audit
+
+PR #231 and PR #232 deployed from green merged main `dffb8468` under lease
+5836de0f-0f8b-4b83-aeb3-64d0f601d570. Migration 0196 was already applied
+and zero new migrations ran; door smoke passed. No MCP or JSON API operation
+changed, so this private census release used its scratch regressions and the
+69 browser journeys rather than a tool acceptance sweep. The cutoff-bound
+private history export is running; it is not permission to delete history.
+
+The battle observer map is complete: 153,186 exact versions, 1,321,331
+observations, zero unresolved reads. Its SHA256 is
+0bdf17d33c3310a5e967bf59ff8090f620a424770f81bc7902b2f730842bb82c.
+A separate complete inventory found 77,883 call-capture versions totaling
+205,066,903 bytes; no editorial outbox objects remain. Call response mapping
+is still running, and no capture body is copied into the repository.
+
+The separate read-only references group closes the census over deck-card
+dependency counts, war anchors, call-capture pointers, editorial issue hashes
+and send identifiers. It leaves the in-flight history group's definition
+unchanged. Mail facts, notes and selection candidates are hashed in memory
+and never returned or stored in export pages; call arguments and network
+identity fields are excluded. The downloader refuses cross-group resumes
+and explicitly disables AWS invocation retries. No delete capability, key
+export, delivery or enrollment action is added.
