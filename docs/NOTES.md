@@ -3084,3 +3084,13 @@ and never returned or stored in export pages; call arguments and network
 identity fields are excluded. The downloader refuses cross-group resumes
 and explicitly disables AWS invocation retries. No delete capability, key
 export, delivery or enrollment action is added.
+
+
+The completed history census has a known limited lane: clan_event chooses
+nullable joined_observed_at and therefore inventories joined-member events,
+not the role/war events whose join stamp is null. The schema-clock audit
+found no other nullable cutoff. Do not use that lane's count as the full
+clan-event target. The references group supplies a complete clan-event
+identity inventory using its non-null window_end, with a paginated scratch
+regression for null join stamps. The old history definition is deliberately
+unchanged, and no destructive selection uses the incomplete excerpt.
