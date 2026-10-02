@@ -1,7 +1,6 @@
 # Codex local environment for scheduled runs (AGENT-TEAM/WORKFLOW.md,
 # "One worktree per run"). Each automation in AGENT-TEAM/automations.toml
-# and clan/AGENT-TEAM/automations.toml runs in its own worktree; this
-# prepares it.
+# runs in its own worktree, prepared by this setup.
 version = 1
 name = "elixir-mcp"
 

@@ -1,0 +1,380 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  harness,
+  req,
+  signIn,
+  cookieHeader,
+  fakeMcp,
+  player,
+  rosterBody,
+} from "./fakes.mjs";
+import { mountedPath, shapeRoster } from "@elixir-mcp/clan/handler.mjs";
+
+test("roster: names the primary's clan explicitly, marks your row, groups by role, reads for this request", async () => {
+  const members = [
+    {
+      player_tag: "#M1",
+      name: "Zed",
+      role: "member",
+      trophies: 9000,
+      donations_this_week: 10,
+    },
+    {
+      player_tag: "#20QQL8CCRU",
+      name: "Ada",
+      role: "leader",
+      trophies: 8000,
+      donations_this_week: 40,
+    },
+    {
+      player_tag: "#E1",
+      name: "Amy",
+      role: "elder",
+      trophies: 7000,
+      donations_this_week: 0,
+      last_seen_in_game: "2026-09-12T10:00:00.000Z",
+    },
+    {
+      player_tag: "#C1",
+      name: "Bo",
+      role: "coLeader",
+      trophies: 8500,
+      donations_this_week: 5,
+    },
+    {
+      player_tag: "#C2",
+      name: "Al",
+      role: "coLeader",
+      trophies: 8600,
+      donations_this_week: 5,
+    },
+  ];
+  const h = harness({ door: { roster: rosterBody(members) } });
+  const { sessionCookie } = await signIn(h);
+  const cookies = cookieHeader(sessionCookie);
+  const r = await h.handler(req("GET", "/api/roster", { cookies }));
+  assert.equal(r.statusCode, 200);
+  const body = JSON.parse(r.body);
+  const call = h.mcp.calls.find((c) => c[0] === "clans_roster");
+  assert.deepEqual(call[2], { clan_tag: "#2PQRJ8LV" });
+  assert.deepEqual(
+    body.members.map((m) => m.player_tag),
+    ["#20QQL8CCRU", "#C2", "#C1", "#E1", "#M1"],
+  );
+  assert.equal(body.members[0].you, true);
+  assert.equal(body.members[1].you, false);
+  assert.deepEqual(body.your_tags, ["#20QQL8CCRU"]);
+  assert.equal(body.members[2].role_label, "Co-leader");
+  assert.deepEqual(body.role_counts, {
+    leader: 1,
+    coLeader: 2,
+    elder: 1,
+    member: 1,
+  });
+  assert.equal(body.meta.freshness_seconds, 120);
+  assert.equal(body.meta.as_of, "2026-09-12T18:00:00.000Z");
+  assert.equal(body.members[3].last_seen_in_game, "2026-09-12T10:00:00.000Z");
+  assert.equal(body.name, "Example Clan");
+
+  const again = await h.handler(req("GET", "/api/roster", { cookies }));
+  assert.equal(JSON.parse(again.body).cached_at, body.cached_at);
+  assert.equal(h.mcp.calls.filter((c) => c[0] === "clans_roster").length, 2);
+  h.clock.t += 1;
+  await h.handler(req("GET", "/api/roster", { cookies }));
+  assert.equal(h.mcp.calls.filter((c) => c[0] === "clans_roster").length, 3);
+});
+
+test("roster: an empty clan renders as a roster with no members", async () => {
+  const h = harness({ door: { roster: rosterBody([]) } });
+  const { sessionCookie } = await signIn(h);
+  const r = await h.handler(
+    req("GET", "/api/roster", { cookies: cookieHeader(sessionCookie) }),
+  );
+  const body = JSON.parse(r.body);
+  assert.deepEqual(body.members, []);
+  assert.equal(body.member_count, 0);
+  assert.deepEqual(body.role_counts, {});
+});
+
+test("roster: a clan Elixir does not record is said plainly, not as an outage", async () => {
+  const h = harness({
+    door: {
+      roster: {
+        error: {
+          code: "not_recorded",
+          message: "#2PQRJ8LV is not a recorded clan.",
+          hint: "elixir_track_clan",
+        },
+      },
+    },
+  });
+  const { sessionCookie } = await signIn(h);
+  const r = await h.handler(
+    req("GET", "/api/roster", { cookies: cookieHeader(sessionCookie) }),
+  );
+  assert.equal(r.statusCode, 200);
+  const body = JSON.parse(r.body);
+  assert.equal(body.not_recorded, true);
+  assert.equal(body.clan_tag, "#2PQRJ8LV");
+});
+
+test("roster: a door outage is a 502, is reported", async () => {
+  const mcp = fakeMcp({ roster: rosterBody([]) });
+  const h = harness({ mcp });
+  const { sessionCookie } = await signIn(h);
+  const cookies = cookieHeader(sessionCookie);
+  await h.handler(req("GET", "/api/roster", { cookies }));
+  h.clock.t += 1;
+  mcp.state.roster = { error: { code: "bad_request", message: "nope" } };
+  const r = await h.handler(req("GET", "/api/roster", { cookies }));
+  assert.equal(r.statusCode, 502);
+});
+
+test("shapeRoster never adds fields the tool did not answer", () => {
+  const shaped = shapeRoster(
+    { clan_tag: "#X", members: [{ player_tag: "#A", role: "member" }] },
+    { you: "#Z" },
+  );
+  const m = shaped.members[0];
+  assert.equal(m.trophies, null);
+  assert.equal(m.donations_this_week, null);
+  assert.equal(m.last_recorded_battle, null);
+  assert.equal(m.name, null);
+  assert.equal(shaped.meta.freshness_seconds, null);
+  assert.equal(shaped.clan_war_trophies, null);
+  assert.equal(shaped.required_trophies, null);
+  assert.deepEqual(shaped.comings, []);
+  assert.equal(shaped.meta.timezone_applied, null);
+});
+
+test("shapeRoster carries the clan's own figures and its newest comings and goings", () => {
+  const event = (type, at, detail) => ({ type, at, detail });
+  const shaped = shapeRoster(
+    {
+      clan_tag: "#X",
+      type: "inviteOnly",
+      required_trophies: 7500,
+      clan_war_trophies: 1220,
+      donations_per_week: 2428,
+      scores_observed_at: "2026-09-30T00:00:00Z",
+      members: [],
+      recent_events: [
+        event("role_changed", "2026-09-29T00:00:00Z", { player_tag: "#A" }),
+        event("member_left", "2026-09-25T22:13:00Z", {
+          player_tag: "#L",
+          name: "Lu",
+          role_at_departure: "elder",
+        }),
+        event("member_joined", "2026-09-29T11:28:00Z", {
+          player_tag: "#J",
+          name: "Jo",
+        }),
+        event("week_resolved", "2026-09-27T09:38:00Z", {
+          season_id: 136,
+          section_index: 2,
+          rank: 1,
+          fame: 10305,
+          trophy_change: 100,
+        }),
+        event("bracket_observed", "2026-09-28T09:38:00Z", { rivals: [] }),
+      ],
+      meta: { timezone_applied: "America/Chicago" },
+    },
+    { yourTags: [] },
+  );
+  assert.equal(shaped.type, "inviteOnly");
+  assert.equal(shaped.required_trophies, 7500);
+  assert.equal(shaped.clan_war_trophies, 1220);
+  assert.equal(shaped.donations_per_week, 2428);
+  assert.equal(shaped.meta.timezone_applied, "America/Chicago");
+  // Joins, departures and race results only, newest first; a departure
+  // carries no role and nothing says kick or leave.
+  assert.deepEqual(
+    shaped.comings.map((e) => e.type),
+    ["member_joined", "week_resolved", "member_left"],
+  );
+  assert.equal(shaped.comings[1].rank, 1);
+  assert.equal(shaped.comings[1].fame, 10305);
+  assert.equal(shaped.comings[2].name, "Lu");
+  assert.equal("role_at_departure" in shaped.comings[2], false);
+});
+
+test("unknown routes are 404 JSON; health is open", async () => {
+  const h = harness();
+  assert.equal((await h.handler(req("GET", "/api/nope"))).statusCode, 404);
+  assert.equal(
+    JSON.parse((await h.handler(req("GET", "/api/health"))).body).ok,
+    true,
+  );
+});
+
+test("Elixir serves this API under /api/clan: the same routes, in either form (2026-09-28)", async () => {
+  assert.equal(mountedPath("/api/clan/auth/callback"), "/auth/callback");
+  assert.equal(mountedPath("/api/clan/me"), "/api/me");
+  assert.equal(
+    mountedPath("/api/clan/clans/2PQRJ8LV/actions"),
+    "/api/clans/2PQRJ8LV/actions",
+  );
+  for (const path of ["/auth/login", "/api/clans/2PQRJ8LV", "/api/clanx/me"])
+    assert.equal(mountedPath(path), path);
+
+  const h = harness();
+  assert.equal(
+    JSON.parse((await h.handler(req("GET", "/api/clan/health"))).body).ok,
+    true,
+  );
+  assert.equal(
+    (await h.handler(req("GET", "/api/clanx/health"))).statusCode,
+    404,
+  );
+  const start = await h.handler(req("GET", "/api/clan/auth/login"));
+  assert.equal(start.statusCode, 303);
+  const { sessionCookie } = await signIn(h);
+  const me = await h.handler(
+    req("GET", "/api/clan/me", { cookies: cookieHeader(sessionCookie) }),
+  );
+  assert.equal(me.statusCode, 200);
+  assert.equal(JSON.parse(me.body).selected.name, "Example Clan");
+});
+
+const twoClans = () => ({
+  players: [
+    player(),
+    player({
+      player_tag: "#ALT",
+      name: "Ada's other",
+      is_primary: false,
+      relationship: "alt",
+      clan_tag: "#PYLQ2",
+      clan_role: "member",
+    }),
+  ],
+});
+
+test("two clans, nothing remembered: the chooser is required and the roster needs a clan", async () => {
+  const h = harness({ door: twoClans() });
+  const { sessionCookie } = await signIn(h);
+  const cookies = cookieHeader(sessionCookie);
+  const me = JSON.parse(
+    (await h.handler(req("GET", "/api/me", { cookies }))).body,
+  );
+  assert.equal(me.ok, true);
+  assert.equal(me.selected, null);
+  assert.deepEqual(
+    me.clans.map((c) => c.clan_tag),
+    ["#2PQRJ8LV", "#PYLQ2"],
+  );
+  const r = await h.handler(req("GET", "/api/roster", { cookies }));
+  assert.equal(r.statusCode, 409);
+});
+
+test("select: picks a clan in the set, is remembered across a fresh sign-in, refuses a clan outside it", async () => {
+  const h = harness({ door: twoClans() });
+  const { sessionCookie } = await signIn(h);
+  const cookies = cookieHeader(sessionCookie);
+  const bad = await h.handler(
+    req("POST", "/api/select", {
+      cookies,
+      body: JSON.stringify({ clan_tag: "#22GG" }),
+    }),
+  );
+  assert.equal(bad.statusCode, 403);
+  const ok = await h.handler(
+    req("POST", "/api/select", {
+      cookies,
+      body: JSON.stringify({ clan_tag: "pylq2" }),
+    }),
+  );
+  assert.equal(ok.statusCode, 200);
+  const me = JSON.parse(ok.body);
+  assert.equal(me.selected.clan_tag, "#PYLQ2");
+  assert.equal(me.selected.player_tag, "#ALT");
+  assert.equal(me.selected.role_label, "Member");
+  assert.equal(
+    h.store.items.get("account#test-person").selected.clan_tag,
+    "#PYLQ2",
+  );
+
+  // Sign out, sign in again: the remembered clan is where the callback lands.
+  await h.handler(req("POST", "/auth/logout", { cookies }));
+  const again = await signIn(h);
+  assert.equal(JSON.parse(again.me.body).selected.clan_tag, "#PYLQ2");
+});
+
+test("a remembered clan the person is no longer in is ignored", async () => {
+  const h = harness({ door: twoClans() });
+  h.store.items.set("pref##20QQL8CCRU", { clan_tag: "#GONE" });
+  const { me: response } = await signIn(h);
+  assert.equal(JSON.parse(response.body).selected, null);
+});
+
+test("roster by clan: ?clan= names any clan in the set, reads per clan, refuses others", async () => {
+  const mcp = fakeMcp(twoClans());
+  const h = harness({ mcp });
+  const { sessionCookie } = await signIn(h);
+  const cookies = cookieHeader(sessionCookie);
+  mcp.state.roster = rosterBody([
+    { player_tag: "#ALT", name: "Ada's other", role: "member" },
+  ]);
+  const other = JSON.parse(
+    (
+      await h.handler(
+        req("GET", "/api/roster", { cookies, query: { clan: "PYLQ2" } }),
+      )
+    ).body,
+  );
+  assert.equal(other.members[0].you, true);
+  const main = await h.handler(
+    req("GET", "/api/roster", { cookies, query: { clan: "#2PQRJ8LV" } }),
+  );
+  assert.equal(main.statusCode, 200);
+  assert.equal(h.mcp.calls.filter((c) => c[0] === "clans_roster").length, 2);
+  await h.handler(
+    req("GET", "/api/roster", { cookies, query: { clan: "PYLQ2" } }),
+  );
+  assert.equal(
+    h.mcp.calls.filter((c) => c[0] === "clans_roster").length,
+    3,
+    "each request rechecks its recorded roster",
+  );
+  const nope = await h.handler(
+    req("GET", "/api/roster", { cookies, query: { clan: "#22GG" } }),
+  );
+  assert.equal(nope.statusCode, 403);
+  assert.equal(JSON.parse(nope.body).error, "not_your_clan");
+});
+
+test("two verified tags in one clan: both rows are yours", async () => {
+  const members = [
+    { player_tag: "#20QQL8CCRU", name: "Ada", role: "member" },
+    { player_tag: "#ALT", name: "Ada's other", role: "coLeader" },
+    { player_tag: "#X", name: "Someone", role: "member" },
+  ];
+  const h = harness({
+    door: {
+      players: [
+        player({ clan_role: "member" }),
+        player({
+          player_tag: "#ALT",
+          is_primary: false,
+          relationship: "alt",
+          clan_role: "coLeader",
+        }),
+      ],
+      roster: rosterBody(members),
+    },
+  });
+  const { sessionCookie } = await signIn(h);
+  const body = JSON.parse(
+    (
+      await h.handler(
+        req("GET", "/api/roster", { cookies: cookieHeader(sessionCookie) }),
+      )
+    ).body,
+  );
+  assert.deepEqual(
+    body.members.filter((m) => m.you).map((m) => m.player_tag),
+    ["#ALT", "#20QQL8CCRU"],
+  );
+});

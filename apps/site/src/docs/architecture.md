@@ -341,8 +341,9 @@ Elixir MCP is built in the open:
 - [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp)
   — this service: recorder, MCP door, web app, and these pages
   (the docs you are reading are the source of record; `docs/ENGINEERING.md`
-  holds the build invariants). Elixir Clan lives there too, under `clan/`,
-  and reads this service at `/api/v1` with the person's own grant.
+  holds the build invariants). Clan is part of the same application,
+  account and deployment, with its management records in Elixir's private
+  store. Its in-game role checks remain tied to the signed-in person.
 - [jthingelstad/elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector)
   — the collector binary operators run.
 - [jthingelstad/elixir-mcp-discord](https://github.com/jthingelstad/elixir-mcp-discord)

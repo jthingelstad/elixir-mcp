@@ -63,15 +63,9 @@ jobs:
       # tests read it, and the journeys below serve the same tree (#73).
       - run: npm run verify
       - run: node infra/scripts/build.mjs
-      # Elixir Clan (clan/) builds its own web bundle and Lambda zip; its
-      # journeys run in `npm run e2e` with the Console's.
-      - run: npm run build -w @elixir-clan/web
-      - run: node clan/infra/scripts/build.mjs
       # Journeys against the built tree behind the edge's document-or-shell
       # rule, /api/* answered by route fixtures: the real bundle, the real
       # router, the real chunks, axe on every page a journey lands on.
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
-      # No AWS credentials in validate, ever (AGENTS.md; only clan-deploy
-      # assumes a role, Clan's, through OIDC): template validation
-      # runs locally via aws cloudformation validate-template.
+      # No AWS credentials in validate; production uses the canonical deploy lane.

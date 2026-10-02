@@ -190,7 +190,7 @@ describe("the gate pages", () => {
     );
     expect(
       screen.getByRole("link", { name: "Sign in again" }).getAttribute("href"),
-    ).toBe("/api/clan/auth/login");
+    ).toBe("/console/signin");
     cleanup();
     renderWithProviders(
       <Refused reason="no_clan" me={me} onRecheck={() => {}} />,
@@ -211,17 +211,17 @@ describe("the landing page", () => {
       screen
         .getByRole("link", { name: "Sign in with Elixir" })
         .getAttribute("href"),
-    ).toBe("/api/clan/auth/login");
+    ).toBe("/console/signin");
     expect(
-      screen.getByText("Sign in with Elixir to open your clan tools."),
+      screen.getByText(
+        "Your Elixir sign-in opens your recorded history and clan tools.",
+      ),
     ).toBeTruthy();
   });
 
   test("a sign-in error is explained", () => {
-    renderWithProviders(<Landing error="state_mismatch" />);
-    expect(screen.getByRole("alert").textContent).toMatch(
-      /did not start in this browser/,
-    );
+    renderWithProviders(<Landing error="session_expired" />);
+    expect(screen.getByRole("alert").textContent).toMatch(/Your session ended/);
   });
 });
 

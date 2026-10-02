@@ -551,35 +551,32 @@ and requires a successful audited REST call. It cannot revoke another agent's
 credential. Stage Drop's `ElixirIntegrationKey` parameter with the previous code
 artifact; CI then deploys the REST client while preserving the staged key.
 
-## Clan consolidation storage seam (2026-10-02, in progress)
+## Integrated Clan storage and identity (2026-10-02)
 
 `packages/clan-engine` owns the pure management engine and golden tests;
 `packages/clan-state` is the single management ledger implementation. Its
 Postgres adapter receives the request's existing connected client; the caller
 owns transactions and the serialization of multi-item clan changes. The
-legacy runtime temporarily uses its Dynamo adapter through the same package.
-Migration 0196 adds the destination only, with complete item JSON and stable
-keys. Private Clan state is never imported by MCP/tool/public-game packages.
+private state uses migration 0196 with complete item JSON and stable keys. Private Clan state is never imported by MCP/tool/public-game packages.
 A digest-bound private snapshot import excludes session/login items and
 OAuth pairs, preserves sealed keys, and refuses unknown durable kinds.
-No auth or storage cutover is implied by installing this additive foundation.
+The checked frozen import transferred all 131 durable items before runtime activation.
 
-The prepared internal Clan path lives in web-api and receives only its resolved
+The internal Clan path lives in web-api and receives only its resolved
 Elixir person and connected database client. Request-local opaque credentials
 keep the closed Clan reader inside this process; no OAuth grant or integration
 key is fabricated. Membership, verification, roles and fact replacement checks
 remain in their common writers. The external JSON API still checks its audience,
-first-party registration and scopes. The internal path is disabled until state,
-model-key, scheduled-job and UI cutover checks pass.
+first-party registration and scopes. Clan shares the Elixir browser session and the canonical deploy lane.
 
-The prepared Clan cutover switch is `ClanInternal`, false until the private
-snapshot is imported and the unified UI is ready. It changes edge origins,
-the browser session path and the one-clan morning rule together. The legacy
-adapter's `MigrationFrozen` blocks all business GETs as well as mutations and
-scheduled evaluations; snapshot export waits 300 seconds after the freeze
-completes. `{clan_import}` reads only `clan-migration/v1/` objects, checks the
-exact digest and frozen-source times, defaults to preview, and requires an
-empty destination to apply. Comparison returns counts, never private bodies.
+`ClanInternal` remains a preserved feature switch. All Clan edge routes always
+point to the common app and web API; disabling the feature never resumes the
+old runtime. The one-clan morning jobs use the canonical ledger. The source
+transfer froze the legacy runtime and waited 300 seconds before exporting;
+`{clan_import}` remains digest-bound, private-prefix-only and preview-first,
+requiring an empty destination on application. Comparison returns counts,
+never private bodies. Obsolete client registrations remain audit history;
+Clan grants and its service key retired without changing Drop credentials.
 
 Clan model calls use the existing non-VPC relay and outbox infrastructure,
 with separate private request, claim and reply prefixes. Only the request
@@ -594,7 +591,7 @@ The Clan view source is `packages/clan-web`. Its route factory joins the one
 `apps/web` router and lazy-loads Clan's shell and views; it creates no router
 or query provider. All private Clan keys start with `["me", "clan"]`, so the
 common session refresh invalidates them without colliding with the root
-account envelope. The old bucket has only a temporary build wrapper until
-cutover. Clan maintenance uses the IAM-only `{clan_maintenance}` migrate op,
+account envelope. There is no separate frontend wrapper or build.
+Clan maintenance uses the IAM-only `{clan_maintenance}` migrate op,
 with bounded kind-specific reads, unchanged reply pointers and digest-checked,
 explicit feedback responses. Sealed key items have no maintenance read path.

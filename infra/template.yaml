@@ -97,9 +97,9 @@ Parameters:
       (docs/SECRETS.md).
   ClanInternal:
     Type: String
-    Default: "false"
+    Default: "true"
     AllowedValues: ["true", "false"]
-    Description: Enable shared Clan session, private state, jobs and model transport only after reviewed import and UI cutover
+    Description: Enable integrated Clan features; disabling does not restore a separate runtime
   ClanModelSecretName:
     Type: String
     Default: elixir-clan/app
@@ -108,14 +108,6 @@ Parameters:
     Type: String
     Default: ""
     Description: Preserved verified player tags for the private Clan feedback maintainer lane
-  ClanApiDomain:
-    Type: String
-    AllowedPattern: "^[a-z0-9]+\\.execute-api\\.[a-z0-9-]+\\.amazonaws\\.com$"
-    ConstraintDescription: the host of the elixir-clan stack's ApiUrl output
-    Description: >-
-      Elixir Clan's HTTP API, which answers /api/clan/* on this origin
-      (clan/, its own stack; the host of that stack's ApiUrl output). Set
-      once with --param. PRESERVED.
 
 Conditions:
   HasInternalClan: !Equals [!Ref ClanInternal, "true"]
@@ -1639,23 +1631,6 @@ Resources:
             ]
         QueryStringsConfig: { QueryStringBehavior: all }
 
-  # Elixir Clan's API under /api/clan/* (2026-09-28): its own two
-  # cookies and nothing of Elixir's, so __Host-elixir_session never
-  # reaches Clan's Lambda. Clan's cookies are Path=/ and the browser sends
-  # them under /api/* too, where the door reads only its own.
-  ClanApiOriginRequestPolicy:
-    Type: AWS::CloudFront::OriginRequestPolicy
-    Properties:
-      OriginRequestPolicyConfig:
-        Name: elixir-mcp-clan-api
-        CookiesConfig:
-          CookieBehavior: whitelist
-          Cookies: [__Host-elixir_clan_session, __Host-elixir_clan_login]
-        HeadersConfig:
-          HeaderBehavior: whitelist
-          Headers: [accept, content-type, cloudfront-viewer-country]
-        QueryStringsConfig: { QueryStringBehavior: all }
-
   # Browser security headers on every response (#25). Before this, the
   # site shipped no CSP, no frame-ancestors, no nosniff, no
   # Referrer-Policy and no Permissions-Policy.
@@ -1791,19 +1766,6 @@ Resources:
             CustomOriginConfig:
               OriginProtocolPolicy: https-only
               OriginSSLProtocols: [TLSv1.2]
-          # Elixir Clan (clan/, stack elixir-clan): its app from its own
-          # bucket, whose name its template fixes and whose policy admits
-          # this distribution, and its HTTP API. Nothing of Elixir's is
-          # sent to either.
-          - Id: clanweb
-            DomainName: !Sub elixir-clan-web-${AWS::AccountId}.s3.${AWS::Region}.amazonaws.com
-            OriginAccessControlId: !Ref SiteOac
-            S3OriginConfig: { OriginAccessIdentity: "" }
-          - Id: clanapi
-            DomainName: !Ref ClanApiDomain
-            CustomOriginConfig:
-              OriginProtocolPolicy: https-only
-              OriginSSLProtocols: [TLSv1.2]
         DefaultCacheBehavior:
           TargetOriginId: site
           ViewerProtocolPolicy: redirect-to-https
@@ -1867,17 +1829,12 @@ Resources:
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
           # Elixir Clan's API, listed before /api/*, which would take it.
           - PathPattern: /api/clan/*
-            TargetOriginId: !If [HasInternalClan, api, clanapi]
+            TargetOriginId: api
             ViewerProtocolPolicy: https-only
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            OriginRequestPolicyId:
-              !If [
-                HasInternalClan,
-                !Ref SiteApiOriginRequestPolicy,
-                !Ref ClanApiOriginRequestPolicy,
-              ]
+            OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
           - PathPattern: /api/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
@@ -1945,7 +1902,7 @@ Resources:
           # same function as the site. Two patterns, because /clan* would
           # also take /clans.
           - PathPattern: /clan
-            TargetOriginId: !If [HasInternalClan, site, clanweb]
+            TargetOriginId: site
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
@@ -1954,7 +1911,7 @@ Resources:
               - EventType: viewer-request
                 FunctionARN: !GetAtt SpaRouter.FunctionMetadata.FunctionARN
           - PathPattern: /clan/*
-            TargetOriginId: !If [HasInternalClan, site, clanweb]
+            TargetOriginId: site
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
@@ -1998,7 +1955,7 @@ Resources:
       FunctionConfig:
         Comment: Route content paths to the static site and app paths to their app shell
         Runtime: cloudfront-js-2.0
-      FunctionCode: !Sub |
+      FunctionCode: |
         function handler(event) {
           var request = event.request;
           var uri = request.uri;
@@ -2036,10 +1993,9 @@ Resources:
             return request;
           }
 
-          // Elixir Clan owns /clan: its files sit under clan/ in its own
-          // bucket, and every other path there is its app.
+          // Clan uses the common application shell.
           if (key === '/clan' || key.indexOf('/clan/') === 0) {
-            request.uri = '${ClanInternal}' === 'true' ? '/app.html' : '/clan/index.html';
+            request.uri = '/app.html';
             return request;
           }
 

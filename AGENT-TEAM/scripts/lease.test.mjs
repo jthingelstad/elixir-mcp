@@ -218,10 +218,10 @@ test("every worktree of the clone shares one lease and one notes queue", () => {
     assert.equal(other.run("status").leaseId, held.leaseId);
     repo.run("release", "session", "--lease-id", held.leaseId);
 
-    const mine = other.run("claim", "clan-run");
+    const mine = other.run("claim", "run");
     assert.equal(mine.worktree, path.join(realpathSync(wt), "run"));
-    assert.equal(repo.run("status").objective, "clan-run");
-    other.run("release", "clan-run", "--lease-id", mine.leaseId);
+    assert.equal(repo.run("status").objective, "run");
+    other.run("release", "run", "--lease-id", mine.leaseId);
 
     // A blocked run with no lease still leaves a note, and it outlives
     // the worktree it was written from.

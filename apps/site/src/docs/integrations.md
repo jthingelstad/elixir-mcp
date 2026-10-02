@@ -56,9 +56,9 @@ each operation names the callers it admits (`x-principals`).
 
 ## Provisioning and administration
 
-Clan's consolidation into Elixir includes retiring its separate OAuth client
-and service key after its checked state transfer and shared runtime activation.
-Its historical records remain. Drop's Elixir sign-in, account access and
+Clan now opens inside Elixir with the same account. Its separate OAuth client
+and service key have retired after a checked transfer of its private records.
+Its policies, action history, awards and preferences remain. Drop's Elixir sign-in, account access and
 authorized personal tracking remain available.
 
 **Admin → Integrations** creates the platform identity, issues a key, sets API

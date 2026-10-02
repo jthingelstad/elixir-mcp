@@ -268,41 +268,24 @@ enrollment retired in 10.0.0 / JSON API 3.0.0. Historical Collection membership
 and grants remain inert as purge provenance. Canonical game facts still enter
 only through collectors.
 
-### Elixir Clan lives in `clan/`
+### Clan is part of Elixir
 
-Elixir Clan's code moved into this repository on 2026-09-28 with its
-history (`git log -- clan`): one repository, two runtimes. Clan keeps its
-own Lambdas, DynamoDB table and CloudFormation stack (`elixir-clan`),
-deploys from CI through `.github/workflows/clan-deploy.yml` after a green
-`validate` (it skips a merge that changed nothing it builds from), and
-reads Elixir only over HTTP, at `/api/v1` with the person's own grant.
-Elixir's distribution serves it: `/clan` and `/clan/*` from Clan's bucket
-(the SpaRouter sends every app path to `/clan/index.html`), `/api/clan/*`
-to Clan's HTTP API with only Clan's two cookies forwarded, so Elixir's
-session never reaches Clan's Lambda. `clan/AGENTS.md` governs work inside
-`clan/`; read it before editing there.
+Clan shares Elixir's account/session, React router and query provider, web API,
+Postgres, jobs, infrastructure stack and deployment. `/clan` serves `/app.html`;
+`/api/clan/*` uses the web API and Elixir cookie/CSRF boundary. There is no
+separate Clan OAuth flow, Dynamo adapter, app build or deployment workflow.
 
-Consolidation foundation (2026-10-02): the pure engine and golden tests are
-`packages/clan-engine`; `packages/clan-state` owns the common ledger with
-a temporary legacy Dynamo adapter. Migration 0196 adds an empty destination,
-not an account or storage cutover.
+The engine and goldens live in `packages/clan-engine`, business orchestration
+in `packages/clan`, private management ledger in `packages/clan-state`, views
+in `packages/clan-web`, and adapters in `services/web-api/src/clan.mjs` and
+`services/jobs/src/clan.mjs`. The internal reader uses only the authenticated
+person and recorded facts; membership, verification and role remain current
+checks. Never import private Clan state or business services into MCP or public
+game tools; `services/web-api/test/clan-boundary.test.mjs` pins that boundary.
 
-Shared: the kit (`packages/ui`, `packages/client`, `packages/design`,
-taken from the workspace, so a kit change is checked against Clan in the
-same gate), the root `npm run verify` and `npm run e2e`, the ruleset and
-the one lease. Not shared: `clan/infra/tests/boundary.test.mjs`
-permits the shared workspace packages and refuses imports between the
-legacy deployment adapters and the root application. MCP and public tools
-remain unable to import private Clan state or business services. Game facts
-and policy judgment keep distinct provenance.
-
-Consolidation preparation now also shares Clan orchestration through
-`packages/clan`. The legacy deployment adapter still owns its Dynamo and OAuth
-wiring. `services/web-api/src/clan.mjs` is the prepared internal request path;
-`CLAN_INTERNAL` remains off until the reviewed state/runtime cutover. Private
-Clan state is never an MCP or public-tool input.
-
-
-### Shared Clan UI preparation (2026-10-02)
-
-Clan views and their tests now live in `packages/clan-web`. Its lazy route factory mounts below the common router/query provider in `apps/web`; the separate web build is a temporary wrapper over those sources. Browser `/api/me` advertises the live ClanInternal switch: disabled or unknown Clan links load the legacy document; enabled links navigate inside the shared application. Production remains disabled until the frozen import and routing switch. Private state maintenance is the IAM-only clan_maintenance op, with duties transferred conditionally to the existing four root owners.
+Migration 0196 and the frozen digest-bound import preserved durable records and
+sealed model keys, excluding obsolete sessions and logins. The four root owners
+now cover Clan on their existing schedules; its separate automations retired.
+`ClanInternal` is a preserved feature switch, not a fallback to an old runtime.
+Keep `elixir-clan/app` until the sealing secret has its own reviewed rotation;
+its derivation and AAD must not change with code/storage consolidation.

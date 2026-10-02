@@ -54,9 +54,6 @@ export const PRESERVED_PARAMETERS = [
   "SessionSecretPreviousInSecret",
   "UnsubscribeKeyInSecret",
   "SecretEpoch",
-  // Where Elixir Clan's API answers (/api/clan/*): set once, and again
-  // only if Clan's API is ever replaced.
-  "ClanApiDomain",
   "ClanInternal",
   "ClanModelSecretName",
   "ClanMaintainerTags",

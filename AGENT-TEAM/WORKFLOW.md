@@ -50,8 +50,7 @@ collided often, and a held lease stalled the runs behind it.
   (`gh pr update-branch --rebase`) and resolves.
 
 Lease keys: `run`, `record`, `loop`, `guard` (this team);
-`clan-run`, `clan-judge`, `clan-loop`, `clan-guard` (Elixir Clan's,
-`clan/AGENT-TEAM/`); `clock`, `game` (the domain team's,
+`clock`, `game` (the domain team's,
 `../AGENT-TEAM/`); `session` (an interactive session).
 
 ## The operating loop
