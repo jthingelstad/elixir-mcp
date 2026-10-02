@@ -1,5 +1,15 @@
 # AGENTS.md
 
+**Right-sizing direction (2026-10-02).** Elixir is the personal and clan
+recorder; MCP is an extension. Global board history, autonomous elite
+recording and the two editorial emails are being retired, and Clan is being
+fully consolidated into Elixir. `docs/DECISIONS.md` records Jamie's confirmed
+scope; `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md` is the engineering
+removal plan. The runtime descriptions below still describe the deployed
+system until their migration steps land. Do not expand or restore retired
+scope while implementing this transition. No production purge has happened;
+its exact manifest must first protect retained personal/clan history.
+
 Elixir MCP: records Clash Royale history (the official API is current-state
 only) and serves it to players' own agents through an authenticated remote MCP
 server. One hostname, `elixir.poapkings.com`: the site at /, the Console

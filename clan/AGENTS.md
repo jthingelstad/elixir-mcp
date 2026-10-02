@@ -1,5 +1,15 @@
 # AGENTS.md
 
+**Consolidation direction (2026-10-02).** Jamie confirmed that Clan is a set
+of features inside Elixir, with one application, session, store and deploy.
+The separate runtime and HTTP-only boundary described below are the current
+migration source, not the desired architecture. Follow the root
+`docs/DECISIONS.md` and
+`docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md` for the transition. Preserve
+verified-player authority, in-game roles, private state and the provenance
+of clan decisions when moving the engine and its records. No cutover or
+retirement of this store has happened yet.
+
 Elixir Clan: being in a clan, on top of Elixir. One of the Elixir family's
 verticals (`../../elixir-family/MAP.md`), served on Elixir's origin: the
 app at `elixir.poapkings.com/clan`, its API at `/api/clan`, both through
