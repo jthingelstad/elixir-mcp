@@ -3094,3 +3094,18 @@ clan-event target. The references group supplies a complete clan-event
 identity inventory using its non-null window_end, with a paginated scratch
 regression for null join stamps. The old history definition is deliberately
 unchanged, and no destructive selection uses the incomplete excerpt.
+
+
+Profile provenance and board entity projections are also separate reference
+lanes. They export daily keys/source/clan/receipt relationships and ranking
+entry entity tags without profile statistics or board scores. This allows
+incidental identities and roster-derived snapshots to be reconciled against
+retained histories; a board entry alone does not establish ownership or a
+safe profile-deletion selector. No source bodies or private Clan records are
+exported.
+
+
+The references census also preserves live-lane job identities and timing
+without request credentials or payloads. These reconcile receipts from
+explicit one-off profile refreshes; retiring automatic enrollment must not
+misclassify a deliberate refresh as autonomous bulk capture.
