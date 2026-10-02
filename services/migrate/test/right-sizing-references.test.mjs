@@ -15,6 +15,7 @@ test("reference evidence has a separate definition without changing the history 
   assert.deepEqual(refs.lanes, [
     "deck",
     "war_period_anchor",
+    "clan_event_inventory",
     "mcp_call_audit",
     "email_issue",
     "email_featured_card",
@@ -107,6 +108,17 @@ test("reference pages retain identifiers and hashes while excluding mail bodies 
       JSON.parse(objects.get(call.key)).rows[0].tool,
       "rankings_players",
     );
+    await ctx.db.query("insert into clan(clan_tag) values('#P2LQ0')");
+    await ctx.db.query(
+      "insert into clan_event(clan_tag,event_type,timing,window_start,window_end,joined_observed_at) values('#P2LQ0','member_joined','estimated','2026-01-01','2026-01-02','2026-01-02'),('#P2LQ0','role_changed','estimated','2026-01-01','2026-01-02',null)",
+    );
+    const first = await exportLane("clan_event_inventory"),
+      second = await exportLane("clan_event_inventory", first.next_after);
+    assert.equal(first.cutoff_policy, "timestamptz:window_end");
+    assert.equal(first.rows, 1);
+    assert.equal(second.rows, 1);
+    assert.equal(second.done, true);
+    assert.ok(JSON.parse(objects.get(second.key)).rows[0].event_id);
   } finally {
     await ctx.drop();
   }

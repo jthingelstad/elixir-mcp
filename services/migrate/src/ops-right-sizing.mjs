@@ -95,6 +95,13 @@ const REFERENCES = Object.freeze({
       "deck_hash,(select count(*) from deck_card c where c.deck_hash=deck.deck_hash) as cards",
   },
   war_period_anchor: { keysOnly: true },
+  // joined_observed_at is nullable on role/war events. The history excerpt
+  // cannot establish their complete inventory; every event has window_end.
+  clan_event_inventory: {
+    table: "clan_event",
+    columns: "event_id,clan_tag,player_tag,receipt_id,window_start,window_end",
+    clock: "window_end",
+  },
   mcp_call_audit: {
     columns: "audit_id,request_id,tool,created_at,captured",
   },
@@ -281,24 +288,26 @@ export async function rightSizingCensus(
         `(${names.join(",")}) > (${names.map((_, i) => `$${i + 1}`).join(",")})`,
       );
     }
-    const clockColumn = [
-      "created_at",
-      "first_fetched_at",
-      "fetched_at",
-      "observed_at",
-      "captured_at",
-      "joined_observed_at",
-      "added_at",
-      "first_seen_at",
-      "first_observed_at",
-      "recorded_at",
-      ...(group === "references"
-        ? ["composed_at", "chosen_at", "enqueued_at"]
-        : []),
-      "window_end",
-      "snapshot_date",
-      "day",
-    ].find((n) => columns.some((c) => c.column_name === n));
+    const clockColumn =
+      lanes[lane].clock ??
+      [
+        "created_at",
+        "first_fetched_at",
+        "fetched_at",
+        "observed_at",
+        "captured_at",
+        "joined_observed_at",
+        "added_at",
+        "first_seen_at",
+        "first_observed_at",
+        "recorded_at",
+        ...(group === "references"
+          ? ["composed_at", "chosen_at", "enqueued_at"]
+          : []),
+        "window_end",
+        "snapshot_date",
+        "day",
+      ].find((n) => columns.some((c) => c.column_name === n));
     let cutoffPolicy = "current_inventory";
     if (lanes[lane].parentClock) {
       values.push(cutoff);
