@@ -1,24 +1,22 @@
 {
-  "name": "@elixir-mcp/web",
+  "name": "@elixir-mcp/clan-web",
   "version": "0.1.0",
-  "description": "elixir.poapkings.com - the DYNAMIC half: sign in, claim tags, explore recorded history, account, admin, live data charts. Content pages live in apps/site.",
   "private": true,
   "type": "module",
+  "description": "Clan views and routes inside the Elixir application, with a temporary legacy wrapper.",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
     "test": "vitest run"
   },
   "dependencies": {
+    "@elixir-mcp/clan-engine": "*",
     "@elixir-mcp/client": "*",
-    "@elixir-mcp/contracts": "*",
     "@elixir-mcp/design": "*",
     "@elixir-mcp/ui": "*",
     "@tanstack/react-query": "^5.103.2",
     "@tanstack/react-router": "^1.170.39",
+    "leaflet": "^1.9.4",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "@elixir-mcp/clan-web": "*"
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@testing-library/react": "^16.0.0",
@@ -26,7 +24,13 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "jsdom": "^30.1.1",
-    "vite": "^8.3.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
     "vitest": "^5.0.1"
+  },
+  "exports": {
+    ".": "./src/App.jsx",
+    "./routes": "./src/routes.jsx",
+    "./*": "./src/*"
   }
 }

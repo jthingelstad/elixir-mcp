@@ -1,3 +1,4 @@
+import { ME as ACCOUNT, signedIn as consoleSignedIn } from "../fixtures.ts";
 import type { Page, Route } from "@playwright/test";
 
 const FIRST = {
@@ -177,6 +178,16 @@ export function signedIn(
 ): Record<string, Answer> {
   let me = { ...ME, policy };
   return {
+    ...consoleSignedIn(),
+    "GET /api/me": [
+      200,
+      {
+        ...ACCOUNT,
+        claims: [
+          { ...ACCOUNT.claims[0], player_tag: "#20QQL8CCRU", name: "Ada" },
+        ],
+      },
+    ],
     "GET /api/clan/me": () => [200, me],
     "POST /api/clan/select": (route) => {
       const { clan_tag } = route.request().postDataJSON();

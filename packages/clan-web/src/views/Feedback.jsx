@@ -228,7 +228,7 @@ export function Feedback({ me, navigate, from }) {
       ) : items.length === 0 ? (
         <p className="page__lede">Nothing filed yet.</p>
       ) : (
-        <div className="table__scroll">
+        <div tabIndex={0} className="table__scroll">
           <table className="table">
             <thead>
               <tr>

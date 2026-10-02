@@ -99,13 +99,8 @@
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
     "clan/apps/web": {
-      "entry": ["scripts/*.mjs", "test/**/*.test.{js,jsx}", "e2e/*.spec.ts"],
-      "project": [
-        "src/**/*.{js,jsx}",
-        "scripts/**/*.mjs",
-        "test/**/*.{js,jsx}",
-        "e2e/**/*.ts"
-      ],
+      "entry": ["scripts/*.mjs"],
+      "project": ["src/**/*.{js,jsx}", "scripts/**/*.mjs"],
       "ignoreDependencies": ["tailwindcss", "@elixir-mcp/design"]
     },
     "clan/services/api": {
@@ -127,6 +122,11 @@
     "packages/clan": {
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "packages/clan-web": {
+      "entry": ["src/routes.jsx", "src/App.jsx", "test/**/*.test.{js,jsx}"],
+      "project": ["src/**/*.{js,jsx}", "test/**/*.{js,jsx}"],
+      "ignoreDependencies": ["@elixir-mcp/design"]
     }
   }
 }

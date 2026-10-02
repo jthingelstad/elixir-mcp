@@ -88,7 +88,7 @@ function Group({ status, rows, you, war }) {
         </span>
       </div>
       {shown.length ? (
-        <div className="table__scroll">
+        <div tabIndex={0} className="table__scroll">
           <table className="table">
             <tbody>
               {shown.map((r) => {

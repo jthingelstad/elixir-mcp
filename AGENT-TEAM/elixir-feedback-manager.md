@@ -108,7 +108,14 @@ weekly file (`AGENT-TEAM/notes/README.md`, "Retention").
 
 ## Success
 
-Zero unanswered feedback older than a day. The error-pattern list is
+No unanswered feedback carried past the next scheduled review without a recorded disposition. The error-pattern list is
 short and each entry is understood. An agent connecting this week finds
 docs that match the tools it discovers. The Friday summary reads like a
 product manager who actually looked.
+
+
+## Consolidated Clan responsibility
+
+Clan Feedback Manager transfers to this existing owner when `ClanInternal=true`; while the switch is false, legacy ownership remains active. Read the switch from the stack before treating either runtime as authoritative.
+
+Read `packages/clan/src/feedback.mjs` and shared Feedback/Maintain views. Include the IAM-only `{clan_maintenance:{lane:"feedback"}}` queue, oldest first, following next_cursor, without changing seen pointers. Preserve private clan/member dispute context; hand judgment findings to the Data Auditor with exact policy/evidence/action log context. Replies use lane respond with the freshly read expected_sha256, explicit apply and lease only within the existing authorized feedback procedure. Re-read uncertain responses before retry; attach shipped_in and visible status. Include Clan in the existing weekly synthesis once, never create another weekly publication or invent traffic. Retained cadence is the root owner cadence; assess unanswered items at the next scheduled review, not a separate daily promise.

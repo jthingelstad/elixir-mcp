@@ -917,9 +917,21 @@ test("analytics only ever comes from tinylytics.app", { skip }, () => {
     /src="(\/assets\/index-[^"]+\.js)"/,
   )?.[1];
   assert.ok(bundle, "app.html loads its bundle");
+  // Shared helpers can be extracted into a static imported chunk. Follow
+  // the bundle's actual imports rather than assuming all code is inline.
+  const seen = new Set();
+  function importedCode(path) {
+    if (seen.has(path)) return "";
+    seen.add(path);
+    const code = read(path);
+    const children = [...code.matchAll(/["']\.\/([^"']+\.js)["']/g)].map(
+      (m) => `assets/${m[1]}`,
+    );
+    return code + children.map(importedCode).join("\n");
+  }
   assert.ok(
-    read(bundle.slice(1)).includes("tinylytics.app/collector/"),
-    "the app bundle beacons route changes to the collector",
+    importedCode(bundle.slice(1)).includes("tinylytics.app/collector/"),
+    "the app's loaded modules beacon route changes to the collector",
   );
 });
 

@@ -2847,3 +2847,40 @@ change; those assertions now pin both explicitly selected modes. No tool
 implementation changed, so this deploy uses smoke rather than live tool
 acceptance; no Clan switch, state transfer or paid provider call is authorized
 by a verification run.
+
+
+Shared cutover preparation 7f6a8acd (PR #226) is deployed: root stack read-back
+was UPDATE_COMPLETE with ClanInternal=false, migrations applied 196/ran 0,
+all smoke checks passed and recorder health.ok was true. No private state
+import, cutover, provider use or historical deletion occurred. The merged
+main's validate run 37049943129 failed in the card-art browser assertion after
+its branch gate had passed: CI lacked the ignored art cache and the honest
+fallback removed the missing img. Clan CI 37050388464 therefore skipped its
+deploy; its new MigrationFrozen parameter is not yet installed. The next
+change makes only the inspected art a test route fixture and checks the actual
+missing-cache fallback too. This is a tracked CI defect, not a bypass.
+
+The shared application now mounts Clan through a lazy route factory from
+packages/clan-web; every view and its tests moved, with no duplicate view
+source. The existing root query provider and router own the shared UI. Its
+private Clan cache is under [me, clan], so refreshing the common account also
+invalidates Clan. The account menu and sign-out are Elixir's; Clan's rail keeps
+its in-game identity and checks. Writes use the shared CSRF header; the model
+route alone allows the 30-second client window. A temporary build wrapper
+keeps the old bucket usable while routing is disabled; it retires after the
+frozen state import and shared switch. The legacy OAuth loop is off in the
+shared routes. A complete sign-in journey caught an outgoing route remount
+consuming the return path twice: completion state now belongs to the common
+application provider and survives that remount.
+
+Private maintenance now has a bounded IAM-only migrate operation for Clan
+feedback and action evidence. Reads do not move reply pointers, never select
+model-key items, and reconstruct missing action history without persisting it.
+Feedback responses preview by default, need an exact current-item digest and
+explicit apply, and use the existing product response service in a transaction.
+No live response or maintenance mutation was used as a test. This replaces
+the direct Dynamo feedback/actions scripts for the consolidated owners.
+
+Review found and fixed pre-cutover Clan navigation, stale private cache across a new login, the model-key PUT client timeout and feedback read/write lost updates. The browser session advertises the actual server switch; disabled or unknown links load the legacy document. New sign-in cancels/removes old private queries before mounting the next identity. Postgres feedback updates use body compare-and-patch; a stale reader leaves a newer reply unseen and a stale decision refuses. Scratch races cover concurrent private replies. Maintenance pages expose totals/cursors, actual grants and morning receipts; the four existing owners now carry the conditional Clan duties with no implicit cadence increase. Legacy owners stay active until live cutover read-back.
+
+Final source review found no remaining actionable blockers in auth/private-state maintenance. The client advances a session generation before cancellation; forced Clan refreshes and selection writes cannot repopulate a previous identity after sign-in. Immutable policy versions are pageable, and action summaries embed at most three stored log entries per card; full logs remain pageable. Scratch coverage checks 25 actions with 200 legal comments each and concurrent feedback replies. Verification: full npm run verify, 69 Playwright journeys (including disabled/unknown routing handoff and responsive shared app), both Lambda builds and eight workflow guards pass. The card-art CI assumption is fixed with inspected-image fixture plus honest missing-art fallback. No tool implementation changed: this UI/private-op preparation deploy uses smoke, with no tool acceptance sweep. Production routing/import remains disabled in this change.

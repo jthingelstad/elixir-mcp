@@ -14,7 +14,13 @@ import {
   onOrigin,
   writeErrorText,
 } from "@elixir-mcp/ui";
-import { useEffect, useState, useCallback } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  createContext,
+  useContext,
+} from "react";
 import {
   QueryClientProvider,
   useQuery,
@@ -33,7 +39,12 @@ import {
   useLocation,
   useNavigate,
 } from "@tanstack/react-router";
-import { answered, createQueryClient } from "@elixir-mcp/client";
+import {
+  answered,
+  createQueryClient,
+  resetSessionCache,
+} from "@elixir-mcp/client";
+import { createClanRoutes } from "@elixir-mcp/clan-web/routes";
 import { api } from "./api.js";
 import { useAgentMe } from "./lib/queries.js";
 import { CONSOLE, appPath } from "./lib/console.js";
@@ -929,7 +940,13 @@ export function barArea(path) {
   return "console";
 }
 
+const isClan = (path) =>
+  path === "/clan" ||
+  path === "/clan/" ||
+  /^\/clan\/[A-Za-z0-9/_-]+$/.test(path);
+
 export function legalRoute(path) {
+  if (isClan(path)) return path;
   // A battle's public page is the app's too, outside the Console.
   if (BATTLE_PATH.test(path)) return path;
   // Ladder is a section of its own beside the Console (2026-09-28), and
@@ -993,15 +1010,24 @@ export function titleFor(section, sec, path) {
  *  history; this is the one shape every view already calls. */
 export function useNav() {
   const nav = useNavigate();
+  const queryClient = useQueryClient();
   return useCallback(
-    (to) => {
+    (to, { replace = false } = {}) => {
       const [pathname, qs] = String(to).split("?");
+      if (
+        isClan(pathname) &&
+        queryClient.getQueryData(["me"])?.data?.features?.clan_internal !== true
+      ) {
+        window.location.assign(to);
+        return;
+      }
       return nav({
         to: pathname,
         search: qs ? Object.fromEntries(new URLSearchParams(qs)) : {},
+        replace,
       });
     },
-    [nav],
+    [nav, queryClient],
   );
 }
 
@@ -1095,7 +1121,11 @@ function Chrome({ navigate, me, unreachable, current }) {
   };
   // Console and Ladder are this app: their links route in it rather
   // than reloading the page.
-  const IN_APP = { console: CONSOLE, ladder: LADDER };
+  const IN_APP = {
+    console: CONSOLE,
+    ladder: LADDER,
+    ...(me?.features?.clan_internal === true ? { clan: "/clan" } : {}),
+  };
   const products = PRODUCTS.map((p) =>
     IN_APP[p.key]
       ? { ...p, href: IN_APP[p.key], onClick: inApp(IN_APP[p.key]) }
@@ -1103,7 +1133,7 @@ function Chrome({ navigate, me, unreachable, current }) {
   );
   const account = consoleAccount(me, unreachable, {
     label: "Sign out",
-    note: "Ends this browser's Console session. Clan and Drop keep their own sign-in.",
+    note: "Ends this browser's Elixir session. Drop manages its own sign-in.",
     error: signOutFailed,
     onClick: async () => {
       setSignOutFailed(null);
@@ -1299,11 +1329,13 @@ function DocsStrip({ here }) {
  *  (2026-09-19: the mail footer links straight to an email's record and
  *  to feedback about it, and a phone that opens the link is usually
  *  signed out). localStorage, not sessionStorage: a magic link opens in
- *  a new tab. Console paths only, read once and cleared. */
+ *  a new tab. Console, Ladder and Clan paths only, read once and cleared. */
+const SignInProgress = createContext([false, () => {}]);
 const AFTER_SIGN_IN = "elixir.after_sign_in";
 const signedInPath = (path) =>
   /^\/(account|admin|agent)\//.test(appPath(path) ?? "") ||
-  isLadder(String(path ?? "").split("?")[0]);
+  isLadder(String(path ?? "").split("?")[0]) ||
+  isClan(String(path ?? "").split("?")[0]);
 export function rememberAfterSignIn(path) {
   try {
     if (signedInPath(path)) window.localStorage.setItem(AFTER_SIGN_IN, path);
@@ -1400,27 +1432,40 @@ const signInRoute = createRoute({
   path: `${CONSOLE}/signin`,
   component: function SignInPage() {
     const navigate = useNav();
-    const go = useNavigate();
     const { me, refresh } = useMe();
+    const queryClient = useQueryClient();
+    const [completing, setCompleting] = useContext(SignInProgress);
     // The static site's bar always says "Sign in" (it cannot know the
     // session), so a reader who is signed in arrives here too: send them
     // on to their console. Not when a login link brought a token: that is
     // a sign-in (or a device hand-off) to finish, signed in or not.
+    const destination = new URLSearchParams(window.location.search).get(
+      "return_to",
+    );
+    if (destination) rememberAfterSignIn(destination);
     const token = takeLoginToken();
-    const forward = me?.authenticated === true && !token;
+    const forward = me?.authenticated === true && !token && !completing;
     useEffect(() => {
       if (forward)
-        go({
-          to: takeAfterSignIn() ?? `${CONSOLE}/account/overview`,
+        navigate(takeAfterSignIn() ?? `${CONSOLE}/account/overview`, {
           replace: true,
         });
-    }, [forward, go]);
+    }, [forward, navigate]);
     if (forward || (me === null && !token)) return null;
     return (
       <SignIn
         onAuthed={async () => {
-          await refresh();
-          navigate(takeAfterSignIn() ?? `${CONSOLE}/account/overview`);
+          setCompleting(true);
+          const next = takeAfterSignIn() ?? `${CONSOLE}/account/overview`;
+          try {
+            // A new login can be a different person. Remove the previous
+            // account's private data before any next-account view mounts.
+            await resetSessionCache(queryClient);
+            await refresh();
+            await navigate(next);
+          } finally {
+            setCompleting(false);
+          }
         }}
       />
     );
@@ -1508,6 +1553,11 @@ export const routeTree = rootRoute.addChildren([
   dataRoute,
   battleRoute,
   ladderRoute,
+  createClanRoutes(rootRoute, {
+    sharedSession: true,
+    SharedChrome: SharedClanChrome,
+    rememberAfterSignIn,
+  }),
 ]);
 
 /** Where a route is on the rail and in the route table, from its path:
@@ -1563,6 +1613,7 @@ export function useHere() {
  *  mount, so a test that renders <App /> gets a fresh one and the
  *  session and address it sets up are the ones it sees. */
 export function App() {
+  const signInProgress = useState(false);
   const [queryClient] = useState(createQueryClient);
   const [router] = useState(() =>
     createRouter({
@@ -1573,9 +1624,11 @@ export function App() {
     }),
   );
   return (
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <SignInProgress.Provider value={signInProgress}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </SignInProgress.Provider>
   );
 }
 
@@ -1594,8 +1647,11 @@ export function useMe() {
   const { refetch } = query;
   const refresh = useCallback(async () => {
     const r = await refetch();
+    await queryClient.invalidateQueries({
+      predicate: (q) => q.queryKey[0] === "me" && q.queryKey.length > 1,
+    });
     return r.data?.data ?? null;
-  }, [refetch]);
+  }, [refetch, queryClient]);
   const invalidate = useCallback(
     () => queryClient.invalidateQueries({ queryKey: ["me"] }),
     [queryClient],
@@ -1616,7 +1672,36 @@ export function useMe() {
   };
 }
 
+function SharedClanChrome({ navigate }) {
+  const { me, unreachable } = useMe();
+  return (
+    <Chrome
+      navigate={navigate}
+      me={me}
+      unreachable={unreachable}
+      current="clan"
+    />
+  );
+}
+
 function Shell() {
+  const { pathname } = useLocation();
+  return isClan(pathname) ? <SharedClanOutlet /> : <ConsoleShell />;
+}
+
+function SharedClanOutlet() {
+  const { me } = useMe();
+  const navigate = useNav();
+  return (
+    <ZoneProvider zone={me?.timezone}>
+      <NavigateProvider navigate={navigate}>
+        <Outlet />
+      </NavigateProvider>
+    </ZoneProvider>
+  );
+}
+
+function ConsoleShell() {
   const navigate = useNav();
   const { me, unreachable, retrying, refresh } = useMe();
   const narrow = useNarrow();

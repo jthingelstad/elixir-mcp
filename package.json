@@ -41,10 +41,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip",
-    "typecheck": "tsc -p apps/web && tsc -p packages/client && tsc -p packages/ui && tsc -p clan/apps/web",
+    "typecheck": "tsc -p apps/web && tsc -p packages/client && tsc -p packages/ui && tsc -p packages/clan-web",
     "verify": "npm run format:check && npm run lint && npm run knip && npm run typecheck && npm run test",
     "acceptance": "npm run build && node acceptance/run.mjs",
     "cr": "node infra/scripts/cr-api.mjs",
-    "e2e": "playwright test -c apps/web/playwright.config.ts && playwright test -c clan/apps/web/playwright.config.ts"
+    "e2e": "playwright test -c apps/web/playwright.config.ts"
   }
 }

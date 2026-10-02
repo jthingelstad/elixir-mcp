@@ -22,6 +22,17 @@ const names = (page: Page) =>
 test("catalog browsing works without requesting global statistics", async ({
   page,
 }) => {
+  // The local card-art cache is absent in CI. Fulfill only the art this
+  // case inspects so catalog/form behavior does not depend on a cache hit.
+  await page.route("**/assets/cards/26000000_hero-285.png", (route) =>
+    route.fulfill({
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1ZkAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    }),
+  );
   const requests: string[] = [];
   page.on("request", (r) => {
     if (new URL(r.url()).pathname.startsWith("/api/public/cards"))
@@ -89,4 +100,18 @@ test("@narrow catalog and card facts fit phone, tablet and desktop", async ({
       await accessible(page, `${path} at ${width}`);
     }
   }
+});
+
+test("a missing card-art cache keeps catalog facts readable", async ({
+  page,
+}) => {
+  await page.route("**/assets/cards/**", (route) =>
+    route.fulfill({ status: 404, body: "not cached" }),
+  );
+  await page.goto("/cards/26000000");
+  await expect(page.locator(".card-figure .card-art__blank")).toHaveText(
+    "Knight",
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Knight");
+  await accessible(page, "missing art fallback");
 });

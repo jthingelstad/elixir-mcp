@@ -58,7 +58,7 @@ export function RosterTable({ members, now, limit = null, onMore }) {
     .map((m) => m.trophies)
     .filter((t) => t !== null && t !== undefined);
   return (
-    <div className="table__scroll">
+    <div tabIndex={0} className="table__scroll">
       <table className="table">
         <thead>
           <tr>

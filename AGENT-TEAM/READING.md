@@ -31,3 +31,5 @@ The contract summary an owner carries between runs is a version, source revision
 changed surfaces, evidence and next check in its compact current state. It is
 not a copied product spec. Healthy runs retain their baseline checks and stop;
 only measured gaps justify deeper investigation or mutation.
+
+After ClanInternal activation, the same four owners also read the consolidated Clan sections in their objective files. Shared sources are `packages/clan-engine`, `packages/clan`, `packages/clan-state`, and `packages/clan-web`; maintenance uses the private clan_maintenance migrate operation in `.claude/skills/ops/ops.md`. Public behavior remains in `apps/site/src/docs/bring-your-clan.md`. Legacy Clan owners retire only after the handoff and state/routing read-back.

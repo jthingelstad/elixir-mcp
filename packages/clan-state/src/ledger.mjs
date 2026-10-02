@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from "node:util";
+
 /**
  * The clan ledger: everything Elixir Clan stores ABOUT a clan, all of it
  * items of one clan in the one table, listed through the ByClan index.
@@ -476,6 +478,20 @@ export function ledgerOver(io) {
     async feedbackItem(feedbackId) {
       const item = await io.get(`feedback#${feedbackId}`);
       return item ? stripKeys(item) : null;
+    },
+    async updateFeedbackIf(expected, patch) {
+      const pk = `feedback#${expected.feedback_id}`;
+      const current = await io.get(pk);
+      if (!current || !isDeepStrictEqual(stripKeys(current), expected))
+        return null;
+      if (io.compareAndPatch) {
+        const updated = await io.compareAndPatch(pk, current, patch);
+        return updated ? stripKeys(updated) : null;
+      }
+      // Temporary DynamoDB wrapper keeps its existing semantics until freeze.
+      const next = { ...current, ...patch };
+      await io.put(next);
+      return stripKeys(next);
     },
     async putFeedback(item) {
       await io.put({

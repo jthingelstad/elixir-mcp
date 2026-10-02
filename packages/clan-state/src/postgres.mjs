@@ -18,6 +18,14 @@ export function createPostgresStore(db) {
         [item.pk, JSON.stringify(item)],
       );
     },
+    async compareAndPatch(pk, expected, patch) {
+      const result = await db.query(
+        `update clan_state set body = body || $3::jsonb, updated_at = now()
+         where pk = $1 and body = $2::jsonb returning body`,
+        [pk, JSON.stringify(expected), JSON.stringify(patch)],
+      );
+      return result.rows[0]?.body ?? null;
+    },
     async remove(pk) {
       await db.query("delete from clan_state where pk = $1", [pk]);
     },

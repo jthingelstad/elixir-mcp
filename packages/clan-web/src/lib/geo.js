@@ -3,13 +3,9 @@
  *  in it is picked (Vite splits each into its own chunk). */
 import { createGeo } from "@elixir-mcp/clan-engine";
 
-const placeFiles = import.meta.glob(
-  "../../../../../packages/clan-engine/geo/*.json",
-);
+const placeFiles = import.meta.glob("../../../clan-engine/geo/*.json");
 const load = (name) =>
-  placeFiles[`../../../../../packages/clan-engine/geo/${name}.json`]().then(
-    (m) => m.default,
-  );
+  placeFiles[`../../../clan-engine/geo/${name}.json`]().then((m) => m.default);
 export const geo = createGeo({
   loadCountries: () => load("countries"),
   loadCountry: (code) => load(code),

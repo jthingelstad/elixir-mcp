@@ -91,7 +91,7 @@ message, and the leaders are shown where to start.
 Signing out of Clan also ends the grant you gave it at Elixir, so the
 next sign-in asks again.
 
-The remaining cutover includes a checked import of private Clan records and
-its morning evaluation inside Elixir. Policies, action numbers, awards and
-mail history are preserved. This preparation has not changed your sign-in
-yet. The optional clan model still uses the clan's own key.
+Clan is moving into Elixir’s shared application and sign-in. Your current
+Clan session remains available until the transfer is complete. Policies,
+action numbers, awards, mail history and private records are preserved. The
+optional clan model continues to use the clan’s own key.

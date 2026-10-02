@@ -20,7 +20,7 @@ const ERRORS = {
 
 /** Signed out. The two prerequisites are stated here, before the button,
  *  so nobody discovers them one refusal page at a time. */
-export function Landing({ error }) {
+export function Landing({ error, sharedSession = false }) {
   return (
     <div style={{ maxWidth: "560px", margin: "40px auto 0" }}>
       <p className="eyebrow">ELIXIR CLAN</p>
@@ -71,14 +71,15 @@ export function Landing({ error }) {
           </div>
         </div>
         <div className="panel__foot">
-          Sign-in asks Elixir for <code>cr:read</code> only, the minimum that
-          reads a roster. Elixir Clan stores your session and nothing else.
+          {sharedSession
+            ? "Your Elixir sign-in opens your recorded history and clan tools."
+            : "Sign in with Elixir to open your clan tools."}
         </div>
       </div>
 
       <a
         className="btn btn--primary"
-        href="/api/clan/auth/login"
+        href={sharedSession ? "/console/signin" : "/api/clan/auth/login"}
         data-tinylytics-event="clan.signin_started"
         data-tinylytics-event-value="landing"
       >

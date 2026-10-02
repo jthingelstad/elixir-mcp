@@ -90,7 +90,7 @@ jobs:
           echo "MARKER=s3://elixir-clan-code-${account}/deployed/main-sha" >> "$GITHUB_ENV"
           deployed=$(aws s3 cp "s3://elixir-clan-code-${account}/deployed/main-sha" - 2>/dev/null || true)
           if [ -n "$deployed" ] && git cat-file -e "${deployed}^{commit}" 2>/dev/null &&
-            git diff --quiet "$deployed" HEAD -- clan packages/clan packages/clan-engine packages/clan-state packages/ui packages/client packages/design apps/web/public/assets/fonts package-lock.json; then
+            git diff --quiet "$deployed" HEAD -- clan packages/clan packages/clan-engine packages/clan-state packages/clan-web packages/ui packages/client packages/design apps/web/public/assets/fonts package-lock.json; then
             echo "no Clan change since ${deployed}; nothing deployed"
             echo "SKIP=1" >> "$GITHUB_ENV"
           fi

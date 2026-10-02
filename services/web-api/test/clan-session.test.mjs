@@ -70,6 +70,24 @@ before(async () => {
 });
 after(async () => scratch.drop());
 
+test("the browser session advertises the actual cutover switch for signed-in and signed-out people", async () => {
+  for (const enabled of [false, true]) {
+    const door = enabled
+      ? handler
+      : makeHandler({ databaseUrl: scratch.url, secret: "test" });
+    for (const signedIn of [false, true]) {
+      const result = await door({
+        rawPath: "/api/me",
+        requestContext: { http: { method: "GET" } },
+        headers: signedIn ? { cookie: `__Host-elixir_session=${token}` } : {},
+      });
+      assert.equal(result.statusCode, 200, result.body);
+      assert.equal(data(result).features.clan_internal, enabled);
+      assert.equal(data(result).authenticated, signedIn);
+    }
+  }
+});
+
 test("prepared Clan is disabled by default; its enabled door accepts only Elixir sessions", async () => {
   const disabled = makeHandler({ databaseUrl: scratch.url, secret: "test" });
   assert.equal((await disabled({ rawPath: "/api/clan/me" })).statusCode, 404);

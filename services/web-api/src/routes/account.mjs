@@ -27,6 +27,7 @@ export function accountRoutes({
   logEvent,
   notifyOwner = async () => {},
   capture = null,
+  clanInternal = false,
 }) {
   /** Track, untrack, or set notify or relationship on a player; yours,
    *  or on an agent's console the agent's (which watches, only). */
@@ -129,7 +130,11 @@ export function accountRoutes({
   return {
     "GET /api/me": async (db, event) => {
       const account = await resolveAccount(db, event);
-      if (!account) return json(200, { authenticated: false });
+      if (!account)
+        return json(200, {
+          authenticated: false,
+          features: { clan_internal: clanInternal },
+        });
       // One client is one connection: pg queues concurrent queries on it
       // anyway, so Promise.all bought no parallelism and only tripped the
       // deprecation (docs/ENGINEERING.md: one client, one query at a time).
@@ -261,6 +266,7 @@ export function accountRoutes({
         );
         return json(200, {
           authenticated: true,
+          features: { clan_internal: clanInternal },
           kind: "agent",
           public_id: account.publicId,
           name: account.name,
@@ -295,6 +301,7 @@ export function accountRoutes({
       );
       return json(200, {
         authenticated: true,
+        features: { clan_internal: clanInternal },
         kind: "person",
         signals: sig[0],
         is_owner: account.isOwner,

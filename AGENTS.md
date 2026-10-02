@@ -291,11 +291,18 @@ Shared: the kit (`packages/ui`, `packages/client`, `packages/design`,
 taken from the workspace, so a kit change is checked against Clan in the
 same gate), the root `npm run verify` and `npm run e2e`, the ruleset and
 the one lease. Not shared: `clan/infra/tests/boundary.test.mjs`
-refuses a Clan import of anything of Elixir's but the kit, and an Elixir
-import of anything of Clan's. Facts stay here and judgment stays in Clan.
+permits the shared workspace packages and refuses imports between the
+legacy deployment adapters and the root application. MCP and public tools
+remain unable to import private Clan state or business services. Game facts
+and policy judgment keep distinct provenance.
 
 Consolidation preparation now also shares Clan orchestration through
 `packages/clan`. The legacy deployment adapter still owns its Dynamo and OAuth
 wiring. `services/web-api/src/clan.mjs` is the prepared internal request path;
 `CLAN_INTERNAL` remains off until the reviewed state/runtime cutover. Private
 Clan state is never an MCP or public-tool input.
+
+
+### Shared Clan UI preparation (2026-10-02)
+
+Clan views and their tests now live in `packages/clan-web`. Its lazy route factory mounts below the common router/query provider in `apps/web`; the separate web build is a temporary wrapper over those sources. Browser `/api/me` advertises the live ClanInternal switch: disabled or unknown Clan links load the legacy document; enabled links navigate inside the shared application. Production remains disabled until the frozen import and routing switch. Private state maintenance is the IAM-only clan_maintenance op, with duties transferred conditionally to the existing four root owners.

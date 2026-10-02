@@ -204,7 +204,7 @@ export function Model({ clan }) {
       {d.uses.recent.length ? (
         <section>
           <div className="label mb-2">Recent uses</div>
-          <div className="table__scroll">
+          <div tabIndex={0} className="table__scroll">
             <table className="table">
               <thead>
                 <tr>

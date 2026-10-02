@@ -460,7 +460,11 @@ test("every app section in the route table has a route under /console, and nothi
   // Outside the console: a battle's public page (2026-10-01), and Ladder,
   // the one section beside the Console (2026-09-28), with one route under
   // its own prefix.
-  const all = routeTree.children.map((r) => r.path.split("/").filter(Boolean));
+  const clan = routeTree.children.find((r) => r.options.id === "clan");
+  expect(clan.children.every((r) => r.fullPath.startsWith("/clan"))).toBe(true);
+  const all = routeTree.children
+    .filter((r) => r.path)
+    .map((r) => r.path.split("/").filter(Boolean));
   expect(all.filter((s) => s[0] !== "console")).toEqual([
     ["battle", "$ref"],
     ["ladder", "{-$page}"],

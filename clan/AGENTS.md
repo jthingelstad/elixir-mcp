@@ -121,7 +121,7 @@ and registration, `connections`, `verify`). Do not restate it here.
 `GET /api/v1/me` (the principal block and the players, in one request:
 the gate reads both from `initialize`'s answer); the
 first refusal wins and each has its own page
-(`apps/web/src/views/Refused.jsx`):
+(`../packages/clan-web/src/views/Refused.jsx`):
 
 1. `/me`'s `principal.kind === "person"` (the block MCP's `initialize` used
    to carry in `_meta`; the docs say `person`, not `user`); an agent's or
@@ -179,7 +179,7 @@ session and lands on `/clan/?signed_out=1`.
 A person signed in to Elixir on this origin (`/api/me` says
 `authenticated: true`) who reaches Clan signed out does not meet the
 landing's button: Clan's sign-in starts by itself
-(`apps/web/src/lib/auto-signin.js`, Jamie 2026-10-02), and Elixir, holding
+(`../packages/clan-web/src/lib/auto-signin.js`, Jamie 2026-10-02), and Elixir, holding
 their grant to Clan, sends them back with no page between. Without a grant
 (the first time, or after a sign-out revoked it) Elixir's consent page asks,
 as before. It never starts on `?signed_out=1`, after a sign-in that came
@@ -479,7 +479,7 @@ model may write **words, never judgments**:
 ## Feedback (2026-09-12)
 
 Elixir's feedback system, carried nearly verbatim (`../packages/clan/src/feedback.mjs`,
-`apps/web/src/views/{Feedback,Maintain}.jsx`): a person files a category and
+`../packages/clan-web/src/views/{Feedback,Maintain}.jsx`): a person files a category and
 a Markdown note from anywhere (the page, clan and role ride along as
 `context`), sees their own list with every status and reply, and opening a
 reply marks it seen (`feedback_unseen` on `/api/me` drives the chrome's
@@ -715,7 +715,7 @@ revocation are not shared yet.
 ## Spreading the word (2026-09-25)
 
 Clans arrive member-first, so the clan page carries one card for where the
-clan is (`apps/web/src/components/SpreadWord.jsx`): below 10 members, a
+clan is (`../packages/clan-web/src/components/SpreadWord.jsx`): below 10 members, a
 pointer to Recruit; with 10 and no policy, **Invite your leaders** for a
 member or elder (what setting up turns on, a clan chat line from
 `inviteCopy("leaders")` and the link to copy for Discord or a message) or
@@ -932,7 +932,7 @@ timed into it. The handler ends the request with:
 In front of the Lambda, the HTTP API's access log
 (`/aws/apigateway/elixir-clan-api`) writes one JSON line per request with
 the gateway's `integration_ms` and `response_ms`, sharing `request_id` with
-the Lambda's line. In the browser, `apps/web/src/api.js` warns in the
+the Lambda's line. In the browser, `../packages/clan-web/src/api.js` warns in the
 console for any request over 3 s with the wall time and the Server-Timing.
 The smoke script prints each read's time and timing. Reading a slow
 report: gateway `integration_ms` ≈ Lambda `ms`? then the time is Elixir's
@@ -941,7 +941,7 @@ report: gateway `integration_ms` ≈ Lambda `ms`? then the time is Elixir's
 
 ## Analytics: Tinylytics, the way Elixir loads it
 
-`apps/web/src/analytics.js` (2026-09-12), on Elixir's own site
+`../packages/clan-web/src/analytics.js` (2026-09-12), on Elixir's own site
 `Yzx8dUUvUPn9AEJpTMeU` since the move to one origin (2026-09-28; before it,
 `J4GMM7Mti-Quk1gfx6zQ`, clan.poapkings.com's): Clan's pages report beside
 the Console's, every one under `/clan`. The embed records the document

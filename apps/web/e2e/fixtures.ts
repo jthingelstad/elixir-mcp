@@ -7,6 +7,7 @@ import { STATUS } from "./status-fixture.ts";
  *  two connections. */
 export const ME = {
   authenticated: true,
+  features: { clan_internal: true },
   is_admin: false,
   is_owner: false,
   role: "leader",
@@ -44,7 +45,10 @@ export const ME = {
   },
 };
 
-export const SIGNED_OUT = { authenticated: false };
+export const SIGNED_OUT = {
+  authenticated: false,
+  features: { clan_internal: true },
+};
 
 type Answer =
   [status: number, body: unknown] | ((route: Route) => [number, unknown]);

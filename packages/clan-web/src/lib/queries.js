@@ -1,11 +1,9 @@
 /**
  * Elixir Clan's queries: one place for keys and one hook per read.
  *
- * Key convention, Elixir's: the reader's own things start with "me" -
- * the session ["me"], their away note ["me", "away", tag] - so
- * invalidating ["me"] refetches everything that is theirs. A clan's
- * reads start with its tag: ["clan", tag, "manage"], so a decision on
- * an action can invalidate the whole clan or one read of it.
+ * All private Clan reads start under ["me", "clan"], distinct from the
+ * root account envelope at ["me"]. Invalidating the shared session reaches
+ * every private Clan view; a clan's record reads add "record" and its tag.
  *
  * Most of this app's reads gate on status - 401 is the session gone,
  * 403 is the role refusing - so they keep the ENVELOPE (answered()) and
@@ -16,35 +14,56 @@
  */
 import { useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { answered, transportFailed, unwrap } from "@elixir-mcp/client";
+import {
+  answered,
+  transportFailed,
+  unwrap,
+  sessionGeneration,
+} from "@elixir-mcp/client";
 import { api, feedbackApi, manageApi } from "../api.js";
 
 export const keys = {
-  me: ["me"],
-  away: (tag) => ["me", "away", tag],
-  place: ["me", "place"],
-  feedback: ["me", "feedback"],
-  feedbackItem: (id) => ["me", "feedback", id],
-  clan: (tag) => ["clan", tag],
-  roster: (tag) => ["clan", tag, "roster"],
-  manage: (tag) => ["clan", tag, "manage"],
-  history: (tag) => ["clan", tag, "history"],
-  policy: (tag) => ["clan", tag, "policy"],
-  awards: (tag) => ["clan", tag, "awards"],
-  recruit: (tag) => ["clan", tag, "recruit"],
-  model: (tag) => ["clan", tag, "model"],
-  sharing: (tag) => ["clan", tag, "sharing"],
-  map: (tag) => ["clan", tag, "map"],
-  social: (tag) => ["clan", tag, "social"],
-  standing: (tag) => ["clan", tag, "standing"],
-  trophies: (tag) => ["clan", tag, "trophies"],
-  actions: (tag) => ["clan", tag, "actions"],
-  action: (tag, number) => ["clan", tag, "actions", number],
-  memberView: (tag) => ["clan", tag, "me"],
-  week: (tag, week) => ["clan", tag, "week", week ?? "latest"],
-  memberNotes: (tag, player) => ["clan", tag, "member", player, "notes"],
-  memberAwards: (tag, player) => ["clan", tag, "member", player, "awards"],
-  maintain: ["maintain", "feedback"],
+  me: ["me", "clan"],
+  away: (tag) => ["me", "clan", "away", tag],
+  place: ["me", "clan", "place"],
+  feedback: ["me", "clan", "feedback"],
+  feedbackItem: (id) => ["me", "clan", "feedback", id],
+  clan: (tag) => ["me", "clan", "record", tag],
+  roster: (tag) => ["me", "clan", "record", tag, "roster"],
+  manage: (tag) => ["me", "clan", "record", tag, "manage"],
+  history: (tag) => ["me", "clan", "record", tag, "history"],
+  policy: (tag) => ["me", "clan", "record", tag, "policy"],
+  awards: (tag) => ["me", "clan", "record", tag, "awards"],
+  recruit: (tag) => ["me", "clan", "record", tag, "recruit"],
+  model: (tag) => ["me", "clan", "record", tag, "model"],
+  sharing: (tag) => ["me", "clan", "record", tag, "sharing"],
+  map: (tag) => ["me", "clan", "record", tag, "map"],
+  social: (tag) => ["me", "clan", "record", tag, "social"],
+  standing: (tag) => ["me", "clan", "record", tag, "standing"],
+  trophies: (tag) => ["me", "clan", "record", tag, "trophies"],
+  actions: (tag) => ["me", "clan", "record", tag, "actions"],
+  action: (tag, number) => ["me", "clan", "record", tag, "actions", number],
+  memberView: (tag) => ["me", "clan", "record", tag, "me"],
+  week: (tag, week) => ["me", "clan", "record", tag, "week", week ?? "latest"],
+  memberNotes: (tag, player) => [
+    "me",
+    "clan",
+    "record",
+    tag,
+    "member",
+    player,
+    "notes",
+  ],
+  memberAwards: (tag, player) => [
+    "me",
+    "clan",
+    "record",
+    tag,
+    "member",
+    player,
+    "awards",
+  ],
+  maintain: ["me", "clan", "maintain", "feedback"],
 };
 
 const payload = (call) => () => call().then(unwrap);
@@ -78,8 +97,10 @@ function useGated(queryKey, read, { enabled = true, refetchInterval } = {}) {
     async (refresh = false) => {
       if (!refresh) return refetch();
       setRefreshing(true);
+      const generation = sessionGeneration(queryClient);
       const r = await read(true);
-      if (!transportFailed(r)) queryClient.setQueryData(JSON.parse(keyId), r);
+      if (generation === sessionGeneration(queryClient) && !transportFailed(r))
+        queryClient.setQueryData(JSON.parse(keyId), r);
       setRefreshing(false);
       return r;
     },

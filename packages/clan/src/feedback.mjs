@@ -128,12 +128,19 @@ export function createFeedbackService({
 
     /** One of the person's own items; opening it marks the reply seen. */
     async item(person, feedbackId) {
-      const f = await ledger.feedbackItem(feedbackId);
+      let f = await ledger.feedbackItem(feedbackId);
       if (!f || f.person_tag !== person.player_tag)
         throw new FeedbackError(404, "no_feedback");
       if (f.response && !f.response_seen_at) {
-        f.response_seen_at = new Date(now()).toISOString();
-        await ledger.putFeedback(f);
+        const patch = { response_seen_at: new Date(now()).toISOString() };
+        if (ledger.updateFeedbackIf) {
+          f =
+            (await ledger.updateFeedbackIf(f, patch)) ??
+            (await ledger.feedbackItem(feedbackId));
+        } else {
+          f = { ...f, ...patch };
+          await ledger.putFeedback(f);
+        }
       }
       return mine(f);
     },
@@ -166,6 +173,11 @@ export function createFeedbackService({
       }
       if (shipped_in !== undefined)
         next.shipped_in = String(shipped_in ?? "").slice(0, 80) || null;
+      if (ledger.updateFeedbackIf) {
+        const updated = await ledger.updateFeedbackIf(f, next);
+        if (!updated) throw new FeedbackError(409, "feedback_changed");
+        return updated;
+      }
       await ledger.putFeedback(next);
       return next;
     },

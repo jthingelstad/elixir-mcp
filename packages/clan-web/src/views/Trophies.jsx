@@ -108,7 +108,7 @@ export function Trophies({ clan, who }) {
       {d.seasons.map((s) => (
         <section key={s.season_id} className="mb-[18px]">
           <div className="label mb-2">Season {s.season_id}</div>
-          <div className="table__scroll">
+          <div tabIndex={0} className="table__scroll">
             <table className="table">
               <tbody>
                 {s.grants.map((g) => (

@@ -27,6 +27,7 @@
  * the document load and is the part /signin skips; the bridge records
  * navigation and is installed always.
  */
+import { analyticsLocation as clanLocation } from "@elixir-mcp/clan-web/analytics.js";
 import { CONSOLE, appPath } from "./lib/console.js";
 
 const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
@@ -88,6 +89,8 @@ export function analyticsLocation(
   pathname = window.location.pathname,
   origin = window.location.origin,
 ) {
+  if (pathname === "/clan" || pathname.startsWith("/clan/"))
+    return clanLocation(pathname, origin);
   // Segments are read on the app path and the page is reported under the
   // prefix. The app only runs under /console; any other path is read as
   // it stands.

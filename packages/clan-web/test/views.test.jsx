@@ -212,7 +212,9 @@ describe("the landing page", () => {
         .getByRole("link", { name: "Sign in with Elixir" })
         .getAttribute("href"),
     ).toBe("/api/clan/auth/login");
-    expect(screen.getByText("cr:read")).toBeTruthy();
+    expect(
+      screen.getByText("Sign in with Elixir to open your clan tools."),
+    ).toBeTruthy();
   });
 
   test("a sign-in error is explained", () => {
