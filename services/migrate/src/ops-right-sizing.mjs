@@ -150,6 +150,19 @@ const REFERENCE_DEFINITION = digest(
   ),
 );
 
+// Admission time is independent of the collector's original fetched_at.
+// A ceiling taken under the ingest cutover lock makes this review finite.
+const ADMISSIONS = Object.freeze({
+  api_receipt: {
+    columns:
+      "receipt_id,endpoint,entity_key,fetched_at,payload_hash,admission,replay_retired_at,replay_payload_hash",
+    currentInventory: true,
+  },
+});
+const ADMISSION_DEFINITION = digest(
+  Buffer.from(JSON.stringify({ version: 1, lanes: ADMISSIONS })),
+);
+
 async function readSchema(db) {
   const foreignKeys = (
     await db.query(
@@ -200,10 +213,20 @@ export async function rightSizingCensus(
   if (Object.hasOwn(spec, "apply") || Object.hasOwn(spec, "delete"))
     throw new Error("right sizing census cannot delete or apply game data");
   const group = spec.group ?? "history";
-  if (!["history", "references"].includes(group))
+  if (!["history", "references", "admissions"].includes(group))
     throw new Error("unknown census group");
-  const lanes = group === "history" ? LANES : REFERENCES;
-  const definition = group === "history" ? DEFINITION : REFERENCE_DEFINITION;
+  const lanes =
+    group === "history"
+      ? LANES
+      : group === "references"
+        ? REFERENCES
+        : ADMISSIONS;
+  const definition =
+    group === "history"
+      ? DEFINITION
+      : group === "references"
+        ? REFERENCE_DEFINITION
+        : ADMISSION_DEFINITION;
   if (Object.hasOwn(spec, "catalog")) {
     if (spec.catalog !== true || spec.export)
       throw new Error("catalog is a separate read-only census");
@@ -244,6 +267,12 @@ export async function rightSizingCensus(
     throw new Error("census needs a canonical past cutoff");
   if (!Number.isInteger(limit) || limit < 1 || limit > 10000)
     throw new Error("census limit is 1..10000");
+  const receiptHighWater = spec.export.receipt_high_water;
+  if (
+    group === "admissions" &&
+    !/^(0|[1-9][0-9]*)$/.test(receiptHighWater ?? "")
+  )
+    throw new Error("admission census needs its reviewed receipt ceiling");
   let previous = null;
   if (after !== null) {
     if (
@@ -257,6 +286,7 @@ export async function rightSizingCensus(
       previous.lane !== lane ||
       previous.snapshot_id !== snapshotId ||
       previous.cutoff !== cutoff ||
+      previous.receipt_high_water !== receiptHighWater ||
       !Array.isArray(previous.values) ||
       previous.values.some(
         (v) =>
@@ -310,27 +340,33 @@ export async function rightSizingCensus(
         `(${names.join(",")}) > (${names.map((_, i) => `$${i + 1}`).join(",")})`,
       );
     }
-    const clockColumn =
-      lanes[lane].clock ??
-      [
-        "created_at",
-        "first_fetched_at",
-        "fetched_at",
-        "observed_at",
-        "captured_at",
-        "joined_observed_at",
-        "added_at",
-        "first_seen_at",
-        "first_observed_at",
-        "recorded_at",
-        ...(group === "references"
-          ? ["composed_at", "chosen_at", "enqueued_at"]
-          : []),
-        "window_end",
-        "snapshot_date",
-        "day",
-      ].find((n) => columns.some((c) => c.column_name === n));
+    const clockColumn = lanes[lane].currentInventory
+      ? null
+      : (lanes[lane].clock ??
+        [
+          "created_at",
+          "first_fetched_at",
+          "fetched_at",
+          "observed_at",
+          "captured_at",
+          "joined_observed_at",
+          "added_at",
+          "first_seen_at",
+          "first_observed_at",
+          "recorded_at",
+          ...(group === "references"
+            ? ["composed_at", "chosen_at", "enqueued_at"]
+            : []),
+          "window_end",
+          "snapshot_date",
+          "day",
+        ].find((n) => columns.some((c) => c.column_name === n)));
     let cutoffPolicy = "current_inventory";
+    if (group === "admissions") {
+      values.push(receiptHighWater);
+      conditions.push(`receipt_id <= $${values.length}::bigint`);
+      cutoffPolicy = "admission_receipt_ceiling";
+    }
     if (lanes[lane].parentClock) {
       values.push(cutoff);
       conditions.push(
@@ -380,6 +416,9 @@ export async function rightSizingCensus(
             cutoff,
             schema_sha256: schema.schema_sha256,
             values: keys.map((k) => page.at(-1)[k]),
+            ...(group === "admissions"
+              ? { receipt_high_water: receiptHighWater }
+              : {}),
           })
         : null;
     const bytes = Buffer.from(
@@ -394,6 +433,9 @@ export async function rightSizingCensus(
         definition_sha256: definition,
         schema_sha256: schema.schema_sha256,
         next_after: next,
+        ...(group === "admissions"
+          ? { receipt_high_water: receiptHighWater }
+          : {}),
         primary_key: keys,
         rows: page,
       }),
@@ -440,6 +482,9 @@ export async function rightSizingCensus(
       schema_sha256: schema.schema_sha256,
       bytes: bytes.length,
       rows: page.length,
+      ...(group === "admissions"
+        ? { receipt_high_water: receiptHighWater }
+        : {}),
       next_after: next,
       done: next === null,
     };

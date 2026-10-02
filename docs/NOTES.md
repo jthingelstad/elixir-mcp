@@ -3120,3 +3120,63 @@ content-addressed key in the original fetch partition. The original remains
 unchanged. Team, duel and boat fixtures prove retained raw entries are equal;
 altered versions and incomplete/contradictory classifications refuse before
 staging. Existing destinations must match retained JSON identity before use.
+
+The purge preparation preserves whole already-available logs for current
+comprehensive-clan members, including battles predating a member's join, and
+keeps ambiguous histories protected. This covers a later legitimate log
+returning an older battle. Basic player/clan identities and the factual war
+calendar remain. Retired profile and clan projections require established
+retired reasons with no retained direct/clan/explicit-refresh overlap.
+
+0197 is an additive replay-disposition foundation only; it performs no purge.
+Original receipt admission and payload hashes remain audit facts. Explicitly
+retired receipts are excluded from replay, while mixed receipts can use a
+verified retained-only content identity. The prepared bounded operation must
+match a private manifest and batch digest, current schema and retained-reason
+guard, and an explicit approval digest before apply. It checks dependent
+counts/events, rebuilds affected UTC rollups, and refuses changes rather than
+expanding scope. Table keys and SQL are a closed allowlist. Historical mail
+headers, sends and rendered mail remain; only retired editorial facts/notes
+are candidates. Old diagnostic capture bodies can be purged while their
+audit rows remain. No irreversible action is approved or performed yet.
+
+Replay safety review added mechanical overlap checks against direct follows,
+historical personal requests, operator exceptions and comprehensive members.
+Admission is drained through the existing recording-cutover lock, and later
+admitted logs are checked for target identities, including defenders whose
+tag the API omits. A missing newer source refuses the batch. Projection rows
+are locked before freshness validation, previews use the same checks, parent
+cascades require their children to be gone, and a backfill pins its receipt's
+effective replay identity inside the projecting transaction.
+
+
+### Purge preparation: admission and ownership review
+
+No history or original payload archive has been removed. The prepared executor
+resolves event owners independently of primary keys and protects personal
+membership/war overlap, including the parent weeks and indivisible supporting
+roster/race bodies. Game-wide aggregates remain separate removal targets.
+An admission receipt-ID ceiling, captured under the ingest cutover lock, replaces
+fetch timestamps as the proof boundary for late original envelopes. A separate
+read-only census can prove every admitted source through that ceiling; any later
+source must be checked before a canonical battle can go. Private mappings bind
+full original and replacement hashes and exact archive versions. Additive 0197
+and validation 0198 keep original receipt admission immutable while retired or
+filtered replay is explicit. Constraint validation uses its own lock phase.
+The exact private manifest still requires Jamie's approval before irreversible
+row or archive deletion.
+
+All admission lanes, including live requests and jobless imports, now share
+the cutover barrier. Scratch delayed-commit cases prove a receipt ceiling
+cannot pass an earlier allocated, uncommitted receipt. The nightly activity
+projection excludes retired automatic-only recordings, while later personal
+follows remain eligible regardless of birth provenance. Affected activity
+caches are invalidated/rebuilt from retained battles, not treated as facts.
+
+Redirected replay refreshes warm archive inventories on a hash miss and verifies
+full content identity even on shared cache hits. A missing retained replacement
+refuses without advancing a cursor. Replacement paths use exact canonical
+observer prefixes and the reader's hash suffix; full hashes shared across
+observers remain separately bound to each observer's key. Scratch cases cover
+a missing ordinary source followed by a valid redirected source both within
+one batch and across consecutive batches.

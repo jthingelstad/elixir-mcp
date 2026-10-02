@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Activity follows your record",
+    body: "Retired automatic groups no longer generate nightly activity records. Following a player still works when they appeared in an old group. The history cleanup now has checks for personal overlap and late-arriving data; no game history has been purged. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "One service for your record and clan",
     body: "Clan now uses Elixir’s account, application, storage and deployment. Its old service and storage have retired after all transferred private records matched. Personal and clan history stays protected while the cleanup of retired global captures is prepared. Contracts unchanged.",
   },

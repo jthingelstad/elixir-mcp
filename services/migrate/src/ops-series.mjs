@@ -6,6 +6,7 @@
  */
 
 import pg from "pg";
+import { payloadHash } from "@elixir-mcp/ingest/hash";
 
 /**
  * {series_status: {hours?: 1}} - read-only: the series tables' row
@@ -131,9 +132,15 @@ const LANE_ENDPOINT = {
 // endpoint/entity -> Map(hash16 -> key); lives as long as the container.
 const keyMaps = new Map();
 
-async function objectKeysFor(s3, bucket, endpoint, entityKey) {
+async function objectKeysFor(
+  s3,
+  bucket,
+  endpoint,
+  entityKey,
+  { refresh = false } = {},
+) {
   const id = `${endpoint}/${entityKey}`;
-  if (keyMaps.has(id)) return keyMaps.get(id);
+  if (!refresh && keyMaps.has(id)) return keyMaps.get(id);
   const { ListObjectsV2Command } = await import("@aws-sdk/client-s3");
   const prefix = `payloads/endpoint=${endpoint}/entity=${entityKey.replace(/^#/, "")}/`;
   const map = new Map();
@@ -163,17 +170,18 @@ async function archiveReads(deps = {}) {
   let getObject = deps.getObject;
   let listKeys = deps.listKeys;
   if (!getObject || !listKeys) {
-    const bucket = process.env.ARCHIVE_BUCKET;
+    const bucket = deps.bucket ?? process.env.ARCHIVE_BUCKET;
     if (!bucket) throw new Error("ARCHIVE_BUCKET not configured");
     const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
-    const s3 = new S3Client({});
+    const s3 = deps.s3 ?? new S3Client({});
     getObject ??= async (key) => {
       const res = await s3.send(
         new GetObjectCommand({ Bucket: bucket, Key: key }),
       );
       return Buffer.from(await res.Body.transformToByteArray());
     };
-    listKeys ??= (ep, entity) => objectKeysFor(s3, bucket, ep, entity);
+    listKeys ??= (ep, entity, options) =>
+      objectKeysFor(s3, bucket, ep, entity, options);
   }
   return { getObject, listKeys };
 }
@@ -246,9 +254,9 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
         [lane],
       );
       const { rows: receipts } = await db.query(
-        `select receipt_id, entity_key, fetched_at, payload_hash
+        `select receipt_id, entity_key, fetched_at, coalesce(replay_payload_hash, payload_hash) as payload_hash, replay_payload_hash is not null as redirected
          from api_receipt
-         where endpoint = $1 and admission = 'admitted' and receipt_id > $2
+         where endpoint = $1 and admission = 'admitted' and replay_retired_at is null and receipt_id > $2
          order by receipt_id limit $3`,
         [endpoint, state.after_receipt_id, batch],
       );
@@ -267,27 +275,49 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
       // transaction opens.
       const wanted = [];
       const fresh = new Set();
-      for (const r of receipts) {
-        if (parsed.has(r.payload_hash) || fresh.has(r.payload_hash)) continue;
+      // Prefer a redirected observer for shared content. A prior missing
+      // ordinary source is not evidence that the retained replacement is missing.
+      for (const r of [...receipts].sort(
+        (a, b) => Number(b.redirected) - Number(a.redirected),
+      )) {
+        if (
+          (parsed.has(r.payload_hash) &&
+            (parsed.get(r.payload_hash) !== null || !r.redirected)) ||
+          fresh.has(r.payload_hash)
+        )
+          continue;
         fresh.add(r.payload_hash);
         wanted.push(r);
       }
       for (let i = 0; i < wanted.length; i += 8) {
         await Promise.all(
           wanted.slice(i, i + 8).map(async (r) => {
-            const keys = await listKeys(endpoint, r.entity_key);
-            const key = keys.get(r.payload_hash.slice(0, 16));
+            let keys = await listKeys(endpoint, r.entity_key);
+            let key = keys.get(r.payload_hash.slice(0, 16));
             if (!key) {
+              keys = await listKeys(endpoint, r.entity_key, { refresh: true });
+              key = keys.get(r.payload_hash.slice(0, 16));
+            }
+            if (!key) {
+              if (r.redirected)
+                throw new Error(
+                  "retained replay body is unavailable; cursor unchanged",
+                );
               parsed.set(r.payload_hash, null);
               return;
             }
             try {
-              parsed.set(
-                r.payload_hash,
-                JSON.parse(gunzipSync(await getObject(key)).toString("utf8")),
+              const body = JSON.parse(
+                gunzipSync(await getObject(key)).toString("utf8"),
               );
+              if (payloadHash(body) !== r.payload_hash)
+                throw new Error(
+                  "retained replay full hash differs; cursor unchanged",
+                );
+              parsed.set(r.payload_hash, body);
               tally.objects_read += 1;
-            } catch {
+            } catch (error) {
+              if (r.redirected) throw error;
               tally.unreadable += 1;
               parsed.set(r.payload_hash, null);
             }
@@ -298,13 +328,43 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
       for (;;) {
         await db.query("begin");
         try {
+          // The archive read precedes the transaction. Pin its effective
+          // identity again before any projection; a purge cannot change a
+          // receipt while this shared lock is held. Changed disposition
+          // aborts the batch and leaves its cursor for a fresh invocation.
+          const current = (
+            await db.query(
+              "select receipt_id::text,coalesce(replay_payload_hash,payload_hash) as payload_hash,replay_retired_at from api_receipt where receipt_id=any($1::bigint[]) order by receipt_id for share",
+              [receipts.map((r) => r.receipt_id)],
+            )
+          ).rows;
+          const byId = new Map(current.map((r) => [r.receipt_id, r]));
+          if (
+            receipts.some(
+              (r) =>
+                !byId.has(String(r.receipt_id)) ||
+                byId.get(String(r.receipt_id)).replay_retired_at ||
+                byId.get(String(r.receipt_id)).payload_hash !== r.payload_hash,
+            )
+          )
+            throw new Error(
+              "receipt replay disposition changed; retry the batch",
+            );
           let rows = 0;
           for (const r of receipts) {
             const payload = parsed.get(r.payload_hash);
             if (payload === null || payload === undefined) {
+              if (r.redirected)
+                throw new Error(
+                  "retained replay body is unavailable; cursor unchanged",
+                );
               if (attempt === 0) tally.missing_objects += 1;
               continue;
             }
+            if (r.redirected && payloadHash(payload) !== r.payload_hash)
+              throw new Error(
+                "retained replay full hash differs; cursor unchanged",
+              );
             if (attempt === 0 && !fresh.has(r.payload_hash))
               tally.cache_hits += 1;
             const observedAt = r.fetched_at.toISOString();
@@ -398,7 +458,7 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
       rows: [{ remaining }],
     } = await db.query(
       `select count(*)::int as remaining from api_receipt
-       where endpoint = $1 and admission = 'admitted' and receipt_id > $2`,
+       where endpoint = $1 and admission = 'admitted' and replay_retired_at is null and receipt_id > $2`,
       [endpoint, state.after_receipt_id],
     );
     return {

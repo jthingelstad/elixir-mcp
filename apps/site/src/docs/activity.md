@@ -77,7 +77,9 @@ The year's counts are the record's daily rollup, read live. A nightly job
 rollup cannot say: the not-recorded marks above, the first and last
 battle in the year, and the 28-day count. The row is a projection,
 rebuilt in full every night, never a system of record, and a player
-added today has a graphic after the next run.
+added today has a graphic after the next run. Retired automatic groups do not
+generate activity records. A personal follow still works when the account
+appeared in an old group; the recording reflects the person following it.
 
 ## What became of the rhythm
 

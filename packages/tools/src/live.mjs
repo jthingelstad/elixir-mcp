@@ -50,8 +50,8 @@ export function makeLive({
       `select r.admission, r.admission_errors, r.fetched_at, p.payload_json
        from api_receipt r
        left join api_payload p on p.endpoint = r.endpoint
-         and p.entity_key = r.entity_key and p.payload_hash = r.payload_hash
-       where r.endpoint = $1 and r.entity_key = $2
+         and p.entity_key = r.entity_key and p.payload_hash = coalesce(r.replay_payload_hash,r.payload_hash)
+       where r.endpoint = $1 and r.entity_key = $2 and r.replay_retired_at is null
          and r.fetched_at >= now() - make_interval(secs => $3)
        order by r.receipt_id desc limit 1`,
       [endpoint, entityKey, maxAge],

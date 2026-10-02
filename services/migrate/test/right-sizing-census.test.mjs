@@ -272,3 +272,76 @@ test("census refuses arbitrary tables, credentials, unsafe bounds and deletion b
     true,
   );
 });
+
+test("admission census uses a fixed receipt ceiling and includes late admissions with older or newer fetch stamps", async () => {
+  const ctx = await scratchDb("rightadmission"),
+    { objects, s3 } = storage();
+  try {
+    const { seedReceipt } =
+      await import("../../../packages/ingest/test/helpers.mjs");
+    const id = await seedReceipt(ctx.db, { entityKey: "#P0LYQ" });
+    await ctx.db.query(
+      "update api_receipt set fetched_at='2026-10-03' where receipt_id=$1",
+      [id],
+    );
+    const id2 = (
+      await ctx.db.query(
+        "insert into api_receipt(endpoint,entity_key,payload_hash,gateway_id,admission,fetched_at) select endpoint,entity_key,payload_hash,gateway_id,admission,'2026-01-01' from api_receipt where receipt_id=$1 returning receipt_id",
+        [id],
+      )
+    ).rows[0].receipt_id;
+    const s = {
+      group: "admissions",
+      export: {
+        lane: "api_receipt",
+        snapshot_id,
+        cutoff,
+        limit: 1,
+        receipt_high_water: String(id2),
+      },
+    };
+    const one = await rightSizingCensus(ctx.url, s, { bucket: "private", s3 });
+    assert.equal(one.rows, 1);
+    assert.equal(one.cutoff_policy, "admission_receipt_ceiling");
+    assert.equal(
+      JSON.parse(objects.get(one.key)).rows[0].receipt_id,
+      String(id),
+    );
+    await assert.rejects(
+      rightSizingCensus(
+        ctx.url,
+        {
+          ...s,
+          export: {
+            ...s.export,
+            receipt_high_water: String(id),
+            after: one.next_after,
+          },
+        },
+        { bucket: "private", s3 },
+      ),
+      /another snapshot/,
+    );
+    const two = await rightSizingCensus(
+      ctx.url,
+      { ...s, export: { ...s.export, after: one.next_after } },
+      { bucket: "private", s3 },
+    );
+    assert.equal(two.rows, 1);
+    assert.equal(two.done, true);
+    assert.equal(
+      JSON.parse(objects.get(two.key)).rows[0].receipt_id,
+      String(id2),
+    );
+    await assert.rejects(
+      rightSizingCensus(
+        "must-not-connect",
+        { ...s, export: { ...s.export, receipt_high_water: undefined } },
+        { bucket: "private", s3 },
+      ),
+      /receipt ceiling/,
+    );
+  } finally {
+    await ctx.drop();
+  }
+});

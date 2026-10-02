@@ -400,3 +400,204 @@ test("battle lane fills the ten columns where null and the self census reads eve
     ],
   );
 });
+
+test("replay disposition changing during the archive read aborts projection without advancing its cursor", async () => {
+  const p = await fixture("player/profile.json");
+  p.trophies += 123;
+  const id = await admitted("player", p.tag, p, "2026-10-01T15:00:00Z");
+  const before = (
+    await db.query(
+      "select after_receipt_id::text from series_backfill_state where lane='player'",
+    )
+  ).rows[0].after_receipt_id;
+  let changed = false;
+  await assert.rejects(
+    seriesBackfill(
+      DB_URL,
+      { lane: "player", batch: 200 },
+      {
+        ...deps,
+        getObject: async (key) => {
+          const b = await deps.getObject(key);
+          if (!changed) {
+            changed = true;
+            await db.query(
+              "update api_receipt set replay_retired_at=now() where receipt_id=$1",
+              [id],
+            );
+          }
+          return b;
+        },
+      },
+    ),
+    /replay disposition changed/,
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select after_receipt_id::text from series_backfill_state where lane='player'",
+      )
+    ).rows[0].after_receipt_id,
+    before,
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select count(*)::int as n from player_snapshot_daily where player_tag=$1 and snapshot_date='2026-10-01'",
+        [p.tag],
+      )
+    ).rows[0].n,
+    0,
+  );
+});
+
+test("a warm archive inventory refreshes for a newly published redirect; missing retained bodies never advance", async () => {
+  const tag = "#P2LQ0";
+  await db.query(
+    "insert into player(player_tag) values($1) on conflict do nothing",
+    [tag],
+  );
+  const p = await fixture("player/profile.json");
+  p.tag = tag;
+  p.trophies += 234;
+  const first = await admitted("player", tag, p, "2026-10-01T16:00:00Z");
+  let lists = 0;
+  const fakeS3 = {
+    send: async (c) => {
+      assert.equal(c.constructor.name, "ListObjectsV2Command");
+      lists++;
+      return {
+        IsTruncated: false,
+        Contents: [...archive.keys()]
+          .filter((k) => k.startsWith(c.input.Prefix))
+          .map((Key) => ({ Key })),
+      };
+    },
+  };
+  const storage = { bucket: "private", s3: fakeS3, getObject: deps.getObject };
+  await seriesBackfill(DB_URL, { lane: "player", batch: 200 }, storage);
+  assert.equal(lists, 1);
+  const q = structuredClone(p);
+  q.trophies += 5;
+  const id = await admitted("player", tag, p, "2026-10-01T17:00:00Z"),
+    hash = payloadHash(q),
+    key = archiveKey("player", tag, "2026-10-01T17:00:00Z", hash);
+  archive.set(key, gzipSync(JSON.stringify(q)));
+  await db.query(
+    "update api_receipt set replay_payload_hash=$2 where receipt_id=$1",
+    [id, hash],
+  );
+  const out = await seriesBackfill(
+    DB_URL,
+    { lane: "player", batch: 200 },
+    storage,
+  );
+  assert.ok(out.receipts >= 1);
+  assert.equal(lists, 2, "miss refreshed the pre-publication listing");
+  assert.equal(
+    (
+      await db.query(
+        "select trophies from player_snapshot_daily where player_tag=$1 and snapshot_date='2026-10-01'",
+        [tag],
+      )
+    ).rows[0].trophies,
+    q.trophies,
+  );
+  const missing = await admitted("player", tag, p, "2026-10-01T18:00:00Z");
+  await db.query(
+    "update api_receipt set replay_payload_hash=$2 where receipt_id=$1",
+    [missing, "a".repeat(64)],
+  );
+  const cursor = (
+    await db.query(
+      "select after_receipt_id::text from series_backfill_state where lane='player'",
+    )
+  ).rows[0].after_receipt_id;
+  await assert.rejects(
+    seriesBackfill(DB_URL, { lane: "player", batch: 200 }, storage),
+    /retained replay body is unavailable/,
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select after_receipt_id::text from series_backfill_state where lane='player'",
+      )
+    ).rows[0].after_receipt_id,
+    cursor,
+  );
+  assert.ok(BigInt(cursor) >= BigInt(first));
+});
+
+test("missing ordinary shared content cannot poison a redirected observer in the same or next batch", async () => {
+  const body = [
+      {
+        battleTime: "20261001T190000.000Z",
+        type: "PvP",
+        team: [{ tag: "#P0LYQ", cards: [] }],
+        opponent: [{ tag: "#P2LQ0", cards: [] }],
+      },
+    ],
+    hash = payloadHash(body),
+    replacement = archiveKey(
+      "player_battlelog",
+      "#P2LQ0",
+      "2026-10-01T19:00:00Z",
+      hash,
+    );
+  const original = await admitted(
+    "player_battlelog",
+    "#P0LYQ",
+    body,
+    "2026-10-01T19:00:00Z",
+  );
+  const redirected = await admitted(
+    "player_battlelog",
+    "#P2LQ0",
+    [],
+    "2026-10-01T19:01:00Z",
+  );
+  await db.query(
+    "update api_receipt set replay_payload_hash=$2 where receipt_id=$1",
+    [redirected, hash],
+  );
+  const storage = {
+    listKeys: async (_ep, tag) =>
+      tag === "#P2LQ0"
+        ? new Map([[hash.slice(0, 16), replacement]])
+        : new Map(),
+    getObject: async () => gzipSync(JSON.stringify(body)),
+  };
+  const start = BigInt(original) - 1n;
+  await db.query(
+    "update series_backfill_state set after_receipt_id=$1 where lane='battle'",
+    [String(start)],
+  );
+  let out = await seriesBackfill(DB_URL, { lane: "battle", batch: 2 }, storage);
+  assert.equal(out.receipts, 2);
+  assert.equal(out.objects_read, 1);
+  assert.equal(
+    out.missing_objects,
+    0,
+    "redirected candidate was preferred over the missing ordinary observer",
+  );
+  await db.query(
+    "update series_backfill_state set after_receipt_id=$1 where lane='battle'",
+    [String(start)],
+  );
+  out = await seriesBackfill(DB_URL, { lane: "battle", batch: 1 }, storage);
+  assert.equal(out.receipts, 2);
+  assert.equal(out.objects_read, 1);
+  assert.equal(
+    out.missing_objects,
+    1,
+    "later redirected receipt refetched an earlier cached miss",
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select after_receipt_id::text from series_backfill_state where lane='battle'",
+      )
+    ).rows[0].after_receipt_id,
+    String(redirected),
+  );
+});

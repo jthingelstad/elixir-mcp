@@ -563,11 +563,10 @@ export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
  * @returns {{outcome: string, [k: string]: unknown}}
  */
 // Bound on the DECOMPRESSED body (issue #4). The largest legitimate CR
-// payload is now a season's FINAL Path of Legends board: 9,999 places,
-// about 1.5 MB raw (0069) - the 2 MiB this used to be cleared it by a
-// third, and a longer-named field would not have. 16 MiB is a hard
-// ceiling against a malicious or broken submission expanding past the
-// web API Lambda's 512 MB, not a size anything real approaches. Enforced
+// payloads encountered during legacy imports established this conservative
+// bound. Retired leaderboard endpoints refuse before parsing. 16 MiB is a
+// hard ceiling against a broken submission expanding past the web API
+// Lambda's 512 MB. Enforced
 // inside zlib, before any string or JSON work.
 const MAX_DECOMPRESSED_BYTES = 16 * 1024 * 1024;
 
@@ -582,21 +581,21 @@ export async function processResult(db, rawMessage, deps = {}) {
     return { outcome: "retired", endpoint: msg.job.endpoint };
   const fleetBulk = msg.job.lane === "bulk" && msg.job_id != null;
   // A session lock spans error receipts and the archive/projection transaction.
+  // Every lane and jobless import participates: original fetch time and
+  // allocated receipt IDs cannot establish a commit boundary alone.
   // The cutover's exclusive transaction lock drains every earlier admission.
   // Fleet submissions waiting behind it recheck authority after it commits.
-  if (fleetBulk)
-    await db.query("select pg_advisory_lock_shared(hashtext($1))", [
-      RECORDING_CUTOVER_LOCK,
-    ]);
+  await db.query("select pg_advisory_lock_shared(hashtext($1))", [
+    RECORDING_CUTOVER_LOCK,
+  ]);
   try {
     if (fleetBulk && !(await bulkJobWanted(db, msg.job)))
       return { outcome: "retired", reason: "recording_stopped" };
     return await processRecordedResult(db, rawMessage, msg, deps, t0);
   } finally {
-    if (fleetBulk)
-      await db.query("select pg_advisory_unlock_shared(hashtext($1))", [
-        RECORDING_CUTOVER_LOCK,
-      ]);
+    await db.query("select pg_advisory_unlock_shared(hashtext($1))", [
+      RECORDING_CUTOVER_LOCK,
+    ]);
   }
 }
 

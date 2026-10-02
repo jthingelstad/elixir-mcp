@@ -221,3 +221,36 @@ test("the handler routes {activity_histogram: true} to the rebuild", async () =>
   const result = await handler({ activity_histogram: true });
   assert.equal(result.players, 2);
 });
+
+test("retired automatic groups never regenerate activity; a later personal follow works with collection birth provenance", async () => {
+  const t = "#P0LYQ";
+  await db.query("insert into player(player_tag) values($1)", [t]);
+  await db.query(
+    "insert into recording(subject_type,subject_tag,requested_by,origin,status,created_at) values('player',$1,$2,'collection','stopped','2026-09-03')",
+    [t, accountId],
+  );
+  await activityHistogram(DB_URL, { now: NOW });
+  assert.equal(
+    (
+      await db.query(
+        "select count(*)::int as n from player_activity where player_tag=$1",
+        [t],
+      )
+    ).rows[0].n,
+    0,
+  );
+  await db.query("insert into claim(account_id,player_tag) values($1,$2)", [
+    accountId,
+    t,
+  ]);
+  await activityHistogram(DB_URL, { now: NOW });
+  assert.equal(
+    (
+      await db.query(
+        "select count(*)::int as n from player_activity where player_tag=$1",
+        [t],
+      )
+    ).rows[0].n,
+    1,
+  );
+});
