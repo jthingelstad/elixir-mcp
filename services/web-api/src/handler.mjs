@@ -405,7 +405,7 @@ export function makeHandler({
     let connectMs = 0;
     let timedOut = false;
     const db = new pg.Client({ connectionString: databaseUrl });
-    const soft = deadlineMs(context);
+    const soft = deadlineMs(context, event);
     // A route that runs a tool races the invoker's deadline inside this
     // one (deadline.mjs), so the tool answers query_timeout with its
     // request id before this handler has to answer 504.

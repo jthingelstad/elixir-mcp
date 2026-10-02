@@ -95,6 +95,19 @@ Parameters:
       Secrets Manager references on the next deploy: CloudFormation reads
       a secret again only when the resource holding the reference changes
       (docs/SECRETS.md).
+  ClanInternal:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Enable shared Clan session, private state, jobs and model transport only after reviewed import and UI cutover
+  ClanModelSecretName:
+    Type: String
+    Default: elixir-clan/app
+    Description: Existing sealing secret name; preserving it keeps the clan model key readable
+  ClanMaintainerTags:
+    Type: String
+    Default: ""
+    Description: Preserved verified player tags for the private Clan feedback maintainer lane
   ClanApiDomain:
     Type: String
     AllowedPattern: "^[a-z0-9]+\\.execute-api\\.[a-z0-9-]+\\.amazonaws\\.com$"
@@ -105,6 +118,7 @@ Parameters:
       once with --param. PRESERVED.
 
 Conditions:
+  HasInternalClan: !Equals [!Ref ClanInternal, "true"]
   HasSiteCert: !Not [!Equals [!Ref SiteCertificateArn, ""]]
   HasDbSnapshot: !Not [!Equals [!Ref DbSnapshotIdentifier, ""]]
   HasOriginSecret: !Not [!Equals [!Ref OriginSecret, ""]]
@@ -369,6 +383,18 @@ Resources:
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-model/request/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-model/reply/*
+                - !Ref AWS::NoValue
               # A battle's public page (2026-10-01): the app shell it is
               # served in, and the card art its share picture draws,
               # read from the site bucket. Read only; the site is
@@ -478,6 +504,11 @@ Resources:
                 Resource: !Sub
                   - ${Arn}/payloads/*
                   - Arn: !GetAtt ArchiveBucket.Arn
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub
+                  - ${Arn}/clan-migration/v1/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
               # The call captures, READ only (3.18.0): the refusal and
               # controls censuses read request and response bodies the
               # MCP door wrote; nothing here writes a capture.
@@ -559,6 +590,13 @@ Resources:
             Queue: !GetAtt EmailQueue.Arn
             Filter:
               S3Key: { Rules: [{ Name: prefix, Value: email/ }] }
+          - !If
+            - HasInternalClan
+            - Event: s3:ObjectCreated:*
+              Queue: !GetAtt EmailQueue.Arn
+              Filter:
+                S3Key: { Rules: [{ Name: prefix, Value: clan-model/request/ }] }
+            - !Ref AWS::NoValue
 
   # S3 may notify the two lanes' queues, and only from the outbox. The
   # bucket ARN is spelled out rather than referenced so the bucket can
@@ -611,6 +649,20 @@ Resources:
               - Effect: Allow
                 Action: [s3:GetObject, s3:DeleteObject]
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-model/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource:
+                    - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-model/claim/*
+                    - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-model/reply/*
+                - !Ref AWS::NoValue
               # Send as elixir@poapkings.com and nothing else: the identity
               # and the configuration set are the only resources, and the
               # From address is pinned by condition. SES authorizes a send
@@ -693,7 +745,7 @@ Resources:
       Architectures: [arm64]
       Handler: index.handler
       MemorySize: 512
-      Timeout: 20
+      Timeout: !If [HasInternalClan, 30, 20]
       Role: !GetAtt WebApiRole.Arn
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref WebApiCodeKey }
       VpcConfig:
@@ -739,6 +791,14 @@ Resources:
             - !Ref OriginSecretPrevious
             - !Ref AWS::NoValue
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
+          CLAN_INTERNAL: !Ref ClanInternal
+          CLAN_MAINTAINER_TAGS: !Ref ClanMaintainerTags
+          CLAN_MODEL_SECRET:
+            !If [
+              HasInternalClan,
+              !Sub "{{resolve:secretsmanager:${ClanModelSecretName}:SecretString:session_secret}}",
+              !Ref AWS::NoValue,
+            ]
 
   CollectorLogGroup:
     Type: AWS::Logs::LogGroup
@@ -920,6 +980,13 @@ Resources:
           SES_CONFIGURATION_SET: !Ref SenderConfigurationSet
           BUTTONDOWN_API_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:buttondown_api_token}}"
           SECRET_EPOCH: !Ref SecretEpoch
+          OUTBOX_BUCKET: !Ref OutboxBucket
+          CLAN_MODEL_SECRET:
+            !If [
+              HasInternalClan,
+              !Sub "{{resolve:secretsmanager:${ClanModelSecretName}:SecretString:session_secret}}",
+              !Ref AWS::NoValue,
+            ]
 
   EmailEventSource:
     Type: AWS::Lambda::EventSourceMapping
@@ -1006,6 +1073,7 @@ Resources:
           # secret the one-click unsubscribe token is signed with (the same
           # one the web API verifies it with).
           OUTBOX_BUCKET: !Ref OutboxBucket
+          CLAN_INTERNAL: !Ref ClanInternal
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           UNSUBSCRIBE_SECRET: !If
             - HasUnsubscribeKey
@@ -1026,6 +1094,26 @@ Resources:
       Qualifier: $LATEST
       MaximumEventAgeInSeconds: 3600
       MaximumRetryAttempts: 2
+
+  ClanEvaluateRule:
+    Type: AWS::Events::Rule
+    Condition: HasInternalClan
+    Properties:
+      Name: elixir-mcp-clan-evaluate
+      ScheduleExpression: cron(0/2 11 * * ? *)
+      State: ENABLED
+      Targets:
+        - Id: clan-evaluate
+          Arn: !GetAtt JobsFunction.Arn
+          Input: '{"clan_evaluate":true}'
+  ClanEvaluatePermission:
+    Type: AWS::Lambda::Permission
+    Condition: HasInternalClan
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ClanEvaluateRule.Arn
 
   EmailClanReportRule:
     Type: AWS::Events::Rule
@@ -1778,12 +1866,17 @@ Resources:
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
           # Elixir Clan's API, listed before /api/*, which would take it.
           - PathPattern: /api/clan/*
-            TargetOriginId: clanapi
+            TargetOriginId: !If [HasInternalClan, api, clanapi]
             ViewerProtocolPolicy: https-only
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            OriginRequestPolicyId: !Ref ClanApiOriginRequestPolicy
+            OriginRequestPolicyId:
+              !If [
+                HasInternalClan,
+                !Ref SiteApiOriginRequestPolicy,
+                !Ref ClanApiOriginRequestPolicy,
+              ]
           - PathPattern: /api/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
@@ -1851,7 +1944,7 @@ Resources:
           # same function as the site. Two patterns, because /clan* would
           # also take /clans.
           - PathPattern: /clan
-            TargetOriginId: clanweb
+            TargetOriginId: !If [HasInternalClan, site, clanweb]
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
@@ -1860,7 +1953,7 @@ Resources:
               - EventType: viewer-request
                 FunctionARN: !GetAtt SpaRouter.FunctionMetadata.FunctionARN
           - PathPattern: /clan/*
-            TargetOriginId: clanweb
+            TargetOriginId: !If [HasInternalClan, site, clanweb]
             ViewerProtocolPolicy: redirect-to-https
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
@@ -1904,7 +1997,7 @@ Resources:
       FunctionConfig:
         Comment: Route content paths to the static site and app paths to their app shell
         Runtime: cloudfront-js-2.0
-      FunctionCode: |
+      FunctionCode: !Sub |
         function handler(event) {
           var request = event.request;
           var uri = request.uri;
@@ -1945,7 +2038,7 @@ Resources:
           // Elixir Clan owns /clan: its files sit under clan/ in its own
           // bucket, and every other path there is its app.
           if (key === '/clan' || key.indexOf('/clan/') === 0) {
-            request.uri = '/clan/index.html';
+            request.uri = '${ClanInternal}' === 'true' ? '/app.html' : '/clan/index.html';
             return request;
           }
 

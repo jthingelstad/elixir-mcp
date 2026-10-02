@@ -2776,3 +2776,74 @@ Postgres lock waiter for GET and POST using the alias. No additional auth or
 privacy regression was found. The privacy ratchet now names the moved factual
 writer, preserving the same two allowed writers, and MCP/public tools have an
 explicit private-state import guard. Legacy source pointers were updated.
+
+### 2026-10-02: Shared-runtime receipt and remaining Clan cutover preparation
+
+PR #225 merged at e5bf8561. Root UPDATE_COMPLETE was observed at
+2026-10-02T18:22:31.534Z; migration 0196 was already applied (ran 0).
+Smoke passed and public health was true. The first local deployment build
+stopped before upload because that checkout had the previous workspace
+installation; refreshing dependencies resolved it. No tool behavior changed,
+so this preparation used smoke without another full live acceptance sweep.
+The existing card cold-query performance follow-up remains open.
+
+A fresh consistent private item-key census found 131 durable Clan items and
+15 temporary sessions. Durable kinds include policies and versions, actions,
+logs, counters, mail watermarks, awards, recruiting, schedule claims,
+preferences, places and one sealed model key. No bodies or credentials were
+returned by the census. No state has been imported or deleted.
+
+The next disabled preparation adds an explicit frozen-source import op,
+count and canonical-content comparison, a legacy read/write/schedule freeze,
+and the existing jobs runtime's one-clan morning evaluator. Its claim completes
+only after all steps succeed; transient evaluation, standings or mail failures
+can retry. It shares the normalized clan lock with web decisions and keeps
+historical app attester identity/provenance without any network credential.
+
+The existing non-VPC relay can carry a narrowly typed private Clan model
+operation through the existing S3 endpoint and queue. Request and reply bodies
+are authenticated and encrypted under a distinct derived key, bound to their
+random id; the old sealing key domain remains unchanged. An immutable claim
+precedes provider use, so duplicate notifications and interrupted outcomes
+never retry a paid call. Expired requests do not call a provider. The root
+feature switch defaults false, preserves previous values on deploy, and leaves
+session routing, jobs, model transport and state cutover inactive. No paid
+model call was made. The unified UI, reviewed private import, actual activation,
+old-stack/credential retirement and the historical purge manifest are still owed.
+
+Preparation review corrected four latent cutover defects: model sealing secrets
+are limited to web-api and the network relay; uncertain S3 delivery/reply reads
+return an explicit uncertain outcome; paid attempts are reserved before provider
+dispatch and finalized in place, so interruption cannot bypass the daily use
+record; the model bridge computes its wait against the current request deadline.
+Unknown key-owner roster status refuses use. Existing 90-day model-use retention
+has a bounded, model-call-only cleanup. Morning work prioritizes unattempted clans
+before retries and bounds attempts, so one failing clan cannot starve another.
+The private import rejects invalid export dates as well as invalid freeze dates.
+Scratch regressions cover each refusal, interruption, fairness and retention path.
+
+Verification first caught an ops-catalogue insertion in the inline example rather
+than the real table; the duplicate/missing-row tests caught it and the row was
+moved to the actual catalogue. CFN lint caught duplicate job flags in preparation;
+those were removed, and unrelated collector/MCP sealing-secret references were
+removed before activation. These were local preparation failures, not production
+changes. Both templates now have zero new CFN errors; the existing PG17/SNS and
+legacy redundant-dependency warnings remain. Scoped Guard checks pass for private
+encrypted outbox storage and default-off cutover/freeze parameters.
+
+Clan CI deployment 37047238842 passed on e5bf8561 after the shared-runtime
+preparation. Its separate runtime remains in use until the import/UI cutover.
+The four separate Clan owners remain active; their private-state maintenance
+interfaces and duties must move to the existing four Elixir owners before the
+legacy schedules and stack retire. No cadence change is planned by implication.
+
+Disabled cutover preparation passes the complete `npm run verify` gate,
+51 Console and 15 legacy Clan Playwright journeys, and both Lambda builds.
+The infrastructure assertions now cover default-off legacy cookies, enabled
+shared-session routing, both web runtime timeouts, external MCP no-cookie
+isolation and the two permitted sealing-secret consumers. The first full
+rerun caught old assertions that assumed routing and timeout could never
+change; those assertions now pin both explicitly selected modes. No tool
+implementation changed, so this deploy uses smoke rather than live tool
+acceptance; no Clan switch, state transfer or paid provider call is authorized
+by a verification run.

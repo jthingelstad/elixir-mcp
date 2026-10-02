@@ -1,3 +1,4 @@
+import { runClanEvaluation } from "./clan.mjs";
 import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** The jobs Lambda — scheduled product work, split out of the migrate
  *  Lambda (review item 5, 2026-09-05): EventBridge fires the sweeps and
@@ -285,6 +286,18 @@ export async function handler(event, context) {
   )
     return { skipped: "retired" };
 
+  if (event?.clan_evaluate) {
+    if (process.env.CLAN_INTERNAL !== "true")
+      return { skipped: "clan_not_internal" };
+    const result = await runClanEvaluation({
+      databaseUrl: process.env.DATABASE_URL,
+      enqueue: enqueueEmail,
+      secret: unsubscribeKeys(),
+      archive: await mailArchiveStore(),
+    });
+    console.log(JSON.stringify({ clan_evaluate: result }));
+    return result;
+  }
   if (typeof event?.email === "string") {
     const result = await runEmail({
       databaseUrl: process.env.DATABASE_URL,

@@ -18,9 +18,17 @@ const DEADLINE_MARGIN_MS = 1500;
  *  row and rendering, so its answer beats the handler's 504. */
 const TOOL_REPLY_MARGIN_MS = 1500;
 
-export function deadlineMs(context) {
+export function deadlineMs(context, event = null) {
   if (typeof context?.getRemainingTimeInMillis !== "function") return null;
-  return Math.max(context.getRemainingTimeInMillis() - DEADLINE_MARGIN_MS, 1);
+  const model =
+    /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:model|.*\/draft)$/.test(
+      event?.rawPath ?? event?.path ?? "",
+    ) && (event?.requestContext?.http?.method ?? event?.httpMethod) !== "GET";
+  const remaining = context.getRemainingTimeInMillis();
+  return Math.max(
+    (model ? remaining : Math.min(remaining, 20_000)) - DEADLINE_MARGIN_MS,
+    1,
+  );
 }
 
 /** The invoker's deadlineMs for a tool run inside this request, or null

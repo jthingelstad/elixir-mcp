@@ -446,11 +446,27 @@ export function ledgerOver(io) {
     },
     async addModelCall(clanTag, call) {
       const id = newId();
+      const pk = `model_call#${clanTag}#${call.at}#${id}`;
       await io.put({
-        pk: `model_call#${clanTag}#${call.at}#${id}`,
+        pk,
         gsi1pk: clanKey(clanTag),
         gsi1sk: `model_call#${call.at}#${id}`,
         ...call,
+      });
+      return pk;
+    },
+    async finishModelCall(clanTag, pk, result) {
+      if (!pk.startsWith(`model_call#${clanTag}#`))
+        throw new Error("model call belongs to another clan");
+      const previous = await io.get(pk);
+      if (!previous) throw new Error("reserved model call is missing");
+      await io.put({
+        ...previous,
+        ...result,
+        pk: previous.pk,
+        gsi1pk: previous.gsi1pk,
+        gsi1sk: previous.gsi1sk,
+        at: previous.at,
       });
     },
     // ---- feedback: one partition, the queue ---------------------------

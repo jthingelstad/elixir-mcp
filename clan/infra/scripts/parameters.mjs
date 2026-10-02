@@ -29,6 +29,7 @@ export const PRESERVED_PARAMETERS = [
   "FeedbackNotifyEmail",
   "ElixirIntegrationKey",
   "ScheduleEnabled",
+  "MigrationFrozen",
   "ElixirDistributionId",
 ];
 

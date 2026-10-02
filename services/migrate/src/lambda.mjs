@@ -1,3 +1,4 @@
+import { clanImport } from "./ops-clan-import.mjs";
 /** The migrate Lambda — the ONLY thing that applies schema migrations in
  *  the cloud (docs/ENGINEERING.md). Invoked by the deploy script between code
  *  upload and flip. The build packages db/migrations alongside the bundle. */
@@ -108,6 +109,14 @@ export async function handler(event) {
 }
 
 async function dispatch(event) {
+  if (event?.clan_import) {
+    const result = await clanImport(
+      process.env.DATABASE_URL,
+      event.clan_import,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.inspect) {
     const result = await inspect(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));

@@ -46,8 +46,6 @@ export const PRESERVED_PARAMETERS = [
   // Operational switch: a deploy must never silently turn the version
   // gate back off, or on.
   "CollectorMinEnforce",
-  // The Top 100 writer's model: changed by hand when a newer one is
-  // wanted, never reset by a deploy.
   // Secret rotation (docs/SECRETS.md, #71): the switches for keys the app
   // secret may or may not carry yet, the origin secret a rotation
   // replaced, and the epoch that makes every function re-read its
@@ -59,6 +57,9 @@ export const PRESERVED_PARAMETERS = [
   // Where Elixir Clan's API answers (/api/clan/*): set once, and again
   // only if Clan's API is ever replaced.
   "ClanApiDomain",
+  "ClanInternal",
+  "ClanModelSecretName",
+  "ClanMaintainerTags",
 ];
 
 /**

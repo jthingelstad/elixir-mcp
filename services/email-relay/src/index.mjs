@@ -1,3 +1,6 @@
+import { createModelWorker } from "@elixir-mcp/clan/model-bridge.mjs";
+import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
+import { createAnthropicClient } from "@elixir-mcp/clan/anthropic.mjs";
 /** Lambda entrypoint: the non-VPC relay — sends mail over SES from the
  *  outbox and enrolls opted-in sign-ins with Buttondown. */
 
@@ -76,7 +79,23 @@ export function makeButtondownEnroller({
 
 const s3 = new S3Client({});
 
+const modelWorker =
+  process.env.CLAN_MODEL_SECRET && process.env.OUTBOX_BUCKET
+    ? createModelWorker({
+        secret: process.env.CLAN_MODEL_SECRET,
+        storage: modelStorage(process.env.OUTBOX_BUCKET, s3),
+        provider: createAnthropicClient(),
+      })
+    : null;
+
 export const handler = makeHandler({
+  modelObject: modelWorker
+    ? async ({ bucket, key }) => {
+        if (bucket !== process.env.OUTBOX_BUCKET)
+          throw new Error("unsupported private model bucket");
+        await modelWorker(key);
+      }
+    : null,
   send: makeSesSender({
     fromEmail: process.env.FROM_EMAIL ?? "elixir@poapkings.com",
     configurationSet: process.env.SES_CONFIGURATION_SET ?? "elixir-mcp",
