@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Ladder: every deck you played",
+    body: "Ladder has a Decks page, at /ladder/decks: every deck you played this season, each judged in the mode it was played in. Trophy Road and Path of Legends show each deck with its eight cards, its evolutions, the days you played it, its average elixir, and its record, win rate and level gap in that mode. When two decks are the same cards with an evolution moved and one followed the other, the page draws the swap: what moved, what stayed, and each deck's own record, without saying the change caused it. War, duels and events sit in one table, a row per deck per mode, with duel rounds counted as rounds. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "Ladder: the days you played",
     body: "Ladder has a second page, Days played, at /ladder/days: every day of the season on your calendar in your own timezone, each mode with its own mark and record, the two modes you played most as tiles, the longest break, and your nights (runs of battles with no gap over half an hour), newest first. Open a night to see each battle, and a battle opens on its own page. A defense of your clan's boat is not your battle and is left out, as on the season home.",
   },

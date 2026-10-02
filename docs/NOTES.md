@@ -1874,3 +1874,34 @@ player's own log (side 0). A defense recorded first from the attacker's log
 would count here as the player's battle. The clean fix is a hub field (the
 player's own boat role on the row); it is not added here.
 
+---
+
+## 2026-10-02 - Ladder's Decks page
+
+The third Ladder slice (LadderDecks.dc.html) is `/ladder/decks`. It reads
+`battles_decks` with `season: current` once over every mode (limit 100: the
+modes a row was played in, the duel rounds, the deck count), then once per
+mode, so each row's record, win rate, level gap and first and last days are
+that mode's own; the every-mode rows, which pool a deck's modes, are never
+shown. Trophy Road and Path of Legends decks are each read again by
+`deck_hash` for their cards and archetype (one call per shown deck, six per
+mode until "Show all"); war, event and the other modes stay one table with
+no card art, so they cost no extra reads. A view costs 1 + modes + shown
+trophy decks + one battles_performance per trophy mode (the season home's
+read, cached).
+
+Decisions: the board's per-card elixir badges are left out, because the
+kit's CardArt has no cost slot and a shared tile change belongs to the kit's
+owner; the deck's `archetype.average_elixir` stands in, so no cards_catalog
+read is needed. The swap panel appears only for two decks of one mode with
+the same eight card ids and a form moved, the earlier one's last battle
+before the later one's first; decks played side by side are not a "before"
+and "after". Its "core four" record (the two decks summed) and the board's
+"small sample" line are left out: the first is a sum no tool returns, the
+second a judgment. "Compare two decks", "War in Clan" and the rows as links
+are left out (no such pages). The title counts distinct deck identities
+returned, rows and duel rounds together. Duel rounds come from each mode's
+`duel_decks`; war is read whenever there were duel rounds, and a duel deck
+no mode claims is shown as "Duel" with no mode rather than a guessed one.
+A war or event deck with the same cards and forms as a Trophy Road deck
+says so (compared by `card_names`, whose forms the tool prefixes).

@@ -10,6 +10,7 @@ import {
 import { useToolRead } from "../lib/queries.js";
 import { NoPlayers } from "../ladder/common.jsx";
 import { Days } from "../ladder/Days.jsx";
+import { Decks } from "../ladder/Decks.jsx";
 import { Season } from "../ladder/Season.jsx";
 
 /**
@@ -45,6 +46,8 @@ export function LadderPage() {
   switch (ladderSlug(pathname)) {
     case "days":
       return <Days {...ctx} />;
+    case "decks":
+      return <Decks {...ctx} />;
     default:
       return <Season {...ctx} />;
   }

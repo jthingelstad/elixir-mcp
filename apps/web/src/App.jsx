@@ -824,6 +824,13 @@ export const DOC_LINKS = {
       ["battles_query", "/docs/tools/battles#battles_query"],
     ],
   ],
+  "ladder:decks": [
+    "Ladder",
+    [
+      ["Decks", "/docs/ladder#decks"],
+      ["battles_decks", "/docs/tools/battles#battles_decks"],
+    ],
+  ],
 };
 
 /** Structural redirects: a bare section to its first page, a partial

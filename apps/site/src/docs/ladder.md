@@ -33,9 +33,9 @@ week, not from your trophies; an event plays by its own. A win rate across
 all of them would describe none of them. [Modes](/docs/modes) says how
 Elixir tells them apart.
 
-Days played is the one page that shows every mode at once, and it still
-keeps each mode's mark and record apart. Any other page opens on the mode
-you played most: Path of Legends when your last 30
+Days played and Decks show every mode on one page, and they still keep
+each mode's mark and record apart. The season home opens on the mode you
+played most: Path of Legends when your last 30
 days hold more of it than Trophy Road, otherwise Trophy Road. The tabs are
 addresses (`/ladder?mode=ranked`), so a link to one mode stays in it.
 
@@ -101,6 +101,35 @@ did not reach are marked "not read", never drawn as days without a battle.
 A defense of your clan's boat is not your battle, so Days played leaves it
 out, as the season home does.
 
+## Decks
+
+**Decks**, at `/ladder/decks`, is every deck you played this season, each
+judged in the mode it was played in, from
+[battles_decks](/docs/tools/battles#battles_decks) with `season: current`:
+one read over every mode to learn which modes you played, then one read per
+mode, so a deck you took from Trophy Road into an event has a record in
+each and never one across them. A deck is its exact cards, forms and tower
+troop, so the same eight cards with an evolution moved are two decks, and a
+war deck (which has no tower troop) is its own row.
+
+- **Trophy Road and Path of Legends**: a section each, headed by the mode's
+  season record from battles_performance. Each deck shows its archetype
+  label, its evolutions and hero forms, the days you first and last played
+  it, its average elixir, its eight cards, its battles, record and win rate
+  in that mode, and its mean level gap: how many levels your cards sat
+  above or below your opponents', on average. A deck's cards are one read
+  each, so a mode shows the six decks played most until you ask for all.
+- **A swap of forms**: when two decks of one mode are the same eight cards
+  with a form moved, and you put the first down before you picked the
+  second up, the page draws the swap: the forms before and after, the
+  cards that did not change, and each deck's own record. It reads back
+  what happened after the change; it does not say the change caused it.
+- **War, duels and events**: every other mode's decks as rows of one
+  table, each with that mode's record, its forms, its level gap and a note
+  when it is the same cards as a Trophy Road deck. A duel has no single
+  deck, so its rows are the decks you played in its rounds, each round won
+  or lost on its own crowns.
+
 ## What Ladder leaves out
 
 - **A verdict.** Nothing on Ladder rates you, projects a pace ("at this
@@ -109,5 +138,8 @@ out, as the season home does.
 - **When you play.** The hour-of-day rhythm tile was removed from the
   console by decision, and Days played follows it: the nights say when you
   played, and no chart sums them into a habit.
+- **Comparing two decks.** The board's "Compare two decks" has no page
+  yet; each deck's record sits in its own row, and a comparison across
+  rows is only fair within one mode and a similar level gap.
 - **Matchup expectations.** How you should do against a deck is a judgment
   Elixir does not make; what happened against it is on the record.
