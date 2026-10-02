@@ -1151,8 +1151,11 @@ function buildView(kind, rawId, res, me, zone) {
     const myTag = bt.me.player_tag ?? b.player_tag;
     const myName = bt.me.name ?? b.name ?? null;
     const opp = bt.opponents?.[0];
+    const page = battlePath(bt.url);
     const fields = [
       { label: "battle_time", value: fmt(bt.battle_time) },
+      // The public page for this battle, the link to hand a person.
+      ...(page ? [{ label: "page", value: page, mono: true, href: page }] : []),
       { label: "type", value: bt.type },
       { label: "game_mode", value: bt.game_mode?.name ?? "—" },
       // arena is {id, name} since the contract named arenas; rendering
@@ -1436,6 +1439,20 @@ function buildView(kind, rawId, res, me, zone) {
   throw new Error(`unknown kind ${kind}`);
 }
 
+/** A battle's public page (/battle/<short id>, 9.18.0) as an in-app
+ *  path, read from the row's own `url`. Never rebuilt from battle_id:
+ *  the server lengthens a short id where two battles share a prefix,
+ *  and only the row knows by how much. Null when the row has no url. */
+export function battlePath(url) {
+  if (!url) return null;
+  try {
+    const { pathname } = new URL(url);
+    return /^\/battle\/[0-9a-f]{12,64}$/.test(pathname) ? pathname : null;
+  } catch {
+    return null;
+  }
+}
+
 function buildListView(rawId, res, zone) {
   const [what, key] = rawId.split(":");
   const b = res.body;
@@ -1449,9 +1466,14 @@ function buildListView(rawId, res, zone) {
         {
           text: fmt(bt.battle_time),
           mono: true,
-          href: bt.battle_id
-            ? `${CONSOLE}/explore/battle/${bt.battle_id}`
-            : undefined,
+          // The battle's own page (2026-10-02): both decks, the towers
+          // and how it ended. A row from before 9.18.0 has no url and
+          // keeps the record view.
+          href:
+            battlePath(bt.url) ??
+            (bt.battle_id
+              ? `${CONSOLE}/explore/battle/${bt.battle_id}`
+              : undefined),
         },
         ...(what === "deckbattles"
           ? [
