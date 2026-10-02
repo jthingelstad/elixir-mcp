@@ -102,6 +102,28 @@ const REFERENCES = Object.freeze({
     columns: "event_id,clan_tag,player_tag,receipt_id,window_start,window_end",
     clock: "window_end",
   },
+  player_profile_provenance: {
+    table: "player_snapshot_daily",
+    columns:
+      "player_tag,snapshot_date,snapshot_kind,clan_tag,source,observed_at,profile_observed_at,roster_observed_at,created_at",
+  },
+  clan_profile_provenance: {
+    table: "clan_snapshot_daily",
+    columns: "clan_tag,day,snapshot_kind,receipt_id,source,observed_at",
+  },
+  ranking_player_entities: {
+    table: "ranking_entry",
+    columns: "snapshot_id,rank,player_tag,clan_tag",
+  },
+  ranking_clan_entities: {
+    table: "clan_ranking_entry",
+    columns: "snapshot_id,rank,clan_tag",
+  },
+  live_job: {
+    table: "job",
+    columns: "job_id,endpoint,entity_key,lane,status,created_at,done_at",
+    filter: "lane='live'",
+  },
   mcp_call_audit: {
     columns: "audit_id,request_id,tool,created_at,captured",
   },

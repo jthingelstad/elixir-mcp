@@ -16,6 +16,11 @@ test("reference evidence has a separate definition without changing the history 
     "deck",
     "war_period_anchor",
     "clan_event_inventory",
+    "player_profile_provenance",
+    "clan_profile_provenance",
+    "ranking_player_entities",
+    "ranking_clan_entities",
+    "live_job",
     "mcp_call_audit",
     "email_issue",
     "email_featured_card",
@@ -119,6 +124,18 @@ test("reference pages retain identifiers and hashes while excluding mail bodies 
     assert.equal(second.rows, 1);
     assert.equal(second.done, true);
     assert.ok(JSON.parse(objects.get(second.key)).rows[0].event_id);
+    for (const lane of [
+      "player_profile_provenance",
+      "clan_profile_provenance",
+      "ranking_player_entities",
+      "ranking_clan_entities",
+      "live_job",
+    ]) {
+      const receipt = await exportLane(lane);
+      assert.equal(receipt.rows, 0);
+      assert.equal(receipt.done, true);
+      assert.ok(JSON.parse(objects.get(receipt.key)).primary_key.length);
+    }
   } finally {
     await ctx.drop();
   }
