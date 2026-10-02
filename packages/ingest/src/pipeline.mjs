@@ -14,9 +14,17 @@
 
 import { gunzipSync } from "node:zlib";
 import { polSeasonMonth } from "@elixir-mcp/record/war-clock";
-import { validateResultMessage, normalizeTag } from "@elixir-mcp/contracts";
+import {
+  validateResultMessage,
+  normalizeTag,
+  isRetiredRecordingEndpoint,
+} from "@elixir-mcp/contracts";
 import { payloadHash } from "./hash.mjs";
-import { stampRetry } from "@elixir-mcp/ledger";
+import {
+  stampRetry,
+  bulkJobWanted,
+  RECORDING_CUTOVER_LOCK,
+} from "@elixir-mcp/ledger";
 import { admit } from "./admission.mjs";
 import { ingestBattlelog } from "./battles.mjs";
 import { ingestClanRoster } from "./roster.mjs";
@@ -564,19 +572,41 @@ export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
 const MAX_DECOMPRESSED_BYTES = 16 * 1024 * 1024;
 
 export async function processResult(db, rawMessage, deps = {}) {
-  // Phase timings ride every outcome (a few Date.now() calls): the
-  // replay lane aggregates them, and they price the live path too.
   const t0 = Date.now();
+  const validated = validateResultMessage(rawMessage);
+  if (!validated.ok)
+    return { outcome: "bad_message", errors: validated.errors };
+  const msg = validated.msg;
+  // Refuse before parsing or archiving, including old leases and replays.
+  if (isRetiredRecordingEndpoint(msg.job.endpoint))
+    return { outcome: "retired", endpoint: msg.job.endpoint };
+  const fleetBulk = msg.job.lane === "bulk" && msg.job_id != null;
+  // A session lock spans error receipts and the archive/projection transaction.
+  // The cutover's exclusive transaction lock drains every earlier admission.
+  // Fleet submissions waiting behind it recheck authority after it commits.
+  if (fleetBulk)
+    await db.query("select pg_advisory_lock_shared(hashtext($1))", [
+      RECORDING_CUTOVER_LOCK,
+    ]);
+  try {
+    if (fleetBulk && !(await bulkJobWanted(db, msg.job)))
+      return { outcome: "retired", reason: "recording_stopped" };
+    return await processRecordedResult(db, rawMessage, msg, deps, t0);
+  } finally {
+    if (fleetBulk)
+      await db.query("select pg_advisory_unlock_shared(hashtext($1))", [
+        RECORDING_CUTOVER_LOCK,
+      ]);
+  }
+}
+
+async function processRecordedResult(db, rawMessage, msg, deps, t0) {
+  // Phase timings include any wait for the recording cutover lock.
   const timings = {};
   const mark = (key, since) => {
     timings[key] = (timings[key] ?? 0) + (Date.now() - since);
     return Date.now();
   };
-  const validated = validateResultMessage(rawMessage);
-  if (!validated.ok)
-    return { outcome: "bad_message", errors: validated.errors };
-  const msg = validated.msg;
-
   // Lifecycle enforcement (§4.6): revocation is real because ingest stops
   // listening. Unknown ids die here too — cheaper than an FK throw + retry.
   // Any valid message proves liveness; success is stamped on admission below.

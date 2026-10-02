@@ -95,6 +95,37 @@ before(async () => {
     notifyOwner: async (n) => notices.push(n),
     now: () => clockMs,
   });
+  // Bulk fixtures represent actively requested recordings.
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, origin)
+    select 'player', tag, (select account_id from account limit 1), 'ops'
+    from unnest($1::text[]) tag`,
+    [
+      [
+        "#20JJJ2CCRU",
+        "#2LRYLQPL",
+        "#2PP",
+        "#2PPLQQ",
+        "#2PQ",
+        "#2PR",
+        "#2PY",
+        "#2YG98VVQ",
+        "#8LR0P09LR",
+        "#8U2P0JPR",
+        "#ABN1",
+        "#ABN2",
+        "#ABN3",
+        "#JRVV9VC0C",
+        "#PLCCYUQL",
+        "#REJECT1",
+        "#RETRY1",
+        "#RETRY2",
+        "#RETRY3",
+        "#U08P889Y0",
+        "#Y9CQ8VRV",
+      ],
+    ],
+  );
 });
 
 after(async () => {
@@ -103,6 +134,40 @@ after(async () => {
   await admin.connect();
   await admin.query(`drop database if exists ${NAME} with (force)`);
   await admin.end();
+});
+
+test("held retired boards and stopped bulk subjects are acknowledged without ingest", async () => {
+  const gateway = await gatewayRow("bulk-op");
+  for (const [endpoint, tag] of [
+    ["rankings_pol", "global"],
+    ["player_battlelog", "#NOFOLLOW"],
+  ]) {
+    const {
+      rows: [job],
+    } = await db.query(
+      `insert into job (endpoint, entity_key, lane, status, leased_by, leased_at)
+       values ($1, $2, 'bulk', 'leased', $3, now()) returning job_id`,
+      [endpoint, tag, gateway.gateway_id],
+    );
+    const before = ingested.length;
+    const reply = await door.submit(db, authed(TOKEN_BULK), {
+      lease: Number(job.job_id),
+      status: "ok",
+    });
+    assert.deepEqual(reply, {
+      status: 200,
+      body: { ok: true, outcome: "retired" },
+    });
+    assert.equal(ingested.length, before);
+    const {
+      rows: [closed],
+    } = await db.query("select status from job where job_id = $1", [
+      job.job_id,
+    ]);
+    assert.equal(closed.status, "done");
+  }
+  const after = await gatewayRow("bulk-op");
+  assert.equal(after.missed_streak, gateway.missed_streak);
 });
 
 test("auth: bad, missing, and revoked tokens never pass", async () => {

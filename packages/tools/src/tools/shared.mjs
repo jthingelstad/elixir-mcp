@@ -763,6 +763,12 @@ export async function liveRead(ctx, { endpoint, entityKey, needPayload }) {
   });
   if (r.ok)
     return { state: "fresh", fetched_at: r.fetched_at, payload: r.payload };
+  if (r.reason === "live_unavailable")
+    throw new ToolFailure(
+      "live_unavailable",
+      "Global leaderboard capture has been retired.",
+      "Existing recorded history remains available without live: true until its retirement.",
+    );
   if (r.reason === "rejected")
     throw new ToolFailure(
       "live_unavailable",

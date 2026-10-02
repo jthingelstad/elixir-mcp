@@ -2447,3 +2447,56 @@ Validation: `npm run verify` passed for the Collections plan update. Final
 scope clarifications passed formatting, docs corpus tests (9) and the merged
 site build/tests (34). Drop's runtime source was read to verify the dependency;
 its code and deployment have not changed in this planning PR.
+
+## 2026-10-02 - Right sizing: stop global capture and editorial sends
+
+Jamie authorized implementation of the ratified right-sizing plan. First
+runtime cutover: contract 9.20.0, JSON API response shapes unchanged.
+Global leaderboard endpoints are refused before enqueue, lease and archive
+admission, including historical replay. The planner no longer seeds boards,
+the leaderboard catalog or missing season finals. Remaining bulk work is
+checked against active player/clan capture authority; intentional live
+player/clan reads remain available.
+
+Ranking presence and the four board Collection slugs no longer confer
+recording authority. The bounded `retire_board_recordings` operation previews
+by default and reconciles active subjects using remaining claims, account
+clans, other Collections and explicit ops reasons. Apply disables all board
+dials and consumes obsolete jobs in bounded batches without penalizing collectors,
+including expired obsolete leases beyond the current cleanup batch. It preserves
+recording provenance and every game fact and archived payload. No canonical
+schema migration is needed for this reversible control-state cutover.
+
+Ultimate Champions and Card of the Week schedules and permissions are removed.
+Jobs, direct composition/delivery, editor and relay boundaries consume retired
+work without sending it; forcing a send cannot bypass retirement. Their
+switches are absent and cannot be re-enabled. Existing sent history and old
+unsubscribe links remain usable. Editor infrastructure and historical renderers
+remain dormant until the later deletion phase.
+
+The installed Rankings Analyst automation was already PAUSED; the repository
+manifest and generated schedule now agree. No board writer was found in this
+machine's LaunchAgents. Runtime refusal also protects a writer on another
+machine. Collections other than the four retired board populations remain
+transitional, including Drop's enrollment; their separate consumer cutover
+has not shipped. Meta/recommendation removal, full Clan consolidation and the
+reviewed database/S3 purge remain pending.
+
+Validation and production receipt will be appended after the gates and
+cutover. No history deletion is included in this change.
+
+Cutover review tightened job cleanup to bounded `SKIP LOCKED` batches with an
+explicit remaining-work check. Fleet bulk admission holds the shared session
+cutover lock across errors, archive and projection; reconciliation acquires
+its exclusive transaction counterpart and drains submissions already in
+flight. Scratch regressions cover a skipped locked job, 1,001 obsolete expired
+leases without collector penalties, and an admission paused in archive IO
+while reconciliation waits. No production writes are used as tests.
+
+Pre-push validation: `npm run verify` passed through all workspace tests.
+Browser gates passed 57 Elixir journeys and 15 Clan journeys, including axe.
+A prior local attempt collided with a concurrent site build; the final verify
+ran sequentially. CloudFormation lint reports no errors and only the same
+W3691 and W3037 warnings as the current main template. No stateful resource
+is changed by this schedule removal. The reference vocabulary files are clean,
+and acceptance credentials are available by local ignored file reference.

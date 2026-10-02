@@ -1,3 +1,4 @@
+import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -424,8 +425,10 @@ test("the weekly send times are the EventBridge crons", () => {
       hour: Number(m[2]),
       minute: Number(m[1]),
     });
-  for (const [kind, slot] of Object.entries(MAIL_SCHEDULE))
-    assert.deepEqual(slot, crons.get(kind), kind);
+  for (const [kind, slot] of Object.entries(MAIL_SCHEDULE)) {
+    if (isRetiredEmailKind(kind)) assert.equal(crons.has(kind), false);
+    else assert.deepEqual(slot, crons.get(kind), kind);
+  }
   assert.equal(Object.keys(MAIL_SCHEDULE).length, 6);
 });
 

@@ -1,32 +1,32 @@
 ---
 slug: email
 title: "Email"
-description: "The eight emails Elixir sends: four weekly reports built from your record with no model in the loop, two written weekly pieces, a milestone note when something you did is a first, and Elixir Clan's note when something new in your clan is yours to do. Every one is a switch on your account page; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
+description: "The six emails Elixir sends: four weekly reports built from your record, a milestone note when something you did is a first, and Elixir Clan's note when something new in your clan is yours to do. Every one is a switch on your account page; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
 section: friends
 order: 3
 navTitle: "Email"
 icon: mail
-lede: "Eight kinds, each a switch, each with a turn-off link in every issue. Six are weekly; one arrives when something you did is a first; one when something in your clan is yours to do."
+lede: "Six kinds, each a switch and a turn-off link: four weekly reports, milestones and clan actions waiting."
 ---
 
 # Email
 
-Elixir sends eight kinds of email. All eight are **on by default** for
+Elixir sends six kinds of email. All six are **on by default** for
 every approved account, because taking part in the beta includes the
-product's mail, and all eight are **a switch on your account page**
+product's mail, and all six are **a switch on your account page**
 ([Profile → Email](/console/account/profile/email)), with a *turn off* link in every
 issue and one-click unsubscribe in mail clients that support it. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
-Four of the eight are weekly **reports**, and the milestone note is
+Four of the six are weekly **reports**, and the milestone note is
 built the same way: structured, built from your record by the same
 readers the tools answer with, no language model anywhere in them.
 Every number is the number a tool would give you, and every one of
 them carries the coverage note the tools carry, because a report that
-hides a gap in the record is a report that lies. Two, the Top 100 and
-Card of the Week, are **written** pieces, and the one place a model
-writes for Elixir; how they are kept honest is below. The last, Clan
-actions waiting, carries Elixir Clan's own words about your clan.
+hides a gap in the record is a report that lies. Clan actions waiting carries
+Elixir Clan's own words about your clan. Ultimate Champions (Top 100) and
+Card of the Week have ended. Previously sent issues remain in your email
+history, and their old unsubscribe links still work.
 
 ## The week
 
@@ -44,8 +44,6 @@ notes are exempt: they come as the moments do.
 | Monday | **Clan report** | Your clan's week: the war result if a war week closed (the clan's place, fame and war trophies, the race as it finished, the top five who raced and your own players), who joined and left and when, who has gone quiet, and the week in battles, promotions, new bests and donations, with a link to the roster. One report per clan you track, the same one to every member who tracks it, with its days named in your own timezone and your own players marked *you*. |
 | Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the deck you played most drawn card by card, who you faced and who came round more than once, and a line for each alt. It links your season on [Ladder](/docs/ladder), and every deck of it on Ladder's Decks. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
 | Wednesday | **Your friends this week** | How everyone you follow played: a card each for your friends and the busiest players you watch (their battles in each mode, a moment or two, the deck they played most), with you and your clans in a line each. It is the [timeline](/docs/timeline) for the week, rendered. Until October 2026 it was called the Tracking report; your switch for it carried over. |
-| Thursday | **Top 100** | One issue for everyone: a read of the global Path of Legends top 100 over the week that ended at that morning's board. Forward it to anyone who would enjoy it. |
-| Friday | **Card of the Week** | One card the record has something to say about, read in full: how much it is played and how often it wins, where it gets played, who plays it best, what it travels with, and the decks carrying it. One issue for everyone. Forward it to someone who runs that card. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, whether it is checking in, silent or stopped, its fetches this week and points to date; how much the edge filter saved, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
 | Mornings | **Clan actions waiting** | From [Elixir Clan](https://elixir.poapkings.com/clan), one of the Elixir family's apps: after its morning run, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Elixir Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
 | As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked, an Evolution or Hero form unlocked. A new arena or league comes with the battle that did it and a link to [that battle's page](/docs/battles#a-battles-page); a card comes as its art. Checked hourly; everything new since the last note rides together. |
@@ -62,61 +60,11 @@ check that went through, up to a week, so a first is late rather than lost.
 
 ## Card of the Week, and how it stays honest
 
-Friday's issue is about one card, and the card is **chosen by a
-program, not by us**: the ten most-played cards of the season that have
-not been written up in the last year, with one drawn from those ten.
-The draw is fixed for a given week, so the same week always chooses the
-same card, and the ten it chose from are kept with the issue. A card is
-used up by an issue that actually **sends** — an issue that fails its
-checks leaves that card where it was, still due its turn.
-
-It is written the same way the Top 100 is. A program builds the
-**brief**: the closed game week's usage, win rate and players; where the
-card stands among all cards this season and the cards either side of it;
-every recorded season as a series; the split by mode and by trophy band;
-what the global Path of Legends top 100 do with it; the cards it travels
-with; and the most-played decks carrying it. The writer may print a
-number only after reading it from the brief through a tool, an editor
-pass corrects the draft, and before the issue sends a program checks
-the numbers in it against the brief, refuses bare tags and exclamation
-marks, and holds the length. An issue that fails does not send.
-
-Three things about that issue are worth knowing. **The headline covers
-the game week that closed on Monday; the modes, bands, partners and
-decks cover the season so far** — the record can only answer those over
-a whole season — and the footer of every issue says which is which. And
-the **decks are printed by the mail, not written by the model**: it says
-which deck, and the cards come from the record. Two different decks can
-share one archetype name, so a deck list typed from a label would be the
-wrong deck. And **there is no season-by-season trend**, on purpose:
-Elixir has been recording for months rather than years, and the amount
-it records grew by two orders of magnitude over that time, so a card's
-share "rising" across those months would mostly be a picture of our own
-coverage. The issue will carry a trend once enough seasons are large
-enough to compare with each other, and not before.
-
-Every issue links to that card's page, at `/cards/<id>`, which needs no
-sign-in and carries the same numbers, refreshed nightly.
+Card of the Week has ended. Its sent issues remain in your email history.
 
 ## The Top 100, and how it stays honest
 
-The Top 100 is written by a model, and the rule is that the model never
-computes. A program builds a **brief** from the recorded boards: the top
-100 now and a week ago, who climbed and fell and by how much (rank and
-rating together, always), who entered and left, which clans have several
-players up there, the podium's week, and a *deep cut* chosen by the
-program for being the week's most counterintuitive fact. Every delta is
-in the brief. The writer may print a number only after reading it from
-the brief through a tool, so the record of what it read is the audit; an
-editor pass then corrects the draft against the program's findings.
-Before an issue sends, the program checks the numbers in it against
-the brief, and against the player or clan named beside them, so a rating
-printed next to the wrong name fails; it refuses bare tags and
-exclamation marks, and holds the length. An issue that fails does not
-send that week. One that passes but was finished after its usual send
-time goes out as soon as it is ready, while it is still the current issue, and only to the
-readers the scheduled send did not reach. Named players are public
-leaderboard entries, written about neutrally, and linked to their record.
+Ultimate Champions (Top 100) has ended. Its sent issues remain in your email history.
 
 ## What every email looks like
 

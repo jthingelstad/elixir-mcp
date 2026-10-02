@@ -1,3 +1,4 @@
+import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** Card of the Week: choose, brief, hand to the editor; then take the
  *  editor's answer back, lint it and store it (docs/EMAIL.md, Friday).
  *
@@ -74,6 +75,8 @@ export async function cardOfWeekGenerate({
   force = process.env.CARD_OF_WEEK_FORCE,
   dryRun = false,
 }) {
+  if (isRetiredEmailKind("card_of_week"))
+    return { kind: "card_of_week", skipped: "retired", sent: 0 };
   const own = !db;
   if (own) {
     db = new pg.Client({ connectionString: databaseUrl });
@@ -146,6 +149,8 @@ export async function cardOfWeekAccept({
   key,
   enqueue = null,
 }) {
+  if (isRetiredEmailKind("card_of_week"))
+    return { kind: "card_of_week", skipped: "retired", sent: 0 };
   const own = !db;
   if (own) {
     db = new pg.Client({ connectionString: databaseUrl });

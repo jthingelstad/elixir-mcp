@@ -35,7 +35,7 @@ import {
 
 export const rankings_players = {
   description:
-    "A recorded leaderboard, the global Path of Legends board by default: every placed player with rank, rating, name and clan, as of the latest snapshot or any earlier instant (as_of). Every board is recorded daily at the 10:00Z reset, so this answers who was where and when - the API itself only ever shows now. Paged with limit and offset because a whole board can run to a thousand places. verbosity compact returns rank, tag and rating only. live: true asks for a fresh read: served if in hand, otherwise queued while the latest snapshot answers with live_status pending.",
+    "A recorded leaderboard, the global Path of Legends board by default: every placed player with rank, rating, name and clan, as of the latest snapshot or any earlier instant (as_of). Capture has ended; this tool temporarily reads existing history pending the reviewed purge. Paged with limit and offset because a whole board can run to a thousand places. verbosity compact returns rank, tag and rating only. live: true is retired and returns live_unavailable.",
   inputSchema: {
     type: "object",
     properties: {
@@ -50,7 +50,7 @@ export const rankings_players = {
         type: "boolean",
         default: false,
         description:
-          "Ask for a read of the board no older than a minute: served if in hand, otherwise queued while the latest snapshot answers with live_status pending. Not combinable with as_of.",
+          "Retired: global leaderboard capture has ended. true returns live_unavailable; omit it to read existing history.",
       },
       verbosity: VERBOSITY("rank, player_tag and rating only."),
     },
@@ -110,7 +110,7 @@ export const rankings_players = {
       throw new ToolFailure(
         "bad_request",
         "A season's final board does not change; live: true has nothing to read.",
-        "Omit live, or read the live board with board: pol.",
+        "Omit live to read existing history; global leaderboard capture has ended.",
       );
     const live = args.live === true ? await liveBoard(ctx, row) : null;
     const { snapshot, asOf } = await snapshotFor(ctx, args, row);

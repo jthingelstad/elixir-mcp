@@ -38,7 +38,6 @@
 
 import { inPreResetWindow, preResetWindowStart } from "@elixir-mcp/contracts";
 import {
-  settledPolMonths,
   inSeasonRollWindow,
   seasonRollWindowStartMs,
 } from "@elixir-mcp/record/war-clock";
@@ -398,7 +397,7 @@ export async function chargeBudget(db, now, charged) {
   return b.tokens;
 }
 
-async function seedPollState(db, now = new Date()) {
+async function seedPollState(db) {
   // Player endpoints for actively recorded players; clan endpoint for
   // followed clans (clan auto-follow: derived from recorded players'
   // profile stamps, §4.2).
@@ -424,36 +423,11 @@ async function seedPollState(db, now = new Date()) {
   await db.query(`
     insert into poll_state (subject_tag, endpoint) values ('GLOBAL', 'cards')
     on conflict do nothing`);
-  // Leaderboards (0068/0069): one row per enabled board, keyed by the
-  // board's location_key (a location, or a game-mode board's id). Disabled
-  // boards fall out through the eligibility clause.
+  // Event/tournament catalog capture is a separately reviewed scope decision.
   await db.query(`
     insert into poll_state (subject_tag, endpoint)
-    select b.location_key,
-           case b.board
-             when 'pol' then 'rankings_pol' when 'trophy' then 'rankings_players'
-             when 'clans' then 'rankings_clans_loc' when 'clanwars' then 'rankings_clanwars'
-             when 'mode' then 'leaderboard' end
-    from ranking_board b
-    where b.enabled and b.board in ('pol', 'trophy', 'clans', 'clanwars', 'mode')
+    values ('GLOBAL', 'events'), ('GLOBAL', 'globaltournaments')
     on conflict do nothing`);
-  // The subject-less daily reads (0069), GLOBAL like the card catalog.
-  await db.query(`
-    insert into poll_state (subject_tag, endpoint)
-    values ('GLOBAL', 'leaderboards'), ('GLOBAL', 'events'), ('GLOBAL', 'globaltournaments')
-    on conflict do nothing`);
-  // Season finals (0069, keyed by month since 0070): a row per settled
-  // season under the API's own name for it - `2022-10`, the ranked
-  // ladder's first, through the month that rolled most recently. The
-  // current season's board is not final until it rolls; the tick after
-  // the roll adds its row.
-  await db.query(
-    `
-    insert into poll_state (subject_tag, endpoint)
-    select m, 'rankings_pol_season' from unnest($1::text[]) m
-    on conflict do nothing`,
-    [settledPolMonths(now.getTime())],
-  );
   // Clan recording (V1.5): the clan's own heartbeat + riverrace capture
   // for EVERY clan scope; player endpoints for every OPEN member only at
   // scope 'comprehensive' (0023). Roster-driven: joins get seeded
@@ -530,17 +504,8 @@ async function selectEligible(db, now) {
                or exists (
                  select 1 from recording r
                  where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active')))
-         or (ps.endpoint in ('cards', 'leaderboards', 'events', 'globaltournaments')
+         or (ps.endpoint in ('cards', 'events', 'globaltournaments')
              and ps.subject_tag = 'GLOBAL')
-         or (ps.endpoint in ('rankings_pol', 'rankings_players', 'rankings_clans_loc', 'rankings_clanwars', 'leaderboard')
-             and exists (
-               select 1 from ranking_board b
-               where b.location_key = ps.subject_tag and b.enabled
-                 and b.board = ${BOARD_OF_SQL}))
-         -- A season's final is wanted exactly until we hold it.
-         or (ps.endpoint = 'rankings_pol_season' and not exists (
-               select 1 from ranking_snapshot s
-               where s.board = 'pol_final' and s.season_month = ps.subject_tag))
          or (ps.endpoint in ('currentriverrace', 'riverracelog') and exists (
                select 1 from recording r
                where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag and r.status = 'active'))

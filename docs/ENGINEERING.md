@@ -242,6 +242,16 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
 - Ingest is the admission boundary: validate identity fields and must-have keys
   before anything mutates durable state. Optional CR fields stay optional, so
   additive API evolution never stops the recorder.
+- **A recording cutover drains fleet admission.** Bulk submissions with a
+  server-stamped job ID hold the ledger's shared session advisory lock through
+  error receipts, archive writes and projection, released in `finally`.
+  The bounded cutover takes the matching exclusive transaction lock before
+  reconciliation. A waiting submission rechecks recording authority after
+  acquiring the lock. Historical replay without a job ID keeps its separate
+  authority; retired global board endpoints are refused for every caller.
+  Obsolete job cleanup is bounded and uses `SKIP LOCKED`; completion checks
+  remaining jobs explicitly, and skipped obsolete leases never charge a
+  collector's missed streak.
 - **Freshness advances only on admission, never on HTTP 200.** A rejected
   payload must not burn its subject's polling window.
 - Idempotent by construction, so at-least-once delivery and queue retries are

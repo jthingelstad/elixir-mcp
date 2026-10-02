@@ -12,6 +12,6 @@
     "pg": "^8.13.0"
   },
   "devDependencies": {
-    "@elixir-mcp/record": "0.1.0"
+    "@elixir-mcp/contracts": "0.1.0"
   }
 }

@@ -1,3 +1,4 @@
+import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** Render, archive, enqueue, record: the one path every kind's send takes.
  *
  *  Every send has its own id (send_id, 0139), minted here before the
@@ -31,6 +32,7 @@ export async function deliver({
   force = false,
   now = new Date(),
 }) {
+  if (isRetiredEmailKind(kind)) return { sent: false, reason: "retired" };
   if (!force && (await alreadySent(db, issueId, account.accountId)))
     return { sent: false, reason: "already_sent" };
   const token = signUnsubscribe({ secret, accountId: account.accountId, kind });

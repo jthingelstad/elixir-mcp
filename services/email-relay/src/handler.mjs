@@ -22,6 +22,7 @@
 
 import {
   validateEmailMessage,
+  isRetiredEmailKind,
   unsubscribeHeaders,
   outboxObjects,
 } from "@elixir-mcp/contracts";
@@ -38,6 +39,10 @@ export function makeHandler({
   /** One message: "sent" (or dropped by design) or "bad_message"; a
    *  transport failure throws so the record retries. */
   async function deliver(parsed) {
+    if (isRetiredEmailKind(String(parsed?.kind ?? ""))) {
+      console.log("mail_retired", parsed.kind);
+      return "sent";
+    }
     const validated = validateEmailMessage(parsed);
     if (parsed?.kind === "owner_notify") {
       // Best-effort: sent once or dropped with a log line.

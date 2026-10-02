@@ -21,8 +21,6 @@ const ABOUT = {
     what: "How everyone you follow played, mode by mode.",
     note: "was the Tracking report",
   },
-  top_100: { what: "Elixir's weekly read of the Path of Legends top 100." },
-  card_of_week: { what: "One card, and how it is being played." },
   collector_activity: {
     what: "What your Elixir Collectors fetched, and what they earned.",
     note: "only if you run one",

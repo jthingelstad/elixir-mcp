@@ -24,7 +24,7 @@ import {
 
 export const rankings_clan_ladder = {
   description:
-    "A recorded CLAN leaderboard by location: clans (clan score) or clanwars (clan war trophies), 1,000 places each, global by default, recorded daily for global, the United States and Japan and for any location enabled since. Per clan: rank, previous rank, score, member count, badge and home location. as_of reads an earlier snapshot. This is the clan-side analogue of rankings_players; rankings_clans is a different thing - the clans most REPRESENTED on a player board.",
+    "A recorded CLAN leaderboard by location: clans (clan score) or clanwars (clan war trophies), 1,000 places each, global by default, from historical snapshots. Capture has ended; this tool temporarily reads existing history pending the reviewed purge. Per clan: rank, previous rank, score, member count, badge and home location. as_of reads an earlier snapshot. This is the clan-side analogue of rankings_players; rankings_clans is a different thing - the clans most REPRESENTED on a player board.",
   inputSchema: {
     type: "object",
     properties: {
@@ -44,7 +44,7 @@ export const rankings_clan_ladder = {
         type: "boolean",
         default: false,
         description:
-          "Ask for a read of the ladder no older than a minute: served if in hand, otherwise queued while the latest snapshot answers with live_status pending. Not combinable with as_of.",
+          "Retired: global leaderboard capture has ended. true returns live_unavailable; omit it to read existing history.",
       },
     },
     additionalProperties: false,

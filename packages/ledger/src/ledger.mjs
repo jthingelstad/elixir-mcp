@@ -1,3 +1,7 @@
+import {
+  isRetiredRecordingEndpoint,
+  RETIRED_RECORDING_ENDPOINTS,
+} from "@elixir-mcp/contracts";
 /**
  * The Postgres job ledger (0040) — work distribution without SQS.
  * The scheduler enqueues in the same transaction it plans; the
@@ -52,8 +56,72 @@ export async function stampRetry(db, keys, at = null) {
   return rowCount ?? 0;
 }
 
+/** Matches the planner's retained bulk subjects. Live requests and archive
+ * rebuilds have separate authority and must not use today's follow list. */
+export const BULK_JOB_WANTED_SQL = `
+  (job.endpoint in ('cards', 'events', 'globaltournaments') and job.entity_key = 'GLOBAL')
+  or (job.endpoint in ('player', 'player_battlelog') and (
+    exists (select 1 from recording r where r.subject_type = 'player'
+      and r.subject_tag = job.entity_key and r.status = 'active'
+      and (job.endpoint = 'player' or r.scope = 'comprehensive'))
+    or exists (select 1 from recording r join clan_membership cm
+      on cm.clan_tag = r.subject_tag and cm.player_tag = job.entity_key
+      and cm.left_observed_at is null where r.subject_type = 'clan'
+      and r.status = 'active' and r.scope = 'comprehensive')))
+  or (job.endpoint in ('clan', 'currentriverrace', 'riverracelog') and (
+    exists (select 1 from recording r where r.subject_type = 'clan'
+      and r.subject_tag = job.entity_key and r.status = 'active')
+    or (job.endpoint = 'clan' and exists (select 1 from recording r
+      join player p on p.player_tag = r.subject_tag
+      where r.subject_type = 'player' and r.status = 'active'
+      and p.last_known_clan_tag = job.entity_key))))`;
+
+export const RECORDING_CUTOVER_LOCK = "elixir-recording-cutover";
+
+const OBSOLETE_JOB_SQL = `status in ('queued', 'leased', 'dead') and (
+  endpoint = any($1::text[])
+  or (lane = 'bulk' and not (${BULK_JOB_WANTED_SQL})))`;
+
+export async function hasRetiredJobs(db) {
+  const {
+    rows: [row],
+  } = await db.query(
+    `select exists (select 1 from job where ${OBSOLETE_JOB_SQL}) as pending`,
+    [RETIRED_RECORDING_ENDPOINTS],
+  );
+  return row.pending;
+}
+
+export async function bulkJobWanted(db, { endpoint, entity_key }) {
+  const { rows } = await db.query(
+    `select (${BULK_JOB_WANTED_SQL}) as wanted
+     from (values ($1::text, $2::text)) as job(endpoint, entity_key)`,
+    [endpoint, entity_key],
+  );
+  return rows[0].wanted;
+}
+
+/** Consume obsolete work without penalizing the collector that held it. */
+export async function retireJobs(db, { limit = 1000 } = {}) {
+  const bounded = Math.min(
+    2000,
+    Math.max(1, Math.trunc(Number(limit) || 1000)),
+  );
+  const { rowCount } = await db.query(
+    `with obsolete as (select job_id from job
+     where ${OBSOLETE_JOB_SQL}
+     order by job_id limit $2 for update skip locked)
+     update job set status = 'done', done_at = now()
+     where job_id in (select job_id from obsolete)`,
+    [RETIRED_RECORDING_ENDPOINTS, bounded],
+  );
+  return rowCount;
+}
+
 /** Insert or upgrade a job. Live beats bulk; nothing downgrades. */
 export async function enqueueJob(db, { endpoint, entity_key, lane }) {
+  if (isRetiredRecordingEndpoint(endpoint))
+    return { job_id: null, lane, inserted: false, retired: true };
   const { rows } = await db.query(
     `insert into job (endpoint, entity_key, lane)
      values ($1, $2, $3)
@@ -152,12 +220,16 @@ export async function settleLeases(db) {
 async function settleOnce(db) {
   await db.query("begin");
   try {
-    const expired = `status = 'leased' and leased_at < now() - make_interval(secs => $1)`;
+    await retireJobs(db);
+    // Obsolete work outside this cleanup batch never counts as abandonment.
+    const expired = `status = 'leased' and leased_at < now() - make_interval(secs => $1)
+      and not (endpoint = any($2::text[]))
+      and (lane = 'live' or (${BULK_JOB_WANTED_SQL}))`;
     const { rows: requeuedRows } = await db.query(
       `with picked as (
          select distinct on (endpoint, entity_key) job_id, leased_by
          from job
-         where ${expired} and attempts < $2
+         where ${expired} and attempts < $3
            and not exists (select 1 from job q
                            where q.endpoint = job.endpoint
                              and q.entity_key = job.entity_key
@@ -167,17 +239,17 @@ async function settleOnce(db) {
        from picked
        where job.job_id = picked.job_id and job.status = 'leased'
        returning picked.leased_by`,
-      [LEASE_TTL_S, MAX_ATTEMPTS],
+      [LEASE_TTL_S, RETIRED_RECORDING_ENDPOINTS, MAX_ATTEMPTS],
     );
     const { rows: diedRows } = await db.query(
       `update job set status = 'dead', done_at = now()
-       where ${expired} and attempts >= $2
+       where ${expired} and attempts >= $3
          and not exists (select 1 from job q
                          where q.endpoint = job.endpoint
                            and q.entity_key = job.entity_key
                            and q.status = 'queued')
        returning leased_by, endpoint, entity_key`,
-      [LEASE_TTL_S, MAX_ATTEMPTS],
+      [LEASE_TTL_S, RETIRED_RECORDING_ENDPOINTS, MAX_ATTEMPTS],
     );
     // A dead job is a failed fetch: owe its subject a retry (0188). The
     // planner's jobs carry the poll_state key as their entity_key.
@@ -194,7 +266,7 @@ async function settleOnce(db) {
       `update job set status = 'done', done_at = now()
        where ${expired}
        returning leased_by`,
-      [LEASE_TTL_S],
+      [LEASE_TTL_S, RETIRED_RECORDING_ENDPOINTS],
     );
     // Exactly-once attribution: each expired lease transitioned in
     // exactly one statement above, and each carried its abandoning
@@ -233,11 +305,13 @@ export async function leaseJob(db, { gatewayId, lanes }) {
      where job_id = (
        select job_id from job
        where status = 'queued' and lane = any($2)
+         and not (endpoint = any($3::text[]))
+         and (lane = 'live' or (${BULK_JOB_WANTED_SQL}))
        order by (lane = 'live') desc, job_id
        limit 1
        for update skip locked)
      returning job_id, endpoint, entity_key, lane`,
-    [gatewayId, lanes],
+    [gatewayId, lanes, RETIRED_RECORDING_ENDPOINTS],
   );
   return rows[0] ?? null;
 }

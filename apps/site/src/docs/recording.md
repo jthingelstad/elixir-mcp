@@ -66,9 +66,8 @@ or stops the recording accordingly:
 | claimed | any account tracks the player |
 | added | any account tracks the clan |
 | added deep | any account tracks the clan at `comprehensive` scope |
-| collected | the subject is a member of a collection |
-| collected deep | a member of a `comprehensive` collection |
-| ranked | the player appeared in the recording top-N of a [leaderboard](#leaderboards) this season; comprehensive, and sticky until the next season roll plus three days |
+| collected | the subject is a member of a collection that still records; retired board collections do not count |
+| collected deep | a member of a still-recording `comprehensive` collection |
 | ops | the maintainer records it directly; never stopped by user actions |
 
 The widest reason wins. Removing your own reason frees your slot; the
@@ -152,117 +151,23 @@ collection's scope (`comprehensive` by default). `collections_edit` takes
 call on one malformed tag. Collections are a family-tier feature; reading
 public ones needs only `cr:read`.
 
-Some collections follow a live board rather than a curator: the Path of
-Legends top 100s (global, US, Japan) and the top 10 clans are re-synced
-from their board every day after the 10:00Z snapshot. They carry
-`synced_from` (6.24.0), and their membership is today's top of the board,
-not a fixed cohort; 36 of the global 100 can turn over in a day. A
-collection segment on the meta tools applies the membership as of the
-call, so rates over a past window describe today's members. A board
-collection's rows are ordered by Trophy Road trophies, which is not the
-board's order: `rankings_players` and `rankings_clans` have that.
-
-A clan segment (`'mine'` or `{clan_tag}`) works the same way: it is the
-clan's recorded members as of the call, applied to the whole window. Over
-a past window it counts today's members' battles, including ones played
-before they joined, and leaves out members who have left since;
-`clans_members_timeline` has the joins and departures.
+The former board-managed collections no longer initiate recording or sync
+with new boards. Their membership history remains during retirement. Other
+Collections are still deployed until their user and integration cutover.
 
 ## Leaderboards
 
-The CR API shows a ranking as it is this minute and forgets it. The recorder
-keeps it: the global Path of Legends board and every location the API lists —
-262 countries and regions — **once a day**, in the first planning tick after
-10:00Z, the hour the season rolls, so a season's last daily snapshot is the
-board as it stood going into the roll. Each fetch that
-differs from the last becomes a snapshot with a row per placed player (rank,
-rating, name, clan); an identical later fetch confirms the existing snapshot
-rather than duplicating it, so the record also says how long a board held.
+Global, regional, clan and game-mode leaderboard capture has stopped,
+including historical Path of Legends final-board backfill. Leaderboard
+appearance and the former board Collections no longer sustain recording.
+Live leaderboard reads are unavailable. Existing board history is retained
+only until the separately reviewed purge and tool retirement.
 
-The API can serve an **incomplete board** just after the reset: on
-2026-09-24 the global board arrived minutes after 10:00Z without 392 of its
-players, a #36 among them. A full board whose cutoff falls 40 or more below
-the previous snapshot's is flagged at ingest and read once more about 30
-minutes later; the re-read **replaces** it for every reader (the flagged
-snapshot is kept, marked superseded, and no read or timeline serves it).
-`rankings_players` still says so when a board it serves looks incomplete.
-
-`rankings_players` reads a board — the latest, or as it was at any earlier
-instant with `as_of` — paged, because a whole board can run to a thousand
-places. `rankings_clans` aggregates it: which clans have the most rated
-players, ties broken by the clan's best-placed player. Both count over the
-**whole recorded board**, not a top-100 slice — and the whole board is the
-API's top 1,000. A live Path of Legends board has two regimes, and the
-payload says which one a snapshot is in. Below 1,000 rated players it is
-**everyone above the rating floor**: a season resets everyone below the
-floor, so a board is small in a season's first days and grows as players
-cross it (Iceland's whole board is two players). At 1,000 it is **full**
-(`snapshot.full: true`, `snapshot.depth: 1000`): the API serves exactly 1,000
-places and offers nothing past them, so from then on the field is pinned at
-1,000 and `floor_rating` — the last place's rating, on the snapshot and on
-every point of `rankings_timeline`'s board curve — is a **cutoff that moves
-with play, not a qualification threshold**. A player or clan can leave the
-board without losing rating: on 2026-09-19 the global cutoff rose 2058 → 2111
-and a quarter of the previous day's board was below it before anyone played.
-So a clan's `rated_players` compared across dates moves with the cutoff as
-well as with play, and can fall while every one of the clan's players
-improves; compare it against `floor_rating` on the same dates (a clan's
-timeline carries `board_full` and `board_floor_rating` beside the count, and
-the board curve carries `floor_delta`). `truncated` means something else:
-the API offered a cursor past the places the recorder keeps, which it never
-does on a Path of Legends board — `truncated: false` on a full board means
-the cut is the game's, not the record's. `live: true` on either tool asks for
-a read of the board no older than a minute: served if in hand, otherwise
-queued while the latest snapshot answers with `live_status.state: "pending"`.
-
-The record begins 2026-09-11 for every player board (`meta.recorded_since`
-on every rankings read). A `rankings_timeline` window that starts a day or
-more before it says so — `applied.window.partial: true`, `covers` naming the
-recorded span (null when none of the window is), and a note — so an empty
-series before the horizon reads as unrecorded, never as a board that did
-not change; `as_of` before it on `rankings_players` or `rankings_clans`
-answers the same way.
-
-**Everything else the API forgets about a season** is recorded beside it.
-A season's **final** Path of Legends board — the settled standing, the
-API's 9,999 places (`depth: 9999`; the tail is cut at #9999 mid-tie, so
-more players finished at the last rating than the board shows) — is fetched
-in the tick after it rolls and was backfilled for every season since
-October 2022, the ranked ladder's first (S89 as `game_clock` counts); read
-it with `board: pol_final` and a `season`, either the number `game_clock`
-counts (135 for August 2026) or the API's own name for the season, the
-month it started in (`2026-08`). The Pass's in-game "Season 87" is a third
-numbering the API does not use anywhere, and a `pol_final` read of a season
-before S89 says so, as a read of the season in progress says when its final
-will be fetched and a season that has not happened names the current one;
-`applied.season` is the ordinal the record resolved (null on a miss) with
-`season_requested` beside it. A final never changes, so `live: true` is
-refused there. The **clan ladders** (`clans` by clan
-score, `clanwars` by clan war trophies, 1,000 places by location) are
-recorded daily for global, the United States and Japan — `rankings_clan_ladder`. Each read serves the board's last-place score (`snapshot.floor_score`) and, as `our_clan`, where the caller's own clan stands: its rank when it is on the board, and otherwise its score and how far below the last place it sits. `our_clan.located_elsewhere` is always present: `true` when a country board is for a location the clan is not in, so it can never be ranked there at any score and no distance below the floor is given; `false` on the global board or the clan's own location (`null` only when the record does not know where the clan is located). A clan's score is the game's own figure, not the sum of its members' trophies; `clans_roster` serves it for a recorded clan.
-The **game-mode leaderboards** (Merge Tactics, Touchdown, 2v2 League and the
-rest) are enumerated from the API daily, so a board that rotates in is
-followed without anyone naming it. Call
-`rankings_players({ board: "mode", location: "list" })` for the recorded
-ids, names and enabled state, then read `board: "mode"` with a returned
-`location`. The catalog is a recorded read; omit `live` and `as_of` when
-listing it. A mode board or badge is not evidence that its battles appear
-in the API's battle log; missing recorded battles do not prove absence.
-**What was on** — the events the API listed as running, with no dates — is
-recorded daily as sightings, so `game_events` is the season's calendar built
-from the days each event was seen. `rankings_timeline` reads any of the player
-boards across a window: a player's rank and rating at every snapshot, a
-clan's rated players and best rank, or the board's own last-place rating,
-summit and field size — the season story at daily resolution.
-
-**A top-200 appearance on the global board is a recording reason.** Any
-player who reaches it is recorded at comprehensive scope — every battle,
-with the rank and rating each one carried — until the next season roll plus
-three days, however far they fall in between. That grace is deliberate: the
-board is empty for the first hours after a roll, and the only way the opening
-battles of the next season's #1 are captured is that they were recorded for
-being in last season's field. The Trophy Road boards are watched but have
-been served empty by the API for recent seasons.
+A recorded player's own profile still supplies their rank information.
+Players continue to be recorded when a person follows them or their clan is
+recorded, regardless of their rank. The retirement cutover reconciles all
+remaining reasons before stopping a recording; its original origin label
+is not a safe way to decide what stays.
 
 ## How often a subject is fetched
 
@@ -308,7 +213,7 @@ wait but never take it past the two-hour ceiling.
 
 A read that fails is tried again 15 minutes later, then 30, then 60,
 before the subject waits for its own schedule again, so an outage costs
-minutes rather than a whole cycle: a daily board or events read that
+minutes rather than a whole cycle: an events read that
 fails just after 10:00Z is read again the same day. The retries come out
 of the same budget. A not-found answer is the exception: a subject the
 API answers 404 for is tried once a day.
