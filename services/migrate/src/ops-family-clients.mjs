@@ -22,13 +22,20 @@
  *     registered clients: the registration expires now and every live grant
  *     under it is revoked, with a connection_revoked event for its account.
  *     A provisioned client is refused.
+ *   {family_clients: {retire_app: {app: "clan", expected_client_id,
+ *     snapshot_sha256, apply}}} retires only Clan after its checked import
+ *     and shared runtime activation; default preview, audit identity kept.
  *
  * Authority: Jamie (a family app is his to name).
  */
 
 import crypto from "node:crypto";
 import pg from "pg";
-import { FIRST_PARTY_ORIGINS, validateRedirectUris } from "@elixir-mcp/auth";
+import {
+  FIRST_PARTY_ORIGINS,
+  validateRedirectUris,
+  validClientId,
+} from "@elixir-mcp/auth";
 
 const HASH_RE = /^[0-9a-f]{64}$/;
 const APP_RE = /^[a-z][a-z0-9-]{1,30}$/;
@@ -53,7 +60,101 @@ export async function familyClients(databaseUrl, spec = {}) {
   }
 }
 
-export async function familyClientsOn(db, spec = {}) {
+export async function familyClientsOn(
+  db,
+  spec = {},
+  { clanInternal = process.env.CLAN_INTERNAL === "true" } = {},
+) {
+  if (spec.retire_app) {
+    const {
+      app,
+      expected_client_id: expected,
+      snapshot_sha256: snapshot,
+      apply,
+    } = spec.retire_app;
+    // This retirement is the approved Clan consolidation, never a generic
+    // family-client kill switch (Drop remains an active integration).
+    if (app !== "clan" || !validClientId(expected))
+      throw new Error("Clan retirement needs its exact provisioned client id");
+    if (
+      apply === true &&
+      (!clanInternal || !/^[a-f0-9]{64}$/.test(snapshot ?? ""))
+    )
+      throw new Error(
+        "Clan retirement requires the active shared runtime and import digest",
+      );
+    await db.query("begin");
+    try {
+      const current = (
+        await db.query(
+          `select fc.client_id, c.expires_at from family_oauth_client fc join oauth_client c using(client_id) where fc.app='clan' for update of fc,c`,
+        )
+      ).rows[0];
+      if (!current || current.client_id !== expected)
+        throw new Error("Clan client changed; read it again");
+      if (
+        apply === true &&
+        !(
+          await db.query(
+            "select 1 from clan_state_import where snapshot_sha256=$1",
+            [snapshot],
+          )
+        ).rowCount
+      )
+        throw new Error("Clan retirement needs the applied snapshot receipt");
+      const counts = (
+        await db.query(
+          `select
+        (select count(*)::int from oauth_family where client_id=$1 and revoked_at is null) as grants,
+        (select count(*)::int from oauth_code where client_id=$1 and used_at is null) as codes`,
+          [expected],
+        )
+      ).rows[0];
+      if (apply !== true) {
+        await db.query("rollback");
+        return {
+          retire_app: { app, client_id: expected, applied: false, ...counts },
+        };
+      }
+      await db.query(
+        "update oauth_client set expires_at=least(expires_at,now()) where client_id=$1",
+        [expected],
+      );
+      await db.query(
+        "update oauth_code set used_at=now() where client_id=$1 and used_at is null",
+        [expected],
+      );
+      const families = (
+        await db.query(
+          "update oauth_family set revoked_at=now() where client_id=$1 and revoked_at is null returning family_id,account_id",
+          [expected],
+        )
+      ).rows;
+      for (const family of families)
+        await db.query(
+          `insert into account_event(account_id,kind,detail) values($1,'connection_revoked',$2::jsonb)`,
+          [
+            family.account_id,
+            JSON.stringify({
+              family_id: family.family_id,
+              by: "operator",
+              reason: "Clan consolidated into the Elixir session",
+              snapshot_sha256: snapshot,
+            }),
+          ],
+        );
+      // Keep the provisioned identity as audit history; getClient refuses
+      // expired registrations before considering its family privileges.
+      await db.query("commit");
+      return {
+        retire_app: { app, client_id: expected, applied: true, ...counts },
+      };
+    } catch (error) {
+      await db.query("rollback").catch(() => {});
+      throw error;
+    }
+  }
+
   if (spec.set_secret) {
     const { app, secret_hash: hash } = spec.set_secret;
     if (!HASH_RE.test(String(hash ?? "")))
@@ -177,6 +278,7 @@ export async function familyClientsOn(db, spec = {}) {
       `select fc.app, fc.client_id, c.client_name, c.redirect_uris,
               fc.secret_hash is not null as secret_on_file, fc.secret_required,
               fc.last_authenticated_at, fc.provisioned_at, c.last_used_at,
+              c.expires_at > now() as client_active,
               (select count(*)::int from oauth_family f
                 where f.client_id = fc.client_id and f.revoked_at is null
                   and f.absolute_expires_at > now()) as live_grants
@@ -215,6 +317,6 @@ export async function familyClientsOn(db, spec = {}) {
   }
 
   throw new Error(
-    "family_clients needs list, set_secret, require_secret, provision, set_redirect_uris or revoke_clients",
+    "family_clients needs list, set_secret, require_secret, provision, set_redirect_uris, revoke_clients or retire_app",
   );
 }

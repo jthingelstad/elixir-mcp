@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Preparing Clan’s account cutover",
+    body: "Clan’s separate sign-in can now retire after its records are transferred and its shared Elixir runtime is active. The transition checks prevent an in-flight sign-in from issuing a usable grant after retirement. Drop keeps Elixir sign-in and authorized account access. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "One application for your record and clan",
     body: "Clan consolidation is moving into Elixir’s shared application. The same account will open your personal record and clan tools; your clan’s policies, action history and private records are being preserved for the transfer.",
   },

@@ -2886,3 +2886,27 @@ Review found and fixed pre-cutover Clan navigation, stale private cache across a
 Final source review found no remaining actionable blockers in auth/private-state maintenance. The client advances a session generation before cancellation; forced Clan refreshes and selection writes cannot repopulate a previous identity after sign-in. Immutable policy versions are pageable, and action summaries embed at most three stored log entries per card; full logs remain pageable. Scratch coverage checks 25 actions with 200 legal comments each and concurrent feedback replies. Verification: full npm run verify, 69 Playwright journeys (including disabled/unknown routing handoff and responsive shared app), both Lambda builds and eight workflow guards pass. The card-art CI assumption is fixed with inspected-image fixture plus honest missing-art fallback. No tool implementation changed: this UI/private-op preparation deploy uses smoke, with no tool acceptance sweep. Production routing/import remains disabled in this change.
 
 PR #227 CI found a real art-fallback race: uncached images could fail before the deferred catalog script installed its error listener. The script now checks completed failures after registering, and the browser regression deliberately delays that script until after 404 art responses. The red CI gate remains respected; no merge or deployment proceeded past it.
+
+### 2026-10-02: Checked retirement of Clan’s separate OAuth client
+
+The IAM-only family_clients retire_app operation previews by default and applies
+only to the exact provisioned Clan client after ClanInternal is active and the
+exact applied import digest exists. It expires that registration, burns unused
+codes, revokes its grant families and writes connection-revoked receipts, while
+retaining its audit identity. Drop is outside this operation. Migrate receives
+the actual ClanInternal parameter so its check cannot be accidentally omitted.
+
+Read-only review caught an in-flight authorization escaping a simple revocation
+sweep. Final grant minting now locks and rechecks the live client registration
+in the same statement that inserts its family; retiring the registration takes
+the conflicting lock. Access validation also refuses an expired registration.
+Scratch tests cover overlap, refusal paths, idempotence and a live Drop control.
+No live credentials have been retired by this source change. MCP and JSON API
+contracts are unchanged; no tool result changed, so this deployment uses door
+smoke and focused OAuth regression coverage, without a tool acceptance sweep.
+
+Final read-only review found no remaining blockers. Full npm run verify,
+both root builds and 69 browser journeys pass. CloudFormation lint has no
+errors; its existing W3691/W3037 warnings remain outside this change, and
+the scoped lint and cutover Guard rules pass. No live auth write was used
+to test the operation.

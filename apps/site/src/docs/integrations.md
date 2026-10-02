@@ -13,8 +13,9 @@ lede: "First-party services reading the hub with a service key."
 
 An integration connects a platform to Elixir. It has no personal player, clan
 identity, or human admin powers. [Elixir Drop](https://drop.poapkings.com) is the
-first consumer: it reads game context and automatically enrolls supplied player
-tags for recording. Drop keeps its accounts, scores, XP and badges in Drop.
+first consumer: it reads recorded game context and can refresh supplied player
+profiles. People choose which players to record; Drop no longer enrolls them
+automatically. Drop keeps its accounts, scores, XP and badges in Drop.
 
 Agents use MCP. Programs use the **JSON API at
 `https://elixir.poapkings.com/api/v1`**, which admits two kinds of caller:
@@ -54,6 +55,11 @@ collector job ledger; they do not call MCP tools over HTTP. The
 each operation names the callers it admits (`x-principals`).
 
 ## Provisioning and administration
+
+Clan's consolidation into Elixir includes retiring its separate OAuth client
+and service key after its checked state transfer and shared runtime activation.
+Its historical records remain. Drop's Elixir sign-in, account access and
+authorized personal tracking remain available.
 
 **Admin → Integrations** creates the platform identity, issues a key, sets API
 and refresh budgets.
