@@ -35,6 +35,16 @@ import {
   versusOf,
 } from "./common.mjs";
 
+/** This row's player's part in a boat battle. The log that recorded it
+ *  says boatBattleSide for its owner, who is side 0, so side 1 holds the
+ *  other part: the same rule notBoatDefense() applies in SQL. */
+const boatRole = (r) =>
+  r.boat_battle_side == null
+    ? null
+    : (r.boat_battle_side === "defender") === (r.side === 0)
+      ? "defender"
+      : "attacker";
+
 export const battles_query = {
   description:
     "The workhorse: recorded battles with filters and cursor pagination, both perspectives of every battle. Three addressing modes: player_tag (the usual sweep, defaults to the caller); battle_id alone (ONE battle, both sides); deck_hash alone (corpus-wide battles for that exact deck with a deck_stats aggregate and deliberately no pooled win rate). live: true asks for a battle-log poll no older than a minute (the 'what did they just play' path): served if in hand, otherwise queued while the record answers with live_status pending. Each battle's url is its public page.",
@@ -492,12 +502,16 @@ export const battles_query = {
         // before, after and left standing.
         // Compact keeps the side (Gym #263: a sweep could not tell an
         // attack from a defense, which is not the member's battle).
+        // `side` is the API's boatBattleSide, said by the log that
+        // recorded the battle, whose owner is side 0; `role` is this
+        // row's player's, flipped for side 1 as notBoatDefense() does.
         ...(r.type_class === "boat"
           ? compact
-            ? { boat: { side: r.boat_battle_side } }
+            ? { boat: { side: r.boat_battle_side, role: boatRole(r) } }
             : {
                 boat: {
                   side: r.boat_battle_side,
+                  role: boatRole(r),
                   towers_before: r.prev_towers_destroyed,
                   towers_after: r.new_towers_destroyed,
                   remaining: r.remaining_towers,

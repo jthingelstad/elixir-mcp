@@ -112,12 +112,12 @@ export function zoneName(zone) {
 
 /** A battle the page counts: one with an outcome, and not a boat
  *  DEFENSE, which is not the member's battle (0171; battles_performance
- *  leaves it out, so the season home does too). A compact row carries
- *  the boat's side from the battle log that recorded it, which for your
- *  own player is yours. */
+ *  leaves it out, so the season home does too). The row's boat.role is
+ *  your player's part (9.19.0); boat.side is the recording log's word,
+ *  which is the other player's when their log recorded it first. */
 export function counted(b) {
   if (!b?.me?.outcome) return false;
-  if (b.boat?.side === "defender") return false;
+  if (b.boat?.role === "defender") return false;
   return true;
 }
 

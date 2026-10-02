@@ -126,12 +126,13 @@ test("battles_query rows carry mode_group, context and, on a boat battle, boat (
   assert.ok(boats.battles.length >= 5);
   assert.ok(boats.battles.every((b) => b.mode_group === "war"));
   assert.ok(boats.battles.every((b) => "deck_selection" in b));
-  // Compact drops context and the boat's towers but keeps its side (Gym
-  // #263: a sweep could not tell an attack from a defense).
+  // Compact drops context and the boat's towers but keeps its side and
+  // the player's role (Gym #263: a sweep could not tell an attack from a
+  // defense).
   assert.ok(boats.battles.every((b) => !("context" in b)));
   assert.ok(
     boats.battles.every(
-      (b) => !b.boat || Object.keys(b.boat).join() === "side",
+      (b) => !b.boat || Object.keys(b.boat).join() === "side,role",
     ),
   );
   const duel = boats.battles.find((b) => b.type === "riverRaceDuel");
@@ -151,12 +152,33 @@ test("battles_query rows carry mode_group, context and, on a boat battle, boat (
     deck_selection: "collection",
   });
   assert.equal(boat.boat.side, "attacker");
+  assert.equal(boat.boat.role, "attacker");
   assert.ok(Number.isInteger(boat.boat.towers_before));
   assert.ok(Number.isInteger(boat.boat.towers_after));
   assert.ok(Number.isInteger(boat.boat.remaining));
   assert.ok(!("deck_selection" in boat), "full keeps it inside context");
   const pvp = full.battles.find((b) => b.type === "riverRacePvP");
   assert.equal(pvp.boat, undefined, "boat only on boat battles");
+
+  // 9.19.0: the same battle from the defender, who sits on side 1. The
+  // record keeps the attacker's log's word ("attacker"), so side says
+  // that, and role is the defender's own part.
+  const defender = boat.opponents[0].player_tag;
+  await db.query(
+    "insert into recording (subject_type, subject_tag, requested_by) values ('player', $1, $2)",
+    [defender, account.accountId],
+  );
+  const theirs = await call("battles_query", {
+    player_tag: defender,
+    mode: "war",
+    verbosity: "compact",
+  });
+  const same = theirs.battles.find((b) => b.battle_id === boat.battle_id);
+  assert.deepEqual(same.boat, { side: "attacker", role: "defender" });
+  await db.query(
+    "delete from recording where subject_type = 'player' and subject_tag = $1",
+    [defender],
+  );
 
   // 6.17.0: an event-tagged battle is `event`. It used to fold into
   // `casual`, which filed the Seasonal Trophy Road as casual play and

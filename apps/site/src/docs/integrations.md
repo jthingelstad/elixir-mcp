@@ -110,6 +110,10 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.10.0** (2026-10-02): `GET /players/{tag}/battles` gives a boat
+  battle's `boat` a `role`, the player's own part (`attacker` or
+  `defender`); `side` stays the recording log's word (MCP 9.19.0).
+  Additive.
 - **2.9.0** (2026-10-01): `GET /players/{tag}/battles` gives each battle
   its `url`, the battle's public page, and each opponent and teammate their
   own `trophy_change`, `starting_trophies` and `clan_name`; `me` gains

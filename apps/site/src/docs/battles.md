@@ -39,7 +39,7 @@ answers from the perspective of the tag you asked about:
 | `mode_group` | the contract's fold of `type` and the event tag (`ladder`, `ranked`, `war`, `casual`, `challenge`, `event` or `tournament`): a battle carrying an event tag is `event`, except a clanmate battle (`clanMate`, `clanMate2v2`), which is `casual` even when tagged; otherwise friendlies, clanmate battles, an untagged `unknown` battle and any type the fold does not know yet are `casual`, and there is no `other`. It is the same word `mode` takes as an argument, so no consumer keeps its own copy of the table |
 | `context` | full verbosity: the battle's own facts as the log carried them. `event_tag` names the event a challenge or event battle belongs to (joins `game_events` by tag; a battle can name an event the daily events read never sighted); `tournament_tag` the tournament; `ladder_tournament` and `hosted` the API's own flags; `deck_selection` how the deck was chosen. Compact carries `deck_selection` alone, at the top level |
 | `deck_selection` | `collection` for the player's own deck, `warDeckPick` for a river-race duel deck picked from the player's own war decks (both chosen by the player, and both kept by the meta); `draft`, `draftCompetitive`, `pick`, `predefined`, `eventDeck` and the like for a deck handed out or drafted on the spot, which has no identity a player will play again. Read it before treating a `deck_hash` as a deck the player owns |
-| `boat` | full verbosity, `boatBattle` rows only: `side` (`attacker` or `defender`), `towers_before` and `towers_after` (the clan's towers destroyed on this boat before and after the attack) and `remaining` (the boat's towers still standing) |
+| `boat` | `boatBattle` rows only: `role`, this row's player's own part (`attacker` or `defender`, 9.19.0), and `side`, the API's `boatBattleSide` as the log that recorded the battle said it for that log's own player, who may be the other side. Compact keeps those two; full adds `towers_before` and `towers_after` (the clan's towers destroyed on this boat before and after the attack) and `remaining` (the boat's towers still standing). Read `role` to know whether the player attacked or defended |
 | `me` | the asked-about participant: `outcome` (`win`, `loss`, `draw` or `unresolved`), `crowns`, `trophy_change`, `starting_trophies`, `clan_tag`, `clan_name`, `deck_hash`, `deck`, `elixir`, `tower_hp` |
 | `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, their own `trophy_change` and `starting_trophies`, `deck_hash`, `clan_tag`, `clan_name`, `deck`, `elixir`, `tower_hp` |
 | `clan_tag`, `clan_name` | the clan the player was in at battle time, by tag, and that clan's name as last recorded beside it (`null` for a clan the record does not keep) |
@@ -260,8 +260,10 @@ sides, and they are not alike:
   left out of that member's battles, wins, losses and streaks everywhere
   (`battles_performance`, `battles_compare`, `battles_trends`,
   `clans_participation` battles, `clans_standings` and a timeline's
-  `war.battles`). `battles_query` still returns the row, with its `boat`
-  block at full verbosity.
+  `war.battles`). `battles_query` still returns the row, and its `boat`
+  block's `role` says `defender`. `side` is not the player's part: it is
+  what the recording log said for its own player, so a defense read from
+  the attacker's log says `attacker`.
 
 ## Comparisons, and what a battle proves about its own length
 
