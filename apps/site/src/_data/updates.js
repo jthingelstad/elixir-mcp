@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Card history stays with your players",
+    body: "Card reads now start from your selected players' games and look up repeated deck identities once for earliest play. Clan lists retain each played game, duel round, level and form. This fixes excessive reads during the history cleanup. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "Activity follows your record",
     body: "Retired automatic groups no longer generate nightly activity records. Following a player still works when they appeared in an old group. The history cleanup now has checks for personal overlap and late-arriving data; no game history has been purged. Contracts unchanged.",
   },

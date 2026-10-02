@@ -6,6 +6,7 @@ import {
   cardForms,
   cardType,
   formName,
+  duelGamesSql,
 } from "@elixir-mcp/contracts";
 import { participantModeClause } from "@elixir-mcp/record/mode-filter";
 import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
@@ -22,13 +23,26 @@ import {
   resolveSeasonWindow,
   segmentFilter,
   clanSegmentNote,
-  PARTICIPANT_GAMES,
   RECORDED_PLAYERS_SQL,
   buildMeta,
 } from "./shared.mjs";
 import { countByModeGroup } from "../controls.mjs";
 import { resolveCard } from "./card-resolver.mjs";
 const rate = (w, l) => (w + l > 0 ? Number((w / (w + l)).toFixed(3)) : null);
+// Scope scalar participant rows once before expanding duel rounds. The
+// unscoped union lets a clan read repeatedly scan global round/card facts.
+const GAME_COLUMNS = [
+  "battle_id",
+  "player_tag",
+  "side",
+  "battle_time",
+  "type",
+  "type_class",
+  "deck_hash",
+  "outcome",
+];
+const SELECTED_COLUMNS = GAME_COLUMNS.map((c) => `bp.${c}`).join(", ");
+const SELECTED_GAMES = duelGamesSql("selected_participants", GAME_COLUMNS);
 export const cardProfileTools = {
   cards_card: {
     description:
@@ -65,13 +79,20 @@ export const cardProfileTools = {
       params.push(anchor.id);
       const anchorParam = `$${params.length}`;
       const { rows: firstPlayed } = await ctx.db.query(
-        anchor.tower_troop
-          ? `select 0 as form, min(bp.battle_time) as at from ${PARTICIPANT_GAMES} bp
-           join deck d on d.deck_hash = bp.deck_hash
-           where ${seg.where} and ${notBoatDefense("bp")} and d.tower_troop_id = ${anchorParam}`
-          : `select dc.form, min(bp.battle_time) as at from ${PARTICIPANT_GAMES} bp
-           join deck_card dc on dc.deck_hash = bp.deck_hash and dc.card_id = ${anchorParam}
-           where ${seg.where} and ${notBoatDefense("bp")} group by dc.form`,
+        `with selected_participants as materialized (
+           select ${SELECTED_COLUMNS} from battle_participant bp
+           where ${seg.where} and ${notBoatDefense("bp")}
+         ), first_deck_play as materialized (
+           select bp.deck_hash, min(bp.battle_time) as at from ${SELECTED_GAMES} bp
+           where bp.deck_hash is not null group by bp.deck_hash
+         ) ${
+           anchor.tower_troop
+             ? `select 0 as form, min(g.at) as at from first_deck_play g
+                join deck d on d.deck_hash = g.deck_hash and d.tower_troop_id = ${anchorParam}`
+             : `select dc.form, min(g.at) as at from first_deck_play g
+                join deck_card dc on dc.deck_hash = g.deck_hash and dc.card_id = ${anchorParam}
+                group by dc.form`
+         }`,
         params,
       );
       const first = { base: null, evolution: null, hero: null };
@@ -151,21 +172,31 @@ async function clanMembers(ctx, { anchor, clanTag, win, args }) {
   if (args.mode) where.push(participantModeClause(args.mode, params));
 
   const { rows: played } = await ctx.db.query(
-    `select bp.player_tag, p.name,
+    `with selected_participants as materialized (
+       select ${SELECTED_COLUMNS} from battle_participant bp
+       where bp.player_tag in (
+         select cm.player_tag from clan_membership cm
+         where cm.clan_tag = $1 and cm.left_observed_at is null
+       ) and ${where.join(" and ")}
+     ), card_games as materialized (
+       select bp.* from ${SELECTED_GAMES} bp where ${
+         anchor.tower_troop
+           ? "exists (select 1 from deck d where d.deck_hash=bp.deck_hash and d.tower_troop_id=$2)"
+           : "exists (select 1 from deck_card dc where dc.deck_hash=bp.deck_hash and dc.card_id=$2)"
+       }
+     ) select bp.player_tag, p.name,
             count(*)::int as battles,
             count(*) filter (where bp.outcome = 'win')::int as wins,
             count(*) filter (where bp.outcome = 'loss')::int as losses,
             round(avg(c.level)::numeric, 1) as level_played,
             array_agg(distinct c.form) as forms,
             array_agg(${modeGroupSql("b.type", "b.event_tag")}) as mode_groups
-     from clan_membership cm
-     join ${PARTICIPANT_GAMES} bp on bp.player_tag = cm.player_tag
+     from card_games bp
      join battle b on b.battle_id = bp.battle_id
      join battle_participant_card c
        on c.battle_id = bp.battle_id and c.player_tag = bp.player_tag
       and c.round = bp.round and c.card_id = $2
      join player p on p.player_tag = bp.player_tag
-     where cm.clan_tag = $1 and cm.left_observed_at is null and ${where.join(" and ")}
      group by bp.player_tag, p.name
      order by battles desc`,
     params,
