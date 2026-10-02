@@ -628,3 +628,118 @@ test.describe("Ladder decks", () => {
     await accessible(page, "ladder decks narrow");
   });
 });
+
+test.describe("Ladder cards", () => {
+  test("the cards you played and faced in one mode, each form its own row, and the opponents", async ({
+    page,
+  }) => {
+    const calls: ToolCall[] = [];
+    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await page.goto("/ladder/cards");
+
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "Cards you played, cards you faced",
+      }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle("Cards - Ladder - Elixir MCP");
+    await expect(page.locator(".page__lede")).toContainText(
+      "Trophy Road, this season.",
+    );
+    await expect(
+      page
+        .getByRole("navigation", { name: "Mode" })
+        .getByRole("link", { name: "Trophy Road" }),
+    ).toHaveAttribute("aria-current", "true");
+
+    // Yours: twelve rows, eight cards (four of them in two forms).
+    await expect(
+      page.getByRole("heading", { name: "Your cards · 12 rows, 8 cards" }),
+    ).toBeVisible();
+    const mine = page.locator(".ladder-cards").nth(0).locator("tbody tr");
+    await expect(mine).toHaveCount(12);
+    await expect(mine.nth(0)).toContainText("Hero Mini P.E.K.K.A");
+    await expect(mine.nth(0)).toContainText("35");
+    await expect(
+      mine.nth(0).getByRole("img", { name: "12 won, 23 lost" }),
+    ).toBeVisible();
+    await expect(mine.nth(0)).toContainText("34%");
+    // The name is the one link, to the card's public page; the art is not
+    // a link.
+    await expect(
+      mine.nth(4).getByRole("link", { name: "Evo Witch" }),
+    ).toHaveAttribute("href", "/cards/26000007/");
+    await expect(
+      mine.nth(10).getByRole("link", { name: "Witch", exact: true }),
+    ).toHaveAttribute("href", "/cards/26000007/");
+    await expect(page.locator("a.card-art")).toHaveCount(0);
+    await expect(page.locator(".ladder-cards").nth(0)).toBeVisible();
+
+    // Theirs: the first twelve of fourteen, then the rest in place.
+    await expect(
+      page.getByRole("heading", { name: "Across the table from you" }),
+    ).toBeVisible();
+    await expect(page.locator(".panel").nth(1)).toContainText(
+      "35 battles · 34 opponents",
+    );
+    const theirs = page.locator(".ladder-cards").nth(1).locator("tbody tr");
+    await expect(theirs).toHaveCount(12);
+    await expect(theirs.nth(0)).toContainText("Evo Witch");
+    await expect(
+      theirs.nth(0).getByRole("img", { name: "1 won, 8 lost" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Show all 14 rows" }).click();
+    await expect(theirs).toHaveCount(14);
+
+    // The opponents: the tool's count and the one who came back.
+    const opp = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Opponents" }) });
+    await expect(opp).toContainText(
+      "34 different opponents on Trophy Road this season. One came back:",
+    );
+    await expect(opp.getByRole("link", { name: "A Rival" })).toHaveAttribute(
+      "href",
+      "/console/explore/player/2Q8L9V0P",
+    );
+    await expect(opp).toContainText("#2Q8L9V0P, twice,");
+    await accessible(page, "ladder cards");
+
+    const reads = calls.filter(
+      (c) => c.tool === "battles_cards" || c.tool === "battles_opponents",
+    );
+    expect(
+      reads.map((c) => [c.tool, c.args.perspective ?? null, c.args.mode]),
+    ).toEqual(
+      expect.arrayContaining([
+        ["battles_cards", "mine", "ladder"],
+        ["battles_cards", "opponent", "ladder"],
+        ["battles_opponents", null, "ladder"],
+      ]),
+    );
+    expect(reads.every((c) => c.args.season === "current")).toBe(true);
+  });
+
+  test("a mode with no battles says so", async ({ page }) => {
+    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await page.goto("/ladder/cards?mode=war");
+    await expect(
+      page.getByRole("heading", { name: "No War battles this season" }),
+    ).toBeVisible();
+    await expect(page.locator(".ladder-cards")).toHaveCount(0);
+  });
+
+  test("@narrow the card tables fit a phone", async ({ page }) => {
+    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await page.goto("/ladder/cards");
+    await expect(
+      page.locator(".ladder-cards").nth(0).locator("tbody tr"),
+    ).toHaveCount(12);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+    await accessible(page, "ladder cards narrow");
+  });
+});
