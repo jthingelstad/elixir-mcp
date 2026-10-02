@@ -6,7 +6,7 @@ import { makeButtondownEnroller } from "../src/index.mjs";
 import { makeSesSender } from "../src/ses.mjs";
 
 test("login template leads with the code and carries link, consent, disclaimer", () => {
-  const { subject, text } = renderEmail({
+  const { subject, text, html } = renderEmail({
     v: 1,
     kind: "login",
     to: "j@x.com",
@@ -15,7 +15,12 @@ test("login template leads with the code and carries link, consent, disclaimer",
     client_name: "Claude",
   });
   assert.match(subject, /^123456 /);
-  assert.match(text, /^Your Elixir MCP sign-in code is 123456/);
+  assert.match(text, /^Your Elixir sign-in code is 123456/);
+  // The preheader repeats the code, phrased for Apple Mail's detector.
+  assert.match(
+    html,
+    /<span style="display:none[^"]*"[^>]*>Your Elixir sign-in code is 123456\. It expires in 15 minutes\.<\/span>/,
+  );
   // The token rides the fragment, which never leaves the browser: a
   // query string would reach the CDN's access logs (#129).
   assert.match(text, /\/console\/signin#login_token=tok_abc/);
@@ -37,6 +42,50 @@ test("welcome and owner_notify templates render", () => {
       note: "req from #TAG",
     }).text,
     /req from #TAG/,
+  );
+});
+
+test("the sign-in code and the welcome wear the one mail shell: the Elixir wordmark, the logo, no unsubscribe", () => {
+  const login = renderEmail({
+    v: 1,
+    kind: "login",
+    to: "j@x.com",
+    code: "123456",
+    token: "tok_abc",
+  });
+  const welcome = renderEmail({ v: 1, kind: "welcome", to: "j@x.com" });
+  const notice = renderEmail({
+    v: 1,
+    kind: "owner_notify",
+    to: "o@x.com",
+    notify_kind: "feedback",
+  });
+  assert.equal(login.subject, "123456 is your Elixir sign-in code");
+  assert.equal(welcome.subject, "Your Elixir access is approved");
+  for (const [name, m] of [
+    ["login", login],
+    ["welcome", welcome],
+    ["owner_notify", notice],
+  ]) {
+    assert.ok(
+      m.html.includes(
+        'src="https://elixir.poapkings.com/assets/mail/elixir-96.png"',
+      ),
+      `${name} logo`,
+    );
+    assert.match(m.html, />Elixir</, `${name} wordmark`);
+    assert.ok(!/ELIXIR|Elixir MCP<|Elixir&nbsp;MCP/.test(m.html), name);
+    assert.ok(!/unsubscribe|Turn off|Manage your emails/i.test(m.html), name);
+    assert.match(m.html, /not endorsed by Supercell/, `${name} disclaimer`);
+    assert.ok(!/display:\s*(flex|grid)/.test(m.html), `${name} tables only`);
+  }
+  assert.match(login.html, /Account · Sign in/);
+  assert.match(welcome.html, /Account · Welcome/);
+  assert.match(login.html, /tinylytics[^"]*%2Fmail%2Flogin/);
+  assert.match(welcome.html, /tinylytics[^"]*%2Fmail%2Fwelcome/);
+  assert.ok(
+    !/tinylytics/.test(notice.html),
+    "the operator's own mail is never counted",
   );
 });
 

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-01",
+    title: "Elixir's emails have a new look",
+    body: "Every email Elixir sends now wears the same frame: Elixir's logo and name at the top, a label saying which part of Elixir it comes from and when (Clan on Monday, Friends on Wednesday), and a footer that says why you got it and when the next one comes, in your own timezone. Your sign-in code and the welcome now look like the weekly mail and say Elixir rather than Elixir MCP; the code still leads the subject. Wednesday's Tracking report is now called Your friends this week, and your switch for it carried over. Every image in a mail is served from elixir.poapkings.com and says what it is when images are off. No change to the tools.",
+  },
+  {
+    date: "2026-10-01",
     title: "Elixir Clan's week, redrawn",
     body: "The week in Elixir Clan has the new design. The top says where you are, and the week's numbers sit in a row of tiles: how many members took part in the war, how many played some of their decks and how many played every deck asked. The war lists everyone in two groups, each name with their decks out of those asked, and who came and went sits beside it with the week so far. It is the same report as before, and who sees it has not changed. No change to the tools.",
   },

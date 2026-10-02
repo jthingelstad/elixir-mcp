@@ -10,7 +10,7 @@ const BLURB = {
   arena_week:
     "Tuesday: your own battles by mode, decks, who you faced. Skipped on a quiet week.",
   tracking_report:
-    "Wednesday: everyone you track, you in full, watchers in a line.",
+    "Wednesday: how everyone you follow played. Was the Tracking report.",
   top_100: "Thursday: one shared read of the global Path of Legends top 100.",
   card_of_week:
     "Friday: one card the record has something to say about, read in full.",

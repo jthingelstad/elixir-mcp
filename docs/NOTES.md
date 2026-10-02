@@ -1644,3 +1644,24 @@ the code does):
   no heading on that page carries a code's id, so each lands at the top.
 - The tool family pages double-escape quotes in tool descriptions
   (`&amp;quot;mine&amp;quot;`), live as well as in a fresh build.
+
+## 2026-10-01 - One mail shell for every kind (email redesign, part 1)
+
+Every mail now renders in `packages/mail/src/shell.mjs`: the logo PNG
+(`apps/site/src/assets/mail/elixir-{48,96}.png`, from Jamie's Elixir logo,
+shipped as an Eleventy passthrough) and the wordmark "Elixir", a product
+pill, the gold-barred panel, and one footer whose first line says when
+the kind comes in the reader's zone (`MAIL_SCHEDULE`, pinned to the
+EventBridge crons by test). The relay's login, welcome and owner_notify
+templates use the same shell; login and welcome say "Elixir", not "Elixir
+MCP", and the code still leads subject and preheader; owner_notify
+subjects are unchanged; no transactional mail gained an unsubscribe.
+The five renderers whose hidden preheader differed from the one they
+returned now pass one string. `tracking_report` is labelled "Your friends
+this week" (Jamie approved; the kind id, preferences and tokens are
+unchanged). The card_of_week fixture's art moved to absolute URLs, the
+form production builds, and the shared test now refuses a relative or
+non-PNG image. `node packages/mail/scripts/preview.mjs` renders every kind
+into gitignored `packages/mail/.preview/`. The logo's URL answers only
+after the next deploy uploads the site; until then a sent mail shows the
+wordmark beside an empty 44 px cell.

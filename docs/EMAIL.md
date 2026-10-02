@@ -176,7 +176,11 @@ behaviour (AGENTS.md); this file is the design, not the description.
 
 ## Per kind
 
-### `tracking_report` — Wed
+### `tracking_report` — Wed ("Your friends this week")
+
+Named "Your friends this week" since 2026-10-01 (Jamie approved the
+rename; the kind id stays `tracking_report`, so preferences, ledger rows
+and unsubscribe tokens carry over untouched).
 
 `elixir_timeline` for the week, ordered by relationship depth. Primary:
 full (trophies / Path of Legends delta, arena, level, card unlocks and
@@ -356,7 +360,7 @@ re-climb is silent and a higher rung is news; a move down never keys.
 Hourly, reading 26 hours back from the account's last clean look
 (`email_milestone_look`, 0194; capped at seven days, so a failed run
 leaves no gap), everything new bundled with the biggest moment
-as the subject. Friends' and watchers' moments are the Tracking report's.
+as the subject. Friends' and watchers' moments are Your friends this week's.
 
 ## As built (2026-09-18)
 
@@ -546,6 +550,41 @@ Four send bugs, one fix each:
   repo's sample podium with its three ratings rotated passed with zero
   findings; it is now `services/editor/test/lint-binding.test.mjs`, and
   fails. Placeholders (`{{v:path}}`) were out of scope.
+
+## One shell for every mail (2026-10-01, the redesign)
+
+The redesign boards (EmailClan … EmailAccount, ConsoleEmails) put every
+mail Elixir sends in one shell, `packages/mail/src/shell.mjs`, which the
+relay's sign-in code, welcome and operator notices now wear too:
+
+- **Masthead:** Jamie's logo as a PNG (`apps/site/src/assets/mail/
+  elixir-48.png` and `-96.png`, drawn at 44 from the 96 file) and the
+  wordmark "Elixir" (never "Elixir MCP"), with a pill naming the product
+  and the day (`MAIL_SOURCE`: Clan · Monday, Ladder · Tuesday, Friends ·
+  Wednesday, Cards · Thursday and Friday, Collectors · Sunday, Ladder ·
+  Milestone, Clan · Actions, Account · Sign in and Welcome). The logo has
+  `alt=""`: it stands beside the word it would say.
+- **Images:** https PNGs on elixir.poapkings.com only, never a data URI and
+  never Supercell's CDN. The logo ships with the site (an Eleventy
+  passthrough); card art is the mirror. Every content image carries alt
+  text, which is what the text part prints.
+- **Footer:** why the mail came and when the next one does, in the
+  reader's own zone (`MAIL_SCHEDULE`, pinned to the crons by test: "You
+  get this on Mondays at 9:00 am Central, for each clan you track"); on a
+  bulk kind the manage link and the turn-off; the send id with its record
+  and feedback links; the sponsor line; the disclaimer. Transactional
+  mail has no turn-off, ever, and the sign-in code still leads its subject
+  and preheader.
+- **Palette:** the relay's (`#0b0920` ground, `#120f2a` panel), which the
+  boards drew every mail in; wins blue and losses rose; gold is the brand
+  and the button, never a figure.
+- **One preheader:** each renderer hands the shell the same preheader it
+  returns. Before this, five kinds put a shorter or empty string in the
+  hidden span than the one they returned.
+- **Preview:** `node packages/mail/scripts/preview.mjs` renders every
+  fixture and the relay's three kinds into `packages/mail/.preview/`
+  (gitignored), pixel stripped and images pointed at this checkout, for
+  a browser or Playwright to compare with the boards.
 
 ## Open
 

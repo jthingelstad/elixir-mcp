@@ -1,7 +1,7 @@
 ---
 slug: watch-a-player
 title: "Watch any player"
-description: "Track any player by tag, friend or not: adding one starts recording, what the record holds before and after, how a watched player shows in your timeline and the Wednesday Tracking report, your player slots, and how an agent tracks."
+description: "Track any player by tag, friend or not: adding one starts recording, what the record holds before and after, how a watched player shows in your timeline and Wednesday's Your friends this week, your player slots, and how an agent tracks."
 section: friends
 order: 2
 navTitle: "Watch any player"
@@ -45,7 +45,7 @@ A watched player is a subject of your **timeline** while its
 **Notifications** switch is on: sittings, new arenas, promotions, clan
 changes, in the console and through `elixir_timeline`.
 
-In the Wednesday **Tracking report**, watched players share a table, one
+In Wednesday's **Your friends this week**, watched players share a table, one
 row each: the week's battles with wins and losses and the modes, or
 "no recorded battles", with a note when they came back after quiet
 days, joined or left a clan, reached an arena or were promoted. Players

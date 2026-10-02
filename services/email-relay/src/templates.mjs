@@ -20,10 +20,18 @@
  */
 
 import { DISCLAIMER, isProductEmailKind } from "@elixir-mcp/contracts";
-import { pixelPath, pixelTag } from "@elixir-mcp/mail";
+import {
+  pixelPath,
+  pixelTag,
+  mailShell,
+  mailParts,
+  MAIL_PALETTE as C,
+  MAIL_FONT as FONT,
+  MAIL_MONO as MONO,
+} from "@elixir-mcp/mail";
 
-const SIGNIN_BASE = "https://elixir.poapkings.com/console/signin";
 const SITE = "https://elixir.poapkings.com";
+const SIGNIN_BASE = `${SITE}/console/signin`;
 
 const esc = (value) =>
   String(value ?? "")
@@ -32,70 +40,31 @@ const esc = (value) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
-/** The site's own palette, so the mail looks like where it came from. */
-const C = {
-  bg: "#0b0920",
-  panel: "#120f2a",
-  edge: "#2a2450",
-  ink: "#f7f4ff",
-  muted: "#c8c1e6",
-  faint: "#a99fce",
-  gold: "#f5c84c",
-};
-
-const FONT =
-  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-
 /**
- * One shell for every message, so a login and a welcome are recognisably the
- * same sender. `preheader` is the hidden line inboxes show as a preview.
+ * The one mail shell (packages/mail, shell.mjs), the same one every
+ * report and milestone wears, so a login and a clan report are
+ * recognisably the same sender (2026-10-01). `preheader` is the hidden
+ * line inboxes show as a preview. `pixel` is the Tinylytics path the
+ * open counts under (/mail/login, /mail/welcome); the owner's own
+ * notifications carry none, so Jamie's reading of them never lands in
+ * the numbers. Transactional mail never carries an unsubscribe.
  */
-/** `pixel` is the Tinylytics path the open counts under (/mail/login,
- *  /mail/welcome); the owner's own notifications carry none, so Jamie's
- *  reading of them never lands in the numbers. */
-function shell({ title, preheader, body, pixel = null }) {
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="color-scheme" content="dark light">
-    <title>${esc(title)}</title>
-  </head>
-  <body style="margin:0;padding:0;background-color:${C.bg};-webkit-text-size-adjust:100%;">
-    <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">${esc(preheader)}</span>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${C.bg};">
-      <tr><td align="center" style="padding:32px 16px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;">
-          <tr><td align="center" style="padding:4px 0 22px;">
-            <span style="font-family:${FONT};font-size:19px;font-weight:700;letter-spacing:.14em;color:${C.ink};">ELIXIR&nbsp;MCP</span>
-          </td></tr>
-          <tr><td style="background-color:${C.panel};border:1px solid ${C.edge};border-radius:16px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-              <tr><td style="height:4px;background-color:${C.gold};border-radius:16px 16px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
-              <tr><td style="padding:28px 26px 26px;">${body}</td></tr>
-            </table>
-          </td></tr>
-          <tr><td style="padding:20px 6px 0;font-family:${FONT};font-size:11.5px;line-height:1.6;color:${C.faint};">
-            ${esc(DISCLAIMER)}
-          </td></tr>
-        </table>
-      </td></tr>
-    </table>
-    ${pixel ? pixelTag(pixel) : ""}
-  </body>
-</html>`;
+function shell({ kind, title, subtitle, preheader, body, pixel = null }) {
+  return mailShell({
+    kind,
+    docTitle: title,
+    title: kind === "login" ? "" : esc(title),
+    subtitle: subtitle ? esc(subtitle) : "",
+    preheader,
+    body,
+    pixel: pixel ? pixelTag(pixel) : "",
+  });
 }
 
-const p = (text, color = C.muted, size = "15px") =>
-  `<p style="margin:0 0 14px;font-family:${FONT};font-size:${size};line-height:1.6;color:${color};">${text}</p>`;
-
-const button = (href, label) =>
-  `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 22px;">
-     <tr><td align="center" bgcolor="${C.gold}" style="border-radius:10px;background-color:${C.gold};">
-       <a href="${esc(href)}" target="_blank" style="display:block;padding:13px 30px;font-family:${FONT};font-size:15px;font-weight:700;color:#241a02;text-decoration:none;border-radius:10px;">${esc(label)}</a>
-     </td></tr>
-   </table>`;
+const { p: para, small, h2, button: goldButton, rows } = mailParts();
+const p = (text, color = C.muted, size = 14.5) =>
+  para(text, { color, size, mb: 14 });
+const button = (href, label) => goldButton(label, href, { tag: false });
 
 export function renderEmail(msg) {
   // A product kind (a weekly report, a milestone) is rendered where the
@@ -118,72 +87,88 @@ export function renderEmail(msg) {
         )
       : "";
     return {
-      subject: `${msg.code} is your Elixir MCP sign-in code`,
+      subject: `${msg.code} is your Elixir sign-in code`,
       text:
-        `Your Elixir MCP sign-in code is ${msg.code}\n\n` +
+        `Your Elixir sign-in code is ${msg.code}\n\n` +
         consent +
         (link ? `Or sign in with one click:\n${link}\n\n` : "") +
         `The code and link expire in 15 minutes. If you didn't request this, ignore it.\n\n` +
         `${DISCLAIMER}\n`,
       html: shell({
+        kind: "login",
         pixel: pixelPath("login"),
-        title: "Your Elixir MCP sign-in code",
+        title: "Your Elixir sign-in code",
         // Repeats the code so an inbox preview carries it, and phrased the way
         // Apple Mail's code detector expects.
-        preheader: `Your Elixir MCP sign-in code is ${msg.code}. It expires in 15 minutes.`,
+        preheader: `Your Elixir sign-in code is ${msg.code}. It expires in 15 minutes.`,
         body: [
-          p("Your sign-in code", C.faint, "12px").replace(
-            "margin:0 0 14px",
-            "margin:0 0 8px;letter-spacing:.12em;text-transform:uppercase;font-weight:600",
-          ),
-          `<p style="margin:0 0 18px;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:34px;line-height:1.1;font-weight:700;letter-spacing:.22em;color:${C.ink};">${esc(msg.code)}</p>`,
+          `<p style="margin:0 0 8px;font-family:${FONT};font-size:12px;line-height:1.4;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${C.faint};">Your sign-in code</p>`,
+          `<p style="margin:0 0 18px;font-family:${MONO};font-size:36px;line-height:1.1;font-weight:700;letter-spacing:.22em;color:${C.ink};">${esc(msg.code)}</p>`,
           consentHtml,
-          link ? p("Or sign in with one tap:") : "",
-          link ? button(link, "Sign in to Elixir MCP") : "",
           link
-            ? p(
-                `Button not working? Paste this into your browser:<br><a href="${esc(link)}" style="color:${C.gold};word-break:break-all;">${esc(link)}</a>`,
-                C.faint,
-                "12.5px",
+            ? p("Or sign in with one tap:", C.muted, 14.5).replace(
+                "margin:0 0 14px",
+                "margin:0",
               )
             : "",
+          link ? button(link, "Sign in to Elixir") : "",
           p(
-            "The code and the link expire in 15 minutes, and either one can be used once. If you didn't ask to sign in, ignore this — nothing happens.",
+            "The code and the link expire in 15 minutes, and either one can be used once. If you didn&rsquo;t ask to sign in, ignore this; nothing happens.",
             C.faint,
-            "13px",
-          ),
+            13,
+          ).replace("margin:0 0 14px", "margin:18px 0 0"),
         ].join(""),
       }),
     };
   }
   if (msg.kind === "welcome") {
     return {
-      subject: "Your Elixir MCP access is approved",
+      subject: "Your Elixir access is approved",
       text:
-        `You're in!\n\n` +
-        `The player you asked with is already being recorded, and so is their clan —\n` +
-        `sign in at ${SIGNIN_BASE} and it is waiting for you. Connect your agent to\n` +
-        `${SITE}/mcp and start asking questions the game itself can't answer.\n\n` +
+        `You're in.\n\n` +
+        `Elixir keeps the Clash Royale history the game doesn't, and reads it back:\n` +
+        `in the console, inside your clan, in a short email each week, or to your own AI agent.\n\n` +
+        `The player you asked with is already being recorded, and their clan with them.\n` +
+        `Sign in at ${SIGNIN_BASE} and it is waiting. Connect your agent to\n` +
+        `${SITE}/mcp and ask what the game itself can't answer.\n\n` +
         `The five-minute version: ${SITE}/docs/quickstart\n\n` +
         `${DISCLAIMER}\n`,
       html: shell({
+        kind: "welcome",
         pixel: pixelPath("welcome"),
-        title: "Your Elixir MCP access is approved",
+        title: "You’re in.",
+        subtitle: "Your Elixir access is approved",
         preheader:
-          "You're in. Add your player, connect your agent, and start asking.",
+          "You’re in. Your player is already being recorded, and their clan with them.",
         body: [
-          `<h1 style="margin:0 0 14px;font-family:${FONT};font-size:22px;line-height:1.25;font-weight:700;color:${C.ink};">You&rsquo;re in.</h1>`,
           p(
-            "Elixir MCP records the Clash Royale history the official API doesn&rsquo;t keep, and serves it to your own agent.",
+            "Elixir keeps the Clash Royale history the game doesn&rsquo;t, and reads it back: in the console, inside your clan, in a short email each week, or to your own AI agent.",
           ),
           p(
-            "The player you asked with is already being recorded, and their clan with them &mdash; sign in and it is waiting for you. Then connect your agent and ask it something the game itself can&rsquo;t answer.",
+            "The player you asked with is already being recorded, and their clan with them. Sign in and it is waiting.",
           ),
-          button(`${SITE}/docs/quickstart`, "Start here — five minutes"),
-          p(
-            `Or go straight to <a href="${SIGNIN_BASE}" style="color:${C.gold};">signing in</a>.`,
-            C.faint,
-            "13px",
+          h2("What comes next"),
+          rows([
+            {
+              title: "Monday: your clan&rsquo;s week",
+              text: "The river race, who joined and who left.",
+            },
+            {
+              title: "Tuesday: your week in the Arena",
+              text: "Your record by mode, your decks, and who you battled.",
+            },
+            {
+              title: "Wednesday: your friends",
+              text: "Follow anyone with a player tag, and hear how they played.",
+            },
+            {
+              title: "Your own agent",
+              text: `Connect it to <span style="font-family:${MONO};font-size:12.5px;">elixir.poapkings.com/mcp</span> and ask what the game can&rsquo;t answer.`,
+            },
+          ]),
+          button(SIGNIN_BASE, "Sign in"),
+          small(
+            `The five-minute version: <a href="${SITE}/docs/quickstart" style="color:${C.link};text-decoration:none;">Start here</a>.`,
           ),
         ].join(""),
       }),
@@ -238,21 +223,21 @@ export function renderEmail(msg) {
       // several times a day was the one that looked like a cron job.
       // Same shell, so the inbox reads as one sender.
       html: shell({
-        title: subject,
+        kind: "owner_notify",
+        title: lead,
         preheader: msg.note ? `${lead} ${msg.note}` : lead,
         body: [
-          `<h1 style="margin:0 0 14px;font-family:${FONT};font-size:20px;line-height:1.3;font-weight:700;color:${C.ink};">${esc(lead)}</h1>`,
           msg.note ? p(esc(msg.note), C.ink) : "",
           // Labelled facts as a table: a definition list is not laid out
           // reliably in mail clients, and these are read at a glance on
           // a phone.
           Object.keys(msg.detail ?? {}).length
-            ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:4px 0 20px;border-top:1px solid ${C.edge};">
+            ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:4px 0 0;border-top:1px solid ${C.edge};">
                  ${Object.entries(msg.detail)
                    .map(
                      ([k, v]) =>
                        `<tr>
-                          <td style="padding:8px 10px 8px 0;border-bottom:1px solid ${C.edge};font-family:'SFMono-Regular',Consolas,Menlo,monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:${C.faint};white-space:nowrap;vertical-align:top;">${esc(k)}</td>
+                          <td style="padding:8px 10px 8px 0;border-bottom:1px solid ${C.edge};font-family:${MONO};font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:${C.faint};white-space:nowrap;vertical-align:top;">${esc(k)}</td>
                           <td style="padding:8px 0;border-bottom:1px solid ${C.edge};font-family:${FONT};font-size:13.5px;line-height:1.5;color:${C.muted};">${esc(v)}</td>
                         </tr>`,
                    )
@@ -260,11 +245,6 @@ export function renderEmail(msg) {
                </table>`
             : "",
           button(link, "Open the console"),
-          p(
-            `Or paste this into your browser:<br><a href="${esc(link)}" style="color:${C.gold};word-break:break-all;">${esc(link)}</a>`,
-            C.faint,
-            "12.5px",
-          ),
         ].join(""),
       }),
     };
