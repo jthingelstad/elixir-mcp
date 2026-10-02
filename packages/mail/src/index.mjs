@@ -22,6 +22,7 @@ export {
   MONO as MAIL_MONO,
   MAIL_SCHEDULE,
 } from "./shell.mjs";
+export { cardAsset } from "./cards.mjs";
 export {
   pixelPath,
   pixelUrl,

@@ -5,9 +5,8 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { renderMail, briefNames } from "@elixir-mcp/mail";
+import { renderMail, briefNames, cardAsset } from "@elixir-mcp/mail";
 import { issueWeek, cardOfWeekFacts } from "../src/email/card-of-week.mjs";
-import { cardAsset } from "../src/email/build-card-of-week.mjs";
 
 const brief = {
   kind: "card_of_week",

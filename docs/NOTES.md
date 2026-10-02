@@ -1783,3 +1783,43 @@ poapkings.com's 512px source.
 The Console app's bar now takes its current place from the route: under
 `/ladder` it marks Ladder, and its Console and Ladder links route in the app
 instead of reloading (the hook Ladder's note above left for the shell).
+
+## 2026-10-02 - The weekly kinds as the boards draw them (email redesign, part 2)
+
+Every kind now has the sections its board draws, from the facts its
+builder already reads through the tools, with card art through one
+helper (`packages/mail/src/cards.mjs`; `cardAsset` moved there from the
+Card of the Week builder). The clan report links the roster instead of
+printing it: with the roster table, the 46-member fixture rendered at
+110 KB, past Gmail's ~102 KB clip, so the footer and its turn-off link
+were hidden behind "View entire message". A 50-member week now renders
+at about 51 KB against a test ceiling of 95,000 bytes. The reader's own
+players are marked from `links.mine`, which `deliver` fills from the
+account's tags, so an issue's facts stay the same for every reader.
+Collectors gained `card_id`, `state` and `since` in their facts; an issue
+stored before renders from `status`. Milestones gained `instant`,
+`battle` (from the moment's own `promoted_by`) and `card`. The old clan
+issue is kept as `packages/mail/test/fixtures/clan_report-2026-09.json`
+and renders in the shared test.
+
+Left out because no tool returns them (the boards drew them):
+
+- Arena: a day-by-day split (decks, not days), "Battles worth a look",
+  and "new to you" for opponents.
+- Milestone: the battle's link and both decks (battles_query's `url`
+  landed in 9.18.0; the link is the next change), "Earlier today", and a
+  card's type and elixir (the moment carries the rarity only).
+- Card of the Week: the by-month table and "You and <card>". The trend
+  chart renders only when a brief carries one; its URL
+  (`assets/mail/card_of_week/<period>/season.png`) is written to the jobs
+  bucket and nothing serves it yet.
+- Clan report: "Next week is the Colosseum" (no tool says it), and the
+  buttons into Clan's week and Actions (the report links the console's
+  clan page; a Clan link is a product call for a report every tracker
+  gets, member or not).
+- Collectors: the board's weekly points per collector (the ledger's
+  week is pooled; each row shows its points to date).
+- Ladder: the boards link Ladder, which has no pages yet; the links go to
+  the console, and the pill still says Ladder.
+- Top 100 and Card of the Week keep their written bodies: the boards'
+  structured sections are a product call.

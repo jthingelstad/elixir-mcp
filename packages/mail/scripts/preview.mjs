@@ -5,7 +5,8 @@
  *
  *    node packages/mail/scripts/preview.mjs [--tz America/Chicago] [--live]
  *
- *  The product kinds render their fixtures (packages/mail/fixtures); the
+ *  The product kinds render their fixtures (packages/mail/fixtures, and
+ *  the variants in test/fixtures); the
  *  sign-in code, the welcome and an operator notice come from the relay's
  *  own templates. Nothing is sent and nothing is counted: the open pixel
  *  is left out, and images point at this checkout's apps/site/src/assets
@@ -48,9 +49,17 @@ const write = (name, subject, preheader, html) => {
   written.push({ name, subject, preheader, bytes: Buffer.byteLength(html) });
 };
 
-for (const file of readdirSync(fixtures).filter((f) => f.endsWith(".json"))) {
-  const kind = file.replace(/\.json$/, "");
-  const facts = JSON.parse(readFileSync(path.join(fixtures, file), "utf8"));
+// The test fixtures too: a variant of a kind is named <kind>-<what>.json
+// (milestone-cards, an older stored clan report).
+const sources = [fixtures, path.join(here, "../test/fixtures")].flatMap((dir) =>
+  readdirSync(dir)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => ({ dir, file: f })),
+);
+for (const { dir, file } of sources) {
+  const name = file.replace(/\.json$/, "");
+  const kind = name.split("-")[0];
+  const facts = JSON.parse(readFileSync(path.join(dir, file), "utf8"));
   const mail = renderMail(kind, facts, {
     unsubscribe: `${SITE}/api/email/unsubscribe?t=preview`,
     manage: `${SITE}/console/account/profile/email`,
@@ -58,8 +67,10 @@ for (const file of readdirSync(fixtures).filter((f) => f.endsWith(".json"))) {
     send_id: "00000000-0000-4000-8000-000000000000",
     timezone: tz,
     pixel: false,
+    // The reader's own players, so the clan report marks "you".
+    mine: ["#20JJJ2CCRU", "#VJQV8G8RL", "#VJG0J29QP"],
   });
-  write(kind, mail.subject, mail.preheader, mail.html);
+  write(name, mail.subject, mail.preheader, mail.html);
 }
 
 const relay = {

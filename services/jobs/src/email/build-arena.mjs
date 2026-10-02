@@ -1,6 +1,9 @@
 /** arena_week: the recipient's own battles for the game week, primary
  *  and alts, from battles_performance / battles_decks /
- *  battles_opponents. Skipped when no tag of theirs battled. */
+ *  battles_opponents. Skipped when no tag of theirs battled. The board
+ *  (EmailArena, 2026-10-01) draws one record per mode, the week's main
+ *  deck with its art, who you met more than once, and your other
+ *  players' climbs; each comes from a tool's own answer. */
 import { accountCtx, callTool } from "./ctx.mjs";
 import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
 import {
@@ -59,6 +62,11 @@ export async function buildArena({ db, account, week, season }) {
       wins: aw.wins,
       losses: aw.losses,
       sessions: ae.battles.sessions,
+      by_family: byFamily(aw),
+      trophies:
+        ae.trophies?.from != null && ae.trophies?.to != null
+          ? { from: ae.trophies.from, to: ae.trophies.to }
+          : null,
       modes: groupModes(am),
     });
   }
@@ -71,12 +79,27 @@ export async function buildArena({ db, account, week, season }) {
         limit: 4,
       })
     : null;
+  // The week's main deck outside war, drawn with its art: the list row
+  // is compact (card names only), so the deck itself is read once more
+  // by its hash for the cards' ids and forms and the tower troop.
+  const top = (decks?.decks ?? []).find(
+    (d) => d.dominant_mode && d.dominant_mode !== "war",
+  );
+  const topDeck = top
+    ? await tryTool(callTool, ctx, "battles_decks", {
+        player_tag: primary.tag,
+        ...window,
+        deck_hash: top.deck_hash,
+      })
+    : null;
+  // Every opponent of the week, busiest first: the count and who came
+  // round more than once.
   const opps = w?.battles
     ? await tryTool(callTool, ctx, "battles_opponents", {
         player_tag: primary.tag,
         ...window,
-        limit: 12,
-        sort: "last_seen",
+        limit: 200,
+        sort: "battles",
       })
     : null;
   // The timeline's own entry for the primary: sessions (the 30-minute
@@ -112,19 +135,7 @@ export async function buildArena({ db, account, week, season }) {
         sessions: entry.battles.sessions,
         // The headline record per mode family (Jamie 2026-09-25: modes are
         // different games): battles_performance's own split, busiest first.
-        by_family: Object.entries(w?.modes ?? {})
-          .map(([mode, m]) => ({
-            mode,
-            battles: m.battles,
-            wins: m.wins,
-            losses: m.losses,
-            win_rate:
-              m.wins + m.losses > 0
-                ? Number((m.wins / (m.wins + m.losses)).toFixed(3))
-                : null,
-          }))
-          .filter((m) => m.battles > 0)
-          .sort((a, b) => b.battles - a.battles),
+        by_family: byFamily(w),
       },
       trophies: trophies
         ? {
@@ -143,9 +154,23 @@ export async function buildArena({ db, account, week, season }) {
         losses: d.losses,
         level_gap: d.mean_level_gap ?? null,
       })),
+      deck: featuredDeck(top, topDeck?.decks?.[0]),
       opponents: {
         distinct: opps?.distinct_opponents ?? 0,
         repeats: (opps?.opponents ?? []).filter((o) => o.battles > 1).length,
+        // Who came round more than once this week, with the record
+        // between you; "new to you" would need more than the week.
+        again: (opps?.opponents ?? [])
+          .filter((o) => o.battles > 1)
+          .slice(0, 3)
+          .map((o) => ({
+            tag: o.player_tag,
+            name: o.name_known ? o.name : o.player_tag,
+            battles: o.battles,
+            wins: o.wins,
+            losses: o.losses,
+            mode: modeLabel(o.modes?.[0] ?? "", ""),
+          })),
         rows: (opps?.opponents ?? []).slice(0, 12).map((o) => ({
           tag: o.player_tag,
           name: o.name_known ? o.name : o.player_tag,
@@ -164,6 +189,47 @@ export async function buildArena({ db, account, week, season }) {
       coverage: `${w?.battles ?? 0} battles recorded for ${primary.name}; battle log last read ${agoText(freshness)}. The log holds 25 battles, so a long session between reads can leave a gap; missing coverage is unknown, not evidence of absence.`,
     },
     alts: altRows,
+  };
+}
+
+/** The record per mode family, from battles_performance's own split. */
+function byFamily(w) {
+  return Object.entries(w?.modes ?? {})
+    .map(([mode, m]) => ({
+      mode,
+      battles: m.battles,
+      wins: m.wins,
+      losses: m.losses,
+      win_rate:
+        m.wins + m.losses > 0
+          ? Number((m.wins / (m.wins + m.losses)).toFixed(3))
+          : null,
+    }))
+    .filter((m) => m.battles > 0)
+    .sort((a, b) => b.battles - a.battles);
+}
+
+/** The deck the mail draws: the list row's record and the full read's
+ *  cards (id, name, form) and tower troop, which the mail prints as
+ *  text. Null when the full read is missing: no art is better than art
+ *  guessed from names. */
+export function featuredDeck(row, full) {
+  if (!row || !Array.isArray(full?.cards) || full.cards.length === 0)
+    return null;
+  return {
+    family: row.dominant_mode,
+    label: full.archetype_label ?? row.archetype_label ?? null,
+    battles: row.battles,
+    wins: row.wins,
+    losses: row.losses,
+    cards: full.cards.map((c) => ({
+      id: c.id,
+      name: c.name,
+      form: c.form ?? "base",
+    })),
+    tower_troop: full.tower_troop?.name ?? full.tower_troop_name ?? null,
+    average_elixir: full.archetype?.average_elixir ?? null,
+    level_gap: row.mean_level_gap ?? null,
   };
 }
 

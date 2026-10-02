@@ -185,9 +185,11 @@ and unsubscribe tokens carry over untouched).
 `elixir_timeline` for the week, ordered by relationship depth. Primary:
 full (trophies / Path of Legends delta, arena, level, card unlocks and
 upgrades, badges, clan changes, moments). Alts: the same, shorter.
-Friends: trophies, clan, activity, notable moments. Watchers: one line
-each (trophies delta, clan, active or quiet). Unique per account by
-construction; never empty for an account with a claim.
+Friends, then the busiest watched players, ten in all: a card each with
+a record per mode family, two moments and the most-played deck (since
+2026-10-02). Other watchers: one line each (trophies delta, clan, active
+or quiet). Unique per account by construction; never empty for an
+account with a claim.
 
 The seam with Arena is sharp: **Tracking is state and progress; Arena is
 battles.** Neither shows the other's numbers.
@@ -585,6 +587,48 @@ relay's sign-in code, welcome and operator notices now wear too:
   fixture and the relay's three kinds into `packages/mail/.preview/`
   (gitignored), pixel stripped and images pointed at this checkout, for
   a browser or Playwright to compare with the boards.
+
+The kinds as the boards draw them (2026-10-02). Every figure is one a
+tool returned; what a board drew that no tool returns is left out, not
+estimated, and listed in `docs/NOTES.md` for the week.
+
+- **Card art, one rule.** `packages/mail/src/cards.mjs`: `cardAsset(id,
+  form, displayWidth)` (moved here from the Card of the Week builder,
+  which imports it) picks the smallest mirrored file at least twice the
+  drawn width, so 36 -> 128, 55 -> 128, 104 -> 285; `deckStrip` draws a
+  deck as the game does, one row of eight in fixed-share table cells
+  (a phone narrows it, never wraps it), the tower troop as text under
+  it; `cardTiles` draws up to three cards with a name and a line. Every
+  image has its width and height set (Outlook ignores `height:auto`).
+- **Clan report:** the war tiles (place, fame with the finish instant,
+  war trophies going in and out, `war_history`'s value being the one
+  going into the week), the race, who raced (the top five and the
+  reader's own players), comings and goings with their instants, gone
+  quiet, the week. The roster is a link, not a table: a 50-member roster
+  pushed a full clan's report past Gmail's ~102 KB clip, and a test
+  renders a 50-member week under 95,000 bytes. The *you* chip comes from
+  `links.mine` (the account's tags, passed by `deliver`), so the facts
+  stay one issue for every reader.
+- **Your week in the Arena:** a tile per mode family, the most-played
+  deck as a strip (`featuredDeck`), opponents with repeats, a line per
+  alt.
+- **Your friends this week:** a card per friend, then the busiest
+  watched players, ten in all (`CARD_CAP`): `battles_performance` per
+  mode family, two moments, the most-played deck from `battles_decks`.
+  The rest are lines, as before.
+- **Collectors:** each collector by its card (`elixir_collectors`'
+  `card_id`), what it is doing now (`silentSince`, the tool's states;
+  `draining` reads "stopped on purpose"), the week's fetches and points
+  to date. An issue stored before 2026-10-02 has no card or state and
+  renders from its enrolment status.
+- **Milestone:** the arena or league large, with the battle that did it
+  from the moment's own `promoted_by`; cards unlocked as tiles of their
+  art linking `/cards/<id>`. `instant` rides beside the old `at` label
+  so the subtitle names the day and date in the reader's zone.
+- **Clan actions waiting:** one box per line the app wrote, its "(new)"
+  a chip, the app's "And N more." counted into the title.
+- **Card of the Week:** the form's art at 130 beside the base card, from
+  the 285 files.
 
 ## Open
 

@@ -45,12 +45,15 @@ A watched player is a subject of your **timeline** while its
 **Notifications** switch is on: sittings, new arenas, promotions, clan
 changes, in the console and through `elixir_timeline`.
 
-In Wednesday's **Your friends this week**, watched players share a table, one
-row each: the week's battles with wins and losses and the modes, or
-"no recorded battles", with a note when they came back after quiet
-days, joined or left a clan, reached an arena or were promoted. Players
-with nothing recorded all week are named together in one quiet line. A
-[friend](/docs/follow-a-friend) gets a full paragraph instead.
+In Wednesday's **Your friends this week**, the players you watch come
+after your [friends](/docs/follow-a-friend), busiest first. The busiest
+get a card each, as a friend does: the week's battles in each mode with
+wins and losses, a moment or two, and the deck they played most, drawn
+card by card. Ten full cards a week in all, friends first; a watched
+player past those gets one line: the week's battles with wins and
+losses and the modes, with a note when they came back after quiet days,
+joined or left a clan, reached an arena or were promoted. Players with
+nothing recorded all week are named together in one quiet line.
 
 Your agent's opening lists the players you watch with their tags, so
 you can ask about one by name.

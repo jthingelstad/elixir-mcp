@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "The weekly emails show the cards",
+    body: "Elixir's emails now draw cards the way the game does. Your week in the Arena and Your friends this week show each deck as its eight cards in a row, with the tower troop named under it; a milestone for a card you unlocked shows the card, and opens its page; a new arena or league comes with the battle that did it; each of your collectors is shown as its card with whether it is checking in, silent or stopped. The clan report puts the war first (the clan's place, fame and war trophies, the race, who raced, with your own players marked), then who came and went and who has gone quiet, and links the roster rather than printing it, so Gmail no longer cuts a full clan's report short. Who gets each email and when is unchanged. No change to the tools.",
+  },
+  {
+    date: "2026-10-02",
     title: "Elixir Clan's You here, redrawn",
     body: "You here, your own page in a clan on Elixir Clan, has the new design. Any actions waiting for you sit in a link at the top. This week so far is a row of tiles: war decks out of those asked, ranked battles, donations, battles and trophies, each marked when the clan's policy does not count it. Your last five races are drawn as columns, the race on now lighter, with every race and its points in a table underneath. How you are doing here keeps your standing, what would move you and your minimums, now with a link to how Elder works in your clan. It is still a page only you see. No change to the tools.",
   },
