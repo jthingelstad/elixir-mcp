@@ -208,7 +208,17 @@ describe("actions", () => {
         navigate={navigate}
       />,
     );
-    expect(await screen.findByText("Waiting for you · 2")).toBeTruthy();
+    // Each list is its own panel, headed by its name and its count.
+    const waiting = await screen.findByRole("region", {
+      name: "Waiting for you",
+    });
+    expect(waiting.textContent).toMatch(/^Waiting for you2/);
+    expect(
+      screen.getByRole("region", { name: "Closed in the last 30 days" })
+        .textContent,
+    ).toMatch(/^Closed in the last 30 days1/);
+    // A leader is pointed at History for what was decided before.
+    expect(screen.getByRole("link", { name: "History ›" })).toBeTruthy();
     const links = screen
       .getAllByRole("link")
       .filter((l) => /\/actions\/\d+$/.test(l.getAttribute("href")));
@@ -271,6 +281,8 @@ describe("actions", () => {
     await waitFor(() =>
       expect(screen.getByText("Nothing waiting for you")).toBeTruthy(),
     );
+    // History is the leaders'; a member is not pointed at it.
+    expect(screen.queryByRole("link", { name: "History ›" })).toBeNull();
   });
 });
 

@@ -1514,3 +1514,44 @@ Left out of the canvas, with the reason:
 - **A race the record could not read** is missing from a member's spark
   rather than drawn as a dash: the evaluation leaves an unread week out of
   its detail. The kit's `Spark` draws a dash for one when a caller has it.
+
+## 2026-10-01 — The redesign, slice 4: Actions
+
+Actions drawn to the "Clan, actions" board. Every route, button,
+decision, refusal and analytics event is as before; the word is action
+throughout ("One action, one decision." where the board said card).
+
+- **The list** (`/clan/<TAG>/actions`): the shared page head with the
+  board's lede, the morning-email line as before, and two panels side by
+  side on a wide screen: **Waiting for you** (its count in an accent chip)
+  and **Closed in the last 30 days**. Each line carries the kind's mark
+  (award for a promotion or demotion, a person for a removal, the door
+  for a departure, people for a welcome, a plane for away, a megaphone or
+  the policy for an announcement), the number and what, who and its
+  comments, and when or how it closed. The closed panel points a leader
+  or co-leader at History; nobody else has that page. The list still
+  decides nothing.
+- **One action** (`/clan/<TAG>/actions/<n>`): the breadcrumb runs Clan ›
+  the clan › Actions › #n, with "‹ All actions" and "Copy link" under the
+  title. The action is one panel: its mark, its label as the heading,
+  who it is about (their role now in words), and how fresh its evidence
+  is (or when it was suggested); the rationale; the "In the game" box for
+  a promotion or demotion; the facts as label and value rows; the copy
+  line or the Clan Leader Message, which now says when nothing in it is
+  known to trip the game's chat filter; the log, each entry with a mark,
+  what happened, by whom and when; and the decision in a foot of its own.
+
+Left out of the canvas, with the reason:
+
+- **The list beside the open action** (master and detail): the list is
+  its own page (Jamie, 2026-09-25: the page of full actions was too long),
+  opening it evaluates the clan while an action's page reads only the
+  ledger, and each action keeps its own address; the action's page has
+  "‹ All actions" instead.
+- **"Waiting since Monday"**: the chip says how long ago it was
+  suggested, or the evidence's freshness, as before; the times on the
+  log stay in UTC, since Clan knows the account's zone only from the
+  roster read.
+- **One "Copy for the game" button**: each field of the Leader Message
+  keeps its own copy button, because the game takes the title and the
+  message in separate boxes.

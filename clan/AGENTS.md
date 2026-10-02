@@ -575,9 +575,10 @@ and never evaluates.
 
 Surfaces: **Actions** (`/clan/<TAG>/actions`, `GET /api/clans/<TAG>/actions`,
 the rail's count is `/api/me`'s `open_actions`) for everyone in a clan with
-an active policy: a list, one line per action (number, what, who, when,
-comments), of what waits for you and what closed in the last 30 days;
-each line opens the action's page. Opening the list evaluates. The
+an active policy: a list, one line per action (its kind's mark, number,
+what, who, when, comments), of what waits for you and what closed in the
+last 30 days, each in its own panel (the closed one points leaders and
+co-leaders at History); each line opens the action's page. Opening the list evaluates. The
 leaders' old Inbox address lands there. `POST .../actions/<id>/decide` and
 `POST .../actions/<id>/comments` (by card id). History shows each closed
 action's number, linked to its page, and its log.

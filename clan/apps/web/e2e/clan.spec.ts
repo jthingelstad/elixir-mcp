@@ -471,6 +471,9 @@ test.describe("signed in", () => {
     await expect(page).toHaveURL(/\/actions$/);
     const row = page.getByRole("link", { name: /#37.*Remove from the clan/ });
     await expect(row).toContainText("1 comment");
+    await expect(
+      page.getByRole("region", { name: "Waiting for you" }),
+    ).toContainText("Sleepy");
     await expect(page.getByRole("button", { name: "Complete" })).toHaveCount(0);
     await accessible(page, "actions list");
     await row.click();
@@ -480,6 +483,13 @@ test.describe("signed in", () => {
     ).toBeVisible();
     await expect(page.getByText("I messaged them yesterday.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Complete" })).toBeVisible();
+    // The action names itself, under the breadcrumb back to the list.
+    await expect(
+      page.getByRole("heading", { name: "Remove from the clan" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Breadcrumb" }),
+    ).toContainText("Actions›#37");
     await expect(rail.getByRole("link", { name: /^Actions/ })).toHaveAttribute(
       "aria-current",
       "page",

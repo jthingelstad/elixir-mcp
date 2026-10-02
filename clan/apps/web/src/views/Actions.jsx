@@ -1,8 +1,9 @@
 import { Fresh, Icon, ago } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { keys, useAction, useActions, useInvalidate } from "../lib/queries.js";
-import { ActionCard, STATUS } from "../components/ActionCard.jsx";
+import { ActionCard, STATUS, TypeIcon } from "../components/ActionCard.jsx";
 import { TooFew } from "../components/TooFew.jsx";
+import { PageHead } from "../components/PageHead.jsx";
 import { trackEvent } from "../analytics.js";
 import { CLAN, clanPath } from "../lib/base.js";
 
@@ -16,6 +17,8 @@ const ORDER = [
   "welcome",
   "away",
 ];
+
+const LEADERS = new Set(["leader", "coLeader"]);
 
 /** An action's own address: the one people send each other. */
 const actionPath = (clan, number) =>
@@ -67,7 +70,8 @@ function Refused({ state, query, head }) {
   );
 }
 
-/** One line of the list: the number, what, who, when; the whole line
+/** One line of the list: the kind's mark, the number and what, who it
+ *  is about and its comments, and when (or how it closed); the whole line
  *  opens the action's own page. */
 function ActionRow({ action, clan, navigate }) {
   const n = action.number;
@@ -77,31 +81,33 @@ function ActionRow({ action, clan, navigate }) {
   ).length;
   const line = (
     <>
-      <span className="mono page-head__note w-11 shrink-0">
-        {Number.isInteger(n) ? `#${n}` : ""}
+      <TypeIcon type={action.type} />
+      <span className="grid min-w-0 flex-auto gap-0.5">
+        <span className="text-[14px] font-semibold text-ink">
+          {Number.isInteger(n) ? (
+            <span className="mono mr-2 font-normal text-ink-faint">#{n}</span>
+          ) : null}
+          {action.label}
+        </span>
+        <span className="text-[12.5px] text-ink-dim">
+          {about(action)}
+          {comments ? ` · ${comments} comment${comments === 1 ? "" : "s"}` : ""}
+        </span>
       </span>
-      <span className="min-w-0 flex-auto">
-        <span className="font-semibold">{action.label}</span>
-        <span className="text-[var(--ink-body)]"> · {about(action)}</span>
-        {comments ? (
-          <span className="page-head__note">
-            {" "}
-            · {comments} comment{comments === 1 ? "" : "s"}
-          </span>
-        ) : null}
-      </span>
-      <span className="shrink-0">
+      <span className="shrink-0 self-center">
         {open ? (
-          <span className="page-head__note">{ago(action.raised_at)}</span>
+          <span className="whitespace-nowrap text-[12px] text-ink-faint">
+            {ago(action.raised_at)}
+          </span>
         ) : (
-          <span className={`chip ${STATUS[action.status]?.[1] ?? ""}`}>
+          <span className={`chip ${STATUS[action.status]?.[1] ?? ""}`.trim()}>
             {STATUS[action.status]?.[0] ?? action.status}
           </span>
         )}
       </span>
     </>
   );
-  const cls = "flex items-center gap-3 px-3 py-2.5 text-[14px]";
+  const cls = "flex items-start gap-3 px-4 py-3.5";
   if (!Number.isInteger(n))
     return (
       <li className={cls} data-action={action.card_id}>
@@ -112,7 +118,7 @@ function ActionRow({ action, clan, navigate }) {
   return (
     <li data-action={action.card_id}>
       <a
-        className={`${cls} text-[var(--ink)] no-underline hover:bg-[var(--ground-sunken)]`}
+        className={`${cls} text-ink no-underline hover:bg-panel-raised`}
         href={href}
         onClick={(e) => {
           if (!navigate || e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -121,19 +127,22 @@ function ActionRow({ action, clan, navigate }) {
         }}
       >
         {line}
-        <Icon name="arrow-right" size={14} />
       </a>
     </li>
   );
 }
 
-function ActionList({ title, actions, clan, navigate }) {
+/** A list of actions in its own panel: its name, its count, its lines. */
+function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
   return (
-    <section className="mb-6">
-      <div className="label mb-2">
-        {title} · {actions.length}
+    <section className="panel overflow-hidden" aria-labelledby={id}>
+      <div className="panel__head">
+        <h2 id={id} className="m-0 grow text-[14px] font-semibold">
+          {title}
+        </h2>
+        <span className={`chip ${tone}`}>{actions.length}</span>
       </div>
-      <ul className="panel m-0 list-none divide-y divide-[var(--line-soft)] overflow-hidden p-0">
+      <ul className="m-0 list-none divide-y divide-line-row p-0">
         {actions.map((a) => (
           <ActionRow
             key={a.card_id}
@@ -143,6 +152,9 @@ function ActionList({ title, actions, clan, navigate }) {
           />
         ))}
       </ul>
+      {foot ? (
+        <div className="panel__foot text-[12.5px] text-ink-faint">{foot}</div>
+      ) : null}
     </section>
   );
 }
@@ -155,7 +167,7 @@ function ActionList({ title, actions, clan, navigate }) {
  * the list evaluates the clan, so actions are raised by whoever looks
  * first.
  */
-export function Actions({ clan, navigate }) {
+export function Actions({ clan, who, navigate }) {
   const { state, query } = useActions(clan.clan_tag);
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -163,13 +175,18 @@ export function Actions({ clan, navigate }) {
   }
   const d = state.data;
   const head = (
-    <div className="page-head items-center">
-      <h1 className="page__title">Actions</h1>
-      <span className="page-head__note">{clan.name ?? clan.clan_tag}</span>
-      {d?.as_of ? (
-        <Fresh label="as of" seconds={d.freshness_seconds} ts={d.as_of} />
-      ) : null}
-    </div>
+    <PageHead
+      clan={clan}
+      crumb="Actions"
+      title="Actions"
+      lede="What the policy suggests and the roster asks for. You decide each one in the game, then here. Nobody below co-leader sees removals or who is on a clock."
+      navigate={navigate}
+      fresh={
+        d?.as_of ? (
+          <Fresh label="as of" seconds={d.freshness_seconds} ts={d.as_of} />
+        ) : null
+      }
+    />
   );
   if (state.error) return <Refused state={state} query={query} head={head} />;
   if (!d)
@@ -186,6 +203,8 @@ export function Actions({ clan, navigate }) {
   const open = [...d.open].sort(
     (a, b) => rank(a.type) - rank(b.type) || (a.number ?? 0) - (b.number ?? 0),
   );
+  const history = `${clanPath(clan.clan_tag)}/manage/history`;
+  const leads = LEADERS.has(who?.role ?? clan.role);
   return (
     <>
       {head}
@@ -198,30 +217,53 @@ export function Actions({ clan, navigate }) {
         </a>
         .
       </p>
-      {open.length === 0 ? (
-        <div className="empty mb-6">
-          <div className="empty__title">Nothing waiting for you</div>
-          <p className="empty__body">
-            An action appears here when the clan&rsquo;s policy suggests
-            something you can do: for you alone, or for anyone in your role.
-          </p>
-        </div>
-      ) : (
-        <ActionList
-          title="Waiting for you"
-          actions={open}
-          clan={clan}
-          navigate={navigate}
-        />
-      )}
-      {d.recent.length ? (
-        <ActionList
-          title="Closed in the last 30 days"
-          actions={d.recent}
-          clan={clan}
-          navigate={navigate}
-        />
-      ) : null}
+      <div className="grid items-start gap-4 wide:grid-cols-2">
+        {open.length === 0 ? (
+          <div className="empty">
+            <div className="empty__title">Nothing waiting for you</div>
+            <p className="empty__body">
+              An action appears here when the clan&rsquo;s policy suggests
+              something you can do: for you alone, or for anyone in your role.
+            </p>
+          </div>
+        ) : (
+          <ActionList
+            id="actions-waiting"
+            title="Waiting for you"
+            tone="chip--info"
+            actions={open}
+            clan={clan}
+            navigate={navigate}
+          />
+        )}
+        {d.recent.length ? (
+          <ActionList
+            id="actions-closed"
+            title="Closed in the last 30 days"
+            tone="chip--mute"
+            actions={d.recent}
+            clan={clan}
+            navigate={navigate}
+            foot={
+              leads ? (
+                <>
+                  Every decided action stays in{" "}
+                  <a
+                    href={history}
+                    onClick={(e) => {
+                      if (!navigate) return;
+                      e.preventDefault();
+                      navigate(history);
+                    }}
+                  >
+                    History ›
+                  </a>
+                </>
+              ) : null
+            }
+          />
+        ) : null}
+      </div>
     </>
   );
 }
@@ -272,8 +314,14 @@ export function ActionDetail({ clan, who, number, navigate }) {
   }
   const list = `${clanPath(clan.clan_tag)}/actions`;
   const head = (
-    <>
-      <div className="page__crumb">
+    <PageHead
+      clan={clan}
+      via={{ label: "Actions", to: list }}
+      crumb={`#${number}`}
+      title={`Action #${number}`}
+      navigate={navigate}
+    >
+      <div className="flex flex-wrap items-center gap-3">
         <a
           href={list}
           onClick={(e) => {
@@ -284,15 +332,9 @@ export function ActionDetail({ clan, who, number, navigate }) {
         >
           ‹ All actions
         </a>
+        <CopyLink path={actionPath(clan, number)} />
       </div>
-      <div className="page-head items-center">
-        <h1 className="page__title">Action #{number}</h1>
-        <span className="page-head__note">{clan.name ?? clan.clan_tag}</span>
-        <span className="ml-auto">
-          <CopyLink path={actionPath(clan, number)} />
-        </span>
-      </div>
-    </>
+    </PageHead>
   );
   if (state.error === "no_action")
     return (

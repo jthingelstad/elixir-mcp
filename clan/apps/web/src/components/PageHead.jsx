@@ -5,13 +5,15 @@ import { CLAN, clanPath } from "../lib/base.js";
  * where you are (Clan › the clan › the page), the page's title, one
  * lede, and how fresh the read is on the right. `crumb` is the page's
  * own name; on the clan's front page there is none, and the clan's
- * name is the last step. `children` sit under the lede (a week's
- * earlier and later links, a clan switcher).
+ * name is the last step. `via` is a step between the clan and the page
+ * (`{ label, to }`: Actions, above one action). `children` sit under the
+ * lede (a week's earlier and later links, a clan switcher).
  */
 export function PageHead({
   clan,
   name,
   crumb,
+  via,
   title,
   lede,
   fresh,
@@ -46,6 +48,18 @@ export function PageHead({
                 {clanName}
               </a>
               <span aria-hidden="true">›</span>
+              {via ? (
+                <>
+                  <a
+                    className="text-ink-faint"
+                    href={via.to}
+                    onClick={go(via.to)}
+                  >
+                    {via.label}
+                  </a>
+                  <span aria-hidden="true">›</span>
+                </>
+              ) : null}
               <span aria-current="page" className="text-ink-dim">
                 {crumb}
               </span>
