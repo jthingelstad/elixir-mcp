@@ -88,6 +88,38 @@ const DEFINITION = digest(
     JSON.stringify({ version: 2, cutoff_algorithm_version: 2, lanes: LANES }),
   ),
 );
+// Separate from the history census so an in-flight export keeps its definition.
+const REFERENCES = Object.freeze({
+  deck: {
+    columns:
+      "deck_hash,(select count(*) from deck_card c where c.deck_hash=deck.deck_hash) as cards",
+  },
+  war_period_anchor: { keysOnly: true },
+  mcp_call_audit: {
+    columns: "audit_id,request_id,tool,created_at,captured",
+  },
+  email_issue: {
+    columns:
+      "issue_id,kind,period_key,subject_key,status,composed_at,facts,note",
+    hashFields: ["facts", "note"],
+  },
+  email_featured_card: {
+    columns: "period_key,card_id,chosen_at,sent_at,score,reason,candidates",
+    hashFields: ["reason", "candidates"],
+  },
+  email_send: {
+    columns: "issue_id,account_id,enqueued_at,send_id,archived",
+  },
+});
+const REFERENCE_DEFINITION = digest(
+  Buffer.from(
+    JSON.stringify({
+      version: 2,
+      cutoff_algorithm_version: 2,
+      lanes: REFERENCES,
+    }),
+  ),
+);
 
 async function readSchema(db) {
   const foreignKeys = (
@@ -138,6 +170,11 @@ export async function rightSizingCensus(
 ) {
   if (Object.hasOwn(spec, "apply") || Object.hasOwn(spec, "delete"))
     throw new Error("right sizing census cannot delete or apply game data");
+  const group = spec.group ?? "history";
+  if (!["history", "references"].includes(group))
+    throw new Error("unknown census group");
+  const lanes = group === "history" ? LANES : REFERENCES;
+  const definition = group === "history" ? DEFINITION : REFERENCE_DEFINITION;
   if (Object.hasOwn(spec, "catalog")) {
     if (spec.catalog !== true || spec.export)
       throw new Error("catalog is a separate read-only census");
@@ -147,8 +184,8 @@ export async function rightSizingCensus(
     return {
       readonly: true,
       catalog_available: true,
-      definition_sha256: DEFINITION,
-      lanes: Object.keys(LANES),
+      definition_sha256: definition,
+      lanes: Object.keys(lanes),
     };
   const {
     lane,
@@ -157,10 +194,10 @@ export async function rightSizingCensus(
     after = null,
     limit = 2000,
   } = spec.export;
-  if (!Object.hasOwn(LANES, lane)) throw new Error("unknown census lane");
+  if (!Object.hasOwn(lanes, lane)) throw new Error("unknown census lane");
   if (
     spec.export.definition_sha256 &&
-    spec.export.definition_sha256 !== DEFINITION
+    spec.export.definition_sha256 !== definition
   )
     throw new Error("census definition changed");
   if (
@@ -220,7 +257,7 @@ export async function rightSizingCensus(
       throw new Error("census schema changed");
     if (previous && previous.schema_sha256 !== schema.schema_sha256)
       throw new Error("census cursor schema changed");
-    const table = LANES[lane].table ?? lane;
+    const table = lanes[lane].table ?? lane;
     const keys = (
       await db.query(
         `select a.attname from pg_index i join pg_attribute a on a.attrelid=i.indrelid and a.attnum=any(i.indkey) where i.indrelid=$1::regclass and i.indisprimary order by array_position(i.indkey,a.attnum)`,
@@ -236,7 +273,7 @@ export async function rightSizingCensus(
       )
     ).rows;
     const names = keys.map(identifier);
-    const conditions = LANES[lane].filter ? [LANES[lane].filter] : [];
+    const conditions = lanes[lane].filter ? [lanes[lane].filter] : [];
     const values = [];
     if (previous) {
       values.push(...previous.values);
@@ -255,12 +292,15 @@ export async function rightSizingCensus(
       "first_seen_at",
       "first_observed_at",
       "recorded_at",
+      ...(group === "references"
+        ? ["composed_at", "chosen_at", "enqueued_at"]
+        : []),
       "window_end",
       "snapshot_date",
       "day",
     ].find((n) => columns.some((c) => c.column_name === n));
     let cutoffPolicy = "current_inventory";
-    if (LANES[lane].parentClock) {
+    if (lanes[lane].parentClock) {
       values.push(cutoff);
       conditions.push(
         `exists (select 1 from battle b where b.battle_id=${identifier(table)}.battle_id and b.created_at <= $${values.length}::timestamptz)`,
@@ -279,11 +319,11 @@ export async function rightSizingCensus(
     }
     values.push(limit + 1);
     const selected =
-      LANES[lane].columns ??
-      (LANES[lane].keysOnly
+      lanes[lane].columns ??
+      (lanes[lane].keysOnly
         ? names.join(",")
         : columns
-            .filter((c) => !(LANES[lane].omit ?? []).includes(c.column_name))
+            .filter((c) => !(lanes[lane].omit ?? []).includes(c.column_name))
             .map((c) => identifier(c.column_name))
             .join(","));
     const rows = (
@@ -293,6 +333,13 @@ export async function rightSizingCensus(
       )
     ).rows;
     const page = rows.slice(0, limit);
+    for (const row of page)
+      for (const field of lanes[lane].hashFields ?? []) {
+        const value = Buffer.from(JSON.stringify(row[field]));
+        row[`${field}_sha256`] = digest(value);
+        row[`${field}_bytes`] = value.length;
+        delete row[field];
+      }
     const encode = (v) => Buffer.from(JSON.stringify(v)).toString("base64url");
     const next =
       rows.length > limit
@@ -313,7 +360,7 @@ export async function rightSizingCensus(
         after,
         cutoff_policy: cutoffPolicy,
         snapshot_isolation: "per_page",
-        definition_sha256: DEFINITION,
+        definition_sha256: definition,
         schema_sha256: schema.schema_sha256,
         next_after: next,
         primary_key: keys,
@@ -358,7 +405,7 @@ export async function rightSizingCensus(
       sha256,
       cutoff_policy: cutoffPolicy,
       snapshot_isolation: "per_page",
-      definition_sha256: DEFINITION,
+      definition_sha256: definition,
       schema_sha256: schema.schema_sha256,
       bytes: bytes.length,
       rows: page.length,
