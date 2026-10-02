@@ -3109,3 +3109,14 @@ The references census also preserves live-lane job identities and timing
 without request credentials or payloads. These reconcile receipts from
 explicit one-off profile refreshes; retiring automatic enrollment must not
 misclassify a deliberate refresh as autonomous bulk capture.
+
+The captured-response version audit is complete: 77,883 exact versions were
+read without a failed object. A separate hash-bound card-response audit found
+3,232 versions carrying retired meta fields. These are manifest candidates,
+not deletions. Mixed battle-log preparation now verifies the old compressed
+body and complete ingest identity map, requires an exact disjoint disposition
+for every whole entry, preserves unresolved entries, and produces a new
+content-addressed key in the original fetch partition. The original remains
+unchanged. Team, duel and boat fixtures prove retained raw entries are equal;
+altered versions and incomplete/contradictory classifications refuse before
+staging. Existing destinations must match retained JSON identity before use.
