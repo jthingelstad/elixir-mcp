@@ -2631,3 +2631,64 @@ MCP 11.0.0 removes nine board/meta/recommendation tools, corpus segments, card/a
 Scoped card reads now query the selected player or current clan members' first observed play by form, plus requested-window clan played facts and observed holdings; they do not read game-wide rollups or partners. Cards and home are built catalog/recorder surfaces without global-statistics fetches. Archived acceptance bites remain; obsolete Gym criteria carry dated retirement reasons. Retained personal, clan, war, identity, coverage and timeout controls remain. This stage has no canonical schema contraction. Validation and production receipt follow after gates.
 
 Recorder-scope validation: final `npm run verify` passed after rebasing onto the Collections receipt (`39b937e5`). `npm run e2e` passed 51 Elixir and 15 Clan journeys, including catalog search/rarity/cost/sort and factual card pages at phone, tablet and desktop widths, reduced motion and axe. One journey originally addressed Sort as an exact label whose surrounding label included options; addressing the rendered Sort combobox fixes the selector. Scratch card regressions retain player freshness and tower play, exclude unrecorded current members' incidental opponent histories, preserve unknown inventory, and carry event-aware per-mode counts beside member results. CloudFormation lint has no errors; its two warnings (Postgres engine default and the existing SNS receive policy) are identical to current main. The Rankings Analyst's paused installed `keep-the-boards` automation was deleted and its repository schedule/lease key retired. Final read-only inspection found both editorial queues at zero visible, in-flight and delayed messages. No live history write or purge has run.
+
+### 2026-10-02: recorder runtime deployment, live gate and 11.0.1 correction
+
+PR #222 merged at 5f9b9c82. The stack's actual UPDATE_COMPLETE event is
+2026-10-02T17:05:57.834Z (the update began at 17:01:59.831Z); migrations
+reported 195 applied, zero new. MCP 11.0.0 removed the nine global board,
+meta and recommendation tools and the editorial Lambda, queues and model
+parameters. No canonical history, sent-mail record or S3 payload was deleted.
+The installed keep-the-boards automation was deleted after retirement;
+no board launchd installation was found.
+
+The initial deploy smoke stopped before acceptance because its Tools page
+title still expected Elixir MCP. The actual document title is Tools - Elixir.
+This PR corrects that stale assertion; the repeated read-only smoke passed.
+The full separately invoked live acceptance completed: 1,133 cases,
+28 failures, 357 skipped and 518 distinct calls. It was RED, not a healthy
+release. Every failure has the following disposition:
+
+- Fix forward: contracts/recorder-cards-facts, catalogue/cards_card#0,
+  gym/324.2, 325.1, 325.3 and 325.6 timed out on earliest selected-history
+  play. The deployed profile op's log confirms that exact query exhausted
+  its 30-second statement limit; catalog/identity reads were milliseconds.
+  The official AWS MCP synchronous Invoke timed out at its client and
+  produced three read-only profile logs, so this receipt does not call it
+  one invocation. No repeat was requested. 11.0.1 uses the shared deck/card
+  identity projection for earliest form play and removes the unused battle
+  join, preserving selected subjects and duel rounds. Limits stay unchanged.
+  gym/283.1 and 283.2 read the same failing card response; keep their factual
+  inventory coverage, and explicitly name observed_at versus since in notes.
+- Decision changed: gym/105.2, 107.1, 156.1, 232.2, 261.1, 261.3 and 280.1
+  still asserted retired archetype corpus counts, meta exclusions, upgrade
+  targets, the recommendation example or routing to corpus. Refuted with
+  the dated decision; cases and controls remain as history.
+- Unavailable historical fixture: gym/183.1, 183.2, 183.3, 194.1, 286.2,
+  301.2, 308.2, 308.3, 337.1 and 337.2 target clans whose recording reason
+  retired. Their coverage and unknown-inventory criteria remain valid and
+  explicitly blocked awaiting a naturally recorded partial-profile clan.
+  No automatic recording was restored for a test.
+- budgets/clans_participation (10,057 ms against 8,000) and gym/335.2
+  (historical clan timeline note) were rerun alone. Participation passed at
+  5,862 ms; its previously open performance item remains visible. The timeline
+  returned not_recorded, confirmed by a direct read-only shape check; marked
+  blocked for the same unavailable-fixture reason, not a note regression.
+- catalogue/elixir_docs#docs named five quickstart OAuth parameters absent
+  from this run's MCP history responses. Added narrowly explained docs
+  allowances for registration/authorization/token exchange fields, preserving
+  the response-field audit for recorded facts.
+
+Discord PR #16 merged at 8435f954 and v0.3.1's release workflow is green.
+Shared instructions, default routines and all three private instance prompts
+now follow recorder scope. Each private prompt change was committed in its
+own clean instance repository; no pre-existing work was included. OrbStack
+was observed stopped, so container code activation remains pending, not
+claimed live. No synthetic message or early routine was sent.
+
+The first patch verify caught an important gate interaction: live
+needs_fixture blocks also skipped four historical bites. The replay runner
+now explicitly says it supplies recorded fixtures, so those unchanged
+criteria still fail on the old faulty captures. A regression proves that
+live runs make no call when blocked and a replay still catches the missing
+field. No criterion or captured evidence was weakened to pass the gate.

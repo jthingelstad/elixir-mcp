@@ -90,10 +90,18 @@ const CONCURRENCY = { catalogue: 1 };
  *  `quiet`. */
 export async function runSuite(
   door,
-  { only = null, family = null, quiet = false, tools: given = null } = {},
+  {
+    only = null,
+    family = null,
+    quiet = false,
+    tools: given = null,
+    recordedFixtures = false,
+  } = {},
 ) {
   const tools = given ?? (await door.toolsList());
   const ctx = {
+    // Bite replays already supply the named fixture; live runs never set this.
+    recordedFixtures,
     call: async (tool, args) => {
       retainedCall(tool, args);
       return door.call(tool, args);

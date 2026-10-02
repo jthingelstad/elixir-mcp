@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "The first time you played a card",
+    body: "A card's earliest recorded play reads the deck identities already kept with your games, including each recorded duel round and card form. This avoids a timeout seen on a clan-sized history while preserving what the answer means. Contract 11.0.1; JSON API remains 3.0.0.",
+  },
+  {
+    date: "2026-10-02",
     title: "Your history is the focus",
     body: "Elixir is a recorder for the players and clans you follow. Global leaderboard tools, game-wide card and deck statistics, recommendations and the editorial model worker have retired. Explore your own games, card inventory and clan activity, receive the notifications you choose, and bring those records to your agent. Card catalog pages and sent-email history remain available. Historical global data is pending a separately reviewed purge. Contract 11.0.0; JSON API remains 3.0.0.",
   },

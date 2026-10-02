@@ -218,7 +218,7 @@ check(
 );
 check(
   "docs pages have their own titles",
-  /<title>Tools - Elixir MCP<\/title>/.test(docsHtml),
+  /<title>Tools - Elixir<\/title>/.test(docsHtml),
 );
 
 const appRoute = await fetch(`${mcpBase}/console/account/overview`);

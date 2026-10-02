@@ -69,10 +69,9 @@ export const cardProfileTools = {
           ? `select 0 as form, min(bp.battle_time) as at from ${PARTICIPANT_GAMES} bp
            join deck d on d.deck_hash = bp.deck_hash
            where ${seg.where} and ${notBoatDefense("bp")} and d.tower_troop_id = ${anchorParam}`
-          : `select c.form, min(bp.battle_time) as at from ${PARTICIPANT_GAMES} bp
-           join battle b on b.battle_id = bp.battle_id
-     join battle_participant_card c on c.battle_id = bp.battle_id and c.player_tag = bp.player_tag and c.round = bp.round
-           where ${seg.where} and ${notBoatDefense("bp")} and c.card_id = ${anchorParam} group by c.form`,
+          : `select dc.form, min(bp.battle_time) as at from ${PARTICIPANT_GAMES} bp
+           join deck_card dc on dc.deck_hash = bp.deck_hash and dc.card_id = ${anchorParam}
+           where ${seg.where} and ${notBoatDefense("bp")} group by dc.form`,
         params,
       );
       const first = { base: null, evolution: null, hero: null };
@@ -115,7 +114,7 @@ export const cardProfileTools = {
           win.seasonNotes,
           "first_seen_in_catalog is when Elixir first stored this catalog row, not a release date. first_played is earliest play in the selected recorded history, by form, across all windows; unknown forms stay null.",
           members
-            ? "members.played covers the current clan members' own games in the requested window; duels count by round. Its modes split names the games counted; use mode to keep different matchmaking apart. members.held is observed card inventory, not an upgrade recommendation. Missing inventory is unknown."
+            ? "members.played covers the current clan members' own games in the requested window; duels count by round. Its modes split names the games counted; use mode to keep different matchmaking apart. members.held is observed card inventory, not an upgrade recommendation: observed_at is the newest confirming profile read, while since is when that level last changed. Missing inventory is unknown."
             : null,
         ),
         docs: docsRef("cards"),

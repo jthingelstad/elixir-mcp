@@ -452,7 +452,7 @@ export function gymCases(blocks) {
           ? [b.tool]
           : [],
       run: async (ctx) => {
-        if (b.needs_fixture)
+        if (b.needs_fixture && !ctx.recordedFixtures)
           return {
             skip: `BLOCKED (needs a fixture; the fixture tests may carry it): ${b.needs_fixture}`,
           };

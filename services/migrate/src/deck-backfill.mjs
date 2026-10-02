@@ -7,9 +7,6 @@
  *     catalog has not yet confirmed. All zero is the gate for the closing
  *     FKs.
  *
- *   {explain_meta: {clan_tag?, days?}}
- *     EXPLAIN (ANALYZE, BUFFERS) of a clan-scoped meta call's pieces.
- *
  *   {rewrite_table: "battle_participant"}
  *     VACUUM FULL one named table - the space a dropped column (0097)
  *     held comes back only with a rewrite, and a rewrite takes an
@@ -84,12 +81,6 @@ export async function deckCensus(databaseUrl) {
     await db.end();
   }
 }
-
-/** {explain_meta: {clan_tag?, days?}} - EXPLAIN (ANALYZE, BUFFERS) of the
- *  pieces a clan-scoped battles_meta_decks / battles_meta_cards call runs,
- *  on the live database, read-only. Written when 3.4.0's readers moved
- *  onto the card rows and clan meta still took 15-17 s; the plans say
- *  where, guesses did not. */
 
 /** The least a backend's query must have run before {terminate_backends}
  *  may end it: five minutes, the incident authority's line (DECISIONS:
