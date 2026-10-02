@@ -4561,3 +4561,324 @@ a.card-art:hover .card-art__img {
     font-size: 14px;
   }
 }
+
+/* --------------------------------------------------------------- ladder
+   Ladder (/ladder, design canvas 2026-10-01): your season, read back, a
+   section of the console's app with its own rail. A win is --win-ink and
+   a loss --loss-ink as text; as bars they are --win and --loss, the
+   activity graphic's pair. Gold is never a data value here either. */
+.ladder-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.ladder-page .page-head {
+  margin-bottom: 0;
+  align-items: flex-end;
+}
+.ladder-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--ink-faint);
+}
+
+/* The rail's head: whose season this is. */
+.ladder-player {
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+}
+.ladder-player__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: var(--r-block);
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+button.ladder-player__head {
+  cursor: pointer;
+}
+button.ladder-player__head:hover {
+  border-color: var(--line-strong);
+}
+.ladder-player__head > svg {
+  color: var(--ink-faint);
+}
+.ladder-player__mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--panel-raised);
+  color: var(--ink-dim);
+}
+.ladder-rail__note {
+  margin: 0;
+  padding: 14px 11px 0;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+/* One tab per mode; the current one is the selected-control violet. */
+.ladder-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  align-self: flex-start;
+  max-width: 100%;
+  border-radius: var(--r-block);
+  background: var(--ground-sunken);
+  border: 1px solid var(--line-row);
+}
+.ladder-modes__tab {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 9px;
+  color: var(--ink-dim);
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.ladder-modes__tab:hover {
+  background: var(--hover-rail);
+  color: var(--ink);
+}
+.ladder-modes__tab[aria-current="true"] {
+  background: var(--accent-deep);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.ladder-record {
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.ladder-w {
+  color: var(--win-ink);
+}
+.ladder-l {
+  color: var(--loss-ink);
+}
+.ladder-sep {
+  color: var(--ink-faint);
+}
+
+.ladder-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.ladder-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: var(--r-panel);
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.ladder-tile__label {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.ladder-tile__value {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.ladder-tile__value--sm {
+  font-size: 22px;
+  line-height: 1.35;
+}
+
+.ladder-split {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+.ladder-span-2 {
+  grid-column: span 2;
+}
+.ladder-span-3 {
+  grid-column: span 3;
+}
+.ladder-span-5 {
+  grid-column: span 5;
+}
+.ladder-panel-title {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.ladder-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ink-dim);
+}
+.ladder-key__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.ladder-key__swatch--win {
+  background: var(--win);
+}
+.ladder-key__swatch--loss {
+  background: var(--loss);
+}
+
+/* Week by week: one column per ISO week, wins up and losses down. */
+.ladder-weeks {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin: 0;
+  padding: 2px 12px 0;
+  list-style: none;
+}
+.ladder-week {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  text-align: center;
+}
+.ladder-week__chart {
+  display: block;
+  overflow: visible;
+}
+.ladder-week__axis {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.ladder-bar--win {
+  fill: var(--win);
+}
+.ladder-bar--loss {
+  fill: var(--loss);
+}
+.ladder-bar__n {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  fill: var(--ink);
+}
+.ladder-bar__n--out {
+  fill: var(--ink-faint);
+}
+.ladder-week__date {
+  font-size: 13px;
+  color: var(--ink-body);
+}
+.ladder-week__note {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* The most-played deck. */
+.ladder-deck {
+  display: flex;
+  flex-direction: column;
+}
+.ladder-deck__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+}
+.ladder-deck__name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.ladder-deck__sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.ladder-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+.ladder-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--r-control);
+  background: var(--ground-sunken);
+}
+.ladder-fact dt {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+.ladder-fact dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 600;
+}
+.ladder-fact__aside {
+  margin-left: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-dim);
+}
+.ladder-more {
+  margin-top: auto;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .ladder-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .ladder-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ladder-span-2,
+  .ladder-span-3,
+  .ladder-span-5 {
+    grid-column: auto;
+  }
+  .ladder-weeks {
+    gap: 8px;
+    padding: 0;
+  }
+  .ladder-modes__tab {
+    padding: 0 12px;
+  }
+  .ladder-tile__value--sm {
+    font-size: 17px;
+  }
+}

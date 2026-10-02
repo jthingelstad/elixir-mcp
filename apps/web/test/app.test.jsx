@@ -453,9 +453,14 @@ test("the bare Activity path was the timeline's address, and still opens it", as
 
 test("every app section in the route table has a route under /console, and nothing else does", async () => {
   const { routeTree, SECTIONS } = await import("../src/App.jsx");
-  // The one route outside the console: a battle's public page (2026-10-01).
+  // Outside the console: a battle's public page (2026-10-01), and Ladder,
+  // the one section beside the Console (2026-09-28), with one route under
+  // its own prefix.
   const all = routeTree.children.map((r) => r.path.split("/").filter(Boolean));
-  expect(all.filter((s) => s[0] !== "console")).toEqual([["battle", "$ref"]]);
+  expect(all.filter((s) => s[0] !== "console")).toEqual([
+    ["battle", "$ref"],
+    ["ladder", "{-$page}"],
+  ]);
   const segments = all.filter((s) => s[0] === "console");
   // Explicit, not a router basepath: the kit's Link renders `to` as the
   // href, so every route and every link carries the prefix itself.
