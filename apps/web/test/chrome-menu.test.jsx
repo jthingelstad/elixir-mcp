@@ -151,3 +151,23 @@ test("a signed-in reader who follows Sign in goes on to their console", async ()
     expect(window.location.pathname).toBe("/console/account/overview"),
   );
 });
+
+test("the bar's place follows the route: the Console, Ladder, and none on a battle's page", async () => {
+  const { barArea } = await import("../src/App.jsx");
+  expect(barArea("/console/account/overview")).toBe("console");
+  expect(barArea("/console/signin")).toBe("console");
+  expect(barArea("/ladder")).toBe("ladder");
+  expect(barArea("/ladder/season")).toBe("ladder");
+  // A battle's public page reads signed out and belongs to no place.
+  expect(barArea("/battle/a1b2c3d4e5f6")).toBeUndefined();
+  expect(barArea("/battle/" + "f".repeat(64))).toBeUndefined();
+});
+
+test("on a battle's page no place is lit and the narrow button says Menu", async () => {
+  window.history.pushState({}, "", "/battle/a1b2c3d4e5f6");
+  render(<App />);
+  const nav = await screen.findByRole("navigation", { name: "Products" });
+  expect(nav.querySelector("[aria-current]")).toBeNull();
+  expect(screen.getByRole("button", { name: "Menu" })).toBeTruthy();
+  expect(document.querySelector("#chrome-sheet [aria-current]")).toBeNull();
+});

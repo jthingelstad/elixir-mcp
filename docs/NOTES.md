@@ -1823,3 +1823,18 @@ Left out because no tool returns them (the boards drew them):
   the console, and the pill still says Ladder.
 - Top 100 and Card of the Week keep their written bodies: the boards'
   structured sections are a product call.
+
+---
+
+## 2026-10-02 - The bar marks no place on a battle's page
+
+The Console app's bar took its current place from `here.product`, so a
+public battle page (`/battle/<short id>`) fell through to Console and lit it,
+and at phone width the bar's button read "Console". A battle page is in no
+place: it is public and reads signed out. `barArea(path)` in `App.jsx` now
+names the place from the route (Console, Ladder under `/ladder`, none on a
+battle page), the app's `Chrome` wrapper no longer defaults `current` to
+Console, and the kit bar with no `current` lights nothing and says Menu.
+Pinned in `chrome-menu.test.jsx` beside the bar's other cases, and in
+`battle.spec.ts` at both widths. The sign-in wall now says "This part of
+Elixir", not "Elixir MCP".

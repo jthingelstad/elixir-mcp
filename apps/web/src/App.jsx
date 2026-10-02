@@ -845,6 +845,16 @@ const BATTLE_PATH = /^\/battle\/[0-9a-f]{12,64}$/;
  *  this app does not own (every path outside /console among them)
  *  returns null, and the caller leaves for the static home with a real
  *  navigation. */
+/** Which place the bar marks as the one you are in, from the route: the
+ *  Console, or Ladder under /ladder. A battle's public page is in no
+ *  place (2026-10-02): it is public and reads signed out, so the bar's
+ *  places are plain links there and the narrow button says Menu. */
+export function barArea(path) {
+  if (BATTLE_PATH.test(path)) return undefined;
+  if (isLadder(path)) return "ladder";
+  return "console";
+}
+
 export function legalRoute(path) {
   // A battle's public page is the app's too, outside the Console.
   if (BATTLE_PATH.test(path)) return path;
@@ -999,7 +1009,7 @@ export function consoleAccount(me, unreachable, signOut) {
   };
 }
 
-function Chrome({ navigate, me, unreachable, current = "console" }) {
+function Chrome({ navigate, me, unreachable, current }) {
   // A sign-out that did not take says so in the menu, where the button
   // is, instead of leaving for the home page still signed in (review
   // 2026-09-27 §7.5).
@@ -1165,7 +1175,7 @@ export function SignInWall({ navigate }) {
       <div className="panel__body text-center">
         <h1 className="page__title mb-2">Sign in first</h1>
         <p className="text-[13px] text-ink-faint">
-          This part of Elixir MCP shows your recorded history. Sign in with the
+          This part of Elixir shows your recorded history. Sign in with the
           email on your access request.
         </p>
         <button
@@ -1527,7 +1537,7 @@ function Shell() {
             navigate={navigate}
             me={me}
             unreachable={unreachable}
-            current={here.product === "ladder" ? "ladder" : "console"}
+            current={barArea(effectivePath)}
           />
 
           <div
