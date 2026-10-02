@@ -382,6 +382,12 @@ Resources:
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !GetAtt ArchiveBucket.Arn
+              # A battle's public page (2026-10-01): the app shell it is
+              # served in, read from the site bucket. One object, read
+              # only; the site is published by the deploy, never here.
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/app.html
 
   # The collector door (services/collector): archives each submission at
   # admission, write-once (ArchiveBucketPolicy; a put with If-None-Match
@@ -811,6 +817,8 @@ Resources:
             - !Ref AWS::NoValue
           ARCHIVE_BUCKET: !Ref ArchiveBucket
           OUTBOX_BUCKET: !Ref OutboxBucket
+          # The app shell a battle's page is served in (routes/battle.mjs).
+          SITE_BUCKET: !Sub elixir-mcp-site-${AWS::AccountId}
           ORIGIN_SECRET: !Ref OriginSecret
           ORIGIN_SECRET_PREVIOUS: !If
             - HasOriginSecretPrevious
@@ -1989,6 +1997,18 @@ Resources:
             AllowedMethods: [GET, HEAD]
             # AWS managed CachingOptimized: honours the origin's own
             # Cache-Control, forwards nothing.
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
+          # A battle's public page (Jamie, 2026-10-01: "Public yes."):
+          # the web-api serves the app shell with the battle's preview
+          # tags, so a pasted link unfurls as the battle. Cached like the
+          # public reads, for the same reason: nothing reaches the origin
+          # but the path, and every visitor gets the same page.
+          - PathPattern: /battle/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             Compress: true

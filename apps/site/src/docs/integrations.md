@@ -110,6 +110,10 @@ differently: its callers are agents reading the current declaration.) The
 path stays `/api/v1` across majors, because it is also the OAuth audience a
 person's token is issued for.
 
+- **2.9.0** (2026-10-01): `GET /players/{tag}/battles` gives each battle
+  its `url`, the battle's public page, and each opponent and teammate their
+  own `trophy_change`, `starting_trophies` and `clan_name`; `me` gains
+  `clan_tag` and `clan_name` (MCP 9.18.0). Additive.
 - **2.8.0** (2026-09-29): `GET /clans/{tag}/war-history` reads a clan's
   recorded war weeks, the `war_history` result over `seasons` (1 to 12,
   default 3), for a person's grant or an integration holding `clans:read`.

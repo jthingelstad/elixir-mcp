@@ -1676,3 +1676,29 @@ and the names of its controls (policy fields, action kinds, page names),
 not the layout, so the canvas redraw under way keeps them true; a
 renamed control or page is the one edit they need. Ladder's pages wait
 for Ladder's code on `main`.
+
+---
+
+---
+
+## 2026-10-01 - A battle's public page
+
+Jamie approved the design canvas's battle page ("Public yes. Left is the
+player right is opponent."; the share buttons "are actually 'copy deck'
+buttons"). Contract 9.18.0 gave every battles_query row its `url`; this
+change serves it. `/battle/*` is a CloudFront behavior on the API origin, so
+web-api answers it with the app shell (`app.html`, read from the site bucket
+at most once a minute) with the battle's title, description and canonical
+link written in, and the app's Battle view reads
+`/api/public/battles/<ref>`. Both read one projection
+(`services/web-api/src/battle-page.mjs`), which calls battles_query's own
+handler as no account: no audit row, no quota, no read stamp, so a page
+view never moves the scheduler. Pages are `noindex`: public to a link, not
+offered to search. A 404 is cached for a minute (the battle may yet
+arrive), a battle for an hour.
+
+Left is side 0, the side whose log was ingested first, which is always a
+recorded player; when two recorded players meet, whoever was read first
+is on the left whichever of them shares it. The share picture
+(`/battle/<short id>.png`) is the next change; until it lands the preview
+image is the site's own and the `.png` address is a 404.

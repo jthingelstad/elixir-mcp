@@ -13,6 +13,7 @@ import {
 } from "@elixir-mcp/collector-door/signature";
 import { DISCLAIMER, cardForms, cardType } from "@elixir-mcp/contracts";
 import { RECORDED_PLAYERS_SQL } from "@elixir-mcp/tools/shared";
+import { readPublicBattle } from "../battle-page.mjs";
 
 export function publicRoutes({ deadLetters }) {
   return {
@@ -348,6 +349,29 @@ export function publicRoutes({ deadLetters }) {
         },
         { "cache-control": "public, max-age=3600" },
       );
+    },
+
+    // One battle, PUBLIC and sign-in free (Jamie, 2026-10-01: "Public
+    // yes."): what /battle/<short id> shows, by its full id, its short id
+    // or its link. A recorded battle does not change, so the edge keeps
+    // it an hour; a miss only a minute, since the battle may yet arrive.
+    "GET /api/public/battles/*": async (db, event) => {
+      const read = await readPublicBattle(db, event.pathParam);
+      if (read.status === 404)
+        return json(
+          404,
+          { error: "not_found" },
+          { "cache-control": "public, max-age=60" },
+        );
+      if (read.status === 300)
+        return json(
+          300,
+          { error: "ambiguous", matches: read.matches },
+          { "cache-control": "public, max-age=60" },
+        );
+      const body = { ...read };
+      delete body.status;
+      return json(200, body, { "cache-control": "public, max-age=3600" });
     },
 
     "GET /api/public/cards/*": async (db, event) => {

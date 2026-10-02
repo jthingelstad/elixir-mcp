@@ -44,6 +44,9 @@ function route(pathname) {
   if (pathname === "/") return "/index.html";
   const key = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
   if (key === "/console" || key.startsWith("/console/")) return "/app.html";
+  // A battle's page is the app shell too: at the edge the API serves it
+  // (the /battle/* behavior), with the battle's preview tags written in.
+  if (/^\/battle\/[0-9a-f]{12,64}$/.test(key)) return "/app.html";
   return `${key}/index.html`;
 }
 
