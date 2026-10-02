@@ -7,7 +7,7 @@ order: 1
 navTitle: "Welcome"
 icon: info
 lede: "Your Clash Royale history, your friends and your clan, kept for you to explore."
-console: ["See the corpus", "/data", "Data"]
+console: ["See the recorder", "/data", "Data"]
 reviewed: "2026-10-02 product framing; recording and contracts unchanged"
 ---
 
@@ -17,6 +17,12 @@ Elixir is a **Clash Royale recorder** for players and clans who enjoy the
 game and want to keep their history. Record yourself, follow your friends,
 and keep your clan's weeks: explore what happened, learn from your own
 play, and run the clan with its history in front of you.
+
+The focus is recording what you and the people you follow do, sending
+notifications about that record, making it available to your agents, and
+giving you a dashboard where you can explore what happened. The agreed
+right-sizing retires game-wide meta statistics and gameplay recommendations;
+the runtime changes are still pending.
 
 The Clash Royale API only answers "what is true right now" — your last
 ~30 battles, your current trophies. Elixir polls continuously,
