@@ -17,12 +17,17 @@ import {
 } from "@aws-sdk/client-cloudformation";
 import { REGION, STACK } from "./stack.mjs";
 
+let frozen = process.env.SMOKE_FROZEN === "true";
+
 async function origin() {
   if (process.env.SMOKE_ORIGIN)
     return process.env.SMOKE_ORIGIN.replace(/\/$/, "");
   const cfn = new CloudFormationClient({ region: REGION });
   const { Stacks } = await cfn.send(
     new DescribeStacksCommand({ StackName: STACK }),
+  );
+  frozen = Stacks[0].Parameters?.some(
+    (p) => p.ParameterKey === "MigrationFrozen" && p.ParameterValue === "true",
   );
   const elixirUrl = Stacks[0].Parameters?.find(
     (p) => p.ParameterKey === "ElixirUrl",
@@ -139,8 +144,12 @@ try {
   meBody = {};
 }
 check(
-  "GET /api/clan/me signed out is 401 JSON",
-  me.status === 401 && meBody.signed_in === false,
+  frozen
+    ? "GET /api/clan/me refuses during migration"
+    : "GET /api/clan/me signed out is 401 JSON",
+  frozen
+    ? me.status === 503 && meBody.error === "clan_migration"
+    : me.status === 401 && meBody.signed_in === false,
   String(me.status),
 );
 
@@ -148,8 +157,13 @@ check(
 // no public pages or documents (Jamie, 2026-09-25). The tag is invented.
 const clanRead = await timed(`${api}/clans/2PPQQRRV/awards`);
 check(
-  "a clan route with no session is 401",
-  clanRead.status === 401,
+  frozen
+    ? "a clan route refuses during migration"
+    : "a clan route with no session is 401",
+  frozen
+    ? clanRead.status === 503 &&
+        (await clanRead.json()).error === "clan_migration"
+    : clanRead.status === 401,
   String(clanRead.status),
 );
 
