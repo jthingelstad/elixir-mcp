@@ -2991,3 +2991,23 @@ that deployment. Lease b7726415-181c-4f44-a7dc-ac558a81d0f2 was released.
   with their implementation. Read-only consistency review found no access,
   privacy, build or data-loss blocker; its stale-doc findings were corrected.
   Existing template warnings W3691/W3037 remain separately acknowledged.
+
+## 2026-10-02 - Private right-sizing census foundation
+
+The IAM-only `right_sizing_census` operation exports bounded primary-key pages
+of retention evidence and game-record/archive identities. Every database
+transaction is repeatable-read/read-only with a 30-second statement timeout.
+The cutoff and snapshot UUID bind continuation cursors; unknown tables,
+credentials and delete/apply requests refuse before a connection. Pages are
+immutable content-addressed AES256 files under a dedicated private prefix;
+repeated writes compare existing bytes to the digest. Account export excludes
+email and auth data; event export allowlists retention kinds and fields; cached
+payload bodies and receipt error bodies are omitted. Timestamp key precision
+is preserved. Metadata and opaque continuations alone return to the caller.
+
+This prepares evidence, not permission to purge. Cross-page state is not one
+long database snapshot: historic immutable facts are cutoff-bound, and mutable
+requests must be rechecked immediately before any approved destruction. The
+exact manifest still requires historical intent, archive observer mapping,
+complete version/marker inventory, overlap/dependency counts, unresolved cases
+and backup disposition. No deletion capability is granted or implemented here.

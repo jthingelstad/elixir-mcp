@@ -434,3 +434,12 @@ is charged once, when it is queued; a fresh read already in hand and the
 follow-up call that finds it are free. Every collector in the fleet picks
 up a queued live fetch first, so the worst-case wait is one check-in
 interval (15 seconds) plus the fetch. Global leaderboard paths are retired and refused before the live lane is spent.
+
+## Retired global capture history
+
+Global leaderboard capture, curated recording Collections and game-wide analysis
+have retired. Their old history is being reviewed for cleanup. A player can be
+both someone's friend and a former leaderboard subject: that overlap must keep
+the person's wanted battles and clan history. Cleanup uses historical requests
+and archive provenance rather than a player's current ranking or recording
+origin. No canonical history is deleted by the private census step.
