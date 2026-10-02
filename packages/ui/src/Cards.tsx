@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "./Link.tsx";
 
 /**
@@ -71,6 +71,9 @@ export function CardArt({
   showName?: boolean;
   showLevel?: boolean;
 }) {
+  // A card Elixir has no art for (Mirror, a card newer than the mirror)
+  // is its name in the frame, never a broken image.
+  const [missing, setMissing] = useState(false);
   const form = card.form ?? "base";
   const label = cardLabel(card);
   const alt = card.level ? `${label}, level ${card.level}` : label;
@@ -79,7 +82,7 @@ export function CardArt({
   const body: ReactNode = (
     <>
       <span className="card-art__frame">
-        {isTowerTroop(card.id) ? (
+        {isTowerTroop(card.id) || missing ? (
           <span className="card-art__blank" aria-hidden="true">
             {card.name}
           </span>
@@ -92,6 +95,7 @@ export function CardArt({
             height={Math.round((size * 420) / 285)}
             loading="lazy"
             decoding="async"
+            onError={() => setMissing(true)}
           />
         )}
         {ribbon ? (

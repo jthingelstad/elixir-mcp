@@ -456,12 +456,8 @@ export const battles_query = {
         if (/^riverRace/.test(String(r.type)) && r.starting_trophies !== null)
           warVsRows++;
       }
-      if (r.type === "PvP") {
-        for (const side of [r, ...opponents]) {
-          if (side.outcome === "loss" && side.trophy_change === null)
-            floorLosses++;
-        }
-      }
+      if (r.type === "PvP" && r.outcome === "loss" && r.trophy_change === null)
+        floorLosses++;
       return {
         battle_id: r.battle_id,
         url: links.get(r.battle_id)?.url ?? null,
@@ -715,7 +711,7 @@ export const battles_query = {
           ? "elixir is each side's own leaked-elixir counter with its caveat on the object: read elixir.differential (me minus the one opponent, null on duels - a duel's per-round differentials ride rounds[]) before elixir.leaked, and neither as a skill measure."
           : null,
         floorLosses > 0
-          ? `${floorLosses} ladder ${floorLosses === 1 ? "loss carries" : "losses carry"} trophy_change null (me or an opponent): a loss standing ON the arena's trophy floor costs nothing and the game omits the field, and a loss just above the floor is clamped to it, so trophy sums understate losses for a floored player (battles_performance.trophy_floor names the floor).`
+          ? `${floorLosses} ladder ${floorLosses === 1 ? "loss carries" : "losses carry"} trophy_change null: a loss standing ON the arena's trophy floor costs nothing and the game omits the field, and a loss just above the floor is clamped to it, so trophy sums understate losses for a floored player (battles_performance.trophy_floor names the floor).`
           : null,
       ),
       docs: BATTLE_DOCS,

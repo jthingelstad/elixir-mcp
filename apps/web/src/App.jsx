@@ -819,12 +819,18 @@ const REDIRECTS = {
   [`${CONSOLE}/account/activity`]: `${CONSOLE}/account/timeline`,
 };
 
+/** A battle's public page (2026-10-01): /battle/<short id>, a 12 to 64
+ *  character hex prefix of the battle id. */
+const BATTLE_PATH = /^\/battle\/[0-9a-f]{12,64}$/;
+
 /** Guard restored/bookmarked routes: a stale path to a removed section
  *  must fall back to a known-good route, never an empty main. Anything
  *  this app does not own (every path outside /console among them)
  *  returns null, and the caller leaves for the static home with a real
  *  navigation. */
 export function legalRoute(path) {
+  // A battle's public page is the app's too, outside the Console.
+  if (BATTLE_PATH.test(path)) return path;
   const app = appPath(path);
   if (app === null) return null;
   const [, section, page] = app.split("/");
@@ -1241,6 +1247,15 @@ const adminRoute = createRoute({
   ),
 });
 
+const battleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/battle/$ref",
+  component: lazyRouteComponent(
+    () => import("./views/Battle.jsx"),
+    "BattlePage",
+  ),
+});
+
 const dataRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: `${CONSOLE}/data/{-$page}`,
@@ -1255,6 +1270,7 @@ export const routeTree = rootRoute.addChildren([
   statusRoute,
   adminRoute,
   dataRoute,
+  battleRoute,
 ]);
 
 /** Where a route is on the rail and in the route table, from its path:
@@ -1361,6 +1377,8 @@ function Shell() {
   const authed = me?.authenticated === true;
 
   useEffect(() => {
+    // A battle's page names itself once the battle has loaded.
+    if (BATTLE_PATH.test(effectivePath)) return;
     document.title = titleFor(section, sec, effectivePath);
   }, [section, sec, effectivePath]);
 

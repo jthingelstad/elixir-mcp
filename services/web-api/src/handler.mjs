@@ -38,6 +38,7 @@ import { onboardAccount } from "@elixir-mcp/tools/onboard";
 import { resolveOwnedAgent } from "./agent-scope.mjs";
 import { deadlineMs } from "./deadline.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";
+import { battleRoutes } from "./routes/battle.mjs";
 import {
   CONTRACT_HEADER,
   json,
@@ -137,6 +138,9 @@ export function makeHandler({
   /** Unsubscribe links' own key (packages/mail unsubscribe.mjs); null =
    *  links are signed and checked with the session secret. */
   unsubscribeSecret = null,
+  /** () => the built app shell (routes/battle.mjs makeSiteShell), which a
+   *  battle's page is served in; null = /battle/* answers 503. */
+  siteShell = null,
 }) {
   // What unsubscribe links are signed and checked with: their own key
   // when there is one, and the session secrets for links sent before it.
@@ -266,6 +270,7 @@ export function makeHandler({
     ...integrationsRoutes({ resolveAccount, logEvent }),
     ...verifyRoutes({ resolveAccount, logEvent }),
     ...battleActivityRoutes({ resolveAccount }),
+    ...battleRoutes({ siteShell }),
     ...emailRoutes({
       resolveAccount,
       secret: unsubscribeKeys,

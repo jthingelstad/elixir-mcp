@@ -3143,7 +3143,7 @@ export const OUTPUT_SCHEMAS = {
             url: {
               type: ["string", "null"],
               description:
-                "The battle's public page (9.18.0): both sides' decks and how it ended, readable without signing in; url + '.png' is its share picture. The link to hand a person for this battle.",
+                "The battle's public page (9.18.0): both sides' decks and how it ended, readable without signing in. The link to hand a person for this battle.",
             },
             battle_time: ISO,
             battle_time_local: {

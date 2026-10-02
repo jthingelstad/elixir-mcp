@@ -150,6 +150,8 @@ export const api = {
   publicStats: () => request("GET", "/api/public/stats"),
   publicStatus: () => request("GET", "/api/public/status"),
   publicEfficiency: () => request("GET", "/api/public/efficiency"),
+  publicBattle: (ref) =>
+    request("GET", `/api/public/battles/${encodeURIComponent(ref)}`),
   myRequests: (agent) => request("GET", `${home(agent)}/requests`),
   callRecord: (request_id, agent) =>
     request(

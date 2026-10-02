@@ -29,7 +29,7 @@ answers from the perspective of the tag you asked about:
 | Field | Meaning |
 |---|---|
 | `battle_id` | the record's identity; `battles_query({ battle_id })` returns it from every side, and takes the short id or the `url` as well |
-| `url` | the battle's public page, `https://elixir.poapkings.com/battle/<short id>`: both decks, the towers and how it ended, readable without signing in, with a share picture at the same address plus `.png`. The short id is the first 12 characters of `battle_id`, longer only where another recorded battle shares them. It is the link to hand a person for one battle |
+| `url` | the battle's public page, `https://elixir.poapkings.com/battle/<short id>`: both decks, the towers and how it ended, readable without signing in (see [A battle's page](#a-battles-page)). The short id is the first 12 characters of `battle_id`, longer only where another recorded battle shares them. It is the link to hand a person for one battle |
 | `battle_time` | when it was played, ISO 8601 UTC. Never when it was captured |
 | `battle_time_local` | the same instant as ISO 8601 with a UTC offset (`2026-09-09T23:31:47-05:00`), present when a timezone applies (the account's, or the call's `timezone`) |
 | `type` | the API's battle type, exactly as the game names it (`PvP`, `riverRacePvP`, `boatBattle`, ...) |
@@ -93,6 +93,19 @@ tower on head-to-head rows and writes `0` on duel rows, so array length was
 never a tower count; position carries no meaning). `null` means the game did
 not report tower state for that side. `verbosity: "compact"` drops `deck`,
 `elixir` and `tower_hp` and keeps `deck_hash`.
+
+### A battle's page
+
+Every battle has a page anyone can open, no account needed: the `url` above,
+`/battle/<short id>`. The player whose battle log the record read first is on
+the left and the opponent on the right; then both decks as the game lays them
+out (each with the game's own copy-deck link, which opens Clash Royale with
+the deck ready to save), the towers each side kept, how it ended, the two
+sides' numbers next to each other, the left player's session around it and
+every recorded meeting of the two. A duel reads game by game. The page shows
+game names only, never a nickname or anything of an account, and its link
+unfurls in a chat as the battle itself. The same projection is JSON at
+`/api/public/battles/<short id>`.
 
 ## Mode groups
 

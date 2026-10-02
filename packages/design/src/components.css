@@ -4063,3 +4063,501 @@ a.card-art:hover .card-art__img {
   grid-template-columns: repeat(8, max-content);
   gap: 4px;
 }
+
+/* ---------------------------------------------------------------- battle
+   One battle's public page (apps/web Battle.jsx, design canvas
+   2026-10-01): the player left, the opponent right, the scoreboard
+   between, both decks, how it ended, the link. A win is blue and a loss
+   rose on this ground; the mode is a coloured square, never a word's
+   colour. */
+.battle {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.battle__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  color: var(--ink-dim);
+}
+.battle__bar-spacer {
+  flex-grow: 1;
+}
+.battle__fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.mode-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-body);
+  white-space: nowrap;
+}
+.mode-chip__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--ink-faint);
+}
+.mode-chip__dot--ladder {
+  background: #a78bfa;
+}
+.mode-chip__dot--ranked {
+  background: #7fb6f8;
+}
+.mode-chip__dot--war {
+  background: #f472b6;
+}
+.mode-chip__dot--event,
+.mode-chip__dot--challenge,
+.mode-chip__dot--tournament {
+  background: #2dd4bf;
+}
+.battle__score {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 300px) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding: 26px 32px;
+  border-radius: 18px;
+  background: radial-gradient(40rem 14rem at 50% 0%, #2a1d63, var(--panel) 70%);
+  border: 1px solid var(--line);
+}
+.battle__side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  min-width: 0;
+}
+.battle__side--right {
+  align-items: flex-end;
+  text-align: right;
+}
+.battle__who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.battle__side--right .battle__who {
+  flex-direction: row-reverse;
+}
+.battle__name {
+  font: 400 30px/1.1 var(--font-display);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.battle__clan {
+  font-size: 15px;
+  color: var(--ink-faint);
+}
+.battle__note {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.trophy-pills {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.battle__side--right .trophy-pills {
+  justify-content: flex-end;
+}
+.trophy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--r-chip);
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  background: var(--line-row);
+  color: var(--ink-body);
+}
+.trophy-pill--change {
+  background: transparent;
+  border: 1.5px solid var(--line-strong);
+  color: var(--ink-dim);
+}
+.trophy-pill--win {
+  border-color: rgba(127, 182, 248, 0.6);
+  color: #7fb6f8;
+}
+.trophy-pill--loss {
+  border-color: rgba(251, 113, 133, 0.55);
+  color: #fb7185;
+}
+.battle__mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.battle__crowns {
+  display: flex;
+  align-items: flex-end;
+  gap: 22px;
+}
+.battle__crown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font: 700 64px/1 var(--font-mono);
+  color: var(--ink-dim);
+}
+.battle__crown--win {
+  color: #7fb6f8;
+}
+.battle__crown--loss {
+  color: #fb7185;
+}
+.battle__dash {
+  font: 40px/1.4 var(--font-mono);
+  color: var(--line-strong);
+}
+.battle__sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.result-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--panel-raised);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-body);
+}
+.result-chip--win {
+  background: rgba(127, 182, 248, 0.14);
+  border-color: rgba(127, 182, 248, 0.5);
+  color: #cfe3fd;
+}
+.result-chip--loss {
+  background: rgba(251, 113, 133, 0.12);
+  border-color: rgba(251, 113, 133, 0.45);
+  color: #fecdd3;
+}
+.battle__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.battle__grid--wide {
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+}
+/* Meetings, the session and the share panel: as many columns as there
+   are panels, since the first two show only when they hold more than
+   this battle. */
+.battle__grid--three {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+.battle-deck__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-grow: 1;
+  min-width: 0;
+}
+.battle-deck__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: #7fb6f8;
+  flex-shrink: 0;
+}
+.battle-deck__dot--loss {
+  background: #fb7185;
+}
+.battle-deck__dot--draw {
+  background: var(--ink-faint);
+}
+.battle-deck__body {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.battle-deck__facts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex-grow: 1;
+  min-width: 0;
+}
+.battle-deck__label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.battle-deck__stats {
+  display: flex;
+  gap: 10px 22px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.battle-deck__stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.battle-deck__stats dt {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.battle-deck__stats dd {
+  margin: 0;
+  font: 600 17px var(--font-mono);
+  color: var(--ink);
+}
+.tower-troop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--ground-sunken);
+  border: 1px solid var(--line-row);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.tower-troop__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.tower-troop__label {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.towers {
+  display: flex;
+  gap: 8px;
+}
+.tower {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #19143a;
+  border: 1px solid var(--line);
+}
+.tower--down {
+  background: rgba(251, 113, 133, 0.1);
+  border-color: rgba(251, 113, 133, 0.4);
+}
+.tower__kind {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.tower__hp {
+  font: 600 15px var(--font-mono);
+  color: var(--ink);
+}
+.tower--down .tower__hp {
+  font: 600 13px var(--font);
+  color: #fda4af;
+}
+.battle-ended {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.battle-ended p {
+  margin: 0;
+}
+.battle-ended__who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-body);
+}
+.battle-ended__left {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.battle-rows {
+  display: flex;
+  flex-direction: column;
+  margin: -4px -6px;
+  padding: 0;
+  list-style: none;
+}
+.battle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-row);
+  color: var(--ink);
+  text-decoration: none;
+}
+.battle-rows li:last-child .battle-row {
+  border-bottom: 0;
+}
+.battle-row .chip {
+  white-space: nowrap;
+}
+.battle-row--current {
+  background: rgba(74, 222, 128, 0.07);
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+.battle-row__when {
+  width: 70px;
+  flex-shrink: 0;
+  font: 12.5px var(--font-mono);
+  color: var(--ink-dim);
+}
+.battle-row__who {
+  flex-grow: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.battle-row__result {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.battle-row__result--win {
+  color: #7fb6f8;
+}
+.battle-row__result--loss {
+  color: #fb7185;
+}
+.share-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 4px 0 12px;
+  border-radius: 10px;
+  background: var(--ground);
+  border: 1px solid var(--line);
+}
+.share-link__url {
+  flex-grow: 1;
+  min-width: 0;
+  font: 13px var(--font-mono);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.share-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.share-actions .btn {
+  flex: 1 1 0;
+  justify-content: center;
+}
+/* A side-by-side row's name wraps; its two values do not. */
+.table td.battle__measure {
+  white-space: normal;
+  color: var(--ink-dim);
+}
+.battle__foot {
+  display: flex;
+  gap: 8px 24px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-row);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.battle__id {
+  font: 11.5px var(--font-mono);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 760px) {
+  .battle__score {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 10px;
+    padding: 16px 14px;
+  }
+  .battle__name {
+    font-size: 16px;
+  }
+  /* On a phone the scoreboard is names and crowns; the trophies and the
+     length are in Side by side and How it ended below. */
+  .battle__score .trophy-pills,
+  .battle__score .battle__note,
+  .battle__sub--length,
+  .battle__mid .result-chip {
+    display: none;
+  }
+  .battle__clan {
+    font-size: 12.5px;
+  }
+  .battle__crown {
+    font-size: 38px;
+  }
+  .battle__dash {
+    font-size: 24px;
+  }
+  .trophy-pill {
+    height: 26px;
+    padding: 0 8px;
+    font-size: 12px;
+    gap: 6px;
+  }
+  .battle__grid {
+    gap: 14px;
+  }
+  .battle__grid--wide,
+  .battle__grid--three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .battle-deck__body {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .battle-deck .panel__body {
+    padding: 12px;
+  }
+  /* The phone's copy button is the icon; its name stays on the link. */
+  .battle-deck__copy-text {
+    display: none;
+  }
+  .battle-deck__stats dd {
+    font-size: 14px;
+  }
+}

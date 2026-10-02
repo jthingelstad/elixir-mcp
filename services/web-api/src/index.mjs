@@ -7,6 +7,7 @@ import { currentAndPrevious } from "@elixir-mcp/auth";
 import { makeHandler } from "./handler.mjs";
 import { makeCaptureStore } from "@elixir-mcp/tools/capture";
 import { makeOutbox, countStuck } from "@elixir-mcp/outbox";
+import { makeSiteShell } from "./routes/battle.mjs";
 
 const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 
@@ -65,4 +66,6 @@ export const handler = makeHandler({
     enqueue: enqueueEmail,
     archive: makeCaptureStore(process.env.ARCHIVE_BUCKET),
   },
+  // A battle's page is the app shell with the battle's preview tags.
+  siteShell: makeSiteShell(process.env.SITE_BUCKET),
 });
