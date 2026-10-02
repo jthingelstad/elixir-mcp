@@ -77,55 +77,6 @@
         }
       ]
     },
-    "battles_deck_sets": {
-      "calls": 6,
-      "p50_ms": 797,
-      "p95_ms": 2912,
-      "sets": [
-        {
-          "args": {
-            "alternatives": 3,
-            "lock_decks": [
-              "ce06788aed5c01a8989b4ba549d81bb5c2f2fcdc6a3586859333bab89dd4e8a0",
-              "d984fe5a4c6be4c9e34b0d41516fa74e8fb86bb9a62e2f6be645479a93002804",
-              "5de4903fcfe6cd7b51bdfc71933b1e7157992d6f2c1ba666297400268645a2b2"
-            ],
-            "player_tag": "#20JJJ2CCRU",
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "alternatives": 2,
-            "lock_decks": [
-              "ce06788aed5c01a8989b4ba549d81bb5c2f2fcdc6a3586859333bab89dd4e8a0"
-            ],
-            "player_tag": "#20JJJ2CCRU",
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "alternatives": 1,
-            "lock_decks": [
-              "ce06788aed5c01a8989b4ba549d81bb5c2f2fcdc6a3586859333bab89dd4e8a0"
-            ],
-            "player_tag": "#VJQV8G8RL",
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "player_tag": "#20JJJ2CCRU"
-          },
-          "calls": 0,
-          "seed": "the tool's first shape (9.4.0): sets[].decks[].value parts, modes, fit, candidates and near_misses the battles docs promise"
-        }
-      ]
-    },
     "battles_decks": {
       "calls": 19,
       "p50_ms": 163,
@@ -155,61 +106,6 @@
             "weeks": 6
           },
           "calls": 1
-        }
-      ]
-    },
-    "battles_meta_decks": {
-      "calls": 10,
-      "p50_ms": 1603,
-      "p95_ms": 5049,
-      "sets": [
-        {
-          "args": {
-            "days": 14,
-            "limit": 10,
-            "min_battles": 3,
-            "segment": {
-              "player_tag": "#RJ9RRQPVU"
-            },
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "days": 14,
-            "fit_for": "#20JJJ2CCRU",
-            "limit": 15,
-            "min_battles": 40,
-            "min_players": 3,
-            "mode": "ladder",
-            "segment": "corpus",
-            "sort": "shrunk_win_rate",
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "days": 14,
-            "fit_for": "#20JJJ2CCRU",
-            "limit": 15,
-            "min_battles": 30,
-            "min_players": 2,
-            "segment": "corpus",
-            "sort": "shrunk_win_rate",
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "fit_for": "#20JJJ2CCRU",
-            "limit": 5,
-            "segment": "corpus"
-          },
-          "calls": 0,
-          "seed": "fit rows carry held_level, vs_fielded, to_level, mean_level_after_upgrades the battles docs promise"
         }
       ]
     },
@@ -328,35 +224,6 @@
       "p50_ms": 9458,
       "p95_ms": 15945,
       "sets": [
-        {
-          "args": {
-            "card_id": 29000000,
-            "from": "2026-01-01",
-            "segment": "corpus",
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "card_id": 26000059,
-            "from": "2026-09-21",
-            "segment": "corpus",
-            "to": "2026-09-27"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "card_id": 26000059,
-            "from": "2026-09-21",
-            "mode": "ladder",
-            "segment": "corpus",
-            "to": "2026-09-27",
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
         {
           "args": {
             "card": "Knight",
@@ -776,46 +643,6 @@
         }
       ]
     },
-    "rankings_players": {
-      "calls": 4,
-      "p50_ms": 164,
-      "p95_ms": 224,
-      "sets": [
-        {
-          "args": {
-            "as_of": "2026-09-23",
-            "limit": 100,
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "as_of": "2026-09-30",
-            "limit": 10
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "as_of": "2026-09-30",
-            "limit": 100,
-            "offset": 10,
-            "verbosity": "full"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "board": "pol_final",
-            "limit": 3,
-            "season": 135
-          },
-          "calls": 0,
-          "seed": "a final board echoes season_requested"
-        }
-      ]
-    },
     "war_current": {
       "calls": 3,
       "p50_ms": 133,
@@ -854,34 +681,6 @@
             "seasons": 1
           },
           "calls": 2
-        }
-      ]
-    },
-    "rankings_timeline": {
-      "calls": null,
-      "p50_ms": null,
-      "p95_ms": null,
-      "sets": [
-        {
-          "args": {
-            "days": 14
-          },
-          "calls": 0,
-          "seed": "the board's own curve carries floor_delta"
-        }
-      ]
-    },
-    "battles_deck_upgrades": {
-      "calls": null,
-      "p50_ms": null,
-      "p95_ms": null,
-      "sets": [
-        {
-          "args": {
-            "player_tag": "#20JJJ2CCRU"
-          },
-          "calls": 0,
-          "seed": "the tool's first shape (9.7.0): baseline, options with gain and set_after, within_reach with raises and levels the battles docs promise"
         }
       ]
     }
