@@ -137,6 +137,16 @@ test("every page sits in one of the site's groups, in the rail's order", async (
   assert.equal(DOCS.find((d) => d.slug === "clocks").section, "The record");
 });
 
+test("the Clan docs advertise both uses of the clan's own model", () => {
+  const actions = DOCS.find((d) => d.slug === "clan-actions").markdown;
+  assert.match(actions, /Draft in our voice/);
+  assert.match(actions, /promotion, demotion, awards announcement/);
+
+  const policy = DOCS.find((d) => d.slug === "clan-policy").markdown;
+  assert.match(policy, /recruiting pitch in Recruit/);
+  assert.match(policy, /Clan Leader Message/);
+});
+
 test("the index lede is never shorter than 40 characters, and description rides beside it", () => {
   // A lede under 40 characters yields to the description in the builder;
   // every page carries both, so a reader can fall back either way.

@@ -111,6 +111,8 @@ without a policy:
   each other's local time. Only the clan's signed-in members see it, and
   nothing of it goes to Elixir.
 - **The clan's own model**: an Anthropic key of the clan's own, which
-  lets a model draft words for the clan (today, the recruiting pitch in
-  Recruit). It is never told a member's name or numbers, and everything
-  it writes is a draft a leader edits.
+  lets a model draft the recruiting pitch in Recruit and, on an open
+  action, the Clan Leader Message for a promotion, demotion, awards
+  announcement or policy-change announcement. It is never told a
+  member's name or numbers, and everything it writes is a draft a leader
+  edits.
