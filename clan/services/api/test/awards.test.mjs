@@ -7,14 +7,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMemoryStore } from "../src/store.mjs";
-import { createHandler } from "../src/handler.mjs";
+import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemoryLedger } from "../src/manage/ledger.mjs";
 import {
   createManageService,
   fetchParticipation,
-} from "../src/manage/service.mjs";
-import { createAwardsService } from "../src/manage/awards.mjs";
-import { createScout } from "../src/manage/scout.mjs";
+} from "@elixir-mcp/clan/manage/service.mjs";
+import { createAwardsService } from "@elixir-mcp/clan/manage/awards.mjs";
+import { createScout } from "@elixir-mcp/clan/manage/scout.mjs";
 import {
   fakeMcp,
   fakeOAuth,

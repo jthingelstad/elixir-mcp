@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Preparing Clan to share your Elixir account",
+    body: "Clan's account consolidation now has preservation and permission checks for your existing clan records. The transition is still underway; your current Clan sign-in and app remain available. No clan records or game history have been removed. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "Bringing Clan into Elixir",
     body: "The Clan consolidation is underway. Its management engine and ledger are now shared within Elixir, with preservation checks for policies, actions, awards, preferences and mail history. Clan's current sign-in and stored records still serve the app while the account and storage cutover is prepared. No clan state or game history has been removed. Contracts unchanged.",
   },

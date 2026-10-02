@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clansOf, normalizeTag, runGate, verifyNotice } from "../src/gate.mjs";
+import {
+  clansOf,
+  normalizeTag,
+  runGate,
+  verifyNotice,
+} from "@elixir-mcp/clan/gate.mjs";
 import { fakeMcp, PERSON, player } from "./fakes.mjs";
 
 test("gate: an agent grant is refused first, before any tool call", async () => {

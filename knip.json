@@ -123,6 +123,10 @@
     "packages/clan-engine": {
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "packages/clan": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
     }
   }
 }

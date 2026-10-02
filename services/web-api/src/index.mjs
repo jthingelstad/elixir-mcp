@@ -9,6 +9,7 @@ import { makeCaptureStore } from "@elixir-mcp/tools/capture";
 import { makeOutbox, countStuck } from "@elixir-mcp/outbox";
 import { makeCardArt, makeSiteShell, shareAssetsIn } from "./routes/battle.mjs";
 import { makeShareImage } from "./share-image.mjs";
+import { createClanRequest } from "./clan.mjs";
 
 const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 
@@ -35,6 +36,10 @@ function notifyOwner(spec) {
 }
 
 export const handler = makeHandler({
+  clan:
+    process.env.CLAN_INTERNAL === "true"
+      ? createClanRequest({ origin: "https://elixir.poapkings.com" })
+      : null,
   databaseUrl: process.env.DATABASE_URL,
   // Current and previous: a rotation signs nobody out, and a request
   // from an edge still sending the old origin header is served

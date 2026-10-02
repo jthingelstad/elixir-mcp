@@ -6,8 +6,11 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ANTHROPIC_VERSION, createAnthropicClient } from "../src/anthropic.mjs";
-import { current, summarize, withTrace } from "../src/trace.mjs";
+import {
+  ANTHROPIC_VERSION,
+  createAnthropicClient,
+} from "@elixir-mcp/clan/anthropic.mjs";
+import { current, summarize, withTrace } from "@elixir-mcp/clan/trace.mjs";
 
 const KEY = `sk-ant-api03-${"k".repeat(40)}`;
 const TOOL = {

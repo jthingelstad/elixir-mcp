@@ -8,16 +8,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMemoryStore } from "../src/store.mjs";
-import { createHandler } from "../src/handler.mjs";
+import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemoryLedger } from "../src/manage/ledger.mjs";
-import { createRecruitService } from "../src/manage/recruit.mjs";
-import { fetchRoster } from "../src/manage/service.mjs";
-import { createDrafts } from "../src/manage/drafts.mjs";
+import { createRecruitService } from "@elixir-mcp/clan/manage/recruit.mjs";
+import { fetchRoster } from "@elixir-mcp/clan/manage/service.mjs";
+import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
 import {
   USES_PER_DAY,
   createModelService,
   sealer,
-} from "../src/manage/model.mjs";
+} from "@elixir-mcp/clan/manage/model.mjs";
 import {
   fakeMcp,
   fakeOAuth,

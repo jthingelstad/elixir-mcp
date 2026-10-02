@@ -18,7 +18,8 @@
     "./season": "./src/season.mjs",
     "./snapshot-columns": "./src/snapshot-columns.mjs",
     "./standings-sql": "./src/standings-sql.mjs",
-    "./war-clock": "./src/war-clock.mjs"
+    "./war-clock": "./src/war-clock.mjs",
+    "./attested-facts": "./src/attested-facts.mjs"
   },
   "scripts": {
     "test": "node --test"

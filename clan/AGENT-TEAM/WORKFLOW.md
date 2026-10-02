@@ -29,7 +29,7 @@ the product docs it points at.
    stack and its alarms (`--profile cloud-engineer`, read-only), the ledger through
    the host scripts, `docs/NOTES.md` since the last reviewed revision, and
    Elixir's JSON API contract version against what
-   `services/api/src/elixir-api.mjs` expects.
+   `../packages/clan/src/elixir-api.mjs` expects.
 3. Decide whether a real objective gap exists. Healthy is a complete result.
 4. Only when a safe, authorized gap requires a change, branch before the
    first edit: `git switch -c <key>/<slug>` (`clan-run/`, `clan-judge/`,

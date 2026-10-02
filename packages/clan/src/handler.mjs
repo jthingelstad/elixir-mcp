@@ -71,6 +71,7 @@ const redirect = (location, cookies) => ({
 export function createHandler({
   mcp,
   oauth,
+  identity = null,
   store,
   sessionSecret,
   appUrl,
@@ -94,9 +95,8 @@ export function createHandler({
 }) {
   for (const [k, v] of Object.entries({
     mcp,
-    oauth,
+    ...(identity ? { identity } : { oauth, sessionSecret }),
     store,
-    sessionSecret,
     appUrl,
     elixirUrl,
   })) {
@@ -109,6 +109,7 @@ export function createHandler({
   // ---- sessions ---------------------------------------------------------
 
   async function loadSession(event) {
+    if (identity) return identity.load(event);
     const raw = readCookies(event)[SESSION_COOKIE];
     const id = verifySessionCookie(sessionSecret, raw);
     // Why a request reads as signed out, on its log line: the browser
@@ -135,6 +136,7 @@ export function createHandler({
    * grant, and a page load fires several API calls at once.
    */
   async function accessToken(session, { force = false } = {}) {
+    if (identity) return identity.credential(session);
     const t = now();
     if (session.familyExpiresAt && session.familyExpiresAt <= t) {
       await store.deleteSession(session.id);
@@ -225,6 +227,13 @@ export function createHandler({
   }
 
   async function gateFor(session, { refresh = false } = {}) {
+    if (identity) {
+      const ran = await withToken(session, (token) => runGate({ mcp, token }));
+      if (ran.signInRequired) return { signInRequired: true };
+      if (ran.unavailable || ran.result?.error)
+        return { error: "elixir_unavailable" };
+      return { gate: ran.result, checkedAt: now() };
+    }
     const t = now();
     const cached = session.gate;
     if (
@@ -264,8 +273,10 @@ export function createHandler({
     if (session.selected && inSet(session.selected.clan_tag))
       return inSet(session.selected.clan_tag);
     let chosen = null;
-    const key = prefKey(gate);
-    const pref = key ? await store.getPreference(key) : null;
+    const key = identity ? session.id : prefKey(gate);
+    let pref = key ? await store.getPreference(key) : null;
+    if (identity && !pref && prefKey(gate))
+      pref = await store.getPreference(prefKey(gate));
     if (pref?.clan_tag) chosen = inSet(pref.clan_tag);
     if (!chosen && gate.clans.length === 1) chosen = gate.clans[0];
     if (chosen) {
@@ -348,12 +359,13 @@ export function createHandler({
     json(
       401,
       { signed_in: false, ...extra },
-      { cookies: [clearSessionCookie()] },
+      identity ? {} : { cookies: [clearSessionCookie()] },
     );
 
   // ---- routes -----------------------------------------------------------
 
-  async function login() {
+  async function login(event) {
+    if (identity) return identity.login(event);
     if (oauth.configured === false)
       return redirect(`${appUrl}/?error=not_configured`);
     const state = randomState();
@@ -441,6 +453,7 @@ export function createHandler({
    * Elixir says, and a revoke that fails is logged, not shown.
    */
   async function logout(event) {
+    if (identity) return identity.logout(event);
     const session = await loadSession(event);
     if (session) {
       await store.deleteSession(session.id);
@@ -590,7 +603,7 @@ export function createHandler({
     };
     await store.updateSession(session.id, { selected });
     session.selected = selected;
-    const key = prefKey(gated.gate);
+    const key = identity ? session.id : prefKey(gated.gate);
     if (key)
       await store.putPreference(key, {
         clan_tag: chosen.clan_tag,
@@ -1104,7 +1117,9 @@ export function createHandler({
         return await feedbackRoute(event, method, path);
       if (method === "GET" && path === "/api/health")
         return json(200, { ok: true });
-      if (method === "GET" && path === "/auth/login") return await login();
+      if (method === "GET" && path === "/auth/login") return await login(event);
+      if (identity && path === "/auth/callback")
+        return json(410, { error: "retired_oauth_callback" });
       if (method === "GET" && path === "/auth/callback")
         return await callback(event);
       if (method === "POST" && path === "/auth/logout")

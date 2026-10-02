@@ -13,7 +13,7 @@ import { createGeo } from "@elixir-mcp/clan-engine";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DIR = [
   path.join(here, "geo"),
-  path.join(here, "../../../../packages/clan-engine/geo"),
+  path.join(here, "../../clan-engine/geo"),
 ].find((d) => existsSync(path.join(d, "countries.json")));
 
 const read = (name) =>

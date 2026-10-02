@@ -144,6 +144,9 @@ export function makeHandler({
   /** (read) => a battle's share picture as PNG bytes (share-image.mjs
    *  makeShareImage); null = /battle/<id>.png answers 503. */
   shareImage = null,
+  /** Internal Clan request handler. Null until the reviewed state cutover;
+   * the old origin continues to serve Clan during preparation. */
+  clan = null,
 }) {
   // What unsubscribe links are signed and checked with: their own key
   // when there is one, and the session secrets for links sent before it.
@@ -290,6 +293,7 @@ export function makeHandler({
       event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
     const path = event.rawPath ?? event.path ?? "/";
     const isIntegration = path.startsWith("/api/v1/");
+    const isClan = clan && path.startsWith("/api/clan/");
     const agentPath = isIntegration ? null : AGENT_PATH.exec(path);
     const found = isIntegration
       ? {
@@ -299,12 +303,62 @@ export function makeHandler({
             }),
           key: `${method} /api/v1/*`,
         }
-      : findRoute(
-          routes,
-          method,
-          agentPath ? `/api/me${agentPath[2] ?? ""}` : path,
-          event,
-        );
+      : isClan
+        ? {
+            key: `${method} /api/clan/*`,
+            route: async (db, event, body) => {
+              if (method === "GET" && path === "/api/clan/health")
+                return json(200, { ok: true });
+              if (path === "/api/clan/auth/callback")
+                return json(410, { error: "retired_oauth_callback" });
+              const person = await resolvePerson(db, event, {
+                requireContractHeader: !["GET", "HEAD"].includes(method),
+              });
+              if (!person) {
+                if (method === "GET" && path === "/api/clan/auth/login")
+                  return {
+                    statusCode: 303,
+                    headers: {
+                      location: "/console/signin?return_to=%2Fclan",
+                      "cache-control": "no-store",
+                    },
+                    body: "",
+                  };
+                return json(401, { signed_in: false });
+              }
+              return clan({
+                db,
+                account: person,
+                event: {
+                  ...event,
+                  body: event.body ? JSON.stringify(body) : undefined,
+                  isBase64Encoded: false,
+                },
+                signout: async () => {
+                  const res = await routes["POST /api/session/signout"](
+                    db,
+                    event,
+                  );
+                  return {
+                    ...res,
+                    statusCode: 303,
+                    headers: {
+                      ...res.headers,
+                      location: "/clan",
+                      "cache-control": "no-store",
+                    },
+                    body: "",
+                  };
+                },
+              });
+            },
+          }
+        : findRoute(
+            routes,
+            method,
+            agentPath ? `/api/me${agentPath[2] ?? ""}` : path,
+            event,
+          );
     if (!found) return json(404, { error: "not_found" });
     if (agentPath && !AGENT_SCOPED_ROUTES.has(found.key))
       return json(404, { error: "not_found" });

@@ -7,10 +7,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMemoryStore } from "../src/store.mjs";
-import { createHandler } from "../src/handler.mjs";
+import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemoryLedger } from "../src/manage/ledger.mjs";
-import { createSocialService } from "../src/manage/social.mjs";
-import { diskGeo } from "../src/geo.mjs";
+import { createSocialService } from "@elixir-mcp/clan/manage/social.mjs";
+import { diskGeo } from "@elixir-mcp/clan/geo.mjs";
 import {
   fakeMcp,
   fakeOAuth,

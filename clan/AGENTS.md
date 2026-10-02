@@ -105,18 +105,18 @@ docs/NOTES.md      decisions, newest last; what is waiting on Jamie
 
 | Seam       | Where                                                    | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ---------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Discovery  | `GET {ElixirUrl}/.well-known/oauth-authorization-server` | endpoints, cached 300 s (`services/api/src/oauth.mjs`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Discovery  | `GET {ElixirUrl}/.well-known/oauth-authorization-server` | endpoints, cached 300 s (`../packages/clan/src/oauth.mjs`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | The client | provisioned by Elixir                                    | Clan's is a family client (app `clan`, Elixir's `family_clients` op, 0185), never expiring; `/oauth/register` refuses a redirect URI on a family origin, so `infra/scripts/register-client.mjs` only says it is superseded. Its redirect URI is `https://elixir.poapkings.com/api/clan/auth/callback` (the handler's, from `APP_URL`'s origin), changed with the op's `set_redirect_uris`. The `client_id` is the stack parameter `OAuthClientId`. PKCE, and the client secret: the NoEcho stack parameter `OAuthClientSecret` (PRESERVED, env `OAUTH_CLIENT_SECRET`, staged once with `--param`, never printed), sent as `client_secret` in the form of both token requests when set. |
 | Authorize  | `/oauth/authorize`                                       | `scope=cr:read clans:attest` (`clans:attest` since 2026-09-25: only the family's own apps may ask for it), `resource=https://elixir.poapkings.com/api/v1` (required, RFC 8707), S256. An `/mcp` grant is refused at `/api/v1`. A session signed in before the change holds `cr:read` alone: its shares are logged as not shared, and every page asks the person to sign in again (`canShare` in `App.jsx`, from `/api/me`'s `scope`).                                                                                                                                                                                                                                                  |
 | Tokens     | `/oauth/token`                                           | access 1 h, refresh 30 d rotating, family 90 d. Refreshed server-side; a rotated refresh token is STORED before any reuse (presenting it twice revokes the grant). One request spends it: `store.claimRefresh` is a conditional write on the stored token, and a request that loses waits for the pair the winner stores (2026-09-26; parallel page calls revoked a grant on 2026-09-13). Elixir refusing the refresh (400) ends the session; Elixir not answering is a 502 that keeps the session and the cookie.                                                                                                                                                                     |
 | Sign-out | `/oauth/revoke` | `POST /auth/logout` deletes the session, then revokes its grant at Elixir by the refresh token (`client_secret_post`, 5 s), best effort: a failed revoke is logged `revoke_failed` and the sign-out holds. Elixir skips its consent page for a standing grant that covers the request (2026-09-29), so without the revoke the next **Sign in** would be back in with no question asked. |
-| The door   | `/api/v1/*`                                              | Elixir's JSON API (`services/api/src/elixir-api.mjs`). It keeps the old MCP client's `initialize`/`callTool` interface: each tool name maps to one operation, answered with that tool's structured result, and a refusal comes back as problem+json carrying the tool's code. Plan: `../../elixir-family/plans/clan-app-api.md`                                                                                                                                                                                                                                                                                                                                                        |
+| The door   | `/api/v1/*`                                              | Elixir's JSON API (`../packages/clan/src/elixir-api.mjs`). It keeps the old MCP client's `initialize`/`callTool` interface: each tool name maps to one operation, answered with that tool's structured result, and a refusal comes back as problem+json carrying the tool's code. Plan: `../../elixir-family/plans/clan-app-api.md`                                                                                                                                                                                                                                                                                                                                                        |
 
 Elixir's contract is documented at <https://elixir.poapkings.com/docs>
 (`integrations` for the JSON API Clan reads, `protocol` for OAuth discovery
 and registration, `connections`, `verify`). Do not restate it here.
 
-## The gate, in order (`services/api/src/gate.mjs`)
+## The gate, in order (`../packages/clan/src/gate.mjs`)
 
 `GET /api/v1/me` (the principal block and the players, in one request:
 the gate reads both from `initialize`'s answer); the
@@ -164,7 +164,7 @@ the clan always named in the path. A
 `not_recorded`/`no_subject` answer is its own page state: "Elixir isn't
 recording your clan yet".
 
-## Sessions (`services/api/src/store.mjs`, `cookies.mjs`)
+## Sessions (`services/api/src/store.mjs`, `../packages/clan/src/cookies.mjs`)
 
 One DynamoDB table `elixir-clan`, KMS-encrypted, two TTL'd item kinds:
 `login#<state>` (PKCE verifier, 10 min, single use) and `session#<id>`
@@ -453,7 +453,7 @@ model may write **words, never judgments**:
   markdown and bullets out, each field clipped, the clan's website and
   contact kept, a number the model was not given flagged). A person edits
   and saves; nothing a model writes is saved or sent by itself.
-- **The key** (`services/api/src/manage/model.mjs`) is checked with
+- **The key** (`../packages/clan/src/manage/model.mjs`) is checked with
   Anthropic's model list before it is kept (spends nothing; an Admin key is
   refused), sealed with AES-256-GCM under a key derived (HKDF) from the
   app's `session_secret` for this use only and bound to the clan and the
@@ -478,7 +478,7 @@ model may write **words, never judgments**:
 
 ## Feedback (2026-09-12)
 
-Elixir's feedback system, carried nearly verbatim (`services/api/src/feedback.mjs`,
+Elixir's feedback system, carried nearly verbatim (`../packages/clan/src/feedback.mjs`,
 `apps/web/src/views/{Feedback,Maintain}.jsx`): a person files a category and
 a Markdown note from anywhere (the page, clan and role ride along as
 `context`), sees their own list with every status and reply, and opening a
@@ -555,7 +555,7 @@ runs": how it runs the first time, what changed after; a newer version
 withdraws the open one). A decline needs a reason only for actions that
 judge a member (`JUDGING_TYPES`); completing a message action logs
 `channel` so the log says it was sent. The action store
-(`services/api/src/manage/actions.mjs`) raises, withdraws, logs and shapes
+(`../packages/clan/src/manage/actions.mjs`) raises, withdraws, logs and shapes
 actions for both the manage and the awards service.
 
 **The game's chat filter** (`../packages/clan-engine/src/chat.mjs`) is one module
@@ -676,7 +676,7 @@ on Trophies.
 
 What the clan did goes back to Elixir as **attested facts**, on the acting
 person's own grant (`POST /api/v1/clans/{tag}/facts`, JSON API 2.2.0,
-scope `clans:attest`; `services/api/src/manage/sharing.mjs`). Elixir keeps
+scope `clans:attest`; `../packages/clan/src/manage/sharing.mjs`). Elixir keeps
 them apart from the game record, labelled as that person's word through
 Elixir Clan, and shows each only to the readers its type allows (an away
 only to the clan's leaders, never to an agent; a departure, kick or leave,
@@ -905,7 +905,7 @@ clan/infra/scripts/deploy.mjs` (build → upload → stack → web → smoke).
 
 ## Logging: one story per request
 
-`services/api/src/trace.mjs` (2026-09-12, after slow pages and a log group
+`../packages/clan/src/trace.mjs` (2026-09-12, after slow pages and a log group
 holding only START/END/REPORT). Every request runs inside a trace; every
 Elixir call (`elixir-api.mjs`, `oauth.mjs`), every call to a clan's own
 model (`anthropic.mjs`: `model_ms`/`model_calls` and `model: [{ call, ms,
@@ -1035,8 +1035,7 @@ role, a 300 s limit, one at a time, logging into the API's log group) with
 today (`morning#<clan>`, a conditional write) and evaluates that one, so a
 clan has the whole limit to itself and Elixir is read for one clan every
 two minutes, 30 clans an hour (widen the rule's hours past that). An
-invocation with nothing left writes nothing (`services/api/src/
-scheduled.mjs`; the `elixir-clan-evaluate-errors` alarm watches the run
+invocation with nothing left writes nothing (`../packages/clan/src/scheduled.mjs`; the `elixir-clan-evaluate-errors` alarm watches the run
 itself). It reads Elixir on Elixir Clan's OWN
 integration key (`elixir-clan`, permission `clans:read`, JSON API 2.3.0),
 never a person's token, and runs the same `evaluateClan` a visit runs,

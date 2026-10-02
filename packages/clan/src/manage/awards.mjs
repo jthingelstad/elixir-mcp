@@ -28,7 +28,7 @@ import {
 } from "./service.mjs";
 import { MIN_MEMBERS, leaderMessage } from "@elixir-mcp/clan-engine";
 import { createActionStore } from "./actions.mjs";
-import { newId } from "./ledger.mjs";
+import { newId } from "@elixir-mcp/clan-state";
 import { planStandings, standingsFrom } from "./standings.mjs";
 
 const LEADERS = new Set(["leader", "coLeader"]);

@@ -18,7 +18,7 @@ route to make another objective's work easier.
   Path=/; the session cookie is `<id>.<hmac>`; the login cookie binds the
   OAuth state to the browser. The signing secret reaches the Lambda only
   through `{{resolve:secretsmanager}}`.
-- **Every seam is a public door.** `services/api/src/{oauth,elixir-api,gate}.mjs`
+- **Every seam is a public door.** `../packages/clan/src/{oauth,elixir-api,gate}.mjs`
   call `/.well-known`, `/oauth/*` and `/api/v1` with the person's own token
   and nothing else; no Elixir database, no service token, no admin route.
 - **What is stored.** `AGENTS.md` §Sessions and §What is stored are the

@@ -6,8 +6,13 @@
  */
 import { test, mock } from "node:test";
 import assert from "node:assert/strict";
-import { createOAuthClient } from "../src/oauth.mjs";
-import { SLOW_CALL_MS, current, summarize, withTrace } from "../src/trace.mjs";
+import { createOAuthClient } from "@elixir-mcp/clan/oauth.mjs";
+import {
+  SLOW_CALL_MS,
+  current,
+  summarize,
+  withTrace,
+} from "@elixir-mcp/clan/trace.mjs";
 
 const ISSUER = "https://elixir.test";
 const SECRET = "ecs_test-secret-never-logged";

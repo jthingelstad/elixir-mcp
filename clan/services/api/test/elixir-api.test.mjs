@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createElixirApiClient } from "../src/elixir-api.mjs";
+import { createElixirApiClient } from "@elixir-mcp/clan/elixir-api.mjs";
 
 /** A fetch that records requests and answers from a table. */
 function fakeFetch(answers) {

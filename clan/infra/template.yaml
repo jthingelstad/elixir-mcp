@@ -274,8 +274,7 @@ Resources:
   # key, so actions wait for leaders and a closed season's awards are
   # granted without anyone visiting. One clan per invocation (Jamie,
   # 2026-09-26): the rule fires every two minutes through the hour and each
-  # invocation takes the next clan not yet run today (services/api/src/
-  # scheduled.mjs), so a clan has the whole time limit to itself and Elixir
+  # invocation takes the next clan not yet run today (../packages/clan/src/scheduled.mjs), so a clan has the whole time limit to itself and Elixir
   # is never read for every clan at once. Its own function, the API's code
   # and role with a longer limit and one at a time, so the web requests
   # keep their short limit and their duration alarm; it logs into the
@@ -427,7 +426,7 @@ Resources:
 
   # A p90 over 8 s for ten minutes is a product that feels broken, whether
   # the time is Elixir's or ours; the request story's log lines say which
-  # (services/api/src/trace.mjs). Lambda's own Duration is free and is the
+  # (../packages/clan/src/trace.mjs). Lambda's own Duration is free and is the
   # request's time, so no custom metric backs this (2026-09-24: the EMF
   # line it used to read had never reached CloudWatch from production).
   SlowRequestsAlarm:

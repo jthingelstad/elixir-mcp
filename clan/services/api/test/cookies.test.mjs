@@ -5,7 +5,7 @@ import {
   verifySessionCookie,
   setSessionCookie,
   readCookies,
-} from "../src/cookies.mjs";
+} from "@elixir-mcp/clan/cookies.mjs";
 
 test("session cookie: signed value round-trips, a tampered one is refused", () => {
   const v = sessionCookieValue("s", "abc");

@@ -7,9 +7,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMemoryStore } from "../src/store.mjs";
-import { createHandler } from "../src/handler.mjs";
+import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemoryLedger } from "../src/manage/ledger.mjs";
-import { createRecruitService, FACTS_TTL_MS } from "../src/manage/recruit.mjs";
+import {
+  createRecruitService,
+  FACTS_TTL_MS,
+} from "@elixir-mcp/clan/manage/recruit.mjs";
 import {
   fakeMcp,
   fakeOAuth,

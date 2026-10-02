@@ -14,7 +14,7 @@ import {
   ROSTER_TTL_MS,
   mountedPath,
   shapeRoster,
-} from "../src/handler.mjs";
+} from "@elixir-mcp/clan/handler.mjs";
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;

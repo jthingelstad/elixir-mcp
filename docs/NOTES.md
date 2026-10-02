@@ -2745,3 +2745,34 @@ The Clan deployment change detector now includes both shared Clan packages.
 This foundation does not change a tool or shared tool implementation, so the
 root deploy uses smoke without another full live acceptance sweep; the
 existing card cold-query performance follow-up remains open.
+
+### 2026-10-02: Clan foundation deployed and shared account path prepared
+
+PR #224 merged at c6558283. The actual stack UPDATE_COMPLETE event was
+2026-10-02T17:49:47.692Z; ordered migration 0196 applied once. Root smoke
+passed and public recorder health was true; no live tool implementation
+changed, so no additional full acceptance sweep was run. Clan's CI deploy
+37043789449 also passed on c6558283. No existing Clan item was imported,
+changed or deleted by the foundation; it adds empty private storage. The
+production lease was released after read-back; no queued lease note existed.
+
+The next preparation moves service logic into packages/clan while the legacy
+Dynamo/session deployment adapters continue to serve users. A disabled internal
+web-api path accepts the resolved Elixir person, uses existing facts directly,
+and preserves fresh membership and role checks. Account preferences persist
+only explicit actions; gate and roster caches are request-local. Ordinary
+page reads of the account/selection gate do not create a second session or
+write a preference. Verified clan fact writers moved into the shared record
+package; their external audience/scope checks remain. Scratch tests cover
+CSRF, base64 bodies, friend refusal, unverified member access, immediate shared
+session revocation, account isolation and factual write permissions. Cutover,
+model egress/key preservation, scheduled jobs, the unified UI, old-stack
+retirement and the exact purge manifest remain required work.
+
+Read-only consistency review found GET evaluations that reconcile private Clan
+cards needed the same lock as decisions, and accepted O/0 tag aliases needed
+one canonical lock key. Both are corrected; scratch tests observe the actual
+Postgres lock waiter for GET and POST using the alias. No additional auth or
+privacy regression was found. The privacy ratchet now names the moved factual
+writer, preserving the same two allowed writers, and MCP/public tools have an
+explicit private-state import guard. Legacy source pointers were updated.

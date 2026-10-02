@@ -1,10 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMemoryStore } from "../src/store.mjs";
-import { createHandler } from "../src/handler.mjs";
+import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemoryLedger } from "../src/manage/ledger.mjs";
-import { createManageService, ManageError } from "../src/manage/service.mjs";
-import { createScout } from "../src/manage/scout.mjs";
+import {
+  createManageService,
+  ManageError,
+} from "@elixir-mcp/clan/manage/service.mjs";
+import { createScout } from "@elixir-mcp/clan/manage/scout.mjs";
 import {
   fakeMcp,
   fakeOAuth,
@@ -1736,7 +1739,7 @@ test("sharing: a member's own away is shared while it lasts and taken back when 
 });
 
 test("sharing: each completed action attests only what happened, in the words sent; a removal's chat line is never shared", async () => {
-  const { factsOfAction } = await import("../src/manage/sharing.mjs");
+  const { factsOfAction } = await import("@elixir-mcp/clan/manage/sharing.mjs");
   const at = "2026-09-25T12:00:00.000Z";
   const card = (type, extra = {}) => ({
     card_id: "c1",
