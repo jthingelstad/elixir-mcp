@@ -1263,3 +1263,69 @@ test(
     assert.ok(existsSync(path.join(out, "assets/cards-live.js")));
   },
 );
+
+test(
+  "the front door is the canvas's: six tiles, Drop next door, no record in it",
+  { skip },
+  async () => {
+    // The Site board (2026-09-29). The page is built whole; the cards'
+    // numbers are drawn by home-live.js from the public endpoint, so the
+    // built page holds none and the strip waits hidden.
+    const { JSDOM } = await import("jsdom");
+    const doc = new JSDOM(read("index.html")).window.document;
+    assert.match(
+      doc.querySelector("h1").textContent,
+      /Your Clash Royale,\s*on the record\./,
+    );
+    const art = doc.querySelector(".home-art img");
+    assert.equal(art.getAttribute("src"), "/assets/elixir-logo-288.webp");
+    assert.ok(existsSync(path.join(out, "assets/elixir-logo-288.webp")));
+    assert.ok(
+      doc.querySelector('a.btn[href="/cards/"]'),
+      "no way to the card stats",
+    );
+
+    // Six parts of Elixir, each with one way in and nothing else to
+    // click (the call stretches over its tile).
+    const tiles = [...doc.querySelectorAll(".home-tile")];
+    assert.deepEqual(
+      tiles.map((t) => t.querySelector(".home-tile__product").textContent),
+      ["Ladder", "Clan", "Friends", "Emails", "Your AI", "Cards"],
+    );
+    assert.deepEqual(
+      tiles.map((t) => t.querySelector(".home-tile__cta").getAttribute("href")),
+      [
+        "/ladder",
+        "/docs/bring-your-clan",
+        "/docs/follow-a-friend",
+        "/docs/email",
+        "/docs/quickstart",
+        "/cards/",
+      ],
+    );
+    for (const t of tiles) assert.equal(t.querySelectorAll("a").length, 1);
+    // A tile describes; it never shows a record. No win-loss, no share,
+    // no count is baked into one.
+    for (const t of tiles)
+      assert.doesNotMatch(t.textContent, /\d+\s*[–-]\s*\d+|\d%|\d,\d{3}/);
+
+    // Drop's band links the manifest's own Drop, in a new window.
+    const { default: family } = await import(
+      path.join(repoRoot, "packages/ui/src/family.json"),
+      { with: { type: "json" } }
+    );
+    const drop = family.products.find((p) => p.game);
+    const play = doc.querySelector(".home-drop__play");
+    assert.equal(play.getAttribute("href"), drop.href);
+    assert.equal(play.getAttribute("target"), "_blank");
+
+    // The most played strip and the Cards tile's three wait for data.
+    for (const sel of ["[data-home-strip]", "[data-home-top3]"]) {
+      const el = doc.querySelector(sel);
+      assert.ok(el.hasAttribute("hidden"), `${sel} is not hidden at build`);
+    }
+    assert.equal(doc.querySelectorAll(".home-strip__card").length, 0);
+    assert.ok(read("index.html").includes("/assets/home-live.js"));
+    assert.ok(existsSync(path.join(out, "assets/home-live.js")));
+  },
+);
