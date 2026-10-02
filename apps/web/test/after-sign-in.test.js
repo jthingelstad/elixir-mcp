@@ -41,3 +41,17 @@ test("a Ladder path is kept across sign-in too; a look-alike is not", () => {
   rememberAfterSignIn("https://evil.example/ladder");
   expect(takeAfterSignIn()).toBeNull();
 });
+
+test("Clan action links survive the common sign-in; external and look-alike paths refuse", () => {
+  rememberAfterSignIn("/clan/2PQRJ8LV/actions/37");
+  expect(takeAfterSignIn()).toBe("/clan/2PQRJ8LV/actions/37");
+  for (const path of [
+    "//evil.example/clan",
+    "https://evil.example/clan",
+    "/clans/2PQRJ8LV",
+    "/clan/../admin",
+  ]) {
+    rememberAfterSignIn(path);
+    expect(takeAfterSignIn()).toBeNull();
+  }
+});

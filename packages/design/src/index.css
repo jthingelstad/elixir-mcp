@@ -26,6 +26,7 @@
 
 @source "../../../apps/site/src";
 @source "../../../apps/web/src";
+@source "../../clan-web/src";
 @source "../../ui/src";
 
 /* Tailwind reads every word in those sources as a candidate class, and

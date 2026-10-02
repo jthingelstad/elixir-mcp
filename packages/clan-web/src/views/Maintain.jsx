@@ -49,7 +49,7 @@ export function MaintainQueue({ navigate }) {
       ) : items.length === 0 ? (
         <p className="page__lede">No feedback yet.</p>
       ) : (
-        <div className="table__scroll">
+        <div tabIndex={0} className="table__scroll">
           <table className="table">
             <thead>
               <tr>

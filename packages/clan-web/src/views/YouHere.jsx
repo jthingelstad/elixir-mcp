@@ -399,7 +399,7 @@ export function YouHere({ clan, navigate }) {
                   </p>
                 ) : null}
               </div>
-              <div className="table__scroll">
+              <div tabIndex={0} className="table__scroll">
                 <table className="table">
                   <thead>
                     <tr>
@@ -431,7 +431,7 @@ export function YouHere({ clan, navigate }) {
 
           <section className="panel" aria-labelledby="you-weeks">
             <Head id="you-weeks" title="Week by week" />
-            <div className="table__scroll">
+            <div tabIndex={0} className="table__scroll">
               <table className="table">
                 <thead>
                   <tr>

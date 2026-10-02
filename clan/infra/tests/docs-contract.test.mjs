@@ -26,7 +26,13 @@ test("unverified claimers have one ratified membership contract", async () => {
   const [agents, vision, chooser, notes] = await Promise.all([
     read("AGENTS.md"),
     read("docs/VISION.md"),
-    read("apps/web/src/views/Clans.jsx"),
+    readFile(
+      new URL(
+        "../../../packages/clan-web/src/views/Clans.jsx",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
     read("docs/NOTES.md"),
   ]);
 

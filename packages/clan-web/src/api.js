@@ -1,25 +1,32 @@
-/** Same-origin /api/clan/*, cookie-authed: Elixir's edge sends it to
- *  Clan's Lambda, which reads /api/clan/<route> as /api/<route>. Every
- *  answer is `{ ok, status, data }`; a non-JSON body (an edge error page)
- *  is a failure whatever its status. The envelope, timeout and failure
- *  accounting are the family's, in Elixir's client package; this file is
- *  only this app's route map. */
+/** Same-origin Clan route map, using the shared session and CSRF header.
+ * The temporary legacy runtime accepts this header too. Model operations
+ * allow the shared runtime's longer reply window without extending ordinary
+ * reads. All answers keep the family's envelope and retry rules. */
 
 import { createClient } from "@elixir-mcp/client";
 import { routeLabel, trackEvent } from "./analytics.js";
 
-const client = createClient({
+const options = {
+  headers: { "x-elixir-client": "web" },
   // A failure that never reached the origin is the class of problem only
   // the browser can count (Elixir's lesson); a slow one is counted too.
   onEvent: (event, label) => trackEvent(`web.${event}`, label),
   onSlow: (info) => console.warn("[elixir-clan] slow request", info),
   // Routes carry the clan tag; the label masks it (analytics.js).
   routeLabel,
-});
+};
+const client = createClient(options);
+const modelClient = createClient({ ...options, timeoutMs: 30_000 });
 
 const get = (path) => client.get(path);
-const post = (path, body) => client.post(path, body);
-const put = (path, body) => client.request("PUT", path, body);
+const post = (path, body) =>
+  (/\/(?:model|draft)$/.test(path) ? modelClient : client).post(path, body);
+const put = (path, body) =>
+  (/\/(?:model|draft)$/.test(path) ? modelClient : client).request(
+    "PUT",
+    path,
+    body,
+  );
 const del = (path) => client.request("DELETE", path);
 
 /** Where Clan's API answers on Elixir's origin. */

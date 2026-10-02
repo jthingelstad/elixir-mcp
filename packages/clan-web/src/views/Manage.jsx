@@ -210,7 +210,7 @@ export function Manage({ clan, tab, navigate, who }) {
             <div className="label" style={{ marginBottom: "8px" }}>
               {BUCKET_LABEL[bucket]} · {rows.length}
             </div>
-            <div className="table__scroll">
+            <div tabIndex={0} className="table__scroll">
               <table className="table">
                 <thead>
                   <tr>
@@ -382,7 +382,11 @@ function History({ clan, navigate }) {
           No join, leave or role change on record yet.
         </p>
       ) : (
-        <div className="table__scroll" style={{ marginBottom: "22px" }}>
+        <div
+          tabIndex={0}
+          className="table__scroll"
+          style={{ marginBottom: "22px" }}
+        >
           <table className="table">
             <thead>
               <tr>
@@ -443,7 +447,7 @@ function History({ clan, navigate }) {
       <div className="label" style={{ margin: "0 0 8px" }}>
         Actions
       </div>
-      <div className="table__scroll">
+      <div tabIndex={0} className="table__scroll">
         <table className="table">
           <thead>
             <tr>

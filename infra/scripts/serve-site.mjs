@@ -48,6 +48,7 @@ function route(pathname) {
   // A battle's page is the app shell too: at the edge the API serves it
   // (the /battle/* behavior), with the battle's preview tags written in.
   if (/^\/battle\/[0-9a-f]{12,64}$/.test(key)) return "/app.html";
+  if (key === "/clan" || key.startsWith("/clan/")) return "/app.html";
   if (key === "/ladder" || key.startsWith("/ladder/")) return "/app.html";
   return `${key}/index.html`;
 }

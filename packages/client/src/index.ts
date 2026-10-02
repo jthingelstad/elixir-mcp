@@ -14,7 +14,11 @@ export {
   type Method,
   type SlowRequest,
 } from "./request.ts";
-export { createQueryClient } from "./query.ts";
+export {
+  createQueryClient,
+  sessionGeneration,
+  resetSessionCache,
+} from "./query.ts";
 export {
   useWrite,
   type Write,

@@ -536,7 +536,7 @@ function Preview({ preview }) {
           : `No policy yet. Under the draft, the Elder band is ${bandText(preview.draft.band)}.`}
       </div>
       {moved.length ? (
-        <div className="table__scroll">
+        <div tabIndex={0} className="table__scroll">
           <table className="table">
             <thead>
               <tr>

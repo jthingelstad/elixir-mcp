@@ -588,3 +588,13 @@ and authenticated encryption; no model key, prompt or answer is logged.
 The immutable worker claim is written before contacting the provider; an
 interrupted claim has an uncertain outcome and must not be spent again.
 The existing sealed model key retains its original derivation and AAD.
+
+
+The Clan view source is `packages/clan-web`. Its route factory joins the one
+`apps/web` router and lazy-loads Clan's shell and views; it creates no router
+or query provider. All private Clan keys start with `["me", "clan"]`, so the
+common session refresh invalidates them without colliding with the root
+account envelope. The old bucket has only a temporary build wrapper until
+cutover. Clan maintenance uses the IAM-only `{clan_maintenance}` migrate op,
+with bounded kind-specific reads, unchanged reply pointers and digest-checked,
+explicit feedback responses. Sealed key items have no maintenance read path.

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, mockApi, signedIn } from "./fixtures.ts";
+import { ME as ACCOUNT } from "../fixtures.ts";
 import {
   FIELDS,
   GROUPS,
@@ -127,61 +128,68 @@ async function rendered(page: Page) {
   await expect(page.locator("main")).not.toContainText("failed to render");
 }
 
-test("signed out: the landing, the way in on the bar, and a clan path sent home", async ({
+test("a signed-out Clan deep link uses the common sign-in and comes back to its action page", async ({
   page,
 }) => {
-  await mockApi(page, { "GET /api/clan/me": [401, { error: "signed_out" }] });
-  await page.goto("/clan/2PQRJ8LV");
-  await expect(page).toHaveURL(/\/clan$/);
-  const signIn = page.getByRole("link", { name: "Sign in with Elixir" });
-  await expect(signIn.first()).toBeVisible();
-  await expect(signIn.first()).toHaveAttribute("href", "/api/clan/auth/login");
-  await expect(page.locator(".rail")).toHaveCount(0);
-  await accessible(page, "landing");
-});
-
-test("signed in to Elixir: Clan's sign-in starts by itself and lands on the address opened", async ({
-  page,
-}) => {
+  let authed = false;
+  const answers = signedIn();
+  const selected = { ...ME, selected: ME.clans[0] };
   await mockApi(page, {
-    "GET /api/clan/me": [401, { error: "signed_out" }],
-    "GET /api/me": [200, { authenticated: true }],
-    "GET /api/clan/auth/login": [200, { started: true }],
+    ...answers,
+    "GET /api/me": () =>
+      authed
+        ? (answers["GET /api/me"] as [number, unknown])
+        : [200, { authenticated: false }],
+    "GET /api/clan/me": () => [
+      authed ? 200 : 401,
+      authed ? selected : { error: "signed_out" },
+    ],
+    "POST /api/auth": [200, { ok: true }],
+    "POST /api/auth/code": () => {
+      authed = true;
+      return [200, { ok: true }];
+    },
   });
   await page.goto("/clan/2PQRJ8LV/actions");
-  await page.waitForURL(/\/api\/clan\/auth\/login$/);
-
-  // Elixir sends them back signed in, to the clan the callback selected;
-  // the address they opened is where they end up.
-  await page.unroute("**/api/**");
-  await mockApi(
-    page,
-    signedIn({ "GET /api/clan/me": [200, { ...ME, selected: ME.clans[0] }] }),
-  );
-  await page.goto("/clan/2PQRJ8LV");
   await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions$/);
+  await expect
+    .poll(() =>
+      page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
+    )
+    .toBe("/clan/2PQRJ8LV/actions");
+  await page.getByRole("link", { name: "Sign in with Elixir" }).click();
+  await expect(page).toHaveURL(/\/console\/signin$/);
+  expect(
+    await page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
+  ).toBe("/clan/2PQRJ8LV/actions");
+  await page.getByLabel("Email").fill("ada@example.com");
+  await page.getByRole("button", { name: "Send sign-in email" }).click();
+  await page.getByLabel("6-digit code").fill("123456");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions$/);
+  await expect(
+    page.getByRole("heading", { name: "Actions", exact: true }),
+  ).toBeVisible();
+  await accessible(page, "shared sign-in return");
 });
 
-test("signed out of Clan on purpose, or not signed in to Elixir: the landing waits for the button", async ({
+test("a Clan landing uses the common sign-in without a separate OAuth login", async ({
   page,
 }) => {
-  await mockApi(page, {
-    "GET /api/clan/me": [401, { error: "signed_out" }],
-    "GET /api/me": [200, { authenticated: true }],
-  });
-  await page.goto("/clan/?signed_out=1");
-  const signIn = page.getByRole("link", { name: "Sign in with Elixir" });
-  await expect(signIn.first()).toBeVisible();
-  await expect(page).toHaveURL(/signed_out=1/);
-
-  await page.unroute("**/api/**");
+  const calls: string[] = [];
+  page.on("request", (r) => calls.push(new URL(r.url()).pathname));
   await mockApi(page, {
     "GET /api/clan/me": [401, { error: "signed_out" }],
     "GET /api/me": [200, { authenticated: false }],
   });
-  await page.goto("/clan/");
-  await expect(signIn.first()).toBeVisible();
-  await expect(page).toHaveURL(/\/clan\/$/);
+  await page.goto("/clan");
+  await expect(
+    page.getByRole("link", { name: "Sign in with Elixir" }),
+  ).toHaveAttribute("href", "/console/signin");
+  expect(calls.filter((path) => path.startsWith("/api/clan/auth/"))).toEqual(
+    [],
+  );
+  await accessible(page, "shared landing");
 });
 
 test("an unverified Leader: the notice first, then the clan as a member with the way to verify", async ({
@@ -652,7 +660,7 @@ test.describe("signed in", () => {
                 roster,
                 policy: EXAMPLE_POLICY,
                 now: NOW,
-                week,
+                ...(week ? { week } : {}),
               }),
             },
           ];
@@ -772,4 +780,144 @@ test.describe("signed in", () => {
     expect(wide, "no sideways scroll").toBe(false);
     await accessible(page, "narrow you here");
   });
+});
+
+test("one application and account survive Console and Clan navigation at phone, tablet and desktop sizes", async ({
+  page,
+}) => {
+  const requests: {
+    path: string;
+    method: string;
+    client: string | undefined;
+  }[] = [];
+  page.on("request", (r) => {
+    if (new URL(r.url()).pathname.startsWith("/api/"))
+      requests.push({
+        path: new URL(r.url()).pathname,
+        method: r.method(),
+        client: r.headers()["x-elixir-client"],
+      });
+  });
+  await mockApi(page, signedIn());
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 768, height: 1024 },
+    { width: 1280, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/console/account/overview");
+    await page.evaluate(() => {
+      (window as Window & { applicationMarker?: string }).applicationMarker =
+        "same-app";
+    });
+    const clanLink = page
+      .locator("header")
+      .getByRole("link", { name: "Clan", exact: true });
+    if (await clanLink.isVisible()) await clanLink.click();
+    else {
+      await page
+        .getByRole("button", { name: "Product: Console", exact: true })
+        .click();
+      await page
+        .locator("#chrome-sheet")
+        .getByRole("link", { name: "Clan", exact: true })
+        .click();
+    }
+    await expect(page).toHaveURL(/\/clan\/(clans|2PQRJ8LV)$/);
+    expect(
+      await page.evaluate(
+        () =>
+          (window as Window & { applicationMarker?: string }).applicationMarker,
+      ),
+    ).toBe("same-app");
+    if (page.url().endsWith("/clans"))
+      await page.getByText("Example Clan", { exact: true }).first().click();
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV$/);
+    await expect(
+      page.getByRole("button", { name: "Account: Ada", exact: true }),
+    ).toHaveCount(1);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > innerWidth,
+      ),
+      "no sideways scroll",
+    ).toBe(false);
+    await accessible(page, `shared clan ${viewport.width}x${viewport.height}`);
+    const consoleLink = page
+      .locator("header")
+      .getByRole("link", { name: "Console", exact: true });
+    if (await consoleLink.isVisible()) await consoleLink.click();
+    else {
+      await page
+        .getByRole("button", { name: "Product: Clan", exact: true })
+        .click();
+      await page
+        .locator("#chrome-sheet")
+        .getByRole("link", { name: "Console", exact: true })
+        .click();
+    }
+    await expect(page).toHaveURL(/\/console\/account\/overview$/);
+    expect(
+      await page.evaluate(
+        () =>
+          (window as Window & { applicationMarker?: string }).applicationMarker,
+      ),
+    ).toBe("same-app");
+  }
+  expect(requests.some((r) => r.path.startsWith("/api/clan/auth/"))).toBe(
+    false,
+  );
+  const selects = requests.filter(
+    (r) => r.path === "/api/clan/select" && r.method === "POST",
+  );
+  expect(selects.length).toBeGreaterThan(0);
+  expect(selects.every((r) => r.client === "web")).toBe(true);
+});
+
+test("before cutover Clan links leave the Console for the legacy document", async ({
+  page,
+}) => {
+  await mockApi(
+    page,
+    signedIn({
+      "GET /api/me": [200, { ...ACCOUNT, features: { clan_internal: false } }],
+    }),
+  );
+  await page.route("**/clan", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: "<html><body><h1>Legacy Clan door</h1></body></html>",
+    }),
+  );
+  await page.goto("/console/account/overview");
+  await page
+    .locator("header")
+    .getByRole("link", { name: "Clan", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Legacy Clan door" }),
+  ).toBeVisible();
+});
+
+test("already signed-in return links also use the legacy Clan door before cutover", async ({
+  page,
+}) => {
+  await mockApi(
+    page,
+    signedIn({
+      "GET /api/me": [200, { ...ACCOUNT, features: { clan_internal: false } }],
+    }),
+  );
+  await page.route("**/clan", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: "<html><body><h1>Legacy Clan return</h1></body></html>",
+    }),
+  );
+  await page.goto("/console/signin?return_to=/clan");
+  await expect(
+    page.getByRole("heading", { name: "Legacy Clan return" }),
+  ).toBeVisible();
 });

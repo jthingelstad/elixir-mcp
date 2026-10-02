@@ -31,3 +31,18 @@ export function createQueryClient(): QueryClient {
     },
   });
 }
+
+const generations = new WeakMap<QueryClient, number>();
+
+/** Fences direct refresh/mutation cache writes across a new account login. */
+export function sessionGeneration(client: QueryClient): number {
+  return generations.get(client) ?? 0;
+}
+
+export async function resetSessionCache(client: QueryClient): Promise<void> {
+  generations.set(client, sessionGeneration(client) + 1);
+  await client.cancelQueries();
+  client.removeQueries({
+    predicate: (q) => !(q.queryKey.length === 1 && q.queryKey[0] === "me"),
+  });
+}

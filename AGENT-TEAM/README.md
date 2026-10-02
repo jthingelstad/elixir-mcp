@@ -1,6 +1,6 @@
 # AGENT-TEAM — objective owners for Elixir MCP
 
-Five objective owners maintain Elixir MCP. Each owns a durable outcome —
+Four objective owners maintain Elixir. Each owns a durable outcome —
 not a task type — and follows evidence through diagnosis, implementation,
 verification, and production acceptance itself. There is no dispatcher,
 Build Manager, or routing pipeline; building and testing are capabilities

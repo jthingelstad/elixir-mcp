@@ -18,10 +18,4 @@ export default defineConfig({
       "/api/clan": "http://localhost:4320",
     },
   },
-  test: {
-    environment: "jsdom",
-    globals: false,
-    // Playwright's journeys live in e2e/ and run under its own runner.
-    exclude: ["e2e/**", "node_modules/**"],
-  },
 });

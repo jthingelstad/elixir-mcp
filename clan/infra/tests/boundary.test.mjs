@@ -20,6 +20,7 @@ const KIT = new Set([
   "@elixir-mcp/clan-state",
   "@elixir-mcp/clan-engine",
   "@elixir-mcp/clan",
+  "@elixir-mcp/clan-web",
 ]);
 const CODE = /\.(m?js|jsx|ts|tsx)$/;
 const SKIP = new Set([
