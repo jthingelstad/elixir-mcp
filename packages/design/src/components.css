@@ -3708,3 +3708,106 @@ input[aria-invalid="true"] {
     margin: 0 auto;
   }
 }
+
+/* ---------------------------------------------------------------- cards
+   A card as the game draws it (packages/ui Cards.tsx): the mirrored art in
+   the game's 285:420 frame, an Evo or Hero ribbon, and the level under the
+   card. --card-w is the art's width; one tile for every surface. */
+.card-art {
+  --card-w: 64px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: var(--card-w);
+  color: var(--ink-body);
+  text-decoration: none;
+}
+.card-art__frame {
+  position: relative;
+  display: block;
+  width: var(--card-w);
+  aspect-ratio: 285 / 420;
+}
+.card-art__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.card-art__blank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px dashed var(--line-strong);
+  background: var(--panel-raised);
+  font-size: 10.5px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ink-dim);
+}
+.card-art__form {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 6px;
+  height: 15px;
+  line-height: 15px;
+  border-radius: var(--r-pill);
+  color: #160f2e;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.card-art__form--evolution {
+  background: #d946ef;
+}
+.card-art__form--hero {
+  background: #f5c84c;
+}
+.card-art__level {
+  position: relative;
+  margin-top: -9px;
+  padding: 0 6px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 6px;
+  background: var(--ground);
+  border: 1px solid #3a3175;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #ddd7f5;
+}
+.card-art__name {
+  max-width: calc(var(--card-w) + 10px);
+  font-size: 11.5px;
+  line-height: 1.25;
+  text-align: center;
+  color: #ddd7f5;
+}
+a.card-art:hover .card-art__img {
+  filter: brightness(1.08);
+}
+.deck-grid {
+  display: grid;
+  gap: 8px 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  justify-items: center;
+}
+.deck-grid--4 {
+  grid-template-columns: repeat(4, max-content);
+}
+.deck-grid--8 {
+  grid-template-columns: repeat(8, max-content);
+  gap: 4px;
+}
