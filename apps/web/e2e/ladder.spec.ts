@@ -475,3 +475,156 @@ test.describe("Ladder days played", () => {
     await accessible(page, "ladder days narrow");
   });
 });
+
+test.describe("Ladder decks", () => {
+  test("every deck in the mode it was played in: the trophy decks with their cards, a swap of forms, the rest in one table", async ({
+    page,
+  }) => {
+    const calls: ToolCall[] = [];
+    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await page.goto("/ladder/decks");
+
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "Seven decks, three modes",
+      }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle("Decks - Ladder - Elixir MCP");
+    await expect(
+      page
+        .getByRole("navigation", { name: "Ladder sections" })
+        .getByRole("link", { name: "Decks" }),
+    ).toHaveAttribute("aria-current", "page");
+
+    // Trophy Road: the mode's season record in the heading, then each
+    // deck with its eight cards and its own record there.
+    const road = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: /^Trophy Road/ }) });
+    await expect(road.getByRole("heading")).toContainText(
+      "Trophy Road · 35 battles",
+    );
+    await expect(
+      road.getByRole("heading").getByRole("img", { name: "12 won, 23 lost" }),
+    ).toBeVisible();
+    const decks = road.locator(".ladder-deckrow");
+    await expect(decks).toHaveCount(2);
+    const first = decks.nth(0);
+    await expect(first).toContainText("Royal Hogs bridge spam");
+    await expect(first).toContainText(
+      "Evo Witch, Hero Mini P.E.K.K.A, Evo Royal Ghost",
+    );
+    // Days in the account's zone: the last battle, 04:01Z on the 19th,
+    // was the 18th in Chicago.
+    await expect(first).toContainText("Sep 8 – Sep 18 · 3.75 average elixir");
+    await expect(first.locator(".card-art")).toHaveCount(8);
+    await expect(first.getByRole("img", { name: "Evo Witch" })).toBeVisible();
+    await expect(first).toContainText("20 battles");
+    await expect(
+      first.getByRole("img", { name: "8 won, 12 lost" }),
+    ).toBeVisible();
+    await expect(first).toContainText("40%");
+    await expect(first).toContainText("your cards 0.60 levels above theirs");
+    // The second deck's Trophy Road record is its own: its two event
+    // battles are not in it.
+    await expect(
+      decks.nth(1).getByRole("img", { name: "4 won, 11 lost" }),
+    ).toBeVisible();
+
+    // The two Trophy Road decks are the same eight cards with the
+    // evolutions moved, one put down before the other was picked up.
+    const swap = page.locator(".ladder-swap");
+    await expect(swap.getByRole("heading")).toHaveText(
+      "The evolution swap on September 20",
+    );
+    await expect(swap).toContainText("Trophy Road only");
+    const sides = swap.locator(".ladder-swap__side");
+    await expect(sides.nth(0)).toContainText("Before, Sep 8 – Sep 18");
+    await expect(sides.nth(0)).toContainText(
+      "Evolutions on Witch and Royal Ghost",
+    );
+    await expect(sides.nth(0).locator(".card-art")).toHaveCount(2);
+    await expect(sides.nth(1)).toContainText("After, Sep 20 on");
+    await expect(sides.nth(1)).toContainText(
+      "Evolutions moved to Royal Hogs and Cannon",
+    );
+    await expect(
+      sides.nth(1).getByRole("img", { name: "Evo Cannon" }),
+    ).toBeVisible();
+    await expect(sides.nth(2).locator(".card-art")).toHaveCount(4);
+    await expect(swap).toContainText("it does not say the change caused it");
+    // No card on the page is a link.
+    await expect(page.locator("a.card-art")).toHaveCount(0);
+
+    // Every other mode: one row per deck per mode, then the duel rounds.
+    const table = page.locator(".ladder-table");
+    await expect(
+      page.getByRole("heading", { name: "War, duels and events" }),
+    ).toBeVisible();
+    const rows = table.locator("tbody tr");
+    await expect(rows).toHaveCount(7);
+    await expect(rows.nth(0)).toContainText("Evo Mortar siege");
+    await expect(rows.nth(0)).toContainText("War");
+    await expect(rows.nth(0)).toContainText(
+      "Evo Mortar, Evo Giant Snowball · your cards 1.75 levels above theirs",
+    );
+    await expect(
+      rows.nth(0).getByRole("img", { name: "5 won, 4 lost" }),
+    ).toBeVisible();
+    const duel = rows.filter({ hasText: "Evo Skeleton Barrel bait" });
+    await expect(duel).toContainText("War duel");
+    await expect(duel).toContainText("duel rounds");
+    await expect(
+      duel.getByRole("img", { name: "3 won, 7 lost" }),
+    ).toBeVisible();
+    const event = rows.filter({ hasText: "Event" }).first();
+    await expect(event).toContainText("Evo Royal Hogs bridge spam");
+    await expect(
+      event.getByRole("img", { name: "0 won, 2 lost" }),
+    ).toBeVisible();
+    await accessible(page, "ladder decks");
+
+    // One read over every mode, one per mode, one per Trophy Road deck
+    // for its cards; no war deck was read for cards.
+    const reads = calls.filter((c) => c.tool === "battles_decks");
+    expect(
+      reads
+        .filter((c) => !c.args.deck_hash)
+        .map((c) => c.args.mode ?? null)
+        .sort(),
+    ).toEqual(["event", "ladder", "war", null].sort());
+    const full = reads.filter((c) => c.args.deck_hash);
+    expect(full.map((c) => c.args.mode)).toEqual(["ladder", "ladder"]);
+    expect(reads.every((c) => c.args.season === "current")).toBe(true);
+    expect(reads.every((c) => c.args.player_tag === "#20JJJ2CCRU")).toBe(true);
+  });
+
+  test("the season home links to every deck", async ({ page }) => {
+    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await page.goto("/ladder");
+    await page.getByRole("link", { name: "Every deck you played ›" }).click();
+    await expect(page).toHaveURL(/\/ladder\/decks(\?mode=ladder)?$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: /decks,/ }),
+    ).toBeVisible();
+  });
+
+  test("@narrow a deck's cards fall under its record, and nothing scrolls sideways", async ({
+    page,
+  }) => {
+    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await page.goto("/ladder/decks");
+    await expect(page.locator(".ladder-deckrow .card-art")).toHaveCount(16);
+    const grid = page.locator(".ladder-deckrow .deck-grid").first();
+    const columns = await grid.evaluate(
+      (el) => getComputedStyle(el).gridTemplateColumns.split(" ").length,
+    );
+    expect(columns).toBe(4);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+    await accessible(page, "ladder decks narrow");
+  });
+});

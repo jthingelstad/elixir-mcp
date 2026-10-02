@@ -343,6 +343,263 @@ function seasonBattles() {
 }
 const BATTLES = seasonBattles();
 
+/* Decks: the fixture player's season, battles_decks' rows with each
+   mode's own numbers (live answers, 2026-10-02, contract 9.18.1). An
+   every-mode read pools a deck's modes, as the tool does; a mode's read
+   carries only that mode; a deck_hash read adds the cards. */
+type Stat = {
+  battles: number;
+  wins: number;
+  losses: number;
+  gap: number;
+  first: string;
+  last: string;
+};
+interface Deck {
+  hash: string;
+  names: string;
+  label: string;
+  tower: string | null;
+  cards: { id: number; name: string; form: string }[];
+  elixir: number;
+  per: Record<string, Stat>;
+}
+const c = (id: number, name: string, form = "base") => ({ id, name, form });
+const HOGS_CORE = [
+  c(26000012, "Skeleton Army"),
+  c(26000018, "Mini P.E.K.K.A", "hero"),
+  c(26000037, "Inferno Dragon"),
+];
+const DECKS: Deck[] = [
+  {
+    hash: "b2860741bee79ef1a9af7dd990055ad2aaeebdb6685a02d83f114c6a3d46ba9f",
+    names:
+      "Evo Witch, Skeleton Army, Hero Mini P.E.K.K.A, Inferno Dragon, Evo Royal Ghost, Royal Hogs, Cannon, Arrows",
+    label: "Royal Hogs bridge spam",
+    tower: "Tower Princess",
+    cards: [
+      c(26000007, "Witch", "evolution"),
+      ...HOGS_CORE,
+      c(26000050, "Royal Ghost", "evolution"),
+      c(26000059, "Royal Hogs"),
+      c(27000000, "Cannon"),
+      c(28000001, "Arrows"),
+    ],
+    elixir: 3.75,
+    per: {
+      ladder: {
+        battles: 20,
+        wins: 8,
+        losses: 12,
+        gap: 0.6,
+        first: "2026-09-08T05:07:03.000Z",
+        last: "2026-09-19T04:01:25.000Z",
+      },
+    },
+  },
+  {
+    hash: "1eb930078d2540f51c6b93d887a9db6c4d72eda7ad91ef5656a66439465aa4c2",
+    names:
+      "Witch, Skeleton Army, Hero Mini P.E.K.K.A, Inferno Dragon, Royal Ghost, Evo Royal Hogs, Evo Cannon, Arrows",
+    label: "Evo Royal Hogs bridge spam",
+    tower: "Tower Princess",
+    cards: [
+      c(26000007, "Witch"),
+      ...HOGS_CORE,
+      c(26000050, "Royal Ghost"),
+      c(26000059, "Royal Hogs", "evolution"),
+      c(27000000, "Cannon", "evolution"),
+      c(28000001, "Arrows"),
+    ],
+    elixir: 3.75,
+    per: {
+      ladder: {
+        battles: 15,
+        wins: 4,
+        losses: 11,
+        gap: 0.65,
+        first: "2026-09-21T01:04:46.000Z",
+        last: "2026-09-30T02:51:11.000Z",
+      },
+      event: {
+        battles: 2,
+        wins: 0,
+        losses: 2,
+        gap: 0,
+        first: "2026-09-26T19:12:40.000Z",
+        last: "2026-09-26T19:20:02.000Z",
+      },
+    },
+  },
+  {
+    hash: "ce06788aed5c01a8989b4ba549d81bb5c2f2fcdc6a3586859333bab89dd4e8a0",
+    names:
+      "Spear Goblins, Dart Goblin, Bandit, Electro Dragon, Golden Knight, Evo Mortar, The Log, Evo Giant Snowball",
+    label: "Evo Mortar siege",
+    tower: null,
+    cards: [],
+    elixir: 3.5,
+    per: {
+      war: {
+        battles: 9,
+        wins: 5,
+        losses: 4,
+        gap: 1.75,
+        first: "2026-09-11T01:20:56.000Z",
+        last: "2026-10-01T03:21:10.000Z",
+      },
+    },
+  },
+  {
+    hash: "d984fe5a4c6be4c9e34b0d41516fa74e8fb86bb9a62e2f6be645479a93002804",
+    names:
+      "Evo Witch, Skeleton Army, Musketeer, Hero Mini P.E.K.K.A, Inferno Dragon, Evo Royal Ghost, Royal Hogs, Arrows",
+    label: "Royal Hogs bridge spam",
+    tower: null,
+    cards: [],
+    elixir: 3.88,
+    per: {
+      war: {
+        battles: 4,
+        wins: 2,
+        losses: 2,
+        gap: 1.47,
+        first: "2026-09-11T01:26:01.000Z",
+        last: "2026-09-20T04:06:34.000Z",
+      },
+    },
+  },
+  {
+    hash: "5de4903fcfe6cd7b51bdfc71933b1e7157992d6f2c1ba666297400268645a2b2",
+    names:
+      "Skeletons, Evo Valkyrie, Goblin Gang, Wall Breakers, Skeleton King, Cannon, Goblin Barrel, Hero Barbarian Barrel",
+    label: "Goblin Barrel bait",
+    tower: null,
+    cards: [],
+    elixir: 2.75,
+    per: {
+      war: {
+        battles: 2,
+        wins: 1,
+        losses: 1,
+        gap: 0.75,
+        first: "2026-09-21T00:54:44.000Z",
+        last: "2026-09-27T03:44:45.000Z",
+      },
+    },
+  },
+  {
+    hash: "4994458404930b058e3b6d778b8e21741cdc2f969845a5b721a3248ff5af24c6",
+    names:
+      "Evo Bomber, Ice Spirit, Zappies, Skeleton Barrel, Goblin Demolisher, Elixir Collector, Goblin Cage, Graveyard",
+    label: "Graveyard control",
+    tower: "Tower Princess",
+    cards: [],
+    elixir: 3.38,
+    per: {
+      event: {
+        battles: 1,
+        wins: 0,
+        losses: 1,
+        gap: 0,
+        first: "2026-09-12T14:54:58.000Z",
+        last: "2026-09-12T14:54:58.000Z",
+      },
+    },
+  },
+];
+const GOBLIN = DECKS[4] as Deck;
+const DUELS = [
+  {
+    deck_hash:
+      "fe30a6ff6aab1d06d80a2b7486833fe2a19914eb3fc162e9c8afdc6323213e86",
+    card_names:
+      "Minions, Bomber, Hog Rider, Guards, Evo Skeleton Barrel, Boss Bandit, Evo Furnace, Royal Delivery",
+    archetype_label: "Evo Skeleton Barrel bait",
+    rounds: 10,
+    wins: 3,
+    losses: 7,
+    first_used: "2026-09-11T01:17:13.000Z",
+    last_used: "2026-10-01T03:17:24.000Z",
+  },
+  {
+    deck_hash: GOBLIN.hash,
+    card_names: GOBLIN.names,
+    archetype_label: GOBLIN.label,
+    rounds: 8,
+    wins: 3,
+    losses: 5,
+    first_used: "2026-09-11T01:17:13.000Z",
+    last_used: "2026-10-01T03:17:24.000Z",
+  },
+];
+
+/** One deck's row as battles_decks returns it, over `modes`. */
+function deckRow(d: Deck, modes: string[], full: boolean) {
+  const stats = modes.map((m) => d.per[m]).filter(Boolean) as Stat[];
+  const sum = (k: "battles" | "wins" | "losses") =>
+    stats.reduce((a, s) => a + s[k], 0);
+  const battles = sum("battles");
+  const gap =
+    stats.reduce((a, s) => a + s.gap * s.battles, 0) / Math.max(1, battles);
+  return {
+    deck_hash: d.hash,
+    card_names: d.names,
+    archetype_label: d.label,
+    tower_troop_name: d.tower,
+    ...(full
+      ? {
+          cards: d.cards,
+          archetype: { label: d.label, average_elixir: d.elixir },
+        }
+      : {}),
+    battles,
+    wins: sum("wins"),
+    losses: sum("losses"),
+    draws: 0,
+    win_rate: Math.round((sum("wins") / battles) * 1000) / 1000,
+    modes: Object.fromEntries(
+      Object.entries(d.per)
+        .filter(([m]) => modes.includes(m))
+        .map(([m, s]) => [
+          m,
+          { battles: s.battles, wins: s.wins, losses: s.losses },
+        ]),
+    ),
+    dominant_mode: modes.find((m) => d.per[m]),
+    mean_level_gap: Math.round(gap * 100) / 100,
+    first_used: stats.map((s) => s.first).sort()[0],
+    last_used: stats
+      .map((s) => s.last)
+      .sort()
+      .at(-1),
+  };
+}
+
+function battlesDecks(args: Record<string, unknown>) {
+  const mode = args.mode ? String(args.mode) : null;
+  const modes = mode ? [mode] : ["ladder", "ranked", "war", "event"];
+  const hash = args.deck_hash ? String(args.deck_hash) : null;
+  const rows = DECKS.filter((d) => modes.some((m) => d.per[m]))
+    .filter((d) => !hash || d.hash === hash)
+    .map((d) => deckRow(d, modes, Boolean(hash)))
+    .sort((a, b) => b.battles - a.battles);
+  const duels = !mode || mode === "war" ? DUELS : [];
+  return {
+    player_tag: args.player_tag,
+    applied: { ...APPLIED, mode, sort: "battles", limit: args.limit ?? 40 },
+    total_battles_in_window: rows.reduce((a, r) => a + r.battles, 0),
+    total_decks: rows.length,
+    next_offset: null,
+    excluded: { duels: duels.length ? 10 : 0, no_deck: 0 },
+    comparable: Boolean(mode),
+    decks: rows,
+    duel_decks: hash ? duels.filter((d) => d.deck_hash === hash) : duels,
+    notes: [],
+    meta: META,
+  };
+}
+
 export interface ToolCall {
   tool: string;
   args: Record<string, unknown>;
@@ -380,6 +637,7 @@ export function explore(
         meta: META,
       });
     }
+    if (tool === "battles_decks") return ok(battlesDecks(args));
     if (tool === "battles_performance") {
       const mode = String(args.mode ?? "ladder");
       const base = {

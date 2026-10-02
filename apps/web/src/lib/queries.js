@@ -14,7 +14,7 @@
  * branches on the status itself; those use answered() and keep the
  * envelope.
  */
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { answered, unwrap } from "@elixir-mcp/client";
 import { api } from "../api.js";
 import { useScope } from "./scope.js";
@@ -349,6 +349,21 @@ export const useToolRead = (tool, args, { enabled = true } = {}) =>
     enabled,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
+  });
+
+/** Several reads of one tool, one query each (a page that reads one
+ *  answer per mode, or one per deck it shows). Each is cached under the
+ *  key useToolRead would use, so a read one page made is not made again
+ *  by the next. */
+export const useToolReads = (tool, list, { enabled = true } = {}) =>
+  useQueries({
+    queries: list.map((args) => ({
+      queryKey: ladderKey(tool, args),
+      queryFn: () => toolRead(tool, args),
+      enabled,
+      staleTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+    })),
   });
 
 /** The most pages one sweep reads: 12 of 50 is the newest 600 battles,

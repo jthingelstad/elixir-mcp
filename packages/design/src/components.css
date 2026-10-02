@@ -5357,6 +5357,133 @@ button.ladder-player__head:hover {
   width: 64px;
 }
 
+/* Decks (LadderDecks.dc.html): each deck in the mode it was played in,
+   its eight cards in one strip, its record and level gap beside them;
+   a swap of forms between two decks of the same cards; every other
+   mode's decks as rows of one table. */
+.ladder-decks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ladder-deckrow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line-row);
+}
+.ladder-deckrow:last-child {
+  border-bottom: 0;
+}
+.ladder-deckrow__id {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 210px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+.ladder-deckrow__id p,
+.ladder-deckrow__names {
+  margin: 0;
+}
+.ladder-deckrow__name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.ladder-deckrow__forms,
+.ladder-deckrow__names {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+.ladder-deckrow__when {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.ladder-deckrow__cards {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ladder-deckrow__facts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  width: 240px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.ladder-deckrow__n,
+.ladder-deckrow__gap {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.ladder-deckrow__record {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ladder-swap__body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.ladder-swap__side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--r-control);
+  background: var(--ground-sunken);
+}
+.ladder-swap__side p {
+  margin: 0;
+}
+.ladder-swap__when {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+.ladder-swap__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ladder-swap__what {
+  font-size: 13px;
+}
+.ladder-swap__record {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+.ladder-swap__record .ladder-record {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.ladder-table__deck {
+  font-weight: 500;
+  color: var(--ink);
+}
+.ladder-table .ladder-table__num {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+.ladder-table td.ladder-table__notes {
+  min-width: 220px;
+  white-space: normal;
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+.ladder-table__unit {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .ladder-tiles {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5427,5 +5554,79 @@ button.ladder-player__head:hover {
   }
   .ladder-night__battles {
     padding: 0 14px 10px;
+  }
+  /* A deck reads down: its name, its cards in two rows of four, then
+     its record on one line. */
+  .ladder-deckrow {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px;
+  }
+  .ladder-deckrow__id,
+  .ladder-deckrow__cards {
+    width: 100%;
+  }
+  .ladder-deckrow__facts {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    width: 100%;
+    text-align: left;
+  }
+  .ladder-deckrow .deck-grid--8 {
+    grid-template-columns: repeat(4, max-content);
+    gap: 8px 6px;
+  }
+  .ladder-swap__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* The table's rows become blocks: the deck and its record, the mode
+     and its battles, then the notes, with no sideways scroll. */
+  .ladder-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .ladder-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "deck record"
+      "mode battles"
+      "notes notes";
+    gap: 4px 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line-row);
+  }
+  .ladder-table td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+  .ladder-table td.ladder-table__deck {
+    grid-area: deck;
+    white-space: normal;
+  }
+  .ladder-table td.ladder-table__mode {
+    grid-area: mode;
+  }
+  .ladder-table td.ladder-table__num {
+    grid-area: battles;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+  }
+  .ladder-table td.ladder-table__record {
+    grid-area: record;
+    text-align: right;
+  }
+  .ladder-table td.ladder-table__notes {
+    grid-area: notes;
+    min-width: 0;
+  }
+  .ladder-table__unit {
+    display: inline;
   }
 }
