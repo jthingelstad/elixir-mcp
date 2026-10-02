@@ -361,6 +361,7 @@ export async function rollupSynergy(
        from ${participantGamesSql("recent_participants")} bp
        where bp.battle_time >= $1 and bp.battle_time < $2
          and bp.outcome in ('win', 'loss') and bp.type_class = 'pvp' ${typeClause} ${bandClause}
+         and bp.deck_hash in (select deck_hash from anchored)
          and not exists (
            select 1 from meta_season_pop cached, population_state
             where cached.season_month = $4
