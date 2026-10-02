@@ -1,7 +1,7 @@
 # AGENT-TEAM operating model
 
-Elixir MCP is maintained by five objective owners (Elixir Operator, Elixir
-Data Auditor, Elixir Feedback Manager, Elixir Security Reviewer, Elixir Rankings Analyst). An objective owner is
+Elixir is maintained by four objective owners (Elixir Operator, Elixir
+Data Auditor, Elixir Feedback Manager, Elixir Security Reviewer). An objective owner is
 accountable for an outcome, not a type of task or a directory of code.
 It follows evidence through diagnosis, implementation, verification, and
 production acceptance rather than handing steps to another role.

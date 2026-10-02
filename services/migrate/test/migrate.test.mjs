@@ -112,121 +112,13 @@ test("core invariants hold", async () => {
   }
 });
 
-test("stats exposes board cadence and ranking-presence readiness", async () => {
+test("stats describes recorder health without retired global-board readiness", async () => {
   const out = await stats(SCRATCH_URL);
-  const health = out.ranking_health;
-  assert.equal(typeof health.enabled_locations, "number");
-  assert.equal(typeof health.fresh_locations, "number");
-  assert.equal(typeof health.stale_locations, "number");
-  assert.equal(typeof health.global_tick_receipts, "number");
-  assert.equal(typeof health.ranking_recordings, "number");
-  assert.equal(typeof health.empty_locations, "number");
-  assert.equal(typeof health.not_found_locations, "number");
-  assert.equal(
-    health.enabled_locations,
-    health.fresh_locations + health.stale_locations,
-  );
+  assert.equal(Object.hasOwn(out, "ranking_health"), false);
+  assert.equal(typeof out.players, "number");
+  assert.equal(typeof out.battles, "number");
   assert.equal(out.fetch_errors_24h.total, 0);
   assert.deepEqual(out.fetch_errors_24h.by_endpoint, []);
-});
-
-// Review 2026-09-27 §4.5 (#69): an empty board is admitted but writes no
-// snapshot, so measuring freshness from snapshots alone called every
-// board the API serves empty "stale". Freshness is the admission now.
-test("ranking_health counts an admitted empty board fresh and splits out the 404s", async () => {
-  const db = new pg.Client({ connectionString: SCRATCH_URL });
-  await db.connect();
-  const [snap, empty, gone, never] = [
-    "57000249",
-    "57000006",
-    "57000007",
-    "57000008",
-  ];
-  try {
-    const before = (await stats(SCRATCH_URL)).ranking_health;
-    const {
-      rows: [account],
-    } = await db.query(
-      `insert into account (email_hash, status) values ('ranking-health', 'approved')
-       returning account_id`,
-    );
-    const {
-      rows: [gateway],
-    } = await db.query(
-      `insert into gateway (owner_account_id, name, static_ip, status)
-       values ($1, 'ranking-health-gw', '127.0.0.9', 'active')
-       returning gateway_id`,
-      [account.account_id],
-    );
-    await db.query(
-      `update ranking_board set enabled = true
-       where board = 'pol' and location_key = any($1)`,
-      [[snap, empty, gone, never]],
-    );
-    // A board with entries, read an hour ago: a snapshot and an admission.
-    await db.query(
-      `insert into ranking_snapshot (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries)
-       values ('pol', $1, '2026-09', now() - interval '1 hour', now() - interval '1 hour', 'rh-snap', 12)`,
-      [snap],
-    );
-    // An empty board: admitted an hour ago, and its only snapshot is old.
-    await db.query(
-      `insert into ranking_snapshot (board, location_key, season_month, observed_at, last_confirmed_at, content_hash, entries)
-       values ('pol', $1, '2026-09', now() - interval '5 days', now() - interval '5 days', 'rh-empty', 3)`,
-      [empty],
-    );
-    await db.query(
-      `insert into poll_state (subject_tag, endpoint, last_admitted_at)
-       values ($1, 'rankings_pol', now() - interval '1 hour'),
-              ($2, 'rankings_pol', now() - interval '1 hour'),
-              ($3, 'rankings_pol', now() - interval '3 days')
-       on conflict (subject_tag, endpoint)
-         do update set last_admitted_at = excluded.last_admitted_at`,
-      [snap, empty, gone],
-    );
-    // A board the API now answers 404 for, after its last admission.
-    await db.query(
-      `insert into collector_fetch_error
-         (gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
-       values ($1, 'rankings_pol', $2, now() - interval '2 hours', 404, 'http')`,
-      [gateway.gateway_id, gone],
-    );
-
-    const after = (await stats(SCRATCH_URL)).ranking_health;
-    // Each of the four boards was counted before too; only its bucket moves.
-    const moved = (k) => after[k] - before[k];
-    assert.equal(after.enabled_locations, before.enabled_locations);
-    assert.equal(
-      after.enabled_locations,
-      after.fresh_locations + after.stale_locations,
-    );
-    assert.equal(
-      moved("fresh_locations"),
-      2,
-      "the snapshot and the empty board",
-    );
-    assert.equal(
-      moved("empty_locations"),
-      1,
-      "admitted, but no snapshot in 26 h",
-    );
-    assert.equal(moved("stale_locations"), -2);
-    assert.equal(moved("not_found_locations"), 1, "the 404 after admission");
-    assert.equal(moved("snapshot_fresh_locations"), 1, "the old measure");
-  } finally {
-    await db.query(
-      `delete from ranking_snapshot where content_hash in ('rh-snap', 'rh-empty')`,
-    );
-    await db.query(
-      `delete from poll_state where endpoint = 'rankings_pol' and subject_tag = any($1)`,
-      [[snap, empty, gone, never]],
-    );
-    await db.query(
-      `delete from collector_fetch_error where endpoint = 'rankings_pol' and entity_key = $1`,
-      [gone],
-    );
-    await db.end();
-  }
 });
 
 test("stats groups bounded non-200 collector outcomes by endpoint", async () => {

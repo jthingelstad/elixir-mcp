@@ -6,6 +6,85 @@ import {
   RECORDING_CUTOVER_LOCK,
 } from "@elixir-mcp/ledger";
 
+/** Retire the former board sync key, never its owner or sibling credentials. */
+async function retireBoardCredential(db, spec) {
+  if (!spec || typeof spec !== "object" || Array.isArray(spec))
+    throw new Error("board credential retirement needs a specification");
+  const apply = spec.apply === true;
+  if (apply && !/^[1-9][0-9]*$/.test(String(spec.expected_token_id ?? "")))
+    throw new Error("board credential retirement needs its exact token id");
+  await db.query("begin");
+  try {
+    if (apply)
+      await db.query("select pg_advisory_xact_lock(hashtext($1))", [
+        RECORDING_CUTOVER_LOCK,
+      ]);
+    const rows = (
+      await db.query(
+        `select t.token_id,t.name,t.account_id,t.audience,t.created_at,t.last_used_at,t.revoked_at,
+              a.public_id as account_ref,a.role as account_role
+       from service_token t join account a using(account_id)
+       where t.name='collection-updater' and ($1::bigint is null or t.token_id=$1)
+       order by t.token_id desc for update of t`,
+        [apply ? spec.expected_token_id : null],
+      )
+    ).rows;
+    const publicMetadata = (token) =>
+      Object.fromEntries(
+        Object.entries(token).filter(([key]) => key !== "account_id"),
+      );
+    if (!apply) {
+      await db.query("rollback");
+      return { credentials: rows.map(publicMetadata), applied: false };
+    }
+    const token = rows[0];
+    const metadata = token ? publicMetadata(token) : null;
+    if (
+      !token ||
+      String(token.token_id) !== String(spec.expected_token_id) ||
+      token.audience !== "mcp"
+    )
+      throw new Error("board credential changed; read it again");
+    if (
+      (
+        await db.query(
+          "select 1 from ranking_board where enabled or record_top <> 0 or reread_at is not null limit 1",
+        )
+      ).rowCount
+    )
+      throw new Error("global boards must retire before their sync credential");
+    const changed = await db.query(
+      "update service_token set revoked_at=now() where token_id=$1 and revoked_at is null returning revoked_at",
+      [token.token_id],
+    );
+    if (changed.rowCount)
+      await db.query(
+        "insert into account_event(account_id,kind,detail) values($1,'service_token_revoked',$2::jsonb)",
+        [
+          token.account_id,
+          JSON.stringify({
+            token_id: String(token.token_id),
+            name: token.name,
+            by: "operator",
+            reason: "global board capture retired",
+          }),
+        ],
+      );
+    await db.query("commit");
+    return {
+      credential: {
+        ...metadata,
+        revoked_at: changed.rows[0]?.revoked_at ?? token.revoked_at,
+      },
+      applied: true,
+      revoked: changed.rowCount,
+    };
+  } catch (error) {
+    await db.query("rollback").catch(() => {});
+    throw error;
+  }
+}
+
 /** Bounded reversible capture cutover. No game facts, membership provenance
  * or archived payloads are removed. Preview uses the same reason evaluator. */
 export async function retireBoardRecordings(
@@ -25,6 +104,8 @@ export async function retireBoardRecordings(
   const db = suppliedDb ?? new pg.Client({ connectionString: databaseUrl });
   if (!suppliedDb) await db.connect();
   try {
+    if (spec.credential !== undefined)
+      return await retireBoardCredential(db, spec.credential);
     const { rows } = await db.query(
       `select subject_type, subject_tag, subject_type || ':' || subject_tag as cursor
        from recording where status = 'active'

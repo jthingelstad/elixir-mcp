@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Completing the board recorder retirement",
+    body: "The old board updater credential has a separate retirement check that preserves the account and its other connections. Live-read documentation now describes only the personal and clan recorder. Global game history still awaits the reviewed purge. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "Preparing Clan’s account cutover",
     body: "Clan’s separate sign-in can now retire after its records are transferred and its shared Elixir runtime is active. The transition checks prevent an in-flight sign-in from issuing a usable grant after retirement. Drop keeps Elixir sign-in and authorized account access. Contracts unchanged.",
   },

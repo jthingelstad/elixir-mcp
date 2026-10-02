@@ -552,7 +552,7 @@ in its hint.
   forged or stale cursor is `bad_request`. `elixir_timeline` uses instants:
   `from`/`to`, and `next_cursor` is the window end you just read.
 - **`live: true`** on `players_profile`, `clans_roster`, `war_current`,
-  `battles_query` and the board tools asks for a read no older than the
+  `battles_query` asks for a read no older than the
   API's cache. Asynchronous (1.7.0): fresh if in hand, otherwise queued
   and answered now from the record with `live_status: { state:
   "pending", retry_after_s }`; call again after that. A new live read

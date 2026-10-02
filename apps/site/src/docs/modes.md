@@ -80,8 +80,7 @@ The battle and card tools take `mode`, one group at a time:
 and `clans_standings`. Ask your agent for "my Path of
 Legends this week" and it passes `mode: "ranked"`; the
 [glossary](/docs/glossary) has the words people use for each. Omitting
-`mode` means every mode, and the note above. The meta tools have no
-event meta, and say so when asked for one.
+`mode` means every mode, and the note above.
 
 The JSON API's battle list (`GET /players/{tag}/battles`) takes no mode
 yet: it returns recent battles across every mode, each row naming its

@@ -68,7 +68,7 @@ API key and posts it back; the fleet the recorder runs on. See
 
 **live lane** — the one path that reaches the Clash Royale API at read time:
 `live_fetch`, and `live: true` on `players_profile`, `clans_roster`,
-`war_current`, `battles_query` and the board tools. Asynchronous: a fresh
+`war_current`, `battles_query`. Asynchronous: a fresh
 read is served if in hand, otherwise queued for the next collector and
 answered from the record with `live_status`. Capped per day by tier.
 
@@ -89,8 +89,8 @@ battles.
 
 **duel** — a river-race duel of up to three games, recorded as one row:
 crowns summed, `deck_hash` null, decks under `deck.rounds[]`. Each round is
-also a game of its own, with its own deck and result, and the meta and
-war-deck tools count it as one (`duel_rounds`, 9.11.0).
+also a game of its own, with its own deck and result. The record keeps
+each round’s deck identity and outcome.
 
 **boat battle** — a river-race battle at a boat, `type_class: "boat"`. A
 boat **attack** (the member attacking a rival's boat defense) is the member's
@@ -260,12 +260,10 @@ tool uses, and the API's per-rarity cap that only `live_fetch` payloads show.
 
 **deck_selection** — how the deck a battle was played with was chosen:
 `collection` is the player's own deck, and `warDeckPick` a river-race duel
-deck the player picked from their own war decks; both are decks the player
-chose, and the meta population keeps them. `draft`, `draftCompetitive`,
-`pick`, `predefined` and the like are decks handed out or drafted on the
-spot, which have a `deck_hash` but no identity the player will play again,
-and sit outside the meta. On `battles_query` rows (inside `context` at full
-verbosity).
+deck picked from their own war decks. `draft`, `draftCompetitive`, `pick`,
+`predefined` and the like describe decks handed out or drafted for that
+battle. The recorded value appears inside `context` on full-verbosity
+`battles_query` rows.
 
 ## Principals and the service
 
@@ -307,13 +305,12 @@ the tool actually used them. Read it before quoting a bound.
 **control** — the field beside a number that says what population produced
 it: a row's `modes` (battles per mode group) and `dominant_mode`,
 `mean_level_gap` and `level_gap_battles`, `trophy_floor`, `partial` with
-`covers` on a clipped week or month, `population` on a corpus read,
-`comparable` on a ranked list. One module computes them for every tool,
+`covers` on a clipped week or month, `comparable` on a ranked list. One module computes them for every tool,
 and a note fires only when a control detects a confound. See
 [Methodology](/docs/methodology).
 
 **comparable** — `false` on a ranked list (`clans_standings`,
-`battles_decks`, the meta tools) when two rows were played in different
+`battles_decks`) when two rows were played in different
 modes (each at least 60% in its own) or against level gaps half a level
 apart, with the note naming the pair; rank within one mode and similar
 gaps, or pass `mode`.
@@ -322,11 +319,8 @@ gaps, or pass `mode`.
 the floor costs nothing (`trophy_change` null), so `net_trophies` counts
 wins in full and those losses at zero. `trophy_floor` names the floor, the
 arena and the losses it absorbed; `floored: true` is the tell. The rating
-floor on a Path of Legends board (`floor_rating`) is a different floor: the
-last placed player's rating — a rating floor while the board holds fewer
-than its 1,000 places (`snapshot.full: false`), and once it is full the
-1,000th place's rating, a cutoff that rises with play rather than a
-threshold anyone qualifies against.
+floor in historical global-board records is outside Elixir’s current recorder
+scope; global board capture and history tools have retired.
 
 **manifest** — the recorder's declaration of what every key of every API
 payload becomes: the table and column it lands in, a derived value, or a

@@ -19,66 +19,6 @@ export async function stats(databaseUrl) {
       war_anchors: `select count(*)::int n from war_period_anchor`,
       receipts_by_endpoint: `select json_object_agg(endpoint, n) n from (
          select endpoint, count(*)::int n from api_receipt group by endpoint) x`,
-      // Keep the boards objective on its approved read path: no production
-      // SQL from an operator shell just to establish that every daily board
-      // landed, that the reset tick was singular, and that ranking presence
-      // is still holding its promised field.
-      //
-      // A location board is FRESH when poll_state says a read was admitted
-      // in the last 26 hours. It used to be measured from snapshots alone,
-      // but an empty board is valid and admitted and writes or confirms no
-      // snapshot (rankings.mjs), so every location the API serves empty
-      // read as stale: the "90 stale regional boards" Keep the Boards
-      // reported from 09-14 (review 2026-09-27 §4.5, #69). Of the fresh,
-      // `empty_locations` have no snapshot confirmed in the window (every
-      // admitted read was empty); of the stale, `not_found_locations` last
-      // heard a 404 after their last admission (the planner's not-found
-      // hold). `snapshot_fresh_locations` is the old measure, kept beside it.
-      ranking_health: `with latest as (
-         select distinct on (b.location_key) b.location_key,
-                greatest(s.observed_at, s.last_confirmed_at) as confirmed_at,
-                s.observed_at, s.last_confirmed_at, s.entries, s.truncated
-         from ranking_board b
-         left join ranking_snapshot s
-           on s.board = b.board and s.location_key = b.location_key
-         where b.board = 'pol' and b.enabled
-         order by b.location_key, s.observed_at desc nulls last
-       ), locations as (
-         select l.*,
-                coalesce(ps.last_admitted_at >= now() - interval '26 hours', false) as fresh,
-                coalesce(l.confirmed_at >= now() - interval '26 hours', false) as snapshot_fresh,
-                (select max(e.fetched_at) from collector_fetch_error e
-                  where e.endpoint = 'rankings_pol' and e.entity_key = l.location_key
-                    and e.http_status = 404)
-                  > coalesce(ps.last_admitted_at, 'epoch') as not_found
-         from latest l
-         left join poll_state ps
-           on ps.endpoint = 'rankings_pol' and ps.subject_tag = l.location_key
-         where l.location_key <> 'global'
-       )
-       select json_build_object(
-         'enabled_locations', (select count(*)::int from locations),
-         'fresh_locations', (select count(*)::int from locations where fresh),
-         'empty_locations', (select count(*)::int from locations
-           where fresh and not snapshot_fresh),
-         'stale_locations', (select count(*)::int from locations where not fresh),
-         'not_found_locations', (select count(*)::int from locations
-           where not fresh and coalesce(not_found, false)),
-         'snapshot_fresh_locations', (select count(*)::int from locations
-           where snapshot_fresh),
-         'global_tick_receipts', (select count(*)::int from api_receipt
-           where endpoint = 'rankings_pol' and entity_key = 'global'
-             and fetched_at >= date_trunc('day', now()) + interval '10 hours'
-             and fetched_at < date_trunc('day', now()) + interval '10 hours 15 minutes'),
-         'ranking_recordings', (select count(*)::int from recording
-           where status = 'active' and origin = 'ranking'),
-         'global_snapshot', (select json_build_object(
-           'observed_at', observed_at,
-           'unchanged_until', last_confirmed_at,
-           'entries', entries,
-           'truncated', truncated)
-           from latest where location_key = 'global')
-       ) n`,
       audit_calls: `select count(*)::int n from mcp_call_audit`,
       // The collector-side filter's effect, last hour (0074): polls that
       // carried counts, what they saw, what never crossed the wire.
@@ -606,31 +546,12 @@ export async function probe(databaseUrl) {
         where window_end > now() - interval '24 hours'
         group by event_type order by event_type`,
     );
-    // Pros-collection capture ramp: recording coverage and 24h battle
-    // flow for every member of the 'pros' collection.
-    const { rows: pros } = await db.query(
-      `select count(*)::int as members,
-              count(*) filter (where r.subject_tag is not null)::int as recording,
-              count(*) filter (where b24.n > 0)::int as active_24h,
-              coalesce(sum(b24.n), 0)::int as battles_24h
-       from collection c
-       join collection_member m on m.collection_id = c.collection_id
-       left join recording r on r.subject_type = 'player'
-         and r.subject_tag = m.subject_tag and r.status = 'active'
-       left join lateral (
-         select count(*)::int as n from battle_participant bp
-         join battle b on b.battle_id = bp.battle_id
-         where bp.player_tag = m.subject_tag
-           and b.battle_time > now() - interval '24 hours') b24 on true
-       where c.slug = 'pros'`,
-    );
     return {
       hours: rows,
       war_calendar_7d: stamps,
       level_census: { window: "24h", ...levels[0] },
       rival_census: rivals[0],
       ledger_census: feed,
-      pros_census: pros[0],
     };
   } finally {
     await db.end();
