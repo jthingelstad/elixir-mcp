@@ -3498,3 +3498,11 @@ The last retired-table readers and one-time purge operations are no longer
 deployed. The fresh canonical gate, including the three contract scratch
 cases, passed. Retained-table vacuum uses the new explicit allowlist and
 finishes before the schema deploy takes the migrate slot.
+
+
+All 21 retained-allowlist tables completed post-delete VACUUM (ANALYZE)
+under the shared lease, after the PR #239 deploy and before this contract's
+production migration. Together with the seven earlier core tables, all 28
+retained maintenance targets are complete. No table rewrite, VACUUM FULL,
+instance resize or additional deletion was used. PR #240 carries only the
+empty-table contract, its preservation/refusal tests and documentation.

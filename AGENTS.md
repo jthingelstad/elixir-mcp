@@ -10,7 +10,8 @@ recommendations over a smaller population. `docs/DECISIONS.md` records
 Jamie's confirmed scope; `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md`
 is the engineering removal plan. The approved historical database and archive
 purge has completed with retained-history and exact-version absence proofs.
-Final vacuum, runtime cleanup and later empty-table contract remain required.
+Post-delete vacuum and runtime cleanup are complete. The separately ordered
+empty-table contract is migration 0199, after the last readers retired.
 Status and verification receipts live in `docs/NOTES.md`.
 Preserve retained personal/clan history and do not restore retired scope.
 
