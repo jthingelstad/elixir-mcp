@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-03",
+    title: "Rookie awards follow the first clan season",
+    body: "Rookie ranks the season's first joins by the same points and donation tiebreaks as the points podium. Joining in an earlier season without playing war does not extend Rookie eligibility, and a returning stint does not reset the first join. Existing closed awards stay recorded. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "Narrow Clan draft existence checks",
     body: "The draft worker confirms missing replies and claims inside their own storage paths while retaining failures for genuinely denied objects. Existing replies and one-time claims still prevent duplicate model calls. Contracts unchanged.",
   },

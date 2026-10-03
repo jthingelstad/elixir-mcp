@@ -3873,3 +3873,23 @@ rule question, separate from a hold caused by unknown previous-season points.
 Historical manual-grant reconciliation, existing stale Actions decisions,
 co-leaders' own sign-in/verification and a new paid drafting attempt remain
 separate live checks; none was manufactured or changed for verification.
+
+## 2026-10-03 — Rookie follows the first clan season
+
+The parent restated Jamie's explicit ranking requirement: the same season-points
+ranking, restricted to the first clan season. While Jamie is away and has
+authorized continued work, use that definition rather than waiting on the
+optional old exception question. The first recorded join must fall within the
+selected observed season, bounded by its start and the next observed start or
+recorded final close. Joining an earlier season without war no longer extends
+Rookie eligibility; a rejoin keeps its original first join. Ranking, donation
+tiebreaks and shared places use the existing points engine unchanged.
+
+Unknown eligible current-season points still hold the award. Unknown prior
+points from an earlier-season join no longer hold it because that member is
+outside the eligible group. Pre-record joins keep their conservative exclusion,
+and existing saved closed grants remain authoritative. No historical data,
+grant, model use or in-game message is manufactured for verification. This is
+private Clan behavior with no migration, permission or public contract change.
+Focused boundary, ranking, tie, unknown-data and saved-grant tests and the full
+gate will verify it before release; current production still has the old rule.

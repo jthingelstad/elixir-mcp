@@ -9,6 +9,8 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 
 ## Product and scope
 
+- **Rookie's first clan season** — the season-points podium's ranking, donation tiebreaks and shared places, restricted to the first recorded clan join within the selected observed season. A prior-season join with no war does not extend eligibility and a returning stint does not reset it. Unknown current counters still hold a decision; irrelevant previous counters do not. Saved grants stay final. Supersedes the pending prior-season/no-war exception in the Actions/Awards review. (2026-10-03; Jamie's first-clan-season requirement, engineering alignment)
+
 - **Clan Actions and Awards review** — Awards belongs under Clan for all members with one season selected, while management role gates remain. Weekly/current progress uses one Action with explicit per-message sent receipts; copy never certifies delivery and current updates grant nothing. Weekly automation uses only the newest timely closed week and never backfills historical weeks. Preserve saved decisions and historical plans; welcome copy may use only recorded fresh career or explicit return evidence. Actions processing reads saved suggestions with an explicit refresh. Rookie eligibility retains its saved rule pending clarification. (2026-10-03; Jamie's Actions/Awards review)
 
 The 2026-10-02 right-sizing lines set the new direction. Rules for features

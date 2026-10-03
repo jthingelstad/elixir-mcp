@@ -86,7 +86,7 @@ export const AWARD_KINDS = {
   },
   rookie_podium: {
     title: "Rookie podium",
-    rule: "The season points podium among members in their FIRST war season here: joined during this season, or joined during the previous one without playing a war day in it, as far as the record shows. A member whose join predates the record is never a rookie.",
+    rule: "The season points podium among members whose FIRST recorded join to this clan falls during this season. A previous-season join does not qualify, even without war points then; a returning stint does not reset the first join. A member whose join predates the record is never a rookie.",
     computed: true,
     params: {
       podium: {
@@ -461,29 +461,16 @@ function attendance(participation, m, season, params) {
 
 function rookieFilter(participation, seasons, season) {
   const idx = seasons.indexOf(season);
-  const previous = idx > 0 ? seasons[idx - 1] : null;
   const seasonStart = season.weeks[0].started;
-  const viewStart = participation.war_weeks.length
-    ? Math.min(
-        ...participation.war_weeks
-          .map((w) =>
-            w.started_observed_at ? Date.parse(w.started_observed_at) : null,
-          )
-          .filter((t) => t !== null),
-      )
-    : null;
+  const nextStart = seasons[idx + 1]?.weeks[0].started ?? null;
+  const end =
+    nextStart ?? (season.closed_at ? Date.parse(season.closed_at) : Infinity);
   return (m) => {
     if (!m.tenure_known || !m.first_joined_at) return false;
     const joined = Date.parse(m.first_joined_at);
     if (joined <= Date.parse(participation.first_roster_observed_at))
       return false;
-    if (seasonStart !== null && joined >= seasonStart) return true;
-    if (!previous || viewStart === null || joined < viewStart) return false;
-    // Joined during the previous season without a war day played in it.
-    const playedBefore = previous.weeks.some(
-      (w) => (m.war_points?.[w.i] ?? 0) > 0,
-    );
-    return joined >= previous.weeks[0].started && !playedBefore;
+    return seasonStart !== null && joined >= seasonStart && joined < end;
   };
 }
 
@@ -619,24 +606,11 @@ export function evaluateAwards({
         award.kind,
       );
       const donationKind = pointsKind || award.kind === "donations_podium";
-      const previous = seasons[seasons.indexOf(season) - 1];
       const filter =
         award.kind === "rookie_podium"
           ? rookieFilter(participation, seasons, season)
           : () => true;
       const contenders = members.filter(filter);
-      const unknownRookie =
-        award.kind === "rookie_podium" &&
-        previous &&
-        members.some(
-          (m) =>
-            filter(m) &&
-            m.first_joined_at &&
-            Date.parse(m.first_joined_at) >= previous.weeks[0].started &&
-            Date.parse(m.first_joined_at) < season.weeks[0].started &&
-            !previous.weeks.some((w) => m.war_points?.[w.i] > 0) &&
-            (!previous.complete || missingPoints(participation, m, previous)),
-        );
       // Donations only affect equal-point ordering at the podium. A missing
       // donation counter for a zero-point or out-of-contention member cannot
       // invalidate a points podium whose ordering is already proven.
@@ -663,8 +637,7 @@ export function evaluateAwards({
             (m) =>
               needsDonations(m) &&
               seasonDonations(participation, m, season).unknown > 0,
-          )) ||
-        unknownRookie
+          ))
       )
         return {
           ...base,

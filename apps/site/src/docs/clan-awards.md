@@ -28,7 +28,7 @@ A clan can run up to twelve awards, each with a name of its own (up to
 | Season points podium | the most war points over the season, in order; equal points go to the member who donated more cards over the season, and equal in both share the place; one to three places |
 | Perfect attendance | pass or fail, never a ranking: the decks asked for on every war day of the season (four a day, or what the clan sets), with as many war days' worth short as the clan allows; any number can win |
 | Donations podium | the most cards donated over the season; ties share the place |
-| Rookie podium | the points podium among members in their first war season in the clan: joined this season, or joined last season without playing a war day in it; a member whose join is older than the record is never a rookie |
+| Rookie podium | the points podium among members whose first recorded join to this clan falls within this season's observed boundaries; a previous-season join does not qualify even without war points then, and a returning stint does not reset the first join; a member whose join is older than the record is never a rookie |
 | Leaders' pick | granted by hand, with a note |
 
 The names are the clan's own: two clans can run the same kind under
@@ -48,6 +48,13 @@ donations break consequential point ties, rookies need first-season history,
 and attendance waits for every still-possible recipient. Recorded absence
 requires roster reads around the whole week and no overlapping membership;
 a current rejoin or absence at the finish alone does not prove it.
+
+Rookie uses the same season-points and donation tiebreaks as the points podium,
+restricted to first joins in that season. Unknown current-season points or
+donations that could decide a tie still hold it. Unknown previous-season points
+from an earlier join cannot hold a current-season Rookie race: that earlier join
+is outside its eligible group. Saved closed-season grants remain final when this
+eligibility correction is applied.
 
 The complete computed decision is saved before any recipient is written. An
 interrupted batch resumes its original winners; a completed decision, including
