@@ -11,8 +11,21 @@
  * index-only. Callers whose covering scan lacks side can supply a scalar
  * side lookup; it stays inside the boat-only predicate.
  */
-export const notBoatDefense = (bp = "bp", { side = `${bp}.side` } = {}) =>
-  `not (${bp}.type = 'boatBattle' and exists (
+export const notBoatDefense = (
+  bp = "bp",
+  { side = `${bp}.side`, lookupByKey = false } = {},
+) =>
+  lookupByKey
+    ? // A wide participation read otherwise lets Postgres hash every
+      // boat battle in the record for EXISTS. A scalar subquery cannot
+      // become that corpus scan; battle_id is unique, and no row/null
+      // still means no known defense, exactly as EXISTS does.
+      `not (${bp}.type = 'boatBattle' and coalesce((
+         select bd.boat_battle_side is not null
+           and (bd.boat_battle_side = 'defender') = (${side} = 0)
+         from battle bd where bd.battle_id = ${bp}.battle_id
+       ), false))`
+    : `not (${bp}.type = 'boatBattle' and exists (
      select 1 from battle bd
       where bd.battle_id = ${bp}.battle_id and bd.boat_battle_side is not null
         and (bd.boat_battle_side = 'defender') = (${side} = 0)))`;

@@ -62,14 +62,15 @@ export function participationQueries({
       // Battles per member per ISO week, ranked counted beside all, in
       // one pass index-only on battle_participant_player_time_cover (0100
       // carries type); boat defenses are not the member's battle (0171),
-      // and only boat rows look up their side, by primary key.
+      // and only boat rows look up their side, by primary key. Force the
+      // bounded scalar lookup: EXISTS can hash a full battle-table scan.
       name: "battles_by_week",
       text: `select bp.player_tag, date_trunc('week', bp.battle_time) as week_start,
                     count(*)::int as battles,
                     count(*) filter (where bp.type = any($3))::int as ranked_battles
              from battle_participant bp
              where bp.player_tag = any($1) and bp.battle_time >= $2
-               and ${notBoatDefense()}
+               and ${notBoatDefense("bp", { lookupByKey: true })}
              group by bp.player_tag, date_trunc('week', bp.battle_time)`,
       values: [tags, from, rankedTypes],
     },
@@ -120,7 +121,7 @@ export function participationQueries({
              from battle_participant bp
              where bp.player_tag = any($1) and bp.battle_time >= $2
                and bp.clan_tag = $3
-               and ${notBoatDefense()}
+               and ${notBoatDefense("bp", { lookupByKey: true })}
              group by bp.player_tag, date_trunc('week', bp.battle_time)`,
       values: [formerTags, from, clanTag, rankedTypes],
     },
