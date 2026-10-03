@@ -11,7 +11,12 @@ complete frozen-state comparison; its legacy infrastructure has retired.
 Jamie approved the original private history manifest on October 2. Its bounded
 database purge stopped after 15,055 completed batches and a rolled-back battle
 transaction. A replacement manifest preserves the selection and completed
-receipts while reducing battle batch size; it awaits Jamie's approval.
+receipts while reducing battle batch size; Jamie authorized its resume on
+October 3 under the exact replacement digest. That run completed 34,525
+selected battles before an admitted-observer race rolled back its next
+transaction. Jamie chose to finish in the current database. A faster grouped
+manifest preserves all selection and receipts and awaits exact human review.
+Collectors remain active; no original archive version has been deleted.
 Retained-history verification, S3 version deletions and final maintenance
 remain required. The authoritative execution
 receipts belong in `docs/NOTES.md`. The assessment measurements and original

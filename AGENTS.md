@@ -8,9 +8,10 @@ storage and deployment. Recording the circle, notifications, agent access
 and a dashboard for exploring what happened are the focus; do not rebuild
 recommendations over a smaller population. `docs/DECISIONS.md` records
 Jamie's confirmed scope; `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md`
-is the engineering removal plan. The original approved historical purge is
-stopped after a rolled-back battle transaction; its replacement manifest
-awaits Jamie's approval. Status and verification receipts live in `docs/NOTES.md`.
+is the engineering removal plan. The approved historical purge is stopped
+after a preservation-guard race rolled back its next transaction. A faster
+grouped manifest is prepared for exact human review; it is not approved.
+Status and verification receipts live in `docs/NOTES.md`.
 Preserve retained personal/clan history and do not restore retired scope.
 
 Elixir MCP: records Clash Royale history (the official API is current-state

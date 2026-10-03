@@ -3300,3 +3300,96 @@ the production lease was released while review is pending. Resuming requires
 the exact replacement approval, a fresh lease and unchanged deployed-code,
 schema and retained-reason guards. The canonical verification gate passed,
 including all workspace tests; the prepared UI journeys passed 69 checks.
+
+### Replacement-manifest resume (2026-10-03, 04:14 Chicago)
+
+Jamie replied "Resume" to the concrete replacement-manifest review. The
+private approval records that direct human text for exact digest
+`7170ed3f65a756fdcfba050db71213bad827f8c37bf2ae745a28a6069920abbf`.
+A fresh interactive production lease was acquired, and the digest-bound
+executor resumed from the 15,055 unchanged predecessor receipts. Every
+remaining battle batch contains at most 25 selected games; the original
+selection and preservation guards remain unchanged. Do not merge or deploy
+the cleanup draft while the database/archive/export phases are incomplete.
+Draft PR #239's existing `validate` check is green; its current commit is
+`ab45835c`. The original approval-wait notes above remain historical receipts.
+
+The first resumed run completed 114 battle batches (2,850 selected battles).
+It then refused the next transaction when a new admitted observer arrived
+between source preflight and the locked preservation check. The transaction
+rolled back, as intended. A read-only preview of the exact next 25 targets
+passed with the same manifest/schema/retained-reason guards. The unchanged
+executor resumed from batch 15,170 under the existing approval and lease;
+no target, batch, limit or deployed code changed.
+
+The second run stopped after 1,381 resumed battle batches (34,525 selected
+battles total) on the same new-observer race, with the next transaction
+rolled back. Its exact next-batch read-only preview passed. Execution remains
+stopped while Jamie's proposed faster path is assessed. Collectors remain
+active; no archive deletion has started. A bounded sample of 142 Lambda
+REPORT lines measured median 1,011 ms, mean 1,083 ms and maximum 3,358 ms.
+Ten-minute RDS metrics averaged 22.6% CPU and 0.7 ms read latency. These
+measurements do not suggest substantial acceleration from pausing collectors.
+
+Jamie asked whether deleting the S3 replay sources and rebuilding into a
+fresh database would be preferable. This is under assessment, not an
+approved replacement. The archive holds distinct bodies, while unchanged
+captures still add database receipts. Historical roster replay deliberately
+avoids the forward-only membership state machine; replay also suppresses
+moments. Accounts, grants, tracking choices, Clan state, notification ledgers
+and unresolved canonical history require a verified direct transfer. Any
+fresh-database plan must compare retained state before archive deletion or
+old-database retirement. No fresh database or infrastructure was created.
+A scratch benchmark is measuring larger player/day-grouped batches of the
+unchanged rollup writer; production code and the manifest stay unchanged.
+
+
+### Grouped current-database manifest prepared (2026-10-03)
+
+Jamie selected finishing cleanup quickly in the current database. No fresh
+database or infrastructure was created. Console already provides Stop tracking
+on player detail; it preserves recorded history. A global historical deletion
+feature would require shared-history policy and is not part of this cleanup.
+
+The completed checkpoint remains 16,436 batches, including 34,525 selected
+battles. The faster private manifest preserves all 4,248,826 target keys,
+410,985 selected battle identities and dependencies, 208 declared events,
+original archive selection, guards and deployed code. Its exact digest is
+`e958818afbd39b03a03979dd00fe1199b0c035477e71a6c8191ab59387fc9819`.
+It groups the 376,460 remaining selected battles by participant/day into
+2,441 batches of at most 250, bounded by estimated rollup work. This replaces
+15,059 remaining small battle transactions. There are 2,760 remaining batches
+in total and 19,196 plan batches. Both predecessor approval chains and every
+completed receipt body remain bound and independently checked.
+
+All 52 read-only production preview categories passed, as did five additional
+previews across the remaining phase (including two 250-battle batches).
+Full graph/scope comparison passed. The 2,441 new temporary metadata versions
+were staged and read back; the exact version inventory passed over 36 pages.
+Temporary cleanup now includes 37,438 versions (2,248,659,911 bytes), plus
+registered owned verification exports. Original archive selection remains
+224,155 versions (1,082,135,855 bytes). Old approval and altered predecessor
+receipts refuse before AWS. No new approval or executable checkpoint exists.
+
+Jamie authorized an optional hour-long collector pause. A private one-time
+controller drains the five active collectors, stops its purge child at
+45 minutes if needed, waits for possibly outstanding Lambda work, restores
+every attempted drain and reads back the fleet after the 60-second cache
+horizon. Seven isolated stub-only checks passed, including partial drain
+failure, deadline, purge failure, cached status, lost recovery response and
+old approval refusal. No production collector transition was used as a test.
+The healthy-path restoration budget fits within an hour; an AWS failure can
+delay restoration and is reported. No second window runs automatically.
+
+The concrete private review includes continued small batches, grouped batches,
+a new set-based purge and a verified retained-row transfer to a fresh database.
+Grouped existing-code execution is recommended. Original archive deletion
+still follows complete retained-history verification. The whole cleanup may
+outlast the collector window. Other sessions may develop/test in their own
+worktrees; deployments, migrations and production retention/recording writes
+must wait while the purge lease is held. Draft PR #239 stays unmerged until
+database/archive/export proofs finish, followed by post-delete vacuum and
+health read-back. The later empty-table contract stays a separate migration.
+
+Execution is stopped for exact grouped-manifest review. Collectors remain
+active and no original archive version has been removed.
