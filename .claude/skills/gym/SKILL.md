@@ -16,10 +16,9 @@ Why it exists (Jamie, 2026-09-23): Elixir is not public yet. The first
 outside user's experience must not be finding bugs. The sweep's exit is the
 build we announce.
 
-## Scope: ten families, MCP only
+## Scope: eight active families, MCP only
 
-`badges`, `battles`, `cards`, `clans`, `collections`, `elixir`, `game`,
-`players`, `rankings`, `war`
+`badges`, `battles`, `cards`, `clans`, `elixir`, `game`, `players`, `war`
 
 These are the tool-name prefixes. `live_*` is out, and so are the web app,
 email and the `/api/v1` JSON API: the Gym does not test them, because they
@@ -114,8 +113,8 @@ day, until every family has a clean run on the build we will announce.
 1. Families with no clean run yet, in list order.
 2. Families whose last clean run predates a deploy that touched them.
 
-`elixir`, `game`, `badges` and `collections` are light. `battles`, `cards`
-and `rankings` read the corpus and are heavy on the database (db.t4g.small
+`elixir`, `game` and `badges` are light. `battles` and `cards`
+read selected personal and clan history and can be heavy on the database (db.t4g.small
 since 2026-09-23, after the sweep drained the micro's EBS byte balance).
 
 **Parallelism.**

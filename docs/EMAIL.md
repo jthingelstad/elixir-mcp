@@ -2,14 +2,14 @@
 
 The current kinds and delivery behavior are documented at `/docs/email`.
 Active composition is structured from recorded facts, without model generation.
-`top_100` and `card_of_week` are retired: historical ledger rows, renderers and
-sent message bodies remain readable, but old generation/accept payloads and
+`top_100` and `card_of_week` are retired: historical ledger rows and
+archived sent message bodies remain readable, but old generation/accept payloads and
 send requests refuse before I/O. Their prior engineering record is archived
 in `docs/archive/2026-10-02-EMAIL-BEFORE-RETIREMENT.md`.
 
 The personal week, friends, clan and collector reports keep their existing
 EventBridge slots, the hourly milestone path, preferences, and deduplication.
-Clan's action mail retains its contract until the Clan runtime cutover.
+Clan's action mail uses the consolidated runtime and its existing contract.
 
 ## The shared foundation
 

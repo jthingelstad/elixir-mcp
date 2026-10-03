@@ -58,7 +58,7 @@ the lease is for the deploy (`/ship`).
 
 - `packages/tools/src/tools/<family>.mjs` holds the declaration and the
   handler together, so they cannot drift. The large families (`battles`,
-  `elixir`, `rankings`, `war`) are split into one file per tool under
+  `elixir`, `war`) are split into one file per tool under
   `tools/<family>/`, with a `common.mjs`.
 - `packages/tools/src/tools/shared.mjs` holds the shared schemas, which
   are used by reference and never retyped, plus `notes()` and

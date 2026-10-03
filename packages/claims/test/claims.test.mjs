@@ -98,8 +98,6 @@ after(async () => {
 });
 
 beforeEach(async () => {
-  await db.query(`delete from collection_member`);
-  await db.query(`delete from collection`);
   await db.query(`delete from account_event`);
   await db.query(`delete from claim`);
   await db.query(`delete from account_clan`);
@@ -509,17 +507,7 @@ test("an ops clan recording survives losing every reason", async () => {
   assert.equal((await clanRecording(CLAN)).status, "active");
 });
 
-test("retired Collection membership is inert; overlapping direct follows survive", async () => {
-  const {
-    rows: [col],
-  } = await db.query(
-    `insert into collection (slug,title,kind,owner_account) values ('retired-provenance','Retired','player',$1) returning collection_id`,
-    [alice.accountId],
-  );
-  await db.query(
-    `insert into collection_member (collection_id,subject_tag) select $1,unnest($2::text[])`,
-    [col.collection_id, [A, B]],
-  );
+test("retired Collection-origin recordings stop unless directly followed", async () => {
   await db.query(
     `insert into recording (subject_type,subject_tag,requested_by,origin) select 'player',unnest($1::text[]),$2,'collection'`,
     [[A, B], alice.accountId],
@@ -533,33 +521,13 @@ test("retired Collection membership is inert; overlapping direct follows survive
   assert.equal(await isRecording(A), false);
   assert.equal(await isRecording(B), true);
   assert.equal(
-    (
-      await db.query(
-        "select count(*)::int n from collection_member where collection_id=$1",
-        [col.collection_id],
-      )
-    ).rows[0].n,
-    2,
-    "provenance remains",
-  );
-  assert.equal(
     (await removePlayer(db, bob, { tag: B })).recordingStopped,
     true,
     "Collection cannot keep the last personal follow recording",
   );
 });
 
-test("retired clan Collection depth cannot override a direct clan follow", async () => {
-  const {
-    rows: [col],
-  } = await db.query(
-    `insert into collection (slug,title,kind,scope,owner_account) values ('retired-clans','Retired','clan','comprehensive',$1) returning collection_id`,
-    [alice.accountId],
-  );
-  await db.query(
-    `insert into collection_member (collection_id,subject_tag) values ($1,$2)`,
-    [col.collection_id, CLAN],
-  );
+test("a direct clan follow determines recording depth and removal", async () => {
   await addedClan(bob, CLAN, "activity");
   await reconcileRecording(db, "clan", CLAN, bob.accountId);
   assert.equal((await clanRecording(CLAN)).scope, "activity");

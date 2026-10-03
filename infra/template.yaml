@@ -1478,7 +1478,7 @@ Resources:
           # Every archived endpoint; a test pins this to the ingest
           # projector keys (ARCHIVED_ENDPOINTS), because an endpoint
           # missing here is invisible to every Athena query.
-          projection.endpoint.values: player_battlelog,clan,player,currentriverrace,riverracelog,rankings_players,rankings_pol,rankings_pol_season,rankings_clans_loc,rankings_clanwars,leaderboards,leaderboard,events,globaltournaments,cards
+          projection.endpoint.values: player_battlelog,clan,player,currentriverrace,riverracelog,events,globaltournaments,cards
           projection.entity.type: injected
           projection.dt.type: date
           projection.dt.range: 2026-02-01,NOW

@@ -1,4 +1,4 @@
-/** The renderer: facts in, {subject, preheader, html} out, for the eight
+/** The renderer: facts in, {subject, preheader, html} out, for the six
  *  product kinds. Every kind sits in the one mail shell (shell.mjs), the
  *  same one the relay's sign-in code and welcome use: the logo and the
  *  wordmark, the product pill, a panel with a gold top bar, and the
@@ -864,229 +864,6 @@ function clan(f, c) {
 /** A small markdown for the Top 100 body: headings, paragraphs, bold,
  *  bullet lists, pipe tables, links; player names in `players_index`
  *  become Browse links wherever they appear as text. */
-function markdownToMail(md, c, index = [], blocks = null) {
-  const link = (text) => {
-    let out = esc(text);
-    for (const { name, tag } of index) {
-      if (!name) continue;
-      const needle = esc(name);
-      if (out.includes(needle)) out = out.split(needle).join(c.P(tag, name));
-    }
-    return out
-      .replace(/\*\*(.+?)\*\*/g, `<strong style="color:${C.ink};">$1</strong>`)
-      .replace(
-        /\[([^\]]+)\]\((https?:[^)]+)\)/g,
-        (m, text, url) =>
-          `<a href="${c.T(url)}" style="color:${C.link};">${text}</a>`,
-      );
-  };
-  const lines = md.replace(/\r/g, "").split("\n");
-  const out = [];
-  let i = 0;
-  while (i < lines.length) {
-    const l = lines[i];
-    if (!l.trim()) {
-      i++;
-      continue;
-    }
-    // A block the writer may PLACE but not author: it names the index
-    // and the renderer prints the record's own rows.
-    const block = /^\s*\{\{(\w+):(\d+)\}\}\s*$/.exec(l);
-    if (block) {
-      out.push(blocks?.[block[1]]?.(Number(block[2])) ?? "");
-      i++;
-      continue;
-    }
-    const h = /^(#{1,6})\s+(.*)$/.exec(l);
-    if (h) {
-      out.push(
-        h[1].length <= 2 ? c.h2(h[2].replace(/\*\*/g, "")) : c.h3(link(h[2])),
-      );
-      i++;
-      continue;
-    }
-    if (/^\|/.test(l)) {
-      const rows = [];
-      while (i < lines.length && /^\|/.test(lines[i])) {
-        rows.push(lines[i]);
-        i++;
-      }
-      const cells = (r) =>
-        r
-          .replace(/^\||\|$/g, "")
-          .split("|")
-          .map((x) => x.trim());
-      const head = cells(rows[0]);
-      const bodyRows = rows
-        .slice(1)
-        .filter((r) => !/^\|\s*:?-+/.test(r))
-        .map(cells);
-      const align = head.map((_, k) => (k === 0 ? "left" : "right"));
-      out.push(
-        c.table(
-          head,
-          bodyRows.map((r) =>
-            r.map((x, k) =>
-              k === 0
-                ? link(x)
-                : `<span style="font-family:${MONO};font-size:13px;">${link(x)}</span>`,
-            ),
-          ),
-          { align },
-        ),
-      );
-      continue;
-    }
-    if (/^[-*]\s+/.test(l)) {
-      const items = [];
-      while (i < lines.length && /^[-*]\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^[-*]\s+/, ""));
-        i++;
-      }
-      out.push(c.list(items.map(link)));
-      continue;
-    }
-    const para = [];
-    while (
-      i < lines.length &&
-      lines[i].trim() &&
-      !/^(#|\||[-*]\s)/.test(lines[i])
-    ) {
-      para.push(lines[i]);
-      i++;
-    }
-    out.push(c.p(link(para.join(" "))));
-  }
-  return out.join("\n");
-}
-
-function top100(f, c) {
-  const body = `
-    ${markdownToMail(f.body_markdown, c, f.players_index ?? [])}
-    ${f.cta ? `${c.h2(f.cta.head)}${c.p(esc(f.cta.text))}${c.button(f.cta.button, f.cta.url)}` : ""}
-    ${f.players_index?.length ? `${c.h2("Players in this issue")}<div style="font-family:${MONO};font-size:11.5px;line-height:1.7;color:${C.faint};">${f.players_index.map((x) => `${esc(x.name)} ${esc(x.tag)}`).join(" · ")}</div>` : ""}
-    ${c.cov(esc(f.coverage))}`;
-  const preheader = f.preheader ?? "";
-  return {
-    subject: f.subject,
-    preheader,
-    html: (links) =>
-      c.shell({
-        kind: "top_100",
-        title: esc(f.masthead),
-        subtitle: `${esc(f.strap)} · ${esc(f.issue.label)} · Season ${f.issue.season}, day ${f.issue.day_of_season}`,
-        preheader,
-        body,
-        // The switch's name, not the masthead's (still a placeholder).
-        turnOff: "the Top 100",
-        links,
-      }),
-  };
-}
-
-/** A deck the writer placed with {{deck:N}}, as the board's "the deck
- *  that carried it most": its name, what the record counts for it, the
- *  eight cards in one strip, its cost and tower troop. The cards come
- *  from the BRIEF, never from the writer, so a deck block cannot
- *  disagree with the record. */
-function deckBlock(d) {
-  if (!d) return "";
-  const facts = [
-    d.battles == null ? null : `${n(d.battles)} battles`,
-    d.players == null ? null : `${n(d.players)} players`,
-    d.win_rate == null ? null : `${(d.win_rate * 100).toFixed(1)}% won`,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  const shape = [
-    d.average_elixir == null
-      ? null
-      : `${Number(d.average_elixir).toFixed(2)} average elixir`,
-    d.tower_troop,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 4px;"><tr><td bgcolor="${M.box}" style="background-color:${M.box};border:1px solid ${M.edge};border-radius:12px;padding:12px 14px;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:10px;"><tr><td style="font-family:${FONT};font-size:15px;font-weight:700;color:${M.ink};">${esc(d.archetype_label ?? "A deck")}</td><td align="right" style="font-family:${FONT};font-size:12.5px;color:${M.faint};white-space:nowrap;">${esc(facts)}</td></tr></table>
-    ${deckStrip(d.cards, { w: 55 })}
-    ${shape ? `<div style="font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};margin-top:10px;">${esc(shape)}</div>` : ""}
-  </td></tr></table>`;
-}
-
-/** The card itself, as the board opens: the form large when the card
- *  has one, the base beside it, each captioned, then the kicker, the
- *  name and what kind of card it is. */
-function cardHero(card, kicker) {
-  const formKey = card.icons?.evolution
-    ? "evolution"
-    : card.icons?.hero
-      ? "hero"
-      : null;
-  const art = (url, form, w, caption) =>
-    `<td valign="bottom" align="center" width="${w}" style="width:${w}px;padding:0 14px 0 0;">${cardImg({ icon: url, name: card.name, form }, w, { radius: 10 })}<div style="font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:${M.faint};margin-top:6px;">${caption}</div></td>`;
-  const meta = [
-    [card.rarity, card.type]
-      .filter(Boolean)
-      .join(" ")
-      .replace(/^./, (ch) => ch.toUpperCase()),
-    card.elixir_cost == null ? null : `${card.elixir_cost} elixir`,
-    formKey === "evolution"
-      ? "has an Evolution"
-      : formKey === "hero"
-        ? "has a Hero"
-        : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;"><tr>
-    ${formKey ? art(card.icons[formKey], formKey, 130, formKey === "hero" ? "Hero" : "Evolution") : ""}
-    ${art(card.icons.base, "base", formKey ? 84 : 130, formKey ? "Base" : "&nbsp;")}
-    <td valign="bottom" style="padding:0 0 22px;">
-      <div style="font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${M.faint};">${kicker}</div>
-      <h1 style="margin:6px 0 0;font-family:${FONT};font-size:28px;line-height:1.15;font-weight:800;color:${M.ink};">${esc(card.name)}</h1>
-      ${meta ? `<div style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};margin-top:6px;">${esc(meta)}</div>` : ""}
-    </td></tr></table>`;
-}
-
-function cardOfWeek(f, c) {
-  const card = f.card;
-  const blocks = { deck: (i) => deckBlock(f.decks?.[i]) };
-  const body = `
-    ${cardHero(card, `Card of the Week · ${esc(f.issue.week_label)}`)}
-    ${markdownToMail(f.body_markdown, c, [], blocks)}
-    ${
-      f.chart?.url
-        ? `<div style="margin:16px 0 4px;"><img src="${f.chart.url}" alt="${esc(f.chart.alt)}" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0;border-radius:8px;" /></div>`
-        : ""
-    }
-    ${c.h2("Your turn")}
-    ${c.p(`Ask your agent: <strong style="color:${M.ink};">&ldquo;How am I doing with ${esc(card.name)}?&rdquo;</strong> Elixir answers from your own battles: your usage, your record with it, which of your decks carry it, and how that compares with your clan.`)}
-    ${c.p(`Not on Elixir yet? <a href="${c.T(`${SITE}/`)}" style="color:${M.link};text-decoration:none;">Request an account</a>.`)}
-    ${c.button(`Open ${card.name}`, card.page_url)}
-    ${c.cov(esc(f.coverage))}`;
-  const preheader = f.preheader ?? "";
-  return {
-    subject: f.subject,
-    preheader,
-    html: (links) =>
-      c.shell({
-        kind: "card_of_week",
-        // The hero is the title, as the board draws it; the document
-        // still has one for the record page's tab.
-        title: "",
-        docTitle: `Card of the Week: ${card.name}`,
-        subtitle: "",
-        preheader,
-        body,
-        turnOff: "Card of the Week",
-        links,
-      }),
-  };
-}
-
-/** Sunday's mail to a collector's operator, drawn as the board draws
- *  it: one row per collector with its card, what it is doing now in the
- *  elixir_collectors tool's words, and its points to date. */
 function collector(f, c) {
   const t = f.totals;
   const list = f.collectors ?? [];
@@ -1360,8 +1137,6 @@ const RENDERERS = {
   arena_week: arena,
   tracking_report: tracking,
   clan_report: clan,
-  top_100: top100,
-  card_of_week: cardOfWeek,
   collector_activity: collector,
   milestone,
   clan_actions_waiting: clanActions,
@@ -1382,8 +1157,7 @@ export function renderMail(kind, facts, links) {
       "renderMail: links.unsubscribe and links.manage are required",
     );
   const campaign = links.period ? { kind, period: String(links.period) } : null;
-  // A page render (the public Top 100 issue) tags its links but counts
-  // as a page view through the site's script, not as an open.
+  // A preview may suppress the open pixel while retaining campaign links.
   const out = fn(
     facts,
     make(campaign, {

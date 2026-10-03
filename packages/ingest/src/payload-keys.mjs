@@ -327,11 +327,11 @@ export const PAYLOAD_KEYS = {
     clanScore: to("clan_snapshot_daily.clan_score"),
     clanWarTrophies: to("clan_snapshot_daily.clan_war_trophies"),
     "location.id": to("clan.location_id; clan_snapshot_daily.location_id"),
-    "location.name": derived(
-      "ranking_board carries the label per location key; a location catalog is Tier 3 (time-series review 2.2)",
+    "location.name": dropped(
+      "only location.id is projected; no location label catalog",
     ),
-    "location.isCountry": derived("with location.name"),
-    "location.countryCode": derived("with location.name", opt),
+    "location.isCountry": dropped("with location.name"),
+    "location.countryCode": dropped("with location.name", opt),
     requiredTrophies: to("clan_snapshot_daily.required_trophies"),
     donationsPerWeek: to("clan_snapshot_daily.donations_per_week"),
     clanChestStatus: dropped(CLAN_CHEST),
@@ -540,112 +540,6 @@ export const PAYLOAD_KEYS = {
     "supportItems[].iconUrls.medium": to("card.icon_medium"),
   },
 
-  // The boards: one shape for the player boards (Appendix D).
-  rankings_players: {
-    "items[].tag": to("ranking_entry.player_tag"),
-    "items[].name": to("ranking_entry.name"),
-    "items[].rank": to("ranking_entry.rank"),
-    "items[].trophies": to("ranking_entry.rating"),
-    "items[].expLevel": dropped(RETIRED_EXP_LEVEL),
-    "items[].arena.id": dropped(
-      "the arena of a board entry is implied by its trophies; not recorded",
-      opt,
-    ),
-    "items[].arena.name": dropped("with items[].arena.id", opt),
-    "items[].clan.tag": to("ranking_entry.clan_tag", opt),
-    "items[].clan.name": to("ranking_entry.clan_name", opt),
-    "items[].clan.badgeId": derived(
-      "a label on a board entry; no clan row is created for player boards (review 1.3)",
-      opt,
-    ),
-    "paging.cursors.after": to("ranking_snapshot.truncated", opt),
-    "paging.cursors.before": derived("with paging.cursors.after", opt),
-  },
-  rankings_pol: {
-    "items[].tag": to("ranking_entry.player_tag"),
-    "items[].name": to("ranking_entry.name"),
-    "items[].rank": to("ranking_entry.rank"),
-    "items[].eloRating": to("ranking_entry.rating"),
-    "items[].expLevel": dropped(RETIRED_EXP_LEVEL),
-    "items[].clan.tag": to("ranking_entry.clan_tag", opt),
-    "items[].clan.name": to("ranking_entry.clan_name", opt),
-    "items[].clan.badgeId": derived("a label on a board entry", opt),
-    "paging.cursors.after": to("ranking_snapshot.truncated", opt),
-    "paging.cursors.before": derived("with paging.cursors.after", opt),
-  },
-  rankings_pol_season: {
-    "items[].tag": to("ranking_entry.player_tag"),
-    "items[].name": to("ranking_entry.name"),
-    "items[].rank": to("ranking_entry.rank"),
-    "items[].eloRating": to("ranking_entry.rating"),
-    "items[].expLevel": dropped(RETIRED_EXP_LEVEL),
-    "items[].clan.tag": to("ranking_entry.clan_tag", opt),
-    "items[].clan.name": to("ranking_entry.clan_name", opt),
-    "items[].clan.badgeId": derived("a label on a board entry", opt),
-    "paging.cursors.after": to("ranking_snapshot.truncated", opt),
-    "paging.cursors.before": derived("with paging.cursors.after", opt),
-  },
-  // A mode leaderboard's entry carries no expLevel at all, unlike the
-  // trophy and Path of Legends boards (live read 2026-09-26; feedback 362).
-  leaderboard: {
-    "items[].tag": to("ranking_entry.player_tag"),
-    "items[].name": to("ranking_entry.name"),
-    "items[].rank": to("ranking_entry.rank"),
-    "items[].score": to("ranking_entry.rating"),
-    "items[].clan.tag": to("ranking_entry.clan_tag", opt),
-    "items[].clan.name": to("ranking_entry.clan_name", opt),
-    "items[].clan.badgeId": derived("a label on a board entry", opt),
-    "paging.cursors.after": to("ranking_snapshot.truncated", opt),
-    "paging.cursors.before": derived("with paging.cursors.after", opt),
-  },
-  rankings_clans_loc: {
-    "items[].tag": to("clan_ranking_entry.clan_tag"),
-    "items[].name": to("clan_ranking_entry.name"),
-    "items[].rank": to("clan_ranking_entry.rank"),
-    "items[].previousRank": to("clan_ranking_entry.previous_rank"),
-    "items[].clanScore": to("clan_ranking_entry.score"),
-    "items[].members": to("clan_ranking_entry.members"),
-    "items[].badgeId": to("clan_ranking_entry.badge_id"),
-    "items[].location.id": to("clan_ranking_entry.location_id"),
-    "items[].location.name": derived(
-      "ranking_board carries the label per location key",
-    ),
-    "items[].location.isCountry": derived("with items[].location.name"),
-    "items[].location.countryCode": derived("with items[].location.name", opt),
-    "paging.cursors.after": to("ranking_snapshot.truncated", opt),
-    "paging.cursors.before": derived("with paging.cursors.after", opt),
-  },
-  rankings_clanwars: {
-    "items[].tag": to("clan_ranking_entry.clan_tag"),
-    "items[].name": to("clan_ranking_entry.name"),
-    "items[].rank": to("clan_ranking_entry.rank"),
-    "items[].previousRank": to("clan_ranking_entry.previous_rank"),
-    // The war board's score is spelt clanScore too and means war
-    // trophies (cr-agent-api-docs/locations.md); the census's first run
-    // (2026-09-17) caught this entry naming a field the board never
-    // sends.
-    "items[].clanScore": to(
-      "clan_ranking_entry.score (war trophies on this board)",
-    ),
-    "items[].clanWarTrophies": to(
-      "clan_ranking_entry.score (the projector's fallback spelling; never observed)",
-      opt,
-    ),
-    "items[].members": to("clan_ranking_entry.members"),
-    "items[].badgeId": to("clan_ranking_entry.badge_id"),
-    "items[].location.id": to("clan_ranking_entry.location_id"),
-    "items[].location.name": derived(
-      "ranking_board carries the label per location key",
-    ),
-    "items[].location.isCountry": derived("with items[].location.name"),
-    "items[].location.countryCode": derived("with items[].location.name", opt),
-    "paging.cursors.after": to("ranking_snapshot.truncated", opt),
-    "paging.cursors.before": derived("with paging.cursors.after", opt),
-  },
-  leaderboards: {
-    "items[].id": to("ranking_board.location_key (board 'mode')"),
-    "items[].name": to("ranking_board.label", opt),
-  },
   // /events is a BARE ARRAY (admission.mjs, cr-agent-api-docs events.md),
   // so its paths start at `[]`: the manifest said `items[]` and the first
   // census filed the three real paths as unknown (feedback #50-#52).

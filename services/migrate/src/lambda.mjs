@@ -1,7 +1,4 @@
-import { rightSizingPurge } from "./ops-right-sizing-purge.mjs";
-import { rightSizingCensus } from "./ops-right-sizing.mjs";
 import { clanMaintenance } from "./ops-clan-maintenance.mjs";
-import { clanImport } from "./ops-clan-import.mjs";
 /** The migrate Lambda — the ONLY thing that applies schema migrations in
  *  the cloud (docs/ENGINEERING.md). Invoked by the deploy script between code
  *  upload and flip. The build packages db/migrations alongside the bundle. */
@@ -29,7 +26,6 @@ import {
   integrationOp,
   serviceTokenLimitsOp,
 } from "./ops-accounts.mjs";
-import { retireBoardRecordings } from "./ops-retire-boards.mjs";
 import {
   collectorTokenOp,
   collectorReleaseOp,
@@ -120,23 +116,7 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.right_sizing_purge) {
-    return rightSizingPurge(process.env.DATABASE_URL, event.right_sizing_purge);
-  }
-  if (event?.right_sizing_census) {
-    return rightSizingCensus(
-      process.env.DATABASE_URL,
-      event.right_sizing_census,
-    );
-  }
-  if (event?.clan_import) {
-    const result = await clanImport(
-      process.env.DATABASE_URL,
-      event.clan_import,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
+
   if (event?.inspect) {
     const result = await inspect(process.env.DATABASE_URL);
     console.log(JSON.stringify(result));
@@ -326,22 +306,7 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
-  if (event?.retire_collection_recordings) {
-    const result = await retireBoardRecordings(
-      process.env.DATABASE_URL,
-      event.retire_collection_recordings,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.retire_board_recordings) {
-    const result = await retireBoardRecordings(
-      process.env.DATABASE_URL,
-      event.retire_board_recordings,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
+
   if (event?.card_roles_import) {
     const result = await cardRolesImport(
       process.env.DATABASE_URL,

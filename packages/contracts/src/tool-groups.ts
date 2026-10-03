@@ -114,7 +114,7 @@ export interface ToolClass {
   /** MCP readOnlyHint: true unless the tool changes state a user owns. */
   readOnly: boolean;
   /** MCP destructiveHint: true when any action of the tool removes or
-   *  replaces something a user owns (a claim, a collection's membership). */
+   *  replaces something a user owns (a player claim or clan follow). */
   destructive?: boolean;
   /** OAuth capability required at tools/call. Read tools default to cr:read;
    *  every state-changing tool names its capability explicitly. */

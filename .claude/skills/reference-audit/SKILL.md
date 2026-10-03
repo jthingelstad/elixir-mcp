@@ -112,10 +112,11 @@ Look for, in this order:
    `paths`). Report it with the archive's span; recommend removal only
    when the span is long and the field is clearly gone (the way
    `expLevel` went), otherwise a note.
-6. **Endpoints the reference barely covers.** Elixir reads boards the
-   reference may describe from one call (the full-depth season Path of
-   Legends board, the clan-war rankings, the leaderboards). Depth,
-   ordering and cutoff facts are patches.
+6. **Endpoints the reference barely covers.** The retained player and
+   clan archive spans profile ranks, badges, river races and race logs
+   across many subjects. Conditional fields, ordering and reset facts
+   are patches. Global leaderboard capture has retired; do not resume it
+   to feed the reference audit.
 
 **Known noise, suppress by default** (from the bot's audit, still true):
 fields the reference already marks conditional matching their coverage;

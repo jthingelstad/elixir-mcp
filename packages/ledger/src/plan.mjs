@@ -70,22 +70,6 @@ export const CADENCE = {
   // level normalization backfills). Missing this starved prod of maxLevel
   // truth — found live 2026-09-03.
   cards: { every: 1440, floor: 2880 },
-  // Leaderboards (0068): the default is daily, and a board's own row in
-  // ranking_board overrides it. Daily boards are anchored to the
-  // board-day (boardDayStartMs), so `every` here only matters for a row
-  // that asks for less than a day. The global board was hourly until
-  // 0075 (2026-09-11).
-  rankings_pol: { every: 1440, floor: 2880 },
-  rankings_players: { every: 1440, floor: 2880 },
-  // 0069. A season's final board is fetched ONCE (see selectEligible: due
-  // while no snapshot for that season exists), so its cadence is moot but
-  // the floor keeps a failed fetch retried daily, after its three quick
-  // retries (0188), rather than every tick.
-  rankings_pol_season: { every: 1440, floor: 1440 },
-  rankings_clans_loc: { every: 1440, floor: 2880 },
-  rankings_clanwars: { every: 1440, floor: 2880 },
-  leaderboards: { every: 1440, floor: 2880 },
-  leaderboard: { every: 1440, floor: 2880 },
   events: { every: 1440, floor: 2880 },
   globaltournaments: { every: 1440, floor: 2880 },
 };
@@ -212,9 +196,6 @@ export function yieldCadenceMinutes(row, now = new Date()) {
     if (live === "idle") return 720;
     return 1440;
   }
-  if (BOARD_ENDPOINTS.has(row.endpoint) && row.board_every != null) {
-    return Number(row.board_every);
-  }
   return CADENCE[row.endpoint].every;
 }
 
@@ -314,22 +295,6 @@ export function boardDayStartMs(nowMs) {
   );
   return nowMs >= today ? today : today - DAY;
 }
-
-/** Endpoints planned from ranking_board rows rather than recordings, with
- *  the endpoint -> board name the row is found under (0068/0069). */
-const BOARD_OF = {
-  rankings_pol: "pol",
-  rankings_players: "trophy",
-  rankings_clans_loc: "clans",
-  rankings_clanwars: "clanwars",
-  leaderboard: "mode",
-};
-const BOARD_ENDPOINTS = new Set(Object.keys(BOARD_OF));
-/** SQL for the same map, so the eligibility query and the seed agree. */
-const BOARD_OF_SQL = `case ps.endpoint
-  when 'rankings_pol' then 'pol' when 'rankings_players' then 'trophy'
-  when 'rankings_clans_loc' then 'clans' when 'rankings_clanwars' then 'clanwars'
-  when 'leaderboard' then 'mode' end`;
 
 /**
  * The bucket as it stands at `now`: the stored tokens plus what accrued
@@ -469,15 +434,6 @@ async function selectEligible(db, now) {
                 select 1 from recording r
                 where r.subject_type = 'clan' and r.subject_tag = ps.subject_tag
                   and r.status = 'active')) as clan_tracked,
-             -- A leaderboard's own cadence (0068): the global board is
-             -- hourly, everything else daily unless its row says otherwise.
-             (select b.every_minutes from ranking_board b
-               where b.location_key = ps.subject_tag
-                 and b.board = ${BOARD_OF_SQL}) as board_every,
-             -- A one-time re-read of an incomplete board (0173, Gym #342).
-             (select b.reread_at from ranking_board b
-               where b.location_key = ps.subject_tag
-                 and b.board = ${BOARD_OF_SQL}) as reread_at,
              greatest(coalesce(ps.last_planned_at, 'epoch'), coalesce(ps.last_admitted_at, 'epoch')) as reference,
              -- The API's last 404 for this subject inside the error
              -- table's seven-day retention (0143 indexes the lookup).
@@ -512,7 +468,7 @@ async function selectEligible(db, now) {
     )
     select subject_tag, endpoint, last_planned_at, last_admitted_at, reference,
            yield_bph, hint, period_type, last_read_at, refresh_requested_at, empty_streak,
-           directly_tracked, clan_tracked, board_every, reread_at, last_not_found_at,
+           directly_tracked, clan_tracked, last_not_found_at,
            retry_at
     from state`,
   );
@@ -542,26 +498,18 @@ async function selectEligible(db, now) {
     const requested = refreshRequested(r, now);
     const referenceMs = r.reference.getTime();
     const row = r;
-    // A daily board is due once per board-day, anchored, not once per
-    // elapsed day: every daily board reads in the tick after 10:00Z.
-    const dailyBoard =
-      ANCHORED_DAILY.has(r.endpoint) ||
-      (BOARD_ENDPOINTS.has(r.endpoint) &&
-        r.board_every != null &&
-        Number(r.board_every) >= 1440);
-    const rereadMs = r.reread_at ? r.reread_at.getTime() : null;
-    // A failed fetch owes a retry at retry_at (0188), as an incomplete
-    // board owes its re-read (0173); the next plan clears it.
+    // Factual calendar observations are due once per game day.
+    const anchoredDaily = ANCHORED_DAILY.has(r.endpoint);
+    // A failed fetch owes a retry at retry_at (0188).
     const retryMs = r.retry_at ? r.retry_at.getTime() : null;
     const retry = retryMs !== null && retryMs <= nowMs && referenceMs < retryMs;
-    const cadenceDue = dailyBoard
-      ? referenceMs < boardDayStartMs(nowMs) ||
-        (rereadMs !== null && rereadMs <= nowMs && referenceMs < rereadMs)
+    const cadenceDue = anchoredDaily
+      ? referenceMs < boardDayStartMs(nowMs)
       : nowMs - referenceMs >= dueAfterMs(row, now);
     const due = cadenceDue || retry;
     // Would the rule without the reader cap have made it due? Only the
     // difference is attributable to the cap (the metric that proves it).
-    const dueUncapped = dailyBoard
+    const dueUncapped = anchoredDaily
       ? due
       : retry ||
         nowMs - referenceMs >= dueAfterMs({ ...row, last_read_at: null }, now);

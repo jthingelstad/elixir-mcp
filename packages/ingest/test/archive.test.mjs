@@ -86,5 +86,5 @@ test("the Glue table's endpoint enum is exactly the archived endpoints", async (
     line[1].trim().split(",").sort(),
     [...ARCHIVED_ENDPOINTS].sort(),
   );
-  assert.equal(ARCHIVED_ENDPOINTS.length, 15);
+  assert.equal(ARCHIVED_ENDPOINTS.length, 8);
 });

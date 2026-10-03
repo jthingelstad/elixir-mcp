@@ -9,7 +9,7 @@ decisions land in `docs/DECISIONS.md` (one line) with their reasoning in
 
 - **Dated run logs:** `<date>-<objective>.md`, the date the run began and the
   objective as its runbook is named (`2026-09-30-elixir-operator.md`,
-  `2026-10-03-elixir-rankings-analyst.md`). A second run of the same
+  `2026-10-03-elixir-security-reviewer.md`). A second run of the same
   objective on the same day adds a suffix
   (`2026-10-02-elixir-feedback-manager-evening.md`); a one-off topic from a
   run is `<date>-<topic>.md`. Logs from before the 2026-09-29 rename carry

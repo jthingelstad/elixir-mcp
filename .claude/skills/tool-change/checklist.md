@@ -27,7 +27,7 @@ only when it does not apply, and say why in the commit message.
   It validates every result against `OUTPUT_SCHEMAS[name]`, which throws
   under `node --test` and logs `output_schema_mismatch` in production.
 - `packages/tools/src/tools/<family>.mjs`, the declaration and handler. A
-  split family (`battles/`, `elixir/`, `rankings/`, `war/`) keeps one
+  split family (`battles/`, `elixir/`, `war/`) keeps one
   file per tool and a `common.mjs`. For example, `battles/common.mjs`
   has `ownBattlesClause`, `modeClause`, `COMPACT_DESC` and the family's
   `*_DOCS` pointers.
@@ -39,10 +39,10 @@ only when it does not apply, and say why in the commit message.
     `WINDOW_DATE_ONLY_DESC`;
   - resolvers: `resolveSeasonWindow()` (the exported entry point, while
     `resolveWindow()` is internal), `withWindowSugar()`,
-    `resolveSegment()`, `segmentFilter()`, `populationBlock()`,
+    `resolveSegment()`, `segmentFilter()`,
     `subject()`, `entitledClan()` and `zoneFor()`;
   - prose and shape: `appliedBlock()`, `notes()`, `docsRef()`,
-    `ToolFailure`, `SEGMENT_NOTES` and `SEGMENT_DOCS`;
+    `ToolFailure` and `clanSegmentNote()`;
   - SQL: `RECORDED_PLAYERS_SQL`.
 - `packages/tools/src/controls.mjs`: `modeSplit()`, `pooledModesNote()`,
   `trophyFloor()`, `markPartialWeeks()` and the other controls.
@@ -68,7 +68,7 @@ only when it does not apply, and say why in the commit message.
 
 - [ ] The name is `<domain>_<noun>` for a read and
       `<domain>_<verb>_<noun>` for a write. `*_tag` is one tag, `*_tags`
-      an array, and `collection` a slug. ENGINEERING "Names"; review.
+      an array. ENGINEERING "Names"; review.
 - [ ] The description is 41 to 600 characters. Its first sentence says
       which default applies, in the family's fixed phrase, and the rest
       goes to the docs page. Test: `tool-conventions`.
@@ -87,8 +87,8 @@ only when it does not apply, and say why in the commit message.
       and the registry publishes the accepted-and-ignored form. Test:
       `tool-conventions`; DECISIONS "Stated conventions are schema".
 - [ ] A segment tool requires `segment: SEGMENT_SCHEMA`, has no flat
-      `player_tag`, `clan_tag` or `collection`, and carries
-      `population` on a corpus read. Add it to `SEGMENT_TOOLS` in
+      `player_tag` or `clan_tag`; it reads a named player or clan, never
+      a corpus or named recording group. Add it to `SEGMENT_TOOLS` in
       `tool-conventions.test.mjs` and to the brief's list in
       `protocol.mjs`. Test: `tool-conventions`.
 - [ ] The tool has a `TOOL_GROUPS` entry: a group in `GROUP_ORDER`, a
@@ -106,7 +106,7 @@ only when it does not apply, and say why in the commit message.
 - [ ] `OUTPUT_SCHEMAS[name]` exists, with required keys at the top level
       (`notes` and `docs` among them) and every leaf nullable. Tests:
       `tool-conventions`, plus the registry's runtime validation.
-- [ ] A corpus-scale aggregation joins `BUDGETED_TOOLS` in
+- [ ] A costly scoped-history aggregation joins `BUDGETED_TOOLS` in
       `invoker.mjs`. Review, with `{profile_tool}` through `/ops` for
       the evidence.
 

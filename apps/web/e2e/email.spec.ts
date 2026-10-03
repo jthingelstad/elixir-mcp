@@ -28,8 +28,6 @@ const KINDS = (
     ["clan_report", "Clan report", "Clan", at("Monday")],
     ["arena_week", "Your week in the Arena", "Ladder", at("Tuesday")],
     ["tracking_report", "Your friends this week", "Friends", at("Wednesday")],
-    ["top_100", "Top 100", "Cards", at("Thursday")],
-    ["card_of_week", "Card of the Week", "Cards", at("Friday")],
     ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
     ["milestone", "Milestones", "Ladder", null],
     ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
@@ -39,7 +37,7 @@ const KINDS = (
   label,
   product,
   sends,
-  enabled: kind !== "top_100",
+  enabled: kind !== "tracking_report",
   changed_at: null,
   applies: kind !== "collector_activity",
   last_send_id:
@@ -92,7 +90,13 @@ test("the week, the two that come when something happens, and a switch that writ
   const puts = await open(page);
   const week = page.getByRole("region", { name: "Your week in email" });
   await expect(week.getByText("Your week in the Arena")).toBeVisible();
-  await expect(week.getByText("nothing")).toBeVisible();
+  await expect(week.getByText("nothing")).toHaveCount(3);
+  await expect(page.getByRole("switch", { name: "Top 100 email" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("switch", { name: "Card of the Week email" }),
+  ).toHaveCount(0);
   const happens = page.getByRole("region", { name: "When something happens" });
   await expect(happens.getByText("Clan actions waiting")).toBeVisible();
   await expect(

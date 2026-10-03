@@ -735,12 +735,32 @@ const VACUUMABLE = new Set([
   "battle_participant_round",
   "player_snapshot_daily",
   // A backfill's deck rows (0182's {duel_round_decks} added about 80k
-  // deck_card rows, and the meta readers' index-only probes of deck_card
-  // fetched the heap for them: a corpus week read 15 s cold against 3 s),
-  // and the population a rollup rebuild rewrites.
+  // deck_card rows); those rows also need their visibility map rebuilt.
   "deck",
   "deck_card",
-  "meta_season_pop",
+  // Retained tables changed by the approved right-sizing purge. Retired
+  // global/group tables contract separately once their last readers are gone.
+  "api_receipt",
+  "api_payload",
+  "mcp_call_audit",
+  "email_issue",
+  "battlelog_high_water",
+  "player_daily_battle_rollup",
+  "player_activity",
+  "player_badge",
+  "player_card",
+  "player_event",
+  "player_pol_season",
+  "player_progress_daily",
+  "clan_event",
+  "clan_membership",
+  "clan_snapshot_daily",
+  "war_attendance_day",
+  "war_participation",
+  "war_period_anchor",
+  "war_period_log",
+  "war_week_clan",
+  "war_week",
 ]);
 
 /**
@@ -839,14 +859,6 @@ export async function enumCensus(databaseUrl) {
         war_week_clan_week: await orphans(
           `select count(*)::int as n from war_week_clan wc
            where not exists (select 1 from war_week w where (w.clan_tag, w.season_id, w.section_index) = (wc.clan_tag, wc.season_id, wc.section_index))`,
-        ),
-        ranking_snapshot_season: await orphans(
-          `select count(*)::int as n from ranking_snapshot r
-           where not exists (select 1 from season s where s.season_month = r.season_month)`,
-        ),
-        ranking_presence_season: await orphans(
-          `select count(*)::int as n from ranking_presence r
-           where not exists (select 1 from season s where s.season_month = r.season_month)`,
         ),
         participant_null_battle_time: await orphans(
           `select count(*)::int as n from battle_participant where battle_time is null`,

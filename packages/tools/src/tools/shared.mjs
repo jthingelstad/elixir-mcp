@@ -251,9 +251,9 @@ export const SEGMENT_SCHEMA = {
 
 /**
  * The segment as one resolved thing, before any tool builds its own
- * predicate: `{ kind, echo, ... }` where kind is corpus, player,
- * clan and the object carries the resolved tag, clan tag
- * . "mine" resolves through entitledClan(undefined), so
+ * predicate: `{ kind, echo, ... }` where kind is player or clan,
+ * and the object carries the resolved tag. "mine" resolves through
+ * entitledClan(undefined), so
  * an account with no clan is no_subject, never a guess.
  */
 export async function resolveSegment(ctx, args) {
@@ -1016,11 +1016,6 @@ export async function segmentFilter(ctx, args, params) {
   );
 }
 
-/** Empirical-Bayes shrinkage (docs/archive/META-INTEL.md): pull small samples toward
- *  the segment mean; this moderates extremes, not rank ordering. */
-
-/** The one-sentence caveats every meta tool carries; the formulas are on
- *  the methodology page (docsRef below). */
 /** Current-clan membership caveat shared by scoped history reads. */
 export function clanSegmentNote(seg) {
   const echo = seg?.echo ?? seg;
@@ -1041,7 +1036,7 @@ export function clanSegmentNote(seg) {
 
 export { DUEL_TYPES };
 
-/** The meta population's sources as GAMES (9.11.0, feedback #363):
+/** The selected participants' sources as GAMES (9.11.0, feedback #363):
  *  every row as it was, `round` 0 (a duel's whole row among them, with no
  *  deck, so never decided), and each recorded round of a duel beside it
  *  with its own deck_hash and outcome (contracts' duelGamesSql). Each is
@@ -1065,29 +1060,6 @@ const PARTICIPANT_LEVELS = ["deck_avg_level", "opp_deck_avg_level"];
 export const participantGamesSql = (from) =>
   duelGamesSql(from, PARTICIPANT_GAME_COLUMNS, { blank: PARTICIPANT_LEVELS });
 export const PARTICIPANT_GAMES = participantGamesSql("battle_participant");
-/** What a meta window held that the decided head-to-head population left
- *  out, so a 246-vs-212 gap is self-describing instead of something a
- *  consumer derives by subtraction across three tools (feedback #23).
- *  `where` scopes rows to segment + window + mode only. */
-
-/** The corpus prior for shrinkage: decided head-to-head rate over the
- *  same window and mode, ignoring the segment. Null when the corpus
- *  window is below the floor (the caller substitutes 0.5). */
-
-/**
- * Deck identities as rows (0091): the cards of each deck_hash, by form,
- * with the tower troop, from deck_card and deck rather than any
- * participant's JSON. Rendered the way deckCards always did - {id, name,
- * evolution?} - so the contract shape is unchanged; order is by card id
- * (an identity is a set; the old exemplar order was one player's slots).
- * Returns a Map deck_hash -> { cards, tower_troop? }.
- */
-/**
- * The deck hashes whose played cards include ALL of `cardIds`, any form
- * (5.0.0, battles_meta_decks.containing): one indexed read of deck_card,
- * the tower troop excluded (it is on the deck row, not in deck_card).
- */
-
 /** The archetype vocabulary (0147): one cache for the readers and the
  *  ingest path (card-roles.mjs). */
 const vocabulary = cachedVocabulary;
@@ -1359,21 +1331,6 @@ export async function ensureClanRecording(db, tag, requestedBy) {
   return started;
 }
 
-/** The fit of the population's decks against one player's collection
- *  (6.4.0, feedback #70: a corpus deck sorted by win rate reads as
- *  advice, and the payload carried nothing about what the caller holds,
- *  so an agent recommended a deck the player could not field - two
- *  rows ran a card he did not own, the top row cost him two mean
- *  levels). Jamie's call: recommendations come from the player's
- *  collection, and the agent must be free to say what a few upgrades
- *  would open - so a row carries what the player holds, what it would
- *  field at, and the upgrade path; a row with a card or form the player
- *  lacks leaves decks[] for unfieldable[]. The levels are the display
- *  scale on both sides (contracts displayLevel, the one conversion). */
-
-/** What a player holds: card_id -> { level, forms }. An empty map means
- *  no collection is recorded. */
-
 /** The mean level a player has actually fielded: the average of their
  *  decks' mean card level over decided pvp battles in the window (and
  *  mode, when one is asked). The benchmark that makes a held level
@@ -1410,13 +1367,3 @@ export async function fieldedLevel(db, tag, { from, to, types }) {
     battles: r?.battles ?? 0,
   };
 }
-
-/** Resolve a fit_for argument to a tag with a recorded collection, or
- *  refuse: a fit against nothing would read as "owns nothing". */
-
-/** One deck's cards against what the player holds: fieldable or not
- *  (missing names the card and why), the mean level the player would
- *  field it at, that against the level they have been fielding, and
- *  the upgrade path to the fielded level (what could be). */
-
-/** What a player holds of one card, for a card row: null when unowned. */

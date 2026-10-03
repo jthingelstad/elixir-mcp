@@ -62,7 +62,10 @@ Your machine's own name and address are not published.
 **Keeping and removing.** Game history is kept; it is what the service
 is for. To remove your account and your address, email
 [admin@poapkings.com](mailto:admin@poapkings.com) or use the feedback
-form. Public game data stays, as it does in the game itself.
+form. Public game data stays, as it does in the game itself. The approved cleanup
+of retired automatic game-wide captures preserves personal and clan overlap.
+Older data can remain in encrypted automated backups until their normal
+seven-day retention expires.
 
 **Changes.** When the service changes in a way that matters to this
 page, the page changes, and the change is listed under

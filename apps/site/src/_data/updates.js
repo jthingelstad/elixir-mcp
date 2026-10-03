@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-02",
+    title: "Retired recording machinery leaves Elixir",
+    body: "The retirement cleanup removes obsolete leaderboard projectors, global population processing, named-group machinery and editorial composers. Your record, clan features, factual event calendar, notifications, sent mail and agent access remain available. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-02",
     title: "Card history reads less of the record",
     body: "Card history now uses the existing player index and checks boat sides only where needed. Earliest recorded forms, own boat attacks and duel rounds stay the same; boat defenses remain excluded. Contracts unchanged.",
   },

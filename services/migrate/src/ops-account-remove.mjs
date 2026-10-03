@@ -12,7 +12,7 @@
  * What goes, for the person and every agent they own: the address, the
  * claims and watches (claim, account_clan, and the recordings only they
  * kept alive, stopped through the claims package's own reconcile), the
- * collections they own, sessions, OAuth grants and codes and tokens,
+ * sessions, OAuth grants and codes and tokens,
  * service tokens, the call log and its refusal log, feedback, account
  * events, mail sent and its switches and milestones, nicknames, timeline
  * read pointers, agent identities, and pending sign-in links.
@@ -136,10 +136,6 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
      union
      select 'clan', clan_tag from account_clan
       where account_id = any($1::uuid[])
-     union
-     select c.kind, m.subject_tag from collection_member m
-       join collection c on c.collection_id = m.collection_id
-      where c.owner_account = any($1::uuid[])
      order by 2, 1`,
     [ids],
   );
@@ -186,11 +182,6 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     ["claim_challenge", `claim_challenge where account_id = any($1::uuid[])`],
     ["claim", `claim where account_id = any($1::uuid[])`],
     ["account_clan", `account_clan where account_id = any($1::uuid[])`],
-    [
-      "integration_collection_grant",
-      `integration_collection_grant where collection_id in (select collection_id from collection where owner_account = any($1::uuid[]))`,
-    ],
-    ["collection", `collection where owner_account = any($1::uuid[])`],
     ["player_nickname", `player_nickname where account_id = any($1::uuid[])`],
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
     ["agent_identity", `agent_identity where account_id = any($1::uuid[])`],

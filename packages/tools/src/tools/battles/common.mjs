@@ -11,31 +11,6 @@ import {
 } from "@elixir-mcp/contracts";
 import { docsRef, requireEnum } from "../shared.mjs";
 
-/** group_by on battles_meta_decks (6.6.0, design §6): the population's
- *  decks folded by archetype label or by family, with the members who
- *  play each on a clan or player segment. */
-
-/** fit_for on the meta tools (6.4.0, feedback #70). */
-
-/** The trophy band argument the three meta tools take (0135): the
- *  participant's own starting trophies at battle time. */
-
-/** One card, or a handful: the ids a card-shaped question names (5.0.0).
- *  Filters the rows AFTER aggregation, like min_battles and limit; the
- *  denominators (decided_battles, usage_share) stay the population's. */
-
-/** The band fallback sentence when the rollup is not yet built. */
-/** The meta tools and the caller's collection (6.4.0, feedback #70). */
-
-/** The same on battles_meta_cards, which has no decks[] (Gym journey r3). */
-
-/** Fold deck rows by their stamped archetype (label or family). With
- *  members, one scan of the scope's battle rows by player and deck says
- *  who plays each shape and their most-played deck of it; `players` is
- *  then exact. Without (the corpus), `players` sums the decks' distinct
- *  players and the note says a player on two decks of one shape counts
- *  twice. */
-
 /** tower_hp as served, from the three columns (0123): king when
  *  carried, princess as the fixed pair - a one-tower array was padded
  *  with 0 for the destroyed tower (feedback #22: the API omits a

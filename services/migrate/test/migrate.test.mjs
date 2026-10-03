@@ -293,6 +293,11 @@ test("a payload no op knows is refused and migrates nothing; {} still migrates",
     { stat: true },
     { stats: false },
     { vacum: { table: "battle" } },
+    { right_sizing_census: { lane: "reasons" } },
+    { right_sizing_purge: { action: "apply" } },
+    { retire_collection_recordings: { apply: true } },
+    { retire_board_recordings: { apply: true } },
+    { clan_import: { apply: true } },
   ]) {
     const out = await handler(payload);
     assert.equal(out.error, "unknown_op", JSON.stringify(payload));
@@ -319,7 +324,7 @@ test("tables op: every user table's size and churn, the memory settings, no payl
   assert.ok(out.database_bytes > 0);
   assert.ok("shared_buffers" in out.settings && "work_mem" in out.settings);
   const names = out.tables.map((t) => t.table_name);
-  for (const t of ["battle", "api_receipt", "ranking_entry", "player"])
+  for (const t of ["battle", "api_receipt", "clan_membership", "player"])
     assert.ok(names.includes(t), `${t} is listed`);
   const battle = out.tables.find((t) => t.table_name === "battle");
   assert.equal(typeof battle.total_bytes, "number");

@@ -3,9 +3,20 @@
 This is an engineering assessment and removal plan, prepared for Jamie on
 2026-10-02. It is not a release receipt or a second product specification.
 The product's purpose belongs in [About Elixir](../../apps/site/src/docs/about.md).
-Implementation began with a reversible stop-capture and stop-send cutover
-(contract 9.20.0); the production receipt belongs in `docs/NOTES.md`. No
-production history has been deleted. Drop automatic enrollment has also shipped (PR #73). Collections retired in MCP 10.0.0 and JSON API 3.0.0. Global board tools, game-wide statistics, recommendations and editorial infrastructure retired in MCP 11.0.0. Clan now uses the shared Elixir session, application and Postgres ledger after a complete frozen-state comparison. Legacy infrastructure has retired after the checked transfer; the reviewed historical purge is pending; no canonical game history has been purged.
+The feature retirements are deployed: Drop automatic enrollment (PR #73),
+Collections (MCP 10.0.0 / JSON API 3.0.0), global boards, game-wide
+statistics, recommendations and editorial infrastructure (MCP 11.0.0).
+Clan shares the Elixir session, application and Postgres ledger after a
+complete frozen-state comparison; its legacy infrastructure has retired.
+Jamie approved the original private history manifest on October 2. Its bounded
+database purge stopped after 15,055 completed batches and a rolled-back battle
+transaction. A replacement manifest preserves the selection and completed
+receipts while reducing battle batch size; it awaits Jamie's approval.
+Retained-history verification, S3 version deletions and final maintenance
+remain required. The authoritative execution
+receipts belong in `docs/NOTES.md`. The assessment measurements and original
+implementation inventory below remain dated engineering context.
+
 
 Jamie confirmed that global leaderboard capture and history should go, while
 rank information delivered in a recorded player's profile stays. Full Clan
@@ -62,7 +73,7 @@ does not automatically lower the RDS bill or shrink its provisioned disk.
 | Versioned JSON API and external integrations | Keep | Clan becoming internal does not retire Drop's or another caller's public contract |
 | Drop sign-in with Elixir and authorized account access | Keep | Retire automatic collection enrollment separately; preserve Drop's OAuth client, consent and authentication flow |
 | Global boards and historical season finals | Remove | Scheduling, ingest, tools, collections, archive and replay sources all go |
-| Regional, clan and rotating-mode boards | Recommend removing with global boards | Keeping them retains the same capture and maintenance machinery; personal profile rank stays |
+| Regional, clan and rotating-mode boards | Remove | Keeping them retains the same capture and maintenance machinery; personal profile rank stays |
 | Automatic recording of ranked players and board collections | Remove | Reconcile every remaining legitimate recording reason before stopping capture |
 | Ultimate Champions and Card of the Week | Remove | Builders, generation, schedules, templates, switches and future-send paths |
 | Public corpus card/deck statistics and corpus analysis | Remove | Includes public card performance pages, home-page meta, global season rollups and corpus segments |
@@ -72,7 +83,7 @@ does not automatically lower the RDS bill or shrink its provisioned disk.
 | Global event and tournament collection | Recommend cutting autonomous capture | Keep event facts delivered in people's battles; verify catalog needs before removing an endpoint |
 | Clan social map and bring-your-own-model drafting | Review separately | Not necessary to remove elite capture; do not migrate complexity by default or delete private records implicitly |
 
-## Where the sprawl is implemented
+## Original implementation inventory
 
 The collector is not the policy owner. `packages/ledger/src/plan.mjs` chooses
 what to fetch; the fleet only leases and submits it. Removing a board from a
@@ -392,7 +403,7 @@ deployment with Elixir; and the removed capabilities have no running
 maintenance owner, hidden schedule, dormant generator or misleading
 documentation.
 
-## Assessment delivery status
+## Initial assessment delivery status
 
 The consistency trace covered the scheduler and admission paths, recording
 reasons, board clients and installed Codex schedule, tool/contracts and
@@ -420,8 +431,8 @@ worktree from origin/main. Another session holds the deployment lease;
 this assessment took no lease and made no production writes.
 
 Game-wide meta, recommendations and Collections are confirmed removals. The remaining
-product proposals concern regional/mode boards, autonomous event/tournament
-capture and the smaller Clan social/model features. Exact deletion counts
+product proposals concern autonomous event/tournament capture and the
+smaller Clan social/model features. Exact deletion counts
 and archive bytes remain work for the census. The plan does not call the
 retirement shipped.
 

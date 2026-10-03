@@ -32,8 +32,6 @@ const KINDS = [
   ["clan_report", "Clan report", "Clan", at("Monday")],
   ["arena_week", "Your week in the Arena", "Ladder", at("Tuesday")],
   ["tracking_report", "Your friends this week", "Friends", at("Wednesday")],
-  ["top_100", "Top 100", "Cards", at("Thursday")],
-  ["card_of_week", "Card of the Week", "Cards", at("Friday")],
   ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
   ["milestone", "Milestones", "Ladder", null],
   ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
@@ -42,7 +40,7 @@ const KINDS = [
   label,
   product,
   sends,
-  enabled: kind !== "top_100",
+  enabled: kind !== "tracking_report",
   changed_at: null,
   applies: kind !== "collector_activity",
   last_send_id:
@@ -104,15 +102,19 @@ test("the week: each email on the day it comes, with its product and its switch"
   expect(clan.getAttribute("aria-checked")).toBe("true");
   expect(
     screen
-      .getByRole("switch", { name: "Top 100 email" })
+      .getByRole("switch", { name: "Your friends this week email" })
       .getAttribute("aria-checked"),
   ).toBe("false");
   // A collector's email with no collector: shown, and not switchable.
   expect(
     screen.getByRole("switch", { name: "Collector activity email" }).disabled,
   ).toBe(true);
-  // Saturday has nothing, and says so.
-  expect(within(week).getByText("nothing")).toBeTruthy();
+  // Thursday, Friday and Saturday have no scheduled email.
+  expect(within(week).getAllByText("nothing")).toHaveLength(3);
+  expect(screen.queryByRole("switch", { name: "Top 100 email" })).toBeNull();
+  expect(
+    screen.queryByRole("switch", { name: "Card of the Week email" }),
+  ).toBeNull();
   // The last one sent opens its record.
   const last = within(week).getByRole("link", { name: "The last one ›" });
   expect(last.getAttribute("href")).toBe(
@@ -136,11 +138,11 @@ test("a switch writes its kind; Every email writes all of them at once", async (
   fireEvent.click(screen.getByRole("switch", { name: "Clan report email" }));
   await waitFor(() => expect(puts.length).toBe(1));
   expect(puts[0]).toEqual({ kind: "clan_report", enabled: false });
-  // Top 100 is off in the fixture, so Every email is off and says how
+  // Friends is off in the fixture, so Every email is off and says how
   // many are on.
   const all = screen.getByRole("switch", { name: "Every email" });
   expect(all.getAttribute("aria-checked")).toBe("false");
-  expect(screen.getByText("7 of 8 on")).toBeTruthy();
+  expect(screen.getByText("5 of 6 on")).toBeTruthy();
   fireEvent.click(all);
   await waitFor(() => expect(puts.length).toBe(2));
   expect(puts[1]).toEqual({ kind: "all", enabled: true });
