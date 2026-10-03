@@ -3802,3 +3802,29 @@ reviewed. The two read-only reviewers found no remaining blocking issue.
 The inline-style ceiling drops from 156 to 146. CI/merge/deployment remain owed;
 no production mutation, paid call or lease claim was made for this iteration.
 
+Release receipt: PR #249 passed validate (run 37151484742, 5m9s), including
+all 83 browser journeys, and merged as `e1e1094f636781807dea3ed7b5cdd05ed2625ab8`
+at 20:32:06Z (3:32 PM CDT). The canonical deploy ran from that clean current
+main under the session lease. CloudFormation recorded UPDATE_COMPLETE at
+20:34:56Z (3:34 PM CDT); full deploy completion was observed at 20:36:59Z
+(3:36 PM CDT). No new migrations ran (200 already applied). All 43 smoke
+checks passed; public health was green, the changed docs and update were live,
+and the active successful web function's code hash matched the release ZIP.
+Public-tool acceptance was omitted because this is private Clan UI/orchestration
+and documentation, without a public tool shape or query-path change.
+
+PR #247 remains separate, open and unmerged pending action-specific approval.
+Its scoped permission correction is not an ancestor of this release. Before/
+after IAM read-back proved the relay policy unchanged, including its existing
+unrestricted ListBucket permission from the already deployed PR #245 repair.
+The release lease is free. This notes-only close needs no further deployment.
+
+Post-release Actions latency still requires natural signed-in traffic; no
+request that could evaluate or grant production awards was manufactured for
+measurement. Rookie ranking already shares the points/donation/tie rules,
+but eligibility still includes the prior-season/no-war exception. Whether
+that exception fits the requested first-clan-season restriction is a product
+rule question, separate from a hold caused by unknown previous-season points.
+Historical manual-grant reconciliation, existing stale Actions decisions,
+co-leaders' own sign-in/verification and a new paid drafting attempt remain
+separate live checks; none was manufactured or changed for verification.
