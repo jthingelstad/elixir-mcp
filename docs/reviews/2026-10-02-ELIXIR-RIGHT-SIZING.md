@@ -18,8 +18,9 @@ transaction. Jamie chose to finish in the current database. A faster grouped
 manifest preserves all selection and receipts; Jamie approved its exact
 digest and collector window on October 3, subsequently prioritizing completion
 and extending the pause. Database, retained-history verification, exact original
-S3-version deletion and temporary cleanup are complete. Final vacuum, runtime
-cleanup and the later empty-table contract remain required. The authoritative execution
+S3-version deletion, temporary cleanup, post-delete vacuum and runtime
+cleanup are complete. Migration 0199 contracts the empty retired tables in
+a separate release after the last readers retired. The authoritative execution
 receipts belong in `docs/NOTES.md`. The assessment measurements and original
 implementation inventory below remain dated engineering context.
 
