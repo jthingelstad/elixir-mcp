@@ -4025,3 +4025,50 @@ PostgreSQL CAS and desktop/mobile browser checks cover identity, preserved
 receipts, delivery gating and stale History. Independent review found and
 closed the History/manual-only issues. The full gate is required before push;
 CI and deployment receipts are recorded after shipping.
+
+
+## 2026-10-03 - Verified Clan queue and Reopen releases
+
+- **Pure-view queue fix, PR254:** merged `6f0dcc2e` at 22:15:42Z after
+  validate run `37157536659` passed (4m49s). CloudFormation reported
+  UPDATE_COMPLETE at 22:17:21.232Z; the web function's LastModified was
+  22:17:04Z, Active/Successful, with the exact locally built bundle hash.
+  The completed deploy passed all 43 smoke checks and public health.
+  Existing migrations were current (`ran: 0`); the production lease was
+  released after verification. The exact Week/You Here exemption is also
+  compatible with scheduled Clan work, which takes the same advisory lock
+  for its changes (`services/jobs/src/clan.mjs`).
+- **Reopen and compact copy, PR255:** merged runtime `42ad320f` at
+  22:25:44Z after validate run `37158110388` passed (4m59s), including
+  all 87 browser checks. The rebased branch passed the full local gate;
+  focused UI/core tests, two-client PostgreSQL CAS and four desktop/420px
+  Closed/History journeys passed. Browser checks cover the preserved
+  decline, unchanged sent words, independent copying, disabled completion
+  with an unsent part, History refresh, axe and no horizontal overflow.
+  A 50-way tied podium retained every recipient in bounded parts (maximum
+  body 176, title 18; the game limits remain 180/24).
+- **Production receipt:** CloudFormation UPDATE_COMPLETE at
+  22:27:18.697Z; web LastModified 22:27:03Z, Active/Successful and exact
+  tested bundle hash. All 43 smoke checks and public health passed;
+  `/docs/clan-actions` published the Reopen guide. Again `ran: 0`.
+  Bounded IAM-only maintenance reads confirmed the existing declined
+  Action and completed update were exactly equal as parsed stored cards
+  to their pre-release reads: decisions, frozen evidence and sent words
+  retained. No production Action was reopened for acceptance. The relay
+  policy after both deploys equals the approved PR247 scoped policy exactly.
+  No business acceptance writes, award grants, paid model calls, new
+  credentials or persistent-access expansion were performed. Both leases
+  are released.
+- **Performance evidence limit:** CloudWatch Logs Insights selected only
+  route/status/timing/correlation fields for Actions, You Here and The Week
+  from 22:17:04 through 22:30:31Z and returned zero page samples. This
+  executor exposes no authorized interactive browser/session tool for
+  the existing account, so no paired first/repeat account visit was
+  manufactured. The lock/concurrency regression is verified; a live
+  speedup or the remaining direct-read latency is still unmeasured.
+  The next authorized account visit can use the direct-call phase and
+  Server-Timing header for attribution. The private trace's `cold` flag
+  means first Clan trace in that runtime; a true Lambda cold-start claim
+  requires the REPORT InitDuration field.
+
+These receipts change documentation only and require no additional deploy.
