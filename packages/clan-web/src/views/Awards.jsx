@@ -130,10 +130,15 @@ export function Awards({ clan }) {
                   (g) =>
                     g.season_id === s.season_id && g.award_id === a.award_id,
                 )}
-                canGrant={d.can_grant.includes(a.award_id)}
+                canGrant={s.complete && d.can_grant.includes(a.award_id)}
                 canRevoke={d.can_edit}
                 clan={clan}
                 candidates={d.members}
+                previousGrants={d.grants.filter(
+                  (g) =>
+                    g.award_id === a.award_id &&
+                    g.season_id === s.season_id - 1,
+                )}
                 onChange={() => load()}
               />
             ))}
@@ -195,6 +200,7 @@ function AwardPanel({
   canRevoke = false,
   clan,
   candidates = [],
+  previousGrants = [],
   onChange,
 }) {
   const [granting, setGranting] = useState(false);
@@ -202,23 +208,58 @@ function AwardPanel({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const rows = award.rows ?? [];
+  const rows =
+    season.closed && award.state === "closed"
+      ? grants.map((g) => ({ ...g, name: g.player_name }))
+      : (award.rows ?? []);
   return (
     <div className="panel">
       <div className="panel__head" style={{ gap: "8px", flexWrap: "wrap" }}>
-        <span>{award.name}</span>
+        <span>
+          {season.closed && grants.length ? grants[0].name : award.name}
+        </span>
         <span className="chip">{STATE_LABEL[award.state] ?? award.state}</span>
         {award.kind === "perfect_attendance" && award.state !== "off" ? (
           <span className="page-head__note">pass/fail, not a ranking</span>
         ) : null}
       </div>
       <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
-        {award.state === "off" ? null : award.state === "held" ? (
-          <p className="page__lede" style={{ margin: 0 }}>
+        {award.state === "held" ? (
+          <p className="page__lede m-0">
             {award.note}
+            {rows.length
+              ? " Recorded totals below are provisional; no places or winners are decided."
+              : ""}
           </p>
-        ) : award.state === "manual" ? (
+        ) : null}
+        {award.state === "off" ||
+        (award.state === "held" && !rows.length) ? null : award.state ===
+          "manual" ? (
           <>
+            {award.description ? (
+              <p className="page__lede m-0">{award.description}</p>
+            ) : null}
+            {season.closed ? (
+              <p className="page-head__note m-0">
+                {previousGrants.length
+                  ? `Season ${season.season_id - 1}: ${previousGrants.map((g) => g.player_name ?? g.player_tag).join(", ")}.`
+                  : `No recorded ${award.name} grant for season ${season.season_id - 1}. Check the clan's history before choosing.`}{" "}
+                Review the final podium and this award's rule; the choice is
+                yours.
+              </p>
+            ) : null}
+            {season.closed &&
+            season.awards.some((a) => a.computed && a.state === "held") ? (
+              <p className="callout callout--warn" role="alert">
+                Evidence is incomplete for{" "}
+                {season.awards
+                  .filter((a) => a.computed && a.state === "held")
+                  .map((a) => a.name)
+                  .join(", ")}
+                . If this pick depends on those results, wait for the evidence
+                before choosing.
+              </p>
+            ) : null}
             {rows.length === 0 ? (
               <p className="page__lede" style={{ margin: 0 }}>
                 Not granted{season.closed ? " yet" : ""}.
@@ -243,14 +284,26 @@ function AwardPanel({
                           disabled={busy}
                           onClick={async () => {
                             setBusy(true);
-                            await manageApi.revokeAward(
-                              clan.clan_tag,
-                              season.season_id,
-                              award.award_id,
-                              r.player_tag,
-                            );
-                            setBusy(false);
-                            onChange?.();
+                            setError("");
+                            try {
+                              const result = await manageApi.revokeAward(
+                                clan.clan_tag,
+                                season.season_id,
+                                award.award_id,
+                                r.player_tag,
+                              );
+                              if (!result.ok)
+                                return setError(
+                                  "Taking back the award was not confirmed. Read the awards again before retrying.",
+                                );
+                              onChange?.();
+                            } catch {
+                              setError(
+                                "Taking back the award was not confirmed. Read the awards again before retrying.",
+                              );
+                            } finally {
+                              setBusy(false);
+                            }
                           }}
                         >
                           take back
@@ -270,21 +323,31 @@ function AwardPanel({
                     setBusy(true);
                     setError("");
                     const chosen = candidates.find((c) => c.player_tag === tag);
-                    const r = await manageApi.grantAward(clan.clan_tag, {
-                      award_id: award.award_id,
-                      player_tag: tag,
-                      player_name: chosen?.name ?? null,
-                      season_id: season.season_id,
-                      note,
-                    });
-                    setBusy(false);
-                    if (!r.ok)
-                      return setError(r.data?.error ?? "That did not work.");
-                    trackEvent("clan.award_granted", award.kind);
-                    setGranting(false);
-                    setTag("");
-                    setNote("");
-                    onChange?.();
+                    try {
+                      const r = await manageApi.grantAward(clan.clan_tag, {
+                        award_id: award.award_id,
+                        player_tag: tag,
+                        player_name: chosen?.name ?? null,
+                        season_id: season.season_id,
+                        note,
+                      });
+                      if (!r.ok)
+                        return setError(
+                          GRANT_ERRORS[r.data?.error] ??
+                            "The grant was not confirmed. Read the awards again before retrying.",
+                        );
+                      trackEvent("clan.award_granted", award.kind);
+                      setGranting(false);
+                      setTag("");
+                      setNote("");
+                      onChange?.();
+                    } catch {
+                      setError(
+                        "The grant was not confirmed. Read the awards again before retrying.",
+                      );
+                    } finally {
+                      setBusy(false);
+                    }
                   }}
                 >
                   <label
@@ -298,6 +361,7 @@ function AwardPanel({
                     className="input"
                     value={tag}
                     required
+                    disabled={busy}
                     onChange={(e) => setTag(e.target.value)}
                   >
                     <option value="">Choose a member…</option>
@@ -307,19 +371,36 @@ function AwardPanel({
                       </option>
                     ))}
                   </select>
+                  <label
+                    className="field-label"
+                    htmlFor={`note-${award.award_id}`}
+                  >
+                    Why this member
+                  </label>
                   <input
+                    id={`note-${award.award_id}`}
                     className="input"
                     placeholder="Why (shown with the award)"
                     value={note}
                     maxLength={500}
+                    required
+                    disabled={busy}
                     onChange={(e) => setNote(e.target.value)}
                   />
-                  {error ? <p className="field-error">{error}</p> : null}
+                  {tag ? (
+                    <p className="page-head__note m-0">
+                      Confirm {award.name} for season {season.season_id} for{" "}
+                      {candidates.find((c) => c.player_tag === tag)?.name ??
+                        tag}
+                      . This records your choice; it does not send an
+                      announcement.
+                    </p>
+                  ) : null}
                   <div style={{ display: "flex", gap: "8px" }}>
                     <button
                       type="submit"
                       className="btn btn--primary"
-                      disabled={busy || !tag}
+                      disabled={busy || !tag || !note.trim()}
                     >
                       Grant {award.name}
                     </button>
@@ -327,6 +408,7 @@ function AwardPanel({
                       type="button"
                       className="btn"
                       onClick={() => setGranting(false)}
+                      disabled={busy}
                     >
                       Cancel
                     </button>
@@ -343,12 +425,15 @@ function AwardPanel({
                 </button>
               )
             ) : null}
+            {error ? <p className="field-error">{error}</p> : null}
           </>
         ) : rows.length === 0 ? (
           <p className="page__lede" style={{ margin: 0 }}>
-            {award.kind === "perfect_attendance"
-              ? "Nobody on track."
-              : "Nobody in the race yet."}
+            {season.closed
+              ? "No grants recorded."
+              : award.kind === "perfect_attendance"
+                ? "Nobody on track."
+                : "Nobody in the race yet."}
           </p>
         ) : (
           <div tabIndex={0} className="table__scroll">
@@ -361,14 +446,18 @@ function AwardPanel({
                   return (
                     <tr key={r.player_tag}>
                       <td style={{ width: "2.5em", color: "var(--ink-faint)" }}>
-                        {award.kind === "perfect_attendance"
-                          ? "✓"
-                          : `${r.rank}${r.tied ? "=" : ""}`}
+                        {award.state === "held"
+                          ? "—"
+                          : award.kind === "perfect_attendance"
+                            ? "✓"
+                            : r.rank == null
+                              ? "—"
+                              : `${r.rank}${r.tied ? "=" : ""}`}
                       </td>
                       <td>
                         <strong>{r.name ?? r.player_tag}</strong>{" "}
                         <span className="tag">{r.player_tag}</span>
-                        {r.on_podium || grant ? (
+                        {(season.closed ? grant : r.on_podium) ? (
                           <span
                             className="chip chip--ok"
                             style={{ marginLeft: "6px" }}
@@ -400,7 +489,20 @@ const STATE_LABEL = {
   manual: "by hand",
 };
 
+const GRANT_ERRORS = {
+  season_not_closed: "This season is not yet recorded as closed and complete.",
+  bad_note: "Add a reason of at most 500 characters.",
+  not_in_roster:
+    "This member is not in the recorded roster. Read the awards again.",
+  grant_exists:
+    "This grant already has a different recorded reason. Read it before making a change.",
+};
+
 function metric(award, r) {
+  if (r.granted_at)
+    return r.metric_value === null || r.metric_value === undefined
+      ? "Recorded grant"
+      : `${r.metric_value.toLocaleString()} ${UNIT[r.metric_unit] ?? r.metric_unit}`;
   if (award.kind === "perfect_attendance")
     return r.decks_short === 0
       ? `all ${r.decks_asked} war decks`

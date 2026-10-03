@@ -20,6 +20,7 @@ import { sendClanMail } from "@elixir-mcp/mail/clan-mail";
 import { makeRegistry } from "@elixir-mcp/tools";
 import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { normalizeTag } from "@elixir-mcp/contracts";
+import { warMembershipEvidence } from "@elixir-mcp/record/war-membership";
 const registry = makeRegistry();
 const answer = async (fn) => {
   try {
@@ -194,6 +195,8 @@ export async function runClanEvaluation({
       }),
       awards: createAwardsService({
         ledger,
+        membershipFor: (tag, participation) =>
+          warMembershipEvidence(db, tag, participation),
         participationFor: (token, tag) => fetchParticipation(mcp, token, tag),
         elixir: mcp,
       }),

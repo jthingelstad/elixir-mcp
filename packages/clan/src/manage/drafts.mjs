@@ -11,6 +11,7 @@ import {
   CHAT_TONES,
   chatMessageFromDraft,
   chatMessageRequest,
+  chatSafe,
   declaredGoals,
   leaderMessageFromDraft,
   leaderMessageRequest,
@@ -58,11 +59,37 @@ export function createDrafts({ ledger, model, now = () => Date.now() }) {
         ledger.currentPitch(clanTag),
       ]);
       const ev = card.evidence ?? {};
+      if (kind === "awards") {
+        try {
+          leaderMessageFromDraft({}, { kind, awards: ev.awards ?? [] });
+        } catch (error) {
+          if (error instanceof RangeError)
+            throw new ManageError(409, "awards_need_segments");
+          throw error;
+        }
+      }
       // The action's subject stays local, including in a leader's optional note.
       const anonymous = (text) => {
-        let value = String(text ?? "");
-        for (const privateValue of [card.player_name, card.player_tag])
-          if (privateValue) value = value.replaceAll(privateValue, "{name}");
+        let value =
+          kind === "awards" ? chatSafe(String(text ?? "")) : String(text ?? "");
+        for (const privateValue of [
+          card.player_name,
+          card.player_tag,
+          ...(kind === "awards"
+            ? (ev.awards ?? []).flatMap((a) => a.winners ?? [])
+            : []),
+          ...(kind === "awards"
+            ? (ev.grant_refs ?? []).flatMap((ref) => {
+                const tag = ref.split(":").at(-1);
+                return [tag, tag.replace(/^#/, "")];
+              })
+            : []),
+        ])
+          if (privateValue)
+            value = value.replaceAll(
+              kind === "awards" ? chatSafe(privateValue) : privateValue,
+              "{name}",
+            );
         return value;
       };
       const context = {
@@ -81,12 +108,15 @@ export function createDrafts({ ledger, model, now = () => Date.now() }) {
             seasonId: ev.season_id ?? null,
             awardCount: (ev.awards ?? []).length,
             // The template the action carries, with the name taken out again.
-            current: ev.message
-              ? {
-                  title: anonymous(ev.message.title),
-                  body: anonymous(ev.message.body),
-                }
-              : null,
+            current:
+              kind === "awards"
+                ? { title: `Season ${ev.season_id} awards`, body: "{winners}" }
+                : ev.message
+                  ? {
+                      title: anonymous(ev.message.title),
+                      body: anonymous(ev.message.body),
+                    }
+                  : null,
           });
       const answer = await model.write(clanTag, who, token, request);
       const draft = (chat ? chatMessageFromDraft : leaderMessageFromDraft)(

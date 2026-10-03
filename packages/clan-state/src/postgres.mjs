@@ -18,6 +18,14 @@ export function createPostgresStore(db) {
         [item.pk, JSON.stringify(item)],
       );
     },
+    async putIfAbsent(item) {
+      const inserted = await db.query(
+        `insert into clan_state (pk, body) values ($1, $2::jsonb)
+         on conflict (pk) do nothing returning body`,
+        [item.pk, JSON.stringify(item)],
+      );
+      return inserted.rows[0]?.body ?? (await this.get(item.pk));
+    },
     async compareAndPatch(pk, expected, patch) {
       const result = await db.query(
         `update clan_state set body = body || $3::jsonb, updated_at = now()

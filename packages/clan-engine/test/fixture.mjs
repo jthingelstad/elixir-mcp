@@ -75,6 +75,7 @@ export function member(tag, opts = {}) {
     name,
     role,
     joined_observed_at: joined,
+    first_joined_at: joined,
     tenure_known: tenureKnown,
     days_in_clan_observed: tenureDays,
     last_battle_time:

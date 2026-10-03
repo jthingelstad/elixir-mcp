@@ -697,6 +697,9 @@ export function ActionCard({
             <div>
               Season {ev.season_id} is closed and its awards are granted. Tell
               the clan with a Clan Leader Message, then mark it sent.
+              {ev.parts > 1
+                ? ` Message ${ev.part} of ${ev.parts}; send every part to name all recipients.`
+                : ""}
             </div>
           ) : action.type === "rules_announcement" ? (
             <div>

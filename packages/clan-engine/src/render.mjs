@@ -504,6 +504,56 @@ export function leaderMessage(kind, data = {}) {
   };
 }
 
+/** Complete awards copy in game-sized segments: no unnamed overflow.
+ * Each part retains exactly the grant receipts its words announce. */
+export function awardAnnouncementParts(grants) {
+  const parts = [];
+  let batch = [];
+  const awardsOf = (rows) => {
+    const groups = new Map();
+    for (const g of rows) {
+      const name = filterSafe(g.name ?? g.award_id);
+      const winners = groups.get(name) ?? [];
+      const winner = filterSafe(g.player_name ?? g.player_tag);
+      // An abnormal name can be longer than one message. The recorded
+      // player tag names the recipient exactly without silently clipping.
+      winners.push(
+        `${name}: ${winner}`.length > LEADER_MESSAGE.body
+          ? g.player_tag
+          : winner,
+      );
+      groups.set(name, winners);
+    }
+    return [...groups].map(([name, winners]) => ({ name, winners }));
+  };
+  const bodyOf = (rows) =>
+    awardsOf(rows)
+      .map((a) => `${a.name}: ${a.winners.join(", ")}`)
+      .join("; ");
+  const finish = () => {
+    if (!batch.length) return;
+    parts.push({
+      part: parts.length + 1,
+      body: bodyOf(batch),
+      awards: awardsOf(batch),
+      grants: batch,
+    });
+    batch = [];
+  };
+  for (const g of [...grants].sort(
+    (a, b) =>
+      a.award_id.localeCompare(b.award_id) ||
+      (a.rank ?? 1) - (b.rank ?? 1) ||
+      a.player_tag.localeCompare(b.player_tag),
+  )) {
+    if (batch.length && bodyOf([...batch, g]).length > LEADER_MESSAGE.body)
+      finish();
+    batch.push(g);
+  }
+  finish();
+  return parts;
+}
+
 /**
  * Lines that bring people in (round 5, 2026-09-25), for clan chat: a member
  * inviting their leaders to set the clan up, and anyone inviting clanmates

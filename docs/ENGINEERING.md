@@ -562,6 +562,12 @@ A digest-bound private snapshot import excludes session/login items and
 OAuth pairs, preserves sealed keys, and refuses unknown durable kinds.
 The checked frozen import transferred all 131 durable items before runtime activation.
 
+Clan awards can add private whole-week absence evidence through
+`@elixir-mcp/record/war-membership`: canonical membership intervals and admitted
+roster observations bracket the entire week, with recording active before it.
+Finish presence or a current rejoin alone cannot prove absence. The web and
+morning callers share this read; it writes nothing and adds no public tool field.
+
 The internal Clan path lives in web-api and receives only its resolved
 Elixir person and connected database client. Request-local opaque credentials
 keep the closed Clan reader inside this process; no OAuth grant or integration

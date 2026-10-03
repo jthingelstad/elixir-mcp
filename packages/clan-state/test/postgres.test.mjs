@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import { schemaFingerprint } from "../../../services/migrate/src/fingerprint.mjs";
 import { createPostgresStore, createPostgresLedger } from "../src/postgres.mjs";
+import { warMembershipEvidence } from "../../record/src/war-membership.mjs";
 import {
   inspectSnapshot,
   importSnapshot,
@@ -89,6 +90,104 @@ const durable = [
     set_by: "#P2LQ0",
   },
 ];
+test("award plans and grant receipts survive duplicate writes without changing provenance", async () => {
+  const ledger = createPostgresLedger(db);
+  const grant = {
+    season_id: 136,
+    award_id: "champ",
+    player_tag: "#P2LQ0",
+    player_name: "Fixture",
+    rank: 1,
+    metric_value: 5000,
+    manual: false,
+    granted_at: "2026-10-05T10:00:00Z",
+  };
+  const plan = {
+    season_id: 136,
+    award_id: "champ",
+    grants: [grant],
+    planned_at: grant.granted_at,
+  };
+  assert.deepEqual(await ledger.saveAwardPlan("#P0LYQ", plan), plan);
+  assert.deepEqual(
+    await ledger.saveAwardPlan("#P0LYQ", { ...plan, grants: [] }),
+    plan,
+  );
+  assert.deepEqual(await ledger.putGrant("#P0LYQ", grant), grant);
+  assert.deepEqual(
+    await ledger.putGrant("#P0LYQ", { ...grant, metric_value: 0 }),
+    grant,
+  );
+  assert.deepEqual(await ledger.grants("#P0LYQ"), [grant]);
+  await ledger.completeAwardPlan("#P0LYQ", plan, "2026-10-05T10:01:00Z");
+  const saved = (await ledger.awardPlans("#P0LYQ"))[0];
+  assert.deepEqual(saved.grants, [grant]);
+  assert.equal(saved.completed_at, "2026-10-05T10:01:00Z");
+  await ledger.deleteClan("#P0LYQ");
+  assert.deepEqual(await ledger.awardPlans("#P0LYQ"), []);
+});
+test("canonical membership SQL keeps race absence separate from full donation-week absence", async () => {
+  await db.query("begin");
+  try {
+    await db.query(
+      "insert into player (player_tag,name) values ('#P2LQ0','Fixture')",
+    );
+    await db.query(
+      "insert into clan (clan_tag,name) values ('#P0LYQ','Fixture Clan')",
+    );
+    await db.query(`insert into clan_membership (clan_tag,player_tag,joined_observed_at,left_observed_at)
+      values ('#P0LYQ','#P2LQ0','2026-08-01','2026-09-08T13:00:00Z'),
+      ('#P0LYQ','#P2LQ0','2026-09-29',null)`);
+    const {
+      rows: [account],
+    } = await db.query(`insert into account (email_hash)
+      values ('membership-fixture') returning account_id`);
+    const {
+      rows: [gateway],
+    } = await db.query(
+      `insert into gateway (owner_account_id,name,status)
+      values ($1,'Fixture gateway','active') returning gateway_id`,
+      [account.account_id],
+    );
+    await db.query(
+      `insert into api_receipt (endpoint,entity_key,fetched_at,payload_hash,gateway_id,admission)
+      select 'clan','#P0LYQ',t,'fixture',$1,'admitted'
+      from unnest($2::timestamptz[]) t`,
+      [
+        gateway.gateway_id,
+        [
+          "2026-09-07T09:55:00Z",
+          "2026-09-09T09:55:00Z",
+          "2026-09-14T10:05:00Z",
+        ],
+      ],
+    );
+    const participation = {
+      recording_active_since: "2026-08-01",
+      first_roster_observed_at: "2026-08-01",
+      members: [{ player_tag: "#P2LQ0" }],
+      war_weeks: [
+        {
+          started_observed_at: "2026-09-09T10:00:00Z",
+          finished_observed_at: "2026-09-14T10:00:00Z",
+        },
+      ],
+      weeks: [{ from: "2026-09-07", to: "2026-09-14" }],
+    };
+    assert.deepEqual(await warMembershipEvidence(db, "#P0LYQ", participation), {
+      war: { "#P2LQ0": [true] },
+      donations: { "#P2LQ0": [false] },
+    });
+    await db.query(`delete from api_receipt where entity_key='#P0LYQ'
+      and fetched_at >= '2026-09-14T10:00:00Z'`);
+    assert.deepEqual(await warMembershipEvidence(db, "#P0LYQ", participation), {
+      war: { "#P2LQ0": [null] },
+      donations: { "#P2LQ0": [null] },
+    });
+  } finally {
+    await db.query("rollback");
+  }
+});
 test("scratch migration pins the full schema", async () => {
   const pinned = (
     await readFile(

@@ -97,6 +97,10 @@ export function createMemoryLedger() {
     async put(item) {
       items.set(item.pk, { ...item });
     },
+    async putIfAbsent(item) {
+      if (!items.has(item.pk)) items.set(item.pk, structuredClone(item));
+      return items.get(item.pk);
+    },
     async get(pk) {
       return items.get(pk) ?? null;
     },
@@ -364,13 +368,31 @@ export function ledgerOver(io) {
       return (await io.listByPrefix(clanTag, "award#")).map(stripKeys);
     },
     async putGrant(clanTag, grant) {
-      await io.put({
+      const saved = await io.putIfAbsent({
         pk: `award#${clanTag}#${grant.season_id}#${grant.award_id}#${grant.player_tag}`,
         gsi1pk: clanKey(clanTag),
         gsi1sk: `award#${pad(grant.season_id)}#${grant.award_id}#${pad(grant.rank ?? 1)}#${grant.player_tag}`,
         ...grant,
       });
-      return grant;
+      return stripKeys(saved);
+    },
+    async awardPlans(clanTag) {
+      return (await io.listByPrefix(clanTag, "award_plan#")).map(stripKeys);
+    },
+    async saveAwardPlan(clanTag, plan) {
+      return stripKeys(
+        await io.putIfAbsent({
+          pk: `award_plan#${clanTag}#${plan.season_id}#${plan.award_id}`,
+          gsi1pk: clanKey(clanTag),
+          gsi1sk: `award_plan#${pad(plan.season_id)}#${plan.award_id}`,
+          ...plan,
+        }),
+      );
+    },
+    async completeAwardPlan(clanTag, plan, at) {
+      const pk = `award_plan#${clanTag}#${plan.season_id}#${plan.award_id}`;
+      const saved = await io.get(pk);
+      if (saved) await io.put({ ...saved, completed_at: at });
     },
     async removeGrant(clanTag, { season_id, award_id, player_tag }) {
       await remove(`award#${clanTag}#${season_id}#${award_id}#${player_tag}`);
