@@ -3720,3 +3720,34 @@ replay deduplication, source-text escaping and enqueue-before-ledger recovery.
 Transport tests cover definitive rejection retries and ambiguous acceptance.
 Release is held for the coordinated parent window; no collector binary change
 or no-op fleet release is required for the prepared historical replay.
+
+Release receipt: PR #246 merged on green validate (run 37149661996), then
+the canonical deploy shipped `9d5a6cf5` under the shared session lease.
+CloudFormation recorded UPDATE_COMPLETE at 20:03:27Z (3:03 PM CT).
+Migration 0200 ran once; smoke passed, public health was healthy with no DLQ
+messages, updated email docs were live, and the per-minute upgrade rule was
+enabled. No MCP/JSON API contract changed, so mail-only smoke/read-back was
+the acceptance scope. The rebased full verify passed 1,714 Node tests and
+411 Vitest tests, with 85 existing skips.
+
+An owner-only dry-run resolved two evidence-backed historical upgrades.
+Exactly two labelled historical replay emails were enqueued at 20:06:23Z
+(3:06 PM CT), accepted by SES, persisted as completed delivery receipts,
+and confirmed in the operator's inbox. Repeating that exact replay sent zero
+additional emails. The messages state that no new upgrade occurred, preserve
+the old/new versions, link verified release changes, and explicitly identify
+the unrecorded historical security state and unknown installation cause.
+No collector release or no-op fleet change was needed. Private replay inputs,
+operator identities and message identifiers remain outside this public repo.
+
+A single owner-scoped manual weekly collector email was accepted by SES at
+20:08:18Z (3:08 PM CT) and confirmed in the inbox at 20:08:20Z. Its five
+running collectors' signed status matched the live dashboard, including the
+self-report caveat. The existing force path records a separate manual-period
+issue and does not suppress or overwrite the scheduled weekly issue. Inbox QA
+also noticed the existing credits calculation can differ by one when recomposing
+a closed week: it subtracts pooled whole-credit floors using current lifetime
+points rather than the period-end total. The carry arithmetic matches quota,
+but historical attribution precision is a separate follow-up; this change
+does not alter it. Production leases are released. This notes-only close
+requires no further deployment.
