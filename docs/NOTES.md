@@ -3685,6 +3685,33 @@ mock confirms denied lookup starts zero calls, normal duplicate delivery starts
 one, and an expired queued request starts none. Green PR merge and canonical
 deployment are owed.
 
+Release receipt: PR #245 merged as `c8e62caadc9c54231a9451aacde8272c326f6090`
+and canonically deployed. All 43 smoke checks passed, public health was green
+and IAM read-back confirmed the relay's permission. No paid retry was made.
+The deployment lease was released at 19:40:38Z (2:40 PM CDT). The deployed
+ListBucket statement was unrestricted across the outbox bucket, broader than
+the missing reply/claim checks require; Jamie has been informed and the
+parent release coordinator has gated further persistent access changes.
+
+## 2026-10-03 — Scoped Clan model existence checks, approval pending
+
+Prepared replacement for PR #245's unrestricted relay ListBucket statement:
+only `clan-model/reply/*` and `clan-model/claim/*`, at most one result per
+list request. On a missing-key GET's AccessDenied, the adapter lists only
+the exact UUID reply/claim key. Only a confirmed empty authorized result is
+absence; listed objects, incomplete replies, malformed keys and denied lists
+stay failures. Request bodies and the mail/collector lanes gain no access.
+The shared adapter preserves the web role's current policy without expanding
+it. Duplicate claims, encryption/AAD and lifetime limits remain unchanged.
+
+No migration or public contract change. No paid model call, production data
+mutation or permission write was made for this correction. This PR must stay
+unmerged and undeployed until Jamie's action-specific approval is forwarded;
+general implementation/deploy authorization is insufficient. Full npm run verify
+passed with disposable local PostgreSQL databases. Focused storage/bridge/infra
+tests passed, including scope, genuine denial, duplicate and expired-request
+cases. CI and action-specific approval remain outstanding; no deploy was made.
+
 ## 2026-10-03 — Collector security and observed upgrade email
 
 Jamie requested dashboard-equivalent security in the weekly collector email and
