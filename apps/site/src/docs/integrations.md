@@ -103,7 +103,7 @@ unknown response fields as compatible additions.
 
 ## Versions
 
-- **3.0.0** (2026-10-02): the Collection membership operations and permission are removed. No replacement automatic enrollment is provided. Existing integration keys, read/refresh permissions, budgets and OAuth account access remain. Drop has deployed this retirement. Historical Collection membership is kept pending a reviewed purge.
+- **3.0.0** (2026-10-02): the Collection membership operations and permission are removed. No replacement automatic enrollment is provided. Existing integration keys, read/refresh permissions, budgets and OAuth account access remain. Drop has deployed this retirement. Historical Collection membership was removed in the reviewed October 3 cleanup.
 
 The JSON API carries its own semantic version, the OpenAPI document's
 `info.version`. Its callers are programs, so a removed or renamed response

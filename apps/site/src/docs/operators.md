@@ -194,9 +194,7 @@ www.supercell.com/fan-content-policy.*
 
 ## History cleanup
 
-Cleanup of retired recording features requires a reviewed exact manifest. It
-preserves personal and clan overlap and refuses newly protected history. An
-unchanged cached payload may be fetched again during recording; its refresh
-time does not change the selected historical body. Changed contents and new
-recording reasons are checked independently. No original archive version is
-removed until retained replay and database verification pass.
+The reviewed cleanup of retired recording features is complete. Personal and
+clan overlap and retained replay records were verified before original archive
+versions were removed. The removed versions were checked absent. This does not
+change ordinary collector operation or the shared rate budget.

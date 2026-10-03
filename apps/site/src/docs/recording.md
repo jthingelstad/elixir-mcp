@@ -135,15 +135,15 @@ Explore page performs.
 
 ## Following players and clans
 
-Named recording Collections have retired. Follow players directly and organize them as primary, alt, friend or watching; add clans at the scope you need. Existing direct follows, notification choices and historical data remain. Collection membership is retained for purge review, and no longer sustains recording or becomes a personal follow. Owned card collections remain part of player profiles.
+Named recording Collections have retired. Follow players directly and organize them as primary, alt, friend or watching; add clans at the scope you need. Existing direct follows, notification choices and recorded personal and clan history remain. Historical Collection membership has been removed; it does not sustain recording or become a personal follow. Owned card collections remain part of player profiles.
 
 ## Leaderboards
 
 Global, regional, clan and game-mode leaderboard capture has stopped,
 including historical Path of Legends final-board backfill. Leaderboard
 appearance and the former board Collections no longer sustain recording.
-Live leaderboard reads are unavailable. Existing board history is retained
-only until the separately reviewed purge. The global leaderboard tools are removed.
+Live leaderboard reads are unavailable. Historical board captures have been
+removed from the database and replay archive. The global leaderboard tools are removed.
 
 A recorded player's own profile still supplies their rank information.
 Players continue to be recorded when a person follows them or their clan is
@@ -438,12 +438,11 @@ interval (15 seconds) plus the fetch. Global leaderboard paths are retired and r
 ## Retired global capture history
 
 Global leaderboard capture, curated recording Collections and game-wide analysis
-have retired. Their old history is being reviewed for cleanup. A player can be
-both someone's friend and a former leaderboard subject: that overlap must keep
-the person's wanted battles and clan history. Cleanup uses historical requests
-and archive provenance rather than a player's current ranking or recording
-origin. No canonical history is deleted by the private census step.
+have retired. The reviewed cleanup removed their historical board and Collection
+records and games recorded solely for retired captures from the database and
+replay archive.
 
-The historical cleanup checks archived observer logs against recording evidence
-and preserves whole games wherever they overlap with personal or clan history.
-Its private inventory and checks do not themselves remove recorded games.
+Personal, friend and clan overlap was preserved, along with games whose recording
+provenance was unclear. The cleanup used historical requests and archive evidence,
+rather than a player's current ranking or recording origin. A top player whom you
+follow remains part of your own record.

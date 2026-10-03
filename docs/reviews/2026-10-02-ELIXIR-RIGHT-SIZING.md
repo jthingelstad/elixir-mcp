@@ -16,10 +16,10 @@ October 3 under the exact replacement digest. That run completed 34,525
 selected battles before an admitted-observer race rolled back its next
 transaction. Jamie chose to finish in the current database. A faster grouped
 manifest preserves all selection and receipts; Jamie approved its exact
-digest and bounded collector window on October 3. Database execution is in
-progress; no original archive version has been deleted.
-Retained-history verification, S3 version deletions and final maintenance
-remain required. The authoritative execution
+digest and collector window on October 3, subsequently prioritizing completion
+and extending the pause. Database, retained-history verification, exact original
+S3-version deletion and temporary cleanup are complete. Final vacuum, runtime
+cleanup and the later empty-table contract remain required. The authoritative execution
 receipts belong in `docs/NOTES.md`. The assessment measurements and original
 implementation inventory below remain dated engineering context.
 

@@ -9,7 +9,12 @@
  */
 export default [
   {
-    date: "2026-10-02",
+    date: "2026-10-03",
+    title: "Historical cleanup keeps your circle’s record",
+    body: "The reviewed cleanup removed old global leaderboards, named recording groups and games recorded solely for retired captures from the database and replay archive. Personal, friend and clan overlap was preserved, along with history whose recording provenance was unclear. Your tracking choices, notifications, sent mail and clan records stay. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "Retired recording machinery leaves Elixir",
     body: "The retirement cleanup removes obsolete leaderboard projectors, global population processing, named-group machinery and editorial composers. Your record, clan features, factual event calendar, notifications, sent mail and agent access remain available. Contracts unchanged.",
   },

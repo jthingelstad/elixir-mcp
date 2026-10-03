@@ -8,9 +8,9 @@ storage and deployment. Recording the circle, notifications, agent access
 and a dashboard for exploring what happened are the focus; do not rebuild
 recommendations over a smaller population. `docs/DECISIONS.md` records
 Jamie's confirmed scope; `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md`
-is the engineering removal plan. Jamie approved the faster grouped historical
-purge manifest on October 3; bounded execution and its collector window are
-in progress.
+is the engineering removal plan. The approved historical database and archive
+purge has completed with retained-history and exact-version absence proofs.
+Final vacuum, runtime cleanup and later empty-table contract remain required.
 Status and verification receipts live in `docs/NOTES.md`.
 Preserve retained personal/clan history and do not restore retired scope.
 
