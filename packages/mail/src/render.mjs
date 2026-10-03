@@ -269,6 +269,8 @@ function make(
     preheader,
     body,
     turnOff,
+    why = null,
+    source = null,
     links,
   }) {
     const id = links.send_id;
@@ -279,6 +281,8 @@ function make(
       subtitle,
       preheader,
       body,
+      why,
+      source,
       timezone,
       manage: {
         url: T(links.manage),
@@ -864,7 +868,58 @@ function clan(f, c) {
 /** A small markdown for the Top 100 body: headings, paragraphs, bold,
  *  bullet lists, pipe tables, links; player names in `players_index`
  *  become Browse links wherever they appear as text. */
+function collectorSecurity(state) {
+  return (
+    {
+      not_recorded:
+        "Security status at this historical observation was not recorded.",
+      signed:
+        "Signed: reported binary matches a signed release named by the hub.",
+      dev_build:
+        "Dev build: a local build, rather than a named signed release.",
+      unverified: "Unverified: no binary hash reported.",
+      mismatch:
+        "Mismatch: reported binary hash does not match a named signed release for this version.",
+    }[state] ?? "Unverified: no security report available."
+  );
+}
+
+function collectorUpgrade(f, c) {
+  const prefix = f.test ? "[TEST — historical replay] " : "";
+  const subject = `${prefix}${f.name} upgraded: ${f.from_version} → ${f.to_version}`;
+  const preheader = `${f.name} reported ${f.to_version}; previously ${f.from_version}.`;
+  const release = f.release;
+  const body = `${f.test ? c.cov("This is a test replay of a historical upgrade. No new upgrade was performed.") : ""}
+    ${c.p(`Your collector <strong>${esc(f.name)}</strong> reported an upgrade from <strong>${esc(f.from_version)}</strong> to <strong>${esc(f.to_version)}</strong>.`)}
+    ${c.small(`Observed ${esc(c.date(f.observed_at))}, ${esc(c.dayTime({ at: f.observed_at }))}.`)}
+    ${c.h2("Security status")}${c.p(esc(collectorSecurity(f.signature_state)))}
+    ${c.small("This uses the same self-reported version and binary hash as the dashboard. It is not remote attestation.")}
+    ${c.h2("Why this release")}${c.p(esc(release?.reason ?? "No upgrade reason was recorded. The hub observed the installed version change; it cannot confirm whether this host updated automatically or was changed by its operator."))}
+    ${release?.reason ? c.small("The reason above was supplied by the maintainer when naming this release; the installation mechanism on this host was not reported.") : ""}
+    ${c.h2(release?.source_url?.includes("/compare/") ? "Changes between these releases" : "Target release changes")}${release?.changes ? c.p(esc(release.changes).replaceAll("\n", "<br>")) : c.p("Release notes were not recorded for this version.")}
+    ${release?.release_url ? c.p(c.link(release.release_url, "Read the published release notes")) : ""}
+    ${release?.source_url && release.source_url !== release.release_url ? c.p(c.link(release.source_url, "Read the source changes")) : ""}
+    ${c.button("Open your collectors", `${SITE}/console/status/collectors`)}`;
+  return {
+    subject,
+    preheader,
+    html: (links) =>
+      c.shell({
+        kind: "collector_activity",
+        title: `${f.test ? "Test: " : ""}${esc(f.name)} upgraded`,
+        subtitle: `${esc(f.from_version)} → ${esc(f.to_version)}`,
+        preheader,
+        body,
+        source: { product: "Collectors", when: f.test ? "Test" : "Upgrade" },
+        why: "You get this when Elixir observes one of your collectors upgrade. This shares your collector email preference.",
+        turnOff: "collector emails",
+        links,
+      }),
+  };
+}
+
 function collector(f, c) {
+  if (f.event === "upgrade") return collectorUpgrade(f, c);
   const t = f.totals;
   const list = f.collectors ?? [];
   const k = list.length;
@@ -913,7 +968,8 @@ function collector(f, c) {
       return `<tr>
       <td width="36" valign="middle" style="width:36px;padding:9px 0;${line}">${x.card_id != null ? cardImg({ id: x.card_id, name: x.name, form: "base" }, 36, { radius: 5 }) : ""}</td>
       <td valign="middle" style="padding:9px 10px 9px 14px;${line}"><div style="font-family:${FONT};font-size:15px;font-weight:600;color:${M.ink};">${esc(x.name)}${x.version ? ` <span style="font-family:${MONO};font-size:11.5px;font-weight:400;color:${M.dim};">${esc(x.version)}</span>` : ""}</div>
-        <div style="font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};margin-top:3px;">${statusLine(x)}</div></td>
+        <div style="font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};margin-top:3px;">${statusLine(x)}</div>
+        ${x.signature_state ? `<div style="font-family:${FONT};font-size:12px;line-height:1.5;color:${x.signature_state === "mismatch" ? M.warn : M.faint};margin-top:4px;">${esc(collectorSecurity(x.signature_state))}</div>` : ""}</td>
       <td align="right" valign="middle" style="padding:9px 0;white-space:nowrap;${line}"><div style="font-family:${MONO};font-size:15px;font-weight:700;color:${M.ink};">${n(x.lifetime_points)}</div><div style="font-family:${FONT};font-size:11.5px;color:${M.faint};">points to date</div></td>
     </tr>`;
     })
@@ -940,6 +996,7 @@ function collector(f, c) {
     ${rowsHtml}
     ${c.small("A point is a fetch that added something to the record; one that brought nothing new earns none. Every 10 points adds one daily tool call, up to four times your base.")}
     ${c.small("More collectors add resilience, not more Clash Royale budget: the whole fleet shares one rate limit.")}
+    ${c.small("Security status uses the dashboard’s self-reported version and binary hash; it is not remote attestation. A signed build can still be behind the current release.")}
     ${c.h2("This week")}${c.p(`${week}.`, "margin:0;")}
     ${f.fleet_note ? c.small(esc(f.fleet_note)) : ""}
     ${c.button("Open your collectors", `${SITE}/console/status/collectors`)}

@@ -14,15 +14,22 @@ import { outboxKey } from "@elixir-mcp/contracts";
 /** `send(lane, message)`, or null without a bucket (tests, local runs). */
 export function makeOutbox(bucket, s3 = new S3Client({})) {
   if (!bucket) return null;
-  return (lane, message) =>
-    s3.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: outboxKey(lane, randomUUID()),
-        ContentType: "application/json",
-        Body: JSON.stringify(message),
-      }),
-    );
+  return async (lane, message, { id = randomUUID(), once = false } = {}) => {
+    try {
+      return await s3.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: outboxKey(lane, id),
+          ...(once ? { IfNoneMatch: "*" } : {}),
+          ContentType: "application/json",
+          Body: JSON.stringify(message),
+        }),
+      );
+    } catch (err) {
+      if (once && err?.$metadata?.httpStatusCode === 412) return;
+      throw err;
+    }
+  };
 }
 
 /** Past each lane's last retry, the queue's retry window: an object

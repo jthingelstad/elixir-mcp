@@ -223,13 +223,14 @@ export function mailShell({
   preheader = "",
   body,
   why = null,
+  source = null,
   timezone = "UTC",
   manage = null,
   send = null,
   support = `${SITE}/support`,
   pixel = "",
 }) {
-  const src = MAIL_SOURCE[kind] ?? { product: "Elixir", when: "" };
+  const src = source ?? MAIL_SOURCE[kind] ?? { product: "Elixir", when: "" };
   const pill = src.when ? `${src.product} · ${src.when}` : src.product;
   const head = title
     ? `<h1 style="margin:0;font-family:${FONT};font-size:26px;line-height:1.2;font-weight:800;color:${M.ink};">${title}</h1>

@@ -10,6 +10,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { upgradeDeliveryStore } from "./upgrade-delivery.mjs";
 import { makeSesSender } from "./ses.mjs";
 import { makeHandler } from "./handler.mjs";
 
@@ -89,6 +90,7 @@ const modelWorker =
     : null;
 
 export const handler = makeHandler({
+  upgradeDelivery: upgradeDeliveryStore(process.env.OUTBOX_BUCKET, s3),
   modelObject: modelWorker
     ? async ({ bucket, key }) => {
         if (bucket !== process.env.OUTBOX_BUCKET)

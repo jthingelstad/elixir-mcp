@@ -2,7 +2,7 @@
  "week": {
   "from": "2026-09-20T14:00:00Z",
   "to": "2026-09-27T14:00:00Z",
-  "label": "Sep 20 – 27",
+  "label": "Sep 20 \u2013 27",
   "key": "2026-W39"
  },
  "account": {
@@ -15,13 +15,14 @@
    "status": "active",
    "state": "active",
    "since": null,
-   "version": "a145324",
+   "version": "v3.0.4",
    "fetches": 6120,
    "errors": 3,
    "breaker_trips": 0,
    "quiet_hours": 0,
    "note": null,
-   "lifetime_points": 76382
+   "lifetime_points": 76382,
+   "signature_state": "signed"
   },
   {
    "name": "Royal Hogs",
@@ -29,13 +30,14 @@
    "status": "active",
    "state": "active",
    "since": null,
-   "version": "a145324",
+   "version": "v3.0.4",
    "fetches": 4870,
    "errors": 1,
    "breaker_trips": 0,
    "quiet_hours": 0,
    "note": null,
-   "lifetime_points": 56260
+   "lifetime_points": 56260,
+   "signature_state": "dev_build"
   },
   {
    "name": "Witch",
@@ -43,13 +45,14 @@
    "status": "active",
    "state": "active",
    "since": null,
-   "version": "a145324",
+   "version": "v3.0.4",
    "fetches": 4402,
    "errors": 0,
    "breaker_trips": 0,
    "quiet_hours": 0,
    "note": null,
-   "lifetime_points": 53248
+   "lifetime_points": 53248,
+   "signature_state": "unverified"
   },
   {
    "name": "Skeleton Army",
@@ -57,13 +60,14 @@
    "status": "active",
    "state": "active",
    "since": null,
-   "version": "a145324",
+   "version": "v3.0.4",
    "fetches": 3715,
    "errors": 2,
    "breaker_trips": 0,
    "quiet_hours": 0,
    "note": null,
-   "lifetime_points": 33160
+   "lifetime_points": 33160,
+   "signature_state": "mismatch"
   },
   {
    "name": "Cannon",
@@ -71,13 +75,14 @@
    "status": "active",
    "state": "active",
    "since": null,
-   "version": "a145324",
+   "version": "v3.0.4",
    "fetches": 3450,
    "errors": 0,
    "breaker_trips": 0,
    "quiet_hours": 17,
    "note": "1 quiet stretch of 3 h or more",
-   "lifetime_points": 29134
+   "lifetime_points": 29134,
+   "signature_state": "signed"
   },
   {
    "name": "Hog Rider",
@@ -85,13 +90,14 @@
    "status": "draining",
    "state": "draining",
    "since": "2026-09-17T15:12:00Z",
-   "version": "a145324",
+   "version": "v3.0.4",
    "fetches": 0,
    "errors": 0,
    "breaker_trips": 0,
    "quiet_hours": 0,
    "note": null,
-   "lifetime_points": 27923
+   "lifetime_points": 27923,
+   "signature_state": "dev_build"
   }
  ],
  "totals": {

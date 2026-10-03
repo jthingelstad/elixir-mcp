@@ -285,12 +285,27 @@ async function authGateway(db, event, statuses) {
   // unverified rather than keeping a stale badge.
   const build = reportedBuild(event);
   const { rows } = await db.query(
-    `update gateway set last_heartbeat_at = now(),
-            last_seen_sha = coalesce($3, last_seen_sha),
-            binary_sha256 = $4,
-            release_key_fingerprints = $5
-     where token_hash = $1 and status = any($2)
-     returning gateway_id, name, card_name, channel, status, missed_streak`,
+    `with prior as materialized (
+       select gateway_id, mail_observed_version, owner_account_id
+       from gateway where token_hash = $1 and status = any($2) for update
+     ), changed as (
+       update gateway g set last_heartbeat_at = now(),
+         last_seen_sha = coalesce($3, g.last_seen_sha),
+         mail_observed_version = coalesce($3, g.mail_observed_version),
+         binary_sha256 = $4, release_key_fingerprints = $5
+       from prior p where g.gateway_id = p.gateway_id
+       returning g.gateway_id, g.name, g.card_name, g.channel, g.status, g.missed_streak,
+                 p.mail_observed_version as previous_version, p.owner_account_id
+     ), journal as (
+       insert into collector_version_event
+         (gateway_id, account_id, from_version, to_version, signature_state)
+       select gateway_id, owner_account_id, previous_version, $3,
+         case when $3 = 'dev' then 'dev_build' when $4::text is null then 'unverified'
+           when exists (select 1 from collector_release_history h where h.version = $3 and h.sha256 = $4)
+             then 'signed' else 'mismatch' end
+       from changed where previous_version is not null and $3::text is not null
+         and previous_version <> $3
+     ) select gateway_id, name, card_name, channel, status, missed_streak from changed`,
     [
       sha256hex(token),
       statuses,

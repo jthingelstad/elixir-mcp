@@ -360,3 +360,50 @@ Recipients, schedules, defaults and the unsubscribe path are unchanged.
 
 - Multi-clan Clan Report for a family account (no such account yet).
 - Local-morning delivery (see Cadence).
+
+## Collector security and upgrade notices (2026-10-03)
+
+The weekly composer reads `RELEASE_SIGNED_SQL` and `signatureState` from the
+collector-door package, preserving full reported versions and the dashboard's
+self-report caveat. Old stored issues without security fields still render.
+
+Upgrade notices use `collector_activity` and its existing preference and
+unsubscribe token. The door's one statement locks the gateway, updates a
+separate door-only baseline and journals a changed version atomically. The first
+reported version establishes the baseline without an event. The minute job
+`{collector_upgrades:true}` drains at most 100 pending events; only strict higher
+released versions send. Downgrades and unknown/dev transitions are terminal
+skips. A re-upgrade following rollback is a new event. Approval, person kind,
+current ownership, revocation and preference checks happen before composing.
+No available-release announcement is mistaken for installation.
+
+`collector_release_note` stores GitHub notes/URL from the verifying naming
+script, plus an optional `--reason=` supplied by the maintainer. It describes
+release purpose, never a host's installation mechanism. Promotion preserves the
+original release body. Missing details are explicit in the rendered notice.
+
+Every event retains one send UUID. Enqueue conditionally creates that UUID's
+outbox object, so an accepted enqueue followed by a failed send-ledger write
+can retry safely. The relay separately claims
+`mail-delivery/collector-upgrade/<send_id>.json` before SES. A completed receipt
+suppresses duplicate notifications, even when deleting the outbox fails.
+Definitive SES 4xx rejections release the claim for queue retries; ambiguous
+transport failures and crashes leave a pending claim and fail closed. Only guarded upgrade sends make one SES SDK attempt, preventing a hidden SDK
+retry after uncertain acceptance. Other email kinds retain their existing SDK
+retry behavior.
+An uncertain claim reaches queue failure/DLQ handling; inspect `mail_sent` by send
+UUID and SES events before deciding its disposition. Never blindly delete a
+pending claim and resend. Receipt objects contain only state and SES message ID,
+never recipient or message bodies.
+
+The IAM-only jobs replay payload is
+`{collector_upgrades:{account_email,replay:[{gateway_id|gateway_name,from_version,to_version,observed_at,evidence,release?}],apply:false}}`.
+It accepts 1–10 proven historical transitions of that approved owner account's
+non-revoked collectors. Dry-run validates ownership and returns collector IDs;
+`apply:true` creates labelled historical-test events without changing live
+collector versions. Replays deduplicate by collector/from/to even when repeated
+with a different observation timestamp. Optional changes require an exact
+collector GitHub release or compare source URL and stay on the test event,
+never in normal release metadata. Historical security that was not captured is
+labelled not recorded. Both subject and body say historical test, and the body
+explicitly says no new upgrade occurred. No force bypass exists.

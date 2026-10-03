@@ -3684,3 +3684,39 @@ Full npm run verify passed with scratch PostgreSQL; the additional real-adapter
 mock confirms denied lookup starts zero calls, normal duplicate delivery starts
 one, and an expired queued request starts none. Green PR merge and canonical
 deployment are owed.
+
+## 2026-10-03 — Collector security and observed upgrade email
+
+Jamie requested dashboard-equivalent security in the weekly collector email and
+one notice per observed installed upgrade. The existing collector_activity
+preference controls both. Migration 0200 adds an initially empty door-only
+version baseline, atomic transition journal and sourced release-note storage;
+first observations never announce upgrades. Ingest replay cannot move that
+baseline. Strict released-version ordering skips unknown/dev builds, downgrades
+and reinstalls; retries keep a stable event/send identity. Ownership, approval,
+revocation and preferences are checked at delivery.
+
+The relay claims upgrade delivery before SES and keeps a completed receipt.
+Explicit SES rejections can retry; ambiguous transport results or interruptions
+keep a pending claim, fail for operator inspection and never automatically resend.
+SES has no idempotency token, so exactly-once receipt cannot be guaranteed through
+an ambiguous failure. This tradeoff prevents duplicate upgrade blasts. Only guarded upgrade sends disable SDK retries; queue retries remain their
+transport retry owner. Other email kinds keep their existing SES retry behavior.
+
+A maintainer-only historical test lane requires owner address, explicit apply,
+collector ownership, past timestamps and an evidence reference. Tests are labelled
+historical replay in subject and body and deduplicated by collector/from/to.
+No live version fields are changed. Release metadata is sourced from the naming
+command; missing reasons and notes are stated, never fabricated. API/tool
+contracts unchanged; mail-only deploy needs smoke/read-back rather than MCP
+acceptance. Draft PR and deployment remain parent-coordinated with Clan work.
+
+Validation: the complete `npm run verify` gate passed with existing mail suites;
+combined site build passed; 77/77 browser journeys and 4/4 workflow checks passed.
+Weekly and labelled-upgrade previews were reviewed at desktop and 420 px with
+no horizontal overflow. Focused scratch tests prove five per-collector notices,
+concurrent heartbeat deduplication, preference/ownership refusal, historical
+replay deduplication, source-text escaping and enqueue-before-ledger recovery.
+Transport tests cover definitive rejection retries and ambiguous acceptance.
+Release is held for the coordinated parent window; no collector binary change
+or no-op fleet release is required for the prepared historical replay.

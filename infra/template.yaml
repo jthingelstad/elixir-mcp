@@ -656,6 +656,10 @@ Resources:
                   Action: s3:ListBucket
                   Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
                 - !Ref AWS::NoValue
+              # Durable transport receipts for one notice per upgrade.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/mail-delivery/collector-upgrade/*
               - !If
                 - HasInternalClan
                 - Effect: Allow
@@ -1187,6 +1191,22 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt EmailCollectorActivityRule.Arn
+  CollectorUpgradeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-collector-upgrade-mail
+      ScheduleExpression: rate(1 minute)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: collector-upgrade-mail
+          Input: '{"collector_upgrades": true}'
+  CollectorUpgradePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt CollectorUpgradeRule.Arn
   EmailMilestoneRule:
     Type: AWS::Events::Rule
     Properties:

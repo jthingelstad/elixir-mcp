@@ -44,7 +44,7 @@ notes are exempt: they come as the moments do.
 | Monday | **Clan report** | Your clan's week: the war result if a war week closed (the clan's place, fame and war trophies, the race as it finished, the top five who raced and your own players), who joined and left and when, who has gone quiet, and the week in battles, promotions, new bests and donations, with a link to the roster. One report per clan you track, the same one to every member who tracks it, with its days named in your own timezone and your own players marked *you*. |
 | Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the deck you played most drawn card by card, who you faced and who came round more than once, and a line for each alt. It links your season on [Ladder](/docs/ladder), and every deck of it on Ladder's Decks. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
 | Wednesday | **Your friends this week** | How everyone you follow played: a card each for your friends and the busiest players you watch (their battles in each mode, a moment or two, the deck they played most), with you and your clans in a line each. It is the [timeline](/docs/timeline) for the week, rendered. Until October 2026 it was called the Tracking report; your switch for it carried over. |
-| Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, whether it is checking in, silent or stopped, its fetches this week and points to date; how much the edge filter saved, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
+| Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the dashboard’s security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and points to date; how much the edge filter saved, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
 | Mornings | **Clan actions waiting** | From [Elixir Clan](https://elixir.poapkings.com/clan), one of the Elixir family's apps: after its morning run, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Elixir Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
 | As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked, an Evolution or Hero form unlocked. A new arena or league comes with the battle that did it and a link to [that battle's page](/docs/battles#a-battles-page); a card comes as its art. Checked hourly; everything new since the last note rides together. |
 
@@ -142,3 +142,23 @@ a name alone could be ambiguous. Nothing in a report is advice.
 *This material is unofficial and is not endorsed by Supercell. For more
 information see Supercell's Fan Content Policy:
 www.supercell.com/fan-content-policy.*
+
+
+### Collector upgrade notices
+
+The collector email switch also controls upgrade notices: one email for each
+collector whose installed version Elixir observes change to a higher released
+version. Five upgraded collectors produce five separate emails, normally within
+a few minutes of their check-ins. Naming an available release sends nothing.
+Each notice names the old and new versions, the observation time and security
+status. First check-ins, unknown/dev versions, downgrades and same-version
+restarts produce no upgrade notice. A later upgrade following a rollback is a
+new observed transition.
+
+When available, the notice includes the target release’s published notes and a
+maintainer-supplied reason for naming it. These explain the release’s purpose;
+they do not prove whether a particular machine updated automatically or was
+changed by its operator. Missing reasons and notes are stated explicitly.
+Security status uses the same self-reported version/hash comparison as the
+dashboard, and is not remote attestation. A signed collector can still be behind
+the current release.

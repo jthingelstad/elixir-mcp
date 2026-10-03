@@ -31,12 +31,12 @@ export async function deliver({
   archive = null,
   force = false,
   now = new Date(),
+  sendId = randomUUID(),
 }) {
   if (isRetiredEmailKind(kind)) return { sent: false, reason: "retired" };
   if (!force && (await alreadySent(db, issueId, account.accountId)))
     return { sent: false, reason: "already_sent" };
   const token = signUnsubscribe({ secret, accountId: account.accountId, kind });
-  const sendId = randomUUID();
   const links = {
     unsubscribe: unsubscribeUrl(token),
     manage: MANAGE_URL,

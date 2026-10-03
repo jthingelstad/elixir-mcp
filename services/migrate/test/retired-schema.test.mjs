@@ -107,6 +107,15 @@ test("fresh ladder can retire only empty history and old bootstrap board configu
     );
     await apply(ctx.db);
     await assertGone(ctx.db);
+    // Later additive migrations remain part of the current schema pin.
+    for (const m of await loadMigrations(
+      path.join(repoRoot, "db/migrations"),
+    )) {
+      if (m.id > migrationId)
+        await ctx.db.query(
+          await readFile(path.join(repoRoot, "db/migrations", m.name), "utf8"),
+        );
+    }
     assert.equal(
       await schemaFingerprint(ctx.url),
       (

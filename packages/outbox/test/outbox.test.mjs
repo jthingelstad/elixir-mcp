@@ -46,3 +46,20 @@ test("dead letters: objects past their lane's last retry, across pages", async (
   };
   assert.equal(await countStuck("outbox-bucket", { s3, now }), 1);
 });
+
+test("upgrade enqueue retries use the same conditional object key", async () => {
+  const puts = [];
+  const send = makeOutbox("outbox", {
+    send: async (cmd) => {
+      puts.push(cmd.input);
+      if (puts.length === 1)
+        throw new Error("response lost after accepted put");
+      throw { $metadata: { httpStatusCode: 412 } };
+    },
+  });
+  const opts = { id: "stable-send", once: true };
+  await assert.rejects(send("email", { kind: "collector_activity" }, opts));
+  await send("email", { kind: "collector_activity" }, opts);
+  assert.equal(puts[0].Key, puts[1].Key);
+  assert.equal(puts[1].IfNoneMatch, "*");
+});

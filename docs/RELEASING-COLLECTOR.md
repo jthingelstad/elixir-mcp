@@ -248,3 +248,13 @@ _Related: <https://elixir.poapkings.com/docs/operators> (the operator's side),
 `docs/COLLECTOR-ZERO-TRUST.md` (why the server is the update authority),
 the collector's `SECURITY.md` (the release key and what a collector
 verifies), and `AGENTS.md`, "Working style"._
+
+
+## Release details in operator email
+
+Naming now stores the published GitHub release body and URL for observed-upgrade
+emails, preserving the release body when promoting the page. Add
+`--reason="<verified purpose of this release>"` to the naming command when a
+maintainer reason is available. Do not infer the installation mechanism on any
+operator’s host. A notice is sent only after a collector reports a higher
+installed version; naming alone sends nothing.
