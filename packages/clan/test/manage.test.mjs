@@ -1129,6 +1129,7 @@ test("a clan with a policy that falls below 10 pauses, keeps its policy, and res
   assert.equal(me.body.open_actions, 0);
   // The clan grows back to 12: the next evaluation re-reads and resumes.
   const grown = harness({ part: partClan(), ledger });
+  grown.clock.t = small.clock.t + 1000; // A later source read, not a tied observation.
   const gc = await leader(grown);
   const r = await api(grown, gc, "GET", "/api/clans/2PQRJ8LV/manage");
   assert.equal(r.status, 200, JSON.stringify(r.body));

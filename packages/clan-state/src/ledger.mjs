@@ -101,6 +101,13 @@ export function createMemoryLedger() {
       if (!items.has(item.pk)) items.set(item.pk, structuredClone(item));
       return items.get(item.pk);
     },
+    async putObservedIfNewer(item) {
+      const current = items.get(item.pk);
+      if (current?.observed_at && current.observed_at >= item.observed_at)
+        return false;
+      items.set(item.pk, structuredClone(item));
+      return true;
+    },
     async get(pk) {
       return items.get(pk) ?? null;
     },
@@ -215,7 +222,9 @@ export function ledgerOver(io) {
         : null;
     },
     async saveClanSize(clanTag, { members, observed_at }) {
-      await io.put({
+      if (!io.putObservedIfNewer)
+        throw new Error("atomic observation storage required");
+      return io.putObservedIfNewer({
         pk: `clan_size#${clanTag}`,
         gsi1pk: clanKey(clanTag),
         gsi1sk: "clan_size",

@@ -86,19 +86,10 @@ export const tooFewMembers = (members) =>
     min_members: MIN_MEMBERS,
   });
 
-const SIZE_STALE_MS = 3600_000;
-
-/** Remember a clan's member count from a read already made; written only
- *  when it changed or the last note is over an hour old. */
+/** Advance the observation watermark even when the count did not change:
+ * otherwise a late older read could roll the policy gate backwards. */
 export async function noteClanSize(ledger, clanTag, members, t) {
   if (!Number.isInteger(members)) return;
-  const known = await ledger.clanSize(clanTag);
-  if (
-    known &&
-    known.members === members &&
-    t - Date.parse(known.observed_at) < SIZE_STALE_MS
-  )
-    return;
   await ledger.saveClanSize(clanTag, {
     members,
     observed_at: new Date(t).toISOString(),
@@ -196,8 +187,8 @@ export function createManageService({
     };
   }
 
-  const noteSize = (clanTag, members) =>
-    noteClanSize(ledger, clanTag, members, now());
+  const noteSize = (clanTag, members, observedAt = now()) =>
+    noteClanSize(ledger, clanTag, members, observedAt);
 
   /** The saved policy, or `409 no_policy`: no management without one;
    *  and `409 too_few_members` while the clan's noted size is below
@@ -266,10 +257,11 @@ export function createManageService({
   /** The clan's member count now: one roster read (noted), else the last
    *  noted count when Elixir cannot answer. */
   async function currentSize(clanTag, token) {
+    const observedAt = now();
     const roster = token ? await fetchRoster(mcp, token, clanTag) : null;
     const members = rosterSize(roster);
     if (members !== null) {
-      await noteSize(clanTag, members);
+      await noteSize(clanTag, members, observedAt);
       return members;
     }
     return (await ledger.clanSize(clanTag))?.members ?? null;
@@ -346,7 +338,7 @@ export function createManageService({
       participation ?? (await fetchParticipation(mcp, token, clanTag));
     // Too small to judge: remember the size and stop, before any card moves.
     if (!participation) {
-      await noteSize(clanTag, part.members.length);
+      await noteSize(clanTag, part.members.length, t);
       if (part.members.length < MIN_MEMBERS)
         throw tooFewMembers(part.members.length);
     }
@@ -745,7 +737,7 @@ export function createManageService({
     async memberView(clanTag, who, token) {
       const t = now();
       const part = await fetchParticipation(mcp, token, clanTag);
-      await noteSize(clanTag, part.members.length);
+      await noteSize(clanTag, part.members.length, t);
       const roster = await fetchRoster(mcp, token, clanTag);
       const you = memberWeeks(part, who.player_tag, roster, new Date(t));
       if (!you) throw new ManageError(404, "not_on_roster");
@@ -853,7 +845,7 @@ export function createManageService({
     async weekView(clanTag, who, token, { week = null } = {}) {
       const t = now();
       const part = await fetchParticipation(mcp, token, clanTag);
-      await noteSize(clanTag, part.members.length);
+      await noteSize(clanTag, part.members.length, t);
       const roster = await fetchRoster(mcp, token, clanTag);
       const policy = await policyFor(clanTag);
       const members = part.members.length;
@@ -1063,6 +1055,7 @@ export function createManageService({
         throw Object.assign(new ManageError(400, "invalid_policy"), {
           errors: checked.errors,
         });
+      const observedAt = now();
       const r = await mcp.callTool(token, "clans_participation", {
         clan_tag: clanTag,
         weeks: PARTICIPATION_WEEKS,
@@ -1072,7 +1065,7 @@ export function createManageService({
           r.status === 401 ? 401 : 502,
           r.status === 401 ? "session_expired" : "elixir_unavailable",
         );
-      await noteSize(clanTag, r.body.members.length);
+      await noteSize(clanTag, r.body.members.length, observedAt);
       if (r.body.members.length < MIN_MEMBERS)
         throw tooFewMembers(r.body.members.length);
       const current = await policyFor(clanTag);
@@ -1192,8 +1185,9 @@ export function createManageService({
       // The membership timeline: Elixir's recent join / leave / role
       // events, each leave carrying what this ledger says about it, and
       // a welcome line a leader can paste for a join.
+      const observedAt = now();
       const roster = token ? await fetchRoster(mcp, token, clanTag) : null;
-      if (roster) await noteSize(clanTag, rosterSize(roster));
+      if (roster) await noteSize(clanTag, rosterSize(roster), observedAt);
       const byTag = (tag) =>
         cards.filter((c) => c.player_tag === tag && c.type === "departure");
       // Who a tag is, when the event itself does not say: the roster for
