@@ -647,14 +647,20 @@ Resources:
               - Effect: Allow
                 Action: [s3:GetObject, s3:DeleteObject]
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
-              # GetObject must distinguish an unwritten model reply/claim
-              # from denied access. Without ListBucket, missing objects
-              # return 403 and the worker never reaches its claim step.
+              # Missing-key GETs can return 403. The adapter confirms absence
+              # with an exact-key, one-result list inside these two prefixes.
               - !If
                 - HasInternalClan
                 - Effect: Allow
                   Action: s3:ListBucket
                   Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
+                  Condition:
+                    StringLike:
+                      s3:prefix:
+                        - clan-model/reply/*
+                        - clan-model/claim/*
+                    NumericLessThanEquals:
+                      s3:max-keys: 1
                 - !Ref AWS::NoValue
               # Durable transport receipts for one notice per upgrade.
               - Effect: Allow

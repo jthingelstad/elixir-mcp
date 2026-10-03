@@ -44,10 +44,24 @@ test("S3 missing-reply authorization precedes dispatch and delayed expired reque
     const storage = modelStorage("fixture", {
       async send(command) {
         const { Key, Body } = command.input;
+        if (command.constructor.name === "ListObjectsV2Command") {
+          if (!canList)
+            throw Object.assign(new Error("denied list"), {
+              name: "AccessDenied",
+            });
+          const { Prefix, MaxKeys } = command.input;
+          assert.match(Prefix, /^clan-model\/(reply|claim)\//);
+          assert.equal(MaxKeys, 1);
+          const Contents = [...fixture.objects.keys()]
+            .filter((k) => k.startsWith(Prefix))
+            .slice(0, 1)
+            .map((Key) => ({ Key }));
+          return { Contents, KeyCount: Contents.length, IsTruncated: false };
+        }
         if (command.constructor.name === "GetObjectCommand") {
           if (!fixture.objects.has(Key))
             throw Object.assign(new Error("synthetic missing object"), {
-              name: canList ? "NoSuchKey" : "AccessDenied",
+              name: "AccessDenied",
             });
           return {
             Body: { transformToString: async () => fixture.objects.get(Key) },

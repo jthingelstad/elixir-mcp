@@ -450,6 +450,13 @@ parity test says so, rather than each deriving its own.
 
 ## Deploying
 
+Every persistent access change requires Jamie's action-specific approval,
+including IAM actions, resources and conditions. General permission to implement
+or deploy code does not approve such a change. Prepare the exact policy and
+validation for review, and wait for explicit approval before applying it.
+Do not merge a blocked access change into main where a cumulative deploy could
+carry it into production.
+
 The whole loop, from release bookkeeping to acceptance triage and the
 live read-back, is the `ship` skill (`.claude/skills/ship/`); what follows
 is the invariant it serves.

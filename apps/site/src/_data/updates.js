@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-03",
+    title: "Narrow Clan draft existence checks",
+    body: "The draft worker confirms missing replies and claims inside their own storage paths while retaining failures for genuinely denied objects. Existing replies and one-time claims still prevent duplicate model calls. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "One Action for an award update",
     body: "Awards is now under Clan for every member, with one season selected at a time. Leaders can prepare a current standings update; every message stays together in one Action with its own explicit sent receipt. Weekly updates use only the latest timely close, and Actions opens the saved suggestions with a separate refresh. Welcome copy uses recorded facts when available. Contracts unchanged.",
   },

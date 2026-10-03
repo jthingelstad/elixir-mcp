@@ -128,6 +128,9 @@ limit. Check the use log in Settings before requesting another draft;
 Elixir does not automatically repeat it. The daily use limit is not a dollar cap.
 The use record counts attempts; an unknown result is not confirmation of
 a provider charge. Review your provider's usage record for billing.
+The worker checks for an existing reply before starting a request. A missing
+reply or claim is confirmed separately from denied access; a denied read of
+an existing object still fails without starting another model call.
 
 ## The inactivity clock
 
