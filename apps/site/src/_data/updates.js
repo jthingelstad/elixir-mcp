@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-03",
+    title: "Bounded battle reads for Clan participation",
+    body: "Weekly participation reads check boat defenses against the requested battles without scanning unrelated history. The Week and You Here keep the same member and former-member counts. MCP 11.0.2; JSON API unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "Reopen declined Actions and share compact award updates",
     body: "Verified clan leadership can return a declined Action to Open while keeping its decline in the log and preserving sent message parts. New standings updates use short game messages with scores and places, while timestamps and coverage stay in the app. Completed Actions and old delivery receipts remain unchanged. Contracts unchanged.",
   },

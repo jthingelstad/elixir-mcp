@@ -24,6 +24,12 @@ const list = (...items: string[]) => items.map((i) => `- ${i}`).join("\n");
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "11.0.2",
+    date: "2026-10-03",
+    summary:
+      "clans_participation checks boat defenses by battle identity instead of scanning unrelated battle history. Current and former member counts, ranked battles, weekly donations, war counters and role history retain the same meaning. No response fields or JSON API operations change.",
+  },
+  {
     version: "11.0.1",
     date: "2026-10-02",
     summary:

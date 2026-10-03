@@ -4072,3 +4072,47 @@ CI and deployment receipts are recorded after shipping.
   requires the REPORT InitDuration field.
 
 These receipts change documentation only and require no additional deploy.
+
+## 2026-10-03 - Participation boat lookups: measured database outlier
+
+The account-browser Week read ending 22:42:25Z (5:42 PM CT) took 9,578 ms
+inside Clan and 9,634.48 ms in Lambda REPORT. Its participation audit had
+9,156 ms of database work across 28 queries, with no live wait. The RDS slow
+statement log at 22:42:23Z identifies `battles_by_week` at **7,810.867 ms**.
+The request had no clan lock and its REPORT had no InitDuration; this is
+not evidence of a Lambda cold start. Subsequent actual Week requests were
+540-647 ms inside Clan; immediate frontend-cache hits are not backend samples.
+
+One bounded, recorded-only `profile_tool` run used the existing acceptance
+principal, a 30-second statement ceiling and the diagnostic's explanation
+budget. It completed in 813 ms (27 direct-handler queries). Its weekly battle
+plan scanned the unrelated `battle` table for a hashed boat-defense EXISTS:
+14,218 blocks read, 17,699 blocks visited by that scan. The EXPLAIN executes
+before the timed query, warming it; its 150 ms query is not a first-read
+latency comparison. Minute-level RDS metrics at 22:42Z show a matching disk
+read spike (256.49 ReadIOPS, CPU 5.21%, stable memory), without proving a
+historical backend wait. Existing request connect time was 33 ms. The
+7.81-second statement is direct evidence of execution time inside PostgreSQL,
+not an application pool acquisition delay.
+
+Fanout audit: entitlement, season bounds, roster/current and departed members,
+coverage, six weekly aggregates, finish/role reconstruction, stints,
+before-join/recording-gap controls and freshness metadata each have recorded
+read responsibilities. Membership intervals are reread for stint and join
+controls; those small indexed reads were not the slow statement. The profile's
+other largest queries were departed last-battle lookups (55 ms) and recording
+coverage (43 ms). This change leaves those semantics and sequential execution
+intact: the invoker changes settings on one shared connection. No persistent
+cache, auth bypass, database sizing, new index or migration is needed.
+
+The participation queries opt into a scalar primary-key boat-side lookup in
+the shared filter. PostgreSQL cannot substitute a hashed scan of every boat
+battle for that scalar subquery. Existing callers keep their prior SQL. Both
+current and former weekly counts retain the boat-attack/defense distinction,
+unknown side and missing battle behavior. A disposable PostgreSQL regression
+fixture reproduces the original whole-history scan against 100,000 unrelated
+battle rows, compares both query results and pins the replacement to battle
+primary-key lookups bounded by selected boat rows. MCP 11.0.2 is a performance
+correction; mirrored JSON API response schemas and meaning are unchanged.
+
+Deployment and post-release plan/request evidence are pending this PR's gate.
