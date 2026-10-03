@@ -31,7 +31,8 @@ const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_mcp_test_integrations_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
-let db, handler, cookie, person, collection;
+let db, handler, cookie, person;
+const collection = "00000000-0000-0000-0000-000000000001";
 const request = (method, path, body, token, session = cookie) =>
   handler({
     rawPath: path,
@@ -65,12 +66,6 @@ before(async () => {
   });
   cookie = `__Host-elixir_session=${session.token}`;
   handler = makeHandler({ databaseUrl, secret: "test" });
-  collection = (
-    await db.query(
-      "insert into collection(slug,title,kind,owner_account) values ('integration-test','Test','player',$1) returning collection_id",
-      [person],
-    )
-  ).rows[0].collection_id;
   // A new live refresh takes a token from the one global bucket (#64).
   await db.query("update budget_state set tokens = 100, settled_at = now()");
 });
@@ -158,15 +153,6 @@ test("admin provisions REST-only integration; retired collection routes refuse",
       )
     ).statusCode,
     404,
-  );
-  assert.equal(
-    (
-      await db.query(
-        "select count(*)::int as n from collection_member where collection_id=$1",
-        [collection],
-      )
-    ).rows[0].n,
-    0,
   );
   assert.equal(
     (

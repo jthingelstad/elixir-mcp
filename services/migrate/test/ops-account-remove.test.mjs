@@ -85,7 +85,7 @@ before(async () => {
 
   // The game record: two players and a clan, recorded.
   await db.query(
-    `insert into player (player_tag) values ('#2PP0V9PP'), ('#2PP0V9QQ'), ('#2PP0V9RR')`,
+    `insert into player (player_tag) values ('#2PP0V9PP'), ('#2PP0V9QQ')`,
   );
   await db.query(
     `insert into clan (clan_tag) values ('#2PP0V9UU'), ('#2PP0V9YY')`,
@@ -105,33 +105,9 @@ before(async () => {
   await db.query(
     `insert into recording (subject_type, subject_tag, requested_by, origin)
      values ('player', '#2PP0V9PP', $1, 'claim'), ('player', '#2PP0V9QQ', $1, 'claim'),
-            ('clan', '#2PP0V9UU', $1, 'claim'), ('clan', '#2PP0V9YY', $2, 'claim'),
-            ('player', '#2PP0V9RR', $1, 'collection')`,
+            ('clan', '#2PP0V9UU', $1, 'claim'), ('clan', '#2PP0V9YY', $2, 'claim')`,
     [ids.person, ids.other],
   );
-  const col = await one(
-    `insert into collection (slug, title, kind, owner_account)
-     values ('leavers-list', 'Leaver''s list', 'player', $1)
-     returning collection_id`,
-    [ids.person],
-  );
-  await db.query(
-    `insert into collection_member (collection_id, subject_tag) values ($1, '#2PP0V9RR')`,
-    [col.collection_id],
-  );
-  const retiredIntegration = await one(
-    `insert into account (kind,status,role,owned_by_account_id,public_id) values ('integration','approved','partner',$1,'retiredgrant') returning account_id`,
-    [ids.other],
-  );
-  await db.query(
-    `insert into integration (account_id,name,scopes,daily_limit,hourly_limit,refresh_limit) values ($1,'retired-grant',ARRAY['players:read'],10000,2000,1000)`,
-    [retiredIntegration.account_id],
-  );
-  await db.query(
-    `insert into integration_collection_grant (account_id,collection_id,member_limit) values ($1,$2,10000)`,
-    [retiredIntegration.account_id, col.collection_id],
-  );
-
   // Credentials: the agent's key and the person's OAuth grant.
   agentKey = await issueServiceToken(db, {
     accountId: ids.agent,
@@ -254,8 +230,6 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     claim_challenge: 0,
     claim: 2,
     account_clan: 2,
-    integration_collection_grant: 1,
-    collection: 1,
     player_nickname: 1,
     timeline_reader: 0,
     agent_identity: 0,
@@ -267,7 +241,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     account_event: 2, // signed_in, and the grant's agent_connected
   });
   assert.deepEqual(dry.kept, {
-    recordings_requested: 4,
+    recordings_requested: 3,
     revoked_collectors: 1,
   });
   assert.equal(dry.mail_archived, 1);
@@ -352,8 +326,8 @@ test("the run removes the person and their agent, keeps the game record, and lea
     r.mail_archive_keys[0],
     /^mail\/sent\/dt=\d{4}-\d{2}-\d{2}\/send_id=/,
   );
-  // #2PP0V9PP, #2PP0V9UU and #2PP0V9RR had no other reason; #2PP0V9QQ and #2PP0V9YY do.
-  assert.equal(r.recordings_stopped, 3);
+  // #2PP0V9PP and #2PP0V9UU had no other reason; #2PP0V9QQ and #2PP0V9YY do.
+  assert.equal(r.recordings_stopped, 2);
 
   const acct = await one(
     `select email, email_hash, status, request_note, timezone, newsletter_opt_in
@@ -403,12 +377,6 @@ test("the run removes the person and their agent, keeps the game record, and lea
     ),
     0,
   );
-  assert.equal(
-    await count(
-      `select count(*)::int as n from collection where slug = 'leavers-list'`,
-    ),
-    0,
-  );
   // The only event left is the removal itself.
   assert.deepEqual(
     (
@@ -437,13 +405,12 @@ test("the run removes the person and their agent, keeps the game record, and lea
   assert.deepEqual(rec, {
     "#2PP0V9PP": "stopped",
     "#2PP0V9QQ": "active",
-    "#2PP0V9RR": "stopped",
     "#2PP0V9UU": "stopped",
     "#2PP0V9YY": "active",
   });
 
   // The game record and everyone else are untouched.
-  assert.equal(await count(`select count(*)::int as n from player`), 3);
+  assert.equal(await count(`select count(*)::int as n from player`), 2);
   assert.equal(
     await count(`select count(*)::int as n from claim where account_id = $1`, [
       ids.other,

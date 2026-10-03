@@ -106,10 +106,6 @@ beforeEach(async () => {
   await db.query("delete from poll_state");
   await db.query("delete from recording");
   await db.query(`update budget_state set tokens = 0, settled_at = $1`, [NOW]);
-  // The migration seeds 263 leaderboards, every one due on a fresh tick.
-  // Like the GLOBAL cards row they are parked here so each test's job-set
-  // is about its own subjects; the boards test enables what it needs.
-  await db.query("update ranking_board set enabled = false");
 });
 
 after(async () => {
@@ -1075,12 +1071,8 @@ test("a battle log's jittered wait never passes the session ceiling (#69)", () =
   assert.ok(profile > 1440);
 });
 
-test("enabled boards, missing finals, retries and reread flags cannot restart retired capture", async () => {
+test("retired board poll states and retries cannot restart capture", async () => {
   const { RETIRED_RECORDING_ENDPOINTS } = await import("@elixir-mcp/contracts");
-  await db.query(
-    "update ranking_board set enabled = true, record_top = 200, reread_at = $1",
-    [NOW],
-  );
   for (const endpoint of RETIRED_RECORDING_ENDPOINTS) {
     await setState(
       endpoint === "rankings_pol_season" ? "2022-10" : "global",

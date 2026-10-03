@@ -45,8 +45,7 @@ export function modeSplit(typeRows) {
  * activity-scope clan records roster and war only, so every battle
  * count for its members is zero by construction, not by play; a
  * comprehensive one records every member's log, and a member of an
- * activity clan may still be recorded directly (a claim, a collection,
- * a board). Returns the clan-level basis and, per member,
+ * activity clan may still be recorded directly through a personal claim. Returns the clan-level basis and, per member,
  * `log_recorded` and `recorded_since` (the first recorded battle).
  */
 export async function coverageBasis(db, clanTag) {

@@ -13,7 +13,6 @@
     "@elixir-mcp/claims": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0",
     "@elixir-mcp/ingest": "0.1.0",
-    "@elixir-mcp/ledger": "0.1.0",
     "@elixir-mcp/mail": "0.1.0",
     "@elixir-mcp/record": "0.1.0",
     "@elixir-mcp/tools": "0.1.0",

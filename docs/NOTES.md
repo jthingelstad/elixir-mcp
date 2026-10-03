@@ -3222,3 +3222,81 @@ by primary key only for boat defense checks. Other callers retain their
 predicate. Fixtures keep both own boat attack sides, exclude both defense
 sides, keep an unknown mode, and preserve earliest forms and duel rounds.
 No index or migration is added; no game history has been purged.
+
+### Approved right-sizing purge execution (2026-10-02, 20:24 Chicago)
+
+Jamie approved the exact private manifest
+`ccf2771e0ce5870edfc95e43cb41797cfd5687f92f1531ece1a6a0c9a1f717c9`.
+The digest-bound database executor began at 01:24Z on October 3 under the
+interactive production lease, in 17,018 sequential transactions of at most
+250 targets. The current code, retained-reason and schema fingerprints
+passed. Original S3 versions remain until independent database preservation
+and receipt-disposition verification passes. The run is in progress; no
+deploy or other migrate operation may share its write window.
+
+The final maintenance cleanup is prepared in a separate actor-owned checkout;
+it cannot deploy until database, original archive and temporary-export
+verification complete. The existing automated backups retain their ordinary
+seven-day window; no backup deletion is authorized.
+
+### Interrupted batch read-back and unchanged resume
+
+The approved run stopped after 6,704 completed batches on an S3 HTTP 500
+(`InternalError`, one attempt). A read-only preview of the next exact
+250-target badge batch passed the retained-reason/schema checks and found
+all 250 targets still present. No original S3 deletion had started. The
+unchanged digest-bound executor resumed from batch 6,705 under the same
+lease and manifest approval; no batch size, retry policy or target changed.
+
+### First battle batch refused by the rollup statement limit
+
+The approved run completed 15,055 batches, then the first battle transaction
+timed out in `refreshDailyRollups` under its existing 15-second statement
+limit. The transaction rolled back; the checkpoint did not advance and
+read-only backend inspection found no orphaned purge query. Named VACUUM
+(ANALYZE) on `battle` and `battle_participant` completed in 1,139 ms and
+2,317 ms, respectively. The same batch's read-only preservation preview
+passed, but a single unchanged attempt after maintenance timed out again.
+No battle batch or original S3 deletion completed. Further attempts are
+stopped while a scoped rollup query fix is measured on scratch data.
+The exact approved manifest remains immutable; any replacement technical
+binding must be reviewed before further irreversible deletion.
+
+The isolated rollup-query prototype passed canonical verification and browser
+checks, but production-size scratch comparison showed no improvement:
+original/scoped 438/447 ms, with identical values and unchanged-row behavior.
+It was not committed or deployed; the production code and approved root stay
+unchanged. A scratch comparison of the original writer measured 430 ms for
+250 hash-ordered games, 41 ms for 25 hash-ordered games, and 2.6 ms for 25
+games grouped by player/day. The next concrete manifest therefore preserves
+all selected keys, dependencies, declared events, archive versions and the
+15,055 completed receipts, while repartitioning only the remaining battle
+phase into 16,440 ordered batches of at most 25. Total batches become 31,814.
+Temporary batch metadata is being staged and independently compared before
+Jamie reviews the new digest. No further irreversible deletion is authorized
+under that new root yet.
+
+Replacement digest prepared for Jamie's review:
+`7170ed3f65a756fdcfba050db71213bad827f8c37bf2ae745a28a6069920abbf`.
+Independent comparison preserves all 4,248,826 target keys, 410,985 battles,
+their dependencies, 208 events, original archive selection and nonbattle
+ordering. All 16,440 additional metadata bodies were staged/read back; a
+34-page version inventory proved their exact owned versions. Temporary
+cleanup grows to 34,997 versions (2,170,573,232 bytes), plus registered
+verification exports. All 52 read-only production previews passed. Old-digest
+approval and mutated predecessor receipts refuse before AWS. The prepared
+checkpoint has no new approval; execution remains stopped pending Jamie's
+reply to the concrete replacement-manifest review. No original archive
+version or battle batch has been removed. The synthetic benchmark database
+and its isolated prototype checkout have been removed.
+
+The runtime cleanup is being preserved as a draft PR. It must not merge or
+deploy until the approved database, archive-version and temporary-export
+purge proofs complete. The later empty-table contract migration remains a
+separate release after this draft has removed the last deployed readers.
+
+The replacement manifest remains unapproved. No deletion executor is running;
+the production lease was released while review is pending. Resuming requires
+the exact replacement approval, a fresh lease and unchanged deployed-code,
+schema and retained-reason guards. The canonical verification gate passed,
+including all workspace tests; the prepared UI journeys passed 69 checks.

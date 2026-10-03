@@ -41,20 +41,9 @@ after(async () => {
   await admin.end();
 });
 
-const TUNED = [
-  "deck",
-  "deck_card",
-  "meta_season_pop",
-  "battle_participant_card",
-  "card_meta_season",
-  "card_meta_season_band",
-  "deck_meta_season",
-  "deck_meta_season_band",
-  "meta_season_totals",
-  "meta_season_band_totals",
-];
+const TUNED = ["deck", "deck_card", "battle_participant_card"];
 
-test("0189 tunes autovacuum on the meta readers' tables as 0103 did the battle tables", async () => {
+test("0189 autovacuum tuning remains on retained deck and played-card tables", async () => {
   const { rows } = await db.query(
     `select relname, reloptions from pg_class
       where relname = any($1) and relkind = 'r'`,

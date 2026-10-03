@@ -1,23 +1,23 @@
 # AGENTS.md
 
 **Right-sizing direction (2026-10-02).** Elixir is the personal and clan
-recorder; MCP is an extension. Global board history, autonomous elite
+recorder; MCP is an extension. Global board capture, autonomous elite
 recording, game-wide meta statistics, gameplay recommendations and the two
-editorial emails are being retired, and Clan is being fully consolidated
-into Elixir. Recording the circle, notifications, agent access and a dashboard
-for exploring what happened are the focus; do not rebuild recommendations
-over a smaller population. `docs/DECISIONS.md` records Jamie's confirmed
-scope; `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md` is the engineering
-removal plan. The runtime descriptions below still describe the deployed
-system until their migration steps land. Do not expand or restore retired
-scope while implementing this transition. No production purge has happened;
-its exact manifest must first protect retained personal/clan history.
+editorial emails have retired. Clan shares Elixir's account, application,
+storage and deployment. Recording the circle, notifications, agent access
+and a dashboard for exploring what happened are the focus; do not rebuild
+recommendations over a smaller population. `docs/DECISIONS.md` records
+Jamie's confirmed scope; `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md`
+is the engineering removal plan. The original approved historical purge is
+stopped after a rolled-back battle transaction; its replacement manifest
+awaits Jamie's approval. Status and verification receipts live in `docs/NOTES.md`.
+Preserve retained personal/clan history and do not restore retired scope.
 
 Elixir MCP: records Clash Royale history (the official API is current-state
 only) and serves it to players' own agents through an authenticated remote MCP
 server. One hostname, `elixir.poapkings.com`: the site at /, the Console
-at /console and Elixir Clan at /clan with its API at /api/clan (2026-09-28:
-one origin, paths not hostnames; Ladder takes /ladder later), the
+at /console, Ladder at /ladder and Elixir Clan at /clan with its API at
+/api/clan (one origin, paths not hostnames), the
 MCP/OAuth door path-split at /mcp, /oauth/*, /.well-known/* behind a
 no-cookie CloudFront behavior
 (consolidated from two hostnames 2026-09-03).
@@ -30,13 +30,13 @@ machine-readable surfaces (`llms.txt`, `llms-full.txt`, `tools.json`,
 `sitemap.xml`, `feed.xml`). `apps/web` is the React application for
 everything behind a session or drawn live at read time, served from
 `/app.html`. A CloudFront function in `infra/template.yaml` routes by
-prefix: `/console` and everything under it gets the app shell, any other
-path its site document (a page the site does not build is a miss). Every
+prefix: `/console`, `/ladder`, `/clan` and their descendants get the app
+shell; any other path gets its site document (a page the site does not
+build is a miss). Every
 Console path is written with the `CONSOLE` prefix
 (`apps/web/src/lib/console.js`), not a router basepath, because the kit's
 `Link` renders `to` verbatim as the href. A site test evaluates the
-function and pins it, `STATIC_LINKS` in `apps/web/src/App.jsx` and the
-family tabs to the pages `apps/site` builds. Build both with
+function and pins the split, static links and family destinations. Build both with
 `node infra/scripts/build-site.mjs`, which validates the merged tree
 before a deploy can upload it.
 
@@ -46,9 +46,8 @@ React 19 on TanStack Router (the route tree in `App.jsx`, one lazy chunk
 per section under `src/pages/`) and TanStack Query (`src/lib/queries.js`
 is the one place for keys and hooks; the reader's own things are keyed
 under `["me", ...]`, so invalidating the session refetches all of them).
-Three workspace packages are the family's, consumed by the console
-through the workspace and by the verticals as source through a pinned
-git dependency: `packages/design` - tokens (`src/tokens.css`, with a
+Three shared workspace packages underpin Console, Ladder and Clan;
+external family consumers use source through a pinned git dependency: `packages/design` - tokens (`src/tokens.css`, with a
 Tailwind `@theme inline reference` map so utilities exist for them) and
 component rules (`src/components.css`), compiled ONCE by Tailwind v4 over
 both halves' and the kit's sources into `dist/styles.css`, which both

@@ -99,7 +99,7 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
   — the drift between "what a new install gets" and "what production
   accumulated" has bitten this family before. Re-pin it from a **fresh scratch database**, never the dev one.
 - **Canonical tables are lossless by policy.** Projections are rebuildable
-  from the S3 payload archive (every distinct payload, forever); battles,
+  from the S3 payload archive (retained distinct payloads, forever); battles,
   snapshots and receipts are the system of record and must never need a
   rebuild. The ratified 2026-10-02 right-sizing is an explicit exception
   for retired leaderboard and elite-only data, with a reviewed deletion
@@ -573,10 +573,10 @@ first-party registration and scopes. Clan shares the Elixir browser session and 
 point to the common app and web API; disabling the feature never resumes the
 old runtime. The one-clan morning jobs use the canonical ledger. The source
 transfer froze the legacy runtime and waited 300 seconds before exporting;
-`{clan_import}` remains digest-bound, private-prefix-only and preview-first,
-requiring an empty destination on application. Comparison returns counts,
-never private bodies. Obsolete client registrations remain audit history;
-Clan grants and its service key retired without changing Drop credentials.
+the digest-bound transfer required an empty destination and compared all
+durable state without returning private bodies. The completed import endpoint
+has retired. Obsolete client registrations remain audit history; Clan grants
+and its service key retired without changing Drop credentials.
 
 Clan model calls use the existing non-VPC relay and outbox infrastructure,
 with separate private request, claim and reply prefixes. Only the request

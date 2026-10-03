@@ -175,8 +175,8 @@ satisfy the SDK's provider chain" (ENGINEERING). The only flags
 
 **Scope.** "The acceptance suite is the release gate, opted into per
 deploy" (DECISIONS). A tool changed: `--acceptance=<family>`, the tool
-name's prefix (`badges`, `battles`, `cards`, `clans`, `collections`,
-`elixir`, `game`, `players`, `rankings`, `war`); 9.0.1 ran
+name's prefix (`badges`, `battles`, `cards`, `clans`,
+`elixir`, `game`, `players`, `war`); 9.0.1 ran
 `--acceptance=war,clans`. Shared code (`services/mcp/src/protocol.mjs`,
 `packages/tools`, ingest) or a release: `--acceptance`;
 family runs skip the `#docs` cases. Nothing a tool serves changed

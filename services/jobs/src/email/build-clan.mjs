@@ -243,7 +243,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
   };
 }
 
-/** The clan's recording scope: the widest any tracker (or collection)
+/** The clan's recording scope: the widest any tracker
  *  asked for, as the recording holds it; with no active recording, the
  *  widest tracker's request. Never one reader's own request: a tracker
  *  who chose activity scope does not narrow a clan another tracker has

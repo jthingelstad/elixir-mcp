@@ -31,7 +31,7 @@ Subjects to use: King Thing `#20JJJ2CCRU` (primary), `thingles #VJQV8G8RL`, `Big
 Carry no assumptions from previous runs. Establish everything fresh:
 
 1. `game_clock` — season, week, war day. Some behaviour is day-dependent.
-2. **Enumerate the surface.** Read the tool list (`elixir_docs` notes that the tool reference is `tools/list`). Group tools by family prefix — `battles_*`, `players_*`, `clans_*`, `war_*`, `rankings_*`, `cards_*`, `badges_*`, `collections_*`, `elixir_*`. Count the families, and note any family or tool that is new since your last run. This count feeds the Pass 1 conformance sweep; it does NOT pick the Pass 4 family.
+2. **Enumerate the surface.** Read the tool list (`elixir_docs` notes that the tool reference is `tools/list`). Group tools by family prefix — `battles_*`, `players_*`, `clans_*`, `war_*`, `cards_*`, `badges_*`, `elixir_*`. Count the families, and note any family or tool that is new since your last run. This count feeds the Pass 1 conformance sweep; it does NOT pick the Pass 4 family.
 3. **Read your own history.** `elixir_my_feedback` is your state store — everything previously filed, every maintainer response, and any `shipped_in` version. Findings filed before 2026-09-23 sit on Jamie's account, not yours. The assignment header carries those findings as a **legacy list**, and you treat them exactly as if you had filed them. Derive two lists: **the regression list** (items marked shipped or fixed) and **the exclusion list** (items still open). Never re-file anything on the exclusion list; add new evidence to an open item only if it materially changes the diagnosis. In a sweep, keep the regression list to items that touch **the assigned family**. The other families get their own runs.
 4. `elixir_changelog` and `elixir_updates` — what shipped since. Note which FAMILY each entry touches.
 5. Note `meta.contract_version`. If it changed since your last filing, Pass 2 comes first.
@@ -75,9 +75,9 @@ These hold for any tool in the surface and need no domain knowledge. Apply which
 
 **Picking the family.** If the assignment header names a family, explore that one. Say so in the report header ("Family explored: cards — assigned by the sweep"). Without an assignment, use the rotation. It is deterministic over this PINNED list, in this order:
 
-`badges`, `battles`, `cards`, `clans`, `collections`, `elixir`, `game`, `players`, `rankings`, `war`
+`badges`, `battles`, `cards`, `clans`, `elixir`, `game`, `players`, `war`
 
-The day of the year (1-366, UTC) modulo 10 indexes it. Compute it in code and state the arithmetic in the report header. Do NOT derive the divisor from the Pass 0 family count and do NOT key on the ISO week: the count reshuffles the whole mapping the day a family is added, and the week number is constant for seven consecutive daily runs, which has already cost this gym a week of coverage.
+The day of the year (1-366, UTC) modulo 8 indexes it. Compute it in code and state the arithmetic in the report header. Do NOT derive the divisor from the Pass 0 family count and do NOT key on the ISO week: the count reshuffles the whole mapping the day a family is added, and the week number is constant for seven consecutive daily runs, which has already cost this gym a week of coverage.
 
 **The exception, which applies to the rotation only.** A family can have gained fields, tools or behaviour in `elixir_changelog` since your last filing without any run exploring it since it shipped. When that happens, explore THAT family instead. Say so in the report header ("Family explored: battles — new-surface override, 6.16.0-6.18.0 unexplored; rotation would have given players"). New surface is where the untested assumptions live and where a caveat has had the least time to be written; a freshly shipped field has never been read by a consumer that does not already know what it means. If more than one family qualifies, take the one with the most changelog entries since your last run. Apply the override at most once per family — if the last run already explored it under the override, fall back to the rotation. An assigned family is never overridden.
 
@@ -202,6 +202,6 @@ Do not push notifications. The orchestrator decides what reaches Jamie.
 - Never assert an effect from one sample. Replicate it or report it as an open question.
 - Distinguish "the service is wrong" from "the service is right and the framing invites a wrong read." Both are worth filing; conflating them wastes the maintainer's time.
 - You are testing the service, not Jamie's play. Produce no coaching output.
-- Stay inside the read-only and feedback surface. Do not mutate state the service holds for others. Never call `live_fetch`, `elixir_track_*`, `collections_edit`, `elixir_nickname` or `elixir_identify` with a change.
+- Stay inside the read-only and feedback surface. Do not mutate state the service holds for others. Never call `live_fetch`, `elixir_track_*`, `elixir_nickname` or `elixir_identify` with a change.
 - Your account has its own hourly budget, and a sweep may run other Gyms on the same account at the same time. `live_*` is not a family you test (Jamie, 2026-09-23). A run that spends them on regressions the suite already pins is a run that finds nothing new. On a `rate_limited` refusal, stop calling and report how far you got. Don't wait out the hour.
 - If a tool errors, capture the exact arguments and `request_id`. An error is a finding.

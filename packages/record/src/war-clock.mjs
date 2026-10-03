@@ -133,10 +133,7 @@ export function seasonFromDate(atMs) {
   };
 }
 
-/** When the season containing atMs ends: the next first-Monday reset.
- *  ranking_presence holds a player's recording until this plus a grace,
- *  so the opening hours of the next season are captured for last
- *  season's field. */
+/** When the season containing atMs ends: the next first-Monday reset. */
 export function nextSeasonStartMs(atMs) {
   const { seasonStartMs } = seasonFromDate(atMs);
   const d = new Date(seasonStartMs);
@@ -149,33 +146,10 @@ export function nextSeasonStartMs(atMs) {
   return firstMondayResetMs(y, m);
 }
 
-/** The Path of Legends season namespace. The API names a season's FINAL
- *  board by the month it started in - `2026-08` is the season that rolled
- *  on the first Monday of August 2026, which the game clock counts as
- *  S135 - and the two roll together, so the month and the ordinal are one
- *  fact in two spellings. The API also accepts a bare number for the
- *  final, but that number is the 1-based POSITION in its own
- *  /locations/global/seasons list (position 143 = `2026-08`), not the
- *  ordinal; 0069's backfill assumed it was the ordinal and labelled every
- *  final eight seasons high (fixed in 0070). The list has been strictly
- *  monthly since position 97 = `2022-10`, the ranked ladder's first
- *  season, so a position resolves to a month by counting from there. */
-const POL_FIRST_MONTH = "2022-10";
-const POL_FIRST_POSITION = 97;
-
 /** 'YYYY-MM' of an instant, UTC. */
 export function monthKey(atMs) {
   const d = new Date(atMs);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-/** The API's month for a numeric position in its seasons list. */
-export function polSeasonMonth(key) {
-  const raw = String(key ?? "").trim();
-  if (/^\d{4}-\d{2}$/.test(raw)) return raw;
-  if (!/^\d+$/.test(raw) || Number(raw) < POL_FIRST_POSITION) return null;
-  const [y, m] = POL_FIRST_MONTH.split("-").map(Number);
-  return monthKey(Date.UTC(y, m - 1 + (Number(raw) - POL_FIRST_POSITION), 15));
 }
 
 /** The season ordinal (as game_clock counts) for an API month. */
@@ -216,22 +190,6 @@ export function inSeasonRollWindow(atMs) {
 }
 export function seasonRollWindowStartMs(atMs) {
   return nextSeasonStartMs(atMs) - SEASON_ROLL_WINDOW_MS;
-}
-
-/** Every API month whose final is settled at atMs: from the ranked
- *  ladder's first season through the one that rolled most recently. */
-export function settledPolMonths(atMs) {
-  const [y0, m0] = POL_FIRST_MONTH.split("-").map(Number);
-  const last = monthKey(
-    seasonFromDate(seasonFromDate(atMs).seasonStartMs - 1).seasonStartMs,
-  );
-  const months = [];
-  for (let i = 0; ; i++) {
-    const key = monthKey(Date.UTC(y0, m0 - 1 + i, 15));
-    months.push(key);
-    if (key === last || i > 600) break;
-  }
-  return months;
 }
 
 /**

@@ -116,9 +116,8 @@ function admitRiverraceLog(payload, errors) {
   });
 }
 
-function admitRankings(payload, errors) {
-  // Leaderboards (agent feedback #6): { items: [...] }; empty is valid
-  // (docs: early-season rankings can be empty).
+function admitListItems(payload, errors) {
+  // Global tournament listings use { items: [...] }; an empty list is valid.
   if (!Array.isArray(payload?.items)) errors.push("items:missing");
 }
 
@@ -140,15 +139,8 @@ const VALIDATORS = {
   currentriverrace: admitRiverrace,
   riverracelog: admitRiverraceLog,
   cards: admitCards,
-  rankings_players: admitRankings,
-  rankings_pol: admitRankings,
-  rankings_pol_season: admitRankings,
-  rankings_clans_loc: admitRankings,
-  rankings_clanwars: admitRankings,
-  leaderboards: admitRankings,
-  leaderboard: admitRankings,
   events: admitEvents,
-  globaltournaments: admitRankings,
+  globaltournaments: admitListItems,
 };
 
 /**

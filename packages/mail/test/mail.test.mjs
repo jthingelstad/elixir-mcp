@@ -67,10 +67,8 @@ test("every kind renders its fixture: subject, preheader, html, and a text alter
       `${kind} html has no leaks`,
     );
     // Exactly ONE image may be a tracking image, and it is the
-    // Tinylytics pixel naming the mail rather than the reader. Card of
-    // the Week carries content images too, so the rule is stated as
-    // what it has always meant: every other image is served by us, and
-    // says what it is to a reader who cannot see it.
+    // Tinylytics pixel naming the mail rather than the reader. Every other
+    // image is served by us and says what it is to a reader who cannot see it.
     const tags = out.html.match(/<img\b[^>]*>/gi) ?? [];
     const pixels = tags.filter((t) => /tinylytics\.app/.test(t));
     assert.equal(pixels.length, 1, `${kind} carries exactly the pixel`);
@@ -136,12 +134,12 @@ test("names are links into Browse carrying the campaign tag, tags only in the ti
 
 test("links.pixel false renders tagged links without the open pixel (the public page)", () => {
   const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "top_100.json"), "utf8"),
+    readFileSync(path.join(fixtures, "milestone.json"), "utf8"),
   );
-  const { html } = renderMail("top_100", facts, { ...links, pixel: false });
+  const { html } = renderMail("milestone", facts, { ...links, pixel: false });
   assert.ok(!/tinylytics/i.test(html));
   assert.ok(html.includes(LOGO), "the page still wears the logo");
-  assert.ok(html.includes("utm_campaign=top_100-2026-W37"));
+  assert.ok(html.includes("utm_campaign=milestone-2026-W37"));
 });
 
 test("links.send_id puts the send's id and its console link in the footer; a page render has neither", () => {
@@ -428,11 +426,12 @@ test("the weekly send times are the EventBridge crons", () => {
     if (isRetiredEmailKind(kind)) assert.equal(crons.has(kind), false);
     else assert.deepEqual(slot, crons.get(kind), kind);
   }
-  assert.equal(Object.keys(MAIL_SCHEDULE).length, 6);
+  assert.equal(Object.keys(MAIL_SCHEDULE).length, 4);
 });
 
 test("renderMail refuses a kind it does not know and a send without links", () => {
-  assert.throws(() => renderMail("newsletter", {}, links), /unknown kind/);
+  for (const kind of ["newsletter", "top_100", "card_of_week"])
+    assert.throws(() => renderMail(kind, {}, links), /unknown kind/);
   assert.throws(() => renderMail("milestone", {}, {}), /links/);
 });
 
@@ -470,76 +469,6 @@ test("htmlToText keeps table rows on one line and prints hrefs once", () => {
   assert.match(text, /Player +\+702/);
   assert.ok(text.includes("the page (https://x.example/a)"));
   assert.ok(!text.includes("https://x.example/b (https://x.example/b)"));
-});
-
-test("a deck block is the record's own cards, in order, one strip of eight", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "card_of_week.json"), "utf8"),
-  );
-  const { html } = renderMail("card_of_week", facts, links);
-  // The writer PLACES a deck ({{deck:N}}) and never spells it: the cards
-  // come from the brief, so a deck block cannot disagree with the record.
-  assert.ok(!/\{\{deck:/.test(html), "the placeholder was replaced");
-  const deck = facts.decks[1];
-  const alts = [...html.matchAll(/<img\b[^>]*alt="([^"]*)"/g)].map((m) => m[1]);
-  for (const card of deck.cards) {
-    const label =
-      (card.form === "hero"
-        ? "Hero "
-        : card.form === "evolution"
-          ? "Evo "
-          : "") + card.name;
-    assert.ok(alts.includes(label), `${label} is in the block`);
-  }
-  // A form carries its OWN art, never the base card's. A deck cell shows
-  // the 128px file at 55: sharp on retina, and the strip fits a phone.
-  assert.ok(html.includes("28000015_hero-128.png"), "the hero form's icon");
-  assert.ok(html.includes("26000024_evo-128.png"), "the evolution's icon");
-  assert.ok(/width="55" height="81"/.test(html), "displayed at 55, not 128");
-  // An image src carries NO campaign tag. It is not a link anyone
-  // follows, so the tag measures nothing - and a per-campaign URL would
-  // give every week its own copy of the same art in the reader's cache.
-  const imgSrcs = [...html.matchAll(/<img\b[^>]*src="([^"]*)"/g)].map(
-    (m) => m[1],
-  );
-  for (const src of imgSrcs.filter((s) => s.includes("/assets/")))
-    assert.ok(!src.includes("utm_"), `image src is untagged: ${src}`);
-  assert.ok(
-    imgSrcs.some((s) => s.includes("/assets/")),
-    "there are images",
-  );
-  // Table layout only: Outlook's engine is Word's.
-  assert.ok(!/display:\s*(flex|grid)/.test(html), "no flex or grid");
-  assert.ok(!/background-image/.test(html), "no background images");
-  // Text: the eight on one line, as the strip draws them.
-  const text = htmlToText(html);
-  assert.ok(
-    text.includes("Fisherman Electro Spirit Fireball Hero Barbarian Barrel"),
-    text.split("\n").filter((l) => /Fisherman/.test(l))[0],
-  );
-  assert.ok(text.includes("3,999 battles · 447 players · 52.0% won"));
-  // Four decks, not three (Jamie, 2026-09-22).
-  assert.equal(facts.decks.length, 4);
-  assert.ok(html.includes('alt="Rune Giant"'), "the fourth deck is placed");
-  // No trend, no chart. Elixir's corpus grew two orders of magnitude over
-  // the months it has been recording, so a season series would draw our
-  // own coverage and call it the card's popularity. The brief withholds
-  // it until enough seasons are comparable, and the mail draws nothing.
-  assert.equal(facts.chart, null);
-  assert.ok(!/usage share by season/.test(html));
-});
-
-test("a chart, when the record has earned one, carries its series in alt text", () => {
-  const facts = JSON.parse(
-    readFileSync(path.join(fixtures, "card_of_week.json"), "utf8"),
-  );
-  facts.chart = {
-    url: "/assets/mail/card_of_week/2026-W38/season.png",
-    alt: "Barbarian Barrel usage share by season: 2026-08 21.7 percent, 2026-09 31.2 percent.",
-  };
-  const { html } = renderMail("card_of_week", facts, links);
-  assert.ok(/alt="Barbarian Barrel usage share by season[^"]+"/.test(html));
-  assert.ok(html.includes('width="560"'));
 });
 
 test("unsubscribe links have their own key, and links sent before it still work (#71)", () => {
@@ -679,20 +608,6 @@ test("the Arena week opens Ladder: the season, and every deck on Ladder › Deck
     /href="https:\/\/elixir\.poapkings\.com\/ladder\/decks\?player=20JJJ2CCRU&amp;utm_source=email[^"]*"[^>]*>Ladder › Decks<\/a>/,
   );
   assert.doesNotMatch(html, /in the console</);
-});
-
-test("the written kinds' footers name the switch, not the masthead", () => {
-  for (const [kind, name] of [
-    ["top_100", "the Top 100"],
-    ["card_of_week", "Card of the Week"],
-  ]) {
-    const facts = JSON.parse(
-      readFileSync(path.join(fixtures, `${kind}.json`), "utf8"),
-    );
-    const { html } = renderMail(kind, facts, links);
-    assert.ok(html.includes(`Turn off ${name}<`), `${kind}: Turn off ${name}`);
-    assert.doesNotMatch(html, /Turn off Ultimate Champions/);
-  }
 });
 
 test("each collector is its card, with what it is doing now", () => {

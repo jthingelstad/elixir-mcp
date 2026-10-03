@@ -5,7 +5,6 @@ import { gzipSync } from "node:zlib";
 import { scratchDb, seedReceipt } from "./helpers.mjs";
 import { RECORDING_CUTOVER_LOCK } from "@elixir-mcp/ledger";
 import { processResult } from "../src/pipeline.mjs";
-import { retireBoardRecordings } from "../../../services/migrate/src/ops-retire-boards.mjs";
 
 const deferred = () => {
   let resolve;
@@ -41,7 +40,7 @@ test("cutover drains an in-flight archive admission, then refuses its stale bulk
     const tag = "#20JJJ2CCRU";
     await ctx.db.query("insert into player (player_tag) values ($1)", [tag]);
     await ctx.db.query(
-      "insert into recording (subject_type,subject_tag,requested_by,origin) values ('player',$1,$2,'ranking')",
+      "insert into recording (subject_type,subject_tag,requested_by,origin) values ('player',$1,$2,'claim')",
       [tag, a.account_id],
     );
     const {
@@ -81,12 +80,19 @@ test("cutover drains an in-flight archive admission, then refuses its stale bulk
         return result;
       },
     };
-    cutover = retireBoardRecordings(null, { apply: true }, observedDb).then(
-      (r) => {
-        completed = true;
-        return r;
-      },
-    );
+    cutover = (async () => {
+      await observedDb.query("begin");
+      await observedDb.query("select pg_advisory_xact_lock(hashtext($1))", [
+        RECORDING_CUTOVER_LOCK,
+      ]);
+      const result = await observedDb.query(
+        "update recording set status='stopped' where subject_type='player' and subject_tag=$1 and status='active'",
+        [tag],
+      );
+      await observedDb.query("commit");
+      completed = true;
+      return { stopped: result.rowCount, done: true };
+    })();
     await lockRequested.promise;
     let waiting = false;
     for (let attempt = 0; attempt < 20 && !waiting; attempt++) {

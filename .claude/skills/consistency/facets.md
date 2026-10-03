@@ -95,12 +95,12 @@ is where the war-days gap lived.
 | Repo | Where it touches the hub | Must agree with |
 |---|---|---|
 | Clan inside Elixir | `services/web-api/src/clan.mjs`, `packages/clan`, `packages/clan-state`, `packages/clan-web` | shared account, current role, private-state boundary |
-| `../drop.poapkings.com` | `services/api/src/elixir-oauth.ts` (sign-in, `/api/v1`), `elixir-mcp.ts` and `elixir-collection.ts` (integration key), `seasons.ts` (policy clock), SPEC.md, AGENTS.md | `/api/v1`, the OAuth door, the clock |
+| `../drop.poapkings.com` | `services/api/src/elixir-oauth.ts` (sign-in, `/api/v1`), `elixir-mcp.ts` and `elixir-player.ts` (authorized profile reads), `seasons.ts` (policy clock), SPEC.md, AGENTS.md | `/api/v1`, the OAuth door, the clock |
 | `../elixir-bot` | RETIRED (stopped 2026-09-26) | nothing; do not sweep it |
 | `../elixir-mcp-discord` | `src/events.js`, `src/prompt.js`, `src/feedback.js`, AGENTS.md | `elixir_timeline` paging and order, tool names |
 | `../cr-agent-api-docs` | the endpoint and field pages | the hub's observed semantics (general findings only); `.claude/skills/reference-audit/` checks it against the payload archive |
 | `../poapkings.com` | `src/elixir-mcp.njk`, member pages | REPORT ONLY (Jamie, 2026-09-25) |
-| `../elixir-family` | `MAP.md` (historical, frozen 2026-09-13), `plans/` | nothing current; Clan's guide still points at MAP.md |
+| `../elixir-family` | `MAP.md` (historical, frozen 2026-09-13), `plans/` | nothing current; historical planning only |
 
 ## 9. Memory
 

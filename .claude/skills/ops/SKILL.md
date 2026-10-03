@@ -41,8 +41,8 @@ named about a dozen ops and the rest could be found only by reading
    runs the exact SQL the tool serves, never a hand-typed version.
    `{profile_tool}` runs the registry's own handler, so it cannot drift;
    `{explain_participation}`, `{explain_standings}` and `{explain_timeline}`
-   import the tool's SQL; `{explain_meta}` and `{explain_series}` carry
-   copies, and `{explain_meta}`'s has drifted.
+   import the tool's SQL; `{explain_series}` carries a copy. Use
+   `{profile_tool}` for another retained tool's actual SQL and handler.
 5. **One invocation at a time, and no retries.** The function has reserved
    concurrency 1: a second call gets a 429 while the first runs, and so
    does a deploy's migration step. Set `AWS_MAX_ATTEMPTS=1`: on 2026-09-19

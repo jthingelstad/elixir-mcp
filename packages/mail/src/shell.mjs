@@ -83,8 +83,6 @@ export const MAIL_SOURCE = {
   clan_report: { product: "Clan", when: "Monday" },
   arena_week: { product: "Ladder", when: "Tuesday" },
   tracking_report: { product: "Friends", when: "Wednesday" },
-  top_100: { product: "Cards", when: "Thursday" },
-  card_of_week: { product: "Cards", when: "Friday" },
   collector_activity: { product: "Collectors", when: "Sunday" },
   milestone: { product: "Ladder", when: "Milestone" },
   clan_actions_waiting: { product: "Clan", when: "Actions" },
@@ -100,8 +98,6 @@ export const MAIL_SCHEDULE = {
   clan_report: { day: 1, hour: 14, minute: 0 },
   arena_week: { day: 2, hour: 14, minute: 0 },
   tracking_report: { day: 3, hour: 14, minute: 0 },
-  top_100: { day: 4, hour: 14, minute: 0 },
-  card_of_week: { day: 5, hour: 14, minute: 0 },
   collector_activity: { day: 0, hour: 14, minute: 0 },
 };
 
@@ -181,8 +177,6 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
     case "collector_activity":
       return `You get this ${on}, while you run a collector.`;
     case "tracking_report":
-    case "top_100":
-    case "card_of_week":
       return `You get this ${on}.`;
     case "milestone":
       return "You get this when you or one of your players reaches something. Elixir checks every hour.";

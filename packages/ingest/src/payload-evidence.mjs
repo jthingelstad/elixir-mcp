@@ -74,7 +74,6 @@ export const EVIDENCE_ENUMS = {
     "supportItems[].rarity",
     "supportItems[].maxLevel",
   ],
-  leaderboards: ["items[].name"],
   events: ["[].eventTag", "[].title"],
   globaltournaments: [
     "items[].gameMode.id",
@@ -88,18 +87,17 @@ export const EVIDENCE_ENUMS = {
 };
 
 /** `endpoint:path` name and tag paths that are game content (a badge, an
- *  achievement, a mode, a leaderboard), not a person or a clan. A tag
+ *  achievement, a mode), not a person or a clan. A tag
  *  inside a list is usually a participant's: `[].modifiers[].tag` is the
  *  player the modifiers belong to (the first audit found it here by
- *  mistake, 2026-09-25). Qualified by endpoint because `items[].name` is a leaderboard's
- *  name on one and a player's on another. The privacy test refuses any
+ *  mistake, 2026-09-25). Qualified by endpoint so a game-content name
+ *  never grants enumeration of another endpoint's personal name. The privacy test refuses any
  *  other `name` or `tag` path in EVIDENCE_ENUMS. */
 export const GAME_CONTENT_NAME_PATHS = new Set([
   "player:badges[].name",
   "player:achievements[].name",
   "player_battlelog:[].gameMode.name",
   "globaltournaments:items[].gameMode.name",
-  "leaderboards:items[].name",
 ]);
 
 const MAPS = ["progress"];
