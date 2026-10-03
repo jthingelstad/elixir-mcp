@@ -756,9 +756,21 @@ export function evaluateAwards({
           },
         }));
       } else if (award.kind === "perfect_attendance") {
-        const all = members.map((m) =>
-          attendance(participation, m, season, award.params),
-        );
+        const all = members.map((m) => {
+          const d = seasonDonations(participation, m, season);
+          return {
+            ...attendance(participation, m, season, award.params),
+            donations: season.weeks.some((w) => {
+              const j = isoWeekOf(participation, w.started);
+              return (
+                !Number.isFinite(m.donations?.[j]) &&
+                m.absent_at_donation_week?.[j] !== true
+              );
+            })
+              ? null
+              : d.total,
+          };
+        });
         const onTrack = all.filter((r) => r.on_track);
         const unknown = all.filter(
           (r) =>
@@ -772,6 +784,7 @@ export function evaluateAwards({
           decks_short: r.decks_short,
           decks_asked: r.decks_asked,
           fidelity: r.fidelity,
+          donations: r.donations,
         }));
         // Fail closed: a week the record cannot see for anyone holds the
         // award for that season rather than crowning the visible.
@@ -788,7 +801,11 @@ export function evaluateAwards({
           rank: 1,
           metric_value: r.decks_asked,
           metric_unit: "war_decks",
-          metadata: { decks_short: r.decks_short, fidelity: r.fidelity },
+          metadata: {
+            decks_short: r.decks_short,
+            fidelity: r.fidelity,
+            donations: r.donations,
+          },
         }));
       }
       if (season.closed)

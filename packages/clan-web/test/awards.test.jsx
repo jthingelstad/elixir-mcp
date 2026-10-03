@@ -152,8 +152,15 @@ describe("awards", () => {
       .spyOn(manageApi, "grantAward")
       .mockResolvedValue({ ok: true, status: 200, data: {} });
     renderWithProviders(<Awards clan={poap} />);
-    expect(await screen.findByText(/Season 136 · in progress/)).toBeTruthy();
+    expect(
+      (await screen.findAllByText(/Season 136 · in progress/)).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByText(/Provisional/)).toBeTruthy();
+    expect(screen.queryByText(/Season 135 · closed 2026-09-07/)).toBeNull();
+    expect(screen.queryByText("on the podium")).toBeNull();
+    fireEvent.change(screen.getByRole("combobox", { name: "Season" }), {
+      target: { value: "135" },
+    });
     expect(screen.getByText(/Season 135 · closed 2026-09-07/)).toBeTruthy();
     expect(screen.getAllByText("granted").length).toBe(1);
     fireEvent.click(
@@ -195,6 +202,10 @@ describe("awards", () => {
       data,
     });
     renderWithProviders(<Awards clan={poap} />);
+    await screen.findByRole("combobox", { name: "Season" });
+    fireEvent.change(screen.getByRole("combobox", { name: "Season" }), {
+      target: { value: "135" },
+    });
     expect(await screen.findByText("16,000 pts")).toBeTruthy();
     expect(screen.queryByText("99,999 pts")).toBeNull();
     expect(screen.getAllByText("granted").length).toBe(1);
@@ -228,10 +239,11 @@ describe("awards", () => {
       .spyOn(manageApi, "grantAward")
       .mockRejectedValue(new Error("lost response"));
     renderWithProviders(<Awards clan={poap} />);
+    fireEvent.change(await screen.findByRole("combobox", { name: "Season" }), {
+      target: { value: "135" },
+    });
     fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Grant Clan Honour for season 135",
-      }),
+      screen.getByRole("button", { name: "Grant Clan Honour for season 135" }),
     );
     fireEvent.change(screen.getByLabelText("Member"), {
       target: { value: "#UQ8LP2R9C" },
@@ -289,7 +301,10 @@ describe("awards", () => {
       .spyOn(manageApi, "revokeAward")
       .mockRejectedValue(new Error("lost response"));
     renderWithProviders(<Awards clan={poap} />);
-    fireEvent.click(await screen.findByRole("button", { name: "take back" }));
+    fireEvent.change(await screen.findByRole("combobox", { name: "Season" }), {
+      target: { value: "135" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "take back" }));
     expect(
       await screen.findByText(/Taking back the award was not confirmed/),
     ).toBeTruthy();
@@ -320,7 +335,7 @@ describe("awards", () => {
     expect(screen.queryByText(/public document/i)).toBeNull();
   });
 
-  test("an elder sees the page read-only; a member is refused", async () => {
+  test("elders and members can read without privileged controls", async () => {
     vi.spyOn(manageApi, "awards").mockResolvedValue({
       ok: true,
       status: 200,
@@ -336,12 +351,26 @@ describe("awards", () => {
     ).toBeNull();
     cleanup();
     vi.spyOn(manageApi, "awards").mockResolvedValue({
-      ok: false,
-      status: 403,
-      data: { error: "elders_only" },
+      ok: true,
+      status: 200,
+      data: {
+        ...view(),
+        can_edit: false,
+        can_grant: [],
+        can_send: false,
+        versions: [],
+      },
     });
     renderWithProviders(<Awards clan={{ ...poap, role: "member" }} />);
-    expect(await screen.findByText(/for the leaders and elders/)).toBeTruthy();
+    expect(
+      await screen.findByRole("combobox", { name: "Season" }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "edit the awards" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Send current update to clan" }),
+    ).toBeNull();
   });
 });
 
@@ -400,4 +429,32 @@ describe("trophies", () => {
     expect(screen.getByText("Season 135")).toBeTruthy();
     expect(document.querySelector("tr[data-you='true']")).toBeTruthy();
   });
+});
+
+test("current update retries retain their request identity and a later intentional update uses a new one", async () => {
+  vi.spyOn(manageApi, "awards").mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: { ...view(), can_send: true },
+  });
+  const update = vi
+    .spyOn(manageApi, "awardsUpdate")
+    .mockRejectedValueOnce(new Error("lost reply"))
+    .mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { action: { number: 44, evidence: { messages: [{ part: 1 }] } } },
+    });
+  renderWithProviders(<Awards clan={poap} />);
+  const button = await screen.findByRole("button", {
+    name: "Send current update to clan",
+  });
+  fireEvent.click(button);
+  await screen.findByRole("alert");
+  fireEvent.click(button);
+  await screen.findByRole("link", { name: /Review Action #44/ });
+  expect(update.mock.calls[1][1]).toBe(update.mock.calls[0][1]);
+  fireEvent.click(button);
+  await waitFor(() => expect(update).toHaveBeenCalledTimes(3));
+  expect(update.mock.calls[2][1]).not.toBe(update.mock.calls[1][1]);
 });

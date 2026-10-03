@@ -164,12 +164,12 @@ function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
  * Actions, for everyone in a clan with a policy: a list of what is
  * waiting for you (assigned to you, or open to your role) and what closed
  * in the last 30 days, one line each (Jamie, 2026-09-25: the page of full
- * actions was too long). Each line opens the action's own page. Opening
- * the list evaluates the clan, so actions are raised by whoever looks
- * first.
+ * actions was too long). Each line opens the action's own page. The saved
+ * evaluation keeps processing quick; a refresh re-reads the record.
  */
 export function Actions({ clan, who, navigate }) {
-  const { state, query } = useActions(clan.clan_tag);
+  const [scope, setScope] = useState("open");
+  const { state, query, load } = useActions(clan.clan_tag);
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
     return null;
@@ -183,9 +183,16 @@ export function Actions({ clan, who, navigate }) {
       lede="What the policy suggests and the roster asks for. You decide each one in the game, then here. Nobody below co-leader sees removals or who is on a clock."
       navigate={navigate}
       fresh={
-        d?.as_of ? (
-          <Fresh label="as of" seconds={d.freshness_seconds} ts={d.as_of} />
-        ) : null
+        <div className="flex flex-wrap items-center gap-3">
+          {d?.as_of ? <Fresh label="as of" ts={d.as_of} /> : null}
+          <button
+            className="btn btn--small"
+            disabled={state.loading}
+            onClick={() => load(true)}
+          >
+            {state.loading ? "Refreshing…" : "Refresh suggestions"}
+          </button>
+        </div>
       }
     />
   );
@@ -218,52 +225,67 @@ export function Actions({ clan, who, navigate }) {
         </a>
         .
       </p>
-      <div className="grid items-start gap-4 wide:grid-cols-2">
-        {open.length === 0 ? (
-          <div className="empty">
-            <div className="empty__title">Nothing waiting for you</div>
-            <p className="empty__body">
-              An action appears here when the clan&rsquo;s policy suggests
-              something you can do: for you alone, or for anyone in your role.
-            </p>
-          </div>
-        ) : (
-          <ActionList
-            id="actions-waiting"
-            title="Waiting for you"
-            tone="chip--info"
-            actions={open}
-            clan={clan}
-            navigate={navigate}
-          />
-        )}
-        {d.recent.length ? (
-          <ActionList
-            id="actions-closed"
-            title="Closed in the last 30 days"
-            tone="chip--mute"
-            actions={d.recent}
-            clan={clan}
-            navigate={navigate}
-            foot={
-              leads ? (
-                <>
-                  Every decided action stays in{" "}
-                  <a
-                    href={history}
-                    onClick={(e) => {
-                      if (!navigate) return;
-                      e.preventDefault();
-                      navigate(history);
-                    }}
-                  >
-                    History ›
-                  </a>
-                </>
-              ) : null
-            }
-          />
-        ) : null}
+      <div className="grid gap-4">
+        <label className="flex items-center gap-3">
+          <span className="field-label">Show</span>
+          <select
+            className="input w-auto"
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+          >
+            <option value="open">Open ({open.length})</option>
+            <option value="closed">Closed</option>
+          </select>
+        </label>
+        {scope === "open" &&
+          (open.length === 0 ? (
+            <div className="empty">
+              <div className="empty__title">Nothing waiting for you</div>
+              <p className="empty__body">
+                An action appears here when the clan&rsquo;s policy suggests
+                something you can do: for you alone, or for anyone in your role.
+              </p>
+            </div>
+          ) : (
+            <ActionList
+              id="actions-waiting"
+              title="Waiting for you"
+              tone="chip--info"
+              actions={open}
+              clan={clan}
+              navigate={navigate}
+            />
+          ))}
+        {scope === "closed" &&
+          (d.recent.length ? (
+            <ActionList
+              id="actions-closed"
+              title="Closed in the last 30 days"
+              tone="chip--mute"
+              actions={d.recent}
+              clan={clan}
+              navigate={navigate}
+              foot={
+                leads ? (
+                  <>
+                    Every decided action stays in{" "}
+                    <a
+                      href={history}
+                      onClick={(e) => {
+                        if (!navigate) return;
+                        e.preventDefault();
+                        navigate(history);
+                      }}
+                    >
+                      History ›
+                    </a>
+                  </>
+                ) : null
+              }
+            />
+          ) : (
+            <p className="page__lede">No closed actions in the last 30 days.</p>
+          ))}
       </div>
     </>
   );
@@ -307,7 +329,7 @@ export function ActionDetail({ clan, who, number, navigate }) {
   const invalidate = useInvalidate();
   const changed = () => {
     invalidate(keys.actions(clan.clan_tag));
-    invalidate(keys.me);
+    invalidate(keys.me, { exact: true });
   };
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);

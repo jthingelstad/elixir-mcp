@@ -160,7 +160,7 @@ describe("feedback", () => {
     expect(screen.queryByLabelText(/new/)).toBeNull();
   });
 
-  test("the rail offers Manage to leaders, Awards and Scout to elders, and neither to members", () => {
+  test("the rail offers Manage to leaders, Awards to members and Scout to elders", () => {
     const withPolicy = {
       set: true,
       version: 1,
@@ -180,13 +180,13 @@ describe("feedback", () => {
       "actions",
       "standing",
       "trophies",
+      "awards",
       "map",
       "recruit",
       "board",
       "history",
       "policy",
       "settings",
-      "awards",
       "scout",
       "you",
       "away",
@@ -199,9 +199,9 @@ describe("feedback", () => {
       "actions",
       "standing",
       "trophies",
+      "awards",
       "map",
       "recruit",
-      "awards",
       "scout",
       "you",
       "away",
@@ -214,6 +214,7 @@ describe("feedback", () => {
       "actions",
       "standing",
       "trophies",
+      "awards",
       "map",
       "recruit",
       "you",

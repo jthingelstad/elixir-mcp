@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-03; Clan Actions review, contracts unchanged"
 ---
 
 # Actions
@@ -40,12 +40,18 @@ own.
 ## When one appears
 
 Clan reads the clan every morning from 11:00 UTC, and again when someone
-opens Actions or Standing. A member has at most one open action of each
+opens Standing or chooses **Refresh suggestions** in Actions. Actions normally
+opens the saved evaluation with its as-of time, keeping decisions quick; its
+first reading or a changed policy also evaluates the record.
+A member has at most one open action of each
 kind. An action that stops being true is **withdrawn**, with the reason
 in its log: the member left, played again, or rejoined; a welcome waited
 a week past the join.
 
 - A **welcome** is raised for someone who joined in the last three days.
+  Its suggested words may use a recently recorded career fact or a proven
+  return to the clan. Missing or old evidence gets a simple welcome; a career
+  total is never described as a milestone just reached.
 - A **departure** is raised when someone leaves and no removal action
   explains it, because a leave and a kick look the same in the record:
   say which, so the clan's history knows.
@@ -56,6 +62,9 @@ a week past the join.
   when the leaders save a new version of the policy.
 
 ## Deciding one
+
+Actions shows one **Open** list by default. Choose **Closed** to see the most
+recent decisions from the last 30 days; older decisions remain in History.
 
 | Action | The choices |
 |---|---|
@@ -80,6 +89,14 @@ start, or what the clan set.
 Every action has a log: when it was raised and by which rule and policy
 version, every comment, the decision and the outcome. Anyone who can
 see it can comment, up to 1,000 characters.
+
+An award progress update has one numbered Action containing every message in
+order. Edit and copy a part, send it in the game, then choose **Mark message N
+sent**. Copying alone records no delivery. Each receipt keeps the actual words,
+sender and time; retries preserve it. **Complete update** becomes available
+after every part is marked sent. **Skip remaining messages** closes the update
+while keeping parts already sent. A failed Elixir recording can be retried by
+the original sender without sending the game message again.
 
 ## The words to send
 

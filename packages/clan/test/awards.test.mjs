@@ -226,7 +226,7 @@ test("awards: a leaders' pick is granted by hand with a note, shows in the seaso
   assert.ok(!after.body.grants.some((x) => x.award_id === "clan_honour"));
 });
 
-test("awards: an elder sees Manage ▸ Awards and grants only what elders may; a member is refused", async () => {
+test("awards: members read Awards while privileged management remains gated", async () => {
   const elderH = harness({
     players: [player({ player_tag: "#8QCV", name: "Amy", clan_role: "elder" })],
     part: partClan(),
@@ -258,7 +258,15 @@ test("awards: an elder sees Manage ▸ Awards and grants only what elders may; a
     part: partClan(),
   });
   const mc = await signedIn(memberH);
-  assert.equal((await api(memberH, mc, "GET", `${BASE}/manage`)).status, 403);
+  const memberView = await api(memberH, mc, "GET", BASE);
+  assert.equal(memberView.status, 200);
+  assert.equal(memberView.body.can_edit, false);
+  assert.deepEqual(memberView.body.can_grant, []);
+  assert.deepEqual(memberView.body.versions, []);
+  assert.equal(
+    (await api(memberH, mc, "POST", `${BASE}/config`, { values: {} })).status,
+    403,
+  );
 });
 
 test("awards: a leader renames, retunes, adds and switches off awards; every save is a version; bad values are refused in words", async () => {

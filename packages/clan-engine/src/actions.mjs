@@ -218,6 +218,43 @@ export function welcomesFrom(
     }));
 }
 
+/** One recorded detail, frozen with the welcome. Missing or stale profile
+ * evidence stays unknown; a current stint alone never proves a return. */
+export function welcomeContext(member, joinedAt, asOf, now) {
+  const returning = Boolean(
+    member?.rejoined_observed_at &&
+    member.rejoined_observed_at === joinedAt &&
+    member.first_observed_in_clan &&
+    Date.parse(member.first_observed_in_clan) < Date.parse(joinedAt),
+  );
+  if (returning) return { returning: true, source_as_of: asOf };
+  const profile = member?.lifetime;
+  const stamp = Date.parse(profile?.profile_observed_at);
+  if (
+    !Number.isFinite(stamp) ||
+    stamp > now.getTime() ||
+    now.getTime() - stamp > 7 * DAY_MS
+  )
+    return null;
+  const wins = profile.wins;
+  if (Number.isInteger(wins) && wins >= 1000)
+    return {
+      fact: `${(Math.floor(wins / 1000) * 1000).toLocaleString("en-US")}+ career wins.`,
+      source_as_of: profile.profile_observed_at,
+      kind: "career_wins",
+      value: wins,
+    };
+  const best = profile.best_trophies;
+  if (Number.isInteger(best) && best > 0)
+    return {
+      fact: `Recorded best: ${best.toLocaleString("en-US")} trophies.`,
+      source_as_of: profile.profile_observed_at,
+      kind: "best_trophies",
+      value: best,
+    };
+  return null;
+}
+
 /**
  * Members to ask "going to be away?": a member or elder whose own
  * inactivity clock is at risk or past it, judged ready, and not already on

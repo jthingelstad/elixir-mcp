@@ -247,6 +247,14 @@ export function ledgerOver(io) {
       const item = await io.get(`card#${clanTag}#${cardId}`);
       return item ? stripKeys(item) : null;
     },
+    async cardByNumber(clanTag, number) {
+      const item = io.cardByNumber
+        ? await io.cardByNumber(clanTag, number)
+        : (await io.listByPrefix(clanTag, "card#")).find(
+            (c) => c.number === number,
+          );
+      return item ? stripKeys(item) : null;
+    },
     /** The clan's next action number. */
     async nextActionNumber(clanTag) {
       return io.increment(`action_seq#${clanTag}`);
@@ -274,6 +282,16 @@ export function ledgerOver(io) {
     },
     async actionLogs(clanTag) {
       return (await io.listByPrefix(clanTag, "action_log#")).map(stripKeys);
+    },
+    async actionLogsFor(clanTag, cardIds) {
+      if (!cardIds.length) return [];
+      const prefixes = cardIds.map((id) => `action_log#${id}#`);
+      const rows = io.listByPrefixes
+        ? await io.listByPrefixes(clanTag, prefixes)
+        : (
+            await Promise.all(prefixes.map((p) => io.listByPrefix(clanTag, p)))
+          ).flat();
+      return rows.map(stripKeys);
     },
     async appendActionLog(clanTag, entry) {
       const entry_id = entry.entry_id ?? newId();
@@ -378,6 +396,20 @@ export function ledgerOver(io) {
     },
     async weeklyAwardPlans(clanTag) {
       return (await io.listByPrefix(clanTag, "award_week#")).map(stripKeys);
+    },
+    async currentAwardUpdate(clanTag, requestId) {
+      const item = await io.get(`award_update#${clanTag}#${requestId}`);
+      return item ? stripKeys(item) : null;
+    },
+    async saveCurrentAwardUpdate(clanTag, plan) {
+      return stripKeys(
+        await io.putIfAbsent({
+          pk: `award_update#${clanTag}#${plan.request_id}`,
+          gsi1pk: clanKey(clanTag),
+          gsi1sk: `award_update#${plan.request_id}`,
+          ...plan,
+        }),
+      );
     },
     async saveWeeklyAwardPlan(clanTag, plan) {
       return stripKeys(

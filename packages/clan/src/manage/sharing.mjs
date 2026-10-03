@@ -82,11 +82,21 @@ function sentMessage(card, sent) {
 export function factsOfAction(
   card,
   decided,
-  { sent = null, grants = [] } = {},
+  { sent = null, grants = [], message_part = null } = {},
 ) {
   const ref = `action:${card.card_id}`;
   const facts = [];
   const at = decided.decided_at;
+  if (card.evidence?.messages) {
+    return (decided.messages_sent ?? [])
+      .filter((r) => r.part === message_part)
+      .map((r) => ({
+        type: "clan_message",
+        ref: `${ref}:message:${r.part}`,
+        occurred_at: r.sent_at,
+        detail: { channel: "leader_message", title: r.title, body: r.body },
+      }));
+  }
   if (card.type === "departure") {
     const c = decided.outcome?.classification;
     if (c === "member_kicked" || c === "member_left")
@@ -227,7 +237,7 @@ export function createSharing({ ledger, mcp, logAction }) {
       who,
       card,
       decided,
-      { sent = null } = {},
+      { sent = null, message_part = null } = {},
     ) {
       const grants =
         card.type === "awards_announcement" ? await ledger.grants(clanTag) : [];
@@ -235,7 +245,7 @@ export function createSharing({ ledger, mcp, logAction }) {
         clanTag,
         token,
         who,
-        factsOfAction(card, decided, { sent, grants }),
+        factsOfAction(card, decided, { sent, grants, message_part }),
         { cardId: card.card_id },
       );
     },

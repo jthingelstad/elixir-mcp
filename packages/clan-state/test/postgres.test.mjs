@@ -308,3 +308,30 @@ test("shared ledger preserves version history, literal prefix matching, and excl
     ),
   );
 });
+
+test("bounded action logs and numbered cards cannot cross clans or card prefixes", async () => {
+  const ledger = createPostgresLedger(db);
+  for (const clan of ["#P0LYQ", "#OTHER"])
+    for (const cardId of ["one", "one-extra", "two"]) {
+      await ledger.putCard(clan, {
+        card_id: cardId,
+        number: cardId === "one" ? 1 : 2,
+        raised_at: "2026-10-01T00:00:00Z",
+      });
+      await ledger.appendActionLog(clan, {
+        card_id: cardId,
+        kind: "comment",
+        text: `${clan}:${cardId}`,
+        at: "2026-10-01T00:00:00Z",
+      });
+    }
+  const logs = await ledger.actionLogsFor("#P0LYQ", ["one", "two"]);
+  assert.equal(logs.length, 2);
+  assert.deepEqual(logs.map((r) => r.text).sort(), [
+    "#P0LYQ:one",
+    "#P0LYQ:two",
+  ]);
+  assert.deepEqual(await ledger.actionLogsFor("#P0LYQ", []), []);
+  assert.equal((await ledger.cardByNumber("#P0LYQ", 1)).card_id, "one");
+  assert.equal(await ledger.cardByNumber("#MISSING", 1), null);
+});

@@ -625,6 +625,22 @@ export function createHandler({
         return json(200, view);
       }
       const decide = /^\/actions\/([A-Za-z0-9_-]+)\/decide$/.exec(rest);
+      const sentMessage =
+        /^\/actions\/([A-Za-z0-9_-]+)\/messages\/([0-9]{1,3})\/sent$/.exec(
+          rest,
+        );
+      if (method === "POST" && sentMessage)
+        return json(
+          200,
+          await manage.messageSent(
+            tag,
+            who,
+            sentMessage[1],
+            Number(sentMessage[2]),
+            body,
+            token,
+          ),
+        );
       if (method === "POST" && decide)
         return json(200, await manage.decide(tag, who, decide[1], body, token));
       // What the clan records in Elixir (door 3): read-only, always on.
@@ -661,7 +677,12 @@ export function createHandler({
       if (method === "GET" && rest === "/standing")
         return json(200, await manage.standing(tag, who, token));
       if (awards) {
-        if (method === "GET" && rest === "/awards/manage")
+        if (method === "POST" && rest === "/awards/update")
+          return json(
+            200,
+            await awards.currentUpdate(tag, who, token, body.request_id),
+          );
+        if (method === "GET" && ["/awards", "/awards/manage"].includes(rest))
           return json(
             200,
             await awards.manageView(tag, who, token, {
@@ -826,6 +847,7 @@ export function routeKey(method, path) {
   const generic = path
     .replace(/^\/api\/clans\/[0-9A-Za-z]+/, "/api/clans/*")
     .replace(/\/(actions|notes|holds|members)\/[^/]+/g, "/$1/*")
+    .replace(/\/messages\/[0-9]+\/sent$/, "/messages/*/sent")
     .replace(/\/awards\/grants\/.+$/, "/awards/grants/*")
     .replace(/^(\/api\/(?:maintain\/)?feedback)\/[^/]+$/, "$1/*");
   return `${method} ${generic}`;

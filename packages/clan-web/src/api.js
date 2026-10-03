@@ -50,6 +50,8 @@ export const manageApi = {
   action: (tag, number) => get(`${clanBase(tag)}/actions/${number}`),
   decideAction: (tag, id, body) =>
     post(`${clanBase(tag)}/actions/${id}/decide`, body),
+  messageSent: (tag, id, part, body) =>
+    post(`${clanBase(tag)}/actions/${id}/messages/${part}/sent`, body),
   // A Leader Message in the clan's voice, by the clan's own model.
   draftLeaderMessage: (tag, id, note) =>
     post(`${clanBase(tag)}/actions/${id}/draft`, { note }),
@@ -103,7 +105,9 @@ export const manageApi = {
   // Awards (2026-09-12): the leader view, the document, grants by hand,
   // and a member's trophy case.
   awards: (tag, refresh = false) =>
-    get(`${clanBase(tag)}/awards/manage${refresh ? "?refresh=1" : ""}`),
+    get(`${clanBase(tag)}/awards${refresh ? "?refresh=1" : ""}`),
+  awardsUpdate: (tag, request_id) =>
+    post(`${clanBase(tag)}/awards/update`, { request_id }),
   saveAwards: (tag, values, note) =>
     post(`${clanBase(tag)}/awards/config`, { values, note }),
   grantAward: (tag, body) => post(`${clanBase(tag)}/awards/grants`, body),

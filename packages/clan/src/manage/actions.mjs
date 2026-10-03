@@ -119,7 +119,10 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
         channel,
         copy:
           c.type === "welcome"
-            ? inGameCopy("welcome", { name: c.player_name })
+            ? inGameCopy("welcome", {
+                name: c.player_name,
+                welcome: c.evidence?.welcome,
+              })
             : inGameCopy(c.type, {
                 name: c.player_name,
                 days_idle: c.evidence?.days_idle ?? null,
@@ -137,6 +140,7 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
             name: c.player_name,
             phrase: c.evidence?.phrase ?? "",
           }),
+        messages: c.evidence?.messages ?? null,
       };
     return { channel: null, copy: null, message: null };
   }
@@ -154,9 +158,15 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
     log: logOf(c, stored),
   });
 
-  const logsByCard = async (clanTag) => {
+  const logsByCard = async (clanTag, cards = null) => {
     const byCard = new Map();
-    for (const e of await ledger.actionLogs(clanTag)) {
+    const entries = cards
+      ? await ledger.actionLogsFor(
+          clanTag,
+          cards.map((c) => c.card_id),
+        )
+      : await ledger.actionLogs(clanTag);
+    for (const e of entries) {
       const list = byCard.get(e.card_id) ?? [];
       list.push(e);
       byCard.set(e.card_id, list);

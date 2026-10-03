@@ -1,32 +1,27 @@
 import { Fresh, ago } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { useAwards } from "../lib/queries.js";
 import { TooFew } from "../components/TooFew.jsx";
+import { PageHead } from "../components/PageHead.jsx";
 import { trackEvent } from "../analytics.js";
-import { CLAN } from "../lib/base.js";
+import { CLAN, clanPath } from "../lib/base.js";
 
 /**
- * Manage ▸ Awards: the open season's races (provisional, tie-aware), each
+ * Clan ▸ Awards: the open season's races (provisional, tie-aware), each
  * closed season's grants, a leaders' pick granted by hand with the
  * podium in view, and the clan's awards document: every award with its
- * kind, name, parameters and help text, versioned like policy. Elders
- * read all of it and grant what elders may; leaders edit.
+ * kind, name, parameters and help text, versioned like policy. Members read;
+ * elders grant what elders may; leaders edit.
  */
-export function Awards({ clan }) {
+export function Awards({ clan, navigate }) {
   const [editing, setEditing] = useState(false);
+  const [selection, setSelection] = useState(null);
   const { state, load, query } = useAwards(clan.clan_tag);
-
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
-  if (state.forbidden)
-    return (
-      <div className="callout callout--warn" role="alert">
-        <span>Awards are for the leaders and elders.</span>
-      </div>
-    );
   if (state.error === "too_few_members") {
     const d = query.data?.data ?? {};
     return <TooFew members={d.members} min={d.min_members} />;
@@ -44,11 +39,16 @@ export function Awards({ clan }) {
   if (!state.data)
     return <p className="page__lede">Reading the record and the seasons…</p>;
   const d = state.data;
-  const open = d.seasons.find((s) => !s.closed) ?? null;
-  const closed = d.seasons.filter((s) => s.closed);
+  const seasonIds = [
+    ...new Set([
+      ...d.seasons.map((s) => s.season_id),
+      ...d.grants.map((g) => g.season_id),
+    ]),
+  ].sort((a, b) => b - a);
+  const selected = selection ?? d.seasons[0]?.season_id ?? seasonIds[0];
+  const season = d.seasons.find((s) => s.season_id === selected);
   const awardById = new Map(d.config.awards.map((a) => [a.id, a]));
-
-  if (editing)
+  if (editing && d.can_edit)
     return (
       <AwardsConfig
         clan={clan}
@@ -59,10 +59,16 @@ export function Awards({ clan }) {
         }}
       />
     );
-
   return (
-    <div style={{ display: "grid", gap: "22px" }}>
-      <p className="page-head__note" style={{ margin: 0 }}>
+    <div className="grid gap-5">
+      <PageHead
+        clan={clan}
+        crumb="Awards"
+        title="Awards"
+        lede="The season’s races and the clan’s recorded awards."
+        navigate={navigate}
+      />
+      <p className="page-head__note m-0">
         {d.config_version === 0
           ? "This clan runs no awards yet. A leader adds the ones it runs."
           : `Awards v${d.config_version}.`}{" "}
@@ -72,8 +78,8 @@ export function Awards({ clan }) {
             {" "}
             · <Fresh label="as of" seconds={d.freshness_seconds} ts={d.as_of} />
           </>
-        ) : null}
-        {" · "}
+        ) : null}{" "}
+        ·{" "}
         <button
           type="button"
           className="btn--text"
@@ -84,7 +90,8 @@ export function Awards({ clan }) {
         </button>
         {d.can_edit ? (
           <>
-            {" · "}
+            {" "}
+            ·{" "}
             <button
               type="button"
               className="btn--text"
@@ -95,67 +102,76 @@ export function Awards({ clan }) {
           </>
         ) : null}
       </p>
-
-      {open ? (
-        <section>
-          <div className="label" style={{ marginBottom: "8px" }}>
-            Season {open.season_id} · in progress · {open.weeks} war week
-            {open.weeks === 1 ? "" : "s"} so far
-          </div>
-          <p className="page__lede" style={{ margin: "0 0 10px" }}>
-            Provisional: the season is still being fought. Nothing is granted
-            until it closes.
-          </p>
-          <div style={{ display: "grid", gap: "12px" }}>
-            {open.awards.map((a) => (
-              <AwardPanel key={a.award_id} award={a} season={open} />
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-3">
+          <span className="field-label">Season</span>
+          <select
+            className="input w-auto"
+            value={selected ?? ""}
+            onChange={(e) => setSelection(Number(e.target.value))}
+          >
+            {seasonIds.map((id) => (
+              <option key={id} value={id}>
+                Season {id}
+                {d.seasons.find((s) => s.season_id === id)?.closed === false
+                  ? " · in progress"
+                  : " · closed"}
+              </option>
             ))}
+          </select>
+        </label>
+        {d.can_send && d.seasons[0]?.closed === false ? (
+          <CurrentUpdate clan={clan} navigate={navigate} />
+        ) : null}
+      </div>
+      {season ? (
+        <section key={selected} className="grid gap-3">
+          <div className="label">
+            Season {season.season_id} ·{" "}
+            {season.closed
+              ? `closed ${season.closed_at?.slice(0, 10) ?? ""}`
+              : "in progress"}{" "}
+            · {season.weeks} war week{season.weeks === 1 ? "" : "s"}
           </div>
+          {!season.closed ? (
+            <p className="page__lede m-0">
+              Provisional: the season is still being fought. Nothing is granted
+              until it closes.
+            </p>
+          ) : null}
+          {season.awards.map((a) => (
+            <AwardPanel
+              key={`${selected}-${a.award_id}`}
+              award={a}
+              season={season}
+              grants={d.grants.filter(
+                (g) => g.season_id === selected && g.award_id === a.award_id,
+              )}
+              canGrant={
+                season.closed &&
+                season.complete &&
+                d.can_grant.includes(a.award_id)
+              }
+              canRevoke={d.can_edit}
+              clan={clan}
+              candidates={d.members}
+              previousGrants={d.grants.filter(
+                (g) =>
+                  g.award_id === a.award_id && g.season_id === selected - 1,
+              )}
+              onChange={() => load()}
+            />
+          ))}
         </section>
-      ) : null}
-
-      {closed.map((s) => (
-        <section key={s.season_id}>
-          <div className="label" style={{ marginBottom: "8px" }}>
-            Season {s.season_id} · closed {s.closed_at?.slice(0, 10)} ·{" "}
-            {s.weeks} war weeks
-          </div>
-          <div style={{ display: "grid", gap: "12px" }}>
-            {s.awards.map((a) => (
-              <AwardPanel
-                key={a.award_id}
-                award={a}
-                season={s}
-                grants={d.grants.filter(
-                  (g) =>
-                    g.season_id === s.season_id && g.award_id === a.award_id,
-                )}
-                canGrant={s.complete && d.can_grant.includes(a.award_id)}
-                canRevoke={d.can_edit}
-                clan={clan}
-                candidates={d.members}
-                previousGrants={d.grants.filter(
-                  (g) =>
-                    g.award_id === a.award_id &&
-                    g.season_id === s.season_id - 1,
-                )}
-                onChange={() => load()}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
-
-      <OlderGrants
-        grants={d.grants.filter(
-          (g) => !d.seasons.some((s) => s.season_id === g.season_id),
-        )}
-        awardById={awardById}
-      />
-
+      ) : (
+        <OlderGrants
+          grants={d.grants.filter((g) => g.season_id === selected)}
+          awardById={awardById}
+        />
+      )}
       <section className="panel">
         <div className="panel__head">How awards work here</div>
-        <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
+        <div className="panel__body grid gap-2">
           {d.config.awards.map((a) => (
             <div key={a.id}>
               <strong>{a.name}</strong>
@@ -166,14 +182,78 @@ export function Awards({ clan }) {
               </div>
             </div>
           ))}
-          <p className="page__lede" style={{ margin: "6px 0 0" }}>
-            Grants are written the first time the record is read after a season
-            closes; a manual award is a leader&rsquo;s and says so. Members see
-            them here and in Trophies; nothing is published outside the
-            signed-in app.
+          <p className="page__lede m-0">
+            Grants are recorded after a season closes; a manual award records
+            who chose it and why. Members can read the races and saved grants
+            here and in Trophies; nothing is published outside the signed-in
+            app.
           </p>
         </div>
       </section>
+    </div>
+  );
+}
+
+function CurrentUpdate({ clan, navigate }) {
+  const request = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  return (
+    <div className="grid gap-2">
+      <button
+        className="btn"
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          if (busy) return;
+          request.current ??= crypto.randomUUID();
+          setBusy(true);
+          setError("");
+          try {
+            const r = await manageApi.awardsUpdate(
+              clan.clan_tag,
+              request.current,
+            );
+            if (!r.ok) {
+              setError(
+                "The update was not confirmed. Retry to recover this same Action.",
+              );
+              return;
+            }
+            setResult(r.data);
+            request.current = null;
+          } catch {
+            setError(
+              "The update was not confirmed. Retry to recover this same Action.",
+            );
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? "Preparing update…" : "Send current update to clan"}
+      </button>
+      {error ? (
+        <p className="field-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {result ? (
+        <a
+          href={`${clanPath(clan.clan_tag)}/actions/${result.action.number}`}
+          onClick={(e) => {
+            if (navigate) {
+              e.preventDefault();
+              navigate(e.currentTarget.getAttribute("href"));
+            }
+          }}
+        >
+          Review Action #{result.action.number} ·{" "}
+          {result.action.evidence.messages.length} message
+          {result.action.evidence.messages.length === 1 ? "" : "s"}
+        </a>
+      ) : null}
     </div>
   );
 }
@@ -208,10 +288,19 @@ function AwardPanel({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const rows =
+  const sourceRows =
     season.closed && award.state === "closed"
       ? grants.map((g) => ({ ...g, name: g.player_name }))
       : (award.rows ?? []);
+  const rows =
+    award.kind === "perfect_attendance"
+      ? [...sourceRows].sort(
+          (a, b) =>
+            (Number.isFinite(b.donations) ? b.donations : -1) -
+              (Number.isFinite(a.donations) ? a.donations : -1) ||
+            a.player_tag.localeCompare(b.player_tag),
+        )
+      : sourceRows;
   return (
     <div className="panel">
       <div className="panel__head" style={{ gap: "8px", flexWrap: "wrap" }}>
@@ -220,7 +309,9 @@ function AwardPanel({
         </span>
         <span className="chip">{STATE_LABEL[award.state] ?? award.state}</span>
         {award.kind === "perfect_attendance" && award.state !== "off" ? (
-          <span className="page-head__note">pass/fail, not a ranking</span>
+          <span className="page-head__note">
+            pass/fail · displayed by donations
+          </span>
         ) : null}
       </div>
       <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
@@ -457,17 +548,24 @@ function AwardPanel({
                       <td>
                         <strong>{r.name ?? r.player_tag}</strong>{" "}
                         <span className="tag">{r.player_tag}</span>
-                        {(season.closed ? grant : r.on_podium) ? (
+                        {season.closed && grant ? (
                           <span
                             className="chip chip--ok"
                             style={{ marginLeft: "6px" }}
                           >
-                            {season.closed ? "granted" : "on the podium"}
+                            granted
                           </span>
                         ) : null}
                       </td>
                       <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                        {metric(award, r)}
+                        <span>{metric(award, r)}</span>
+                        {award.kind === "perfect_attendance" ? (
+                          <span className="block page-head__note">
+                            {Number.isFinite(r.donations)
+                              ? `${r.donations.toLocaleString()} donated`
+                              : "Donations unknown"}
+                          </span>
+                        ) : null}
                       </td>
                     </tr>
                   );
