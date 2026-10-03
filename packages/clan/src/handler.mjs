@@ -624,6 +624,9 @@ export function createHandler({
           view.model = await model.summary(tag);
         return json(200, view);
       }
+      const reopen = /^\/actions\/([A-Za-z0-9_-]+)\/reopen$/.exec(rest);
+      if (method === "POST" && reopen)
+        return json(200, await manage.reopen(tag, who, reopen[1], body));
       const decide = /^\/actions\/([A-Za-z0-9_-]+)\/decide$/.exec(rest);
       const sentMessage =
         /^\/actions\/([A-Za-z0-9_-]+)\/messages\/([0-9]{1,3})\/sent$/.exec(

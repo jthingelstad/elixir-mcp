@@ -1343,6 +1343,83 @@ export function createManageService({
       return next;
     },
 
+    /** Return a declined action to Open; the same request never transitions twice. */
+    async reopen(
+      clanTag,
+      who,
+      cardId,
+      { request_id, expected_decided_at } = {},
+    ) {
+      if (who.verified === false) throw new ManageError(403, "unverified");
+      if (!LEADERS.has(who.role)) throw new ManageError(403, "leaders_only");
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          request_id ?? "",
+        ) ||
+        !(
+          expected_decided_at === null ||
+          typeof expected_decided_at === "string"
+        )
+      )
+        throw new ManageError(400, "bad_reopen_request");
+      await requirePolicy(clanTag);
+      let card = await ledger.card(clanTag, cardId);
+      if (!card || !canAct(card, who)) throw new ManageError(404, "no_action");
+      let reopening = card.reopenings?.find((r) => r.request_id === request_id);
+      if (reopening && reopening.by.tag !== who.player_tag)
+        throw new ManageError(409, "reopen_request_reused");
+      if (!reopening) {
+        if (card.status !== "declined")
+          throw new ManageError(409, "action_not_declined");
+        if ((card.decided_at ?? null) !== expected_decided_at)
+          throw new ManageError(409, "action_changed");
+        if (
+          card.evidence?.messages?.length &&
+          card.evidence.messages.every((m) =>
+            card.messages_sent?.some((r) => r.part === m.part),
+          )
+        )
+          throw new ManageError(409, "action_already_delivered");
+        reopening = {
+          request_id,
+          at: new Date(now()).toISOString(),
+          by: person(who),
+          decline: {
+            decided_at: card.decided_at ?? null,
+            decided_by: card.decided_by ?? null,
+            decided_by_name: card.decided_by_name ?? null,
+            decline_reason: card.decline_reason ?? null,
+            decision_note: card.decision_note ?? null,
+          },
+        };
+        const changed = await ledger.updateCardIf(clanTag, card, {
+          status: "proposed",
+          decided_at: null,
+          decided_by: null,
+          decided_by_name: null,
+          decline_reason: null,
+          decision_note: null,
+          reopenings: [...(card.reopenings ?? []), reopening],
+        });
+        if (!changed) {
+          card = await ledger.card(clanTag, cardId);
+          reopening = card?.reopenings?.find(
+            (r) => r.request_id === request_id && r.by.tag === who.player_tag,
+          );
+          if (!reopening) throw new ManageError(409, "action_changed");
+        } else card = changed;
+      }
+      // The card holds the original decline and transition even if log delivery fails.
+      await logAction(clanTag, cardId, "reopened", {
+        entry_id: `reopen_${request_id}`,
+        at: reopening.at,
+        by: reopening.by,
+        text: "Returned to Open by leadership.",
+        detail: { request_id, decline: reopening.decline },
+      });
+      return card;
+    },
+
     async decide(
       clanTag,
       who,

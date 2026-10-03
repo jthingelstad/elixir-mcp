@@ -50,6 +50,8 @@ export const manageApi = {
   action: (tag, number) => get(`${clanBase(tag)}/actions/${number}`),
   decideAction: (tag, id, body) =>
     post(`${clanBase(tag)}/actions/${id}/decide`, body),
+  reopenAction: (tag, id, body) =>
+    post(`${clanBase(tag)}/actions/${id}/reopen`, body),
   messageSent: (tag, id, part, body) =>
     post(`${clanBase(tag)}/actions/${id}/messages/${part}/sent`, body),
   // A Leader Message in the clan's voice, by the clan's own model.

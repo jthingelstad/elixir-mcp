@@ -3991,3 +3991,32 @@ boundary. No production decisions, grants, paid model calls or access
 policy changes are part of this fix. Runtime verification and natural
 post-release timings are recorded after deployment; a passing local test
 alone is not a claim about live page speed.
+
+## 2026-10-03 — Reopen declined Actions and write compact game updates
+
+Jamie explicitly requested reopening declined Actions from Closed/History,
+then showed the actual Clan Leader Message composed for a current update.
+The screenshot was materialized through the current Library helper and
+visually inspected locally before changing copy. Its separate season title,
+short inline podiums, formatted numbers and attendance count are the reference;
+it does not prove a new game limit or authorize altering a delivery receipt.
+Private names, scores and screenshot bytes stay outside this public repository.
+
+Verified leaders and co-leaders can explicitly reopen a declined Action they
+can already see. The same identity, number, frozen evidence and partial sent
+receipts stay; original decline fields are archived with each reopening.
+An exact-body conditional update and caller-owned request identity protect
+stale snapshots, competing clicks and lost-response retries. Durable card
+history keeps the audit visible if its append fails, and the same request
+repairs one immutable log entry. Completed, withdrawn and fully delivered
+Actions cannot reopen. No production Action was reopened for acceptance.
+
+New current/weekly copies group award names, format numbers and keep short
+provisional wording. App-only as-of/coverage metadata does not go into the
+outgoing text; no unobserved countdown is invented. Long names clip visibly
+without player IDs, ties keep every recipient across ordered game-sized parts,
+and manual choices wait for their actual announcement. Existing frozen plans,
+Action44 and saved sent words are unchanged. Reopening Action33 would keep
+its historical evidence rather than silently enriching an archived welcome.
+No migration, permission expansion, paid draft or manufactured delivery.
+Focused tests, browser checks, independent review and full gate are owed.

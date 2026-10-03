@@ -320,3 +320,24 @@ test("a receipt saved before its audit fails is recovered with the original word
     true,
   );
 });
+
+test("new current game copy keeps freshness in the app, formats scores and avoids metadata walls", () => {
+  const h = harness();
+  const update = currentAwardUpdate({
+    participation: h.record,
+    config: EXAMPLE_AWARDS,
+    now: NOW,
+  });
+  assert.equal(update.as_of, h.record.meta.as_of);
+  const text = update.parts.map((p) => p.message.body).join(" ");
+  assert.doesNotMatch(
+    text,
+    /UTC|\d{2}-\d{2} \d{2}:\d{2}|human choice|evidence|#[A-Z0-9]+|points\.|cards\./,
+  );
+  assert.match(text, /So far:/);
+  assert.ok(
+    update.parts.every(
+      (p) => p.message.title.length <= 24 && p.message.body.length <= 180,
+    ),
+  );
+});
