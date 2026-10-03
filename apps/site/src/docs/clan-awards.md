@@ -7,7 +7,7 @@ order: 5
 navTitle: "Awards"
 icon: award
 lede: "A clan names its own awards, and Clan decides them from the record when each war season closes. Every member has a trophy case; leaders announce the winners in the game."
-reviewed: "2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-03; private Clan awards repair, contracts unchanged"
 ---
 
 # Awards and trophies
@@ -38,11 +38,21 @@ different names.
 
 Awards follow Clan Wars seasons as the record saw them. A season is
 judged once it has **closed** (every week finished, its Colosseum week
-last or the next season begun) and Clan holds it **whole** (its first
-week is in the record). The first reading after that writes the
+last or the next season begun) and Clan holds it **whole** (unique sections
+from zero through an observed final Colosseum week, with no gaps). The first reading after that writes the
 season's winners: the morning run, or anyone opening Trophies or the
 awards page. A season still being fought shows on the awards page as
-provisional, with nothing granted.
+provisional, with nothing granted. Missing evidence holds the affected award,
+not every award in the season: points need the possible contenders' counters,
+donations break consequential point ties, rookies need first-season history,
+and attendance waits for every still-possible recipient. Recorded absence
+requires roster reads around the whole week and no overlapping membership;
+a current rejoin or absence at the finish alone does not prove it.
+
+The complete computed decision is saved before any recipient is written. An
+interrupted batch resumes its original winners; a completed decision, including
+one with no winners, is final. Closed views and shared standings use saved grants,
+so later capture or configuration changes do not rewrite the podium.
 
 ## Who does what
 
@@ -50,7 +60,11 @@ provisional, with nothing granted.
 - Elders and up see the awards page, with the season in progress.
 - A **Leaders' pick** is granted by the leader and co-leaders, or by
   elders too when the award allows it, with a note of up to 500
-  characters. The leader and co-leaders can take a pick back; an award
+  characters, after the season is recorded as closed and complete. The picker
+  shows the saved description, previous holder if recorded, and the member and
+  season you are confirming. If an award your choice depends on is held, wait
+  for its evidence. A missing historical receipt does not prove no previous holder.
+  The leader and co-leaders can take a pick back; an award
   Clan decided is the record's and stays.
 
 ## Where members see them
@@ -64,10 +78,15 @@ decided seasons, never a live race.
 **In the game.** When the clan turns on **Announce each season's
 awards**, the leaders get an [action](/docs/clan-actions) with a Clan
 Leader Message naming the winners, to send in the game themselves.
-Nothing is posted automatically.
+Long lists are split into numbered, game-sized messages that name every recipient;
+send every part. Later manual choices update pending copy or create new copy if
+the earlier message was sent. Taking back a manual choice removes it from pending
+copy. Completed messages keep their history. Model drafting restores the complete
+recipient list locally and uses only the remaining room for prose. Nothing is
+posted automatically.
 
 **On Elixir.** When that announcement is marked sent, each winner is
-shared with Elixir as a fact the leader attested, for everyone verified
+named in that particular message is shared with Elixir as a fact the leader attested, for everyone verified
 in the clan. Each morning Clan also shares where the award races stand,
 and the last closed season's final places, for everyone verified in the
 clan and the clan's agent; a place is written only when it changes.

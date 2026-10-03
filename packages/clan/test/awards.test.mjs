@@ -15,6 +15,7 @@ import {
 } from "@elixir-mcp/clan/manage/service.mjs";
 import { createAwardsService } from "@elixir-mcp/clan/manage/awards.mjs";
 import { createScout } from "@elixir-mcp/clan/manage/scout.mjs";
+import { factsOfAction } from "@elixir-mcp/clan/manage/sharing.mjs";
 import {
   fakeMcp,
   player,
@@ -481,4 +482,387 @@ test("awards: the morning run shares the running season's standings with Elixir 
   const second = await svc.evaluateOnSchedule("#2PQRJ8LV", "svt_clan_key");
   assert.equal(second.standings_written, 0);
   assert.equal(second.standings_removed, 0);
+});
+
+test("awards: an interrupted batch resumes its frozen winners after capture changes", async () => {
+  const part = structuredClone(partClan());
+  const h = harness({ part });
+  const cookies = await signedIn(h);
+  const put = h.ledger.putGrant.bind(h.ledger);
+  let calls = 0;
+  h.ledger.putGrant = async (...args) => {
+    if (++calls === 2) throw new Error("interrupted");
+    return put(...args);
+  };
+  assert.equal((await api(h, cookies, "GET", `${BASE}/manage`)).status, 500);
+  assert.equal((await h.ledger.grants("#2PQRJ8LV")).length, 1);
+  const original = (await h.ledger.grants("#2PQRJ8LV"))[0];
+  part.members[0].war_points.fill(0);
+  part.members[1].war_points.fill(9999);
+  h.clock.t += 10 * 60_000;
+  h.ledger.putGrant = put;
+  const recovered = await api(h, cookies, "GET", `${BASE}/manage?refresh=1`);
+  assert.equal(recovered.status, 200, JSON.stringify(recovered.body));
+  const champ = recovered.body.grants.filter(
+    (g) => g.award_id === "season_champ",
+  );
+  assert.deepEqual(
+    champ.map((g) => [g.player_name, g.rank, g.metric_value]),
+    [
+      ["Ada", 1, 16000],
+      ["Ben", 2, 15200],
+      ["Amy", 3, 2800],
+    ],
+  );
+  assert.equal(champ[0].granted_at, original.granted_at);
+  assert.ok(
+    (await h.ledger.awardPlans("#2PQRJ8LV")).every((p) => p.completed_at),
+  );
+  const again = await api(h, cookies, "GET", `${BASE}/manage?refresh=1`);
+  assert.deepEqual(again.body.grants, recovered.body.grants);
+});
+
+test("awards: manual choices require a closed complete season, roster member and reason; retries preserve author", async () => {
+  const h = harness({ part: partClan() });
+  const cookies = await signedIn(h);
+  await api(h, cookies, "GET", `${BASE}/manage`);
+  const body = {
+    award_id: "clan_honour",
+    player_tag: "UQ8LP2R9C",
+    season_id: 135,
+    note: "rotation",
+  };
+  for (const id of [136, 137]) {
+    const r = await api(h, cookies, "POST", `${BASE}/grants`, {
+      ...body,
+      season_id: id,
+    });
+    assert.equal(r.status, 409);
+    assert.equal(r.body.error, "season_not_closed");
+  }
+  assert.equal(
+    (await api(h, cookies, "POST", `${BASE}/grants`, { ...body, note: " " }))
+      .status,
+    400,
+  );
+  assert.equal(
+    (
+      await api(h, cookies, "POST", `${BASE}/grants`, {
+        ...body,
+        player_tag: "P0LYQ",
+      })
+    ).body.error,
+    "not_in_roster",
+  );
+  const first = await api(h, cookies, "POST", `${BASE}/grants`, {
+    ...body,
+    player_name: "invented",
+  });
+  assert.equal(first.body.player_name, "Ben");
+  h.clock.t += 60_000;
+  const retry = await api(h, cookies, "POST", `${BASE}/grants`, body);
+  assert.deepEqual(retry.body, first.body);
+  assert.equal(
+    (
+      await api(h, cookies, "POST", `${BASE}/grants`, {
+        ...body,
+        note: "changed",
+      })
+    ).body.error,
+    "grant_exists",
+  );
+});
+
+test("awards: all winners have complete bounded announcement copy; later manual picks replace pending copy", async () => {
+  const part = structuredClone(partClan());
+  part.members.forEach((m, i) => {
+    m.war_decks.fill(16);
+    m.name = `Fixture member ${i}`;
+  });
+  const h = harness({
+    part,
+    policy: { ...EXAMPLE_POLICY, announce_awards_enabled: true },
+  });
+  const cookies = await signedIn(h);
+  await api(h, cookies, "GET", `${BASE}/manage`);
+  const cards = () => h.ledger.cards("#2PQRJ8LV");
+  const pending = async () =>
+    (await cards()).filter(
+      (c) => c.type === "awards_announcement" && c.status === "proposed",
+    );
+  const verify = async () => {
+    const all = await h.ledger.grants("#2PQRJ8LV");
+    const current = await pending();
+    assert.ok(current.length > 1);
+    assert.ok(
+      current.every(
+        (c) =>
+          c.evidence.message.body.length <= 180 &&
+          c.evidence.message.title.length <= 24,
+      ),
+    );
+    assert.ok(current.every((c) => !c.evidence.message.body.includes("and ")));
+    const refs = current.flatMap((c) => c.evidence.grant_refs);
+    assert.equal(new Set(refs).size, all.length);
+    for (const g of all)
+      assert.ok(refs.includes(`${g.season_id}:${g.award_id}:${g.player_tag}`));
+    for (const card of current) {
+      const facts = factsOfAction(
+        card,
+        { status: "done", decided_at: new Date(h.clock.t).toISOString() },
+        { grants: all },
+      );
+      assert.deepEqual(
+        facts
+          .filter((f) => f.type === "award_granted")
+          .map((f) => f.ref)
+          .sort(),
+        card.evidence.grant_refs.map((ref) => `award:${ref}`).sort(),
+      );
+    }
+    return current;
+  };
+  await verify();
+  const pick = await api(h, cookies, "POST", `${BASE}/grants`, {
+    award_id: "clan_honour",
+    player_tag: "UQ8LP2R9C",
+    season_id: 135,
+    note: "human choice",
+  });
+  assert.equal(pick.status, 200);
+  const withPick = await verify();
+  assert.ok(
+    withPick.some((c) =>
+      c.evidence.message.body.includes("Clan Honour: Fixture member 1"),
+    ),
+  );
+  assert.ok((await cards()).some((c) => c.status === "withdrawn"));
+  await api(h, cookies, "DELETE", `${BASE}/grants/135/clan_honour/UQ8LP2R9C`);
+  const removed = await verify();
+  assert.ok(
+    !removed.some((c) => c.evidence.message.body.includes("Clan Honour")),
+  );
+});
+
+test("awards: no-winner decisions stay frozen when later capture changes", async () => {
+  const part = structuredClone(partClan());
+  part.members.forEach((m) => m.war_points.fill(0));
+  const h = harness({ part });
+  const cookies = await signedIn(h);
+  await api(h, cookies, "GET", `${BASE}/manage`);
+  const plan = (await h.ledger.awardPlans("#2PQRJ8LV")).find(
+    (p) => p.award_id === "season_champ",
+  );
+  assert.ok(plan.completed_at);
+  assert.deepEqual(plan.grants, []);
+  part.members[0].war_points.fill(9999);
+  const refreshed = await api(h, cookies, "GET", `${BASE}/manage?refresh=1`);
+  assert.equal(refreshed.status, 200);
+  assert.equal(
+    refreshed.body.grants.filter((g) => g.award_id === "season_champ").length,
+    0,
+  );
+  assert.equal(
+    refreshed.body.seasons
+      .find((s) => s.season_id === 135)
+      .awards.find((a) => a.award_id === "season_champ").rows.length,
+    0,
+  );
+});
+
+test("awards: pending parts are renumbered after one was sent and a manual receipt changes", async () => {
+  const part = structuredClone(partClan());
+  part.members.forEach((m, i) => {
+    m.war_decks.fill(16);
+    m.name = `Fixture member ${i}`;
+  });
+  const h = harness({
+    part,
+    policy: { ...EXAMPLE_POLICY, announce_awards_enabled: true },
+  });
+  const cookies = await signedIn(h);
+  await api(h, cookies, "GET", `${BASE}/manage`);
+  const cards = () => h.ledger.cards("#2PQRJ8LV");
+  const initial = (await cards()).filter((c) => c.status === "proposed");
+  assert.ok(initial.length > 2);
+  const first = initial.find((c) => c.evidence.part === 1);
+  const sent = {
+    ...first,
+    status: "done",
+    decided_at: new Date(h.clock.t).toISOString(),
+  };
+  await h.ledger.putCard("#2PQRJ8LV", sent);
+  h.clock.t += 60_000;
+  const check = async () => {
+    const pending = (await cards()).filter((c) => c.status === "proposed");
+    assert.deepEqual(
+      pending.map((c) => c.evidence.part).sort((a, b) => a - b),
+      Array.from({ length: pending.length }, (_, i) => i + 1),
+    );
+    assert.ok(pending.every((c) => c.evidence.parts === pending.length));
+    assert.deepEqual(await h.ledger.card("#2PQRJ8LV", first.card_id), sent);
+    const unsent = (await h.ledger.grants("#2PQRJ8LV")).filter(
+      (g) =>
+        !sent.evidence.grant_refs.includes(
+          `${g.season_id}:${g.award_id}:${g.player_tag}`,
+        ),
+    );
+    assert.equal(
+      new Set(pending.flatMap((c) => c.evidence.grant_refs)).size,
+      unsent.length,
+    );
+  };
+  assert.equal(
+    (
+      await api(h, cookies, "POST", `${BASE}/grants`, {
+        award_id: "clan_honour",
+        player_tag: "UQ8LP2R9C",
+        season_id: 135,
+        note: "human choice",
+      })
+    ).status,
+    200,
+  );
+  await check();
+  assert.equal(
+    (
+      await api(
+        h,
+        cookies,
+        "DELETE",
+        `${BASE}/grants/135/clan_honour/UQ8LP2R9C`,
+      )
+    ).status,
+    200,
+  );
+  await check();
+});
+
+test("awards: attendance with an unknown possible recipient is not frozen until evidence resolves", async () => {
+  const part = structuredClone(partClan());
+  part.members[1].war_decks.fill(16);
+  part.members[1].war_decks[2] = null;
+  const h = harness({ part });
+  const cookies = await signedIn(h);
+  const first = await api(h, cookies, "GET", `${BASE}/manage`);
+  assert.equal(
+    first.body.seasons
+      .find((s) => s.season_id === 135)
+      .awards.find((a) => a.award_id === "ever_present").state,
+    "held",
+  );
+  assert.ok(
+    !(await h.ledger.awardPlans("#2PQRJ8LV")).some(
+      (p) => p.award_id === "ever_present",
+    ),
+  );
+  part.members[1].war_decks.fill(16);
+  const second = await api(h, cookies, "GET", `${BASE}/manage?refresh=1`);
+  assert.ok(
+    second.body.grants.some(
+      (g) => g.award_id === "ever_present" && g.player_tag === "#UQ8LP2R9C",
+    ),
+  );
+});
+
+test("awards: an id cannot change kind after a frozen plan, and removed configuration still resumes its plan", async () => {
+  const h = harness({ part: structuredClone(partClan()) });
+  const cookies = await signedIn(h);
+  const put = h.ledger.putGrant.bind(h.ledger);
+  h.ledger.putGrant = async () => {
+    throw new Error("interrupted");
+  };
+  assert.equal((await api(h, cookies, "GET", `${BASE}/manage`)).status, 500);
+  const changed = structuredClone(EXAMPLE_AWARDS);
+  changed.awards[0].kind = "donations_podium";
+  changed.awards[0].params = { podium: 3 };
+  const refused = await api(h, cookies, "POST", `${BASE}/config`, {
+    values: changed,
+  });
+  assert.equal(refused.status, 400);
+  assert.equal(refused.body.error, "invalid_awards");
+  const removed = structuredClone(EXAMPLE_AWARDS);
+  removed.awards = removed.awards.filter((a) => a.id !== "season_champ");
+  assert.equal(
+    (await api(h, cookies, "POST", `${BASE}/config`, { values: removed }))
+      .status,
+    200,
+  );
+  h.ledger.putGrant = put;
+  const resumed = await api(h, cookies, "GET", `${BASE}/manage?refresh=1`);
+  assert.equal(resumed.status, 200);
+  assert.equal(
+    resumed.body.grants.filter((g) => g.award_id === "season_champ").length,
+    3,
+  );
+  assert.equal(
+    resumed.body.seasons
+      .find((s) => s.season_id === 135)
+      .awards.find((a) => a.award_id === "season_champ").kind,
+    "season_points_podium",
+  );
+});
+
+test("awards: a revoke retries announcement reconciliation after deletion already succeeded", async () => {
+  const h = harness({
+    part: structuredClone(partClan()),
+    policy: { ...EXAMPLE_POLICY, announce_awards_enabled: true },
+  });
+  const cookies = await signedIn(h);
+  await api(h, cookies, "GET", `${BASE}/manage`);
+  await api(h, cookies, "POST", `${BASE}/grants`, {
+    award_id: "clan_honour",
+    player_tag: "UQ8LP2R9C",
+    season_id: 135,
+    note: "human choice",
+  });
+  const cards = h.ledger.cards.bind(h.ledger);
+  h.ledger.cards = async () => {
+    throw new Error("reconcile unavailable");
+  };
+  const path = `${BASE}/grants/135/clan_honour/UQ8LP2R9C`;
+  assert.equal((await api(h, cookies, "DELETE", path)).status, 500);
+  assert.ok(
+    !(await h.ledger.grants("#2PQRJ8LV")).some(
+      (g) => g.award_id === "clan_honour",
+    ),
+  );
+  h.ledger.cards = cards;
+  assert.equal((await api(h, cookies, "DELETE", path)).status, 200);
+  const pending = (await cards("#2PQRJ8LV")).filter(
+    (c) => c.type === "awards_announcement" && c.status === "proposed",
+  );
+  assert.ok(
+    !pending.some((c) => c.evidence.message.body.includes("Clan Honour")),
+  );
+});
+
+test("awards: a manual choice after a sent announcement gets separate copy without rewriting the sent action", async () => {
+  const h = harness({
+    part: partClan(),
+    policy: { ...EXAMPLE_POLICY, announce_awards_enabled: true },
+  });
+  const cookies = await signedIn(h);
+  await api(h, cookies, "GET", `${BASE}/manage`);
+  const c = (await h.ledger.cards("#2PQRJ8LV"))[0];
+  const sent = {
+    ...c,
+    status: "done",
+    decided_at: new Date(h.clock.t).toISOString(),
+  };
+  await h.ledger.putCard("#2PQRJ8LV", sent);
+  h.clock.t += 60_000;
+  await api(h, cookies, "POST", `${BASE}/grants`, {
+    award_id: "clan_honour",
+    player_tag: "UQ8LP2R9C",
+    season_id: 135,
+    note: "human choice",
+  });
+  assert.deepEqual(await h.ledger.card("#2PQRJ8LV", c.card_id), sent);
+  const fresh = (await h.ledger.cards("#2PQRJ8LV")).filter(
+    (c) => c.status === "proposed",
+  );
+  assert.equal(fresh.length, 1);
+  assert.match(fresh[0].evidence.message.body, /Clan Honour: Ben/);
+  assert.equal(fresh[0].evidence.grant_refs.length, 1);
 });

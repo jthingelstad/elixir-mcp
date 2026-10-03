@@ -233,3 +233,31 @@ test("a drafted Leader Message gets its names back, the game's filter rules and 
   );
   assert.ok(ranked.warnings.some((w) => /score, rank or band/.test(w)));
 });
+
+test("award drafts reserve space for every recipient, including a full-size segment", () => {
+  for (const length of [150, 170]) {
+    const name = "x".repeat(length);
+    const result = leaderMessageFromDraft(
+      {
+        title: "Awards",
+        body: "A celebratory introduction ".repeat(20) + "{winners}",
+      },
+      { kind: "awards", awards: [{ name: "Cup", winners: [name, "Ben"] }] },
+    );
+    assert.ok(result.body.length <= 180);
+    assert.ok(result.body.includes(name));
+    assert.ok(result.body.includes("Ben"));
+    assert.doesNotMatch(result.body, /more/);
+  }
+  assert.throws(
+    () =>
+      leaderMessageFromDraft(
+        {},
+        {
+          kind: "awards",
+          awards: [{ name: "Cup", winners: ["x".repeat(181)] }],
+        },
+      ),
+    RangeError,
+  );
+});

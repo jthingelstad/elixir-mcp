@@ -3589,3 +3589,44 @@ format, lint, unused-code, TypeScript and every workspace test. The two built
 browser journeys passed on desktop/mobile. Privacy and route reviewers report
 no remaining concrete regression after the fixes. GitHub validate and production
 read-back remain the next release gates.
+
+
+## 2026-10-03 — Season awards evidence repair (local validation)
+
+The private Clan engine now requires contiguous terminal coverage, holds only
+awards whose consequential evidence is unknown, excludes returning veterans
+from Rookie eligibility, and proves recorded whole-week absence using canonical
+membership intervals and roster boundary observations. The web and morning
+callers use one shared record helper; it neither writes game evidence nor changes
+MCP/JSON API shapes. Donation tiebreak unknowns matter only to consequential ties.
+Attendance cannot freeze a whole-award decision while a possible recipient is
+still unknown; known disqualification does not hold other recipients.
+
+Computed decisions, including no-winner results, are frozen before recipient
+writes and resume after interruption. Grant inserts retain original provenance.
+Closed displays and standings read actual receipts. A kind change needs a new
+award id; removing configuration does not erase or prevent an existing plan.
+Manual picks require recorded closure, a member and rationale, and retries keep
+the original author/time. Grant/revoke failures reconcile announcement copy on
+retry. Completed messages remain immutable; pending copies are replaced and all
+recipients appear in bounded parts with exact receipt-specific sharing.
+
+Award model requests contain placeholders, not recipients; note normalization
+also scrubs filtered names and bare tag forms. Locally restored recipient lists
+are mandatory and prose uses only leftover space. Oversized legacy cards refuse
+before model spending. Take-back failures clear busy and request read-back.
+
+Fixtures are synthetic. Private production reads and legacy reconciliation
+receipts are kept outside the repository. No live awards, announcements, paid
+provider calls, credential reads or history imports were used for validation.
+Contracts unchanged; these private changes require no external-tool acceptance
+family. The deploy will still run its normal smoke and read-back checks. Full
+local verification and browser journeys must pass before this entry is marked
+released. PR #242 remains merged but undeployed; this release includes it. Direct task
+authorization lifted the earlier read-only restriction. Full verification and
+four built desktop/mobile award journeys passed, including axe, no horizontal
+overflow, receipt metrics, required manual confirmation and exact clipboard
+copy. The canonical membership SQL passed on scratch PostgreSQL. Final
+read-only review closed rookie pre-record over-hold and stale pending segment
+numbering; 76 focused tests pass. These private Clan changes leave external
+contracts unchanged; deployment smoke and read-back remain owed.

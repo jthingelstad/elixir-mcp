@@ -152,7 +152,12 @@ export function factsOfAction(
     });
   if (card.type === "awards_announcement")
     for (const g of grants.filter(
-      (g) => g.season_id === card.evidence?.season_id,
+      (g) =>
+        g.season_id === card.evidence?.season_id &&
+        (!card.evidence?.grant_receipts ||
+          card.evidence.grant_receipts.includes(
+            `${g.season_id}:${g.award_id}:${g.player_tag}:${g.granted_at}`,
+          )),
     ))
       facts.push({
         type: "award_granted",

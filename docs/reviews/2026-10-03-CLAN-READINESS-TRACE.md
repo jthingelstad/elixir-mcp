@@ -32,5 +32,4 @@ Validation: full `npm run verify` passes; 81 Clan UI tests and 20 focused
 engine/backend tests pass; built desktop/mobile clipboard and completion
 journeys pass with no serious accessibility violation, page exception or
 horizontal overflow. Production co-leader account, policy and model-status
-checks remain explicitly owed because Otto's browser is signed out; fixtures
-are not claimed as proof of those accounts.
+checks remain explicitly owed; fixtures are not claimed as proof of those accounts.

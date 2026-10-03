@@ -399,6 +399,71 @@ test("model: only leaders draft Leader Messages", async () => {
   assert.equal(r.status, 403);
 });
 
+test("model: award recipients stay local and oversized legacy announcements refuse before spending", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const card = {
+    card_id: "awards1",
+    clan_tag: "#2PQRJ8LV",
+    type: "awards_announcement",
+    status: "proposed",
+    player_tag: null,
+    player_name: null,
+    evidence: {
+      season_id: 135,
+      awards: [
+        { name: "Cup", winners: ["Secretname", "Anotherwinner", "Ab Cdef"] },
+      ],
+      grant_refs: ["135:cup:#8QCV", "135:cup:#P0LYQ"],
+      message: {
+        title: "Season 135 awards",
+        body: "Cup: Secretname, Anotherwinner",
+      },
+    },
+  };
+  await h.ledger.putCard("#2PQRJ8LV", card);
+  h.anthropic.state.write = (key, request) => ({
+    ok: true,
+    model: request.model,
+    input: { title: "Awards", body: "Well played! {winners}" },
+  });
+  const r = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/awards1/draft",
+    {
+      note: "Celebrate Secretname, Anotherwinner and #8QCV and #P0LYQ and Ab-Cdef and 8QCV",
+    },
+  );
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.match(r.body.body, /Cup: Secretname, Anotherwinner/);
+  assert.doesNotMatch(
+    h.anthropic.state.calls.at(-1)[2].prompt,
+    /Secretname|Anotherwinner|8QCV|P0LYQ|Ab.Cdef/,
+  );
+  const calls = h.anthropic.state.calls.length;
+  await h.ledger.putCard("#2PQRJ8LV", {
+    ...card,
+    card_id: "oversized",
+    evidence: {
+      ...card.evidence,
+      awards: [{ name: "Cup", winners: ["x".repeat(181)] }],
+    },
+  });
+  const refused = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/oversized/draft",
+    {},
+  );
+  assert.equal(refused.status, 409);
+  assert.equal(refused.body.error, "awards_need_segments");
+  assert.equal(h.anthropic.state.calls.length, calls);
+});
+
 test("model: welcome and removal chat drafts disclose no member evidence and leave the action proposed", async () => {
   const h = harness();
   const c = await signedIn(h);

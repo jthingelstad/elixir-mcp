@@ -176,6 +176,78 @@ describe("awards", () => {
     });
   });
 
+  test("closed podium displays only stored receipts, and manual picks show history evidence", async () => {
+    const data = view();
+    const closed = data.seasons.find((s) => s.closed);
+    closed.awards[0].rows = [
+      {
+        player_tag: "#UQ8LP2R9C",
+        name: "Ben",
+        points: 99999,
+        rank: 1,
+        on_podium: true,
+      },
+    ];
+    closed.awards[1].description = "Use the final podium and previous holder.";
+    vi.spyOn(manageApi, "awards").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data,
+    });
+    renderWithProviders(<Awards clan={poap} />);
+    expect(await screen.findByText("16,000 pts")).toBeTruthy();
+    expect(screen.queryByText("99,999 pts")).toBeNull();
+    expect(screen.getAllByText("granted").length).toBe(1);
+    expect(
+      screen.getByText(/No recorded Clan Honour grant for season 134/),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/Use the final podium and previous holder/),
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Grant Clan Honour for season 135" }),
+    );
+    fireEvent.change(screen.getByLabelText("Member"), {
+      target: { value: "#UQ8LP2R9C" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Grant Clan Honour" }).disabled,
+    ).toBe(true);
+    expect(
+      screen.getByText(/Confirm Clan Honour for season 135 for Ben/),
+    ).toBeTruthy();
+  });
+
+  test("a lost manual grant response preserves the choice and asks for read-back, without retrying", async () => {
+    vi.spyOn(manageApi, "awards").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: view(),
+    });
+    const grant = vi
+      .spyOn(manageApi, "grantAward")
+      .mockRejectedValue(new Error("lost response"));
+    renderWithProviders(<Awards clan={poap} />);
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Grant Clan Honour for season 135",
+      }),
+    );
+    fireEvent.change(screen.getByLabelText("Member"), {
+      target: { value: "#UQ8LP2R9C" },
+    });
+    fireEvent.change(screen.getByLabelText("Why this member"), {
+      target: { value: "rotation" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Grant Clan Honour" }));
+    expect(
+      await screen.findByText(/Read the awards again before retrying/),
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Why this member").value).toBe("rotation");
+    expect(screen.getByLabelText("Member").value).toBe("#UQ8LP2R9C");
+    expect(grant).toHaveBeenCalledTimes(1);
+  });
+
   test("the editor renames an award and saves a new version", async () => {
     vi.spyOn(manageApi, "awards").mockResolvedValue({
       ok: true,
@@ -196,6 +268,35 @@ describe("awards", () => {
     );
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1].awards[0].name).toBe("Boat Captain");
+  });
+
+  test("a failed take-back clears busy and asks for read-back before retry", async () => {
+    const data = view();
+    data.seasons.find((s) => s.closed).awards[1].rows = [
+      {
+        player_tag: "#UQ8LP2R9C",
+        name: "Ben",
+        note: "human choice",
+        granted_at: "2026-09-08T00:00:00Z",
+      },
+    ];
+    vi.spyOn(manageApi, "awards").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data,
+    });
+    const revoke = vi
+      .spyOn(manageApi, "revokeAward")
+      .mockRejectedValue(new Error("lost response"));
+    renderWithProviders(<Awards clan={poap} />);
+    fireEvent.click(await screen.findByRole("button", { name: "take back" }));
+    expect(
+      await screen.findByText(/Taking back the award was not confirmed/),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "take back" }).disabled).toBe(
+      false,
+    );
+    expect(revoke).toHaveBeenCalledTimes(1);
   });
 
   test("the help keeps awards inside the signed-in app", async () => {

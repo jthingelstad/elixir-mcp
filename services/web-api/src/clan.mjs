@@ -24,6 +24,7 @@ import {
   createPostgresLedger,
 } from "@elixir-mcp/clan-state/postgres";
 import { myPlayers } from "@elixir-mcp/record/players";
+import { warMembershipEvidence } from "@elixir-mcp/record/war-membership";
 import {
   writeClanFactInClan,
   removeClanFactInClan,
@@ -125,6 +126,8 @@ export function createClanRequest({
     const manage = createManageService({ ledger, mcp, appUrl });
     const awards = createAwardsService({
       ledger,
+      membershipFor: (tag, participation) =>
+        warMembershipEvidence(db, tag, participation),
       participationFor: (token, tag) => fetchParticipation(mcp, token, tag),
       elixir: mcp,
     });

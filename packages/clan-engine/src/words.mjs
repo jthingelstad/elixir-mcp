@@ -23,7 +23,7 @@ import {
   chatWarnings,
   clipChat,
 } from "./chat.mjs";
-import { LEADER_MESSAGE, fitList } from "./render.mjs";
+import { LEADER_MESSAGE } from "./render.mjs";
 
 /** What a clan's model may write. */
 export const PURPOSES = {
@@ -380,20 +380,23 @@ export function leaderMessageFromDraft(
   if ((kind === "promotion" || kind === "demotion") && !body.includes(who))
     body = `${who}: ${body}`;
   if (kind === "awards") {
-    const list = awards.map(
-      (x) => `${x.name}: ${(x.winners ?? []).join(", ")}`,
-    );
-    const room = Math.max(
-      40,
-      LEADER_MESSAGE.body -
-        (body.includes("{winners}")
-          ? body.length - "{winners}".length
-          : body.length + 1),
-    );
-    const winners = list.length ? fitList(list, room) : "";
-    body = body.includes("{winners}")
-      ? body.replace("{winners}", winners)
-      : `${body} ${winners}`.trim();
+    const winners = awards
+      .map(
+        (x) =>
+          `${chatSafe(x.name)}: ${(x.winners ?? []).map(chatSafe).join(", ")}`,
+      )
+      .join("; ");
+    const complete = winners
+      ? `${winners}${winners.length < LEADER_MESSAGE.body ? "." : ""}`
+      : "";
+    if (complete.length > LEADER_MESSAGE.body)
+      throw new RangeError("Awards need separate announcement parts.");
+    // Every recipient in this segment is mandatory. Decorative model prose
+    // uses only the space left after the complete, locally restored list.
+    const prose = chatSafe(body.replaceAll("{winners}", "")).trim();
+    const room = LEADER_MESSAGE.body - complete.length - (complete ? 1 : 0);
+    const intro = room >= 4 ? clipChat(prose, room) : "";
+    body = [intro, complete].filter(Boolean).join(" ");
   }
   body = body.replaceAll("{winners}", "").replaceAll("{name}", who);
   title = clipChat(chatSafe(title), LEADER_MESSAGE.title);

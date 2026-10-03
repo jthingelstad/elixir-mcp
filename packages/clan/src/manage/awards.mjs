@@ -18,6 +18,7 @@ import {
   defaultAwards,
   describeAward,
   evaluateAwards,
+  awardAnnouncementParts,
   validateAwards,
 } from "@elixir-mcp/clan-engine";
 import {
@@ -26,8 +27,9 @@ import {
   noteClanSize,
   tooFewMembers,
 } from "./service.mjs";
-import { MIN_MEMBERS, leaderMessage } from "@elixir-mcp/clan-engine";
+import { MIN_MEMBERS } from "@elixir-mcp/clan-engine";
 import { createActionStore } from "./actions.mjs";
+import { createHash } from "node:crypto";
 import { newId } from "@elixir-mcp/clan-state";
 import { planStandings, standingsFrom } from "./standings.mjs";
 
@@ -37,71 +39,107 @@ const ELDER_PLUS = new Set(["leader", "coLeader", "elder"]);
 export function createAwardsService({
   ledger,
   participationFor,
+  membershipFor = null,
   // Elixir's client, for the morning run's award standings (JSON API
   // 2.6.0, on the integration key with facts:write); none, none shared.
   elixir = null,
   now = () => Date.now(),
 }) {
   const isLeader = (who) => LEADERS.has(who.role);
-  const { raiseAction } = createActionStore({ ledger, now });
+  const { raiseAction, withdrawAction } = createActionStore({ ledger, now });
 
-  /**
-   * When the policy asks for it, a season whose computed grants were just
-   * written raises "announce the season's awards" for leaders, with a Clan
-   * Leader Message naming the winners. One per season.
-   */
-  async function announceSeason(clanTag, grantsDue) {
+  const grantRef = (g) => `${g.season_id}:${g.award_id}:${g.player_tag}`;
+  const receiptRef = (g) => `${grantRef(g)}:${g.granted_at}`;
+
+  /** Complete bounded copy from receipts, including later manual picks.
+   * Completed messages remain immutable; changed pending segments are withdrawn
+   * and replaced, with their evidence/log retained. No message is sent here. */
+  async function announceSeason(clanTag, seasonIds) {
     const policy = await ledger.currentPolicy(clanTag);
     if (!policy?.values?.announce_awards_enabled) return;
-    const bySeason = new Map();
-    for (const g of grantsDue) {
-      const list = bySeason.get(g.season_id) ?? [];
-      list.push(g);
-      bySeason.set(g.season_id, list);
-    }
+    const all = await ledger.grants(clanTag);
     const cards = await ledger.cards(clanTag);
-    for (const [season_id, grants] of bySeason) {
-      if (
-        cards.some(
-          (c) =>
-            c.type === "awards_announcement" &&
-            c.evidence?.season_id === season_id,
-        )
-      )
-        continue;
-      const byAward = new Map();
-      for (const g of [...grants].sort(
-        (a, b) => (a.rank ?? 1) - (b.rank ?? 1),
-      )) {
-        const list = byAward.get(g.name) ?? [];
-        list.push(g.player_name ?? g.player_tag);
-        byAward.set(g.name, list);
-      }
-      const awards = [...byAward].map(([name, winners]) => ({
-        name,
-        winners,
-      }));
-      const message = leaderMessage("awards", { season_id, awards });
-      await raiseAction(
-        clanTag,
-        {
-          card_id: newId(),
-          clan_tag: clanTag,
-          player_tag: null,
-          player_name: null,
-          role_at_raise: null,
-          type: "awards_announcement",
-          status: "proposed",
-          raised_at: new Date(now()).toISOString(),
-          policy_version: policy.version,
-          evidence: { season_id, awards, message },
-        },
-        cards,
-        {
-          text: `Season ${season_id} closed: ${grants.length} award${grants.length === 1 ? "" : "s"} granted.`,
-          detail: { clauses: ["announce_awards_enabled"] },
-        },
+    for (const season_id of new Set(seasonIds)) {
+      const prior = cards.filter(
+        (c) =>
+          c.type === "awards_announcement" &&
+          c.evidence?.season_id === season_id,
       );
+      const sent = prior.filter((c) => c.status === "done");
+      const unsent = all.filter(
+        (g) =>
+          g.season_id === season_id &&
+          !sent.some((c) =>
+            c.evidence?.grant_receipts
+              ? c.evidence.grant_receipts.includes(receiptRef(g))
+              : g.granted_at <= (c.decided_at ?? c.raised_at),
+          ),
+      );
+      const parts = awardAnnouncementParts(unsent);
+      const wanted = parts.map((part) => ({
+        ...part,
+        key: createHash("sha256")
+          .update(JSON.stringify(part.grants.map(receiptRef)))
+          .digest("hex"),
+      }));
+      const samePendingPart = (c, p) =>
+        p.key === c.evidence?.announcement_key &&
+        p.part === c.evidence?.part &&
+        parts.length === c.evidence?.parts;
+      for (const c of prior.filter((c) => c.status === "proposed"))
+        if (!wanted.some((p) => samePendingPart(c, p)))
+          await withdrawAction(
+            clanTag,
+            c,
+            "Award receipts changed; use the replacement announcement segments.",
+          );
+      for (const part of wanted) {
+        if (
+          prior.some(
+            (c) =>
+              (["done", "declined"].includes(c.status) &&
+                c.evidence?.announcement_key === part.key) ||
+              (c.status === "proposed" && samePendingPart(c, part)),
+          )
+        )
+          continue;
+        const message = {
+          title:
+            parts.length === 1
+              ? `Season ${season_id} awards`
+              : `S${season_id} awards ${part.part}/${parts.length}`,
+          body: part.body,
+        };
+        await raiseAction(
+          clanTag,
+          {
+            card_id: newId(),
+            clan_tag: clanTag,
+            player_tag: null,
+            player_name: null,
+            role_at_raise: null,
+            type: "awards_announcement",
+            status: "proposed",
+            raised_at: new Date(now()).toISOString(),
+            policy_version: policy.version,
+            evidence: {
+              season_id,
+              awards: part.awards,
+              message,
+              part: part.part,
+              parts: parts.length,
+              announcement_key: part.key,
+              grant_refs: part.grants.map(grantRef),
+              grant_receipts: part.grants.map(receiptRef),
+            },
+          },
+          cards,
+          {
+            text: `Season ${season_id}: review award announcement ${part.part} of ${parts.length}.`,
+            detail: { clauses: ["announce_awards_enabled"] },
+          },
+        );
+      }
     }
   }
 
@@ -154,6 +192,14 @@ export function createAwardsService({
     )
       return { result: cached, config, cached: true };
     const participation = await participationFor(token, clanTag);
+    if (membershipFor) {
+      const evidence = await membershipFor(clanTag, participation);
+      participation.members = participation.members.map((m) => ({
+        ...m,
+        absent_at_war_week: evidence.war?.[m.player_tag] ?? [],
+        absent_at_donation_week: evidence.donations?.[m.player_tag] ?? [],
+      }));
+    }
     // Too small for awards: remember the size and grant nothing.
     await noteClanSize(ledger, clanTag, participation.members.length, t);
     if (participation.members.length < MIN_MEMBERS)
@@ -164,15 +210,63 @@ export function createAwardsService({
       config: config.values,
       now: new Date(t),
       grants,
+      decisions: await ledger.awardPlans(clanTag),
       config_version: config.version,
     });
     const granted_at = new Date(t).toISOString();
-    for (const g of result.grants_due)
-      await ledger.putGrant(clanTag, { ...g, granted_at });
-    if (result.grants_due.length)
-      await announceSeason(clanTag, result.grants_due);
-    // The snapshot the pages read; grants_due is consumed, not kept.
-    const snapshot = { ...result, grants_due: [] };
+    // Save the complete frozen plan before the first recipient. A timeout
+    // between writes resumes that same plan rather than re-ranking survivors.
+    const due = new Map();
+    for (const g of result.grants_due) {
+      const key = `${g.season_id}|${g.award_id}`;
+      due.set(key, [...(due.get(key) ?? []), { ...g, granted_at }]);
+    }
+    for (const season of result.seasons.filter((s) => s.closed && s.complete))
+      for (const award of season.awards.filter(
+        (a) => a.computed && a.state === "closed",
+      )) {
+        // Legacy grants remain authoritative; never infer a missing historical
+        // recipient. New decisions, including no-winner decisions, get a plan.
+        if (
+          grants.some(
+            (g) =>
+              g.season_id === season.season_id && g.award_id === award.award_id,
+          )
+        )
+          continue;
+        await ledger.saveAwardPlan(clanTag, {
+          season_id: season.season_id,
+          award_id: award.award_id,
+          kind: award.kind,
+          name: award.name,
+          description: award.description,
+          rule: award.rule,
+          grants: due.get(`${season.season_id}|${award.award_id}`) ?? [],
+          planned_at: granted_at,
+        });
+      }
+    const plans = (await ledger.awardPlans(clanTag)).filter(
+      (p) => !p.completed_at,
+    );
+    for (const plan of plans)
+      for (const g of plan.grants) await ledger.putGrant(clanTag, g);
+    await announceSeason(
+      clanTag,
+      result.seasons.filter((s) => s.closed).map((s) => s.season_id),
+    );
+    for (const plan of plans)
+      await ledger.completeAwardPlan(clanTag, plan, granted_at);
+    const snapshot = {
+      ...evaluateAwards({
+        participation,
+        config: config.values,
+        now: new Date(t),
+        grants: await ledger.grants(clanTag),
+        decisions: await ledger.awardPlans(clanTag),
+        config_version: config.version,
+      }),
+      grants_due: [],
+    };
     await ledger.saveAwardsSnapshot(clanTag, snapshot);
     return {
       result: snapshot,
@@ -353,6 +447,22 @@ export function createAwardsService({
         throw Object.assign(new ManageError(400, "invalid_awards"), {
           errors: checked.errors,
         });
+      const existing = [
+        ...(await ledger.grants(clanTag)),
+        ...(await ledger.awardPlans(clanTag)),
+      ];
+      const errors = {};
+      checked.values.awards.forEach((a, i) => {
+        if (
+          existing.some(
+            (g) => g.award_id === a.id && g.kind && g.kind !== a.kind,
+          )
+        )
+          errors[`awards.${i}.kind`] =
+            "This award id keeps its original kind. Add a new award for a different kind.";
+      });
+      if (Object.keys(errors).length)
+        throw Object.assign(new ManageError(400, "invalid_awards"), { errors });
       return ledger.saveAwards(clanTag, {
         values: checked.values,
         by: who.player_tag,
@@ -362,11 +472,7 @@ export function createAwardsService({
     },
 
     /** A leaders' pick, by hand. */
-    async grant(
-      clanTag,
-      who,
-      { award_id, player_tag, player_name, season_id, note },
-    ) {
+    async grant(clanTag, who, { award_id, player_tag, season_id, note }) {
       await requirePolicy(clanTag);
       const config = await configFor(clanTag);
       const award = config.values.awards.find((a) => a.id === award_id);
@@ -381,24 +487,45 @@ export function createAwardsService({
       if (!Number.isInteger(season) || season < 1 || season > 9999)
         throw new ManageError(400, "bad_season");
       const text = String(note ?? "").trim();
-      if (text.length > 500) throw new ManageError(400, "bad_note");
-      return shape(
-        await ledger.putGrant(clanTag, {
-          season_id: season,
-          award_id: award.id,
-          kind: award.kind,
-          name: award.name,
-          rank: 1,
-          player_tag,
-          player_name: player_name ?? null,
-          note: text || null,
-          manual: true,
-          config_version: config.version,
-          granted_at: new Date(now()).toISOString(),
-          granted_by: who.player_tag,
-          granted_by_name: who.name ?? null,
-        }),
+      if (!text || text.length > 500) throw new ManageError(400, "bad_note");
+      const snapshot = await ledger.latestAwardsSnapshot(clanTag);
+      if (
+        !snapshot?.seasons.some(
+          (s) => s.season_id === season && s.closed && s.complete,
+        )
+      )
+        throw new ManageError(409, "season_not_closed");
+      const member = snapshot.members?.find((m) => m.player_tag === player_tag);
+      if (!member) throw new ManageError(400, "not_in_roster");
+      const previous = (await ledger.grants(clanTag)).find(
+        (g) =>
+          g.season_id === season &&
+          g.award_id === award.id &&
+          g.player_tag === player_tag,
       );
+      if (previous) {
+        if (previous.note !== text) throw new ManageError(409, "grant_exists");
+        // Preserve the original author/time when a response is retried.
+        await announceSeason(clanTag, [season]);
+        return shape(previous);
+      }
+      const granted = await ledger.putGrant(clanTag, {
+        season_id: season,
+        award_id: award.id,
+        kind: award.kind,
+        name: award.name,
+        rank: 1,
+        player_tag,
+        player_name: member.name ?? player_tag,
+        note: text,
+        manual: true,
+        config_version: config.version,
+        granted_at: new Date(now()).toISOString(),
+        granted_by: who.player_tag,
+        granted_by_name: who.name ?? null,
+      });
+      await announceSeason(clanTag, [season]);
+      return shape(granted);
     },
 
     /** Only a manual grant can be taken back; a computed one is the record's. */
@@ -412,9 +539,19 @@ export function createAwardsService({
           x.award_id === award_id &&
           x.player_tag === player_tag,
       );
-      if (!g) throw new ManageError(404, "no_grant");
+      if (!g) {
+        const config = await configFor(clanTag);
+        if (
+          config.values.awards.find((a) => a.id === award_id)?.kind !==
+          "leaders_pick"
+        )
+          throw new ManageError(404, "no_grant");
+        await announceSeason(clanTag, [Number(season_id)]);
+        return;
+      }
       if (g.manual !== true) throw new ManageError(400, "not_manual");
       await ledger.removeGrant(clanTag, g);
+      await announceSeason(clanTag, [g.season_id]);
     },
 
     /** One member's trophy case, for the member sheet and the roster. */

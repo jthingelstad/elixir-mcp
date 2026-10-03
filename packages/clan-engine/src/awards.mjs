@@ -262,7 +262,10 @@ export function seasonsFrom(participation, now) {
     s.closed_at = s.closed
       ? new Date(Math.max(...s.weeks.map((w) => w.finished))).toISOString()
       : null;
-    s.complete = s.weeks[0].section_index === 0;
+    // A later season proves closure, not capture of the missing final week.
+    s.complete =
+      s.weeks.every((w, i) => w.section_index === i) &&
+      (!s.closed || last.is_colosseum);
     s.started_at = s.weeks[0].started
       ? new Date(s.weeks[0].started).toISOString()
       : null;
@@ -300,6 +303,32 @@ function assignRanks(rows, key) {
 
 // ---- the kinds --------------------------------------------------------------
 
+/** Whole-period absence needs the first known join and recording throughout
+ * the period. Finish presence and a current-stint rejoin cannot prove it. */
+function knownAbsent(participation, m, w) {
+  if (m.absent_at_war_week?.[w.i] === true) return true;
+  return Boolean(
+    m.tenure_known &&
+    m.first_joined_at &&
+    w.started !== null &&
+    w.finished !== null &&
+    Date.parse(m.first_joined_at) > w.finished &&
+    participation.recording_active_since &&
+    Date.parse(participation.recording_active_since) <= w.started &&
+    participation.first_roster_observed_at &&
+    Date.parse(participation.first_roster_observed_at) <= w.started,
+  );
+}
+
+function missingPoints(participation, m, season) {
+  return season.weeks.some(
+    (w) =>
+      w.finished !== null &&
+      !Number.isFinite(m.war_points?.[w.i]) &&
+      !knownAbsent(participation, m, w),
+  );
+}
+
 function seasonPoints(m, season) {
   let points = 0;
   let weeksPlayed = 0;
@@ -316,15 +345,17 @@ function seasonPoints(m, season) {
 function seasonDonations(participation, m, season) {
   let total = 0;
   let known = 0;
+  let unknown = 0;
   for (const w of season.weeks) {
     const j = isoWeekOf(participation, w.started);
     const d = j === null ? null : m.donations?.[j];
-    if (d !== null && d !== undefined) {
+    if (Number.isFinite(d)) {
       total += d;
       known += 1;
-    }
+    } else if (w.finished !== null && m.absent_at_donation_week?.[j] !== true)
+      unknown += 1;
   }
-  return { total, known_weeks: known, weeks: season.weeks.length };
+  return { total, known_weeks: known, weeks: season.weeks.length, unknown };
 }
 
 function pointsPodium(participation, members, season, params, filter) {
@@ -372,7 +403,7 @@ function pointsPodium(participation, members, season, params, filter) {
   return { rows, podium };
 }
 
-function attendance(m, season, params) {
+function attendance(participation, m, season, params) {
   // Decks, not days (Jamie 2026-09-24): each week asks decks_per_day for
   // every war day up to the clan's finish; the race's own weekly count
   // says whether it was met, with no day attributed. Decks after the
@@ -382,7 +413,12 @@ function attendance(m, season, params) {
   let unknownWeeks = 0;
   const weeks = [];
   for (const w of season.weeks) {
-    const d = m.war_decks?.[w.i];
+    const raw = m.war_decks?.[w.i];
+    const d = Number.isInteger(raw)
+      ? raw
+      : knownAbsent(participation, m, w)
+        ? 0
+        : null;
     const want = params.decks_per_day * w.required;
     // A week still running asks nothing yet: its decks so far are not a
     // shortfall, and a live standing that counted the open week as a full
@@ -437,8 +473,10 @@ function rookieFilter(participation, seasons, season) {
       )
     : null;
   return (m) => {
-    if (!m.tenure_known || !m.joined_observed_at) return false;
-    const joined = Date.parse(m.joined_observed_at);
+    if (!m.tenure_known || !m.first_joined_at) return false;
+    const joined = Date.parse(m.first_joined_at);
+    if (joined <= Date.parse(participation.first_roster_observed_at))
+      return false;
     if (seasonStart !== null && joined >= seasonStart) return true;
     if (!previous || viewStart === null || joined < viewStart) return false;
     // Joined during the previous season without a war day played in it.
@@ -464,14 +502,37 @@ export function evaluateAwards({
   config,
   now,
   grants = [],
+  decisions = [],
   config_version = 0,
 }) {
   const seasons = seasonsFrom(participation, now);
   const members = participation.members;
-  const granted = new Set(grants.map((g) => `${g.season_id}|${g.award_id}`));
   const grantsDue = [];
   const out = seasons.map((season) => {
-    const awards = config.awards.map((award) => {
+    const historical = [...grants, ...decisions].filter(
+      (g) => g.season_id === season.season_id,
+    );
+    const configured = new Set(config.awards.map((a) => a.id));
+    const missing = new Map(
+      historical
+        .filter((g) => !configured.has(g.award_id))
+        .map((g) => [
+          g.award_id,
+          {
+            id: g.award_id,
+            kind: g.kind,
+            name: g.name,
+            description: g.description ?? "",
+            enabled: true,
+            params: Object.fromEntries(
+              Object.entries(AWARD_KINDS[g.kind]?.params ?? {}).map(
+                ([k, p]) => [k, p.default],
+              ),
+            ),
+          },
+        ]),
+    );
+    const awards = [...config.awards, ...missing.values()].map((award) => {
       const kind = AWARD_KINDS[award.kind];
       const base = {
         award_id: award.id,
@@ -481,6 +542,53 @@ export function evaluateAwards({
         rule: describeAward(award),
         computed: kind.computed,
       };
+      const saved = grants.filter(
+        (g) =>
+          (g.manual === false ||
+            AWARD_KINDS[g.kind]?.computed ||
+            (!g.kind && kind.computed)) &&
+          g.season_id === season.season_id &&
+          g.award_id === award.id,
+      );
+      // Existing grants are the final record even when later capture or
+      // configuration changes. Never relabel a fresh calculation as granted.
+      const decision = decisions.find(
+        (p) =>
+          p.completed_at &&
+          p.season_id === season.season_id &&
+          p.award_id === award.id,
+      );
+      if (season.closed && (saved.length || decision))
+        return {
+          ...base,
+          kind: saved[0]?.kind ?? decision?.kind ?? base.kind,
+          computed: true,
+          name: saved[0]?.name ?? decision?.name ?? base.name,
+          rule:
+            decision?.rule ?? AWARD_KINDS[saved[0]?.kind]?.rule ?? base.rule,
+          state: "closed",
+          rows: saved
+            .map((g, i) => ({
+              player_tag: g.player_tag,
+              name: g.player_name,
+              rank: g.rank ?? 1,
+              official_rank: i + 1,
+              place: g.rank ?? 1,
+              points: g.metric_value,
+              total: g.metric_value,
+              decks_asked: g.metric_value,
+              decks_short: g.metadata?.decks_short ?? 0,
+              weeks_played: g.metadata?.weeks_played ?? null,
+              donations: g.metadata?.donations_tiebreak ?? 0,
+              known_weeks: g.metadata?.known_weeks,
+              weeks: g.metadata?.weeks,
+              tied: g.metadata?.tied ?? false,
+              fidelity: g.metadata?.fidelity ?? "weekly",
+              on_podium: true,
+              granted_at: g.granted_at,
+            }))
+            .sort((a, b) => a.place - b.place),
+        };
       if (!award.enabled) return { ...base, state: "off", rows: [] };
       if (!kind.computed)
         return {
@@ -506,6 +614,81 @@ export function evaluateAwards({
           note: "The record does not cover this whole season, so it is not judged.",
           rows: [],
         };
+      const pointsKind = ["season_points_podium", "rookie_podium"].includes(
+        award.kind,
+      );
+      const donationKind = pointsKind || award.kind === "donations_podium";
+      const previous = seasons[seasons.indexOf(season) - 1];
+      const filter =
+        award.kind === "rookie_podium"
+          ? rookieFilter(participation, seasons, season)
+          : () => true;
+      const contenders = members.filter(filter);
+      const unknownRookie =
+        award.kind === "rookie_podium" &&
+        previous &&
+        members.some(
+          (m) =>
+            filter(m) &&
+            m.first_joined_at &&
+            Date.parse(m.first_joined_at) >= previous.weeks[0].started &&
+            Date.parse(m.first_joined_at) < season.weeks[0].started &&
+            !previous.weeks.some((w) => m.war_points?.[w.i] > 0) &&
+            (!previous.complete || missingPoints(participation, m, previous)),
+        );
+      // Donations only affect equal-point ordering at the podium. A missing
+      // donation counter for a zero-point or out-of-contention member cannot
+      // invalidate a points podium whose ordering is already proven.
+      const pointTotals = contenders
+        .map((m) => seasonPoints(m, season).points)
+        .filter((p) => p > 0)
+        .sort((a, b) => b - a);
+      const threshold =
+        pointTotals[Math.min(award.params.podium, pointTotals.length) - 1] ??
+        Infinity;
+      const needsDonations = (m) => {
+        if (!pointsKind) return true;
+        const points = seasonPoints(m, season).points;
+        return (
+          points >= threshold &&
+          pointTotals.filter((p) => p === points).length > 1
+        );
+      };
+      if (
+        (pointsKind &&
+          contenders.some((m) => missingPoints(participation, m, season))) ||
+        (donationKind &&
+          contenders.some(
+            (m) =>
+              needsDonations(m) &&
+              seasonDonations(participation, m, season).unknown > 0,
+          )) ||
+        unknownRookie
+      )
+        return {
+          ...base,
+          state: "held",
+          rows:
+            !season.closed && pointsKind
+              ? pointsPodium(
+                  participation,
+                  contenders,
+                  season,
+                  award.params,
+                  () => true,
+                )
+                  .rows.slice(0, 10)
+                  .map((r) => ({
+                    ...r,
+                    on_podium: false,
+                    rank: null,
+                    official_rank: null,
+                    place: null,
+                    tied: false,
+                  }))
+              : [],
+          note: "Required season points, donations or rookie history are unknown, so this award is not judged.",
+        };
       const state = season.closed ? "closed" : "live";
       let rows = [];
       let due = [];
@@ -513,10 +696,6 @@ export function evaluateAwards({
         award.kind === "season_points_podium" ||
         award.kind === "rookie_podium"
       ) {
-        const filter =
-          award.kind === "rookie_podium"
-            ? rookieFilter(participation, seasons, season)
-            : () => true;
         const { rows: all, podium } = pointsPodium(
           participation,
           members,
@@ -576,9 +755,16 @@ export function evaluateAwards({
           },
         }));
       } else if (award.kind === "perfect_attendance") {
-        const all = members.map((m) => attendance(m, season, award.params));
+        const all = members.map((m) =>
+          attendance(participation, m, season, award.params),
+        );
         const onTrack = all.filter((r) => r.on_track);
-        const unknown = all.filter((r) => r.unknown_weeks > 0);
+        const unknown = all.filter(
+          (r) =>
+            r.unknown_weeks > 0 &&
+            r.decks_short <=
+              award.params.allowed_misses * award.params.decks_per_day,
+        );
         rows = onTrack.map((r) => ({
           player_tag: r.player_tag,
           name: r.name,
@@ -588,12 +774,12 @@ export function evaluateAwards({
         }));
         // Fail closed: a week the record cannot see for anyone holds the
         // award for that season rather than crowning the visible.
-        if (season.closed && unknown.length === all.length && all.length > 0)
+        if (season.closed && unknown.length > 0)
           return {
             ...base,
             state: "held",
-            note: "The record has no war days for this season, so nobody is judged.",
-            rows: [],
+            note: "Some members' required decks are unknown, so final attendance awards wait. Recorded qualifiers below are provisional.",
+            rows,
           };
         due = onTrack.map((r) => ({
           player_tag: r.player_tag,
@@ -604,7 +790,7 @@ export function evaluateAwards({
           metadata: { decks_short: r.decks_short, fidelity: r.fidelity },
         }));
       }
-      if (season.closed && !granted.has(`${season.season_id}|${award.id}`))
+      if (season.closed)
         for (const g of due)
           grantsDue.push({
             season_id: season.season_id,
