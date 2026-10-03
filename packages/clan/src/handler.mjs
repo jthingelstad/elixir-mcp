@@ -760,16 +760,19 @@ export function createHandler({
     }
   }
 
-  return function handler(event) {
+  return function handler(event, { lockMs = null } = {}) {
     const method = event.requestContext?.http?.method ?? event.httpMethod;
     const path = mountedPath(event.rawPath ?? event.path ?? "/");
     return withTrace(
       {
         http: routeKey(method, path),
         request_id: event.requestContext?.requestId ?? null,
+        ...(Number.isFinite(lockMs) && lockMs >= 0 ? { lock_ms: lockMs } : {}),
       },
       async () => {
         const trace = current();
+        // The trusted request adapter acquired its lock before this trace.
+        trace.started -= trace.meta.lock_ms ?? 0;
         const res = await dispatch(event, method, path);
         const summary = summarize(trace, res.statusCode ?? 200);
         (summary.level === "warn" ? log.warn : log.info)?.(

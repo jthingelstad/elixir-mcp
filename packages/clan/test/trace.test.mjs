@@ -193,3 +193,29 @@ test("route keys hide ids and tags; a slow or failed request logs at warn", asyn
   assert.equal(failed.level, "warn");
   assert.equal(failed.status, 502);
 });
+
+test("trusted lock timing is included in total and separated from handler work", async () => {
+  const cap = capturing();
+  const handler = createHandler({
+    mcp: fakeMcp(),
+    ...createTestAccount(),
+    appUrl: "https://elixir.test/clan",
+    elixirUrl: "https://elixir.test",
+    log: cap.log,
+  });
+  const result = await handler(req("GET", "/api/roster", {}), { lockMs: 750 });
+  const line = JSON.parse(cap.lines[0][1]);
+  assert.equal(line.lock_ms, 750);
+  assert.ok(line.ms >= 750);
+  assert.match(result.headers["server-timing"], /lock;dur=750/);
+  const headerOwn = Number(
+    /own;dur=(\d+)/.exec(result.headers["server-timing"])[1],
+  );
+  assert.equal(
+    headerOwn,
+    Math.max(0, line.ms - line.elixir_ms - line.store_ms - 750),
+  );
+  cap.lines.length = 0;
+  await handler(req("GET", "/api/roster", {}), { lockMs: "untrusted-fixture" });
+  assert.equal(JSON.parse(cap.lines[0][1]).lock_ms, undefined);
+});

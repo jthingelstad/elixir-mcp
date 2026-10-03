@@ -3896,3 +3896,33 @@ unknown-data and saved-grant tests. Two independent read-only reviewers found
 no blocker. The earlier run failed only the capped-feed assumption repaired
 in PR #247; rebasing onto that correction made the full gate green. Required
 CI and canonical deployment remain owed; production still has the old rule.
+
+
+## 2026-10-03 — Attribute Clan PostgreSQL and lock timing
+
+The old Actions tail is un-attributable because the PostgreSQL adapter bypassed
+state timing, and the advisory lock preceded the handler trace. The trusted
+request adapter now times logical state operations into the existing trace,
+builds the ledger over that same wrapped store, and supplies only its measured
+lock wait. Total request timing includes that wait and Server-Timing separates
+it. Bounded operation summaries contain static method names, counts and
+durations; never SQL, arguments, keys or stored content. Failed state operations
+are timed too, and internal put-if-absent fallback reads are counted within one
+logical operation rather than double counted. No permissions, migration, tool
+contract or production business mutation. This creates evidence for natural
+traffic, not a measured speedup. Focused privacy, failed-operation, fallback
+counting and lock-total tests pass; complete npm run verify passed.
+Independent review, required CI and canonical release remain owed.
+
+
+PR #247 approved-scope release receipt: validate run 37153776229 passed in
+4m13s; merged `46e68815c86311006383b22ca18de02e7e31f38f` at 21:08:43Z
+(4:08 PM CDT). Clean main deployed under the session lease. CloudFormation
+UPDATE_COMPLETE was at 21:09:34Z; active successful web code was modified
+21:09:50Z and matched the release ZIP. No new migrations ran; all 43 smoke
+checks passed. The documented public status reported health.ok true.
+Live policy read-back matches only reply/claim prefix listing with max-keys
+"1". Simulating that actual document allows both one-result lookups and
+denies request, email, root and two-result lookups. No paid draft or production
+business mutation was used. The lease is released. Public tool acceptance
+is not applicable to this private draft adapter and permission correction.

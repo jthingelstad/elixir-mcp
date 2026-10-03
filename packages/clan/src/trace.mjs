@@ -127,6 +127,17 @@ export function summarize(trace, status) {
   const ms = Date.now() - trace.started;
   const elixirMs = trace.elixir.reduce((s, c) => s + c.ms, 0);
   const storeMs = trace.store.reduce((s, c) => s + c.ms, 0);
+  const store = [...new Set(trace.store.map((entry) => entry.op))]
+    .slice(0, 32)
+    .map((op) => {
+      const operations = trace.store.filter((entry) => entry.op === op);
+      return {
+        op,
+        count: operations.length,
+        ms: operations.reduce((sum, entry) => sum + entry.ms, 0),
+        max_ms: Math.max(...operations.map((entry) => entry.ms)),
+      };
+    });
   const models = trace.model ?? [];
   const modelMs = models.reduce((s, c) => s + c.ms, 0);
   return {
@@ -139,6 +150,7 @@ export function summarize(trace, status) {
     elixir_calls: trace.elixir.length,
     store_ms: storeMs,
     store_ops: trace.store.length,
+    ...(store.length ? { store } : {}),
     ...(models.length ? { model_ms: modelMs, model_calls: models.length } : {}),
     ...(trace.cold ? { cold: true } : {}),
     ...(trace.elixir.length ? { elixir: trace.elixir } : {}),
@@ -152,7 +164,11 @@ export function serverTiming(summary) {
   const modelMs = summary.model_ms ?? 0;
   const own = Math.max(
     0,
-    summary.ms - summary.elixir_ms - summary.store_ms - modelMs,
+    summary.ms -
+      summary.elixir_ms -
+      summary.store_ms -
+      modelMs -
+      (summary.lock_ms ?? 0),
   );
   return [
     `total;dur=${summary.ms}`,
@@ -161,6 +177,7 @@ export function serverTiming(summary) {
       ? [`model;dur=${modelMs};desc="${summary.model_calls} calls"`]
       : []),
     `store;dur=${summary.store_ms};desc="${summary.store_ops} ops"`,
+    ...(summary.lock_ms !== undefined ? [`lock;dur=${summary.lock_ms}`] : []),
     `own;dur=${own}`,
     ...(summary.cold ? ["cold"] : []),
   ].join(", ");

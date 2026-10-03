@@ -1,3 +1,5 @@
+import { timedStore } from "@elixir-mcp/clan/trace.mjs";
+import { ledgerOver } from "@elixir-mcp/clan-state";
 import { createModelService } from "@elixir-mcp/clan/manage/model.mjs";
 import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
 import { createModelBridge } from "@elixir-mcp/clan/model-bridge.mjs";
@@ -19,10 +21,7 @@ import { createSocialService } from "@elixir-mcp/clan/manage/social.mjs";
 import { createFeedbackService } from "@elixir-mcp/clan/feedback.mjs";
 import { diskGeo } from "@elixir-mcp/clan/geo.mjs";
 import { normalizeTag } from "@elixir-mcp/clan/gate.mjs";
-import {
-  createPostgresStore,
-  createPostgresLedger,
-} from "@elixir-mcp/clan-state/postgres";
+import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
 import { myPlayers } from "@elixir-mcp/record/players";
 import { warMembershipEvidence } from "@elixir-mcp/record/war-membership";
 import {
@@ -63,6 +62,17 @@ const answer = async (fn) => {
     };
   }
 };
+
+/** Time logical state operations without exposing keys, SQL or stored words. */
+export function createTracedClanStore(db) {
+  const raw = createPostgresStore(db);
+  return Object.fromEntries(
+    Object.entries(raw).map(([op, fn]) => [
+      op,
+      (...args) => timedStore(`clan_state.${op}`, () => fn.apply(raw, args)),
+    ]),
+  );
+}
 
 export function createClanRequest({
   origin,
@@ -114,8 +124,8 @@ export function createClanRequest({
       removeFact: (tag, ref) =>
         answer(() => removeClanFactInClan(db, account, tag, ref)),
     });
-    const state = createPostgresStore(db),
-      ledger = createPostgresLedger(db);
+    const state = createTracedClanStore(db),
+      ledger = ledgerOver(state);
     const context = createAccountContext({
       account,
       state,
@@ -185,9 +195,11 @@ export function createClanRequest({
       : method !== "GET"
         ? `clan-state:${account.accountId}`
         : null;
+    const lockStarted = Date.now();
     if (lock) await db.query("select pg_advisory_lock(hashtext($1))", [lock]);
+    const lockMs = lock ? Date.now() - lockStarted : null;
     try {
-      return await handler(event);
+      return await handler(event, { lockMs });
     } finally {
       if (lock)
         await db.query("select pg_advisory_unlock(hashtext($1))", [lock]);
