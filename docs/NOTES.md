@@ -3471,3 +3471,30 @@ superseded one-hour target. The local canonical verification gate and combined
 site build passed after the final history documentation update. Runtime cleanup
 is now eligible to merge; the retained-table maintenance allowlist deploy and
 later empty-table contract remain separate ordered steps.
+
+
+### Empty retired schema contract prepared (2026-10-03)
+
+Migration 0199 drops the 18 retired board, game-wide meta, named-group and
+featured-card tables only after PR #239's runtime cleanup is deployed.
+It takes the DROP locks before checking emptiness, uses a two-second lock
+timeout and a fifteen-second statement timeout, and has no CASCADE or
+canonical row rewrite. All retired history must be empty; a fresh ladder
+with no accounts may discard its old bootstrap board configuration.
+Production account state requires even board configuration to be empty.
+
+Three scratch cases passed: fresh bootstrap, atomic refusal for retained
+rows and an in-flight obsolete writer, and an upgrade preserving complete
+battles, cards, duel rounds, entities and immutable receipts. The migration
+checksum is appended and the complete fresh-schema fingerprint is repinned.
+No production DDL has run in this preparation. Merge/deploy remains gated on
+last-reader removal and the normal green verification/PR path.
+
+
+PR #239 merged at aac78161 and deployed before this contract was prepared
+for merge. Its complete live read-only acceptance sweep passed: 1,133 cases,
+zero failures, 375 retired/unavailable skips and 512 distinct calls.
+The last retired-table readers and one-time purge operations are no longer
+deployed. The fresh canonical gate, including the three contract scratch
+cases, passed. Retained-table vacuum uses the new explicit allowlist and
+finishes before the schema deploy takes the migrate slot.

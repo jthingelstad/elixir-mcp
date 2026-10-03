@@ -198,3 +198,8 @@ The reviewed cleanup of retired recording features is complete. Personal and
 clan overlap and retained replay records were verified before original archive
 versions were removed. The removed versions were checked absent. This does not
 change ordinary collector operation or the shared rate budget.
+
+
+The retired global recorder's empty tables are removed in a separate database
+migration after the runtime has stopped using them. Personal and clan facts,
+immutable receipt history and the shared collector contract remain.
