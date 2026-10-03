@@ -3,8 +3,8 @@
 _Formerly Close the Loop (renamed 2026-09-29)._
 
 Own the outcome: **both feedback loops — human and agent — visibly turn
-into responses, shipped improvements, and honest docs.** Elixir MCP is a
-data product whose users are often agents; their stumbles arrive as
+into responses, shipped improvements, and honest docs.** Elixir is a recorder used through the website, email and connected agents;
+first-use confusion and agent stumbles arrive as
 `elixir_feedback` items, error-code patterns in `mcp_call_audit`, and
 truncated or refused calls. Feedback is never actioned invisibly: every
 item gets a response, and the response lands in the filer's event feed.

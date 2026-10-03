@@ -480,6 +480,140 @@ describe("the clan's model on a Leader Message", () => {
   });
 });
 
+describe("editable clan chat", () => {
+  test("pending drafting locks the editor and an empty previous field can be restored", async () => {
+    vi.spyOn(manageApi, "action").mockResolvedValue(
+      one({
+        model: { set: true },
+        open: [{ ...removal, type: "welcome", copy: "Welcome!" }],
+      }),
+    );
+    let reply;
+    vi.spyOn(manageApi, "draftLeaderMessage").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          reply = resolve;
+        }),
+    );
+    renderWithProviders(
+      <ActionDetail number={37} clan={clan} who={{ role: "leader" }} />,
+    );
+    const editor = await screen.findByLabelText("Chat message");
+    fireEvent.change(editor, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
+    expect(editor.disabled).toBe(true);
+    expect(screen.getByLabelText("Draft tone").disabled).toBe(true);
+    reply({ ok: true, data: { line: "Welcome aboard!", model: "stub" } });
+    await screen.findByDisplayValue("Welcome aboard!");
+    expect(editor.disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
+    expect(
+      screen.getByRole("button", { name: "Put back what I had" }).disabled,
+    ).toBe(true);
+    reply({ ok: true, data: { line: "Second draft", model: "stub" } });
+    await screen.findByDisplayValue("Second draft");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Put back what I had" }),
+    );
+    expect(editor.value).toBe("Welcome aboard!");
+    fireEvent.change(editor, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
+    reply({ ok: true, data: { line: "Final draft", model: "stub" } });
+    await screen.findByDisplayValue("Final draft");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Put back what I had" }),
+    );
+    expect(editor.value).toBe("");
+  });
+  test("a leader edits a welcome, drafts and restores it, then records the words actually sent", async () => {
+    vi.spyOn(manageApi, "action").mockResolvedValue(
+      one({
+        model: { set: true, refused: false },
+        open: [
+          {
+            ...removal,
+            type: "welcome",
+            label: "Welcome",
+            audience: { kind: "elders" },
+            copy: "Welcome, Sleepy!",
+          },
+        ],
+      }),
+    );
+    const draft = vi.spyOn(manageApi, "draftLeaderMessage").mockResolvedValue({
+      ok: true,
+      data: { line: "Glad you joined, Sleepy!", model: "stub", warnings: [] },
+    });
+    const decide = vi
+      .spyOn(manageApi, "decideAction")
+      .mockResolvedValue({ ok: true, data: {} });
+    renderWithProviders(
+      <ActionDetail number={37} clan={clan} who={{ role: "coLeader" }} />,
+    );
+    fireEvent.change(await screen.findByLabelText("Chat message"), {
+      target: { value: "Welcome aboard, Sleepy!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
+    await screen.findByDisplayValue("Glad you joined, Sleepy!");
+    expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "a1", null);
+    expect(decide).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Put back what I had"));
+    await screen.findByDisplayValue("Welcome aboard, Sleepy!");
+    fireEvent.click(screen.getByRole("button", { name: "Welcomed" }));
+    await waitFor(() =>
+      expect(decide).toHaveBeenCalledWith("#2PQRJ8LV", "a1", {
+        status: "done",
+        reason: null,
+        note: null,
+        sent: { line: "Welcome aboard, Sleepy!" },
+      }),
+    );
+  });
+
+  test("a failed removal draft preserves edits and does not complete or automatically retry the action", async () => {
+    vi.spyOn(manageApi, "action").mockResolvedValue(
+      one({ model: { set: true, refused: false } }),
+    );
+    const draft = vi
+      .spyOn(manageApi, "draftLeaderMessage")
+      .mockRejectedValue(new Error("lost reply"));
+    const decide = vi
+      .spyOn(manageApi, "decideAction")
+      .mockResolvedValue({ ok: true });
+    renderWithProviders(
+      <ActionDetail number={37} clan={clan} who={{ role: "leader" }} />,
+    );
+    fireEvent.change(await screen.findByLabelText("Chat message"), {
+      target: { value: "My own words" },
+    });
+    expect(screen.getByText(/Use this only after you decide/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
+    await screen.findByText(/outcome is unknown.*words are unchanged/);
+    expect(screen.getByDisplayValue("My own words")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Draft in our voice" }).disabled,
+    ).toBe(false);
+    expect(draft).toHaveBeenCalledTimes(1);
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  test("an elder can edit a welcome but cannot use the clan's model", async () => {
+    vi.spyOn(manageApi, "action").mockResolvedValue(
+      one({
+        model: { set: true },
+        open: [{ ...removal, type: "welcome", copy: "Welcome!" }],
+      }),
+    );
+    renderWithProviders(
+      <ActionDetail number={37} clan={clan} who={{ role: "elder" }} />,
+    );
+    await screen.findByLabelText("Chat message");
+    expect(
+      screen.queryByRole("button", { name: "Draft in our voice" }),
+    ).toBeNull();
+  });
+});
+
 describe("you here", () => {
   test("a member sees their week, what the clan makes of it, and their time here", async () => {
     const { YouHere } = await import("../src/views/YouHere.jsx");

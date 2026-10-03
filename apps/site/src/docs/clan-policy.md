@@ -113,6 +113,8 @@ without a policy:
 - **The clan's own model**: an Anthropic key of the clan's own, which
   lets a model draft the recruiting pitch in Recruit and, on an open
   action, the Clan Leader Message for a promotion, demotion, awards
-  announcement or policy-change announcement. It is never told a
-  member's name or numbers, and everything it writes is a draft a leader
-  edits.
+  announcement or policy-change announcement, plus welcome and post-decision
+  removal chat lines. Saved recruiting words provide the clan's voice.
+  Action evidence and member details stay local; chat drafts use fixed tone choices. Keep member details out of a Leader
+  Message note. Everything it writes is a draft a leader edits
+  and copies into the game. It never makes or completes a decision.

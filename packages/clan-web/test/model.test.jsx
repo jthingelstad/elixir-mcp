@@ -70,6 +70,8 @@ describe("the clan's model", () => {
     renderWithProviders(<Model clan={leaderClan} />);
     expect(await screen.findByText("sk-ant-…WXYZ")).toBeTruthy();
     expect(screen.getByText("in use")).toBeTruthy();
+    expect(screen.getByText(/messages on open Actions: welcomes/)).toBeTruthy();
+    expect(screen.getByText(/Nothing is posted automatically/)).toBeTruthy();
     expect(screen.getByText("2 of 20 uses")).toBeTruthy();
     expect(screen.getByLabelText("Model").value).toBe("claude-sonnet-5");
     expect(screen.getByText("Recruiting pitch")).toBeTruthy();

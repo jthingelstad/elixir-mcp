@@ -16,7 +16,13 @@
 
 import { MAX_POINTS, PITCH_FIELDS, validatePitch } from "./recruit.mjs";
 import { GOALS, POSTURES } from "./goals.mjs";
-import { chatSafe, chatWarnings, clipChat } from "./chat.mjs";
+import {
+  CHAT_MAX,
+  WELCOME_MAX,
+  chatSafe,
+  chatWarnings,
+  clipChat,
+} from "./chat.mjs";
 import { LEADER_MESSAGE, fitList } from "./render.mjs";
 
 /** What a clan's model may write. */
@@ -28,6 +34,10 @@ export const PURPOSES = {
   leader_message: {
     label: "Leader Message",
     why: "Drafts a Clan Leader Message in the clan's own voice (a promotion, a demotion, the season's awards, how the clan runs) for a leader to edit and send.",
+  },
+  clan_chat: {
+    label: "Clan chat",
+    why: "Drafts a welcome or a message after a leader's decision, for a person to edit and send in the game.",
   },
 };
 
@@ -54,6 +64,13 @@ export function chooseModel(ids = []) {
 
 /** A leader's note to the model is short. */
 export const NOTE_MAX = 300;
+
+/** Chat drafts receive a closed tone choice, never a free-form member note. */
+export const CHAT_TONES = {
+  warm: "Warm and brief",
+  gentle: "Gentle and respectful",
+  direct: "Plain and direct",
+};
 
 const TYPE = { open: "open", inviteOnly: "invite only", closed: "closed" };
 const n = (x) => Number(x).toLocaleString("en-US");
@@ -389,4 +406,77 @@ export function leaderMessageFromDraft(
       ...chatWarnings(body, LEADER_MESSAGE.body),
     ],
   };
+}
+
+/** Short chat copy for an existing action. Its evidence and member details
+ * stay in Clan; the model receives only the message's purpose and clan voice. */
+export function chatMessageRequest({
+  kind,
+  clanName = null,
+  voice = null,
+  goals = [],
+  note = null,
+} = {}) {
+  if (!["welcome", "removal"].includes(kind))
+    throw new Error(`no chat draft for ${kind}`);
+  const max = kind === "welcome" ? WELCOME_MAX : CHAT_MAX;
+  const lines = [`The clan: ${clanName ?? "a Clash Royale clan"}.`];
+  if (voice?.tagline || voice?.about)
+    lines.push(
+      "The clan's own voice:",
+      `Tagline: ${voice.tagline ?? ""}`,
+      `About: ${voice.about ?? ""}`,
+    );
+  if (goals.length)
+    lines.push(
+      `What the clan is for: ${goals.map((g) => GOALS[g]?.label ?? g).join(", ")}.`,
+    );
+  lines.push(
+    kind === "welcome"
+      ? "Welcome a new member. Write {name} for them. Be friendly and make no promises or demands."
+      : "Prepare a kind clan-chat message to use only AFTER a leader decides and carries out removal for inactivity. Write {name} for the member. Say they are welcome back when playing again. Do not advise whether to remove them, invent a reason, or shame them.",
+  );
+  if (note && !Object.hasOwn(CHAT_TONES, note))
+    throw new Error("invalid chat tone");
+  if (note) lines.push(`The tone: ${CHAT_TONES[note]}.`);
+  return {
+    purpose: "clan_chat",
+    max_tokens: 250,
+    system: [
+      "Write one short Clash Royale clan-chat line in the clan's voice. A person edits it and sends it in the game; nothing is posted automatically.",
+      `Keep it within ${max - 30} characters, leaving room for the member's name. Use {name} exactly once.`,
+      "Never judge a member or write a score, rank, number, rule, reward, or event. Use only the clan context supplied. Write in English unless asked otherwise.",
+      "Plain text only: no links, emoji, markdown, @mentions, '&', 'phone', or hyphens inside words. Answer by calling write_chat_message.",
+    ].join("\n"),
+    prompt: lines.join("\n"),
+    tool: {
+      name: "write_chat_message",
+      description: "One clan-chat line for a person to review, edit and send.",
+      input_schema: {
+        type: "object",
+        properties: { line: { type: "string", maxLength: max - 30 } },
+        required: ["line"],
+        additionalProperties: false,
+      },
+    },
+  };
+}
+
+/** Put the name back locally and retain the same game limits and warnings. */
+export function chatMessageFromDraft(input, { kind, name = null } = {}) {
+  if (!["welcome", "removal"].includes(kind))
+    throw new Error(`no chat draft for ${kind}`);
+  const max = kind === "welcome" ? WELCOME_MAX : CHAT_MAX;
+  const who = chatSafe(name ?? "a member");
+  let line = String(input?.line ?? "")
+    .replaceAll("{name}", who)
+    .trim();
+  if (!line)
+    line =
+      kind === "welcome"
+        ? `Welcome to the clan, ${who}!`
+        : `${who} was removed for inactivity. Welcome back when you are playing again.`;
+  else if (!line.includes(who)) line = `${who}: ${line}`;
+  line = clipChat(chatSafe(line), max);
+  return { line, warnings: chatWarnings(line, max) };
 }

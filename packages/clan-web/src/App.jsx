@@ -380,13 +380,13 @@ export function ClanShell({
   const [selecting, setSelecting] = useState(false);
 
   const select = useCallback(
-    async (tag) => {
+    async (tag, { keepPath = false } = {}) => {
       setSelecting(true);
       const r = await api.select(tag);
       setSelecting(false);
       if (r.ok) {
         setMe(r.data);
-        navigate(clanPath(tag));
+        if (!keepPath) navigate(clanPath(tag));
       } else if (r.status === 401) {
         setMe({ signed_in: false, expired: true });
       }
@@ -437,7 +437,8 @@ export function ClanShell({
     ) {
       // Arriving at another of your clans by URL selects it, so the
       // remembered clan follows where you actually went.
-      select(atClan.clan_tag);
+      // Email/action deep links select the clan without losing their destination.
+      select(atClan.clan_tag, { keepPath: true });
     }
   }, [me, path, app, navigate, select, selecting, rememberAfterSignIn]);
 

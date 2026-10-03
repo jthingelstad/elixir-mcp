@@ -547,7 +547,7 @@ export function createHandler({
         }
         return json(400, { error: "bad_request" });
       }
-      // A Leader Message in the clan's voice, by the clan's own model.
+      // An action's message in the clan's voice, by the clan's own model.
       const draft = /^\/actions\/([A-Za-z0-9_-]+)\/draft$/.exec(rest);
       if (method === "POST" && draft) {
         if (!drafts) return json(404, { error: "not_found" });

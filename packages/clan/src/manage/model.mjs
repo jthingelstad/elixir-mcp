@@ -288,7 +288,10 @@ export function createModelService({
           message: "Anthropic is busy. Try again in a minute.",
         });
       throw new ManageError(502, "model_failed", null, {
-        message: r.message ?? "The model did not answer.",
+        message:
+          r.code === "outcome_unknown"
+            ? "The draft's outcome is unknown and this attempt is counted. Check the use log in Settings before requesting another draft."
+            : (r.message ?? "The model did not answer."),
       });
     },
   };

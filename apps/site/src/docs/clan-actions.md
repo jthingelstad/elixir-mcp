@@ -86,14 +86,29 @@ see it can comment, up to 1,000 characters.
 A Clan Leader Message is the game's leader message: only the leader and
 co-leaders can send one, it has a title of up to 24 characters and a
 body of up to 180, and it stays in every member's inbox. A clan chat
-line is for the chat. Clan drafts the words; copy them into the game and
-change what you like. Nothing is ever posted for the clan automatically.
+line is for the chat. Edit welcomes (up to 120 characters) and removal
+messages (up to 200) before copying them into the game. Each field counts
+characters and warns about known chat-filter problems. Nothing is ever
+posted for the clan automatically.
 
 With the clan's own model set up under **Manage ▸ Settings**, an open
-Leader Message action also offers **Draft in our voice**. It uses the
+Leader Message, welcome or removal action offers leaders and co-leaders
+**Draft in our voice**. It uses the
 clan's Anthropic key to draft a promotion, demotion, awards announcement
-or policy-change announcement. The model is not given a member's name or
-numbers, and its answer remains an editable draft for a leader to send.
+or policy-change announcement, a welcome, or a chat line to use after a
+removal decision. The action's member name and evidence stay local: Clan
+puts the name back into the model's placeholder. The model never decides
+whether to promote, demote or remove anyone.
+
+The clan's saved words in **Recruit** supply its voice. Choose a fixed tone for a chat line, or add a short Leader Message note
+without member details; review and edit the answer.
+**Put back what I had** restores your previous words. Elders can edit and
+copy welcomes without using the clan's model. Completing a welcome records
+the words as edited. Drafting completes no action and sends no game message.
+
+When a call's outcome is unknown, that attempt counts toward the daily
+limit. Check the use log in Settings before requesting another draft;
+Elixir does not automatically repeat it. The daily use limit is not a dollar cap.
 
 ## The inactivity clock
 
