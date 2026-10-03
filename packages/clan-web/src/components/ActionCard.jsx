@@ -56,6 +56,7 @@ const TYPE_ICON = {
   departure: ["log-out", "text-ink-dim"],
   welcome: ["users", "text-ok"],
   away: ["plane", "text-accent-bright"],
+  awards_standings: ["megaphone", "text-accent-bright"],
   awards_announcement: ["megaphone", "text-accent-bright"],
   rules_announcement: ["file-text", "text-accent-bright"],
 };
@@ -563,6 +564,7 @@ export function ActionCard({
     body: action.message?.body ?? "",
   });
   const onDraft =
+    action.type !== "awards_standings" &&
     model?.set &&
     !model.refused &&
     action.can_act !== false &&
@@ -701,6 +703,16 @@ export function ActionCard({
                 ? ` Message ${ev.part} of ${ev.parts}; send every part to name all recipients.`
                 : ""}
             </div>
+          ) : action.type === "awards_standings" ? (
+            <div>
+              War week {ev.section_index + 1} of season {ev.season_id} is
+              recorded as closed. Share provisional standings through that week,
+              then mark it sent. These are not final grants; incomplete evidence
+              withholds places.
+              {ev.parts > 1
+                ? ` Message ${ev.part} of ${ev.parts}; send every part.`
+                : ""}
+            </div>
           ) : action.type === "rules_announcement" ? (
             <div>
               {ev.changes?.length
@@ -836,7 +848,8 @@ export function ActionCard({
                   I&rsquo;m not away
                 </button>
               </div>
-            ) : action.type === "awards_announcement" ||
+            ) : action.type === "awards_standings" ||
+              action.type === "awards_announcement" ||
               action.type === "rules_announcement" ? (
               <div className="flex flex-wrap gap-2">
                 <NoteInput value={note} onChange={setNote} />

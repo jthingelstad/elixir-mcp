@@ -128,6 +128,7 @@ export function factsOfAction(
       "promotion",
       "demotion",
       "awards_announcement",
+      "awards_standings",
       "rules_announcement",
     ].includes(card.type)
   ) {

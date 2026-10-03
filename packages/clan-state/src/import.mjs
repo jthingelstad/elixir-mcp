@@ -25,6 +25,7 @@ const KINDS = new Set([
   "awards_snapshot",
   "award",
   "award_plan",
+  "award_week",
   "social",
   "feedback",
   "place",
