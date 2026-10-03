@@ -30,7 +30,7 @@ alone does not establish awards readiness. Before calling this ready:
   Opening Awards/Trophies can evaluate and write grants, so it is not a read-only
   verification path. Do not award an open season during validation.
 
-The [awards review](2026-10-03-CLAN-AWARDS-READINESS.md) records unresolved blockers.
+The [awards review](2026-10-03-CLAN-AWARDS-READINESS.md) records the repaired defects, release acceptance and remaining live checks.
 
 1. Each leader and co-leader signs in with their own Elixir account, checks
    that their primary or alt is theirs and verified, and opens the right
@@ -77,3 +77,11 @@ The Operator checks runtime/morning receipts, the Data Auditor checks policy
 evidence and season identity, the Feedback Manager follows real feedback and
 first-use friction, and the Security Reviewer checks identity/private-state
 boundaries. No new scheduled owner or recurring service is added.
+
+
+Release: PR #243 (`727cfccf`) deploy and read-back passed on October 3,
+observed complete at 18:51:34Z (1:51 PM CDT). It includes PR #242 and
+provisional standings Actions after recorded war-week closure. The normal
+11:00 UTC morning evaluation is after Monday's nominal war reset; completed
+weekly copy and final award announcements remain separate. Code validation
+does not substitute for co-leaders' own sign-in or the season's closing evidence.

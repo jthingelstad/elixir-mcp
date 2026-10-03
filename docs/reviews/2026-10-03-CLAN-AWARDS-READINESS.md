@@ -33,10 +33,14 @@ manual confirmation and full announcement copy on wide and narrow screens.
 The baseline tests did not cover these cases; the repair adds synthetic regressions for them.
 
 The implementation now guards every listed defect with synthetic fixtures.
-Full repository verification and four built desktop/mobile journeys passed.
+Full repository verification and six built desktop/mobile journeys passed, including weekly provisional copy.
 Final read-only reviews closed the rookie eligibility and pending segment-number
-findings; 76 focused engine/service/provider-stub tests pass. Production account
-checks and release read-back remain owed; deployment follows the normal CI gate. This document is engineering acceptance,
+findings; the focused engine/service/provider-stub tests pass. Weekly copy bounds,
+cached retry and disabled-configuration recovery findings are also closed.
+PR #243 shipped as `727cfccf`; GitHub validate passed all 77 browser cases.
+The canonical deploy, smoke and public health/docs/version read-back passed
+on October 3, observed complete at 18:51:34Z (1:51 PM CDT). Production account
+checks and any explicitly reviewed historical reconciliation remain separate. This document is engineering acceptance,
 not a production snapshot or certification that current-season evidence is final.
 
 The private canonical membership reader uses the shared membership query and

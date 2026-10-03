@@ -3644,3 +3644,24 @@ the finished tree (including scratch PostgreSQL); all six built desktop/mobile
 journeys passed with axe, overflow and exact clipboard checks. Reviewed weekly
 copy bounds, cached retry and disabled-configuration recovery findings are closed.
 Merge, deployment smoke and production read-back remain owed.
+
+
+Release receipt: PR #243 merged as `727cfccfd77e5ce1997276d0c609104b62164d5d`
+at 18:48:23Z (1:48 PM CDT). GitHub `validate` passed, including all 77
+browser cases. The canonical deploy from clean main passed its CI gate on
+the identical green PR tree and reported complete when read at 18:51:34Z
+(1:51 PM CDT). No new migrations ran (199 already applied); all 43 smoke
+checks passed. CloudFormation reports UPDATE_COMPLETE, web/jobs are Active
+with Successful updates, and their code keys match the shipped bundles.
+Public read-back confirms health.ok=true, MCP 11.0.1, JSON API 3.0.0, the
+weekly-progress docs and the new update entry. The combined release includes
+PR #242. External-tool acceptance was intentionally omitted because the
+changes are private Clan behavior and documentation, with no public tool
+shape or query-path changes. The deployment lease is released.
+
+Current-season final evidence still waits for its recorded Colosseum close.
+Historical manual-award reconciliation and co-leaders' own sign-in/model-status
+checks remain separate; no historical grants, paid model calls or in-game
+messages were created for verification. These are remaining live readiness
+checks, not a release blocker. The existing morning evaluation is scheduled
+at 11:00 UTC (6:00 AM CDT on Monday October 5); no scheduler was added.
