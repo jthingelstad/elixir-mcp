@@ -660,7 +660,7 @@ Resources:
                         - clan-model/reply/*
                         - clan-model/claim/*
                     NumericLessThanEquals:
-                      s3:max-keys: 1
+                      s3:max-keys: "1"
                 - !Ref AWS::NoValue
               # Durable transport receipts for one notice per upgrade.
               - Effect: Allow

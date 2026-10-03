@@ -41,7 +41,7 @@ test("the model relay can distinguish unwritten replies without reading other ou
   const role = resource(template, "EmailRelayRole", "EmailRelayFunction");
   assert.match(
     role,
-    /Action: s3:ListBucket\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\n\s+Condition:\n\s+StringLike:\n\s+s3:prefix:\n\s+- clan-model\/reply\/\*\n\s+- clan-model\/claim\/\*\n\s+NumericLessThanEquals:\n\s+s3:max-keys: 1/,
+    /Action: s3:ListBucket\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\n\s+Condition:\n\s+StringLike:\n\s+s3:prefix:\n\s+- clan-model\/reply\/\*\n\s+- clan-model\/claim\/\*\n\s+NumericLessThanEquals:\n\s+s3:max-keys: "1"/,
   );
   assert.equal((role.match(/Action: s3:ListBucket/g) ?? []).length, 1);
   assert.match(
