@@ -8,48 +8,62 @@ import {
   LEADER_MESSAGE,
 } from "@elixir-mcp/clan-engine";
 
-function updateParts(season, { prefix, title, complete }) {
-  const lines = [];
-  for (const award of season.awards.filter((a) => a.state !== "off")) {
-    const label = clipChat(chatSafe(award.name), 40);
-    if (award.state === "held" || (award.computed && !complete))
-      lines.push(`${label}: evidence incomplete; places withheld.`);
-    else if (award.state === "manual")
-      lines.push(`${label}: a human choice at season close.`);
-    else if (award.kind === "perfect_attendance")
-      lines.push(
-        `${label}: ${award.rows.length} recorded on track; others may lack evidence.`,
-      );
-    else {
-      const rows = award.rows.filter((row) => row.on_podium);
-      if (!rows.length) lines.push(`${label}: no recorded contenders yet.`);
-      for (const row of rows) {
-        const metric =
-          award.kind === "donations_podium"
-            ? `${row.total} cards`
-            : `${row.points} points`;
-        let name = chatSafe(row.name ?? row.player_tag);
-        const line = () => `${label}: ${row.place}. ${name}, ${metric}.`;
-        if ((prefix + line()).length > LEADER_MESSAGE.body)
-          name = chatSafe(row.player_tag);
-        lines.push(line());
-      }
-    }
-  }
+export function awardUpdateParts(season, { prefix, title, complete }) {
   const bodies = [];
   let body = prefix;
-  for (const line of lines) {
-    const next = body === prefix ? prefix + line : body + " " + line;
-    if (next.length <= LEADER_MESSAGE.body) body = next;
+  const number = (value) => Number(value).toLocaleString("en-US");
+  for (const award of season.awards.filter(
+    (a) => a.state !== "off" && a.state !== "manual",
+  )) {
+    const label = clipChat(chatSafe(award.name), 40);
+    let items;
+    if (award.state === "held" || (award.computed && !complete))
+      items = ["standings not ready"];
+    else if (award.kind === "perfect_attendance")
+      items = [`${number(award.rows.length)} on track`];
     else {
-      if (body !== prefix) bodies.push(body);
-      body = prefix + line;
+      items = award.rows
+        .filter((row) => row.on_podium)
+        .map((row) => {
+          const metric = number(
+            award.kind === "donations_podium" ? row.total : row.points,
+          );
+          const fixed = `${row.place}.  ${metric}.`;
+          const nameBudget =
+            LEADER_MESSAGE.body -
+            prefix.length -
+            label.length -
+            2 -
+            fixed.length;
+          // A long name is clipped visibly; player IDs never belong in outgoing copy.
+          const name = clipChat(
+            chatSafe(row.name || "Member") || "Member",
+            nameBudget,
+          );
+          return `${row.place}. ${name} ${metric}`;
+        });
+      if (!items.length) items = ["no qualifiers yet"];
+    }
+    for (const [i, item] of items.entries()) {
+      const line = `${i === 0 ? `${label}: ` : ""}${item}.`;
+      const next = body === prefix ? prefix + line : `${body} ${line}`;
+      if (next.length <= LEADER_MESSAGE.body) body = next;
+      else {
+        if (body !== prefix) bodies.push(body);
+        body = `${prefix}${label}: ${item}.`;
+      }
     }
   }
   if (body !== prefix) bodies.push(body);
   return bodies.map((body, i) => ({
     part: i + 1,
-    message: { title: `${title} ${i + 1}/${bodies.length}`, body },
+    message: {
+      title: clipChat(
+        `${title}${bodies.length > 1 ? ` (${i + 1}/${bodies.length})` : ""}`,
+        LEADER_MESSAGE.title,
+      ),
+      body,
+    },
   }));
 }
 
@@ -58,17 +72,14 @@ export function currentAwardUpdate({ participation, config, now }) {
   const season = result.seasons[0];
   if (!season || season.closed) return null;
   const asOf = participation.meta?.as_of ?? now.toISOString();
-  const stamp = Number.isFinite(Date.parse(asOf))
-    ? new Date(asOf).toISOString().slice(5, 16).replace("T", " ")
-    : now.toISOString().slice(5, 16).replace("T", " ");
   return {
     scope: "current",
     season_id: season.season_id,
     as_of: asOf,
     complete: season.complete,
-    parts: updateParts(season, {
-      prefix: `Provisional S${season.season_id} ${stamp} UTC. `,
-      title: `S${season.season_id} now`,
+    parts: awardUpdateParts(season, {
+      prefix: "So far: ",
+      title: `Season ${season.season_id}`,
       complete: season.complete,
     }),
   };
@@ -134,9 +145,9 @@ export function weeklyAwardUpdates({ participation, config, now }) {
         finished_observed_at: week.finished_observed_at,
         as_of: participation.meta?.as_of ?? null,
         complete: throughComplete,
-        parts: updateParts(season, {
-          prefix: `Provisional S${week.season_id} W${week.section_index + 1}. `,
-          title: `S${week.season_id} W${week.section_index + 1}`,
+        parts: awardUpdateParts(season, {
+          prefix: `After week ${week.section_index + 1}: `,
+          title: `S${week.season_id} week ${week.section_index + 1}`,
           complete: throughComplete,
         }),
       };

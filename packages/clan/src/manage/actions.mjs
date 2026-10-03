@@ -29,12 +29,19 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
     clanTag,
     card_id,
     kind,
-    { by = SYSTEM, text = null, detail = null } = {},
+    {
+      by = SYSTEM,
+      text = null,
+      detail = null,
+      at = null,
+      entry_id = null,
+    } = {},
   ) =>
     ledger.appendActionLog(clanTag, {
       card_id,
+      ...(entry_id ? { entry_id } : {}),
       ...logEntry(kind, {
-        at: new Date(now()).toISOString(),
+        at: at ?? new Date(now()).toISOString(),
         by,
         text,
         detail,
@@ -102,12 +109,57 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
           ? 1
           : String(a.seq ?? "").localeCompare(String(b.seq ?? ""));
     const entries = [...(stored ?? [])].sort(order);
-    if (entries.some((e) => e.kind === "raised")) return entries;
     const have = new Set(entries.map((e) => e.kind));
-    return [
-      ...reconstructedLog(card).filter((e) => !have.has(e.kind)),
-      ...entries,
-    ].sort(order);
+    const base = entries.some((e) => e.kind === "raised")
+      ? []
+      : reconstructedLog(card).filter((e) => !have.has(e.kind));
+    for (const reopening of card.reopenings ?? []) {
+      const decline = reopening.decline;
+      if (
+        decline?.decided_at &&
+        !entries.some(
+          (e) =>
+            e.kind === "declined" &&
+            e.at === decline.decided_at &&
+            e.by?.tag === decline.decided_by,
+        )
+      )
+        base.push(
+          logEntry("declined", {
+            at: decline.decided_at,
+            by: {
+              tag: decline.decided_by,
+              name: decline.decided_by_name ?? null,
+              role: null,
+            },
+            text: decline.decision_note ?? null,
+            detail: {
+              reason: decline.decline_reason ?? null,
+              reconstructed: true,
+            },
+          }),
+        );
+      if (
+        !entries.some(
+          (e) =>
+            e.kind === "reopened" &&
+            e.detail?.request_id === reopening.request_id,
+        )
+      )
+        base.push(
+          logEntry("reopened", {
+            at: reopening.at,
+            by: reopening.by,
+            text: "Returned to Open by leadership.",
+            detail: {
+              request_id: reopening.request_id,
+              decline,
+              reconstructed: true,
+            },
+          }),
+        );
+    }
+    return [...base, ...entries].sort(order);
   }
 
   /** The words an action carries into the game: a clan chat line, or a
@@ -155,6 +207,18 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
     can_act:
       c.status === "proposed" &&
       (!who || (canAct(c, who) && who.verified !== false)),
+    can_reopen:
+      c.status === "declined" &&
+      !!who &&
+      who.verified !== false &&
+      ["leader", "coLeader"].includes(who.role) &&
+      canAct(c, who) &&
+      !(
+        c.evidence?.messages?.length &&
+        c.evidence.messages.every((message) =>
+          c.messages_sent?.some((receipt) => receipt.part === message.part),
+        )
+      ),
     log: logOf(c, stored),
   });
 

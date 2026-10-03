@@ -111,6 +111,13 @@ export function createMemoryLedger() {
     async get(pk) {
       return items.get(pk) ?? null;
     },
+    async compareAndPatch(pk, expected, patch) {
+      const current = items.get(pk);
+      if (!current || !isDeepStrictEqual(current, expected)) return null;
+      const updated = { ...current, ...structuredClone(patch) };
+      items.set(pk, updated);
+      return updated;
+    },
     async listByPartition(partition, prefix) {
       return [...items.values()]
         .filter(
@@ -282,6 +289,17 @@ export function ledgerOver(io) {
       });
       return card;
     },
+    /** Change only the exact card snapshot read by this caller. */
+    async updateCardIf(clanTag, expected, patch) {
+      const pk = `card#${clanTag}#${expected.card_id}`;
+      const current = await io.get(pk);
+      if (!current || !isDeepStrictEqual(stripKeys(current), expected))
+        return null;
+      if (!io.compareAndPatch)
+        throw new Error("atomic card updates unavailable");
+      const next = await io.compareAndPatch(pk, current, patch);
+      return next ? stripKeys(next) : null;
+    },
     // ---- action logs: append-only, one item per entry, so two people
     // writing at once never overwrite each other ------------------------
     async actionLog(clanTag, cardId) {
@@ -308,12 +326,15 @@ export function ledgerOver(io) {
       // written in: `seq` breaks the tie.
       const seq = String((logSeq = (logSeq + 1) % 1e9)).padStart(9, "0");
       const item = { ...entry, entry_id, seq };
-      await io.put({
+      const row = {
         pk: `action_log#${clanTag}#${entry.card_id}#${entry_id}`,
         gsi1pk: clanKey(clanTag),
         gsi1sk: `action_log#${entry.card_id}#${entry.at}#${seq}#${entry_id}`,
         ...item,
-      });
+      };
+      if (entry.entry_id && io.putIfAbsent)
+        return stripKeys(await io.putIfAbsent(row));
+      await io.put(row);
       return item;
     },
     // ---- holds ---------------------------------------------------------

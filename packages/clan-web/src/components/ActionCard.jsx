@@ -6,7 +6,7 @@ import {
   LEADER_MESSAGE,
   chatWarnings,
 } from "@elixir-mcp/clan-engine";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";
 import { CLAN } from "../lib/base.js";
@@ -38,6 +38,7 @@ const KIND = {
   raised: "Suggested",
   completed: "Completed",
   declined: "Declined",
+  reopened: "Reopened",
   withdrawn: "Withdrawn",
   outcome_verified: "Confirmed by the record",
   outcome_flagged: "Flagged: no change seen",
@@ -77,6 +78,7 @@ const KIND_ICON = {
   raised: "bell",
   completed: "circle-check",
   declined: "x",
+  reopened: "inbox",
   withdrawn: "circle-dashed",
   outcome_verified: "shield-check",
   outcome_flagged: "shield-question-mark",
@@ -551,6 +553,8 @@ export function ActionCard({
   const [note, setNote] = useState("");
   const [declining, setDeclining] = useState(false);
   const [busy, setBusy] = useState(false);
+  const reopenRequest = useRef(null);
+  const reopenPending = useRef(false);
   const [error, setError] = useState("");
   const [sheet, setSheet] = useState(false);
   const open = action.status === "proposed";
@@ -622,6 +626,45 @@ export function ActionCard({
       `${action.type}:${extra.classification ?? status}`,
     );
     onChanged?.();
+  };
+  const reopen = async () => {
+    if (reopenPending.current) return;
+    reopenPending.current = true;
+    reopenRequest.current ??= crypto.randomUUID();
+    setBusy(true);
+    setError("");
+    try {
+      const r = await manageApi.reopenAction(clan.clan_tag, action.card_id, {
+        request_id: reopenRequest.current,
+        expected_decided_at: action.decided_at ?? null,
+      });
+      if (!r.ok) {
+        if (
+          [
+            "action_changed",
+            "action_not_declined",
+            "action_already_delivered",
+          ].includes(r.data?.error)
+        )
+          onChanged?.();
+        return setError(
+          r.data?.error === "leaders_only" || r.data?.error === "unverified"
+            ? "Only verified clan leadership can reopen a declined action."
+            : r.status === 409
+              ? "This action changed. Reload it before trying again."
+              : "Reopening was not confirmed. Try again to check the same request.",
+        );
+      }
+      reopenRequest.current = null;
+      onChanged?.();
+    } catch {
+      setError(
+        "Reopening was not confirmed. Try again to check the same request.",
+      );
+    } finally {
+      reopenPending.current = false;
+      setBusy(false);
+    }
   };
   const id = `action-${action.card_id}`;
   return (
@@ -814,8 +857,24 @@ export function ActionCard({
           <ActionLog action={action} clan={clan} onChanged={onChanged} />
         </div>
       </div>
-      {(open && action.can_act) || sheet || error ? (
+      {(open && action.can_act) || action.can_reopen || sheet || error ? (
         <div className="grid gap-3 border-t border-line-soft bg-ground-chrome px-5 py-3.5">
+          {action.can_reopen ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                onClick={reopen}
+              >
+                {busy ? "Reopening…" : "Reopen action"}
+              </button>
+              <span className="page-head__note">
+                Return it to Open. The decline and any sent parts stay in its
+                log.
+              </span>
+            </div>
+          ) : null}
           {open && action.can_act ? (
             action.type === "departure" ? (
               <div className="flex flex-wrap gap-2">

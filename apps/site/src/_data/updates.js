@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-03",
+    title: "Reopen declined Actions and share compact award updates",
+    body: "Verified clan leadership can return a declined Action to Open while keeping its decline in the log and preserving sent message parts. New standings updates use short game messages with scores and places, while timestamps and coverage stay in the app. Completed Actions and old delivery receipts remain unchanged. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "Clan views keep Actions moving",
     body: "The Week and You Here can load while a clan decision is being processed. Member-count observations preserve the newest read, and private diagnostics now time direct recorded reads. Contracts unchanged.",
   },

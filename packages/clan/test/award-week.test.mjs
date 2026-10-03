@@ -55,13 +55,10 @@ test("weekly standings wait for observed closure, exclude later points and keep 
   for (const part of weeks[0].parts) {
     assert.ok(part.message.title.length <= LEADER_MESSAGE.title);
     assert.ok(part.message.body.length <= LEADER_MESSAGE.body);
-    assert.match(part.message.body, /^Provisional S136 W1\./);
+    assert.match(part.message.body, /^After week 1:/);
     assert.doesNotMatch(part.message.body, /999999/);
   }
-  assert.match(
-    weeks[0].parts.map((p) => p.message.body).join(" "),
-    /1600 points/,
-  );
+  assert.match(weeks[0].parts.map((p) => p.message.body).join(" "), /1,600/);
   p.war_weeks[5].finished_observed_at = null;
   assert.deepEqual(updates(p), []); // wall clock and early finish are insufficient
   p.war_weeks[5].finished_observed_at = new Date(
@@ -76,12 +73,12 @@ test("weekly missing counters withhold places and missing sections withhold comp
   const text = updates(p)[0]
     .parts.map((p) => p.message.body)
     .join(" ");
-  assert.match(text, /evidence incomplete; places withheld/);
+  assert.match(text, /standings not ready/);
   assert.doesNotMatch(text, /Season champion: 1\./);
   p.war_weeks[5].section_index = 2;
   assert.equal(updates(p)[0].complete, false);
   assert.ok(
-    updates(p)[0].parts.some((p) => /evidence incomplete/.test(p.message.body)),
+    updates(p)[0].parts.some((p) => /standings not ready/.test(p.message.body)),
   );
 });
 
@@ -195,5 +192,5 @@ test("weekly sanitized labels stay bounded and a missing earlier closure holds p
   p.war_weeks[5].finished_observed_at = null;
   const week = updates(p)[0];
   assert.equal(week.complete, false);
-  assert.match(week.parts[0].message.body, /places withheld/);
+  assert.match(week.parts[0].message.body, /standings not ready/);
 });

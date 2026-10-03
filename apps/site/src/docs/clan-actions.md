@@ -170,3 +170,15 @@ account that verified the player, only while that player is in the
 clan, and at most once a day per clan. Turn it off on
 [Profile ▸ Email](/console/account/profile/email)
 ([Turn an email off](/docs/turn-an-email-off)).
+
+
+Verified leaders and co-leaders can open a declined Action from **Closed** or
+**History** and choose **Reopen action**. It returns the same numbered Action
+to Open, keeping the original decline in its log and retaining any parts
+already marked sent. Completed, withdrawn and fully delivered Actions cannot
+be reopened. Reopening keeps the original evidence and does not send a message.
+
+New award updates use compact game copy; as-of times and coverage remain in
+the app for review. Each ordered part fits the existing Clan Leader Message
+fields. Review and edit the words you actually send before marking that part
+sent; saved receipts and older frozen suggestions retain their original words.
