@@ -71,6 +71,11 @@ const NAMESPACE = COLLECTOR_RELEASE_SIGNER;
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
+const reason =
+  process.argv
+    .slice(2)
+    .find((a) => a.startsWith("--reason="))
+    ?.slice(9) ?? null;
 const tag = args.find((a) => !a.startsWith("-"));
 
 /**
@@ -136,7 +141,7 @@ try {
       "--repo",
       REPO,
       "--json",
-      "tagName,assets,isDraft,isPrerelease",
+      "tagName,assets,isDraft,isPrerelease,body,url",
     ),
   );
 } catch (err) {
@@ -269,7 +274,15 @@ for (const [asset, platform] of Object.entries(KEY_BY_ASSET)) {
   if (url !== expectedUrl(asset)) {
     refuse(`${asset} is served from ${url}, not ${expectedUrl(asset)}.`);
   }
-  rows.push({ platform, version: release.tagName, sha256, url });
+  rows.push({
+    platform,
+    version: release.tagName,
+    sha256,
+    url,
+    release_url: release.url,
+    reason,
+    changes: release.body?.slice(0, 12000) ?? null,
+  });
 }
 
 if (skipped.length) {
@@ -335,7 +348,8 @@ try {
     "--notes",
     `Named as the update authority ${stamp} for ${rows.length} platform(s).\n\n` +
       `Collectors install this build and no other, once its signature verifies. ` +
-      `Released binaries pick it up on their next hourly config call.`,
+      `Released binaries pick it up on their next hourly config call.\n\n` +
+      (release.body ?? ""),
   );
   console.error(`  promoted ${release.tagName} to Latest in ${REPO}`);
 } catch (err) {

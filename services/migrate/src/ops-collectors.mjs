@@ -82,6 +82,24 @@ export async function collectorReleaseOp(databaseUrl, spec) {
          sha256 = excluded.sha256, url = excluded.url, named_at = now()`,
       [platform, version, sha256, url],
     );
+    if (spec.release_url !== undefined) {
+      if (
+        spec.release_url !==
+          `https://github.com/jthingelstad/elixir-mcp-collector/releases/tag/${version}` ||
+        (spec.changes != null &&
+          (typeof spec.changes !== "string" || spec.changes.length > 12000)) ||
+        (spec.reason != null &&
+          (typeof spec.reason !== "string" || spec.reason.length > 2000))
+      )
+        throw new Error("invalid_release_notes");
+      await db.query(
+        `insert into collector_release_note (version, release_url, changes, reason)
+        values ($1, $2, $3, $4) on conflict (version) do update set
+          release_url = excluded.release_url, changes = excluded.changes,
+          reason = coalesce(excluded.reason, collector_release_note.reason)`,
+        [version, spec.release_url, spec.changes ?? null, spec.reason ?? null],
+      );
+    }
     await db.query("commit");
     return { ok: true, platform, version };
   } catch (err) {

@@ -22,15 +22,33 @@ export function makeSesSender({
     if (sdk) return sdk;
     const { SESv2Client, SendEmailCommand } =
       await import("@aws-sdk/client-sesv2");
-    sdk = { client: client ?? new SESv2Client({}), SendEmailCommand };
+    sdk = {
+      client: client ?? new SESv2Client({}),
+      // Upgrade receipts need one attempt: SES has no idempotency key,
+      // so SDK retries can repeat an ambiguously accepted request.
+      singleAttemptClient: client ?? new SESv2Client({ maxAttempts: 1 }),
+      SendEmailCommand,
+    };
     return sdk;
   }
 
   /** `headers` are extra RFC 5322 headers (the one-click unsubscribe pair
    *  on a bulk kind); empty for transactional mail, which is every kind
    *  today. */
-  return async function send({ to, subject, text, html = null, headers = [] }) {
-    const { client: ses, SendEmailCommand } = await api();
+  return async function send({
+    to,
+    subject,
+    text,
+    html = null,
+    headers = [],
+    singleAttempt = false,
+  }) {
+    const {
+      client: normal,
+      singleAttemptClient,
+      SendEmailCommand,
+    } = await api();
+    const ses = singleAttempt ? singleAttemptClient : normal;
     const out = await ses.send(
       new SendEmailCommand({
         FromEmailAddress: `${fromName} <${fromEmail}>`,

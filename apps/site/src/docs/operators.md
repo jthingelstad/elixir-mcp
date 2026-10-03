@@ -203,3 +203,12 @@ change ordinary collector operation or the shared rate budget.
 The retired global recorder's empty tables are removed in a separate database
 migration after the runtime has stopped using them. Personal and clan facts,
 immutable receipt history and the shared collector contract remain.
+
+
+### Collector email
+
+Your weekly collector email includes the security status shown in the dashboard.
+Elixir also sends one notice for each collector it observes upgrade to a higher
+released version, with the old and new versions and available release notes.
+Both use your existing Collector activity email preference. See [email from
+Elixir](/docs/email#collector-upgrade-notices).

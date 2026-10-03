@@ -234,6 +234,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     timeline_reader: 0,
     agent_identity: 0,
     feedback: 1,
+    collector_version_event: 0,
     email_send: 1,
     email_milestone: 0,
     email_milestone_look: 0,

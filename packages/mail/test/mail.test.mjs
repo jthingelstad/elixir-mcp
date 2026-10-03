@@ -680,3 +680,30 @@ test("actions waiting: one box per action, the app's count of the rest, its link
   assert.match(one, />new<\/span>/);
   assert.doesNotMatch(one, /\(new\)/);
 });
+
+test("collector upgrade notices escape release text and distinguish unknown historical security", () => {
+  const facts = {
+    event: "upgrade",
+    test: true,
+    name: "Example collector",
+    from_version: "v3.0.4",
+    to_version: "v3.0.6",
+    observed_at: "2026-09-28T02:18:03Z",
+    signature_state: "not_recorded",
+    release: {
+      release_url:
+        "https://github.com/jthingelstad/elixir-mcp-collector/releases/tag/v3.0.6",
+      changes: "<script>attack()</script>\nRetry throttled submissions.",
+      reason: "Maintainer: improve reliability.",
+    },
+  };
+  const rendered = renderMail("collector_activity", facts, links);
+  assert.match(rendered.subject, /TEST.*historical replay/);
+  assert.match(rendered.html, /historical observation was not recorded/);
+  assert.match(rendered.html, /&lt;script&gt;/);
+  assert.doesNotMatch(rendered.html, /<script>/);
+  assert.match(
+    rendered.html,
+    /installation mechanism on this host was not reported/,
+  );
+});

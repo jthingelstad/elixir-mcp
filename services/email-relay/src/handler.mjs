@@ -36,6 +36,7 @@ export function makeHandler({
   readObject = null,
   deleteObject = null,
   modelObject = null,
+  upgradeDelivery = null,
 }) {
   /** One message: "sent" (or dropped by design) or "bad_message"; a
    *  transport failure throws so the record retries. */
@@ -64,13 +65,46 @@ export function makeHandler({
     // The mail policy's other half: a bulk kind (none exist yet) gets its
     // one-click headers here; a transactional kind gets none. The
     // contract already refused the mismatches.
-    const out = await send({
-      to: validated.msg.to,
-      subject,
-      text,
-      html,
-      headers: unsubscribeHeaders(validated.msg),
-    });
+    const guarded = validated.msg.issue_key?.startsWith("collector-upgrade/");
+    let out;
+    if (guarded) {
+      if (!upgradeDelivery || !validated.msg.send_id)
+        throw new Error("upgrade_delivery_not_configured");
+      const state = await upgradeDelivery.claim(validated.msg.send_id);
+      if (state === "sent") return "sent";
+      if (state !== "claimed") {
+        console.error(
+          "collector_upgrade_delivery_uncertain",
+          validated.msg.send_id,
+        );
+        throw new Error("upgrade_delivery_uncertain");
+      }
+    }
+    try {
+      out = await send({
+        to: validated.msg.to,
+        subject,
+        text,
+        html,
+        headers: unsubscribeHeaders(validated.msg),
+        ...(guarded ? { singleAttempt: true } : {}),
+      });
+    } catch (err) {
+      // An explicit service rejection proves SES did not accept the mail.
+      // Timeouts and connection losses prove neither success nor failure.
+      if (
+        guarded &&
+        err?.$metadata?.httpStatusCode >= 400 &&
+        err?.$metadata?.httpStatusCode < 500
+      )
+        await upgradeDelivery.release(validated.msg.send_id);
+      throw err;
+    }
+    if (guarded)
+      await upgradeDelivery.finish(
+        validated.msg.send_id,
+        out?.message_id ?? null,
+      );
     // The one line that ties a sent product email to the transport: the
     // send id the footer shows, the issue it fulfils, the message id SES
     // assigned. Never the recipient.

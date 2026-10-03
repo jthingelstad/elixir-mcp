@@ -186,6 +186,10 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
     ["agent_identity", `agent_identity where account_id = any($1::uuid[])`],
     ["feedback", `feedback where account_id = any($1::uuid[])`],
+    [
+      "collector_version_event",
+      `collector_version_event where account_id = any($1::uuid[])`,
+    ],
     ["email_send", `email_send where account_id = any($1::uuid[])`],
     ["email_milestone", `email_milestone where account_id = any($1::uuid[])`],
     [

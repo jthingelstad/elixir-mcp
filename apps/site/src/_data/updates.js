@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-03",
+    title: "Your collectors’ security and upgrades, by email",
+    body: "The weekly collector email now carries each collector’s full version and the dashboard’s signed, dev build, unverified or mismatch status. A separate email arrives for each collector Elixir observes upgrade, with the old and new versions and available release details. Both follow your collector email preference. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "Repair Clan voice drafting",
     body: "The model worker can now distinguish a reply that has not arrived from denied access, allowing a first draft to reach its one-time request claim. Uncertain attempts remain visible and are never automatically repeated. A counted attempt does not by itself confirm a provider charge. Contracts unchanged.",
   },

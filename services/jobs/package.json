@@ -18,6 +18,7 @@
     "@elixir-mcp/tools": "0.1.0",
     "pg": "^8.13.0",
     "@elixir-mcp/clan": "0.1.0",
-    "@elixir-mcp/clan-state": "0.1.0"
+    "@elixir-mcp/clan-state": "0.1.0",
+    "@elixir-mcp/collector-door": "0.1.0"
   }
 }

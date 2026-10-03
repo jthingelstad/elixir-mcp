@@ -16,6 +16,7 @@ import pg from "pg";
 import { sweepSilentCollectors } from "./fleet.mjs";
 import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
 import { makeOutbox } from "@elixir-mcp/outbox";
+import { runCollectorUpgrades } from "./email/collector-upgrades.mjs";
 import { runEmail } from "./email/index.mjs";
 import { activityHistogram } from "./activity.mjs";
 import { captureEfficiency } from "./efficiency.mjs";
@@ -251,7 +252,13 @@ export async function sweepOperational(databaseUrl) {
 const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 async function enqueueEmail(msg) {
   if (!outbox) throw new Error("OUTBOX_BUCKET is not set");
-  await outbox("email", msg);
+  await outbox(
+    "email",
+    msg,
+    msg.issue_key?.startsWith("collector-upgrade/")
+      ? { id: msg.send_id, once: true }
+      : {},
+  );
 }
 
 /** The archive bucket store every send's body goes to (email/archive.mjs);
@@ -296,6 +303,24 @@ export async function handler(event, context) {
       archive: await mailArchiveStore(),
     });
     console.log(JSON.stringify({ clan_evaluate: result }));
+    return result;
+  }
+  if (event?.collector_upgrades) {
+    const spec =
+      event.collector_upgrades === true ? {} : event.collector_upgrades;
+    const result = await runCollectorUpgrades({
+      databaseUrl: process.env.DATABASE_URL,
+      enqueue: enqueueEmail,
+      secret: unsubscribeKeys(),
+      archive: await mailArchiveStore(),
+      accountEmail: spec.account_email ?? null,
+      replay: spec.replay ?? null,
+      apply: spec.apply === true,
+      remainingMs: context?.getRemainingTimeInMillis
+        ? () => context.getRemainingTimeInMillis()
+        : null,
+    });
+    console.log(JSON.stringify({ collector_upgrades: result }));
     return result;
   }
   if (typeof event?.email === "string") {

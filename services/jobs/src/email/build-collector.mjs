@@ -4,6 +4,10 @@
  *  the way quota.mjs computes them: 1 per 10 points, pooled per account,
  *  capped at 4x the tier base. Only accounts with a collector get one. */
 import { OPERATOR_BONUS, roleQuotas } from "@elixir-mcp/contracts";
+import {
+  RELEASE_SIGNED_SQL,
+  signatureState,
+} from "@elixir-mcp/collector-door/signature";
 import { silentSince } from "@elixir-mcp/ingest/fleet";
 
 const CREDIT_DIVISOR = 10;
@@ -16,7 +20,7 @@ export async function buildCollector({ db, account, week, now = new Date() }) {
     // elixir_collectors tool lists the whole fleet and no owner, so the
     // account's own collectors are read here, the way the console does).
     `select g.gateway_id, g.name, g.card_name, g.status, g.fetch_points, g.enrolled_at,
-            g.last_seen_sha, g.missed_streak, g.last_heartbeat_at, c.card_id
+            g.last_seen_sha, g.binary_sha256, ${RELEASE_SIGNED_SQL}, g.missed_streak, g.last_heartbeat_at, c.card_id
        from gateway g
        left join card c on c.name = g.card_name and c.kind = 'card'
       where g.owner_account_id = $1 and g.status <> 'revoked'
@@ -83,7 +87,8 @@ export async function buildCollector({ db, account, week, now = new Date() }) {
         : g.status === "active"
           ? null
           : (g.last_heartbeat_at?.toISOString?.() ?? null),
-      version: g.last_seen_sha ? String(g.last_seen_sha).slice(0, 7) : null,
+      version: g.last_seen_sha ?? null,
+      signature_state: signatureState(g),
       fetches: p?.fetches ?? 0,
       errors: p?.rejected ?? 0,
       breaker_trips: 0,
