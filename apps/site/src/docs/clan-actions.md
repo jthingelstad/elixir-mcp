@@ -109,6 +109,8 @@ the words as edited. Drafting completes no action and sends no game message.
 When a call's outcome is unknown, that attempt counts toward the daily
 limit. Check the use log in Settings before requesting another draft;
 Elixir does not automatically repeat it. The daily use limit is not a dollar cap.
+The use record counts attempts; an unknown result is not confirmation of
+a provider charge. Review your provider's usage record for billing.
 
 ## The inactivity clock
 

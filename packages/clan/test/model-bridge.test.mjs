@@ -9,6 +9,7 @@ import {
 } from "../src/model-bridge.mjs";
 import { createBox } from "../src/sealed.mjs";
 import { sealer } from "../src/manage/model.mjs";
+import { modelStorage } from "../src/model-storage.mjs";
 const key = `sk-ant-${"x".repeat(24)}`;
 const id = "00000000-0000-0000-0000-000000000001";
 function memory() {
@@ -32,6 +33,65 @@ const input = {
   tool: { name: "draft", input_schema: { type: "object" } },
   max_tokens: 400,
 };
+
+test("S3 missing-reply authorization precedes dispatch and delayed expired requests spend nothing", async () => {
+  for (const expired of [false, true]) {
+    const fixture = memory();
+    request(fixture);
+    let canList = false;
+    let calls = 0;
+    let clock = 1;
+    const storage = modelStorage("fixture", {
+      async send(command) {
+        const { Key, Body } = command.input;
+        if (command.constructor.name === "GetObjectCommand") {
+          if (!fixture.objects.has(Key))
+            throw Object.assign(new Error("synthetic missing object"), {
+              name: canList ? "NoSuchKey" : "AccessDenied",
+            });
+          return {
+            Body: { transformToString: async () => fixture.objects.get(Key) },
+          };
+        }
+        if (fixture.objects.has(Key))
+          throw Object.assign(new Error("already exists"), {
+            name: "PreconditionFailed",
+          });
+        fixture.objects.set(Key, Body);
+        return {};
+      },
+    });
+    const worker = createModelWorker({
+      secret: "old-secret",
+      storage,
+      now: () => clock,
+      provider: {
+        async write() {
+          calls++;
+          return { ok: true, input: {} };
+        },
+      },
+    });
+    await assert.rejects(worker(modelRequestKey(id)), { name: "AccessDenied" });
+    assert.equal(calls, 0);
+    assert.equal(fixture.objects.has(modelClaimKey(id)), false);
+    canList = true;
+    if (expired) clock = 45001;
+    await worker(modelRequestKey(id));
+    await worker(modelRequestKey(id));
+    assert.equal(calls, expired ? 0 : 1);
+    assert.equal(fixture.objects.has(modelClaimKey(id)), !expired);
+    assert.ok(fixture.objects.has(modelReplyKey(id)));
+    if (expired) {
+      const reply = JSON.parse(fixture.objects.get(modelReplyKey(id)));
+      const box = createBox("old-secret", "clan model bridge v1");
+      assert.equal(
+        JSON.parse(box.open(reply.box, `reply:${id}`)).code,
+        "expired",
+      );
+    }
+  }
+});
 function request(
   storage,
   { expires_at = 45000, secret = "old-secret", method = "write" } = {},

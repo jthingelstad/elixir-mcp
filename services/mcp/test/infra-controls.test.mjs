@@ -36,6 +36,23 @@ import {
 
 const templateUrl = new URL("../../../infra/template.yaml", import.meta.url);
 
+test("the model relay can distinguish unwritten replies without reading other outbox bodies", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const role = resource(template, "EmailRelayRole", "EmailRelayFunction");
+  assert.match(
+    role,
+    /Action: s3:ListBucket\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}/,
+  );
+  assert.match(
+    role,
+    /Action: s3:GetObject\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\/clan-model\/\*/,
+  );
+  assert.doesNotMatch(
+    role,
+    /Action: s3:GetObject\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\/\*/,
+  );
+});
+
 function resource(template, logicalId, nextLogicalId) {
   return template.slice(
     template.indexOf(`  ${logicalId}:`),
