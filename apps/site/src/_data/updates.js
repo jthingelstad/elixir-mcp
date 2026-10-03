@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-03",
+    title: "The retired global recorder’s empty storage is removed",
+    body: "The final cleanup removes empty leaderboard, game-wide statistics, named-group and featured-card tables after their runtime readers have retired. Personal and clan records, notifications, sent mail and agent access remain. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "Historical cleanup keeps your circle’s record",
     body: "The reviewed cleanup removed old global leaderboards, named recording groups and games recorded solely for retired captures from the database and replay archive. Personal, friend and clan overlap was preserved, along with history whose recording provenance was unclear. Your tracking choices, notifications, sent mail and clan records stay. Contracts unchanged.",
   },
