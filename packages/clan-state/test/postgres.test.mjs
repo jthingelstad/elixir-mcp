@@ -335,3 +335,18 @@ test("bounded action logs and numbered cards cannot cross clans or card prefixes
   assert.equal((await ledger.cardByNumber("#P0LYQ", 1)).card_id, "one");
   assert.equal(await ledger.cardByNumber("#MISSING", 1), null);
 });
+
+test("concurrent member-count observations cannot roll back a newer source read", async () => {
+  const a = createPostgresLedger(db),
+    b = createPostgresLedger(other);
+  const old = { members: 9, observed_at: "2026-10-03T21:00:00.000Z" };
+  const fresh = { members: 50, observed_at: "2026-10-03T21:01:00.000Z" };
+  await Promise.all([
+    a.saveClanSize("#P0LYQ", fresh),
+    b.saveClanSize("#P0LYQ", old),
+  ]);
+  assert.deepEqual(await a.clanSize("#P0LYQ"), fresh);
+  assert.equal(await b.saveClanSize("#P0LYQ", old), false);
+  assert.equal(await b.saveClanSize("#P0LYQ", { ...fresh, members: 1 }), false);
+  assert.deepEqual(await a.clanSize("#P0LYQ"), fresh);
+});

@@ -1,4 +1,4 @@
-import { timedStore } from "@elixir-mcp/clan/trace.mjs";
+import { timedStore, timedElixir } from "@elixir-mcp/clan/trace.mjs";
 import { ledgerOver } from "@elixir-mcp/clan-state";
 import { createModelService } from "@elixir-mcp/clan/manage/model.mjs";
 import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
@@ -32,7 +32,7 @@ import { makeRegistry } from "@elixir-mcp/tools";
 import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { makeLive } from "@elixir-mcp/tools/live";
 import { enqueueJob } from "@elixir-mcp/ledger";
-import { describeIdentity, principalBlock } from "@elixir-mcp/tools/identity";
+import { principalBlock } from "@elixir-mcp/tools/identity";
 import { toolDeadlineMs } from "./deadline.mjs";
 
 const registry = makeRegistry();
@@ -74,6 +74,35 @@ export function createTracedClanStore(db) {
   );
 }
 
+/** Keep the principal's tracked-clan ordering while reusing the players read.
+ * No primary-clan/default-subject query is needed by this private gate. */
+export async function recordedIdentity(db, account) {
+  const players = await myPlayers(db, account.accountId);
+  const { rows: clans } = await db.query(
+    `select ac.clan_tag, c.name,
+            exists (select 1 from claim cl
+                    join clan_membership m on m.player_tag = cl.player_tag
+                                          and m.left_observed_at is null
+                    where cl.account_id = ac.account_id and cl.is_primary
+                      and m.clan_tag = ac.clan_tag) as primary_players_clan
+     from account_clan ac
+     left join clan c on c.clan_tag = ac.clan_tag
+     where ac.account_id = $1
+     order by primary_players_clan desc, ac.is_primary desc, ac.clan_tag`,
+    [account.accountId],
+  );
+  return {
+    ok: true,
+    principal: principalBlock("person", {
+      grouped: {
+        primary: players.filter((player) => player.relationship === "primary"),
+      },
+      clans,
+    }),
+    body: { players },
+  };
+}
+
 export function createClanRequest({
   origin,
   maintainerTags = [],
@@ -98,27 +127,22 @@ export function createClanRequest({
     });
     const mcp = createRecordedClient({
       credential,
-      initialize: async () => ({
-        ok: true,
-        principal: principalBlock(
-          "person",
-          await describeIdentity(db, account),
-        ),
-        body: { players: await myPlayers(db, account.accountId) },
-      }),
-      invoke: async (name, args) => {
-        const r = await invoke(name, args);
-        return r.isError
-          ? {
-              ok: false,
-              status: STATUS[r.body.error.class] ?? 502,
-              code: r.body.error.code,
-              error: r.body.error.message,
-              hint: r.body.error.hint,
-              body: r.body,
-            }
-          : { ok: true, body: r.body };
-      },
+      initialize: () =>
+        timedElixir("initialize", () => recordedIdentity(db, account)),
+      invoke: (name, args) =>
+        timedElixir(name, async () => {
+          const r = await invoke(name, args);
+          return r.isError
+            ? {
+                ok: false,
+                status: STATUS[r.body.error.class] ?? 502,
+                code: r.body.error.code,
+                error: r.body.error.message,
+                hint: r.body.error.hint,
+                body: r.body,
+              }
+            : { ok: true, body: r.body };
+        }),
       writeFact: (tag, body) =>
         answer(() => writeClanFactInClan(db, account, tag, body)),
       removeFact: (tag, ref) =>
@@ -190,11 +214,17 @@ export function createClanRequest({
     )?.[1];
     // Manage/actions GETs can evaluate and reconcile cards. They must
     // serialize with decisions too, and O/0 aliases name the same lock.
-    const lock = clan
-      ? `clan-state:${normalizeTag(clan) ?? account.accountId}`
-      : method !== "GET"
-        ? `clan-state:${account.accountId}`
-        : null;
+    // These two routes calculate views without reconciling actions or grants.
+    // Their only shared metadata write is an atomic, monotonic observation.
+    const pureView =
+      method === "GET" &&
+      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|me)$/.test(path);
+    const lock =
+      clan && !pureView
+        ? `clan-state:${normalizeTag(clan) ?? account.accountId}`
+        : method !== "GET"
+          ? `clan-state:${account.accountId}`
+          : null;
     const lockStarted = Date.now();
     if (lock) await db.query("select pg_advisory_lock(hashtext($1))", [lock]);
     const lockMs = lock ? Date.now() - lockStarted : null;

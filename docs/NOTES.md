@@ -3962,3 +3962,32 @@ that evidence, and prior done/declined decisions are preserved. An optional
 future historical-copy preview must stay separate from archived evidence and
 delivery receipts. No paid draft, imported grant or in-game delivery was
 manufactured for acceptance. This notes-only close needs no further deployment.
+
+
+## 2026-10-03 - Keep pure Clan views out of the decision queue
+
+Read-only CloudWatch traces correlated with Lambda REPORT lines for the
+21:41 UTC visit: You Here took 7,668 ms inside Clan (7,705 ms REPORT),
+while Actions took 6,449 ms including a 6,374 ms clan-lock wait. Neither
+REPORT had InitDuration. The Week took 794 ms (831 ms REPORT). Other
+initializations were 358–387 ms, so those samples do not support attributing
+the long wait to Lambda initialization. Sample counts remain small: four
+post-timing Actions lists, one You Here and one Week.
+
+Only exact GET `/api/clan/clans/:tag/week` and `/me` now omit the outer
+clan lock. Both calculate views without reconciling Actions or granting
+awards. Their lazy member-count metadata is written atomically only when
+its source-read start is newer; delayed or tied observations cannot undo
+the size gate. Unchanged counts advance that watermark too, replacing the
+old hourly read/skip with one conditional write. Every evaluating route and mutation retains serialization.
+Initialization reuses the complete current players query and keeps the
+existing tracked-clan ordering, reducing four identity queries to two.
+Direct recorded tool calls and initialization now enter the private
+Elixir timing phase, including correlation IDs, without arguments, SQL,
+credentials or message contents. Shared-client tool calls remain sequential.
+
+Scratch two-client observation and held-lock session tests cover the
+boundary. No production decisions, grants, paid model calls or access
+policy changes are part of this fix. Runtime verification and natural
+post-release timings are recorded after deployment; a passing local test
+alone is not a claim about live page speed.

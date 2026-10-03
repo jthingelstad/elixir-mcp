@@ -4,7 +4,9 @@ import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { createSession, revokeSession } from "@elixir-mcp/auth";
 import { writeClanFactInClan } from "@elixir-mcp/record/attested-facts";
 import { makeHandler } from "../src/handler.mjs";
-import { createClanRequest } from "../src/clan.mjs";
+import { createClanRequest, recordedIdentity } from "../src/clan.mjs";
+
+import { describeIdentity, principalBlock } from "@elixir-mcp/tools/identity";
 
 const CLAN = "#9GQLV20",
   TAG = "#9GQLV22";
@@ -202,6 +204,71 @@ test("GET evaluations and mutations serialize across O/0 clan aliases", async ()
     const response = await pending;
     assert.equal(response.statusCode, 200, response.body);
   }
+});
+
+test("pure week and own-member views do not wait behind the clan's mutation lock", async () => {
+  const key = `clan-state:${CLAN}`;
+  await scratch.db.query("select pg_advisory_lock(hashtext($1))", [key]);
+  try {
+    for (const page of ["week", "me"]) {
+      let timer;
+      try {
+        const response = await Promise.race([
+          request("GET", `/api/clan/clans/${CLAN.slice(1)}/${page}`),
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error(`${page} waited on the mutation lock`)),
+              4000,
+            );
+          }),
+        ]);
+        // This scratch clan has no recording. Its truthful refusal must also
+        // complete while a decision holds the lock; no grants/cards are raised.
+        assert.equal(response.statusCode, 502, response.body);
+        assert.equal(data(response).error, "clan_not_recorded");
+        assert.match(
+          response.headers["server-timing"],
+          /elixir;dur=\d+;desc="2 calls"/,
+        );
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+  } finally {
+    await scratch.db.query("select pg_advisory_unlock(hashtext($1))", [key]);
+  }
+});
+
+test("compact initialization preserves principal and all player relationships with two reads", async () => {
+  const account = { accountId, kind: "person" };
+  for (const hasPrimary of [true, false]) {
+    await scratch.db.query(
+      "update claim set is_primary=$2 where account_id=$1",
+      [accountId, hasPrimary],
+    );
+    const expected = principalBlock(
+      "person",
+      await describeIdentity(scratch.db, account),
+    );
+    let queries = 0;
+    const actual = await recordedIdentity(
+      {
+        query: (...args) => {
+          queries++;
+          return scratch.db.query(...args);
+        },
+      },
+      account,
+    );
+    assert.deepEqual(actual.principal, expected);
+    assert.equal(actual.body.players.length, 1);
+    assert.equal(actual.body.players[0].claim_status, "verified");
+    assert.equal(queries, 2);
+  }
+  await scratch.db.query(
+    "update claim set is_primary=true where account_id=$1",
+    [accountId],
+  );
 });
 
 test("internal factual writes retain membership and role checks without an OAuth grant", async () => {

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-03",
+    title: "Clan views keep Actions moving",
+    body: "The Week and You Here can load while a clan decision is being processed. Member-count observations preserve the newest read, and private diagnostics now time direct recorded reads. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "Clan request timing separates storage and lock waits",
     body: "Clan request diagnostics now include private-state operation counts and timing, plus time waiting for the clan lock. This helps explain slow Actions without recording SQL, state keys or message content. Contracts unchanged.",
   },
