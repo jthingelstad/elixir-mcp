@@ -3393,3 +3393,15 @@ health read-back. The later empty-table contract stays a separate migration.
 
 Execution is stopped for exact grouped-manifest review. Collectors remain
 active and no original archive version has been removed.
+
+
+### Grouped manifest approved and resumed (2026-10-03, 05:14 Chicago)
+
+Jamie replied "Approved." directly to the concrete grouped-manifest and
+bounded collector-window review. Private approval binds exact digest
+`e958818afbd39b03a03979dd00fe1199b0c035477e71a6c8191ab59387fc9819`
+and the separately reviewed controller hash. The checkpoint preserves all
+16,436 completed receipt bodies. A fresh shared production lease was claimed;
+the current retained-reason and schema guards matched before the collector
+window started. No deployment or migration runs concurrently. Original
+archive deletion remains gated on complete database preservation proof.
