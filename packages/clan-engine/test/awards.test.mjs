@@ -250,7 +250,7 @@ test("Top Donor sums the week-end counters of the season's weeks", () => {
 
 // ---- rookies ----------------------------------------------------------------
 
-test("Top Rookie: joined this season, or last season without a war day; never a pre-record join", () => {
+test("Top Rookie: first joined this season; previous seasons and pre-record joins never qualify", () => {
   const r = run([
     member("#OLD", { tenureDays: 300, war: [16, 16, 16, 16, 16, 8] }),
     member("#NEW", { tenureDays: 20, war: [0, 0, 0, 0, 16, 8] }), // joined in the Colosseum week of 135
@@ -270,6 +270,96 @@ test("Top Rookie: joined this season, or last season without a war day; never a 
 });
 
 // ---- leaders' pick ----------------------------------------------------------
+
+test("Rookie uses the season points podium ordering, with donation tiebreaks and shared places", () => {
+  const a = member("#AAA", {
+    tenureDays: 2,
+    war: [0, 0, 0, 0, 0, 8],
+    donations: [0, 0, 0, 0, 0, 200],
+  });
+  const b = member("#BBB", {
+    tenureDays: 2,
+    war: [0, 0, 0, 0, 0, 8],
+    donations: [0, 0, 0, 0, 0, 300],
+  });
+  const c = member("#CCC", {
+    tenureDays: 2,
+    war: [0, 0, 0, 0, 0, 8],
+    donations: [0, 0, 0, 0, 0, 300],
+  });
+  const old = member("#OLD", { tenureDays: 25, war: [0, 0, 0, 0, 0, 16] });
+  const r = run([a, b, c, old]);
+  const rows = award(r, 136, "top_rookie").rows;
+  assert.deepEqual(
+    rows.map((r) => [r.player_tag, r.place, r.tied]),
+    [
+      ["#BBB", 1, true],
+      ["#CCC", 1, true],
+      ["#AAA", 3, true],
+    ],
+  );
+  const champs = award(run([a, b, c]), 136, "season_champ").rows;
+  assert.deepEqual(
+    rows.map((r) => [r.player_tag, r.rank, r.points, r.donations]),
+    champs.map((r) => [r.player_tag, r.rank, r.points, r.donations]),
+  );
+});
+
+test("Rookie first joins are bounded by both observed season boundaries", () => {
+  const boundary = "2026-09-07T09:34:00.000Z";
+  const m = member("#NEW", { tenureDays: 2 });
+  m.first_joined_at = boundary;
+  const r = run([m]);
+  assert.equal(award(r, 135, "top_rookie").rows.length, 0);
+  assert.equal(award(r, 136, "top_rookie").rows[0].player_tag, "#NEW");
+  m.first_joined_at = new Date(Date.parse(boundary) - 1).toISOString();
+  assert.equal(award(run([m]), 136, "top_rookie").rows.length, 0);
+});
+
+test("unknown current points still hold an otherwise eligible Rookie", () => {
+  const m = member("#NEW", { tenureDays: 2, war: [0, 0, 0, 0, 0, 8] });
+  m.war_points[5] = null;
+  const part = participation([m]);
+  part.war_weeks[5].finished_observed_at = NOW.toISOString();
+  part.war_weeks[5].is_colosseum = true;
+  const evaluate = () =>
+    evaluateAwards({ participation: part, config, now: NOW });
+  assert.equal(award(evaluate(), 136, "top_rookie").state, "held");
+  m.war_points[5] = 1600;
+  m.war_points[4] = null;
+  assert.equal(
+    award(evaluate(), 136, "top_rookie").state,
+    "closed",
+    "irrelevant prior points do not hold a current-season join",
+  );
+});
+
+test("a saved closed Rookie grant is preserved after first-season eligibility is corrected", () => {
+  const m = member("#OLD", { tenureDays: 400 });
+  const grant = {
+    season_id: 135,
+    award_id: "top_rookie",
+    kind: "rookie_podium",
+    name: "Recorded Rookie",
+    player_tag: m.player_tag,
+    player_name: m.name,
+    rank: 1,
+    metric_value: 1234,
+    metric_unit: "points",
+    granted_at: "2026-09-07T12:00:00Z",
+  };
+  const r = run([m], { grants: [grant] });
+  const a = award(r, 135, "top_rookie");
+  assert.equal(a.state, "closed");
+  assert.equal(a.rows[0].player_tag, m.player_tag);
+  assert.equal(a.rows[0].points, 1234);
+  assert.equal(
+    r.grants_due.filter(
+      (g) => g.award_id === "top_rookie" && g.season_id === 135,
+    ).length,
+    0,
+  );
+});
 
 test("a leaders' pick computes nothing and shows what was granted by hand", () => {
   const r = run([member("#AAA")], {
@@ -429,11 +519,16 @@ test("a first-ever join after a fully recorded week proves whole-period absence"
   assert.equal(award(r, 135, "season_champ").rows.length, 0);
 });
 
-test("unknown previous season points do not qualify a first-season rookie", () => {
+test("a previous-season join never qualifies or holds the current rookie award, even with unknown prior points", () => {
   const m = member("#AAA", { tenureDays: 25, war: [0, 0, 0, 0, 0, 8] });
   m.war_points[4] = null;
-  const r = run([m]);
-  assert.equal(award(r, 136, "top_rookie").state, "held");
+  const fresh = member("#NEW", { tenureDays: 2, war: [0, 0, 0, 0, 0, 8] });
+  const r = run([m, fresh]);
+  assert.equal(award(r, 136, "top_rookie").state, "live");
+  assert.deepEqual(
+    award(r, 136, "top_rookie").rows.map((r) => r.player_tag),
+    ["#NEW"],
+  );
 });
 
 test("a returning veteran cannot become a rookie through a new stint", () => {
@@ -444,7 +539,7 @@ test("a returning veteran cannot become a rookie through a new stint", () => {
 });
 
 test("a veteran's unknown counters do not hold a fully evidenced rookie podium", () => {
-  const rookie = member("#NEW", { tenureDays: 25, war: [0, 0, 0, 0, 0, 8] });
+  const rookie = member("#NEW", { tenureDays: 2, war: [0, 0, 0, 0, 0, 8] });
   const veteran = member("#OLD");
   veteran.war_points[2] = null;
   const r = run([rookie, veteran]);
