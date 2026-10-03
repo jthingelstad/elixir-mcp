@@ -11,7 +11,7 @@ const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
 /**
  * The clan's own model (2026-09-25): bring your own tokens. A leader or
  * co-leader adds the clan's Anthropic API key; the clan's model then
- * drafts words (the recruiting pitch today) for a leader to edit, never a
+ * drafts recruiting and action messages for a leader to edit, never a
  * judgment about a member. The key is checked with Anthropic, kept
  * sealed and never shown again; it is used only while the person who
  * added it leads the clan, and every use is listed here.
@@ -80,11 +80,17 @@ export function Model({ clan }) {
     <div className="grid max-w-[720px] gap-4">
       <p className="page__lede m-0">
         Elixir Clan pays for no model. With your clan&rsquo;s own Anthropic key,
-        a model drafts words for the clan (today, the recruiting pitch in
-        Recruit), never a judgment about a member. It is told the game&rsquo;s
-        numbers for the clan, what the clan is for, how it runs and its own
-        words, never a member&rsquo;s name or numbers. Everything it writes is a
-        draft a leader edits and saves.
+        a model drafts the recruiting pitch in Recruit and messages on open
+        Actions: welcomes, promotions, demotions, awards, policy announcements
+        and a chat line after a removal decision. It never decides what should
+        happen to a member. It is told the game&rsquo;s numbers for the clan,
+        what the clan is for, how it runs and its own words. Member-level
+        evidence and stored member details stay local. Keep member details out
+        of a Leader Message note; chat drafts use fixed tone choices. Everything
+        it writes is a draft you review and edit, then save or copy into the
+        game. Nothing is posted automatically. Drafts use the clan’s saved
+        recruiting words as its voice; add those in Recruit and choose the tone
+        on the action.
       </p>
 
       {d.set ? (

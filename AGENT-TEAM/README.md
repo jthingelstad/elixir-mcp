@@ -12,6 +12,16 @@ feedback loops run at once — human feedback on the site and agent
 feedback arriving mid-session over MCP. Silence in either loop is a
 defect somewhere.
 
+## Active development
+
+Read [the shared vision](../VISION.md) and current `docs/DECISIONS.md` before
+choosing work. Clan leadership readiness for Monday comes first, then Ladder
+and invitation readiness, including clear first-use orientation. The existing
+four owners keep their outcomes and installed cadences; no new owner or
+publication is introduced. Quiet beta usage is not a defect or evidence of
+adoption. Use real feedback, fixture journeys and read-only production evidence.
+Coordinate overlapping releases through the shared production lease.
+
 ## The team
 
 | Objective | Key | File | Primary question |

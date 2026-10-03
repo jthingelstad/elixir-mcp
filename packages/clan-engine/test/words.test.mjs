@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  chatMessageFromDraft,
+  chatMessageRequest,
   leaderMessageFromDraft,
   leaderMessageRequest,
   MODEL_PREFERENCE,
@@ -30,10 +32,63 @@ const FACTS = {
 };
 
 test("a model writes words for a closed list of uses, none a judgment about a member", () => {
-  assert.deepEqual(Object.keys(PURPOSES), ["recruit_pitch", "leader_message"]);
+  assert.deepEqual(Object.keys(PURPOSES), [
+    "recruit_pitch",
+    "leader_message",
+    "clan_chat",
+  ]);
   assert.doesNotMatch(
     JSON.stringify(PURPOSES),
     /judge|score|rank|remove|kick|recommend/i,
+  );
+});
+
+test("chat drafts carry clan voice and a fixed purpose, never evidence for a judgment", () => {
+  for (const kind of ["welcome", "removal"]) {
+    const r = chatMessageRequest({
+      kind,
+      clanName: "Example Clan",
+      voice: { tagline: "Play together" },
+      goals: ["war"],
+      note: "warm",
+    });
+    assert.equal(r.purpose, "clan_chat");
+    assert.equal(r.max_tokens, 250);
+    assert.equal(r.tool.name, "write_chat_message");
+    assert.match(r.prompt, /Play together/);
+    assert.match(r.prompt, /Warm and brief/);
+    assert.match(r.system, /Never judge a member/);
+    if (kind === "removal")
+      assert.match(r.prompt, /only AFTER a leader decides/);
+  }
+  assert.throws(() =>
+    chatMessageRequest({ kind: "welcome", note: "Secretname idle 999 days" }),
+  );
+  assert.throws(() => chatMessageRequest({ kind: "departure" }));
+  assert.throws(() => chatMessageFromDraft({}, { kind: "departure" }));
+});
+
+test("chat drafts restore names locally, keep game limits, and flag scoring language", () => {
+  const welcome = chatMessageFromDraft(
+    { line: "Welcome, {name} & friends!" },
+    { kind: "welcome", name: "Ab-Cdef" },
+  );
+  assert.equal(welcome.line, "Welcome, Ab Cdef and friends!");
+  assert.deepEqual(welcome.warnings, []);
+  const long = chatMessageFromDraft(
+    { line: "Welcome to the clan. ".repeat(30) },
+    { kind: "welcome", name: "Newcomer" },
+  );
+  assert.ok(long.line.length <= 120);
+  assert.match(long.line, /Newcomer/);
+  const removal = chatMessageFromDraft(
+    { line: "{name} had score 0.5." },
+    { kind: "removal", name: "Member" },
+  );
+  assert.ok(removal.warnings.some((w) => /score/.test(w)));
+  assert.match(
+    chatMessageFromDraft({}, { kind: "removal", name: "Member" }).line,
+    /Welcome back/,
   );
 });
 

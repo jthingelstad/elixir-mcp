@@ -3540,3 +3540,52 @@ backup copies retire by normal expiry; none were manually deleted.
 No cleanup, migration, acceptance or collector recovery work remains. This
 close-out changes engineering receipts and status only, so no further
 production deploy follows its notes-only merge.
+
+
+## 2026-10-03 — Clan leadership readiness
+
+Jamie authorized the Monday Clan slice before Ladder and invitation readiness.
+Design and immediate orientation are core readiness, not deferred polish.
+Optional database downsizing waits a couple of weeks; Drop and Collector stay.
+`VISION.md` points to the authoritative product guide and decisions; the Monday
+checklist records remaining authenticated account/policy/model-status checks.
+Four scheduled owners retain their installed cadence and read current priorities.
+
+Welcome and removal chat lines are editable and copyable; leaders/co-leaders can
+use the existing clan-key relay to draft them with a closed tone choice, saved
+clan voice and goals. Action evidence, member numbers and names are excluded from
+these requests; names are substituted locally. Elders retain welcome editing
+without model spending. Removal wording is explicitly for after a human decision
+and game change. Welcome completion shares the edited line; removal sharing and
+policy/action semantics are unchanged.
+
+Settings now describes all supported drafts. Model unknown outcomes remain
+counted and tell a leader to inspect uses before another call. No infrastructure,
+secret, schedule, paid provider call, game action or policy change is required.
+MCP and external JSON API contracts are unchanged; this is private Clan UI/backend.
+
+Independent read-only consistency reviewers found pending-request edit loss,
+empty-field restoration and free-form chat-note disclosure. The release locks
+editing during drafting, restores empty prior text and refuses arbitrary chat
+notes before provider dispatch. Focused regressions cover each fix and role gates.
+Built desktop/mobile journeys pass, including clipboard copy and human
+completion, with no serious/critical axe violations, page exceptions or overflow.
+All 81 Clan UI cases pass; 20 focused engine/backend and 74 Monday engine
+regressions pass. Browser verification exposed the existing automatic-clan-select
+navigation defect: action deep links now retain their destination, while choosing
+another clan manually still opens its roster. Production read-back follows merge.
+Full MCP acceptance is omitted because no public tool result or shared game-data
+path changes; canonical deploy smoke and public read-back still gate this release.
+
+
+Timing clarification: complete readiness/validation Sunday October 4. The nominal
+Monday October 5 season/week boundary is 10:00 UTC (05:00 CDT); the final
+Colosseum race may close at 09:30–10:00 UTC (04:30–05:00 CDT), not an exact
+attack deadline. Existing weekly-close/early-finish engine tests remain the guard.
+
+
+Final local gate: `npm run verify` passed on the completed runtime tree, including
+format, lint, unused-code, TypeScript and every workspace test. The two built
+browser journeys passed on desktop/mobile. Privacy and route reviewers report
+no remaining concrete regression after the fixes. GitHub validate and production
+read-back remain the next release gates.

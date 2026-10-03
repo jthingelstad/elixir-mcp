@@ -12,6 +12,8 @@ every wake. If a contract/source version changed, read its changelog and the
 current affected pages before judging evidence. A saved summary never overrides
 current source.
 
+Read `VISION.md` for the current development priorities and
+`docs/reviews/2026-10-03-CLAN-MONDAY-READINESS.md` for the Monday checks.
 The source of product behavior is `apps/site/src/docs/`, not this map. Read:
 
 | Objective or finding | Required current documents |

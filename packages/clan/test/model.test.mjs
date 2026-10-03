@@ -398,3 +398,129 @@ test("model: only leaders draft Leader Messages", async () => {
   const r = await api(h, c, "POST", "/api/clans/2PQRJ8LV/actions/x/draft", {});
   assert.equal(r.status, 403);
 });
+
+test("model: welcome and removal chat drafts disclose no member evidence and leave the action proposed", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  for (const type of ["welcome", "removal"]) {
+    await h.ledger.putCard("#2PQRJ8LV", {
+      card_id: type,
+      clan_tag: "#2PQRJ8LV",
+      type,
+      status: "proposed",
+      player_tag: BEA,
+      player_name: "Secretname",
+      evidence: {
+        days_idle: 999,
+        facts: [{ value: "Private evidence" }],
+        score: 0.1234,
+      },
+    });
+    h.anthropic.state.write = (key, request) => ({
+      ok: true,
+      model: request.model,
+      input: { line: "Welcome back, {name}!" },
+    });
+    const r = await api(
+      h,
+      c,
+      "POST",
+      `/api/clans/2PQRJ8LV/actions/${type}/draft`,
+      { note: "gentle" },
+    );
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.line, "Welcome back, Secretname!");
+    const [, , request] = h.anthropic.state.calls.at(-1);
+    assert.equal(request.tool.name, "write_chat_message");
+    assert.doesNotMatch(
+      request.prompt,
+      /Secretname|8QCV|999|Private evidence|0\.1234/,
+    );
+    assert.match(request.prompt, /Steady wars, friendly chat/);
+    assert.equal((await h.ledger.card("#2PQRJ8LV", type)).status, "proposed");
+  }
+  const invalidNote = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/welcome/draft",
+    { note: "be kind to Ab Cdef, 8QCV; idle 999 days" },
+  );
+  assert.equal(invalidNote.status, 400);
+  assert.equal(invalidNote.body.error, "bad_draft_tone");
+  assert.equal(
+    h.anthropic.state.calls.filter(([type]) => type === "write").length,
+    2,
+  );
+  const writes = h.anthropic.state.calls.filter(
+    ([type]) => type === "write",
+  ).length;
+  await h.ledger.putCard("#2PQRJ8LV", {
+    card_id: "unsupported",
+    type: "departure",
+    status: "proposed",
+  });
+  assert.equal(
+    (
+      await api(
+        h,
+        c,
+        "POST",
+        "/api/clans/2PQRJ8LV/actions/unsupported/draft",
+        {},
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await api(h, c, "POST", "/api/clans/GQ08RJPL/actions/welcome/draft", {}))
+      .status,
+    403,
+  );
+  assert.equal(
+    h.anthropic.state.calls.filter(([type]) => type === "write").length,
+    writes,
+  );
+});
+
+test("model: unverified leaders and verified elders cannot spend on either chat action", async () => {
+  for (const identity of [
+    player({ claim_status: "unverified" }),
+    player({ clan_role: "elder" }),
+  ]) {
+    const h = harness({ players: [identity] });
+    const c = await signedIn(h);
+    for (const type of ["welcome", "removal"]) {
+      await h.ledger.putCard("#2PQRJ8LV", {
+        card_id: type,
+        type,
+        status: "proposed",
+      });
+      const r = await api(
+        h,
+        c,
+        "POST",
+        `/api/clans/2PQRJ8LV/actions/${type}/draft`,
+        {},
+      );
+      assert.equal(r.status, 403, JSON.stringify(r.body));
+    }
+    assert.equal(h.anthropic.state.calls.length, 0);
+  }
+});
+
+test("model: an uncertain dispatch is counted and tells a leader to check uses before another draft", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  h.anthropic.state.write = () => {
+    throw new Error("lost transport");
+  };
+  const r = await api(h, c, "POST", DRAFT, {});
+  assert.equal(r.status, 502);
+  assert.match(r.body.message, /outcome is unknown.*attempt is counted/);
+  const status = await api(h, c, "GET", MODEL);
+  assert.equal(status.body.uses.today, 1);
+  assert.equal(status.body.uses.recent[0].code, "outcome_unknown");
+});

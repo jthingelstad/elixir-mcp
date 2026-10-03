@@ -1,5 +1,11 @@
 import { Fresh, Icon, ago } from "@elixir-mcp/ui";
-import { LEADER_MESSAGE, chatWarnings } from "@elixir-mcp/clan-engine";
+import {
+  CHAT_MAX,
+  CHAT_TONES,
+  WELCOME_MAX,
+  LEADER_MESSAGE,
+  chatWarnings,
+} from "@elixir-mcp/clan-engine";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";
@@ -135,7 +141,15 @@ export function CopyLine({
 
 /** One field of a Clan Leader Message: editable, counted, copyable, and
  *  warned when an edit holds what the game's filter blanks. */
-function MessageField({ label, value, onChange, max, rows = 1 }) {
+function MessageField({
+  label,
+  value,
+  onChange,
+  max,
+  rows = 1,
+  disabled = false,
+  copyKind = "leader_message",
+}) {
   const [done, setDone] = useState(false);
   const over = value.length > max;
   const warnings = chatWarnings(value, max).filter(
@@ -155,7 +169,7 @@ function MessageField({ label, value, onChange, max, rows = 1 }) {
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(value);
-              trackEvent("clan.copy_in_game", "leader_message");
+              trackEvent("clan.copy_in_game", copyKind);
               setDone(true);
               setTimeout(() => setDone(false), 1500);
             } catch {
@@ -171,6 +185,7 @@ function MessageField({ label, value, onChange, max, rows = 1 }) {
           className="input"
           aria-label={label}
           rows={rows}
+          disabled={disabled}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -178,6 +193,7 @@ function MessageField({ label, value, onChange, max, rows = 1 }) {
         <input
           className="input"
           aria-label={label}
+          disabled={disabled}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -186,6 +202,129 @@ function MessageField({ label, value, onChange, max, rows = 1 }) {
         <div className="page-head__note text-warn" role="status">
           The game may blank or garble this: {warnings.join("; ")}.
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** A draft always requires a person's click, with one-click restoration. */
+function DraftControls({ value, onChange, onDraft, onBusy, chat = false }) {
+  const [ask, setAsk] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [said, setSaid] = useState("");
+  const [previous, setPrevious] = useState(null);
+  const draft = async () => {
+    setDrafting(true);
+    onBusy(true);
+    setSaid("");
+    try {
+      const r = await onDraft(ask.trim() || null);
+      if (r.error) return setSaid(r.error);
+      setPrevious(value);
+      onChange(
+        r.line !== undefined ? r.line : { title: r.title, body: r.body },
+      );
+      setSaid(
+        `Drafted by ${r.model}.${r.warnings?.length ? ` Check: ${r.warnings.join("; ")}.` : ""} Edit it, then copy and send.`,
+      );
+    } catch {
+      setSaid(
+        "The draft's outcome is unknown. Your words are unchanged. Check the use log in Settings before requesting another draft.",
+      );
+    } finally {
+      setDrafting(false);
+      onBusy(false);
+    }
+  };
+  return (
+    <div className="grid gap-1.5">
+      <div className="flex flex-wrap gap-2">
+        {chat ? (
+          <select
+            className="input flex-[1_1_200px]"
+            aria-label="Draft tone"
+            value={ask}
+            disabled={drafting}
+            onChange={(e) => setAsk(e.target.value)}
+          >
+            <option value="">The clan's own voice</option>
+            {Object.entries(CHAT_TONES).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className="input flex-[1_1_200px]"
+            aria-label="What should it say?"
+            placeholder="What should it say? (optional)"
+            value={ask}
+            maxLength={300}
+            disabled={drafting}
+            onChange={(e) => setAsk(e.target.value)}
+          />
+        )}
+        <button
+          type="button"
+          className="btn btn--sm"
+          disabled={drafting}
+          onClick={draft}
+        >
+          {drafting ? "Drafting…" : "Draft in our voice"}
+        </button>
+      </div>
+      {said ? (
+        <span className="page-head__note" role="status">
+          {said}
+        </span>
+      ) : null}
+      {previous !== null ? (
+        <button
+          type="button"
+          className="btn--text justify-self-start"
+          disabled={drafting}
+          onClick={() => {
+            onChange(previous);
+            setPrevious(null);
+            setSaid("");
+          }}
+        >
+          Put back what I had
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/** Editable chat copy; completion remains a separate human decision. */
+function ChatMessage({ kind, value, onChange, onDraft }) {
+  const [drafting, setDrafting] = useState(false);
+  return (
+    <div className="grid gap-2.5 rounded-block border border-line-soft bg-ground-sunken p-4">
+      <span className="text-[13.5px] font-semibold">Clan chat</span>
+      <div className="page-head__note">
+        {kind === "removal"
+          ? "Use this only after you decide and make the change in the game. Drafting does not remove anyone."
+          : "Make the welcome your own, then copy and send it in the game."}
+      </div>
+      <MessageField
+        label="Chat message"
+        value={value}
+        onChange={onChange}
+        max={kind === "welcome" ? WELCOME_MAX : CHAT_MAX}
+        rows={3}
+        disabled={drafting}
+        copyKind="clan_chat"
+      />
+      {onDraft ? (
+        <DraftControls
+          value={value}
+          onChange={onChange}
+          onDraft={onDraft}
+          onBusy={setDrafting}
+          chat
+        />
       ) : null}
     </div>
   );
@@ -207,24 +346,7 @@ function LeaderMessage({
   });
   const words = value ?? own;
   const change = onChange ?? setOwn;
-  // The clan's model (when its key is in use): a draft in the clan's
-  // voice replaces the words, and what they had comes back with one click.
-  const [ask, setAsk] = useState("");
   const [drafting, setDrafting] = useState(false);
-  const [said, setSaid] = useState("");
-  const [previous, setPrevious] = useState(null);
-  const draft = async () => {
-    setDrafting(true);
-    setSaid("");
-    const r = await onDraft(ask.trim() || null);
-    setDrafting(false);
-    if (r.error) return setSaid(r.error);
-    setPrevious(words);
-    change({ title: r.title, body: r.body });
-    setSaid(
-      `Drafted by ${r.model}.${r.warnings?.length ? ` Check: ${r.warnings.join("; ")}.` : ""} Edit it, then copy and send.`,
-    );
-  };
   const title = words.title;
   const body = words.body;
   const setTitle = (t) => change({ ...words, title: t });
@@ -253,6 +375,7 @@ function LeaderMessage({
         value={title}
         onChange={setTitle}
         max={LEADER_MESSAGE.title}
+        disabled={drafting}
       />
       <MessageField
         label="Message"
@@ -260,6 +383,7 @@ function LeaderMessage({
         onChange={setBody}
         max={LEADER_MESSAGE.body}
         rows={3}
+        disabled={drafting}
       />
       {clean ? (
         <span className="flex items-center gap-2 text-[12.5px] text-ok">
@@ -268,44 +392,12 @@ function LeaderMessage({
         </span>
       ) : null}
       {onDraft ? (
-        <div className="grid gap-1.5">
-          <div className="flex flex-wrap gap-2">
-            <input
-              className="input flex-[1_1_200px]"
-              aria-label="What should it say?"
-              placeholder="What should it say? (optional)"
-              value={ask}
-              maxLength={300}
-              onChange={(e) => setAsk(e.target.value)}
-            />
-            <button
-              type="button"
-              className="btn btn--sm"
-              disabled={drafting}
-              onClick={draft}
-            >
-              {drafting ? "Drafting…" : "Draft in our voice"}
-            </button>
-          </div>
-          {said ? (
-            <span className="page-head__note" role="status">
-              {said}
-            </span>
-          ) : null}
-          {previous ? (
-            <button
-              type="button"
-              className="btn--text justify-self-start"
-              onClick={() => {
-                change(previous);
-                setPrevious(null);
-                setSaid("");
-              }}
-            >
-              Put back what I had
-            </button>
-          ) : null}
-        </div>
+        <DraftControls
+          value={words}
+          onChange={change}
+          onDraft={onDraft}
+          onBusy={setDrafting}
+        />
       ) : null}
     </div>
   );
@@ -465,10 +557,36 @@ export function ActionCard({
   const ev = action.evidence ?? {};
   // The words as the person edits them, sent with a completion so what
   // the clan shares with Elixir is what was said in the game.
+  const [line, setLine] = useState(action.copy ?? "");
   const [words, setWords] = useState({
     title: action.message?.title ?? "",
     body: action.message?.body ?? "",
   });
+  const onDraft =
+    model?.set &&
+    !model.refused &&
+    action.can_act !== false &&
+    ["leader", "coLeader"].includes(who?.role)
+      ? async (note) => {
+          const r = await manageApi.draftLeaderMessage(
+            clan.clan_tag,
+            action.card_id,
+            note,
+          );
+          if (!r.ok)
+            return {
+              error:
+                DRAFT_ERROR[r.data?.error] ??
+                r.data?.message ??
+                "The model did not answer. Your words are unchanged; check Settings before requesting another draft.",
+            };
+          trackEvent(
+            "clan.model_drafted",
+            action.copy ? "clan_chat" : "leader_message",
+          );
+          return r.data;
+        }
+      : null;
   const decide = async (status, extra = {}) => {
     setBusy(true);
     setError("");
@@ -480,7 +598,7 @@ export function ActionCard({
       ...(status === "done" && action.message
         ? { sent: { title: words.title, body: words.body } }
         : status === "done" && action.copy && action.type === "welcome"
-          ? { sent: { line: action.copy } }
+          ? { sent: { line } }
           : {}),
       ...extra,
     });
@@ -620,32 +738,25 @@ export function ActionCard({
             ))}
           </div>
         ) : null}
-        {action.copy && open ? <CopyLine text={action.copy} /> : null}
+        {action.copy && open ? (
+          ["welcome", "removal"].includes(action.type) &&
+          action.can_act !== false ? (
+            <ChatMessage
+              kind={action.type}
+              value={line}
+              onChange={setLine}
+              onDraft={onDraft}
+            />
+          ) : (
+            <CopyLine text={action.copy} />
+          )
+        ) : null}
         {action.message && open ? (
           <LeaderMessage
             message={action.message}
             value={words}
             onChange={setWords}
-            onDraft={
-              model?.set && !model.refused && action.can_act !== false
-                ? async (note) => {
-                    const r = await manageApi.draftLeaderMessage(
-                      clan.clan_tag,
-                      action.card_id,
-                      note,
-                    );
-                    if (!r.ok)
-                      return {
-                        error:
-                          DRAFT_ERROR[r.data?.error] ??
-                          r.data?.message ??
-                          "The clan's model did not answer. Try again in a minute.",
-                      };
-                    trackEvent("clan.model_drafted", "leader_message");
-                    return r.data;
-                  }
-                : null
-            }
+            onDraft={onDraft}
           />
         ) : null}
         {!open ? (
