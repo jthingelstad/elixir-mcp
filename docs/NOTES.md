@@ -3891,5 +3891,8 @@ outside the eligible group. Pre-record joins keep their conservative exclusion,
 and existing saved closed grants remain authoritative. No historical data,
 grant, model use or in-game message is manufactured for verification. This is
 private Clan behavior with no migration, permission or public contract change.
-Focused boundary, ranking, tie, unknown-data and saved-grant tests and the full
-gate will verify it before release; current production still has the old rule.
+Complete rebased npm run verify passed, including boundary, ranking, tie,
+unknown-data and saved-grant tests. Two independent read-only reviewers found
+no blocker. The earlier run failed only the capped-feed assumption repaired
+in PR #247; rebasing onto that correction made the full gate green. Required
+CI and canonical deployment remain owed; production still has the old rule.
