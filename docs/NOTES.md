@@ -3506,3 +3506,37 @@ production migration. Together with the seven earlier core tables, all 28
 retained maintenance targets are complete. No table rewrite, VACUUM FULL,
 instance resize or additional deletion was used. PR #240 carries only the
 empty-table contract, its preservation/refusal tests and documentation.
+
+
+### Right-sizing cleanup complete in production (2026-10-03)
+
+PR #239 (aac78161) removed the retired runtime, renderers, projectors and
+one-time purge operations; PR #240 (a7dab931) deployed migration 0199 after
+that last-reader removal. The migration contracted all 18 empty retired
+tables without rewriting canonical rows. Both production deployments passed
+full read-only acceptance: 1,133 cases, zero failures, 375 retired/unavailable
+skips and 512 distinct calls each. No contract version changed in these final
+releases: MCP 11.0.1 and JSON API 3.0.0 remain live; the collector fleet
+continues on v3.0.6.
+
+Final read-back at 13:30Z (8:30 AM CT) found every retired table absent and
+the retained account, tracking, game, receipt and sent-mail tables present.
+Public health was good and all five collectors were active. All 28 post-delete
+VACUUM (ANALYZE) targets are complete. The shared production lease has been
+released from its clean provenance checkout; the final documentation checkout
+retains pre-existing untracked Clan font files, which are neither staged nor
+published.
+
+The completed exact-manifest proof remains authoritative: 410,985 selected
+battles removed; all 245,520 protected battles and 442,035 player/clan identity
+keys retained; 224,155 original archive versions and 38,750 temporary versions
+deleted and verified absent. Approved derived local exports were removed
+after durable proof. The private final completion receipt binds the deployed
+commits, table read-back, collector health and maintenance to the approved
+manifest. RDS is available, encrypted, db.t4g.small with 20 GiB allocated, no
+pending modifications and seven-day automatic backup retention. Historical
+backup copies retire by normal expiry; none were manually deleted.
+
+No cleanup, migration, acceptance or collector recovery work remains. This
+close-out changes engineering receipts and status only, so no further
+production deploy follows its notes-only merge.

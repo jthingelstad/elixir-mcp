@@ -10,8 +10,8 @@ recommendations over a smaller population. `docs/DECISIONS.md` records
 Jamie's confirmed scope; `docs/reviews/2026-10-02-ELIXIR-RIGHT-SIZING.md`
 is the engineering removal plan. The approved historical database and archive
 purge has completed with retained-history and exact-version absence proofs.
-Post-delete vacuum and runtime cleanup are complete. The separately ordered
-empty-table contract is migration 0199, after the last readers retired.
+Post-delete vacuum and runtime cleanup are complete. Migration 0199 has contracted the 18 empty retired tables after the last
+readers retired.
 Status and verification receipts live in `docs/NOTES.md`.
 Preserve retained personal/clan history and do not restore retired scope.
 
@@ -266,7 +266,7 @@ Preserve REST/MCP credential audience separation (an MCP token never
 authenticates at `/api/v1`, and a `/api/v1` token never at MCP), integration-owned quotas,
 principal-bound asynchronous refreshes and existing personal tracking. Named recording Collections and Drop automatic
 enrollment retired in 10.0.0 / JSON API 3.0.0. Historical Collection membership
-and grants remain inert as purge provenance. Canonical game facts still enter
+and grants were removed by the approved purge, and their empty tables retired. Canonical game facts still enter
 only through collectors.
 
 ### Clan is part of Elixir
