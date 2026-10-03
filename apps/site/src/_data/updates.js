@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-03",
+    title: "Clan request timing separates storage and lock waits",
+    body: "Clan request diagnostics now include private-state operation counts and timing, plus time waiting for the clan lock. This helps explain slow Actions without recording SQL, state keys or message content. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "Rookie awards follow the first clan season",
     body: "Rookie ranks the season's first joins by the same points and donation tiebreaks as the points podium. Joining in an earlier season without playing war does not extend Rookie eligibility, and a returning stint does not reset the first join. Existing closed awards stay recorded. Contracts unchanged.",
   },
