@@ -3417,3 +3417,57 @@ the deletion manifest nor its guards, targets or executor changed. Direct
 human steering and exact process identities are recorded privately. Collectors
 stay drained during this extended database phase; no further feature work or
 production deployment is being advanced before cleanup completes.
+
+
+### Approved historical cleanup proof (2026-10-03)
+
+All 19,196 approved database batches completed under exact root
+`e958818afbd39b03a03979dd00fe1199b0c035477e71a6c8191ab59387fc9819`.
+This removed 410,985 selected battles and their selected dependent rows.
+The read-only proof verified all 4,248,826 selected target keys cleared,
+all 245,520 protected battles with nondecreasing dependent counts, and
+all 442,035 basic player/clan identities retained. Receipt history stays:
+125,233 retired replay references and 9,259 redirected references were
+checked; 77,875 diagnostic capture flags and five editorial JSON fields
+were cleared while their audit/sent-mail ledgers remain.
+
+Verification startup found a missing private output directory, then a
+wrapper lane-routing error: war_period_anchor belongs to the reference
+census. These stopped before original archive deletion. A separately
+hashed read-only addendum routed that lane correctly and checked clan_event
+targets against the complete clan_event_inventory, including nullable
+joined-observation times. The original manifest, executor and verifier
+bytes remain unchanged; this is an implementation correction to the
+required proof, not a new deletion manifest or fabricated human approval.
+Addendum SHA:
+`d31c3dde5b3d4b9fff56e92d88d2d937cc81d9d0367b3d6291ef2b27bc387045`.
+Seven isolated proof cases passed, including missing retained data,
+surviving targets and tampered exports; deletion entry points and unbound
+addenda refuse before AWS. The complete production proof passed over
+42 history lanes, five reference lanes and one admission lane (1,312 pages).
+
+All 8,154 retained replay replacements were reverified. Exact deletion
+removed 224,155 approved original S3 versions (1,082,135,855 bytes).
+A fully paged 190-page original-version inventory proved zero selected
+or other original versions on the deleted keys. Temporary cleanup removed
+38,750 versions: the 37,438 frozen selections plus 1,312 registered proof
+exports. Its full absence proof passed. Approved derived local exports,
+batch files and the evidence SQLite database were removed after the
+private durable audit was saved. Normal encrypted backups retain their
+seven-day expiry; no backup deletion or instance resize was performed.
+
+Collectors were held paused through the proof and archive cleanup under
+Jamie's completion-priority instruction. Their original recovery controller
+has resumed after the durable audit confirmed local cleanup. Vacuum and
+final runtime cleanup are the remaining gates; draft PR #239 stays unmerged
+until post-delete core maintenance and fleet recovery are verified.
+
+
+Post-delete VACUUM (ANALYZE) completed for all seven existing core-allowlist
+tables: battle, participants, cards, duel rounds, player snapshots, decks and
+deck cards. Collector recovery returned five active names with no errors;
+its 164.63-minute duration reflects Jamie's explicit extension, not the
+superseded one-hour target. The local canonical verification gate and combined
+site build passed after the final history documentation update. Runtime cleanup
+is now eligible to merge; the retained-table maintenance allowlist deploy and
+later empty-table contract remain separate ordered steps.
