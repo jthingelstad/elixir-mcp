@@ -140,3 +140,57 @@ test("an action from before logs is reconstructed from its own fields; earlier a
     ],
   );
 });
+
+test("welcome detail uses fresh career evidence, explicit return evidence, and no invented milestone", async () => {
+  const { welcomeContext } = await import("../src/actions.mjs");
+  const { inGameCopy } = await import("../src/render.mjs");
+  const joined = NOW.toISOString();
+  const profile = {
+    profile_observed_at: joined,
+    wins: 3456,
+    best_trophies: 8100,
+  };
+  const detail = welcomeContext({ lifetime: profile }, joined, joined, NOW);
+  assert.match(
+    inGameCopy("welcome", { name: "Example", welcome: detail }),
+    /3,000\+ career wins/,
+  );
+  assert.doesNotMatch(
+    inGameCopy("welcome", { name: "Example", welcome: detail }),
+    /just|reached|back/,
+  );
+  assert.equal(detail.source_as_of, joined);
+  assert.equal(
+    welcomeContext(
+      { lifetime: { ...profile, profile_observed_at: "2020-01-01T00:00:00Z" } },
+      joined,
+      joined,
+      NOW,
+    ),
+    null,
+  );
+  assert.equal(welcomeContext({}, joined, joined, NOW), null);
+  assert.equal(
+    welcomeContext({ first_observed_in_clan: joined }, joined, joined, NOW),
+    null,
+  );
+  const returning = welcomeContext(
+    {
+      first_observed_in_clan: "2020-01-01T00:00:00Z",
+      rejoined_observed_at: joined,
+    },
+    joined,
+    joined,
+    NOW,
+  );
+  assert.match(
+    inGameCopy("welcome", { name: "Example", welcome: returning }),
+    /Welcome back/,
+  );
+  const long = inGameCopy("welcome", {
+    name: "A&long-name".repeat(30),
+    welcome: detail,
+  });
+  assert.ok(long.length <= 120);
+  assert.doesNotMatch(long, /&|-/);
+});

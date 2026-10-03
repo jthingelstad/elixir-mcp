@@ -49,6 +49,27 @@ export function createPostgresStore(db) {
     listByPrefix(clanTag, prefix = "") {
       return this.listByPartition(`clan#${clanTag}`, prefix);
     },
+    async listByPrefixes(clanTag, prefixes) {
+      return (
+        await db.query(
+          `select body from clan_state where partition_key = $1
+         and exists (select 1 from unnest($2::text[]) as prefixes(prefix) where starts_with(sort_key, prefix))
+         order by sort_key collate "C"`,
+          [`clan#${clanTag}`, prefixes],
+        )
+      ).rows.map((r) => r.body);
+    },
+    async cardByNumber(clanTag, number) {
+      return (
+        (
+          await db.query(
+            `select body from clan_state where partition_key = $1 and starts_with(sort_key, 'card#')
+         and body ->> 'number' = $2 limit 1`,
+            [`clan#${clanTag}`, String(number)],
+          )
+        ).rows[0]?.body ?? null
+      );
+    },
     async increment(pk) {
       const r = await db.query(
         `insert into clan_state (pk, body) values ($1, jsonb_build_object('pk', $1::text, 'n', 1))

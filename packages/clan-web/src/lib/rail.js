@@ -3,7 +3,7 @@
  * until a leader saves one, and while the clan has fewer than 10 members,
  * only the roster, Recruit, Scout, the policy editor and clan settings
  * exist (nothing in clan management runs). Manage for leaders and
- * co-leaders, Awards and Scout also for elders, Away when the policy lets
+ * co-leaders, Awards for all members, Scout also for elders, Away when the policy lets
  * members mark it, Maintain for the product's maintainer. Two items the
  * reader can see at once never share a label.
  * The rail itself is Elixir's (the kit's Rail); this is only what goes
@@ -68,6 +68,13 @@ export function railItems(me) {
         icon: "award",
         to: `${base}/trophies`,
       });
+    if (set)
+      items.push({
+        key: "awards",
+        label: "Awards",
+        icon: "award",
+        to: `${base}/awards`,
+      });
     // Social (Jamie, 2026-09-26): the clan's own section, in every clan at
     // any size, with or without a policy. The map is the members' own
     // sharing, which a leader can turn off; Recruit stays either way. It
@@ -123,14 +130,6 @@ export function railItems(me) {
       });
     }
     if (elder) {
-      if (set)
-        items.push({
-          ...(leader ? {} : { group: "Manage" }),
-          key: "awards",
-          label: "Awards",
-          icon: "award",
-          to: `${base}/manage/awards`,
-        });
       items.push({
         ...(leader || set ? {} : { group: "Manage" }),
         key: "scout",
@@ -187,7 +186,7 @@ export function railKey(path) {
   if (app.startsWith("/feedback")) return "feedback";
   if (app.startsWith("/maintain")) return "maintain";
   const m =
-    /^\/([^/]+)(?:\/(me|week|actions|standing|trophies|recruit|map|manage)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
+    /^\/([^/]+)(?:\/(me|week|actions|standing|trophies|awards|recruit|map|manage)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
       app,
     );
   if (!m || !tagOf(m[1])) return null;
@@ -200,6 +199,7 @@ export function railKey(path) {
       "actions",
       "standing",
       "trophies",
+      "awards",
       "recruit",
       "map",
     ].includes(section)

@@ -563,6 +563,12 @@ export function ActionCard({
     title: action.message?.title ?? "",
     body: action.message?.body ?? "",
   });
+  const grouped = ev.messages?.length > 0;
+  const allSent =
+    grouped &&
+    ev.messages.every((m) =>
+      action.messages_sent?.some((r) => r.part === m.part),
+    );
   const onDraft =
     action.type !== "awards_standings" &&
     model?.set &&
@@ -705,13 +711,16 @@ export function ActionCard({
             </div>
           ) : action.type === "awards_standings" ? (
             <div>
-              War week {ev.section_index + 1} of season {ev.season_id} is
-              recorded as closed. Share provisional standings through that week,
-              then mark it sent. These are not final grants; incomplete evidence
-              withholds places.
-              {ev.parts > 1
-                ? ` Message ${ev.part} of ${ev.parts}; send every part.`
-                : ""}
+              {ev.scope === "current"
+                ? `Current provisional season ${ev.season_id} standings.`
+                : `War week ${ev.section_index + 1} of season ${ev.season_id} is recorded as closed. Share provisional standings through that week.`}
+              {ev.as_of ? ` As of ${ev.as_of}.` : ""} These are not final
+              grants; incomplete evidence withholds places.
+              {grouped
+                ? " Send each message in order and mark each one sent. Copying alone does not record delivery."
+                : ev.parts > 1
+                  ? ` Message ${ev.part} of ${ev.parts}; send every part.`
+                  : ""}
             </div>
           ) : action.type === "rules_announcement" ? (
             <div>
@@ -766,7 +775,20 @@ export function ActionCard({
             <CopyLine text={action.copy} />
           )
         ) : null}
-        {action.message && open ? (
+        {grouped ? (
+          <div className="grid gap-4">
+            {ev.messages.map((m) => (
+              <UpdateMessage
+                key={`${action.card_id}-${m.part}`}
+                message={m}
+                who={who}
+                action={action}
+                clan={clan}
+                onChanged={onChanged}
+              />
+            ))}
+          </div>
+        ) : action.message && open ? (
           <LeaderMessage
             message={action.message}
             value={words}
@@ -856,10 +878,10 @@ export function ActionCard({
                 <button
                   type="button"
                   className="btn btn--primary"
-                  disabled={busy}
+                  disabled={busy || (grouped && !allSent)}
                   onClick={() => decide("done")}
                 >
-                  Sent
+                  {grouped ? "Complete update" : "Sent"}
                 </button>
                 <button
                   type="button"
@@ -867,7 +889,7 @@ export function ActionCard({
                   disabled={busy}
                   onClick={() => decide("declined")}
                 >
-                  Skip
+                  {grouped ? "Skip remaining messages" : "Skip"}
                 </button>
               </div>
             ) : action.type === "welcome" ? (
@@ -982,5 +1004,121 @@ export function ActionCard({
         </div>
       ) : null}
     </article>
+  );
+}
+
+/** Each delivery is a person's explicit receipt; copying remains independent. */
+function UpdateMessage({ message, action, clan, who, onChanged }) {
+  const receipt = action.messages_sent?.find((r) => r.part === message.part);
+  const [words, setWords] = useState(message.message);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  return (
+    <section className="grid gap-2 border-t border-line-row pt-3">
+      <div className="label">
+        Message {message.part} of {action.evidence.messages.length}
+      </div>
+      {receipt ? (
+        <>
+          <p className="page-head__note m-0">
+            Sent by {receipt.sent_by_name ?? receipt.sent_by} ·{" "}
+            {receipt.sent_at}
+          </p>
+          <strong>{receipt.title}</strong>
+          <p className="m-0">{receipt.body}</p>
+          {receipt.shared === false && receipt.sent_by === who?.player_tag ? (
+            <button
+              className="btn btn--sm w-fit"
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  const r = await manageApi.messageSent(
+                    clan.clan_tag,
+                    action.card_id,
+                    message.part,
+                    { title: receipt.title, body: receipt.body },
+                  );
+                  if (!r.ok)
+                    setError(
+                      "The sent receipt is saved; recording it in Elixir is still unconfirmed.",
+                    );
+                  else onChanged?.();
+                } catch {
+                  setError(
+                    "The sent receipt is saved; recording it in Elixir is still unconfirmed.",
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Retry recording in Elixir
+            </button>
+          ) : null}
+        </>
+      ) : action.status === "proposed" ? (
+        <>
+          <LeaderMessage
+            message={message.message}
+            value={words}
+            onChange={setWords}
+          />
+          {action.can_act ? (
+            <button
+              className="btn w-fit"
+              type="button"
+              disabled={
+                busy ||
+                !words.title.trim() ||
+                !words.body.trim() ||
+                words.title.length > 24 ||
+                words.body.length > 180
+              }
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  const r = await manageApi.messageSent(
+                    clan.clan_tag,
+                    action.card_id,
+                    message.part,
+                    words,
+                  );
+                  if (!r.ok) {
+                    setError(
+                      "Delivery was not confirmed here. Retry to recover the saved receipt.",
+                    );
+                    return;
+                  }
+                  onChanged?.();
+                } catch {
+                  setError(
+                    "Delivery was not confirmed here. Retry to recover the saved receipt.",
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? "Recording…" : `Mark message ${message.part} sent`}
+            </button>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <strong>{message.message.title}</strong>
+          <p className="m-0">{message.message.body}</p>
+          <span className="page-head__note">Not marked sent.</span>
+        </>
+      )}
+      {error ? (
+        <p className="field-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </section>
   );
 }

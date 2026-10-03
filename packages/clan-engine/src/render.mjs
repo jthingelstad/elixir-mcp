@@ -417,7 +417,10 @@ export function describePolicy(policy) {
  * through the game's filter rules (`chat.mjs`: a hyphenated name is written
  * with a space) and clipped at a sentence: 200 characters, a welcome 120.
  */
-export function inGameCopy(kind, { name, days_idle = null, phrase = "" } = {}) {
+export function inGameCopy(
+  kind,
+  { name, days_idle = null, phrase = "", welcome = null } = {},
+) {
   const who = String(name ?? "a member")
     .replace(/[&+]/g, " ")
     .trim();
@@ -425,7 +428,11 @@ export function inGameCopy(kind, { name, days_idle = null, phrase = "" } = {}) {
     promotion: `Congrats ${who}, promoted to Elder${phrase ? `: ${phrase}` : ""}.`,
     demotion: `${who} moves from Elder back to Member for now. It can come back.`,
     removal: `${who} was removed for inactivity (${days_idle === null ? "a long stretch" : `${Math.round(days_idle)} days`} without a battle). Welcome back any time you are playing again.`,
-    welcome: `Welcome to the clan, ${who}!`,
+    welcome: welcome?.returning
+      ? `Welcome back, ${who}! Glad to have you with us again.`
+      : welcome?.fact
+        ? `Welcome, ${who}! ${welcome.fact} Glad to have you here.`
+        : `Welcome to the clan, ${who}!`,
     farewell: `Thanks for your time with us ${who}, good luck out there.`,
   }[kind];
   if (!text) return null;

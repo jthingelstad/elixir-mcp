@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { mockApi, signedIn } from "./fixtures.ts";
+import { mockApi, signedIn, ME } from "./fixtures.ts";
 
 const members = [
   { player_tag: "#20QQL8CCRU", name: "Ada", role: "leader" },
@@ -133,7 +133,7 @@ for (const size of ["wide", "@narrow"]) {
     const data = makeView();
     const picks: unknown[] = [];
     const responses = signedIn({
-      "GET /api/clan/clans/2PQRJ8LV/awards/manage": () => [200, data],
+      "GET /api/clan/clans/2PQRJ8LV/awards": () => [200, data],
       "POST /api/clan/clans/2PQRJ8LV/awards/grants": (route) => {
         const body = route.request().postDataJSON();
         picks.push(body);
@@ -174,6 +174,7 @@ for (const size of ["wide", "@narrow"]) {
     await expect(
       page.getByRole("heading", { name: "Awards", exact: true }),
     ).toBeVisible();
+    await page.getByRole("combobox", { name: "Season" }).selectOption("135");
     await expect(page.getByText("80 war decks", { exact: true })).toBeVisible();
     await expect(page.getByText("1,200 cards", { exact: true })).toBeVisible();
     await expect(
@@ -331,4 +332,250 @@ for (const size of ["wide", "@narrow"]) {
       });
     });
   }
+}
+
+for (const size of ["wide", "@narrow"]) {
+  test(`member Awards selects one season and retains management gates ${size}`, async ({
+    page,
+  }) => {
+    const data = {
+      ...makeView(),
+      can_edit: false,
+      can_grant: [],
+      can_send: false,
+    };
+    const selected = { ...ME.clans[0], role: "member", role_label: "Member" };
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/clan/me": [200, { ...ME, selected, clans: [selected] }],
+        "GET /api/clan/clans/2PQRJ8LV/awards": [200, data],
+      }),
+    );
+    await page.goto("/clan/2PQRJ8LV/awards");
+    await expect(page.getByRole("combobox", { name: "Season" })).toHaveValue(
+      "136",
+    );
+    await expect(
+      page.getByRole("button", {
+        name: /Edit awards|Grant .*season|Send current update/,
+      }),
+    ).toHaveCount(0);
+    await expect(page.getByText("80 war decks", { exact: true })).toHaveCount(
+      0,
+    );
+    await page.getByRole("combobox", { name: "Season" }).selectOption("135");
+    await expect(page.getByText("80 war decks", { exact: true })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Season" })).toHaveValue(
+      "135",
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  });
+
+  test(`current update retries one Action and records each reviewed message ${size}`, async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const data = { ...makeView(), can_send: true };
+    const requests: string[] = [];
+    const sent: Record<string, unknown>[] = [];
+    const action = {
+      card_id: "current1",
+      number: 42,
+      type: "awards_standings",
+      label: "Share current award standings",
+      status: "proposed",
+      can_act: true,
+      audience: { kind: "leaders" },
+      raised_at: "2026-10-03T12:00:00Z",
+      channel: "leader_message",
+      messages_sent: [] as Record<string, unknown>[],
+      evidence: {
+        scope: "current",
+        season_id: 136,
+        as_of: "2026-10-03T12:00:00Z",
+        messages: [
+          {
+            part: 1,
+            message: {
+              title: "S136 now 1/2",
+              body: "Provisional S136. Points Cup: Ada, 3200 points.",
+            },
+          },
+          {
+            part: 2,
+            message: {
+              title: "S136 now 2/2",
+              body: "Provisional S136. Attendance Cup: 10 on track.",
+            },
+          },
+        ],
+      },
+      log: [],
+    };
+    const responses = signedIn({
+      "GET /api/clan/clans/2PQRJ8LV/awards": [200, data],
+      "POST /api/clan/clans/2PQRJ8LV/awards/update": (route) => {
+        requests.push(route.request().postDataJSON().request_id);
+        return requests.length === 1
+          ? [503, { error: "synthetic lost response" }]
+          : [200, { action }];
+      },
+      "GET /api/clan/clans/2PQRJ8LV/actions/42": () => [
+        200,
+        { clan_tag: "#2PQRJ8LV", action, decline_reasons: [] },
+      ],
+      ...(Object.fromEntries(
+        [1, 2].map((part) => [
+          `POST /api/clan/clans/2PQRJ8LV/actions/current1/messages/${part}/sent`,
+          (route) => {
+            const words = route.request().postDataJSON();
+            sent.push({ part, ...words });
+            action.messages_sent.push({
+              part,
+              ...words,
+              sent_by: members[0].player_tag,
+              sent_by_name: "Ada",
+              sent_at: "2026-10-03T12:05:00Z",
+              shared: true,
+            });
+            return [200, action];
+          },
+        ]),
+      ) as Record<
+        string,
+        (route: import("@playwright/test").Route) => [number, unknown]
+      >),
+      "POST /api/clan/clans/2PQRJ8LV/actions/current1/decide": () => {
+        action.status = "done";
+        action.can_act = false;
+        return [200, action];
+      },
+    });
+    await mockApi(page, responses);
+    await page.goto("/clan/2PQRJ8LV/awards");
+    const prepare = page.getByRole("button", {
+      name: "Send current update to clan",
+      exact: true,
+    });
+    await prepare.click();
+    await expect(page.getByRole("alert")).toContainText("Retry");
+    await prepare.click();
+    await page.getByRole("link", { name: /Review Action #42/ }).click();
+    expect(requests).toHaveLength(2);
+    expect(requests[0]).toBeTruthy();
+    expect(requests[1]).toBe(requests[0]);
+    const complete = page.getByRole("button", {
+      name: "Complete update",
+      exact: true,
+    });
+    await expect(complete).toBeDisabled();
+    await page
+      .getByRole("button", { name: "Copy the message", exact: true })
+      .first()
+      .click();
+    expect(sent).toHaveLength(0);
+    const reviewed = "Reviewed provisional standings. Ada, 3200 points.";
+    await page.getByLabel("Message", { exact: true }).first().fill(reviewed);
+    const axe = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(
+      axe.violations.filter((v) =>
+        ["serious", "critical"].includes(v.impact ?? ""),
+      ),
+    ).toEqual([]);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: `/tmp/elixir-grouped-update-${size === "wide" ? "wide" : "narrow"}.png`,
+      fullPage: true,
+    });
+    await page
+      .getByRole("button", { name: "Mark message 1 sent", exact: true })
+      .click();
+    await expect(page.getByText(reviewed, { exact: true })).toBeVisible();
+    await expect(complete).toBeDisabled();
+    await page
+      .getByRole("button", { name: "Mark message 2 sent", exact: true })
+      .click();
+    await expect(complete).toBeEnabled();
+    expect(sent[0]?.body).toBe(reviewed);
+    expect(sent).toHaveLength(2);
+    await complete.click();
+    await expect(complete).toHaveCount(0);
+  });
+
+  test(`Actions defaults to Open and refreshes suggestions explicitly ${size}`, async ({
+    page,
+  }) => {
+    const open = {
+      card_id: "open1",
+      number: 1,
+      type: "welcome",
+      label: "Welcome the newcomer",
+      status: "proposed",
+      player_name: "Example",
+      raised_at: "2026-10-03T12:00:00Z",
+      log: [],
+    };
+    const recent = {
+      ...open,
+      card_id: "closed1",
+      number: 2,
+      label: "Earlier welcome",
+      status: "done",
+      decided_at: "2026-10-03T12:01:00Z",
+    };
+    let refreshes = 0;
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/clan/clans/2PQRJ8LV/actions": (route) => {
+          if (
+            new URL(route.request().url()).searchParams.get("refresh") === "1"
+          )
+            refreshes++;
+          return [
+            200,
+            { open: [open], recent: [recent], as_of: "2026-10-03T12:00:00Z" },
+          ];
+        },
+      }),
+    );
+    await page.goto("/clan/2PQRJ8LV/actions");
+    await expect(page.getByRole("combobox", { name: "Show" })).toHaveValue(
+      "open",
+    );
+    await expect(
+      page.getByRole("link", { name: /Welcome the newcomer/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Earlier welcome/ }),
+    ).toHaveCount(0);
+    await page.getByRole("combobox", { name: "Show" }).selectOption("closed");
+    await expect(
+      page.getByRole("link", { name: /Earlier welcome/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Welcome the newcomer/ }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Refresh suggestions", exact: true })
+      .click();
+    await expect.poll(() => refreshes).toBe(1);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  });
 }

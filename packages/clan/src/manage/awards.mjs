@@ -32,7 +32,11 @@ import { createActionStore } from "./actions.mjs";
 import { createHash } from "node:crypto";
 import { newId } from "@elixir-mcp/clan-state";
 import { planStandings, standingsFrom } from "./standings.mjs";
-import { weeklyAwardUpdates } from "./award-week.mjs";
+import {
+  weeklyAwardUpdates,
+  timelyAwardWeek,
+  currentAwardUpdate,
+} from "./award-week.mjs";
 
 const LEADERS = new Set(["leader", "coLeader"]);
 const ELDER_PLUS = new Set(["leader", "coLeader", "elder"]);
@@ -144,78 +148,126 @@ export function createAwardsService({
     }
   }
 
-  /** Freeze every week before raising its parts, so interruption retries the
-   * same evidence. Existing plans anchor backfill across a season rollover;
-   * first adoption starts with the latest recorded season. */
+  /** New updates have one durable Action; old plans retain their original
+   * card IDs and decisions. Only the latest timely week can recover a raise. */
+  async function raiseUpdate(clanTag, plan, policy, cards) {
+    const evidence = {
+      scope: plan.scope ?? "weekly",
+      season_id: plan.season_id,
+      section_index: plan.section_index ?? null,
+      finished_observed_at: plan.finished_observed_at ?? null,
+      as_of: plan.as_of,
+      complete: plan.complete,
+      config_version: plan.config_version,
+    };
+    const text =
+      plan.scope === "current"
+        ? `Review current provisional season ${plan.season_id} standings as of ${plan.as_of}.`
+        : `War week ${plan.section_index + 1} closed: share provisional season ${plan.season_id} standings.`;
+    const existing = cards.find((c) => c.card_id === plan.card_id);
+    if (existing) return existing;
+    return raiseAction(
+      clanTag,
+      {
+        card_id: plan.card_id,
+        clan_tag: clanTag,
+        player_tag: null,
+        player_name: null,
+        role_at_raise: null,
+        type: "awards_standings",
+        status: "proposed",
+        raised_at: plan.raised_at,
+        policy_version: policy.version,
+        evidence: { ...evidence, messages: plan.parts },
+      },
+      cards,
+      { text },
+    );
+  }
+
   async function announceWeeks(clanTag, participation, config, t) {
+    const eligible = timelyAwardWeek(participation, new Date(t));
+    if (!eligible) return;
     const saved = await ledger.weeklyAwardPlans(clanTag);
-    const fromSeason = saved.length
-      ? Math.min(...saved.map((p) => p.season_id))
-      : undefined;
-    const updates = config.values.awards.some((a) => a.enabled)
-      ? weeklyAwardUpdates({
-          participation,
-          config: config.values,
-          now: new Date(t),
-          fromSeason,
-        })
-      : [];
-    const plans = [...saved];
-    for (const update of updates) {
-      if (
-        saved.some(
-          (p) =>
-            p.season_id === update.season_id &&
-            p.section_index === update.section_index,
-        )
-      )
-        continue;
-      plans.push(
-        await ledger.saveWeeklyAwardPlan(clanTag, {
+    let plan = saved.find(
+      (p) =>
+        p.season_id === eligible.season_id &&
+        p.section_index === eligible.section_index,
+    );
+    if (!plan && config.values.awards.some((a) => a.enabled)) {
+      const update = weeklyAwardUpdates({
+        participation,
+        config: config.values,
+        now: new Date(t),
+      })[0];
+      if (update)
+        plan = await ledger.saveWeeklyAwardPlan(clanTag, {
           ...update,
+          card_id: newId(),
           config_version: config.version,
           raised_at: new Date(t).toISOString(),
-          parts: update.parts.map((p) => ({ ...p, card_id: newId() })),
-        }),
-      );
+        });
     }
+    if (
+      !plan ||
+      !Number.isFinite(Date.parse(plan.finished_observed_at)) ||
+      t - Date.parse(plan.finished_observed_at) > 7 * 86400000
+    )
+      return;
     const policy = await ledger.currentPolicy(clanTag);
     if (!policy) return;
     const cards = await ledger.cards(clanTag);
-    for (const plan of plans)
-      for (const part of plan.parts) {
-        if (cards.some((c) => c.card_id === part.card_id)) continue;
-        const card = await raiseAction(
-          clanTag,
-          {
-            card_id: part.card_id,
-            clan_tag: clanTag,
-            player_tag: null,
-            player_name: null,
-            role_at_raise: null,
-            type: "awards_standings",
-            status: "proposed",
-            raised_at: plan.raised_at,
-            policy_version: policy.version,
-            evidence: {
-              season_id: plan.season_id,
-              section_index: plan.section_index,
-              finished_observed_at: plan.finished_observed_at,
-              as_of: plan.as_of,
-              complete: plan.complete,
-              config_version: plan.config_version,
-              part: part.part,
-              parts: plan.parts.length,
-              message: part.message,
-            },
+    if (plan.card_id) {
+      await raiseUpdate(clanTag, plan, policy, cards);
+      return;
+    }
+    // Previously frozen segmented plans are never replaced or regrouped.
+    for (const part of plan.parts) {
+      if (cards.some((c) => c.card_id === part.card_id)) continue;
+      const card = await raiseAction(
+        clanTag,
+        {
+          card_id: part.card_id,
+          clan_tag: clanTag,
+          player_tag: null,
+          player_name: null,
+          role_at_raise: null,
+          type: "awards_standings",
+          status: "proposed",
+          raised_at: plan.raised_at,
+          policy_version: policy.version,
+          evidence: {
+            season_id: plan.season_id,
+            section_index: plan.section_index,
+            finished_observed_at: plan.finished_observed_at,
+            as_of: plan.as_of,
+            complete: plan.complete,
+            config_version: plan.config_version,
+            part: part.part,
+            parts: plan.parts.length,
+            message: part.message,
           },
-          cards,
-          {
-            text: `War week ${plan.section_index + 1} closed: share provisional season ${plan.season_id} standings.`,
-          },
-        );
-        cards.push(card);
-      }
+        },
+        cards,
+        {
+          text: `War week ${plan.section_index + 1} closed: share provisional season ${plan.season_id} standings.`,
+        },
+      );
+      cards.push(card);
+    }
+  }
+
+  async function readParticipation(clanTag, token) {
+    const participation = await participationFor(token, clanTag);
+    if (membershipFor) {
+      const evidence = await membershipFor(clanTag, participation);
+      participation.members = participation.members.map((m) => ({
+        ...m,
+        absent_at_war_week: evidence.war?.[m.player_tag] ?? [],
+        absent_at_donation_week: evidence.donations?.[m.player_tag] ?? [],
+      }));
+    }
+    return participation;
   }
 
   /** Nothing in clan management runs before a policy is saved, nor while
@@ -266,15 +318,7 @@ export function createAwardsService({
       t - Date.parse(cached.evaluated_at) < EVALUATION_TTL_MS
     )
       return { result: cached, config, cached: true };
-    const participation = await participationFor(token, clanTag);
-    if (membershipFor) {
-      const evidence = await membershipFor(clanTag, participation);
-      participation.members = participation.members.map((m) => ({
-        ...m,
-        absent_at_war_week: evidence.war?.[m.player_tag] ?? [],
-        absent_at_donation_week: evidence.donations?.[m.player_tag] ?? [],
-      }));
-    }
+    const participation = await readParticipation(clanTag, token);
     // Too small for awards: remember the size and grant nothing.
     await noteClanSize(ledger, clanTag, participation.members.length, t);
     if (participation.members.length < MIN_MEMBERS)
@@ -411,6 +455,7 @@ export function createAwardsService({
     granted_at: g.granted_at,
     granted_by: g.granted_by ?? null,
     granted_by_name: g.granted_by_name ?? null,
+    donations: g.metadata?.donations ?? null,
   });
 
   return {
@@ -431,9 +476,47 @@ export function createAwardsService({
       return { awards_evaluated: true, ...(shared ?? {}) };
     },
 
+    async currentUpdate(clanTag, who, token, requestId) {
+      if (!isLeader(who) || who.verified === false)
+        throw new ManageError(403, "leaders_only");
+      if (
+        !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(requestId ?? "")
+      )
+        throw new ManageError(400, "bad_request_id");
+      await requirePolicy(clanTag);
+      let plan = await ledger.currentAwardUpdate(clanTag, requestId);
+      if (!plan) {
+        const config = await configFor(clanTag);
+        const participation = await readParticipation(clanTag, token);
+        if (participation.members.length < MIN_MEMBERS)
+          throw tooFewMembers(participation.members.length);
+        const update = currentAwardUpdate({
+          participation,
+          config: config.values,
+          now: new Date(now()),
+        });
+        if (!update) throw new ManageError(409, "season_not_open");
+        if (!update.parts.length) throw new ManageError(409, "no_awards");
+        plan = await ledger.saveCurrentAwardUpdate(clanTag, {
+          ...update,
+          request_id: requestId,
+          card_id: newId(),
+          config_version: config.version,
+          raised_at: new Date(now()).toISOString(),
+          requested_by: who.player_tag,
+        });
+      }
+      const action = await raiseUpdate(
+        clanTag,
+        plan,
+        await ledger.currentPolicy(clanTag),
+        await ledger.cards(clanTag),
+      );
+      return { action };
+    },
+
     /** Manage ▸ Awards: races, seasons, grants, and the document. */
     async manageView(clanTag, who, token, { refresh = false } = {}) {
-      if (!ELDER_PLUS.has(who.role)) throw new ManageError(403, "elders_only");
       await requirePolicy(clanTag, { size: false });
       const { result, config, cached } = await evaluateClan({
         clanTag,
@@ -456,7 +539,9 @@ export function createAwardsService({
             row.granted_by_name ?? names.get(row.granted_by) ?? null,
         };
       });
-      const versions = await ledger.awardsVersions(clanTag);
+      const versions = ELDER_PLUS.has(who.role)
+        ? await ledger.awardsVersions(clanTag)
+        : [];
       // Manual rows come from the ledger as it is now, not from the
       // snapshot: a pick granted a moment ago shows without a re-read.
       const seasons = result.seasons.map((s) => ({
@@ -485,12 +570,14 @@ export function createAwardsService({
       return {
         clan_tag: clanTag,
         can_edit: isLeader(who),
+        can_send: isLeader(who) && who.verified !== false,
         can_grant: config.values.awards
           .filter(
             (a) =>
               a.enabled &&
               a.kind === "leaders_pick" &&
-              (isLeader(who) || a.params.granted_by === "elders"),
+              (isLeader(who) ||
+                (ELDER_PLUS.has(who.role) && a.params.granted_by === "elders")),
           )
           .map((a) => a.id),
         evaluated_at: result.evaluated_at,

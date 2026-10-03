@@ -57,7 +57,9 @@ so later capture or configuration changes do not rewrite the podium.
 ## Who does what
 
 - The leader and co-leaders set up the clan's awards.
-- Elders and up see the awards page, with the season in progress.
+- Every member sees **Clan ▸ Awards**, with one season selected at a time.
+  The newest recorded season is selected first; choose a previous season to
+  read its saved grants. Only the existing allowed roles edit or grant awards.
 - A **Leaders' pick** is granted by the leader and co-leaders, or by
   elders too when the award allows it, with a note of up to 500
   characters, after the season is recorded as closed and complete. The picker
@@ -69,23 +71,41 @@ so later capture or configuration changes do not rewrite the podium.
 
 ## Where members see them
 
+**Awards** shows the selected season's provisional races or final saved grants.
+Equal points use known season donations to break ties, and equal in both share
+a place. The attendance list shows recorded donations in descending order,
+unknown totals last; its pass-or-fail eligibility still depends only on decks
+and the configured allowed misses. No donation total changes attendance eligibility.
+
 **Trophies** is every member's page: their own trophy case, what the
 clan awards, and each season's winners, place by place. It shows only
 decided seasons, never a live race.
 
 ## How they reach the clan
 
-**Weekly progress.** After each war week is recorded as closed, the normal
-morning evaluation gives leaders Actions with provisional standings through
-that completed week. Opening Awards or Trophies can also raise them. Later open
+**Weekly progress.** After a war week is recorded as closed, the normal
+morning evaluation gives leaders one Action with provisional standings through
+that completed week. Opening Awards or Trophies can also raise it. Only the
+newest observed closed week of the newest recorded season is eligible, and
+its observed finish must be within the last seven days. A finished Colosseum
+uses the final season path. Later open
 weeks are excluded. Missing evidence withholds places; attendance names the
 number recorded on track, and manual picks remain human choices. Each part
-is editable and ready to copy into a Clan Leader Message. Mark it sent only
-after sharing it in the game. Saved weekly snapshots and completed Actions
-are kept unchanged; retrying a missed run fills missing parts and weeks.
-The first run starts with completed weeks of the latest recorded season.
+is editable and ready to copy into a Clan Leader Message. All parts belong to
+the same Action; mark each sent only after sharing it in the game. Saved weekly
+snapshots and completed or declined Actions stay unchanged. Retrying a timely
+update recovers its original Action, without creating historical backfill.
+Older Actions already waiting stay available for leaders to decide.
 These updates do not grant awards and work separately from the final season
 announcement setting. Nothing posts automatically.
+
+**Current progress.** A verified leader or co-leader can choose **Send current
+update to clan** during the newest recorded open season. It freezes the fresh
+provisional standings and their as-of time into one Action for review, editing
+and copying. It grants no award and posts nothing to the game. A lost response
+can be retried to recover the same Action; a deliberate later request creates
+a new snapshot. Each part records its own sent receipt before the whole update
+can be completed.
 
 **In the game.** When the clan turns on **Announce each season's
 awards**, the leaders get an [action](/docs/clan-actions) with a Clan

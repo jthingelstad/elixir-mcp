@@ -3721,6 +3721,7 @@ Transport tests cover definitive rejection retries and ambiguous acceptance.
 Release is held for the coordinated parent window; no collector binary change
 or no-op fleet release is required for the prepared historical replay.
 
+
 Release receipt: PR #246 merged on green validate (run 37149661996), then
 the canonical deploy shipped `9d5a6cf5` under the shared session lease.
 CloudFormation recorded UPDATE_COMPLETE at 20:03:27Z (3:03 PM CT).
@@ -3751,3 +3752,53 @@ points rather than the period-end total. The carry arithmetic matches quota,
 but historical attribution precision is a separate follow-up; this change
 does not alter it. Production leases are released. This notes-only close
 requires no further deployment.
+
+## 2026-10-03 — Actions processing and grouped award progress
+
+Jamie's Actions/Awards review moves Awards under Clan for every member, defaults
+to the newest recorded season and shows only the selected season. Existing
+verified role gates still control config, manual grant/revoke and current-update
+creation. Attendance displays known season donations in order, unknown last,
+without changing its eligibility. Point ties and donation tiebreaks stay intact;
+Rookie's prior-season/no-war exception remains pending Jamie's clarification.
+
+Actions shows Open by default with one Closed filter. It reads only visible
+cards' logs and one card's detail log. Processing reuses the saved policy-matching
+evaluation with its as-of time; Refresh suggestions explicitly evaluates, as do
+cold reads, policy changes and clans known below the minimum. Historical timing
+metadata showed one slow list request, but its phase counters cannot attribute
+that delay, so this is not a claimed measured production latency improvement.
+
+Only the newest observed closed week of the newest season can raise automatic
+progress, within seven days of its original observed finish and before final
+Colosseum. One grouped Action preserves ordered message parts, snapshot and
+identity through retries. Current progress takes fresh participation through the
+pure award engine; it never calls the evaluator that grants final awards. A
+request UUID freezes its own plan and card before raising it, and a deliberate
+later request gets another snapshot. Copy is separate from delivery. Each
+explicit sent receipt freezes reviewed words, sender and time; audit/share
+failures reconcile without replacing it or changing its attester. Complete
+requires every part; skipping remaining keeps prior receipts. Historical plans,
+segmented cards and done/declined decisions stay unchanged; leaders decide stale
+Actions themselves. No historical grant import or production award mutation.
+
+Future welcome cards can freeze one fresh recorded career fact or explicitly
+proven return; unknown/stale evidence uses a simple welcome. Old decisions stay
+unchanged and no unobserved newly reached milestone is asserted. Tests use only
+synthetic evidence. This iteration has no migration or public contract change,
+and does not alter persistent access. Collector PR #246 is its rebase baseline.
+CI and canonical release are owed.
+The separate scoped drafting permission PR #247 stays held for action-specific
+approval and must not be carried through a cumulative deploy while blocked.
+
+Validation receipt: complete npm run verify passed after the final browser
+fixture type correction, including 159 Clan service tests, 136 engine tests,
+8 scratch PostgreSQL state tests and 86 Clan UI tests. All 83 built browser
+journeys passed; the 12 Awards/Actions journeys cover desktop and 420 px,
+lost-response identity, per-part reviewed sent words, copy independence,
+member role gates, season selection and explicit suggestion refresh. Axe and
+overflow checks passed; wide/narrow grouped update screenshots were visually
+reviewed. The two read-only reviewers found no remaining blocking issue.
+The inline-style ceiling drops from 156 to 146. CI/merge/deployment remain owed;
+no production mutation, paid call or lease claim was made for this iteration.
+

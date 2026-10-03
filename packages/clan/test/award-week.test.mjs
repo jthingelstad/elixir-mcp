@@ -85,7 +85,7 @@ test("weekly missing counters withhold places and missing sections withhold comp
   );
 });
 
-test("weekly frozen plans recover partial raises, preserve sent/skipped copy and backfill across rollover", async () => {
+test("weekly frozen plans recover partial raises, preserve sent/skipped copy without historical backfill", async () => {
   const p = record();
   const ledger = createMemoryLedger();
   seedVersion(ledger, "policy", tag, {
@@ -119,11 +119,8 @@ test("weekly frozen plans recover partial raises, preserve sent/skipped copy and
   const cards = (await ledger.cards(tag))
     .filter((c) => c.type === "awards_standings")
     .sort((a, b) => a.evidence.part - b.evidence.part);
-  assert.equal(cards.length, frozen[0].parts.length);
-  assert.deepEqual(
-    cards.map((c) => c.evidence.message),
-    frozen[0].parts.map((part) => part.message),
-  );
+  assert.equal(cards.length, 1);
+  assert.deepEqual(cards[0].evidence.messages, frozen[0].parts);
   assert.ok(cards.every((c) => c.evidence.as_of === frozen[0].as_of));
   for (const [i, c] of cards.entries())
     await ledger.putCard(tag, { ...c, status: i ? "declined" : "done" });
@@ -153,10 +150,7 @@ test("weekly frozen plans recover partial raises, preserve sent/skipped copy and
       p.season_id,
       p.section_index,
     ]),
-    [
-      [136, 0],
-      [136, 1],
-    ],
+    [[136, 0]],
   );
   assert.ok(
     (await ledger.cards(tag)).some(

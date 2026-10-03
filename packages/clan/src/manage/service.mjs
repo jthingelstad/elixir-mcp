@@ -48,8 +48,10 @@ import {
   memberWeeks,
   weeklyReport,
   welcomesFrom,
+  welcomeContext,
   actionsWaitingMail,
   ACTIONS_MAIL_KIND,
+  LEADER_MESSAGE,
 } from "@elixir-mcp/clan-engine";
 import { newId } from "@elixir-mcp/clan-state";
 import { createActionStore } from "./actions.mjs";
@@ -620,7 +622,15 @@ export function createManageService({
             status: "proposed",
             raised_at: new Date(t).toISOString(),
             policy_version: policy.version,
-            evidence: { joined_at: w.joined_at },
+            evidence: {
+              joined_at: w.joined_at,
+              welcome: welcomeContext(
+                roster.members.find((m) => m.player_tag === w.player_tag),
+                w.joined_at,
+                roster.meta?.as_of ?? null,
+                new Date(t),
+              ),
+            },
           },
           allCards,
           {
@@ -880,22 +890,38 @@ export function createManageService({
      * Actions, for everyone in a clan with a policy: the open ones this
      * person may take (assigned to them, or open to their role), and the
      * ones closed in the last 30 days they could have taken, each with its
-     * log. Opening it evaluates (five-minute cache), so actions are raised
-     * by whoever looks first.
+     * log. Reuse the saved evaluation while processing Actions; an explicit
+     * refresh or a missing/current-policy snapshot evaluates the record.
      */
     async actionsView(clanTag, who, token, { refresh = false } = {}) {
-      const { verdicts, policy, cached } = await evaluateClan({
-        clanTag,
-        token,
-        who,
-        force: refresh,
-      });
+      const currentPolicy = await requirePolicy(clanTag, { size: false });
+      const snapshot = await ledger.latestVerdicts(clanTag);
+      const size = await ledger.clanSize(clanTag);
+      const reuse =
+        !refresh &&
+        snapshot &&
+        snapshot.policy_version === currentPolicy.version &&
+        (!size || size.members >= MIN_MEMBERS);
+      const { verdicts, policy, cached } = reuse
+        ? { verdicts: snapshot, policy: currentPolicy, cached: true }
+        : await evaluateClan({ clanTag, token, who, force: refresh });
       const t = now();
-      const byCard = await logsByCard(clanTag);
       const all = await ledger.cards(clanTag);
       await numberActions(clanTag, all);
       const mine = all.filter((c) => canAct(c, who));
       const closedAt = (c) => c.decided_at ?? c.withdrawn_at ?? c.raised_at;
+      const open = mine
+        .filter((c) => c.status === "proposed")
+        .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1));
+      const recent = mine
+        .filter(
+          (c) =>
+            c.status !== "proposed" &&
+            t - Date.parse(closedAt(c)) < 30 * DAY_MS,
+        )
+        .sort((a, b) => (closedAt(a) < closedAt(b) ? 1 : -1))
+        .slice(0, 30);
+      const byCard = await logsByCard(clanTag, [...open, ...recent]);
       return {
         clan_tag: clanTag,
         evaluated_at: verdicts.evaluated_at,
@@ -903,19 +929,8 @@ export function createManageService({
         as_of: verdicts.as_of,
         freshness_seconds: verdicts.freshness_seconds,
         policy_version: policy.version,
-        open: mine
-          .filter((c) => c.status === "proposed")
-          .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1))
-          .map((c) => shapeAction(c, byCard.get(c.card_id), who)),
-        recent: mine
-          .filter(
-            (c) =>
-              c.status !== "proposed" &&
-              t - Date.parse(closedAt(c)) < 30 * DAY_MS,
-          )
-          .sort((a, b) => (closedAt(a) < closedAt(b) ? 1 : -1))
-          .slice(0, 30)
-          .map((c) => shapeAction(c, byCard.get(c.card_id), who)),
+        open: open.map((c) => shapeAction(c, byCard.get(c.card_id), who)),
+        recent: recent.map((c) => shapeAction(c, byCard.get(c.card_id), who)),
         decline_reasons: DECLINE_REASONS,
       };
     },
@@ -925,14 +940,20 @@ export function createManageService({
      *  such action. */
     async actionByNumber(clanTag, who, number) {
       await requirePolicy(clanTag);
-      const all = await ledger.cards(clanTag);
-      await numberActions(clanTag, all);
-      const card = all.find((c) => c.number === number);
+      let card = await ledger.cardByNumber(clanTag, number);
+      if (!card) {
+        const all = await ledger.cards(clanTag);
+        await numberActions(clanTag, all);
+        card = all.find((c) => c.number === number);
+      }
       if (!card || !canAct(card, who)) throw new ManageError(404, "no_action");
-      const byCard = await logsByCard(clanTag);
       return {
         clan_tag: clanTag,
-        action: shapeAction(card, byCard.get(card.card_id), who),
+        action: shapeAction(
+          card,
+          await ledger.actionLog(clanTag, card.card_id),
+          who,
+        ),
         decline_reasons: DECLINE_REASONS,
       };
     },
@@ -1230,7 +1251,17 @@ export function createManageService({
             note: explained?.decision_note ?? null,
             copy:
               e.type === "member_joined"
-                ? inGameCopy("welcome", { name })
+                ? inGameCopy("welcome", {
+                    name,
+                    welcome: allCards.find(
+                      (c) =>
+                        c.type === "welcome" &&
+                        c.player_tag === tag &&
+                        Math.abs(
+                          Date.parse(c.evidence?.joined_at) - Date.parse(e.at),
+                        ) < DAY_MS,
+                    )?.evidence?.welcome,
+                  })
                 : explained?.outcome?.classification === "member_left"
                   ? inGameCopy("farewell", { name })
                   : null,
@@ -1243,6 +1274,79 @@ export function createManageService({
         timeline,
         timeline_since: roster?.events_recorded_since ?? null,
       };
+    },
+
+    async messageSent(clanTag, who, cardId, part, body, token = null) {
+      await requirePolicy(clanTag);
+      const card = await ledger.card(clanTag, cardId);
+      if (!card || !canAct(card, who)) throw new ManageError(404, "no_action");
+      if (who.verified === false)
+        throw new ManageError(403, "verification_required");
+      const message = card.evidence?.messages?.find((m) => m.part === part);
+      if (!message) throw new ManageError(404, "no_message");
+      const prior = card.messages_sent?.find((m) => m.part === part);
+      if (!prior && card.status !== "proposed")
+        throw new ManageError(409, "action_closed");
+      if (
+        !prior &&
+        (typeof body.title !== "string" ||
+          typeof body.body !== "string" ||
+          !body.title.trim() ||
+          !body.body.trim() ||
+          body.title.length > LEADER_MESSAGE.title ||
+          body.body.length > LEADER_MESSAGE.body)
+      )
+        throw new ManageError(400, "bad_message");
+      const receipt = prior ?? {
+        part,
+        title: body.title.trim(),
+        body: body.body.trim(),
+        sent_at: new Date(now()).toISOString(),
+        sent_by: who.player_tag,
+        sent_by_name: who.name ?? null,
+        sent_by_role: who.role,
+        shared: false,
+      };
+      let next = prior
+        ? card
+        : { ...card, messages_sent: [...(card.messages_sent ?? []), receipt] };
+      if (!prior) await ledger.putCard(clanTag, next);
+      const logs = await ledger.actionLog(clanTag, cardId);
+      if (
+        !logs.some((e) => e.kind === "message_sent" && e.detail?.part === part)
+      ) {
+        await ledger.appendActionLog(clanTag, {
+          card_id: cardId,
+          kind: "message_sent",
+          at: receipt.sent_at,
+          by: {
+            tag: receipt.sent_by,
+            name: receipt.sent_by_name,
+            role: receipt.sent_by_role,
+          },
+          text: `Message ${part} of ${card.evidence.messages.length} marked sent.`,
+          detail: receipt,
+        });
+      }
+      // Only the original sender retries publication in their own identity.
+      // A later leader preserves the receipt without becoming its attester.
+      if (!receipt.shared && receipt.sent_by === who.player_tag) {
+        const shared = await sharing
+          .afterDecision(clanTag, token, who, card, next, {
+            message_part: part,
+          })
+          .catch(() => []);
+        if (shared.length && shared.every((r) => r.ok)) {
+          next = {
+            ...next,
+            messages_sent: next.messages_sent.map((r) =>
+              r.part === part ? { ...r, shared: true } : r,
+            ),
+          };
+          await ledger.putCard(clanTag, next);
+        }
+      }
+      return next;
     },
 
     async decide(
@@ -1277,6 +1381,13 @@ export function createManageService({
         status = "done";
       } else if (status !== "done" && status !== "declined")
         throw new ManageError(400, "bad_status");
+      if (
+        status === "done" &&
+        card.evidence?.messages?.some(
+          (m) => !card.messages_sent?.some((r) => r.part === m.part),
+        )
+      )
+        throw new ManageError(409, "messages_not_sent");
       // Declining a judgment on a member says why; anything else may just
       // be no.
       if (

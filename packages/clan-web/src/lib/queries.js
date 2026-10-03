@@ -233,5 +233,6 @@ export const useMemberAwards = (tag, player) =>
  *  clan refetches. No key is the session and everything the reader's. */
 export function useInvalidate() {
   const queryClient = useQueryClient();
-  return (queryKey = keys.me) => queryClient.invalidateQueries({ queryKey });
+  return (queryKey = keys.me, options = {}) =>
+    queryClient.invalidateQueries({ queryKey, ...options });
 }

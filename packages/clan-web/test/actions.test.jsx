@@ -214,28 +214,38 @@ describe("actions", () => {
     });
     expect(waiting.textContent).toMatch(/^Waiting for you2/);
     expect(
+      screen.queryByRole("region", { name: "Closed in the last 30 days" }),
+    ).toBeNull();
+    const openLinks = screen
+      .getAllByRole("link")
+      .filter((l) => /\/actions\/\d+$/.test(l.getAttribute("href")));
+    expect(openLinks.map((l) => l.getAttribute("href"))).toEqual([
+      "/clan/2PQRJ8LV/actions/12",
+      "/clan/2PQRJ8LV/actions/37",
+    ]);
+    expect(openLinks[0].textContent).toMatch(
+      /#12.*Say how they left.*Gone.*1 comment/,
+    );
+    fireEvent.click(openLinks[1]);
+    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/actions/37");
+    fireEvent.change(screen.getByRole("combobox", { name: "Show" }), {
+      target: { value: "closed" },
+    });
+    expect(
       screen.getByRole("region", { name: "Closed in the last 30 days" })
         .textContent,
     ).toMatch(/^Closed in the last 30 days1/);
-    // A leader is pointed at History for what was decided before.
+    expect(
+      screen.queryByRole("region", { name: "Waiting for you" }),
+    ).toBeNull();
     expect(screen.getByRole("link", { name: "History ›" })).toBeTruthy();
     const links = screen
       .getAllByRole("link")
       .filter((l) => /\/actions\/\d+$/.test(l.getAttribute("href")));
-    // Departures first, then removals; then what closed.
-    expect(links.map((l) => l.getAttribute("href"))).toEqual([
-      "/clan/2PQRJ8LV/actions/12",
-      "/clan/2PQRJ8LV/actions/37",
-      "/clan/2PQRJ8LV/actions/5",
-    ]);
-    expect(links[0].textContent).toMatch(
-      /#12.*Say how they left.*Gone.*1 comment/,
-    );
-    expect(links[2].textContent).toMatch(/#5.*Promote to Elder.*Completed/);
+    expect(links).toHaveLength(1);
+    expect(links[0].textContent).toMatch(/#5.*Promote to Elder.*Completed/);
     // The list decides nothing: that is on the action's page.
     expect(screen.queryByRole("button", { name: "Complete" })).toBeNull();
-    fireEvent.click(links[1]);
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/actions/37");
   });
 
   test("an action that is not yours, or not there, says there is no such action here", async () => {
@@ -746,4 +756,83 @@ describe("you here", () => {
     ).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/\bcard\b/i);
   });
+});
+
+test("one update contains editable messages and explicit delivery progress; copying never completes it", async () => {
+  let card = {
+    ...removal,
+    card_id: "update",
+    number: 41,
+    type: "awards_standings",
+    copy: null,
+    label: "Share award standings",
+    evidence: {
+      scope: "current",
+      season_id: 136,
+      as_of: "2026-10-03T12:00:00Z",
+      messages: [
+        {
+          part: 1,
+          message: { title: "First", body: "Provisional first message." },
+        },
+        {
+          part: 2,
+          message: { title: "Second", body: "Provisional second message." },
+        },
+      ],
+    },
+  };
+  vi.spyOn(manageApi, "action").mockImplementation(async () =>
+    one({ open: [structuredClone(card)] }),
+  );
+  const write = vi.fn().mockResolvedValue();
+  Object.assign(navigator, { clipboard: { writeText: write } });
+  const sent = vi
+    .spyOn(manageApi, "messageSent")
+    .mockImplementation(async (_clan, _id, part, words) => {
+      card = {
+        ...card,
+        messages_sent: [
+          ...(card.messages_sent ?? []),
+          {
+            part,
+            ...words,
+            sent_at: "2026-10-03T12:01:00Z",
+            sent_by_name: "Ada",
+          },
+        ],
+      };
+      return { ok: true, status: 200, data: card };
+    });
+  const decide = vi
+    .spyOn(manageApi, "decideAction")
+    .mockResolvedValue({ ok: true, status: 200, data: {} });
+  renderWithProviders(
+    <ActionDetail
+      number={41}
+      clan={clan}
+      who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
+    />,
+  );
+  const complete = await screen.findByRole("button", {
+    name: "Complete update",
+  });
+  expect(complete.disabled).toBe(true);
+  fireEvent.click(
+    screen.getAllByRole("button", { name: "Copy the message" })[0],
+  );
+  await waitFor(() => expect(write).toHaveBeenCalled());
+  expect(sent).not.toHaveBeenCalled();
+  expect(decide).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Mark message 1 sent" }));
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Mark message 1 sent" }),
+    ).toBeNull(),
+  );
+  expect(complete.disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Mark message 2 sent" }));
+  await waitFor(() => expect(complete.disabled).toBe(false));
+  fireEvent.click(complete);
+  await waitFor(() => expect(decide).toHaveBeenCalled());
 });
