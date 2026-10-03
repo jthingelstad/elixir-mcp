@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-03",
+    title: "Share award progress after each war week",
+    body: "Leaders receive editable, numbered Actions with provisional award standings after a war week is recorded as closed. Updates stop at that completed week, withhold places when evidence is incomplete, and stay separate from final awards. Retried runs fill missing Actions without duplicating completed ones. You review and send each message in the game. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "Season awards keep their evidence and every winner",
     body: "Clan holds awards when required evidence is unknown, keeps final podiums from saved grants, and resumes interrupted awards without changing the winners. Manual picks require a closed season and a reason, with the saved rule and previous holder in view. Complete numbered announcement messages include later manual choices and preserve every recipient during model drafting. Contracts unchanged.",
   },

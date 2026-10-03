@@ -32,6 +32,7 @@ import { createActionStore } from "./actions.mjs";
 import { createHash } from "node:crypto";
 import { newId } from "@elixir-mcp/clan-state";
 import { planStandings, standingsFrom } from "./standings.mjs";
+import { weeklyAwardUpdates } from "./award-week.mjs";
 
 const LEADERS = new Set(["leader", "coLeader"]);
 const ELDER_PLUS = new Set(["leader", "coLeader", "elder"]);
@@ -141,6 +142,80 @@ export function createAwardsService({
         );
       }
     }
+  }
+
+  /** Freeze every week before raising its parts, so interruption retries the
+   * same evidence. Existing plans anchor backfill across a season rollover;
+   * first adoption starts with the latest recorded season. */
+  async function announceWeeks(clanTag, participation, config, t) {
+    const saved = await ledger.weeklyAwardPlans(clanTag);
+    const fromSeason = saved.length
+      ? Math.min(...saved.map((p) => p.season_id))
+      : undefined;
+    const updates = config.values.awards.some((a) => a.enabled)
+      ? weeklyAwardUpdates({
+          participation,
+          config: config.values,
+          now: new Date(t),
+          fromSeason,
+        })
+      : [];
+    const plans = [...saved];
+    for (const update of updates) {
+      if (
+        saved.some(
+          (p) =>
+            p.season_id === update.season_id &&
+            p.section_index === update.section_index,
+        )
+      )
+        continue;
+      plans.push(
+        await ledger.saveWeeklyAwardPlan(clanTag, {
+          ...update,
+          config_version: config.version,
+          raised_at: new Date(t).toISOString(),
+          parts: update.parts.map((p) => ({ ...p, card_id: newId() })),
+        }),
+      );
+    }
+    const policy = await ledger.currentPolicy(clanTag);
+    if (!policy) return;
+    const cards = await ledger.cards(clanTag);
+    for (const plan of plans)
+      for (const part of plan.parts) {
+        if (cards.some((c) => c.card_id === part.card_id)) continue;
+        const card = await raiseAction(
+          clanTag,
+          {
+            card_id: part.card_id,
+            clan_tag: clanTag,
+            player_tag: null,
+            player_name: null,
+            role_at_raise: null,
+            type: "awards_standings",
+            status: "proposed",
+            raised_at: plan.raised_at,
+            policy_version: policy.version,
+            evidence: {
+              season_id: plan.season_id,
+              section_index: plan.section_index,
+              finished_observed_at: plan.finished_observed_at,
+              as_of: plan.as_of,
+              complete: plan.complete,
+              config_version: plan.config_version,
+              part: part.part,
+              parts: plan.parts.length,
+              message: part.message,
+            },
+          },
+          cards,
+          {
+            text: `War week ${plan.section_index + 1} closed: share provisional season ${plan.season_id} standings.`,
+          },
+        );
+        cards.push(card);
+      }
   }
 
   /** Nothing in clan management runs before a policy is saved, nor while
@@ -267,6 +342,7 @@ export function createAwardsService({
       }),
       grants_due: [],
     };
+    await announceWeeks(clanTag, participation, config, t);
     await ledger.saveAwardsSnapshot(clanTag, snapshot);
     return {
       result: snapshot,

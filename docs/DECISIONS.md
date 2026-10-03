@@ -225,3 +225,5 @@ it is not a target to preserve or recreate over friends or clans.
 - **2026-10-02: Clan is an internal feature.** One Elixir browser session, application, web API, private Postgres ledger, jobs and canonical deploy; no separate Clan OAuth, Dynamo/runtime adapter or CI deployment. Frozen digest-bound transfer preserves durable policy/action/award/private state and original key sealing. Root owners inherit Clan on existing cadences; no new schedules. Historical attester identity stays for provenance, while its old keys and OAuth grants retire. Drop authentication remains independent and active.
 
 - 2026-10-02: Approved hot-cache removal binds full content identity and original creation cutoff; identical re-fetch timestamps do not change scope. Protected ownership, later battle admissions and canonical/projection freshness remain guarded.
+
+- After every recorded war-week close, raise leader Actions to share provisional season-award standings through that week. Keep observed closure distinct from the nominal game clock and final grants, retry missed weeks without duplicates, and never post automatically. (2026-10-03; Jamie)

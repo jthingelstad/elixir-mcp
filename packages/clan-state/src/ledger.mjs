@@ -376,6 +376,19 @@ export function ledgerOver(io) {
       });
       return stripKeys(saved);
     },
+    async weeklyAwardPlans(clanTag) {
+      return (await io.listByPrefix(clanTag, "award_week#")).map(stripKeys);
+    },
+    async saveWeeklyAwardPlan(clanTag, plan) {
+      return stripKeys(
+        await io.putIfAbsent({
+          pk: `award_week#${clanTag}#${plan.season_id}#${plan.section_index}`,
+          gsi1pk: clanKey(clanTag),
+          gsi1sk: `award_week#${pad(plan.season_id)}#${pad(plan.section_index)}`,
+          ...plan,
+        }),
+      );
+    },
     async awardPlans(clanTag) {
       return (await io.listByPrefix(clanTag, "award_plan#")).map(stripKeys);
     },

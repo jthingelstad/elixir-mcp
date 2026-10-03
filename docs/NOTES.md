@@ -3630,3 +3630,17 @@ copy. The canonical membership SQL passed on scratch PostgreSQL. Final
 read-only review closed rookie pre-record over-hold and stale pending segment
 numbering; 76 focused tests pass. These private Clan changes leave external
 contracts unchanged; deployment smoke and read-back remain owed.
+
+
+Weekly progress gap: morning standings facts did not create leader Actions.
+The normal awards evaluation now freezes per-week copy before raising its
+numbered parts. Recorded river-log closure is the trigger; later open weeks
+are excluded. First adoption covers the latest recorded season, then saved
+plans anchor outage backfill across rollover. Private plans preserve evidence,
+configuration and retry identities. Completed/skipped parts stay unchanged;
+weekly message attestation never emits award grants. No new scheduler, fetch,
+model call or infrastructure is introduced. Full `npm run verify` passed on
+the finished tree (including scratch PostgreSQL); all six built desktop/mobile
+journeys passed with axe, overflow and exact clipboard checks. Reviewed weekly
+copy bounds, cached retry and disabled-configuration recovery findings are closed.
+Merge, deployment smoke and production read-back remain owed.

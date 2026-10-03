@@ -233,79 +233,102 @@ for (const size of ["wide", "@narrow"]) {
     expect(errors).toEqual([]);
   });
 
-  test(`segmented awards retain complete reviewed copy ${size}`, async ({
-    page,
-    context,
-  }) => {
-    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    const action = {
-      card_id: "awards1",
-      number: 38,
-      type: "awards_announcement",
-      label: "Announce season awards",
-      status: "proposed",
-      can_act: true,
-      audience: { kind: "leaders" },
-      player_tag: null,
-      player_name: null,
-      raised_at: "2026-10-03T12:00:00Z",
-      channel: "leader_message",
-      message: {
-        title: "S135 awards 1/2",
-        body: "Points Cup: Ada, Ben; Attendance Cup: Ada",
-      },
-      evidence: {
-        season_id: 135,
-        part: 1,
-        parts: 2,
-        awards: [
-          { name: "Points Cup", winners: ["Ada", "Ben"] },
-          { name: "Attendance Cup", winners: ["Ada"] },
-        ],
-      },
-      log: [],
-    };
-    const responses = signedIn({
-      "GET /api/clan/clans/2PQRJ8LV/actions/38": [
-        200,
-        {
-          clan_tag: "#2PQRJ8LV",
-          action,
-          decline_reasons: [],
-          model: { set: true, refused: false },
+  for (const weekly of [false, true]) {
+    test(`segmented ${weekly ? "weekly standings" : "awards"} retain complete reviewed copy ${size}`, async ({
+      page,
+      context,
+    }) => {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+      const action = {
+        card_id: "awards1",
+        number: 38,
+        type: weekly ? "awards_standings" : "awards_announcement",
+        label: weekly
+          ? "Share this week’s award standings"
+          : "Announce season awards",
+        status: "proposed",
+        can_act: true,
+        audience: { kind: "leaders" },
+        player_tag: null,
+        player_name: null,
+        raised_at: "2026-10-03T12:00:00Z",
+        channel: "leader_message",
+        message: {
+          title: weekly ? "S136 W1 1/2" : "S135 awards 1/2",
+          body: weekly
+            ? "Provisional S136 W1. Points Cup: 1. Ada, 3200 points."
+            : "Points Cup: Ada, Ben; Attendance Cup: Ada",
         },
-      ],
+        evidence: {
+          season_id: weekly ? 136 : 135,
+          section_index: 0,
+          part: 1,
+          parts: 2,
+          awards: [
+            { name: "Points Cup", winners: ["Ada", "Ben"] },
+            { name: "Attendance Cup", winners: ["Ada"] },
+          ],
+        },
+        log: [],
+      };
+      const responses = signedIn({
+        "GET /api/clan/clans/2PQRJ8LV/actions/38": [
+          200,
+          {
+            clan_tag: "#2PQRJ8LV",
+            action,
+            decline_reasons: [],
+            model: { set: true, refused: false },
+          },
+        ],
+      });
+      const roster = responses["GET /api/clan/roster"] as [
+        number,
+        Record<string, unknown>,
+      ];
+      responses["GET /api/clan/roster"] = [
+        200,
+        { ...roster[1], member_count: 12 },
+      ];
+      await mockApi(page, responses);
+      await page.goto("/clan/2PQRJ8LV/actions/38");
+      await expect(
+        page.getByText(/Message 1 of 2; send every part/),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Copy the message", exact: true })
+        .click();
+      expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+        action.message.body,
+      );
+      await expect(
+        page.getByRole("button", { name: "Sent", exact: true }),
+      ).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      if (weekly) {
+        await expect(
+          page.getByText(/Share provisional standings through that week/),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: "Draft in our voice", exact: true }),
+        ).toHaveCount(0);
+        const axe = await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa"])
+          .analyze();
+        expect(
+          axe.violations.filter((v) =>
+            ["serious", "critical"].includes(v.impact ?? ""),
+          ),
+        ).toEqual([]);
+      }
+      await page.screenshot({
+        path: `/tmp/elixir-${weekly ? "weekly" : "awards"}-message-${size === "wide" ? "wide" : "narrow"}.png`,
+        fullPage: true,
+      });
     });
-    const roster = responses["GET /api/clan/roster"] as [
-      number,
-      Record<string, unknown>,
-    ];
-    responses["GET /api/clan/roster"] = [
-      200,
-      { ...roster[1], member_count: 12 },
-    ];
-    await mockApi(page, responses);
-    await page.goto("/clan/2PQRJ8LV/actions/38");
-    await expect(
-      page.getByText(/Message 1 of 2; send every part/),
-    ).toBeVisible();
-    await page
-      .getByRole("button", { name: "Copy the message", exact: true })
-      .click();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-      action.message.body,
-    );
-    await expect(
-      page.getByRole("button", { name: "Sent", exact: true }),
-    ).toBeVisible();
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-    ).toBe(true);
-    await page.screenshot({
-      path: `/tmp/elixir-awards-message-${size === "wide" ? "wide" : "narrow"}.png`,
-      fullPage: true,
-    });
-  });
+  }
 }

@@ -48,6 +48,11 @@ export const ACTION_TYPES = {
     channel: "clan_chat",
   },
   away: { label: "Going to be away?", audience: "member", channel: null },
+  awards_standings: {
+    label: "Share this week’s award standings",
+    audience: "leaders",
+    channel: "leader_message",
+  },
   awards_announcement: {
     label: "Announce the season's awards",
     audience: "leaders",

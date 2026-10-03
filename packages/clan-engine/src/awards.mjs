@@ -504,6 +504,7 @@ export function evaluateAwards({
   grants = [],
   decisions = [],
   config_version = 0,
+  row_limit = 10,
 }) {
   const seasons = seasonsFrom(participation, now);
   const members = participation.members;
@@ -677,7 +678,7 @@ export function evaluateAwards({
                   award.params,
                   () => true,
                 )
-                  .rows.slice(0, 10)
+                  .rows.slice(0, row_limit)
                   .map((r) => ({
                     ...r,
                     on_podium: false,
@@ -703,7 +704,7 @@ export function evaluateAwards({
           award.params,
           filter,
         );
-        rows = all.slice(0, 10).map((r) => ({
+        rows = all.slice(0, row_limit).map((r) => ({
           ...r,
           on_podium: podium.includes(r),
         }));
@@ -740,7 +741,7 @@ export function evaluateAwards({
         // place, at the podium's edge too.
         const podium = all.filter((r) => r.rank <= award.params.podium);
         rows = all
-          .slice(0, 10)
+          .slice(0, row_limit)
           .map((r) => ({ ...r, place: r.rank, on_podium: podium.includes(r) }));
         due = podium.map((r) => ({
           player_tag: r.player_tag,

@@ -75,6 +75,18 @@ decided seasons, never a live race.
 
 ## How they reach the clan
 
+**Weekly progress.** After each war week is recorded as closed, the normal
+morning evaluation gives leaders Actions with provisional standings through
+that completed week. Opening Awards or Trophies can also raise them. Later open
+weeks are excluded. Missing evidence withholds places; attendance names the
+number recorded on track, and manual picks remain human choices. Each part
+is editable and ready to copy into a Clan Leader Message. Mark it sent only
+after sharing it in the game. Saved weekly snapshots and completed Actions
+are kept unchanged; retrying a missed run fills missing parts and weeks.
+The first run starts with completed weeks of the latest recorded season.
+These updates do not grant awards and work separately from the final season
+announcement setting. Nothing posts automatically.
+
 **In the game.** When the clan turns on **Announce each season's
 awards**, the leaders get an [action](/docs/clan-actions) with a Clan
 Leader Message naming the winners, to send in the game themselves.

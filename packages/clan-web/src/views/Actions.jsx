@@ -13,6 +13,7 @@ const ORDER = [
   "promotion",
   "demotion",
   "awards_announcement",
+  "awards_standings",
   "rules_announcement",
   "welcome",
   "away",
