@@ -4019,4 +4019,9 @@ and manual choices wait for their actual announcement. Existing frozen plans,
 Action44 and saved sent words are unchanged. Reopening Action33 would keep
 its historical evidence rather than silently enriching an archived welcome.
 No migration, permission expansion, paid draft or manufactured delivery.
-Focused tests, browser checks, independent review and full gate are owed.
+The UI also invalidates History after reopening and hides current updates
+when only manual awards are configured. Focused core, UI retry, two-client
+PostgreSQL CAS and desktop/mobile browser checks cover identity, preserved
+receipts, delivery gating and stale History. Independent review found and
+closed the History/manual-only issues. The full gate is required before push;
+CI and deployment receipts are recorded after shipping.

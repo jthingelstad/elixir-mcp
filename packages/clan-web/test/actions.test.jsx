@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { ActionDetail, Actions } from "../src/views/Actions.jsx";
+import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
 
 afterEach(() => {
@@ -835,4 +836,96 @@ test("one update contains editable messages and explicit delivery progress; copy
   await waitFor(() => expect(complete.disabled).toBe(false));
   fireEvent.click(complete);
   await waitFor(() => expect(decide).toHaveBeenCalled());
+});
+
+describe("reopening declined actions", () => {
+  test("a lost response retries the same request; pending clicks do not duplicate it and success refreshes History", async () => {
+    let card = {
+      ...removal,
+      status: "declined",
+      can_act: false,
+      can_reopen: true,
+      decided_at: "2026-10-03T12:00:00Z",
+      decline_reason: "not_now",
+      decision_note: "Waited for context.",
+      log: [
+        {
+          entry_id: "decline",
+          kind: "declined",
+          at: "2026-10-03T12:00:00Z",
+          text: "Waited for context.",
+          by: { name: "Ada", role: "leader" },
+        },
+      ],
+    };
+    vi.spyOn(manageApi, "action").mockImplementation(async () =>
+      one({ open: [structuredClone(card)] }),
+    );
+    let finish;
+    const reopen = vi
+      .spyOn(manageApi, "reopenAction")
+      .mockRejectedValueOnce(new Error("lost reply"))
+      .mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      );
+    const decide = vi.spyOn(manageApi, "decideAction");
+    const { queryClient } = renderWithProviders(
+      <ActionDetail number={37} clan={clan} who={{ role: "leader" }} />,
+    );
+    queryClient.setQueryData(keys.history(clan.clan_tag), { cards: [card] });
+    const button = await screen.findByRole("button", { name: "Reopen action" });
+    fireEvent.click(button);
+    await screen.findByText(/Reopening was not confirmed/);
+    const first = reopen.mock.calls[0][2];
+    expect(first.request_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(first.expected_decided_at).toBe(card.decided_at);
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(reopen).toHaveBeenCalledTimes(2);
+    expect(button.disabled).toBe(true);
+    expect(reopen.mock.calls[1][2]).toEqual(first);
+    card = {
+      ...card,
+      status: "proposed",
+      can_act: true,
+      can_reopen: false,
+      log: [
+        ...card.log,
+        {
+          entry_id: "reopen",
+          kind: "reopened",
+          at: "2026-10-03T12:01:00Z",
+          text: "Reopened for review.",
+          by: { name: "Ada", role: "leader" },
+        },
+      ],
+    };
+    finish({ ok: true, status: 200, data: card });
+    await screen.findByRole("button", { name: "Complete" });
+    expect(screen.queryByRole("button", { name: "Reopen action" })).toBeNull();
+    expect(screen.getByText("Waited for context.")).toBeTruthy();
+    expect(screen.getByText("Reopened for review.")).toBeTruthy();
+    expect(
+      queryClient.getQueryState(keys.history(clan.clan_tag)).isInvalidated,
+    ).toBe(true);
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  test("an elder cannot reopen a declined action when the server denies capability", async () => {
+    vi.spyOn(manageApi, "action").mockResolvedValue(
+      one({
+        open: [
+          { ...removal, status: "declined", can_act: false, can_reopen: false },
+        ],
+      }),
+    );
+    renderWithProviders(
+      <ActionDetail number={37} clan={clan} who={{ role: "elder" }} />,
+    );
+    await screen.findByText("Declined");
+    expect(screen.queryByRole("button", { name: "Reopen action" })).toBeNull();
+  });
 });

@@ -458,3 +458,18 @@ test("current update retries retain their request identity and a later intention
   await waitFor(() => expect(update).toHaveBeenCalledTimes(3));
   expect(update.mock.calls[2][1]).not.toBe(update.mock.calls[1][1]);
 });
+
+test("manual-only awards do not offer a current computed update", async () => {
+  const d = view();
+  d.can_send = true;
+  d.config.awards = d.config.awards.filter((a) => a.kind === "leaders_pick");
+  d.seasons.forEach((season) => {
+    season.awards = season.awards.filter((a) => a.state === "manual");
+  });
+  vi.spyOn(manageApi, "awards").mockResolvedValue({ ok: true, data: d });
+  renderWithProviders(<Awards clan={poap} who={{ role: "leader" }} />);
+  await screen.findByRole("combobox", { name: "Season" });
+  expect(
+    screen.queryByRole("button", { name: "Send current update to clan" }),
+  ).toBeNull();
+});

@@ -120,7 +120,11 @@ export function Awards({ clan, navigate }) {
             ))}
           </select>
         </label>
-        {d.can_send && d.seasons[0]?.closed === false ? (
+        {d.can_send &&
+        d.seasons[0]?.closed === false &&
+        d.seasons[0].awards.some(
+          (a) => a.state !== "off" && a.state !== "manual",
+        ) ? (
           <CurrentUpdate clan={clan} navigate={navigate} />
         ) : null}
       </div>
@@ -216,9 +220,13 @@ function CurrentUpdate({ clan, navigate }) {
               request.current,
             );
             if (!r.ok) {
-              setError(
-                "The update was not confirmed. Retry to recover this same Action.",
-              );
+              if (r.data?.error === "no_awards") {
+                request.current = null;
+                setError("There are no current computed standings to share.");
+              } else
+                setError(
+                  "The update was not confirmed. Retry to recover this same Action.",
+                );
               return;
             }
             setResult(r.data);
