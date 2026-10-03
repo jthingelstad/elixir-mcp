@@ -3926,3 +3926,39 @@ Live policy read-back matches only reply/claim prefix listing with max-keys
 denies request, email, root and two-result lookups. No paid draft or production
 business mutation was used. The lease is released. Public tool acceptance
 is not applicable to this private draft adapter and permission correction.
+
+
+## 2026-10-03 — Rookie and request-timing release receipts
+
+PR #251 validate run 37154114938 passed in 4m39s, then merged as
+`527ff08ac56386873ab21ad6db9a43fcd61a1f06` at 21:15:13Z (4:15 PM CDT).
+Its canonical clean-main deployment used the session lease; CloudFormation
+UPDATE_COMPLETE was 21:16:54Z, and active successful web code was modified
+21:17:11Z and matched the release ZIP. No new migrations ran, all 43 smoke
+checks passed, public status health was green, and live Awards documentation
+showed the first-recorded-join rule. Saved awards were not modified to verify it.
+
+PR #252 validate run 37154500472 passed in 4m46s after complete local
+verification and independent review with no blocker. It merged as
+`7151e8bbde810e81b57e752b6fcc5b4cf79b3963` at 21:22:48Z (4:22 PM CDT).
+Clean-main canonical deployment used its own session lease; CloudFormation
+UPDATE_COMPLETE was 21:23:36Z. Active successful web code was modified
+21:23:52Z and matched the release ZIP. Again no new migrations, all 43 smoke
+checks passed, public status health was green, and the relay policy read back
+identical to the approved PR #247 scope. No new permissions were introduced.
+Store timing covers Clan state operations, not every direct record query or
+pre-handler operation. Both leases are released. Public tool acceptance is
+not applicable to these private Clan behavior and trace changes.
+
+Natural post-UX traffic observed through 21:26Z has two successful Actions
+lists at 74ms and 55ms, and two successful details at 25ms and 33ms.
+The latter pair includes the new timing: list store 35ms across eight logical
+operations plus lock 2ms; detail store 9ms across seven plus lock 5ms. Before release the list
+had 15 samples, median 44ms and p95 9849ms; detail had 40 samples, median
+27ms and p95 52ms. These few new samples establish no latency distribution
+or speedup. No business route was invoked to manufacture timing evidence.
+Historical welcome cards have no frozen richer context; only new cards get
+that evidence, and prior done/declined decisions are preserved. An optional
+future historical-copy preview must stay separate from archived evidence and
+delivery receipts. No paid draft, imported grant or in-game delivery was
+manufactured for acceptance. This notes-only close needs no further deployment.
