@@ -3405,3 +3405,15 @@ and the separately reviewed controller hash. The checkpoint preserves all
 the current retained-reason and schema guards matched before the collector
 window started. No deployment or migration runs concurrently. Original
 archive deletion remains gated on complete database preservation proof.
+
+
+Jamie subsequently directed: "Prioritize completing the cleanup work. Keep
+collectors paused if needed. We need to get this completed to do anything
+else." This supersedes the optional one-hour limit. The owned deadline
+controller is suspended while its unchanged approved deletion child continues;
+an owned foreground supervisor records progress and resumes the controller's
+restoration path after the child terminates or the supervisor fails. Neither
+the deletion manifest nor its guards, targets or executor changed. Direct
+human steering and exact process identities are recorded privately. Collectors
+stay drained during this extended database phase; no further feature work or
+production deployment is being advanced before cleanup completes.
