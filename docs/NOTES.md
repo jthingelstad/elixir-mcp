@@ -4115,4 +4115,50 @@ battle rows, compares both query results and pins the replacement to battle
 primary-key lookups bounded by selected boat rows. MCP 11.0.2 is a performance
 correction; mirrored JSON API response schemas and meaning are unchanged.
 
-Deployment and post-release plan/request evidence are pending this PR's gate.
+The release receipt below records the completed gate and live read-back.
+
+
+## 2026-10-03 - Participation 11.0.2 release receipt
+
+PR [#257](https://github.com/jthingelstad/elixir-mcp/pull/257) merged as
+`934be44b6a17436ac06bf4be2d8b57f7b6a504b3` at 23:12:17Z (6:12 PM CT).
+Full local `npm run verify` passed, two independent reviews found no blocker,
+and required CI run `37160705962` passed, including 87 browser checks.
+Deploy ran from clean green main under the session lease. CloudFormation
+reported UPDATE_COMPLETE at **23:13:13.094Z (6:13 PM CT)**; web Lambda
+LastModified was 23:12:57Z, Active/Successful, with CodeSha256 matching the
+built bundle. Zero new migrations ran. The normal vocabulary import retained
+47 roles/29 aliases from the committed standalone reference.
+
+All **43 smoke checks passed**. Clan acceptance completed **134 cases,
+114 passed, zero failed, 20 skipped**, with 87 distinct read-only calls.
+The two-week participation contract/budget read took 435 ms. Skip verdicts:
+
+- Ten existing refuted criteria after retired scope: gym/115.2, 145.3,
+  183.4, 203.1, 238.3, 264.1, 264.2, 264.3, 307.3, 344.2.
+- Three existing fixture blocks: gym/335.2, 337.1, 337.2. Missing naturally
+  recorded subjects/observations remain blocked; none were manufactured.
+- Seven inactive observation predicates: gym/196.2, 196.3, 263.3, 307.1,
+  307.2, 334.1, 334.2. The live window/member/completeness conditions did
+  not hold; the criteria remain in the suite.
+
+One bounded recorded-only post-release `profile_tool` completed at
+**23:15:57Z (6:15 PM CT)**. The eight-week direct handler took 600 ms,
+279 ms of timed database queries across 27 queries, no error. Weekly battle
+aggregation took 60 ms after its EXPLAIN. The production plan now uses
+**60 battle_pkey probes, 300 buffer hits, no battle-table sequential scan**;
+former-member aggregation uses 14 primary-key probes. The earlier profile
+instead scanned battle and read 14,218 disk blocks. This is direct evidence
+that the problematic full-history plan is gone. Both profile runs explain
+before timing, so their warm-query times are not a controlled first/repeat
+latency comparison, nor proof that every future request stays below a ceiling.
+The account browser's earlier 9.6-second first request and subsequent
+540-647 ms Week reads remain separate samples. No post-release account-browser
+sample is asserted here; ordinary fresh-network Week/You Here reads with UTC
+timestamps can extend the request evidence without changing decisions.
+
+Public `/api/public/status` reported `health.ok: true`; `/tools.json` reports
+MCP **11.0.2**. JSON API remains unchanged. The production lease was released
+and the runtime worktree was clean. No RDS resize, index, migration, new IAM
+permission, new credential, model invocation, award or delivery action was
+introduced. This receipt is notes only and needs no further deployment.
