@@ -3711,6 +3711,10 @@ general implementation/deploy authorization is insufficient. Full npm run verify
 passed with disposable local PostgreSQL databases. Focused storage/bridge/infra
 tests passed, including scope, genuine denial, duplicate and expired-request
 cases. CI and action-specific approval remain outstanding; no deploy was made.
+Read-only IAM simulation confirmed reply/claim requests with one result are
+allowed; root, mail and request-prefix lists, and two-result lists are denied.
+The numeric condition uses IAM's string value form (`"1"`); the simulator
+rejected a JSON-number condition value. No live policy was changed.
 
 ## 2026-10-03 — Collector security and observed upgrade email
 
