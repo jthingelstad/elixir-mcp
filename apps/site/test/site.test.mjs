@@ -1161,8 +1161,20 @@ test(
       assert.ok(pages.has(page), `${guid} is an update's page`);
       assert.ok(existsSync(path.join(out, page.slice(1), "index.html")), guid);
     }
-    // Contract versions are in the stream, as on /updates.
-    assert.match(xml, /<category>contract<\/category>/);
+    // Both kinds belong to the stream, but fifty newer product updates
+    // can legitimately move the latest contract outside the feed window.
+    const { default: stream } = await import("../src/_data/updatesView.js");
+    assert.ok(stream.some((item) => item.kind === "contract"));
+    const expectedCategories = stream
+      .slice(0, FEED_ITEMS)
+      .map((item) => item.kind);
+    assert.deepEqual(
+      [...xml.matchAll(/<category>([^<]+)<\/category>/g)].map(
+        (match) => match[1],
+      ),
+      expectedCategories,
+      "the capped feed preserves every selected entry's kind",
+    );
     // No double escaping: autoescape already escapes the title.
     assert.doesNotMatch(xml, /&amp;amp;/);
 

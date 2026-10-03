@@ -3693,7 +3693,7 @@ ListBucket statement was unrestricted across the outbox bucket, broader than
 the missing reply/claim checks require; Jamie has been informed and the
 parent release coordinator has gated further persistent access changes.
 
-## 2026-10-03 — Scoped Clan model existence checks, approval pending
+## 2026-10-03 — Scoped Clan model existence checks
 
 Prepared replacement for PR #245's unrestricted relay ListBucket statement:
 only `clan-model/reply/*` and `clan-model/claim/*`, at most one result per
@@ -3715,6 +3715,20 @@ Read-only IAM simulation confirmed reply/claim requests with one result are
 allowed; root, mail and request-prefix lists, and two-result lists are denied.
 The numeric condition uses IAM's string value form (`"1"`); the simulator
 rejected a JSON-number condition value. No live policy was changed.
+
+Jamie explicitly approved this narrowing on 2026-10-03 at 20:45:46Z
+(3:45 PM CDT), after being told the deployed listing covered all outbox
+filenames and asked to restrict it to draft reply/claim folders. The parent
+forwarded that approval. Only the reviewed reply/claim prefix and one-result
+scope is now authorized; the general gate still applies to future persistent
+access changes. PR #247 was rebased on the verified #249/#250 UX release.
+Complete rebased npm run verify passed, including the corrected feed guard.
+Independent review found no permission broadening or remaining blocker.
+Green rebased CI and canonical deployment are owed.
+The rebased gate exposed a feed test's assumption that a contract entry always
+fits the newest fifty items. Product-only releases legitimately moved it beyond
+that window. The integration guard now checks the selected entries' categories
+and still proves contracts remain in the full stream; feed behavior is unchanged.
 
 ## 2026-10-03 — Collector security and observed upgrade email
 
