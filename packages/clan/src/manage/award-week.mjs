@@ -17,7 +17,23 @@ export function awardUpdateParts(season, { prefix, title, complete }) {
   )) {
     const label = clipChat(chatSafe(award.name), 40);
     let items;
-    if (award.state === "held" || (award.computed && !complete))
+    const podium = award.rows.filter((row) => row.on_podium);
+    const unknownPodium =
+      award.kind !== "perfect_attendance" &&
+      podium.some((row) => {
+        const metric =
+          award.kind === "donations_podium" ? row.total : row.points;
+        return (
+          !Number.isFinite(metric) ||
+          !Number.isInteger(row.place) ||
+          row.place < 1
+        );
+      });
+    if (
+      award.state === "held" ||
+      (award.computed && !complete) ||
+      unknownPodium
+    )
       items = ["standings not ready"];
     else if (award.kind === "perfect_attendance")
       items = [`${number(award.rows.length)} on track`];

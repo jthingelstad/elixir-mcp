@@ -350,3 +350,38 @@ test("concurrent member-count observations cannot roll back a newer source read"
   assert.equal(await b.saveClanSize("#P0LYQ", { ...fresh, members: 1 }), false);
   assert.deepEqual(await a.clanSize("#P0LYQ"), fresh);
 });
+
+test("reopen compare-and-patch is atomic across clients and preserves partial sent receipts", async () => {
+  const a = createPostgresLedger(db),
+    b = createPostgresLedger(other);
+  const original = await a.putCard("#P0LYQ", {
+    card_id: "reopen-fixture",
+    number: 33,
+    raised_at: "2026-10-03T10:00:00Z",
+    status: "declined",
+    decided_at: "2026-10-03T12:00:00Z",
+    evidence: { messages: [{ part: 1 }, { part: 2 }] },
+    messages_sent: [
+      { part: 1, title: "Exact title", body: "Exact sent words" },
+    ],
+  });
+  const expected = await a.card("#P0LYQ", "reopen-fixture");
+  const patch = {
+    status: "proposed",
+    decided_at: null,
+    reopenings: [
+      { request_id: "fixture", decline: { decided_at: expected.decided_at } },
+    ],
+  };
+  const results = await Promise.all([
+    a.updateCardIf("#P0LYQ", expected, patch),
+    b.updateCardIf("#P0LYQ", expected, patch),
+  ]);
+  assert.equal(results.filter(Boolean).length, 1);
+  const saved = await a.card("#P0LYQ", "reopen-fixture");
+  assert.deepEqual(saved.evidence, expected.evidence);
+  assert.deepEqual(saved.messages_sent, expected.messages_sent);
+  assert.equal(saved.number, 33);
+  assert.equal(saved.reopenings.length, 1);
+  assert.equal(original.card_id, "reopen-fixture");
+});

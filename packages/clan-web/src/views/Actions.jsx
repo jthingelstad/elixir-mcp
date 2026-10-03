@@ -329,6 +329,7 @@ export function ActionDetail({ clan, who, number, navigate }) {
   const invalidate = useInvalidate();
   const changed = () => {
     invalidate(keys.actions(clan.clan_tag));
+    invalidate(keys.history(clan.clan_tag), { exact: true });
     invalidate(keys.me, { exact: true });
   };
   if (state.signedOut) {

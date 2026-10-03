@@ -204,3 +204,46 @@ test("lost audit write leaves a durable visible transition and same-request retr
   assert.equal((await h.ledger.actionLog(clan, "example")).length, 1);
   assert.equal((await h.ledger.card(clan, "example")).reopenings.length, 1);
 });
+
+test("later decline cycles keep both decisions, and an old successful retry cannot reopen a completed action", async () => {
+  const h = await harness();
+  const first = await h.manage.reopen(clan, actor, "example", request);
+  const decided_at = "2026-10-03T13:30:00Z";
+  await h.ledger.putCard(clan, {
+    ...first,
+    status: "declined",
+    decided_at,
+    decided_by: actor.player_tag,
+    decision_note: "A later decline",
+  });
+  await assert.rejects(
+    h.manage.reopen(clan, actor, "example", {
+      ...request,
+      request_id: "00000000-0000-4000-8000-000000000002",
+    }),
+    (e) => e.code === "action_changed",
+  );
+  const second = await h.manage.reopen(clan, actor, "example", {
+    request_id: "00000000-0000-4000-8000-000000000002",
+    expected_decided_at: decided_at,
+  });
+  assert.equal(second.reopenings.length, 2);
+  const shaped = createActionStore({ ledger: h.ledger }).shapeAction(
+    second,
+    await h.ledger.actionLog(clan, "example"),
+    actor,
+  );
+  assert.equal(shaped.log.filter((e) => e.kind === "declined").length, 2);
+  assert.equal(shaped.log.filter((e) => e.kind === "reopened").length, 2);
+  const done = {
+    ...second,
+    status: "done",
+    decided_at: "2026-10-03T14:00:00Z",
+  };
+  await h.ledger.putCard(clan, done);
+  assert.equal(
+    (await h.manage.reopen(clan, actor, "example", request)).status,
+    "done",
+  );
+  assert.deepEqual(await h.ledger.card(clan, "example"), done);
+});

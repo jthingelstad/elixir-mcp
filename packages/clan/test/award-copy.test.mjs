@@ -92,3 +92,20 @@ test("incomplete standings withhold ranks using short honest game wording", () =
   );
   assert.doesNotMatch(parts[0].message.body, /9,000|1\./);
 });
+
+test("unknown podium metrics withhold places instead of publishing zero", () => {
+  for (const metric of [null, undefined, NaN, Infinity]) {
+    const parts = awardUpdateParts(
+      {
+        awards: [
+          podium("points_podium", "Points Cup", [row("Example", 1, metric)]),
+        ],
+      },
+      { prefix: "So far: ", title: "Season 136", complete: true },
+    );
+    assert.equal(
+      parts[0].message.body,
+      "So far: Points Cup: standings not ready.",
+    );
+  }
+});
