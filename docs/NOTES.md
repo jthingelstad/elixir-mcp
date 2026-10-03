@@ -3665,3 +3665,22 @@ checks remain separate; no historical grants, paid model calls or in-game
 messages were created for verification. These are remaining live readiness
 checks, not a release blocker. The existing morning evaluation is scheduled
 at 11:00 UTC (6:00 AM CDT on Monday October 5); no scheduler was added.
+
+## 2026-10-03 — Repair first Clan voice draft
+
+The private model relay lacked outbox ListBucket permission. S3 returns
+AccessDenied for an absent object without that permission, so the worker's
+reply/claim checks could fail before provider dispatch. The web role already
+has the permission. The relay now has bucket metadata access while its object
+reads remain limited to mail and sealed model objects; no credential read or
+automatic paid retry is added. The adapter still propagates AccessDenied,
+never treating denied access as absence. Guarded infrastructure and mocked
+storage/bridge tests pass. Live policy and bounded retry logs support the
+failure path; masked logs cannot prove billing for a particular attempt.
+No paid model call, production award mutation or message delivery was used
+for verification. This focused repair has no migration and leaves the
+Actions/Awards interaction changes in the following iteration.
+Full npm run verify passed with scratch PostgreSQL; the additional real-adapter
+mock confirms denied lookup starts zero calls, normal duplicate delivery starts
+one, and an expired queued request starts none. Green PR merge and canonical
+deployment are owed.

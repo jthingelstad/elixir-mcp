@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-03",
+    title: "Repair Clan voice drafting",
+    body: "The model worker can now distinguish a reply that has not arrived from denied access, allowing a first draft to reach its one-time request claim. Uncertain attempts remain visible and are never automatically repeated. A counted attempt does not by itself confirm a provider charge. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-03",
     title: "Share award progress after each war week",
     body: "Leaders receive editable, numbered Actions with provisional award standings after a war week is recorded as closed. Updates stop at that completed week, withhold places when evidence is incomplete, and stay separate from final awards. Retried runs fill missing Actions without duplicating completed ones. You review and send each message in the game. Contracts unchanged.",
   },
