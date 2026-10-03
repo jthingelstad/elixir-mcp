@@ -1,10 +1,36 @@
 # Clan leadership readiness for Monday
 
-This release improves messages on existing actions. It does not change
-participation calculations, policy, awards, membership or the season clock.
+The first slice improves messages on existing actions. The awards repair follows
+with evidence guards, immutable final receipts, resumable decisions and complete
+announcement copy. Saved policy and the season clock stay authoritative.
 The [vision](../../VISION.md) gives the next product priorities.
 
 ## Complete by Sunday, October 4
+
+The first acceptance priority is every configured season award, with War Champ
+first because it informs the clan's human Free Pass choice. Message editing
+alone does not establish awards readiness. Before calling this ready:
+
+- Check the saved awards document, its version, enabled kinds and parameters.
+  Keep the clan's manual selection rule visible; do not infer a generic exemption.
+- Require contiguous, unique war sections and the terminal Colosseum evidence
+  before granting a closed season. Missing points, donations and rookie history
+  remain unknown; distinguish a known absence from a recording gap.
+- Show final winners, ranks and metrics from immutable grants. A refreshed
+  calculation must not label a different podium as already granted.
+- Persist every winner together or resume a frozen grant plan after interruption.
+  Repeating an evaluation must neither duplicate grants nor lose remaining winners.
+- Put the previous season's manual grant and the saved selection description
+  beside the current final podium. An absent historical grant is an evidence gap,
+  not proof that nobody held the award. The leader chooses and confirms the pick.
+- Enforce closed-season, rationale and repeat-request safeguards on manual grants.
+  Provide complete announcement copy for all awards, including later manual picks,
+  with explicit message segments when game limits require them. Sending stays human.
+- Exercise these cases with fixtures and read existing production receipts safely.
+  Opening Awards/Trophies can evaluate and write grants, so it is not a read-only
+  verification path. Do not award an open season during validation.
+
+The [awards review](2026-10-03-CLAN-AWARDS-READINESS.md) records unresolved blockers.
 
 1. Each leader and co-leader signs in with their own Elixir account, checks
    that their primary or alt is theirs and verified, and opens the right
@@ -29,21 +55,17 @@ The [vision](../../VISION.md) gives the next product priorities.
    morning evaluation/mail receipts without rerunning them for verification.
 
 Finish readiness and validation on Sunday, not Monday's business day.
-The connected clock reads on October 3 place the nominal season/week boundary
-at Monday, October 5, 10:00 UTC (05:00 CDT), with POAP KINGS in the final
-Colosseum week. The actual race close varies within 09:30–10:00 UTC
-(04:30–05:00 CDT); the nominal boundary is not an exact attack deadline.
-Verify the clock and observed race rather than assuming they coincide.
+Use the observed game clock and race close rather than assuming a nominal
+weekly boundary is an exact attack deadline.
 See [Elixir's policy-day evidence](https://elixir.poapkings.com/docs/clocks#the-policy-day)
 and [Supercell's first-Monday season rule](https://support.supercell.com/clash-royale/en/articles/seasons.html).
 
 ## Evidence and remaining live check
 
-Jamie’s connected account reports a verified POAP KINGS leader identity.
-Otto’s browser was signed out on October 3, so co-leaders' own authenticated
-access, private saved policy and safe model-status read-back are still owed.
-Fixture journeys and handler tests cover the access and message paths; they
-do not certify an individual co-leader's production account.
+Co-leaders' own authenticated access and safe model-status read-back remain
+separate production checks. Fixture journeys and handler tests cover access and
+message paths; they cannot certify a person's production account. Private
+production observations are deliberately kept out of these tracked review docs.
 
 Release validation uses scripted provider responses, without a paid model
 call or live membership/policy action. The existing daily use limit is not
