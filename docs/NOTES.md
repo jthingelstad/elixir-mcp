@@ -4572,3 +4572,24 @@ zero-based section index as a human week number. The display now adds one,
 matching Actions; a regression pins section 3 to W4. Recorded counters and
 calendar bounds are unchanged. The receipt PR includes this narrow display
 correction, and its green merge is deployed through the normal lane.
+
+
+Final UI receipt: PR269 merged its notes and week-label correction as
+36efe277aab70b039bb1cdac701ef688e357fb4d at 08:13:34Z. Validate run
+37187949868 passed full verify, the Lambda build and all 101 browser journeys
+(1.1 minutes, no retries/failures). Local full verify and all three focused
+member/preparation/switching journeys passed. The member UI regression pins
+zero-based section 3 to the displayed W4, consistent with Actions.
+
+The clean green commit deployed through the site lane: no migration, stack
+update or Lambda change. All 43 smoke checks passed again. Read-back from
+08:15:14.407505Z confirmed exact-build Policy/Actions/awards docs, Updates,
+the member-route shell and App-DLXty69o.js. Its SHA256 is
+d1cf232ee76566353e878ab7e7266df5876f523983124d69af54616a0a4964cd.
+The web Lambda retains the first verified CodeSha256 and LastModified;
+all 252 unpacked rebuilt files match the preserved verified ZIP contents.
+ZIP timestamps differ on a rebuild, so the new ZIP container hash is not a
+claim that the site lane updated Lambda. Public status remains successful.
+The lease was released after read-back. Signed-in real-clan inspection remains
+in the parent browser; business state and paid calls were not QA fixtures.
+This final receipt is notes-only and does not cause another deployment.
