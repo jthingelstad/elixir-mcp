@@ -69,6 +69,7 @@ export function LogTable({
   rows = [],
   tones = {},
   monoCols = [],
+  wrapCols = [],
   filters = [],
   footnote,
   empty = "Nothing yet.",
@@ -96,6 +97,8 @@ export function LogTable({
   rows?: LogRow[];
   tones?: Record<string, string>;
   monoCols?: number[];
+  /** Narrative cells wrap while identifiers, times and controls stay compact. */
+  wrapCols?: number[];
   filters?: LogFilter[];
   footnote?: ReactNode;
   empty?: ReactNode;
@@ -211,6 +214,7 @@ export function LogTable({
                               ? "table__td--num text-right"
                               : "",
                             mono ? "mono" : "",
+                            wrapCols.includes(c) ? "table__td--wrap" : "",
                             mono || align === "right" ? "font-mono" : "",
                           ]
                             .filter(Boolean)

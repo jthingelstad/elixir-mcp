@@ -23,12 +23,25 @@ export function Timeline() {
   const [offset, setOffset] = useState(0);
   const panelRef = useRef(null);
   const triggerRef = useRef(null);
+  const restoreTriggerRef = useRef(false);
   useEffect(() => {
-    if (selected) panelRef.current?.focus();
+    if (selected) {
+      panelRef.current?.focus({ preventScroll: true });
+      panelRef.current?.scrollIntoView({ block: "start" });
+    } else if (restoreTriggerRef.current) {
+      restoreTriggerRef.current = false;
+      if (triggerRef.current?.isConnected) {
+        triggerRef.current.focus({ preventScroll: true });
+        triggerRef.current.scrollIntoView({
+          block: "center",
+          inline: "nearest",
+        });
+      }
+    }
   }, [selected]);
   const closeEvidence = () => {
+    restoreTriggerRef.current = true;
     setSelected(null);
-    triggerRef.current?.focus();
   };
   const evidenceQuery = useTimelineEvidence(
     selected
@@ -134,12 +147,27 @@ export function Timeline() {
                 </p>
                 {evidence.kind === "session" ? (
                   <>
+                    {typeof selected.facts?.battles === "number" ? (
+                      <p>
+                        The summary covers {selected.facts.battles} games
+                        {selected.facts.ended_at
+                          ? `, ending ${stamp(selected.facts.ended_at)}`
+                          : ""}
+                        .
+                      </p>
+                    ) : null}
                     <p>
-                      {evidence.count} recorded games through{" "}
-                      {stamp(evidence.through)}.{" "}
+                      {evidence.count} recorded games
+                      {evidence.from
+                        ? ` from ${stamp(evidence.from)}`
+                        : ""}{" "}
+                      through {stamp(evidence.through)}.
+                      {selected.kind === "session_standout"
+                        ? " This evidence ends at the latest milestone reached in this update; the summary can include later games in the same sitting."
+                        : ""}{" "}
                       {evidence.open
-                        ? "This sitting was still open at this read."
-                        : "This sitting was closed at this read."}
+                        ? "The summarized sitting was still open at this read."
+                        : "The summarized sitting was closed at this read."}
                     </p>
                     <p>
                       Capture completeness is unknown.{" "}
@@ -199,6 +227,7 @@ export function Timeline() {
       ]}
       rows={rows}
       monoCols={[0]}
+      wrapCols={[2]}
       filters={[
         { key: "who", label: "Who", col: 1 },
         { key: "state", label: "State", col: 3 },

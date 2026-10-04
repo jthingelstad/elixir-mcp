@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Timeline evidence explains its milestone window",
+    body: "A sitting summary can include games played after its standout milestone. The evidence panel now explains both counts and time spans. Timeline sentences wrap to keep game controls visible on desktop, and Close returns you to the original row after a long evidence list. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Read the games behind a Timeline moment",
     body: "Open recorded games from a Timeline sitting or a proved crossing. Evidence stays tied to its original moment as late proof arrives; missing games and unknown capture completeness are said plainly. Game pages open from a read-only panel, with ordered pages for longer sittings. Contracts 11.1.0; JSON API 3.0.0 unchanged.",
   },

@@ -4352,3 +4352,38 @@ acceptance. Canonical game capture completeness stays explicitly unknown.
 
 The acceptance correction and this receipt land through their own green PR.
 No redeploy follows: deployed production code remains PR262's release commit.
+
+## 2026-10-04 - Timeline milestone scope and return-position follow-up
+
+Independent live QA found a 15-game sitting summary with ten evidence links,
+and a 32-game summary with twenty links. Read-only diagnosis confirms the
+existing contract: the summary describes the full observed sitting, while
+standout evidence and its revision end at the last new milestone. Both reads
+contained every canonical game in that bounded interval, so next_offset null
+was correct. This is a missing explanation, not a retention or paging defect.
+The panel now names the sitting summary count/end and evidence count/interval,
+with an explicit milestone explanation. The summarized sitting's open/closed
+state is labelled as such. No API shape, evidence predicate or contract changes.
+
+Narrative cells opt into wrapping in the shared log table so the evidence
+control remains reachable alongside Who/When/What on desktop. Close restores
+focus and scroll position after the panel has left the DOM, avoiding the old
+pre-removal focus scroll that could leave the viewport at the table footer.
+Invented fixtures cover full sitting versus milestone evidence and long-panel
+close behavior; no private game payload or names are committed.
+
+An exact ranked example was checked through the authorized player-filtered
+Timeline and canonical battle query: the associated winning game is stamped
+league 2; the following ranked game is stamped league 3, corroborating the
+observed 2-to-3 profile move. The API reports trophy_change +30 with no starting
+rating. This is the existing lower-league ranked win field, not a Trophy Road
+gain or a measured rating change. Agent context should say the observed league
+move and ranked game's result; current Trophy Road standing and mixed-mode
+statistics remain separately sourced facts. The public battle page's absence
+of league detail did not invalidate the stored promotion proof.
+
+The complete 02:32-02:38Z web Lambda log window contained 70 events and seven
+Timeline requests, all HTTP 200 (1,643-2,639 ms), with no error or timeout
+identifying the initial browser 502. That transient remains unattributed; no
+server retry or speculative timeout change follows this evidence. Validation
+and deployment receipts follow after their observed results.

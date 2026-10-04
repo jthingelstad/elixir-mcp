@@ -1102,6 +1102,10 @@ button.rail__switch-head:hover {
   text-align: right;
   font-family: var(--font-mono);
 }
+.table td.table__td--wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .table tbody tr:hover {
   background: var(--hover-row);
 }
