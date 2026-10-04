@@ -200,6 +200,12 @@ are the games from the anchored sitting through the item's end; a clan
 standout ends at the last rung this read learned. This can reach before the
 read window. The evidence count describes that scope, while the item's
 session facts continue to describe its original read window.
+The panel names both scopes: a 15-game sitting can have ten linked games when
+its latest new milestone occurred at game ten. The later five games belong to
+the sitting summary. They are outside that milestone's evidence interval, rather
+than a hidden second page. Page controls appear only when more canonical games
+remain inside the evidence interval. Closing the panel returns to its original
+row; narrative cells wrap to keep evidence controls visible on desktop.
 
 Every supported item carries `evidence.kind`, `version`, `observed_at`,
 `count` and `completeness`. `observed_at_basis` distinguishes recorded
@@ -211,6 +217,12 @@ whether the sitting was still open at this read. Boat defenses and games
 captured more than a day late remain outside these sessions.
 
 A crossing says `proved` only when its canonical game establishes it.
+For a ranked promotion, the observed profile league change is paired with the
+last recorded winning Path of Legends game stamped in the prior league. Its
+API-reported `trophy_change` belongs to that ranked game. In the lower leagues
+the win field is +30 without a starting rating; it does not establish a Trophy
+Road increase or a measured rating change. Keep a player's current Trophy Road
+standing and wider mixed-mode statistics separate from the crossing's evidence.
 Otherwise it says `unknown`; it never substitutes the nearest game. A
 roster-observed arena move can later gain proof: its original logical
 origin is frozen before enrichment, its ID stays the same, and its evidence
@@ -392,4 +404,3 @@ so the busy-window note's `to` reaches the item at the cut. A clan entry's
 `activity.learned_here_played_before` counts ones played in the day before
 `from` and recorded here (counted), `activity.played_here_learned_later` ones
 played in the window and recorded after `to` (not counted).
-

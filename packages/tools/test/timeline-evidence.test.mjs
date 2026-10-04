@@ -456,3 +456,76 @@ test("ranked proof and ladder sessions keep canonical mode and result provenance
     evidence.battles[0].battle_id,
   );
 });
+
+test("a clan standout summarizes the whole sitting while evidence ends at its last new milestone", async () => {
+  const player = "#P0YQ2LC",
+    clan = "#P0YQ2L0";
+  await db.query(
+    "insert into player (player_tag,name) values ($1,'Example Member')",
+    [player],
+  );
+  await db.query(
+    "insert into clan (clan_tag,name) values ($1,'Example Group')",
+    [clan],
+  );
+  const {
+    rows: [account],
+  } = await db.query(
+    "insert into account (email_hash,status,timezone) values ('milestone-scope','approved','UTC') returning account_id",
+  );
+  await db.query(
+    "insert into account_clan (account_id,clan_tag,scope,notify) values ($1,$2,'comprehensive',true)",
+    [account.account_id, clan],
+  );
+  await db.query(
+    "insert into clan_membership (clan_tag,player_tag,role,joined_observed_at) values ($1,$2,'member',$3)",
+    [clan, player, at(0)],
+  );
+  const outcomes = [
+    "loss",
+    "win",
+    "win",
+    "loss",
+    "loss",
+    "win",
+    "win",
+    "win",
+    "win",
+    "win",
+    "loss",
+    "win",
+    "loss",
+    "loss",
+    "win",
+  ];
+  for (const [i, outcome] of outcomes.entries()) {
+    await db.query(
+      "insert into battle (battle_id,battle_time,type,type_class,created_at) values ($1,$2,'friendly','pvp',$3)",
+      [id(5001 + i), at(i + 1), at(i + 2)],
+    );
+    await db.query(
+      "insert into battle_participant (battle_id,player_tag,battle_time,side,type,type_class,outcome,clan_tag) values ($1,$2,$3,0,'friendly','pvp',$4,$5)",
+      [id(5001 + i), player, at(i + 1), outcome, clan],
+    );
+  }
+  const item = (
+    await feed(FROM, FROM + 60 * 60000, account.account_id)
+  ).timeline.find((x) => x.kind === "session_standout");
+  assert.equal(item.facts.battles, 15);
+  assert.equal(item.facts.won, 9);
+  assert.equal(item.facts.lost, 6);
+  assert.equal(item.facts.ended_at, at(15));
+  assert.deepEqual(item.facts.newly, ["won_in_a_row>=5"]);
+  assert.equal(item.evidence.count, 10);
+  assert.equal(item.evidence.through, at(10));
+  const page = await readTimelineEvidence(db, item);
+  assert.deepEqual(
+    page.battles.map((x) => x.battle_id),
+    Array.from({ length: 10 }, (_, i) => id(5001 + i)),
+  );
+  assert.equal(
+    page.next_offset,
+    null,
+    "all ten games in this milestone scope are present; later sitting games are not another page",
+  );
+});
