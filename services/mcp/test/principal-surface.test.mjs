@@ -36,10 +36,11 @@ const call = (kind, name) =>
     context(kind),
   );
 
-test("a person sees everything but the agent's identity tools (2026-09-25)", () => {
-  assert.equal(names("person").length, registry.declarations().length - 2);
+test("a person sees everything but agent identity and private context tools", () => {
+  assert.equal(names("person").length, registry.declarations().length - 3);
   assert.ok(!names("person").includes("elixir_identify"));
   assert.ok(!names("person").includes("elixir_my_identities"));
+  assert.ok(!names("person").includes("clans_context"));
   assert.ok(names("person").includes("elixir_my_players"));
   assert.ok(
     names(null).includes("elixir_my_players"),
@@ -59,6 +60,7 @@ test("an agent has no personal identity tools, and tracks for its clan", () => {
   assert.ok(agent.includes("elixir_send_feedback"), "and its own voice");
   assert.ok(agent.includes("war_current"));
   assert.ok(agent.includes("game_clock"));
+  assert.ok(agent.includes("clans_context"));
 });
 
 test("an integration has no 'me' at all", () => {
@@ -71,6 +73,7 @@ test("an integration has no 'me' at all", () => {
   );
   assert.ok(!integration.includes("elixir_track_player"), "adds none");
   assert.ok(!integration.includes("elixir_track_clan"));
+  assert.ok(!integration.includes("clans_context"));
   // It is a corpus consumer, and the corpus is all still there.
   assert.ok(integration.includes("players_profile"));
   assert.ok(!integration.includes("battles_meta_decks"));
@@ -93,6 +96,35 @@ test("hiding is not enforcement: a remembered tool is refused, not served", asyn
 test("a person calling the same tool is served", async () => {
   const res = await call("person", "elixir_my_players");
   assert.ok(res.payload.result);
+});
+
+test("remembered private context calls by people and integrations never invoke or spend quota", async () => {
+  for (const kind of ["person", "integration"]) {
+    let invoked = 0;
+    let spent = 0;
+    const result = await handleMcpMessage(
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "clans_context", arguments: {} },
+      },
+      {
+        ...context(kind),
+        invokeTool: async () => {
+          invoked++;
+          return { body: {}, isError: false };
+        },
+        spendQuota: async () => {
+          spent++;
+          return { allowed: true };
+        },
+      },
+    );
+    assert.equal(result.payload.error.code, -32601);
+    assert.equal(invoked, 0);
+    assert.equal(spent, 0);
+  }
 });
 
 test("initialize advertises the surface the caller will actually get", async () => {

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Bounded policy context for assigned agents",
+    body: "An assigned agent may read its clan’s explicit war intent, policy revision and timestamps only through a separately approved grant. Every read checks its actual owner, current assignment and verified membership; other private policy details remain unavailable. Unknown intent stays unknown, and scoring remains independent. Consumer routine gating ships separately. Contract 11.2.0; JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Record Clan War intent separately from scoring",
     body: "Leaders can specify whether their clan intends to participate in Clan Wars on Policy → About. This remains separate from counting war decks toward minimums and Elder. Existing policies start as Not specified, and starting points preserve the intent you choose. This records intent; scheduled messages are not connected yet. Contracts unchanged.",
   },

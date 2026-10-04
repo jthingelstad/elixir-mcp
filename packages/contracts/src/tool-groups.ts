@@ -286,6 +286,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
   },
 
   // Clans — roster-shaped views (docs: clans.md).
+  clans_context: {
+    group: "Clans",
+    title: "Private policy context",
+    readOnly: true,
+  },
   clans_roster: {
     group: "Clans",
     title: "Clan roster",

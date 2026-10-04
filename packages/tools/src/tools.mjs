@@ -20,6 +20,7 @@ import { battlesTools } from "./tools/battles.mjs";
 import { opponentsTools } from "./tools/opponents.mjs";
 import { badgesTools } from "./tools/badges.mjs";
 import { cardsTools } from "./tools/cards.mjs";
+import { clanContextTools } from "./tools/clan-context.mjs";
 import { clansTools } from "./tools/clans.mjs";
 import { liveTools } from "./tools/live.mjs";
 import { playersTools } from "./tools/players.mjs";
@@ -42,6 +43,7 @@ const TOOLS = {
   ...badgesTools,
   ...cardsTools,
   ...clansTools,
+  ...clanContextTools,
   ...seriesTools,
   ...liveTools,
   ...playersTools,
