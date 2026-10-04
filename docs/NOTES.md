@@ -5201,3 +5201,28 @@ unchanged. The clean production lease was released after readback.
 No live analytics beacon, member decision, setting/policy edit, award grant,
 clan message or paid model call was used for QA. This receipt changes only
 NOTES; it goes through its own required green CI and has no redeploy.
+
+## 2026-10-04 - Bounded participation plan diagnosis for issue 296
+
+Existing slow-statement evidence identifies the weekly battle aggregation
+with the scalar boat lookup still present from PR #257. Its retained
+post-fix profile removed the full battle scan but kept a participant heap
+scan. A current plan is needed before changing the query or index; neither
+Lambda initialization nor the private Clan advisory lock explains the
+observed database delay. Exact production telemetry and identifiers stay
+private; issue #296 records the sanitized finding.
+
+The existing explain_participation op now offers analyze:false with one or
+two named canonical weekly queries. It reads only the membership lists
+needed for plan parameters and uses EXPLAIN without ANALYZE; it never runs
+the selected aggregations or forces planner paths. Connection and statement
+ceilings are five seconds, and lock waits are bounded at 500 ms. Queries
+without explicit analyze:false are refused to prevent a mistaken full
+execution. The response includes structural estimates, retained index
+definitions, visibility estimates and planner settings, with no plan
+conditions, outputs, SQL parameters or player/clan identifiers. Legacy full
+EXPLAIN ANALYZE behavior remains available with its existing payload.
+No product contract, game record, policy, decision or model behavior changes.
+MCP 11.2.0 and JSON API 3.0.0 remain unchanged. This private diagnostic
+extension requires local validation, required CI, deployment smoke and one
+bounded plan read; no tool-family acceptance is needed for the diagnostic.

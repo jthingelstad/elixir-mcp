@@ -628,6 +628,12 @@ export async function sessions(databaseUrl) {
  * week, 20 s for eight) and there was no other way to see why.
  */
 export async function explainParticipation(databaseUrl, spec = {}) {
+  if (spec.queries !== undefined && spec.analyze !== false)
+    return { error: "selected_queries_require_analyze_false" };
+  if (spec.analyze === false) {
+    const { participationPlan } = await import("./ops-participation-plan.mjs");
+    return participationPlan(databaseUrl, spec);
+  }
   const [
     {
       MEMBERS_SQL,
