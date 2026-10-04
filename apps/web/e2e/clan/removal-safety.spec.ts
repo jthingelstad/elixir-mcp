@@ -3,6 +3,165 @@ import AxeBuilder from "@axe-core/playwright";
 import { mockApi, signedIn, ME } from "./fixtures.ts";
 
 for (const size of ["wide", "@narrow"])
+  test(`withdrawn removal warning and Board triage remain readable without decision controls ${size}`, async ({
+    page,
+  }) => {
+    const writes: string[] = [];
+    page.on("request", (r) => {
+      if (
+        r.method() !== "GET" &&
+        /actions\/.*\/(?:decide|draft|reopen)/.test(r.url())
+      )
+        writes.push(r.url());
+    });
+    const statuses = [
+      "protected",
+      "not_candidate",
+      "evidence_held",
+      "eligible",
+    ];
+    const card = {
+      card_id: "synthetic-withdrawn",
+      number: 45,
+      type: "removal",
+      label: "Remove from the clan",
+      status: "withdrawn",
+      can_act: false,
+      can_complete: false,
+      can_draft: false,
+      can_reopen: false,
+      audience: { kind: "leaders" },
+      player_tag: "#8QCV",
+      player_name: "Invented member",
+      raised_at: "2026-10-03T22:00:00Z",
+      policy_version: 1,
+      removal_safety: {
+        status: "held",
+        reason: "Profile observations are missing inside the measured window.",
+        checked_at: "2026-10-04T08:00:00Z",
+        latest_activity_interval: {
+          counter_increase: 1,
+          observed_from: "2026-10-02T01:00:00Z",
+          observed_to: "2026-10-03T02:00:00Z",
+          no_battles_captured: true,
+        },
+      },
+      evidence: { rationale: { headline: "Saved historical rationale." } },
+      log: [
+        {
+          entry_id: "original",
+          kind: "raised",
+          at: "2026-10-03T22:00:00Z",
+          by: { system: "elixir-clan" },
+          text: "Saved historical rationale.",
+        },
+        {
+          entry_id: "withdrawal",
+          kind: "withdrawn",
+          at: "2026-10-04T09:20:00Z",
+          by: { system: "elixir-clan" },
+          text: "Inactivity is not established.",
+        },
+      ],
+    };
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/clan/me": [200, { ...ME, selected: ME.clans[0] }],
+        "GET /api/clan/clans/2PQRJ8LV/actions/45": [
+          200,
+          { action: card, decline_reasons: [], model: { set: true } },
+        ],
+        "GET /api/clan/clans/2PQRJ8LV/manage": [
+          200,
+          {
+            evaluated_at: "2026-10-04T08:00:00Z",
+            policy_version: 1,
+            boundaries: [],
+            band: null,
+            roster: { size: 4, open_slots: 46 },
+            policy: { ranks_elder: false, removal: true },
+            board: statuses.map((status, i) => ({
+              player_tag: `#SYNTH${i}`,
+              name: `Invented ${i}`,
+              role: i === 0 ? "leader" : "member",
+              bucket: i === 2 ? "held" : i === 3 ? "actionable" : "clear",
+              phrase: "Recorded contribution",
+              judgment: {
+                promotion: "off",
+                demotion: "not_applicable",
+                removal: status === "eligible" ? "ready" : "held",
+              },
+              judgment_reasons: [],
+              promotion: { state: "none" },
+              removal: {
+                state: "none",
+                triage: { status, reason: `Explanation ${i}` },
+              },
+            })),
+          },
+        ],
+      }),
+    );
+    await page.goto("/clan/2PQRJ8LV/actions/45");
+    const alert = page.getByRole("alert");
+    await expect(alert).toContainText("This Action is closed");
+    await expect(alert).not.toContainText("may still explicitly decline");
+    await expect(alert).toContainText("2026-10-04 03:00 CDT");
+    const layout = await alert.evaluate((e) => ({
+      direction: getComputedStyle(e).flexDirection,
+      children: [...e.children].map((c) => {
+        const b = c.getBoundingClientRect();
+        return { top: b.top, bottom: b.bottom };
+      }),
+    }));
+    expect(layout.direction).toBe("column");
+    for (let i = 1; i < layout.children.length; i++)
+      expect(layout.children[i]!.top).toBeGreaterThanOrEqual(
+        layout.children[i - 1]!.bottom,
+      );
+    for (const name of [
+      "Decline",
+      "Complete",
+      "Reopen action",
+      "Draft in our voice",
+    ])
+      await expect(page.getByRole("button", { name, exact: true })).toHaveCount(
+        0,
+      );
+    await expect(page.getByLabel("Chat message")).toHaveCount(0);
+    await expect(page.getByText(/Log · 2 entries/)).toBeVisible();
+    await expect(
+      page.getByText("2026-10-04 04:20 CDT", { exact: true }),
+    ).toBeVisible();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.screenshot({
+      path: `/tmp/elixir-triage-withdrawn-${size}.png`,
+      fullPage: true,
+    });
+    await page.goto("/clan/2PQRJ8LV/manage/board");
+    await expect(page.getByLabel("Removal triage")).toContainText(
+      "Protected 1 · Not currently a removal candidate 1 · Evidence held 1 · Eligible 1",
+    );
+    for (const label of [
+      "Protected",
+      "Not currently a removal candidate",
+      "Evidence held",
+      "Eligible",
+    ])
+      await expect(page.getByText(label, { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("held · activity unknown", { exact: true }),
+    ).toHaveCount(0);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.screenshot({
+      path: `/tmp/elixir-triage-board-${size}.png`,
+      fullPage: true,
+    });
+    expect(writes).toEqual([]);
+  });
+
+for (const size of ["wide", "@narrow"])
   test(`held removal list and direct Action preserve audit while withholding unsafe words ${size}`, async ({
     page,
   }) => {

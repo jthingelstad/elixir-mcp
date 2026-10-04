@@ -1,4 +1,4 @@
-import { Fresh, Icon, Link, ago } from "@elixir-mcp/ui";
+import { Fresh, Icon, Link, ago, stamp, useClock } from "@elixir-mcp/ui";
 import {
   CHAT_MAX,
   CHAT_TONES,
@@ -93,7 +93,6 @@ const CLASSIFIED = {
   member_left: "said: left",
   ignored: "said: ignore",
 };
-const when = (ts) => (ts ? ts.slice(0, 16).replace("T", " ") : "");
 
 /** A person's word on a decision, kept in the action's log. */
 function NoteInput({ value, onChange, placeholder = "note (optional)" }) {
@@ -471,6 +470,8 @@ function By({ by }) {
 
 /** An action's log, oldest first, and a place to add to it. */
 export function ActionLog({ action, clan, onChanged }) {
+  const { zone: accountZone } = useClock();
+  const zone = accountZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -512,7 +513,7 @@ export function ActionLog({ action, clan, onChanged }) {
                   : ""}
               </span>
               <span className="mono text-[12px] text-ink-faint">
-                {when(e.at)}
+                <time dateTime={e.at}>{stamp(e.at, zone, { year: true })}</time>
               </span>
             </div>
             {e.text ? <div className="text-ink-body">{e.text}</div> : null}
@@ -600,6 +601,8 @@ function BoundActionCard({
   navigate,
   model = null,
 }) {
+  const { zone: accountZone } = useClock();
+  const zone = accountZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [reason, setReason] = useState("not_now");
   const [note, setNote] = useState("");
   const [declining, setDeclining] = useState(false);
@@ -811,19 +814,41 @@ function BoundActionCard({
           </Link>
         ) : null}
         {removalHeld ? (
-          <div className="callout callout--warn" role="alert">
+          <div className="callout callout--warn flex-col gap-2" role="alert">
             <strong>Removal held: inactivity is not established.</strong>
-            <p>{action.removal_safety.reason}</p>
+            <p className="m-0">{action.removal_safety.reason}</p>
             {action.removal_safety.latest_activity_interval ? (
-              <p>
+              <p className="m-0">
                 The profile counter increased by{" "}
                 {
                   action.removal_safety.latest_activity_interval
                     .counter_increase
                 }{" "}
                 between{" "}
-                {action.removal_safety.latest_activity_interval.observed_from}{" "}
-                and {action.removal_safety.latest_activity_interval.observed_to}
+                <time
+                  dateTime={
+                    action.removal_safety.latest_activity_interval.observed_from
+                  }
+                >
+                  {stamp(
+                    action.removal_safety.latest_activity_interval
+                      .observed_from,
+                    zone,
+                    { year: true },
+                  )}
+                </time>{" "}
+                and{" "}
+                <time
+                  dateTime={
+                    action.removal_safety.latest_activity_interval.observed_to
+                  }
+                >
+                  {stamp(
+                    action.removal_safety.latest_activity_interval.observed_to,
+                    zone,
+                    { year: true },
+                  )}
+                </time>
                 .
                 {action.removal_safety.latest_activity_interval
                   .no_battles_captured
@@ -832,10 +857,16 @@ function BoundActionCard({
                 The exact battle time and mode are unknown.
               </p>
             ) : null}
-            <p>
-              Checked {action.removal_safety.checked_at}. Removal copy, drafting
-              and completion are withheld. The saved evidence and log below are
-              historical; leadership may still explicitly decline.
+            <p className="m-0">
+              Checked{" "}
+              <time dateTime={action.removal_safety.checked_at}>
+                {stamp(action.removal_safety.checked_at, zone, { year: true })}
+              </time>
+              . Removal copy, drafting and completion are withheld. The saved
+              evidence and log below are historical.
+              {open && action.can_act
+                ? " Leadership may still explicitly decline this open Action."
+                : " This Action is closed; its decisions and audit remain recorded."}
             </p>
           </div>
         ) : null}
@@ -866,7 +897,7 @@ function BoundActionCard({
           ) : action.type === "away" ? (
             <div>
               You have not played in {Math.floor(ev.days_idle ?? 0)} days. Going
-              to be away? Mark it and your inactivity clock pauses
+              to be away? Mark it to shield removal eligibility while active
               {ev.away_max_days ? ` (up to ${ev.away_max_days} days)` : ""}.
             </div>
           ) : action.type === "awards_announcement" ? (

@@ -75,6 +75,37 @@ const gap = (h) => {
     new Date(NOW.getTime() - 3600_000).toISOString();
 };
 
+test("Board cache keeps role protection and recent captured play out of removal evidence triage", async () => {
+  for (const kind of ["protected", "recent"]) {
+    const h = await harness();
+    gap(h);
+    if (kind === "protected") h.subject.role = "leader";
+    else
+      h.subject.last_battle_time = new Date(
+        NOW.getTime() - 3600_000,
+      ).toISOString();
+    for (let i = 0; i < 2; i++) {
+      const view = await h.manage.manageView(clan, who, "token");
+      assert.equal(view.cached, i === 1);
+      const row = view.board.find((m) => m.player_tag === h.subject.player_tag);
+      assert.equal(
+        row.removal.triage.status,
+        kind === "protected" ? "protected" : "not_candidate",
+      );
+      assert.notEqual(row.bucket, "held");
+      assert.ok(
+        row.judgment_reasons.every((r) => !r.startsWith("Removal held:")),
+      );
+      assert.equal(
+        view.inbox.some(
+          (c) => c.type === "removal" && c.player_tag === h.subject.player_tag,
+        ),
+        false,
+      );
+    }
+  }
+});
+
 test("cached list/detail withhold stale removal words; drafting and direct completion refuse without deciding; explicit decline remains", async () => {
   const h = await harness();
   gap(h);
@@ -204,6 +235,41 @@ test("a failed current evidence read holds rather than trusting frozen eligible 
     manage.decide(clan, who, h.card.card_id, { status: "done" }),
     held,
   );
+});
+
+test("profile-day gaps keep cached removal completion, reopening and model admission closed", async () => {
+  const h = await harness();
+  h.subject.activity_evidence.profile_gaps = [
+    {
+      snapshot_date: new Date(NOW.getTime() - 2 * 86400_000)
+        .toISOString()
+        .slice(0, 10),
+    },
+  ];
+  const a = (await h.manage.actionByNumber(clan, who, 45, "token")).action;
+  assert.equal(a.can_complete, false);
+  assert.equal(a.can_draft, false);
+  assert.match(a.removal_safety.reason, /observations are missing/);
+  await assert.rejects(
+    h.manage.decide(clan, who, h.card.card_id, { status: "done" }, "token"),
+    held,
+  );
+  let modelCalls = 0;
+  const drafts = createDrafts({
+    ledger: h.ledger,
+    model: {
+      write() {
+        modelCalls++;
+      },
+    },
+    requireRemovalSafety: h.manage.requireRemovalSafety,
+  });
+  await assert.rejects(
+    drafts.leaderMessage(clan, who, "token", h.card.card_id),
+    held,
+  );
+  assert.equal(modelCalls, 0);
+  assert.equal((await h.ledger.card(clan, h.card.card_id)).status, "proposed");
 });
 
 test("the draft guard hashes the final evidence admitted by its second read", async () => {

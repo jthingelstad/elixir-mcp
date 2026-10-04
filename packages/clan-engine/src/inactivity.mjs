@@ -9,21 +9,26 @@ export function inactivityEvidence(member, at) {
   const captured = stamp(member.last_battle_time);
   const joined = stamp(member.joined_observed_at);
   const rows = member.activity_evidence?.observations ?? [];
+  const day = (row) =>
+    row.snapshot_date ?? row.profile_observed_at?.slice(0, 10);
+  const gapDays = (member.activity_evidence?.profile_gaps ?? []).map(
+    (gap) => gap.snapshot_date,
+  );
   const intervals = [];
   let malformed = false;
   let previous = null;
   for (const row of rows) {
     const t = stamp(row.profile_observed_at);
     const count = row.battle_count;
-    if (!Number.isFinite(t) || t > now || !Number.isInteger(count) || count < 0)
-      malformed = true;
+    const valid =
+      Number.isFinite(t) && t <= now && Number.isInteger(count) && count >= 0;
+    if (!valid) malformed = true;
     if (previous) {
       if (t <= previous.t || count < previous.count) malformed = true;
       if (
-        Number.isFinite(t) &&
-        Number.isFinite(previous.t) &&
-        Number.isInteger(count) &&
-        Number.isInteger(previous.count) &&
+        valid &&
+        t > previous.t &&
+        !gapDays.some((d) => d > previous.day && d <= day(row)) &&
         count > previous.count
       )
         intervals.push({
@@ -34,7 +39,7 @@ export function inactivityEvidence(member, at) {
             !Number.isFinite(captured) || captured <= previous.t,
         });
     }
-    previous = { t, count };
+    previous = valid ? { t, count, day: day(row) } : null;
   }
   const latest = previous?.t;
   const increase = intervals.at(-1) ?? null;
@@ -46,6 +51,7 @@ export function inactivityEvidence(member, at) {
   const first = stamp(rows[0]?.profile_observed_at);
   const quietSince = Math.max(first, possible);
   const tail = Number.isFinite(latest) ? Math.max(0, now - latest) : null;
+  const gapped = gapDays.some((d) => d >= day(rows[0] ?? {}));
   let reason = null;
   if (member.activity_evidence?.current_member === false)
     reason = "The player is no longer a current member.";
@@ -55,6 +61,8 @@ export function inactivityEvidence(member, at) {
     reason = "Profile counters or observation times are not comparable.";
   else if (rows.length < 2)
     reason = "There is no comparable profile counter baseline.";
+  else if (gapped)
+    reason = "Profile observations are missing inside the measured window.";
   else if (tail > 0)
     reason = "Time after the latest profile counter observation is unmeasured.";
   return {
@@ -71,6 +79,7 @@ export function inactivityEvidence(member, at) {
       (r) => stamp(r.observed_to) >= now - 7 * DAY,
     ),
     latest_activity_interval: increase,
+    profile_gap_days: gapDays,
     captured_battle_at: Number.isFinite(captured)
       ? new Date(captured).toISOString()
       : null,
@@ -82,6 +91,7 @@ export function inactivityEvidence(member, at) {
       : null,
     counter_quiet_days:
       !malformed &&
+      !gapped &&
       rows.length >= 2 &&
       Number.isFinite(quietSince) &&
       Number.isFinite(latest)

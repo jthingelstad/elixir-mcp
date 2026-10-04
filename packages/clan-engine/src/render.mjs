@@ -43,6 +43,11 @@ export function judgmentReasons(v, boundaries, policy = null) {
   };
   const reasons = [];
   for (const [dimension, status] of Object.entries(v.judgment)) {
+    if (
+      dimension === "removal" &&
+      ["protected", "not_candidate"].includes(v.removal?.triage?.status)
+    )
+      continue;
     const label = labels[dimension];
     if (status === "unknown") {
       reasons.push(
@@ -70,7 +75,7 @@ export function judgmentReasons(v, boundaries, policy = null) {
                   : minimums?.unknown
                     ? "the record cannot say whether the minimums are met"
                     : "the record is incomplete in the review window";
-      reasons.push(`${label} held: ${reason}.`);
+      reasons.push(`${label} held: ${reason.replace(/[.!?]+$/, "")}.`);
     }
   }
   return reasons;
@@ -392,7 +397,7 @@ export function describePolicy(policy) {
       );
     if (policy.away_max_days > 0)
       lines.push(
-        `Going to be away? Mark it on your Away page for up to ${plural(policy.away_max_days, "day")} and your clock pauses.`,
+        `Going to be away? Mark it on your Away page for up to ${plural(policy.away_max_days, "day")} to shield removal eligibility while it is active. Held time is not subtracted from elapsed time.`,
       );
     if (policy.away_max_days > 0 && policy.away_suggestions_enabled)
       lines.push(

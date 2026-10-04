@@ -337,6 +337,70 @@ export function evaluate({
         past("removal"),
     };
 
+    // Triage describes why someone is relevant to removal. It grants no
+    // permission: every admission path still checks actionable and fresh proof.
+    const triage = (() => {
+      if (
+        LEADERSHIP.has(f.role) ||
+        (f.role === "elder" && !policy.removal_includes_elders)
+      )
+        return {
+          status: "protected",
+          reason: "The policy protects this role from removal.",
+        };
+      if (onHold)
+        return {
+          status: "protected",
+          reason: "An active hold shields removal eligibility.",
+        };
+      if (!policy.removal_enabled)
+        return {
+          status: "not_candidate",
+          reason: "Removal suggestions are off.",
+        };
+      if (!past("removal"))
+        return {
+          status: "protected",
+          reason: "A previous decision is inside its waiting period.",
+        };
+      const capturedAge = f.activity_evidence.captured_battle_age_days;
+      if (
+        capturedAge !== null &&
+        capturedAge >= 0 &&
+        capturedAge < policy.watch_days
+      )
+        return {
+          status: "not_candidate",
+          reason:
+            "A battle was captured inside the watch window; other coverage may remain incomplete.",
+        };
+      if (f.days_idle !== null && f.days_idle < policy.watch_days)
+        return {
+          status: "not_candidate",
+          reason: f.activity_evidence.latest_activity_interval
+            ? "A positive counter bracket is inside the watch window; exact play time and mode are unknown."
+            : "The current recorded stint is inside the watch window.",
+        };
+      if (actionable.removal)
+        return {
+          status: "eligible",
+          reason:
+            "The current evidence and policy admit a removal recommendation.",
+        };
+      if (removalJudgment === "held")
+        return {
+          status: "evidence_held",
+          reason:
+            f.activity_evidence.reason ??
+            "Comparable evidence does not cover the policy window.",
+        };
+      return {
+        status: "not_candidate",
+        reason:
+          "The measured quiet window has not reached the removal threshold.",
+      };
+    })();
+
     return {
       player_tag: tag,
       name: f.name,
@@ -378,6 +442,7 @@ export function evaluate({
         cooldown_until: cooldown.demotion,
       },
       removal: {
+        triage,
         state: rState,
         days_idle: f.days_idle,
         at_risk_days: policy.at_risk_days,

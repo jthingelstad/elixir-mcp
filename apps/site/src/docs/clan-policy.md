@@ -72,7 +72,8 @@ band mean.
 last four reviews would have said under the draft, beside the current
 policy: the Elder band before and after, and each member who would read
 differently. No policy, Action, award or decision is saved or raised by a
-preview, and no model is called. The member-count observation is updated.
+preview, and no model is called. The member-count observation and normal
+recorded-read audit are updated; the Preview result itself is not saved.
 Holds and decision cooldowns are not applied in this comparison, so it is
 not an exact forecast of pending Actions. Editing any setting clears it.
 
@@ -88,6 +89,14 @@ recorded; awards have a separate setup. A stale browser version is refused
 instead of overwriting a newer policy, and unsaved edits survive a refetch.
 No policy save changes game settings, kicks a member or sends a message.
 
+Saving does not restart review streaks or the activity clock. Recorded review
+boundaries are replayed under the new values; the current Trophy Road figure
+is used when that category counts. A pending recommendation that still
+qualifies retains the evidence and policy version saved when it was raised.
+Current thresholds, grace and waiting periods apply at reevaluation without
+rewriting previous decisions. Awards keep their separate setup and frozen
+historical plans.
+
 When **Tell the clan when the rules change** is on, a save raises
 **Tell the clan how it runs** for the leaders: a Clan Leader Message
 saying how the clan runs the first time, and what changed after.
@@ -98,7 +107,7 @@ Under **Manage**, beside the policy:
 
 - **Board**: every member as the policy reads them today, grouped as
   actionable, building, held or clear. Open a member for their evidence,
-  a note, and a **hold**, which pauses the inactivity clock for a member
+  a note, and a **hold**, which shields removal eligibility for a member
   who said they will be away, until a date or until cleared.
 - **History**: the joins, leaves and role changes the record saw, with
   how each leave was answered; every action the clan has had, with its

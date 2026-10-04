@@ -443,9 +443,13 @@ export function Policy({ clan }) {
             <p className="page-head__note m-0">
               Edits stay local until Save. The new version applies at the next
               evaluation, including recorded reviews; pending recommendations
-              can change. Completed decisions and saved award grants stay as
-              recorded. Awards have their own setup. Preview uses recorded facts
-              only, with no LLM, and does not apply holds or decision cooldowns.
+              can change. Review streaks are replayed under the new policy;
+              saving does not restart them or the activity clock. Completed
+              decisions and saved award grants stay as recorded. Awards have
+              their own setup. Preview uses recorded facts only, with no LLM,
+              and does not apply holds or decision cooldowns. It saves no
+              policy, Action, award or decision; the member-count observation
+              and normal read audit are updated.
             </p>
             {preview && !conflict ? <Preview preview={preview} /> : null}
           </div>

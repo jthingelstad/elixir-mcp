@@ -178,7 +178,7 @@ counter increases inform a clock: **getting quiet**, then **at risk**, then a
 removal action once they have stayed at risk for the days the clan set.
 The leader, co-leaders, members on a hold and, unless the clan allows
 it, Elders stop at at risk and are never put up for removal. When the
-record cannot see a member's battles, the clock waits.
+record cannot establish the required quiet window, removal eligibility holds.
 
 A positive lifetime battle-counter increase proves play between two profile
 observations, even if no battle details were captured. It does not supply an
@@ -187,7 +187,9 @@ the member; the age of the last captured battle is historical evidence, not
 "battle-free days."
 
 A removal needs comparable profile counter observations covering the policy
-window. Missing baselines, null or decreasing counters, ambiguous timestamps,
+window. Roster-only daily rows are not profile observations; missing days
+remain gaps and never establish quiet time across them. Missing baselines,
+null or decreasing counters, ambiguous timestamps,
 failed current reads and time after the latest profile observation hold it.
 There is no implicit freshness allowance for that unmeasured tail; in normal
 operation this holds removals until an explicit freshness rule is agreed.
@@ -203,13 +205,22 @@ a new observation invalidates an older draft. Fresh evaluation withdraws an
 unsupported pending recommendation with an audited system reason; its number,
 original evidence, log and earlier leader decisions remain recorded.
 
-Two things pause it:
+Board distinguishes **Protected**, **Not currently a removal candidate**,
+**Evidence held** and **Eligible**. Protected roles and recent recorded play
+do not become removal cases just because some coverage is incomplete. These
+labels keep evidence quality separate from relevance; they do not relax the
+current-evidence checks on an Action.
+
+Two things shield removal eligibility while active:
 
 - **A hold**, set by the leader or a co-leader on a member who said they
   will be away. Silence is not a hold.
 - **An away notice**, set by the member under **Away**, up to the number
   of days the clan allows. Leaders see it beside the member's name. It
   waits until the member's player is verified.
+
+Neither resets the activity anchor nor subtracts held time from elapsed time.
+After it clears or expires, the current evidence and policy are assessed again.
 
 ## Who sees what
 

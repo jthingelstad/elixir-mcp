@@ -590,7 +590,7 @@ export const FIELDS = {
     min: 0,
     max: 90,
     default: 0,
-    why: "A member who says they will be away pauses their own clock, up to this long. Zero turns it off; leaders can always hold or clear.",
+    why: "An active away notice shields removal eligibility, up to this long. It does not reset the activity clock or subtract elapsed time. Zero turns it off; leaders can always hold or clear.",
     when: [{ removal_enabled: true }],
   },
   away_suggestions_enabled: {
