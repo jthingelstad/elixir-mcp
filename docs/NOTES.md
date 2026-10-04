@@ -5088,3 +5088,23 @@ Bring your clan guides served the changed copy; public health was green.
 MCP 11.2.0 and JSON API 3.0.0 are unchanged. The production lease was released
 after readback. No policy values, grants, member decisions, clan messages or
 paid model calls changed during verification.
+
+## 2026-10-04 - Scout direct-route role clarity
+
+The Member/Elder fixture pass found that a Member typing Scout's address saw
+its request form even though the existing server refuses that role with
+elders_only. Desktop and mobile before-fix journeys reproduced this; Elder
+entry passed and neither role made a scouting request. The UI now presents
+the same existing role requirement before exposing a form, and the permitted
+form has a persistent Player tag label. The server's current-membership and
+role checks, live-read lane, limits and behavior remain unchanged. No live
+scout request or paid model call is used for testing. MCP 11.2.0 and JSON API
+3.0.0 remain unchanged; private UI polish only.
+
+Scout verification passed four focused desktop/mobile Member/Elder journeys,
+with zero scouting requests, and the full repository gate: 1,808 Node cases,
+85 existing skips, 438 Vitest cases and zero failures. The permitted desktop
+and mobile forms were visually checked. Required CI and production smoke plus
+published-build readback remain the release gates; tool acceptance is not
+needed for this private UI change. Ordinary-role observations use isolated
+synthetic fixtures, not live role changes.

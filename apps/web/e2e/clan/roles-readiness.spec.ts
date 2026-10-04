@@ -530,3 +530,41 @@ for (const size of ["wide", "@narrow"])
       ),
     ).toHaveCount(0);
   });
+
+for (const size of ["wide", "@narrow"])
+  for (const role of ["member", "elder"] as const)
+    test(`${role} direct Scout entry matches the permitted role before a live read ${size}`, async ({
+      page,
+    }) => {
+      let reads = 0;
+      const routes = roleRoutes(role);
+      routes[`POST ${apiBase}/scout`] = () => {
+        reads++;
+        return [403, { error: "elders_only" }];
+      };
+      await mockApi(page, routes);
+      await page.goto(`${base}/manage/scout`);
+      if (role === "member") {
+        await expect(page.getByRole("alert")).toContainText(
+          "Scout is for elders, co-leaders and the leader",
+        );
+        await expect(
+          page.getByRole("button", { name: "Scout", exact: true }),
+        ).toHaveCount(0);
+        await expect(page.getByPlaceholder("#TAG from the game")).toHaveCount(
+          0,
+        );
+      } else {
+        await expect(
+          page.getByRole("button", { name: "Scout", exact: true }),
+        ).toBeEnabled();
+        await expect(
+          page.getByRole("textbox", { name: "Player tag", exact: true }),
+        ).toBeVisible();
+        await page.screenshot({
+          path: `/tmp/elixir-elder-scout-${size.replace("@", "")}.png`,
+          fullPage: true,
+        });
+      }
+      expect(reads).toBe(0);
+    });
