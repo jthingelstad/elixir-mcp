@@ -715,7 +715,7 @@ export function createManageService({
         },
         cards,
         {
-          text: `${days} days of measured counter quiet, at risk from ${m.removal.at_risk_days}: asked whether they are away.`,
+          text: `${days} days on the recorded activity clock, at risk from ${m.removal.at_risk_days}: asked whether they are away.`,
           detail: { clauses: ["away_suggestions_enabled", "at_risk_days"] },
         },
       );
