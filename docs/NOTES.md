@@ -5162,3 +5162,23 @@ the newest twenty roster events, not full membership history. PR #289
 clarifies that window; browsing older recorded changes is a separate bounded
 query/pagination follow-up, not a data-loss finding. Season aggregates and
 Timeline-selected Actions were not warranted as small repairs in this pass.
+
+## 2026-10-04 - New-document search referrer hygiene
+
+The final privacy review reproduced a remaining roster-search path: opening
+a searched member in another tab sanitizes the destination but the manual
+landing beacon included raw document.referrer, carrying the original free
+text. Two before-fix unit cases failed with the synthetic search in the
+beacon. Same-origin document referrers now use existing normalized analytics
+routes before a landing/fallback beacon, consistent with in-document
+navigation. A sign-in referrer yields no measurement; external referrers keep
+their existing behavior. Public record attributes and already-normalized SPA
+referrers remain as before. No live analytics beacon or business write is
+used for the test. MCP 11.2.0 and JSON API 3.0.0 remain unchanged; private web
+measurement hygiene only, with no tool-family acceptance required.
+
+Final verification passed all 21 analytics cases, including four new
+new-document referrer cases, and full npm run verify: 1,808 Node cases,
+85 existing skips, 442 Vitest cases, zero failures. Required CI, production
+smoke and activation/build readback remain release gates. Roster routing,
+filter state and the product's three-section structure are unchanged.

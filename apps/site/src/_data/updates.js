@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Keep roster searches out of new-tab analytics",
+    body: "Opening a searched roster member in another tab keeps the search out of analytics referrers as well as page addresses. Same-origin referrers use the existing normalized page routes; external referrers are unchanged. MCP 11.2.0; JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Settings matches the member's role",
     body: "Members and Elders opening Settings directly can read the clan's Social status without a leader-only switch. The recording summary explains its existing leader access instead of leaving an empty section. Leaders and co-leaders keep their controls; server permissions are unchanged. MCP 11.2.0; JSON API 3.0.0 unchanged.",
   },

@@ -196,6 +196,47 @@ describe("loadTinylytics", () => {
     expect(beacons[1]).not.toMatch(/Private|search|find=|uq8lp2r9c/);
   });
 
+  test.each([
+    "/clan/2PQRJ8LV?find=Current%20search",
+    "/clan/2PQRJ8LV/members/uq8lp2r9c?find=Current%20search",
+  ])("a new document at %s sanitizes a Clan search referrer", async (path) => {
+    Object.defineProperty(document, "referrer", {
+      value: `${ORIGIN}/clan/2PQRJ8LV?find=Private%20search`,
+      configurable: true,
+    });
+    try {
+      await load(path);
+      expect(embeds()).toEqual([]);
+      expect(beacons).toHaveLength(1);
+      expect(beacons[0]).not.toMatch(/Private|Current|search|find=|uq8lp2r9c/);
+      expect(new URL(beacons[0]).searchParams.get("referrer")).toBe(
+        at("/clan/2PQRJ8LV").url,
+      );
+    } finally {
+      Reflect.deleteProperty(document, "referrer");
+    }
+  });
+
+  test.each([
+    [`${ORIGIN}/console/signin?login_token=secret`, ""],
+    ["https://example.com/source", "https://example.com/source"],
+  ])(
+    "a new document measures referrer %s safely",
+    async (referrer, expected) => {
+      Object.defineProperty(document, "referrer", {
+        value: referrer,
+        configurable: true,
+      });
+      try {
+        await load("/clan/2PQRJ8LV?find=Ben");
+        expect(new URL(beacons[0]).searchParams.get("referrer")).toBe(expected);
+        expect(beacons[0]).not.toContain("secret");
+      } finally {
+        Reflect.deleteProperty(document, "referrer");
+      }
+    },
+  );
+
   test("an ordinary start loads the embed and bridges as well", async () => {
     await load("/console/account/overview");
     expect(embeds()).toEqual([
