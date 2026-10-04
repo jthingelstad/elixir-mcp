@@ -476,7 +476,7 @@ export function createManageService({
       !participation &&
       !small &&
       cached &&
-      cached.removal_evidence_schema === 1 &&
+      cached.removal_evidence_schema === 2 &&
       cached.policy_version === policy.version &&
       t - Date.parse(cached.evaluated_at) < EVALUATION_TTL_MS
     )
@@ -873,7 +873,7 @@ export function createManageService({
     // The snapshot is what the pages read; keep it small.
     const snapshot = {
       ...verdicts,
-      removal_evidence_schema: 1,
+      removal_evidence_schema: 2,
       members: verdicts.members.map((m) => ({
         ...m,
         trail: m.trail.slice(-4),
@@ -1844,7 +1844,7 @@ export function createManageService({
     },
 
     // ---- away: a member says so on their own page (2026-09-12). The
-    // clock pauses like a leader's hold; the policy caps how long; a
+    // hold shields removal eligibility; the policy caps how long; a
     // leader can clear it; the board says it was the member's word.
     async myAway(clanTag, who) {
       const holds = await ledger.holds(clanTag);
@@ -1856,7 +1856,7 @@ export function createManageService({
         policy.values.away_max_days > 0;
       return {
         allowed,
-        // Saying so pauses the clock and reaches Elixir in the player's
+        // Saying so shields eligibility and reaches Elixir in the player's
         // name: an unverified player cannot.
         verified: who.verified !== false,
         max_days: allowed ? policy.values.away_max_days : 0,
@@ -2064,13 +2064,15 @@ export function createManageService({
 function bucketFor(m) {
   if (m.actionable.promotion || m.actionable.demotion || m.actionable.removal)
     return "actionable";
-  if (m.hold?.active) return "held";
-  const heldJ = Object.values(m.judgment).some(
-    (j) => j === "held" || j === "unknown",
+  const heldJ = Object.entries(m.judgment).some(
+    ([dimension, j]) =>
+      (dimension !== "removal" ||
+        !["protected", "not_candidate"].includes(m.removal.triage?.status)) &&
+      (j === "held" || j === "unknown"),
   );
   if (
-    m.removal.state === "at_risk" ||
-    m.removal.state === "watch" ||
+    (m.removal.triage?.status !== "protected" &&
+      (m.removal.state === "at_risk" || m.removal.state === "watch")) ||
     m.promotion.state === "building" ||
     m.demotion.state === "building" ||
     m.promotion.state === "eligible" ||

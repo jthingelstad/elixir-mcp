@@ -21,6 +21,59 @@ const poap = {
   your_tags: ["#20QQL8CCRU"],
 };
 
+test("Board distinguishes all four removal triage labels without describing protected or recently active members as evidence-held cases", async () => {
+  const statuses = ["protected", "not_candidate", "evidence_held", "eligible"];
+  vi.spyOn(manageApi, "manage").mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: {
+      evaluated_at: "2026-10-04T08:00:00Z",
+      policy_version: 1,
+      boundaries: [],
+      band: null,
+      policy: { ranks_elder: false, removal: true },
+      board: statuses.map((status, i) => ({
+        player_tag: `#SYNTH${i}`,
+        name: `Invented ${i}`,
+        role: i === 0 ? "leader" : "member",
+        bucket: i === 2 ? "held" : i === 3 ? "actionable" : "clear",
+        judgment: {
+          promotion: "off",
+          demotion: "not_applicable",
+          removal: status === "eligible" ? "ready" : "held",
+        },
+        judgment_reasons: [],
+        promotion: { state: "none" },
+        removal: {
+          state: "none",
+          triage: { status, reason: `Explanation ${i}` },
+        },
+      })),
+    },
+  });
+  renderWithProviders(
+    <Manage
+      clan={poap}
+      tab="board"
+      who={{ player_tag: poap.acting_as, role: "leader" }}
+    />,
+  );
+  await waitFor(() => expect(screen.getByText("Invented 0")).toBeTruthy());
+  for (const label of [
+    "Protected",
+    "Not currently a removal candidate",
+    "Evidence held",
+    "Eligible",
+  ])
+    expect(screen.getByText(label, { exact: true })).toBeTruthy();
+  expect(screen.getByLabelText("Removal triage").textContent).toMatch(
+    /Protected 1 · Not currently a removal candidate 1 · Evidence held 1 · Eligible 1/,
+  );
+  expect(screen.getByText("Explanation 0")).toBeTruthy();
+  expect(screen.getByText("Explanation 1")).toBeTruthy();
+  expect(screen.queryByText("held · activity unknown")).toBeNull();
+});
+
 test("the board shows every held or unknown reason, including simultaneous dimensions", async () => {
   const reasons = [
     "Promotion: tenure unknown because the join predates the record.",

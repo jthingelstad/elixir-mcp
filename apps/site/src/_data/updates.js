@@ -10,8 +10,13 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Removal triage separates protection from missing evidence",
+    body: "Board distinguishes protected members, members who are not currently removal candidates, held evidence and eligible recommendations. Roster-only rows are not profile observations; missing days remain gaps. Closed Action warnings preserve the audit without suggesting a new decline, and evidence timestamps use your local clock. Policy explains how saving replays reviews and how an active hold shields eligibility without subtracting time. Removal checks remain strict, with no freshness allowance adopted. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Missing battle captures cannot justify removal",
-    body: "Positive profile-counter intervals protect members even when battle details are missing. Removal Actions check current evidence separately from saved evaluations; unknown capture and unmeasured time hold the recommendation and withhold removal words, drafting, completion and reopening. Original evidence and audit history stay recorded; leadership can still explicitly decline. No freshness allowance is assumed. Contracts unchanged.",
+    body: "Positive profile-counter intervals protect members even when battle details are missing. Removal Actions check current evidence separately from saved evaluations; unknown capture and unmeasured time hold the recommendation and withhold removal words, drafting, completion and reopening. Original evidence and audit history stay recorded; leadership can still explicitly decline an open Action. No freshness allowance is assumed. Contracts unchanged.",
   },
   {
     date: "2026-10-04",

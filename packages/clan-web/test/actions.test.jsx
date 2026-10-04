@@ -11,6 +11,7 @@ import { ActionDetail, Actions } from "../src/views/Actions.jsx";
 import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
 import { ActionCard } from "../src/components/ActionCard.jsx";
+import { ZoneProvider } from "@elixir-mcp/ui";
 
 afterEach(() => {
   cleanup();
@@ -92,6 +93,59 @@ const view = (extra = {}) => ({
 });
 
 describe("actions", () => {
+  test("a withdrawn removal warning is stacked, uses the reader's timezone and offers no new decline or decision", () => {
+    const decide = vi.spyOn(manageApi, "decideAction");
+    renderWithProviders(
+      <ZoneProvider zone="America/Chicago">
+        <ActionCard
+          clan={clan}
+          who={{ role: "leader" }}
+          reasons={[]}
+          model={{ set: true }}
+          action={{
+            ...removal,
+            status: "withdrawn",
+            can_act: false,
+            can_complete: false,
+            can_reopen: true,
+            removal_safety: {
+              status: "held",
+              checked_at: "2026-10-04T08:00:00Z",
+              reason:
+                "Profile observations are missing inside the measured window.",
+              latest_activity_interval: {
+                counter_increase: 1,
+                observed_from: "2026-10-02T01:00:00Z",
+                observed_to: "2026-10-03T02:00:00Z",
+                no_battles_captured: true,
+              },
+            },
+          }}
+        />
+      </ZoneProvider>,
+    );
+    const alert = screen.getByRole("alert");
+    expect(alert.classList.contains("flex-col")).toBe(true);
+    expect(alert.textContent).toContain("2026-10-04 03:00 CDT");
+    expect(alert.textContent).toContain("2026-10-01 20:00 CDT");
+    expect(alert.textContent).toContain("This Action is closed");
+    expect(alert.textContent).not.toMatch(/may still explicitly decline/);
+    expect(alert.querySelectorAll("time")).toHaveLength(3);
+    for (const name of [
+      "Complete",
+      "Decline",
+      "Reopen action",
+      "Draft in our voice",
+    ])
+      expect(screen.queryByRole("button", { name, exact: true })).toBeNull();
+    expect(screen.queryByLabelText("Chat message")).toBeNull();
+    expect(
+      screen.getAllByText("20 battle-free days: at risk at 5, an action at 8."),
+    ).toHaveLength(1);
+    expect(screen.getByText(/Log · 1 entry/)).toBeTruthy();
+    expect(screen.getByText("2026-09-12 15:00 CDT")).toBeTruthy();
+    expect(decide).not.toHaveBeenCalled();
+  });
   test("held removal evidence is prominent; stale copy, drafts, completion and reopening are withheld while explicit decline stays available", async () => {
     const decide = vi
       .spyOn(manageApi, "decideAction")

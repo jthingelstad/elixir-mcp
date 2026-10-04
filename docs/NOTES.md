@@ -4639,3 +4639,20 @@ gap, not an Elixir service fault. A `run` queue note asks Jamie to restore
 each affected bot's configured ask-channel access or binding, then restart
 only that instance and confirm its next natural ask turn. No restart, prompt
 change, live write, migration, lease, or deploy was performed in this run.
+
+### 2026-10-04 — bounded removal triage correction
+
+Board separates Protected, Not currently a removal candidate, Evidence held
+and Eligible without changing removal admission. Role protections, holds,
+recent captured play and trustworthy positive-counter brackets no longer
+become removal cases solely because other evidence is incomplete. Missing
+profile days remain gaps: roster-only rows are excluded from genuine profile
+observations, and comparisons cannot bridge those gaps. No freshness tolerance
+or new counter-only eligibility rule is adopted.
+
+Closed Action warnings no longer suggest Decline, use a stacked layout and
+reader-local timestamps, and retain original evidence and audit. Explanations
+remove doubled punctuation. Policy documents save/replay and Preview's
+observation/read-audit writes; holds shield eligibility without resetting or
+subtracting elapsed time. No Policy, member decision, message or award writes
+are part of this patch. MCP 11.1.0 / JSON API 3.0.0 and schema unchanged.

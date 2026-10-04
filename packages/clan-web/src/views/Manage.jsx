@@ -24,8 +24,14 @@ const TITLES = {
 const BUCKET_LABEL = {
   actionable: "Actionable",
   building: "Building",
-  held: "Held",
+  held: "Evidence held",
   clear: "Clear",
+};
+const REMOVAL_LABEL = {
+  protected: "Protected",
+  not_candidate: "Not currently a removal candidate",
+  evidence_held: "Evidence held",
+  eligible: "Eligible",
 };
 
 /** Manage: leader and co-leader only (the API refuses everyone else). */
@@ -202,6 +208,17 @@ export function Manage({ clan, tab, navigate, who }) {
       {tabs}
       {evidenceLine}
       <BandLine band={d.band} roster={d.roster} />
+      {d.policy?.removal ? (
+        <p className="page-head__note" aria-label="Removal triage">
+          Removal:{" "}
+          {Object.entries(REMOVAL_LABEL)
+            .map(
+              ([status, label]) =>
+                `${label} ${d.board.filter((m) => m.removal.triage?.status === status).length}`,
+            )
+            .join(" · ")}
+        </p>
+      ) : null}
       {["actionable", "building", "held", "clear"].map((bucket) => {
         const rows = d.board.filter((m) => m.bucket === bucket);
         if (!rows.length) return null;
@@ -321,6 +338,15 @@ function elderCell(m) {
 
 function removalCell(m) {
   const r = m.removal;
+  if (r.triage)
+    return (
+      <span
+        className={`chip ${r.triage.status === "evidence_held" ? "chip--warn" : r.triage.status === "eligible" ? "chip--bad" : ""}`}
+        title={r.triage.reason}
+      >
+        {REMOVAL_LABEL[r.triage.status]}
+      </span>
+    );
   if (m.judgment.removal === "held")
     return <span className="chip chip--warn">held · activity unknown</span>;
   if (r.days_idle === null) return <span className="nil">unknown</span>;
@@ -345,10 +371,17 @@ function judgmentCell(m) {
     return (
       <span className="text-ink-faint">{m.judgment_reasons.join(" ")}</span>
     );
+  if (
+    m.removal.triage?.reason &&
+    ["protected", "not_candidate"].includes(m.removal.triage.status)
+  )
+    return <span className="text-ink-faint">{m.removal.triage.reason}</span>;
   const js = [
     m.judgment.promotion,
     m.judgment.demotion,
-    m.judgment.removal,
+    ["protected", "not_candidate"].includes(m.removal.triage?.status)
+      ? "not_applicable"
+      : m.judgment.removal,
   ].filter((j) => j !== "not_applicable" && j !== "off");
   if (js.includes("unknown"))
     return <span className="caveat">tenure unknown</span>;

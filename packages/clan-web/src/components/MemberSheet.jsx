@@ -12,7 +12,7 @@ import { trackEvent } from "../analytics.js";
  * One member, for an elder or a leader: notes (elders read and write elder
  * notes; leaders write leader notes and read both) and, for leaders, the
  * hold. Context beside the clock: a note is what a leader knows, a hold is
- * the clock paused.
+ * protection from removal while active, without resetting the clock.
  */
 export function MemberSheet({ clanTag, member, role, onChange }) {
   const isLeader = role === "leader" || role === "coLeader";
@@ -166,12 +166,14 @@ export function MemberSheet({ clanTag, member, role, onChange }) {
                   ? `until ${member.hold.until.slice(0, 10)}`
                   : "until cleared"}
                 {member.hold.note ? ` · ${member.hold.note}` : ""}. The removal
-                clock is paused.
+                recommendation is shielded while this hold is active. Held time
+                is not subtracted from elapsed time.
               </p>
             ) : (
               <p className="page__lede" style={{ margin: "0 0 8px" }}>
-                Not on hold. A hold pauses the removal clock for a member who
-                told you they will be away; silence is not a hold.
+                Not on hold. A hold shields removal eligibility for a member who
+                told you they will be away; silence is not a hold. It does not
+                reset the activity clock.
               </p>
             )}
             <form

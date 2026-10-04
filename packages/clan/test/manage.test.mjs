@@ -359,7 +359,7 @@ test("cards: a done removal is verified when the record no longer lists the memb
   );
 });
 
-test("holds pause the clock and show on the member; a member cannot set one", async () => {
+test("holds shield eligibility without resetting the clock; a member cannot set one", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
   const set = await api(h, cookies, "PUT", "/api/clans/2PQRJ8LV/holds/8QCV", {
@@ -383,7 +383,9 @@ test("holds pause the clock and show on the member; a member cannot set one", as
   const hold = history.body.holds.find((x) => x.player_tag === "#8QCV");
   assert.equal(hold.by_name, "Ada");
   assert.equal(hold.player_name, row.name);
-  assert.equal(row.bucket, "held");
+  assert.equal(row.removal.triage.status, "protected");
+  assert.notEqual(row.bucket, "held");
+  assert.equal(row.removal.days_idle, 20);
   assert.equal(
     view.body.inbox.filter((c) => c.player_tag === "#8QCV").length,
     0,

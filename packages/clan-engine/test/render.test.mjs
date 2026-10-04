@@ -16,6 +16,21 @@ import { member, participation, NOW, EXAMPLE_POLICY } from "./fixture.mjs";
 
 const policy = EXAMPLE_POLICY;
 
+test("removal evidence explanations have one terminal period", () => {
+  const p = participation([member("#QUIET", { lastBattleDaysAgo: 20 })]);
+  p.members[0].activity_evidence.observations.at(-1).battle_count = null;
+  const v = evaluate({ participation: p, policy, now: NOW });
+  const reasons = judgmentReasons(v.members[0], v.boundaries, policy);
+  assert.ok(
+    reasons.some(
+      (r) =>
+        r ===
+        "Removal held: Profile counters or observation times are not comparable.",
+    ),
+  );
+  assert.ok(reasons.every((r) => !r.endsWith("..")));
+});
+
 test("held and unknown judgments explain the missing evidence without changing the verdict", () => {
   const p = participation([
     member("#UNKNOWN", { tenureKnown: false }),
@@ -85,7 +100,6 @@ test("held and unknown judgments explain the missing evidence without changing t
     judgmentReasons(unrecorded.members[0], unrecorded.boundaries, policy),
     [
       "Promotion held: battle log is not recorded, so standing cannot be judged.",
-      "Removal held: battle log is not recorded, so inactivity cannot be measured.",
     ],
   );
 });

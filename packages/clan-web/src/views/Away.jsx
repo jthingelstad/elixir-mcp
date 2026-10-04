@@ -7,7 +7,7 @@ import { ELIXIR_LINKS } from "../lib/links.js";
 /**
  * Away: a member tells the clan they will be gone, on their own page
  * (Jamie, 2026-09-12: "they could go there and indicate they are away"),
- * when the clan's policy tracks inactivity and offers it. The clock pauses
+ * when the clan's policy tracks inactivity and offers it. Eligibility is shielded
  * like a leader's hold, up to the policy's cap; leaders see it on the board
  * with the member's note and can clear it; a leader's own hold is not the
  * member's to move.
@@ -48,8 +48,9 @@ export function Away({ me }) {
         </span>
       </div>
       <p className="page__lede" style={{ margin: "0 0 16px" }}>
-        Going to be gone for a bit? Say so here and the inactivity clock pauses
-        until the day you name. Leaders see it beside your name.
+        Going to be gone for a bit? Say so here to shield removal eligibility
+        until the day you name. Leaders see it beside your name. Held time is
+        not subtracted from elapsed time.
         {state.allowed
           ? ` Up to ${state.max_days} days at a time.`
           : " This clan's policy does not offer it; tell a leader instead."}
@@ -93,8 +94,9 @@ export function Away({ me }) {
       ) : state.allowed && state.verified === false ? (
         <div className="callout callout--info">
           <span>
-            Saying you are away pauses your inactivity clock and tells Elixir in
-            your player&rsquo;s name, so it waits until your player is verified.{" "}
+            Saying you are away shields removal eligibility while active and
+            tells Elixir in your player&rsquo;s name, so it waits until your
+            player is verified.{" "}
             <a href={ELIXIR_LINKS.verify}>Verify in Elixir ›</a>
           </span>
         </div>
