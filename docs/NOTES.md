@@ -4534,3 +4534,36 @@ its `pub` plus a short time remainder violated the public-ID minimum length
 at a modulo boundary. Distinct fixed valid fixture IDs remove that clock
 failure. The new query-cache regression waits for TanStack's notification
 before asserting a version conflict; it does not bypass conflict behavior.
+
+
+Release receipt: PR268 merged as f58519f9014d460026920d1a678f485031eeaa24
+at 07:57:10Z. Validate run 37187063828 passed full verify, the Lambda build
+and all 101 browser journeys (1.4 minutes, no retries/failures). Local full
+verify passed after the documented fixture repairs; 62 focused backend/data
+regressions, 100 Clan UI checks and all 101 browser journeys passed. Desktop
+and mobile screenshots and axe checks covered member evidence and preparation;
+three-clan switching restores capabilities without a reload. Both independent
+source reviews' findings are closed, with same-day rejoin, earlier-week,
+fixed-read counter, draft conflict and thirty-minute boundary regressions.
+
+The clean merged commit deployed once with cloud-engineer under the session
+lease. The platform lane applied zero migrations (201 already applied) and
+retained the 47-role/29-alias f72062c vocabulary. CloudFormation reports
+UPDATE_COMPLETE at 07:58:36.485Z; the web Lambda is Active/Successful,
+LastModified 07:58:19Z. Its CodeSha256 equals the built ZIP:
+PWHnGCVv/dZ7l0/HmdiAOMbjrMGEEXRQqx8KkSzjeNQ=.
+All 43 smoke checks passed. MCP acceptance was deliberately omitted: this
+changes private Clan routes, UI and people-facing docs, with no existing
+public tool or JSON API operation changed. Scratch scope/admission tests
+and fixture browser journeys cover the new read; real business writes or
+paid drafts are not acceptance fixtures. Contracts remain 11.1.0 / 3.0.0.
+
+Read-back from 08:00:16.590410Z confirmed public status and exact-build bytes
+for Policy, Actions and awards docs, Updates and the member-route app shell.
+Served App-Jtolsefy.js exactly matches the build, SHA256
+2ecc33e159c60c8482db08b8e39949d2c78a6f0ef681e74a916f0a0fd468b0ab.
+This execution has no Jamie browser session; real-clan signed-in inspection
+remains the parent's read-only browser lane. No real Policy, classification,
+message, award, preference or paid draft was changed for QA. The clean tree's
+lease was released after read-back. This receipt lands through a green
+notes-only PR; no deployment follows it.
