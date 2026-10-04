@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createTestAccount } from "./fakes.mjs";
 import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemoryLedger } from "@elixir-mcp/clan-state";
@@ -16,6 +17,7 @@ import {
   cookieHeader,
   rosterBody,
   ledgerWithPolicy,
+  seedVersion,
 } from "./fakes.mjs";
 import {
   member,
@@ -2114,24 +2116,51 @@ test("unverified: a verified Leader sees no notice; an unverified member has not
 });
 
 test("core policy context is narrow, current and explicitly unknown until intent is saved", async () => {
+  const schema = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../contracts/clan-policy-context.schema.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  const fixtures = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../contracts/test/fixtures/clan-policy-context.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  const matchesFixture = (actual, name) => {
+    const expected = fixtures.find((f) => f.case === name).context;
+    assert.deepEqual(actual, {
+      ...expected,
+      clan_tag: actual.clan_tag,
+      policy_version:
+        expected.policy_version === null ? null : actual.policy_version,
+      policy_saved_at:
+        expected.policy_saved_at === null ? null : actual.policy_saved_at,
+      read_at: actual.read_at,
+    });
+    assert.equal(actual.schema_version, schema.properties.schema_version.const);
+    assert.deepEqual(Object.keys(actual).sort(), [...schema.required].sort());
+    if (expected.policy_version !== null)
+      assert.ok(
+        Number.isInteger(actual.policy_version) && actual.policy_version > 0,
+      );
+    assert.ok(Number.isFinite(Date.parse(actual.read_at)));
+    if (actual.policy_saved_at !== null)
+      assert.ok(Number.isFinite(Date.parse(actual.policy_saved_at)));
+  };
   const h = harness({ part: partClan() });
   const who = { player_tag: "#20QQL8CCRU", role: "member", verified: true };
   const legacy = await h.manage.policyContext("#2PQRJ8LV", who);
   assert.equal(legacy.status, "unknown");
   assert.equal(legacy.reason, "war_intent_unspecified");
-  assert.deepEqual(
-    Object.keys(legacy).sort(),
-    [
-      "schema_version",
-      "clan_tag",
-      "status",
-      "reason",
-      "war_intent",
-      "policy_version",
-      "policy_saved_at",
-      "read_at",
-    ].sort(),
-  );
+  matchesFixture(legacy, "legacy_or_unspecified");
   const prior = await h.ledger.currentPolicy("#2PQRJ8LV");
   await h.ledger.savePolicy("#2PQRJ8LV", {
     values: {
@@ -2140,19 +2169,43 @@ test("core policy context is narrow, current and explicitly unknown until intent
       war_enabled: false,
     },
     by: who.player_tag,
-    at: NOW.toISOString(),
   });
   const current = await h.manage.policyContext("#2PQRJ8LV", who);
   assert.equal(current.status, "known");
   assert.equal(current.war_intent, "participating");
+  matchesFixture(current, "participating");
   assert.ok(current.policy_version > legacy.policy_version);
   h.clock.t += 1000;
   const refreshed = await h.manage.policyContext("#2PQRJ8LV", who);
   assert.notEqual(refreshed.read_at, current.read_at);
   assert.equal(refreshed.policy_version, current.policy_version);
-  assert.equal(
-    (await h.manage.policyContext("#PYLQ2", who)).reason,
-    "no_policy",
+  matchesFixture(await h.manage.policyContext("#PYLQ2", who), "no_policy");
+  seedVersion(
+    h.ledger,
+    "policy",
+    "#2PQRJ8LV",
+    {
+      ...prior.values,
+      war_intent: "not_participating",
+      war_enabled: true,
+    },
+    current.policy_version + 1,
+  );
+  const oldPolicy = await h.manage.policyContext("#2PQRJ8LV", who);
+  matchesFixture(oldPolicy, "not_participating");
+  assert.equal(oldPolicy.policy_saved_at, "2026-09-01T00:00:00.000Z");
+  assert.equal(oldPolicy.read_at, new Date(h.clock.t).toISOString());
+  assert.ok(oldPolicy.policy_version > current.policy_version);
+  seedVersion(
+    h.ledger,
+    "policy",
+    "#2PQRJ8LV",
+    { ...prior.values, war_intent: "unsupported_future_value" },
+    oldPolicy.policy_version + 1,
+  );
+  matchesFixture(
+    await h.manage.policyContext("#2PQRJ8LV", who),
+    "legacy_or_unspecified",
   );
   await assert.rejects(
     h.manage.policyContext("#2PQRJ8LV", { ...who, verified: false }),

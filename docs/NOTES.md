@@ -4839,3 +4839,27 @@ engine/service tests passed 347 cases, Clan UI passed 106, the private-state
 import boundary passed, and the independent read-only consistency trace found
 no access expansion. Agent consumer/gating tests remain future work because
 that transport and gate are not implemented in this core slice.
+
+Core handoff follow-up: the canonical context JSON Schema and five synthetic
+fixtures now live in `packages/contracts`; the service test reads them and
+also covers explicit nonparticipation, an old saved policy with a new read,
+and an unsupported stored intent remaining unknown. Context revision/save
+provenance and read freshness are documented separately. The consumer's
+maximum read-to-fire age remains a coordinated decision, with successful new
+reads required at startup, planning and firing; no guessed TTL was added.
+
+The read-only live account inventory exposes token names/status/role, but not
+actual agent ownership or verified current membership. Source review confirmed
+the read-only profiler also cannot establish those facts; an authenticated
+person's `/api/me` is a separate owner/claims reader without an available
+authorized session here. No ownership/default-clan assumption was treated as
+private policy permission. Agent/integration access remains refused, and no
+new scopes/grants/policy values were created. The handoff document states the
+exact unchanged audience and the proposed access that still needs approval.
+
+Full handoff verification passed: 1,798 Node cases, 85 existing skips, zero
+failures, and 433 Vitest cases. The subsequent focused service/boundary check
+passed all 44 cases. Independent read-only privacy/consistency review found no
+material findings. Initial draft CI validate passed at 17:12:15Z (12:12 PM CT)
+on 30691787; the handoff commit needs its own CI. Keep PR #284 draft pending
+transport/access/consumer coordination; no merge/deploy in this slice.
