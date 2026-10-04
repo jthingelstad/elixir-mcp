@@ -4203,3 +4203,40 @@ Tuesday scenario now uses a fixed 2026-09-15 day alongside its already-mocked
 clock. No production ingest logic changed. Follow-up: inspect duplicate moment
 emission across the extra reset-snapshot writer in a dedicated reset-window
 regression; the fixed non-reset scenario does not claim that issue is repaired.
+
+
+## 2026-10-04 - Clan message review release receipt
+
+PR [#259](https://github.com/jthingelstad/elixir-mcp/pull/259) merged as
+`0aa73a88ac2a0335fc2110d936120e9ddb6db91d` at 00:20:12Z
+(7:20 PM CT, October 3). Full local `npm run verify` passed after the
+date-dependent fixture correction recorded above. Twenty focused Actions
+checks and the fixture-only mobile journey passed. Two independent reviews
+found no blocker; the final security delta review covered rejected-completion
+recovery. Required CI `37164390067` passed, including **88 browser checks,
+no failed/flaky checks**.
+
+Deploy ran from clean green main under the session lease. CloudFormation
+reported UPDATE_COMPLETE at **00:22:31.005Z (7:22 PM CT, October 3)**. The
+web Lambda LastModified was 00:22:14Z, Active/Successful, with CodeSha256
+matching the built bundle. Zero migrations ran; the normal vocabulary import
+retained 47 roles/29 aliases from the committed standalone reference.
+
+All **43 smoke checks passed**. Public health reported `health.ok: true`;
+the changed docs and What's new entry were visible. The live `/clan` app
+shell and `App-Dhef_NDS.js` bytes matched the build. No production Action
+was opened, drafted, completed or messaged for acceptance. Public tool
+acceptance was intentionally omitted because no tool behavior changed. MCP
+remains 11.0.2 and JSON API remains unchanged. The lease was released and
+the runtime worktree was clean. This receipt is notes only; no further
+deploy follows it.
+
+The follow-up Timeline recommendation now includes canonical battle evidence:
+reuse the existing event-to-crossing-battle foreign key, expose exact ordered
+session battle references under the existing story ID/revision, and freeze
+selected references with private Action evidence. Keep unproved crossings
+explicitly unknown, source visibility intact, and retention tied to canonical
+facts rather than copied battle payloads. This remains a recommendation;
+no new Timeline bridge, contracts, global relationship store, provider call or
+production message was implemented. Paid drafting remains mocked until an
+explicit bounded generation decision.
