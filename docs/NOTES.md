@@ -4785,3 +4785,32 @@ Validation: full `npm run verify` passed after allowing local scratch PostgreSQL
 access (the sandbox attempt was blocked with EPERM). Updated generated-policy
 and browser preview regressions also passed in focused reruns: ten render tests
 and 105 Clan UI tests. CI will run the complete browser/site lanes.
+
+### All-mode removal deployment receipt
+
+PR #281 merged at 12:37:35Z (7:37 AM CT), source head `3c3f676b`,
+runtime `496fc958636224c1dadc58847d54560c91208e47`. Required validate
+run 37202390750 finished successfully at 12:36:46Z; all 105 browser
+journeys passed. Final local verify passed 1,879 Node tests (1,794 passed,
+85 existing skips) and 432 Vitest tests, with zero failures.
+
+CloudFormation UPDATE_COMPLETE was read at 12:38:53.373Z (7:38 AM CT).
+Deployment ran zero new migrations (201 applied), retained the committed
+vocabulary (47 roles, 29 aliases), and passed all 43 smoke checks. Acceptance
+was not requested: no public MCP tool or JSON API operation changed.
+
+Readback begun at 12:41:34Z verified exact served Clan docs, updates, app
+shell/assets and unchanged MCP 11.1.1 / JSON API 3.0.0. All seven Lambdas
+were Active/Successful with exact bundle contents. Four changed ZIP byte
+hashes matched; three unchanged bundles retained their older ZIP timestamps,
+so their AWS hash was checked against the downloaded deployed ZIP and its
+file paths/bytes compared exactly to the new build. Public health was green.
+A separate read-only preservation check at 12:41:47Z confirmed the existing
+withdrawn Action and every field in its five audit entries unchanged. No real
+member decision or game observation was created for QA.
+
+The bounded consistency trace's final independent recheck found no material
+remaining issue. Production lease released after readback. This receipt is
+notes-only and requires no redeploy. Immutable receipt-bound counter tuples
+and a verified all-mode coverage contract remain future evidence work;
+ordinary removal stays held without them.
